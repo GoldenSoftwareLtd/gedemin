@@ -480,8 +480,8 @@ type
     // коммит не делает
     procedure ExecSingleQuery(const S: String; const Transaction: TIBTransaction = nil); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant; const Transaction: TIBTransaction = nil); overload;
-    procedure ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant; const Transaction: TIBTransaction = nil); //overload;
+    function ExecSingleQueryResult(const S: String; Param: Variant;
+      out Res: OleVariant; const Transaction: TIBTransaction = nil): Boolean; 
 
     procedure ChangeRUID(const AnOldXID, AnOldDBID, ANewXID, ANewDBID: TID;
       ATr: TIBTRansaction);
@@ -624,8 +624,10 @@ type
     procedure Clear; override;
   end;
 
+  TgdcBaseInitProc = procedure(Obj: TgdcBase) of object;
+
   /////////////////////////////////////////////////////////
-  // базавы клас для б_знэс аб'ектаў
+  // базавы клас для бізнэс аб'ектаў
 
   TgdcBase = class(TIBCustomDataSet, IgdcBase)
   private
@@ -868,8 +870,8 @@ type
     // коммит не делает
     procedure ExecSingleQuery(const S: String); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant); overload;
-    procedure ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant); //overload;
+    function ExecSingleQueryResult(const S: String; Param: Variant;
+      out Res: OleVariant): Boolean;
 
     // функция пытается удалить запись. Если ей это удается, то возвращает
     // Истину, если нет, то вызывает окно со списком ссылающихся таблиц
@@ -1343,7 +1345,7 @@ type
     // стварае новы зап_с _ адкрывае дыялог для яго рэдактаваньня
     function CreateDialog(const ADlgClassName: String = ''): Boolean; overload; virtual;
     function CreateDialog(C: CgdcBase): Boolean; overload; virtual;
-    function CreateDialog(C: TgdcFullClass): Boolean; overload; virtual;
+    function CreateDialog(C: TgdcFullClass; const AnInitProc: TgdcBaseInitProc = nil): Boolean; overload; virtual;
 
     // делает новую запись, с предварительным выбором потомков
     function CreateDescendant: Boolean; virtual;
@@ -2195,7 +2197,6 @@ const
 
 var
   CacheList: TStringHashMap;
-  //CacheBaseClassForRel: TStringList;
   UseSavepoints: Boolean;
   {$IFDEF DEBUG}
   InvokeCounts: TStringList;
@@ -2433,20 +2434,6 @@ begin
   end;
 end;
 
-{function BuildTree2(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
-begin
-  if (ACE is TgdBaseEntry) and (ACE.SubType = '') then
-  begin
-    if (CompareText(TgdBaseEntry(ACE).gdcClass.GetListTable(''), String(AData2^)) = 0) then
-      if (TgdcFullClass(AData1^).gdClass = nil)
-        or TgdcFullClass(AData1^).gdClass.InheritsFrom(ACE.TheClass) then
-      begin
-        TgdcFullClass(AData1^).gdClass := TgdBaseEntry(ACE).gdcClass;
-      end;
-  end;
-  Result := True;
-end;}
-
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 var
   BE: TgdBaseEntry;
@@ -2479,191 +2466,6 @@ begin
     end;
   end;
 end;
-
-{
-function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
-var
-  I: Integer;
-  R, ParentR: TatRelation;
-  L: TObjectList;
-  ibsql: TIBSQL;
-  S: String;
-  Ind, P: Integer;
-  BaseClassName, BaseSubType: String;
-  ClName: String;
-  F: TatRelationField;
-begin
-  Assert(ARelationName > '');
-  Assert(atDatabase <> nil);
-
-  if not Assigned(CacheBaseClassForRel) then
-  begin
-    CacheBaseClassForRel := TStringList.Create;
-    CacheBaseClassForRel.Sorted := True;
-  end;
-
-  Ind := CacheBaseClassForRel.IndexOfName(UpperCase(ARelationName));
-  if Ind > -1 then
-  begin
-    S := CacheBaseClassForRel.Values[ARelationName];
-    P := AnsiPos('(', S);
-    BaseClassName := Copy(S, 1, P - 1);
-    BaseSubType := Copy(S, P + 1, Length(S) - P - 1);
-    Result.gdClass := Pointer(CacheBaseClassForRel.Objects[Ind]);
-    if Result.gdClass = nil then
-      Result.gdClass := CgdcBase(GetClass(BaseClassName));
-    Result.SubType := BaseSubType;
-  end
-  else
-  begin
-    if StrIPos(UserPrefix, ARelationName) = 1 then
-    begin
-      R := atDatabase.Relations.ByRelationName(ARelationName);
-      if (R <> nil)
-        and (R.PrimaryKey <> nil)
-        and (R.PrimaryKey.ConstraintFields.Count = 1)
-        and (AnsiCompareText(R.PrimaryKey.ConstraintFields[0].FieldName, 'DOCUMENTKEY') = 0) then
-      begin
-        Result.gdClass := CgdcBase(GetClass('TgdcUserDocument'));
-        Result.SubType := '';
-
-        ibsql := TIBSQL.Create(nil);
-        try
-          ibsql.Transaction := gdcBaseManager.ReadTransaction;
-          ibsql.SQL.Text :=
-            ' SELECT dt.ruid, dt.classname, dt1.classname as folderclassname, ' +
-            ' dt.headerrelkey  ' +
-            ' FROM gd_documenttype dt LEFT JOIN gd_documenttype dt1 ON dt.lb >= dt1.lb AND ' +
-            ' dt.rb <= dt1.rb WHERE (dt.headerrelkey = :id or dt.linerelkey = :id) ' ;
-          ibsql.ParamByName('id').AsInteger := atDatabase.Relations.ByRelationName(ARelationName).ID;
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-          begin
-            if Trim(ibsql.FieldByName('classname').AsString) = '' then
-              ClName := ibsql.FieldByname('folderclassname').AsString
-            else
-              ClName := ibsql.FieldByname('classname').AsString;
-
-            S := '';
-            if AnsiCompareText(ClName, 'TgdcInvDocumentType') = 0 then
-            begin
-              if ibsql.FieldByName('headerrelkey').AsInteger =
-                ibsql.ParamByName('id').AsInteger then
-                S := 'TgdcInvDocument'
-              else
-                S := 'TgdcInvDocumentLine';
-            end
-            else
-              if AnsiCompareText(ClName, 'TgdcInvPriceListType') = 0 then
-              begin
-                if ibsql.FieldByName('headerrelkey').AsInteger =
-                  ibsql.ParamByName('id').AsInteger then
-                  S := 'TgdcInvPriceList'
-                else
-                  S := 'TgdcInvPriceListLine';
-              end
-              else
-                if AnsiCompareText(ClName, 'TgdcUserDocumentType') = 0 then
-                begin
-                  if ibsql.FieldByName('headerrelkey').AsInteger =
-                    ibsql.ParamByName('id').AsInteger then
-                    S := 'TgdcUserDocument'
-                  else
-                    S := 'TgdcUserDocumentLine';
-                end;
-
-              Result.SubType := ibsql.FieldByName('ruid').AsString;
-              Result.gdClass := CgdcBase(GetClass(S));
-           end;
-        finally
-          ibsql.Free;
-        end;
-      end else
-      begin
-        if (R <> nil) and (StrIPos('USR$CROSS', ARelationName) <> 1) then
-        begin
-          F := R.RelationFields.ByFieldName('LB');
-          if Assigned(F) then
-            Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedLBRBTree'))
-          else
-          begin
-            F := R.RelationFields.ByFieldName('PARENT');
-            if Assigned(F) then
-              Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
-            else
-            begin
-              Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
-
-              F := R.RelationFields.ByFieldName('INHERITEDKEY');
-              if Assigned(F) then
-              begin
-                ParentR := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-                if Assigned(ParentR) and Assigned(ParentR.RelationFields.ByFieldName('INHERITEDKEY')) then
-                  repeat
-                    ParentR := ParentR.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-                  until not Assigned(ParentR.RelationFields.ByFieldName('INHERITEDKEY'));
-
-                if Assigned(ParentR) then
-                begin
-                  if Assigned(ParentR.RelationFields.ByFieldName('PARENT'))
-                    and Assigned(ParentR.RelationFields.ByFieldName('LB')) then
-                      Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedLBRBTree'))
-                  else if Assigned(ParentR.RelationFields.ByFieldName('PARENT')) then
-                         Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
-                end
-              end;
-            end;
-          end;
-          Result.SubType := ARelationName;
-        end else
-        begin
-          Result.gdClass := nil;
-          Result.SubType := '';
-        end;
-      end;
-    end else
-    begin
-      Result.gdClass := nil;
-      Result.SubType := '';
-
-      gdClassList.Traverse(TgdcBase, '', BuildTree2, @Result, @ARelationName, True, False);
-
-      if Result.gdClass = nil then
-      begin
-        R := atDatabase.Relations.ByRelationName(ARelationName);
-        if (R <> nil)
-          and Assigned(R.PrimaryKey)
-          and (R.PrimaryKey.ConstraintFields.Count = 1) then
-        begin
-          L := TObjectList.Create(False);
-          try
-            atDatabase.ForeignKeys.ConstraintsByRelation(ARelationName, L);
-            for I := 0 to L.Count - 1 do
-              with (L[I] as TatForeignKey) do
-              begin
-                if IsSimpleKey
-                  and (ConstraintField = R.PrimaryKey.ConstraintFields[0]) then
-                begin
-                  Result := GetBaseClassForRelation(ReferencesRelation.RelationName);
-                  if Result.gdClass <> nil then
-                    break;
-                end;
-              end;
-          finally
-            L.Free;
-          end;
-        end;
-      end;
-    end;
-
-    if Result.gdClass <> nil then
-    begin
-      CacheBaseClassForRel.AddObject(AnsiUpperCase(ARelationName + '=' + Result.gdClass.ClassName + '(' +
-        Result.SubType + ')'), Pointer(Result.gdClass));
-    end;
-  end;
-end;
-}
 
 procedure MakeFieldList(Fields: String; List: TStrings);
 begin
@@ -4692,7 +4494,6 @@ begin
             '-', '', [rfReplaceAll]), 1, 30);
         try
           Transaction.SetSavePoint(FSavepoint);
-          //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
         except
           UseSavepoints := False;
           FSavepoint := '';
@@ -4765,8 +4566,6 @@ begin
                     try
                       Transaction.RollBackToSavePoint(FSavepoint);
                       Transaction.ReleaseSavePoint(FSavepoint);
-                      //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                      //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                       FSavepoint := '';
                     except
                       FSavepoint := '';
@@ -4775,7 +4574,6 @@ begin
                   begin
                     try
                       Transaction.ReleaseSavePoint(FSavepoint);
-                      //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                       FSavepoint := '';
                     except
                       FSavepoint := '';
@@ -4792,8 +4590,6 @@ begin
               try
                 Transaction.RollBackToSavePoint(FSavepoint);
                 Transaction.ReleaseSavePoint(FSavepoint);
-                //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                 FSavepoint := '';
               except
                 FSavepoint := '';
@@ -4831,8 +4627,6 @@ begin
             try
               Transaction.RollBackToSavePoint(FSavepoint);
               Transaction.ReleaseSavePoint(FSavepoint);
-              //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-              //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
             except
             end;
           end;
@@ -4909,7 +4703,6 @@ begin
   {M}    end;
   {END MACRO}
   Result := TgdFormEntry(gdClassList.Get(TgdFormEntry, GetDialogFormClassName(SubType), SubType)).frmClass.CreateSubType(FParentForm, SubType);
-  //Result := CgdcCreateableForm(FindClass(GetDialogFormClassName(SubType))).CreateSubType(FParentForm, SubType);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -5743,7 +5536,7 @@ begin
   if FgdcDataLink <> nil then
     Result := FgdcDataLink.DetailField
   else
-    Result := '';  
+    Result := '';
 end;
 
 class function TgdcBase.GetDisplayName(const ASubType: TgdcSubType): String;
@@ -6158,16 +5951,20 @@ var
     begin
       if BE.Parent is TgdBaseEntry then
         IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
-      RA := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
-      R := atDatabase.Relations.ByRelationName(BE.DistinctRelation);
-      if R = nil then
-        raise EgdcException.CreateObj('Unknown relation ' + BE.DistinctRelation, Self);
-      for I := 0 to R.RelationFields.Count - 1 do
+
+      if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
       begin
-        if R.RelationFields[I].IsUserDefined then
-          SQL := SQL + ', ' + RA + '.' + R.RelationFields[I].FieldName + ' ' +
-            gdcBaseManager.AdjustMetaName(RA + '_' + R.RelationFields[I].FieldName,
-            31 - 4); // account for "new_" prefix
+        RA := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
+        R := atDatabase.Relations.ByRelationName(BE.DistinctRelation);
+        if R = nil then
+          raise EgdcException.CreateObj('Unknown relation ' + BE.DistinctRelation, Self);
+        for I := 0 to R.RelationFields.Count - 1 do
+        begin
+          if R.RelationFields[I].IsUserDefined then
+            SQL := SQL + ', ' + RA + '.' + R.RelationFields[I].FieldName + ' ' +
+              gdcBaseManager.AdjustMetaName(RA + '_' + R.RelationFields[I].FieldName,
+              31 - 4); // account for "new_" prefix
+        end;
       end;
     end;
   end;
@@ -6193,8 +5990,12 @@ var
       if BE.Parent is TgdBaseEntry then
         IterateAncestor(BE.Parent as TgdBaseEntry, SQL, LinkFieldName);
       N := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
-      SQL := SQL + ' JOIN ' + BE.DistinctRelation + ' ' + N +
-        ' ON ' + N + '.' + LinkFieldName + ' = ' + GetListTableAlias + '.id';
+
+      if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
+      begin
+        SQL := SQL + ' JOIN ' + BE.DistinctRelation + ' ' + N +
+          ' ON ' + N + '.' + LinkFieldName + ' = ' + GetListTableAlias + '.id';
+      end;
     end;
   end;
 
@@ -6473,7 +6274,7 @@ begin
       RefreshSQL.Text := '';
   end;
 
-// Событие на создание запроса. Для возможности его корректировки из вне.
+  // Событие на создание запроса. Для возможности его корректировки из вне.
 
   SQLText := DoAfterInitSQL(SelectSQL.Text);
   if SQLText > '' then
@@ -6525,7 +6326,6 @@ begin
                 '-', '', [rfReplaceAll]), 1, 30);
             try
               Transaction.SetSavePoint(FSavepoint);
-              //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
             except
               UseSavepoints := False;
               FSavepoint := '';
@@ -9081,19 +8881,6 @@ MasterSource = nil? не трогать ни транзакции, ни состояние
 
     if FgdcDataLink.DataSet is TgdcBase then
       (FgdcDataLink.DataSet as TgdcBase).AddDetailLink(Self);
-
-    {for I := 0 to FDetailLinks.Count - 1 do
-    begin
-      if FDetailLinks[I] is TgdcBase then
-      begin
-        MS := TgdcBase(FDetailLinks[I]).MasterSource;
-        if MS <> nil then
-        begin
-          TgdcBase(FDetailLinks[I]).MasterSource := nil;
-          TgdcBase(FDetailLinks[I]).MasterSource := MS;
-        end;
-      end;
-    end;}
   end;
 end;
 
@@ -9153,10 +8940,6 @@ constructor TgdcDataLink.Create(ADetailObject: TgdcBase);
 begin
   inherited Create;
   FDetailObject := ADetailObject;
-  {FTimer := TTimer.Create(nil);
-  FTimer.Enabled := False;
-  FTimer.Interval := 0; //60
-  FTimer.OnTimer := DoOnTimer;}
   FMasterField := TStringList.Create;
   FDetailField := TStringList.Create;
   FLinkEstablished := False;
@@ -9549,7 +9332,7 @@ begin
       else begin
         DBID := IBLogin.DBID;
         InsertRUID(ID, XID, DBID, Now, IBLogin.ContactKey, Tr);
-      end;  
+      end;
     end else
     begin
       XID := RR.XID;
@@ -9741,7 +9524,8 @@ class function TgdcBase.CreateViewForm(AnOwner: TComponent;
   const AClassName: String = ''; const ASubType: String = '';
   const ANewInstance: Boolean = False): TForm;
 var
-  C: TPersistentClass;
+  CE: TgdClassEntry;
+  F: TgdcCreateableForm;
 begin
   Assert(IBLogin <> nil);
   Assert(atDatabase <> nil);
@@ -9769,21 +9553,26 @@ begin
       'Имя класса: ' + Self.ClassName + #13#10 +
       'Подтип: ' + ASubType);
 
-  C := GetClass(AClassName);
-  if C = nil then
-    C := GetClass(GetViewFormClassName(ASubType));
-  if (C <> nil) and C.InheritsFrom(TgdcCreateableForm) then
+  CE := gdClassList.Find(AClassName, ASubType);
+  if not (CE is TgdFormEntry) then
+    CE := gdClassList.Find(GetViewFormClassName(ASubType), ASubType);
+  if (CE is TgdFormEntry) and CE.TheClass.InheritsFrom(TgdcCreateableForm) then
   begin
     if ANewInstance then
       Result := nil
     else
-      Result := CgdcCreateableForm(C).FindForm(CgdcCreateableForm(C), ASubType);
+      Result := CgdcCreateableForm(CE.TheClass).FindForm(CgdcCreateableForm(CE.TheClass), ASubType);
     if Result = nil then
-    try
-      Result := CgdcCreateableForm(C).CreateSubType(AnOwner, ASubType);
-    except
-      Result.Free;
-      raise;
+    begin
+      F := nil;
+      try
+        F := CgdcCreateableForm(CE.TheClass).CreateSubType(AnOwner, ASubType);
+        F.Setup(F.gdcObject);
+      except
+        F.Free;
+        raise;
+      end;
+      Result := F;
     end;
   end else
     Result := nil;
@@ -10010,7 +9799,8 @@ begin
   Result := CreateDialog(MakeFullClass(C, ''));
 end;
 
-function TgdcBase.CreateDialog(C: TgdcFullClass): Boolean;
+function TgdcBase.CreateDialog(C: TgdcFullClass;
+  const AnInitProc: TgdcBaseInitProc = nil): Boolean;
 var
   Obj: TgdcBase;
   I: Integer;
@@ -10019,10 +9809,13 @@ begin
   if C.gdClass <> nil then
   begin
     CheckClass(C.gdClass);
-    if (C.gdClass = Self.ClassType) and (AnsiUpperCase(C.SubType) = AnsiUpperCase(SubType)) then
+    if (C.gdClass = Self.ClassType) and AnsiSameText(C.SubType, SubType) then
       Result := CreateDialog
     else begin
-      Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction, C.SubType, 'OnlySelected');
+      Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction,
+        C.SubType, 'OnlySelected');
+      if Assigned(AnInitProc) then
+        AnInitProc(Obj);
       try
         // обязательно надо сохранить мастера!
         //Obj.MasterField := MasterField;
@@ -11038,8 +10831,6 @@ procedure TgdcBase.CustomDelete(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-{  var
-    RUID: TRUID;}
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCBASE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  try
@@ -11352,16 +11143,16 @@ begin
     if (FSubType > '') and (ComponentState * [csDesigning, csLoading] = []) then
       raise EgdcException.CreateObj('Can not change subtype', Self);
 
-    Close;
-
     if not CheckSubType(Value) then
     begin
       if (StrIPos('usr_', Self.Name) = 1) or (StrIPos('usrg_', Self.Name) = 1) then
-        gdClassList.Add(Self.ClassType, Value, '', TgdBaseEntry, '')
+        gdClassList.Add(Self.ClassName, Value, Self.SubType,
+          CgdClassEntry(gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType).ClassType), '')
       else
         raise EgdcException.CreateObj('Invalid subtype specified', Self);
     end;
 
+    Close;
     FSubType := Value;
     FGroupID := -1;
     FgdcTableInfos := GetTableInfos(FSubType);
@@ -11806,8 +11597,8 @@ begin
   end;
 end;
 
-procedure TgdcBaseManager.ExecSingleQueryResult(const S: String;
-  Param: Variant; out Res: OleVariant; const Transaction: TIBTransaction);
+function TgdcBaseManager.ExecSingleQueryResult(const S: String;
+  Param: Variant; out Res: OleVariant; const Transaction: TIBTransaction): Boolean;
 var
   q: TIBSQL;
   I, J, CutOff: Integer;
@@ -11815,6 +11606,7 @@ var
   Tr: TIBTransaction;
   St: String;
 begin
+  Result := False;
   Tr := Transaction;
   if Tr = nil then
   begin
@@ -11825,7 +11617,6 @@ begin
     DidActivate := False;
     q := TIBSQL.Create(nil);
     try
-      q.Database := Database;
       q.Transaction := Tr;
       DidActivate := not Tr.InTransaction;
       if DidActivate then Tr.StartTransaction;
@@ -11901,6 +11692,7 @@ begin
                   VarArrayReDim(Res, J);
                 end;
               end;
+              Result := True;
             end;
 
           except
@@ -12325,9 +12117,6 @@ end;
 
 procedure TgdcBase.SyncField(Field: TField);
 begin
-//  if not (State in dsEditModes) then
-//  exit;
-
   if ((sDialog in FBaseState)
     and (FDlgStack.Count > 0)
     and (FDlgStack.Peek is Tgdc_dlgG))
@@ -12403,36 +12192,39 @@ var
     if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
       UserDefinedCustomInsert(BE.Parent as TgdBaseEntry);
 
-    if BE is TgdDocumentEntry then
-      F := 'documentkey,'
-    else
-      F := 'inheritedkey,';
-      
-    V := ':new_id,';
-
-    for I := 0 to FieldCount - 1 do
+    if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
     begin
-      ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+      if BE is TgdDocumentEntry then
+        F := 'DOCUMENTKEY,'
+      else
+        F := 'INHERITEDKEY,';
 
-      if RelationName = BE.DistinctRelation then
+      V := ':NEW_ID,';
+
+      for I := 0 to FieldCount - 1 do
       begin
-        F := F + FieldName + ',';
-        V := V + ':new_' + Fields[I].FieldName + ',';
+        ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+
+        if RelationName = BE.DistinctRelation then
+        begin
+          F := F + FieldName + ',';
+          V := V + ':NEW_' + Fields[I].FieldName + ',';
+        end;
       end;
-    end;
 
-    SetLength(F, Length(F) - 1);
-    SetLength(V, Length(V) - 1);
+      SetLength(F, Length(F) - 1);
+      SetLength(V, Length(V) - 1);
 
-    CustomExecQuery('INSERT INTO ' + BE.DistinctRelation +
-      ' (' + F + ') VALUES (' + V + ')', Buff, False);
+      CustomExecQuery('INSERT INTO ' + BE.DistinctRelation +
+        ' (' + F + ') VALUES (' + V + ')', Buff, False);
+    end
   end;
-  
+
 begin
   OldState := State;
   CustomInsert(Buff);
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-  if CE <> CE.GetRootSubType then
+  if (not (CE is TgdStorageEntry)) and (CE <> CE.GetRootSubType) then
     UserDefinedCustomInsert(CE as TgdBaseEntry);
   DoAfterCustomProcess(Buff, cpInsert);
   if OldState <> State then
@@ -12457,20 +12249,23 @@ var
     if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
       UserDefinedCustomModify(BE.Parent as TgdBaseEntry, LinkFieldName);
 
-    S := '';
-    for I := 0 to FieldCount - 1 do
+    if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
     begin
-      ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+      S := '';
+      for I := 0 to FieldCount - 1 do
+      begin
+        ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
 
-      if (RelationName = BE.DistinctRelation) and FieldChanged(Fields[I].FieldName) then
-        S := S + FieldName + ' = :new_' + Fields[I].FieldName + ',';
-    end;
+        if (RelationName = BE.DistinctRelation) and FieldChanged(Fields[I].FieldName) then
+          S := S + FieldName + ' = :NEW_' + Fields[I].FieldName + ',';
+      end;
 
-    if S > '' then
-    begin
-      SetLength(S, Length(S) - 1);
-      CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
-        S + ' WHERE ' + LinkFieldName + ' = :old_id', Buff, False);
+      if S > '' then
+      begin
+        SetLength(S, Length(S) - 1);
+        CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
+          S + ' WHERE ' + LinkFieldName + ' = :OLD_ID', Buff, False);
+      end;
     end;
   end;
   
@@ -12478,7 +12273,7 @@ begin
   OldState := State;
   CustomModify(Buff);
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-  if CE <> CE.GetRootSubType then
+  if (not (CE is TgdStorageEntry)) and (CE <> CE.GetRootSubType) then
   begin
     if CE is TgdDocumentEntry then
       UserDefinedCustomModify(CE as TgdBaseEntry, 'documentkey')
@@ -12561,7 +12356,6 @@ begin
         q.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 0) + GEN_ID(gd_g_offset, 0) FROM rdb$database';
       q.ExecQuery;
       Result := q.Fields[0].AsInteger;
-      q.Close;
     finally
       q.Free;
     end;
@@ -12614,7 +12408,6 @@ begin
       exit;
     end;
 end;
-
 
 procedure TgdcBase.DoAfterCustomProcess(Buff: Pointer;
   Process: TgsCustomProcess);
@@ -13152,7 +12945,7 @@ begin
 
   if _Sub(FromClause + ' ' + WhereClause, AParamName, RN, Result) then
   begin
-    {Здесь допущение, что поля из главной таблицы имеею оригинальное название}
+    {Здесь допущение, что поля из главной таблицы имееют оригинальное название}
     if (RN > '') and (AnsiCompareText(GetListTableAlias, RN) <> 0) then
     begin
       S := TStringList.Create;
@@ -13338,35 +13131,19 @@ begin
     Proh := ';' + GetListField(SubType) + Prohibited +
       StringReplace(GetNotCopyField, ',', ';', [rfReplaceAll]) + ';';
 
-    {if FieldCount = 0 then
-    begin}
-      SL := TStringList.Create;
-      try
-        Database.GetFieldNames(GetListTable(SubType), SL);
-        for I := 0 to SL.Count - 1 do
-          if StrIPos(';' + SL[I] + ';', Proh) = 0 then
-          begin
-            F := FindField(SL[I]);
-            if (F <> nil) and (F.DefaultExpression = '') and (not (F is TBlobField)) and (F.Size < 64) then
-              Result := Result + F.FieldName + ';';
-          end;
-      finally
-        SL.Free;
-      end;
-    {end else
-    begin
-      for I := 0 to FieldCount - 1 do
-      begin
-        with Fields[I] do
+    SL := TStringList.Create;
+    try
+      Database.GetFieldNames(GetListTable(SubType), SL);
+      for I := 0 to SL.Count - 1 do
+        if StrIPos(';' + SL[I] + ';', Proh) = 0 then
         begin
-          if (Pos(';' + FieldName + ';', Proh) = 0) and
-            (DefaultExpression = '') and (not (Fields[I] is TBlobField)) and (Size < 64) then
-          begin
-            Result := Result + FieldName + ';';
-          end;
+          F := FindField(SL[I]);
+          if (F <> nil) and (F.DefaultExpression = '') and (not (F is TBlobField)) and (F.Size < 64) then
+            Result := Result + F.FieldName + ';';
         end;
-      end;
-    end;}
+    finally
+      SL.Free;
+    end;
 
     FGetDialogDefaultsFieldsCached := True;
     FGetDialogDefaultsFieldsCache := Result;
@@ -15026,7 +14803,6 @@ begin
     if Assigned(FOnFilterChanged) then
       FOnFilterChanged(Self);
   end;
-
 end;
 
 procedure TgdcBase.ClearSubSets;
@@ -16606,27 +16382,12 @@ end;
 
 function TgdcBase.CreateBlobStream(Field: TField;
   Mode: TBlobStreamMode): TStream;
-{var
-  OldID: Integer;}
 begin
   if (State = dsEdit) and (Mode in [DB.bmWrite, DB.bmReadWrite]) then
     UpdateOldValues(Field);
 
-  {try}
-    Result := inherited CreateBlobStream(Field, Mode);
-  {except
-    if State = dsBrowse then
-    begin
-      OldID := ID;
-      InternalRef\reshRow;
-      if OldID = ID then
-        Result := inherited CreateBlobStream(Field, Mode)
-      else
-        raise;
-    end else
-      raise;
-  end;}
-  
+  Result := inherited CreateBlobStream(Field, Mode);
+
   if (State = dsEdit) and (Mode in [DB.bmWrite, DB.bmReadWrite]) then
     FDSModified := True;
 end;
@@ -17796,10 +17557,10 @@ begin
    (FFieldsCallDoChange.IndexOf(Field.FieldName) > -1) and not (sLoadFromStream in BaseState);
 end;
 
-procedure TgdcBase.ExecSingleQueryResult(const S: String; Param: Variant;
-  out Res: OleVariant);
+function TgdcBase.ExecSingleQueryResult(const S: String; Param: Variant;
+  out Res: OleVariant): Boolean;
 begin
-  gdcBaseManager.ExecSingleQueryResult(S, Param, Res, Transaction);
+  Result := gdcBaseManager.ExecSingleQueryResult(S, Param, Res, Transaction);
 end;
 
 function TgdcBase.GetRuidFromStream: TRUID;
@@ -18583,11 +18344,9 @@ initialization
 
   CacheDBID := -1;
   CacheList := nil;
-  //CacheBaseClassForRel := nil;
 
 finalization
   FreeAndNil(CacheList);
-  //FreeAndNil(CacheBaseClassForRel);
   UnregisterGdcClass(TgdcBase);
 
   {$IFDEF DEBUG}
@@ -19395,7 +19154,7 @@ begin
         // если текущий класс не последний в хранилище значит этот Делфи-метод
         // уже выполнялся - переходим по Inherited к следующему методу иерархии
         if tmpStrings.LastClass.gdClassName <> 'CURR_CLASS' then
-        begin
+        begin       
           Inherited;
           Exit;
         end;

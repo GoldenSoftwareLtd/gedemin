@@ -122,11 +122,11 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         Caption = 'Значение по умолчанию:'
       end
       object lComputed: TLabel
-        Left = 16
+        Left = 12
         Top = 312
-        Width = 256
+        Width = 260
         Height = 13
-        Caption = 'Выражение  для вычисляемого поля на языке SQL'
+        Caption = 'Выражение  для вычисляемого поля на языке SQL:'
         Visible = False
       end
       object lblRuleDelete: TLabel
@@ -211,9 +211,9 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         TabOrder = 3
       end
       object dbmComputed: TDBMemo
-        Left = 16
+        Left = 12
         Top = 328
-        Width = 433
+        Width = 437
         Height = 38
         DataField = 'COMPUTED_VALUE'
         DataSource = dsgdcBase
@@ -223,7 +223,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object cbCalculated: TCheckBox
         Left = 149
-        Top = 224
+        Top = 225
         Width = 97
         Height = 17
         Caption = 'Вычисляемое'
@@ -378,7 +378,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         Width = 270
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         Sorted = True
         TabOrder = 5
         OnChange = comboBusinessClassChange
@@ -390,7 +390,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         Width = 270
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         Sorted = True
         TabOrder = 6
       end

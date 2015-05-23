@@ -1,6 +1,6 @@
 inherited frmClassesInspector: TfrmClassesInspector
-  Left = 254
-  Top = 83
+  Left = 580
+  Top = 176
   Width = 377
   Height = 374
   HelpContext = 306
@@ -13,12 +13,12 @@ inherited frmClassesInspector: TfrmClassesInspector
   PixelsPerInch = 96
   TextHeight = 13
   inherited pCaption: TPanel
-    Width = 369
+    Width = 361
   end
   object sbCurrentNode: TStatusBar [1]
     Left = 0
-    Top = 328
-    Width = 369
+    Top = 317
+    Width = 361
     Height = 19
     Panels = <>
     SimplePanel = True
@@ -26,8 +26,8 @@ inherited frmClassesInspector: TfrmClassesInspector
   object pcMain: TPageControl [2]
     Left = 0
     Top = 18
-    Width = 369
-    Height = 310
+    Width = 361
+    Height = 299
     ActivePage = tsClasses
     Align = alClient
     TabOrder = 1
@@ -35,8 +35,8 @@ inherited frmClassesInspector: TfrmClassesInspector
       Caption = 'Классы'
       object Splitter1: TSplitter
         Left = 0
-        Top = 243
-        Width = 361
+        Top = 232
+        Width = 353
         Height = 3
         Cursor = crVSplit
         Align = alBottom
@@ -44,8 +44,8 @@ inherited frmClassesInspector: TfrmClassesInspector
       object tvClassesInsp: TTreeView
         Left = 0
         Top = 41
-        Width = 361
-        Height = 202
+        Width = 353
+        Height = 191
         Align = alClient
         Enabled = False
         Images = dmImages.imTreeView
@@ -64,8 +64,8 @@ inherited frmClassesInspector: TfrmClassesInspector
       end
       object mmDescription: TMemo
         Left = 0
-        Top = 246
-        Width = 361
+        Top = 235
+        Width = 353
         Height = 36
         Align = alBottom
         Lines.Strings = (
@@ -76,7 +76,7 @@ inherited frmClassesInspector: TfrmClassesInspector
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 361
+        Width = 353
         Height = 41
         Align = alTop
         TabOrder = 2
@@ -135,7 +135,7 @@ inherited frmClassesInspector: TfrmClassesInspector
           OnClick = btnRefreshClick
         end
         object btnGoBack: TSpeedButton
-          Left = 299
+          Left = 291
           Top = 2
           Width = 60
           Height = 21
@@ -177,7 +177,7 @@ inherited frmClassesInspector: TfrmClassesInspector
         object cbClasses: TComboBox
           Left = 26
           Top = 2
-          Width = 272
+          Width = 266
           Height = 21
           Hint = 'Список классов'
           Anchors = [akLeft, akTop, akRight]
@@ -210,24 +210,24 @@ inherited frmClassesInspector: TfrmClassesInspector
       object pnlSearch: TPanel
         Left = 0
         Top = 0
-        Width = 361
-        Height = 282
+        Width = 353
+        Height = 271
         Align = alClient
         BevelOuter = bvLowered
         TabOrder = 0
         object Splitter2: TSplitter
           Left = 1
-          Top = 201
-          Width = 359
+          Top = 172
+          Width = 351
           Height = 5
           Cursor = crVSplit
           Align = alTop
         end
         object pnlSearchClasses: TPanel
           Left = 1
-          Top = 206
-          Width = 359
-          Height = 75
+          Top = 177
+          Width = 351
+          Height = 93
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
@@ -241,8 +241,8 @@ inherited frmClassesInspector: TfrmClassesInspector
           object lbClasses: TListBox
             Left = 8
             Top = 15
-            Width = 343
-            Height = 52
+            Width = 335
+            Height = 70
             Anchors = [akLeft, akTop, akRight, akBottom]
             ItemHeight = 13
             Sorted = True
@@ -252,8 +252,8 @@ inherited frmClassesInspector: TfrmClassesInspector
         end
         object pnlSearchWords: TPanel
           Left = 1
-          Top = 98
-          Width = 359
+          Top = 69
+          Width = 351
           Height = 103
           Align = alTop
           BevelOuter = bvNone
@@ -268,7 +268,7 @@ inherited frmClassesInspector: TfrmClassesInspector
           object lbWords: TListBox
             Left = 8
             Top = 16
-            Width = 343
+            Width = 335
             Height = 87
             Anchors = [akLeft, akTop, akRight, akBottom]
             ItemHeight = 16
@@ -281,37 +281,37 @@ inherited frmClassesInspector: TfrmClassesInspector
         object Panel2: TPanel
           Left = 1
           Top = 1
-          Width = 359
-          Height = 97
+          Width = 351
+          Height = 68
           Align = alTop
           BevelOuter = bvNone
           TabOrder = 2
           object Label1: TLabel
             Left = 8
             Top = 2
-            Width = 78
+            Width = 80
             Height = 13
-            Caption = 'Искомое слово:'
+            Caption = 'Искомый текст:'
           end
           object edtSearch: TEdit
             Left = 8
             Top = 18
-            Width = 240
+            Width = 232
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             TabOrder = 0
           end
           object cbWholeWord: TCheckBox
             Left = 8
-            Top = 50
+            Top = 41
             Width = 145
             Height = 17
             Caption = 'Полное совпадение'
             TabOrder = 1
           end
           object btnSearch: TButton
-            Left = 170
-            Top = 48
+            Left = 246
+            Top = 17
             Width = 78
             Height = 22
             Action = actSearch
@@ -320,8 +320,8 @@ inherited frmClassesInspector: TfrmClassesInspector
             TabOrder = 2
           end
           object btnGo: TButton
-            Left = 170
-            Top = 75
+            Left = 246
+            Top = 42
             Width = 78
             Height = 21
             Action = actGotoSearch

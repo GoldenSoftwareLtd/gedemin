@@ -316,7 +316,7 @@ implementation
 uses
   IB, IBSQL, IBErrorCodes, gdcBaseInterface, gd_createable_form,
   IBCustomDataSet, TypInfo, gd_directories_const, Storages, gd_ClassList,
-  dmImages_unit, evt_i_Base, jclStrings, at_frmSQLProcess, gsStorage_CompPath,
+  dmImages_unit, evt_Base, evt_i_Base, jclStrings, at_frmSQLProcess, gsStorage_CompPath,
   gd_security, prp_methods, Gedemin_TLB, gsStorage, gdcUser, at_classes,
   DBCtrls, at_AddToSetting, gdcClasses, DBGrids, gdcJournal, gdHelp_Interface,
   gdcDelphiObject
@@ -1820,10 +1820,7 @@ begin
   Result := FFieldsCallOnSync;
 end;
 
-
 constructor Tgdc_dlgG.Create(AnOwner: TComponent);
-var
-  gdcDelphiObject: TgdcDelphiObject;
 begin
   inherited;
   ErrorAction := False;
@@ -1831,12 +1828,15 @@ begin
   FAlreadyRestory := False;
   FAppliedID := -1;
 
-  gdcDelphiObject := TgdcDelphiObject.Create(nil);
-  try
-    gdcDelphiObject.AddObject(Self);
-    gdcDelphiObject.Close;
-  finally
-    gdcDelphiObject.Free;
+  if (EventControl <> nil)
+    and ((EventControl.Get_Self as TEventControl).EventObjectList.FindObject(Self.InitialName) = nil) then
+  begin
+    with TgdcDelphiObject.Create(nil) do
+    try
+      AddObject(Self);
+    finally
+      Free;
+    end;
   end;
 end;
 

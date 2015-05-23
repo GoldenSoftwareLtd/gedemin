@@ -816,9 +816,9 @@ procedure Tgdc_dlgRelation.BeforePost;
   var
     C: TgdcFullClass;
   begin
-    if gdcObject is TgdcTableToDefinedTable then
+    if gdcObject is TgdcInheritedTable then
     begin
-      C := GetBaseClassForRelation((gdcObject as TgdcTableToDefinedTable).GetReferenceName);
+      C := GetBaseClassForRelation((gdcObject as TgdcInheritedTable).GetReferenceName);
       if C.gdClass = nil then
         raise Exception.Create('Unregistered relation.');
       Result := C.gdClass.ClassName;
@@ -878,12 +878,6 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-
-  if gdcObject is TgdcTableToDefinedTable then
-  begin
-//    if AnsiPos('USR$', (gdcObject as TgdcTableToDefinedTable).GetReferenceName) = 0 then
-//      raise Exception.Create('—сылка может быть только на пользовательскую таблицу.');
-  end;
 
   inherited;
 
@@ -1294,8 +1288,7 @@ begin
        (gdcObject is TgdcSimpleTable) or
        (gdcObject is TgdcTreeTable) or
        (gdcObject is TgdcLBRBTreeTable) or
-       (gdcObject is TgdcTableToTable) or
-       (gdcObject is TgdcTableToDefinedTable)
+       (gdcObject is TgdcTableToTable) 
       )
 
   else
@@ -1325,8 +1318,7 @@ begin
          (gdcObject is TgdcSimpleTable) or
          (gdcObject is TgdcTreeTable) or
          (gdcObject is TgdcLBRBTreeTable) or
-         (gdcObject is TgdcTableToTable)  or
-         (gdcObject is TgdcTableToDefinedTable)
+         (gdcObject is TgdcTableToTable)
         );
     end;
   end;
@@ -1353,7 +1345,7 @@ begin
   //ƒл€ редактировани€ нескольких веток запрещаем изменении ветки исследовател€
   iblcExplorerBranch.Enabled := not (sMultiple in gdcObject.BaseState);
 
-  if (gdcObject is TgdcTableToTable) or (gdcObject is TgdcTableToDefinedTable) then
+  if gdcObject is TgdcTableToTable then
   begin
     lblReference.Visible := True;
     ibcmbReference.Visible := True;
@@ -1490,33 +1482,29 @@ end;
 
 function Tgdc_dlgRelation.TestCorrect: Boolean;
 
-  procedure _Traverse(CE: TgdClassEntry; ARN: String; var ACount: Integer);
+  procedure _Traverse(CE: TgdClassEntry; const ARN: String; var ACount: Integer);
   var
     I: Integer;
   begin
+    if CE.Hidden then
+      exit;
+
     if (CE as TgdBaseEntry).DistinctRelation = ARN then
-      inc(Acount);
+      Inc(ACount);
 
     for I := 0 to CE.Count - 1 do
       _Traverse(CE.Children[I], ARN, ACount);
   end;
 
-  function CanInherit(RN: String): Boolean;
+  function CanInherit(const RID: TID): Boolean;
   var
     Count: Integer;
+    R: OleVariant;
   begin
-    if RN = 'GD_GOOD' then
-    begin
-      Result := True;
-      Exit;
-    end;
-
     Count := 0;
-    _Traverse(gdClassList.Get(TgdBaseEntry, 'TgdcBase'), RN, Count);
+    if gdcBaseManager.ExecSingleQueryResult('SELECT relationname FROM at_relations WHERE id = :id', RID, R) then
+      _Traverse(gdClassList.Get(TgdBaseEntry, 'TgdcBase'), R[0, 0], Count);
     Result := Count = 1;
-
-    if Count = 0 then
-      raise Exception.Create('Unregistered relation.');
   end;
 
 var
@@ -1526,7 +1514,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
-  R: TatRelation;
 begin
   {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGRELATION', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}Result := True;
@@ -1557,21 +1544,15 @@ begin
   Result := inherited TestCorrect;
 
   //ѕроверка на возможность создани€ св€занной таблицы (наследование)
-  if Result and (gdcObject.ClassType = TgdcTableToDefinedTable) then
+  if Result and (gdcObject is TgdcInheritedTable)
+    and (ibcmbReference.CurrentKeyInt > -1)
+    and (not CanInherit(ibcmbReference.CurrentKeyInt)) then
   begin
+    MessageBox(Handle,
+      PChar(
+      'Ќельз€ наследовать класс от таблицы ' + ibcmbReference.Text),
+      '¬нимание', MB_OK or MB_ICONEXCLAMATION);
     Result := False;
-    if ibcmbReference.CurrentKeyInt > -1 then
-    begin
-      R := atDatabase.Relations.ByID(ibcmbReference.CurrentKeyInt);
-      if (R <> nil) and (R.RelationName > '') then
-        Result := CanInherit(R.RelationName);
-
-      if not Result then
-        MessageBox(Handle,
-          PChar(
-          '“аблица ' + R.RelationName + ' не может быть использована в качестве ссылки'),
-          '¬нимание', MB_OK or MB_ICONEXCLAMATION);
-    end;
   end;
 
   // ѕроверка на дублирование локализованного наименовани€ таблицы
@@ -1597,7 +1578,7 @@ begin
         Result := False;
       end;
     finally
-      FreeAndNil(q);
+      q.Free;
     end;
   end;
 

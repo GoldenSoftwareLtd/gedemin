@@ -1,7 +1,6 @@
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -155,9 +154,11 @@ var
   DidActivate: Boolean;
 begin
   inherited;
+
   if MessageBox(HANDLE, 'Провести проводки по списку документов?', 'Внимание',
        mb_YesNo or mb_IconQuestion or mb_TaskModal) = idNo then
-    exit;    
+    exit;
+
 {$IFDEF DEBUGMOVE}
   DeleteOldEntry := 0;
   InsertEntryLine := 0;
@@ -168,8 +169,8 @@ begin
   AllEntryTime := 0;
   MakeBalance:= 0;
   DeleteZero:= 0;
-
 {$ENDIF}
+
   DidActivate := not gdcInvDocument.Transaction.InTransaction;
   if DidActivate then
     gdcInvDocument.Transaction.StartTransaction;
@@ -267,8 +268,8 @@ begin
   else
     OldID := -1;
 
-  C := gdcObject.GetCurrRecordClass;
   C.gdClass := CgdcBase(gdcDetailObject.ClassType);
+  C.SubType := gdcObject.GetCurrRecordClass.SubType;
   gdcDetailObject.CreateDialog(C);
 
   if OldID <> gdcDetailObject.ID then

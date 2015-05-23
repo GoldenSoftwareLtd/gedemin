@@ -1106,13 +1106,14 @@ begin
 
   //сначала заменяем USR$
   //если справочник, то смотрим в AT_Relations
-  //если есть subtype и не справвочник, то смотрим в gd_documenttype
-  //иначе смотрим через gdcClassList
+  //если есть subtype и не справочник, то смотрим в gd_documenttype
+  //иначе смотрим через gdClassList
 
-  if FSQL.FieldByName('CLASSNAME').AsString <> '' then
+  if FSQL.FieldByName('CLASSNAME').AsString > '' then
   begin
     S := StringReplace(FSQL.FieldByName('SUBTYPE').AsString, 'USR_', 'USR$', []);
-    if Pos('USR$', S) > 0 then
+
+    if Pos('USR$', S) = 1 then
     begin
       SQL := TIBSQL.Create(nil);
       SQL.Transaction := FSQL.Transaction;

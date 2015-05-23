@@ -26,7 +26,6 @@ type
     procedure _DoOnNewRecord; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;

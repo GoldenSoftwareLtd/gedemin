@@ -92,8 +92,8 @@ begin
   else
     OldID := -1;
 
-  C := gdcObject.GetCurrRecordClass;
   C.gdClass := CgdcBase(gdcDetailObject.ClassType);
+  C.SubType := gdcObject.GetCurrRecordClass.SubType;
   gdcDetailObject.CreateDialog(C);
 
   if OldID <> gdcDetailObject.ID then

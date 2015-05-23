@@ -13,6 +13,9 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
   inherited TBDockTop: TTBDock
     Width = 779
     inherited tbMainToolbar: TTBToolbar
+      inherited tbiNew: TTBItem
+        Visible = False
+      end
       object TBSubmenuItem1: TTBSubmenuItem [1]
         Action = actNew
         DropdownCombo = True
@@ -25,7 +28,7 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       end
     end
     inherited tbMainInvariant: TTBToolbar
-      Left = 309
+      Left = 286
     end
   end
   inherited TBDockLeft: TTBDock

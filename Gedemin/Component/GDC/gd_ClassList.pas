@@ -283,11 +283,13 @@ type
     FCaption: String;
     FChildren: TObjectList;
     FHidden: Boolean;
+    FVirtualSubType: Boolean;
 
     function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
     function ListCallback(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
+    function GetCaption: String;
 
   protected
     function Traverse(ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
@@ -317,15 +319,17 @@ type
     function FindChild(const AClassName: AnsiString): TgdClassEntry;
     function InheritsFromCE(ACE: TgdClassEntry): Boolean;
     function GetRootSubType: TgdClassEntry;
+    procedure CheckSubType(const ASubType: TgdcSubType); virtual;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
     property SubType: TgdcSubType read FSubType;
-    property Caption: String read FCaption write FCaption;
+    property Caption: String read GetCaption write FCaption;
     property Count: Integer read GetCount;
     property Children[Index: Integer]: TgdClassEntry read GetChildren;
     property ClassMethods: TgdClassMethods read FClassMethods;
     property Hidden: Boolean read FHidden write FHidden;
+    property VirtualSubType: Boolean read FVirtualSubType write FVirtualSubType;
   end;
   CgdClassEntry = class of TgdClassEntry;
 
@@ -371,6 +375,8 @@ type
 
   public
     procedure Assign(CE: TgdClassEntry); override;
+    function FindParentByDocumentTypeKey(const ADocumentTypeKey: Integer;
+      const APart: TgdcDocumentClassPart): TgdDocumentEntry;
 
     property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
     property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
@@ -388,6 +394,8 @@ type
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
+  public
+    procedure CheckSubType(const ASubType: TgdcSubType); override;
   end;
 
   TgdFormEntry = class(TgdClassEntry)
@@ -516,6 +524,9 @@ procedure RegisterGDCClassMethod(const AnClass: TComponentClass; AnMethod: Strin
 //Заменяет символ $ на _
 function Replace(const Str: string): string;
 
+function SubTypeToComponentName(const ASubType: TgdcSubType): String;
+function ComponentNameToSubType(const Str: String): TgdcSubType;
+
 {$IFDEF DEBUG}
 var
   glbParamCount, glbMethodCount, glbMethodListCount,
@@ -526,7 +537,7 @@ implementation
 
 uses
   SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages,
-  gdcClasses, gd_directories_const
+  gdcClasses, gd_directories_const, jclStrings
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -569,6 +580,20 @@ begin
     if Result[I] = '$' then
       Result[I] := '_';
   end;
+end;
+
+function SubTypeToComponentName(const ASubType: TgdcSubType): String;
+begin
+  Result := ASubType;
+  if StrIPos('USR$', Result) = 1 then
+    Result[4] := '_';
+end;
+
+function ComponentNameToSubType(const Str: string): TgdcSubType;
+begin
+  Result := Str;
+  if StrIPos('USR_', Result) = 1 then
+    Result[4] := '$';
 end;
 
 function gdClassList: TgdClassList;
@@ -1256,6 +1281,7 @@ begin
   FSubType := ASubType;
   FChildren := nil;
   FClassMethods := TgdClassMethods.Create(TComponentClass(FClass));
+  CheckSubType(FSubType);
 end;
 
 destructor TgdClassEntry.Destroy;
@@ -1473,6 +1499,23 @@ begin
   begin
     Result := Result.Parent;
   end;    
+end;
+
+function TgdClassEntry.GetCaption: String;
+begin
+  if FCaption > '' then
+    Result := FCaption
+  else if FSubType > '' then
+    Result := FSubType
+  else if FClass <> nil then
+    Result := FClass.ClassName
+  else
+    Result := '';    
+end;
+
+procedure TgdClassEntry.CheckSubType(const ASubType: TgdcSubType);
+begin
+  // any subtype is valid on this level
 end;
 
 {TgdClassList}
@@ -1983,8 +2026,10 @@ procedure TgdClassList.LoadUserDefinedClasses;
       try
         for I := 0 to FNewForm.FoldersCount - 1 do
         begin
-          if Find(FNewForm.Folders[I].ReadString('Class'),
-            FNewForm.Folders[I].ReadString('GDCSubType')) = nil then
+          if (FNewForm.Folders[I].ReadString('Class') > '')
+            and (FNewForm.Folders[I].ReadString('GDCSubType') > '')
+            and (Find(FNewForm.Folders[I].ReadString('Class'),
+              FNewForm.Folders[I].ReadString('GDCSubType')) = nil) then
           begin
             CEParentForm := Get(TgdFormEntry, FNewForm.Folders[I].ReadString('Class'));
             _Create(CEParentForm, TgdNewFormEntry, CEParentForm.TheClass,
@@ -2453,6 +2498,23 @@ begin
   BranchKey := TgdDocumentEntry(CE).BranchKey;
 end;
 
+function TgdDocumentEntry.FindParentByDocumentTypeKey(
+  const ADocumentTypeKey: Integer; const APart: TgdcDocumentClassPart): TgdDocumentEntry;
+begin
+  Result := Self;
+  while Result.TypeID <> ADocumentTypeKey do
+  begin
+    if (not (Result.Parent is TgdDocumentEntry)) or (Result = Result.GetRootSubType) then
+    begin
+      Result := nil;
+      break;
+    end;
+    Result := Result.Parent as TgdDocumentEntry;
+  end;
+
+  Assert((Result = nil) or (CgdcDocument(Result.TheClass).GetDocumentClassPart = APart));
+end;
+
 function TgdDocumentEntry.GetDistinctRelation: String;
 begin
   if CgdcDocument(TheClass).GetDocumentClassPart = dcpHeader then
@@ -2495,6 +2557,18 @@ end;
 procedure TgdInitClassEntry.Init(CE: TgdClassEntry);
 begin
   //
+end;
+
+{ TgdStorageEntry }
+
+procedure TgdStorageEntry.CheckSubType(const ASubType: TgdcSubType);
+begin
+  if (ASubType = '') or (not CharIsAlpha(ASubType[1]))
+    or (not StrIsAlphaNumUnderscore(ASubType))
+    or (StrIPos('USR_', ASubType) > 0) then
+  begin
+    raise Exception.Create('Invalid subtype.');
+  end;
 end;
 
 initialization

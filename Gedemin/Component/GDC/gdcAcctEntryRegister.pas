@@ -1366,6 +1366,7 @@ var
   {$ENDIF}
   ibsql: TIBSQL;
   IsDisabled: Boolean;
+  DE: TgdDocumentEntry;
 begin
   Assert(Assigned(Document), 'Ќе задан документ дл€ формировани€ проводок');
 
@@ -1477,8 +1478,8 @@ begin
 
     for I := 0 to CIs.Count - 1 do
     begin
-      if (CIs[i].DocumentTypeKey = Document.DocumentTypeKey) and
-        (CIs[i].DocumentPart = Document.GetDocumentClassPart) then
+      DE := gdClassList.FindDocByTypeID(Document.DocumentTypeKey, CIs[i].DocumentPart);
+      if DE.FindParentByDocumentTypeKey(CIs[i].DocumentTypeKey, CIs[i].DocumentPart) <> nil then
       begin
         FTrRecordKey := CIs[i].TrRecordKey;
         FRecordAdded := False;

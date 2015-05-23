@@ -72,7 +72,7 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
           end
         end
         inherited tbDetailCustom: TTBToolbar
-          Left = 309
+          Left = 298
         end
       end
       inherited pnlSearchDetail: TPanel

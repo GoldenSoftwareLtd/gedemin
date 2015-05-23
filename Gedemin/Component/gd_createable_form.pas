@@ -991,7 +991,6 @@ end;
 ...
 {$ENDIF}
 
-
 function TCreateableForm.ShowModal: Integer;
 begin
   if Assigned(EventControl) and
