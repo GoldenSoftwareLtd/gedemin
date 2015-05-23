@@ -73,6 +73,8 @@ type
   public
     destructor Destroy; override;
 
+    procedure Setup(AnObject: TObject); override;
+
     procedure SaveSettings; override;
     procedure LoadSettingsAfterCreate; override;
 
@@ -88,7 +90,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, Storages, gsStorage_CompPath;
+  gd_ClassList, Storages, gsStorage_CompPath, Contnrs;
 
 { Tgdc_frmMD2H }
 
@@ -126,14 +128,6 @@ begin
         FgdcSubDetailObject.FreeNotification(Self);
       FgdcSubDetailObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
-
-      if gdClassList.Get(TgdBaseEntry,
-        FgdcSubDetailObject.ClassName, FgdcSubDetailObject.SubType).Count > 0 then
-      begin
-        TCrTBItem(tbiSubDetailNew).ItemStyle :=
-          TCrTBItem(tbiSubDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
-        tbiSubDetailNew.OnPopup := tbiSubDetailNewPopup;
-      end;
     end;
   end;
 end;
@@ -378,6 +372,57 @@ procedure Tgdc_frmMD2H.tbiSubDetailNewPopup(Sender: TTBCustomItem;
 begin
   if gdcSubDetailObject <> nil then
     FillPopupNew(gdcSubDetailObject, Sender, DoOnSubDetailDescendantClick);
+end;
+
+procedure Tgdc_frmMD2H.Setup(AnObject: TObject);
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  OL: TObjectList;
+begin
+  {@UNFOLD MACRO INH_CRFORM_SETUP('TGDC_FRMMD2H', 'SETUP', KEYSETUP)}
+  {M}try
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}  begin
+  {M}    SetFirstMethodAssoc('TGDC_FRMMD2H', KEYSETUP);
+  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUP]);
+  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_FRMMD2H') = -1) then
+  {M}    begin
+  {M}      Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(AnObject)]);
+  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_FRMMD2H',
+  {M}        'SETUP', KEYSETUP, Params, LResult) then exit;
+  {M}    end else
+  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_FRMMD2H' then
+  {M}      begin
+  {M}        Inherited;
+  {M}        Exit;
+  {M}      end;
+  {M}  end;
+  {END MACRO}
+
+  inherited Setup(AnObject);
+
+  OL := TObjectList.Create(False);
+  try
+    if (gdcSubDetailObject <> nil) and gdcSubDetailObject.GetChildrenClass(gdcSubDetailObject.SubType, OL, False) then
+    begin
+      TCrTBItem(tbiSubDetailNew).ItemStyle :=
+        TCrTBItem(tbiSubDetailNew).ItemStyle
+        + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+      tbiSubDetailNew.OnPopup := tbiSubDetailNewPopup;
+    end;
+  finally
+    OL.Free;
+  end;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMMD2H', 'SETUP', KEYSETUP)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_FRMMD2H', 'SETUP', KEYSETUP);
+  {M}end;
+  {END MACRO}
 end;
 
 initialization

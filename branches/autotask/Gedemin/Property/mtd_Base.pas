@@ -293,8 +293,6 @@ type
     function  GetClassType(const AnObject: TObject): TmtdClassType;
     function GetSubType(
       const AnObject: TObject; const ClassType: TmtdClassType): String;
-    function GetParentClassName(
-      const FullClassName: TgdcFullClassName; const ClassType: TmtdClassType): String;
     // Функция для реализации Inherited Method
     // ALastCallClass - стек вызава методов; AgdcBase - бизнес-объект;
     // AClassName, AnMethodName - имя класса и метода, откуда вызван ExecuteMethod
@@ -1119,7 +1117,7 @@ begin
           begin
             LFullChildName := LCurrentFullClass;
             LCurrentFullClass.gdClassName :=
-              AnsiUpperCase(GetParentClassName(LCurrentFullClass, LClassType));
+              UpperCase(gdClassList.Get(TgdClassEntry, LCurrentFullClass.gdClassName, '').TheClass.ClassParent.ClassName);
           end;
       end else
         begin
@@ -1635,15 +1633,6 @@ begin
     mtd_gdcForm:
       Result := TgdcCreateableForm(AnObject).SubType;
   end;
-end;
-
-function TMethodControl.GetParentClassName(
-  const FullClassName: TgdcFullClassName; const ClassType: TmtdClassType): String;
-var
-  CE: TgdClassEntry;
-begin
-  CE := gdClassList.Get(TgdClassEntry, FullClassName.gdClassName, '');
-  Result := CE.TheClass.ClassParent.ClassName;
 end;
 
 procedure TMethodControl.SaveDisableFlag(

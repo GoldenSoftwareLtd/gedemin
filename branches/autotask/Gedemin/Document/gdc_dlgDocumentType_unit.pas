@@ -87,6 +87,7 @@ type
     procedure actAutoNumerationExecute(Sender: TObject);
     procedure actWizardHeaderUpdate(Sender: TObject);
     procedure actWizardLineUpdate(Sender: TObject);
+    procedure edEnglishNameChange(Sender: TObject);
 
   private
     FScriptChanged: Boolean;
@@ -240,16 +241,11 @@ begin
       'В наименовании на английском должны быть только латинские символы');
   end;
 
-  if gdcObject.State <> dsInsert then
-    abort
-  else
-  begin
-    if Pos(UserPrefix, UpperCase(edEnglishName.Text)) = 0 then
-      edEnglishName.Text := UserPrefix + edEnglishName.Text;
-    aNewObject.FieldByName('relationname').AsString := edEnglishName.Text;
-    aNewObject.FieldByName('lname').AsString := edDocumentName.Text;
-    aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
-  end;
+  if Pos(UserPrefix, UpperCase(edEnglishName.Text)) = 0 then
+    edEnglishName.Text := UserPrefix + edEnglishName.Text;
+  aNewObject.FieldByName('relationname').AsString := edEnglishName.Text;
+  aNewObject.FieldByName('lname').AsString := edDocumentName.Text;
+  aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
 end;
 
 procedure Tgdc_dlgDocumentType.iblcLineTableCreateNewObject(
@@ -389,6 +385,7 @@ var
   DocumentPart: TgdcDocumentClassPart;
   ibsql: TIBSQL;
   ParentFunctionName: String;
+  DE: TgdDocumentEntry;
 begin
   if Sender = actWizardHeader then
   begin
@@ -432,29 +429,38 @@ begin
       
       if gdcObject.FieldByName(FunctionTemplateField).IsNull then
       begin
-        ibsql := TIBSQL.Create(nil);
-        try
-          ibsql.Transaction := gdcObject.ReadTransaction;
-          //ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-            ibsql.SQL.Text := 'SELECT '#13#10 +
-              '  d.' + FunctionTemplateField + ',' + #13#10 +
-              '  f.Name '#13#10 +
-              'FROM gd_documenttype d '#13#10 +
-              'LEFT JOIN gd_function f '#13#10 +
-              '  ON d.' + FunctionKeyField + ' = f.id '#13#10 +
-              'WHERE '#13#10 +
-              '  d.id = :id '#13#10 +
-              '  AND d.documenttype = ''D'' '#13#10 +
-              '  AND d.' + FunctionTemplateField + ' is not null';
-          ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-          ibsql.ExecQuery;
-          if (not ibsql.Eof) and (not ibsql.FieldByName(FunctionTemplateField).IsNull) then
-          begin
-            Str := TStringStream.Create(ibsql.FieldByName(FunctionTemplateField).AsString);
-            ParentFunctionName := ibsql.FieldByName(fnName).AsString
+        DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader);
+        while (DE <> nil) and (ParentFunctionName = '') do
+        begin
+          ibsql := TIBSQL.Create(nil);
+          try
+            ibsql.Transaction := gdcObject.ReadTransaction;
+              ibsql.SQL.Text :=
+                'SELECT '#13#10 +
+                '  d.' + FunctionTemplateField + ',' + #13#10 +
+                '  f.Name '#13#10 +
+                'FROM gd_documenttype d '#13#10 +
+                'LEFT JOIN gd_function f '#13#10 +
+                '  ON d.' + FunctionKeyField + ' = f.id '#13#10 +
+                'WHERE '#13#10 +
+                '  d.id = :id '#13#10 +
+                '  AND d.documenttype = ''D'' '#13#10 +
+                '  AND d.' + FunctionTemplateField + ' is not null';
+            ibsql.ParamByName('id').AsInteger := DE.TypeID;
+            ibsql.ExecQuery;
+            if (not ibsql.Eof) and (not ibsql.FieldByName(FunctionTemplateField).IsNull) then
+            begin
+              Str := TStringStream.Create(ibsql.FieldByName(FunctionTemplateField).AsString);
+              ParentFunctionName := ibsql.FieldByName(fnName).AsString
+            end;
+          finally
+            ibsql.Free;
           end;
-        finally
-          ibsql.Free;
+
+          if DE = DE.GetRootSubType then
+            break;
+
+          DE := TgdDocumentEntry(DE.Parent);
         end;
       end;
 
@@ -538,9 +544,6 @@ begin
   {M}    end;
   {END MACRO}
 
-{  if gdcFunction.State in [dsEdit, dsInsert] then
-    gdcFunction.Post;}
-
   inherited;
 
   if FScriptChanged then
@@ -548,6 +551,7 @@ begin
     ScriptFactory.ReloadFunction(gdcObject.FieldByName('headerfunctionkey').AsInteger);
     ScriptFactory.ReloadFunction(gdcObject.FieldByName('linefunctionkey').AsInteger);
   end;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGDOCUMENTTYPE', 'POST', KEYPOST)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -712,10 +716,13 @@ begin
     begin
       gdcObject.FieldByName('name').AsString := 'Наследник ' + DE.Caption;
       gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
+      gdcObject.FieldByName('headerrelkey').AsInteger := DE.HeaderRelKey;
+      gdcObject.FieldByName('linerelkey').AsInteger := DE.LineRelKey;
+      edEnglishName.Text := DE.HeaderRelName;
     end;
 
-    iblcHeaderTable.gdClassName := 'TgdcInheritedTable';
-    iblcLineTable.gdClassName := 'TgdcInheritedTable';
+    iblcHeaderTable.gdClassName := 'TgdcInheritedDocumentTable';
+    iblcLineTable.gdClassName := 'TgdcInheritedDocumentTable';
   end;
 
   if gdcObject.State = dsEdit then
@@ -926,6 +933,15 @@ end;
 procedure Tgdc_dlgDocumentType.actWizardLineUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := IBLogin.IsIBUserAdmin;
+end;
+
+procedure Tgdc_dlgDocumentType.edEnglishNameChange(Sender: TObject);
+begin
+  if (gdcObject.State = dsInsert) then
+  begin
+    iblcHeaderTable.CurrentKeyInt := 0;
+    iblcLineTable.CurrentKeyInt := 0;
+  end;
 end;
 
 initialization

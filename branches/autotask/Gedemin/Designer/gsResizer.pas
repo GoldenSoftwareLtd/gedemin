@@ -1,5 +1,7 @@
+
 {++
-  Copyright (c) 2002 by Golden Software of Belarus
+
+  Copyright (c) 2002-2015 by Golden Software of Belarus
 
   Module
 
@@ -16,6 +18,7 @@
   Revisions history
 
     Initial  17-01-2002  Nick  Initial version.
+
 --}
 
 unit gsResizer;
@@ -363,9 +366,6 @@ type
     function GetNextControl(AControl: TControl; const Direction: TTabDirection): TControl;
     procedure InsertNewControl(Const P: TPoint);
     procedure InsertNewControl2;
-    //Сохранеи и востановление настроек
-//    procedure SetDefaultValues(AComponent: TComponent);
-
     procedure CheckPosition(AnOwner: TComponent; Stream: TStream; const Attr: Boolean; ReplaceSubType: Boolean = False);
     procedure DisableEvents(AnOwner: TComponent);
     procedure EnableEvents;
@@ -544,28 +544,6 @@ end;
 
 function TgsResizer.GetMousePos(const X, Y: Integer): TCursorPos;
 begin
-// Для выделения прямоугольником
-{  if (X >= 0) and (X <= RectSize) and (Y >= 0) and (Y <= RectSize) then
-    Result := cpTopLeft
-  else if (X >= Width - RectSize) and (X <= Width) and (Y >= 0) and (Y <= RectSize) then
-    Result := cpTopRight
-  else if (X >= 0) and (X <= RectSize) and (Y >= Height - RectSize) and (Y <= Height) then
-    Result := cpBottomLeft
-  else if (X >= Width - RectSize) and (X <= Width) and (Y >= Height - RectSize) and (Y <= Height) then
-    Result := cpBottomRight
-  else if (X >= 0) and (X <= RectSize) and (Y > RectSize) and (Y < Height - RectSize) then
-    Result := cpMiddleLeft
-  else if (X >= Width - RectSize) and (X <= Width) and (Y > RectSize) and (Y < Height - RectSize) then
-    Result := cpMiddleRight
-  else if (X > RectSize) and (X < Width - RectSize) and (Y >= Height - RectSize) and (Y <= Height) then
-    Result := cpMiddleBottom
-  else if (X > RectSize) and (X < Width - RectSize) and (Y >= 0) and (Y <= RectSize) then
-    Result := cpMiddleTop
-  else if (X >= RectSize) and (X <= Width - RectSize) and (Y >= RectSize) and (Y <= Height - RectSize) then
-    Result := cpInside
-  else
-    Result := cpNone;}
-
   // Для выделения по углам
   if (X >= 0) and (X <= RectSize) and (Y >= 0) and (Y <= RectSize) then
     Result := cpTopLeft
@@ -767,7 +745,6 @@ begin
     Visible := False;
     if FMovedControl <> nil then
     begin
-//      Self.Constraints.Assign(FMovedControl.Constraints);
       Parent := nil; //FMovedControl.Parent;
       ParentWindow := FMovedControl.Parent.Handle;
       self.setbounds(FMovedControl.Left - HalfRectSize,
@@ -796,7 +773,6 @@ end;
 
 procedure TgsResizer.StartMove(const ResizeMode: TCursorPos);
 begin
- // if FCut then Exit;
   FState := dsMove;
   FResizeState := ResizeMode;
 
@@ -999,8 +975,6 @@ begin
       ClearResizers;
       GetAsyncKeyState(VK_CONTROL);
       if (AControl = FEditForm) and not FMultiSelect and (GetAsyncKeyState(VK_CONTROL) <> 0) then
-        { TODO -oJKL : Возможно стоит переделать структуру вызова,
-        чтобы избавиться от непосредственного определения координат }
         if GetCursorPos(CurPnt) then
           StartMultiSelect(CurPnt);
       if Assigned(FObjectInspectorForm) then
@@ -1096,27 +1070,14 @@ function TgsResizeManager.ControlAtPos(AnOwner: TWinControl; const P: TPoint;
 
   begin
     Result := AControl.ClientRect;
-//    Result := AControl.BoundsRect;
     offsetrect(Result , AControl.ClientOrigin.X, AControl.ClientOrigin.Y);
     TestParentRect(AControl.Parent, Result);
   end;
-{  function TestResizers: TControl;
-  var
-    I: Integer;
-  begin
-    Result :=  nil;
-    for I := 0 to  FResizerList.Count - 1 do
-      if PtInRect(ScreenRec(Resizers[I]), P) then
-      begin
-        Result := Resizers[I].MovedControl;
-        Break;
-      end;
-  end;}
+
 var
   I: Integer;
 begin
   Result := nil;
-{  Result := TestResizers;}
 
   if Result = nil then
     for I := AnOwner.ControlCount - 1  downto 0  do
@@ -1369,12 +1330,9 @@ begin
     FreeAndNil(FDeletePage);
     FreeAndNil(FNextPage);
     FreeAndNil(FPrevPage);
-//    FPageControlMenu.Free;
 
     FreeAndNil(FSetSizeForm);
     FreeAndNil(FTabOrderForm);
-//    FPaletteForm.Free;
-//    FObjectInspectorForm.Free;
     if ActiveDesigner = Self then
       ActiveDesigner := nil;
 
@@ -1603,22 +1561,9 @@ begin
 
   if not KillMessage then
     FOldFormWindowProc(Msg);
-//  else
-  //  Msg.Result := True;
-
-
-{  if (Msg.Msg = WM_PAINT) and (FGridSize > 0) then
-  begin
-  with FEditForm do
-    for I := 0 to ClientWidth div FGridSize do
-      for J := 0 to ClientHeight div FGridSize do
-        Canvas.Pixels[I * FGridSize, J * FGridSize] := clBlack;
-  end;}
 
   if (Msg.Msg = WM_SIZE) then
     PostMessage(FMessageHooker.handle, CM_RESIZECONTROL, 0, 0);
-
-
 end;
 
 function TgsResizeManager.GetBusy: Boolean;
@@ -1920,7 +1865,6 @@ procedure TgsResizeManager.SetParentControl(Value: TWinControl);
 begin
   if FParentControl <> Value then
   begin
-//    if (not FCut) and (FParentControl <> nil) then
     if (not FCut) and (Value <> nil) then
     begin
       ClearResizers;
@@ -1974,7 +1918,6 @@ end;
 
 procedure TgsResizer.UpdateControlAlignment;
 begin
-//  if (FMovedControl.Align = alNone) then exit;
   Visible := False;
   SetBounds(FMovedControl.Left - HalfRectSize ,FMovedControl.Top - HalfRectSize ,FMovedControl.Width + HalfRectSize * 2, FMovedControl.Height + HalfRectSize * 2);  Visible := True;
   SetFocus;
@@ -2101,8 +2044,6 @@ begin
       else
         Exit;
 
-
-
       O := TPersistent(GetObjectProp(TgsComponentEmulator(MovedControl).RelatedComponent, PrName, TPersistent));
       if O = nil then
         Exit;
@@ -2139,9 +2080,6 @@ end;
 
 function TgsResizer.AlignPointToGrid(const AnValue: Integer; var AnOffSet: Integer; const AnGridSize: Integer): Integer;
 begin
-//!!! Для полной привязки к гриду !!!//
-//  Result := ((AnValue + AnOffSet) div AnGridSize) * AnGridSize;
-
   Result := (AnValue + AnOffSet - (AnOffSet mod AnGridSize));
   AnOffSet := Result - AnValue;
 end;
@@ -2178,16 +2116,10 @@ end;
 
 procedure TgsResizer.DoResize(Sender: TObject);
 begin
-//  if FManager.FShowEcho then
-//    DrawRect;
-//  FMovedRect.TopLeft := Self.ClientToScreen(Point(0,0));
-//  FMovedRect.BottomRight := Self.ClientToScreen(Point(Width, Height));
   SendToBack;
   SetBounds((Sender as TControl).Left, (Sender as TControl).Top,
    (Sender as TControl).Width, (Sender as TControl).Height);
   BringToFront;
-//  Invalidate;
-//  Repaint;
 end;
 
 procedure TgsResizer.ControlWindowProc(var Message: TMessage);
@@ -2199,7 +2131,6 @@ begin
   case Message.Msg of
     WM_SETFOCUS:
     begin
-//      Message.Result := MA_NOACTIVATEANDEAT;
       KillMessage := True;
       SetFocus;
       BringToFront;
@@ -2296,7 +2227,6 @@ var
   P: TPoint;
   AP: TTabSheet;
 begin
-//  P := FManager.FEditForm.ClientToScreen(Point(Message.WParam, Message.LParam));
   if FManager.Busy then
     Exit;
   P := Point(Message.WParam, Message.LParam);
@@ -2357,9 +2287,6 @@ begin
   else
     FManager.FCancelAction.Enabled := False;
 
-{  if Assigned(C) and (C is TWinControl) and ((((FManager.FCut) and (C.InheritsFrom(TWinControl)) and
-     (csAcceptsControls in C.ControlStyle) and (C <> FManager.FParentControl)))
-     or (not FManager.FCut) and Clipboard.HasFormat(CF_TEXT) and (Pos('object', Clipboard.AsText) = 1)) then}
   if Assigned(CW) and (CW is TWinControl) and ((((FManager.FCut) and (CW.InheritsFrom(TWinControl)) and
      (csAcceptsControls in CW.ControlStyle) and (CW <> FManager.FParentControl)))
      or (not FManager.FCut) and Clipboard.HasFormat(CF_TEXT) and (Pos('object', Clipboard.AsText) = 1)) then
@@ -3229,17 +3156,8 @@ end;
 
 procedure TgsResizeManager.OnStartAction(Sender: TObject);
 begin
-//  if not FEnabled then
-    Enabled := True;
+  Enabled := True;
 end;
-
-// old version for saving to the File
-{procedure TgsResizeManager.ExitAndLoadDefault;
-begin
-  Enabled := False;
-  if FileExists(FResourceName) then
-    DeleteFile(FResourceName);
-end;}
 
 procedure TgsResizeManager.ExitAndLoadDefault;
 var
@@ -3555,61 +3473,10 @@ begin
     FChangedEventList.Add(AComp, AEvent, ANewID, AName);
 end;
 
-(*procedure TgsResizeManager.SetDefaultValues(AComponent: TComponent);
-var
-  PropList: PPropList;
-  ClassTypeInfo: PTypeInfo;
-  ClassTypeData: PTypeData;
-  i: integer;
-  NumProps: Integer;
-const
-  OrdinalTypes = [tkInteger, tkChar, tkEnumeration, tkWChar];
-  //
-   {tkFloat, tkString, tkSet, tkClass, tkMethod, tkLString, tkWString,
-   tkVariant, tkArray, tkRecord, tkInterface, tkInt64, tkDynArray}
-
-begin
-  ////////////////////////
-  // Устанавливаем значения по умолчанию для полей
-  // типа OrdinalTypes
-
-  ClassTypeInfo := AComponent.ClassInfo;
-  ClassTypeData := GetTypeData(ClassTypeInfo);
-
-  if ClassTypeData.PropCount <> 0 then
-  begin
-    // allocate the memory needed to hold the references to the TPropInfo
-    // structures on the number of properties.
-    GetMem(PropList, SizeOf(PPropInfo) * ClassTypeData.PropCount);
-    try
-      NumProps := GetPropList(AComponent.ClassInfo, OrdinalTypes, PropList);
-      // Fill the AStrings with the events.
-      for i := 0 to NumProps - 1 do
-      begin
-        if (PropList[I]^.Name = 'Align') or (PropList[I]^.Name = 'Left') or
-           (PropList[I]^.Name = 'Top') or (PropList[I]^.Name = 'Width') or
-           (PropList[I]^.Name = 'Height') or (PropList[I]^.Name = 'PageIndex') then
-          Continue;
-        if PropList[I]^.Default = Low(PropList[i]^.Default) then
-          SetPropertyValue(AComponent, PropList[i]^.Name, '0')
-        else
-          SetPropertyValue(AComponent, PropList[i]^.Name, IntToStr(PropList[i]^.Default));
-      end;
-  //          AStrings.Add(Format('%s: %s', [, PropList[i]^.PropType^.Name]));
-
-    finally
-      FreeMem(PropList, SizeOf(PPropInfo) * ClassTypeData.PropCount);
-    end;
-  end;
-end;
-  *)
-
-
 function TgsResizeManager.GetEditForm: TForm;
 begin
   Result := FEditForm;
 end;
-
 
 procedure TgsResizeManager.PageControl(Sender: TObject);
 var
@@ -3752,7 +3619,6 @@ procedure TgsResizeManager.CheckPosition(AnOwner: TComponent;
 var
   Reader: TDesignReader;
 begin
-
   Reader := TDesignReader.Create(Stream, 4096);
   try
     Reader.Designer := Self;
@@ -3764,7 +3630,6 @@ begin
 end;
 
 { TgsReader }
-
 
 function TgsResizeManager.GetShortCut: TShortCut;
 begin
@@ -3948,21 +3813,23 @@ begin
           begin
             bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, FFormSubType, F, IBLogin.IsIBUserAdmin);
 
-            if (not bLoadedFromStorage) and (FFormSubType > '')
-              and(FFormSubType <> SubTypeDefaultName) then
+            if (not bLoadedFromStorage) and (FFormSubType > '') and (FFormSubType <> SubTypeDefaultName) then
             begin
               CE := gdClassList.Get(TgdFormEntry, FEditForm.ClassName, FFormSubType);
-              While (CE.Parent.SubType <> '') and (not bLoadedFromStorage) do
+              while (CE.Parent is TgdFormEntry) and (CE.Parent.SubType > '') do
               begin
                 bLoadedFromStorage :=
                   GlobalStorage.ReadStream(FResourceName, CE.Parent.SubType, F, IBLogin.IsIBUserAdmin);
 
                 if bLoadedFromStorage then
+                begin
                   ReplaceSubType := True;
+                  break;
+                end;
 
                 CE := CE.Parent;
               end;
-              
+
               if not bLoadedFromStorage then
                 bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, SubTypeDefaultName, F, IBLogin.IsIBUserAdmin);
             end;
@@ -3976,26 +3843,26 @@ begin
             if (FDesignerType = dtUser) and (Flag = 0) then
             begin
               bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
-              if (not bLoadedFromUserStorage) and (FFormSubType > '')
-                and(FFormSubType <> SubtypeDefaultName) then
+              if (not bLoadedFromUserStorage) and (FFormSubType > '') and (FFormSubType <> SubtypeDefaultName) then
               begin
                 CE := gdClassList.Get(TgdFormEntry, FEditForm.ClassName, FFormSubType);
-                While (CE.Parent.SubType <> '') and (not bLoadedFromUserStorage) do
+                while (CE.Parent is TgdFormEntry) and (CE.Parent.SubType <> '') do
                 begin
                   bLoadedFromUserStorage :=
                     UserStorage.ReadStream(FResourceName, CE.Parent.SubType, F, IBLogin.IsIBUserAdmin);
 
                   if bLoadedFromUserStorage then
+                  begin
                     ReplaceSubType := True;
+                    break;
+                  end;
 
                   CE := CE.Parent;
                 end;
               end;
 
               if bLoadedFromUserStorage then
-              begin
                 Flag := 2;
-              end;
             end;
 
             if Flag <> 0 then
@@ -4016,20 +3883,22 @@ begin
                     F.Clear;
                     ReplaceSubType := False;
                     bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
-                    if not bLoadedFromUserStorage and (FFormSubType > '')
-                      and(FFormSubType <> SubtypeDefaultName) then
+                    if (not bLoadedFromUserStorage) and (FFormSubType > '') and (FFormSubType <> SubtypeDefaultName) then
                     begin
                       CE := gdClassList.Get(TgdFormEntry, FEditForm.ClassName, FFormSubType);
-                      While (CE.Parent.SubType <> '') and (not bLoadedFromUserStorage) do
+                      while (CE.Parent is TgdFormEntry) and (CE.Parent.SubType > '') do
                       begin
                         bLoadedFromUserStorage :=
                           UserStorage.ReadStream(FResourceName, CE.Parent.SubType, F, IBLogin.IsIBUserAdmin);
                         if bLoadedFromUserStorage then
+                        begin
                           ReplaceSubType := True;
+                          break;
+                        end;
                         CE := CE.Parent;
                       end;
                     end;
-                    
+
                     if bLoadedFromUserStorage then
                     begin
                       F.Seek(0, soFromBeginning);
@@ -4100,14 +3969,6 @@ end;
 
 function TgsResizeManager.DoBeforeExit(const SaveState: Boolean = False): Boolean;
 begin
-//  Result := False;
-
-//  if Assigned(EventControl) and (EventControl.PropertyIsLoaded) and
-//    FEnabled then
-//  begin
-//    if not EventControl.PropertyClose then
-//      Exit;
-//  end;
   if Assigned(FHintTimer) then
     FHintTimer.Enabled := False;
   if Assigned(FHintWindow) then
@@ -4121,7 +3982,6 @@ begin
   end;
   Result := True;
 end;
-
 
 function TgsResizeManager.AddComponent(AComponent: TComponent): TControl;
 var
@@ -4165,10 +4025,7 @@ function TgsResizeManager.SetPropertyValue(AComponent: TObject;
     end
     else if Result > AMax then
         Result := AMax;
-
-
   end;
-
 
 var
   PropInfo: PPropInfo;
@@ -4251,7 +4108,6 @@ begin
           end;
         tkFloat:
           SetFloatProp(Instance, PropInfo, StrToFloat(PropValue));
-//        tkChar, tkWChar:;
 
         tkString, tkLString, tkWString:
           SetStrProp(Instance, PropInfo, PropValue);
@@ -4320,7 +4176,6 @@ procedure TgsResizeManager.ControlResize(Sender: TObject);
 var
   I: Integer;
 begin
-//  FEditForm.Repaint;
   for I := 0 to FResizerList.Count - 1 do
     Resizers[I].DoResize(Resizers[I].MovedControl);
 end;
@@ -4495,11 +4350,6 @@ begin
   begin
     with FEditForm do
     begin
-//      Canvas.Brush.Color := Color;
-//      Canvas.Brush.Style := bsSolid;
-//      Canvas.FillRect(ClientRect);
-//      Canvas.ClipRect := FEditForm.ClientRect;
-  // Canvas.ClipRect.Left
       L := HorzScrollBar.ScrollPos - (HorzScrollBar.ScrollPos div FGridSize) * FGridSize;
       W := VertScrollBar.ScrollPos - (VertScrollBar.ScrollPos div FGridSize) * FGridSize;
       for I := 0 to ClientWidth div FGridSize do
@@ -4552,12 +4402,6 @@ begin
     Enabled := True;
   end;
 end;
-
-{procedure TgsResizeManager.OnFormClose(Sender: TObject;
-  var Action: TCloseAction);
-begin
-  Action := caHide;
-end;}
 
 function TgsResizeManager.IsInResize: Boolean;
 begin
@@ -4825,7 +4669,6 @@ end;
 procedure TresTwoPointerList.Clear;
 begin
   inherited;
-
 end;
 
 procedure TresTwoPointerList.Delete(AnSender: TObject);
@@ -4846,7 +4689,6 @@ end;
 procedure TgsResizeManager.CopyNameAction(Sender: TObject);
 var
   S: String;
-//  I: Integer;
 begin
   Clipboard.Open;
   try

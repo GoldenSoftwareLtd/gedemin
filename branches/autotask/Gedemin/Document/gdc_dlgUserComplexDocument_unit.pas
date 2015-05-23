@@ -252,7 +252,6 @@ end;
 
 procedure Tgdc_dlgUserComplexDocument.Post;
 var
-  //K: Integer;
   DE: TgdDocumentEntry;
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}  Params, LResult: Variant;
@@ -282,21 +281,13 @@ begin
   if (gdcDetailObject.RecordCount > 0)
     and gdcDetailObject.FieldByName('transactionkey').IsNull then
   begin
-    DE := gdClassList.Find(gdcObject) as TgdDocumentEntry;
+    DE := gdClassList.Get(TgdDocumentEntry, gdcObject.ClassName, gdcObject.SubType) as TgdDocumentEntry;
     if (DE.HeaderFunctionKey > 0) and (DE.LineFunctionKey <= 0) then
       (gdcObject as TgdcDocument).CreateEntry;
-
-    {
-    K := gdcObject.FieldByName('documenttypekey').AsInteger;
-    if (DocTypeCache.CacheItemsByKey[K].HeaderFunctionKey > 0)
-      and (DocTypeCache.CacheItemsByKey[K].LineFunctionKey <= 0) then
-    begin
-      (gdcObject as TgdcDocument).CreateEntry;
-    end;
-    }
   end;
 
   inherited Post;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERCOMPLEXDOCUMENT', 'POST', KEYPOST)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then

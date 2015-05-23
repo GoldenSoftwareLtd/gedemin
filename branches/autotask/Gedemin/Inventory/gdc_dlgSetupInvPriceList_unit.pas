@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -126,6 +125,7 @@ type
       ANewObject: TgdcBase);
     procedure iblcLineTableCreateNewObject(Sender: TObject;
       ANewObject: TgdcBase);
+    procedure edEnglishNameChange(Sender: TObject);
 
   private
     FOperationCount: Integer; // Список операций по созданию полей с переподключением
@@ -1048,10 +1048,13 @@ begin
     begin
       gdcObject.FieldByName('name').AsString := 'Наследник ' + DE.Caption;
       gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
+      gdcObject.FieldByName('headerrelkey').AsInteger := DE.HeaderRelKey;
+      gdcObject.FieldByName('linerelkey').AsInteger := DE.LineRelKey;
+      edEnglishName.Text := DE.HeaderRelName;
     end;
 
-    iblcHeaderTable.gdClassName := 'TgdcInheritedTable';
-    iblcLineTable.gdClassName := 'TgdcInheritedTable';
+    iblcHeaderTable.gdClassName := 'TgdcInheritedDocumentTable';
+    iblcLineTable.gdClassName := 'TgdcInheritedDocumentTable';
   end;
 
   if Document.State in [dsEdit, dsInsert] then
@@ -1237,11 +1240,19 @@ begin
   aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
 end;
 
+procedure TdlgSetupInvPriceList.edEnglishNameChange(Sender: TObject);
+begin
+  if (gdcObject <> nil) and (gdcObject.State = dsInsert) then
+  begin
+    iblcHeaderTable.CurrentKeyInt := 0;
+    iblcLineTable.CurrentKeyInt := 0;
+  end;
+end;
+
 initialization
   RegisterFrmClass(TdlgSetupInvPriceList);
 
 finalization
   UnRegisterFrmClass(TdlgSetupInvPriceList);
-
 end.
 

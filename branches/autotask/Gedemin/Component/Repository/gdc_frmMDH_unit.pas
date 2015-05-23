@@ -176,6 +176,9 @@ type
 
   public
     destructor Destroy; override;
+
+    procedure Setup(AnObject: TObject); override;
+
     function GetDetailBookmarkList: TBookmarkList; virtual;
     property gdcDetailObject: TgdcBase read FgdcDetailObject write SetgdcDetailObject;
 
@@ -196,7 +199,7 @@ uses
   VExportDlg,
   {$ENDIF}
   gd_security, Storages, gd_ClassList, at_AddToSetting,
-  prp_methods
+  prp_methods, Contnrs
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -443,19 +446,6 @@ begin
         FgdcDetailObject.FreeNotification(Self);
       FgdcDetailObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
-
-      if gdClassList.Get(TgdBaseEntry,
-        FgdcDetailObject.ClassName, FgdcDetailObject.SubType).Count > 0 then
-      begin
-        if (Self.ClassName <> 'Tgdc_frmUserComplexDocument')
-          and (Self.ClassName <> 'Tgdc_frmInvDocument')
-          and (Self.ClassName <> 'Tgdc_frmInvPriceList') then
-        begin
-          TCrTBItem(tbiDetailNew).ItemStyle :=
-            TCrTBItem(tbiDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
-          tbiDetailNew.OnPopup := tbiDetailNewPopup;
-        end;
-      end;
     end;
   end;
 end;
@@ -1221,6 +1211,61 @@ procedure Tgdc_frmMDH.tbiDetailNewPopup(Sender: TTBCustomItem;
 begin
   if gdcDetailObject <> nil then
     FillPopupNew(gdcDetailObject, Sender, DoOnDetailDescendantClick);
+end;
+
+procedure Tgdc_frmMDH.Setup(AnObject: TObject);
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  OL: TObjectList;
+begin
+  {@UNFOLD MACRO INH_CRFORM_SETUP('TGDC_FRMMDH', 'SETUP', KEYSETUP)}
+  {M}try
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}  begin
+  {M}    SetFirstMethodAssoc('TGDC_FRMMDH', KEYSETUP);
+  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUP]);
+  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_FRMMDH') = -1) then
+  {M}    begin
+  {M}      Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(AnObject)]);
+  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_FRMMDH',
+  {M}        'SETUP', KEYSETUP, Params, LResult) then exit;
+  {M}    end else
+  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_FRMMDH' then
+  {M}      begin
+  {M}        Inherited;
+  {M}        Exit;
+  {M}      end;
+  {M}  end;
+  {END MACRO}
+
+  inherited Setup(AnObject);
+
+  OL := TObjectList.Create(False);
+  try
+    if (gdcDetailObject <> nil) and gdcDetailObject.GetChildrenClass(gdcDetailObject.SubType, OL, False) then
+    begin
+      if (Self.ClassName <> 'Tgdc_frmUserComplexDocument')
+        and (Self.ClassName <> 'Tgdc_frmInvDocument')
+        and (Self.ClassName <> 'Tgdc_frmInvPriceList') then
+      begin
+        TCrTBItem(tbiDetailNew).ItemStyle :=
+          TCrTBItem(tbiDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+        tbiDetailNew.OnPopup := tbiDetailNewPopup;
+      end;
+    end;
+  finally
+    OL.Free;
+  end;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMMDH', 'SETUP', KEYSETUP)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_FRMMDH', 'SETUP', KEYSETUP);
+  {M}end;
+  {END MACRO}
 end;
 
 initialization

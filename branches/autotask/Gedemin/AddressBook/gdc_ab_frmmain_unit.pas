@@ -1,8 +1,7 @@
 
 {++
 
-   Project gdcBaseClass
-   Copyright c 2000-2001 by Golden Software
+   Copyright c 2000-2015 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -10,7 +9,7 @@
 
    Описание
 
-     Главная форма
+     Справочник контактов
 
    Автор
 
@@ -20,8 +19,10 @@
    История
 
      ver    date    who    what
+
      1.00 - 15.06.2001 - Anton - Первая версия
             01.03.2002   Julia
+
  --}
 
 unit gdc_ab_frmmain_unit;

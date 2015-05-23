@@ -1,11 +1,11 @@
 object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
-  Left = 679
-  Top = 635
+  Left = 645
+  Top = 509
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Выбор объекта '
   ClientHeight = 123
-  ClientWidth = 265
+  ClientWidth = 361
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -19,7 +19,7 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
   object rgObjects: TRadioGroup
     Left = 5
     Top = 1
-    Width = 254
+    Width = 350
     Height = 88
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
@@ -27,7 +27,7 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
   object pnlBtns: TPanel
     Left = 0
     Top = 93
-    Width = 265
+    Width = 361
     Height = 30
     Align = alBottom
     BevelOuter = bvNone
@@ -41,7 +41,7 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
       TabOrder = 0
     end
     object btnOK: TButton
-      Left = 103
+      Left = 199
       Top = 3
       Width = 75
       Height = 21
@@ -51,7 +51,7 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
       TabOrder = 1
     end
     object btnCancel: TButton
-      Left = 183
+      Left = 279
       Top = 3
       Width = 75
       Height = 21

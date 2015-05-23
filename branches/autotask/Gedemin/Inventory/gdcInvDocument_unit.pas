@@ -1006,11 +1006,6 @@ var
 begin
   if State <> dsInsert then Exit;
 
-  {if Self is TgdcInvDocument then
-    RelName := RelationName
-  else
-    RelName := RelationLineName;}
-
   CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
   RelName := TgdDocumentEntry(CE).DistinctRelation;
 
@@ -1470,8 +1465,8 @@ begin
 
     Result := Format(
       inherited GetFromClause(ARefresh) +
-      '  JOIN %s INVDOC ON (Z.ID = INVDOC.DOCUMENTKEY) AND z.documenttypekey = %d ',
-      [TgdDocumentEntry(CE).DistinctRelation, TgdDocumentEntry(CE).TypeID]
+      '  JOIN %s INVDOC ON (Z.ID = INVDOC.DOCUMENTKEY) ',
+      [TgdDocumentEntry(CE).DistinctRelation]
     );
   end;
 
@@ -5770,14 +5765,12 @@ begin
 end;
 
 procedure TgdcInvDocumentType.DoBeforePost;
-  VAR
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}
+  {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Stream: TStream;
-
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -5798,7 +5791,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
+
   //складские документы не могут быть общими!
   FieldByName('iscommon').AsInteger := 0;
 
