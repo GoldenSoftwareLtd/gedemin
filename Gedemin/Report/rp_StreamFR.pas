@@ -653,9 +653,7 @@ var
   LocDispatch: IDispatch;
   LocReportResult: IgsQueryList;
   I, J: Integer;
-  {$IFOPT C+}
   K: Integer;
-  {$ENDIF}
   DS: TDataSet;
 begin
   //Разбираем BaseQueryList и добавляем его в Fast Report
@@ -665,13 +663,10 @@ begin
   for J := 0 to LocReportResult.Count - 1 do
   begin
     DS := TDataSet(LocReportResult.Query[J].Get_Self);
-    {$IFOPT C+}
     K := inherited AddDataSet(DS.Name, DS);
-    {$ENDIF}
     I := FfrDataSetList.AddObject(AnsiUpperCase(DS.Name), TfrDBDataSet.Create(nil));
-    {$IFOPT C+}
-    Assert(K = I);
-    {$ENDIF}
+    if K <> I then
+      raise Exception.Create('Internal report result error');
     TfrDBDataSet(FfrDataSetList.Objects[I]).Name := FfrDataSetList.Strings[I];
     TfrDBDataSet(FfrDataSetList.Objects[I]).DataSet := DS;
   end;
