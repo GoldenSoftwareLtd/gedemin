@@ -428,7 +428,8 @@ var
 begin
   Result := inherited AddDataSet(AnName);
   I := FfrDataSetList.AddObject(AnsiUpperCase(AnName), TfrxDBDataSet.Create(nil));
-  Assert(Result = I);
+  if Result <> I then
+    raise Exception.Create('Internal error');
   TfrxDBDataSet(FfrDataSetList.Objects[Result]).Name := FfrDataSetList.Strings[Result];
   TfrxDBDataSet(FfrDataSetList.Objects[Result]).DataSet := DataSet[Result];
 end;
@@ -449,7 +450,8 @@ begin
     DS := TDataSet(LocReportResult.Query[J].Get_Self);
     K := inherited AddDataSet(DS.Name, DS);
     I := FfrDataSetList.AddObject(AnsiUpperCase(DS.Name), TfrxDBDataSet.Create(nil));
-    Assert(K = I);
+    if K <> I then
+      raise Exception.Create('Internal error');
     TfrxDBDataSet(FfrDataSetList.Objects[K]).Name := FfrDataSetList.Strings[K];
     TfrxDBDataSet(FfrDataSetList.Objects[K]).DataSet := DS;
   end;
