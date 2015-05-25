@@ -3,7 +3,7 @@ unit PLIntf;
 interface
 
 uses
-  Windows, PLHeader;
+  Windows, PLHeader, gd_GlobalParams_unit;
 
 var
   PL_initialise: TPL_initialise;
@@ -92,6 +92,8 @@ procedure FreePLDependentLibraries;
 procedure LoadPLLibrary;
 procedure FreePLLibrary;
 function GetPath: String;
+function GetSWIPath: String;
+function GetSWITempPath: String;
 function TryPLLoad: Boolean;
 
 implementation
@@ -102,21 +104,51 @@ uses
 var
   PLLibrary: THandle;
   PLLibgmp10Library: THandle;
-  PLPthreadGC2Library: THandle; 
+  PLPthreadGC2Library: THandle;
+  PLLibwinpthread1Library: THandle;
+  PLLibgcc_s_sjlj1Library: THandle;
 
 function GetPath: String;
 begin
-  Result := ExtractFilePath(Application.EXEName) + 'swipl\';
+  Result := ExtractFilePath(Application.EXEName) + IncludeTrailingBackslash(PrologPath);
+end;
+
+function GetSWIPath: String;
+begin
+  if gd_GlobalParams.LocalAppDataDir > '' then
+    Result := IncludeTrailingBackslash(gd_GlobalParams.LocalAppDataDir) + PrologPath
+  else
+    Result := ExtractFilePath(Application.EXEName) + PrologPath;
+end;
+
+function GetSWITempPath: String;
+begin
+  if gd_GlobalParams.LocalAppDataDir > '' then
+    Result := IncludeTrailingBackslash(gd_GlobalParams.LocalAppDataDir) + PrologTempPath
+  else
+    Result := ExtractFilePath(Application.EXEName) + PrologTempPath;
 end;
 
 function LoadPLDependentLibraries: Boolean;
 begin
+  {$IFDEF SWI7}
+  if PLLibwinpthread1Library <= HINSTANCE_ERROR then
+    PLLibwinpthread1Library := LoadLibrary(PChar(GetPath + Libwinpthread1_dll));
+  if PLLibgcc_s_sjlj1Library <= HINSTANCE_ERROR then
+    PLLibgcc_s_sjlj1Library := LoadLibrary(PChar(GetPath + Libgcc_s_sjlj1_dll));
+  {$ELSE}
   if PLPthreadGC2Library <= HINSTANCE_ERROR then
     PLPthreadGC2Library := LoadLibrary(PChar(GetPath + PthreadGC2_dll));
+  {$ENDIF}
+
   if PLLibgmp10Library <= HINSTANCE_ERROR then
     PLLibgmp10Library := LoadLibrary(PChar(GetPath + Libgmp10_dll));
 
+  {$IFDEF SWI7}
+  Result := (PLLibgmp10Library > HINSTANCE_ERROR) and (PLLibgcc_s_sjlj1Library > HINSTANCE_ERROR) and (PLLibwinpthread1Library > HINSTANCE_ERROR);
+  {$ELSE}
   Result := (PLLibgmp10Library > HINSTANCE_ERROR) and (PLPthreadGC2Library > HINSTANCE_ERROR);
+  {$ENDIF}
 end;
 
 procedure LoadPLLibrary;
@@ -128,7 +160,7 @@ procedure LoadPLLibrary;
       raise Exception.Create('Invalid function address!');
   end;
 
-begin  
+begin
   PLLibrary := LoadLibrary(PChar(GetPath + libswipl_dll));
   if (PLLibrary > HINSTANCE_ERROR) then
   begin
@@ -226,17 +258,31 @@ end;
 
 procedure FreePLDependentLibraries;
 begin
+  {$IFDEF SWI7}
+  if PLLibwinpthread1Library > HINSTANCE_ERROR then
+  begin
+    FreeLibrary(PLLibwinpthread1Library);
+    PLLibwinpthread1Library := 0;
+  end;
+
+  if PLLibgcc_s_sjlj1Library > HINSTANCE_ERROR then
+  begin
+    FreeLibrary(PLLibgcc_s_sjlj1Library);
+    PLLibgcc_s_sjlj1Library := 0;
+  end;
+  {$ELSE}
   if PLPthreadGC2Library > HINSTANCE_ERROR then
   begin
     FreeLibrary(PLPthreadGC2Library);
     PLPthreadGC2Library := 0;
   end;
+  {$ENDIF}
 
   if PLLibgmp10Library > HINSTANCE_ERROR then
   begin
     FreeLibrary(PLLibgmp10Library);
     PLLibgmp10Library := 0;
-  end;  
+  end;
 end;
 
 function TryPLLoad: Boolean;
@@ -256,5 +302,5 @@ initialization
 
 finalization
   FreePLLibrary;
-  FreePLDependentLibraries;   
+  FreePLDependentLibraries;
 end.

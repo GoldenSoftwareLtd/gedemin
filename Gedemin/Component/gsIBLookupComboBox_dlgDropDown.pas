@@ -406,6 +406,7 @@ begin
   tv.Items.BeginUpdate;
   try
     tv.FullCollapse;
+    ibdsList.First;
   finally
     tv.Items.EndUpdate;
   end;
