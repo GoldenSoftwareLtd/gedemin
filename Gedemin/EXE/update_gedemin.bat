@@ -5,6 +5,7 @@ echo *************************************************
 echo **                                             **
 echo **  Usage:                                     **
 echo **  update_gedemin {/ftp /no_ftp} {/d /p /l}   **
+echo **    [ver_file.rc] [new_exe_size]             **
 echo **                                             **
 echo *************************************************
 
@@ -95,7 +96,7 @@ echo **  Increment version number                   **
 echo **                                             **
 echo *************************************************
 
-incverrc.exe ..\gedemin\gedemin_ver.rc
+if "%3"=="" incverrc.exe ..\gedemin\gedemin_ver.rc
 
 echo *************************************************
 echo **                                             **
@@ -120,7 +121,11 @@ del gedemin.res
 if not exist gedemin.res eventcreate /t error /id 1 /l application /so gedemin /d "gedemin.res compilation error"
 
 del gedemin_ver.res
-"%delphi_path%\brcc32.exe" -fogedemin_ver.res -i..\images gedemin_ver.rc
+if "%3"=="" (
+  "%delphi_path%\brcc32.exe" -fogedemin_ver.res -i..\images gedemin_ver.rc
+) else (
+  "%delphi_path%\brcc32.exe" -fogedemin_ver.res -i..\images %3
+)
 if not exist gedemin_ver.res eventcreate /t error /id 1 /l application /so gedemin /d "gedemin_ver.res compilation error"
 
 echo *************************************************
@@ -161,6 +166,7 @@ cd ..\exe
 stripreloc /b gedemin.exe
 
 if "%2"=="/p" goto skip_optimize_debug 
+if "%2"=="/l" goto skip_optimize_debug 
 
 echo *************************************************
 echo **                                             **
@@ -172,6 +178,8 @@ echo *************************************************
 tdspack -e -o -a gedemin.exe
 
 :skip_optimize_debug
+
+if not "%4"=="" setexesize gedemin.exe %4
 
 echo *************************************************
 echo **                                             **

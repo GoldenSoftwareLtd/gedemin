@@ -10,7 +10,7 @@ if not [%1]==[] goto InitVars
 echo ************************************************************
 echo **                                                        **
 echo **  Auto:                                                 **
-echo **  Использование: auto2.bat {/ftp /no_ftp}               **
+echo **  Использование: auto2.bat {/ftp /no_ftp} {/cash /check}**
 echo **                                                        **
 echo ************************************************************
 
@@ -64,7 +64,9 @@ echo **                                             **
 echo *************************************************
 
 cd ..\gedemin\exe
-call update_gedemin.bat /no_ftp /p
+if "%2"=="" call update_gedemin.bat /no_ftp /p
+if "%2"=="/cash" call update_gedemin.bat /no_ftp /l gedemin_positive_cash_ver.rc 17698304
+if "%2"=="/check" call update_gedemin.bat /no_ftp /l gedemin_positive_check_ver.rc 17698304
 cd ..\setup\bootstrap
 
 if not errorlevel 0 goto Error
@@ -92,10 +94,12 @@ echo **  Делаем инстоляции                          **
 echo **                                             **
 echo *************************************************
 
+if "%2"=="/cash" call make_install.bat "%setting_source_path%\Розничная торговля\PositiveCash\GS.PositiveCash.yml"           cash      complex.jpg kkc_positive_cash    cash_setup.rar      "%install_target_path%\Касса\setup.exe" %send_ftp%
+if "%2"=="/cash" goto exit
+
 call make_install.bat "%setting_source_path%\Банк\Банк и касса.yml"                                         plat      doc.jpg     platlocal     plat_setup.rar     "%install_target_path%\Платежные документы\setup.exe" %send_ftp% 
 call make_install.bat "%setting_source_path%\Общие\Комплексная автоматизация.yml"                           business  complex.jpg businesslocal compl_setup.rar    "%install_target_path%\Комплексная автоматизация\setup.exe" %send_ftp%
 rem goto exit
-call make_install.bat "%setting_source_path%\Розничная торговля\PositiveCash\GS.PositiveCash.yml"           cash      complex.jpg kkc_positive_cash    cash_setup.rar      "%install_target_path%\Касса\setup.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Общие\Общие данные.yml"                                        devel     complex.jpg devellocal    devel_setup.rar    "%install_target_path%\Разработчик\setup.exe"         %send_ftp%
 call make_install.bat "%setting_source_path%\Меню\2014 Бэк-офис\GS.Общепит.back.yml"                        menuback  complex.jpg menubacklocal menuback_setup.rar "%install_target_path%\Меню\setup_back.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Гостиница\GS.Гостиница.yml"                                    hotel     doc.jpg     hotellocal    hotel_setup.rar    "%install_target_path%\Гостиница\setup.exe" %send_ftp% 

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -255,7 +255,6 @@ type
   end;
 
 type
-{ Forward class declarations }
   TFilterConditionList = class;
 
   // Запись условия
@@ -422,14 +421,6 @@ uses
   , Variants
 {$ENDIF}
   ;
-
-{$IFDEF PROTECTSOURCE}
-const
-  cAlarm = 'Component TgsQueryFilter was developed by Golden Software. www.gsBelarus.com';
-
-var
-  glbQueryCounter: Integer;
-{$ENDIF}
 
 constructor TfltFieldData.Create;
 begin
@@ -3280,21 +3271,6 @@ var
   L: Integer;
 begin
   Result := False;
-
-  {$IFDEF PROTECTSOURCE}
-  Inc(glbQueryCounter);
-
-  if glbQueryCounter = 50 then
-  begin
-    MessageBox(0, cAlarm, 'Attention', MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-    Randomize;
-  end;
-
-  if (glbQueryCounter > 50) and (Trunc(Random(3)) = glbQueryCounter mod 3) then
-  begin
-    MessageBox(0, cAlarm, 'Attention', MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-  end;
-  {$ENDIF}
 
   // Создаем необходимые списки
   SelectStr := TStringList.Create;
