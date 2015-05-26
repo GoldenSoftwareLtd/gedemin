@@ -1645,6 +1645,7 @@ type
     function  CanPasteFromClipboard: WordBool; safecall;
     procedure CheckCurrentRecord; safecall;
     function  CheckSubSet(const ASubSetbstr: WideString): WordBool; safecall;
+    function  CheckSubType(const ASubType: WideString): WordBool; safecall;
     procedure ClearSubSets; safecall;
     procedure CopyToClipboard(const BL: IgsBookmarkList; ACut: WordBool); safecall;
     procedure DataEvent(Event: TgsDataEvent; Info: Integer); safecall;
@@ -7457,6 +7458,11 @@ end;
 function TwrpGDCBase.Get_CopiedObjectKey: Integer;
 begin
   Result := GetGDCBase.CopiedObjectKey;
+end;
+
+function TwrpGDCBase.CheckSubType(const ASubType: WideString): WordBool;
+begin
+  Result := GetGDCBase.CheckSubType(ASubType);
 end;
 
 { TwrpGDCClassList }
