@@ -72,10 +72,6 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    //function Get(AnId: Integer): TgdTaskLog;
-    //function Add: TgdTaskLog;
-    //procedure Remove(AnId: Integer);
-
     procedure TaskExecute;
 
     property RightTime: Boolean read GetRightTime;
@@ -117,12 +113,15 @@ type
     function GetTask(Index: Integer): TgdTask;
 
     procedure LoadFromRelation;
+    procedure CheckTasks;
     function FindPriorityTask: TgdTask;
 
   protected
     procedure Timeout; override;
-
     function ProcessMessage(var Msg: TMsg): Boolean; override;
+
+    procedure SendNotification(const AText: String; const AContext: Integer = 0;
+      const AShowTime: DWORD = INFINITE);
 
   public
     constructor Create;
@@ -173,46 +172,6 @@ begin
   inherited;
 end;
 
-{function TgdTask.Get(AnId: Integer): TgdTaskLog;
-var
-  I: Integer;
-begin
-  for I := 0 to Count - 1 do
-    if Self[I].FId = AnId then
-    begin
-      Result := Self[I];
-      exit;
-    end;
-
-  raise Exception.Create('Unknown TaskLog')
-end;}
-
-{function TgdTask.Add: TgdTaskLog;
-var
-  I: Integer;
-begin
-  I := Self.FTaskLogList.Add(TgdTaskLog.Create);
-  Result := Self[I];
-
-  if Result = nil then
-    raise Exception.Create('Error Creation TaskLog');
-end;}
-
-{procedure TgdTask.Remove(AnId: Integer);
-var
-  I: Integer;
-begin
-  for I := Self.Count - 1 downto 0 do
-    if Self[I].FId = AnId then
-    begin
-      Self[I].Free;
-      Self.FTaskLogList.Delete(I);
-      exit;
-    end;
-
-  raise Exception.Create('Unknown TaskLog');
-end;}
-
 function TgdTask.DayOfTheWeek(const AValue: TDateTime): Word;
 begin
   Result := (DateTimeToTimeStamp(AValue).Date - 1) mod 7 + 1;
@@ -251,18 +210,21 @@ function TgdTask.GetGoodDay: Boolean;
 var
   NDT: TDateTime;
 begin
-  Result := False;
+  Result := Daily;
 
-  NDT := Now;
-
-  if Weekly <> 0 then
-    Result := Weekly = DayOfTheWeek(NDT)
-  else if (Monthly <> 0) then
+  if not Result then
   begin
-    if (Monthly > 0) then
-      Result := Monthly = DayOfTheMonth(NDT)
-    else
-      Result := (DaysInMonth(NDT) - Monthly + 1) = DayOfTheMonth(NDT);
+    NDT := Now;
+
+    if Weekly <> 0 then
+      Result := Weekly = DayOfTheWeek(NDT)
+    else if (Monthly <> 0) then
+    begin
+      if (Monthly > 0) then
+        Result := Monthly = DayOfTheMonth(NDT)
+      else
+        Result := (DaysInMonth(NDT) - Monthly + 1) = DayOfTheMonth(NDT);
+    end;
   end;
 end;
 
@@ -270,32 +232,12 @@ end;
 // люба€ запись в логе в подход€щем временном интервале
 // говорит о том что задача уже запускалась и ее исключаем
 function TgdTask.GetTaskExecuted: Boolean;
-var
-  I: Integer;
-  //NDT: TDateTime;
 begin
-  Result := False;
-
-  //NDT := Now;
-
+  // провер€ем только последнюю запись лога
   if ExactDate <> 0 then
-  begin
-    for I := Self.Count - 1 downto 0 do
-    begin
-      Result := Self[I].EventTime >= ExactDate;
-      if Result then
-        exit;
-    end;
-  end
+    Result := Self[Count - 1].EventTime >= ExactDate
   else
-  begin
-    for I := Self.Count - 1 downto 0 do
-    begin
-      Result := Trunc(Self[I].EventTime) = Date;
-      if Result then
-        exit;
-    end;
-  end;
+    Result := Trunc(Self[Count - 1].EventTime) = Date;
 end;
 
 function TgdTask.GetTaskLog(Index: Integer): TgdTaskLog;
@@ -312,47 +254,37 @@ begin
 end;
 
 procedure TgdTask.CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
-//var
-//  I: Integer;
 begin
   // возможно во врем€ выполнени€ текущей задачи
   // было пропущено выполнение других задач
   // надо записать соответствующий лог
-
- //1) задача "така€-то" будет выполнена по завершении активных задач
- //2) задача "така€-то" не может быть выполнена так как истек установленный интервал дл€ выполени€
   //'Missed'
-  {for I := 0 to gdTaskManager.Count - 1 do
-  begin
-    if gdTaskManager[I].StartTime <> 0 then
-    begin
-      if gdTaskManager[I].RightUser and (not gdTaskManager[I].Disabled)
-        and gdTaskManager[I].GoodDay
-        and (not gdTaskManager[I].TaskExecuted)
-        and (gdTaskManager[I].StartTime >= (AStartDate - Trunc(AStartDate)))
-        and (gdTaskManager[I].EndTime <= (AEndDate - Trunc(AEndDate))) then
-      begin
-        gdTaskManager[I].AddLog('Missed');
-      end;
-     end;
-  end;}
 end;
 
 procedure TgdTask.AddLog(AnEventText: String);
 var
-  gdcAutoTaskLog: TgdcAutoTaskLog;
+  TaskLog: TgdTaskLog;
 begin
-  gdcAutoTaskLog := TgdcAutoTaskLog.Create(nil);
-  try
-    gdcAutoTaskLog.Open;
-    gdcAutoTaskLog.Insert;
-    gdcAutoTaskLog.FieldByName('autotaskkey').AsInteger := Self.ID;
-    gdcAutoTaskLog.FieldByName('eventtime').AsDateTime := Now;
-    gdcAutoTaskLog.FieldByName('eventtext').AsString := AnEventText;
-    gdcAutoTaskLog.Post;
-  finally
-    gdcAutoTaskLog.Free;
-  end;
+  with TgdcAutoTaskLog.Create(nil) do
+    try
+      Open;
+      Insert;
+      FieldByName('autotaskkey').AsInteger := Self.ID;
+      FieldByName('eventtime').AsDateTime := Now;
+      FieldByName('eventtext').AsString := AnEventText;
+      Post;
+
+      TaskLog := TgdTaskLog.Create;
+      TaskLog.Id := FieldbyName('id').AsInteger;
+      TaskLog.AutotaskKey := FieldbyName('autotaskkey').AsInteger;
+      TaskLog.EventTime := FieldbyName('eventtime').AsDateTime;
+      TaskLog.EventText := FieldbyName('eventtext').AsString;
+      TaskLog.CreatorKey := FieldbyName('creatorkey').AsInteger;
+      TaskLog.CreationDate := FieldbyName('creationdate').AsDateTime;
+      Self.FTaskLogList.Add(TaskLog);
+    finally
+      Free;
+    end;
 end;
 
 procedure TgdTask.TaskExecute;
@@ -539,7 +471,6 @@ procedure TgdAutoTaskThread.LoadFromRelation;
     LoadLog(Task);
 
     FTaskList.Add(Task);
-
   end;
 
 var
@@ -563,53 +494,48 @@ begin
   end;
 end;
 
+procedure TgdAutoTaskThread.CheckTasks;
+begin
+  // провер€ем лог на пропущенные, не завершенные, пропущенные задачи
+  // и выводим предупреждение.
+end;
+
 function TgdAutoTaskThread.FindPriorityTask: TgdTask;
+
+  function GetStartDate(AgdTask: TgdTask): TDateTime;
+  begin
+    if AgdTask.ExactDate <> 0 then
+      Result := AgdTask.ExactDate
+    else
+      Result := Trunc(Now) + AgdTask.StartTime;
+  end;
+
 var
   I: Integer;
-  NDT: TDateTime;
-  MinDT: TDateTime;
 begin
   // приоритет отдаетс€ задаче у которой наименьшее стартовое врем€
+  // если стартовое врем€ одинаковое, то смотрим у кого меньше Priority
   Result := nil;
 
   if Self.Count = 0 then
     exit;
 
-  NDT := Now;
-
-  MinDT := 0;
-
   for I := 0 to Self.Count - 1 do
   begin
-    if Self[I].ExactDate <> 0 then
+    if Self[I].RightUser and (not Self[I].Disabled)
+      and (not Self[I].TaskExecuted) then
     begin
-      if Self[I].RightUser and (not Self[I].Disabled)
-        and (not Self[I].TaskExecuted) then
+      if (Self[I].ExactDate = 0) and (not Self[I].GoodDay) then
+        Continue;
+
+      if (Result = nil)
+        or (GetStartDate(Self[I]) < GetStartDate(Result))
+        or ((GetStartDate(Self[I]) = GetStartDate(Result))
+          and (Self[I].Priority < Result.Priority)) then
       begin
-        if (MinDT > Self[I].ExactDate)
-          or (MinDT = 0) then
-        begin
-          MinDT := Self[I].ExactDate;
-          Result := Self[I];
-        end;
+        Result := Self[I];
       end;
-    end
-    else if Self[I].StartTime <> 0 then
-    begin
-      if Self[I].RightUser and (not Self[I].Disabled)
-        and Self[I].GoodDay
-        and (not Self[I].TaskExecuted) then
-      begin
-        if (MinDT > (Trunc(NDT) + Self[I].StartTime))
-          or (MinDT = 0) then
-        begin
-          MinDT := Trunc(NDT) + Self[I].StartTime;
-          Result := Self[I];
-        end;
-      end;
-    end
-    else
-      raise Exception.Create('invalid task');
+    end;
   end;
 end;
 
@@ -645,7 +571,7 @@ begin
       FCountWait := 0;
       SetTimeout(1);
       FNextMsg := WM_GD_WAITING;
-      gdNotifierThread.Add('ѕланировщик заданий: запущен')
+      SendNotification('ѕланировщик заданий: запущен')
     end;
 
     WM_GD_WAITING:
@@ -666,6 +592,7 @@ begin
     WM_GD_LOAD_TASKS:
     begin
       LoadFromRelation;
+      CheckTasks;
       SetTimeout(1);
       FNextMsg := WM_GD_FIND_TASK;
     end;
@@ -675,9 +602,9 @@ begin
       FTask := FindPriorityTask;
       if FTask = nil then
       begin
-        gdNotifierThread.Add('ѕланировщик заданий: нет активных задач');
+        SendNotification('ѕланировщик заданий: нет активных задач');
         ExitThread;
-        gdNotifierThread.Add('ѕланировщик заданий: остановлен');
+        SendNotification('ѕланировщик заданий: остановлен');
       end
       else
       begin
@@ -688,7 +615,7 @@ begin
 
     WM_GD_EXEC:
     begin
-      gdNotifierThread.Add('ѕланировщик заданий: выполнение ' + FTask.Name);
+      SendNotification('ѕланировщик заданий: выполнение ' + FTask.Name);
       Synchronize(FTask.TaskExecute);
       SetTimeout(1);
       FNextMsg := WM_GD_FIND_TASK;
@@ -711,6 +638,15 @@ begin
   else
     Result := False;
   end;
+end;
+
+procedure TgdAutoTaskThread.SendNotification(const AText: String; const AContext: Integer = 0;
+  const AShowTime: DWORD = INFINITE);
+begin
+  // проверить не работает ли программа в тихом режиме
+  // и только тогда отсылать
+
+  gdNotifierThread.Add(AText, AContext, AShowTime);
 end;
 
 function gdAutoTaskThread: TgdAutoTaskThread;
