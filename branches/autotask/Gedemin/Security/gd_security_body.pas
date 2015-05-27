@@ -348,8 +348,7 @@ uses
   IBServices,               DBLogDlg,             at_frmSQLProcess,
   Storages,                 mdf_proclist,         gdModify,
   IBDatabaseInfo,           gd_DatabasesList_unit,gd_security_operationconst,
-  IBErrorCodes,             gd_common_functions,  gd_ClassList,
-  gd_AutoTaskThread
+  IBErrorCodes,             gd_common_functions,  gd_ClassList
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1721,8 +1720,6 @@ begin
         FSilentLogin := False;
         Result := True;
         gdClassList.RemoveAllSubTypes;
-
-        FreeAndNil(_gdAutoTaskThread);
       end;
     finally
       FLoggingOff := False;

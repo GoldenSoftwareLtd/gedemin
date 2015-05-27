@@ -70,7 +70,8 @@ uses
   gd_localization_stub,
   {$ENDIF}
 
-  DB, IBSQL, at_frmSQLProcess, gdcNamespaceLoader, gd_ClassList, gd_AutoTaskThread;
+  DB, IBSQL, at_frmSQLProcess, gdcNamespaceLoader, gd_ClassList,
+  gd_AutoTaskThread;
 
 {$R *.DFM}
 
@@ -194,7 +195,11 @@ begin
     end;
   end;
 
-  gdAutoTaskThread.Run;
+  if gdAutoTaskThread = nil then
+  begin
+    gdAutoTaskThread := TgdAutoTaskThread.Create;
+    gdAutoTaskThread.SetInitialDelay;
+  end;
 end;
 
 procedure TdmLogin.boLoginAfterChangeCompany(Sender: TObject);
@@ -214,6 +219,8 @@ end;
 
 procedure TdmLogin.boLoginBeforeDisconnect(Sender: TObject);
 begin
+  FreeAndNil(gdAutoTaskThread);
+
   {$IFDEF WITH_INDY}
   if not Application.Terminated then
     gdWebServerControl.DeactivateServer;

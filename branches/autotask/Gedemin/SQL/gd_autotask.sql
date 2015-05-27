@@ -34,7 +34,6 @@ CREATE TABLE gd_autotask_log
 (
   id               dintkey,
   autotaskkey      dintkey,
-  eventtime        dtimestamp_notnull,
   eventtext        dtext255,            
   creatorkey       dforeignkey,
   creationdate     dcreationdate,
