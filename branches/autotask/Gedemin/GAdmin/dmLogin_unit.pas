@@ -70,7 +70,7 @@ uses
   gd_localization_stub,
   {$ENDIF}
 
-  DB, IBSQL, at_frmSQLProcess, gdcNamespaceLoader, gd_ClassList, gd_TaskManager;
+  DB, IBSQL, at_frmSQLProcess, gdcNamespaceLoader, gd_ClassList, gd_AutoTaskThread;
 
 {$R *.DFM}
 
@@ -194,7 +194,7 @@ begin
     end;
   end;
 
-  gdTaskManager.Run;
+  gdAutoTaskThread.Run;
 end;
 
 procedure TdmLogin.boLoginAfterChangeCompany(Sender: TObject);

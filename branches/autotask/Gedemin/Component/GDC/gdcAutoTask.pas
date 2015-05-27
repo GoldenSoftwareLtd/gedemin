@@ -39,7 +39,7 @@ procedure Register;
 implementation
 
 uses
-  gd_TaskManager, gdc_frmAutoTask_unit, gdc_dlgAutoTask_unit;
+  gd_AutoTaskThread, gdc_frmAutoTask_unit, gdc_dlgAutoTask_unit;
 
 procedure Register;
 begin
@@ -54,7 +54,7 @@ procedure TgdcAutoTask.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Task: TgdTask;
+  //Task: TgdTask;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCAUTOTASK', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -79,7 +79,7 @@ begin
 
   inherited;
 
-  Task := gdTaskManager.Add;
+  {Task := gdTaskManager.Add;
 
   Task.Id := FieldbyName('id').AsInteger;
   Task.Name := FieldbyName('name').AsString;
@@ -95,7 +95,7 @@ begin
   Task.EndTime := FieldbyName('endtime').AsDateTime;
   Task.Disabled := FieldbyName('disabled').AsInteger = 1;
 
-  gdTaskManager.Restart;
+  gdTaskManager.Restart;}
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTASK', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -135,7 +135,7 @@ begin
 
   inherited;
 
-  gdTaskManager.Remove(FieldbyName('id').AsInteger);
+  //gdTaskManager.Remove(FieldbyName('id').AsInteger);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTASK', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -151,7 +151,7 @@ procedure TgdcAutoTask.CustomModify(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Task: TgdTask;
+  //Task: TgdTask;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCAUTOTASK', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -176,7 +176,7 @@ begin
 
   inherited;
 
-  Task := gdTaskManager.Get(FieldbyName('id').AsInteger);
+  {Task := gdTaskManager.Get(FieldbyName('id').AsInteger);
 
   Task.Name := FieldbyName('name').AsString;
   Task.Description := FieldbyName('description').AsString;
@@ -191,7 +191,7 @@ begin
   Task.EndTime := FieldbyName('endtime').AsDateTime;
   Task.Disabled := FieldbyName('disabled').AsInteger = 1;
 
-  gdTaskManager.Restart;
+  gdTaskManager.Restart;}
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTASK', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -231,8 +231,8 @@ procedure TgdcAutoTaskLog.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Task: TgdTask;
-  TaskLog: TgdTaskLog;
+  //Task: TgdTask;
+  //TaskLog: TgdTaskLog;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCAUTOTASKLOG', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -257,7 +257,7 @@ begin
 
   inherited;
 
-  Task := gdTaskManager.Get(FieldbyName('autotaskkey').AsInteger);
+  {Task := gdTaskManager.Get(FieldbyName('autotaskkey').AsInteger);
   TaskLog := Task.Add;
 
   TaskLog.Id := FieldbyName('id').AsInteger;
@@ -265,7 +265,7 @@ begin
   TaskLog.EventTime := FieldbyName('eventtime').AsDateTime;
   TaskLog.EventText := FieldbyName('eventtext').AsString;
   TaskLog.CreatorKey := FieldbyName('creatorkey').AsInteger;
-  TaskLog.CreationDate := FieldbyName('creationdate').AsDateTime;
+  TaskLog.CreationDate := FieldbyName('creationdate').AsDateTime;}
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTASKLOG', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -281,7 +281,7 @@ procedure TgdcAutoTaskLog.CustomDelete(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Task: TgdTask;
+  //Task: TgdTask;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCAUTOTASKLOG', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  try
@@ -306,8 +306,8 @@ begin
 
   inherited;
 
-  Task := gdTaskManager.Get(FieldbyName('autotaskkey').AsInteger);
-  Task.Remove(FieldbyName('id').AsInteger);
+  //Task := gdTaskManager.Get(FieldbyName('autotaskkey').AsInteger);
+  //Task.Remove(FieldbyName('id').AsInteger);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTASKLOG', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -323,8 +323,8 @@ procedure TgdcAutoTaskLog.CustomModify(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Task: TgdTask;
-  TaskLog: TgdTaskLog;
+  //Task: TgdTask;
+  //TaskLog: TgdTaskLog;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCAUTOTASKLOG', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -349,14 +349,14 @@ begin
 
   inherited;
 
-  Task := gdTaskManager.Get(FieldbyName('autotaskkey').AsInteger);
+  {Task := gdTaskManager.Get(FieldbyName('autotaskkey').AsInteger);
   TaskLog := Task.Get(FieldbyName('id').AsInteger);
 
   TaskLog.AutotaskKey := FieldbyName('autotaskkey').AsInteger;
   TaskLog.EventTime := FieldbyName('eventtime').AsDateTime;
   TaskLog.EventText := FieldbyName('eventtext').AsString;
   TaskLog.CreatorKey := FieldbyName('creatorkey').AsInteger;
-  TaskLog.CreationDate := FieldbyName('creationdate').AsDateTime;
+  TaskLog.CreationDate := FieldbyName('creationdate').AsDateTime;}
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTASKLOG', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
