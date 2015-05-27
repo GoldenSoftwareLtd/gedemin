@@ -1,8 +1,8 @@
 inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 510
-  Top = 141
+  Left = 491
+  Top = 138
   Caption = 'gdc_dlgAutoTask'
-  ClientHeight = 516
+  ClientHeight = 569
   ClientWidth = 461
   Font.Charset = DEFAULT_CHARSET
   Font.Name = 'MS Sans Serif'
@@ -30,29 +30,36 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Height = 13
     Caption = 'Учетная запись:'
   end
+  object lbPriority: TLabel [3]
+    Left = 8
+    Top = 490
+    Width = 54
+    Height = 13
+    Caption = 'Приоритет'
+  end
   inherited btnAccess: TButton
-    Top = 486
+    Top = 539
     TabOrder = 9
   end
   inherited btnNew: TButton
-    Top = 486
+    Top = 539
     TabOrder = 10
   end
   inherited btnHelp: TButton
-    Top = 486
+    Top = 539
     TabOrder = 11
   end
   inherited btnOK: TButton
     Left = 313
-    Top = 486
+    Top = 539
     TabOrder = 7
   end
   inherited btnCancel: TButton
     Left = 385
-    Top = 486
+    Top = 539
     TabOrder = 8
   end
-  object dbedName: TDBEdit [8]
+  object dbedName: TDBEdit [9]
     Left = 104
     Top = 16
     Width = 343
@@ -62,7 +69,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     DataSource = dsgdcBase
     TabOrder = 0
   end
-  object dbmDescription: TDBMemo [9]
+  object dbmDescription: TDBMemo [10]
     Left = 104
     Top = 40
     Width = 343
@@ -72,7 +79,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     DataSource = dsgdcBase
     TabOrder = 1
   end
-  object iblkupUser: TgsIBLookupComboBox [10]
+  object iblkupUser: TgsIBLookupComboBox [11]
     Left = 104
     Top = 248
     Width = 343
@@ -90,9 +97,9 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     ShowHint = True
     TabOrder = 3
   end
-  object gbTimeInterval: TGroupBox [11]
+  object gbTimeInterval: TGroupBox [12]
     Left = 8
-    Top = 384
+    Top = 400
     Width = 177
     Height = 49
     Caption = 'Временной интервал'
@@ -138,11 +145,11 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       TabOrder = 1
     end
   end
-  object gbTimeTables: TGroupBox [12]
+  object gbTimeTables: TGroupBox [13]
     Left = 8
     Top = 272
     Width = 297
-    Height = 105
+    Height = 121
     Caption = 'Расписание'
     TabOrder = 4
     object lbMonthly: TLabel
@@ -288,8 +295,17 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         '7')
       TabOrder = 5
     end
+    object rbDaily: TRadioButton
+      Left = 8
+      Top = 96
+      Width = 89
+      Height = 17
+      Caption = 'Ежедневно'
+      TabOrder = 6
+      OnClick = rbDailyClick
+    end
   end
-  object gbType: TGroupBox [13]
+  object gbType: TGroupBox [14]
     Left = 8
     Top = 96
     Width = 448
@@ -389,6 +405,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       Height = 17
       Caption = 'Авто ХО:'
       TabOrder = 8
+      OnClick = rbAutoTrClick
     end
     object rbReport: TRadioButton
       Left = 8
@@ -397,6 +414,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       Height = 17
       Caption = 'Отчет:'
       TabOrder = 9
+      OnClick = rbReportClick
     end
     object iblkupAutoTr: TgsIBLookupComboBox
       Left = 96
@@ -404,6 +422,12 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       Width = 343
       Height = 21
       HelpContext = 1
+      DataSource = dsgdcBase
+      DataField = 'autotrkey'
+      ListTable = 'ac_transaction'
+      ListField = 'NAME'
+      KeyField = 'ID'
+      Condition = '(autotransaction = 1)'
       Anchors = [akLeft, akTop, akRight]
       ItemHeight = 13
       TabOrder = 10
@@ -414,14 +438,19 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       Width = 343
       Height = 21
       HelpContext = 1
+      DataSource = dsgdcBase
+      DataField = 'REPORTKEY'
+      ListTable = 'RP_REPORTLIST'
+      ListField = 'NAME'
+      KeyField = 'ID'
       Anchors = [akLeft, akTop, akRight]
       ItemHeight = 13
       TabOrder = 11
     end
   end
-  object dbcbDisabled: TDBCheckBox [14]
+  object dbcbDisabled: TDBCheckBox [15]
     Left = 8
-    Top = 448
+    Top = 464
     Width = 97
     Height = 17
     Caption = 'Отключена'
@@ -431,28 +460,37 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
+  object dbePriority: TDBEdit [16]
+    Left = 72
+    Top = 488
+    Width = 73
+    Height = 21
+    DataField = 'priority'
+    DataSource = dsgdcBase
+    TabOrder = 12
+  end
   inherited alBase: TActionList
     Left = 238
-    Top = 397
+    Top = 413
   end
   inherited dsgdcBase: TDataSource
     Left = 200
-    Top = 397
+    Top = 413
   end
   inherited pm_dlgG: TPopupMenu
     Left = 272
-    Top = 398
+    Top = 414
   end
   inherited ibtrCommon: TIBTransaction
     Left = 312
-    Top = 398
+    Top = 414
   end
   object odCmdLine: TOpenDialog
     Filter = 
       'Исполняемые файлы *.exe|*.exe|Пакетные файлы *.bat|*.bat|Все фай' +
       'лы *.*|*.*'
     Title = 'Выбор файла'
-    Left = 384
-    Top = 336
+    Left = 392
+    Top = 392
   end
 end

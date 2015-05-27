@@ -143,7 +143,7 @@ implementation
 
 uses
   at_classes, gdcBaseInterface, IBSQL, rp_BaseReport_unit, scr_i_FunctionList,
-  gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security;
+  gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security, rp_ReportClient;
 
 const
   WM_GD_FIND_TASK = WM_GD_THREAD_USER + 1;
@@ -365,7 +365,16 @@ end;
 
 procedure TgdTask.ExecuteReport;
 begin
-  //////
+  AddLog('Started');
+  try
+    ClientReport.BuildReport(Unassigned, ReportKey);
+    AddLog('Done');
+  except
+    on E: Exception do
+      begin
+        AddLog(E.Message);
+      end;
+  end;
 end;
 
 procedure TgdTask.ExecuteBackupFile;
