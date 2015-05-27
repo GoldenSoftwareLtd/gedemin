@@ -44,6 +44,9 @@ type
     rbReport: TRadioButton;
     iblkupAutoTr: TgsIBLookupComboBox;
     iblkupReport: TgsIBLookupComboBox;
+    lbPriority: TLabel;
+    dbePriority: TDBEdit;
+    rbDaily: TRadioButton;
     procedure rbFunctionClick(Sender: TObject);
     procedure rbCmdLineClick(Sender: TObject);
     procedure rbBackupFileClick(Sender: TObject);
@@ -52,6 +55,9 @@ type
     procedure rbWeeklyClick(Sender: TObject);
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnBackupFileClick(Sender: TObject);
+    procedure rbAutoTrClick(Sender: TObject);
+    procedure rbReportClick(Sender: TObject);
+    procedure rbDailyClick(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -80,19 +86,42 @@ begin
   begin
     rbCmdLine.Checked := False;
     rbBackupFile.Checked := False;
+    rbAutoTr.Checked := False;
+    rbReport.Checked := False;
+  end
+  else if rbAutoTr.Checked then
+  begin
+    rbCmdLine.Checked := False;
+    rbBackupFile.Checked := False;
+    rbReport.Checked := False;
+    rbFunction.Checked := False;
+  end
+  else if rbReport.Checked then
+  begin
+    rbCmdLine.Checked := False;
+    rbBackupFile.Checked := False;
+    rbAutoTr.Checked := False;
+    rbFunction.Checked := False;
   end
   else if rbCmdLine.Checked then
   begin
     rbFunction.Checked := False;
     rbBackupFile.Checked := False;
+    rbAutoTr.Checked := False;
+    rbReport.Checked := False;
   end
   else if rbBackupFile.Checked then
   begin
     rbFunction.Checked := False;
     rbCmdLine.Checked := False;
+    rbAutoTr.Checked := False;
+    rbReport.Checked := False;
   end;
 
   iblkupFunction.Enabled := rbFunction.Checked;
+  iblkupAutoTr.Enabled := rbAutoTr.Checked;
+  iblkupReport.Enabled := rbReport.Checked;
+
   dbeCmdLine.Enabled := rbCmdLine.Checked;
   dbeBackupFile.Enabled := rbBackupFile.Checked;
 
@@ -106,15 +135,24 @@ begin
   begin
     rbMonthly.Checked := False;
     rbWeekly.Checked := False;
+    rbDaily.Checked := False;
   end
   else if rbMonthly.Checked then
   begin
     rbExactDate.Checked := False;
     rbWeekly.Checked := False;
+    rbDaily.Checked := False;
   end
   else if rbWeekly.Checked then
   begin
     rbExactDate.Checked := False;
+    rbMonthly.Checked := False;
+    rbDaily.Checked := False;
+  end
+  else if rbDaily.Checked then
+  begin
+    rbExactDate.Checked := False;
+    rbWeekly.Checked := False;
     rbMonthly.Checked := False;
   end;
 
@@ -122,7 +160,8 @@ begin
   dbcbMonthly.Enabled := rbMonthly.Checked;
   dbcbWeekly.Enabled := rbWeekly.Checked;
 
-  gbTimeInterval.Visible := rbMonthly.Checked or rbWeekly.Checked;
+  gbTimeInterval.Visible := rbMonthly.Checked
+    or rbWeekly.Checked or rbDaily.Checked;
 end;
 
 procedure Tgdc_dlgAutoTask.SetupRecord;
@@ -157,12 +196,19 @@ begin
 
   if not gdcObject.FieldByName('functionkey').IsNull then
     rbFunction.Checked := True
+  else if not gdcObject.FieldByName('autotrkey').IsNull then
+    rbAutoTr.Checked := True
+  else if not gdcObject.FieldByName('reportkey').IsNull then
+    rbReport.Checked := True
   else if not gdcObject.FieldByName('cmdline').IsNull then
     rbCmdLine.Checked := True
   else if not gdcObject.FieldByName('backupfile').IsNull then
     rbBackupFile.Checked := True;
 
   iblkupFunction.Enabled := rbFunction.Checked;
+  iblkupAutoTr.Enabled := rbFunction.Checked;
+  iblkupReport.Enabled := rbFunction.Checked;
+
   dbeCmdLine.Enabled := rbCmdLine.Checked;
   dbeBackupFile.Enabled := rbBackupFile.Checked;
 
@@ -177,10 +223,13 @@ begin
   else if not gdcObject.FieldByName('weekly').IsNull then
     rbWeekly.Checked := True;
 
+  rbDaily.Checked := gdcObject.FieldByName('daily').AsInteger = 1;
+
   xdbeExactDate.Enabled := rbExactDate.Checked;
   dbcbMonthly.Enabled := rbMonthly.Checked;
   dbcbWeekly.Enabled := rbWeekly.Checked;
-  gbTimeInterval.Visible := rbMonthly.Checked or rbWeekly.Checked;
+  gbTimeInterval.Visible := rbMonthly.Checked
+    or rbWeekly.Checked or rbDaily.Checked;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGEXPLORER', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -223,22 +272,43 @@ begin
   begin
     gdcObject.FieldByName('cmdline').Clear;
     gdcObject.FieldByName('backupfile').Clear;
+    gdcObject.FieldByName('autotrkey').Clear;
+    gdcObject.FieldByName('reportkey').Clear;
   end
   else if rbCmdLine.Checked then
   begin
     gdcObject.FieldByName('functionkey').Clear;
     gdcObject.FieldByName('backupfile').Clear;
+    gdcObject.FieldByName('autotrkey').Clear;
+    gdcObject.FieldByName('reportkey').Clear;
   end
   else if rbBackupFile.Checked then
   begin
     gdcObject.FieldByName('functionkey').Clear;
     gdcObject.FieldByName('cmdline').Clear;
+    gdcObject.FieldByName('autotrkey').Clear;
+    gdcObject.FieldByName('reportkey').Clear;
+  end
+  else if rbAutoTr.Checked then
+  begin
+    gdcObject.FieldByName('functionkey').Clear;
+    gdcObject.FieldByName('backupfile').Clear;
+    gdcObject.FieldByName('cmdline').Clear;
+    gdcObject.FieldByName('reportkey').Clear;
+  end
+  else if rbReport.Checked then
+  begin
+    gdcObject.FieldByName('functionkey').Clear;
+    gdcObject.FieldByName('backupfile').Clear;
+    gdcObject.FieldByName('cmdline').Clear;
+    gdcObject.FieldByName('autotrkey').Clear;
   end;
 
   if rbExactDate.Checked then
   begin
     gdcObject.FieldByName('monthly').Clear;
     gdcObject.FieldByName('weekly').Clear;
+    gdcObject.FieldByName('daily').Clear;
     gdcObject.FieldByName('starttime').Clear;
     gdcObject.FieldByName('endtime').Clear;
   end
@@ -246,11 +316,20 @@ begin
   begin
     gdcObject.FieldByName('exactdate').Clear;
     gdcObject.FieldByName('weekly').Clear;
+    gdcObject.FieldByName('daily').Clear;
   end
   else if rbWeekly.Checked then
   begin
     gdcObject.FieldByName('exactdate').Clear;
     gdcObject.FieldByName('monthly').Clear;
+    gdcObject.FieldByName('daily').Clear;
+  end
+  else if rbDaily.Checked then
+  begin
+    gdcObject.FieldByName('exactdate').Clear;
+    gdcObject.FieldByName('monthly').Clear;
+    gdcObject.FieldByName('weekly').Clear;
+    gdcObject.FieldByName('daily').AsInteger := 1;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGAUTOTASK', 'BEFOREPOST', KEYBEFOREPOST)}
@@ -400,31 +479,6 @@ begin
     exit;
   end;
 
-  if rbMonthly.Checked or rbWeekly.Checked then
-  begin
-    if gdcObject.FieldByname('starttime').IsNull then
-    begin
-      MessageBox(Handle,
-        PChar('Не заполнено начало временного интервала.'),
-        'Внимание',
-        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-        Result := False;
-      xdbeStartTime.SetFocus;
-      exit;
-    end;
-    
-    if gdcObject.FieldByname('endtime').IsNull then
-    begin
-      MessageBox(Handle,
-        PChar('Не заполнен конец временного интервала.'),
-        'Внимание',
-        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-        Result := False;
-      xdbeEndTime.SetFocus;
-      exit;
-    end;
-  end;
-
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGAUTOTASK', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -472,6 +526,21 @@ end;
 procedure Tgdc_dlgAutoTask.btnBackupFileClick(Sender: TObject);
 begin
   //
+end;
+
+procedure Tgdc_dlgAutoTask.rbAutoTrClick(Sender: TObject);
+begin
+  UpdateTypeTabs;
+end;
+
+procedure Tgdc_dlgAutoTask.rbReportClick(Sender: TObject);
+begin
+  UpdateTypeTabs;
+end;
+
+procedure Tgdc_dlgAutoTask.rbDailyClick(Sender: TObject);
+begin
+  UpdateSettingsTabs;
 end;
 
 initialization
