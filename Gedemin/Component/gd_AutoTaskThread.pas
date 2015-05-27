@@ -124,12 +124,10 @@ begin
   // или удалено, отключено и т.п.
 
   // пишем в лог о начале выполнения
-  // выводим на экран
 
   TaskExecute;
 
   // пишем в лог о завершении выполнения
-  // выводим на экран
 end;
 
 { TgdAutoTaskThread }
@@ -149,48 +147,55 @@ begin
 end;
 
 procedure TgdAutoTaskThread.LoadFromRelation;
-
-  {procedure InitTask(AQ: TIBSQL);
-  var
-    Task: TgdAutoTask;
-  begin
-    Task := TgdAutoTask.Create;
-    Task.Id := AQ.FieldbyName('id').AsInteger;
-    Task.Name := AQ.FieldbyName('name').AsString;
-    Task.Description := AQ.FieldbyName('description').AsString;
-    Task.FunctionKey := AQ.FieldbyName('functionkey').AsInteger;
-    Task.AutoTrKey := AQ.FieldbyName('autotrkey').AsInteger;
-    Task.ReportKey := AQ.FieldbyName('reportkey').AsInteger;
-    Task.CmdLine := AQ.FieldbyName('cmdline').AsString;
-    Task.BackupFile := AQ.FieldbyName('backupfile').AsString;
-    Task.UserKey := AQ.FieldbyName('userkey').AsInteger;
-    Task.ExactDate := AQ.FieldbyName('exactdate').AsDateTime;
-    Task.Monthly := AQ.FieldbyName('monthly').AsInteger;
-    Task.Weekly := AQ.FieldbyName('weekly').AsInteger;
-    Task.Daily := AQ.FieldbyName('daily').AsInteger = 1;
-    Task.StartTime := AQ.FieldbyName('starttime').AsTime;
-    Task.EndTime := AQ.FieldbyName('endtime').AsTime;
-    Task.Priority := AQ.FieldbyName('priority').AsInteger;
-    Task.Disabled := AQ.FieldbyName('disabled').AsInteger = 1;
-    FTaskList.Add(Task);
-  end;}
-
 var
   q: TIBSQL;
+  Task: TgdAutoTask;
 begin
   Assert(gdcBaseManager <> nil);
-
-  SendNotification('Считываем список автозадач...');
+  Assert(IBLogin <> nil);
 
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT * FROM gd_autotask';
+    q.SQL.Text :=
+      'SELECT * FROM gd_autotask ' +
+      'WHERE disabled = 0 ' +
+      '  AND (userkey IS NULL OR userkey = :uk)';
+    q.ParamByName('uk').AsInteger := IBLogin.UserKey;
     q.ExecQuery;
 
     while not q.EOF do
     begin
-      //InitTask(q);
+      if q.FieldByName('functionkey').AsInteger > 0 then
+      begin
+        Task := TgdAutoFunctionTask.Create;
+        (Task as TgdAutoFunctionTask).FunctionKey := q.FieldbyName('functionkey').AsInteger;
+      end else
+      if q.FieldByName('cmdline').AsString > '' then
+      begin
+        Task := TgdAutoCmdTask.Create;
+        (Task as TgdAutoCmdTask).CmdLine := q.FieldbyName('cmdline').AsString;
+      end else
+        Task := nil;
+
+      if Task <> nil then
+      begin
+        Task.Id := q.FieldbyName('id').AsInteger;
+        Task.Name := q.FieldbyName('name').AsString;
+        Task.Description := q.FieldbyName('description').AsString;
+        Task.ExactDate := q.FieldbyName('exactdate').AsDateTime;
+        Task.Monthly := q.FieldbyName('monthly').AsInteger;
+        Task.Weekly := q.FieldbyName('weekly').AsInteger;
+        Task.Daily := q.FieldbyName('daily').AsInteger = 1;
+        Task.StartTime := q.FieldbyName('starttime').AsTime;
+        Task.EndTime := q.FieldbyName('endtime').AsTime;
+        Task.Priority := q.FieldbyName('priority').AsInteger;
+
+        if FTaskList = nil then
+          FTaskList := TObjectList.Create(True);
+        FTaskList.Add(Task);
+      end;
+
       q.Next;
     end;
   finally
@@ -202,8 +207,14 @@ procedure TgdAutoTaskThread.Timeout;
 begin
   if FTaskList = nil then
   begin
+    SendNotification('Считываем список автозадач...');
     Synchronize(LoadFromRelation);
-    PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
+    if (FTaskList = nil) or (FTaskList.Count = 0) then
+    begin
+      SendNotification('Нет автозадач для выполнения');
+      ExitThread;
+    end else
+      PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
   end else
     Synchronize(FindAndExecuteTask);
 end;
@@ -213,7 +224,7 @@ begin
   case Msg.Message of
     WM_GD_FIND_AND_EXECUTE_TASK:
     begin
-      Synchronize(FindAndExecuteTask);
+      FindAndExecuteTask;
       Result := True;
     end;
   else
@@ -223,21 +234,31 @@ end;
 
 procedure TgdAutoTaskThread.SendNotification(const AText: String);
 begin
-  // проверить не работает ли программа в тихом режиме
-  // и только тогда отсылать
-
   gdNotifierThread.Add(AText, FNotificationContext, 2000);
 end;
 
 procedure TgdAutoTaskThread.SetInitialDelay;
 begin
   Resume;
-  SetTimeOut(5 * 60 * 1000);
+  SetTimeOut(5 {* 60} * 1000);
 end;
 
 procedure TgdAutoTaskThread.FindAndExecuteTask;
 begin
+  // из общего списка задач сформируем список
+  // подходящих для выполнения к текущему моменту
+  // времени
 
+  // отсортируем список по времени старта и приоритету
+  //
+
+  // двигаемся по списку и проверяем каждую задачу:
+  // может она уже удалена, запрещена, запрещена для этого пользователя?
+  // если да, то убираем ее из списка и идем дальше
+  //
+  // может она уже выполнилась или кем-то запущена на
+  // выполнение?
+  // если да, то ...
 end;
 
 { TgdAutoFunctionTask }
