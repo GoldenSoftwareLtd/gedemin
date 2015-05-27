@@ -40,6 +40,10 @@ type
     btnBackupFile: TButton;
     odCmdLine: TOpenDialog;
     dbcbDisabled: TDBCheckBox;
+    rbAutoTr: TRadioButton;
+    rbReport: TRadioButton;
+    iblkupAutoTr: TgsIBLookupComboBox;
+    iblkupReport: TgsIBLookupComboBox;
     procedure rbFunctionClick(Sender: TObject);
     procedure rbCmdLineClick(Sender: TObject);
     procedure rbBackupFileClick(Sender: TObject);

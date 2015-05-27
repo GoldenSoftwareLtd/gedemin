@@ -1,9 +1,10 @@
-unit gd_TaskManager;
+unit gd_AutoTaskThread;
 
 interface
 
 uses
-  Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread, gd_ProgressNotifier_unit;
+  Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread,
+  gdNotifierThread_unit, gd_ProgressNotifier_unit;
 
 type
   TgdTaskLog = class(TObject)
@@ -30,14 +31,18 @@ type
     FName: String;
     FDescription: String;
     FFunctionKey: Integer;
+    FAutoTrKey: Integer;
+    FReportKey: Integer;
     FCmdLine: String;
     FBackupFile: String;
     FUserKey: Integer;
     FExactDate: TDateTime;
     FMonthly: Integer;
     FWeekly: Integer;
+    FDaily: Boolean;
     FStartTime: TTime;
     FEndTime: TTime;
+    FPriority: Integer;
     FDisabled: Boolean;
 
     FTaskLogList: TObjectList;
@@ -55,6 +60,8 @@ type
     function GetCount: Integer;
 
     procedure ExecuteFunction;
+    procedure ExecuteAutoTr;
+    procedure ExecuteReport;
     procedure ExecuteCmdLine;
     procedure ExecuteBackupFile;
 
@@ -65,9 +72,9 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function Get(AnId: Integer): TgdTaskLog;
-    function Add: TgdTaskLog;
-    procedure Remove(AnId: Integer);
+    //function Get(AnId: Integer): TgdTaskLog;
+    //function Add: TgdTaskLog;
+    //procedure Remove(AnId: Integer);
 
     procedure TaskExecute;
 
@@ -80,60 +87,58 @@ type
     property Name: String read FName write FName;
     property Description: String read FDescription write FDescription;
     property FunctionKey: Integer read FFunctionKey write FFunctionKey;
+    property AutoTrKey: Integer read FAutoTrKey write FAutoTrKey;
+    property ReportKey: Integer read FReportKey write FReportKey;
     property CmdLine: String read FCmdLine write FCmdLine;
     property BackupFile: String read FBackupFile write FBackupFile;
     property UserKey: Integer read FUserKey write FUserKey;
     property ExactDate: TDateTime read FExactDate write FExactDate;
     property Monthly: Integer read FMonthly write FMonthly;
     property Weekly: Integer read FWeekly write FWeekly;
+    property Daily: Boolean read FDaily write FDaily;
     property StartTime: TTime read FStartTime write FStartTime;
     property EndTime: TTime read FEndTime write FEndTime;
+    property Priority: Integer read FPriority write FPriority;
     property Disabled: Boolean read FDisabled write FDisabled;
 
     property Count: Integer read GetCount;
     property TaskLogList[Index: Integer]: TgdTaskLog read GetTaskLog; default;
   end;
 
-  TTaskManagerThread = class(TgdMessagedThread)
-  private
-    FTask: TgdTask;
-  protected
-    function ProcessMessage(var Msg: TMsg): Boolean; override;
-  end;
 
-  TgdTaskManager = class(TObject)
+  TgdAutoTaskThread = class(TgdMessagedThread)
   private
     FTaskList: TObjectList;
-    FTaskTread: TTaskManagerThread;
+    FTask: TgdTask;
+    FNextMsg: Integer;
+    FCountWait: Integer;
 
-    function GetTask(Index: Integer): TgdTask;
     function GetCount: Integer;
+    function GetTask(Index: Integer): TgdTask;
 
     procedure LoadFromRelation;
+    function FindPriorityTask: TgdTask;
 
-    procedure CheckLog;
-    //procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
+  protected
+    procedure Timeout; override;
+
+    function ProcessMessage(var Msg: TMsg): Boolean; override;
+
   public
     constructor Create;
     destructor Destroy; override;
 
-    function FindPriorityTask: TgdTask;
-
-    function Get(AnId: Integer): TgdTask;
-    function Add: TgdTask;
-    procedure Remove(AnId: Integer);
-
     procedure Run;
-    procedure Restart;
+    procedure Stop;
 
     property Count: Integer read GetCount;
     property TaskList[Index: Integer]: TgdTask read GetTask; default;
   end;
 
 var
-  _gdTaskManager: TgdTaskManager;
+  _gdAutoTaskThread: TgdAutoTaskThread;
 
-  function gdTaskManager: TgdTaskManager;
+  function gdAutoTaskThread: TgdAutoTaskThread;
 
 implementation
 
@@ -146,49 +151,8 @@ const
   WM_GD_EXEC = WM_GD_THREAD_USER + 2;
   WM_GD_CHECK_TIME = WM_GD_THREAD_USER + 3;
   WM_GD_INIT = WM_GD_THREAD_USER + 4;
-
-{ TaskManagerThread }
-
-function TTaskManagerThread.ProcessMessage(var Msg: TMsg): Boolean;
-begin
-  Result := True;
-
-  case Msg.Message of
-    WM_GD_INIT:
-    begin
-      PostMsg(WM_GD_FIND_TASK);
-    end;
-
-    WM_GD_FIND_TASK:
-    begin
-      FTask := gdTaskManager.FindPriorityTask;
-      if FTask = nil then
-        ExitThread
-      else
-        PostMsg(WM_GD_CHECK_TIME);
-    end;
-
-    WM_GD_EXEC:
-    begin
-      Synchronize(FTask.TaskExecute);
-      PostMsg(WM_GD_FIND_TASK);
-    end;
-
-    WM_GD_CHECK_TIME:
-    begin
-      if FTask.RightTime then
-        PostMsg(WM_GD_EXEC)
-      else
-      begin
-        Sleep(100);
-        PostMsg(WM_GD_CHECK_TIME);
-      end;
-    end
-
-  else
-    Result := False;
-  end;
-end;
+  WM_GD_LOAD_TASKS = WM_GD_THREAD_USER + 5;
+  WM_GD_WAITING = WM_GD_THREAD_USER + 6;
 
 { TgdTask }
 
@@ -209,7 +173,7 @@ begin
   inherited;
 end;
 
-function TgdTask.Get(AnId: Integer): TgdTaskLog;
+{function TgdTask.Get(AnId: Integer): TgdTaskLog;
 var
   I: Integer;
 begin
@@ -221,9 +185,9 @@ begin
     end;
 
   raise Exception.Create('Unknown TaskLog')
-end;
+end;}
 
-function TgdTask.Add: TgdTaskLog;
+{function TgdTask.Add: TgdTaskLog;
 var
   I: Integer;
 begin
@@ -232,9 +196,9 @@ begin
 
   if Result = nil then
     raise Exception.Create('Error Creation TaskLog');
-end;
+end;}
 
-procedure TgdTask.Remove(AnId: Integer);
+{procedure TgdTask.Remove(AnId: Integer);
 var
   I: Integer;
 begin
@@ -247,7 +211,7 @@ begin
     end;
 
   raise Exception.Create('Unknown TaskLog');
-end;
+end;}
 
 function TgdTask.DayOfTheWeek(const AValue: TDateTime): Word;
 begin
@@ -348,8 +312,8 @@ begin
 end;
 
 procedure TgdTask.CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
-var
-  I: Integer;
+//var
+//  I: Integer;
 begin
   // возможно во врем€ выполнени€ текущей задачи
   // было пропущено выполнение других задач
@@ -358,7 +322,7 @@ begin
  //1) задача "така€-то" будет выполнена по завершении активных задач
  //2) задача "така€-то" не может быть выполнена так как истек установленный интервал дл€ выполени€
   //'Missed'
-  for I := 0 to gdTaskManager.Count - 1 do
+  {for I := 0 to gdTaskManager.Count - 1 do
   begin
     if gdTaskManager[I].StartTime <> 0 then
     begin
@@ -371,7 +335,7 @@ begin
         gdTaskManager[I].AddLog('Missed');
       end;
      end;
-  end;
+  end;}
 end;
 
 procedure TgdTask.AddLog(AnEventText: String);
@@ -400,6 +364,10 @@ begin
 
   if FunctionKey > 0 then
     ExecuteFunction
+  else if AutoTrKey > 0 then
+    ExecuteAutoTr
+  else if ReportKey > 0 then
+    ExecuteReport
   else if CmdLine > '' then
     ExecuteCmdLine
   else if BackupFile > '' then
@@ -458,30 +426,37 @@ begin
     AddLog(PChar(SysErrorMessage(GetLastError)));
 end;
 
+procedure TgdTask.ExecuteAutoTr;
+begin
+  //////
+end;
+
+procedure TgdTask.ExecuteReport;
+begin
+  //////
+end;
+
 procedure TgdTask.ExecuteBackupFile;
 begin
   //////
 end;
 
-{ TgdTaskManager }
+{ TgdAutoTaskThread }
 
-constructor TgdTaskManager.Create;
+constructor TgdAutoTaskThread.Create;
 begin
-  inherited;
+  inherited Create(True);
 
   FTaskList := TObjectList.Create(False);
 
-  FTaskTread := TTaskManagerThread.Create(True);
-  FTaskTread.FreeOnTerminate := False;
-  FTaskTread.Priority := tpLowest;
+  FreeOnTerminate := False;
+  Priority := tpLowest;
 end;
 
-destructor TgdTaskManager.Destroy;
+destructor TgdAutoTaskThread.Destroy;
 var
   I: Integer;
 begin
-  FreeAndNil(FTaskTread);
-
   for I := Self.Count - 1 downto 0 do
   begin
     Self[I].Free;
@@ -493,25 +468,102 @@ begin
   inherited;
 end;
 
-function TgdTaskManager.GetTask(Index: Integer): TgdTask;
+procedure TgdAutoTaskThread.Run;
 begin
-  Result := Self.FTaskList[Index] as TgdTask;
+  Resume;
+  PostMsg(WM_GD_INIT);
 end;
 
-function TgdTaskManager.GetCount: Integer;
+procedure TgdAutoTaskThread.Stop;
 begin
-  if Self.FTaskList <> nil then
-    Result := Self.FTaskList.Count
-  else
-    Result := 0;
+
 end;
 
-function TgdTaskManager.FindPriorityTask: TgdTask;
+procedure TgdAutoTaskThread.LoadFromRelation;
 
-  
+  procedure LoadLog(ATask: TgdTask);
+  var
+    q: TIBSQL;
+    TaskLog: TgdTaskLog;
+  begin
+     q := TIBSQL.Create(nil);
+     try
+       q.Transaction := gdcBaseManager.ReadTransaction;
+       q.SQL.Text := 'SELECT * FROM gd_autotask_log WHERE autotaskkey = :autotaskkey';
+       q.ParamByName('autotaskkey').AsInteger := ATask.Id;
+       q.ExecQuery;
 
-  
+       while not q.EOF do
+       begin
+         TaskLog := TgdTaskLog.Create;
 
+         TaskLog.Id := q.FieldbyName('id').AsInteger;
+         TaskLog.AutotaskKey := q.FieldbyName('autotaskkey').AsInteger;
+         TaskLog.EventTime := q.FieldbyName('eventtime').AsDateTime;
+         TaskLog.EventText := q.FieldbyName('eventtext').AsString;
+         TaskLog.CreatorKey := q.FieldbyName('creatorkey').AsInteger;
+         TaskLog.CreationDate := q.FieldbyName('creationdate').AsDateTime;
+
+         ATask.FTaskLogList.Add(TaskLog);
+
+         q.Next;
+       end;
+     finally
+       q.Free;
+     end;
+  end;
+
+  procedure InitTask(AQ: TIBSQL);
+  var
+    Task: TgdTask;
+  begin
+    Task := TgdTask.Create;
+    Task.Id := AQ.FieldbyName('id').AsInteger;
+    Task.Name := AQ.FieldbyName('name').AsString;
+    Task.Description := AQ.FieldbyName('description').AsString;
+    Task.FunctionKey := AQ.FieldbyName('functionkey').AsInteger;
+    Task.AutoTrKey := AQ.FieldbyName('autotrkey').AsInteger;
+    Task.ReportKey := AQ.FieldbyName('reportkey').AsInteger;
+    Task.CmdLine := AQ.FieldbyName('cmdline').AsString;
+    Task.BackupFile := AQ.FieldbyName('backupfile').AsString;
+    Task.UserKey := AQ.FieldbyName('userkey').AsInteger;
+    Task.ExactDate := AQ.FieldbyName('exactdate').AsDateTime;
+    Task.Monthly := AQ.FieldbyName('monthly').AsInteger;
+    Task.Weekly := AQ.FieldbyName('weekly').AsInteger;
+    Task.Daily := AQ.FieldbyName('daily').AsInteger = 1;
+    Task.StartTime := AQ.FieldbyName('starttime').AsTime;
+    Task.EndTime := AQ.FieldbyName('endtime').AsTime;
+    Task.Priority := AQ.FieldbyName('priority').AsInteger;
+    Task.Disabled := AQ.FieldbyName('disabled').AsInteger = 1;
+
+    LoadLog(Task);
+
+    FTaskList.Add(Task);
+
+  end;
+
+var
+  q: TIBSQL;
+begin
+  Assert(atDatabase <> nil);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT * FROM gd_autotask';
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin
+      InitTask(q);
+      q.Next;
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
+function TgdAutoTaskThread.FindPriorityTask: TgdTask;
 var
   I: Integer;
   NDT: TDateTime;
@@ -561,178 +613,117 @@ begin
   end;
 end;
 
-function TgdTaskManager.Get(AnId: Integer): TgdTask;
-var
-  I: Integer;
+function TgdAutoTaskThread.GetCount: Integer;
 begin
-  for I := 0 to Count - 1 do
-    if Self[I].FId = AnId then
+  if Self.FTaskList <> nil then
+    Result := Self.FTaskList.Count
+  else
+    Result := 0;
+end;
+
+function TgdAutoTaskThread.GetTask(Index: Integer): TgdTask;
+begin
+  Result := Self.FTaskList[Index] as TgdTask;
+end;
+
+procedure TgdAutoTaskThread.Timeout;
+begin
+  if FNextMsg > 0 then
+  begin
+    PostMsg(FNextMsg);
+    FNextMsg := 0;
+  end;
+end;
+
+function TgdAutoTaskThread.ProcessMessage(var Msg: TMsg): Boolean;
+begin
+  Result := True;
+
+  case Msg.Message of
+    WM_GD_INIT:
     begin
-      Result := Self[I];
-      exit;
+      FCountWait := 0;
+      SetTimeout(1);
+      FNextMsg := WM_GD_WAITING;
+      gdNotifierThread.Add('ѕланировщик заданий: запущен')
     end;
 
-  raise Exception.Create('Unknown Task')
-end;
-
-function TgdTaskManager.Add: TgdTask;
-var
-  I: Integer;
-begin
-  I := Self.FTaskList.Add(TgdTask.Create);
-  Result := Self[I];
-
-  if Result = nil then
-    raise Exception.Create('Error Creation Task');
-end;
-
-procedure TgdTaskManager.Remove(AnId: Integer);
-var
-  I: Integer;
-begin
-  for I := 0 to Count - 1 do
-    if Self[I].FId = AnId then
+    WM_GD_WAITING:
     begin
-      Self[I].Free;
-      Self.FTaskList.Delete(I);
-      exit;
+      if FCountWait < 5 then
+      begin
+        SetTimeout(10000);
+        FNextMsg := WM_GD_WAITING;
+        Inc(FCountWait);
+      end
+      else
+      begin
+        SetTimeout(1);
+        FNextMsg := WM_GD_LOAD_TASKS;
+      end;
     end;
 
-  raise Exception.Create('Unknown Task');
-end;
-
-procedure TgdTaskManager.Run;
-begin
-  //загрузка из базы
-  LoadFromRelation;
-
-  //ѕри старте провер€етс€ лог,
-  //если были запущенные задачи, но они не завершились
-  //(нет соответствующей записи в логе) или завершились с ошибкой,
-  //то выдаетс€ соответствующее предупреждение на экран.
-  //≈стественно, перед выдачей предупреждени€ мы провер€ем
-  //не работает ли система в "тихом" режиме.
-  CheckLog;
-
-  FTaskTread.Resume;
-  FTaskTread.PostMsg(WM_GD_INIT);
-end;
-
-procedure TgdTaskManager.CheckLog;
-begin
-  ////////////////////
-end;
-
-procedure TgdTaskManager.Restart;
-begin
-  if not FTaskTread.Terminated then
-  begin
-    FTaskTread.Free;
-
-    FTaskTread := TTaskManagerThread.Create(True);
-    FTaskTread.FreeOnTerminate := False;
-    FTaskTread.Priority := tpLowest;
-    FTaskTread.Resume;
-    FTaskTread.PostMsg(WM_GD_INIT);
-  end;
-end;
-
-procedure TgdTaskManager.LoadFromRelation;
-
-  procedure LoadLog(ATask: TgdTask);
-  var
-    q: TIBSQL;
-    TaskLog: TgdTaskLog;
-  begin
-     q := TIBSQL.Create(nil);
-     try
-       q.Transaction := gdcBaseManager.ReadTransaction;
-       q.SQL.Text := 'SELECT * FROM gd_autotask_log WHERE autotaskkey = :autotaskkey';
-       q.ParamByName('autotaskkey').AsInteger := ATask.Id;
-       q.ExecQuery;
-
-       while not q.EOF do
-       begin
-         TaskLog := TgdTaskLog.Create;
-
-         TaskLog.Id := q.FieldbyName('id').AsInteger;
-         TaskLog.AutotaskKey := q.FieldbyName('autotaskkey').AsInteger;
-         TaskLog.EventTime := q.FieldbyName('eventtime').AsDateTime;
-         TaskLog.EventText := q.FieldbyName('eventtext').AsString;
-         TaskLog.CreatorKey := q.FieldbyName('creatorkey').AsInteger;
-         TaskLog.CreationDate := q.FieldbyName('creationdate').AsDateTime;
-
-         ATask.FTaskLogList.Add(TaskLog);
-
-         q.Next;
-       end;
-     finally
-       q.Free;
-     end;
-  end;
-
-  procedure InitTask(AQ: TIBSQL);
-  var
-    Task: TgdTask;
-  begin
-    Task := TgdTask.Create;
-    Task.Id := AQ.FieldbyName('id').AsInteger;
-    Task.Name := AQ.FieldbyName('name').AsString;
-    Task.Description := AQ.FieldbyName('description').AsString;
-    Task.FunctionKey := AQ.FieldbyName('functionkey').AsInteger;
-    Task.CmdLine := AQ.FieldbyName('cmdline').AsString;
-    Task.BackupFile := AQ.FieldbyName('backupfile').AsString;
-    Task.UserKey := AQ.FieldbyName('userkey').AsInteger;
-    Task.ExactDate := AQ.FieldbyName('exactdate').AsDateTime;
-    Task.Monthly := AQ.FieldbyName('monthly').AsInteger;
-    Task.Weekly := AQ.FieldbyName('weekly').AsInteger;
-    Task.StartTime := AQ.FieldbyName('starttime').AsTime;
-    Task.EndTime := AQ.FieldbyName('endtime').AsTime;
-    Task.Disabled := AQ.FieldbyName('disabled').AsInteger = 1;
-
-    LoadLog(Task);
-
-    FTaskList.Add(Task);
-
-  end;
-
-var
-  q: TIBSQL;
-begin
-  Assert(atDatabase <> nil);
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT * FROM gd_autotask';
-    q.ExecQuery;
-
-    while not q.EOF do
+    WM_GD_LOAD_TASKS:
     begin
-      InitTask(q);
-      q.Next;
+      LoadFromRelation;
+      SetTimeout(1);
+      FNextMsg := WM_GD_FIND_TASK;
     end;
-  finally
-    q.Free;
+
+    WM_GD_FIND_TASK:
+    begin
+      FTask := FindPriorityTask;
+      if FTask = nil then
+      begin
+        gdNotifierThread.Add('ѕланировщик заданий: нет активных задач');
+        ExitThread;
+        gdNotifierThread.Add('ѕланировщик заданий: остановлен');
+      end
+      else
+      begin
+        SetTimeout(1);
+        FNextMsg := WM_GD_CHECK_TIME;
+      end;
+    end;
+
+    WM_GD_EXEC:
+    begin
+      gdNotifierThread.Add('ѕланировщик заданий: выполнение ' + FTask.Name);
+      Synchronize(FTask.TaskExecute);
+      SetTimeout(1);
+      FNextMsg := WM_GD_FIND_TASK;
+    end;
+
+    WM_GD_CHECK_TIME:
+    begin
+      if FTask.RightTime then
+      begin
+        SetTimeout(1);
+        FNextMsg := WM_GD_EXEC;
+      end
+      else
+      begin
+        SetTimeout(30000);
+        FNextMsg := WM_GD_CHECK_TIME;
+      end;
+    end
+
+  else
+    Result := False;
   end;
 end;
 
-{procedure gdTaskManager.UpdateProgress(const AProgressInfo: TgdProgressInfo);
+function gdAutoTaskThread: TgdAutoTaskThread;
 begin
-
-end;}
-
-function gdTaskManager: TgdTaskManager;
-begin
-  if _gdTaskManager = nil then
-    _gdTaskManager := TgdTaskManager.Create;
-  Result := _gdTaskManager;
+  if not Assigned(_gdAutoTaskThread) then
+    _gdAutoTaskThread := TgdAutoTaskThread.Create;
+  Result := _gdAutoTaskThread;
 end;
 
 initialization
-  _gdTaskManager := nil;
+  _gdAutoTaskThread := nil;
 
 finalization
-  FreeAndNil(_gdTaskManager);
+  FreeAndNil(_gdAutoTaskThread);
 
 end.

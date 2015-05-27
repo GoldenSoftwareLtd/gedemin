@@ -314,7 +314,7 @@ uses
   , gd_GlobalParams_unit
   , gdcBlockRule
   , gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas'
-  , gd_TaskManager in '..\Component\GDC\gd_TaskManager.pas';
+  , gd_AutoTaskThread in '..\Component\gd_AutoTaskThread.pas';
 
 {$R Gedemin.TLB}
 {$R GEDEMIN.RES}

@@ -1,6 +1,6 @@
 inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 660
-  Top = 155
+  Left = 510
+  Top = 141
   Caption = 'gdc_dlgAutoTask'
   ClientHeight = 516
   ClientWidth = 461
@@ -66,7 +66,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Left = 104
     Top = 40
     Width = 343
-    Height = 89
+    Height = 49
     Anchors = [akLeft, akTop, akRight]
     DataField = 'Description'
     DataSource = dsgdcBase
@@ -291,9 +291,9 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   object gbType: TGroupBox [13]
     Left = 8
-    Top = 136
+    Top = 96
     Width = 448
-    Height = 105
+    Height = 145
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Тип задачи'
     TabOrder = 2
@@ -326,7 +326,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object rbCmdLine: TRadioButton
       Left = 8
-      Top = 44
+      Top = 92
       Width = 89
       Height = 21
       Caption = 'Программа:'
@@ -335,7 +335,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object dbeCmdLine: TDBEdit
       Left = 96
-      Top = 44
+      Top = 92
       Width = 309
       Height = 21
       Anchors = [akLeft, akTop, akRight]
@@ -345,7 +345,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object rbBackupFile: TRadioButton
       Left = 8
-      Top = 68
+      Top = 116
       Width = 89
       Height = 21
       Caption = 'Архив:'
@@ -354,7 +354,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object dbeBackupFile: TDBEdit
       Left = 96
-      Top = 68
+      Top = 116
       Width = 309
       Height = 21
       Anchors = [akLeft, akTop, akRight]
@@ -364,7 +364,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object btnCmdLine: TButton
       Left = 412
-      Top = 44
+      Top = 92
       Width = 25
       Height = 21
       Anchors = [akTop, akRight]
@@ -374,13 +374,49 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object btnBackupFile: TButton
       Left = 412
-      Top = 68
+      Top = 116
       Width = 25
       Height = 21
       Anchors = [akTop, akRight]
       Caption = '...'
       TabOrder = 7
       OnClick = btnBackupFileClick
+    end
+    object rbAutoTr: TRadioButton
+      Left = 8
+      Top = 46
+      Width = 89
+      Height = 17
+      Caption = 'Авто ХО:'
+      TabOrder = 8
+    end
+    object rbReport: TRadioButton
+      Left = 8
+      Top = 70
+      Width = 89
+      Height = 17
+      Caption = 'Отчет:'
+      TabOrder = 9
+    end
+    object iblkupAutoTr: TgsIBLookupComboBox
+      Left = 96
+      Top = 44
+      Width = 343
+      Height = 21
+      HelpContext = 1
+      Anchors = [akLeft, akTop, akRight]
+      ItemHeight = 13
+      TabOrder = 10
+    end
+    object iblkupReport: TgsIBLookupComboBox
+      Left = 96
+      Top = 68
+      Width = 343
+      Height = 21
+      HelpContext = 1
+      Anchors = [akLeft, akTop, akRight]
+      ItemHeight = 13
+      TabOrder = 11
     end
   end
   object dbcbDisabled: TDBCheckBox [14]
