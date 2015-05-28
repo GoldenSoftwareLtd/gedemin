@@ -19,10 +19,13 @@ type
     FStartTime: TTime;
     FEndTime: TTime;
     FPriority: Integer;
+    FExecuted: Boolean;
 
     FNextStartTime, FNextEndTime: TDateTime;
 
     procedure AddLog(AnEventText: String);
+
+    procedure SetExecuted;
 
   protected
     procedure TaskExecute; virtual;
@@ -43,6 +46,8 @@ type
     property Priority: Integer read FPriority write FPriority;
     property NextStartTime: TDateTime read FNextStartTime write FNextStartTime;
     property NextEndTime: TDateTime read FNextEndTime write FNextEndTime;
+
+    property Executed: Boolean read FExecuted;
   end;
 
   TgdAutoFunctionTask = class(TgdAutoTask)
@@ -117,6 +122,30 @@ begin
     end;
 end;
 
+procedure TgdAutoTask.SetExecuted;
+var
+  q: TIBSQL;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT * FROM gd_autotask_log l '#13#10 +
+      'WHERE (l.autotaskkey = :AK) AND (l.creationdate >= :ST)';
+    q.ParamByName('AK').AsInteger := Self.Id;
+    if Self.ExactDate > 0 then
+      q.ParamByName('ST').AsDateTime := Self.ExactDate
+    else
+      q.ParamByName('ST').AsDateTime := NextStartTime;
+
+    q.ExecQuery;
+
+    FExecuted := not q.Eof;
+  finally
+    q.Free;
+  end;
+end;
+
 procedure TgdAutoTask.TaskExecute;
 begin
   //
@@ -132,6 +161,30 @@ begin
 end;
 
 procedure TgdAutoTask.Schedule;
+
+  function DayOfTheWeek(const AValue: TDateTime): Word;
+  begin
+    Result := (DateTimeToTimeStamp(AValue).Date - 1) mod 7 + 1;
+  end;
+
+  function DayOfTheMonth(const AValue: TDateTime): Word;
+  var
+    LYear, LMonth: Word;
+  begin
+    DecodeDate(AValue, LYear, LMonth, Result);
+  end;
+
+  function DaysInMonth(const AValue: TDateTime): Word;
+  var
+    LYear, LMonth, LDay: Word;
+  begin
+    DecodeDate(AValue, LYear, LMonth, LDay);
+    Result := MonthDays[(LMonth = 2) and IsLeapYear(LYear), LMonth];
+  end;
+
+var
+  NTD: TDateTime;
+  Diff: Integer;
 begin
   // на основании параметров задачи и данных
   // о предыдущем запланированном запуске
@@ -152,6 +205,72 @@ begin
   // если интервал уже прописан, то очередной
   // вызов метода находит следующий интервал и
   // заносит в поля.
+
+  if ExactDate > 0 then
+  begin
+    NextStartTime := 0;
+    NextEndTime := 0;
+    exit;
+  end;
+
+  NTD := Now;
+
+  if ExactDate = 0 then
+  begin
+    if Daily then
+    begin
+      if NextStartTime > 0 then
+      begin
+        NextStartTime := NextStartTime + 1;
+        NextEndTime := NextStartTime + 1;
+      end
+      else
+      begin
+        NextStartTime := Trunc(NTD) + StartTime;
+        NextEndTime := Trunc(NTD) + EndTime;
+      end;
+
+      if (StartTime = EndTime) and (StartTime = 0)then
+      begin
+        if NTD >= (NextEndTime + 1) then
+          Schedule;
+      end
+      else if NTD > NextEndTime then
+        Schedule;
+    end;
+
+    if Weekly > 0 then
+    begin
+      if NextStartTime > 0 then
+      begin
+        NextStartTime := NextStartTime + 7;
+        NextEndTime := NextStartTime + 7;
+      end
+      else
+      begin
+        Diff := (Weekly - DayOfTheWeek(NTD));
+        if Diff < 0 then
+          Diff := 7 - Diff;
+
+        NextStartTime := Trunc(NTD) + StartTime + Diff;
+        NextEndTime := Trunc(NTD) + EndTime + Diff;
+      end;
+
+      if (StartTime = EndTime) and (StartTime = 0) then
+      begin
+        if NTD >= (NextEndTime + 1) then
+          Schedule;
+      end
+      else if NTD > NextEndTime then
+        Schedule;
+    end;
+
+    {if Monthly > 0 then
+    begin
+
+    end; }
+  end;
+
 end;
 
 { TgdAutoTaskThread }
@@ -270,7 +389,104 @@ begin
 end;
 
 procedure TgdAutoTaskThread.FindAndExecuteTask;
+
+  function GetStartTime(AnObject: TObject): TDateTime;
+  begin
+    Result := (AnObject as TgdAutoTask).ExactDate;
+
+    if Result = 0 then
+      Result := (AnObject as TgdAutoTask).NextStartTime;
+  end;
+
+var
+  I, J: Integer;
+  Task: TgdAutoTask;
+  NTD: TDateTime;
 begin
+  While FTaskList.Count > 0 do
+  begin
+    NTD := Now;
+
+    for I := FTaskList.Count - 1 to 0 do
+    begin
+      Task := FTaskList[I] as TgdAutoTask;
+
+      if Task.ExactDate = 0 then
+      begin
+        if (Task.StartTime = Task.EndTime) and (Task.StartTime = 0) then
+        begin
+          if NTD >= (Task.NextEndTime + 1) then
+            Task.Schedule;
+        end
+        else if NTD > Task.NextEndTime then
+          Task.Schedule;
+      end
+      else
+      begin
+        // для однократной
+        // проверить выполнена ли задача, если выполнена
+        // либо завершена с ошибкой, то удаляем
+        Synchronize(Task.SetExecuted);
+        if Task.Executed then
+          FTaskList.Delete(I);
+      end;
+    end;
+
+
+    // список будет отсортирован в обратном порядке
+    for I := 0 to FTaskList.Count - 2 do
+    begin
+      for J := I + 1 to FTaskList.Count - 1 do
+      begin
+        if GetStartTime(FTaskList[J]) > GetStartTime(FTaskList[I]) then
+          FTaskList.Exchange(J, I);
+        if GetStartTime(FTaskList[J]) = GetStartTime(FTaskList[I]) then
+        begin
+          if TgdAutoTask(FTaskList[J]).Priority > TgdAutoTask(FTaskList[I]).Priority then
+            FTaskList.Exchange(J, I);
+        end;
+      end;
+    end;
+
+
+    for I := FTaskList.Count - 1 to 0 do
+    begin
+
+
+
+      if GetStartTime(FTaskList[I]) > Now then
+      begin
+        SetTimeOut(Trunc((GetStartTime(FTaskList[I]) - Now) * MSecsPerDay));
+        exit;
+      end;
+
+
+      Synchronize(TgdAutoTask(FTaskList[I]).SetExecuted);
+
+      if not TgdAutoTask(FTaskList[I]).Executed then
+        Synchronize(TgdAutoTask(FTaskList[I]).TaskExecute);
+
+      if TgdAutoTask(FTaskList[I]).ExactDate > 0 then
+        FTaskList.Delete(I)
+      else
+      begin
+        if (TgdAutoTask(FTaskList[I]).StartTime = TgdAutoTask(FTaskList[I]).EndTime)
+          and (TgdAutoTask(FTaskList[I]).StartTime = 0) then
+        begin
+          if NTD >= (TgdAutoTask(FTaskList[I]).NextEndTime + 1) then
+            TgdAutoTask(FTaskList[I]).Schedule;
+        end
+        else if NTD > TgdAutoTask(FTaskList[I]).NextEndTime then
+          TgdAutoTask(FTaskList[I]).Schedule;
+      end;
+
+    end;
+
+
+    if FTaskList.Count = 0 then
+      ExitThread;
+  end;
+
 {
   Проходим по списку:
 
@@ -313,6 +529,8 @@ begin
   задача начала выполняться, но завис комп или возникло исключение
   при выполнении задачи.
 }
+
+
 end;
 
 { TgdAutoFunctionTask }
