@@ -2843,29 +2843,28 @@ begin
       P.Obj := Self;
 
       CN := 'TgdcUserDocument';
-      if (Process = cpInsert) then
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdDocumentEntry, FieldbyName('name').AsString, P)
+      CE := gdClassList.Find(CN, FieldByName('ruid').AsString);
+      if CE is TgdDocumentEntry then
+        P.Init(CE)
       else
-      begin
-        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
-        P.Init(CE);
-      end;
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdDocumentEntry, FieldbyName('name').AsString, P);
 
       CN := 'TgdcUserDocumentLine';
-      if (Process = cpInsert) then
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdDocumentEntry, FieldbyName('name').AsString, P)
-      else
+      if FieldbyName('linerelkey').AsInteger > 0 then
       begin
-        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
-        P.Init(CE);
-      end;
+        CE := gdClassList.Find(CN, FieldByName('ruid').AsString);
+        if CE is TgdDocumentEntry then
+          P.Init(CE)
+        else
+          gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+            TgdDocumentEntry, FieldbyName('name').AsString, P);
+      end else
+        gdClassList.Remove(CN, FieldByName('ruid').AsString);
     finally
       P.Free;
     end;
-  end
-  else
+  end else
     gdClassList.RemoveSubType(FieldByName('ruid').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
