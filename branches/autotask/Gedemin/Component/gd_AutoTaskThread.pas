@@ -20,6 +20,8 @@ type
     FEndTime: TTime;
     FPriority: Integer;
 
+    FNextStartTime, FNextEndTime: TDateTime;
+
     procedure AddLog(AnEventText: String);
 
   protected
@@ -27,6 +29,7 @@ type
 
   public
     procedure Execute;
+    procedure Schedule;
 
     property Id: Integer read FId write FId;
     property Name: String read FName write FName;
@@ -38,6 +41,8 @@ type
     property StartTime: TTime read FStartTime write FStartTime;
     property EndTime: TTime read FEndTime write FEndTime;
     property Priority: Integer read FPriority write FPriority;
+    property NextStartTime: TDateTime read FNextStartTime write FNextStartTime;
+    property NextEndTime: TDateTime read FNextEndTime write FNextEndTime;
   end;
 
   TgdAutoFunctionTask = class(TgdAutoTask)
@@ -119,15 +124,34 @@ end;
 
 procedure TgdAutoTask.Execute;
 begin
-  // проверим, может уже где-то выполняется
-  // или выполнилось
-  // или удалено, отключено и т.п.
-
   // пишем в лог о начале выполнения
 
   TaskExecute;
 
   // пишем в лог о завершении выполнения
+end;
+
+procedure TgdAutoTask.Schedule;
+begin
+  // на основании параметров задачи и данных
+  // о предыдущем запланированном запуске
+  // (если планирование было)
+  // рассчитываем следующее временное окно
+  // запуска задачи
+  //
+  // например:
+  // для задачи стоит выполнять ежедневно
+  // с 13 до 14. послее ее считывания из БД
+  // поля NextTime пусты, значит предыдущего планирования
+  // еще не было. при вызове метода находим интервал
+  // для сегодня и заносим в поля. проверяем,
+  // если интервал уже в прошлом (на часах 15:00),
+  // то повторно вызываем метод для расчета следующего
+  // интервала. СМ. ЧТОБЫ МЕТОД НЕ ЗАЦИКЛИЛСЯ!
+  //
+  // если интервал уже прописан, то очередной
+  // вызов метода находит следующий интервал и
+  // заносит в поля.
 end;
 
 { TgdAutoTaskThread }
@@ -190,6 +214,7 @@ begin
         Task.StartTime := q.FieldbyName('starttime').AsTime;
         Task.EndTime := q.FieldbyName('endtime').AsTime;
         Task.Priority := q.FieldbyName('priority').AsInteger;
+        Task.Schedule;
 
         if FTaskList = nil then
           FTaskList := TObjectList.Create(True);
@@ -213,10 +238,11 @@ begin
     begin
       SendNotification('Нет автозадач для выполнения');
       ExitThread;
-    end else
-      PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
-  end else
-    Synchronize(FindAndExecuteTask);
+      exit;
+    end;
+  end;
+
+  PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
 end;
 
 function TgdAutoTaskThread.ProcessMessage(var Msg: TMsg): Boolean;
@@ -245,20 +271,48 @@ end;
 
 procedure TgdAutoTaskThread.FindAndExecuteTask;
 begin
-  // из общего списка задач сформируем список
-  // подходящих для выполнения к текущему моменту
-  // времени
+{
+  Проходим по списку:
 
-  // отсортируем список по времени старта и приоритету
-  //
+  если планируемое время в прошлом, то рассчитываем новое
+  или удаляем задачу из списка, если это однократное
+  задание.
 
-  // двигаемся по списку и проверяем каждую задачу:
-  // может она уже удалена, запрещена, запрещена для этого пользователя?
-  // если да, то убираем ее из списка и идем дальше
-  //
-  // может она уже выполнилась или кем-то запущена на
-  // выполнение?
-  // если да, то ...
+  сортируем список по времени планируемых интервалов,
+  а внутри подсписка задач, интервалы которых начинаются в одно время
+  по приоритету.
+
+  цикл с первой до последней:
+
+  берем задачу из упорядоченного списка.
+
+  ее время выполнения пришло?
+
+  еще нет: вычисляем таймаут до ее выполнения. выставляем таймаут
+  и выходим.
+
+  проверяем в бд для известного нам интервала времени:
+  может она уже выполняется? может она уже выполнена?
+
+  если да, то рассчитываем следующее время выполнения.
+  если задача однократная -- удаляем ее.
+
+  переходим на начало цикла.
+
+  выполняем задачу.
+
+  рассчитываем для задачи следующий интервал выполнения.
+  если это однократное задание, то удаляем его.
+
+  переходим на начало цикла.
+
+  по окончании цикла проверяем остались ли задачи в списке.
+  если нет, то завершаем нить.
+
+  САМОСТОЯТЕЛЬНО ПРОДУМАТЬ как будут разрешаться ситуации, когда
+  задача начала выполняться, но завис комп или возникло исключение
+  при выполнении задачи.
+}
 end;
 
 { TgdAutoFunctionTask }
