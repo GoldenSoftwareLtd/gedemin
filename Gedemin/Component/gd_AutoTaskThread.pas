@@ -332,8 +332,9 @@ end;
 
 destructor TgdAutoTaskThread.Destroy;
 begin
-  FTaskList.Free;
   inherited;
+
+  FTaskList.Free;
 end;
 
 procedure TgdAutoTaskThread.LoadFromRelation;
@@ -455,7 +456,7 @@ begin
   while FTaskList.Count > 0 do
   begin
     // обновление информации о задачах
-    for I := FTaskList.Count - 1 to 0 do
+    for I := FTaskList.Count - 1 downto 0 do
     begin
       AT := FTaskList[I] as TgdAutoTask;
 
@@ -484,7 +485,7 @@ begin
 
     // обновление информации о задачах
     // выполнение или установка таймера
-    for I := FTaskList.Count - 1 to 0 do
+    for I := FTaskList.Count - 1 downto 0 do
     begin
       AT := FTaskList[I] as TgdAutoTask;
 
