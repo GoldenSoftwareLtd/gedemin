@@ -128,7 +128,6 @@ begin
       Open;
       Insert;
       FieldByName('autotaskkey').AsInteger := Self.ID;
-      FieldByName('eventtime').AsDateTime := Now;
       FieldByName('eventtext').AsString := AnEventText;
       Post;
     finally
@@ -239,8 +238,10 @@ procedure TgdAutoTask.Schedule;
   end;
 
 var
-  NTD: TDateTime;
+  NowDT: TDateTime;
   Diff: Integer;
+  TempDT: TDateTime;
+  TempDiff: Integer;
 begin
   // на основании параметров задачи и данных
   // о предыдущем запланированном запуске
@@ -269,19 +270,19 @@ begin
     exit;
   end;
 
-  NTD := Now;
+  NowDT := Now;
 
   if Daily then
   begin
     if Sheduled then
     begin
       NextStartTime := NextStartTime + 1;
-      NextEndTime := NextStartTime + 1;
+      NextEndTime := NextEndTime + 1;
     end
     else
     begin
-      NextStartTime := Trunc(NTD) + StartTime;
-      NextEndTime := Trunc(NTD) + EndTime;
+      NextStartTime := Trunc(NowDT) + StartTime;
+      NextEndTime := Trunc(NowDT) + EndTime;
     end;
   end
 
@@ -290,30 +291,72 @@ begin
     if Sheduled then
     begin
       NextStartTime := NextStartTime + 7;
-      NextEndTime := NextStartTime + 7;
+      NextEndTime := NextEndTime + 7;
     end
     else
     begin
-      Diff := (Weekly - DayOfTheWeek(NTD));
+      Diff := Weekly - DayOfTheWeek(NowDT);
       if Diff < 0 then
         Diff := 7 - Diff;
 
-      NextStartTime := Trunc(NTD) + StartTime + Diff;
-      NextEndTime := Trunc(NTD) + EndTime + Diff;
+      NextStartTime := Trunc(NowDT) + StartTime + Diff;
+      NextEndTime := Trunc(NowDT) + EndTime + Diff;
     end;
   end
 
-  else if Monthly > 0 then
+  else if Monthly <> 0 then
   begin
+    if Sheduled then
+    begin
+      repeat
+        Diff := DaysInMonth(NextStartTime);
+        NextStartTime := NextStartTime + Diff;
+        NextEndTime := NextEndTime + Diff;
+      until DaysInMonth(NextStartTime) >= Abs(Monthly);
+    end
+    else
+    begin
+      if Abs(Monthly) > DaysInMonth(NowDT) then
+      begin
+        TempDT := NowDT;
+        repeat
+          TempDiff := DaysInMonth(TempDT);
+          TempDT := NowDT + TempDiff;
+        until DaysInMonth(TempDT) >= Abs(Monthly);
 
+
+        if Monthly > 0 then
+          Diff := Monthly - DayOfTheMonth(TempDT)
+        else
+          Diff := DaysInMonth(TempDT) + Monthly - DayOfTheMonth(TempDT);
+
+        if Diff < 0 then
+          Diff := DaysInMonth(TempDT) - Diff;
+
+        Diff := Diff + TempDiff;
+      end
+      else
+      begin
+        if Monthly > 0 then
+          Diff := Monthly - DayOfTheMonth(NowDT)
+        else
+          Diff := DaysInMonth(NowDT) + Monthly - DayOfTheMonth(NowDT);
+
+        if Diff < 0 then
+          Diff := DaysInMonth(NowDT) - Diff;
+      end;
+
+      NextStartTime := Trunc(NowDT) + StartTime + Diff;
+      NextEndTime := Trunc(NowDT) + EndTime + Diff;
+    end;
   end
   else
     raise Exception.Create('unknown type of task');
 
   FSheduled := True;
 
-  if (Interval and (NTD > NextEndTime))
-    or ((not Interval) and (NTD >= (NextEndTime + 1))) then
+  if (Interval and (NowDT > NextEndTime))
+    or ((not Interval) and (NowDT >= (NextEndTime + 1))) then
   begin
     Schedule;
   end;
@@ -523,7 +566,7 @@ begin
           end;
         end;
       end
-      else if I = 0 then
+      else if I = FTaskList.Count - 1 then
       begin
         SetTimeOut(Trunc((GetStartTime(FTaskList[I]) - Now) * MSecsPerDay));
         exit;
