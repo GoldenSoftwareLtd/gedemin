@@ -19,25 +19,15 @@ type
     FStartTime: TTime;
     FEndTime: TTime;
     FPriority: Integer;
-    FExecuted: Boolean;
-    FDeleted: Boolean;
-    FSheduled: Boolean;
 
     FNextStartTime, FNextEndTime: TDateTime;
 
     procedure AddLog(AnEventText: String);
 
-    procedure SetExecuted;
-    procedure SetDeleted;
-
-    function GetExecuted: Boolean;
-    function GetDeleted: Boolean;
-
-    function GetSingle: Boolean;
-    function GetInterval: Boolean;
-
   protected
+    function IsAsync: Boolean; virtual;
     procedure TaskExecute; virtual;
+    function Compare(ATask: TgdAutoTask): Integer;
 
   public
     procedure Execute;
@@ -55,13 +45,6 @@ type
     property Priority: Integer read FPriority write FPriority;
     property NextStartTime: TDateTime read FNextStartTime write FNextStartTime;
     property NextEndTime: TDateTime read FNextEndTime write FNextEndTime;
-
-    property Executed: Boolean read GetExecuted;
-    property Deleted: Boolean read GetDeleted;
-    property Single: Boolean read GetSingle;
-
-    property Sheduled: Boolean read FSheduled;
-    property Interval: Boolean read GetInterval;
   end;
 
   TgdAutoFunctionTask = class(TgdAutoTask)
@@ -80,6 +63,7 @@ type
     FCmdLine: String;
 
   protected
+    function IsAsync: Boolean; override;
     procedure TaskExecute; override;
 
   public
@@ -93,6 +77,8 @@ type
 
     procedure LoadFromRelation;
     procedure FindAndExecuteTask;
+    procedure UpdateTaskList;
+    procedure SortTaskList;
 
   protected
     procedure Timeout; override;
@@ -128,77 +114,12 @@ begin
       Open;
       Insert;
       FieldByName('autotaskkey').AsInteger := Self.ID;
+      FieldByName('eventtime').AsDateTime := Now;
       FieldByName('eventtext').AsString := AnEventText;
       Post;
     finally
       Free;
     end;
-end;
-
-procedure TgdAutoTask.SetExecuted;
-var
-  q: TIBSQL;
-begin
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text :=
-      'SELECT * FROM gd_autotask_log l '#13#10 +
-      'WHERE (l.autotaskkey = :AK) AND (l.creationdate >= :ST)';
-    q.ParamByName('AK').AsInteger := Self.Id;
-    if Self.ExactDate > 0 then
-      q.ParamByName('ST').AsDateTime := Self.ExactDate
-    else
-      q.ParamByName('ST').AsDateTime := NextStartTime;
-
-    q.ExecQuery;
-
-    FExecuted := not q.Eof;
-  finally
-    q.Free;
-  end;
-end;
-
-procedure TgdAutoTask.SetDeleted;
-var
-  q: TIBSQL;
-begin
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text :=
-      'SELECT * FROM gd_autotask WHERE id = :ID';
-    q.ParamByName('ID').AsInteger := Self.Id;
-    q.ExecQuery;
-
-    FDeleted := q.Eof;
-  finally
-    q.Free;
-  end;
-end;
-
-function TgdAutoTask.GetExecuted: Boolean;
-begin
-  if gdAutoTaskThread <> nil then
-    gdAutoTaskThread.Synchronize(SetExecuted);
-  Result := FExecuted
-end;
-
-function TgdAutoTask.GetDeleted: Boolean;
-begin
-  if gdAutoTaskThread <> nil then
-    gdAutoTaskThread.Synchronize(SetDeleted);
-  Result := FDeleted;
-end;
-
-function TgdAutoTask.GetSingle: Boolean;
-begin
-  Result := ExactDate > 0;
-end;
-
-function TgdAutoTask.GetInterval: Boolean;
-begin
-  Result := not ((StartTime = 0) and (EndTime = 0));
 end;
 
 procedure TgdAutoTask.TaskExecute;
@@ -208,40 +129,21 @@ end;
 
 procedure TgdAutoTask.Execute;
 begin
+  Assert(gdAutoTaskThread <> nil);
+
   // пишем в лог о начале выполнения
 
-  TaskExecute;
+  if IsAsync then
+    TaskExecute
+  else
+    gdAutoTaskThread.Synchronize(TaskExecute);
 
   // пишем в лог о завершении выполнения
 end;
 
 procedure TgdAutoTask.Schedule;
-
-  function DayOfTheWeek(const AValue: TDateTime): Word;
-  begin
-    Result := (DateTimeToTimeStamp(AValue).Date - 1) mod 7 + 1;
-  end;
-
-  function DayOfTheMonth(const AValue: TDateTime): Word;
-  var
-    LYear, LMonth: Word;
-  begin
-    DecodeDate(AValue, LYear, LMonth, Result);
-  end;
-
-  function DaysInMonth(const AValue: TDateTime): Word;
-  var
-    LYear, LMonth, LDay: Word;
-  begin
-    DecodeDate(AValue, LYear, LMonth, LDay);
-    Result := MonthDays[(LMonth = 2) and IsLeapYear(LYear), LMonth];
-  end;
-
 var
-  NowDT: TDateTime;
-  Diff: Integer;
-  TempDT: TDateTime;
-  TempDiff: Integer;
+  Y, M, D, K: Word;
 begin
   // на основании параметров задачи и данных
   // о предыдущем запланированном запуске
@@ -263,104 +165,92 @@ begin
   // вызов метода находит следующий интервал и
   // заносит в поля.
 
-  if Single then
+  if FExactDate > 0 then
   begin
-    NextStartTime := 0;
-    NextEndTime := 0;
-    exit;
+    FNextStartTime := FExactDate + FStartTime;
+    FNextEndTime := FExactDate + FEndTime;
+  end
+  else if FDaily then
+  begin
+    if FNextStartTime > 0 then
+    begin
+      FNextStartTime := FNextStartTime + 1;
+      FNextEndTime := FNextEndTime + 1;
+    end else
+    begin
+      FNextStartTime := Date + FStartTime;
+      FNextEndTime := Date + FEndTime;
+    end;
+  end
+  else if FWeekly > 0 then
+  begin
+    if FNextStartTime > 0 then
+    begin
+      FNextStartTime := FNextStartTime + 7;
+      FNextEndTime := FNextEndTime + 7;
+    end else
+    begin
+      FNextStartTime := Date - DayOfWeek(Date) + 1 + FWeekly + FStartTime;
+      FNextEndTime := FNextStartTime - FStartTime + FEndTime;
+    end;
+  end
+  else if FMonthly > 0 then
+  begin
+    if FNextStartTime > 0 then
+      FNextStartTime := IncMonth(FNextStartTime, 1)
+    else
+      FNextStartTime := Date;
+
+    DecodeDate(FNextStartTime, Y, M, D);
+    if (M in [4, 6, 9, 11]) and (FMonthly = 31) then
+      K := 30
+    else if (M = 2) and IsLeapYear(Y) and (FMonthly > 29) then
+      K := 29
+    else if (M = 2) and (not IsLeapYear(Y)) and (FMonthly > 28) then
+      K := 28
+    else
+      K := FMonthly;
+    FNextStartTime := EncodeDate(Y, M, K) + FStartTime;
+    FNextEndTime := FNextStartTime - FStartTime + FEndTime
+  end
+  else if FMonthly < 0 then
+  begin
+    if FNextStartTime > 0 then
+      FNextStartTime := IncMonth(FNextStartTime, 1)
+    else
+      FNextStartTime := IncMonth(Date, 1);
+
+    DecodeDate(FNextStartTime, Y, M, D);
+    if M in [4, 6, 9, 11] then
+      K := 30 + FMonthly
+    else if (M = 2) and IsLeapYear(Y)  then
+      K := 29 + FMonthly
+    else if (M = 2) and (not IsLeapYear(Y))  then
+      K := 28 + FMonthly
+    else
+      K := 31 + FMonthly;
+    FNextStartTime := EncodeDate(Y, M, K) + FStartTime;
+    FNextEndTime := FNextStartTime - FStartTime + FEndTime
   end;
+end;
 
-  NowDT := Now;
+function TgdAutoTask.IsAsync: Boolean;
+begin
+  Result := False;
+end;
 
-  if Daily then
-  begin
-    if Sheduled then
-    begin
-      NextStartTime := NextStartTime + 1;
-      NextEndTime := NextEndTime + 1;
-    end
-    else
-    begin
-      NextStartTime := Trunc(NowDT) + StartTime;
-      NextEndTime := Trunc(NowDT) + EndTime;
-    end;
-  end
-
-  else if Weekly > 0 then
-  begin
-    if Sheduled then
-    begin
-      NextStartTime := NextStartTime + 7;
-      NextEndTime := NextEndTime + 7;
-    end
-    else
-    begin
-      Diff := Weekly - DayOfTheWeek(NowDT);
-      if Diff < 0 then
-        Diff := 7 - Diff;
-
-      NextStartTime := Trunc(NowDT) + StartTime + Diff;
-      NextEndTime := Trunc(NowDT) + EndTime + Diff;
-    end;
-  end
-
-  else if Monthly <> 0 then
-  begin
-    if Sheduled then
-    begin
-      repeat
-        Diff := DaysInMonth(NextStartTime);
-        NextStartTime := NextStartTime + Diff;
-        NextEndTime := NextEndTime + Diff;
-      until DaysInMonth(NextStartTime) >= Abs(Monthly);
-    end
-    else
-    begin
-      if Abs(Monthly) > DaysInMonth(NowDT) then
-      begin
-        TempDT := NowDT;
-        repeat
-          TempDiff := DaysInMonth(TempDT);
-          TempDT := NowDT + TempDiff;
-        until DaysInMonth(TempDT) >= Abs(Monthly);
-
-
-        if Monthly > 0 then
-          Diff := Monthly - DayOfTheMonth(TempDT)
-        else
-          Diff := DaysInMonth(TempDT) + Monthly - DayOfTheMonth(TempDT);
-
-        if Diff < 0 then
-          Diff := DaysInMonth(TempDT) - Diff;
-
-        Diff := Diff + TempDiff;
-      end
-      else
-      begin
-        if Monthly > 0 then
-          Diff := Monthly - DayOfTheMonth(NowDT)
-        else
-          Diff := DaysInMonth(NowDT) + Monthly - DayOfTheMonth(NowDT);
-
-        if Diff < 0 then
-          Diff := DaysInMonth(NowDT) - Diff;
-      end;
-
-      NextStartTime := Trunc(NowDT) + StartTime + Diff;
-      NextEndTime := Trunc(NowDT) + EndTime + Diff;
-    end;
-  end
+function TgdAutoTask.Compare(ATask: TgdAutoTask): Integer;
+begin
+  if FNextStartTime < ATask.FNextStartTime then
+    Result := -1
+  else if FNextStartTime > ATask.FNextStartTime then
+    Result := +1
+  else if FPriority < ATask.FPriority then
+    Result := -1
+  else if FPriority > ATask.FPriority then
+    Result := +1
   else
-    raise Exception.Create('unknown type of task');
-
-  FSheduled := True;
-
-  if (Interval and (NowDT > NextEndTime))
-    or ((not Interval) and (NowDT >= (NextEndTime + 1))) then
-  begin
-    Schedule;
-  end;
-
+    Result := 0;      
 end;
 
 { TgdAutoTaskThread }
@@ -376,7 +266,6 @@ end;
 destructor TgdAutoTaskThread.Destroy;
 begin
   inherited;
-
   FTaskList.Free;
 end;
 
@@ -420,9 +309,15 @@ begin
         Task.ExactDate := q.FieldbyName('exactdate').AsDateTime;
         Task.Monthly := q.FieldbyName('monthly').AsInteger;
         Task.Weekly := q.FieldbyName('weekly').AsInteger;
-        Task.Daily := q.FieldbyName('daily').AsInteger = 1;
-        Task.StartTime := q.FieldbyName('starttime').AsTime;
-        Task.EndTime := q.FieldbyName('endtime').AsTime;
+        Task.Daily := q.FieldbyName('daily').AsInteger <> 0;
+        if q.FieldbyName('starttime').IsNull then
+          Task.StartTime := 0
+        else
+          Task.StartTime := q.FieldbyName('starttime').AsTime;
+        if q.FieldbyName('endtime').IsNull then
+          Task.EndTime := 1
+        else
+          Task.EndTime := q.FieldbyName('endtime').AsTime;
         Task.Priority := q.FieldbyName('priority').AsInteger;
         Task.Schedule;
 
@@ -480,147 +375,76 @@ begin
 end;
 
 procedure TgdAutoTaskThread.FindAndExecuteTask;
-
-  function GetStartTime(AnObject: TObject): TDateTime;
-  var
-    AT: TgdAutoTask;
-  begin
-    AT := AnObject as TgdAutoTask;
-    if AT.Single then
-      Result := AT.ExactDate
-    else
-      Result := AT.NextStartTime;
-  end;
-
 var
-  I, J: Integer;
   AT: TgdAutoTask;
 begin
-  while FTaskList.Count > 0 do
+  UpdateTaskList;
+
+  if (FTaskList = nil) or (FTaskList.Count = 0) then
   begin
-    // обновление информации о задачах
-    for I := FTaskList.Count - 1 downto 0 do
-    begin
-      AT := FTaskList[I] as TgdAutoTask;
-
-      if AT.Deleted then
-        FTaskList.Delete(I);
-
-      if AT.Executed then
-      begin
-        if AT.Single then
-          FTaskList.Delete(I)
-        else
-          AT.Schedule
-      end;
-    end;
-
-    // сортировка списка задач в обратном порядке
-    for I := 0 to FTaskList.Count - 2 do
-      for J := I + 1 to FTaskList.Count - 1 do
-        if GetStartTime(FTaskList[J]) > GetStartTime(FTaskList[I]) then
-          FTaskList.Exchange(J, I)
-        else if GetStartTime(FTaskList[J]) = GetStartTime(FTaskList[I]) then
-        begin
-          if TgdAutoTask(FTaskList[J]).Priority > TgdAutoTask(FTaskList[I]).Priority then
-            FTaskList.Exchange(J, I);
-        end;
-
-    // обновление информации о задачах
-    // выполнение или установка таймера
-    for I := FTaskList.Count - 1 downto 0 do
-    begin
-      AT := FTaskList[I] as TgdAutoTask;
-
-      if AT.Deleted then
-      begin
-        FTaskList.Delete(I);
-        Continue;
-      end;
-
-      if AT.Executed then
-      begin
-        if AT.Single then
-        begin
-          FTaskList.Delete(I);
-          Continue;
-        end
-        else
-          AT.Schedule
-      end;
-
-      if GetStartTime(AT) <= Now then
-      begin
-        if AT.Single then
-          Synchronize(AT.Execute)
-        else
-        begin
-          if (AT.Interval and (Now <= AT.NextEndTime))
-            or ((not AT.Interval) and (Now < AT.NextEndTime + 1)) then
-          begin
-            Synchronize(AT.Execute);
-          end
-          else
-          begin
-            // запись в лог о том что задачу пропустили во время выполнения другой задачи
-          end;
-        end;
-      end
-      else if I = FTaskList.Count - 1 then
-      begin
-        SetTimeOut(Trunc((GetStartTime(FTaskList[I]) - Now) * MSecsPerDay));
-        exit;
-      end
-      else
-        break;
-    end;
-
+    SendNotification('Все автозадачи выполнены');
+    ExitThread;
+    exit;
   end;
 
-  ExitThread;
+  AT := FTaskList[0] as TgdAutoTask;
+end;
 
-{
-  Проходим по списку:
+procedure TgdAutoTaskThread.UpdateTaskList;
+var
+  q: TIBSQL;
+  C: Integer;
+begin
+  Assert(gdcBaseManager <> nil);
 
-  если планируемое время в прошлом, то рассчитываем новое
-  или удаляем задачу из списка, если это однократное
-  задание.
+  SortTaskList;
+  C := 0;
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
 
-  сортируем список по времени планируемых интервалов,
-  а внутри подсписка задач, интервалы которых начинаются в одно время
-  по приоритету.
+    while C < FTaskList.Count do
+    begin
+      q.SQL.Text := 'SELECT * FROM gd_autotask WHERE id = :id';
+      q.ParamByName('id').AsInteger := (FTaskList[0] as TgdAutoTask).ID;
+      q.ExecQuery;
 
-  цикл с первой до последней:
+      if q.EOF or (q.FieldbyName('disabled').AsInteger <> 0)
+        or ((q.FieldByName('userkey').AsInteger <> 0)
+          and (q.FieldbyName('userkey').AsInteger <> IBLogin.UserKey)) then
+      begin
+        FTaskList.Delete(0);
+        continue;
+      end;
 
-  берем задачу из упорядоченного списка.
+      q.Close;
+      q.SQL.Text := 'SELECT * FROM gd_autotask_log WHERE autotaskkey = :atk AND eventtime >= :et';
+      q.ParamByName('atk').AsInteger := (FTaskList[0] as TgdAutoTask).ID;
+      q.ParamByName('et').AsDateTime := (FTaskList[0] as TgdAutoTask).NextStartTime;
+      q.ExecQuery;
 
-  ее время выполнения пришло?
+      if not q.EOF then
+      begin
+        (FTaskList[0] as TgdAutoTask).Schedule;
+        SortTaskList;
+      end else
+        break;
 
-  еще нет: вычисляем таймаут до ее выполнения. выставляем таймаут
-  и выходим.
+      Inc(C);
+    end;
+  finally
+    q.Free;
+  end;
+end;
 
-  проверяем в бд для известного нам интервала времени:
-  может она уже выполняется? может она уже выполнена?
-
-  если да, то рассчитываем следующее время выполнения.
-  если задача однократная -- удаляем ее.
-
-  переходим на начало цикла.
-
-  выполняем задачу.
-
-  рассчитываем для задачи следующий интервал выполнения.
-  если это однократное задание, то удаляем его.
-
-  переходим на начало цикла.
-
-  по окончании цикла проверяем остались ли задачи в списке.
-  если нет, то завершаем нить.
-
-  САМОСТОЯТЕЛЬНО ПРОДУМАТЬ как будут разрешаться ситуации, когда
-  задача начала выполняться, но завис комп или возникло исключение
-  при выполнении задачи.
-}
+procedure TgdAutoTaskThread.SortTaskList;
+var
+  I, J: Integer;
+begin
+  for I := 0 to FTaskList.Count - 2 do
+    for J := I + 1 to FTaskList.Count - 1 do
+      if (FTaskList[I] as TgdAutoTask).Compare(FTaskList[I] as TgdAutoTask) < 0 then
+        FTaskList.Exchange(J, I);
 end;
 
 { TgdAutoFunctionTask }
@@ -651,6 +475,11 @@ end;
 
 { TgdAutoCmdTask }
 
+function TgdAutoCmdTask.IsAsync: Boolean;
+begin
+  Result := True;
+end;
+
 procedure TgdAutoCmdTask.TaskExecute;
 var
   ExecInfo: TShellExecuteInfo;
@@ -663,7 +492,7 @@ begin
   ExecInfo.lpParameters := nil;
   ExecInfo.lpDirectory := nil;
   ExecInfo.nShow := SW_SHOWNORMAL;
-  ExecInfo.fMask := SEE_MASK_FLAG_DDEWAIT or SEE_MASK_FLAG_NO_UI;
+  ExecInfo.fMask := SEE_MASK_FLAG_NO_UI;
 
   if not ShellExecuteEx(@ExecInfo) then
     AddLog(PChar(SysErrorMessage(GetLastError)));
