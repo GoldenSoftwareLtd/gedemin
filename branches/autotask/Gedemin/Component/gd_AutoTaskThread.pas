@@ -125,7 +125,7 @@ begin
 
   FErrorMsg := '';
 
-  gdAutoTaskThread.SendNotification('Выполняется автозадача: ' + Name);
+  gdAutoTaskThread.SendNotification('Выполняется автозадача: ' + Name + '...');
 
   if IsAsync then
     TaskExecute
@@ -138,7 +138,7 @@ begin
     gdAutoTaskThread.Synchronize(LogErrorMsg);
   end else
   begin
-    gdAutoTaskThread.SendNotification('Автозадача выполнена: ' + Name);
+    gdAutoTaskThread.SendNotification('Автозадача выполнена: ' + Name + '.');
     gdAutoTaskThread.Synchronize(LogEndTask);
   end;
 end;
@@ -200,38 +200,28 @@ begin
   begin
     if FNextStartTime > 0 then
       FNextStartTime := IncMonth(FNextStartTime, 1)
-    else
-      FNextStartTime := Date;
-
-    DecodeDate(FNextStartTime, Y, M, D);
-    if (M in [4, 6, 9, 11]) and (FMonthly = 31) then
-      K := 30
-    else if (M = 2) and IsLeapYear(Y) and (FMonthly > 29) then
-      K := 29
-    else if (M = 2) and (not IsLeapYear(Y)) and (FMonthly > 28) then
-      K := 28
-    else
-      K := FMonthly;
-    FNextStartTime := EncodeDate(Y, M, K) + FStartTime;
+    else begin
+      DecodeDate(Date, Y, M, D);
+      if (M in [4, 6, 9, 11]) and (FMonthly = 31) then
+        K := 30
+      else if (M = 2) and IsLeapYear(Y) and (FMonthly > 29) then
+        K := 29
+      else if (M = 2) and (not IsLeapYear(Y)) and (FMonthly > 28) then
+        K := 28
+      else
+        K := FMonthly;
+      FNextStartTime := EncodeDate(Y, M, K) + FStartTime;
+    end;
     FNextEndTime := FNextStartTime - FStartTime + FEndTime
   end
   else if FMonthly < 0 then
   begin
     if FNextStartTime > 0 then
       FNextStartTime := IncMonth(FNextStartTime, 1)
-    else
-      FNextStartTime := IncMonth(Date, 1);
-
-    DecodeDate(FNextStartTime, Y, M, D);
-    if M in [4, 6, 9, 11] then
-      K := 30 + FMonthly
-    else if (M = 2) and IsLeapYear(Y)  then
-      K := 29 + FMonthly
-    else if (M = 2) and (not IsLeapYear(Y))  then
-      K := 28 + FMonthly
-    else
-      K := 31 + FMonthly;
-    FNextStartTime := EncodeDate(Y, M, K) + FStartTime;
+    else begin
+      DecodeDate(Date, Y, M, D);
+      FNextStartTime := IncMonth(EncodeDate(Y, M, 1), 1) + FMonthly + FStartTime;
+    end;
     FNextEndTime := FNextStartTime - FStartTime + FEndTime
   end;
 end;
@@ -380,11 +370,11 @@ procedure TgdAutoTaskThread.Timeout;
 begin
   if FTaskList = nil then
   begin
-    SendNotification('Считываем список автозадач...');
+    SendNotification('Загрузка списка автозадач...');
     Synchronize(LoadFromRelation);
     if (FTaskList = nil) or (FTaskList.Count = 0) then
     begin
-      SendNotification('Нет автозадач для выполнения');
+      SendNotification('Нет автозадач для выполнения.');
       ExitThread;
       exit;
     end;
@@ -402,7 +392,7 @@ begin
 
       if (FTaskList = nil) or (FTaskList.Count = 0) then
       begin
-        SendNotification('Все автозадачи выполнены');
+        SendNotification('Все автозадачи выполнены.');
         ExitThread;
       end;
 
@@ -415,14 +405,14 @@ end;
 
 procedure TgdAutoTaskThread.SendNotification(const AText: String);
 begin
-  gdNotifierThread.Add(AText, FNotificationContext, 2000);
+  gdNotifierThread.Add(AText, FNotificationContext, 4000);
 end;
 
 procedure TgdAutoTaskThread.SetInitialDelay;
 begin
   Resume;
   SetTimeOut(5 {* 60} * 1000);
-  SendNotification('Запуск автозадач через 5 секунд');
+  SendNotification('Запуск автозадач через 5 секунд.');
 end;
 
 procedure TgdAutoTaskThread.FindAndExecuteTask;
@@ -438,7 +428,8 @@ begin
 
   if AT.NextStartTime <= Now then
   begin
-    AT.Execute;
+    if AT.NextEndTime >= Now then
+      AT.Execute;
 
     if AT.ExactDate = 0 then
       AT.Schedule
@@ -447,7 +438,11 @@ begin
 
     PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
   end else
+  begin
     SetTimeOut(Round((AT.NextStartTime - Now) * MSecsPerDay));
+    SendNotification('Выполнение автозадачи ' + AT.Name + ' назначено на ' +
+      FormatDateTime('dd.mm.yyyy hh:nn', AT.NextStartTime));
+  end;
 end;
 
 procedure TgdAutoTaskThread.UpdateTaskList;
@@ -466,8 +461,8 @@ begin
     q.SQL.Text :=
       'SELECT t.disabled, t.userkey, l.eventtime ' +
       'FROM gd_autotask t LEFT JOIN gd_autotask_log l ' +
-      '  ON t.id = l.autotaskkey ' +
-      'WHERE t.id = :id AND l.eventtime >= :et';
+      '  ON t.id = l.autotaskkey AND l.eventtime >= :et ' +
+      'WHERE t.id = :id';
 
     while C < FTaskList.Count do
     begin

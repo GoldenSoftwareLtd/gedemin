@@ -20,13 +20,8 @@ type
     lbPriority: TLabel;
     rbDaily: TRadioButton;
     Label2: TLabel;
-    lbStartTime: TLabel;
-    xdbeStartTime: TxDateDBEdit;
-    lbEndTime: TLabel;
-    xdbeEndTime: TxDateDBEdit;
-    DBComboBox1: TDBComboBox;
+    dbcbMonthly: TDBComboBox;
     Label3: TLabel;
-    Label4: TLabel;
     dbcbPriority: TDBComboBox;
     lbName: TLabel;
     dbedName: TDBEdit;
@@ -41,7 +36,14 @@ type
     btnCmdLine: TButton;
     lbUser: TLabel;
     iblkupUser: TgsIBLookupComboBox;
+    lbStartTime: TLabel;
+    xdbeStartTime: TxDateDBEdit;
+    lbEndTime: TLabel;
+    xdbeEndTime: TxDateDBEdit;
+    Label4: TLabel;
+    btnClearTime: TButton;
     procedure btnCmdLineClick(Sender: TObject);
+    procedure btnClearTimeClick(Sender: TObject);
 
   public
     procedure SetupRecord; override;
@@ -89,6 +91,20 @@ begin
 
   inherited;
 
+  if gdcObject.FieldByName('cmdline').AsString > '' then
+    pcTask.ActivePage := tsCmd
+  else
+    pcTask.ActivePage := tsFunction;
+
+  if gdcObject.FieldByName('exactdate').AsDateTime > 0 then
+    rbExactDate.Checked := True
+  else if gdcObject.FieldByName('monthly').AsInteger <> 0 then
+    rbMonthly.Checked := True
+  else if gdcObject.FieldByName('weekly').AsInteger <> 0 then
+    rbWeekly.Checked := True
+  else
+    rbDaily.Checked := True;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGEXPLORER', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -123,6 +139,57 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
+  if pcTask.ActivePage = tsFunction then
+  begin
+    gdcObject.FieldByName('cmdline').Clear;
+    gdcObject.FieldByName('autotrkey').Clear;
+    gdcObject.FieldByName('reportkey').Clear;
+    gdcObject.FieldByName('backupfile').Clear;
+  end
+  else if pcTask.ActivePage = tsCmd then
+  begin
+    gdcObject.FieldByName('functionkey').Clear;
+    gdcObject.FieldByName('autotrkey').Clear;
+    gdcObject.FieldByName('reportkey').Clear;
+    gdcObject.FieldByName('backupfile').Clear;
+  end;
+
+  if rbExactDate.Checked then
+  begin
+    gdcObject.FieldByName('monthly').Clear;
+    gdcObject.FieldByName('weekly').Clear;
+    gdcObject.FieldByName('daily').Clear;
+  end
+  else if rbMonthly.Checked then
+  begin
+    gdcObject.FieldByName('exactdate').Clear;
+    gdcObject.FieldByName('weekly').Clear;
+    gdcObject.FieldByName('daily').Clear;
+  end
+  else if rbWeekly.Checked then
+  begin
+    gdcObject.FieldByName('monthly').Clear;
+    gdcObject.FieldByName('exactdate').Clear;
+    gdcObject.FieldByName('daily').Clear;
+  end
+  else if rbDaily.Checked then
+  begin
+    gdcObject.FieldByName('monthly').Clear;
+    gdcObject.FieldByName('weekly').Clear;
+    gdcObject.FieldByName('exactdate').Clear;
+    gdcObject.FieldByName('daily').AsInteger := 1;
+  end;
+
+  if (gdcObject.FieldByName('starttime').AsDateTime > 0)
+    and (gdcObject.FieldByName('endtime').AsDateTime <= gdcObject.FieldByName('starttime').AsDateTime) then
+  begin
+    if gdcObject.FieldByName('starttime').AsDateTime < 23 / 24 then
+      gdcObject.FieldByName('endtime').AsDateTime :=
+        gdcObject.FieldByName('starttime').AsDateTime + 1 / 24
+    else
+      gdcObject.FieldByName('endtime').AsDateTime := (MSecsPerDay - 1) / MSecsPerDay;
+  end;
 
   inherited;
 
@@ -182,6 +249,12 @@ procedure Tgdc_dlgAutoTask.btnCmdLineClick(Sender: TObject);
 begin
   if odCmdLine.Execute then
     dbeCmdLine.Text := odCmdLine.FileName;
+end;
+
+procedure Tgdc_dlgAutoTask.btnClearTimeClick(Sender: TObject);
+begin
+  gdcObject.FieldByName('starttime').Clear;
+  gdcObject.FieldByName('endtime').Clear;
 end;
 
 initialization

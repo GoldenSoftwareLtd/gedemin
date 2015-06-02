@@ -17089,7 +17089,7 @@ CREATE TABLE gd_autotask
    daily            dboolean,
    starttime        dtime,            /* время начала интервала для выполнения */
    endtime          dtime,            /* время конца интервала для выполнения  */
-   priority         dinteger,         
+   priority         dinteger_notnull DEFAULT 0,         
    creatorkey       dforeignkey,
    creationdate     dcreationdate,
    editorkey        dforeignkey,
@@ -17099,9 +17099,12 @@ CREATE TABLE gd_autotask
    aview            dsecurity,
    disabled         ddisabled,
    CONSTRAINT gd_pk_autotask PRIMARY KEY (id),
-   CONSTRAINT gd_chk_autotask_monthly CHECK ((monthly BETWEEN -28 AND -1) OR (monthly BETWEEN 1 AND 31)),
+   CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -31 AND 31 AND monthly <> 0),
    CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN 1 AND 7),
-   CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0)
+   CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0),
+   CONSTRAINT gd_chk_autotask_time CHECK((starttime IS NULL AND endtime IS NULL) OR (starttime < endtime)),
+   CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
+   CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > '')
  );
  
 SET TERM ^ ;
