@@ -25,9 +25,12 @@ CREATE TABLE gd_autotask
    aview            dsecurity,
    disabled         ddisabled,
    CONSTRAINT gd_pk_autotask PRIMARY KEY (id),
-   CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -31 AND 31 AND monthly <> 0)),
+   CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -31 AND 31 AND monthly <> 0),
    CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN 1 AND 7),
-   CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0)
+   CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0),
+   CONSTRAINT gd_chk_autotask_time CHECK((starttime IS NULL AND endtime IS NULL) OR (starttime < endtime)),
+   CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
+   CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > '')
  );
  
 SET TERM ^ ;
