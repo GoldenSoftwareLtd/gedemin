@@ -15,7 +15,7 @@ CREATE TABLE gd_autotask
    daily            dboolean,
    starttime        dtime,            /* время начала интервала для выполнения */
    endtime          dtime,            /* время конца интервала для выполнения  */
-   priority         dinteger,         
+   priority         dinteger_notnull DEFAULT 0,         
    creatorkey       dforeignkey,
    creationdate     dcreationdate,
    editorkey        dforeignkey,
@@ -25,7 +25,7 @@ CREATE TABLE gd_autotask
    aview            dsecurity,
    disabled         ddisabled,
    CONSTRAINT gd_pk_autotask PRIMARY KEY (id),
-   CONSTRAINT gd_chk_autotask_monthly CHECK ((monthly BETWEEN -28 AND -1) OR (monthly BETWEEN 1 AND 31)),
+   CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -31 AND 31 AND monthly <> 0)),
    CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN 1 AND 7),
    CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0)
  );
@@ -39,6 +39,81 @@ AS
 BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^ 
+
+CREATE TRIGGER gd_biu_autotask FOR gd_autotask
+  BEFORE INSERT OR UPDATE
+  POSITION 27000
+AS
+BEGIN
+  IF (NOT NEW.exactdate IS NULL) THEN
+  BEGIN
+    NEW.monthly = NULL;
+    NEW.weekly = NULL;
+    NEW.daily = NULL;
+  END  
+  
+  IF (NOT NEW.monthly IS NULL) THEN
+  BEGIN
+    NEW.exactdate = NULL;
+    NEW.weekly = NULL;
+    NEW.daily = NULL;
+  END  
+  
+  IF (NOT NEW.weekly IS NULL) THEN
+  BEGIN
+    NEW.exactdate = NULL;
+    NEW.monthly = NULL;
+    NEW.daily = NULL;
+  END  
+  
+  IF (NOT NEW.daily IS NULL) THEN
+  BEGIN
+    NEW.exactdate = NULL;
+    NEW.monthly = NULL;
+    NEW.weekly = NULL;
+  END  
+  
+  IF (NOT NEW.functionkey IS NULL) THEN
+  BEGIN
+    NEW.autotrkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.cmdline = NULL;
+    NEW.backupfile = NULL;
+  END
+  
+  IF (NOT NEW.autotrkey IS NULL) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.cmdline = NULL;
+    NEW.backupfile = NULL;
+  END
+  
+  IF (NOT NEW.reportkey IS NULL) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.autotrkey = NULL;
+    NEW.cmdline = NULL;
+    NEW.backupfile = NULL;
+  END
+  
+  IF (NOT NEW.cmdline IS NULL) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.autotrkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.backupfile = NULL;
+  END
+  
+  IF (NOT NEW.backupfile IS NULL) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.autotrkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.cmdline = NULL;
+  END
 END
 ^ 
 

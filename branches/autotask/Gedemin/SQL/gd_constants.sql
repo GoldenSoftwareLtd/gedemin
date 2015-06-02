@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Script
 
@@ -886,6 +886,19 @@ INSERT INTO GD_BANK
 		
       INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
         VALUES (
+          740075,
+          740050,
+          'Автозадачи',
+          '',
+          'TgdcAutoTask',
+          NULL,
+          256,
+          1
+        );
+
+     /* 
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+        VALUES (
           740080,
           740050,
           'Блокировка изменений',
@@ -895,7 +908,7 @@ INSERT INTO GD_BANK
           256,
           1
         );
-
+      */
 
         /*
     INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)

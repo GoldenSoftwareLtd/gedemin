@@ -1,126 +1,195 @@
 inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 491
-  Top = 138
+  Left = 633
+  Top = 250
   Caption = 'gdc_dlgAutoTask'
-  ClientHeight = 569
-  ClientWidth = 461
+  ClientHeight = 582
+  ClientWidth = 440
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
-  object lbName: TLabel [0]
+  object lbPriority: TLabel [0]
+    Left = 8
+    Top = 500
+    Width = 371
+    Height = 13
+    Caption = 
+      'Порядковый номер выполнения для задач, назначенных на одно время' +
+      ':'
+  end
+  object Label2: TLabel [1]
+    Left = 223
+    Top = 265
+    Width = 205
+    Height = 32
+    AutoSize = False
+    Caption = '(оставьте поле пустым для выполнения под любой учетной записью)'
+    Color = clBtnFace
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clRed
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentColor = False
+    ParentFont = False
+    WordWrap = True
+  end
+  object lbName: TLabel [2]
     Left = 8
     Top = 20
-    Width = 79
+    Width = 77
     Height = 13
     Caption = 'Наименование:'
   end
-  object lbDescription: TLabel [1]
+  object lbDescription: TLabel [3]
     Left = 8
     Top = 42
     Width = 53
     Height = 13
     Caption = 'Описание:'
   end
-  object lbUser: TLabel [2]
+  object lbUser: TLabel [4]
     Left = 8
-    Top = 250
-    Width = 84
+    Top = 244
+    Width = 212
     Height = 13
-    Caption = 'Учетная запись:'
-  end
-  object lbPriority: TLabel [3]
-    Left = 8
-    Top = 490
-    Width = 54
-    Height = 13
-    Caption = 'Приоритет'
+    Caption = 'Выполнять только под учетной записью:'
   end
   inherited btnAccess: TButton
-    Top = 539
-    TabOrder = 9
+    Top = 552
+    TabOrder = 4
   end
   inherited btnNew: TButton
-    Top = 539
-    TabOrder = 10
+    Top = 552
+    TabOrder = 5
   end
   inherited btnHelp: TButton
-    Top = 539
-    TabOrder = 11
+    Top = 552
+    TabOrder = 6
   end
   inherited btnOK: TButton
-    Left = 313
-    Top = 539
-    TabOrder = 7
+    Left = 292
+    Top = 552
+    TabOrder = 2
   end
   inherited btnCancel: TButton
-    Left = 385
-    Top = 539
-    TabOrder = 8
-  end
-  object dbedName: TDBEdit [9]
-    Left = 104
-    Top = 16
-    Width = 343
-    Height = 21
-    Anchors = [akLeft, akTop, akRight]
-    DataField = 'NAME'
-    DataSource = dsgdcBase
-    TabOrder = 0
-  end
-  object dbmDescription: TDBMemo [10]
-    Left = 104
-    Top = 40
-    Width = 343
-    Height = 49
-    Anchors = [akLeft, akTop, akRight]
-    DataField = 'Description'
-    DataSource = dsgdcBase
-    TabOrder = 1
-  end
-  object iblkupUser: TgsIBLookupComboBox [11]
-    Left = 104
-    Top = 248
-    Width = 343
-    Height = 21
-    HelpContext = 1
-    DataSource = dsgdcBase
-    DataField = 'USERKEY'
-    ListTable = 'GD_USER'
-    ListField = 'NAME'
-    KeyField = 'ID'
-    gdClassName = 'TgdcUser'
-    Anchors = [akLeft, akTop, akRight]
-    ItemHeight = 13
-    ParentShowHint = False
-    ShowHint = True
+    Left = 364
+    Top = 552
     TabOrder = 3
   end
-  object gbTimeInterval: TGroupBox [12]
-    Left = 8
-    Top = 400
-    Width = 177
-    Height = 49
-    Caption = 'Временной интервал'
-    TabOrder = 5
+  object gbTimeTables: TGroupBox [10]
+    Left = 6
+    Top = 302
+    Width = 425
+    Height = 188
+    Caption = ' Расписание '
+    TabOrder = 0
     object lbStartTime: TLabel
-      Left = 8
-      Top = 22
-      Width = 6
+      Left = 10
+      Top = 145
+      Width = 64
       Height = 13
-      Caption = 'с'
+      Caption = 'Выполнять с'
     end
     object lbEndTime: TLabel
-      Left = 88
-      Top = 22
-      Width = 15
+      Left = 144
+      Top = 145
+      Width = 13
       Height = 13
-      Caption = 'до:'
+      Caption = 'до'
+    end
+    object Label3: TLabel
+      Left = 26
+      Top = 69
+      Width = 324
+      Height = 13
+      Caption = 'Отрицательные значения задают номера дней с конца месяца.'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clRed
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+    end
+    object Label4: TLabel
+      Left = 10
+      Top = 166
+      Width = 313
+      Height = 13
+      Caption = 'Оставьте поля пустыми для выполнения в любое время дня.'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clRed
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+    end
+    object rbExactDate: TRadioButton
+      Left = 8
+      Top = 20
+      Width = 185
+      Height = 21
+      Caption = 'Однократно в указанный день:'
+      TabOrder = 0
+    end
+    object xdbeExactDate: TxDateDBEdit
+      Left = 200
+      Top = 20
+      Width = 65
+      Height = 21
+      DataField = 'exactdate'
+      DataSource = dsgdcBase
+      Kind = kDate
+      EmptyAtStart = True
+      EditMask = '!99\.99\.9999;1;_'
+      MaxLength = 10
+      TabOrder = 1
+    end
+    object rbMonthly: TRadioButton
+      Left = 8
+      Top = 44
+      Width = 185
+      Height = 21
+      Caption = 'Ежемесячно в указанный день:'
+      TabOrder = 2
+    end
+    object rbWeekly: TRadioButton
+      Left = 8
+      Top = 92
+      Width = 193
+      Height = 21
+      Caption = 'Еженедельно в указанный день:'
+      TabOrder = 3
+    end
+    object dbcbWeekly: TDBComboBox
+      Left = 200
+      Top = 92
+      Width = 113
+      Height = 21
+      DataField = 'weekly'
+      DataSource = dsgdcBase
+      ItemHeight = 13
+      Items.Strings = (
+        '1'
+        '2'
+        '3'
+        '4'
+        '5'
+        '6'
+        '7')
+      TabOrder = 4
+    end
+    object rbDaily: TRadioButton
+      Left = 8
+      Top = 119
+      Width = 89
+      Height = 17
+      Caption = 'Ежедневно'
+      TabOrder = 5
     end
     object xdbeStartTime: TxDateDBEdit
-      Left = 24
-      Top = 20
+      Left = 80
+      Top = 143
       Width = 57
       Height = 21
       DataField = 'starttime'
@@ -129,11 +198,11 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       EmptyAtStart = True
       EditMask = '!99\:99\:99;1;_'
       MaxLength = 8
-      TabOrder = 0
+      TabOrder = 6
     end
     object xdbeEndTime: TxDateDBEdit
-      Left = 112
-      Top = 20
+      Left = 163
+      Top = 143
       Width = 57
       Height = 21
       DataField = 'endtime'
@@ -142,99 +211,19 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       EmptyAtStart = True
       EditMask = '!99\:99\:99;1;_'
       MaxLength = 8
-      TabOrder = 1
+      TabOrder = 7
     end
-  end
-  object gbTimeTables: TGroupBox [13]
-    Left = 8
-    Top = 272
-    Width = 297
-    Height = 121
-    Caption = 'Расписание'
-    TabOrder = 4
-    object lbMonthly: TLabel
-      Left = 208
-      Top = 48
-      Width = 83
-      Height = 13
-      Caption = '-ой день месяца'
-    end
-    object lbWeekly: TLabel
-      Left = 208
-      Top = 72
-      Width = 81
-      Height = 13
-      Caption = '-ой день недели'
-    end
-    object rbExactDate: TRadioButton
-      Left = 8
-      Top = 20
-      Width = 169
-      Height = 21
-      Caption = 'Выполнить один раз после:'
-      TabOrder = 0
-      OnClick = rbExactDateClick
-    end
-    object xdbeExactDate: TxDateDBEdit
-      Left = 176
-      Top = 20
-      Width = 113
-      Height = 21
-      DataField = 'exactdate'
-      DataSource = dsgdcBase
-      EmptyAtStart = True
-      EditMask = '!99\.99\.9999 99\:99\:99;1;_'
-      MaxLength = 19
-      TabOrder = 1
-    end
-    object rbMonthly: TRadioButton
-      Left = 8
-      Top = 44
-      Width = 129
-      Height = 21
-      Caption = 'Выполнять каждый'
-      TabOrder = 2
-      OnClick = rbMonthlyClick
-    end
-    object dbcbMonthly: TDBComboBox
-      Left = 136
-      Top = 44
+    object DBComboBox1: TDBComboBox
+      Left = 200
+      Top = 46
       Width = 65
       Height = 21
-      DataField = 'monthly'
+      Style = csDropDownList
+      DataField = 'MONTHLY'
       DataSource = dsgdcBase
+      DropDownCount = 16
       ItemHeight = 13
       Items.Strings = (
-        '-30'
-        '-29'
-        '-28'
-        '-27'
-        '-26'
-        '-25'
-        '-24'
-        '-23'
-        '-22'
-        '-21'
-        '-20'
-        '-19'
-        '-18'
-        '-17'
-        '-16'
-        '-15'
-        '-14'
-        '-13'
-        '-12'
-        '-11'
-        '-10'
-        '-9'
-        '-8'
-        '-7'
-        '-6'
-        '-5'
-        '-4'
-        '-3'
-        '-2'
-        '-1'
         '1'
         '2'
         '3'
@@ -265,232 +254,200 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         '28'
         '29'
         '30'
-        '31')
-      TabOrder = 3
-    end
-    object rbWeekly: TRadioButton
-      Left = 8
-      Top = 68
-      Width = 129
-      Height = 21
-      Caption = 'Выполнять каждый'
-      TabOrder = 4
-      OnClick = rbWeeklyClick
-    end
-    object dbcbWeekly: TDBComboBox
-      Left = 136
-      Top = 68
-      Width = 65
-      Height = 21
-      DataField = 'weekly'
-      DataSource = dsgdcBase
-      ItemHeight = 13
-      Items.Strings = (
-        '1'
-        '2'
-        '3'
-        '4'
-        '5'
-        '6'
-        '7')
-      TabOrder = 5
-    end
-    object rbDaily: TRadioButton
-      Left = 8
-      Top = 96
-      Width = 89
-      Height = 17
-      Caption = 'Ежедневно'
-      TabOrder = 6
-      OnClick = rbDailyClick
-    end
-  end
-  object gbType: TGroupBox [14]
-    Left = 8
-    Top = 96
-    Width = 448
-    Height = 145
-    Anchors = [akLeft, akTop, akRight]
-    Caption = 'Тип задачи'
-    TabOrder = 2
-    object rbFunction: TRadioButton
-      Left = 8
-      Top = 20
-      Width = 89
-      Height = 21
-      Caption = 'Функция:'
-      TabOrder = 0
-      OnClick = rbFunctionClick
-    end
-    object iblkupFunction: TgsIBLookupComboBox
-      Left = 96
-      Top = 20
-      Width = 343
-      Height = 21
-      HelpContext = 1
-      DataSource = dsgdcBase
-      DataField = 'FUNCTIONKEY'
-      ListTable = 'GD_FUNCTION'
-      ListField = 'NAME'
-      KeyField = 'ID'
-      gdClassName = 'TgdcFunction'
-      Anchors = [akLeft, akTop, akRight]
-      ItemHeight = 13
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 1
-    end
-    object rbCmdLine: TRadioButton
-      Left = 8
-      Top = 92
-      Width = 89
-      Height = 21
-      Caption = 'Программа:'
-      TabOrder = 2
-      OnClick = rbCmdLineClick
-    end
-    object dbeCmdLine: TDBEdit
-      Left = 96
-      Top = 92
-      Width = 309
-      Height = 21
-      Anchors = [akLeft, akTop, akRight]
-      DataField = 'cmdline'
-      DataSource = dsgdcBase
-      TabOrder = 3
-    end
-    object rbBackupFile: TRadioButton
-      Left = 8
-      Top = 116
-      Width = 89
-      Height = 21
-      Caption = 'Архив:'
-      TabOrder = 5
-      OnClick = rbBackupFileClick
-    end
-    object dbeBackupFile: TDBEdit
-      Left = 96
-      Top = 116
-      Width = 309
-      Height = 21
-      Anchors = [akLeft, akTop, akRight]
-      DataField = 'backupfile'
-      DataSource = dsgdcBase
-      TabOrder = 6
-    end
-    object btnCmdLine: TButton
-      Left = 412
-      Top = 92
-      Width = 25
-      Height = 21
-      Anchors = [akTop, akRight]
-      Caption = '...'
-      TabOrder = 4
-      OnClick = btnCmdLineClick
-    end
-    object btnBackupFile: TButton
-      Left = 412
-      Top = 116
-      Width = 25
-      Height = 21
-      Anchors = [akTop, akRight]
-      Caption = '...'
-      TabOrder = 7
-      OnClick = btnBackupFileClick
-    end
-    object rbAutoTr: TRadioButton
-      Left = 8
-      Top = 46
-      Width = 89
-      Height = 17
-      Caption = 'Авто ХО:'
+        '31'
+        '-1'
+        '-2'
+        '-3'
+        '-4'
+        '-5'
+        '-6'
+        '-7'
+        '-8'
+        '-9'
+        '-10'
+        '-11'
+        '-12'
+        '-13'
+        '-14'
+        '-15'
+        '-16'
+        '-17'
+        '-18'
+        '-19'
+        '-20'
+        '-21'
+        '-22'
+        '-23'
+        '-24'
+        '-25'
+        '-26'
+        '-27'
+        '-28'
+        '-29'
+        '-30'
+        '-31')
       TabOrder = 8
-      OnClick = rbAutoTrClick
-    end
-    object rbReport: TRadioButton
-      Left = 8
-      Top = 70
-      Width = 89
-      Height = 17
-      Caption = 'Отчет:'
-      TabOrder = 9
-      OnClick = rbReportClick
-    end
-    object iblkupAutoTr: TgsIBLookupComboBox
-      Left = 96
-      Top = 44
-      Width = 343
-      Height = 21
-      HelpContext = 1
-      DataSource = dsgdcBase
-      DataField = 'autotrkey'
-      ListTable = 'ac_transaction'
-      ListField = 'NAME'
-      KeyField = 'ID'
-      Condition = '(autotransaction = 1)'
-      Anchors = [akLeft, akTop, akRight]
-      ItemHeight = 13
-      TabOrder = 10
-    end
-    object iblkupReport: TgsIBLookupComboBox
-      Left = 96
-      Top = 68
-      Width = 343
-      Height = 21
-      HelpContext = 1
-      DataSource = dsgdcBase
-      DataField = 'REPORTKEY'
-      ListTable = 'RP_REPORTLIST'
-      ListField = 'NAME'
-      KeyField = 'ID'
-      Anchors = [akLeft, akTop, akRight]
-      ItemHeight = 13
-      TabOrder = 11
     end
   end
-  object dbcbDisabled: TDBCheckBox [15]
+  object dbcbDisabled: TDBCheckBox [11]
     Left = 8
-    Top = 464
-    Width = 97
+    Top = 522
+    Width = 297
     Height = 17
-    Caption = 'Отключена'
+    Caption = 'Задача отключена'
     DataField = 'disabled'
     DataSource = dsgdcBase
-    TabOrder = 6
+    TabOrder = 1
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
-  object dbePriority: TDBEdit [16]
-    Left = 72
-    Top = 488
-    Width = 73
+  object dbcbPriority: TDBComboBox [12]
+    Left = 384
+    Top = 497
+    Width = 48
     Height = 21
-    DataField = 'priority'
+    DataField = 'PRIORITY'
     DataSource = dsgdcBase
-    TabOrder = 12
+    ItemHeight = 13
+    Items.Strings = (
+      '0'
+      '1'
+      '2'
+      '3'
+      '4'
+      '5'
+      '6'
+      '7'
+      '8'
+      '9')
+    TabOrder = 7
+  end
+  object dbedName: TDBEdit [13]
+    Left = 99
+    Top = 17
+    Width = 330
+    Height = 21
+    Anchors = []
+    DataField = 'NAME'
+    DataSource = dsgdcBase
+    TabOrder = 8
+  end
+  object dbmDescription: TDBMemo [14]
+    Left = 99
+    Top = 42
+    Width = 330
+    Height = 49
+    Anchors = []
+    DataField = 'Description'
+    DataSource = dsgdcBase
+    TabOrder = 9
+  end
+  object pcTask: TPageControl [15]
+    Left = 8
+    Top = 98
+    Width = 421
+    Height = 135
+    ActivePage = tsFunction
+    Anchors = []
+    MultiLine = True
+    TabOrder = 10
+    object tsFunction: TTabSheet
+      Caption = 'Скрипт-функция'
+      object iblkupFunction: TgsIBLookupComboBox
+        Left = 8
+        Top = 8
+        Width = 400
+        Height = 21
+        HelpContext = 1
+        DataSource = dsgdcBase
+        DataField = 'FUNCTIONKEY'
+        ListTable = 'GD_FUNCTION'
+        ListField = 'NAME'
+        KeyField = 'ID'
+        gdClassName = 'TgdcFunction'
+        Anchors = [akLeft, akTop, akRight]
+        ItemHeight = 13
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 0
+      end
+    end
+    object tsCmd: TTabSheet
+      Caption = 'Внешняя программа'
+      ImageIndex = 1
+      object Label1: TLabel
+        Left = 8
+        Top = 34
+        Width = 368
+        Height = 33
+        AutoSize = False
+        Caption = 
+          'При необходимости укажите имя программы  (команды) и параметры к' +
+          'омандной строки.'
+        WordWrap = True
+      end
+      object dbeCmdLine: TDBEdit
+        Left = 8
+        Top = 8
+        Width = 373
+        Height = 21
+        Anchors = [akLeft, akTop, akRight]
+        DataField = 'cmdline'
+        DataSource = dsgdcBase
+        TabOrder = 0
+      end
+      object btnCmdLine: TButton
+        Left = 381
+        Top = 7
+        Width = 25
+        Height = 21
+        Anchors = [akTop, akRight]
+        Caption = '...'
+        TabOrder = 1
+        OnClick = btnCmdLineClick
+      end
+    end
+  end
+  object iblkupUser: TgsIBLookupComboBox [16]
+    Left = 222
+    Top = 240
+    Width = 208
+    Height = 21
+    HelpContext = 1
+    DataSource = dsgdcBase
+    DataField = 'USERKEY'
+    ListTable = 'GD_USER'
+    ListField = 'NAME'
+    KeyField = 'ID'
+    gdClassName = 'TgdcUser'
+    Anchors = []
+    ItemHeight = 13
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 11
   end
   inherited alBase: TActionList
     Left = 238
-    Top = 413
+    Top = 549
   end
   inherited dsgdcBase: TDataSource
     Left = 200
-    Top = 413
+    Top = 549
   end
   inherited pm_dlgG: TPopupMenu
     Left = 272
-    Top = 414
+    Top = 550
   end
   inherited ibtrCommon: TIBTransaction
     Left = 312
-    Top = 414
+    Top = 550
   end
   object odCmdLine: TOpenDialog
     Filter = 
       'Исполняемые файлы *.exe|*.exe|Пакетные файлы *.bat|*.bat|Все фай' +
       'лы *.*|*.*'
     Title = 'Выбор файла'
-    Left = 392
-    Top = 392
+    Left = 360
+    Top = 552
   end
 end
