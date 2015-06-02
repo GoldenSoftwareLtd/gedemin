@@ -1,4 +1,4 @@
-unit gdc_frmAutoTask_Unit;
+unit gdc_frmAutoTask_unit;
 
 interface
 
@@ -13,10 +13,6 @@ type
     gdcAutoTaskLog: TgdcAutoTaskLog;
     gdcAutoTask: TgdcAutoTask;
     procedure FormCreate(Sender: TObject);
-  private
-    { Private declarations }
-  public
-    { Public declarations }
   end;
 
 var
@@ -42,5 +38,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAutoTask);
-
 end.

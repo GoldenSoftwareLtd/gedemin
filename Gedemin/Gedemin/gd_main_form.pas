@@ -509,7 +509,7 @@ uses
   //mtd_i_Base,
   dm_i_ClientReport_unit,
   gdcBaseInterface, dmLogin_unit,
-  gd_dlgAutoBackup_unit,
+  //gd_dlgAutoBackup_unit,
   prp_frmGedeminProperty_Unit,
   cmp_frmDataBaseCompare,
   gd_frmMonitoring_unit,
@@ -885,12 +885,8 @@ procedure TfrmGedeminMain.DoAfterSuccessfullConnection;
 var
   TempPath: array[0..256] of char;
   SearchR: TSearchRec;
-  S, FN, FE, ArcS: String;
-  Res: OleVariant;
-  IBService: TIBBackupService;
+  S: String;
   J: DWORD;
-  Port: Integer;
-  Server, FileName: String;
 begin
   ClearFltComponentCache;
 
@@ -942,6 +938,19 @@ begin
 
   gdcBaseManager.Database.TraceFlags := [];
 
+  if (not IBLogin.Relogining)
+    and (gd_CmdLineParams.LoadSettingFileName = '')
+    and Assigned(GlobalStorage)
+    and GlobalStorage.FolderExists('Options\Arch') then
+  begin
+    MessageBox(0,
+      'Автоматическое архивное копирование теперь настраивается через Исследователь/Сервис/Администратор/Автозадачи.',
+      'Внимание',
+      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+    GlobalStorage.DeleteFolder('Options\Arch');  
+  end;
+
+  (*
   if (not IBLogin.Relogining)
     and (gd_CmdLineParams.LoadSettingFileName = '')
     and Assigned(GlobalStorage)
@@ -1081,6 +1090,7 @@ begin
       gd_dlgAutoBackup.Free;
     end;
   end;
+  *)
 
   {$IFDEF GEDEMIN_LOCK}
   RegParams.CheckRegistration(True);

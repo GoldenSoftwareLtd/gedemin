@@ -16,16 +16,25 @@ type
     rbWeekly: TRadioButton;
     dbcbWeekly: TDBComboBox;
     odCmdLine: TOpenDialog;
-    dbcbDisabled: TDBCheckBox;
     lbPriority: TLabel;
     rbDaily: TRadioButton;
     Label2: TLabel;
     dbcbMonthly: TDBComboBox;
     Label3: TLabel;
     dbcbPriority: TDBComboBox;
+    lbStartTime: TLabel;
+    xdbeStartTime: TxDateDBEdit;
+    lbEndTime: TLabel;
+    xdbeEndTime: TxDateDBEdit;
+    Label4: TLabel;
+    btnClearTime: TButton;
+    Label5: TLabel;
+    Label6: TLabel;
     lbName: TLabel;
-    dbedName: TDBEdit;
     lbDescription: TLabel;
+    lbUser: TLabel;
+    dbcbDisabled: TDBCheckBox;
+    dbedName: TDBEdit;
     dbmDescription: TDBMemo;
     pcTask: TPageControl;
     tsFunction: TTabSheet;
@@ -34,21 +43,13 @@ type
     Label1: TLabel;
     dbeCmdLine: TDBEdit;
     btnCmdLine: TButton;
-    lbUser: TLabel;
     iblkupUser: TgsIBLookupComboBox;
-    lbStartTime: TLabel;
-    xdbeStartTime: TxDateDBEdit;
-    lbEndTime: TLabel;
-    xdbeEndTime: TxDateDBEdit;
-    Label4: TLabel;
-    btnClearTime: TButton;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
 
   public
     procedure SetupRecord; override;
     procedure BeforePost; override;
-    function TestCorrect: Boolean; override;
   end;
 
 var
@@ -160,18 +161,24 @@ begin
     gdcObject.FieldByName('monthly').Clear;
     gdcObject.FieldByName('weekly').Clear;
     gdcObject.FieldByName('daily').Clear;
+    if gdcObject.FieldByName('exactdate').IsNull then
+      gdcObject.FieldByName('exactdate').AsDateTime := Date;
   end
   else if rbMonthly.Checked then
   begin
     gdcObject.FieldByName('exactdate').Clear;
     gdcObject.FieldByName('weekly').Clear;
     gdcObject.FieldByName('daily').Clear;
+    if gdcObject.FieldByName('monthly').IsNull then
+      gdcObject.FieldByName('monthly').AsInteger := 1;
   end
   else if rbWeekly.Checked then
   begin
     gdcObject.FieldByName('monthly').Clear;
     gdcObject.FieldByName('exactdate').Clear;
     gdcObject.FieldByName('daily').Clear;
+    if gdcObject.FieldByName('weekly').IsNull then
+      gdcObject.FieldByName('weekly').AsInteger := 1;
   end
   else if rbDaily.Checked then
   begin
@@ -201,50 +208,6 @@ begin
   {END MACRO}
 end;
 
-function Tgdc_dlgAutoTask.TestCorrect: Boolean;
-var
-  {@UNFOLD MACRO INH_CRFORM_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGAUTOTASK', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}Result := True;
-  {M}try
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}  begin
-  {M}    SetFirstMethodAssoc('TGDC_DLGAUTOTASK', KEYTESTCORRECT);
-  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYTESTCORRECT]);
-  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGAUTOTASK') = -1) then
-  {M}    begin
-  {M}      Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGAUTOTASK',
-  {M}        'TESTCORRECT', KEYTESTCORRECT, Params, LResult) then
-  {M}      begin
-  {M}        if VarType(LResult) = $000B then
-  {M}          Result := LResult;
-  {M}        exit;
-  {M}      end;
-  {M}    end else
-  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGAUTOTASK' then
-  {M}      begin
-  {M}        Result := Inherited TestCorrect;
-  {M}        Exit;
-  {M}      end;
-  {M}  end;
-  {END MACRO}
-
-  Result := inherited TestCorrect;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGAUTOTASK', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGAUTOTASK', 'TESTCORRECT', KEYTESTCORRECT);
-  {M}end;
-  {END MACRO}
-end;
-
 procedure Tgdc_dlgAutoTask.btnCmdLineClick(Sender: TObject);
 begin
   if odCmdLine.Execute then
@@ -262,5 +225,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAutoTask);
-
 end.

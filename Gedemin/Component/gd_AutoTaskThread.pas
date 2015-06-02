@@ -125,7 +125,7 @@ begin
 
   FErrorMsg := '';
 
-  gdAutoTaskThread.SendNotification('Выполняется автозадача: ' + Name + '...');
+  gdAutoTaskThread.SendNotification('Выполняется автозадача ' + Name + '...');
 
   if IsAsync then
     TaskExecute
@@ -134,11 +134,11 @@ begin
 
   if FErrorMsg > '' then
   begin
-    gdAutoTaskThread.SendNotification('Ошибка автозадачи: ' + FErrorMsg);
+    gdAutoTaskThread.SendNotification('Ошибка при выполнении автозадачи: ' + FErrorMsg);
     gdAutoTaskThread.Synchronize(LogErrorMsg);
   end else
   begin
-    gdAutoTaskThread.SendNotification('Автозадача выполнена: ' + Name + '.');
+    gdAutoTaskThread.SendNotification('Автозадача "' + Name + '" выполнена.');
     gdAutoTaskThread.Synchronize(LogEndTask);
   end;
 end;
@@ -266,6 +266,7 @@ var
   Tr: TIBTransaction;
 begin
   Assert(gdcBaseManager <> nil);
+  Assert(IBLogin <> nil);
 
   q := TIBSQL.Create(nil);
   Tr := TIBTransaction.Create(nil);
@@ -273,11 +274,13 @@ begin
     Tr.DefaultDatabase := gdcBaseManager.Database;
     Tr.StartTransaction;
     q.Transaction := Tr;
-    q.SQL.Text := 'INSERT INTO gd_autotask_log (autotaskkey, eventtext, eventtime) ' +
-      'VALUES (:atk, :etext, :etime)';
+    q.SQL.Text :=
+      'INSERT INTO gd_autotask_log (autotaskkey, eventtext, creationdate, creatorkey) ' +
+      'VALUES (:atk, :etext, :cd, :ck)';
     q.ParamByName('atk').AsInteger := ID;
     q.ParamByName('etext').AsString := AMsg;
-    q.ParamByName('etime').AsDateTime := Now;
+    q.ParamByName('cd').AsDateTime := Now;
+    q.ParamByName('ck').AsInteger := IBLogin.ContactKey;
     q.ExecQuery;
     Tr.Commit;
   finally
@@ -440,8 +443,8 @@ begin
   end else
   begin
     SetTimeOut(Round((AT.NextStartTime - Now) * MSecsPerDay));
-    SendNotification('Выполнение автозадачи ' + AT.Name + ' назначено на ' +
-      FormatDateTime('dd.mm.yyyy hh:nn', AT.NextStartTime));
+    SendNotification('Выполнение автозадачи "' + AT.Name + '" назначено на ' +
+      FormatDateTime('hh:nn dd.mm.yyyy', AT.NextStartTime));
   end;
 end;
 
@@ -459,9 +462,9 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT t.disabled, t.userkey, l.eventtime ' +
+      'SELECT t.disabled, t.userkey, l.creationdate ' +
       'FROM gd_autotask t LEFT JOIN gd_autotask_log l ' +
-      '  ON t.id = l.autotaskkey AND l.eventtime >= :et ' +
+      '  ON t.id = l.autotaskkey AND l.creationdate >= :et ' +
       'WHERE t.id = :id';
 
     while C < FTaskList.Count do
@@ -479,7 +482,7 @@ begin
         continue;
       end;
 
-      if q.FieldByName('eventtime').IsNull then
+      if q.FieldByName('creationdate').IsNull then
         break;
 
       if (FTaskList[0] as TgdAutoTask).ExactDate > 0 then

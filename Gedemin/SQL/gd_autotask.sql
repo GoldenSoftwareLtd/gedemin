@@ -127,7 +127,8 @@ CREATE TABLE gd_autotask_log
   id               dintkey,
   autotaskkey      dintkey,
   eventtext        dtext255 NOT NULL,            
-  eventtime        dtimestamp_notnull,
+  creatorkey       dforeignkey,
+  creationdate     dcreationdate,
   CONSTRAINT gd_pk_autotask_log PRIMARY KEY (id),
   CONSTRAINT gd_fk_autotask_log_autotaskkey
     FOREIGN KEY (autotaskkey) REFERENCES gd_autotask (id)
@@ -135,7 +136,7 @@ CREATE TABLE gd_autotask_log
     ON UPDATE CASCADE
  );
  
-CREATE DESC INDEX gd_x_autotask_log_et ON gd_autotask_log (eventtime);
+CREATE DESC INDEX gd_x_autotask_log_cd ON gd_autotask_log (creationdate);
 
 SET TERM ^ ;
 
