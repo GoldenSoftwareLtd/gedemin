@@ -3,8 +3,7 @@ unit gd_AutoTaskThread;
 interface
 
 uses
-  Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread,
-  gdNotifierThread_unit, gd_ProgressNotifier_unit;
+  Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread;
 
 type
   TgdAutoTask = class(TObject)
@@ -19,10 +18,14 @@ type
     FStartTime: TTime;
     FEndTime: TTime;
     FPriority: Integer;
+    FErrorMsg: String;
 
     FNextStartTime, FNextEndTime: TDateTime;
 
-    procedure AddLog(AnEventText: String);
+    procedure Log(const AMsg: String);
+    procedure LogStartTask;
+    procedure LogEndTask;
+    procedure LogErrorMsg;
 
   protected
     function IsAsync: Boolean; virtual;
@@ -79,6 +82,7 @@ type
     procedure FindAndExecuteTask;
     procedure UpdateTaskList;
     procedure SortTaskList;
+    procedure RemoveExecuteOnceTask;
 
   protected
     procedure Timeout; override;
@@ -99,28 +103,14 @@ var
 implementation
 
 uses
-  at_classes, gdcBaseInterface, IBSQL, rp_BaseReport_unit, scr_i_FunctionList,
-  gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security;
+  at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
+  scr_i_FunctionList, gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security,
+  gdNotifierThread_unit, gd_ProgressNotifier_unit;
 
 const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
 
 { TgdAutoTask }
-
-procedure TgdAutoTask.AddLog(AnEventText: String);
-begin
-  with TgdcAutoTaskLog.Create(nil) do
-    try
-      Open;
-      Insert;
-      FieldByName('autotaskkey').AsInteger := Self.ID;
-      FieldByName('eventtime').AsDateTime := Now;
-      FieldByName('eventtext').AsString := AnEventText;
-      Post;
-    finally
-      Free;
-    end;
-end;
 
 procedure TgdAutoTask.TaskExecute;
 begin
@@ -131,14 +121,26 @@ procedure TgdAutoTask.Execute;
 begin
   Assert(gdAutoTaskThread <> nil);
 
-  // пишем в лог о начале выполнения
+  gdAutoTaskThread.Synchronize(LogStartTask);
+
+  FErrorMsg := '';
+
+  gdAutoTaskThread.SendNotification('Выполняется автозадача: ' + Name);
 
   if IsAsync then
     TaskExecute
   else
     gdAutoTaskThread.Synchronize(TaskExecute);
 
-  // пишем в лог о завершении выполнения
+  if FErrorMsg > '' then
+  begin
+    gdAutoTaskThread.SendNotification('Ошибка автозадачи: ' + FErrorMsg);
+    gdAutoTaskThread.Synchronize(LogErrorMsg);
+  end else
+  begin
+    gdAutoTaskThread.SendNotification('Автозадача выполнена: ' + Name);
+    gdAutoTaskThread.Synchronize(LogEndTask);
+  end;
 end;
 
 procedure TgdAutoTask.Schedule;
@@ -253,6 +255,47 @@ begin
     Result := 0;      
 end;
 
+procedure TgdAutoTask.LogEndTask;
+begin
+  Log('Done');
+end;
+
+procedure TgdAutoTask.LogStartTask;
+begin
+  Log('Started');
+end;
+
+procedure TgdAutoTask.LogErrorMsg;
+begin
+  Log(FErrorMsg);
+end;
+
+procedure TgdAutoTask.Log(const AMsg: String);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q.SQL.Text := 'INSERT INTO gd_autotask_log (autotaskkey, eventtext, eventtime) ' +
+      'VALUES (:atk, :etext, :etime)';
+    q.ParamByName('atk').AsInteger := ID;
+    q.ParamByName('etext').AsString := AMsg;
+    q.ParamByName('etime').AsDateTime := Now;
+    q.ExecQuery;
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
 { TgdAutoTaskThread }
 
 constructor TgdAutoTaskThread.Create;
@@ -356,6 +399,13 @@ begin
     WM_GD_FIND_AND_EXECUTE_TASK:
     begin
       FindAndExecuteTask;
+
+      if (FTaskList = nil) or (FTaskList.Count = 0) then
+      begin
+        SendNotification('Все автозадачи выполнены');
+        ExitThread;
+      end;
+
       Result := True;
     end;
   else
@@ -378,16 +428,25 @@ procedure TgdAutoTaskThread.FindAndExecuteTask;
 var
   AT: TgdAutoTask;
 begin
-  UpdateTaskList;
+  Synchronize(UpdateTaskList);
 
   if (FTaskList = nil) or (FTaskList.Count = 0) then
-  begin
-    SendNotification('Все автозадачи выполнены');
-    ExitThread;
     exit;
-  end;
 
   AT := FTaskList[0] as TgdAutoTask;
+
+  if AT.NextStartTime <= Now then
+  begin
+    AT.Execute;
+
+    if AT.ExactDate = 0 then
+      AT.Schedule
+    else
+      Synchronize(RemoveExecuteOnceTask);
+
+    PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
+  end else
+    SetTimeOut(Round((AT.NextStartTime - Now) * MSecsPerDay));
 end;
 
 procedure TgdAutoTaskThread.UpdateTaskList;
@@ -396,41 +455,44 @@ var
   C: Integer;
 begin
   Assert(gdcBaseManager <> nil);
+  Assert(IBLogin <> nil);
 
   SortTaskList;
   C := 0;
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT t.disabled, t.userkey, l.eventtime ' +
+      'FROM gd_autotask t LEFT JOIN gd_autotask_log l ' +
+      '  ON t.id = l.autotaskkey ' +
+      'WHERE t.id = :id AND l.eventtime >= :et';
 
     while C < FTaskList.Count do
     begin
-      q.SQL.Text := 'SELECT * FROM gd_autotask WHERE id = :id';
+      q.Close;
       q.ParamByName('id').AsInteger := (FTaskList[0] as TgdAutoTask).ID;
+      q.ParamByName('et').AsDateTime := (FTaskList[0] as TgdAutoTask).NextStartTime;
       q.ExecQuery;
 
       if q.EOF or (q.FieldbyName('disabled').AsInteger <> 0)
-        or ((q.FieldByName('userkey').AsInteger <> 0)
-          and (q.FieldbyName('userkey').AsInteger <> IBLogin.UserKey)) then
+        or ((q.FieldByName('userkey').AsInteger <> 0) and
+          (q.FieldbyName('userkey').AsInteger <> IBLogin.UserKey)) then
       begin
         FTaskList.Delete(0);
         continue;
       end;
 
-      q.Close;
-      q.SQL.Text := 'SELECT * FROM gd_autotask_log WHERE autotaskkey = :atk AND eventtime >= :et';
-      q.ParamByName('atk').AsInteger := (FTaskList[0] as TgdAutoTask).ID;
-      q.ParamByName('et').AsDateTime := (FTaskList[0] as TgdAutoTask).NextStartTime;
-      q.ExecQuery;
-
-      if not q.EOF then
-      begin
-        (FTaskList[0] as TgdAutoTask).Schedule;
-        SortTaskList;
-      end else
+      if q.FieldByName('eventtime').IsNull then
         break;
 
-      Inc(C);
+      if (FTaskList[0] as TgdAutoTask).ExactDate > 0 then
+        FTaskList.Delete(0)
+      else begin
+        (FTaskList[0] as TgdAutoTask).Schedule;
+        SortTaskList;
+        Inc(C);
+      end;
     end;
   finally
     q.Free;
@@ -445,6 +507,22 @@ begin
     for J := I + 1 to FTaskList.Count - 1 do
       if (FTaskList[I] as TgdAutoTask).Compare(FTaskList[I] as TgdAutoTask) < 0 then
         FTaskList.Exchange(J, I);
+end;
+
+procedure TgdAutoTaskThread.RemoveExecuteOnceTask;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  if (FTaskList <> nil) and (FTaskList.Count > 0)
+    and ((FTaskList[0] as TgdAutoTask).ExactDate > 0) then
+  try
+    gdcBaseManager.ExecSingleQuery(
+      'UPDATE gd_autotask SET disabled = 1 WHERE id = ' +
+        IntToStr((FTaskList[0] as TgdAutoTask).ID));
+  except
+    // small chance that there would be a deadlock
+    // but we don't care      
+  end;
 end;
 
 { TgdAutoFunctionTask }
@@ -463,10 +541,7 @@ begin
         ScriptFactory.ExecuteFunction(F, P);
     except
       on E: Exception do
-      begin
-        AddLog(E.Message);
-        raise;
-      end;
+        FErrorMsg := E.Message;
     end;
   finally
     glbFunctionList.ReleaseFunction(F);
@@ -495,7 +570,7 @@ begin
   ExecInfo.fMask := SEE_MASK_FLAG_NO_UI;
 
   if not ShellExecuteEx(@ExecInfo) then
-    AddLog(PChar(SysErrorMessage(GetLastError)));
+    FErrorMsg := SysErrorMessage(GetLastError);
 end;
 
 initialization
