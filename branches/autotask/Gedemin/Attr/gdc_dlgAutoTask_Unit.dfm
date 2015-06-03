@@ -508,6 +508,18 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     ShowHint = True
     TabOrder = 4
   end
+  object dbcbAtStartup: TDBCheckBox [23]
+    Left = 351
+    Top = 56
+    Width = 97
+    Height = 17
+    Caption = 'dbcbAtStartup'
+    DataField = 'atstartup'
+    DataSource = dsgdcBase
+    TabOrder = 15
+    ValueChecked = '1'
+    ValueUnchecked = '0'
+  end
   inherited alBase: TActionList
     Left = 238
     Top = 532
