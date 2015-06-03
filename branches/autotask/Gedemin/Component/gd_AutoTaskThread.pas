@@ -73,6 +73,18 @@ type
     property CmdLine: String read FCmdLine write FCmdLine;
   end;
 
+  TgdAutoBackupTask = class(TgdAutoTask)
+  private
+    FBackupFile: String;
+
+  protected
+    function IsAsync: Boolean; override;
+    procedure TaskExecute; override;
+
+  public
+    property BackupFile: String read FBackupFile write FBackupFile;
+  end;
+
   TgdAutoTaskThread = class(TgdMessagedThread)
   private
     FTaskList: TObjectList;
@@ -105,7 +117,8 @@ implementation
 uses
   at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
   scr_i_FunctionList, gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security,
-  gdNotifierThread_unit, gd_ProgressNotifier_unit;
+  gdNotifierThread_unit, gd_ProgressNotifier_unit, IBServices,
+  gd_common_functions, gd_directories_const;
 
 const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
@@ -334,6 +347,11 @@ begin
       begin
         Task := TgdAutoCmdTask.Create;
         (Task as TgdAutoCmdTask).CmdLine := q.FieldbyName('cmdline').AsString;
+      end else
+      if q.FieldByName('backupfile').AsString > '' then
+      begin
+        Task := TgdAutoBackupTask.Create;
+        (Task as TgdAutoBackupTask).BackupFile := q.FieldbyName('backupfile').AsString;
       end else
         Task := nil;
 
@@ -571,6 +589,94 @@ begin
   if not ShellExecuteEx(@ExecInfo) then
     FErrorMsg := SysErrorMessage(GetLastError);
 end;
+
+{ TgdAutoBackupTask }
+
+function TgdAutoBackupTask.IsAsync: Boolean;
+begin
+  Result := True;
+end;
+
+procedure TgdAutoBackupTask.TaskExecute;
+var
+  FN, FE: String;
+  Res: OleVariant;
+  IBService: TIBBackupService;
+  Port: Integer;
+  Server, FileName: String;
+begin
+  try
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT ibpassword FROM gd_user WHERE ibname=''SYSDBA'' ',
+      Unassigned, Res);
+
+    if (not VarIsEmpty(Res)) {and (not Application.Terminated)} then
+    begin
+      ParseDatabaseName(IBLogin.DatabaseName, Server, Port, FileName);
+
+      IBService := TIBBackupService.Create(nil);
+      try
+        IBService.ServerName := Server;
+
+        if IBService.ServerName > '' then
+          IBService.Protocol := TCP
+        else
+          IBService.Protocol := Local;
+
+        IBService.LoginPrompt := False;
+        IBService.Params.Clear;
+        IBService.Params.Add('user_name=' + SysDBAUserName);
+        IBService.Params.Add('password=' + Res[0, 0]);
+        try
+          IBService.Active := True;
+          if not IBService.Active then
+            FErrorMsg := 'Невозможно запустить сервис архивного копирования/восстановления данных.'
+        except
+          IBService.Active := False;
+          exit;
+        end;
+
+        IBService.Verbose := False;
+        IBService.Options := [NoGarbageCollection];
+        IBService.DatabaseName := FileName;
+
+        FN := BackupFile;
+        FE := ExtractFileExt(FN);
+        SetLength(FN, Length(FN) - Length(FE));
+        FN := FN + FormatDateTime('yyyymmdd', Now);
+        if FE > '.' then
+          FN := FN + FE;
+
+        IBService.BackupFile.Add(FN);
+
+        try
+          IBService.ServiceStart;
+          while (not IBService.Eof)
+            and (IBService.IsServiceRunning) do
+          begin
+            IBService.GetNextLine;
+          end;
+
+          IBService.Active := False;
+        except
+          on E: Exception do
+          begin
+            FErrorMsg := E.Message;
+          end;
+        end;
+
+      finally
+        IBService.Free;
+      end;
+    end;
+  except
+    on E: Exception do
+    begin
+      FErrorMsg := E.Message;
+    end;
+  end;
+end;
+
 
 initialization
   gdAutoTaskThread := nil;

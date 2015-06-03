@@ -1,6 +1,6 @@
 inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 633
-  Top = 250
+  Left = 517
+  Top = 109
   Caption = 'gdc_dlgAutoTask'
   ClientHeight = 547
   ClientWidth = 440
@@ -385,7 +385,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Top = 92
     Width = 421
     Height = 135
-    ActivePage = tsFunction
+    ActivePage = tsBackup
     Anchors = []
     MultiLine = True
     TabOrder = 3
@@ -404,7 +404,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         KeyField = 'ID'
         gdClassName = 'TgdcFunction'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
@@ -447,6 +447,28 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         Caption = '...'
         TabOrder = 1
         OnClick = btnCmdLineClick
+      end
+    end
+    object tsBackup: TTabSheet
+      Caption = 'Архивирование'
+      ImageIndex = 2
+      object dbeBackup: TDBEdit
+        Left = 8
+        Top = 8
+        Width = 373
+        Height = 21
+        DataField = 'backupfile'
+        DataSource = dsgdcBase
+        TabOrder = 0
+      end
+      object btBackup: TButton
+        Left = 381
+        Top = 7
+        Width = 25
+        Height = 21
+        Caption = '...'
+        TabOrder = 1
+        OnClick = btBackupClick
       end
     end
   end
