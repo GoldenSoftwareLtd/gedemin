@@ -48,7 +48,7 @@ type
     dbeBackup: TDBEdit;
     btBackup: TButton;
     Label7: TLabel;
-    dbcbAtStartup: TDBCheckBox;
+    rbAtStartup: TRadioButton;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
@@ -105,7 +105,9 @@ begin
   else
     pcTask.ActivePage := tsFunction;
 
-  if gdcObject.FieldByName('exactdate').AsDateTime > 0 then
+  if gdcObject.FieldByName('atstartup').AsInteger <> 0 then
+    rbAtStartup.Checked := True
+  else if gdcObject.FieldByName('exactdate').AsDateTime > 0 then
     rbExactDate.Checked := True
   else if gdcObject.FieldByName('monthly').AsInteger <> 0 then
     rbMonthly.Checked := True
@@ -171,8 +173,17 @@ begin
     gdcObject.FieldByName('cmdline').Clear;
   end;
 
-  if rbExactDate.Checked then
+  if rbAtStartup.Checked then
   begin
+    gdcObject.FieldByName('exactdate').Clear;
+    gdcObject.FieldByName('monthly').Clear;
+    gdcObject.FieldByName('weekly').Clear;
+    gdcObject.FieldByName('daily').Clear;
+    gdcObject.FieldByName('atstartup').AsInteger := 1;
+  end
+  else if rbExactDate.Checked then
+  begin
+    gdcObject.FieldByName('atstartup').Clear;
     gdcObject.FieldByName('monthly').Clear;
     gdcObject.FieldByName('weekly').Clear;
     gdcObject.FieldByName('daily').Clear;
@@ -181,6 +192,7 @@ begin
   end
   else if rbMonthly.Checked then
   begin
+    gdcObject.FieldByName('atstartup').Clear;
     gdcObject.FieldByName('exactdate').Clear;
     gdcObject.FieldByName('weekly').Clear;
     gdcObject.FieldByName('daily').Clear;
@@ -189,6 +201,7 @@ begin
   end
   else if rbWeekly.Checked then
   begin
+    gdcObject.FieldByName('atstartup').Clear;
     gdcObject.FieldByName('monthly').Clear;
     gdcObject.FieldByName('exactdate').Clear;
     gdcObject.FieldByName('daily').Clear;
@@ -197,6 +210,7 @@ begin
   end
   else if rbDaily.Checked then
   begin
+    gdcObject.FieldByName('atstartup').Clear;
     gdcObject.FieldByName('monthly').Clear;
     gdcObject.FieldByName('weekly').Clear;
     gdcObject.FieldByName('exactdate').Clear;

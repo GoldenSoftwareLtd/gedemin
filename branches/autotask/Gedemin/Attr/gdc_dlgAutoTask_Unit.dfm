@@ -19,7 +19,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   object Label2: TLabel [1]
     Left = 223
-    Top = 258
+    Top = 238
     Width = 205
     Height = 28
     AutoSize = False
@@ -77,7 +77,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   object lbUser: TLabel [7]
     Left = 8
-    Top = 237
+    Top = 217
     Width = 212
     Height = 13
     Caption = 'Выполнять только под учетной записью:'
@@ -109,14 +109,14 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   object gbTimeTables: TGroupBox [13]
     Left = 6
-    Top = 288
+    Top = 268
     Width = 425
-    Height = 150
+    Height = 173
     Caption = ' Расписание '
     TabOrder = 5
     object Label3: TLabel
       Left = 26
-      Top = 67
+      Top = 89
       Width = 324
       Height = 13
       Caption = 'Отрицательные значения задают номера дней с конца месяца.'
@@ -129,7 +129,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object Label5: TLabel
       Left = 27
-      Top = 83
+      Top = 105
       Width = 249
       Height = 13
       Caption = '-1 -- последний день, -2 -- предпоследний и т.д.'
@@ -142,7 +142,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object Label6: TLabel
       Left = 273
-      Top = 107
+      Top = 129
       Width = 124
       Height = 13
       Caption = '1 -- пн, 2 -- вт, ... 7 -- вс'
@@ -155,15 +155,15 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object rbExactDate: TRadioButton
       Left = 8
-      Top = 18
+      Top = 40
       Width = 185
       Height = 21
       Caption = 'Однократно в указанный день:'
-      TabOrder = 0
+      TabOrder = 1
     end
     object xdbeExactDate: TxDateDBEdit
       Left = 200
-      Top = 18
+      Top = 40
       Width = 65
       Height = 21
       DataField = 'exactdate'
@@ -172,27 +172,27 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       EmptyAtStart = True
       EditMask = '!99\.99\.9999;1;_'
       MaxLength = 10
-      TabOrder = 1
+      TabOrder = 2
     end
     object rbMonthly: TRadioButton
       Left = 8
-      Top = 41
+      Top = 63
       Width = 185
       Height = 21
       Caption = 'Ежемесячно в указанный день:'
-      TabOrder = 2
+      TabOrder = 3
     end
     object rbWeekly: TRadioButton
       Left = 8
-      Top = 104
+      Top = 126
       Width = 193
       Height = 21
       Caption = 'Еженедельно в указанный день:'
-      TabOrder = 4
+      TabOrder = 5
     end
     object dbcbWeekly: TDBComboBox
       Left = 200
-      Top = 104
+      Top = 126
       Width = 65
       Height = 21
       Style = csDropDownList
@@ -207,19 +207,19 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         '5'
         '6'
         '7')
-      TabOrder = 5
+      TabOrder = 6
     end
     object rbDaily: TRadioButton
       Left = 8
-      Top = 128
+      Top = 150
       Width = 89
       Height = 17
       Caption = 'Ежедневно'
-      TabOrder = 6
+      TabOrder = 7
     end
     object dbcbMonthly: TDBComboBox
       Left = 200
-      Top = 43
+      Top = 65
       Width = 65
       Height = 21
       DataField = 'MONTHLY'
@@ -289,7 +289,15 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         '-29'
         '-30'
         '-31')
-      TabOrder = 3
+      TabOrder = 4
+    end
+    object rbAtStartup: TRadioButton
+      Left = 8
+      Top = 19
+      Width = 201
+      Height = 17
+      Caption = 'При запуске системы'
+      TabOrder = 0
     end
   end
   object dbcbPriority: TDBComboBox [14]
@@ -374,7 +382,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Left = 99
     Top = 35
     Width = 246
-    Height = 49
+    Height = 33
     Anchors = []
     DataField = 'Description'
     DataSource = dsgdcBase
@@ -382,7 +390,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   object pcTask: TPageControl [21]
     Left = 8
-    Top = 92
+    Top = 72
     Width = 421
     Height = 135
     ActivePage = tsFunction
@@ -492,7 +500,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   object iblkupUser: TgsIBLookupComboBox [22]
     Left = 222
-    Top = 234
+    Top = 214
     Width = 208
     Height = 21
     HelpContext = 1
@@ -507,18 +515,6 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     ParentShowHint = False
     ShowHint = True
     TabOrder = 4
-  end
-  object dbcbAtStartup: TDBCheckBox [23]
-    Left = 351
-    Top = 56
-    Width = 97
-    Height = 17
-    Caption = 'dbcbAtStartup'
-    DataField = 'atstartup'
-    DataSource = dsgdcBase
-    TabOrder = 15
-    ValueChecked = '1'
-    ValueUnchecked = '0'
   end
   inherited alBase: TActionList
     Left = 238

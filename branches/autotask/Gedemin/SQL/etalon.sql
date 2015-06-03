@@ -17083,14 +17083,13 @@ CREATE TABLE gd_autotask
    cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
    backupfile       dtext255,         /* если задано -- имя файла архива */
    userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/
+   atstartup        dboolean,
    exactdate        dtimestamp,       /* дата и время однократного выполнения выполнения. Задача будет выполнена НЕ РАНЬШЕ указанного значения */
    monthly          dinteger,
    weekly           dinteger,
    daily            dboolean,
    starttime        dtime,            /* время начала интервала для выполнения */
    endtime          dtime,            /* время конца интервала для выполнения  */
-   atstartup        dboolean,
-   atshutdown       dboolean,
    priority         dinteger_notnull DEFAULT 0,         
    creatorkey       dforeignkey,
    creationdate     dcreationdate,
@@ -17126,8 +17125,17 @@ CREATE TRIGGER gd_biu_autotask FOR gd_autotask
   POSITION 27000
 AS
 BEGIN
+  IF (NOT NEW.atstartup IS NULL) THEN
+  BEGIN
+    NEW.exactdate = NULL;
+    NEW.monthly = NULL;
+    NEW.weekly = NULL;
+    NEW.daily = NULL;
+  END
+
   IF (NOT NEW.exactdate IS NULL) THEN
   BEGIN
+    NEW.atstartup = NULL;
     NEW.monthly = NULL;
     NEW.weekly = NULL;
     NEW.daily = NULL;
@@ -17135,6 +17143,7 @@ BEGIN
   
   IF (NOT NEW.monthly IS NULL) THEN
   BEGIN
+    NEW.atstartup = NULL;
     NEW.exactdate = NULL;
     NEW.weekly = NULL;
     NEW.daily = NULL;
@@ -17142,6 +17151,7 @@ BEGIN
   
   IF (NOT NEW.weekly IS NULL) THEN
   BEGIN
+    NEW.atstartup = NULL;
     NEW.exactdate = NULL;
     NEW.monthly = NULL;
     NEW.daily = NULL;
@@ -17149,6 +17159,7 @@ BEGIN
   
   IF (NOT NEW.daily IS NULL) THEN
   BEGIN
+    NEW.atstartup = NULL;
     NEW.exactdate = NULL;
     NEW.monthly = NULL;
     NEW.weekly = NULL;
