@@ -44,8 +44,12 @@ type
     dbeCmdLine: TDBEdit;
     btnCmdLine: TButton;
     iblkupUser: TgsIBLookupComboBox;
+    tsBackup: TTabSheet;
+    dbeBackup: TDBEdit;
+    btBackup: TButton;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
+    procedure btBackupClick(Sender: TObject);
 
   public
     procedure SetupRecord; override;
@@ -218,6 +222,18 @@ procedure Tgdc_dlgAutoTask.btnClearTimeClick(Sender: TObject);
 begin
   gdcObject.FieldByName('starttime').Clear;
   gdcObject.FieldByName('endtime').Clear;
+end;
+
+procedure Tgdc_dlgAutoTask.btBackupClick(Sender: TObject);
+begin
+  if IBLogin.ServerName > '' then
+    dbeBackup.Text := StringReplace(ExtractFilePath(IBLogin.DatabaseName),
+      IBLogin.ServerName + ':', '', [rfIgnoreCase])
+  else
+    dbeBackup.Text := ExtractFilePath(IBLogin.DatabaseName);
+
+  dbeBackup.Text := dbeBackup.Text + ChangeFileExt(
+    ExtractFileName(IBLogin.DatabaseName), '.bk');
 end;
 
 initialization
