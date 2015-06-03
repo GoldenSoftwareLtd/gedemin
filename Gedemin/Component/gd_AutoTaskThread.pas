@@ -253,31 +253,25 @@ end;
 
 function TgdAutoTask.Compare(ATask: TgdAutoTask): Integer;
 begin
-  if AtStartup or ATask.AtStartup then
-  begin
-    if AtStartup and (not ATask.AtStartup) then
-      Result := -1
-    else if (not AtStartup) and ATask.AtStartup then
-      Result := +1
-    else if FPriority < ATask.FPriority then
-      Result := -1
-    else if FPriority > ATask.FPriority then
-      Result := +1
-    else
-      Result := 0;
-  end
+  if AtStartup and (not ATask.AtStartup) then
+    Result := -1
+  else if (not AtStartup) and ATask.AtStartup then
+    Result := +1
+  else if AtStartup and ATask.AtStartup then
+    Result := 0
+  else if FNextStartTime < ATask.FNextStartTime then
+    Result := -1
+  else if FNextStartTime > ATask.FNextStartTime then
+    Result := +1
   else
+    Result := 0;
+
+  if Result = 0 then
   begin
-    if FNextStartTime < ATask.FNextStartTime then
-      Result := -1
-    else if FNextStartTime > ATask.FNextStartTime then
-      Result := +1
-    else if FPriority < ATask.FPriority then
+    if FPriority < ATask.FPriority then
       Result := -1
     else if FPriority > ATask.FPriority then
       Result := +1
-    else
-      Result := 0;
   end;
 end;
 
@@ -483,8 +477,10 @@ begin
 
     if AT.ExactDate = 0 then
       AT.Schedule
-    else
+    else begin
       Synchronize(RemoveExecuteOnceTask);
+      FTaskList.Delete(0);
+    end;
 
     PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
   end else
