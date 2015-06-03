@@ -18,6 +18,7 @@ type
     FStartTime: TTime;
     FEndTime: TTime;
     FPriority: Integer;
+    FAtStartup: Boolean;
     FErrorMsg: String;
 
     FNextStartTime, FNextEndTime: TDateTime;
@@ -48,6 +49,7 @@ type
     property Priority: Integer read FPriority write FPriority;
     property NextStartTime: TDateTime read FNextStartTime write FNextStartTime;
     property NextEndTime: TDateTime read FNextEndTime write FNextEndTime;
+    property AtStartup: Boolean read FAtStartup write FAtStartup;
   end;
 
   TgdAutoFunctionTask = class(TgdAutoTask)
@@ -251,16 +253,32 @@ end;
 
 function TgdAutoTask.Compare(ATask: TgdAutoTask): Integer;
 begin
-  if FNextStartTime < ATask.FNextStartTime then
-    Result := -1
-  else if FNextStartTime > ATask.FNextStartTime then
-    Result := +1
-  else if FPriority < ATask.FPriority then
-    Result := -1
-  else if FPriority > ATask.FPriority then
-    Result := +1
+  if AtStartup or ATask.AtStartup then
+  begin
+    if AtStartup and (not ATask.AtStartup) then
+      Result := -1
+    else if (not AtStartup) and ATask.AtStartup then
+      Result := +1
+    else if FPriority < ATask.FPriority then
+      Result := -1
+    else if FPriority > ATask.FPriority then
+      Result := +1
+    else
+      Result := 0;
+  end
   else
-    Result := 0;      
+  begin
+    if FNextStartTime < ATask.FNextStartTime then
+      Result := -1
+    else if FNextStartTime > ATask.FNextStartTime then
+      Result := +1
+    else if FPriority < ATask.FPriority then
+      Result := -1
+    else if FPriority > ATask.FPriority then
+      Result := +1
+    else
+      Result := 0;
+  end;
 end;
 
 procedure TgdAutoTask.LogEndTask;
@@ -377,6 +395,7 @@ begin
           Task.EndTime := 1
         else
           Task.EndTime := q.FieldbyName('endtime').AsTime;
+        Task.AtStartup := q.FieldbyName('atstartup').AsInteger <> 0;
         Task.Priority := q.FieldbyName('priority').AsInteger;
         Task.Schedule;
 
@@ -452,7 +471,12 @@ begin
 
   AT := FTaskList[0] as TgdAutoTask;
 
-  if AT.NextStartTime <= Now then
+  if AT.AtStartup then
+  begin
+    AT.Execute;
+    FTaskList.Delete(0);
+  end
+  else if AT.NextStartTime <= Now then
   begin
     if AT.NextEndTime >= Now then
       AT.Execute;

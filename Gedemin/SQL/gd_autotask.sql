@@ -15,6 +15,7 @@ CREATE TABLE gd_autotask
    daily            dboolean,
    starttime        dtime,            /* время начала интервала для выполнения */
    endtime          dtime,            /* время конца интервала для выполнения  */
+   atstartup        dboolean,
    priority         dinteger_notnull DEFAULT 0,         
    creatorkey       dforeignkey,
    creationdate     dcreationdate,

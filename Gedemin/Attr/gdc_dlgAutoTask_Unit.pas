@@ -48,6 +48,7 @@ type
     dbeBackup: TDBEdit;
     btBackup: TButton;
     Label7: TLabel;
+    dbcbAtStartup: TDBCheckBox;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
