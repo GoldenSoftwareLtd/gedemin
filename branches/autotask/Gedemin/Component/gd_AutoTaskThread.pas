@@ -76,6 +76,11 @@ type
   TgdAutoBackupTask = class(TgdAutoTask)
   private
     FBackupFile: String;
+    FPassw: String;
+    FPort: Integer;
+    FServer, FFileName: String;
+
+    procedure Setup;
 
   protected
     function IsAsync: Boolean; override;
@@ -597,83 +602,73 @@ begin
   Result := True;
 end;
 
+procedure TgdAutoBackupTask.Setup;
+var
+  Res: OleVariant;
+begin
+  Assert(IBLogin <> nil);
+
+  if gdcBaseManager.ExecSingleQueryResult(
+    'SELECT ibpassword FROM gd_user WHERE ibname=''' + SysDBAUserName + ''' ',
+    Unassigned, Res) then
+  begin
+    FPassw := Res[0, 0];
+  end;
+
+  ParseDatabaseName(IBLogin.DatabaseName, FServer, FPort, FFileName);
+end;
+
 procedure TgdAutoBackupTask.TaskExecute;
 var
-  FN, FE: String;
-  Res: OleVariant;
   IBService: TIBBackupService;
-  Port: Integer;
-  Server, FileName: String;
 begin
+  Assert(gdAutoTaskThread <> nil);
+
   try
-    gdcBaseManager.ExecSingleQueryResult(
-      'SELECT ibpassword FROM gd_user WHERE ibname=''SYSDBA'' ',
-      Unassigned, Res);
+    gdAutoTaskThread.Synchronize(Setup);
 
-    if (not VarIsEmpty(Res)) {and (not Application.Terminated)} then
-    begin
-      ParseDatabaseName(IBLogin.DatabaseName, Server, Port, FileName);
+    IBService := TIBBackupService.Create(nil);
+    try
+      if FServer > '' then
+      begin
+        IBService.ServerName := FServer;
+        IBService.Protocol := TCP;
+      end else
+        IBService.Protocol := Local;
 
-      IBService := TIBBackupService.Create(nil);
-      try
-        IBService.ServerName := Server;
-
-        if IBService.ServerName > '' then
-          IBService.Protocol := TCP
-        else
-          IBService.Protocol := Local;
-
-        IBService.LoginPrompt := False;
-        IBService.Params.Clear;
-        IBService.Params.Add('user_name=' + SysDBAUserName);
-        IBService.Params.Add('password=' + Res[0, 0]);
-        try
-          IBService.Active := True;
-          if not IBService.Active then
-            FErrorMsg := 'Невозможно запустить сервис архивного копирования/восстановления данных.'
-        except
-          IBService.Active := False;
-          exit;
-        end;
-
-        IBService.Verbose := False;
-        IBService.Options := [NoGarbageCollection];
-        IBService.DatabaseName := FileName;
-
-        FN := BackupFile;
-        FE := ExtractFileExt(FN);
-        SetLength(FN, Length(FN) - Length(FE));
-        FN := FN + FormatDateTime('yyyymmdd', Now);
-        if FE > '.' then
-          FN := FN + FE;
-
-        IBService.BackupFile.Add(FN);
-
-        try
-          IBService.ServiceStart;
-          while (not IBService.Eof)
-            and (IBService.IsServiceRunning) do
-          begin
-            IBService.GetNextLine;
-          end;
-
-          IBService.Active := False;
-        except
-          on E: Exception do
-          begin
-            FErrorMsg := E.Message;
-          end;
-        end;
-
-      finally
-        IBService.Free;
+      IBService.LoginPrompt := False;
+      IBService.Params.Clear;
+      IBService.Params.Add('user_name=' + SysDBAUserName);
+      IBService.Params.Add('password=' + FPassw);
+      IBService.Active := True;
+      if not IBService.Active then
+      begin
+        FErrorMsg := 'Невозможно запустить сервис архивирования базы данных.';
+        exit;
       end;
+
+      IBService.Verbose := False;
+      IBService.Options := [];
+      IBService.DatabaseName := FFileName;
+
+      FBackupFile := StringReplace(FBackupFile, '[YYYY]', FormatDateTime('yyyy', Now), [rfReplaceAll, rfIgnoreCase]); 
+      FBackupFile := StringReplace(FBackupFile, '[MM]', FormatDateTime('mm', Now), [rfReplaceAll, rfIgnoreCase]);
+      FBackupFile := StringReplace(FBackupFile, '[DD]', FormatDateTime('dd', Now), [rfReplaceAll, rfIgnoreCase]);
+      FBackupFile := StringReplace(FBackupFile, '[HH]', FormatDateTime('hh', Now), [rfReplaceAll, rfIgnoreCase]);
+      FBackupFile := StringReplace(FBackupFile, '[NN]', FormatDateTime('nn', Now), [rfReplaceAll, rfIgnoreCase]);
+      FBackupFile := StringReplace(FBackupFile, '[SS]', FormatDateTime('ss', Now), [rfReplaceAll, rfIgnoreCase]); 
+
+      IBService.BackupFile.Add(FBackupFile);
+
+      IBService.ServiceStart;
+      while (not IBService.Eof) and IBService.IsServiceRunning do
+        gdAutoTaskThread.SendNotification(IBService.GetNextLine);
+    finally
+      IBService.Free;
     end;
   except
     on E: Exception do
-    begin
       FErrorMsg := E.Message;
-    end;
   end;
 end;
 

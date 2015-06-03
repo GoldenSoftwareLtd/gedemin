@@ -385,7 +385,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Top = 92
     Width = 421
     Height = 135
-    ActivePage = tsBackup
+    ActivePage = tsFunction
     Anchors = []
     MultiLine = True
     TabOrder = 3
@@ -404,7 +404,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         KeyField = 'ID'
         gdClassName = 'TgdcFunction'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
@@ -419,7 +419,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         Width = 368
         Height = 33
         AutoSize = False
-        Caption = '”кажите им€ программы  (команды) и параметры командной строки.'
+        Caption = '”кажите им€ программы (команды) и параметры командной строки.'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlue
         Font.Height = -11
@@ -452,21 +452,39 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     object tsBackup: TTabSheet
       Caption = 'јрхивирование'
       ImageIndex = 2
+      object Label7: TLabel
+        Left = 9
+        Top = 36
+        Width = 397
+        Height = 57
+        AutoSize = False
+        Caption = 
+          '»спользуйте метапеременные [YYYY], [MM], [DD], [HH], [NN], [SS] ' +
+          'дл€ подстановки в им€ файла текущих значений года, мес€ца, дн€, ' +
+          'часа, минуты и секуды, соответственно.'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlue
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        WordWrap = True
+      end
       object dbeBackup: TDBEdit
         Left = 8
         Top = 8
-        Width = 373
+        Width = 303
         Height = 21
         DataField = 'backupfile'
         DataSource = dsgdcBase
         TabOrder = 0
       end
       object btBackup: TButton
-        Left = 381
+        Left = 312
         Top = 7
-        Width = 25
+        Width = 94
         Height = 21
-        Caption = '...'
+        Caption = '—формировать'
         TabOrder = 1
         OnClick = btBackupClick
       end

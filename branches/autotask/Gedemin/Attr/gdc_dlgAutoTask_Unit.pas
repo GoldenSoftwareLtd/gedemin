@@ -47,6 +47,7 @@ type
     tsBackup: TTabSheet;
     dbeBackup: TDBEdit;
     btBackup: TButton;
+    Label7: TLabel;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
@@ -64,7 +65,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gd_security;
+  gd_ClassList, gd_security, gd_common_functions;
 
 procedure Tgdc_dlgAutoTask.SetupRecord;
 var
@@ -88,7 +89,7 @@ begin
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGAUTOTASK' then
   {M}        begin
-  {M}          Inherited;
+  {M}          inherited;
   {M}          Exit;
   {M}        end;
   {M}    end;
@@ -98,6 +99,8 @@ begin
 
   if gdcObject.FieldByName('cmdline').AsString > '' then
     pcTask.ActivePage := tsCmd
+  else if gdcObject.FieldByName('backupfile').AsString > '' then
+    pcTask.ActivePage := tsBackup  
   else
     pcTask.ActivePage := tsFunction;
 
@@ -139,7 +142,7 @@ begin
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGAUTOTASK' then
   {M}        begin
-  {M}          Inherited;
+  {M}          inherited;
   {M}          Exit;
   {M}        end;
   {M}    end;
@@ -158,6 +161,13 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('backupfile').Clear;
+  end
+  else if pcTask.ActivePage = tsBackup then
+  begin
+    gdcObject.FieldByName('functionkey').Clear;
+    gdcObject.FieldByName('autotrkey').Clear;
+    gdcObject.FieldByName('reportkey').Clear;
+    gdcObject.FieldByName('cmdline').Clear;
   end;
 
   if rbExactDate.Checked then
@@ -225,15 +235,12 @@ begin
 end;
 
 procedure Tgdc_dlgAutoTask.btBackupClick(Sender: TObject);
+var
+  Port: Integer;
+  Server, FileName: String;
 begin
-  if IBLogin.ServerName > '' then
-    dbeBackup.Text := StringReplace(ExtractFilePath(IBLogin.DatabaseName),
-      IBLogin.ServerName + ':', '', [rfIgnoreCase])
-  else
-    dbeBackup.Text := ExtractFilePath(IBLogin.DatabaseName);
-
-  dbeBackup.Text := dbeBackup.Text + ChangeFileExt(
-    ExtractFileName(IBLogin.DatabaseName), '.bk');
+  ParseDatabaseName(IBLogin.DatabaseName, Server, Port, FileName);
+  dbeBackup.Text := ChangeFileExt(FileName, '.bk');
 end;
 
 initialization
