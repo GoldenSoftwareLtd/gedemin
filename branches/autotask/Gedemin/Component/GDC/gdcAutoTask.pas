@@ -8,6 +8,9 @@ uses
 
 type
   TgdcAutoTask = class(TgdcBase)
+  protected
+    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
+    
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -60,6 +63,50 @@ end;
 class function TgdcAutoTask.GetListField(const ASubType: TgdcSubType): String;
 begin
   Result := 'NAME';
+end;
+
+procedure TgdcAutoTask.DoAfterCustomProcess(Buff: Pointer;
+  Process: TgsCustomProcess);
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCAUTOTASK', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCAUTOTASK', KEYDOAFTERCUSTOMPROCESS);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCAUTOTASK') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self),
+  {M}          Integer(Buff), TgsCustomProcess(Process)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCAUTOTASK',
+  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCAUTOTASK' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if gdAutoTaskThread <> nil then
+    gdAutoTaskThread.ReLoadTaskList;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTASK', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCAUTOTASK', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
+  {M}  end;
+  {END MACRO}
 end;
 
 { TgdcAutoTaskLog }
