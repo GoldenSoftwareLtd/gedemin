@@ -445,7 +445,10 @@ end;
 
 procedure TgdAutoTaskThread.Timeout;
 begin
-  PostMsg(WM_GD_LOAD_TASK_LIST);
+  if FTaskList = nil then
+    PostMsg(WM_GD_LOAD_TASK_LIST)
+  else
+    PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
 end;
 
 function TgdAutoTaskThread.ProcessMessage(var Msg: TMsg): Boolean;
