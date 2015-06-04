@@ -96,24 +96,26 @@ type
   private
     FTaskList: TObjectList;
     FNotificationContext: Integer;
+    FSkipAtStartup: Boolean;
 
     procedure LoadFromRelation;
     procedure FindAndExecuteTask;
     procedure UpdateTaskList;
-    procedure SortTaskList;
     procedure RemoveExecuteOnceTask;
 
   protected
     procedure Timeout; override;
     function ProcessMessage(var Msg: TMsg): Boolean; override;
 
-    procedure SendNotification(const AText: String);
+    procedure SendNotification(const AText: String;
+      const AClearNotifications: Boolean = False);
 
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure SetInitialDelay;
+    procedure ReLoadTaskList;
   end;
 
 var
@@ -129,6 +131,8 @@ uses
 
 const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
+  WM_GD_LOAD_TASK_LIST        = WM_GD_THREAD_USER + 2;
+  WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 3;
 
 { TgdAutoTask }
 
@@ -145,7 +149,7 @@ begin
 
   FErrorMsg := '';
 
-  gdAutoTaskThread.SendNotification('Выполняется автозадача ' + Name + '...');
+  gdAutoTaskThread.SendNotification('Выполняется автозадача ' + Name + '...', True);
 
   if IsAsync then
     TaskExecute
@@ -154,11 +158,11 @@ begin
 
   if FErrorMsg > '' then
   begin
-    gdAutoTaskThread.SendNotification('Ошибка при выполнении автозадачи: ' + FErrorMsg);
+    gdAutoTaskThread.SendNotification('Ошибка при выполнении автозадачи: ' + FErrorMsg, True);
     gdAutoTaskThread.Synchronize(LogErrorMsg);
   end else
   begin
-    gdAutoTaskThread.SendNotification('Автозадача "' + Name + '" выполнена.');
+    gdAutoTaskThread.SendNotification('Автозадача "' + Name + '" выполнена.', True);
     gdAutoTaskThread.Synchronize(LogEndTask);
   end;
 end;
@@ -187,7 +191,12 @@ begin
   // вызов метода находит следующий интервал и
   // заносит в поля.
 
-  if FExactDate > 0 then
+  if FAtStartup then
+  begin
+    FNextStartTime := Now;
+    FNextEndTime := FNextStartTime + 1;
+  end
+  else if FExactDate > 0 then
   begin
     FNextStartTime := FExactDate + FStartTime;
     FNextEndTime := FExactDate + FEndTime;
@@ -326,7 +335,6 @@ begin
   inherited Create(True);
   FreeOnTerminate := False;
   Priority := tpLowest;
-  FNotificationContext := gdNotifierThread.GetNextContext;
 end;
 
 destructor TgdAutoTaskThread.Destroy;
@@ -343,6 +351,9 @@ begin
   Assert(gdcBaseManager <> nil);
   Assert(IBLogin <> nil);
 
+  if FTaskList <> nil then
+    FTaskList.Clear;
+
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
@@ -355,6 +366,12 @@ begin
 
     while not q.EOF do
     begin
+      if FSkipAtStartup and (q.FieldByName('atstartup').AsInteger <> 0) then
+      begin
+        q.Next;
+        continue;
+      end;
+
       if q.FieldByName('functionkey').AsInteger > 0 then
       begin
         Task := TgdAutoFunctionTask.Create;
@@ -407,24 +424,27 @@ end;
 
 procedure TgdAutoTaskThread.Timeout;
 begin
-  if FTaskList = nil then
-  begin
-    SendNotification('Загрузка списка автозадач...');
-    Synchronize(LoadFromRelation);
-    if (FTaskList = nil) or (FTaskList.Count = 0) then
-    begin
-      SendNotification('Нет автозадач для выполнения.');
-      ExitThread;
-      exit;
-    end;
-  end;
-
-  PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
+  PostMsg(WM_GD_LOAD_TASK_LIST);
 end;
 
 function TgdAutoTaskThread.ProcessMessage(var Msg: TMsg): Boolean;
 begin
   case Msg.Message of
+    WM_GD_LOAD_TASK_LIST:
+    begin
+      SendNotification('Загрузка списка автозадач...', True);
+      Synchronize(LoadFromRelation);
+
+      if (FTaskList = nil) or (FTaskList.Count = 0) then
+      begin
+        SendNotification('Нет автозадач для выполнения.', True);
+        SetTimeOut(INFINITE);
+      end else
+        PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
+
+      Result := True;
+    end;
+
     WM_GD_FIND_AND_EXECUTE_TASK:
     begin
       FindAndExecuteTask;
@@ -432,9 +452,16 @@ begin
       if (FTaskList = nil) or (FTaskList.Count = 0) then
       begin
         SendNotification('Все автозадачи выполнены.');
-        ExitThread;
+        SetTimeOut(INFINITE);
       end;
 
+      Result := True;
+    end;
+
+    WM_GD_RELOAD_TASK_LIST:
+    begin
+      FSkipAtStartup := True;
+      PostMsg(WM_GD_LOAD_TASK_LIST);
       Result := True;
     end;
   else
@@ -442,9 +469,20 @@ begin
   end;
 end;
 
-procedure TgdAutoTaskThread.SendNotification(const AText: String);
+procedure TgdAutoTaskThread.SendNotification(const AText: String;
+  const AClearNotifications: Boolean = False);
 begin
-  gdNotifierThread.Add(AText, FNotificationContext, 4000);
+  if gdNotifierThread <> nil then
+  begin
+    if FNotificationContext = 0 then
+      FNotificationContext := gdNotifierThread.GetNextContext
+    else if AClearNotifications then
+    begin
+      gdNotifierThread.DeleteContext(FNotificationContext);
+      FNotificationContext := gdNotifierThread.GetNextContext;
+    end;
+    gdNotifierThread.Add(AText, FNotificationContext, 4000);
+  end;
 end;
 
 procedure TgdAutoTaskThread.SetInitialDelay;
@@ -465,24 +503,22 @@ begin
 
   AT := FTaskList[0] as TgdAutoTask;
 
-  if AT.AtStartup then
-  begin
-    AT.Execute;
-    FTaskList.Delete(0);
-  end
-  else if AT.NextStartTime <= Now then
+  if AT.NextStartTime <= Now then
   begin
     if AT.NextEndTime >= Now then
       AT.Execute;
 
-    if AT.ExactDate = 0 then
+    if AT.AtStartup then
+      FTaskList.Delete(0)
+    else if AT.ExactDate = 0 then
       AT.Schedule
     else begin
       Synchronize(RemoveExecuteOnceTask);
       FTaskList.Delete(0);
     end;
 
-    PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
+    if FTaskList.Count > 0 then
+      PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
   end else
   begin
     SetTimeOut(Round((AT.NextStartTime - Now) * MSecsPerDay));
@@ -492,12 +528,26 @@ begin
 end;
 
 procedure TgdAutoTaskThread.UpdateTaskList;
+
+  procedure SortTaskList;
+  var
+    I, J: Integer;
+  begin
+    for I := 0 to FTaskList.Count - 2 do
+      for J := I + 1 to FTaskList.Count - 1 do
+        if (FTaskList[I] as TgdAutoTask).Compare(FTaskList[I] as TgdAutoTask) < 0 then
+          FTaskList.Exchange(J, I);
+  end;
+
 var
   q: TIBSQL;
   C: Integer;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(IBLogin <> nil);
+
+  if (FTaskList = nil) or (FTaskList.Count = 0) then
+    exit;
 
   SortTaskList;
   C := 0;
@@ -541,16 +591,6 @@ begin
   end;
 end;
 
-procedure TgdAutoTaskThread.SortTaskList;
-var
-  I, J: Integer;
-begin
-  for I := 0 to FTaskList.Count - 2 do
-    for J := I + 1 to FTaskList.Count - 1 do
-      if (FTaskList[I] as TgdAutoTask).Compare(FTaskList[I] as TgdAutoTask) < 0 then
-        FTaskList.Exchange(J, I);
-end;
-
 procedure TgdAutoTaskThread.RemoveExecuteOnceTask;
 begin
   Assert(gdcBaseManager <> nil);
@@ -563,8 +603,13 @@ begin
         IntToStr((FTaskList[0] as TgdAutoTask).ID));
   except
     // small chance that there would be a deadlock
-    // but we don't care      
+    // but we don't care
   end;
+end;
+
+procedure TgdAutoTaskThread.ReLoadTaskList;
+begin
+  PostMsg(WM_GD_RELOAD_TASK_LIST);
 end;
 
 { TgdAutoFunctionTask }
@@ -691,7 +736,6 @@ begin
       FErrorMsg := E.Message;
   end;
 end;
-
 
 initialization
   gdAutoTaskThread := nil;
