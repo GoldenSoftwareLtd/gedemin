@@ -195,7 +195,9 @@ begin
     end;
   end;
 
-  if (gdAutoTaskThread = nil) and (gd_CmdLineParams <> nil)
+  if (not IBLogin.Relogining)
+    and (gdAutoTaskThread = nil)
+    and (gd_CmdLineParams <> nil)
     and (not gd_CmdLineParams.Embedding)
     and (gd_CmdLineParams.LoadSettingFileName = '') then
   begin
