@@ -13,7 +13,7 @@ uses
 
 const
   WM_GD_RELOGIN          = WM_USER + 25488;
-  WM_GD_RUNONLOGINMACROS = WM_USER + 25489;
+  //WM_GD_RUNONLOGINMACROS = WM_USER + 25489;
 
 type
   TCrackIBCustomDataset = class(TIBCustomDataset);
@@ -319,8 +319,8 @@ type
     procedure ApplicationEventsShowHint(var HintStr: String;
       var CanShow: Boolean; var HintInfo: THintInfo);
 
-    procedure WMRunOnLoginMacros(var Msg: TMessage);
-      message WM_GD_RUNONLOGINMACROS;
+    //procedure WMRunOnLoginMacros(var Msg: TMessage);
+    //  message WM_GD_RUNONLOGINMACROS;
     procedure WMRelogin(var Msg: TMessage);
       message WM_GD_RELOGIN;
 
@@ -509,7 +509,7 @@ uses
   //mtd_i_Base,
   dm_i_ClientReport_unit,
   gdcBaseInterface, dmLogin_unit,
-  gd_dlgAutoBackup_unit,
+  //gd_dlgAutoBackup_unit,
   prp_frmGedeminProperty_Unit,
   cmp_frmDataBaseCompare,
   gd_frmMonitoring_unit,
@@ -885,12 +885,8 @@ procedure TfrmGedeminMain.DoAfterSuccessfullConnection;
 var
   TempPath: array[0..256] of char;
   SearchR: TSearchRec;
-  S, FN, FE, ArcS: String;
-  Res: OleVariant;
-  IBService: TIBBackupService;
+  S: String;
   J: DWORD;
-  Port: Integer;
-  Server, FileName: String;
 begin
   ClearFltComponentCache;
 
@@ -942,6 +938,19 @@ begin
 
   gdcBaseManager.Database.TraceFlags := [];
 
+  if (not IBLogin.Relogining)
+    and (gd_CmdLineParams.LoadSettingFileName = '')
+    and Assigned(GlobalStorage)
+    and GlobalStorage.FolderExists('Options\Arch') then
+  begin
+    MessageBox(0,
+      'Автоматическое архивное копирование теперь настраивается через Исследователь/Сервис/Администратор/Автозадачи.',
+      'Внимание',
+      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+    GlobalStorage.DeleteFolder('Options\Arch');  
+  end;
+
+  (*
   if (not IBLogin.Relogining)
     and (gd_CmdLineParams.LoadSettingFileName = '')
     and Assigned(GlobalStorage)
@@ -1081,6 +1090,7 @@ begin
       gd_dlgAutoBackup.Free;
     end;
   end;
+  *)
 
   {$IFDEF GEDEMIN_LOCK}
   RegParams.CheckRegistration(True);
@@ -1423,8 +1433,8 @@ begin
   if FFirstTime then
   begin
     FFirstTime := False;
-    if Assigned(IBLogin) and IBLogin.LoggedIn then
-      PostMessage(Handle, WM_GD_RUNONLOGINMACROS, 0, 0);
+    //if Assigned(IBLogin) and IBLogin.LoggedIn then
+    //  PostMessage(Handle, WM_GD_RUNONLOGINMACROS, 0, 0);
   end;
 
   if Assigned(tbMainMenu) then
@@ -2337,7 +2347,7 @@ begin
   {$ENDIF}
 end;
 
-procedure TfrmGedeminMain.WMRunOnLoginMacros(var Msg: TMessage);
+{procedure TfrmGedeminMain.WMRunOnLoginMacros(var Msg: TMessage);
 var
   TempMacros: TscrMacrosItem;
   q: TIBSQL;
@@ -2377,7 +2387,7 @@ begin
       q.Free;
     end;
   end;
-end;
+end;}
 
 procedure TfrmGedeminMain.UpdateNotification(const ANotification: String);
 begin

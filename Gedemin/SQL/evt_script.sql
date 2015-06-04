@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Script
 
@@ -370,7 +370,7 @@ CREATE TABLE evt_macroslist (
   editiondate     deditiondate,  /* ƒата последнего редактировани€ */
   editorkey       dintkey,       /* —сылка на пользовател€, который редактировал запись*/
   displayinmenu   dboolean DEFAULT 1,  /* ќтображать в меню формы */
-  runonlogin      dboolean_notnull DEFAULT 0,
+  /*runonlogin      dboolean_notnull DEFAULT 0,*/
   achag           dsecurity,
   afull           dsecurity,
   aview           dsecurity

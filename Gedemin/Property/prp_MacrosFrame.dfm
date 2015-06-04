@@ -1,25 +1,19 @@
 inherited MacrosFrame: TMacrosFrame
-  Width = 522
-  Height = 388
+  Height = 429
   HelpContext = 323
   inherited PageControl: TSuperPageControl
-    Width = 522
-    Height = 388
+    Height = 429
     inherited tsProperty: TSuperTabSheet
-      inherited TBDock1: TTBDock
-        Width = 518
-      end
       inherited pMain: TPanel
-        Width = 518
-        Height = 333
+        Height = 374
         inherited lbName: TLabel
-          Top = 59
+          Top = 58
         end
         inherited lbDescription: TLabel
-          Top = 152
+          Top = 154
         end
         inherited lbOwner: TLabel
-          Top = 84
+          Top = 82
         end
         inherited lbLanguage: TLabel
           Top = 228
@@ -54,12 +48,13 @@ inherited MacrosFrame: TMacrosFrame
         end
         inherited edtRUIDFunction: TEdit
           Top = 128
+          Width = 183
           TabOrder = 6
         end
         object dbcbMacrosName: TDBComboBox [10]
           Left = 144
           Top = 8
-          Width = 396
+          Width = 285
           Height = 21
           Style = csSimple
           Anchors = [akLeft, akTop, akRight]
@@ -72,7 +67,7 @@ inherited MacrosFrame: TMacrosFrame
         object hkMacros: THotKey [11]
           Left = 144
           Top = 32
-          Width = 396
+          Width = 285
           Height = 19
           Hint = 'Назначение клавиш для бастрого вызова макросов'
           Anchors = [akLeft, akTop, akRight]
@@ -85,37 +80,38 @@ inherited MacrosFrame: TMacrosFrame
           OnMouseDown = hkMacrosMouseDown
         end
         inherited dbeName: TprpDBComboBox
-          Top = 55
-          Width = 396
+          Top = 54
           TabOrder = 2
         end
         inherited dbmDescription: TDBMemo
-          Top = 152
-          Width = 396
+          Top = 153
+          Height = 68
           TabOrder = 8
         end
         inherited dbcbLang: TDBComboBox
           Top = 224
-          Width = 396
           TabOrder = 9
         end
         inherited dbtOwner: TDBEdit
-          Top = 80
-          Width = 396
+          Top = 78
           TabOrder = 3
         end
         inherited dbeLocalName: TDBEdit
           Top = 248
-          Width = 396
           TabOrder = 10
         end
         inherited pnlRUIDFunction: TPanel
-          Left = 465
+          Left = 329
           Top = 128
+          Width = 77
           TabOrder = 7
+          inherited btnCopyRUIDFunction: TButton
+            Left = 2
+            Anchors = []
+          end
         end
         object dbcbDisplayInMenu: TDBCheckBox
-          Left = 8
+          Left = 7
           Top = 272
           Width = 230
           Height = 17
@@ -129,8 +125,8 @@ inherited MacrosFrame: TMacrosFrame
         end
         object edtRUIDMacros: TEdit
           Left = 144
-          Top = 104
-          Width = 215
+          Top = 103
+          Width = 183
           Height = 21
           TabStop = False
           Color = clBtnFace
@@ -138,15 +134,15 @@ inherited MacrosFrame: TMacrosFrame
           TabOrder = 4
         end
         object pnlRUIDMacros: TPanel
-          Left = 465
+          Left = 329
           Top = 104
-          Width = 75
+          Width = 77
           Height = 21
           Anchors = [akTop, akRight]
           BevelOuter = bvLowered
           TabOrder = 5
           object btnCopyRUIDMacros: TButton
-            Left = 1
+            Left = 2
             Top = 1
             Width = 73
             Height = 19
@@ -155,45 +151,37 @@ inherited MacrosFrame: TMacrosFrame
             OnClick = btnCopyRUIDMacrosClick
           end
         end
-        object dbcbRunOnLogIn: TDBCheckBox
-          Left = 8
-          Top = 288
-          Width = 185
-          Height = 17
-          Caption = 'Выполнять при входе в систему'
-          DataField = 'RUNONLOGIN'
-          DataSource = dsMacros
-          TabOrder = 12
-          ValueChecked = '1'
-          ValueUnchecked = '0'
-          OnClick = dbeFunctionNameChange
-        end
       end
     end
     inherited tsScript: TSuperTabSheet
       inherited gsFunctionSynEdit: TgsFunctionSynEdit
-        Height = 339
+        Width = 430
+        Height = 353
+      end
+    end
+    inherited tsParams: TSuperTabSheet
+      inherited ScrollBox: TScrollBox
+        Width = 430
+        Height = 330
+      end
+      inherited pnlCaption: TPanel
+        Width = 430
       end
     end
     inherited tsDependencies: TSuperTabSheet
       inherited Splitter1: TSplitter
-        Height = 365
+        Height = 406
       end
       inherited pnlDependent: TPanel
-        Height = 365
+        Height = 406
         inherited lbDependent: TListBox
-          Height = 348
+          Height = 389
         end
       end
       inherited pnlDependedFrom: TPanel
-        Width = 302
-        Height = 365
-        inherited Panel4: TPanel
-          Width = 302
-        end
+        Height = 406
         inherited lbDependedFrom: TListBox
-          Width = 302
-          Height = 348
+          Height = 389
         end
       end
     end
@@ -202,8 +190,8 @@ inherited MacrosFrame: TMacrosFrame
     Top = 0
   end
   inherited PopupMenu: TPopupMenu
-    Left = 72
-    Top = 144
+    Left = 296
+    Top = 240
   end
   inherited ActionList1: TActionList
     Left = 72
@@ -221,8 +209,8 @@ inherited MacrosFrame: TMacrosFrame
     Top = 32
   end
   inherited SynCompletionProposal: TSynCompletionProposal
-    Left = 40
-    Top = 144
+    Left = 216
+    Top = 240
   end
   inherited ReplaceDialog: TReplaceDialog
     Left = 40
@@ -237,8 +225,16 @@ inherited MacrosFrame: TMacrosFrame
     Top = 48
   end
   inherited SynExporterRTF1: TSynExporterRTF
-    Left = 40
-    Top = 176
+    Left = 168
+    Top = 216
+  end
+  inherited pmDependent: TPopupMenu
+    Left = 252
+    Top = 208
+  end
+  inherited pmDependedFrom: TPopupMenu
+    Left = 205
+    Top = 208
   end
   object gdcMacros: TgdcMacros
     AfterEdit = gdcMacrosAfterEdit
