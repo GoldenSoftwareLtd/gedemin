@@ -36,7 +36,7 @@ CREATE TABLE gd_autotask
  
 SET TERM ^ ;
 
-CREATE TRIGGER gd_bi_autotask FOR gd_autotask
+CREATE OR ALTER TRIGGER gd_bi_autotask FOR gd_autotask
   BEFORE INSERT
   POSITION 0
 AS
@@ -46,7 +46,7 @@ BEGIN
 END
 ^ 
 
-CREATE TRIGGER gd_biu_autotask FOR gd_autotask
+CREATE OR ALTER TRIGGER gd_biu_autotask FOR gd_autotask
   BEFORE INSERT OR UPDATE
   POSITION 27000
 AS
@@ -153,7 +153,7 @@ CREATE DESC INDEX gd_x_autotask_log_cd ON gd_autotask_log (creationdate);
 
 SET TERM ^ ;
 
-CREATE TRIGGER gd_bi_autotask_log FOR gd_autotask_log
+CREATE OR ALTER TRIGGER gd_bi_autotask_log FOR gd_autotask_log
   BEFORE INSERT
   POSITION 0
 AS
