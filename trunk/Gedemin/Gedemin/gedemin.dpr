@@ -312,7 +312,9 @@ uses
   {$ENDIF}
   , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring}
   , gd_GlobalParams_unit
-  , gdcBlockRule;
+  , gdcBlockRule
+  , gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas'
+  , gd_AutoTaskThread in '..\Component\gd_AutoTaskThread.pas';
 
 {$R Gedemin.TLB}
 {$R GEDEMIN.RES}

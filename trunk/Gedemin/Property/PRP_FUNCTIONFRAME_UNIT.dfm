@@ -1,6 +1,8 @@
 inherited FunctionFrame: TFunctionFrame
+  Height = 317
   OnResize = FrameResize
   inherited PageControl: TSuperPageControl
+    Height = 317
     OnChange = PageControlChange
     OnChanging = PageControlChanging
     inherited tsProperty: TSuperTabSheet
@@ -27,7 +29,7 @@ inherited FunctionFrame: TFunctionFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 211
+        Height = 262
         OnResize = pMainResize
         inherited lbDescription: TLabel
           Top = 80
@@ -63,25 +65,21 @@ inherited FunctionFrame: TFunctionFrame
         object edtRUIDFunction: TEdit [6]
           Left = 144
           Top = 56
-          Width = 215
+          Width = 206
           Height = 21
           TabStop = False
           Color = clBtnFace
           ReadOnly = True
           TabOrder = 2
         end
-        inherited dbeName: TprpDBComboBox
-          Width = 292
-        end
         inherited dbmDescription: TDBMemo
           Top = 80
-          Width = 292
           TabOrder = 4
         end
         object dbcbLang: TDBComboBox
           Left = 144
           Top = 152
-          Width = 292
+          Width = 285
           Height = 21
           Hint = 'язык скрипта'
           Style = csDropDownList
@@ -101,7 +99,7 @@ inherited FunctionFrame: TFunctionFrame
         object dbtOwner: TDBEdit
           Left = 144
           Top = 32
-          Width = 291
+          Width = 285
           Height = 21
           Hint = '¬ладелец функции'
           TabStop = False
@@ -118,7 +116,7 @@ inherited FunctionFrame: TFunctionFrame
         object dbeLocalName: TDBEdit
           Left = 144
           Top = 176
-          Width = 292
+          Width = 285
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           DataField = 'LocalName'
@@ -126,7 +124,7 @@ inherited FunctionFrame: TFunctionFrame
           TabOrder = 6
         end
         object pnlRUIDFunction: TPanel
-          Left = 361
+          Left = 354
           Top = 56
           Width = 75
           Height = 21
@@ -560,14 +558,14 @@ inherited FunctionFrame: TFunctionFrame
         Left = 217
         Top = 0
         Width = 3
-        Height = 243
+        Height = 294
         Cursor = crHSplit
       end
       object pnlDependent: TPanel
         Left = 0
         Top = 0
         Width = 217
-        Height = 243
+        Height = 294
         Align = alLeft
         BevelOuter = bvNone
         TabOrder = 0
@@ -593,7 +591,7 @@ inherited FunctionFrame: TFunctionFrame
           Left = 0
           Top = 17
           Width = 217
-          Height = 226
+          Height = 277
           Align = alClient
           ItemHeight = 13
           PopupMenu = pmDependent
@@ -605,7 +603,7 @@ inherited FunctionFrame: TFunctionFrame
         Left = 220
         Top = 0
         Width = 215
-        Height = 243
+        Height = 294
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
@@ -631,7 +629,7 @@ inherited FunctionFrame: TFunctionFrame
           Left = 0
           Top = 17
           Width = 215
-          Height = 226
+          Height = 277
           Align = alClient
           ItemHeight = 13
           PopupMenu = pmDependedFrom
@@ -895,13 +893,13 @@ inherited FunctionFrame: TFunctionFrame
     Top = 144
   end
   object OpenDialog: TOpenDialog
-    Left = 304
-    Top = 112
+    Left = 256
+    Top = 152
   end
   object SaveDialog: TSaveDialog
     Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
-    Left = 336
-    Top = 112
+    Left = 328
+    Top = 192
   end
   object SynExporterRTF1: TSynExporterRTF
     Color = clWindow

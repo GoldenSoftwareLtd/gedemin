@@ -1524,6 +1524,9 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (217, '0000.0001.0000.0248', '06.09.2014', 'MD5 field added to namespace table.');
+  
+INSERT INTO fin_versioninfo
+  VALUES (218, '0000.0001.0000.0249', '28.04.2015', 'Add GD_AUTOTASK, GD_AUTOTASK_LOG tables.');
 
 COMMIT;
 
@@ -17069,7 +17072,174 @@ CREATE TABLE rpl_record (
 );
 
 COMMIT;
+CREATE TABLE gd_autotask
+ (
+   id               dintkey,
+   name             dname,
+   description      dtext180,
+   functionkey      dforeignkey,      /* если задано -- будет выполняться скрипт-функция */
+   autotrkey        dforeignkey,      /* если задано -- будет выполняться автоматическая хозяйственная операция */
+   reportkey        dforeignkey,      /* если задано -- будет выполняться построение отчета */
+   cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
+   backupfile       dtext255,         /* если задано -- имя файла архива */
+   userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/
+   atstartup        dboolean,
+   exactdate        dtimestamp,       /* дата и время однократного выполнения выполнения. Задача будет выполнена НЕ РАНЬШЕ указанного значения */
+   monthly          dinteger,
+   weekly           dinteger,
+   daily            dboolean,
+   starttime        dtime,            /* время начала интервала для выполнения */
+   endtime          dtime,            /* время конца интервала для выполнения  */
+   priority         dinteger_notnull DEFAULT 0,         
+   creatorkey       dforeignkey,
+   creationdate     dcreationdate,
+   editorkey        dforeignkey,
+   editiondate      deditiondate,
+   afull            dsecurity,
+   achag            dsecurity,
+   aview            dsecurity,
+   disabled         ddisabled,
+   CONSTRAINT gd_pk_autotask PRIMARY KEY (id),
+   CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -31 AND 31 AND monthly <> 0),
+   CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN 1 AND 7),
+   CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0),
+   CONSTRAINT gd_chk_autotask_time CHECK((starttime IS NULL AND endtime IS NULL) OR (starttime < endtime)),
+   CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
+   CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > '')
+ );
+ 
+SET TERM ^ ;
 
+CREATE TRIGGER gd_bi_autotask FOR gd_autotask
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^ 
+
+CREATE TRIGGER gd_biu_autotask FOR gd_autotask
+  BEFORE INSERT OR UPDATE
+  POSITION 27000
+AS
+BEGIN
+  IF (NOT NEW.atstartup IS NULL) THEN
+  BEGIN
+    NEW.exactdate = NULL;
+    NEW.monthly = NULL;
+    NEW.weekly = NULL;
+    NEW.daily = NULL;
+  END
+
+  IF (NOT NEW.exactdate IS NULL) THEN
+  BEGIN
+    NEW.atstartup = NULL;
+    NEW.monthly = NULL;
+    NEW.weekly = NULL;
+    NEW.daily = NULL;
+  END  
+  
+  IF (NOT NEW.monthly IS NULL) THEN
+  BEGIN
+    NEW.atstartup = NULL;
+    NEW.exactdate = NULL;
+    NEW.weekly = NULL;
+    NEW.daily = NULL;
+  END  
+  
+  IF (NOT NEW.weekly IS NULL) THEN
+  BEGIN
+    NEW.atstartup = NULL;
+    NEW.exactdate = NULL;
+    NEW.monthly = NULL;
+    NEW.daily = NULL;
+  END  
+  
+  IF (NOT NEW.daily IS NULL) THEN
+  BEGIN
+    NEW.atstartup = NULL;
+    NEW.exactdate = NULL;
+    NEW.monthly = NULL;
+    NEW.weekly = NULL;
+  END  
+  
+  IF (NOT NEW.functionkey IS NULL) THEN
+  BEGIN
+    NEW.autotrkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.cmdline = NULL;
+    NEW.backupfile = NULL;
+  END
+  
+  IF (NOT NEW.autotrkey IS NULL) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.cmdline = NULL;
+    NEW.backupfile = NULL;
+  END
+  
+  IF (NOT NEW.reportkey IS NULL) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.autotrkey = NULL;
+    NEW.cmdline = NULL;
+    NEW.backupfile = NULL;
+  END
+  
+  IF (NOT NEW.cmdline IS NULL) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.autotrkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.backupfile = NULL;
+  END
+  
+  IF (NOT NEW.backupfile IS NULL) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.autotrkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.cmdline = NULL;
+  END
+END
+^ 
+
+SET TERM ; ^
+ 
+CREATE TABLE gd_autotask_log
+(
+  id               dintkey,
+  autotaskkey      dintkey,
+  eventtext        dtext255 NOT NULL,            
+  creatorkey       dforeignkey,
+  creationdate     dcreationdate,
+  CONSTRAINT gd_pk_autotask_log PRIMARY KEY (id),
+  CONSTRAINT gd_fk_autotask_log_autotaskkey
+    FOREIGN KEY (autotaskkey) REFERENCES gd_autotask (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+ );
+ 
+CREATE DESC INDEX gd_x_autotask_log_cd ON gd_autotask_log (creationdate);
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_autotask_log FOR gd_autotask_log
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^ 
+
+SET TERM ; ^
+ 
+COMMIT;
 /*******************************/
 /** Begin LB-RB Tree Metadata **/
 /*******************************/
@@ -20100,7 +20270,7 @@ SET TERM ; ^
 
 /*
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Script
 
@@ -20985,6 +21155,19 @@ INSERT INTO GD_BANK
 		
       INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
         VALUES (
+          740075,
+          740050,
+          'Автозадачи',
+          '',
+          'TgdcAutoTask',
+          NULL,
+          256,
+          1
+        );
+
+     /* 
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+        VALUES (
           740080,
           740050,
           'Блокировка изменений',
@@ -20994,7 +21177,7 @@ INSERT INTO GD_BANK
           256,
           1
         );
-
+      */
 
         /*
     INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
@@ -21608,6 +21791,8 @@ GRANT ALL ON GD_TAX TO administrator;
 GRANT ALL ON GD_GOODBARCODE TO administrator;
 GRANT ALL ON GD_PRECIOUSEMETAL TO administrator;
 GRANT ALL ON GD_GOODPRMETAL TO administrator;
+GRANT ALL ON GD_AUTOTASK TO administrator;
+GRANT ALL ON GD_AUTOTASK_LOG TO administrator;
 
 GRANT ALL ON inv_card TO administrator;
 GRANT ALL ON inv_movement TO administrator;

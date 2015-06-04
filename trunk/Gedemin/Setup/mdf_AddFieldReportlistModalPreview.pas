@@ -77,14 +77,14 @@ begin
       FIBSQL.Transaction := FTransaction;
       FTransaction.StartTransaction;
 
-      AddField2('evt_macroslist', 'runonlogin', 'dboolean_notnull DEFAULT 0', FTransaction);
+      {AddField2('evt_macroslist', 'runonlogin', 'dboolean_notnull DEFAULT 0', FTransaction);
 
       FTransaction.Commit;
       FTransaction.StartTransaction;
 
       FIBSQL.Close;
       FIBSQL.SQL.Text := 'UPDATE evt_macroslist SET runonlogin = 0';
-      FIBSQL.ExecQuery;
+      FIBSQL.ExecQuery;}
 
       if not IndexExist2('evt_x_macrosgroup_isglobal', FTransaction) then
       begin

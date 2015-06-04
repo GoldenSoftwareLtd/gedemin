@@ -74,6 +74,8 @@ GRANT ALL ON GD_TAX TO administrator;
 GRANT ALL ON GD_GOODBARCODE TO administrator;
 GRANT ALL ON GD_PRECIOUSEMETAL TO administrator;
 GRANT ALL ON GD_GOODPRMETAL TO administrator;
+GRANT ALL ON GD_AUTOTASK TO administrator;
+GRANT ALL ON GD_AUTOTASK_LOG TO administrator;
 
 GRANT ALL ON inv_card TO administrator;
 GRANT ALL ON inv_movement TO administrator;

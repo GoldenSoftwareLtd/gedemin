@@ -682,6 +682,9 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (217, '0000.0001.0000.0248', '06.09.2014', 'MD5 field added to namespace table.');
+  
+INSERT INTO fin_versioninfo
+  VALUES (218, '0000.0001.0000.0249', '28.04.2015', 'Add GD_AUTOTASK, GD_AUTOTASK_LOG tables.');
 
 COMMIT;
 

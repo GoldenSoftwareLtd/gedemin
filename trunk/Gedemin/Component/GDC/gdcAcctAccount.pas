@@ -264,7 +264,7 @@ begin
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCACCTBASE' then
   {M}        begin
-  {M}          Result := Inherited GetOrderClause;
+  {M}          Result := inherited GetOrderClause;
   {M}          Exit;
   {M}        end;
   {M}    end;
