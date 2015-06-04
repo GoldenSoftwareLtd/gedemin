@@ -113,7 +113,8 @@ type
     function ProcessMessage(var Msg: TMsg): Boolean; override;
 
     procedure SendNotification(const AText: String;
-      const AClearNotifications: Boolean = False);
+      const AClearNotifications: Boolean = False;
+      const AShowTime: DWORD = 2000);
 
   public
     constructor Create;
@@ -154,7 +155,7 @@ begin
 
   FErrorMsg := '';
 
-  gdAutoTaskThread.SendNotification('Выполняется автозадача ' + Name + '...', True);
+  gdAutoTaskThread.SendNotification('Выполняется автозадача ' + Name + '...', True, INFINITE);
 
   Setup;
 
@@ -494,7 +495,8 @@ begin
 end;
 
 procedure TgdAutoTaskThread.SendNotification(const AText: String;
-  const AClearNotifications: Boolean = False);
+  const AClearNotifications: Boolean = False;
+  const AShowTime: DWORD = 2000);
 begin
   if gdNotifierThread <> nil then
   begin
@@ -505,7 +507,7 @@ begin
       gdNotifierThread.DeleteContext(FNotificationContext);
       FNotificationContext := gdNotifierThread.GetNextContext;
     end;
-    gdNotifierThread.Add(AText, FNotificationContext, 4000);
+    gdNotifierThread.Add(AText, FNotificationContext, AShowTime);
   end;
 end;
 
