@@ -113,6 +113,9 @@ type
     TBSeparatorItem9: TTBSeparatorItem;
     TBItem19: TTBItem;
     N13: TMenuItem;
+    N14: TMenuItem;
+    N15: TMenuItem;
+    N16: TMenuItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
