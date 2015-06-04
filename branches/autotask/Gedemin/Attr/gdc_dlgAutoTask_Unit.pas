@@ -49,9 +49,13 @@ type
     btBackup: TButton;
     Label7: TLabel;
     rbAtStartup: TRadioButton;
+    actExecTask: TAction;
+    btExecTask: TButton;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
+    procedure actExecTaskExecute(Sender: TObject);
+    procedure actExecTaskUpdate(Sender: TObject);
 
   public
     procedure SetupRecord; override;
@@ -66,7 +70,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gd_security, gd_common_functions;
+  gd_ClassList, gd_security, gd_common_functions, gd_AutoTaskThread;
 
 procedure Tgdc_dlgAutoTask.SetupRecord;
 var
@@ -256,6 +260,41 @@ var
 begin
   ParseDatabaseName(IBLogin.DatabaseName, Server, Port, FileName);
   dbeBackup.Text := ChangeFileExt(FileName, '.bk');
+end;
+
+procedure Tgdc_dlgAutoTask.actExecTaskExecute(Sender: TObject);
+var
+  Task: TgdAutoTask;
+begin
+  if pcTask.ActivePage = tsFunction then
+  begin
+    Task := TgdAutoFunctionTask.Create;
+    (Task as TgdAutoFunctionTask).FunctionKey := iblkupFunction.CurrentKeyInt;
+  end
+  else if pcTask.ActivePage = tsCmd then
+  begin
+    Task := TgdAutoCmdTask.Create;
+    (Task as TgdAutoCmdTask).CmdLine := dbeCmdLine.Text;
+  end
+  else if pcTask.ActivePage = tsBackup then
+  begin
+    Task := TgdAutoBackupTask.Create;
+    (Task as TgdAutoBackupTask).BackupFile := dbeBackup.Text;
+  end else
+    Task := nil;
+
+  if Task <> nil then
+  begin
+    Task.TaskExecuteForDlg;
+  end;
+end;
+
+procedure Tgdc_dlgAutoTask.actExecTaskUpdate(Sender: TObject);
+begin
+  actExecTask.Enabled :=
+    ((pcTask.ActivePage = tsFunction) and (iblkupFunction.CurrentKeyInt > 0))
+    or ((pcTask.ActivePage = tsCmd) and (dbeCmdLine.Text > ''))
+    or ((pcTask.ActivePage = tsBackup) and (dbeBackup.Text > ''));
 end;
 
 initialization

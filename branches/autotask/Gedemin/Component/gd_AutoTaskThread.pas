@@ -20,6 +20,7 @@ type
     FPriority: Integer;
     FAtStartup: Boolean;
     FErrorMsg: String;
+    FOutside: Boolean;
 
     FNextStartTime, FNextEndTime: TDateTime;
 
@@ -35,7 +36,9 @@ type
 
   public
     procedure Execute;
+    procedure TaskExecuteForDlg;
     procedure Schedule;
+    property Outside: Boolean read FOutside;
 
     property Id: Integer read FId write FId;
     property Name: String read FName write FName;
@@ -165,6 +168,12 @@ begin
     gdAutoTaskThread.SendNotification('Автозадача "' + Name + '" выполнена.', True);
     gdAutoTaskThread.Synchronize(LogEndTask);
   end;
+end;
+
+procedure TgdAutoTask.TaskExecuteForDlg;
+begin
+  FOutside := True;
+  TaskExecute;
 end;
 
 procedure TgdAutoTask.Schedule;
@@ -628,7 +637,15 @@ begin
         ScriptFactory.ExecuteFunction(F, P);
     except
       on E: Exception do
-        FErrorMsg := E.Message;
+      begin
+        if not OutSide then
+          FErrorMsg := E.Message
+        else
+          MessageBox(0,
+            PChar(E.Message),
+            'Внимание',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL)
+      end;
     end;
   finally
     glbFunctionList.ReleaseFunction(F);
@@ -657,7 +674,15 @@ begin
   ExecInfo.fMask := SEE_MASK_FLAG_NO_UI;
 
   if not ShellExecuteEx(@ExecInfo) then
-    FErrorMsg := SysErrorMessage(GetLastError);
+  begin
+    if not Outside then
+      FErrorMsg := SysErrorMessage(GetLastError)
+    else
+      MessageBox(0,
+        PChar(SysErrorMessage(GetLastError)),
+        'Внимание',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
+  end;
 end;
 
 { TgdAutoBackupTask }
@@ -687,10 +712,14 @@ procedure TgdAutoBackupTask.TaskExecute;
 var
   IBService: TIBBackupService;
 begin
-  Assert(gdAutoTaskThread <> nil);
+  if not Outside then
+    Assert(gdAutoTaskThread <> nil);
 
   try
-    gdAutoTaskThread.Synchronize(Setup);
+    if not Outside then
+      gdAutoTaskThread.Synchronize(Setup)
+    else
+      Setup;
 
     IBService := TIBBackupService.Create(nil);
     try
@@ -708,7 +737,13 @@ begin
       IBService.Active := True;
       if not IBService.Active then
       begin
-        FErrorMsg := 'Невозможно запустить сервис архивирования базы данных.';
+        if not Outside then
+          FErrorMsg := 'Невозможно запустить сервис архивирования базы данных.'
+        else
+          MessageBox(0,
+            'Невозможно запустить сервис архивирования базы данных.',
+            'Внимание',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL);
         exit;
       end;
 
@@ -733,7 +768,15 @@ begin
     end;
   except
     on E: Exception do
-      FErrorMsg := E.Message;
+    begin
+      if not Outside then
+        FErrorMsg := E.Message
+      else
+      MessageBox(0,
+        PChar(E.Message),
+        'Внимание',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
+    end;
   end;
 end;
 
