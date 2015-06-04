@@ -13,7 +13,7 @@ uses
 
 const
   WM_GD_RELOGIN          = WM_USER + 25488;
-  WM_GD_RUNONLOGINMACROS = WM_USER + 25489;
+  //WM_GD_RUNONLOGINMACROS = WM_USER + 25489;
 
 type
   TCrackIBCustomDataset = class(TIBCustomDataset);
@@ -319,8 +319,8 @@ type
     procedure ApplicationEventsShowHint(var HintStr: String;
       var CanShow: Boolean; var HintInfo: THintInfo);
 
-    procedure WMRunOnLoginMacros(var Msg: TMessage);
-      message WM_GD_RUNONLOGINMACROS;
+    //procedure WMRunOnLoginMacros(var Msg: TMessage);
+    //  message WM_GD_RUNONLOGINMACROS;
     procedure WMRelogin(var Msg: TMessage);
       message WM_GD_RELOGIN;
 
@@ -1433,8 +1433,8 @@ begin
   if FFirstTime then
   begin
     FFirstTime := False;
-    if Assigned(IBLogin) and IBLogin.LoggedIn then
-      PostMessage(Handle, WM_GD_RUNONLOGINMACROS, 0, 0);
+    //if Assigned(IBLogin) and IBLogin.LoggedIn then
+    //  PostMessage(Handle, WM_GD_RUNONLOGINMACROS, 0, 0);
   end;
 
   if Assigned(tbMainMenu) then
@@ -2347,7 +2347,7 @@ begin
   {$ENDIF}
 end;
 
-procedure TfrmGedeminMain.WMRunOnLoginMacros(var Msg: TMessage);
+{procedure TfrmGedeminMain.WMRunOnLoginMacros(var Msg: TMessage);
 var
   TempMacros: TscrMacrosItem;
   q: TIBSQL;
@@ -2387,7 +2387,7 @@ begin
       q.Free;
     end;
   end;
-end;
+end;}
 
 procedure TfrmGedeminMain.UpdateNotification(const ANotification: String);
 begin

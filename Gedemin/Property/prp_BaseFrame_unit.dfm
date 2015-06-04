@@ -61,7 +61,7 @@ object BaseFrame: TBaseFrame
         object dbeName: TprpDBComboBox
           Left = 144
           Top = 8
-          Width = 293
+          Width = 285
           Height = 21
           Hint = 
             'Используйте клавиши: '#13#10'  F1 -- вызов справки '#13#10'  F2 -- создание ' +
@@ -81,7 +81,7 @@ object BaseFrame: TBaseFrame
         object dbmDescription: TDBMemo
           Left = 144
           Top = 32
-          Width = 293
+          Width = 285
           Height = 69
           Anchors = [akLeft, akTop, akRight]
           Ctl3D = True
