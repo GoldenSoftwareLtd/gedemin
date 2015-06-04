@@ -20,7 +20,6 @@ type
     FPriority: Integer;
     FAtStartup: Boolean;
     FErrorMsg: String;
-    FOutside: Boolean;
 
     FNextStartTime, FNextEndTime: TDateTime;
 
@@ -33,12 +32,12 @@ type
     function IsAsync: Boolean; virtual;
     procedure TaskExecute; virtual;
     function Compare(ATask: TgdAutoTask): Integer;
+    procedure Setup; virtual;
 
   public
     procedure Execute;
-    procedure TaskExecuteForDlg;
+    procedure TaskExecuteForDlg; virtual;
     procedure Schedule;
-    property Outside: Boolean read FOutside;
 
     property Id: Integer read FId write FId;
     property Name: String read FName write FName;
@@ -85,13 +84,16 @@ type
     FPort: Integer;
     FServer, FFileName: String;
 
-    procedure Setup;
+    procedure SetupBackupTask;
 
   protected
     function IsAsync: Boolean; override;
     procedure TaskExecute; override;
+    procedure Setup; override;
 
   public
+    procedure TaskExecuteForDlg; override;
+
     property BackupFile: String read FBackupFile write FBackupFile;
   end;
 
@@ -127,7 +129,7 @@ var
 implementation
 
 uses
-  at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
+  Forms, at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
   scr_i_FunctionList, gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security,
   gdNotifierThread_unit, gd_ProgressNotifier_unit, IBServices,
   gd_common_functions, gd_directories_const;
@@ -154,6 +156,8 @@ begin
 
   gdAutoTaskThread.SendNotification('Выполняется автозадача ' + Name + '...', True);
 
+  Setup;
+
   if IsAsync then
     TaskExecute
   else
@@ -172,8 +176,11 @@ end;
 
 procedure TgdAutoTask.TaskExecuteForDlg;
 begin
-  FOutside := True;
+  FErrorMsg := '';
   TaskExecute;
+  if FErrorMsg > '' then
+    MessageBox(0, PChar(FErrorMsg), 'Ошибка при выполнении задачи',
+      MB_OK or MB_TASKMODAL or MB_ICONHAND);
 end;
 
 procedure TgdAutoTask.Schedule;
@@ -335,6 +342,11 @@ begin
     q.Free;
     Tr.Free;
   end;
+end;
+
+procedure TgdAutoTask.Setup;
+begin
+  //
 end;
 
 { TgdAutoTaskThread }
@@ -627,6 +639,7 @@ procedure TgdAutoFunctionTask.TaskExecute;
 var
   F: TrpCustomFunction;
   P: Variant;
+  Cr: TCursor;
 begin
   F := glbFunctionList.FindFunction(Self.FFunctionKey);
   if Assigned(F) then
@@ -634,18 +647,18 @@ begin
     try
       P := VarArrayOf([]);
       if ScriptFactory.InputParams(F, P) then
-        ScriptFactory.ExecuteFunction(F, P);
+      begin
+        Cr := Screen.Cursor;
+        try
+          Screen.Cursor := crHourGlass;
+          ScriptFactory.ExecuteFunction(F, P);
+        finally
+          Screen.Cursor := Cr;
+        end;
+      end;
     except
       on E: Exception do
-      begin
-        if not OutSide then
-          FErrorMsg := E.Message
-        else
-          MessageBox(0,
-            PChar(E.Message),
-            'Внимание',
-            MB_OK or MB_ICONHAND or MB_TASKMODAL)
-      end;
+        FErrorMsg := E.Message;
     end;
   finally
     glbFunctionList.ReleaseFunction(F);
@@ -674,15 +687,7 @@ begin
   ExecInfo.fMask := SEE_MASK_FLAG_NO_UI;
 
   if not ShellExecuteEx(@ExecInfo) then
-  begin
-    if not Outside then
-      FErrorMsg := SysErrorMessage(GetLastError)
-    else
-      MessageBox(0,
-        PChar(SysErrorMessage(GetLastError)),
-        'Внимание',
-        MB_OK or MB_ICONHAND or MB_TASKMODAL);
-  end;
+    FErrorMsg := SysErrorMessage(GetLastError);
 end;
 
 { TgdAutoBackupTask }
@@ -693,6 +698,11 @@ begin
 end;
 
 procedure TgdAutoBackupTask.Setup;
+begin
+  gdAutoTaskThread.Synchronize(SetupBackupTask);
+end;
+
+procedure TgdAutoBackupTask.SetupBackupTask;
 var
   Res: OleVariant;
 begin
@@ -712,15 +722,9 @@ procedure TgdAutoBackupTask.TaskExecute;
 var
   IBService: TIBBackupService;
 begin
-  if not Outside then
-    Assert(gdAutoTaskThread <> nil);
+  Assert(gdAutoTaskThread <> nil);
 
   try
-    if not Outside then
-      gdAutoTaskThread.Synchronize(Setup)
-    else
-      Setup;
-
     IBService := TIBBackupService.Create(nil);
     try
       if FServer > '' then
@@ -737,13 +741,7 @@ begin
       IBService.Active := True;
       if not IBService.Active then
       begin
-        if not Outside then
-          FErrorMsg := 'Невозможно запустить сервис архивирования базы данных.'
-        else
-          MessageBox(0,
-            'Невозможно запустить сервис архивирования базы данных.',
-            'Внимание',
-            MB_OK or MB_ICONHAND or MB_TASKMODAL);
+        FErrorMsg := 'Невозможно запустить сервис архивирования базы данных.';
         exit;
       end;
 
@@ -768,16 +766,14 @@ begin
     end;
   except
     on E: Exception do
-    begin
-      if not Outside then
-        FErrorMsg := E.Message
-      else
-      MessageBox(0,
-        PChar(E.Message),
-        'Внимание',
-        MB_OK or MB_ICONHAND or MB_TASKMODAL);
-    end;
+      FErrorMsg := E.Message;
   end;
+end;
+
+procedure TgdAutoBackupTask.TaskExecuteForDlg;
+begin
+  SetupBackupTask;
+  inherited;
 end;
 
 initialization

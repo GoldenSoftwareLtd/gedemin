@@ -884,7 +884,7 @@ INSERT INTO GD_BANK
           1
         );
 		
-      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview, achag, afull)
         VALUES (
           740075,
           740050,
@@ -893,7 +893,7 @@ INSERT INTO GD_BANK
           'TgdcAutoTask',
           NULL,
           256,
-          1
+          1, 1, 1
         );
 
      /* 

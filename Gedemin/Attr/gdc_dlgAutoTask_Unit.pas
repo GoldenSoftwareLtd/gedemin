@@ -9,30 +9,32 @@ uses
 
 type
   Tgdc_dlgAutoTask = class(Tgdc_dlgTR)
+    odCmdLine: TOpenDialog;
+    actExecTask: TAction;
+    lbPriority: TLabel;
+    Label2: TLabel;
+    lbStartTime: TLabel;
+    lbEndTime: TLabel;
+    Label4: TLabel;
+    lbName: TLabel;
+    lbDescription: TLabel;
+    lbUser: TLabel;
     gbTimeTables: TGroupBox;
+    Label3: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
     rbExactDate: TRadioButton;
     xdbeExactDate: TxDateDBEdit;
     rbMonthly: TRadioButton;
     rbWeekly: TRadioButton;
     dbcbWeekly: TDBComboBox;
-    odCmdLine: TOpenDialog;
-    lbPriority: TLabel;
     rbDaily: TRadioButton;
-    Label2: TLabel;
     dbcbMonthly: TDBComboBox;
-    Label3: TLabel;
+    rbAtStartup: TRadioButton;
     dbcbPriority: TDBComboBox;
-    lbStartTime: TLabel;
     xdbeStartTime: TxDateDBEdit;
-    lbEndTime: TLabel;
     xdbeEndTime: TxDateDBEdit;
-    Label4: TLabel;
     btnClearTime: TButton;
-    Label5: TLabel;
-    Label6: TLabel;
-    lbName: TLabel;
-    lbDescription: TLabel;
-    lbUser: TLabel;
     dbcbDisabled: TDBCheckBox;
     dbedName: TDBEdit;
     dbmDescription: TDBMemo;
@@ -43,19 +45,20 @@ type
     Label1: TLabel;
     dbeCmdLine: TDBEdit;
     btnCmdLine: TButton;
-    iblkupUser: TgsIBLookupComboBox;
     tsBackup: TTabSheet;
+    Label7: TLabel;
     dbeBackup: TDBEdit;
     btBackup: TButton;
-    Label7: TLabel;
-    rbAtStartup: TRadioButton;
-    actExecTask: TAction;
+    iblkupUser: TgsIBLookupComboBox;
     btExecTask: TButton;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
     procedure actExecTaskExecute(Sender: TObject);
     procedure actExecTaskUpdate(Sender: TObject);
+
+  protected
+    procedure Post; override;  
 
   public
     procedure SetupRecord; override;
@@ -284,17 +287,55 @@ begin
     Task := nil;
 
   if Task <> nil then
-  begin
     Task.TaskExecuteForDlg;
-  end;
 end;
 
 procedure Tgdc_dlgAutoTask.actExecTaskUpdate(Sender: TObject);
 begin
   actExecTask.Enabled :=
     ((pcTask.ActivePage = tsFunction) and (iblkupFunction.CurrentKeyInt > 0))
-    or ((pcTask.ActivePage = tsCmd) and (dbeCmdLine.Text > ''))
-    or ((pcTask.ActivePage = tsBackup) and (dbeBackup.Text > ''));
+    or ((pcTask.ActivePage = tsCmd) and (Trim(dbeCmdLine.Text) > ''))
+    or ((pcTask.ActivePage = tsBackup) and (Trim(dbeBackup.Text) > ''));
+end;
+
+procedure Tgdc_dlgAutoTask.Post;
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGAUTOTASK', 'POST', KEYPOST)}
+  {M}  try
+  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDC_DLGAUTOTASK', KEYPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGAUTOTASK') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGAUTOTASK',
+  {M}          'POST', KEYPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGAUTOTASK' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if gdAutoTaskThread <> nil then
+    gdAutoTaskThread.ReLoadTaskList;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGAUTOTASK', 'POST', KEYPOST)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGAUTOTASK', 'POST', KEYPOST);
+  {M}end;
+  {END MACRO}
 end;
 
 initialization
