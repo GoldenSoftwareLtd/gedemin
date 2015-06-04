@@ -10,7 +10,7 @@ procedure AddAutoTaskTables(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
  
 uses
-  IBSQL, SysUtils;
+  IBSQL, SysUtils, mdf_metadata_unit;
  
 procedure AddAutoTaskTables(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -26,35 +26,37 @@ begin
       FIBSQL := TIBSQL.Create(nil);
       try
         FIBSQL.Transaction := FTransaction;
- 
+
+        //DropField2('EVT_MACROSLIST', 'RUNONLOGIN', FTransaction);
+
         FIBSQL.SQL.Text :=
           'CREATE TABLE gd_autotask '#13#10 +
           ' ( '#13#10 +
-          '   id               dintkey, '#13#10 +
-          '   name             dname, '#13#10 +
-          '   description      dtext180, '#13#10 +
-          '   functionkey      dforeignkey,      /* если задано -- будет выполняться скрипт-функция */ '#13#10 +
-          '   autotrkey        dforeignkey,      /* если задано -- будет выполняться автоматическая хозяйственная операция */ '#13#10 +
-          '   reportkey        dforeignkey,      /* если задано -- будет выполняться построение отчета */ '#13#10 +
-          '   cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */ '#13#10 +
-          '   backupfile       dtext255,         /* если задано -- имя файла архива */ '#13#10 +
-          '   userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/ '#13#10 +
-          '   atstartup        dboolean, '#13#10 +
-          '   exactdate        dtimestamp,       /* дата и время однократного выполнения выполнения. Задача будет выполнена НЕ РАНЬШЕ указанного значения */ '#13#10 +
-          '   monthly          dinteger, '#13#10 +
-          '   weekly           dinteger, '#13#10 +
-          '   daily            dboolean, '#13#10 +
-          '   starttime        dtime,            /* время начала интервала для выполнения */ '#13#10 +
-          '   endtime          dtime,            /* время конца интервала для выполнения  */ '#13#10 +
-          '   priority         dinteger_notnull DEFAULT 0, '#13#10 +
-          '   creatorkey       dforeignkey, '#13#10 +
-          '   creationdate     dcreationdate, '#13#10 +
-          '   editorkey        dforeignkey, '#13#10 +
-          '   editiondate      deditiondate, '#13#10 +
-          '   afull            dsecurity, '#13#10 +
-          '   achag            dsecurity, '#13#10 +
-          '   aview            dsecurity, '#13#10 +
-          '   disabled         ddisabled, '#13#10 +
+          '   id               dintkey,'#13#10 +
+          '   name             dname,'#13#10 +
+          '   description      dtext180,'#13#10 +
+          '   functionkey      dforeignkey,'#13#10 +
+          '   autotrkey        dforeignkey,'#13#10 +
+          '   reportkey        dforeignkey,'#13#10 +
+          '   cmdline          dtext255,'#13#10 +
+          '   backupfile       dtext255,'#13#10 +
+          '   userkey          dforeignkey,'#13#10 +
+          '   atstartup        dboolean,'#13#10 +
+          '   exactdate        dtimestamp,'#13#10 +
+          '   monthly          dinteger,'#13#10 +
+          '   weekly           dinteger,'#13#10 +
+          '   daily            dboolean,'#13#10 +
+          '   starttime        dtime,'#13#10 +
+          '   endtime          dtime,'#13#10 +
+          '   priority         dinteger_notnull DEFAULT 0,'#13#10 +
+          '   creatorkey       dforeignkey,'#13#10 +
+          '   creationdate     dcreationdate,'#13#10 +
+          '   editorkey        dforeignkey,'#13#10 +
+          '   editiondate      deditiondate,'#13#10 +
+          '   afull            dsecurity,'#13#10 +
+          '   achag            dsecurity,'#13#10 +
+          '   aview            dsecurity,'#13#10 +
+          '   disabled         ddisabled,'#13#10 +
           '   CONSTRAINT gd_pk_autotask PRIMARY KEY (id), '#13#10 +
           '   CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -31 AND 31 AND monthly <> 0), '#13#10 +
           '   CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN 1 AND 7), '#13#10 +
