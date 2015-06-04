@@ -597,11 +597,20 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object N4: TMenuItem
       Action = actSetForLoading
     end
+    object N14: TMenuItem
+      Action = actSetForLoadingOne
+    end
     object N5: TMenuItem
       Action = actSetForSaving
     end
+    object N15: TMenuItem
+      Caption = '-'
+    end
     object N6: TMenuItem
       Action = actClear
+    end
+    object N16: TMenuItem
+      Action = actClearAll
     end
     object N8: TMenuItem
       Caption = '-'

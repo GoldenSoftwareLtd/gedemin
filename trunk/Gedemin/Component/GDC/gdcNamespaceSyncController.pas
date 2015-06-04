@@ -302,11 +302,11 @@ var
   Parser: TYAMLParser;
   Mapping, MObject: TYAMLMapping;
   Objects, UsesNS: TYAMLSequence;
-  J, NSID, NSOID: Integer;
+  J, NSID: Integer;
   Obj: TgdcBase;
   C: TPersistentClass;
   HSL: TStringList;
-  q: TIBSQL;
+  q, qList, qUpdate: TIBSQL;
   R: TRUID;
   SRUID, SName: String;
 begin
@@ -316,12 +316,9 @@ begin
   NS := TgdcNamespace.Create(nil);
   NSO := TgdcNamespaceObject.Create(nil);
   HSL := TStringList.Create;
-  q := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := gdcBaseManager.Database;
     Tr.StartTransaction;
-
-    q.Transaction := Tr;
 
     NS.Transaction := Tr;
     NS.ReadTransaction := Tr;
@@ -431,27 +428,41 @@ begin
               end;
             end;
 
-            for J := 0 to HSL.Count - 1 do
+            if HSL.Count > 0 then
             begin
-              R := StrToRUID(HSL.Values[HSL.Names[J]]);
+              qList := TIBSQL.Create(nil);
+              qUpdate := TIBSQL.Create(nil);
+              try
+                qList.Transaction := Tr;
+                qList.SQL.Text :=
+                  'SELECT id FROM at_object WHERE namespacekey = :nsk ' +
+                  ' AND xid = :xid AND dbid = :dbid';
 
-              q.SQL.Text := 'SELECT id FROM at_object WHERE namespacekey = :nsk ' +
-                ' AND xid = :xid AND dbid = :dbid';
-              q.ParamByName('nsk').AsInteger := NS.ID;
-              q.ParamByName('xid').AsInteger := R.XID;
-              q.ParamByName('dbid').AsInteger := R.DBID;
-              q.ExecQuery;
-
-              if not q.EOF then
-              begin
-                NSOID := q.Fields[0].AsInteger;
-                q.Close;
-                q.SQL.Text :=
+                qUpdate.Transaction := Tr;
+                qUpdate.SQL.Text :=
                   'UPDATE at_object SET headobjectkey = :ho ' +
                   'WHERE id = :id';
-                q.ParamByName('ho').AsInteger := NSOID;
-                q.ParamByName('id').AsString := HSL.Names[J];
-                q.ExecQuery;
+
+                for J := 0 to HSL.Count - 1 do
+                begin
+                  R := StrToRUID(HSL.Values[HSL.Names[J]]);
+
+                  qList.Close;
+                  qList.ParamByName('nsk').AsInteger := NS.ID;
+                  qList.ParamByName('xid').AsInteger := R.XID;
+                  qList.ParamByName('dbid').AsInteger := R.DBID;
+                  qList.ExecQuery;
+
+                  if not qList.EOF then
+                  begin
+                    qUpdate.ParamByName('ho').AsInteger := qList.Fields[0].AsInteger;
+                    qUpdate.ParamByName('id').AsString := HSL.Names[J];
+                    qUpdate.ExecQuery;
+                  end;
+                end;
+              finally
+                qList.Free;
+                qUpdate.Free;
               end;
             end;
           end;
@@ -459,27 +470,33 @@ begin
           if Mapping.FindByName('Uses') is TYAMLSequence then
           begin
             UsesNS := Mapping.FindByName('Uses') as TYAMLSequence;
-            q.SQL.Text :=
-              'INSERT INTO at_namespace_link (namespacekey, useskey) ' +
-              'VALUES (:nsk, :uk)';
+            q := TIBSQL.Create(nil);
+            try
+              q.Transaction := Tr;
+              q.SQL.Text :=
+                'INSERT INTO at_namespace_link (namespacekey, useskey) ' +
+                'VALUES (:nsk, :uk)';
 
-            for J := 0 to UsesNS.Count - 1 do
-            begin
-              if not (UsesNS[J] is TYAMLString) then
-                continue;
+              for J := 0 to UsesNS.Count - 1 do
+              begin
+                if not (UsesNS[J] is TYAMLString) then
+                  continue;
 
-              ParseReferenceString(TYAMLString(UsesNS[J]).AsString, SRUID, SName);
+                ParseReferenceString(TYAMLString(UsesNS[J]).AsString, SRUID, SName);
 
-              NSID := gdcBaseManager.GetIDByRUIDString(SRUID, Tr);
-              if NSID = -1 then
-                continue;
+                NSID := gdcBaseManager.GetIDByRUIDString(SRUID, Tr);
+                if NSID = -1 then
+                  continue;
 
-              q.ParamByName('nsk').AsInteger := NS.ID;
-              q.ParamByName('uk').AsInteger := NSID;
-              q.ExecQuery;
+                q.ParamByName('nsk').AsInteger := NS.ID;
+                q.ParamByName('uk').AsInteger := NSID;
+                q.ExecQuery;
+              end;
+            finally
+              q.Free;
             end;
           end;
-        end;  
+        end;
       finally
         Parser.Free;
       end;
@@ -491,7 +508,6 @@ begin
 
     NS.Close;
   finally
-    q.Free;
     HSL.Free;
     NSO.Free;
     NS.Free;
