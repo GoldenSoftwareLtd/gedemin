@@ -137,7 +137,7 @@ uses
 const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
   WM_GD_LOAD_TASK_LIST        = WM_GD_THREAD_USER + 2;
-  WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 3;
+  //WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 3;
 
 { TgdAutoTask }
 
@@ -455,6 +455,7 @@ begin
     begin
       SendNotification('Загрузка списка автозадач...', True);
       Synchronize(LoadFromRelation);
+      FSkipAtStartup := True;
 
       if (FTaskList = nil) or (FTaskList.Count = 0) then
       begin
@@ -479,12 +480,12 @@ begin
       Result := True;
     end;
 
-    WM_GD_RELOAD_TASK_LIST:
+    {WM_GD_RELOAD_TASK_LIST:
     begin
       FSkipAtStartup := True;
       PostMsg(WM_GD_LOAD_TASK_LIST);
       Result := True;
-    end;
+    end;}
   else
     Result := False;
   end;
@@ -630,7 +631,8 @@ end;
 
 procedure TgdAutoTaskThread.ReLoadTaskList;
 begin
-  PostMsg(WM_GD_RELOAD_TASK_LIST);
+  //PostMsg(WM_GD_RELOAD_TASK_LIST);
+  PostMsg(WM_GD_LOAD_TASK_LIST);
 end;
 
 { TgdAutoFunctionTask }
