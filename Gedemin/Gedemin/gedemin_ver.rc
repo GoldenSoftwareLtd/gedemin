@@ -1,6 +1,6 @@
 1 VERSIONINFO LOADONCALL MOVEABLE DISCARDABLE IMPURE 
-FILEVERSION 2, 7, 0, 8368
-PRODUCTVERSION 2, 7, 0, 8368
+FILEVERSION 2, 8, 0, 8372
+PRODUCTVERSION 2, 8, 0, 8372
 FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 FILEOS VOS__WINDOWS32
 FILETYPE VFT_APP
@@ -11,13 +11,13 @@ FILETYPE VFT_APP
   {
    VALUE "CompanyName", "Golden Software of Belarus, Ltd\000"
    VALUE "FileDescription", "Gedemin\000"
-   VALUE "FileVersion", "2.7.0.8368\000"
+   VALUE "FileVersion", "2.8.0.8372\000"
    VALUE "InternalName", "Gedemin\000"
    VALUE "LegalCopyright", "Copyright (c) 2000-2015 by Golden Software of Belarus, Ltd\000"
    VALUE "LegalTrademarks", "Gedemin\000"
    VALUE "OriginalFilename", "gedemin.exe\000"
    VALUE "ProductName", "Gedemin\000"
-   VALUE "ProductVersion", "2.7\000"
+   VALUE "ProductVersion", "2.8\000"
    VALUE "Comments", "Long Live Belarus!\000"
   }
 
