@@ -393,7 +393,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Top = 72
     Width = 421
     Height = 135
-    ActivePage = tsFunction
+    ActivePage = tsBackup
     Anchors = []
     MultiLine = True
     TabOrder = 3
@@ -516,9 +516,22 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     ShowHint = True
     TabOrder = 4
   end
+  object btExecTask: TButton [23]
+    Left = 352
+    Top = 56
+    Width = 75
+    Height = 25
+    Action = actExecTask
+    TabOrder = 15
+  end
   inherited alBase: TActionList
     Left = 238
     Top = 532
+    object actExecTask: TAction
+      Caption = 'Выполнить'
+      OnExecute = actExecTaskExecute
+      OnUpdate = actExecTaskUpdate
+    end
   end
   inherited dsgdcBase: TDataSource
     Left = 200
