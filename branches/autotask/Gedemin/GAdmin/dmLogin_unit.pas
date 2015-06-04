@@ -195,7 +195,9 @@ begin
     end;
   end;
 
-  if gdAutoTaskThread = nil then
+  if (gdAutoTaskThread = nil) and (gd_CmdLineParams <> nil)
+    and (not gd_CmdLineParams.Embedding)
+    and (gd_CmdLineParams.LoadSettingFileName = '') then
   begin
     gdAutoTaskThread := TgdAutoTaskThread.Create;
     gdAutoTaskThread.SetInitialDelay;

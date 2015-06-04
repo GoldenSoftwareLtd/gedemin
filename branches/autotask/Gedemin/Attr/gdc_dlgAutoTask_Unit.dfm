@@ -2,15 +2,16 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   Left = 517
   Top = 109
   Caption = 'gdc_dlgAutoTask'
-  ClientHeight = 547
+  ClientHeight = 522
   ClientWidth = 440
   Font.Charset = DEFAULT_CHARSET
   OldCreateOrder = False
+  OnClose = FormClose
   PixelsPerInch = 96
   TextHeight = 13
   object lbPriority: TLabel [0]
     Left = 8
-    Top = 493
+    Top = 462
     Width = 371
     Height = 13
     Caption = 
@@ -18,11 +19,10 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       ':'
   end
   object Label2: TLabel [1]
-    Left = 223
+    Left = 8
     Top = 238
-    Width = 205
-    Height = 28
-    AutoSize = False
+    Width = 356
+    Height = 13
     Caption = 'Оставьте поле пустым для выполнения под любой учетной записью.'
     Color = clBtnFace
     Font.Charset = DEFAULT_CHARSET
@@ -36,21 +36,21 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   object lbStartTime: TLabel [2]
     Left = 9
-    Top = 450
+    Top = 419
     Width = 64
     Height = 13
     Caption = 'Выполнять с'
   end
   object lbEndTime: TLabel [3]
     Left = 143
-    Top = 450
+    Top = 419
     Width = 13
     Height = 13
     Caption = 'до'
   end
   object Label4: TLabel [4]
     Left = 79
-    Top = 472
+    Top = 441
     Width = 313
     Height = 13
     Caption = 'Оставьте поля пустыми для выполнения в любое время дня.'
@@ -84,39 +84,39 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   inherited btnAccess: TButton
     Left = 7
-    Top = 518
-    TabOrder = 12
+    Top = 493
+    TabOrder = 13
   end
   inherited btnNew: TButton
     Left = 79
-    Top = 518
-    TabOrder = 13
+    Top = 493
+    TabOrder = 14
   end
   inherited btnHelp: TButton
     Left = 151
-    Top = 518
-    TabOrder = 14
+    Top = 493
+    TabOrder = 15
   end
   inherited btnOK: TButton
     Left = 290
-    Top = 518
-    TabOrder = 10
+    Top = 493
+    TabOrder = 11
   end
   inherited btnCancel: TButton
     Left = 362
-    Top = 518
-    TabOrder = 11
+    Top = 493
+    TabOrder = 12
   end
   object gbTimeTables: TGroupBox [13]
     Left = 6
-    Top = 268
+    Top = 256
     Width = 425
-    Height = 173
+    Height = 155
     Caption = ' Расписание '
-    TabOrder = 5
+    TabOrder = 6
     object Label3: TLabel
       Left = 26
-      Top = 89
+      Top = 77
       Width = 324
       Height = 13
       Caption = 'Отрицательные значения задают номера дней с конца месяца.'
@@ -129,7 +129,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object Label5: TLabel
       Left = 27
-      Top = 105
+      Top = 93
       Width = 249
       Height = 13
       Caption = '-1 -- последний день, -2 -- предпоследний и т.д.'
@@ -142,7 +142,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object Label6: TLabel
       Left = 273
-      Top = 129
+      Top = 114
       Width = 124
       Height = 13
       Caption = '1 -- пн, 2 -- вт, ... 7 -- вс'
@@ -155,7 +155,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object rbExactDate: TRadioButton
       Left = 8
-      Top = 40
+      Top = 34
       Width = 185
       Height = 21
       Caption = 'Однократно в указанный день:'
@@ -163,7 +163,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object xdbeExactDate: TxDateDBEdit
       Left = 200
-      Top = 40
+      Top = 34
       Width = 65
       Height = 21
       DataField = 'exactdate'
@@ -176,7 +176,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object rbMonthly: TRadioButton
       Left = 8
-      Top = 63
+      Top = 55
       Width = 185
       Height = 21
       Caption = 'Ежемесячно в указанный день:'
@@ -184,7 +184,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object rbWeekly: TRadioButton
       Left = 8
-      Top = 126
+      Top = 111
       Width = 193
       Height = 21
       Caption = 'Еженедельно в указанный день:'
@@ -192,7 +192,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object dbcbWeekly: TDBComboBox
       Left = 200
-      Top = 126
+      Top = 111
       Width = 65
       Height = 21
       Style = csDropDownList
@@ -211,7 +211,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object rbDaily: TRadioButton
       Left = 8
-      Top = 150
+      Top = 133
       Width = 89
       Height = 17
       Caption = 'Ежедневно'
@@ -219,7 +219,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object dbcbMonthly: TDBComboBox
       Left = 200
-      Top = 65
+      Top = 57
       Width = 65
       Height = 21
       DataField = 'MONTHLY'
@@ -293,7 +293,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     end
     object rbAtStartup: TRadioButton
       Left = 8
-      Top = 19
+      Top = 16
       Width = 201
       Height = 17
       Caption = 'При запуске системы'
@@ -302,7 +302,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   object dbcbPriority: TDBComboBox [14]
     Left = 384
-    Top = 490
+    Top = 459
     Width = 48
     Height = 21
     DataField = 'PRIORITY'
@@ -319,11 +319,11 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       '7'
       '8'
       '9')
-    TabOrder = 9
+    TabOrder = 10
   end
   object xdbeStartTime: TxDateDBEdit [15]
     Left = 79
-    Top = 448
+    Top = 417
     Width = 57
     Height = 21
     DataField = 'starttime'
@@ -332,11 +332,11 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     EmptyAtStart = True
     EditMask = '!99\:99\:99;1;_'
     MaxLength = 8
-    TabOrder = 6
+    TabOrder = 7
   end
   object xdbeEndTime: TxDateDBEdit [16]
     Left = 162
-    Top = 448
+    Top = 417
     Width = 57
     Height = 21
     DataField = 'endtime'
@@ -345,15 +345,15 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     EmptyAtStart = True
     EditMask = '!99\:99\:99;1;_'
     MaxLength = 8
-    TabOrder = 7
+    TabOrder = 8
   end
   object btnClearTime: TButton [17]
     Left = 230
-    Top = 447
+    Top = 416
     Width = 75
     Height = 21
     Caption = 'Очистить'
-    TabOrder = 8
+    TabOrder = 9
     OnClick = btnClearTimeClick
   end
   object dbcbDisabled: TDBCheckBox [18]
@@ -364,14 +364,14 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Caption = 'Отключена'
     DataField = 'disabled'
     DataSource = dsgdcBase
-    TabOrder = 2
+    TabOrder = 3
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
   object dbedName: TDBEdit [19]
     Left = 99
     Top = 10
-    Width = 330
+    Width = 246
     Height = 21
     Anchors = []
     DataField = 'NAME'
@@ -386,17 +386,17 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Anchors = []
     DataField = 'Description'
     DataSource = dsgdcBase
-    TabOrder = 1
+    TabOrder = 2
   end
   object pcTask: TPageControl [21]
     Left = 8
     Top = 72
     Width = 421
     Height = 135
-    ActivePage = tsBackup
+    ActivePage = tsFunction
     Anchors = []
     MultiLine = True
-    TabOrder = 3
+    TabOrder = 4
     object tsFunction: TTabSheet
       Caption = 'Скрипт-функция'
       object iblkupFunction: TgsIBLookupComboBox
@@ -514,19 +514,19 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     ItemHeight = 13
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 4
+    TabOrder = 5
   end
   object btExecTask: TButton [23]
     Left = 352
-    Top = 56
+    Top = 9
     Width = 75
-    Height = 25
+    Height = 21
     Action = actExecTask
-    TabOrder = 15
+    TabOrder = 1
   end
   inherited alBase: TActionList
     Left = 238
-    Top = 532
+    Top = 460
     object actExecTask: TAction
       Caption = 'Выполнить'
       OnExecute = actExecTaskExecute
@@ -535,22 +535,22 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   end
   inherited dsgdcBase: TDataSource
     Left = 200
-    Top = 532
+    Top = 460
   end
   inherited pm_dlgG: TPopupMenu
     Left = 272
-    Top = 533
+    Top = 461
   end
   inherited ibtrCommon: TIBTransaction
     Left = 312
-    Top = 533
+    Top = 461
   end
   object odCmdLine: TOpenDialog
     Filter = 
       'Исполняемые файлы *.exe|*.exe|Пакетные файлы *.bat|*.bat|Все фай' +
       'лы *.*|*.*'
     Title = 'Выбор файла'
-    Left = 360
-    Top = 545
+    Left = 352
+    Top = 457
   end
 end
