@@ -11146,8 +11146,18 @@ begin
     if not CheckSubType(Value) then
     begin
       if (StrIPos('usr_', Self.Name) = 1) or (StrIPos('usrg_', Self.Name) = 1) then
-        gdClassList.Add(Self.ClassName, Value, Self.SubType,
-          CgdClassEntry(gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType).ClassType), '')
+      begin
+        if (Self.ClassName = 'TgdcAttrUserDefined')
+          or (Self.ClassName = 'TgdcAttrUserDefinedTree')
+          or(Self.ClassName = 'TgdcAttrUserDefinedLBRBTree') then
+        begin
+          gdClassList.Add(Self.ClassName, Value, Self.SubType,
+            CgdClassEntry(TgdAttrUserDefinedEntry), '')
+        end
+        else
+          gdClassList.Add(Self.ClassName, Value, Self.SubType,
+            CgdClassEntry(gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType).ClassType), '')
+      end
       else
         raise EgdcException.CreateObj('Invalid subtype specified', Self);
     end;
