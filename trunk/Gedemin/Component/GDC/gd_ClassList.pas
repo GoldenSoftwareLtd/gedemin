@@ -2148,6 +2148,12 @@ begin
         try
           for I := 0 to FSubTypes.ValuesCount - 1 do
           begin
+
+            // это устаревшая информация в хранилище
+            // должна быть удалена
+            if AnsiSameText(FSubTypes.Values[I].Name, 'TgdcInvRemains') then
+              continue;
+
             CEStorage := Find(FSubTypes.Values[I].Name);
             if CEStorage <> nil then
             begin
