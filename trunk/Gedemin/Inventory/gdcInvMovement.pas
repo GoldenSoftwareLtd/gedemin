@@ -3792,6 +3792,9 @@ begin
 
   with Tgdc_frmInvSelectRemains(C.CreateSubType(gdcDocumentLine, gdcDocumentLine.SubType)) do
     try
+        Assert(Assigned(gdcObject),
+         'Не задан объект окна остатков, скорее всего неправильное перекрытие события OnCreate');
+
       (gdcObject as TgdcInvRemains).SetOptions(InvPosition, Self, isPosition, isDest);
       Setup((gdcObject as TgdcInvRemains));
       SetChoose(gdcDocumentLine);
