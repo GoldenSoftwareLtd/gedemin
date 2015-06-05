@@ -2355,7 +2355,6 @@ function TdfPropertyTree.AddFRMClassNode(AParent: TTreeNode;
   ACE: TgdClassEntry): TTreeNode;
 var
   CI: TgdcClassTreeItem;
-  MObj: TObject;
   MClass: TMethodClass;
   FullName: TgdcFullClassName;
 begin
@@ -2365,10 +2364,8 @@ begin
   begin
     FullName.gdClassName := ACE.TheClass.ClassName;
     FullName.SubType := SubTypeToComponentName(ACE.SubType);
-    MObj := MethodControl.FindMethodClass(FullName);
-    if MObj is TMethodClass then
-      MClass := TMethodClass(MObj)
-    else
+    MClass := TMethodClass(MethodControl.FindMethodClass(FullName));
+    if MClass = nil then
       //Если не найден то регистрируем его в списке
       MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.TheClass));
     MClass.Class_Reference := ACE.TheClass;
@@ -2582,7 +2579,10 @@ var
   end;
 var
   P: TTreeNode;
+  CE: TgdClassEntry;
 begin
+
+
   if TCustomTreeItem(AParent.Data).ItemType = tiGDCClass then
   begin
     FltFlag := Filter(TGDCClassTreeItem(AParent.Data).Name +
@@ -2591,11 +2591,13 @@ begin
 
     P := AParent;
 
-    while (TObject(P.Data) is TgdcClassTreeItem) and (ACE <> nil) do
+    CE := ACE;
+
+    while (TObject(P.Data) is TgdcClassTreeItem) and (CE <> nil) do
     begin
       // Добавляем методы класса
 
-      MClass := ACE.ClassMethods;
+      MClass := CE.ClassMethods;
 
       for I := 0 to MClass.gdMethods.Count - 1 do
       begin
@@ -2616,7 +2618,7 @@ begin
           AddM(TheMethod, AParent);
       end;
       P := P.Parent;
-      ACE := ACE.Parent;
+      CE := CE.Parent;
     end;
 {     // Adding inherited methods
     if TObject(AParent.Parent.Data) is TgdcClassTreeItem then
