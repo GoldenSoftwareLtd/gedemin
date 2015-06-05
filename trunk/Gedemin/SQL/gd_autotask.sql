@@ -17,7 +17,8 @@ CREATE TABLE gd_autotask
    daily            dboolean,
    starttime        dtime,            /* время начала интервала для выполнения */
    endtime          dtime,            /* время конца интервала для выполнения  */
-   priority         dinteger_notnull DEFAULT 0,         
+   priority         dinteger_notnull DEFAULT 0, 
+   pulse            dinteger,    
    creatorkey       dforeignkey,
    creationdate     dcreationdate,
    editorkey        dforeignkey,
@@ -32,7 +33,8 @@ CREATE TABLE gd_autotask
    CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0),
    CONSTRAINT gd_chk_autotask_time CHECK((starttime IS NULL AND endtime IS NULL) OR (starttime < endtime)),
    CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
-   CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > '')
+   CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > ''),
+   CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0)
  );
  
 SET TERM ^ ;
@@ -140,7 +142,9 @@ CREATE TABLE gd_autotask_log
 (
   id               dintkey,
   autotaskkey      dintkey,
-  eventtext        dtext255 NOT NULL,            
+  eventtext        dtext255 NOT NULL,   
+  connection_id    dinteger DEFAULT CURRENT_CONNECTION, 
+  client_address   dtext60,  
   creatorkey       dforeignkey,
   creationdate     dcreationdate,
   CONSTRAINT gd_pk_autotask_log PRIMARY KEY (id),
@@ -150,6 +154,7 @@ CREATE TABLE gd_autotask_log
     ON UPDATE CASCADE
  );
  
+CREATE INDEX gd_x_autotask_log_cnid ON gd_autotask_log (connection_id);
 CREATE DESC INDEX gd_x_autotask_log_cd ON gd_autotask_log (creationdate);
 
 SET TERM ^ ;
@@ -161,6 +166,9 @@ AS
 BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+    
+  IF (NEW.client_address IS NULL) THEN
+    NEW.client_address = RDB$GET_CONTEXT('SYSTEM', 'CLIENT_ADDRESS');  
 END
 ^ 
 
