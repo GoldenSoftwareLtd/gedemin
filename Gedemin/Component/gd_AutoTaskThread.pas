@@ -20,6 +20,9 @@ type
     FPriority: Integer;
     FAtStartup: Boolean;
     FErrorMsg: String;
+    FPulse: Integer;
+    FLastExecuted: TDateTime;
+    FDone: Boolean;
 
     FNextStartTime, FNextEndTime: TDateTime;
 
@@ -49,9 +52,12 @@ type
     property StartTime: TTime read FStartTime write FStartTime;
     property EndTime: TTime read FEndTime write FEndTime;
     property Priority: Integer read FPriority write FPriority;
+    property Pulse: Integer read FPulse write FPulse;
     property NextStartTime: TDateTime read FNextStartTime write FNextStartTime;
     property NextEndTime: TDateTime read FNextEndTime write FNextEndTime;
     property AtStartup: Boolean read FAtStartup write FAtStartup;
+    property Done: Boolean read FDone write FDone;
+    property LastExecuted: TDateTime read FLastExecuted write FLastExecuted;
   end;
 
   TgdAutoFunctionTask = class(TgdAutoTask)
@@ -164,6 +170,8 @@ begin
   else
     gdAutoTaskThread.Synchronize(TaskExecute);
 
+  FLastExecuted := Now;  
+
   if FErrorMsg > '' then
   begin
     gdAutoTaskThread.SendNotification('Ошибка при выполнении автозадачи: ' + FErrorMsg, True);
@@ -187,6 +195,7 @@ end;
 procedure TgdAutoTask.Schedule;
 var
   Y, M, D, K: Word;
+  NextPulse: TDateTime;
 begin
   // на основании параметров задачи и данных
   // о предыдущем запланированном запуске
@@ -208,15 +217,36 @@ begin
   // вызов метода находит следующий интервал и
   // заносит в поля.
 
+  if (FPulse > 0) and (FLastExecuted > 0) and (FNextEndTime > 0) then
+  begin
+    NextPulse := FLastExecuted + FPulse / SecsPerDay;
+    if NextPulse < FNextEndTime then
+    begin
+      FNextStartTime := NextPulse;
+      exit;
+    end;
+  end;
+
   if FAtStartup then
   begin
-    FNextStartTime := Now;
-    FNextEndTime := FNextStartTime + 1;
+    if FLastExecuted > 0 then
+      FDone := True
+    else begin
+      FNextStartTime := Date + FStartTime;
+      if FEndTime > 0 then
+        FNextEndTime := Date + FEndTime
+      else
+        FNextEndTime := Date + 1976;
+    end;
   end
   else if FExactDate > 0 then
   begin
-    FNextStartTime := FExactDate + FStartTime;
-    FNextEndTime := FExactDate + FEndTime;
+    if FLastExecuted > 0 then
+      FDone := True
+    else begin
+      FNextStartTime := FExactDate + FStartTime;
+      FNextEndTime := FExactDate + FEndTime;
+    end;
   end
   else if FDaily then
   begin
@@ -434,6 +464,7 @@ begin
           Task.EndTime := q.FieldbyName('endtime').AsTime;
         Task.AtStartup := q.FieldbyName('atstartup').AsInteger <> 0;
         Task.Priority := q.FieldbyName('priority').AsInteger;
+        Task.Pulse := q.FieldbyName('pulse').AsInteger;
         Task.Schedule;
 
         if FTaskList = nil then
@@ -538,6 +569,16 @@ begin
     if AT.NextEndTime >= Now then
       AT.Execute;
 
+    AT.Schedule;
+
+    if AT.Done then
+    begin
+      if AT.ExactDate > 0 then
+        Synchronize(RemoveExecuteOnceTask);
+      FTaskList.Delete(0);
+    end;
+
+    {
     if AT.AtStartup then
       FTaskList.Delete(0)
     else if AT.ExactDate = 0 then
@@ -546,6 +587,7 @@ begin
       Synchronize(RemoveExecuteOnceTask);
       FTaskList.Delete(0);
     end;
+    }
 
     if FTaskList.Count > 0 then
       PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
@@ -585,9 +627,10 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT t.disabled, t.userkey, t.computer, l.creationdate ' +
+      'SELECT t.disabled, t.userkey, t.computer, t.pulse, l.creationdate ' +
       'FROM gd_autotask t LEFT JOIN gd_autotask_log l ' +
       '  ON t.id = l.autotaskkey AND l.creationdate >= :et ' +
+      '    AND l.connection_id <> CURRENT_CONNECTION ' +   
       'WHERE t.id = :id';
 
     while C < FTaskList.Count do
@@ -624,8 +667,12 @@ begin
       if (FTaskList[0] as TgdAutoTask).ExactDate > 0 then
         FTaskList.Delete(0)
       else begin
-        (FTaskList[0] as TgdAutoTask).Schedule;
-        SortTaskList;
+        if (q.FieldByName('pulse').AsInteger = 0)
+          or ((FTaskList[0] as TgdAutoTask).NextEndTime <= Now) then
+        begin
+          (FTaskList[0] as TgdAutoTask).Schedule;
+          SortTaskList;
+        end;
         Inc(C);
       end;
     end;

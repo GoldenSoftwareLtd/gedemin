@@ -55,6 +55,8 @@ type
     dbedComputer: TDBEdit;
     btnIP: TButton;
     btnCN: TButton;
+    Label9: TLabel;
+    dbedPulse: TDBEdit;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);

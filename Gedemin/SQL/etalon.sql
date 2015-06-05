@@ -1528,6 +1528,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (218, '0000.0001.0000.0249', '28.04.2015', 'Add GD_AUTOTASK, GD_AUTOTASK_LOG tables.');
 
+INSERT INTO fin_versioninfo
+  VALUES (219, '0000.0001.0000.0250', '05.06.2015', 'Added COMPUTER field to GD_AUTOTASK.');
+  
+INSERT INTO fin_versioninfo
+  VALUES (220, '0000.0001.0000.0251', '05.06.2015', 'Added PULSE field to GD_AUTOTASK.');
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -14566,7 +14572,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Script
 
@@ -14935,7 +14941,7 @@ CREATE TABLE evt_macroslist (
   editiondate     deditiondate,  /* Дата последнего редактирования */
   editorkey       dintkey,       /* Ссылка на пользователя, который редактировал запись*/
   displayinmenu   dboolean DEFAULT 1,  /* Отображать в меню формы */
-  runonlogin      dboolean_notnull DEFAULT 0,
+  /*runonlogin      dboolean_notnull DEFAULT 0,*/
   achag           dsecurity,
   afull           dsecurity,
   aview           dsecurity
@@ -17083,6 +17089,7 @@ CREATE TABLE gd_autotask
    cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
    backupfile       dtext255,         /* если задано -- имя файла архива */
    userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/
+   computer         dtext60,
    atstartup        dboolean,
    exactdate        dtimestamp,       /* дата и время однократного выполнения выполнения. Задача будет выполнена НЕ РАНЬШЕ указанного значения */
    monthly          dinteger,
@@ -17090,7 +17097,8 @@ CREATE TABLE gd_autotask
    daily            dboolean,
    starttime        dtime,            /* время начала интервала для выполнения */
    endtime          dtime,            /* время конца интервала для выполнения  */
-   priority         dinteger_notnull DEFAULT 0,         
+   priority         dinteger_notnull DEFAULT 0, 
+   pulse            dinteger,    
    creatorkey       dforeignkey,
    creationdate     dcreationdate,
    editorkey        dforeignkey,
@@ -17105,12 +17113,13 @@ CREATE TABLE gd_autotask
    CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0),
    CONSTRAINT gd_chk_autotask_time CHECK((starttime IS NULL AND endtime IS NULL) OR (starttime < endtime)),
    CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
-   CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > '')
+   CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > ''),
+   CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0)
  );
  
 SET TERM ^ ;
 
-CREATE TRIGGER gd_bi_autotask FOR gd_autotask
+CREATE OR ALTER TRIGGER gd_bi_autotask FOR gd_autotask
   BEFORE INSERT
   POSITION 0
 AS
@@ -17120,7 +17129,7 @@ BEGIN
 END
 ^ 
 
-CREATE TRIGGER gd_biu_autotask FOR gd_autotask
+CREATE OR ALTER TRIGGER gd_biu_autotask FOR gd_autotask
   BEFORE INSERT OR UPDATE
   POSITION 27000
 AS
@@ -17213,7 +17222,9 @@ CREATE TABLE gd_autotask_log
 (
   id               dintkey,
   autotaskkey      dintkey,
-  eventtext        dtext255 NOT NULL,            
+  eventtext        dtext255 NOT NULL,   
+  connection_id    dinteger DEFAULT CURRENT_CONNECTION, 
+  client_address   dtext60,  
   creatorkey       dforeignkey,
   creationdate     dcreationdate,
   CONSTRAINT gd_pk_autotask_log PRIMARY KEY (id),
@@ -17223,17 +17234,21 @@ CREATE TABLE gd_autotask_log
     ON UPDATE CASCADE
  );
  
+CREATE INDEX gd_x_autotask_log_cnid ON gd_autotask_log (connection_id);
 CREATE DESC INDEX gd_x_autotask_log_cd ON gd_autotask_log (creationdate);
 
 SET TERM ^ ;
 
-CREATE TRIGGER gd_bi_autotask_log FOR gd_autotask_log
+CREATE OR ALTER TRIGGER gd_bi_autotask_log FOR gd_autotask_log
   BEFORE INSERT
   POSITION 0
 AS
 BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+    
+  IF (NEW.client_address IS NULL) THEN
+    NEW.client_address = RDB$GET_CONTEXT('SYSTEM', 'CLIENT_ADDRESS');  
 END
 ^ 
 
@@ -21153,7 +21168,7 @@ INSERT INTO GD_BANK
           1
         );
 		
-      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview, achag, afull)
         VALUES (
           740075,
           740050,
@@ -21162,7 +21177,7 @@ INSERT INTO GD_BANK
           'TgdcAutoTask',
           NULL,
           256,
-          1
+          1, 1, 1
         );
 
      /* 
@@ -21718,7 +21733,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Script
 
@@ -21919,7 +21934,7 @@ GRANT EXECUTE ON PROCEDURE AC_G_L_S TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE AC_Q_G_L TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE  AC_GETSIMPLEENTRY TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE  INV_GETCARDMOVEMENT TO ADMINISTRATOR;
-GRANT EXECUTE ON PROCEDURE INV_INSERT_CARD TO ADMINISTRATOR;
+/*GRANT EXECUTE ON PROCEDURE INV_INSERT_CARD TO ADMINISTRATOR;*/
 
 GRANT ALL ON AC_AUTOTRRECORD TO ADMINISTRATOR;
 GRANT ALL ON AC_GENERALLEDGER TO ADMINISTRATOR;

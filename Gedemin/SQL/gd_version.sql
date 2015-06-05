@@ -689,6 +689,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (219, '0000.0001.0000.0250', '05.06.2015', 'Added COMPUTER field to GD_AUTOTASK.');
   
+INSERT INTO fin_versioninfo
+  VALUES (220, '0000.0001.0000.0251', '05.06.2015', 'Added PULSE field to GD_AUTOTASK.');
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

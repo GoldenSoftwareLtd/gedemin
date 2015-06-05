@@ -66,7 +66,7 @@ begin
             '   CONSTRAINT gd_chk_autotask_time CHECK((starttime IS NULL AND endtime IS NULL) OR (starttime < endtime)), '#13#10 +
             '   CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''''), '#13#10 +
             '   CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > '''') '#13#10 +
-            ' );';
+            ' )';
           FIBSQL.ExecQuery;
         end;
 
@@ -74,6 +74,17 @@ begin
         begin
           FIBSQL.SQL.Text :=
             'ALTER TABLE gd_autotask ADD computer dtext60';
+          FIBSQL.ExecQuery;
+        end;
+
+        if not FieldExist2('GD_AUTOTASK', 'PULSE', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_autotask ADD pulse dinteger';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_autotask ADD CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0)';
           FIBSQL.ExecQuery;
         end;
 
@@ -191,14 +202,35 @@ begin
             '    FOREIGN KEY (autotaskkey) REFERENCES gd_autotask (id) '#13#10 +
             '    ON DELETE CASCADE '#13#10 +
             '    ON UPDATE CASCADE '#13#10 +
-            ');';
+            ')';
           FIBSQL.ExecQuery;
+        end;
+
+        if not FieldExist2('GD_AUTOTASK_LOG', 'CONNECTION_ID', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_autotask_log ADD connection_id    dinteger DEFAULT CURRENT_CONNECTION';
+          FIBSQL.ExecQuery;  
+        end;
+
+        if not FieldExist2('GD_AUTOTASK_LOG', 'CLIENT_ADDRESS', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_autotask_log ADD client_address dtext60';
+          FIBSQL.ExecQuery;  
         end;
 
         if not IndexExist2('GD_X_AUTOTASK_LOG_CD', FTransaction) then
         begin
           FIBSQL.SQL.Text :=
-            'CREATE DESC INDEX gd_x_autotask_log_cd ON gd_autotask_log (creationdate);';
+            'CREATE DESC INDEX gd_x_autotask_log_cd ON gd_autotask_log (creationdate)';
+          FIBSQL.ExecQuery;
+        end;
+
+        if not IndexExist2('GD_X_AUTOTASK_LOG_CNID', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'CREATE INDEX gd_x_autotask_log_cnid ON gd_autotask_log (connection_id)';
           FIBSQL.ExecQuery;
         end;
 
@@ -210,6 +242,9 @@ begin
           'BEGIN '#13#10 +
           '  IF (NEW.id IS NULL) THEN '#13#10 +
           '    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+          ''#13#10 +
+          '  IF (NEW.client_address IS NULL) THEN'#13#10 +
+          '    NEW.client_address = RDB$GET_CONTEXT(''SYSTEM'', ''CLIENT_ADDRESS'');'#13#10 +
           'END';
         FIBSQL.ExecQuery;
 
@@ -245,6 +280,13 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (219, ''0000.0001.0000.0250'', ''05.06.2015'', ''Added COMPUTER field to GD_AUTOTASK.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (220, ''0000.0001.0000.0251'', ''05.06.2015'', ''Added PULSE field to GD_AUTOTASK.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
         FIBSQL.Close;
