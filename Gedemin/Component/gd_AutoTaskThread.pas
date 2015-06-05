@@ -561,7 +561,7 @@ procedure TgdAutoTaskThread.UpdateTaskList;
   begin
     for I := 0 to FTaskList.Count - 2 do
       for J := I + 1 to FTaskList.Count - 1 do
-        if (FTaskList[I] as TgdAutoTask).Compare(FTaskList[I] as TgdAutoTask) < 0 then
+        if (FTaskList[I] as TgdAutoTask).Compare(FTaskList[J] as TgdAutoTask) < 0 then
           FTaskList.Exchange(J, I);
   end;
 
