@@ -1,6 +1,6 @@
 inherited gdc_frmAutoTask: Tgdc_frmAutoTask
-  Left = 290
-  Top = 187
+  Left = 358
+  Top = 246
   Width = 1044
   Height = 531
   Caption = 'gdc_frmAutoTask'
@@ -14,6 +14,11 @@ inherited gdc_frmAutoTask: Tgdc_frmAutoTask
   end
   inherited TBDockTop: TTBDock
     Width = 1028
+    inherited tbMainCustom: TTBToolbar
+      object TBItem1: TTBItem
+        Action = actReRead
+      end
+    end
   end
   inherited TBDockLeft: TTBDock
     Height = 414
@@ -71,6 +76,14 @@ inherited gdc_frmAutoTask: Tgdc_frmAutoTask
         Width = 850
         Height = 110
       end
+    end
+  end
+  inherited alMain: TActionList
+    object actReRead: TAction
+      Category = 'Main'
+      Caption = 'Обновить'
+      OnExecute = actReReadExecute
+      OnUpdate = actReReadUpdate
     end
   end
   inherited dsMain: TDataSource

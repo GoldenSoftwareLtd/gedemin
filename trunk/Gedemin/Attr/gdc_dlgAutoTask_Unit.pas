@@ -65,9 +65,6 @@ type
     procedure btnCNClick(Sender: TObject);
     procedure btnIPClick(Sender: TObject);
 
-  protected
-    procedure Post; override;  
-
   public
     procedure SetupRecord; override;
     procedure BeforePost; override;
@@ -256,7 +253,7 @@ end;
 procedure Tgdc_dlgAutoTask.btnCmdLineClick(Sender: TObject);
 begin
   if odCmdLine.Execute then
-    dbeCmdLine.Text := odCmdLine.FileName;
+    gdcObject.FieldByName('cmdline').AsString := odCmdLine.FileName;
 end;
 
 procedure Tgdc_dlgAutoTask.btnClearTimeClick(Sender: TObject);
@@ -271,7 +268,7 @@ var
   Server, FileName: String;
 begin
   ParseDatabaseName(IBLogin.DatabaseName, Server, Port, FileName);
-  dbeBackup.Text := ChangeFileExt(FileName, '.bk');
+  gdcObject.FieldByName('backupfile').AsString := ChangeFileExt(FileName, '.bk');
 end;
 
 procedure Tgdc_dlgAutoTask.actExecTaskExecute(Sender: TObject);
@@ -305,46 +302,6 @@ begin
     ((pcTask.ActivePage = tsFunction) and (iblkupFunction.CurrentKeyInt > 0))
     or ((pcTask.ActivePage = tsCmd) and (Trim(dbeCmdLine.Text) > ''))
     or ((pcTask.ActivePage = tsBackup) and (Trim(dbeBackup.Text) > ''));
-end;
-
-procedure Tgdc_dlgAutoTask.Post;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGAUTOTASK', 'POST', KEYPOST)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGAUTOTASK', KEYPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGAUTOTASK') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGAUTOTASK',
-  {M}          'POST', KEYPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGAUTOTASK' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if gdAutoTaskThread <> nil then
-    gdAutoTaskThread.ReLoadTaskList;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGAUTOTASK', 'POST', KEYPOST)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGAUTOTASK', 'POST', KEYPOST);
-  {M}end;
-  {END MACRO}
 end;
 
 procedure Tgdc_dlgAutoTask.btnCNClick(Sender: TObject);

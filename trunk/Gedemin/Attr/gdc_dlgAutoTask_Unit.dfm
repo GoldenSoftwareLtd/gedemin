@@ -413,7 +413,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Top = 72
     Width = 421
     Height = 115
-    ActivePage = tsBackup
+    ActivePage = tsFunction
     Anchors = []
     MultiLine = True
     TabOrder = 4
