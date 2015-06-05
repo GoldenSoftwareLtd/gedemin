@@ -9,6 +9,7 @@ CREATE TABLE gd_autotask
    cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
    backupfile       dtext255,         /* если задано -- имя файла архива */
    userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/
+   computer         dtext60,
    atstartup        dboolean,
    exactdate        dtimestamp,       /* дата и время однократного выполнения выполнения. Задача будет выполнена НЕ РАНЬШЕ указанного значения */
    monthly          dinteger,

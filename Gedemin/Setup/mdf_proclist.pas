@@ -369,7 +369,7 @@ const
     (ModifyProc: IntroduceIncorrectRecordGTT; ModifyVersion: '0000.0001.0000.0241'; NeedDBShutdown: True),
     (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0243'; NeedDBShutdown: False),
     (ModifyProc: AddGD_WEBLOG; ModifyVersion: '0000.0001.0000.0247'; NeedDBShutdown: True),
-    (ModifyProc: AddAutoTaskTables; ModifyVersion: '0000.0001.0000.0248'; NeedDBShutdown: True)
+    (ModifyProc: AddAutoTaskTables; ModifyVersion: '0000.0001.0000.0249'; NeedDBShutdown: True)
   );
 
 implementation

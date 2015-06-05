@@ -133,7 +133,7 @@ uses
   Forms, at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
   scr_i_FunctionList, gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security,
   gdNotifierThread_unit, gd_ProgressNotifier_unit, IBServices,
-  gd_common_functions, gd_directories_const;
+  gd_common_functions, gd_directories_const, jclSysInfo;
 
 const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
@@ -382,8 +382,12 @@ begin
     q.SQL.Text :=
       'SELECT * FROM gd_autotask ' +
       'WHERE disabled = 0 ' +
-      '  AND (userkey IS NULL OR userkey = :uk)';
+      '  AND (userkey IS NULL OR userkey = :uk)' +
+      '  AND (computer IS NULL OR computer = '''' ' +
+      '    OR UPPER(computer) = :comp OR computer = :ip)';
     q.ParamByName('uk').AsInteger := IBLogin.UserKey;
+    q.ParamByName('comp').AsString := AnsiUpperCase(GetLocalComputerName);
+    q.ParamByName('ip').AsString := GetIPAddress(GetLocalComputerName);
     q.ExecQuery;
 
     while not q.EOF do
@@ -581,7 +585,7 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT t.disabled, t.userkey, l.creationdate ' +
+      'SELECT t.disabled, t.userkey, t.computer, l.creationdate ' +
       'FROM gd_autotask t LEFT JOIN gd_autotask_log l ' +
       '  ON t.id = l.autotaskkey AND l.creationdate >= :et ' +
       'WHERE t.id = :id';
@@ -593,9 +597,22 @@ begin
       q.ParamByName('et').AsDateTime := (FTaskList[0] as TgdAutoTask).NextStartTime;
       q.ExecQuery;
 
-      if q.EOF or (q.FieldbyName('disabled').AsInteger <> 0)
-        or ((q.FieldByName('userkey').AsInteger <> 0) and
-          (q.FieldbyName('userkey').AsInteger <> IBLogin.UserKey)) then
+      if q.EOF
+        or (q.FieldbyName('disabled').AsInteger <> 0)
+        or
+          (
+            (q.FieldByName('userkey').AsInteger <> 0)
+            and
+            (q.FieldbyName('userkey').AsInteger <> IBLogin.UserKey)
+          )
+        or
+          (
+            (q.FieldByName('computer').AsString > '')
+            and
+            (not AnsiSameText(q.FieldByName('computer').AsString, GetLocalComputerName))
+            and
+            (not AnsiSameText(q.FieldByName('computer').AsString, GetIPAddress(GetLocalComputerName)))
+          )  then
       begin
         FTaskList.Delete(0);
         continue;
