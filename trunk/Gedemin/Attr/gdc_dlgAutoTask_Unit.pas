@@ -16,9 +16,6 @@ type
     lbStartTime: TLabel;
     lbEndTime: TLabel;
     Label4: TLabel;
-    lbName: TLabel;
-    lbDescription: TLabel;
-    lbUser: TLabel;
     gbTimeTables: TGroupBox;
     Label3: TLabel;
     Label5: TLabel;
@@ -35,6 +32,9 @@ type
     xdbeStartTime: TxDateDBEdit;
     xdbeEndTime: TxDateDBEdit;
     btnClearTime: TButton;
+    lbName: TLabel;
+    lbDescription: TLabel;
+    lbUser: TLabel;
     dbcbDisabled: TDBCheckBox;
     dbedName: TDBEdit;
     dbmDescription: TDBMemo;
@@ -51,11 +51,17 @@ type
     btBackup: TButton;
     iblkupUser: TgsIBLookupComboBox;
     btExecTask: TButton;
+    Label8: TLabel;
+    dbedComputer: TDBEdit;
+    btnIP: TButton;
+    btnCN: TButton;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
     procedure actExecTaskExecute(Sender: TObject);
     procedure actExecTaskUpdate(Sender: TObject);
+    procedure btnCNClick(Sender: TObject);
+    procedure btnIPClick(Sender: TObject);
 
   protected
     procedure Post; override;  
@@ -73,7 +79,8 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gd_security, gd_common_functions, gd_AutoTaskThread;
+  gd_ClassList, gd_security, gd_common_functions, gd_AutoTaskThread,
+  jclSysInfo;
 
 procedure Tgdc_dlgAutoTask.SetupRecord;
 var
@@ -336,6 +343,17 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGAUTOTASK', 'POST', KEYPOST);
   {M}end;
   {END MACRO}
+end;
+
+procedure Tgdc_dlgAutoTask.btnCNClick(Sender: TObject);
+begin
+  gdcObject.FieldByName('computer').AsString := GetLocalComputerName;
+end;
+
+procedure Tgdc_dlgAutoTask.btnIPClick(Sender: TObject);
+begin
+  gdcObject.FieldByName('computer').AsString :=
+    GetIPAddress(GetLocalComputerName);
 end;
 
 initialization
