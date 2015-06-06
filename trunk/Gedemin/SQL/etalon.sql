@@ -21183,6 +21183,19 @@ INSERT INTO GD_BANK
      /* 
       INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
         VALUES (
+          740075,
+          740050,
+          'Автозадачи',
+          '',
+          'TgdcAutoTask',
+          NULL,
+          256,
+          1
+        );
+
+     /* 
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+        VALUES (
           740080,
           740050,
           'Блокировка изменений',
