@@ -52,7 +52,11 @@ uses
   mdf_AddAutoTask;
 
 const
+  {$IFDEF FULL_MODIFY}
   cProcCount = 209;
+  {$ELSE}
+  cProcCount = 59;
+  {$ENDIF}
 
 type
   TModifyProc = record
@@ -94,6 +98,7 @@ type
 
 const
   cProcList: TProcList = (
+    {$IFDEF FULL_MODIFY}
     (ModifyProc: CreateUniqueFunctionName; ModifyVersion: '0000.0001.0000.0034'; NeedDBShutdown: True),
     // Добавление поля branchkey в таблицу at_relations
     (ModifyProc: AddBranchKey; ModifyVersion: '0000.0001.0000.0034'; NeedDBShutdown: True),
@@ -311,6 +316,9 @@ const
     (ModifyProc: ChangeIsCheckNumberType; ModifyVersion: '0000.0001.0000.0152'; NeedDBShutdown: True),
     (ModifyProc: DropRGIndex; ModifyVersion: '0000.0001.0000.0153'; NeedDBShutdown: True),
     (ModifyProc: CreateRGIndex; ModifyVersion: '0000.0001.0000.0154'; NeedDBShutdown: True),
+    {$ENDIF}
+
+    
     (ModifyProc: RegenerateLBRBTree2; ModifyVersion: '0000.0001.0000.0155'; NeedDBShutdown: True),
     (ModifyProc: ConvertBNStatementCommentToBlob; ModifyVersion: '0000.0001.0000.0156'; NeedDBShutdown: True),
     (ModifyProc: ConvertDatePeriodComponent; ModifyVersion: '0000.0001.0000.0158'; NeedDBShutdown: True),

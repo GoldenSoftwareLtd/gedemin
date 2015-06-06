@@ -413,7 +413,7 @@ begin
       'SELECT * FROM gd_autotask ' +
       'WHERE disabled = 0 ' +
       '  AND (userkey IS NULL OR userkey = :uk)' +
-      '  AND (computer IS NULL OR computer = '''' ' +
+      '  AND (COALESCE(computer, '''') = '''' ' +
       '    OR UPPER(computer) = :comp OR computer = :ip)';
     q.ParamByName('uk').AsInteger := IBLogin.UserKey;
     q.ParamByName('comp').AsString := AnsiUpperCase(GetLocalComputerName);
@@ -607,7 +607,7 @@ procedure TgdAutoTaskThread.UpdateTaskList;
   begin
     for I := 0 to FTaskList.Count - 2 do
       for J := I + 1 to FTaskList.Count - 1 do
-        if (FTaskList[I] as TgdAutoTask).Compare(FTaskList[I] as TgdAutoTask) < 0 then
+        if (FTaskList[J] as TgdAutoTask).Compare(FTaskList[I] as TgdAutoTask) < 0 then
           FTaskList.Exchange(J, I);
   end;
 
@@ -632,7 +632,7 @@ begin
       '  ON t.id = l.autotaskkey AND l.creationdate >= :et ' +
       '    AND l.connection_id <> CURRENT_CONNECTION ' +
       '    AND (l.client_address IS NULL ' +
-      '      OR l.client_address = RDB$GET_CONTEXT(''SYSTEM'', ''CLIENT_ADDRESS'')) ' +
+      '      OR l.client_address IS NOT DISTINCT FROM RDB$GET_CONTEXT(''SYSTEM'', ''CLIENT_ADDRESS'')) ' +
       'WHERE t.id = :id';
 
     while C < FTaskList.Count do
