@@ -11152,9 +11152,8 @@ begin
           or(Self.ClassName = 'TgdcAttrUserDefinedLBRBTree') then
         begin
           gdClassList.Add(Self.ClassName, Value, Self.SubType,
-            CgdClassEntry(TgdAttrUserDefinedEntry), '')
-        end
-        else
+            TgdAttrUserDefinedEntry, '')
+        end else
           gdClassList.Add(Self.ClassName, Value, Self.SubType,
             CgdClassEntry(gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType).ClassType), '')
       end
