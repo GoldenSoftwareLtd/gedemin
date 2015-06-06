@@ -259,7 +259,7 @@ begin
           if FOurCompanies.IndexOf(RefID) = -1 then
           begin
             RefID := IBLogin.CompanyKey;
-            AddWarning('Вместо рабочей организации РУИД=' + RUIDToStr(RefRUID) +
+            AddText('Вместо рабочей организации РУИД=' + RUIDToStr(RefRUID) +
               ' подставлена текущая организация.');
           end;
         end;
