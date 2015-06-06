@@ -630,7 +630,9 @@ begin
       'SELECT t.disabled, t.userkey, t.computer, t.pulse, l.creationdate ' +
       'FROM gd_autotask t LEFT JOIN gd_autotask_log l ' +
       '  ON t.id = l.autotaskkey AND l.creationdate >= :et ' +
-      '    AND l.connection_id <> CURRENT_CONNECTION ' +   
+      '    AND l.connection_id <> CURRENT_CONNECTION ' +
+      '    AND (l.client_address IS NULL ' +
+      '      OR l.client_address = RDB$GET_CONTEXT(''SYSTEM'', ''CLIENT_ADDRESS'')) ' +
       'WHERE t.id = :id';
 
     while C < FTaskList.Count do
