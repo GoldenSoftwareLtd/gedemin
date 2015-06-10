@@ -135,7 +135,6 @@ type
   public
     class function ClassDocumentTypeKey: Integer; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
-    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
     property CorrectResult: OleVariant read GetCorrectResult;
@@ -911,12 +910,6 @@ class function TgdcTaxResult.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + stByTax + ';' +
     stByDesignDate + ';' + stByActualFirst + ';';
-end;
-
-class function TgdcTaxResult.GetViewFormClassName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Tgdc_frmTaxResult';
 end;
 
 procedure TgdcTaxResult.GetWhereClauseConditions(S: TStrings);
