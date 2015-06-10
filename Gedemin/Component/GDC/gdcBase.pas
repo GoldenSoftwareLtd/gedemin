@@ -9553,9 +9553,27 @@ begin
       'Имя класса: ' + Self.ClassName + #13#10 +
       'Подтип: ' + ASubType);
 
-  CE := gdClassList.Find(AClassName, ASubType);
+  if AClassName = '' then
+    CE := gdClassList.Find(Self.ClassName, ASubType)
+  else
+    CE := gdClassList.Find(AClassName, ASubType);
+
+  if CE = nil then
+    raise EgdcException.Create('Invalid ClassName or SubType');
+
   if not (CE is TgdFormEntry) then
-    CE := gdClassList.Find(GetViewFormClassName(ASubType), ASubType);
+  begin
+    if CgdcBase(CE.TheClass).GetViewFormClassName(ASubType) = '' then
+    begin
+      Result := nil;
+      exit;
+    end;
+    CE := gdClassList.Find(CgdcBase(CE.TheClass).GetViewFormClassName(ASubType), ASubType);
+  end;
+
+  if CE = nil then
+    raise EgdcException.Create('Invalid ClassName or SubType');
+
   if (CE is TgdFormEntry) and CE.TheClass.InheritsFrom(TgdcCreateableForm) then
   begin
     if ANewInstance then
@@ -15778,9 +15796,9 @@ begin
     Obj.Transaction := Transaction;
 
     if Obj.Owner = nil then
-      F := CreateViewForm(Application, '', Obj.SubType, True)
+      F := CreateViewForm(Application, Obj.ClassName, Obj.SubType, True)
     else
-      F := CreateViewForm(Obj.Owner, '', Obj.SubType, True);
+      F := CreateViewForm(Obj.Owner, Obj.ClassName, Obj.SubType, True);
 
     if F is Tgdc_frmG then  
     begin
