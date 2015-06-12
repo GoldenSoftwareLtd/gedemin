@@ -2143,7 +2143,7 @@ procedure Tgdc_frmG.actDistributeSettingsExecute(Sender: TObject);
 {$INCLUDE distribute_user_settings.pas}
 
 initialization
-  RegisterFrmClass(Tgdc_frmG);
+  RegisterFrmClass(Tgdc_frmG, 'Простая форма');
   Tgdc_frmG.RegisterMethod;
 
 finalization

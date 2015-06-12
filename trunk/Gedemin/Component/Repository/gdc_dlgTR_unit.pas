@@ -91,7 +91,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgTR);
+  RegisterFrmClass(Tgdc_dlgTR, 'Диалог с транзакцией');
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgTR);

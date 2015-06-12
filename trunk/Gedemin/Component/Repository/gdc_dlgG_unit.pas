@@ -2233,7 +2233,7 @@ procedure Tgdc_dlgG.actDistributeUserSettingsExecute(Sender: TObject);
 
 
 initialization
-  RegisterFrmClass(Tgdc_dlgG);
+  RegisterFrmClass(Tgdc_dlgG, 'Простой диалог');
   Tgdc_dlgG.RegisterMethod;
 
 finalization

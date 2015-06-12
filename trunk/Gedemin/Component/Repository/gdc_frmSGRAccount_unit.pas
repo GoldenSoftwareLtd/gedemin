@@ -159,7 +159,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmSGRAccount);
+  RegisterFrmClass(Tgdc_frmSGRAccount, 'Простая форма с гридом и р/с');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmSGRAccount);

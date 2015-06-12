@@ -1269,7 +1269,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDH);
+  RegisterFrmClass(Tgdc_frmMDH, 'Master-detail форма (гориз.)');
   Tgdc_frmMDH.RegisterMethod;
 
 finalization

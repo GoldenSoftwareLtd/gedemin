@@ -592,7 +592,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDHGR);
+  RegisterFrmClass(Tgdc_frmMDHGR, 'Master-detail с гридом');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDHGR);

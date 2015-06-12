@@ -575,7 +575,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvViewRemains);
+  RegisterFrmClass(Tgdc_frmInvViewRemains, 'Форма просмотра остатков');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvViewRemains);
