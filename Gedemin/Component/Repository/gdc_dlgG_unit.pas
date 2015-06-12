@@ -241,6 +241,9 @@ type
     procedure DUnitDoTimer; override;
     {$ENDIF}
 
+    procedure SetFormCaption;
+    function GetFormCaptionPrefix: String; virtual;
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -365,6 +368,8 @@ begin
   gdcObject := AnObject as TgdcBase;
 
   FIsTransaction := gdcObject.Transaction.InTransaction;
+
+  SetFormCaption;
 
   SetupDialog;
   if Assigned(FOnSetupDialog) then
@@ -1472,11 +1477,6 @@ begin
   dsgdcBase.DataSet := gdcObject;
   SyncControls;
 
-  // калі праграміст не прысвоіў загаловак формы, альбо
-  // пакінуў яго пустым, возьмем назоў бізнэс аб'екту
-  if ((Caption = Name) or (Caption = '')) and (gdcObject <> nil) then
-    Caption := gdcObject.GetDisplayName(FSubType);
-
   {$IFDEF DEBUG}
   if FIsTransaction then
     Caption := Caption + ' <InTransaction>';
@@ -2006,6 +2006,32 @@ end;
 procedure Tgdc_dlgG.LockDocument;
 begin
   FRecordLocked := True;
+end;
+
+procedure Tgdc_dlgG.SetFormCaption;
+var
+  CE: TgdClassEntry;
+begin
+  CE := gdClassList.Get(TgdFormEntry, Self.ClassName, Self.SubType);
+
+  if ((CE.Caption <> '') and (CE.Caption <> CE.TheClass.ClassName))
+    or (Self.Caption = '') then
+  begin
+    Self.Caption := GetFormCaptionPrefix + CE.Caption;
+  end;
+
+  if ((Self.Caption = Name) or (Self.Caption = '')) and (gdcObject <> nil) then
+    Self.Caption := GetFormCaptionPrefix + gdcObject.GetDisplayName(FSubType);
+end;
+
+function Tgdc_dlgG.GetFormCaptionPrefix: String;
+begin
+  if gdcObject.State = dsInsert then
+    Result := 'Добавление: '
+  else if gdcObject.State = dsEdit then
+    Result := 'Редактирование: '
+  else
+    Result := 'Просмотр: ';
 end;
 
 {$IFDEF DUNIT_TEST}

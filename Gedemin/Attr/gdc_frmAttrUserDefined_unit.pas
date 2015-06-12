@@ -63,9 +63,8 @@ end;
 procedure Tgdc_frmAttrUserDefined.FormCreate(Sender: TObject);
 begin
   gdcObject := gdcAttrUserDefined;
+
   inherited;
-  if gdcObject <> nil then
-    Self.Caption := gdcObject.GetDisplayName(gdcObject.SubType);
 end;
 
 initialization

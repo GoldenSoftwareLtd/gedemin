@@ -75,9 +75,6 @@ begin
     tvGroup.DisplayField := gdcObject.GetListField(gdcObject.SubType);
 
   inherited;
-
-  if gdcObject <> nil then
-    Self.Caption := gdcObject.GetDisplayName(gdcObject.SubType);
 end;
 
 initialization

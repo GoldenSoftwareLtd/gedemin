@@ -13,6 +13,8 @@ type
     pnlAttributes: TPanel;
     Bevel1: TBevel;
     atAttributes: TatContainer;
+  protected
+    function GetFormCaptionPrefix: String; override;
   end;
 
 var
@@ -26,6 +28,16 @@ uses
   gd_ClassList, gdcClasses, IBSQL, gdcBaseInterface, gdcBase;
 
 { Tgdc_dlgUserDocumentLine }
+
+function Tgdc_dlgUserDocumentLine.GetFormCaptionPrefix: String;
+begin
+  if gdcObject.State = dsInsert then
+    Result := 'Добавление позиции документа: '
+  else if gdcObject.State = dsEdit then
+    Result := 'Редактирование позиции документа: '
+  else
+    Result := 'Просмотр позиции документа: ';
+end;
 
 initialization
   RegisterFrmClass(Tgdc_dlgUserDocumentLine);

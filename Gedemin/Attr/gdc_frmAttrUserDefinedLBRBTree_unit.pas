@@ -72,9 +72,6 @@ begin
   gdcDetailObject.SubType := FSubType;
 
   inherited;
-
-  if gdcObject <> nil then
-    Self.Caption := gdcObject.GetDisplayName(gdcObject.SubType);
 end;
 
 initialization

@@ -48,7 +48,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAutoTask);
+  RegisterFrmClass(Tgdc_frmAutoTask, 'Автозадачи');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAutoTask);

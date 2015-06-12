@@ -281,6 +281,9 @@ type
 
     procedure DoOnFilterChanged(Sender: TObject); virtual;
 
+    procedure SetFormCaption;
+    function GetFormCaptionPrefix: String; virtual;
+
     //
     procedure SetupSearchPanel(Obj: TgdcBase;
       PN: TPanel;
@@ -762,6 +765,27 @@ begin
   end;
 end;
 
+procedure Tgdc_frmG.SetFormCaption;
+var
+  CE: TgdClassEntry;
+begin
+  CE := gdClassList.Get(TgdFormEntry, Self.ClassName, Self.SubType);
+
+  if ((CE.Caption <> '') and (CE.Caption <> CE.TheClass.ClassName))
+    or (Self.Caption = '') then
+  begin
+    Self.Caption := GetFormCaptionPrefix + CE.Caption
+  end;
+
+  if Self.Caption = '' then
+    Self.Caption := GetFormCaptionPrefix + Self.Name;
+end;
+
+function Tgdc_frmG.GetFormCaptionPrefix: String;
+begin
+  Result := '';
+end;
+
 procedure Tgdc_frmG.SetGdcObject(const Value: TgdcBase);
 begin
   if FgdcObject <> Value then
@@ -974,6 +998,8 @@ begin
   finally
     OL.Free;
   end;
+
+  SetFormCaption;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMG', 'SETUP', KEYSETUP)}
   {M}finally

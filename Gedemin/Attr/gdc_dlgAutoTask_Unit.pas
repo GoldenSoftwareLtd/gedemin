@@ -316,7 +316,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgAutoTask);
+  RegisterFrmClass(Tgdc_dlgAutoTask, 'Автозадача');
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAutoTask);

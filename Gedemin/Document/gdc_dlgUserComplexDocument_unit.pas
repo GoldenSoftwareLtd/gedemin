@@ -30,6 +30,7 @@ type
   protected
     procedure SetupRecord; override;
     procedure Post; override;
+    function GetFormCaptionPrefix: String; override;
 
   public
     procedure SetupDialog; override;
@@ -137,15 +138,12 @@ begin
   if not IsAutoCommit then
     ActivateTransaction(gdcObject.Transaction);
 
-  Caption := (gdcObject as TgdcUserBaseDocument).DocumentName;
-
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERCOMPLEXDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
   {M}    ClearMacrosStack('TGDC_DLGUSERCOMPLEXDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD);
   {M}end;
   {END MACRO}
-
 end;
 
 procedure Tgdc_dlgUserComplexDocument.actDetailMacroExecute(
@@ -294,6 +292,16 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGUSERCOMPLEXDOCUMENT', 'POST', KEYPOST);
   {M}end;
   {END MACRO}
+end;
+
+function Tgdc_dlgUserComplexDocument.GetFormCaptionPrefix: String;
+begin
+  if gdcObject.State = dsInsert then
+    Result := 'Добавление документа: '
+  else if gdcObject.State = dsEdit then
+    Result := 'Редактирование документа: '
+  else
+    Result := 'Просмотр документа: ';
 end;
 
 initialization
