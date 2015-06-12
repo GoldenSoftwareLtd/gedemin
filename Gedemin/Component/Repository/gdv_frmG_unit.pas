@@ -272,7 +272,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdv_frmG);
+  RegisterFrmClass(Tgdv_frmG, 'Форма просмотра бухгалтерского отчета');
 
 finalization
   UnRegisterFrmClass(Tgdv_frmG);

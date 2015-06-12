@@ -754,7 +754,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgTRPC);
+  RegisterFrmClass(Tgdc_dlgTRPC, 'Диалог с закладками');
   Tgdc_dlgTRPC.RegisterMethod;
 
 finalization

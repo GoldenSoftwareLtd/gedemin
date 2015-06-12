@@ -411,7 +411,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmSGR);
+  RegisterFrmClass(Tgdc_frmSGR, 'Простая форма с гридом');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmSGR);

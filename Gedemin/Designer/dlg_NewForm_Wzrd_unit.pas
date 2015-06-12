@@ -178,48 +178,6 @@ end;
 procedure Tdlg_NewForm_Wzrd.FormCreate(Sender: TObject);
 var
   I: Integer;
-
-  function GetClassDescription(const AName: String): String;
-  var
-    S: String;
-  begin
-
-    S := UpperCase(AName);
-    if S = 'TGDC_DLGG' then
-      Result :=	'Простой диалог'
-    else if S = 'TGDC_DLGTR' then
-      Result := 'Диалог с транзакцией'
-    else if S = 'TGDC_DLGTRPC' then
-      Result := 'Диалог с закладками'
-    else if S = 'TGDC_DLGHGR' then
-      Result := 'Диалог с гридом'
-    else if S = 'TGDC_FRMG' then
-      Result := 'Простая форма'
-    else if S = 'TGDC_FRMMDH' then
-      Result := 'Master-detail форма (гориз.)'
-    else if S = 'TGDC_FRMMDHGR' then
-      Result := 'Master-detail с гридом'
-    else if S = 'TGDC_FRMMDHGRACCOUNT' then
-      Result := 'Master-detail форма с гридом и р/с'
-    else if S = 'TGDC_FRMMDV' then
-      Result := 'Master-detail форма (вер.)'
-    else if S = 'TGDC_FRMMDVGR' then
-      Result := 'Master-detail форма с гридом'
-    else if S = 'TGDC_FRMMDVTREE' then
-      Result := 'Дерево с гридом'
-    else if S = 'TGDC_FRMSGR' then
-      Result := 'Простая форма с гридом'
-    else if S = 'TGDC_FRMSGRACCOUNT' then
-      Result := 'Простая форма с гридом и р/с'
-    else if S = 'TGDC_FRMINVVIEWREMAINS' then
-      Result := 'Форма просмотра остатков'
-    else if S = 'TGDV_FRMG' then
-      Result := 'Форма просмотра бухгалтерского отчета'
-    else if S = 'TGDC_FRMMD2H' then
-      Result := 'Master-detail-subdetail форма'
-    else Result := '';
-  end;
-
 begin
   FSubTypeList := TStringList.Create;
   rbSimplyForm.Checked := True;
@@ -233,7 +191,9 @@ begin
   cbFormType.Clear;
   for I := 0 to AncestorFormList.Count - 1 do
   begin
-    cbFormType.Items.AddObject(GetClassDescription(AncestorFormList[I].ClassName) + ' (' + AncestorFormList[I].ClassName + ')', Pointer(I));
+    cbFormType.Items.AddObject(
+      gdClassList.Get(TgdFormEntry, AncestorFormList[I].ClassName).Caption
+      + ' (' + AncestorFormList[I].ClassName + ')', Pointer(I));
   end;
 end;
 

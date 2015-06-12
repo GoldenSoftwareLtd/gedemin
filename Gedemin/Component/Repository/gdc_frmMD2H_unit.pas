@@ -426,7 +426,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMD2H);
+  RegisterFrmClass(Tgdc_frmMD2H, 'Master-detail-subdetail форма');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMD2H);

@@ -927,7 +927,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDVTree);
+  RegisterFrmClass(Tgdc_frmMDVTree, 'Дерево с гридом');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDVTree);
