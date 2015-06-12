@@ -1478,24 +1478,27 @@ begin
 
     for I := 0 to CIs.Count - 1 do
     begin
-      DE := gdClassList.FindDocByTypeID(Document.DocumentTypeKey, CIs[i].DocumentPart);
-      if DE.FindParentByDocumentTypeKey(CIs[i].DocumentTypeKey, CIs[i].DocumentPart) <> nil then
+      if CIs[i].DocumentPart = Document.GetDocumentClassPart then
       begin
-        FTrRecordKey := CIs[i].TrRecordKey;
-        FRecordAdded := False;
-        FunctionKey := CIs[I].FunctionKey;
-        if not EmptyEntry then
+        DE := gdClassList.FindDocByTypeID(Document.DocumentTypeKey, CIs[i].DocumentPart);
+        if DE.FindParentByDocumentTypeKey(CIs[i].DocumentTypeKey, CIs[i].DocumentPart) <> nil then
         begin
-          if FunctionKey > 0 then
+          FTrRecordKey := CIs[i].TrRecordKey;
+          FRecordAdded := False;
+          FunctionKey := CIs[I].FunctionKey;
+          if not EmptyEntry then
           begin
-            {$IFDEF DEBUGMOVE}
-             T := GetTickCount;
-            {$ENDIF}
-            LParams := VarArrayOf([GetGdcOLEObject(Self) as IDispatch, GetGdcOLEObject(Document) as IDispatch]);
-            ScriptFactory.ExecuteFunction(FunctionKey,  LParams, LResult);
-            {$IFDEF DEBUGMOVE}
-             ExecuteFunction := ExecuteFunction + GetTickCount - T;
-            {$ENDIF}
+            if FunctionKey > 0 then
+            begin
+              {$IFDEF DEBUGMOVE}
+               T := GetTickCount;
+              {$ENDIF}
+              LParams := VarArrayOf([GetGdcOLEObject(Self) as IDispatch, GetGdcOLEObject(Document) as IDispatch]);
+              ScriptFactory.ExecuteFunction(FunctionKey,  LParams, LResult);
+              {$IFDEF DEBUGMOVE}
+               ExecuteFunction := ExecuteFunction + GetTickCount - T;
+              {$ENDIF}
+            end;
           end;
         end;
       end;
