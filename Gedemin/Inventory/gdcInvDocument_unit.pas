@@ -3770,7 +3770,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  SaveHeader;
+//  SaveHeader;
   inherited;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTLINE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
   {M}  finally
