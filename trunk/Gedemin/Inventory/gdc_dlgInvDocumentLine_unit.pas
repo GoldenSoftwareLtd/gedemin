@@ -72,6 +72,9 @@ type
 
     procedure OnSubLineMovementOptionFieldChange(Field: TField);
 
+  protected
+    function GetFormCaptionPrefix: String; override;
+
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -663,6 +666,16 @@ begin
   end;
 end;
 
+function TdlgInvDocumentLine.GetFormCaptionPrefix: String;
+begin
+  if gdcObject.State = dsInsert then
+    Result := 'Добавление позиции документа: '
+  else if gdcObject.State = dsEdit then
+    Result := 'Просмотр позиции документа: '
+  else
+    Result := 'Просмотр позиции документа: ';
+end;
+
 procedure TdlgInvDocumentLine.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
@@ -731,17 +744,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+  
   inherited;
 
-  if DocumentLine.State = dsInsert then
-    Caption := 'Добавление позиции документа: ' + DocumentLine.DocumentName
-  else
-  if DocumentLine.State = dsEdit then
-    Caption := 'Редактирование позиции документа: ' + DocumentLine.DocumentName
-  else
-    Caption := 'Позиции документа: ' + DocumentLine.DocumentName;
-
-  //
   //  Настройка используемых справочников
 
   ButtonCount := 0;

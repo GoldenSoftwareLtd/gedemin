@@ -35,9 +35,6 @@ type
   Tgdc_dlgAttrUserDefined = class(Tgdc_dlgTR)
     pnlMain: TPanel;
     atAttributes: TatContainer;
-
-  public
-    procedure SetupDialog; override;
   end;
 
 var
@@ -47,53 +44,9 @@ implementation
 {$R *.DFM}
 
 uses
-  at_classes, Storages, gd_ClassList, gdcBase;
+  gd_ClassList;
 
 { Tgdc_dlgAttrUserDefined }
-
-procedure Tgdc_dlgAttrUserDefined.SetupDialog;
-var
-  {@UNFOLD MACRO INH_CRFORM_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGATTRUSERDEFINED', 'SETUPDIALOG', KEYSETUPDIALOG)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGATTRUSERDEFINED', KEYSETUPDIALOG);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUPDIALOG]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGATTRUSERDEFINED') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGATTRUSERDEFINED',
-  {M}          'SETUPDIALOG', KEYSETUPDIALOG, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGATTRUSERDEFINED' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-  if gdcObject.State = dsInsert then
-    Caption := 'Добавление: ' + gdcObject.GetDisplayName(gdcObject.SubType)
-  else if gdcObject.State = dsEdit then
-    Caption := 'Редактирование: ' + gdcObject.GetDisplayName(gdcObject.SubType)
-  else
-    Caption := 'Просмотр: ' + gdcObject.GetDisplayName(gdcObject.SubType);
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGATTRUSERDEFINED', 'SETUPDIALOG', KEYSETUPDIALOG)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGATTRUSERDEFINED', 'SETUPDIALOG', KEYSETUPDIALOG);
-  {M}end;
-  {END MACRO}
-end;
 
 initialization
   RegisterFrmClass(Tgdc_dlgAttrUserDefined);

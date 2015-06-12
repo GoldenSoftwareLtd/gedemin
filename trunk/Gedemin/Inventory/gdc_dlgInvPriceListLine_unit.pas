@@ -19,6 +19,10 @@ type
 
     function GetDocument: TgdcInvPriceList;
     function GetDocumentLine: TgdcInvPriceListLine;
+
+  protected
+    function GetFormCaptionPrefix: String; override;
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -85,6 +89,16 @@ end;
 function TdlgInvPriceLine.GetDocumentLine: TgdcInvPriceListLine;
 begin
   Result := gdcObject as TgdcInvPriceListLine;
+end;
+
+function TdlgInvPriceLine.GetFormCaptionPrefix: String;
+begin
+  if gdcObject.State = dsInsert then
+    Result := 'Добавление позиции: '
+  else if gdcObject.State = dsEdit then
+    Result := 'Редактирование позиции: '
+  else
+    Result := 'Просмотр позиции: ';
 end;
 
 constructor TdlgInvPriceLine.Create(AnOwner: TComponent);

@@ -17,6 +17,9 @@ type
       FieldAliases: TStringList);
     procedure FormCreate(Sender: TObject);
 
+  protected
+    function GetFormCaptionPrefix: String; override;
+
   public
     procedure SetupDialog; override;
   end;
@@ -73,6 +76,16 @@ begin
   end;
 end;
 
+function Tgdc_dlgUserSimpleDocument.GetFormCaptionPrefix: String;
+begin
+  if gdcObject.State = dsInsert then
+    Result := 'Добавление документа: '
+  else if gdcObject.State = dsEdit then
+    Result := 'Редактирование документа: '
+  else
+    Result := 'Просмотр документа: ';
+end;
+
 procedure Tgdc_dlgUserSimpleDocument.SetupDialog;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
   {M}VAR
@@ -103,8 +116,6 @@ begin
   inherited;
 
   pnlHolding.Visible := IBLogin.IsHolding;
-
-  Caption := (gdcObject as TgdcUserBaseDocument).DocumentName;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERSIMPLEDOCUMENT', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally

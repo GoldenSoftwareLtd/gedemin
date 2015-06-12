@@ -40,6 +40,10 @@ type
     function GetAssignFieldsName: String;
     function GetEditedFieldsName: String;
     procedure SetEditedFieldsName(const Value: String);
+
+  protected
+    function GetFormCaptionPrefix: String; override;
+
   public
     constructor Create(AnOwner: TComponent); override;
     destructor  Destroy; override;
@@ -527,6 +531,11 @@ begin
 
   FEditedFieldList.Assign(TmpList);
   AllowEditColumns;  
+end;
+
+function Tgdc_frmInvSelectedGoods.GetFormCaptionPrefix: String;
+begin
+  Result := 'Выбор товаров: ';
 end;
 
 procedure Tgdc_frmInvSelectedGoods.AllowEditColumns;

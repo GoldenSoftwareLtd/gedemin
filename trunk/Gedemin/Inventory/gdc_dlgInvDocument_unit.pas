@@ -198,6 +198,8 @@ type
     procedure SetupDialog; override;
     procedure SetupTransaction; override;
 
+    function GetFormCaptionPrefix: String; override;
+
   public
     constructor Create(AnOwner: TComponent); override;
     constructor CreateNewUser(AnOwner: TComponent; const Dummy: Integer; const ASubType: String = ''); override;
@@ -2857,13 +2859,6 @@ begin
 
   Path := BuildComponentPath(Self);
 
-  if Document.State = dsInsert then
-    Caption := 'Добавление документа: ' + Document.DocumentName
-  else
-
-  if Document.State = dsEdit then
-    Caption := 'Редактирование документа: ' + Document.DocumentName;
-
   SetupDetailPart;
 
   E2 := OnSubMovementOptionFieldChange;
@@ -3149,6 +3144,16 @@ begin
   inherited;
   if not FisAutoCommit then
     ActivateTransaction(gdcObject.Transaction);
+end;
+
+function TdlgInvDocument.GetFormCaptionPrefix: String;
+begin
+  if gdcObject.State = dsInsert then
+    Result := 'Добавление документа: '
+  else if gdcObject.State = dsEdit then
+    Result := 'Редактирование документа: '
+  else
+    Result := 'Просмотр документа: ';
 end;
 
 procedure TdlgInvDocument.FormCreate(Sender: TObject);
