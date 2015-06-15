@@ -18,9 +18,6 @@ type
       Checked: Boolean);
     procedure FormCreate(Sender: TObject);
 
-  protected
-    function GetFormCaptionPrefix: String; override;
-
   public
      procedure Setup(anObject: TObject); override;
   end;
@@ -34,11 +31,6 @@ implementation
 
 uses
   Storages,  gd_ClassList;
-
-function Tgdc_frmInvSelectGoodRemains.GetFormCaptionPrefix: String;
-begin
-  Result := 'Выбор остатков: ';
-end;
 
 procedure Tgdc_frmInvSelectGoodRemains.Setup(anObject: TObject);
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -110,7 +102,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectGoodRemains);
+  RegisterFrmClass(Tgdc_frmInvSelectGoodRemains, 'Выбор остатков');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectGoodRemains);

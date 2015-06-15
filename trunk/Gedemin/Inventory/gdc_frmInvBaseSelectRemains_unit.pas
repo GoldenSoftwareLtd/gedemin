@@ -144,6 +144,8 @@ begin
     IsSetup := False;
   end;
 
+  SetFormCaption;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMINVBASESELECTREMAINS', 'SETUP', KEYSETUP)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then

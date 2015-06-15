@@ -69,8 +69,6 @@ type
     procedure DoDestroy; override;
     function CheckHolding: Boolean; override;
 
-    function GetFormCaptionPrefix: String; override;
-
   public
     property CurrentCompany: Integer read FCurrentCompany;
   end;
@@ -554,11 +552,6 @@ begin
   Result := IsHolding;
 end;
 
-function Tgdc_frmInvViewRemains.GetFormCaptionPrefix: String;
-begin
-  Result := 'Остатки ТМЦ: ';
-end;
-
 procedure Tgdc_frmInvViewRemains.gdcInvRemainsAfterOpen(DataSet: TDataSet);
 begin
   inherited;
@@ -575,7 +568,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvViewRemains, 'Форма просмотра остатков');
+  RegisterFrmClass(Tgdc_frmInvViewRemains, 'Остатки ТМЦ');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvViewRemains);

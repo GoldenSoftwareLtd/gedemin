@@ -2012,16 +2012,21 @@ procedure Tgdc_dlgG.SetFormCaption;
 var
   CE: TgdClassEntry;
 begin
-  CE := gdClassList.Get(TgdFormEntry, Self.ClassName, Self.SubType);
-
-  if ((CE.Caption <> '') and (CE.Caption <> CE.TheClass.ClassName))
-    or (Self.Caption = '') then
+  if gdcObject <> nil then
   begin
-    Self.Caption := GetFormCaptionPrefix + CE.Caption;
+    CE := gdClassList.Get(TgdClassEntry, gdcObject.ClassName, gdcObject.SubType);
+
+    if (CE.Caption <> '') and (CE.Caption <> gdcObject.ClassName) then
+      Self.Caption := CE.Caption
+    else
+    begin
+      CE := gdClassList.Get(TgdFormEntry, Self.ClassName, '');
+      if (CE.Caption <> '') and (CE.Caption <> Self.ClassName) then
+        Self.Caption := CE.Caption
+    end;
   end;
 
-  if ((Self.Caption = Name) or (Self.Caption = '')) and (gdcObject <> nil) then
-    Self.Caption := GetFormCaptionPrefix + gdcObject.GetDisplayName(FSubType);
+  Self.Caption := GetFormCaptionPrefix + Self.Caption;
 end;
 
 function Tgdc_dlgG.GetFormCaptionPrefix: String;
