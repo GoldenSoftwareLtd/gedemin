@@ -105,7 +105,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectRemains);
+  RegisterFrmClass(Tgdc_frmInvSelectRemains, 'Выбор остатков');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectRemains);

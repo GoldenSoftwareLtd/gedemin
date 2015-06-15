@@ -281,8 +281,7 @@ type
 
     procedure DoOnFilterChanged(Sender: TObject); virtual;
 
-    procedure SetFormCaption;
-    function GetFormCaptionPrefix: String; virtual;
+    procedure SetFormCaption; virtual;
 
     //
     procedure SetupSearchPanel(Obj: TgdcBase;
@@ -769,21 +768,24 @@ procedure Tgdc_frmG.SetFormCaption;
 var
   CE: TgdClassEntry;
 begin
-  CE := gdClassList.Get(TgdFormEntry, Self.ClassName, Self.SubType);
+  CE := gdClassList.Get(TgdFormEntry, Self.ClassName, '');
 
-  if ((CE.Caption <> '') and (CE.Caption <> CE.TheClass.ClassName))
-    or (Self.Caption = '') then
+  if (gdcObject <> nil) and (gdcObject.SubType <> '') then
   begin
-    Self.Caption := GetFormCaptionPrefix + CE.Caption
-  end;
+    Self.Caption := '';
 
-  if Self.Caption = '' then
-    Self.Caption := GetFormCaptionPrefix + Self.Name;
-end;
+    if (CE.Caption <> '') and (CE.Caption <> Self.ClassName) then
+      Self.Caption := CE.Caption;
 
-function Tgdc_frmG.GetFormCaptionPrefix: String;
-begin
-  Result := '';
+    CE := gdClassList.Get(TgdClassEntry, gdcObject.ClassName, gdcObject.SubType);
+
+    if Self.Caption = '' then
+      Self.Caption := CE.Caption
+    else
+      Self.Caption := Self.Caption + ': ' + CE.Caption;
+  end
+  else if (CE.Caption <> '') and (CE.Caption <> Self.ClassName) then
+    Self.Caption := CE.Caption;
 end;
 
 procedure Tgdc_frmG.SetGdcObject(const Value: TgdcBase);

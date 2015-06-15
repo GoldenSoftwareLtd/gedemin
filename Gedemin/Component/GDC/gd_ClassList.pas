@@ -1591,7 +1591,7 @@ begin
           ParentST := Prnt.SubType;
         end else
           ParentST := '';
-        Add(CN, ASubType, ParentST, TgdFormEntry, ACaption);
+        Add(CN, ASubType, ParentST, TgdFormEntry, '');
       end;
 
       CN := CgdcBase(AClass).GetViewFormClassName(ASubType);
@@ -1603,7 +1603,7 @@ begin
           ParentST := Prnt.SubType;
         end else
           ParentST := '';
-        Add(CN, ASubType, ParentST, TgdDocumentEntry, ACaption);
+        Add(CN, ASubType, ParentST, TgdDocumentEntry, '');
       end;
     end;
   end;
@@ -1864,9 +1864,9 @@ begin
         ParentST := '';
 
       CN := 'Tgdc_dlgUserComplexDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, ACE.Caption);
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
       CN := 'Tgdc_dlgUserSimpleDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, ACE.Caption);
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
     end
     else
     begin
@@ -1879,7 +1879,7 @@ begin
           ParentST := ACE.Parent.SubType;
         end else
           ParentST := '';
-        Add(CN, ACE.SubType, ParentST, TgdFormEntry, ACE.Caption);
+        Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
       end;
     end;
 
@@ -1892,9 +1892,9 @@ begin
         ParentST := '';
 
       CN := 'Tgdc_frmUserSimpleDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, ACE.Caption);
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
       CN := 'Tgdc_frmUserComplexDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, ACE.Caption);
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
     end
     else
     begin
@@ -1907,7 +1907,7 @@ begin
           ParentST := ACE.Parent.SubType;
         end else
           ParentST := '';
-        Add(CN, ACE.SubType, ParentST, TgdFormEntry, ACE.Caption);
+        Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
       end;
     end;
     

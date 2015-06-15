@@ -41,9 +41,6 @@ type
     function GetEditedFieldsName: String;
     procedure SetEditedFieldsName(const Value: String);
 
-  protected
-    function GetFormCaptionPrefix: String; override;
-
   public
     constructor Create(AnOwner: TComponent); override;
     destructor  Destroy; override;
@@ -533,11 +530,6 @@ begin
   AllowEditColumns;  
 end;
 
-function Tgdc_frmInvSelectedGoods.GetFormCaptionPrefix: String;
-begin
-  Result := 'Выбор товаров: ';
-end;
-
 procedure Tgdc_frmInvSelectedGoods.AllowEditColumns;
 begin
 end;
@@ -548,7 +540,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectedGoods);
+  RegisterFrmClass(Tgdc_frmInvSelectedGoods, 'Выбор товаров');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectedGoods);
