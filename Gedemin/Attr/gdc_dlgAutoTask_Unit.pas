@@ -275,25 +275,29 @@ procedure Tgdc_dlgAutoTask.actExecTaskExecute(Sender: TObject);
 var
   Task: TgdAutoTask;
 begin
-  if pcTask.ActivePage = tsFunction then
-  begin
-    Task := TgdAutoFunctionTask.Create;
-    (Task as TgdAutoFunctionTask).FunctionKey := iblkupFunction.CurrentKeyInt;
-  end
-  else if pcTask.ActivePage = tsCmd then
-  begin
-    Task := TgdAutoCmdTask.Create;
-    (Task as TgdAutoCmdTask).CmdLine := dbeCmdLine.Text;
-  end
-  else if pcTask.ActivePage = tsBackup then
-  begin
-    Task := TgdAutoBackupTask.Create;
-    (Task as TgdAutoBackupTask).BackupFile := dbeBackup.Text;
-  end else
-    Task := nil;
+  Task := nil;
+  try
+    if pcTask.ActivePage = tsFunction then
+    begin
+      Task := TgdAutoFunctionTask.Create;
+      (Task as TgdAutoFunctionTask).FunctionKey := iblkupFunction.CurrentKeyInt;
+    end
+    else if pcTask.ActivePage = tsCmd then
+    begin
+      Task := TgdAutoCmdTask.Create;
+      (Task as TgdAutoCmdTask).CmdLine := dbeCmdLine.Text;
+    end
+    else if pcTask.ActivePage = tsBackup then
+    begin
+      Task := TgdAutoBackupTask.Create;
+      (Task as TgdAutoBackupTask).BackupFile := dbeBackup.Text;
+    end;
 
-  if Task <> nil then
-    Task.TaskExecuteForDlg;
+    if Task <> nil then
+      Task.TaskExecuteForDlg;
+  finally
+    FreeAndNil(Task);
+  end;
 end;
 
 procedure Tgdc_dlgAutoTask.actExecTaskUpdate(Sender: TObject);
