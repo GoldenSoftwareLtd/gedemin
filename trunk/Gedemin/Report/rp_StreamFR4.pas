@@ -296,7 +296,7 @@ begin
       end;
     finally
       FExportFilter.ShowDialog := True;
-      FreeAndNil(FExportFilter);
+      //FreeAndNil(FExportFilter);
     end;
   end;
 end;
