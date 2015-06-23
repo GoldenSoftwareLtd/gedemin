@@ -549,8 +549,8 @@ end;
 procedure TgdAutoTaskThread.SetInitialDelay;
 begin
   Resume;
-  SetTimeOut(5 {* 60} * 1000);
-  SendNotification('Запуск автозадач через 5 секунд.');
+  SetTimeOut(2 * 60 * 1000);
+  SendNotification('Запуск автозадач через 2 минуты.');
 end;
 
 procedure TgdAutoTaskThread.FindAndExecuteTask;

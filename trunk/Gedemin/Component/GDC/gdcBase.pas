@@ -9524,6 +9524,7 @@ class function TgdcBase.CreateViewForm(AnOwner: TComponent;
   const AClassName: String = ''; const ASubType: String = '';
   const ANewInstance: Boolean = False): TForm;
 var
+  CN: String;
   CE: TgdClassEntry;
   F: TgdcCreateableForm;
 begin
@@ -9554,25 +9555,11 @@ begin
       'Подтип: ' + ASubType);
 
   if AClassName = '' then
-    CE := gdClassList.Find(Self.ClassName, ASubType)
+    CN := GetViewFormClassName(ASubType)
   else
-    CE := gdClassList.Find(AClassName, ASubType);
+    CN := AClassName;
 
-  if CE = nil then
-    raise EgdcException.Create('Invalid ClassName or SubType');
-
-  if not (CE is TgdFormEntry) then
-  begin
-    if CgdcBase(CE.TheClass).GetViewFormClassName(ASubType) = '' then
-    begin
-      Result := nil;
-      exit;
-    end;
-    CE := gdClassList.Find(CgdcBase(CE.TheClass).GetViewFormClassName(ASubType), ASubType);
-  end;
-
-  if CE = nil then
-    raise EgdcException.Create('Invalid ClassName or SubType');
+  CE := gdClassList.Find(CN, ASubType);
 
   if (CE is TgdFormEntry) and CE.TheClass.InheritsFrom(TgdcCreateableForm) then
   begin
@@ -9593,7 +9580,12 @@ begin
       Result := F;
     end;
   end else
-    Result := nil;
+  begin
+    if CN = '' then
+      Result := nil
+    else
+      raise EgdcException.Create('Invalid view form class name or subtype: ' + CN + ASubType);
+  end;
 end;
 
 procedure TgdcBase.SetSubSet(const Value: TgdcSubSet);
@@ -15796,9 +15788,9 @@ begin
     Obj.Transaction := Transaction;
 
     if Obj.Owner = nil then
-      F := CreateViewForm(Application, Obj.ClassName, Obj.SubType, True)
+      F := CreateViewForm(Application, '', Obj.SubType, True)
     else
-      F := CreateViewForm(Obj.Owner, Obj.ClassName, Obj.SubType, True);
+      F := CreateViewForm(Obj.Owner, '', Obj.SubType, True);
 
     if F is Tgdc_frmG then  
     begin
