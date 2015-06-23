@@ -162,7 +162,11 @@ procedure TReportFactory.ShowForm(
   const FReportInterface: IgsReportBuilder);
 begin
   if FReportInterface.ExportType <> etNone then
-    FReportInterface.ExportReport(FReportInterface.ExportType, FReportInterface.FileName)
+  begin
+    FReportInterface.ExportReport(FReportInterface.ExportType, FReportInterface.FileName);
+    // возможно здесь правильнее будет получить объект и его уничтожить
+    FReportInterface._Release;
+  end
   else if FReportInterface.Preview then
     FReportInterface.BuildReport
   else
