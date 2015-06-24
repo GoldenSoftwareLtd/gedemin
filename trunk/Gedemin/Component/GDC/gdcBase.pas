@@ -15788,9 +15788,9 @@ begin
     Obj.Transaction := Transaction;
 
     if Obj.Owner = nil then
-      F := CreateViewForm(Application, '', Obj.SubType, True)
+      F := Obj.CreateViewForm(Application, '', Obj.SubType, True)
     else
-      F := CreateViewForm(Obj.Owner, '', Obj.SubType, True);
+      F := Obj.CreateViewForm(Obj.Owner, '', Obj.SubType, True);
 
     if F is Tgdc_frmG then  
     begin
