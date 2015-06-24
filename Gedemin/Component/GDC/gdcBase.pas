@@ -3378,7 +3378,7 @@ var
   MasterObject, DetailObject, CopyObject: TgdcBase;
   LinkObj, LinkCopy: TgdcBase;
   DS: TDataSource;
-  C, CFull: TgdcFullClass;
+  C, CFull, CB: TgdcFullClass;
   I, J: Integer;
   LinkTableList: TStringList;
   OL: TObjectList;
@@ -3606,7 +3606,8 @@ begin
               and (ConstraintField = Relation.PrimaryKey.ConstraintFields[0])
               and (Pos('USR$', Relation.RelationName) = 1) then
             begin
-              if GetBaseClassForRelation(Relation.RelationName).gdClass.ClassName = 'TgdcAttrUserDefined' then
+              CB := GetBaseClassForRelation(Relation.RelationName);
+              if (CB.gdClass <> nil) and (CB.gdClass.ClassName = 'TgdcAttrUserDefined') then
               begin
                 // возможно, что на форме присутствует уже бизнес-объект
                 // связанный с нашим объектов. Скопируем его механизмом
