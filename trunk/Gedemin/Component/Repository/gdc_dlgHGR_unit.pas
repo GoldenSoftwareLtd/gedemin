@@ -440,7 +440,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgHGR, 'Диалог с гридом');
+  RegisterFrmClass(Tgdc_dlgHGR, 'Диалоговое окно с таблицей');
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgHGR);

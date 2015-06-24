@@ -225,7 +225,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDHGRAccount, 'Master-detail форма с гридом и р/с');
+  RegisterFrmClass(Tgdc_frmMDHGRAccount, 'Master-detail форма с таблицей и выбором р/с');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDHGRAccount);

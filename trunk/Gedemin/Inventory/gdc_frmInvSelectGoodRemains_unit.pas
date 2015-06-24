@@ -102,7 +102,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectGoodRemains, 'Выбор остатков');
+  RegisterFrmClass(Tgdc_frmInvSelectGoodRemains, 'Форма выбора товарных остатков');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectGoodRemains);
