@@ -7,13 +7,13 @@ inherited gdc_frmSGRAccount: Tgdc_frmSGRAccount
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 385
-    Width = 607
+    Top = 374
+    Width = 599
   end
   inherited TBDockTop: TTBDock
-    Width = 607
+    Width = 599
     inherited tbMainCustom: TTBToolbar
-      Left = 468
+      Left = 460
       object TBControlItem1: TTBControlItem
         Control = ibcmbAccount
       end
@@ -39,53 +39,53 @@ inherited gdc_frmSGRAccount: Tgdc_frmSGRAccount
       end
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 435
+      Left = 427
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 327
+    Height = 314
   end
   inherited TBDockRight: TTBDock
-    Left = 598
-    Height = 327
+    Left = 590
+    Height = 314
   end
   inherited TBDockBottom: TTBDock
-    Top = 376
-    Width = 607
+    Top = 365
+    Width = 599
   end
   inherited pnlWorkArea: TPanel
-    Width = 589
-    Height = 327
+    Width = 581
+    Height = 314
     inherited spChoose: TSplitter
-      Top = 225
-      Width = 589
+      Top = 211
+      Width = 581
     end
     inherited pnlMain: TPanel
-      Width = 589
-      Height = 225
+      Width = 581
+      Height = 211
       inherited pnlSearchMain: TPanel
-        Height = 225
+        Height = 211
         inherited sbSearchMain: TScrollBox
-          Height = 187
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 187
+          Height = 184
         end
       end
       inherited ibgrMain: TgsIBGrid
-        Width = 429
-        Height = 225
+        Width = 421
+        Height = 211
         Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
       end
     end
     inherited pnChoose: TPanel
-      Top = 228
-      Width = 589
+      Top = 215
+      Width = 581
       inherited pnButtonChoose: TPanel
-        Left = 484
+        Left = 476
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 484
+        Width = 476
+      end
+      inherited pnlChooseCaption: TPanel
+        Width = 581
       end
     end
   end
