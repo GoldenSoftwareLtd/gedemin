@@ -540,7 +540,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectedGoods, 'Выбор товаров');
+  RegisterFrmClass(Tgdc_frmInvSelectedGoods, 'Форма выбора товаров');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectedGoods);

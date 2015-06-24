@@ -592,7 +592,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDHGR, 'Master-detail с гридом');
+  RegisterFrmClass(Tgdc_frmMDHGR, 'Master-detail форма с таблицей');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDHGR);

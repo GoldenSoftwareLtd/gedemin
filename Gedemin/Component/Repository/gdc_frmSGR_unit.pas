@@ -411,7 +411,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmSGR, 'Простая форма с гридом');
+  RegisterFrmClass(Tgdc_frmSGR, 'Форма просмотра с таблицей');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmSGR);

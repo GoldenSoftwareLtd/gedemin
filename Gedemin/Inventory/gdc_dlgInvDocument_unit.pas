@@ -3239,7 +3239,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvDocument, 'Диалог шапки складского документа');
+  RegisterFrmClass(TdlgInvDocument, 'Диалоговое окно шапки складского документа');
 
 finalization
   UnRegisterFrmClass(TdlgInvDocument);

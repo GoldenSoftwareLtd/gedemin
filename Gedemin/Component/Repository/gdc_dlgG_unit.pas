@@ -2175,7 +2175,7 @@ procedure Tgdc_dlgG.actDistributeUserSettingsExecute(Sender: TObject);
 
 
 initialization
-  RegisterFrmClass(Tgdc_dlgG, 'Простой диалог');
+  RegisterFrmClass(Tgdc_dlgG, 'Диалоговое окно бизнес-объекта');
   Tgdc_dlgG.RegisterMethod;
 
 finalization

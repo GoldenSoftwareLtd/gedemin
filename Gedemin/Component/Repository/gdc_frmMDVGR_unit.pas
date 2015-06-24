@@ -27,7 +27,7 @@ uses
   gd_ClassList;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDVGR, 'Master-detail форма с гридом');
+  RegisterFrmClass(Tgdc_frmMDVGR, 'Master-detail форма с таблицей');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDVGR);
