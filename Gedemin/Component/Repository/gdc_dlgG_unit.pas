@@ -237,12 +237,11 @@ type
     // новая запись, а метод Сетап уже не вызывается.
     procedure SetupRecord; virtual;
 
+    function GetFormCaption: String; override;
+
     {$IFDEF DUNIT_TEST}
     procedure DUnitDoTimer; override;
     {$ENDIF}
-
-    procedure SetFormCaption;
-    function GetFormCaptionPrefix: String; virtual;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -369,7 +368,7 @@ begin
 
   FIsTransaction := gdcObject.Transaction.InTransaction;
 
-  SetFormCaption;
+  inherited Setup(AnObject);  
 
   SetupDialog;
   if Assigned(FOnSetupDialog) then
@@ -636,8 +635,6 @@ begin
             else
               FSharedTransaction.Rollback;
           end;
-{          if not FIntermediate then
-            ModalResult := mrCancel; }
         end;
         isError := True;
         raise;
@@ -1285,8 +1282,6 @@ begin
 end;
 
 procedure Tgdc_dlgG.SetupRecord;
-const
-  cReadOnlyWarn = ' [Только просмотр]';
 var
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}
@@ -1295,7 +1290,7 @@ var
   {END MACRO}
   ctrl, pctrl: TWinControl;
   L: TList;
-  I, P: Integer;
+  I: Integer;
   IsNewCtrl: Boolean;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -1318,26 +1313,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  P := Pos(cReadOnlyWarn, Caption);
-  if (gdcObject.State = dsEdit) and (not gdcObject.CanEdit)
-    and (not (sSubDialog in gdcObject.BaseState)) then
-  begin
-    if P = 0 then
-      Caption := Caption + cReadOnlyWarn;
-
-    {if UserStorage.ReadBoolean('Options', 'EditWarn', True) then
-    begin
-      MessageBox(0,
-        'У вас нет прав на редактирование или данную запись нельзя изменять.'#13#10 +
-        'Диалоговое окно будет открыто в режиме просмотра.',
-        'Внимание',
-        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    end;}
-  end else
-  begin
-    if P > 0 then
-      Caption := StringReplace(Caption, cReadOnlyWarn, '', []);
-  end;
+  Caption := GetFormCaption;
 
   //Установим фокус на первый контрол
   L := TList.Create;
@@ -1387,6 +1363,16 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD);
   {M}end;
   {END MACRO}
+end;
+
+function Tgdc_dlgG.GetFormCaption: String;
+begin
+  Result := inherited GetFormCaption;
+
+  {$IFDEF DEBUG}
+  if FIsTransaction then
+    Result := Result + ' <InTransaction>';
+  {$ENDIF}
 end;
 
 procedure Tgdc_dlgG.btnAccessClick(Sender: TObject);
@@ -1477,26 +1463,8 @@ begin
   dsgdcBase.DataSet := gdcObject;
   SyncControls;
 
-  {$IFDEF DEBUG}
-  if FIsTransaction then
-    Caption := Caption + ' <InTransaction>';
-  {$ENDIF}
-
   if Assigned(FMultipleID) then
     FMultipleID.Clear;
-
-  {if (gdcObject.State = dsEdit) and (not gdcObject.CanEdit)
-    and (not (sSubDialog in gdcObject.BaseState)) then
-  begin
-    if UserStorage.ReadBoolean('Options', 'EditWarn', True) then
-    begin
-      MessageBox(0,
-        'У вас нет прав на редактирование или данную запись нельзя изменять.'#13#10 +
-        'Диалоговое окно будет открыто в режиме просмотра.',
-        'Внимание',
-        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    end;
-  end;}
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
@@ -2006,37 +1974,6 @@ end;
 procedure Tgdc_dlgG.LockDocument;
 begin
   FRecordLocked := True;
-end;
-
-procedure Tgdc_dlgG.SetFormCaption;
-var
-  CE: TgdClassEntry;
-begin
-  if gdcObject <> nil then
-  begin
-    CE := gdClassList.Get(TgdClassEntry, gdcObject.ClassName, gdcObject.SubType);
-
-    if (CE.Caption <> '') and (CE.Caption <> gdcObject.ClassName) then
-      Self.Caption := CE.Caption
-    else
-    begin
-      CE := gdClassList.Get(TgdFormEntry, Self.ClassName, '');
-      if (CE.Caption <> '') and (CE.Caption <> Self.ClassName) then
-        Self.Caption := CE.Caption
-    end;
-  end;
-
-  Self.Caption := GetFormCaptionPrefix + Self.Caption;
-end;
-
-function Tgdc_dlgG.GetFormCaptionPrefix: String;
-begin
-  if gdcObject.State = dsInsert then
-    Result := 'Добавление: '
-  else if gdcObject.State = dsEdit then
-    Result := 'Редактирование: '
-  else
-    Result := 'Просмотр: ';
 end;
 
 {$IFDEF DUNIT_TEST}

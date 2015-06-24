@@ -17,9 +17,6 @@ type
       FieldAliases: TStringList);
     procedure FormCreate(Sender: TObject);
 
-  protected
-    function GetFormCaptionPrefix: String; override;
-
   public
     procedure SetupDialog; override;
   end;
@@ -74,16 +71,6 @@ begin
   finally
     SL.Free;
   end;
-end;
-
-function Tgdc_dlgUserSimpleDocument.GetFormCaptionPrefix: String;
-begin
-  if gdcObject.State = dsInsert then
-    Result := 'Добавление документа: '
-  else if gdcObject.State = dsEdit then
-    Result := 'Редактирование документа: '
-  else
-    Result := 'Просмотр документа: ';
 end;
 
 procedure Tgdc_dlgUserSimpleDocument.SetupDialog;

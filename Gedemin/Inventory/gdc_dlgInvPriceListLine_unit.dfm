@@ -1,5 +1,6 @@
 inherited dlgInvPriceLine: TdlgInvPriceLine
   Caption = 'Позиция прайс-листа'
+  ClientHeight = 326
   OnCreate = nil
   PixelsPerInch = 96
   TextHeight = 13
@@ -17,19 +18,19 @@ inherited dlgInvPriceLine: TdlgInvPriceLine
     Align = alTop
   end
   inherited btnAccess: TButton
-    Top = 305
+    Top = 300
   end
   inherited btnNew: TButton
-    Top = 305
+    Top = 300
   end
   inherited btnHelp: TButton
-    Top = 305
+    Top = 300
   end
   inherited btnOK: TButton
-    Top = 305
+    Top = 300
   end
   inherited btnCancel: TButton
-    Top = 305
+    Top = 300
   end
   object pnlAttributes: TPanel [7]
     Left = 0
@@ -37,14 +38,13 @@ inherited dlgInvPriceLine: TdlgInvPriceLine
     Width = 529
     Height = 293
     Align = alTop
-    BevelInner = bvLowered
     BevelOuter = bvNone
     TabOrder = 5
     object atAttributes: TatContainer
-      Left = 1
-      Top = 1
-      Width = 527
-      Height = 291
+      Left = 0
+      Top = 0
+      Width = 529
+      Height = 293
       DataSource = dsgdcBase
       Align = alClient
       BorderStyle = bsNone

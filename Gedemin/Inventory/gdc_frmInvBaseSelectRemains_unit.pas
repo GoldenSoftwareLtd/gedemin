@@ -140,11 +140,11 @@ begin
       gdcGoodGroup.Open;
       gdcObject.MasterSource := dsDetail;
     end;
+
+    inherited Setup(AnObject);
   finally
     IsSetup := False;
   end;
-
-  SetFormCaption;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMINVBASESELECTREMAINS', 'SETUP', KEYSETUP)}
   {M}finally

@@ -281,8 +281,6 @@ type
 
     procedure DoOnFilterChanged(Sender: TObject); virtual;
 
-    procedure SetFormCaption; virtual;
-
     //
     procedure SetupSearchPanel(Obj: TgdcBase;
       PN: TPanel;
@@ -327,11 +325,15 @@ type
     procedure FillPopupNew(AnObject: TgdcBase; ATBCustomItem: TTBCustomItem;
       AnEvent: TNotifyEvent);
 
+    function GetFormCaption: String; override;
+
   public
     constructor Create(AnOwner: TComponent); override;
 
     constructor CreateUser(AnOwner: TComponent; const AFormName: String; const ASubType: String = ''; const AForEdit: Boolean = False); override;
     destructor Destroy; override;
+
+    procedure AfterConstruction; override;
 
     procedure Setup(AnObject: TObject); override;
 
@@ -706,6 +708,7 @@ begin
 
   // кал≥ праграм≥ст не прысво≥Ґ загаловак формы, альбо
   // пак≥нуҐ €го пустым, возьмем назоҐ б≥знэс аб'екту
+  {
   if gdcObject <> nil then
   begin
     if ((Caption = Name) or (Caption = '')) then
@@ -713,6 +716,7 @@ begin
     else if Pos(Caption, Name) = 1 then
       Caption := StringReplace(Name, Caption, gdcObject.GetDisplayName(FSubType), []);
   end;
+  }
 
   gdMacrosMenu.ReloadGroup;
   if Assigned(actDontSaveSettings) then
@@ -762,30 +766,6 @@ begin
       end;
     end;
   end;
-end;
-
-procedure Tgdc_frmG.SetFormCaption;
-var
-  CE: TgdClassEntry;
-begin
-  CE := gdClassList.Get(TgdFormEntry, Self.ClassName, '');
-
-  if (gdcObject <> nil) and (gdcObject.SubType <> '') then
-  begin
-    Self.Caption := '';
-
-    if (CE.Caption <> '') and (CE.Caption <> Self.ClassName) then
-      Self.Caption := CE.Caption;
-
-    CE := gdClassList.Get(TgdClassEntry, gdcObject.ClassName, gdcObject.SubType);
-
-    if Self.Caption = '' then
-      Self.Caption := CE.Caption
-    else
-      Self.Caption := Self.Caption + ': ' + CE.Caption;
-  end
-  else if (CE.Caption <> '') and (CE.Caption <> Self.ClassName) then
-    Self.Caption := CE.Caption;
 end;
 
 procedure Tgdc_frmG.SetGdcObject(const Value: TgdcBase);
@@ -959,6 +939,12 @@ begin
   inherited;
 end;
 
+procedure Tgdc_frmG.AfterConstruction;
+begin
+  inherited;
+  Setup(gdcObject);
+end;
+
 procedure Tgdc_frmG.Setup(AnObject: TObject);
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
   {M}VAR
@@ -1001,7 +987,7 @@ begin
     OL.Free;
   end;
 
-  SetFormCaption;
+  Caption := GetFormCaption;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMG', 'SETUP', KEYSETUP)}
   {M}finally
@@ -1427,7 +1413,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   I: Integer;
-  S: String;
 begin
   {@UNFOLD MACRO INH_CRFORM_SETUP('TGDC_FRMG', 'SETCHOOSE', KEYSETCHOOSE)}
   {M}try
@@ -1457,9 +1442,8 @@ begin
     FChosenIDInOrder.Duplicates := dupIgnore;
   end;
 
-  S := ' (режим выбора)';
-  if Copy(Caption, Length(Caption) - Length(S) + 1, Length(S)) <> S then
-    Caption := Caption + S;
+  Caption := GetFormCaption;
+
   if FgdcLinkChoose = nil then
     FgdcLinkChoose := FgdcObject;
 
@@ -2132,6 +2116,14 @@ begin
   ATBCustomItem.Clear;
   CE := gdClassList.Get(TgdBaseEntry, AnObject.ClassName, AnObject.SubType);
   Iterate(CE, 0);
+end;
+
+function Tgdc_frmG.GetFormCaption: String;
+begin
+  Result := inherited GetFormCaption;
+
+  if FInChoose then
+    Result := Result + ' (режим выбора)';
 end;
 
 procedure Tgdc_frmG.tbiNewPopup(Sender: TTBCustomItem;

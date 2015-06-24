@@ -11,33 +11,33 @@ inherited dlgInvDocument: TdlgInvDocument
   TextHeight = 13
   object Bevel1: TBevel [0]
     Left = 2
-    Top = 345
+    Top = 341
     Width = 550
     Height = 2
     Anchors = [akLeft, akRight, akBottom]
   end
   inherited btnAccess: TButton
-    Top = 353
+    Top = 347
   end
   inherited btnNew: TButton
-    Top = 353
+    Top = 347
   end
   inherited btnHelp: TButton
-    Top = 353
+    Top = 347
   end
   inherited btnOK: TButton
     Left = 398
-    Top = 353
+    Top = 347
   end
   inherited btnCancel: TButton
     Left = 470
-    Top = 353
+    Top = 347
   end
   object pnlMain: TPanel [6]
     Left = 0
     Top = 25
     Width = 544
-    Height = 320
+    Height = 316
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
@@ -87,7 +87,7 @@ inherited dlgInvDocument: TdlgInvDocument
       Left = 2
       Top = 153
       Width = 540
-      Height = 165
+      Height = 161
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
@@ -95,7 +95,7 @@ inherited dlgInvDocument: TdlgInvDocument
         Left = 9
         Top = 26
         Width = 522
-        Height = 130
+        Height = 126
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 0
@@ -103,7 +103,7 @@ inherited dlgInvDocument: TdlgInvDocument
           Left = 0
           Top = 0
           Width = 522
-          Height = 130
+          Height = 126
           Align = alClient
           BorderStyle = bsNone
           PopupMenu = pmDetailMenu
@@ -126,19 +126,19 @@ inherited dlgInvDocument: TdlgInvDocument
         Left = 0
         Top = 26
         Width = 9
-        Height = 130
+        Height = 126
         Position = dpLeft
       end
       object TBDockRight: TTBDock
         Left = 531
         Top = 26
         Width = 9
-        Height = 130
+        Height = 126
         Position = dpRight
       end
       object TBDockBottom: TTBDock
         Left = 0
-        Top = 156
+        Top = 152
         Width = 540
         Height = 9
         Position = dpBottom

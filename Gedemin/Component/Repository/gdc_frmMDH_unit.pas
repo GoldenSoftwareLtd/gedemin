@@ -174,8 +174,6 @@ type
     function Get_SelectedKey: OleVariant; override; safecall;
     procedure DoShowAllFields(Sender: TObject); override;
 
-    procedure SetFormCaption; override;
-
   public
     destructor Destroy; override;
 
@@ -1205,30 +1203,6 @@ begin
         True);
     end;
   end else
-    inherited;
-end;
-
-procedure Tgdc_frmMDH.SetFormCaption;
-var
-  CE: TgdClassEntry;
-begin
-  if (gdcDetailObject <> nil) and (gdcDetailObject.SubType <> '') then
-  begin
-    Self.Caption := '';
-
-    CE := gdClassList.Get(TgdFormEntry, Self.ClassName, '');
-
-    if (CE.Caption <> '') and (CE.Caption <> Self.ClassName) then
-      Self.Caption := CE.Caption;
-
-    CE := gdClassList.Get(TgdClassEntry, gdcDetailObject.ClassName, gdcDetailObject.SubType);
-
-    if Self.Caption = '' then
-      Self.Caption := CE.Caption
-    else
-      Self.Caption := Self.Caption + ': ' + CE.Caption;
-  end
-  else
     inherited;
 end;
 

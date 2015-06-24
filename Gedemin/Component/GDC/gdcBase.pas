@@ -9573,7 +9573,7 @@ begin
       F := nil;
       try
         F := CgdcCreateableForm(CE.TheClass).CreateSubType(AnOwner, ASubType);
-        F.Setup(F.gdcObject);
+        //F.Setup(F.gdcObject);  -- теперь метод вызывается самой формой
       except
         F.Free;
         raise;
