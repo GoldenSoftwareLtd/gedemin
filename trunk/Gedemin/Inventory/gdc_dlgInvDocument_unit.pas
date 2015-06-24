@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -197,8 +196,6 @@ type
     procedure SetupRecord; override;
     procedure SetupDialog; override;
     procedure SetupTransaction; override;
-
-    function GetFormCaptionPrefix: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -3144,16 +3141,6 @@ begin
   inherited;
   if not FisAutoCommit then
     ActivateTransaction(gdcObject.Transaction);
-end;
-
-function TdlgInvDocument.GetFormCaptionPrefix: String;
-begin
-  if gdcObject.State = dsInsert then
-    Result := 'Добавление документа: '
-  else if gdcObject.State = dsEdit then
-    Result := 'Редактирование документа: '
-  else
-    Result := 'Просмотр документа: ';
 end;
 
 procedure TdlgInvDocument.FormCreate(Sender: TObject);

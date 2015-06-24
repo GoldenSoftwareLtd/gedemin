@@ -30,7 +30,6 @@ type
   protected
     procedure SetupRecord; override;
     procedure Post; override;
-    function GetFormCaptionPrefix: String; override;
 
   public
     procedure SetupDialog; override;
@@ -292,16 +291,6 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGUSERCOMPLEXDOCUMENT', 'POST', KEYPOST);
   {M}end;
   {END MACRO}
-end;
-
-function Tgdc_dlgUserComplexDocument.GetFormCaptionPrefix: String;
-begin
-  if gdcObject.State = dsInsert then
-    Result := 'Добавление документа: '
-  else if gdcObject.State = dsEdit then
-    Result := 'Редактирование документа: '
-  else
-    Result := 'Просмотр документа: ';
 end;
 
 initialization

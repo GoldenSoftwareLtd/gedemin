@@ -57,6 +57,7 @@ type
     function GetText: TCaption;
     function IsCaptionStored: Boolean;
     procedure SetText(const Value: TCaption);
+
   protected
     FCreateableFormState: TCreateableFormStates;
     FShiftDown: Boolean;
@@ -105,6 +106,8 @@ type
     // отпущен => сохраняем его значение в FShiftDown
     procedure WMClose(var Message: TMessage);
       message WM_Close;
+
+    function GetFormCaption: String; virtual;
 
     // Свойства только для использования в скрипт-функциях
     // В СФ являются аналогами свойств формы
@@ -1673,6 +1676,11 @@ const
 begin
   Result := HandleSafeCallException(ExceptObject, ExceptAddr, TCreateableFormGUID,
     String(ExceptObject.ClassName), '');
+end;
+
+function TCreateableForm.GetFormCaption: String;
+begin
+  Result := '';
 end;
 
 initialization

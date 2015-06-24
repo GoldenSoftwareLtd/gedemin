@@ -68,6 +68,8 @@ type
     procedure Notification(AComponent: TComponent;
       Operation: TOperation); override;
 
+    function GetFormCaption: String; override;
+
     {$IFDEF DUNIT_TEST}
     procedure DUnitDoTimer; virtual;
     procedure DUnitOnTimer(Sender: TObject);
@@ -759,6 +761,47 @@ begin
 end;
 
 {$ENDIF}
+
+function TgdcCreateableForm.GetFormCaption: String;
+var
+  CE: TgdClassEntry;
+  Pref, Postf: String;
+begin
+  Result := Caption;
+  Pref := '';
+  Postf := '';
+
+  if gdcObject <> nil then
+  begin
+    CE := gdClassList.Get(TgdClassEntry, gdcObject.ClassName, gdcObject.SubType);
+
+    if (CE.Caption <> '') and (CE.Caption <> gdcObject.ClassName) then
+      Result := CE.Caption
+    else begin
+      CE := gdClassList.Get(TgdFormEntry, Self.ClassName, '');
+      if (CE.Caption <> '') and (CE.Caption <> Self.ClassName) then
+        Result := CE.Caption
+    end;
+
+    if BorderStyle = bsDialog then
+    begin
+      if gdcObject.State = dsInsert then
+        Pref := 'Добавление: '
+      else if gdcObject.State = dsEdit then
+        Pref := 'Редактирование: '
+      else
+        Pref := 'Просмотр: ';
+    end;
+
+    if (gdcObject.State = dsEdit) and (not gdcObject.CanEdit)
+      and (not (sSubDialog in gdcObject.BaseState)) then
+    begin
+      Postf := ' [Только просмотр]';
+    end;
+  end;
+
+  Result := Pref + Result + Postf;
+end;
 
 initialization
   RegisterFrmClass(TgdcCreateableForm);
