@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_frmSGR_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
-  ComCtrls, IBCustomDataSet, gdcBase, gdc_SMTP;
+  ComCtrls, IBCustomDataSet, gdcBase, gdcSMTP;
 
 type
   Tgdc_frmSMTP = class(Tgdc_frmSGR)
