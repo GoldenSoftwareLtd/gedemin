@@ -24,7 +24,7 @@ CREATE TABLE gd_smtp
   CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -2),
   CONSTRAINT gd_chk_smtp_ipsec CHECK(ipsec IN ('SSLV2', 'SSLV23', 'SSLV3', 'TLSV1')),
   CONSTRAINT gd_chk_smtp_server CHECK (server > ''),
-  CONSTRAINT gd_chk_smtp_port CHECK (port > 0)
+  CONSTRAINT gd_chk_smtp_port CHECK (port > 0 AND port < 65536)
 );
  
 COMMIT;

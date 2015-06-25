@@ -54,12 +54,12 @@ begin
           '  CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -2), '#13#10 +
           '  CONSTRAINT gd_chk_smtp_ipsec CHECK(ipsec IN (''SSLV2'', ''SSLV23'', ''SSLV3'', ''TLSV1'')), '#13#10 +
           '  CONSTRAINT gd_chk_smtp_server CHECK (server > ''''), '#13#10 +
-          '  CONSTRAINT gd_chk_smtp_port CHECK (port > 0) '#13#10 +
-          ');';
+          '  CONSTRAINT gd_chk_smtp_port CHECK (port > 0 AND port < 65536) '#13#10 +
+          ')';
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
-          'GRANT ALL ON GD_SMTP TO administrator;';
+          'GRANT ALL ON GD_SMTP TO administrator';
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
