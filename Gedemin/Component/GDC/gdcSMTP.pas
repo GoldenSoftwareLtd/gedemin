@@ -1,4 +1,4 @@
-unit gdc_SMTP;
+unit gdcSMTP;
 
 interface
 

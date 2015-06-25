@@ -160,6 +160,6 @@ contains
   gdcNamespace,
   gdcRplDatabase in '..\Component\GDC\gdcRplDatabase.pas',
   gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas',
-  gdc_SMTP in '..\Component\GDC\gdc_SMTP.pas';
+  gdcSMTP in '..\Component\GDC\gdcSMTP.pas';
 
 end.
