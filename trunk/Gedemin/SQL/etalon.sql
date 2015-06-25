@@ -1534,6 +1534,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (220, '0000.0001.0000.0251', '05.06.2015', 'Added PULSE field to GD_AUTOTASK.');
   
+INSERT INTO fin_versioninfo
+  VALUES (221, '0000.0001.0000.0252', '25.06.2015', 'Added GD_SMTP table.');
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -17254,6 +17257,35 @@ END
 
 SET TERM ; ^
  
+COMMIT;CREATE TABLE gd_smtp
+(
+  id               dintkey,                     /* Первичный ключ          */
+  name             dname,                       /* имя                     */
+  description      dtext180,                    /* описание                */
+  email            demail NOT NULL,             /* адрес электронной почты */
+  login            dusername,                   /* логин                   */
+  passw            dtext254 NOT NULL,           /* пароль                  */
+  ipsec            dtext8 DEFAULT NULL,         /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
+  timeout          dinteger_notnull DEFAULT -1,
+  server           dtext80 NOT NULL,            /* SMTP Sever */
+  port             dinteger_notnull,            /* SMTP Port */
+
+  creatorkey       dforeignkey,
+  creationdate     dcreationdate,
+  editorkey        dforeignkey,
+  editiondate      deditiondate,
+  afull            dsecurity,
+  achag            dsecurity,
+  aview            dsecurity,
+  disabled         ddisabled,
+
+  CONSTRAINT gd_pk_smtp PRIMARY KEY (id),
+  CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -2),
+  CONSTRAINT gd_chk_smtp_ipsec CHECK(ipsec IN ('SSLV2', 'SSLV23', 'SSLV3', 'TLSV1')),
+  CONSTRAINT gd_chk_smtp_server CHECK (server > ''),
+  CONSTRAINT gd_chk_smtp_port CHECK (port > 0)
+);
+ 
 COMMIT;
 /*******************************/
 /** Begin LB-RB Tree Metadata **/
@@ -21183,19 +21215,6 @@ INSERT INTO GD_BANK
      /* 
       INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
         VALUES (
-          740075,
-          740050,
-          'Автозадачи',
-          '',
-          'TgdcAutoTask',
-          NULL,
-          256,
-          1
-        );
-
-     /* 
-      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
-        VALUES (
           740080,
           740050,
           'Блокировка изменений',
@@ -21821,6 +21840,7 @@ GRANT ALL ON GD_PRECIOUSEMETAL TO administrator;
 GRANT ALL ON GD_GOODPRMETAL TO administrator;
 GRANT ALL ON GD_AUTOTASK TO administrator;
 GRANT ALL ON GD_AUTOTASK_LOG TO administrator;
+GRANT ALL ON GD_SMTP TO administrator;
 
 GRANT ALL ON inv_card TO administrator;
 GRANT ALL ON inv_movement TO administrator;
