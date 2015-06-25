@@ -252,8 +252,8 @@ begin
   begin
     if FNextStartTime > 0 then
     begin
-      FNextStartTime := FNextStartTime + 1;
-      FNextEndTime := FNextEndTime + 1;
+      FNextStartTime := Int(FNextStartTime + 1) + FStartTime;
+      FNextEndTime := Int(FNextEndTime + 1) + FEndTime;
     end else
     begin
       FNextStartTime := Date + FStartTime;
@@ -264,8 +264,8 @@ begin
   begin
     if FNextStartTime > 0 then
     begin
-      FNextStartTime := FNextStartTime + 7;
-      FNextEndTime := FNextEndTime + 7;
+      FNextStartTime := Int(FNextStartTime + 7) + FStartTime;
+      FNextEndTime := Int(FNextEndTime + 7) + FEndTime;
     end else
     begin
       FNextStartTime := Date - DayOfWeek(Date) + 1 + FWeekly + FStartTime;
@@ -275,7 +275,7 @@ begin
   else if FMonthly > 0 then
   begin
     if FNextStartTime > 0 then
-      FNextStartTime := IncMonth(FNextStartTime, 1)
+      FNextStartTime := Int(IncMonth(FNextStartTime, 1)) + FStartTime
     else begin
       DecodeDate(Date, Y, M, D);
       if (M in [4, 6, 9, 11]) and (FMonthly = 31) then
@@ -293,7 +293,7 @@ begin
   else if FMonthly < 0 then
   begin
     if FNextStartTime > 0 then
-      FNextStartTime := IncMonth(FNextStartTime, 1)
+      FNextStartTime := Int(IncMonth(FNextStartTime, 1)) + FStartTime
     else begin
       DecodeDate(Date, Y, M, D);
       FNextStartTime := IncMonth(EncodeDate(Y, M, 1), 1) + FMonthly + FStartTime;
@@ -458,7 +458,7 @@ begin
           Task.StartTime := 0
         else
           Task.StartTime := q.FieldbyName('starttime').AsTime;
-        if q.FieldbyName('endtime').IsNull then
+        if q.FieldbyName('endtime').IsNull or (q.FieldbyName('endtime').AsTime = 0) then
           Task.EndTime := 1
         else
           Task.EndTime := q.FieldbyName('endtime').AsTime;
