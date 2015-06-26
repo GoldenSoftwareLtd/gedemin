@@ -15,13 +15,14 @@ type
     procedure TestHugeIntSet;
     procedure TestNotifierThread;
     procedure TestParseOrigin;
+    procedure TestEncryption;
   end;
 
 implementation
 
 uses
   SysUtils, gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet,
-  gdNotifierThread_unit;
+  gdNotifierThread_unit, gd_encryption;
 
 type
   Tgd_CmdLineParamsCrack = class(Tgd_CmdLineParams)
@@ -304,6 +305,35 @@ begin
   Check((RN = '') and (FN = ' "name" '));
   Check(ParseFieldOrigin(' "gd_contact". ', RN, FN));
   Check((RN = ' "gd_contact"') and (FN = ' '));
+end;
+
+procedure TBasicsTest.TestEncryption;
+var
+  SS, DS: String;
+  I, J: Integer;
+begin
+  for I := 1 to 125 do
+  begin
+    SetLength(SS, I);
+    for J := 1 to i do
+    begin
+      SS[J] := Chr(Random(255) + 1);
+    end;
+    if I < 125 then
+    begin
+      DS := DecryptionString(EncryptionString(SS, 'TEST'), 'TEST');
+      Check(SS = DS);
+    end
+    else
+    begin
+      try
+        DS := DecryptionString(EncryptionString(SS, 'TEST'), 'TEST');
+        Check(False);
+      except
+        on E: Exception do
+      end;
+    end;
+  end;
 end;
 
 initialization

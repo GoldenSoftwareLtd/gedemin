@@ -35,7 +35,7 @@ begin
           '  description      dtext180,                    /* описание                */ '#13#10 +
           '  email            demail NOT NULL,             /* адрес электронной почты */ '#13#10 +
           '  login            dusername,                   /* логин                   */ '#13#10 +
-          '  passw            dtext254 NOT NULL,           /* пароль                  */ '#13#10 +
+          '  passw            VARCHAR(256) NOT NULL,       /* пароль                  */ '#13#10 +
           '  ipsec            dtext8 DEFAULT NULL,         /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */ '#13#10 +
           '  timeout          dinteger_notnull DEFAULT -1, '#13#10 +
           '  server           dtext80 NOT NULL,            /* SMTP Sever */ '#13#10 +
@@ -51,7 +51,7 @@ begin
           '  disabled         ddisabled, '#13#10 +
           ' '#13#10 +
           '  CONSTRAINT gd_pk_smtp PRIMARY KEY (id), '#13#10 +
-          '  CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -2), '#13#10 +
+          '  CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -1), '#13#10 +
           '  CONSTRAINT gd_chk_smtp_ipsec CHECK(ipsec IN (''SSLV2'', ''SSLV23'', ''SSLV3'', ''TLSV1'')), '#13#10 +
           '  CONSTRAINT gd_chk_smtp_server CHECK (server > ''''), '#13#10 +
           '  CONSTRAINT gd_chk_smtp_port CHECK (port > 0 AND port < 65536) '#13#10 +

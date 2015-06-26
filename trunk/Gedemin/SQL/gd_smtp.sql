@@ -5,7 +5,7 @@ CREATE TABLE gd_smtp
   description      dtext180,                    /* описание                */
   email            demail NOT NULL,             /* адрес электронной почты */
   login            dusername,                   /* логин                   */
-  passw            dtext254 NOT NULL,           /* пароль                  */
+  passw            VARCHAR(256) NOT NULL,       /* пароль                  */
   ipsec            dtext8 DEFAULT NULL,         /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
   timeout          dinteger_notnull DEFAULT -1,
   server           dtext80 NOT NULL,            /* SMTP Sever */
@@ -21,7 +21,7 @@ CREATE TABLE gd_smtp
   disabled         ddisabled,
 
   CONSTRAINT gd_pk_smtp PRIMARY KEY (id),
-  CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -2),
+  CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -1),
   CONSTRAINT gd_chk_smtp_ipsec CHECK(ipsec IN ('SSLV2', 'SSLV23', 'SSLV3', 'TLSV1')),
   CONSTRAINT gd_chk_smtp_server CHECK (server > ''),
   CONSTRAINT gd_chk_smtp_port CHECK (port > 0 AND port < 65536)
