@@ -12,7 +12,6 @@ type
     dbmDescription: TDBMemo;
     dbeEMAIL: TDBEdit;
     dbeLogin: TDBEdit;
-    dbePassw: TDBEdit;
     dbcbIPSec: TDBComboBox;
     dbeTimeout: TDBEdit;
     dbeServer: TDBEdit;
@@ -29,11 +28,14 @@ type
     dbcbDisabled: TDBCheckBox;
     Button1: TButton;
     actCheckConnect: TAction;
+    edPassw: TEdit;
     procedure actCheckConnectExecute(Sender: TObject);
 
   protected
     procedure SetupDialog; override;
     procedure SetupRecord; override;
+    procedure BeforePost; override;
+
   end;
 
 var
@@ -42,7 +44,7 @@ var
 implementation
 
 uses
-  gd_classList, gd_common_functions, IdSMTP, IdSSLOpenSSL;
+  gd_classList, gd_encryption, IdSMTP, IdSSLOpenSSL;
 
 {$R *.DFM}
 
@@ -75,7 +77,7 @@ begin
 
   inherited;
 
-  dbePassw.MaxLength := dbePassw.MaxLength div 2;
+  edPassw.MaxLength := 124;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSMTP', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
@@ -91,10 +93,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  PassHex, S: String;
-  Len: Integer;
-  I, P: Integer;
-  B: Byte;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -118,31 +116,57 @@ begin
 
   inherited;
 
-  PassHex := gdcObject.FieldByName('PASSW').AsString;
-  Len := Length(PassHex) div 2;
-  SetLength(S, Len);
-  I := 1; P := 1;
-  while P <= Len do
-  begin
-    try
-      S[P] := HexToAnsiChar(PassHex, I);
-      B := Byte(S[P]);
-      B := B xor (1 shl 4);
-      S[P] := Chr(B);
-    except
-      S := '';
-      break;
-    end;
-    Inc(I, 2);
-    Inc(P);
-  end;
-
-  gdcObject.FieldByName('PASSW').AsString := S;
+  if gdcObject.State = dsInsert then
+    edPassw.Text := ''
+  else
+    edPassw.Text := DecryptionString(gdcObject.FieldByName('PASSW').AsString, 'PASSW');
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
   {M}    ClearMacrosStack('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD);
+  {M}end;
+  {END MACRO}
+end;
+
+procedure Tgdc_dlgSMTP.BeforePost;
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TTGDC_DLGSMTP', 'BEFOREPOST', KEYBEFOREPOST)}
+  {M}  try
+  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDC_DLGSMTP', KEYBEFOREPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYBEFOREPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGSMTP') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGSMTP',
+  {M}          'BEFOREPOST', KEYBEFOREPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGSMTP' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if edPassw.Text > '' then
+    gdcObject.FieldByName('PASSW').AsString := EncryptionString(edPassw.Text, 'PASSW')
+  else
+    gdcObject.FieldByName('PASSW').AsString := '';
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSMTP', 'BEFOREPOST', KEYBEFOREPOST)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGSMTP', 'BEFOREPOST', KEYBEFOREPOST);
   {M}end;
   {END MACRO}
 end;
@@ -160,7 +184,7 @@ begin
     IdSMTP.Host := dbeServer.Text;
     IdSMTP.AuthenticationType := atLogin;
     IdSMTP.Username := dbeLogin.Text;
-    IdSMTP.Password := dbePassw.Text;
+    IdSMTP.Password := edPassw.Text;
 
     if dbcbIPSec.Text > '' then
     begin

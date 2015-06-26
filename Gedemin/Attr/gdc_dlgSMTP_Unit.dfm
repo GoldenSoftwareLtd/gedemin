@@ -125,17 +125,7 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
     DataSource = dsgdcBase
     TabOrder = 8
   end
-  object dbePassw: TDBEdit [18]
-    Left = 144
-    Top = 152
-    Width = 249
-    Height = 21
-    DataField = 'passw'
-    DataSource = dsgdcBase
-    PasswordChar = '*'
-    TabOrder = 9
-  end
-  object dbcbIPSec: TDBComboBox [19]
+  object dbcbIPSec: TDBComboBox [18]
     Left = 144
     Top = 176
     Width = 249
@@ -148,36 +138,36 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
       'SSLV23'
       'SSLV3'
       'TLSV1')
-    TabOrder = 10
+    TabOrder = 9
   end
-  object dbeTimeout: TDBEdit [20]
+  object dbeTimeout: TDBEdit [19]
     Left = 144
     Top = 200
     Width = 249
     Height = 21
     DataField = 'timeout'
     DataSource = dsgdcBase
-    TabOrder = 11
+    TabOrder = 10
   end
-  object dbeServer: TDBEdit [21]
+  object dbeServer: TDBEdit [20]
     Left = 144
     Top = 224
     Width = 249
     Height = 21
     DataField = 'server'
     DataSource = dsgdcBase
-    TabOrder = 12
+    TabOrder = 11
   end
-  object dbePort: TDBEdit [22]
+  object dbePort: TDBEdit [21]
     Left = 144
     Top = 248
     Width = 249
     Height = 21
     DataField = 'port'
     DataSource = dsgdcBase
-    TabOrder = 13
+    TabOrder = 12
   end
-  object dbcbDisabled: TDBCheckBox [23]
+  object dbcbDisabled: TDBCheckBox [22]
     Left = 8
     Top = 282
     Width = 121
@@ -185,17 +175,26 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
     Caption = 'Запись отключена'
     DataField = 'disabled'
     DataSource = dsgdcBase
-    TabOrder = 14
+    TabOrder = 13
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
-  object Button1: TButton [24]
+  object Button1: TButton [23]
     Left = 8
     Top = 312
     Width = 137
     Height = 25
     Action = actCheckConnect
+    TabOrder = 14
+  end
+  object edPassw: TEdit [24]
+    Left = 144
+    Top = 152
+    Width = 249
+    Height = 21
+    PasswordChar = '*'
     TabOrder = 15
+    Text = 'edPassw'
   end
   inherited alBase: TActionList
     Left = 284
