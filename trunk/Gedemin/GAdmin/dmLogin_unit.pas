@@ -199,6 +199,7 @@ begin
     and (gdAutoTaskThread = nil)
     and (gd_CmdLineParams <> nil)
     and (not gd_CmdLineParams.Embedding)
+    and (not gd_CmdLineParams.Unmethod)
     and (gd_CmdLineParams.LoadSettingFileName = '') then
   begin
     gdAutoTaskThread := TgdAutoTaskThread.Create;

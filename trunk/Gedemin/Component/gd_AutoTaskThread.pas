@@ -548,9 +548,13 @@ end;
 
 procedure TgdAutoTaskThread.SetInitialDelay;
 begin
+  // не стоит устанавливать паузу перед началом выполнения автозадач
+  // слишком большой, чтобы автозадачи, назначенные на старт системы
+  // выполнялись именно при ее старте
+
   Resume;
-  SetTimeOut(2 * 60 * 1000);
-  SendNotification('Запуск автозадач через 2 минуты.');
+  SetTimeOut(4 * 1000);
+  SendNotification('Запуск автозадач через 4 секунды.');
 end;
 
 procedure TgdAutoTaskThread.FindAndExecuteTask;
@@ -577,17 +581,6 @@ begin
         Synchronize(RemoveExecuteOnceTask);
       FTaskList.Delete(0);
     end;
-
-    {
-    if AT.AtStartup then
-      FTaskList.Delete(0)
-    else if AT.ExactDate = 0 then
-      AT.Schedule
-    else begin
-      Synchronize(RemoveExecuteOnceTask);
-      FTaskList.Delete(0);
-    end;
-    }
 
     if FTaskList.Count > 0 then
       PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
