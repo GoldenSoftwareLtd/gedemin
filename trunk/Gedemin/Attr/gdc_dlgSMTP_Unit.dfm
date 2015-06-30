@@ -2,132 +2,139 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   Left = 435
   Top = 221
   Caption = 'gdc_dlgSMTP'
-  ClientHeight = 383
-  ClientWidth = 397
+  ClientHeight = 361
+  ClientWidth = 399
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel [0]
     Left = 8
-    Top = 10
-    Width = 79
+    Top = 11
+    Width = 77
     Height = 13
     Caption = 'Наименование:'
   end
   object Label2: TLabel [1]
     Left = 8
-    Top = 34
+    Top = 35
     Width = 53
     Height = 13
     Caption = 'Описание:'
   end
   object Label3: TLabel [2]
     Left = 8
-    Top = 106
-    Width = 135
+    Top = 151
+    Width = 138
     Height = 13
     Caption = 'Адрес электронной почты:'
   end
   object Label4: TLabel [3]
     Left = 8
-    Top = 130
-    Width = 25
+    Top = 175
+    Width = 84
     Height = 13
-    Caption = 'Имя:'
+    Caption = 'Учетная запись:'
   end
   object Label5: TLabel [4]
     Left = 8
-    Top = 154
-    Width = 38
+    Top = 199
+    Width = 37
     Height = 13
     Caption = 'Пароль'
   end
   object Label6: TLabel [5]
     Left = 8
-    Top = 178
-    Width = 126
+    Top = 223
+    Width = 125
     Height = 13
     Caption = 'Протокол безопасности:'
   end
   object Label7: TLabel [6]
     Left = 8
-    Top = 202
-    Width = 87
+    Top = 247
+    Width = 88
     Height = 13
-    Caption = 'Время одидания:'
+    Caption = 'Время ожидания:'
   end
   object Label8: TLabel [7]
     Left = 8
-    Top = 226
-    Width = 72
+    Top = 103
+    Width = 68
     Height = 13
     Caption = 'SMTP сервер:'
   end
   object Label9: TLabel [8]
     Left = 8
-    Top = 250
-    Width = 59
+    Top = 127
+    Width = 57
     Height = 13
     Caption = 'SMTP порт:'
   end
   inherited btnAccess: TButton
-    Top = 350
+    Left = 6
+    Top = 330
+    TabOrder = 13
   end
   inherited btnNew: TButton
-    Top = 350
+    Left = 78
+    Top = 330
+    TabOrder = 14
   end
   inherited btnHelp: TButton
-    Top = 350
+    Left = 150
+    Top = 330
+    TabOrder = 15
   end
   inherited btnOK: TButton
-    Left = 248
-    Top = 350
+    Left = 252
+    Top = 330
+    TabOrder = 11
   end
   inherited btnCancel: TButton
-    Left = 320
-    Top = 350
+    Left = 324
+    Top = 330
+    TabOrder = 12
   end
   object dbeName: TDBEdit [14]
     Left = 144
-    Top = 8
+    Top = 9
     Width = 249
     Height = 21
     DataField = 'name'
     DataSource = dsgdcBase
-    TabOrder = 5
+    TabOrder = 0
   end
   object dbmDescription: TDBMemo [15]
     Left = 144
-    Top = 32
+    Top = 33
     Width = 249
     Height = 65
     DataField = 'description'
     DataSource = dsgdcBase
-    TabOrder = 6
+    TabOrder = 1
   end
   object dbeEMAIL: TDBEdit [16]
     Left = 144
-    Top = 104
+    Top = 149
     Width = 249
     Height = 21
     DataField = 'email'
     DataSource = dsgdcBase
-    TabOrder = 7
+    TabOrder = 4
   end
   object dbeLogin: TDBEdit [17]
     Left = 144
-    Top = 128
+    Top = 173
     Width = 249
     Height = 21
     DataField = 'login'
     DataSource = dsgdcBase
-    TabOrder = 8
+    TabOrder = 5
   end
   object dbcbIPSec: TDBComboBox [18]
     Left = 144
-    Top = 176
+    Top = 221
     Width = 249
     Height = 21
     DataField = 'ipsec'
@@ -138,63 +145,62 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
       'SSLV23'
       'SSLV3'
       'TLSV1')
-    TabOrder = 9
+    TabOrder = 7
   end
   object dbeTimeout: TDBEdit [19]
     Left = 144
-    Top = 200
+    Top = 245
     Width = 249
     Height = 21
     DataField = 'timeout'
     DataSource = dsgdcBase
-    TabOrder = 10
+    TabOrder = 8
   end
   object dbeServer: TDBEdit [20]
     Left = 144
-    Top = 224
+    Top = 101
     Width = 249
     Height = 21
     DataField = 'server'
     DataSource = dsgdcBase
-    TabOrder = 11
+    TabOrder = 2
   end
   object dbePort: TDBEdit [21]
     Left = 144
-    Top = 248
+    Top = 125
     Width = 249
     Height = 21
     DataField = 'port'
     DataSource = dsgdcBase
-    TabOrder = 12
+    TabOrder = 3
   end
   object dbcbDisabled: TDBCheckBox [22]
-    Left = 8
-    Top = 282
+    Left = 144
+    Top = 272
     Width = 121
     Height = 17
     Caption = 'Запись отключена'
     DataField = 'disabled'
     DataSource = dsgdcBase
-    TabOrder = 13
+    TabOrder = 9
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
-  object Button1: TButton [23]
-    Left = 8
-    Top = 312
+  object btnTest: TButton [23]
+    Left = 143
+    Top = 297
     Width = 137
-    Height = 25
+    Height = 21
     Action = actCheckConnect
-    TabOrder = 14
+    TabOrder = 10
   end
   object edPassw: TEdit [24]
     Left = 144
-    Top = 152
+    Top = 197
     Width = 249
     Height = 21
     PasswordChar = '*'
-    TabOrder = 15
-    Text = 'edPassw'
+    TabOrder = 6
   end
   inherited alBase: TActionList
     Left = 284

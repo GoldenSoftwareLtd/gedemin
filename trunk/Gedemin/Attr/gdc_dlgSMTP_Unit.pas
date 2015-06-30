@@ -26,16 +26,14 @@ type
     Label8: TLabel;
     Label9: TLabel;
     dbcbDisabled: TDBCheckBox;
-    Button1: TButton;
+    btnTest: TButton;
     actCheckConnect: TAction;
     edPassw: TEdit;
     procedure actCheckConnectExecute(Sender: TObject);
 
   protected
-    procedure SetupDialog; override;
-    procedure SetupRecord; override;
     procedure BeforePost; override;
-
+    procedure SetupRecord; override;
   end;
 
 var
@@ -47,87 +45,6 @@ uses
   gd_classList, gd_encryption, IdSMTP, IdSSLOpenSSL;
 
 {$R *.DFM}
-
-procedure Tgdc_dlgSMTP.SetupDialog;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSMTP', 'SETUPDIALOG', KEYSETUPDIALOG)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGSMTP', KEYSETUPDIALOG);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUPDIALOG]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGSMTP') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGSMTP',
-  {M}          'SETUPDIALOG', KEYSETUPDIALOG, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGSMTP' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  edPassw.MaxLength := 124;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSMTP', 'SETUPDIALOG', KEYSETUPDIALOG)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGSMTP', 'SETUPDIALOG', KEYSETUPDIALOG);
-  {M}end;
-  {END MACRO}
-end;
-
-procedure Tgdc_dlgSMTP.SetupRecord;
-var
-  {@UNFOLD MACRO INH_CRFORM_PARAMS()}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGSMTP', KEYSETUPRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUPRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGSMTP') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGSMTP',
-  {M}          'SETUPRECORD', KEYSETUPRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGSMTP' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if gdcObject.State = dsInsert then
-    edPassw.Text := ''
-  else
-    edPassw.Text := DecryptionString(gdcObject.FieldByName('PASSW').AsString, 'PASSW');
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD);
-  {M}end;
-  {END MACRO}
-end;
 
 procedure Tgdc_dlgSMTP.BeforePost;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -156,12 +73,10 @@ begin
   {M}    end;
   {END MACRO}
 
-  inherited;
+  if edPassw.Text <> '<not changed>' then
+    gdcObject.FieldByName('passw').AsString := EncryptString(edPassw.Text, 'PASSW');
 
-  if edPassw.Text > '' then
-    gdcObject.FieldByName('PASSW').AsString := EncryptionString(edPassw.Text, 'PASSW')
-  else
-    gdcObject.FieldByName('PASSW').AsString := '';
+  inherited;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSMTP', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally
@@ -205,9 +120,9 @@ begin
 
     if IdSMTP.Connected then
     begin
-      if IdSMTP.Authenticate  then
+      if IdSMTP.Authenticate then
       begin
-        MessageBox(Handle, 'Соединение установлено', 'Тест соединения',
+        MessageBox(Handle, 'Соединение установлено.', 'Тест соединения',
           MB_OK + MB_ICONINFORMATION);
       end;
     end;
@@ -218,10 +133,48 @@ begin
   end;
 end;
 
+procedure Tgdc_dlgSMTP.SetupRecord;
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD)}
+  {M}  try
+  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDC_DLGSMTP', KEYSETUPRECORD);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUPRECORD]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGSMTP') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGSMTP',
+  {M}          'SETUPRECORD', KEYSETUPRECORD, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGSMTP' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  edPassw.Text := '<not changed>';
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD);
+  {M}end;
+  {END MACRO}
+end;
+
 initialization
-  RegisterFrmClass(Tgdc_dlgSMTP, 'Почтовый ящик');
+  RegisterFrmClass(Tgdc_dlgSMTP, 'SMTP сервер');
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgSMTP);
-
 end.
