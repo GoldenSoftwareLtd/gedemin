@@ -159,14 +159,11 @@ type
     //”казывает сабсет дл€ компонента выбора дл€ Choose по имени таблицы
     function GetChooseSubSet(ARelationName: String): String; override;
 
-
   public
-
     procedure SetupRecord; override;
     procedure SetupDialog; override;
 
     function TestCorrect: Boolean; override;
-    procedure BeforePost; override;
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
@@ -375,8 +372,6 @@ begin
   end;
 
   gsiblkupMainAccount.Condition := 'companykey = ' + IntToStr(gdcObject.ID);
-  {gdcAccount.Close;
-  gdcAccount.Open;}
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGCUSTOMCOMPANY', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -653,43 +648,6 @@ begin
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
   {M}    ClearMacrosStack('TGDC_DLGCUSTOMCOMPANY', 'TESTCORRECT', KEYTESTCORRECT);
-  {M}end;
-  {END MACRO}
-end;
-
-procedure Tgdc_dlgCustomCompany.BeforePost;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGCUSTOMCOMPANY', 'BEFOREPOST', KEYBEFOREPOST)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGCUSTOMCOMPANY', KEYBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGCUSTOMCOMPANY') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGCUSTOMCOMPANY',
-  {M}          'BEFOREPOST', KEYBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGCUSTOMCOMPANY' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGCUSTOMCOMPANY', 'BEFOREPOST', KEYBEFOREPOST)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGCUSTOMCOMPANY', 'BEFOREPOST', KEYBEFOREPOST);
   {M}end;
   {END MACRO}
 end;
