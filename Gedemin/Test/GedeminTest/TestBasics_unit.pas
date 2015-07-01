@@ -321,13 +321,13 @@ begin
     end;
     if I < 125 then
     begin
-      DS := DecryptionString(EncryptionString(SS, 'TEST'), 'TEST');
+      DS := DecryptString(EncryptString(SS, 'TEST'), 'TEST');
       Check(SS = DS);
     end
     else
     begin
       try
-        DS := DecryptionString(EncryptionString(SS, 'TEST'), 'TEST');
+        DS := DecryptString(EncryptString(SS, 'TEST'), 'TEST');
         Check(False);
       except
         on E: Exception do
