@@ -16,6 +16,8 @@ type
     procedure TestNotifierThread;
     procedure TestParseOrigin;
     procedure TestEncryption;
+    procedure TestEncryptionMaxLength;
+    procedure TestEncryptionWrongPassword;
   end;
 
 implementation
@@ -309,31 +311,46 @@ end;
 
 procedure TBasicsTest.TestEncryption;
 var
-  SS, DS: String;
-  I, J: Integer;
+  I: Integer;
+  S: AnsiString;
 begin
-  for I := 1 to 125 do
-  begin
-    SetLength(SS, I);
-    for J := 1 to i do
-    begin
-      SS[J] := Chr(Random(255) + 1);
-    end;
-    if I < 125 then
-    begin
-      DS := DecryptString(EncryptString(SS, 'TEST'), 'TEST');
-      Check(SS = DS);
-    end
-    else
-    begin
-      try
-        DS := DecryptString(EncryptString(SS, 'TEST'), 'TEST');
-        Check(False);
-      except
-        on E: Exception do
-      end;
-    end;
-  end;
+  S := '';
+  Check(S = DecryptString(EncryptString(S, 'PAssWord'), 'PAssWord'));
+
+  S := 'A';
+  Check(S = DecryptString(EncryptString(S, 'PAssWord'), 'PAssWord'));
+
+  SetLength(S, 124);
+  for I := 1 to 124 do
+    S[I] := Chr(Random($FF));
+  Check(S = DecryptString(EncryptString(S, 'PAssWord'), 'PAssWord'));
+
+  S := EncryptString(S, 'PAssWord'), 'PAssWord');
+  if S[1] = #01 then
+    S[1] := #07
+  else
+    S[1] := #01;
+
+  StartExpectingException(Exception);
+  DecryptString(S, 'PAssWord');
+  StopExpectingException;
+end;
+
+procedure TBasicsTest.TestEncryptionMaxLength;
+var
+  S: AnsiString;
+begin
+  SetLength(S, 125);
+  StartExpectingException(Exception);
+  EncryptString(S, 'PAssWord');
+  StopExpectingException;
+end;
+
+procedure TBasicsTest.TestEncryptionWrongPassword;
+begin
+  StartExpectingException(Exception);
+  DecryptString(EncryptString('str', 'A'), 'B');
+  StopExpectingException;
 end;
 
 initialization

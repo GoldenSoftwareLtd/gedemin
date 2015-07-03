@@ -12,10 +12,6 @@ type
   Tgdc_frmSMTP = class(Tgdc_frmSGR)
     gdcSMTP: TgdcSMTP;
     procedure FormCreate(Sender: TObject);
-  private
-    { Private declarations }
-  public
-    { Public declarations }
   end;
 
 var
@@ -31,14 +27,12 @@ uses
 procedure Tgdc_frmSMTP.FormCreate(Sender: TObject);
 begin
   gdcObject := gdcSMTP;
-
   inherited;
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmSMTP, 'Почтовые ящики');
+  RegisterFrmClass(Tgdc_frmSMTP, 'Учетные записи SMTP');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmSMTP);
-
 end.

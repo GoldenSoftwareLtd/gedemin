@@ -1,7 +1,7 @@
 CREATE TABLE gd_smtp
 (
-  id               dintkey,                     /* ѕервичный ключ          */
-  name             dname,                       /* им€                     */
+  id               dintkey,                     /* первичный ключ          */
+  name             dname,                       /* имя                     */
   description      dtext180,                    /* описание                */
   email            demail NOT NULL,             /* адрес электронной почты */
   login            dusername,                   /* логин                   */
@@ -9,7 +9,7 @@ CREATE TABLE gd_smtp
   ipsec            dtext8 DEFAULT NULL,         /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
   timeout          dinteger_notnull DEFAULT -1,
   server           dtext80 NOT NULL,            /* SMTP Sever */
-  port             dinteger_notnull,            /* SMTP Port */
+  port             dinteger_notnull DEFAULT 25, /* SMTP Port */
 
   creatorkey       dforeignkey,
   creationdate     dcreationdate,

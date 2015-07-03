@@ -30,16 +30,16 @@ begin
         FIBSQL.SQL.Text :=
           'CREATE TABLE gd_smtp '#13#10 +
           '( '#13#10 +
-          '  id               dintkey,                     /* Первичный ключ          */ '#13#10 +
-          '  name             dname,                       /* имя                     */ '#13#10 +
-          '  description      dtext180,                    /* описание                */ '#13#10 +
-          '  email            demail NOT NULL,             /* адрес электронной почты */ '#13#10 +
-          '  login            dusername,                   /* логин                   */ '#13#10 +
-          '  passw            VARCHAR(256) NOT NULL,       /* пароль                  */ '#13#10 +
-          '  ipsec            dtext8 DEFAULT NULL,         /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */ '#13#10 +
+          '  id               dintkey, '#13#10 +
+          '  name             dname, '#13#10 +
+          '  description      dtext180, '#13#10 +
+          '  email            demail NOT NULL, '#13#10 +
+          '  login            dusername, '#13#10 +
+          '  passw            VARCHAR(256) NOT NULL, '#13#10 +
+          '  ipsec            dtext8 DEFAULT NULL, '#13#10 +
           '  timeout          dinteger_notnull DEFAULT -1, '#13#10 +
-          '  server           dtext80 NOT NULL,            /* SMTP Sever */ '#13#10 +
-          '  port             dinteger_notnull,            /* SMTP Port */ '#13#10 +
+          '  server           dtext80 NOT NULL, '#13#10 +
+          '  port             dinteger_notnull DEFAULT 25, '#13#10 +
           ' '#13#10 +
           '  creatorkey       dforeignkey, '#13#10 +
           '  creationdate     dcreationdate, '#13#10 +
