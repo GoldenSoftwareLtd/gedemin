@@ -90,10 +90,10 @@ var
   PLClient: TgsPLClient;
   cds: TClientDataSet;
   PLTermv: TgsPLTermv;
-  V: Variant;
+ { V: Variant;
   SL: TStringList;
   I, Idx: Integer;
-  PLQuery: TgsPLQuery;
+  PLQuery: TgsPLQuery; }
   PredCount: Integer;
 begin 
   PLClient := TgsPLClient.Create;

@@ -325,7 +325,7 @@ begin
     S[I] := Chr(Random($FF));
   Check(S = DecryptString(EncryptString(S, 'PAssWord'), 'PAssWord'));
 
-  S := EncryptString(S, 'PAssWord'), 'PAssWord');
+  S := EncryptString(S, 'PAssWord');
   if S[1] = #01 then
     S[1] := #07
   else
