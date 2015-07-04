@@ -1255,6 +1255,7 @@ begin
             else
               Canvas.Font.Style := [];
 
+            Canvas.Font.CharSet := RUSSIAN_CHARSET;  
             Canvas.TextOut(R.Left + cExtraSpace, cExtraSpace + cDivExtraSpace,
               TSuperTabSheet(FPages[I]).Caption);
           end;

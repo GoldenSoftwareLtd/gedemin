@@ -6,10 +6,10 @@ object dlgScriptError: TdlgScriptError
   ClientHeight = 140
   ClientWidth = 439
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
+  Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   FormStyle = fsStayOnTop
   OldCreateOrder = False
@@ -20,16 +20,10 @@ object dlgScriptError: TdlgScriptError
   object Label1: TLabel
     Left = 80
     Top = 0
-    Width = 297
+    Width = 296
     Height = 13
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Вовремя выполнения скрипт-функции произошла ошибка:'
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -11
-    Font.Name = 'MS Sans Serif'
-    Font.Style = [fsUnderline]
-    ParentFont = False
   end
   object btOk: TButton
     Left = 118

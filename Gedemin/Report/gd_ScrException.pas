@@ -10,15 +10,6 @@ type
 
   CException = class of Exception;
   
-{  ESingleException = class
-  private
-    FExcClass: String;
-    FEMessage: String;
-  public
-    property ExcClass: String read FExcClass write FExcClass;
-    property EMessage: String read FEMessage write FEMessage;
-  end;        }
-
   EScrException = class
   private
     FEMessage: String;

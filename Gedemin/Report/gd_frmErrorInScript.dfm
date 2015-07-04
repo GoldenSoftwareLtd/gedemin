@@ -5,13 +5,13 @@ object frmErrorInScript: TfrmErrorInScript
   BorderStyle = bsDialog
   BorderWidth = 5
   Caption = 'Ошибка'
-  ClientHeight = 163
-  ClientWidth = 337
+  ClientHeight = 189
+  ClientWidth = 366
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
+  Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -19,15 +19,15 @@ object frmErrorInScript: TfrmErrorInScript
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
-    Top = 133
-    Width = 337
+    Top = 159
+    Width = 366
     Height = 30
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 0
     object btnOk: TButton
       Left = 0
-      Top = 9
+      Top = 7
       Width = 70
       Height = 21
       Caption = '&Ok'
@@ -36,7 +36,7 @@ object frmErrorInScript: TfrmErrorInScript
     end
     object Button2: TButton
       Left = 191
-      Top = 9
+      Top = 7
       Width = 145
       Height = 21
       Caption = 'Выйти из программы'
@@ -45,7 +45,7 @@ object frmErrorInScript: TfrmErrorInScript
     end
     object Button1: TButton
       Left = 75
-      Top = 9
+      Top = 7
       Width = 111
       Height = 21
       Action = actEditFunction
@@ -55,8 +55,8 @@ object frmErrorInScript: TfrmErrorInScript
   object Panel2: TPanel
     Left = 0
     Top = 0
-    Width = 337
-    Height = 133
+    Width = 366
+    Height = 159
     Align = alClient
     BevelInner = bvLowered
     BevelOuter = bvNone
@@ -65,8 +65,8 @@ object frmErrorInScript: TfrmErrorInScript
     object mmErrorMessage: TMemo
       Left = 1
       Top = 1
-      Width = 335
-      Height = 131
+      Width = 364
+      Height = 157
       TabStop = False
       Align = alClient
       BorderStyle = bsNone
