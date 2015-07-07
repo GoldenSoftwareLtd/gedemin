@@ -722,7 +722,7 @@ begin
   _OnCaptionChange := _DoOnCaptionChange;
 
   Application.OnShowHint := ApplicationEventsShowHint;
-  
+
   {$IFNDEF PROTECT}
   TBItem4.Visible := False;
   TBItem3.Visible := False;

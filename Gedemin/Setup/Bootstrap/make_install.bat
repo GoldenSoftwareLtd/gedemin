@@ -149,6 +149,8 @@ xcopy %install_source_path%\*.* Gedemin /Y /I
 xcopy %install_source_path%\udf\*.* Gedemin\UDF /Y /I
 xcopy %install_source_path%\intl\*.* Gedemin\Intl /Y /I
 xcopy %install_source_path%\help\*.* Gedemin\Help /Y /I
+xcopy %install_source_path%\swipl\*.* Gedemin\SWIPl /Y /I
+xcopy %install_source_path%\swipl\lib\*.* Gedemin\SWIPl\Lib /Y /I
 
 md Gedemin\Database
 

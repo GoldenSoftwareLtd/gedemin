@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2002 - 2010 by Golden Software of Belarus
+  Copyright (c) 2002 - 2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -262,11 +262,14 @@ procedure Register;
 implementation
 
 uses
-  flt_ScriptInterface, {prp_dlgScriptError_unit,} mtd_i_Base,
+  flt_ScriptInterface, mtd_i_Base,
   Controls, evt_i_Base, IBCustomDataSet, gs_Exception, IB, gd_Security,
   gd_security_operationconst, MSScriptControl_TLB, gd_frmErrorInScript,
   prp_MessageConst, prp_methods, gdcOLEClassList, gd_Createable_Form,
   ActiveX, gdcBaseInterface, gdcJournal
+  {$IFDEF WITH_INDY}
+    , gd_WebClientControl_unit
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1253,8 +1256,17 @@ const
       SF := glbFunctionList.FindFunction(LastFunctionKey);
     try
       if Assigned(SF) then
-        FuncName := SF.Name
-      else
+      begin
+        FuncName := SF.Name;
+        {$IFDEF WITH_INDY}
+        if gdWebClientThread <> nil then
+        begin
+          gdWebClientThread.SendError(FuncName + ', line: ' +
+            IntToStr(FErrorList[0].Line) + '. ' +
+            TScriptControl(Sender).Error.Description, True);
+        end;
+        {$ENDIF}
+      end else
         FuncName := '**неизвестно**';
       S :=  GetErrorMessage(TScriptControl(Sender).Error.Source + #13#10 +
         'скрипт-функция ' + FuncName, #13#10 +

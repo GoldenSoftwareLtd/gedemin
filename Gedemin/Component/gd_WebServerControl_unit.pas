@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2012-2014 by Golden Software of Belarus
+  Copyright (c) 2012-2015 by Golden Software of Belarus
 
   Module
 
@@ -26,7 +26,7 @@ unit gd_WebServerControl_unit;
 interface
 
 uses
-  Classes, Contnrs, SyncObjs, evt_i_Base, gd_FileList_unit, IBDatabase,
+  Classes, Contnrs, SyncObjs, evt_i_Base, gd_FileList_unit, IBDatabase, IdURI,
   IdHTTPServer, IdCustomHTTPServer, IdTCPServer, idThreadSafe, JclStrHashMap;
 
 type
@@ -43,6 +43,7 @@ type
     FInProcess: TidThreadSafeInteger;
     FUserSessions: TObjectList;
     FCS: TCriticalSection;
+    FURI: TidURI;
 
     function GetVarInterface(const AnValue: Variant): OleVariant;
     function GetVarParam(const AnValue: Variant): OleVariant;
@@ -58,6 +59,7 @@ type
     procedure ProcessTestRequest;
     procedure ProcessLoginRequest;
     procedure ProcessLogoffRequest;
+    procedure ProcessSendErrorRequest;
     procedure Log(const AnIPAddress: String; const AnOp: String;
       const Names: array of String; const Values: array of String); overload;
     procedure Log(const AnIPAddress: String; const AnOp: String;
@@ -137,6 +139,7 @@ begin
   FInProcess := TidThreadSafeInteger.Create;
   FUserSessions := TObjectList.Create(True);
   FCS := TCriticalSection.Create;
+  FURI := TidURI.Create;
 end;
 
 destructor TgdWebServerControl.Destroy;
@@ -148,6 +151,7 @@ begin
   FreeAndNil(FInProcess);
   FreeAndNil(FUserSessions);
   FCS.Free;
+  FURI.Free;
 end;
 
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
@@ -290,6 +294,8 @@ begin
       ProcessLoginRequest
     else if AnsiCompareText(FRequestInfo.Document, '/logoff') = 0 then
       ProcessLogoffRequest
+    else if AnsiCompareText(FRequestInfo.Document, '/send_error') = 0 then
+      ProcessSendErrorRequest
     else begin
       Processed := False;
       RequestToken := FRequestInfo.Params.Values[PARAM_TOKEN];
@@ -378,7 +384,7 @@ begin
         end else}
         begin
           S := 'Gedemin Web Server.';
-          S := S + '<br/>Copyright (c) 2014 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
+          S := S + '<br/>Copyright (c) 2015 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
           S := S + '<br/>All rights reserved.';
 
           S := S + '<br/><br/>Now serving tokens:<ol>';
@@ -796,7 +802,7 @@ begin
   for I := 0 to Params.Count - 1 do
   begin
     Names[I] := Params.Names[I];
-    Values[I] := Params.Values[Names[I]];
+    Values[I] := FURI.URLDecode(Params.Values[Names[I]]);
   end;
   Log(AnIPAddress, AnOp, Names, Values);
 end;
@@ -882,6 +888,14 @@ begin
       break;
     end;
   end;
+end;
+
+procedure TgdWebServerControl.ProcessSendErrorRequest;
+begin
+  Log(FRequestInfo.RemoteIP, 'SNDE', FRequestInfo.Params);
+  FResponseInfo.ResponseNo := 200;
+  FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
+  FResponseInfo.ContentText := 'Ok';
 end;
 
 { TgdWebUserSession }

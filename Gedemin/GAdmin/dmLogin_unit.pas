@@ -31,9 +31,12 @@ type
       const AFormName: string = ''; const AFilterName: string = '');
 
   private
+    FOldOnException: TExceptionEvent;
+
     procedure DoLoadSetting;
     procedure DoLoadNamespace;
     procedure Log(const AMessageType: TLogMessageType; const AMessage: String);
+    procedure ApplicationOnException(Sender: TObject; E: Exception);
 
   public
     constructor CreateAndConnect(AOwner: TComponent; const ALoginType: TLoginType;
@@ -205,6 +208,9 @@ begin
     gdAutoTaskThread := TgdAutoTaskThread.Create;
     gdAutoTaskThread.SetInitialDelay;
   end;
+
+  FOldOnException := Application.OnException;
+  Application.OnException := ApplicationOnException;
 end;
 
 procedure TdmLogin.boLoginAfterChangeCompany(Sender: TObject);
@@ -224,6 +230,8 @@ end;
 
 procedure TdmLogin.boLoginBeforeDisconnect(Sender: TObject);
 begin
+  Application.OnException := FOldOnException;
+  
   FreeAndNil(gdAutoTaskThread);
 
   {$IFDEF WITH_INDY}
@@ -531,6 +539,31 @@ begin
     lmtWarning: AddWarning(AMessage);
     lmtError: AddMistake(AMessage);
   end;
+end;
+
+procedure TdmLogin.ApplicationOnException(Sender: TObject; E: Exception);
+{$IFDEF WITH_INDY}
+var
+  S: String;
+{$ENDIF}
+begin
+  if Assigned(FOldOnException) then
+    FOldOnException(Sender, E);
+
+  {$IFDEF WITH_INDY}
+  if gdWebClientThread <> nil then
+  begin
+    if Screen.ActiveCustomForm <> nil then
+    begin
+      if Screen.ActiveCustomForm.Name = '' then
+        S := Screen.ActiveCustomForm.ClassName
+      else
+        S := Screen.ActiveCustomForm.Name;
+    end else
+      S := '';
+    gdWebClientThread.SendError(S + '. ' + E.ClassName + ': ' + E.Message);
+  end;
+  {$ENDIF}
 end;
 
 initialization

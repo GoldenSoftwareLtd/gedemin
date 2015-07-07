@@ -31,6 +31,8 @@ type
     FQuietMode: Boolean;
     FCanUpdate: Boolean;
     FMandatoryUpdate: Boolean;
+    FErrorToSend: TidThreadSafeString;
+    FSkipNextException: Boolean;
 
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
@@ -46,6 +48,8 @@ type
     function GetConnected: Boolean;
     function GetInUpdate: Boolean;
     function GetWebServerResponse: String;
+    function URIEncodeParam(const AParam: String): String;
+    procedure DoSendError;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -58,6 +62,7 @@ type
 
     procedure AfterConnection;
     procedure StartUpdateFiles;
+    procedure SendError(const AnErrorMessage: String; const ASkipNextException: Boolean = False);
 
     property gdWebServerURL: String read GetgdWebServerURL write SetgdWebServerURL;
     property WebServerResponse: String read GetWebServerResponse;
@@ -84,6 +89,7 @@ const
   WM_GD_UPDATE_FILES           = WM_USER + 1121;
   WM_GD_PROCESS_UPDATE_COMMAND = WM_USER + 1122;
   WM_GD_FINISH_UPDATE          = WM_USER + 1123;
+  WM_GD_SEND_ERROR             = WM_USER + 1124;
 
 { TgdWebClientThread }
 
@@ -105,6 +111,7 @@ begin
   FConnected := TidThreadSafeInteger.Create;
   FInUpdate := TidThreadSafeInteger.Create;
   FPath := ExtractFilePath(Application.ExeName);
+  FErrorToSend := TidThreadSafeString.Create;
 end;
 
 procedure TgdWebClientThread.AfterConnection;
@@ -278,6 +285,16 @@ begin
         FinishUpdate;
         FInUpdate.Value := 0;
       end;
+
+    WM_GD_SEND_ERROR:
+      begin
+        if (FConnected.Value <> 0) and (FInUpdate.Value = 0) and (FDBID > 0)
+          and (FErrorToSend.Value > '') then
+        begin
+          DoSendError;
+        end;  
+        FErrorToSend.Value := '';
+      end;
   else
     Result := False;
   end;
@@ -311,6 +328,7 @@ begin
   FHTTP.Free;
   FCmdList.Free;
   FURI.Free;
+  FErrorToSend.Free;
 end;
 
 function TgdWebClientThread.GetgdWebServerURL: String;
@@ -412,6 +430,62 @@ begin
   if InUpdate and (AMsg.Message = WM_GD_PROCESS_UPDATE_COMMAND) then
     PostThreadMessage(ThreadID, WM_GD_FINISH_UPDATE, 0, 0);
   Result := True;  
+end;
+
+function TgdWebClientThread.URIEncodeParam(const AParam: String): String;
+begin
+  Result := StringReplace(AParam, '=', '%3D', [rfReplaceAll]);
+  Result := StringReplace(Result, '&', '%26', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '%22', [rfReplaceAll]);
+  Result := StringReplace(Result, '\', '%5C', [rfReplaceAll]);
+  Result := StringReplace(Result, '/', '%2F', [rfReplaceAll]);
+  Result := StringReplace(Result, '?', '%3F', [rfReplaceAll]);
+  Result := StringReplace(Result, #$0A, '%0A', [rfReplaceAll]);
+  Result := StringReplace(Result, #$0D, '%0D', [rfReplaceAll]);
+  Result := StringReplace(Result, #$09, '%09', [rfReplaceAll]);
+end;
+
+procedure TgdWebClientThread.SendError(const AnErrorMessage: String;
+  const ASkipNextException: Boolean = False);
+begin
+  if (FConnected.Value <> 0) and (FInUpdate.Value = 0) and (FDBID > 0)
+    and (FErrorToSend.Value = '') then
+  begin
+    if not FSkipNextException then
+    begin
+      FErrorToSend.Value := AnErrorMessage;
+      PostMsg(WM_GD_SEND_ERROR);
+    end;
+    FSkipNextException := ASkipNextException;  
+  end;
+end;
+
+procedure TgdWebClientThread.DoSendError;
+begin
+  if gdWebServerURL = '' then
+    ErrorMessage := 'gdWebServerURL is not assigned.'
+  else if InUpdate then
+    ErrorMessage := 'Update process is running.'
+  else begin
+    FURI.URI := gdWebServerURL;
+    try
+      FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/send_error?' +
+        'dbid=' + IntToStr(FDBID) +
+        '&c_name=' + URIEncodeParam(FCompanyName) +
+        '&c_ruid=' + URIEncodeParam(FCompanyRUID) +
+        '&loc_ip=' + URIEncodeParam(FLocalIP) +
+        '&exe_ver=' + URIEncodeParam(FExeVer) +
+        '&error_message=' + URIEncodeParam(FErrorToSend.Value)));
+      gdNotifierThread.Add('Отослано сообщение об ошибке:', 0, 2000);
+      gdNotifierThread.Add(FErrorToSend.Value, 0, 2000);
+    except
+      on E: Exception do
+      begin
+        ErrorMessage := E.Message;
+        gdNotifierThread.Add(ErrorMessage, 0, 2000);
+      end;
+    end;
+  end;
 end;
 
 initialization
