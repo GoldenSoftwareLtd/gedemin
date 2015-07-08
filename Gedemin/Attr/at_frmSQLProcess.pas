@@ -71,6 +71,9 @@ implementation
 
 uses
   at_dlgLoadPackages_unit, at_Classes, gd_CmdLineParams_unit
+  {$IFDEF WITH_INDY}
+    , gd_WebClientControl_unit
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -425,7 +428,14 @@ begin
     stbSQLProcess.Panels[1].Text := '';
 
   if ALogType = atltError then
+  begin
     stbSQLProcess.Panels[0].Text := cstWasMistakes;
+
+    {$IFDEF WITH_INDY}
+    if gdWebClientThread <> nil then
+      gdWebClientThread.SendError('Log: ' + S);
+    {$ENDIF}
+  end;
 end;
 
 procedure TfrmSQLProcess.lvData(Sender: TObject; Item: TListItem);

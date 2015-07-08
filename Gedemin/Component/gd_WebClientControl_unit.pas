@@ -22,7 +22,7 @@ type
     FDBID: Integer;
     FCompanyName, FCompanyRUID: String;
     FCompanyPhone, FCompanyEmail: String;
-    FLocalIP: String;
+    FLocalIP, FUserName: String;
     FEXEVer: String;
     FUpdateToken: String;
     FPath: String;
@@ -135,6 +135,7 @@ begin
   FCompanyPhone := IBLogin.CompanyPhone;
   FCompanyEmail := IBLogin.CompanyEmail;
   FLocalIP := GetIPAddress(IBLogin.ComputerName);
+  FUserName := IBLogin.UserName;
   if VersionResourceAvailable(Application.EXEName) then
     with TjclFileVersionInfo.Create(Application.EXEName) do
     try
@@ -474,6 +475,7 @@ begin
         '&c_name=' + URIEncodeParam(FCompanyName) +
         '&c_ruid=' + URIEncodeParam(FCompanyRUID) +
         '&loc_ip=' + URIEncodeParam(FLocalIP) +
+        '&user_name=' + URIEncodeParam(FUserName) +
         '&exe_ver=' + URIEncodeParam(FExeVer) +
         '&error_message=' + URIEncodeParam(FErrorToSend.Value)));
       gdNotifierThread.Add('Отослано сообщение об ошибке:', 0, 2000);
