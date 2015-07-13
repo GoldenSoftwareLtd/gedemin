@@ -1151,15 +1151,32 @@ function TboLogin.Login: Boolean;
           DB.DatabaseName := ADBName;
           DB.Connected := True;
         except
-          FSysDBAPassword := '';
-          ParseDatabaseName(ADBName, Server, Port, FileName);
-          if Server = '' then Server := 'Firebird';
-          MessageBox(0,
-            PChar('Сервер ' + Server + ' должен быть настроен для подключения платформы Гедымин.'),
-            'Внимание',
-            MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-          if not InputQuery(Server, 'Введите пароль учетной записи SYSDBA:', FSysDBAPassword) then
-            exit;
+          on E: EIBError do
+          begin
+            if (E.IBErrorCode = isc_io_error) or (E.IBErrorCode = isc_shutdown) then
+            begin
+              MessageBox(0,
+                PChar('Невозможно открыть файл базы данных.'#13#10#13#10 +
+                '1) Возможно неверно указано полное имя файла БД.'#13#10 +
+                '2) Или к базе данных уже кто-то подключен '#13#10 +
+                '   в однопользовательском режиме.'#13#10#13#10 +
+                'Сообщение об ошибке:'#13#10 + E.Message),
+                'Ошибка',
+                MB_OK or MB_ICONHAND or MB_TASKMODAL);
+              exit;  
+            end else
+            begin
+              FSysDBAPassword := '';
+              ParseDatabaseName(ADBName, Server, Port, FileName);
+              if Server = '' then Server := 'Firebird';
+              MessageBox(0,
+                PChar('Сервер ' + Server + ' должен быть настроен для подключения платформы Гедымин.'),
+                'Внимание',
+                MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+              if not InputQuery(Server, 'Введите пароль учетной записи SYSDBA:', FSysDBAPassword) then
+                exit;
+            end;
+          end;
         end;
       until DB.Connected;
 
