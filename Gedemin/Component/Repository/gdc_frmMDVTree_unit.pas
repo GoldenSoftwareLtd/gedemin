@@ -927,7 +927,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDVTree, 'Master-detail форма с деревом и таблицей');
+  RegisterFrmClass(Tgdc_frmMDVTree, 'Master-detail форма с деревом и таблицей').AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDVTree);

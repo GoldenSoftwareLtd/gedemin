@@ -8,11 +8,11 @@ inherited gdc_frmSGR: Tgdc_frmSGR
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 382
-    Width = 591
+    Top = 389
+    Width = 599
   end
   inherited TBDockTop: TTBDock
-    Width = 591
+    Width = 599
     inherited tbMainMenu: TTBToolbar
       DockPos = 8
     end
@@ -21,41 +21,38 @@ inherited gdc_frmSGR: Tgdc_frmSGR
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 331
+    Height = 338
   end
   inherited TBDockRight: TTBDock
-    Left = 582
-    Height = 331
+    Left = 590
+    Height = 338
   end
   inherited TBDockBottom: TTBDock
-    Top = 401
-    Width = 591
+    Top = 408
+    Width = 599
   end
   inherited pnlWorkArea: TPanel
-    Width = 573
-    Height = 331
+    Width = 581
+    Height = 338
     TabOrder = 0
     inherited spChoose: TSplitter
-      Top = 228
-      Width = 573
+      Top = 235
+      Width = 581
     end
     inherited pnlMain: TPanel
-      Width = 573
-      Height = 228
+      Width = 581
+      Height = 235
       inherited pnlSearchMain: TPanel
-        Height = 228
+        Height = 235
         inherited sbSearchMain: TScrollBox
-          Height = 190
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 190
+          Height = 208
         end
       end
       object ibgrMain: TgsIBGrid
         Left = 160
         Top = 0
-        Width = 413
-        Height = 228
+        Width = 421
+        Height = 235
         HelpContext = 3
         Align = alClient
         BorderStyle = bsNone
@@ -88,16 +85,16 @@ inherited gdc_frmSGR: Tgdc_frmSGR
       end
     end
     inherited pnChoose: TPanel
-      Top = 232
-      Width = 573
+      Top = 239
+      Width = 581
       inherited pnButtonChoose: TPanel
-        Left = 468
+        Left = 476
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 468
+        Width = 476
       end
       inherited pnlChooseCaption: TPanel
-        Width = 573
+        Width = 581
       end
     end
   end

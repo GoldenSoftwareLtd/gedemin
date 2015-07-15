@@ -75,7 +75,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefinedLBRBTree);
+  RegisterFrmClass(Tgdc_frmAttrUserDefinedLBRBTree).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefinedLBRBTree);

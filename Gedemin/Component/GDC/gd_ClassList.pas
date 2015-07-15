@@ -400,6 +400,7 @@ type
 
   TgdFormEntry = class(TgdClassEntry)
   private
+    FAbstractBaseForm: Boolean;
     function GetFrmClass: CgdcCreateableForm;
 
   public
@@ -408,6 +409,7 @@ type
       const ACaption: String = ''); overload; override;
 
     property frmClass: CgdcCreateableForm read GetFrmClass;
+    property AbstractBaseForm: Boolean read FAbstractBaseForm write FAbstractBaseForm;
   end;
 
   TgdNewFormEntry = class(TgdFormEntry)
@@ -513,7 +515,7 @@ procedure UnregisterGdcClass(AClass: CgdcBase);
 
 // добавл€ет класс в список классов
 {–егистраци€ класса в списке TgdcClassList}
-procedure RegisterFrmClass(AClass: CgdcCreateableForm; const ACaption: String = '');
+function RegisterFrmClass(AClass: CgdcCreateableForm; const ACaption: String = ''): TgdFormEntry;
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
 
 {–егистраци€ метода дл€ класса.}
@@ -621,10 +623,10 @@ begin
   Classes.UnRegisterClass(AClass);
 end;
 
-procedure RegisterFrmClass(AClass: CgdcCreateableForm; const ACaption: String = '');
+function RegisterFrmClass(AClass: CgdcCreateableForm; const ACaption: String = ''): TgdFormEntry;
 begin
   Classes.RegisterClass(AClass);
-  gdClassList.Add(AClass, '', '', TgdFormEntry, ACaption);
+  Result := gdClassList.Add(AClass, '', '', TgdFormEntry, ACaption) as TgdFormEntry;
 end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);

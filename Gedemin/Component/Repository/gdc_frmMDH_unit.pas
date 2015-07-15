@@ -1269,7 +1269,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDH, 'Master-detail форма (гориз.)');
+  RegisterFrmClass(Tgdc_frmMDH, 'Master-detail форма (гориз.)').AbstractBaseForm := True;
   Tgdc_frmMDH.RegisterMethod;
 
 finalization

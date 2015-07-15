@@ -411,9 +411,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmSGR, 'Форма просмотра с таблицей');
+  RegisterFrmClass(Tgdc_frmSGR, 'Форма просмотра с таблицей').AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmSGR);
-
 end.

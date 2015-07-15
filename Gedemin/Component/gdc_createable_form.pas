@@ -765,9 +765,31 @@ end;
 function TgdcCreateableForm.GetFormCaption: String;
 var
   CE: TgdClassEntry;
+  FE: TgdFormEntry;
   Pref, Postf: String;
 begin
-  Result := Caption;
+  Result := '';
+  FE := gdClassList.Get(TgdFormEntry, Self.ClassName, '') as TgdFormEntry;
+
+  if (Caption > '') and (Pos(Caption, Name) = 0) then
+    Result := Caption
+  else begin
+    if (FE.Caption <> '') and (FE.Caption <> Self.ClassName) then
+      Result := FE.Caption;
+  end;
+
+  // кал≥ праграм≥ст не прысво≥Ґ загаловак формы, альбо
+  // пак≥нуҐ €го пустым, возьмем назоҐ б≥знэс аб'екту
+  {
+  if gdcObject <> nil then
+  begin
+    if ((Caption = Name) or (Caption = '')) then
+      Caption := gdcObject.GetDisplayName(FSubType)
+    else if Pos(Caption, Name) = 1 then
+      Caption := StringReplace(Name, Caption, gdcObject.GetDisplayName(FSubType), []);
+  end;
+  }
+
   Pref := '';
   Postf := '';
 
@@ -775,13 +797,8 @@ begin
   begin
     CE := gdClassList.Get(TgdClassEntry, gdcObject.ClassName, gdcObject.SubType);
 
-    if (CE.Caption <> '') and (CE.Caption <> gdcObject.ClassName) then
-      Result := CE.Caption
-    else begin
-      CE := gdClassList.Get(TgdFormEntry, Self.ClassName, '');
-      if (CE.Caption <> '') and (CE.Caption <> Self.ClassName) then
-        Result := CE.Caption
-    end;
+    if (Result = '') or (FE.AbstractBaseForm and (CE.Caption <> '')) then
+      Result := CE.Caption;
 
     if BorderStyle = bsDialog then
     begin

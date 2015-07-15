@@ -78,7 +78,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefinedTree);
+  RegisterFrmClass(Tgdc_frmAttrUserDefinedTree).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefinedTree);

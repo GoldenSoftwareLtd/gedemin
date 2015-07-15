@@ -592,7 +592,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDHGR, 'Master-detail форма с таблицей');
+  RegisterFrmClass(Tgdc_frmMDHGR, 'Master-detail форма с таблицей').AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDHGR);

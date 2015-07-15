@@ -7,11 +7,11 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 555
-    Width = 796
+    Top = 562
+    Width = 804
   end
   inherited TBDockTop: TTBDock
-    Width = 796
+    Width = 804
     inherited tbMainToolbar: TTBToolbar
       Visible = False
     end
@@ -33,41 +33,41 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 495
+    Height = 502
   end
   inherited TBDockRight: TTBDock
-    Left = 787
-    Height = 495
+    Left = 795
+    Height = 502
   end
   inherited TBDockBottom: TTBDock
-    Top = 546
-    Width = 796
+    Top = 553
+    Width = 804
   end
   inherited pnlWorkArea: TPanel
-    Width = 778
-    Height = 495
+    Width = 786
+    Height = 502
     inherited sMasterDetail: TSplitter
       Left = 166
-      Height = 390
+      Height = 397
     end
     inherited spChoose: TSplitter
-      Top = 390
-      Width = 778
+      Top = 397
+      Width = 786
     end
     inherited pnlMain: TPanel
       Width = 166
-      Height = 390
+      Height = 397
       inherited pnlSearchMain: TPanel
-        Height = 390
+        Height = 397
         inherited sbSearchMain: TScrollBox
-          Height = 363
+          Height = 370
         end
       end
       object tvGroup: TgsDBTreeView
         Left = 160
         Top = 0
         Width = 6
-        Height = 390
+        Height = 397
         DataSource = dsMain
         KeyField = 'ID'
         ParentField = 'PARENT'
@@ -94,27 +94,27 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
       end
     end
     inherited pnChoose: TPanel
-      Top = 396
-      Width = 778
+      Top = 403
+      Width = 786
       inherited pnButtonChoose: TPanel
-        Left = 673
+        Left = 681
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 673
+        Width = 681
       end
       inherited pnlChooseCaption: TPanel
-        Width = 778
+        Width = 786
       end
     end
     inherited pnlDetail: TPanel
       Left = 172
-      Width = 606
-      Height = 390
+      Width = 614
+      Height = 397
       BevelOuter = bvNone
       inherited TBDockDetail: TTBDock
         Left = 0
         Top = 0
-        Width = 606
+        Width = 614
         inherited tbDetailCustom: TTBToolbar
           Left = 275
         end
@@ -122,17 +122,17 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
       inherited pnlSearchDetail: TPanel
         Left = 0
         Top = 26
-        Height = 364
+        Height = 371
         TabOrder = 2
         inherited sbSearchDetail: TScrollBox
-          Height = 337
+          Height = 344
         end
       end
       object ibgrDetail: TgsIBGrid
         Left = 160
         Top = 26
-        Width = 446
-        Height = 364
+        Width = 454
+        Height = 371
         HelpContext = 3
         Align = alClient
         BorderStyle = bsNone
