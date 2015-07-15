@@ -610,17 +610,22 @@ begin
   if HasSubSet(ss_ByIntervalDate) then
     S.Add(' z.documentdate >= :datebegin  AND z.documentdate <= :dateend ');
 
-  if SubType > '' then
+  if ClassName <> 'TgdcDocument' then
   begin
-    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
-    IDs := '';
-    _Traverse(CE, IDs);
-
-    if IDs > '' then
+    if SubType > '' then
     begin
-      SetLength(IDs, Length(IDs) - 1);
-      S.Add('z.documenttypekey IN (' + IDs + ')');
-    end;
+      CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
+      IDs := '';
+      _Traverse(CE, IDs);
+
+      if IDs > '' then
+      begin
+        SetLength(IDs, Length(IDs) - 1);
+        S.Add('z.documenttypekey IN (' + IDs + ')');
+      end;
+    end
+    else
+      S.Add(' z.documenttypekey = ' + IntToStr(DocumentTypeKey));
 
     if GetDocumentClassPart = dcpLine then
       S.Add('z.parent + 0 IS NOT NULL')
