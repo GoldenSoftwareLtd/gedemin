@@ -117,31 +117,34 @@ begin
 
   IsSetup := True;
   try
-    if (AnObject as TgdcBase).HasSubSet('AllRemains') then
-      cbAllRemains.Checked := True;
-    if not (AnObject as TgdcInvRemains).CurrentRemains then
-      RadioButton2.Checked := True;
-    gdcObject := AnObject as TgdcBase;
-    gdcGoodGroup.Close;
-    gdcGoodGroup.ReadTransaction := gdcObject.ReadTransaction;
-    SetupInvRemains(gdcObject as TgdcInvRemains);
-    gdcObject.MasterSource := nil;
-    gdcObject.ReadTransaction := gdcGoodGroup.ReadTransaction;
-    if (gdcObject.HasSubSet(cst_ByGoodKey)) then
+    if Assigned((AnObject as TgdcInvRemains).gdcDocumentLine) then
     begin
-      pnMain.Width := 0;
-      pnMain.Enabled := False;
-      gdcObject.MasterField := '';
-      gdcObject.DetailField := '';
-      gdcObject.Open;
-    end
-    else
-    begin
-      gdcGoodGroup.Open;
-      gdcObject.MasterSource := dsDetail;
-    end;
+      if (AnObject as TgdcBase).HasSubSet('AllRemains') then
+        cbAllRemains.Checked := True;
+      if not (AnObject as TgdcInvRemains).CurrentRemains then
+        RadioButton2.Checked := True;
+      gdcObject := AnObject as TgdcBase;
+      gdcGoodGroup.Close;
+      gdcGoodGroup.ReadTransaction := gdcObject.ReadTransaction;
+      SetupInvRemains(gdcObject as TgdcInvRemains);
+      gdcObject.MasterSource := nil;
+      gdcObject.ReadTransaction := gdcGoodGroup.ReadTransaction;
+      if (gdcObject.HasSubSet(cst_ByGoodKey)) then
+      begin
+        pnMain.Width := 0;
+        pnMain.Enabled := False;
+        gdcObject.MasterField := '';
+        gdcObject.DetailField := '';
+        gdcObject.Open;
+      end
+      else
+      begin
+        gdcGoodGroup.Open;
+        gdcObject.MasterSource := dsDetail;
+      end;
 
-    inherited Setup(AnObject);
+      inherited Setup(AnObject);
+    end;  
   finally
     IsSetup := False;
   end;

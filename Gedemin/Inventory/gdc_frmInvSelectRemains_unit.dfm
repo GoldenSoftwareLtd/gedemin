@@ -8,57 +8,65 @@ inherited gdc_frmInvSelectRemains: Tgdc_frmInvSelectRemains
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 445
-    Width = 716
+    Top = 433
+    Width = 708
   end
   inherited TBDockTop: TTBDock
-    Width = 716
+    Width = 708
+    inherited tbMainCustom: TTBToolbar
+      Left = 675
+    end
+    inherited tbMainInvariant: TTBToolbar
+      inherited cbAllRemains: TCheckBox
+        Left = 159
+      end
+    end
+    inherited tbChooseMain: TTBToolbar
+      Left = 421
+    end
   end
   inherited TBDockLeft: TTBDock
-    Height = 384
+    Height = 370
   end
   inherited TBDockRight: TTBDock
-    Left = 707
-    Height = 384
+    Left = 699
+    Height = 370
   end
   inherited TBDockBottom: TTBDock
-    Top = 436
-    Width = 716
+    Top = 424
+    Width = 708
   end
   inherited pnlWorkArea: TPanel
-    Width = 698
-    Height = 384
+    Width = 690
+    Height = 370
     inherited spChoose: TSplitter
-      Top = 281
-      Width = 698
+      Top = 267
+      Width = 690
     end
     inherited pnlMain: TPanel
-      Width = 698
-      Height = 281
+      Width = 690
+      Height = 267
       inherited Splitter1: TSplitter
-        Height = 281
+        Height = 267
       end
       inherited pnlSearchMain: TPanel
-        Height = 281
+        Height = 267
         inherited sbSearchMain: TScrollBox
-          Height = 243
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 243
+          Height = 240
         end
       end
       inherited pnMain: TPanel
-        Height = 281
+        Height = 267
         inherited tvGroup: TgsDBTreeView
-          Height = 281
+          Height = 267
         end
       end
       inherited pnDetail: TPanel
-        Width = 318
-        Height = 281
+        Width = 310
+        Height = 267
         inherited ibgrDetail: TgsIBGrid
-          Width = 318
-          Height = 281
+          Width = 310
+          Height = 267
           CheckBox.FieldName = 'CHOOSEID'
           CheckBox.Visible = True
           CheckBox.AfterCheckEvent = ibgrDetailClickedCheck
@@ -68,17 +76,17 @@ inherited gdc_frmInvSelectRemains: Tgdc_frmInvSelectRemains
       end
     end
     inherited pnChoose: TPanel
-      Top = 285
-      Width = 698
+      Top = 271
+      Width = 690
       inherited pnButtonChoose: TPanel
-        Left = 593
+        Left = 585
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 593
+        Width = 585
         Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgTabs, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
       end
       inherited pnlChooseCaption: TPanel
-        Width = 698
+        Width = 690
       end
     end
   end
@@ -95,6 +103,7 @@ inherited gdc_frmInvSelectRemains: Tgdc_frmInvSelectRemains
     MasterSource = dsDetail
     MasterField = 'LB;RB'
     DetailField = 'LB;RB'
+    SubSet = 'ByGroupKey'
     CachedUpdates = True
     Left = 344
     Top = 216

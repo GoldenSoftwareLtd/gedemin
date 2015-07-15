@@ -11,7 +11,7 @@ inherited gdc_frmInvBaseSelectRemains: Tgdc_frmInvBaseSelectRemains
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 483
+    Top = 482
     Width = 767
   end
   inherited TBDockTop: TTBDock
@@ -67,49 +67,49 @@ inherited gdc_frmInvBaseSelectRemains: Tgdc_frmInvBaseSelectRemains
   end
   inherited TBDockLeft: TTBDock
     Top = 54
-    Height = 420
+    Height = 419
   end
   inherited TBDockRight: TTBDock
     Left = 758
     Top = 54
-    Height = 420
+    Height = 419
   end
   inherited TBDockBottom: TTBDock
-    Top = 474
+    Top = 473
     Width = 767
   end
   inherited pnlWorkArea: TPanel
     Top = 54
     Width = 749
-    Height = 420
+    Height = 419
     inherited spChoose: TSplitter
-      Top = 317
+      Top = 316
       Width = 749
     end
     inherited pnlMain: TPanel
       Width = 749
-      Height = 317
+      Height = 316
       inherited Splitter1: TSplitter
-        Height = 317
+        Height = 316
       end
       inherited pnlSearchMain: TPanel
-        Height = 317
+        Height = 316
         inherited sbSearchMain: TScrollBox
-          Height = 290
+          Height = 289
         end
       end
       inherited pnMain: TPanel
-        Height = 317
+        Height = 316
         inherited tvGroup: TgsDBTreeView
-          Height = 317
+          Height = 316
         end
       end
       inherited pnDetail: TPanel
         Width = 369
-        Height = 317
+        Height = 316
         inherited ibgrDetail: TgsIBGrid
           Width = 369
-          Height = 317
+          Height = 316
           Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
           ReadOnly = False
           OnColEnter = ibgrDetailColEnter
@@ -126,7 +126,7 @@ inherited gdc_frmInvBaseSelectRemains: Tgdc_frmInvBaseSelectRemains
       end
     end
     inherited pnChoose: TPanel
-      Top = 321
+      Top = 320
       Width = 749
       inherited pnButtonChoose: TPanel
         Left = 644
