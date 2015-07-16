@@ -35,5 +35,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_wage_dlgHoliday);
-
 end.

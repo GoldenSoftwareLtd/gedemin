@@ -3,17 +3,18 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
   Top = 190
   Width = 1090
   Height = 742
-  Caption = 'Пространство имен'
+  Caption = 'Пространства имен'
   Visible = True
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 685
-    Width = 1074
+    Top = 692
+    Width = 1082
   end
   inherited TBDockTop: TTBDock
-    Width = 1074
+    Width = 1082
     inherited tbMainCustom: TTBToolbar
+      Images = dmImages.il16x16
       object TBItem1: TTBItem
         Action = actSetObjectPos
       end
@@ -37,50 +38,50 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 625
+    Height = 632
   end
   inherited TBDockRight: TTBDock
-    Left = 1065
-    Height = 625
+    Left = 1073
+    Height = 632
   end
   inherited TBDockBottom: TTBDock
-    Top = 676
-    Width = 1074
+    Top = 683
+    Width = 1082
   end
   inherited pnlWorkArea: TPanel
-    Width = 1056
-    Height = 625
+    Width = 1064
+    Height = 632
     inherited sMasterDetail: TSplitter
-      Width = 1056
+      Width = 1064
     end
     inherited spChoose: TSplitter
-      Top = 520
-      Width = 1056
+      Top = 527
+      Width = 1064
     end
     inherited pnlMain: TPanel
-      Width = 1056
+      Width = 1064
       inherited ibgrMain: TgsIBGrid
-        Width = 896
+        Width = 904
       end
     end
     inherited pnChoose: TPanel
-      Top = 526
-      Width = 1056
+      Top = 533
+      Width = 1064
       inherited pnButtonChoose: TPanel
-        Left = 951
+        Left = 959
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 951
+        Width = 959
       end
       inherited pnlChooseCaption: TPanel
-        Width = 1056
+        Width = 1064
       end
     end
     inherited pnlDetail: TPanel
-      Width = 1056
-      Height = 347
+      Width = 1064
+      Height = 354
       inherited TBDockDetail: TTBDock
-        Width = 1056
+        Width = 1064
         inherited tbDetailCustom: TTBToolbar
           Images = dmImages.il16x16
           object TBItem5: TTBItem
@@ -89,17 +90,14 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
         end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 321
+        Height = 328
         inherited sbSearchDetail: TScrollBox
-          Height = 283
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 283
+          Height = 301
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 896
-        Height = 321
+        Width = 904
+        Height = 328
       end
     end
   end

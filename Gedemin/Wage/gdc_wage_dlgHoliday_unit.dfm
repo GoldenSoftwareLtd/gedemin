@@ -8,7 +8,7 @@ inherited gdc_wage_dlgHoliday: Tgdc_wage_dlgHoliday
   Font.Name = 'MS Sans Serif'
   OldCreateOrder = False
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   inherited btnAccess: TButton
     Left = 310
     Top = 66
@@ -16,6 +16,10 @@ inherited gdc_wage_dlgHoliday: Tgdc_wage_dlgHoliday
   inherited btnNew: TButton
     Left = 310
     Top = 95
+  end
+  inherited btnHelp: TButton
+    Left = 310
+    Top = 124
   end
   inherited btnOK: TButton
     Left = 310
@@ -25,36 +29,33 @@ inherited gdc_wage_dlgHoliday: Tgdc_wage_dlgHoliday
     Left = 310
     Top = 36
   end
-  inherited btnHelp: TButton
-    Left = 310
-    Top = 124
-  end
   inherited pgcMain: TPageControl
     Width = 293
     Height = 139
     inherited tbsMain: TTabSheet
       inherited labelID: TLabel
-        Width = 83
+        Width = 85
+        Height = 14
       end
       object Label1: TLabel
         Left = 8
         Top = 32
         Width = 79
-        Height = 13
+        Height = 14
         Caption = 'Наименование:'
       end
       object Label2: TLabel
         Left = 8
         Top = 83
         Width = 29
-        Height = 13
+        Height = 14
         Caption = 'Дата:'
       end
       object dbedName: TDBEdit
         Left = 8
         Top = 48
         Width = 273
-        Height = 21
+        Height = 22
         DataField = 'NAME'
         DataSource = dsgdcBase
         TabOrder = 0
@@ -63,7 +64,7 @@ inherited gdc_wage_dlgHoliday: Tgdc_wage_dlgHoliday
         Left = 72
         Top = 80
         Width = 89
-        Height = 21
+        Height = 22
         DataField = 'holidaydate'
         DataSource = dsgdcBase
         Kind = kDate

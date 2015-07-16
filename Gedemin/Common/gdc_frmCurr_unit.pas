@@ -1,6 +1,6 @@
 {++
    Project GDReference
-   Copyright © 2000- by Golden Software
+   Copyright © 2000-2015 by Golden Software
 
    Модуль
 

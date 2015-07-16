@@ -38,7 +38,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_wage_frmTableCalendarMain);
+  RegisterFrmClass(Tgdc_wage_frmTableCalendarMain, 'Графики рабочего времени');
 
 finalization
   UnRegisterFrmClass(Tgdc_wage_frmTableCalendarMain);

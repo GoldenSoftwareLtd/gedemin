@@ -43,9 +43,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmCheckConstraint);
+  RegisterFrmClass(Tgdc_frmCheckConstraint, 'Ограничения');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmCheckConstraint);
-
 end.

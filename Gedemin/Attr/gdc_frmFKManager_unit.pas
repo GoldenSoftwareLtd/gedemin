@@ -131,8 +131,6 @@ end;
 procedure Tgdc_frmFKManager.actConvertFKUpdate(Sender: TObject);
 begin
   actConvertFK.Enabled := (not gdcFKManager.IsUpdateStatsRunning)
-    {and (pbUpdateStats.Position > 0)
-    and (pbUpdateStats.Position = pbUpdateStats.Max)}
     and (IBLogin <> nil)
     and IBLogin.IsIBUserAdmin;
 end;
@@ -144,9 +142,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmFKManager);
+  RegisterFrmClass(Tgdc_frmFKManager, 'Внешние ключи');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmFKManager);
-
 end.

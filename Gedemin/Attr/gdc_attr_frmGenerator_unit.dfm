@@ -1,4 +1,6 @@
 inherited gdc_frmGenerator: Tgdc_frmGenerator
+  Left = 471
+  Top = 100
   Caption = 'gdc_frmGenerator'
   PixelsPerInch = 96
   TextHeight = 13

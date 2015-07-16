@@ -54,7 +54,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmPlace);
+  RegisterFrmClass(Tgdc_frmPlace, 'Административно-территориальные единицы');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmPlace);

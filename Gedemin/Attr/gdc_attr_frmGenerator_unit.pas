@@ -41,9 +41,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmGenerator);
+  RegisterFrmClass(Tgdc_frmGenerator, 'Генераторы');
 
 finalization
   UnRegisterFrmClass(Tgdc_frmGenerator);
-
 end.

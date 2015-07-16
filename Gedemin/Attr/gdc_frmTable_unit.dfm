@@ -2,11 +2,12 @@ inherited gdc_frmTable: Tgdc_frmTable
   Left = 331
   Top = 258
   HelpContext = 83
-  Caption = 'Таблицы системы'
+  Caption = 'Таблицы'
   PixelsPerInch = 96
   TextHeight = 13
   inherited TBDockTop: TTBDock
     inherited tbMainCustom: TTBToolbar
+      Images = dmImages.il16x16
       object TBItem3: TTBItem
         Action = actMainToSetting
       end

@@ -1,5 +1,8 @@
 
 {
+
+  Copyright (c) 2001-2015 by Golden Software of Belarus, Ltd
+
   Валюты
 
   TgdcCurr          - Валюты
@@ -502,8 +505,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcCurr);
-  RegisterGdcClass(TgdcCurrRate);
+  RegisterGdcClass(TgdcCurr, 'Валюта');
+  RegisterGdcClass(TgdcCurrRate, 'Курс валюты');
 
 finalization
   UnregisterGdcClass(TgdcCurr);

@@ -1,7 +1,7 @@
 inherited gdc_dlgLink: Tgdc_dlgLink
   Left = 286
   Top = 274
-  Caption = 'gdc_dlgLink'
+  Caption = 'Прикрепление'
   ClientHeight = 289
   ClientWidth = 432
   PixelsPerInch = 96
@@ -12,13 +12,13 @@ inherited gdc_dlgLink: Tgdc_dlgLink
   inherited btnNew: TButton
     Top = 262
   end
+  inherited btnHelp: TButton
+    Top = 262
+  end
   inherited btnOK: TButton
     Top = 262
   end
   inherited btnCancel: TButton
-    Top = 262
-  end
-  inherited btnHelp: TButton
     Top = 262
   end
   inherited pgcMain: TPageControl

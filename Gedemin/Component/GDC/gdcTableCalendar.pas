@@ -677,9 +677,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcHoliday);
-  RegisterGDCClass(TgdcTableCalendar);
-  RegisterGDCClass(TgdcTableCalendarDay);
+  RegisterGDCClass(TgdcHoliday, 'Государственный праздник праздник');
+  RegisterGDCClass(TgdcTableCalendar, 'График рабочего времени');
+  RegisterGDCClass(TgdcTableCalendarDay, 'День графика рабочего времени');
 
 finalization
   UnregisterGdcClass(TgdcHoliday);

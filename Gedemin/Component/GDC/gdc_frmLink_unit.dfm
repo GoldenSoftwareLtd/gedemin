@@ -3,53 +3,50 @@ inherited gdc_frmLink: Tgdc_frmLink
   Top = 236
   Width = 696
   Height = 420
-  Caption = 'gdc_frmLink'
+  Caption = 'Прикрепления'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 365
+    Top = 361
     Width = 688
   end
   inherited TBDockTop: TTBDock
     Width = 688
   end
   inherited TBDockLeft: TTBDock
-    Height = 316
+    Height = 310
   end
   inherited TBDockRight: TTBDock
     Left = 679
-    Height = 316
+    Height = 310
   end
   inherited TBDockBottom: TTBDock
-    Top = 384
+    Top = 380
     Width = 688
   end
   inherited pnlWorkArea: TPanel
     Width = 670
-    Height = 316
+    Height = 310
     inherited spChoose: TSplitter
-      Top = 213
+      Top = 207
       Width = 670
     end
     inherited pnlMain: TPanel
       Width = 670
-      Height = 213
+      Height = 207
       inherited pnlSearchMain: TPanel
-        Height = 213
+        Height = 207
         inherited sbSearchMain: TScrollBox
-          Height = 175
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 175
+          Height = 180
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 510
-        Height = 213
+        Height = 207
       end
     end
     inherited pnChoose: TPanel
-      Top = 217
+      Top = 211
       Width = 670
       inherited pnButtonChoose: TPanel
         Left = 565

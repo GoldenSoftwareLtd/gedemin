@@ -7,9 +7,9 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
   Font.Name = 'MS Sans Serif'
   OldCreateOrder = False
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   inherited sbMain: TStatusBar
-    Top = 594
+    Top = 590
     Width = 862
   end
   inherited TBDockTop: TTBDock
@@ -32,7 +32,7 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
         Control = pbUpdateStats
       end
       object pbUpdateStats: TProgressBar
-        Left = 81
+        Left = 30
         Top = 3
         Width = 150
         Height = 16
@@ -43,42 +43,39 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 536
+    Height = 530
   end
   inherited TBDockRight: TTBDock
     Left = 853
-    Height = 536
+    Height = 530
   end
   inherited TBDockBottom: TTBDock
-    Top = 585
+    Top = 581
     Width = 862
   end
   inherited pnlWorkArea: TPanel
     Width = 844
-    Height = 536
+    Height = 530
     inherited spChoose: TSplitter
-      Top = 433
+      Top = 427
       Width = 844
     end
     inherited pnlMain: TPanel
       Width = 844
-      Height = 433
+      Height = 427
       inherited pnlSearchMain: TPanel
-        Height = 433
+        Height = 427
         inherited sbSearchMain: TScrollBox
-          Height = 395
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 395
+          Height = 400
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 684
-        Height = 433
+        Height = 427
       end
     end
     inherited pnChoose: TPanel
-      Top = 437
+      Top = 431
       Width = 844
       inherited pnButtonChoose: TPanel
         Left = 739

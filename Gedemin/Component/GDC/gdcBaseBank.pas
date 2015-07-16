@@ -290,7 +290,7 @@ end;
 
 initialization
   RegisterGdcClass(TgdcBaseBank);
-  RegisterGdcClass(TgdcCompanyAccountType);
+  RegisterGdcClass(TgdcCompanyAccountType, 'Тип банковского счета');
 
 finalization
   UnregisterGdcClass(TgdcBaseBank);

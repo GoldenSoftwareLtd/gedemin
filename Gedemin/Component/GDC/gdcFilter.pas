@@ -252,7 +252,7 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcComponentFilter);
+  RegisterGDCClass(TgdcComponentFilter, 'Фильтр');
   RegisterGDCClass(TgdcSavedFilter);
 
 finalization

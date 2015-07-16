@@ -666,7 +666,7 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcJournal);
+  RegisterGDCClass(TgdcJournal, 'Журнал событий');
 
 finalization
   UnregisterGdcClass(TgdcJournal);

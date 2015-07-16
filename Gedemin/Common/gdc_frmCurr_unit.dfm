@@ -8,7 +8,7 @@ inherited gdc_frmCurr: Tgdc_frmCurr
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 456
+    Top = 452
     Width = 804
   end
   inherited TBDockTop: TTBDock
@@ -18,46 +18,43 @@ inherited gdc_frmCurr: Tgdc_frmCurr
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 407
+    Height = 401
   end
   inherited TBDockRight: TTBDock
     Left = 795
-    Height = 407
+    Height = 401
   end
   inherited TBDockBottom: TTBDock
-    Top = 475
+    Top = 471
     Width = 804
   end
   inherited pnlWorkArea: TPanel
     Width = 786
-    Height = 407
+    Height = 401
     inherited sMasterDetail: TSplitter
       Left = 301
-      Height = 304
+      Height = 296
     end
     inherited spChoose: TSplitter
-      Top = 304
+      Top = 296
       Width = 786
     end
     inherited pnlMain: TPanel
       Width = 301
-      Height = 304
+      Height = 296
       inherited pnlSearchMain: TPanel
-        Height = 304
+        Height = 296
         inherited sbSearchMain: TScrollBox
-          Height = 266
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 266
+          Height = 269
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 141
-        Height = 304
+        Height = 296
       end
     end
     inherited pnChoose: TPanel
-      Top = 308
+      Top = 302
       Width = 786
       inherited pnButtonChoose: TPanel
         Left = 681
@@ -72,23 +69,20 @@ inherited gdc_frmCurr: Tgdc_frmCurr
     inherited pnlDetail: TPanel
       Left = 305
       Width = 481
-      Height = 304
+      Height = 296
       inherited TBDockDetail: TTBDock
         Width = 481
       end
       inherited pnlSearchDetail: TPanel
-        Height = 278
+        Height = 270
         TabOrder = 1
         inherited sbSearchDetail: TScrollBox
-          Height = 240
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 240
+          Height = 243
         end
       end
       inherited ibgrDetail: TgsIBGrid
         Width = 321
-        Height = 278
+        Height = 270
         TabOrder = 2
       end
     end

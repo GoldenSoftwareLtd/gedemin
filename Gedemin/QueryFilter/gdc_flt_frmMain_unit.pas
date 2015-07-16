@@ -77,7 +77,7 @@ begin
 end;
 
 initialization
-  RegisterFRMClass(Tgdc_flt_frmMain);
+  RegisterFRMClass(Tgdc_flt_frmMain, 'Фильтры');
 
 finalization
   UnRegisterFRMClass(Tgdc_flt_frmMain);

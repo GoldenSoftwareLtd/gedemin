@@ -36,7 +36,7 @@ type
   protected
     FgdcObject: TgdcBase;
     FSubType: String;
-
+                                    
     function CreateSelectedArr(Obj: TgdcBase; BL: TBookmarkList): OleVariant;
 
     procedure WndProc(var Message: TMessage); override;
@@ -768,37 +768,35 @@ var
   FE: TgdFormEntry;
   Pref, Postf: String;
 begin
-  Result := '';
-  FE := gdClassList.Get(TgdFormEntry, Self.ClassName, '') as TgdFormEntry;
-
-  if (Caption > '') and (Pos(Caption, Name) = 0) then
+  if Pos('usrf_', Name) = 1 then
     Result := Caption
   else begin
-    if (FE.Caption <> '') and (FE.Caption <> Self.ClassName) then
-      Result := FE.Caption;
-  end;
+    Result := '';
+    FE := gdClassList.Get(TgdFormEntry, Self.ClassName, Self.SubType) as TgdFormEntry;
 
-  // кал≥ праграм≥ст не прысво≥Ґ загаловак формы, альбо
-  // пак≥нуҐ €го пустым, возьмем назоҐ б≥знэс аб'екту
-  {
-  if gdcObject <> nil then
-  begin
-    if ((Caption = Name) or (Caption = '')) then
-      Caption := gdcObject.GetDisplayName(FSubType)
-    else if Pos(Caption, Name) = 1 then
-      Caption := StringReplace(Name, Caption, gdcObject.GetDisplayName(FSubType), []);
+    if Self.SubType = '' then
+    begin
+      if (Caption > '') and (Pos(Caption, Name) = 0) then
+        Result := Caption
+      else if (FE.Caption > '') and (FE.Caption <> FE.TheClass.ClassName) then
+        Result := FE.Caption;
+    end else
+    begin
+      if (FE.Caption > '') and (FE.Caption <> FE.TheClass.ClassName) then
+        Result := FE.Caption;
+    end;
   end;
-  }
 
   Pref := '';
   Postf := '';
 
   if gdcObject <> nil then
   begin
-    CE := gdClassList.Get(TgdClassEntry, gdcObject.ClassName, gdcObject.SubType);
-
-    if (Result = '') or (FE.AbstractBaseForm and (CE.Caption <> '')) then
+    if Result = '' then
+    begin
+      CE := gdClassList.Get(TgdClassEntry, gdcObject.ClassName, gdcObject.SubType);
       Result := CE.Caption;
+    end;
 
     if BorderStyle = bsDialog then
     begin

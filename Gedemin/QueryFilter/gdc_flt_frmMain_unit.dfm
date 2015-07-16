@@ -2,37 +2,37 @@ inherited gdc_flt_frmMain: Tgdc_flt_frmMain
   Left = 246
   Top = 185
   Width = 696
-  Height = 480
+  Height = 488
   Caption = 'gdc_flt_frmMain'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 434
+    Top = 430
     Width = 688
   end
   inherited TBDockTop: TTBDock
     Width = 688
   end
   inherited TBDockLeft: TTBDock
-    Height = 376
+    Height = 370
   end
   inherited TBDockRight: TTBDock
     Left = 679
-    Height = 376
+    Height = 370
   end
   inherited TBDockBottom: TTBDock
-    Top = 425
+    Top = 421
     Width = 688
   end
   inherited pnlWorkArea: TPanel
     Width = 670
-    Height = 376
+    Height = 378
     inherited sMasterDetail: TSplitter
       Width = 670
     end
     inherited spChoose: TSplitter
-      Top = 274
+      Top = 273
       Width = 670
     end
     inherited pnlMain: TPanel
@@ -42,7 +42,7 @@ inherited gdc_flt_frmMain: Tgdc_flt_frmMain
       end
     end
     inherited pnChoose: TPanel
-      Top = 277
+      Top = 279
       Width = 670
       inherited pnButtonChoose: TPanel
         Left = 565
@@ -50,30 +50,29 @@ inherited gdc_flt_frmMain: Tgdc_flt_frmMain
       inherited ibgrChoose: TgsIBGrid
         Width = 565
       end
+      inherited pnlChooseCaption: TPanel
+        Width = 670
+      end
     end
     inherited pnlDetail: TPanel
       Width = 670
-      Height = 103
+      Height = 100
       inherited TBDockDetail: TTBDock
-        Width = 668
+        Width = 670
       end
       inherited pnlSearchDetail: TPanel
-        Height = 75
+        Height = 74
         inherited sbSearchDetail: TScrollBox
-          Height = 45
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 45
+          Height = 47
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 508
-        Height = 75
+        Width = 510
+        Height = 74
       end
     end
   end
   object gdcComponentFilter: TgdcComponentFilter
-    CachedUpdates = False
     Left = 224
     Top = 168
   end
@@ -82,7 +81,6 @@ inherited gdc_flt_frmMain: Tgdc_flt_frmMain
     MasterField = 'id'
     DetailField = 'ComponentKey'
     SubSet = 'ByComponentFilter'
-    CachedUpdates = False
     Left = 368
     Top = 304
   end

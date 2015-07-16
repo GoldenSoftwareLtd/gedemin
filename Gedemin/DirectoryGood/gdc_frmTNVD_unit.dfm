@@ -4,55 +4,52 @@ inherited gdc_frmTNVD: Tgdc_frmTNVD
   Width = 696
   Height = 480
   HelpContext = 45
-  Caption = 'gdc_frmTNVD'
+  Caption = ' Ó‰˚ “Õ¬ƒ'
   Font.Name = 'MS Sans Serif'
   OldCreateOrder = False
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   inherited sbMain: TStatusBar
-    Top = 425
+    Top = 421
     Width = 688
   end
   inherited TBDockTop: TTBDock
     Width = 688
   end
   inherited TBDockLeft: TTBDock
-    Height = 376
+    Height = 370
   end
   inherited TBDockRight: TTBDock
     Left = 679
-    Height = 376
+    Height = 370
   end
   inherited TBDockBottom: TTBDock
-    Top = 444
+    Top = 440
     Width = 688
   end
   inherited pnlWorkArea: TPanel
     Width = 670
-    Height = 376
+    Height = 370
     inherited spChoose: TSplitter
-      Top = 274
+      Top = 267
       Width = 670
     end
     inherited pnlMain: TPanel
       Width = 670
-      Height = 274
+      Height = 267
       inherited pnlSearchMain: TPanel
-        Height = 274
+        Height = 267
         inherited sbSearchMain: TScrollBox
-          Height = 236
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 236
+          Height = 240
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 510
-        Height = 274
+        Height = 267
       end
     end
     inherited pnChoose: TPanel
-      Top = 277
+      Top = 271
       Width = 670
       inherited pnButtonChoose: TPanel
         Left = 565
@@ -60,14 +57,15 @@ inherited gdc_frmTNVD: Tgdc_frmTNVD
       inherited ibgrChoose: TgsIBGrid
         Width = 565
       end
+      inherited pnlChooseCaption: TPanel
+        Width = 670
+      end
     end
   end
   inherited dsMain: TDataSource
     DataSet = gdcTNVD
   end
   object gdcTNVD: TgdcTNVD
-    ModifyFromStream = False
-    CachedUpdates = False
     Left = 328
     Top = 216
   end

@@ -3,59 +3,56 @@ inherited gdc_frmPlace: Tgdc_frmPlace
   Top = 148
   Width = 702
   Height = 561
-  Caption = 'Населенные пункты'
+  Caption = ''
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 506
+    Top = 502
     Width = 694
   end
   inherited TBDockTop: TTBDock
     Width = 694
   end
   inherited TBDockLeft: TTBDock
-    Height = 457
+    Height = 451
   end
   inherited TBDockRight: TTBDock
     Left = 685
-    Height = 457
+    Height = 451
   end
   inherited TBDockBottom: TTBDock
-    Top = 525
+    Top = 521
     Width = 694
   end
   inherited pnlWorkArea: TPanel
     Width = 676
-    Height = 457
+    Height = 451
     inherited sMasterDetail: TSplitter
       Left = 328
-      Height = 355
+      Height = 346
     end
     inherited spChoose: TSplitter
-      Top = 355
+      Top = 346
       Width = 676
     end
     inherited pnlMain: TPanel
       Width = 328
-      Height = 355
+      Height = 346
       inherited pnlSearchMain: TPanel
-        Height = 355
+        Height = 346
         inherited sbSearchMain: TScrollBox
-          Height = 317
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 317
+          Height = 319
         end
       end
       inherited tvGroup: TgsDBTreeView
         Width = 168
-        Height = 355
+        Height = 346
         MainFolderHead = False
         MainFolder = False
       end
     end
     inherited pnChoose: TPanel
-      Top = 358
+      Top = 352
       Width = 676
       inherited pnButtonChoose: TPanel
         Left = 571
@@ -63,26 +60,26 @@ inherited gdc_frmPlace: Tgdc_frmPlace
       inherited ibgrChoose: TgsIBGrid
         Width = 571
       end
+      inherited pnlChooseCaption: TPanel
+        Width = 676
+      end
     end
     inherited pnlDetail: TPanel
-      Left = 332
-      Width = 344
-      Height = 355
+      Left = 334
+      Width = 342
+      Height = 346
       inherited TBDockDetail: TTBDock
-        Width = 344
+        Width = 342
       end
       inherited pnlSearchDetail: TPanel
-        Height = 329
+        Height = 320
         inherited sbSearchDetail: TScrollBox
-          Height = 291
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 291
+          Height = 293
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 184
-        Height = 329
+        Width = 182
+        Height = 320
       end
     end
   end

@@ -1,55 +1,52 @@
 inherited gdc_frmCurrOnly: Tgdc_frmCurrOnly
-  Left = 321
-  Top = 208
+  Left = 693
+  Top = 269
   Width = 597
   Height = 400
-  Caption = ''
+  Caption = 'Валюты'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 345
+    Top = 341
     Width = 589
   end
   inherited TBDockTop: TTBDock
     Width = 589
   end
   inherited TBDockLeft: TTBDock
-    Height = 296
+    Height = 290
   end
   inherited TBDockRight: TTBDock
     Left = 580
-    Height = 296
+    Height = 290
   end
   inherited TBDockBottom: TTBDock
-    Top = 364
+    Top = 360
     Width = 589
   end
   inherited pnlWorkArea: TPanel
     Width = 571
-    Height = 296
+    Height = 290
     inherited spChoose: TSplitter
-      Top = 193
+      Top = 187
       Width = 571
     end
     inherited pnlMain: TPanel
       Width = 571
-      Height = 193
+      Height = 187
       inherited pnlSearchMain: TPanel
-        Height = 193
+        Height = 187
         inherited sbSearchMain: TScrollBox
-          Height = 155
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 155
+          Height = 160
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 411
-        Height = 193
+        Height = 187
       end
     end
     inherited pnChoose: TPanel
-      Top = 197
+      Top = 191
       Width = 571
       inherited pnButtonChoose: TPanel
         Left = 466

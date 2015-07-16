@@ -1,8 +1,8 @@
 inherited gdc_frmRelation: Tgdc_frmRelation
-  Left = 304
-  Top = 152
+  Left = 336
+  Top = 215
   HelpContext = 80
-  Caption = 'Представления системы'
+  Caption = 'Представления'
   PixelsPerInch = 96
   TextHeight = 13
   inherited TBDockTop: TTBDock
@@ -16,6 +16,7 @@ inherited gdc_frmRelation: Tgdc_frmRelation
     inherited pnlDetail: TPanel
       inherited TBDockDetail: TTBDock
         inherited tbDetailCustom: TTBToolbar
+          Left = 256
           object TBItem2: TTBItem
             Action = actDetailToSetting
           end

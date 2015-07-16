@@ -927,7 +927,7 @@ end;
 { TgdcSelectedGood }
 
 initialization
-  RegisterGdcClass(TgdcTNVD);
+  RegisterGdcClass(TgdcTNVD, 'Код ТНВД');
   RegisterGdcClass(TgdcGoodBarCode, 'Штрих код товара');
   RegisterGdcClass(TgdcGoodGroup, 'Товарная группа');
   RegisterGdcClass(TgdcGood, 'ТМЦ');

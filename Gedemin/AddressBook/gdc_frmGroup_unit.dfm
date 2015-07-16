@@ -2,7 +2,7 @@ inherited gdc_frmGroup: Tgdc_frmGroup
   Left = 363
   Top = 276
   Width = 696
-  Caption = 'gdc_frmGroup'
+  Caption = 'Группы'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar

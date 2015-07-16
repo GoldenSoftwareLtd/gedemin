@@ -1852,12 +1852,17 @@ end;
 
 function TgdClassList._CreateFormSubTypes(ACE: TgdClassEntry; Data1, Data2: Pointer): Boolean;
 var
-  CN: String;
+  CN, Captn: String;
   ParentST: TgdcSubType;
 begin
   if (ACE.SubType > '')
     and (not TgdBaseEntry(ACE).gdcClass.IsAbstractClass) then
   begin
+    if ACE.TheClass.ClassName <> ACE.Caption then
+      Captn := ACE.Caption
+    else
+      Captn := '';
+
     if (ACE.TheClass.ClassName = 'TgdcUserDocument') then
     begin
       if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '') then
@@ -1866,9 +1871,9 @@ begin
         ParentST := '';
 
       CN := 'Tgdc_dlgUserComplexDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, Captn);
       CN := 'Tgdc_dlgUserSimpleDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, Captn);
     end
     else
     begin
@@ -1881,7 +1886,7 @@ begin
           ParentST := ACE.Parent.SubType;
         end else
           ParentST := '';
-        Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+        Add(CN, ACE.SubType, ParentST, TgdFormEntry, Captn);
       end;
     end;
 
@@ -1894,9 +1899,9 @@ begin
         ParentST := '';
 
       CN := 'Tgdc_frmUserSimpleDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, Captn);
       CN := 'Tgdc_frmUserComplexDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, Captn);
     end
     else
     begin
@@ -1909,10 +1914,9 @@ begin
           ParentST := ACE.Parent.SubType;
         end else
           ParentST := '';
-        Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+        Add(CN, ACE.SubType, ParentST, TgdFormEntry, Captn);
       end;
     end;
-    
   end;
   Result := True;
 end;

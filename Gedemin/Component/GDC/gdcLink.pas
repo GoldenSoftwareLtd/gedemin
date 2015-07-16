@@ -459,7 +459,7 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcLink);
+  RegisterGDCClass(TgdcLink, 'Прикрепление');
 
 finalization
   UnregisterGdcClass(TgdcLink);
