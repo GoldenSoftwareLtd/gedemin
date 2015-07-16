@@ -6,7 +6,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
   PixelsPerInch = 96
   TextHeight = 13
   inherited sLeft: TSplitter
-    Height = 492
+    Height = 488
   end
   inherited TBDock1: TTBDock
     inherited TBToolbar2: TTBToolbar
@@ -21,24 +21,24 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
     end
   end
   inherited Panel1: TPanel
-    Height = 492
+    Height = 488
     inherited ibgrMain: TgsIBGrid
-      Height = 492
+      Height = 488
     end
   end
   inherited TBDock2: TTBDock
-    Height = 492
+    Height = 488
   end
   inherited TBDock3: TTBDock
-    Height = 492
+    Height = 488
   end
   inherited TBDock4: TTBDock
-    Top = 522
+    Top = 518
   end
   inherited pLeft: TPanel
-    Height = 492
+    Height = 488
     inherited ScrollBox: TScrollBox
-      Height = 475
+      Height = 471
       inherited Panel5: TPanel
         Width = 229
         Height = 115

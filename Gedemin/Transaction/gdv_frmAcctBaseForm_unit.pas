@@ -567,7 +567,8 @@ begin
   {END MACRO}
 
   inherited;
-  SaveGrid(ibgrMain);
+  if iblConfiguratior.CurrentKey = '' then
+    SaveGrid(ibgrMain);
   if UserStorage <> nil then
   begin
     ComponentPath := BuildComponentPath(Self);
