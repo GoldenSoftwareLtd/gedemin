@@ -2137,7 +2137,7 @@ procedure Tgdc_frmG.actDistributeSettingsExecute(Sender: TObject);
 {$INCLUDE distribute_user_settings.pas}
 
 initialization
-  RegisterFrmClass(Tgdc_frmG, 'Форма просмотра бизнес-объекта');
+  RegisterFrmClass(Tgdc_frmG, 'Форма просмотра бизнес-объекта').AbstractBaseForm := True;
   Tgdc_frmG.RegisterMethod;
 
 finalization

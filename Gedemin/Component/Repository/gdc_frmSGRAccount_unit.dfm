@@ -7,13 +7,13 @@ inherited gdc_frmSGRAccount: Tgdc_frmSGRAccount
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 374
-    Width = 599
+    Top = 381
+    Width = 607
   end
   inherited TBDockTop: TTBDock
-    Width = 599
+    Width = 607
     inherited tbMainCustom: TTBToolbar
-      Left = 460
+      Left = 468
       object TBControlItem1: TTBControlItem
         Control = ibcmbAccount
       end
@@ -39,53 +39,53 @@ inherited gdc_frmSGRAccount: Tgdc_frmSGRAccount
       end
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 427
+      Left = 435
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 314
+    Height = 321
   end
   inherited TBDockRight: TTBDock
-    Left = 590
-    Height = 314
+    Left = 598
+    Height = 321
   end
   inherited TBDockBottom: TTBDock
-    Top = 365
-    Width = 599
+    Top = 372
+    Width = 607
   end
   inherited pnlWorkArea: TPanel
-    Width = 581
-    Height = 314
+    Width = 589
+    Height = 321
     inherited spChoose: TSplitter
-      Top = 211
-      Width = 581
+      Top = 218
+      Width = 589
     end
     inherited pnlMain: TPanel
-      Width = 581
-      Height = 211
+      Width = 589
+      Height = 218
       inherited pnlSearchMain: TPanel
-        Height = 211
+        Height = 218
         inherited sbSearchMain: TScrollBox
-          Height = 184
+          Height = 191
         end
       end
       inherited ibgrMain: TgsIBGrid
-        Width = 421
-        Height = 211
+        Width = 429
+        Height = 218
         Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
       end
     end
     inherited pnChoose: TPanel
-      Top = 215
-      Width = 581
+      Top = 222
+      Width = 589
       inherited pnButtonChoose: TPanel
-        Left = 476
+        Left = 484
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 476
+        Width = 484
       end
       inherited pnlChooseCaption: TPanel
-        Width = 581
+        Width = 589
       end
     end
   end

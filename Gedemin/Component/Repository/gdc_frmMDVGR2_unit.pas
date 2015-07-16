@@ -29,9 +29,8 @@ uses
   gd_ClassList;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDVGR2);
+  RegisterFrmClass(Tgdc_frmMDVGR2).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDVGR2);
-
 end.

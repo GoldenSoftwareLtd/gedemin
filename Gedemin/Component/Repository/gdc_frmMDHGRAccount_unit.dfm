@@ -8,7 +8,7 @@ inherited gdc_frmMDHGRAccount: Tgdc_frmMDHGRAccount
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 457
+    Top = 453
     Width = 705
   end
   inherited TBDockTop: TTBDock
@@ -17,7 +17,7 @@ inherited gdc_frmMDHGRAccount: Tgdc_frmMDHGRAccount
       DockPos = -40
     end
     inherited tbMainCustom: TTBToolbar
-      Left = 381
+      Left = 378
       Align = alLeft
       AutoResize = False
       BorderStyle = bsNone
@@ -38,7 +38,7 @@ inherited gdc_frmMDHGRAccount: Tgdc_frmMDHGRAccount
       object lblAcct: TLabel
         Left = 144
         Top = 4
-        Width = 29
+        Width = 32
         Height = 13
         Caption = 'Счет: '
       end
@@ -50,7 +50,7 @@ inherited gdc_frmMDHGRAccount: Tgdc_frmMDHGRAccount
         Caption = 'Комп.: '
       end
       object ibcmbAccount: TgsIBLookupComboBox
-        Left = 173
+        Left = 176
         Top = 0
         Width = 108
         Height = 21
@@ -91,7 +91,6 @@ inherited gdc_frmMDHGRAccount: Tgdc_frmMDHGRAccount
       end
     end
     inherited tbMainInvariant: TTBToolbar
-      Left = 319
       DockPos = 344
     end
     inherited tbChooseMain: TTBToolbar
@@ -100,24 +99,24 @@ inherited gdc_frmMDHGRAccount: Tgdc_frmMDHGRAccount
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 399
+    Height = 393
   end
   inherited TBDockRight: TTBDock
     Left = 696
-    Height = 399
+    Height = 393
   end
   inherited TBDockBottom: TTBDock
-    Top = 448
+    Top = 444
     Width = 705
   end
   inherited pnlWorkArea: TPanel
     Width = 687
-    Height = 399
+    Height = 393
     inherited sMasterDetail: TSplitter
       Width = 687
     end
     inherited spChoose: TSplitter
-      Top = 297
+      Top = 288
       Width = 687
     end
     inherited pnlMain: TPanel
@@ -127,7 +126,7 @@ inherited gdc_frmMDHGRAccount: Tgdc_frmMDHGRAccount
       end
     end
     inherited pnChoose: TPanel
-      Top = 300
+      Top = 294
       Width = 687
       inherited pnButtonChoose: TPanel
         Left = 582
@@ -135,25 +134,25 @@ inherited gdc_frmMDHGRAccount: Tgdc_frmMDHGRAccount
       inherited ibgrChoose: TgsIBGrid
         Width = 582
       end
+      inherited pnlChooseCaption: TPanel
+        Width = 687
+      end
     end
     inherited pnlDetail: TPanel
       Width = 687
-      Height = 126
+      Height = 115
       inherited TBDockDetail: TTBDock
-        Width = 685
+        Width = 687
       end
       inherited pnlSearchDetail: TPanel
-        Height = 98
+        Height = 89
         inherited sbSearchDetail: TScrollBox
-          Height = 60
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 60
+          Height = 62
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 525
-        Height = 98
+        Width = 527
+        Height = 89
       end
     end
   end

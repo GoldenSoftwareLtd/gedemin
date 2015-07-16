@@ -27,9 +27,8 @@ uses
   gd_ClassList;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMDVGR, 'Master-detail форма с таблицей');
+  RegisterFrmClass(Tgdc_frmMDVGR, 'Master-detail форма с таблицей').AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDVGR);
-
 end.

@@ -68,7 +68,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefined);
+  RegisterFrmClass(Tgdc_frmAttrUserDefined).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefined);

@@ -88,20 +88,17 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
       inherited pnlSearchDetail: TPanel
         Left = 0
         Top = 26
-        Height = 76
+        Height = 82
         TabOrder = 2
         inherited sbSearchDetail: TScrollBox
-          Height = 38
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 38
+          Height = 55
         end
       end
       object ibgrDetail: TgsIBGrid
         Left = 160
         Top = 26
         Width = 419
-        Height = 76
+        Height = 82
         Align = alClient
         BorderStyle = bsNone
         DataSource = dsDetail

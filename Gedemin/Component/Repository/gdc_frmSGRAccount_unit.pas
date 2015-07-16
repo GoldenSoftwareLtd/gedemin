@@ -159,9 +159,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmSGRAccount, 'Форма просмотра с таблицей и выбором р/с');
+  RegisterFrmClass(Tgdc_frmSGRAccount, 'Форма просмотра с таблицей и выбором р/с').AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmSGRAccount);
-
 end.

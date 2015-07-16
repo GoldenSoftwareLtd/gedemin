@@ -426,7 +426,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMD2H, 'Master-detail-subdetail форма');
+  RegisterFrmClass(Tgdc_frmMD2H, 'Master-detail-subdetail форма').AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMD2H);

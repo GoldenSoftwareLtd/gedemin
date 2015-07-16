@@ -7,56 +7,56 @@ inherited gdc_frmMD2H: Tgdc_frmMD2H
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 481
-    Width = 655
+    Top = 488
+    Width = 663
   end
   inherited TBDockTop: TTBDock
-    Width = 655
+    Width = 663
   end
   inherited TBDockLeft: TTBDock
-    Height = 421
+    Height = 428
   end
   inherited TBDockRight: TTBDock
-    Left = 646
-    Height = 421
+    Left = 654
+    Height = 428
   end
   inherited TBDockBottom: TTBDock
-    Top = 472
-    Width = 655
+    Top = 479
+    Width = 663
   end
   inherited pnlWorkArea: TPanel
-    Width = 637
-    Height = 421
+    Width = 645
+    Height = 428
     inherited sMasterDetail: TSplitter
-      Width = 637
+      Width = 645
     end
     inherited spChoose: TSplitter
-      Top = 316
-      Width = 637
+      Top = 323
+      Width = 645
     end
     inherited pnlMain: TPanel
-      Width = 637
+      Width = 645
     end
     inherited pnChoose: TPanel
-      Top = 322
-      Width = 637
+      Top = 329
+      Width = 645
       inherited pnButtonChoose: TPanel
-        Left = 532
+        Left = 540
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 532
+        Width = 540
       end
       inherited pnlChooseCaption: TPanel
-        Width = 637
+        Width = 645
       end
     end
     inherited pnlDetail: TPanel
-      Width = 637
-      Height = 143
+      Width = 645
+      Height = 150
       object sSubDetail: TSplitter [0]
         Left = 1
-        Top = 62
-        Width = 635
+        Top = 69
+        Width = 643
         Height = 4
         Cursor = crVSplit
         Align = alBottom
@@ -64,18 +64,18 @@ inherited gdc_frmMD2H: Tgdc_frmMD2H
         MinSize = 20
       end
       inherited TBDockDetail: TTBDock
-        Width = 635
+        Width = 643
       end
       inherited pnlSearchDetail: TPanel
-        Height = 35
+        Height = 42
         inherited sbSearchDetail: TScrollBox
-          Height = 8
+          Height = 15
         end
       end
       object pnlSubDetail: TPanel
         Left = 1
-        Top = 66
-        Width = 635
+        Top = 73
+        Width = 643
         Height = 76
         Align = alBottom
         BevelOuter = bvNone
@@ -83,7 +83,7 @@ inherited gdc_frmMD2H: Tgdc_frmMD2H
         object TbDockSubDetail: TTBDock
           Left = 0
           Top = 0
-          Width = 635
+          Width = 643
           Height = 26
           OnRequestDock = TbDockSubDetailRequestDock
           object tbSubDetailToolbar: TTBToolbar
