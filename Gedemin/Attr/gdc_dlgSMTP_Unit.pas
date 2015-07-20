@@ -42,7 +42,7 @@ var
 implementation
 
 uses
-  gd_classList, gd_encryption, IdSMTP, IdSSLOpenSSL;
+  gd_classList, gd_encryption, IdSMTP, IdSSLOpenSSL, gd_AutoTaskThread;
 
 {$R *.DFM}
 
@@ -104,15 +104,7 @@ begin
     if dbcbIPSec.Text > '' then
     begin
       IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
-      if dbcbIPSec.Text = 'SSLV2' then
-        IdSSLIOHandlerSocket.SSLOptions.Method := sslvSSLv2
-      else if dbcbIPSec.Text = 'SSLV23' then
-        IdSSLIOHandlerSocket.SSLOptions.Method := sslvSSLv23
-      else if dbcbIPSec.Text = 'SSLV3' then
-        IdSSLIOHandlerSocket.SSLOptions.Method := sslvSSLv3
-      else if dbcbIPSec.Text = 'TLSV1' then
-        IdSSLIOHandlerSocket.SSLOptions.Method := sslvTLSv1;
-
+      IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(dbcbIPSec.Text);
       IdSMTP.IOHandler := IdSSLIOHandlerSocket;
     end;
 

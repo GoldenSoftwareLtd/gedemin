@@ -1537,6 +1537,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (221, '0000.0001.0000.0252', '25.06.2015', 'Added GD_SMTP table.');
   
+INSERT INTO fin_versioninfo
+  VALUES (222, '0000.0001.0000.0253', '25.06.2015', 'Modified GD_AUTOTASK table.');  
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -17030,6 +17033,12 @@ CREATE TABLE gd_autotask
    functionkey      dforeignkey,      /* если задано -- будет выполн€тьс€ скрипт-функци€ */
    autotrkey        dforeignkey,      /* если задано -- будет выполн€тьс€ автоматическа€ хоз€йственна€ операци€ */
    reportkey        dforeignkey,      /* если задано -- будет выполн€тьс€ построение отчета */
+   groupkey         dforeignkey,
+   smtpkey          dforeignkey,
+   msgsubject       VARCHAR(256),
+   msgbody          VARCHAR(1024),
+   filename         VARCHAR(64),
+   exporttype       VARCHAR(5),
    cmdline          dtext255,         /* если задано -- командна€ строка дл€ вызова внешней программы */
    backupfile       dtext255,         /* если задано -- им€ файла архива */
    userkey          dforeignkey,      /* учетна€ запись, под которой выполн€ть. если не задана -- выполн€ть под любой*/
@@ -17058,7 +17067,9 @@ CREATE TABLE gd_autotask
    CONSTRAINT gd_chk_autotask_time CHECK((starttime IS NULL AND endtime IS NULL) OR (starttime < endtime)),
    CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
    CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > ''),
-   CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0)
+   CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0),
+   CONSTRAINT gd_chk_autotask_filename CHECK(filename > ''),
+   CONSTRAINT gd_chk_autotask_exporttype CHECK(exporttype IN ('WORD', 'EXCEL', 'PDF', 'XML'))
  );
  
 SET TERM ^ ;
@@ -17124,6 +17135,12 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.groupkey = NULL;
+    NEW.smtpkey = NULL;
+    NEW.msgsubject = NULL;
+    NEW.msgbody = NULL;
+    NEW.filename = NULL;
+    NEW.exporttype = NULL;
   END
   
   IF (NOT NEW.autotrkey IS NULL) THEN
@@ -17132,6 +17149,12 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.groupkey = NULL;
+    NEW.smtpkey = NULL;
+    NEW.msgsubject = NULL;
+    NEW.msgbody = NULL;
+    NEW.filename = NULL;
+    NEW.exporttype = NULL;
   END
   
   IF (NOT NEW.reportkey IS NULL) THEN
@@ -17148,6 +17171,12 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.backupfile = NULL;
+    NEW.groupkey = NULL;
+    NEW.smtpkey = NULL;
+    NEW.msgsubject = NULL;
+    NEW.msgbody = NULL;
+    NEW.filename = NULL;
+    NEW.exporttype = NULL;	
   END
   
   IF (NOT NEW.backupfile IS NULL) THEN
@@ -17156,6 +17185,12 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
+    NEW.groupkey = NULL;
+    NEW.smtpkey = NULL;
+    NEW.msgsubject = NULL;
+    NEW.msgbody = NULL;
+    NEW.filename = NULL;
+    NEW.exporttype = NULL;	
   END
 END
 ^ 
@@ -17200,8 +17235,8 @@ SET TERM ; ^
  
 COMMIT;CREATE TABLE gd_smtp
 (
-  id               dintkey,                     /* ѕервичный ключ          */
-  name             dname,                       /* им€                     */
+  id               dintkey,                     /* первичный ключ          */
+  name             dname,                       /* имя                     */
   description      dtext180,                    /* описание                */
   email            demail NOT NULL,             /* адрес электронной почты */
   login            dusername,                   /* логин                   */
@@ -17209,7 +17244,7 @@ COMMIT;CREATE TABLE gd_smtp
   ipsec            dtext8 DEFAULT NULL,         /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
   timeout          dinteger_notnull DEFAULT -1,
   server           dtext80 NOT NULL,            /* SMTP Sever */
-  port             dinteger_notnull,            /* SMTP Port */
+  port             dinteger_notnull DEFAULT 25, /* SMTP Port */
 
   creatorkey       dforeignkey,
   creationdate     dcreationdate,
