@@ -46,6 +46,20 @@ uses
 
 {$R *.DFM}
 
+function GetIPSec(AnIPSec: String): TIdSSLVersion;
+begin
+  if AnIPSec = 'SSLV2' then
+    Result := sslvSSLv2
+  else if AnIPSec = 'SSLV23' then
+    Result := sslvSSLv23
+  else if AnIPSec = 'SSLV3' then
+    Result := sslvSSLv3
+  else if AnIPSec = 'TLSV1' then
+    Result := sslvTLSv1
+  else
+    raise Exception.Create('Unknown ip security protocol.')
+end;
+
 procedure Tgdc_dlgSMTP.BeforePost;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
   {M}VAR

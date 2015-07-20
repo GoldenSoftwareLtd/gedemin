@@ -57,21 +57,6 @@ type
     btnCN: TButton;
     Label9: TLabel;
     dbedPulse: TDBEdit;
-    tsReport: TTabSheet;
-    iblkupReportKey: TgsIBLookupComboBox;
-    Label10: TLabel;
-    iblkupGroupKey: TgsIBLookupComboBox;
-    iblkupSMTPKey: TgsIBLookupComboBox;
-    Label11: TLabel;
-    Label12: TLabel;
-    dbeFileName: TDBEdit;
-    Label13: TLabel;
-    Label14: TLabel;
-    dbeMsgSubject: TDBEdit;
-    Label15: TLabel;
-    dbmMsgBody: TDBMemo;
-    Label16: TLabel;
-    dbcbExportType: TDBComboBox;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
@@ -129,11 +114,9 @@ begin
   if gdcObject.FieldByName('cmdline').AsString > '' then
     pcTask.ActivePage := tsCmd
   else if gdcObject.FieldByName('backupfile').AsString > '' then
-    pcTask.ActivePage := tsBackup
-  else if gdcObject.FieldByName('functionkey').AsInteger > 0 then
-    pcTask.ActivePage := tsFunction
+    pcTask.ActivePage := tsBackup  
   else
-    pcTask.ActivePage := tsReport;
+    pcTask.ActivePage := tsFunction;
 
   if gdcObject.FieldByName('atstartup').AsInteger <> 0 then
     rbAtStartup.Checked := True
@@ -187,12 +170,6 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('backupfile').Clear;
-    gdcObject.FieldByName('groupkey').Clear;
-    gdcObject.FieldByName('smtpkey').Clear;
-    gdcObject.FieldByName('msgsubject').Clear;
-    gdcObject.FieldByName('msgbody').Clear;
-    gdcObject.FieldByName('filename').Clear;
-    gdcObject.FieldByName('exporttype').Clear;
   end
   else if pcTask.ActivePage = tsCmd then
   begin
@@ -200,12 +177,6 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('backupfile').Clear;
-    gdcObject.FieldByName('groupkey').Clear;
-    gdcObject.FieldByName('smtpkey').Clear;
-    gdcObject.FieldByName('msgsubject').Clear;
-    gdcObject.FieldByName('msgbody').Clear;
-    gdcObject.FieldByName('filename').Clear;
-    gdcObject.FieldByName('exporttype').Clear;
   end
   else if pcTask.ActivePage = tsBackup then
   begin
@@ -213,19 +184,6 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('cmdline').Clear;
-    gdcObject.FieldByName('groupkey').Clear;
-    gdcObject.FieldByName('smtpkey').Clear;
-    gdcObject.FieldByName('msgsubject').Clear;
-    gdcObject.FieldByName('msgbody').Clear;
-    gdcObject.FieldByName('filename').Clear;
-    gdcObject.FieldByName('exporttype').Clear;
-  end
-  else if pcTask.ActivePage = tsReport then
-  begin
-    gdcObject.FieldByName('functionkey').Clear;
-    gdcObject.FieldByName('autotrkey').Clear;
-    gdcObject.FieldByName('cmdline').Clear;
-    gdcObject.FieldByName('backupfile').Clear;
   end;
 
   if rbAtStartup.Checked then
@@ -333,17 +291,6 @@ begin
     begin
       Task := TgdAutoBackupTask.Create;
       (Task as TgdAutoBackupTask).BackupFile := dbeBackup.Text;
-    end
-    else if pcTask.ActivePage = tsReport then
-    begin
-      Task := TgdAutoReportTask.Create;
-      (Task as TgdAutoReportTask).ReportKey := iblkupReportKey.CurrentKeyInt;
-      (Task as TgdAutoReportTask).GroupKey := iblkupGroupKey.CurrentKeyInt;
-      (Task as TgdAutoReportTask).SMTPKey := iblkupSMTPKey.CurrentKeyInt;
-      (Task as TgdAutoReportTask).FileName := dbeFileName.Text;
-      (Task as TgdAutoReportTask).ExportType := dbcbExportType.Text;
-      (Task as TgdAutoReportTask).MsgSubject := dbeMsgSubject.Text;
-      (Task as TgdAutoReportTask).MsgBody := dbmMsgBody.Text;
     end;
 
     if Task <> nil then
@@ -358,8 +305,7 @@ begin
   actExecTask.Enabled :=
     ((pcTask.ActivePage = tsFunction) and (iblkupFunction.CurrentKeyInt > 0))
     or ((pcTask.ActivePage = tsCmd) and (Trim(dbeCmdLine.Text) > ''))
-    or ((pcTask.ActivePage = tsBackup) and (Trim(dbeBackup.Text) > ''))
-    or ((pcTask.ActivePage = tsReport) and (iblkupReportKey.CurrentKeyInt > 0));
+    or ((pcTask.ActivePage = tsBackup) and (Trim(dbeBackup.Text) > ''));
 end;
 
 procedure Tgdc_dlgAutoTask.btnCNClick(Sender: TObject);

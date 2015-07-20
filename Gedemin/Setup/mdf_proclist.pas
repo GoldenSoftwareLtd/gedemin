@@ -49,13 +49,13 @@ uses
   mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument,
   mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
   mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL,
-  mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddDomain_dtext25;
+  mdf_AddAutoTask, mdf_AddSMTP;
 
 const
   {$IFDEF FULL_MODIFY}
-  cProcCount = 212;
+  cProcCount = 210;
   {$ELSE}
-  cProcCount = 62;
+  cProcCount = 60;
   {$ENDIF}
 
 type
@@ -378,9 +378,7 @@ const
     (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0243'; NeedDBShutdown: False),
     (ModifyProc: AddGD_WEBLOG; ModifyVersion: '0000.0001.0000.0247'; NeedDBShutdown: True),
     (ModifyProc: AddAutoTaskTables; ModifyVersion: '0000.0001.0000.0250'; NeedDBShutdown: True),
-    (ModifyProc: AddSMTPTable; ModifyVersion: '0000.0001.0000.0251'; NeedDBShutdown: True),
-    (ModifyProc: ModifyAutoTaskTable; ModifyVersion: '0000.0001.0000.0252'; NeedDBShutdown: True),
-    (ModifyProc: AddDomain_dtext25; ModifyVersion: '0000.0001.0000.0253'; NeedDBShutdown: True)
+    (ModifyProc: AddSMTPTable; ModifyVersion: '0000.0001.0000.0251'; NeedDBShutdown: True)
   );
 
 implementation

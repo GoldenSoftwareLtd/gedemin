@@ -695,12 +695,6 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (221, '0000.0001.0000.0252', '25.06.2015', 'Added GD_SMTP table.');
   
-INSERT INTO fin_versioninfo
-  VALUES (222, '0000.0001.0000.0253', '25.06.2015', 'Modified GD_AUTOTASK table.');
-
-INSERT INTO fin_versioninfo
-  VALUES (223, '0000.0001.0000.0254', '25.06.2015', 'Added domain dtext25.');  
-  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

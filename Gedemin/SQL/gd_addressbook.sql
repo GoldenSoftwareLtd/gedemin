@@ -98,7 +98,7 @@ CREATE TABLE gd_people
   firstname      dtext20,      /* Імя                                                            */
   surname        dtext20 NOT NULL,/* Прозвішча                                                      */
   middlename     dtext20,      /* Імя па бацьку                                                  */
-  nickname       dtext25,      /* Кароткае імя                                                   */
+  nickname       dtext20,      /* Кароткае імя                                                   */
   rank           dtext20,      /* Званіе                                                         */
 
   /* Хатнія дадзеныя */
