@@ -47,6 +47,8 @@ type
     FTimeOut: Integer;
     FFileName: String;
 
+    FCS: TCriticalSection;
+
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
     function LoadFilesList: Boolean;
@@ -150,6 +152,7 @@ begin
   FInUpdate := TidThreadSafeInteger.Create;
   FPath := ExtractFilePath(Application.ExeName);
   FErrorToSend := TidThreadSafeString.Create;
+  FCS := TCriticalSection.Create;
 end;
 
 procedure TgdWebClientThread.AfterConnection;
@@ -372,6 +375,7 @@ begin
   FCmdList.Free;
   FURI.Free;
   FErrorToSend.Free;
+  FCS.Free;
 end;
 
 function TgdWebClientThread.GetgdWebServerURL: String;
@@ -559,6 +563,7 @@ begin
 
   if Err = '' then
   begin
+    FCS.Enter;
     FRecipients := ARecipients;
     FSubject := AnSubject;
     FBodyText := AnBodyText;
@@ -618,61 +623,65 @@ var
   Attachment: TIdAttachment;
 begin
   try
-    IdSMTP := TidSMTP.Create(nil);
     try
-      IdSMTP.Port := FPort;
-      IdSMTP.Host := FServer;
-      IdSMTP.AuthenticationType := atLogin;
-      IdSMTP.Username := FLogin;
-      IdSMTP.Password := FPassw;
+      IdSMTP := TidSMTP.Create(nil);
+      try
+        IdSMTP.Port := FPort;
+        IdSMTP.Host := FServer;
+        IdSMTP.AuthenticationType := atLogin;
+        IdSMTP.Username := FLogin;
+        IdSMTP.Password := FPassw;
 
-      if FIPSec > '' then
-      begin
-        IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
-        IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(FIPSec);
-        IdSMTP.IOHandler := IdSSLIOHandlerSocket;
-      end;
-
-      IdSMTP.Connect(FTimeOut);
-
-      if IdSMTP.Connected then
-      begin
-        if IdSMTP.Authenticate then
+        if FIPSec > '' then
         begin
-          Msg := TIdMessage.Create(nil);
-          Attachment := nil;
-          try
-            Msg.Subject := FSubject; //нужна конвертация в utf8
-            Msg.Recipients.EMailAddresses := FRecipients;
-            Msg.From.Address := FFromEMail;
-            Msg.Body.Text := FBodyText;
-            Msg.Date := Now;
+          IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
+          IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(FIPSec);
+          IdSMTP.IOHandler := IdSSLIOHandlerSocket;
+        end;
 
-            if FFileName <> '' then
-            begin
-              Attachment := TIdAttachment.Create(Msg.MessageParts, FFileName);
-              Attachment.DeleteTempFile := False;
+        IdSMTP.Connect(FTimeOut);
+
+        if IdSMTP.Connected then
+        begin
+          if IdSMTP.Authenticate then
+          begin
+            Msg := TIdMessage.Create(nil);
+            Attachment := nil;
+            try
+              Msg.Subject := FSubject; //нужна конвертация в utf8
+              Msg.Recipients.EMailAddresses := FRecipients;
+              Msg.From.Address := FFromEMail;
+              Msg.Body.Text := FBodyText;
+              Msg.Date := Now;
+
+              if FFileName <> '' then
+              begin
+                Attachment := TIdAttachment.Create(Msg.MessageParts, FFileName);
+                Attachment.DeleteTempFile := False;
+              end;
+
+              IdSMTP.Send(Msg);
+              gdNotifierThread.Add('Сообщение отправлено', 0, 2000);
+            finally
+              FreeAndNil(Attachment);
+              Msg.Free;
             end;
-
-            IdSMTP.Send(Msg);
-            gdNotifierThread.Add('Сообщение отправлено', 0, 2000);
-          finally
-            FreeAndNil(Attachment);
-            Msg.Free;
           end;
         end;
+      finally
+        if IdSMTP.Connected then
+          IdSMTP.Disconnect;
+        IdSMTP.Free;
       end;
-    finally
-      if IdSMTP.Connected then
-        IdSMTP.Disconnect;
-      IdSMTP.Free;
+    except
+      on E: Exception do
+        begin
+          ErrorMessage := E.Message;
+          gdNotifierThread.Add(ErrorMessage, 0, 2000);
+        end;
     end;
-  except
-    on E: Exception do
-      begin
-        ErrorMessage := E.Message;
-        gdNotifierThread.Add(ErrorMessage, 0, 2000);
-      end;
+  finally
+    FCS.Leave;
   end;
 end;
 
