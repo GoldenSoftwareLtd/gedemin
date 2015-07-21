@@ -9,6 +9,34 @@ uses
   IdSSLOpenSSL;
 
 type
+  TEmailSettings = class(TObject)
+  private
+    FRecipients: String;
+    FSubject: String;
+    FBodyText: String;
+    FFromEMail: String;
+    FServer: String;
+    FPort: Integer;
+    FLogin: String;
+    FPassw: String;
+    FIPSec: String;
+    FTimeOut: Integer;
+    FFileName: String;
+
+  public
+    property Recipients: String read FRecipients write FRecipients;
+    property Subject: String read FSubject write FSubject;
+    property BodyText: String read FBodyText write FBodyText;
+    property FromEMail: String read FFromEMail write FFromEMail;
+    property Server: String read FServer write FServer;
+    property Port: Integer read FPort write FPort;
+    property Login: String read FLogin write FLogin;
+    property Passw: String read FPassw write FPassw;
+    property IPSec: String read FIPSec write FIPSec;
+    property TimeOut: Integer read FTimeOut write FTimeOut;
+    property FileName: String read FFileName write FFileName;
+  end;
+
   TgdWebClientThread = class(TgdMessagedThread)
   private
     FgdWebServerURL: TidThreadSafeString;
@@ -34,21 +62,6 @@ type
     FErrorToSend: TidThreadSafeString;
     FSkipNextException: Boolean;
 
-    //поля для email
-    FRecipients: String;
-    FSubject: String;
-    FBodyText: String;
-    FFromEMail: String;
-    FServer: String;
-    FPort: Integer;
-    FLogin: String;
-    FPassw: String;
-    FIPSec: String;
-    FTimeOut: Integer;
-    FFileName: String;
-
-    FCS: TCriticalSection;
-
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
     function LoadFilesList: Boolean;
@@ -66,7 +79,7 @@ type
     function URIEncodeParam(const AParam: String): String;
     procedure DoSendError;
 
-    procedure DoSendEMail;
+    procedure DoSendEMail(Int: Integer);
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -152,7 +165,6 @@ begin
   FInUpdate := TidThreadSafeInteger.Create;
   FPath := ExtractFilePath(Application.ExeName);
   FErrorToSend := TidThreadSafeString.Create;
-  FCS := TCriticalSection.Create;
 end;
 
 procedure TgdWebClientThread.AfterConnection;
@@ -339,7 +351,7 @@ begin
       end;
     WM_GD_SEND_EMAIL:
       begin
-        DoSendEMail;
+        DoSendEMail(Msg.wParam);
       end;
   else
     Result := False;
@@ -375,7 +387,6 @@ begin
   FCmdList.Free;
   FURI.Free;
   FErrorToSend.Free;
-  FCS.Free;
 end;
 
 function TgdWebClientThread.GetgdWebServerURL: String;
@@ -513,77 +524,43 @@ procedure TgdWebClientThread.SendEMail(ARecipients: String;
   AnLogin: String; AnPassw: String; AIPSec: String; AnTimeOut: Integer = -1;
   AnFileName: String = '');
 var
-  Err: String;
+  ES: TEmailSettings;
 begin
-  Err := '';
   if ARecipients = '' then
-    Err := 'не указаны адреса получателей';
+    raise Exception.Create('Не указаны адреса получателей.');
 
   if AnFromEMail = '' then
-  begin
-    if Err > '' then
-      Err := Err + ', ';
-    Err := Err + 'не указан адрес электронной почты';
-  end;
+    raise Exception.Create('Не указан адрес электронной почты.');
 
   if AnServer = '' then
-  begin
-    if Err > '' then
-      Err := Err + ', ';
-    Err := Err + 'не указан smtp сервер';
-  end;
+    raise Exception.Create('Не указан smtp сервер.');
 
   if AnPort < 0 then
-  begin
-    if Err > '' then
-      Err := Err + ', ';
-    Err := Err + 'неправильный smtp порт';
-  end;
+    raise Exception.Create('Неправильный smtp порт.');
 
   if AnLogin = '' then
-  begin
-    if Err > '' then
-      Err := Err + ', ';
-    Err := Err + 'не указана учетная запись';
-  end;
+    raise Exception.Create('Не указана учетная запись.');
 
   if AnPassw = '' then
-  begin
-    if Err > '' then
-      Err := Err + ', ';
-    Err := Err + 'не указан пароль';
-  end;
+    raise Exception.Create('Не указана учетная запись.');
 
   if AnTimeOut < -1 then
-  begin
-    if Err > '' then
-      Err := Err + ', ';
-    Err := Err + 'неправильное время ожидания';
-  end;
+    raise Exception.Create('Неправильное время ожидания.');
 
-  if Err = '' then
-  begin
-    FCS.Enter;
-    FRecipients := ARecipients;
-    FSubject := AnSubject;
-    FBodyText := AnBodyText;
-    FFromEMail := AnFromEMail;
-    FServer := AnServer;
-    FPort := AnPort;
-    FLogin := AnLogin;
-    FPassw := AnPassw;
-    FIPSec := AIPSec;
-    FTimeOut := AnTimeOut;
-    FFileName := AnFileName;
+  ES := TEmailSettings.Create;
+  ES.Recipients := ARecipients;
+  ES.Subject := AnSubject;
+  ES.BodyText := AnBodyText;
+  ES.FromEMail := AnFromEMail;
+  ES.Server := AnServer;
+  ES.Port := AnPort;
+  ES.Login := AnLogin;
+  ES.Passw := AnPassw;
+  ES.IPSec := AIPSec;
+  ES.TimeOut := AnTimeOut;
+  ES.FileName := AnFileName;
 
-    PostMsg(WM_GD_SEND_EMAIL);
-  end
-  else
-  begin
-    ErrorMessage := 'Ошибка: ' + Err;
-    gdNotifierThread.Add(ErrorMessage, 0, 2000);
-  end;
-
+  PostMsg(WM_GD_SEND_EMAIL, Integer(ES));
 end;
 
 procedure TgdWebClientThread.DoSendError;
@@ -615,31 +592,33 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.DoSendEMail;
+procedure TgdWebClientThread.DoSendEMail(Int: Integer);
 var
   IdSMTP: TidSMTP;
   Msg: TIdMessage;
   IdSSLIOHandlerSocket: TIdSSLIOHandlerSocket;
   Attachment: TIdAttachment;
+  ES: TEmailSettings;
 begin
+  ES := TEmailSettings(Int);
   try
     try
       IdSMTP := TidSMTP.Create(nil);
       try
-        IdSMTP.Port := FPort;
-        IdSMTP.Host := FServer;
+        IdSMTP.Port := ES.Port;
+        IdSMTP.Host := ES.Server;
         IdSMTP.AuthenticationType := atLogin;
-        IdSMTP.Username := FLogin;
-        IdSMTP.Password := FPassw;
+        IdSMTP.Username := ES.Login;
+        IdSMTP.Password := ES.Passw;
 
-        if FIPSec > '' then
+        if ES.IPSec > '' then
         begin
           IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
-          IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(FIPSec);
+          IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(ES.IPSec);
           IdSMTP.IOHandler := IdSSLIOHandlerSocket;
         end;
 
-        IdSMTP.Connect(FTimeOut);
+        IdSMTP.Connect(ES.TimeOut);
 
         if IdSMTP.Connected then
         begin
@@ -648,15 +627,15 @@ begin
             Msg := TIdMessage.Create(nil);
             Attachment := nil;
             try
-              Msg.Subject := FSubject; //нужна конвертация в utf8
-              Msg.Recipients.EMailAddresses := FRecipients;
-              Msg.From.Address := FFromEMail;
-              Msg.Body.Text := FBodyText;
+              Msg.Subject := ES.Subject; //нужна конвертация в utf8
+              Msg.Recipients.EMailAddresses := ES.Recipients;
+              Msg.From.Address := ES.FromEMail;
+              Msg.Body.Text := ES.BodyText;
               Msg.Date := Now;
 
-              if FFileName <> '' then
+              if ES.FileName <> '' then
               begin
-                Attachment := TIdAttachment.Create(Msg.MessageParts, FFileName);
+                Attachment := TIdAttachment.Create(Msg.MessageParts, ES.FileName);
                 Attachment.DeleteTempFile := False;
               end;
 
@@ -681,7 +660,7 @@ begin
         end;
     end;
   finally
-    FCS.Leave;
+    ES.Free;
   end;
 end;
 
