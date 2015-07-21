@@ -34,6 +34,19 @@ type
     FErrorToSend: TidThreadSafeString;
     FSkipNextException: Boolean;
 
+    //поля для email
+    FRecipients: String;
+    FSubject: String;
+    FBodyText: String;
+    FFromEMail: String;
+    FServer: String;
+    FPort: Integer;
+    FLogin: String;
+    FPassw: String;
+    FIPSec: String;
+    FTimeOut: Integer;
+    FFileName: String;
+
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
     function LoadFilesList: Boolean;
@@ -51,6 +64,8 @@ type
     function URIEncodeParam(const AParam: String): String;
     procedure DoSendError;
 
+    procedure DoSendEMail;
+
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
     function ProcessError(var AMsg: TMsg; var AnErrorMessage: String): Boolean; override;
@@ -64,6 +79,12 @@ type
     procedure StartUpdateFiles;
     procedure SendError(const AnErrorMessage: String; const ASkipNextException: Boolean = False);
 
+    procedure SendEMail(ARecipients: String;
+      AnSubject: String; AnBodyText: String;
+      AnFromEMail: String; AnServer: String; AnPort: Integer;
+      AnLogin: String; AnPassw: String; AIPSec: String; AnTimeOut: Integer = -1;
+      AnFileName: String = '');
+
     property gdWebServerURL: String read GetgdWebServerURL write SetgdWebServerURL;
     property WebServerResponse: String read GetWebServerResponse;
     property Connected: Boolean read GetConnected;
@@ -74,13 +95,14 @@ type
 
 var
   gdWebClientThread: TgdWebClientThread;
+  function GetIPSec(AnIPSec: String): TIdSSLVersion;
 
 implementation
 
 uses
   gdcJournal, gd_security, gdcBaseInterface, gdNotifierThread_unit,
   gd_directories_const, JclFileUtils, Forms, gd_CmdLineParams_unit,
-  gd_GlobalParams_unit, jclSysInfo;
+  gd_GlobalParams_unit, jclSysInfo, IdSMTP, IdMessage;
 
 const
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
@@ -90,6 +112,22 @@ const
   WM_GD_PROCESS_UPDATE_COMMAND = WM_USER + 1122;
   WM_GD_FINISH_UPDATE          = WM_USER + 1123;
   WM_GD_SEND_ERROR             = WM_USER + 1124;
+  WM_GD_SEND_EMAIL             = WM_USER + 1125;
+
+function GetIPSec(AnIPSec: String): TIdSSLVersion;
+begin
+  if AnIPSec = 'SSLV2' then
+    Result := sslvSSLv2
+  else if AnIPSec = 'SSLV23' then
+    Result := sslvSSLv23
+  else if AnIPSec = 'SSLV3' then
+    Result := sslvSSLv3
+  else if AnIPSec = 'TLSV1' then
+    Result := sslvTLSv1
+  else
+    raise Exception.Create('unknown ip security protocol.')
+end;
+
 
 { TgdWebClientThread }
 
@@ -296,6 +334,10 @@ begin
         end;  
         FErrorToSend.Value := '';
       end;
+    WM_GD_SEND_EMAIL:
+      begin
+        DoSendEMail;
+      end;
   else
     Result := False;
   end;
@@ -461,6 +503,84 @@ begin
   end;
 end;
 
+procedure TgdWebClientThread.SendEMail(ARecipients: String;
+  AnSubject: String; AnBodyText: String;
+  AnFromEMail: String; AnServer: String; AnPort: Integer;
+  AnLogin: String; AnPassw: String; AIPSec: String; AnTimeOut: Integer = -1;
+  AnFileName: String = '');
+var
+  Err: String;
+begin
+  Err := '';
+  if ARecipients = '' then
+    Err := 'не указаны адреса получателей';
+
+  if AnFromEMail = '' then
+  begin
+    if Err > '' then
+      Err := Err + ', ';
+    Err := Err + 'не указан адрес электронной почты';
+  end;
+
+  if AnServer = '' then
+  begin
+    if Err > '' then
+      Err := Err + ', ';
+    Err := Err + 'не указан smtp сервер';
+  end;
+
+  if AnPort < 0 then
+  begin
+    if Err > '' then
+      Err := Err + ', ';
+    Err := Err + 'неправильный smtp порт';
+  end;
+
+  if AnLogin = '' then
+  begin
+    if Err > '' then
+      Err := Err + ', ';
+    Err := Err + 'не указана учетная запись';
+  end;
+
+  if AnPassw = '' then
+  begin
+    if Err > '' then
+      Err := Err + ', ';
+    Err := Err + 'не указан пароль';
+  end;
+
+  if AnTimeOut < -1 then
+  begin
+    if Err > '' then
+      Err := Err + ', ';
+    Err := Err + 'неправильное время ожидания';
+  end;
+
+  if Err = '' then
+  begin
+    FRecipients := ARecipients;
+    FSubject := AnSubject;
+    FBodyText := AnBodyText;
+    FFromEMail := AnFromEMail;
+    FServer := AnServer;
+    FPort := AnPort;
+    FLogin := AnLogin;
+    FPassw := AnPassw;
+    FIPSec := AIPSec;
+    FTimeOut := AnTimeOut;
+    FFileName := AnFileName;
+
+    PostMsg(WM_GD_SEND_EMAIL);
+  end
+  else
+  begin
+    ErrorMessage := 'Ошибка: ' + Err;
+    gdNotifierThread.Add(ErrorMessage, 0, 2000);
+  end;
+
+end;
+
 procedure TgdWebClientThread.DoSendError;
 begin
   if gdWebServerURL = '' then
@@ -487,6 +607,72 @@ begin
         gdNotifierThread.Add(ErrorMessage, 0, 2000);
       end;
     end;
+  end;
+end;
+
+procedure TgdWebClientThread.DoSendEMail;
+var
+  IdSMTP: TidSMTP;
+  Msg: TIdMessage;
+  IdSSLIOHandlerSocket: TIdSSLIOHandlerSocket;
+  Attachment: TIdAttachment;
+begin
+  try
+    IdSMTP := TidSMTP.Create(nil);
+    try
+      IdSMTP.Port := FPort;
+      IdSMTP.Host := FServer;
+      IdSMTP.AuthenticationType := atLogin;
+      IdSMTP.Username := FLogin;
+      IdSMTP.Password := FPassw;
+
+      if FIPSec > '' then
+      begin
+        IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
+        IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(FIPSec);
+        IdSMTP.IOHandler := IdSSLIOHandlerSocket;
+      end;
+
+      IdSMTP.Connect(FTimeOut);
+
+      if IdSMTP.Connected then
+      begin
+        if IdSMTP.Authenticate then
+        begin
+          Msg := TIdMessage.Create(nil);
+          Attachment := nil;
+          try
+            Msg.Subject := FSubject; //нужна конвертация в utf8
+            Msg.Recipients.EMailAddresses := FRecipients;
+            Msg.From.Address := FFromEMail;
+            Msg.Body.Text := FBodyText;
+            Msg.Date := Now;
+
+            if FFileName <> '' then
+            begin
+              Attachment := TIdAttachment.Create(Msg.MessageParts, FFileName);
+              Attachment.DeleteTempFile := False;
+            end;
+
+            IdSMTP.Send(Msg);
+            gdNotifierThread.Add('Сообщение отправлено', 0, 2000);
+          finally
+            FreeAndNil(Attachment);
+            Msg.Free;
+          end;
+        end;
+      end;
+    finally
+      if IdSMTP.Connected then
+        IdSMTP.Disconnect;
+      IdSMTP.Free;
+    end;
+  except
+    on E: Exception do
+      begin
+        ErrorMessage := E.Message;
+        gdNotifierThread.Add(ErrorMessage, 0, 2000);
+      end;
   end;
 end;
 
