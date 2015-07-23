@@ -4621,16 +4621,17 @@ begin
           '          exception INV_E_DONTCHANGEBENEFICIARY; ' + #13#10 +
           '      end ' + #13#10 +
           '      if (coalesce(NEW.quantity, 0) > coalesce(OLD.quantity, 0)) then ' + #13#10 +
-          '      begin ' + #13#10 + GetNewCardSQL(SourceFeatures, 'usr$') +
-          '        movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          '      begin ' + #13#10 +
+          '        select first(1) movementkey from inv_movement ' + #13#10 +
+          '        where documentkey = NEW.documentkey ' + #13#10 +
+          '        INTO :movementkey; ' + #13#10 +
           ' ' + #13#10 +
           '  /* добавляем значения в inv_movememt */ ' + #13#10 +
           ' ' + #13#10 +
-          '        INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
-          '        VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, coalesce(NEW.quantity, 0) - coalesce(OLD.quantity, 0)); ' + #13#10 +
-          ' ' + #13#10 +
-          '        INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, debit) ' + #13#10 +
-          '        VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :tocontactkey, :documentdate, coalesce(NEW.quantity, 0) - coalesce(OLD.quantity, 0)); ' + #13#10 +
+          '        UPDATE inv_movement SET credit = credit + (NEW.quantity - OLD.quantity) ' + #13#10 +
+          '        WHERE movementkey = :movementkey AND credit <> 0; ' + #13#10 +
+          '        UPDATE inv_movement SET debit = debit + (NEW.quantity - OLD.quantity) ' + #13#10 +
+          '        WHERE movementkey = :movementkey AND debit <> 0; ' + #13#10 +
           '      end ' + #13#10 +
           '      else ' + #13#10 +
           '      begin ' + #13#10 +

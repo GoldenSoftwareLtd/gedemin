@@ -1,6 +1,6 @@
 object gdc_frmG: Tgdc_frmG
   Left = 425
-  Top = 222
+  Top = 76
   Width = 1059
   Height = 784
   HelpContext = 116
@@ -26,8 +26,8 @@ object gdc_frmG: Tgdc_frmG
   TextHeight = 13
   object sbMain: TStatusBar
     Left = 0
-    Top = 734
-    Width = 1051
+    Top = 726
+    Width = 1043
     Height = 19
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
@@ -49,7 +49,7 @@ object gdc_frmG: Tgdc_frmG
   object TBDockTop: TTBDock
     Left = 0
     Top = 0
-    Width = 1051
+    Width = 1043
     Height = 51
     object tbMainToolbar: TTBToolbar
       Left = 0
@@ -311,35 +311,35 @@ object gdc_frmG: Tgdc_frmG
     Left = 0
     Top = 51
     Width = 9
-    Height = 674
+    Height = 666
     Position = dpLeft
   end
   object TBDockRight: TTBDock
-    Left = 1042
+    Left = 1034
     Top = 51
     Width = 9
-    Height = 674
+    Height = 666
     Position = dpRight
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 725
-    Width = 1051
+    Top = 717
+    Width = 1043
     Height = 9
     Position = dpBottom
   end
   object pnlWorkArea: TPanel
     Left = 9
     Top = 51
-    Width = 1033
-    Height = 674
+    Width = 1025
+    Height = 666
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 5
     object spChoose: TSplitter
       Left = 0
-      Top = 571
-      Width = 1033
+      Top = 563
+      Width = 1025
       Height = 4
       Cursor = crVSplit
       Align = alBottom
@@ -348,8 +348,8 @@ object gdc_frmG: Tgdc_frmG
     object pnlMain: TPanel
       Left = 0
       Top = 0
-      Width = 1033
-      Height = 571
+      Width = 1025
+      Height = 563
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -359,7 +359,7 @@ object gdc_frmG: Tgdc_frmG
         Left = 0
         Top = 0
         Width = 160
-        Height = 571
+        Height = 563
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -371,7 +371,7 @@ object gdc_frmG: Tgdc_frmG
           Left = 0
           Top = 27
           Width = 160
-          Height = 544
+          Height = 536
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -419,8 +419,8 @@ object gdc_frmG: Tgdc_frmG
     end
     object pnChoose: TPanel
       Left = 0
-      Top = 575
-      Width = 1033
+      Top = 567
+      Width = 1025
       Height = 99
       Align = alBottom
       BevelOuter = bvNone
@@ -428,7 +428,7 @@ object gdc_frmG: Tgdc_frmG
       TabOrder = 1
       Visible = False
       object pnButtonChoose: TPanel
-        Left = 928
+        Left = 920
         Top = 18
         Width = 105
         Height = 81
@@ -465,7 +465,7 @@ object gdc_frmG: Tgdc_frmG
       object ibgrChoose: TgsIBGrid
         Left = 0
         Top = 18
-        Width = 928
+        Width = 920
         Height = 81
         HelpContext = 3
         Align = alClient
@@ -491,7 +491,7 @@ object gdc_frmG: Tgdc_frmG
       object pnlChooseCaption: TPanel
         Left = 0
         Top = 0
-        Width = 1033
+        Width = 1025
         Height = 18
         Align = alTop
         Alignment = taLeftJustify
