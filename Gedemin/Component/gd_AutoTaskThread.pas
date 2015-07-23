@@ -103,6 +103,24 @@ type
     property BackupFile: String read FBackupFile write FBackupFile;
   end;
 
+  TgdAutoReportTask = class(TgdAutoTask)
+  private
+    FReportKey: Integer;
+    FSMTPKey: Integer;
+    FGroupKey: Integer;
+    FExportType: String;
+
+  protected
+    procedure TaskExecute; override;
+
+  public
+    property ReportKey: Integer read FReportKey write FReportKey;
+    property SMTPKey: Integer read FSMTPKey write FSMTPKey;
+    property GroupKey: Integer read FGroupKey write FGroupKey;
+    property ExportType: String read FExportType write FExportType;
+  end;
+
+
   TgdAutoTaskThread = class(TgdMessagedThread)
   private
     FTaskList: TObjectList;
@@ -139,7 +157,7 @@ uses
   Forms, at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
   scr_i_FunctionList, gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security,
   gdNotifierThread_unit, gd_ProgressNotifier_unit, IBServices,
-  gd_common_functions, gd_directories_const, jclSysInfo;
+  gd_common_functions, gd_directories_const, jclSysInfo, gd_WebClientControl_unit;
 
 const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
@@ -380,6 +398,18 @@ begin
   //
 end;
 
+{ TgdAutoReportTask }
+
+procedure TgdAutoReportTask.TaskExecute;
+begin
+  try
+    gdWebClientThread.BuildAndSendReport(ReportKey, SMTPKey, GroupKey, ExportType);
+  except
+    on E: Exception do
+      FErrorMsg := E.Message;
+  end;
+end;
+
 { TgdAutoTaskThread }
 
 constructor TgdAutoTaskThread.Create;
@@ -442,6 +472,14 @@ begin
       begin
         Task := TgdAutoBackupTask.Create;
         (Task as TgdAutoBackupTask).BackupFile := q.FieldbyName('backupfile').AsString;
+      end else
+      if q.FieldByName('reportkey').AsInteger > 0 then
+      begin
+        Task := TgdAutoReportTask.Create;
+        (Task as TgdAutoReportTask).ReportKey := q.FieldbyName('reportkey').AsInteger;
+        (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('smtpkey').AsInteger;
+        (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('groupkey').AsInteger;
+        (Task as TgdAutoReportTask).ExportType := q.FieldbyName('exporttype').AsString;
       end else
         Task := nil;
 

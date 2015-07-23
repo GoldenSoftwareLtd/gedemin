@@ -22,6 +22,8 @@ type
     FIPSec: String;
     FTimeOut: Integer;
     FFileName: String;
+    FDeleteFile: Boolean;
+    FRemoveDirectory: Boolean;
 
   public
     property Recipients: String read FRecipients write FRecipients;
@@ -35,6 +37,8 @@ type
     property IPSec: String read FIPSec write FIPSec;
     property TimeOut: Integer read FTimeOut write FTimeOut;
     property FileName: String read FFileName write FFileName;
+    property DeleteFile: Boolean read FDeleteFile write FDeleteFile;
+    property RemoveDirectory: Boolean read FRemoveDirectory write FRemoveDirectory;
   end;
 
   TgdWebClientThread = class(TgdMessagedThread)
@@ -98,7 +102,11 @@ type
       AnSubject: String; AnBodyText: String;
       AnFromEMail: String; AnServer: String; AnPort: Integer;
       AnLogin: String; AnPassw: String; AIPSec: String; AnTimeOut: Integer = -1;
-      AnFileName: String = '');
+      AnFileName: String = '';
+      AnDeleteFile: Boolean = False; AnRemoveDirectory: Boolean = False);
+
+    procedure BuildAndSendReport(AnReportKey: Integer;
+      AnSMTPKey: Integer; AnGroupKey: Integer; AnExportType: String);
 
     property gdWebServerURL: String read GetgdWebServerURL write SetgdWebServerURL;
     property WebServerResponse: String read GetWebServerResponse;
@@ -117,7 +125,8 @@ implementation
 uses
   gdcJournal, gd_security, gdcBaseInterface, gdNotifierThread_unit,
   gd_directories_const, JclFileUtils, Forms, gd_CmdLineParams_unit,
-  gd_GlobalParams_unit, jclSysInfo, IdSMTP, IdMessage;
+  gd_GlobalParams_unit, jclSysInfo, IdSMTP, IdMessage, IBSQL,
+  gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME;
 
 const
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
@@ -128,6 +137,9 @@ const
   WM_GD_FINISH_UPDATE          = WM_USER + 1123;
   WM_GD_SEND_ERROR             = WM_USER + 1124;
   WM_GD_SEND_EMAIL             = WM_USER + 1125;
+
+type
+  TClientReportCracker = class(TClientReport);
 
 function GetIPSec(AnIPSec: String): TIdSSLVersion;
 begin
@@ -522,7 +534,8 @@ procedure TgdWebClientThread.SendEMail(ARecipients: String;
   AnSubject: String; AnBodyText: String;
   AnFromEMail: String; AnServer: String; AnPort: Integer;
   AnLogin: String; AnPassw: String; AIPSec: String; AnTimeOut: Integer = -1;
-  AnFileName: String = '');
+  AnFileName: String = '';
+  AnDeleteFile: Boolean = False; AnRemoveDirectory: Boolean = False);
 var
   ES: TEmailSettings;
 begin
@@ -559,8 +572,195 @@ begin
   ES.IPSec := AIPSec;
   ES.TimeOut := AnTimeOut;
   ES.FileName := AnFileName;
+  ES.DeleteFile := AnDeleteFile;
+  ES.RemoveDirectory := AnRemoveDirectory;
 
   PostMsg(WM_GD_SEND_EMAIL, Integer(ES));
+end;
+
+procedure TgdWebClientThread.BuildAndSendReport(AnReportKey: Integer;
+  AnSMTPKey: Integer; AnGroupKey: Integer; AnExportType: String);
+
+  function GetRecipients(AnGroupKey: Integer): String;
+  var
+    q: TIBSQL;
+  begin
+    Assert(gdcBaseManager <> nil);
+
+    Result := '';
+
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+        'SELECT '#13#10 +
+        '  c.email '#13#10 +
+        'FROM '#13#10 +
+        '  gd_contact c '#13#10 +
+        '    JOIN '#13#10 +
+        '      gd_contactlist g '#13#10 +
+        '    ON '#13#10 +
+        '      g.contactkey  =  c.id '#13#10 +
+        'WHERE '#13#10 +
+        '  (g.groupkey  =  :gk) '#13#10 +
+        '    AND (c.email IS NOT NULL) '#13#10 +
+        '    AND (c.email <> '''')';
+      q.ParamByName('gk').AsInteger := AnGroupKey;
+
+      q.ExecQuery;
+
+      while not q.EOF do
+      begin
+        Result := Result + q.FieldByName('email').AsString + ';';
+        q.Next;
+      end;
+    finally
+      q.Free;
+    end;
+  end;
+
+  function GetSMTPSettings(AnSMTPKey: Integer; out AnFromMail: String;
+    out AnServer: String; out AnPort: Integer; out AnLogin: String;
+    out AnPassw: String; out AnIPSec: String; out AnTimeOut: Integer): Boolean;
+  var
+    q: TIBSQL;
+  begin
+    Result := False;
+
+    Assert(gdcBaseManager <> nil);
+
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+
+      if AnSMTPKey > 0 then
+      begin
+        q.SQL.Text :=
+          'SELECT * FROM gd_smtp s WHERE s.id = :id';
+        q.ParamByName('id').AsInteger := AnSMTPKey;
+      end
+      else
+        q.SQL.Text :=
+          'SELECT * FROM gd_smtp s WHERE s.principal = 1';
+
+      q.ExecQuery;
+
+      if not q.EOF then
+      begin
+        Result := True;
+        AnFromMail := q.FieldByName('email').AsString;
+        AnServer := q.FieldByName('server').AsString;
+        AnPort := q.FieldByName('port').AsInteger;
+        AnLogin := q.FieldByName('login').AsString;
+        AnPassw := DecryptString(q.FieldByName('passw').AsString, 'PASSW');
+        AnIPSec := q.FieldByName('ipsec').AsString;
+        AnTimeOut := q.FieldByName('timeout').AsInteger;
+      end;
+    finally
+      q.Free;
+    end;
+  end;
+
+  function GetFileName(AnExportType: String): String;
+  var
+    Ch: array[0..1024] of Char;
+    FileExtension: String;
+    RandDir: String;
+  begin
+    if AnExportType = 'WORD' then
+      FileExtension := 'doc'
+    else if AnExportType = 'EXCEL' then
+      FileExtension := 'xls'
+    else if AnExportType = 'PDF' then
+      FileExtension := 'pdf'
+    else if AnExportType = 'XML' then
+      FileExtension := 'xml'
+    else
+      raise Exception.Create('unknown exporttype.');
+
+    GetTempPath(1024, Ch);
+
+    Result := IncludeTrailingBackSlash(Ch);
+
+    repeat
+      RandDir := '_gtemp' + IntToStr(100000 + Random(100000));
+    until not DirectoryExists(Result + RandDir);
+
+    Result := Result + RandDir;
+
+    if not CreateDir(Result) then
+      raise Exception.Create('Ошибка при создании директории ' + Result + '!');
+
+    Result := Result + '\' + 'report' + '.' + FileExtension;
+  end;
+
+  function GetExportType(AnExportType: String): TExportType;
+  begin
+    if AnExportType = 'WORD' then
+      Result := etWord
+    else if AnExportType = 'EXCEL' then
+      Result := etExcel
+    else if AnExportType = 'PDF' then
+      Result := etPdf
+    else if AnExportType = 'XML' then
+      Result := etXML
+    else
+      raise Exception.Create('unknown export type.')
+  end;
+
+  function GetSubject(AnReportKey: Integer): String;
+  begin
+    Result := 'Заголовок';
+  end;
+
+  function GetBodyText(AnReportKey: Integer): String;
+  begin
+    Result := 'Текст'
+  end;
+
+
+var
+  B: Variant;
+  LRecipients: String;
+  LSubject: String;
+  LBodyText: String;
+  LFromMail: String;
+  LServer: String;
+  LPort: Integer;
+  LLogin: String;
+  LPassw: String;
+  LIPSec: String;
+  LTimeOut: Integer;
+  LFileName: String;
+begin
+  Assert(ClientReport <> nil);
+
+  if not GetSMTPSettings(AnSMTPKey, LFromMail, LServer,
+    LPort, LLogin, LPassw, LIPSec, LTimeOut) then
+  begin
+    raise Exception.Create('not found smtp settings.');
+  end;
+
+  LRecipients := GetRecipients(AnGroupKey);
+
+  if LRecipients = '' then
+    raise Exception.Create('not found recipients email addresses.');
+
+  ClientReport.ExportType := GetExportType(AnExportType);
+  ClientReport.ShowProgress := False;
+
+
+  LFileName := GetFileName(AnExportType);
+  ClientReport.FileName := LFileName;
+
+  B := VarArrayOf([]);
+  TClientReportCracker(ClientReport).BuildReportWithParam(AnReportKey, B);
+
+  LSubject := GetSubject(AnReportKey);
+  LBodyText := GetBodyText(AnReportKey);
+
+  SendEMail(LRecipients, LSubject, LBodyText, LFromMail, LServer,
+    LPort, LLogin, LPassw, LIPSec, LTimeOut, LFileName, True, True);
 end;
 
 procedure TgdWebClientThread.DoSendError;
@@ -593,6 +793,17 @@ begin
 end;
 
 procedure TgdWebClientThread.DoSendEMail(Int: Integer);
+
+  function EncodeSubj(const AnSubj: String): String;
+  begin
+    with TIdEncoderMIME.Create(nil) do
+      try
+        Result := '=?' + 'Windows-1251' + '?B?' + Encode(AnSubj) + '?=';
+      finally
+        Free;
+      end;
+  end;
+
 var
   IdSMTP: TidSMTP;
   Msg: TIdMessage;
@@ -627,7 +838,7 @@ begin
             Msg := TIdMessage.Create(nil);
             Attachment := nil;
             try
-              Msg.Subject := ES.Subject; //нужна конвертация в utf8
+              Msg.Subject := EncodeSubj(ES.Subject);
               Msg.Recipients.EMailAddresses := ES.Recipients;
               Msg.From.Address := ES.FromEMail;
               Msg.Body.Text := ES.BodyText;
@@ -660,6 +871,13 @@ begin
         end;
     end;
   finally
+    if ES.FileName > ''then
+    begin
+      if ES.DeleteFile and FileExists(ES.FileName)then
+        DeleteFile(ES.FileName);
+      if ES.RemoveDirectory and DirectoryExists(ExtractFileDir(ES.FileName)) then
+        RemoveDir(ExtractFileDir(ES.FileName))
+    end;
     ES.Free;
   end;
 end;

@@ -202,6 +202,18 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
     PasswordChar = '*'
     TabOrder = 6
   end
+  object dbcbPrincipal: TDBCheckBox [25]
+    Left = 8
+    Top = 272
+    Width = 97
+    Height = 17
+    Caption = 'Основной'
+    DataField = 'PRINCIPAL'
+    DataSource = dsgdcBase
+    TabOrder = 16
+    ValueChecked = '1'
+    ValueUnchecked = '0'
+  end
   inherited alBase: TActionList
     Left = 284
     Top = 307
