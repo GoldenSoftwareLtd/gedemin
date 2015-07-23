@@ -6,12 +6,6 @@ CREATE TABLE gd_autotask
    functionkey      dforeignkey,      /* если задано -- будет выполн€тьс€ скрипт-функци€ */
    autotrkey        dforeignkey,      /* если задано -- будет выполн€тьс€ автоматическа€ хоз€йственна€ операци€ */
    reportkey        dforeignkey,      /* если задано -- будет выполн€тьс€ построение отчета */
-   groupkey         dforeignkey,
-   smtpkey          dforeignkey,
-   msgsubject       VARCHAR(256),
-   msgbody          VARCHAR(1024),
-   filename         VARCHAR(64),
-   exporttype       VARCHAR(5),
    cmdline          dtext255,         /* если задано -- командна€ строка дл€ вызова внешней программы */
    backupfile       dtext255,         /* если задано -- им€ файла архива */
    userkey          dforeignkey,      /* учетна€ запись, под которой выполн€ть. если не задана -- выполн€ть под любой*/
@@ -40,9 +34,7 @@ CREATE TABLE gd_autotask
    CONSTRAINT gd_chk_autotask_time CHECK((starttime IS NULL AND endtime IS NULL) OR (starttime < endtime)),
    CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
    CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > ''),
-   CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0),
-   CONSTRAINT gd_chk_autotask_filename CHECK(filename > ''),
-   CONSTRAINT gd_chk_autotask_exporttype CHECK(exporttype IN ('WORD', 'EXCEL', 'PDF', 'XML'))
+   CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0)
  );
  
 SET TERM ^ ;
@@ -108,12 +100,6 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.msgsubject = NULL;
-    NEW.msgbody = NULL;
-    NEW.filename = NULL;
-    NEW.exporttype = NULL;
   END
   
   IF (NOT NEW.autotrkey IS NULL) THEN
@@ -122,12 +108,6 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.msgsubject = NULL;
-    NEW.msgbody = NULL;
-    NEW.filename = NULL;
-    NEW.exporttype = NULL;
   END
   
   IF (NOT NEW.reportkey IS NULL) THEN
@@ -144,12 +124,6 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.backupfile = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.msgsubject = NULL;
-    NEW.msgbody = NULL;
-    NEW.filename = NULL;
-    NEW.exporttype = NULL;	
   END
   
   IF (NOT NEW.backupfile IS NULL) THEN
@@ -158,12 +132,6 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.msgsubject = NULL;
-    NEW.msgbody = NULL;
-    NEW.filename = NULL;
-    NEW.exporttype = NULL;	
   END
 END
 ^ 

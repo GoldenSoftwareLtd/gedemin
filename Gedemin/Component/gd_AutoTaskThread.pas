@@ -3,8 +3,7 @@ unit gd_AutoTaskThread;
 interface
 
 uses
-  Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread,
-  rp_i_ReportBuilder_unit, IdSSLOpenSSL;
+  Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread;
 
 type
   TgdAutoTask = class(TObject)
@@ -104,47 +103,6 @@ type
     property BackupFile: String read FBackupFile write FBackupFile;
   end;
 
-  TgdAutoReportTask = class(TgdAutoTask)
-  private
-    FReportKey: Integer;
-    FGroupKey: Integer;
-    FSMTPKey: Integer;
-    FFileName: String;
-    FExportType: String;
-    FMsgSubject: String;
-    FMsgBody: String;
-
-    FRecipientsEMailAddresses: String;
-
-    FEMail: String;
-    FPort: Integer;
-    FServer: String;
-    FLogin: String;
-    FPassw: String;
-    FIPSec: String;
-    FTimeOut: Integer;
-
-    procedure SaveReportToFile;
-    procedure SetRecipientsEMailAddresses;
-
-    procedure SetSMTPSettings;
-
-  protected
-    procedure Setup; override;
-    procedure TaskExecute; override;
-
-  public
-    procedure TaskExecuteForDlg; override;
-
-    property ReportKey: Integer read FReportKey write FReportKey;
-    property GroupKey: Integer read FGroupKey write FGroupKey;
-    property SMTPKey: Integer read FSMTPKey write FSMTPKey;
-    property FileName: String read FFileName write FFileName;
-    property ExportType: String read FExportType write FExportType;
-    property MsgSubject: String read FMsgSubject write FMsgSubject;
-    property MsgBody: String read FMsgBody write FMsgBody;
-  end;
-
   TgdAutoTaskThread = class(TgdMessagedThread)
   private
     FTaskList: TObjectList;
@@ -175,38 +133,18 @@ type
 var
   gdAutoTaskThread: TgdAutoTaskThread;
 
-  function GetIPSec(AnIPSec: String): TIdSSLVersion;
-
 implementation
 
 uses
   Forms, at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
   scr_i_FunctionList, gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security,
   gdNotifierThread_unit, gd_ProgressNotifier_unit, IBServices,
-  gd_common_functions, gd_directories_const, jclSysInfo, rp_ReportClient,
-  IdSMTP, IdMessage, gd_encryption;
+  gd_common_functions, gd_directories_const, jclSysInfo;
 
 const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
   WM_GD_LOAD_TASK_LIST        = WM_GD_THREAD_USER + 2;
   WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 3;
-
-type
-  TClientReportCracker = class(TClientReport);
-
-function GetIPSec(AnIPSec: String): TIdSSLVersion;
-begin
-  if AnIPSec = 'SSLV2' then
-    Result := sslvSSLv2
-  else if AnIPSec = 'SSLV23' then
-    Result := sslvSSLv23
-  else if AnIPSec = 'SSLV3' then
-    Result := sslvSSLv3
-  else if AnIPSec = 'TLSV1' then
-    Result := sslvTLSv1
-  else
-    raise Exception.Create('unknown ip security protocol.')
-end;
 
 { TgdAutoTask }
 
@@ -504,17 +442,6 @@ begin
       begin
         Task := TgdAutoBackupTask.Create;
         (Task as TgdAutoBackupTask).BackupFile := q.FieldbyName('backupfile').AsString;
-      end
-      else if q.FieldByName('reportkey').AsInteger > 0 then
-      begin
-        Task := TgdAutoReportTask.Create;
-        (Task as TgdAutoReportTask).ReportKey := q.FieldbyName('reportkey').AsInteger;
-        (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('groupkey').AsInteger;
-        (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('smtpkey').AsInteger;
-        (Task as TgdAutoReportTask).FileName := q.FieldbyName('filename').AsString;
-        (Task as TgdAutoReportTask).ExportType := q.FieldbyName('exporttype').AsString;
-        (Task as TgdAutoReportTask).MsgSubject := q.FieldbyName('msgsubject').AsString;
-        (Task as TgdAutoReportTask).MsgBody := q.FieldbyName('msgbody').AsString;
       end else
         Task := nil;
 
@@ -911,192 +838,6 @@ procedure TgdAutoBackupTask.TaskExecuteForDlg;
 begin
   SetupBackupTask;
   inherited;
-end;
-
-{ TgdAutoReportTask }
-
-procedure TgdAutoReportTask.TaskExecuteForDlg;
-begin
-  SaveReportToFile;
-  SetRecipientsEMailAddresses;
-  SetSMTPSettings;
-  inherited;
-end;
-
-procedure TgdAutoReportTask.Setup;
-begin
-  gdAutoTaskThread.Synchronize(SaveReportToFile);
-  gdAutoTaskThread.Synchronize(SetRecipientsEMailAddresses);
-  gdAutoTaskThread.Synchronize(SetSMTPSettings);
-end;
-
-procedure TgdAutoReportTask.SaveReportToFile;
-  function GetExportType(AnExportType: String): TExportType;
-  begin
-    if AnExportType = 'WORD' then
-      Result := etWord
-    else if AnExportType = 'EXCEL' then
-      Result := etExcel
-    else if AnExportType = 'PDF' then
-      Result := etPdf
-    else if AnExportType = 'XML' then
-      Result := etXML
-    else
-      raise Exception.Create('unknown export type.')
-  end;
-var
-  B: Variant;
-  Ch: array[0..1024] of Char;
-begin
-  Assert(ClientReport <> nil);
-
-  Assert(FFileName <> '');
-
-  ClientReport.ExportType := GetExportType(FExportType);
-
-  ClientReport.ShowProgress := False;
-
-  GetTempPath(1024, Ch);
-  ClientReport.FileName := IncludeTrailingBackSlash(Ch) + FFileName;
-
-  B := VarArrayOf([]);
-  TClientReportCracker(ClientReport).BuildReportWithParam(FReportKey, B);
-end;
-
-procedure TgdAutoReportTask.SetRecipientsEMailAddresses;
-var
-  q: TIBSQL;
-begin
-  Assert(gdcBaseManager <> nil);
-
-  FRecipientsEMailAddresses := '';
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text :=
-      'SELECT '#13#10 +
-      '  c.email '#13#10 +
-      'FROM '#13#10 +
-      '  gd_contact c '#13#10 +
-      '    JOIN '#13#10 +
-      '      gd_contactlist g '#13#10 +
-      '    ON '#13#10 +
-      '      g.contactkey  =  c.id '#13#10 +
-      'WHERE '#13#10 +
-      '  (g.groupkey  =  :gk) '#13#10 +
-      '    AND (c.email IS NOT NULL) '#13#10 +
-      '    AND (c.email <> '''')';
-    q.ParamByName('gk').AsInteger := FGroupKey;
-
-    q.ExecQuery;
-
-    while not q.EOF do
-    begin
-      FRecipientsEMailAddresses := FRecipientsEMailAddresses + q.FieldByName('email').AsString + ';';
-      q.Next;
-    end;
-  finally
-    q.Free;
-  end;
-end;
-
-
-procedure TgdAutoReportTask.SetSMTPSettings;
-var
-  q: TIBSQL;
-begin
-  Assert(gdcBaseManager <> nil);
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT * FROM gd_smtp WHERE id = :id';
-
-    q.ParamByName('id').AsInteger := FSMTPKey;
-    q.ExecQuery;
-
-    if not q.EOF then
-    begin
-      FEMail := q.FieldByName('email').AsString;
-      FPort := q.FieldByName('port').AsInteger;
-      FServer := q.FieldByName('server').AsString;
-      FLogin := q.FieldByName('login').AsString;
-      FPassw := DecryptString(q.FieldByName('passw').AsString, 'PASSW');
-      FIPSec := q.FieldByName('ipsec').AsString;
-      FTimeOut := q.FieldByName('timeout').AsInteger;
-    end;
-  finally
-    q.Free;
-  end;
-end;
-
-procedure TgdAutoReportTask.TaskExecute;
-var
-  IdSMTP: TidSMTP;
-  Msg: TIdMessage;
-  IdSSLIOHandlerSocket: TIdSSLIOHandlerSocket;
-  Ch: array[0..1024] of Char;
-begin
-  if FRecipientsEMailAddresses = '' then
-  begin
-    FErrorMsg := 'No Recipients EMail Addresses';
-    exit;
-  end;
-  
-  try
-    IdSMTP := TidSMTP.Create(nil);
-    try
-      IdSMTP.Port := FPort;
-      IdSMTP.Host := FServer;
-      IdSMTP.AuthenticationType := atLogin;
-      IdSMTP.Username := FLogin;
-      IdSMTP.Password := FPassw;
-
-      if FIPSec > '' then
-      begin
-        IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
-        IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(FIPSec);
-        IdSMTP.IOHandler := IdSSLIOHandlerSocket;
-      end;
-
-      IdSMTP.Connect(FTimeOut);
-
-      if IdSMTP.Connected then
-      begin
-        if IdSMTP.Authenticate then
-        begin
-          Msg := TIdMessage.Create(nil);
-          try
-            Msg.Subject := MsgSubject;
-            Msg.Recipients.EMailAddresses := FRecipientsEMailAddresses;
-            Msg.From.Address := FEMail;
-            Msg.Body.Text := MsgBody;
-            Msg.Date := Now;
-
-            GetTempPath(1024, Ch);
-
-            with TIdAttachment.Create(Msg.MessageParts, IncludeTrailingBackSlash(Ch) + FFileName) do
-            try
-              DeleteTempFile := False;
-              IdSMTP.Send(Msg);
-            finally
-              Free;
-            end;
-          finally
-            Msg.Free;
-          end;
-        end;
-      end;
-    finally
-      if IdSMTP.Connected then
-        IdSMTP.Disconnect;
-      IdSMTP.Free;
-    end;
-  except
-    on E: Exception do
-      FErrorMsg := E.Message;
-  end;
 end;
 
 initialization

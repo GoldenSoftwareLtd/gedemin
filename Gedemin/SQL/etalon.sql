@@ -552,6 +552,9 @@ CREATE DOMAIN dtext10
 
 CREATE DOMAIN dtext20
   AS VARCHAR(20) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+  
+CREATE DOMAIN dtext25
+  AS VARCHAR(25) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
 
 CREATE DOMAIN dtext40
   AS VARCHAR(40) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
@@ -1538,7 +1541,10 @@ INSERT INTO fin_versioninfo
   VALUES (221, '0000.0001.0000.0252', '25.06.2015', 'Added GD_SMTP table.');
   
 INSERT INTO fin_versioninfo
-  VALUES (222, '0000.0001.0000.0253', '25.06.2015', 'Modified GD_AUTOTASK table.');  
+  VALUES (222, '0000.0001.0000.0253', '25.06.2015', 'Modified GD_AUTOTASK table.');
+
+INSERT INTO fin_versioninfo
+  VALUES (223, '0000.0001.0000.0254', '25.06.2015', 'Added domain dtext25.');  
   
 COMMIT;
 
@@ -2882,7 +2888,7 @@ CREATE TABLE gd_people
   firstname      dtext20,      /* Імя                                                            */
   surname        dtext20 NOT NULL,/* Прозвішча                                                      */
   middlename     dtext20,      /* Імя па бацьку                                                  */
-  nickname       dtext20,      /* Кароткае імя                                                   */
+  nickname       dtext25,      /* Кароткае імя                                                   */
   rank           dtext20,      /* Званіе                                                         */
 
   /* Хатнія дадзеныя */
