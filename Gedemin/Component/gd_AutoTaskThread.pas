@@ -163,6 +163,7 @@ const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
   WM_GD_LOAD_TASK_LIST        = WM_GD_THREAD_USER + 2;
   WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 3;
+  WM_GD_OUTSIDE_LOG           = WM_GD_THREAD_USER + 4;
 
 { TgdAutoTask }
 
@@ -194,7 +195,7 @@ begin
   begin
     gdAutoTaskThread.SendNotification('Ошибка при выполнении автозадачи: ' + FErrorMsg, True);
     gdAutoTaskThread.Synchronize(LogErrorMsg);
-  end else
+  end else if not (Self.ClassType = TgdAutoReportTask) then
   begin
     gdAutoTaskThread.SendNotification('Автозадача "' + Name + '" выполнена.', True);
     gdAutoTaskThread.Synchronize(LogEndTask);
@@ -403,7 +404,7 @@ end;
 procedure TgdAutoReportTask.TaskExecute;
 begin
   try
-    gdWebClientThread.BuildAndSendReport(ReportKey, SMTPKey, GroupKey, ExportType);
+    gdWebClientThread.BuildAndSendReport(ReportKey, SMTPKey, GroupKey, ExportType, ID);
   except
     on E: Exception do
       FErrorMsg := E.Message;

@@ -24,8 +24,12 @@ type
     FFileName: String;
     FDeleteFile: Boolean;
     FRemoveDirectory: Boolean;
+    FAutoTaskKey: Integer;
+    FMsg: String;
 
   public
+    procedure AutoTaskLog;
+
     property Recipients: String read FRecipients write FRecipients;
     property Subject: String read FSubject write FSubject;
     property BodyText: String read FBodyText write FBodyText;
@@ -39,6 +43,8 @@ type
     property FileName: String read FFileName write FFileName;
     property DeleteFile: Boolean read FDeleteFile write FDeleteFile;
     property RemoveDirectory: Boolean read FRemoveDirectory write FRemoveDirectory;
+    property AutoTaskKey: Integer read FAutoTaskKey write FAutoTaskKey;
+    property Msg: String read FMsg write FMsg;
   end;
 
   TgdWebClientThread = class(TgdMessagedThread)
@@ -103,10 +109,10 @@ type
       AnFromEMail: String; AnServer: String; AnPort: Integer;
       AnLogin: String; AnPassw: String; AIPSec: String; AnTimeOut: Integer = -1;
       AnFileName: String = '';
-      AnDeleteFile: Boolean = False; AnRemoveDirectory: Boolean = False);
+      AnDeleteFile: Boolean = False; AnRemoveDirectory: Boolean = False; AnAutoTaskKey: Integer = 0);
 
     procedure BuildAndSendReport(AnReportKey: Integer;
-      AnSMTPKey: Integer; AnGroupKey: Integer; AnExportType: String);
+      AnSMTPKey: Integer; AnGroupKey: Integer; AnExportType: String; AnAutoTaskKey: Integer = 0);
 
     property gdWebServerURL: String read GetgdWebServerURL write SetgdWebServerURL;
     property WebServerResponse: String read GetWebServerResponse;
@@ -126,7 +132,7 @@ uses
   gdcJournal, gd_security, gdcBaseInterface, gdNotifierThread_unit,
   gd_directories_const, JclFileUtils, Forms, gd_CmdLineParams_unit,
   gd_GlobalParams_unit, jclSysInfo, IdSMTP, IdMessage, IBSQL,
-  gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME;
+  gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME, IBDatabase;
 
 const
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
@@ -535,7 +541,7 @@ procedure TgdWebClientThread.SendEMail(ARecipients: String;
   AnFromEMail: String; AnServer: String; AnPort: Integer;
   AnLogin: String; AnPassw: String; AIPSec: String; AnTimeOut: Integer = -1;
   AnFileName: String = '';
-  AnDeleteFile: Boolean = False; AnRemoveDirectory: Boolean = False);
+  AnDeleteFile: Boolean = False; AnRemoveDirectory: Boolean = False; AnAutoTaskKey: Integer = 0);
 var
   ES: TEmailSettings;
 begin
@@ -574,12 +580,13 @@ begin
   ES.FileName := AnFileName;
   ES.DeleteFile := AnDeleteFile;
   ES.RemoveDirectory := AnRemoveDirectory;
+  ES.AutoTaskKey := AnAutoTaskKey;
 
   PostMsg(WM_GD_SEND_EMAIL, Integer(ES));
 end;
 
 procedure TgdWebClientThread.BuildAndSendReport(AnReportKey: Integer;
-  AnSMTPKey: Integer; AnGroupKey: Integer; AnExportType: String);
+  AnSMTPKey: Integer; AnGroupKey: Integer; AnExportType: String; AnAutoTaskKey: Integer = 0);
 
   function GetRecipients(AnGroupKey: Integer): String;
   var
@@ -760,7 +767,7 @@ begin
   LBodyText := GetBodyText(AnReportKey);
 
   SendEMail(LRecipients, LSubject, LBodyText, LFromMail, LServer,
-    LPort, LLogin, LPassw, LIPSec, LTimeOut, LFileName, True, True);
+    LPort, LLogin, LPassw, LIPSec, LTimeOut, LFileName, True, True, AnAutoTaskKey);
 end;
 
 procedure TgdWebClientThread.DoSendError;
@@ -863,11 +870,14 @@ begin
           IdSMTP.Disconnect;
         IdSMTP.Free;
       end;
+
+      ES.Msg := 'Done';
     except
       on E: Exception do
         begin
           ErrorMessage := E.Message;
           gdNotifierThread.Add(ErrorMessage, 0, 2000);
+          ES.Msg := ErrorMessage;
         end;
     end;
   finally
@@ -878,7 +888,40 @@ begin
       if ES.RemoveDirectory and DirectoryExists(ExtractFileDir(ES.FileName)) then
         RemoveDir(ExtractFileDir(ES.FileName))
     end;
+    Synchronize(ES.AutoTaskLog);
     ES.Free;
+  end;
+end;
+
+procedure TEmailSettings.AutoTaskLog;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  if not (AutoTaskKey > 0) then
+    exit;
+
+  Assert(gdcBaseManager <> nil);
+  Assert(IBLogin <> nil);
+
+  q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'INSERT INTO gd_autotask_log (autotaskkey, eventtext, creationdate, creatorkey) ' +
+      'VALUES (:atk, :etext, :cd, :ck)';
+    q.ParamByName('atk').AsInteger := AutoTaskKey;
+    q.ParamByName('etext').AsString := Msg;
+    q.ParamByName('cd').AsDateTime := Now;
+    q.ParamByName('ck').AsInteger := IBLogin.ContactKey;
+    q.ExecQuery;
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
   end;
 end;
 
