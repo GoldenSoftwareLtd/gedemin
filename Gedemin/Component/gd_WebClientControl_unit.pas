@@ -22,12 +22,13 @@ type
     FIPSec: String;
     FTimeOut: Integer;
     FFileName: String;
-    FDeleteFile: Boolean;
-    FRemoveDirectory: Boolean;
+    FWipeFile: Boolean;
+    FWipeDirectory: Boolean;
     FAutoTaskKey: Integer;
     FMsg: String;
 
   public
+    destructor Destroy; override;
     procedure AutoTaskLog;
 
     property Recipients: String read FRecipients write FRecipients;
@@ -41,8 +42,8 @@ type
     property IPSec: String read FIPSec write FIPSec;
     property TimeOut: Integer read FTimeOut write FTimeOut;
     property FileName: String read FFileName write FFileName;
-    property DeleteFile: Boolean read FDeleteFile write FDeleteFile;
-    property RemoveDirectory: Boolean read FRemoveDirectory write FRemoveDirectory;
+    property WipeFile: Boolean read FWipeFile write FWipeFile;
+    property WipeDirectory: Boolean read FWipeDirectory write FWipeDirectory;
     property AutoTaskKey: Integer read FAutoTaskKey write FAutoTaskKey;
     property Msg: String read FMsg write FMsg;
   end;
@@ -105,11 +106,11 @@ type
     procedure SendError(const AnErrorMessage: String; const ASkipNextException: Boolean = False);
 
     procedure SendEMail(ARecipients: String;
-      AnSubject: String; AnBodyText: String;
-      AnFromEMail: String; AnServer: String; AnPort: Integer;
-      AnLogin: String; AnPassw: String; AIPSec: String; AnTimeOut: Integer = -1;
-      AnFileName: String = '';
-      AnDeleteFile: Boolean = False; AnRemoveDirectory: Boolean = False; AnAutoTaskKey: Integer = 0);
+      ASubject: String; ABodyText: String;
+      AFromEMail: String; AServer: String; APort: Integer;
+      ALogin: String; APassw: String; AnIPSec: String; ATimeOut: Integer = -1;
+      AFileName: String = ''; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False;
+      AnAutoTaskKey: Integer = 0);
 
     procedure BuildAndSendReport(AnReportKey: Integer;
       AnSMTPKey: Integer; AnGroupKey: Integer; AnExportType: String; AnAutoTaskKey: Integer = 0);
@@ -537,49 +538,31 @@ begin
 end;
 
 procedure TgdWebClientThread.SendEMail(ARecipients: String;
-  AnSubject: String; AnBodyText: String;
-  AnFromEMail: String; AnServer: String; AnPort: Integer;
-  AnLogin: String; AnPassw: String; AIPSec: String; AnTimeOut: Integer = -1;
-  AnFileName: String = '';
-  AnDeleteFile: Boolean = False; AnRemoveDirectory: Boolean = False; AnAutoTaskKey: Integer = 0);
+  ASubject: String; ABodyText: String; AFromEMail: String; AServer: String;
+  APort: Integer; ALogin: String; APassw: String; AnIPSec: String; ATimeOut: Integer = -1;
+  AFileName: String = ''; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False;
+  AnAutoTaskKey: Integer = 0);
 var
   ES: TEmailSettings;
 begin
-  if ARecipients = '' then
-    raise Exception.Create('Не указаны адреса получателей.');
-
-  if AnFromEMail = '' then
-    raise Exception.Create('Не указан адрес электронной почты.');
-
-  if AnServer = '' then
-    raise Exception.Create('Не указан smtp сервер.');
-
-  if AnPort < 0 then
-    raise Exception.Create('Неправильный smtp порт.');
-
-  if AnLogin = '' then
-    raise Exception.Create('Не указана учетная запись.');
-
-  if AnPassw = '' then
-    raise Exception.Create('Не указана учетная запись.');
-
-  if AnTimeOut < -1 then
-    raise Exception.Create('Неправильное время ожидания.');
+  if (ARecipients = '') or (AFromEMail = '') or (AServer = '') or (APort < 0)
+    or (ALogin = '') or (APassw = '') or (ATimeOut < -1) then
+    raise Exception.Create('Неверные параметры электронной почты.');
 
   ES := TEmailSettings.Create;
   ES.Recipients := ARecipients;
-  ES.Subject := AnSubject;
-  ES.BodyText := AnBodyText;
-  ES.FromEMail := AnFromEMail;
-  ES.Server := AnServer;
-  ES.Port := AnPort;
-  ES.Login := AnLogin;
-  ES.Passw := AnPassw;
-  ES.IPSec := AIPSec;
-  ES.TimeOut := AnTimeOut;
-  ES.FileName := AnFileName;
-  ES.DeleteFile := AnDeleteFile;
-  ES.RemoveDirectory := AnRemoveDirectory;
+  ES.Subject := ASubject;
+  ES.BodyText := ABodyText;
+  ES.FromEMail := AFromEMail;
+  ES.Server := AServer;
+  ES.Port := APort;
+  ES.Login := ALogin;
+  ES.Passw := APassw;
+  ES.IPSec := AnIPSec;
+  ES.TimeOut := ATimeOut;
+  ES.FileName := AFileName;
+  ES.WipeFile := AWipeFile;
+  ES.WipeDirectory := AWipeDirectory;
   ES.AutoTaskKey := AnAutoTaskKey;
 
   PostMsg(WM_GD_SEND_EMAIL, Integer(ES));
@@ -881,48 +864,27 @@ begin
         end;
     end;
   finally
-    if ES.FileName > ''then
-    begin
-      if ES.DeleteFile and FileExists(ES.FileName)then
-        DeleteFile(ES.FileName);
-      if ES.RemoveDirectory and DirectoryExists(ExtractFileDir(ES.FileName)) then
-        RemoveDir(ExtractFileDir(ES.FileName))
-    end;
     Synchronize(ES.AutoTaskLog);
     ES.Free;
   end;
 end;
 
 procedure TEmailSettings.AutoTaskLog;
-var
-  q: TIBSQL;
-  Tr: TIBTransaction;
 begin
-  if not (AutoTaskKey > 0) then
-    exit;
-
   Assert(gdcBaseManager <> nil);
   Assert(IBLogin <> nil);
 
-  q := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-  try
-    Tr.DefaultDatabase := gdcBaseManager.Database;
-    Tr.StartTransaction;
-    q.Transaction := Tr;
-    q.SQL.Text :=
+  if AutoTaskKey > 0 then
+    gdcBaseManager.ExecSingleQuery(
       'INSERT INTO gd_autotask_log (autotaskkey, eventtext, creationdate, creatorkey) ' +
-      'VALUES (:atk, :etext, :cd, :ck)';
-    q.ParamByName('atk').AsInteger := AutoTaskKey;
-    q.ParamByName('etext').AsString := Msg;
-    q.ParamByName('cd').AsDateTime := Now;
-    q.ParamByName('ck').AsInteger := IBLogin.ContactKey;
-    q.ExecQuery;
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-  end;
+      'VALUES (:atk, :etext, :cd, :ck)', VarArrayOf([AutoTaskKey, Msg, Now, IBLogin.ContactKey]));
+end;
+
+destructor TEmailSettings.Destroy;
+begin
+  if WipeFile and DeleteFile(FileName) and WipeDirectory then
+    RemoveDir(ExtractFileDir(FileName));
+  inherited;
 end;
 
 initialization
