@@ -48,6 +48,7 @@ uses
 
 const
   DefDecDigits = {2}-1;
+  WM_GD_CALC_FORMAT = WM_USER + 18;
 
 // Действия с числами
 type
@@ -152,7 +153,7 @@ type
     procedure CMExit(var Message: TCMExit);
       message CM_EXIT;
 
-    function SafeStrToFloat(S: String): Double;  
+    function SafeStrToFloat(S: String): Double;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -1061,7 +1062,9 @@ begin
       inherited KeyPress(Key);
       // Подстановка 0 при BACKSPACE
       if (Length(Text) <= 1) and (Ord(Key) = VK_BACK) and FCalculator.Visible then
-        Text := '0 ';
+        Text := '0 '
+      else
+        PostMessage(Handle, WM_GD_CALC_FORMAT, 0, 0);  
     end;
   end else
     inherited KeyPress(Key);
@@ -1501,10 +1504,29 @@ begin
 end;
 
 procedure TxCalculatorEdit.WndProc(var Message: TMessage);
+
+  function CalcFormat(const S: String): String;
+  var
+    K: Integer;
+  begin
+    Result := S;
+
+    K := Pos(DecimalSeparator, Result);
+    if K > 0 then
+      Dec(K, 3)
+    else
+      K := Length(Result) - 2;
+
+    while K > 1 do
+    begin
+      Insert(ThousandSeparator, Result, K);
+      Dec(K, 3);
+    end;
+  end;
+
 var
-  B: PChar;
-  S: String;
-  K: Integer;
+  S: AnsiString;
+  B: PAnsiChar;
   OldLParam: LongInt;
 begin
   case Message.Msg of
@@ -1515,22 +1537,8 @@ begin
       if (Message.LParam <> 0) and (PChar(Message.LParam)^ <> #0)
         and (ThousandSeparator <> #0) then
       begin
-        S := PChar(Message.LParam);
-
-        K := Pos(DecimalSeparator, S);
-        if K > 0 then
-          Dec(K, 3)
-        else
-          K := Length(S) - 2;
-
-        while K > 1 do
-        begin
-          Insert(ThousandSeparator, S, K);
-          Dec(K, 3);
-        end;
-
-        B := PChar(S);
-        Message.LParam := LongInt(B);
+        S := CalcFormat(PChar(Message.LParam)) + #0;
+        Message.LParam := LongInt(@S[1]);
       end;
 
       inherited;
@@ -1544,7 +1552,7 @@ begin
 
       if Message.Result > 0 then
       begin
-        B := PChar(Message.LParam);
+        B := PAnsiChar(Message.LParam);
         while B^ <> #0 do
         begin
           if B^ in [#32, #160, #9] then
@@ -1552,8 +1560,18 @@ begin
             StrCopy(B, @B[1]);
             Dec(Message.Result);
           end else
-            Inc(B, SizeOf(Char));
+            Inc(B, SizeOf(AnsiChar));
         end;
+      end;
+    end;
+
+    WM_GD_CALC_FORMAT:
+    begin
+      S := Text + #0;
+      if SelStart = Length(S) - 1 then
+      begin
+        Perform(WM_SETTEXT, 0, LongInt(@S[1]));
+        SelStart := Length(S);
       end;
     end;
 
