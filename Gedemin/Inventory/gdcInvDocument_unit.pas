@@ -1683,8 +1683,10 @@ procedure TgdcInvDocument.InternalSetFieldData(Field: TField;
   Buffer: Pointer);
 var
   DocumentLine: TgdcInvDocumentLine;
+{$IFNDEF NEWDEPOT}
   dsMain: TDataSource;
   i: Integer;
+{$ENDIF}  
   DidActivate: Boolean;
 
   procedure MakeMovementOnLine;
