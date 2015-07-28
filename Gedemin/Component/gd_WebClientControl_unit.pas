@@ -6,7 +6,7 @@ interface
 uses
   Classes, Windows, Messages, SyncObjs, SysUtils, idHTTP, idURI, idComponent,
   idThreadSafe, gdMessagedThread, gd_FileList_unit, gd_ProgressNotifier_unit,
-  IdSSLOpenSSL;
+  IdSSLOpenSSL, Contnrs;
 
 type
   TEmailSettings = class(TObject)
@@ -73,6 +73,8 @@ type
     FErrorToSend: TidThreadSafeString;
     FSkipNextException: Boolean;
 
+    FEmails: TObjectList;
+
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
     function LoadFilesList: Boolean;
@@ -90,7 +92,7 @@ type
     function URIEncodeParam(const AParam: String): String;
     procedure DoSendError;
 
-    procedure DoSendEMail(Int: Integer);
+    procedure DoSendEMail;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -133,7 +135,7 @@ uses
   gdcJournal, gd_security, gdcBaseInterface, gdNotifierThread_unit,
   gd_directories_const, JclFileUtils, Forms, gd_CmdLineParams_unit,
   gd_GlobalParams_unit, jclSysInfo, IdSMTP, IdMessage, IBSQL,
-  gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME, IBDatabase;
+  gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME, IBDatabase, Dialogs;
 
 const
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
@@ -184,6 +186,7 @@ begin
   FInUpdate := TidThreadSafeInteger.Create;
   FPath := ExtractFilePath(Application.ExeName);
   FErrorToSend := TidThreadSafeString.Create;
+  FEmails := TObjectList.Create(False);
 end;
 
 procedure TgdWebClientThread.AfterConnection;
@@ -370,7 +373,7 @@ begin
       end;
     WM_GD_SEND_EMAIL:
       begin
-        DoSendEMail(Msg.wParam);
+        DoSendEMail;
       end;
   else
     Result := False;
@@ -406,6 +409,7 @@ begin
   FCmdList.Free;
   FURI.Free;
   FErrorToSend.Free;
+  FEmails.Free;
 end;
 
 function TgdWebClientThread.GetgdWebServerURL: String;
@@ -565,7 +569,14 @@ begin
   ES.WipeDirectory := AWipeDirectory;
   ES.AutoTaskKey := AnAutoTaskKey;
 
-  PostMsg(WM_GD_SEND_EMAIL, Integer(ES));
+  Lock;
+  try
+    FEmails.Add(ES);
+  finally
+    UnLock;
+  end;
+
+  PostMsg(WM_GD_SEND_EMAIL);
 end;
 
 procedure TgdWebClientThread.BuildAndSendReport(AnReportKey: Integer;
@@ -708,7 +719,6 @@ procedure TgdWebClientThread.BuildAndSendReport(AnReportKey: Integer;
     Result := 'Текст'
   end;
 
-
 var
   B: Variant;
   LRecipients: String;
@@ -782,7 +792,7 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.DoSendEMail(Int: Integer);
+procedure TgdWebClientThread.DoSendEMail;
 
   function EncodeSubj(const AnSubj: String): String;
   begin
@@ -800,73 +810,99 @@ var
   IdSSLIOHandlerSocket: TIdSSLIOHandlerSocket;
   Attachment: TIdAttachment;
   ES: TEmailSettings;
+  Count: Integer;
 begin
-  ES := TEmailSettings(Int);
-  try
+  repeat
+    ES := nil;
+
+    Lock;
     try
-      IdSMTP := TidSMTP.Create(nil);
+      if FEmails.Count > 0 then
+      begin
+        ES := TEmailSettings(FEmails[FEmails.Count - 1]);
+        FEmails.Delete(FEmails.Count - 1);
+      end;
+    finally
+      UnLock;
+    end;
+
+    if ES <> nil then
+    begin
       try
-        IdSMTP.Port := ES.Port;
-        IdSMTP.Host := ES.Server;
-        IdSMTP.AuthenticationType := atLogin;
-        IdSMTP.Username := ES.Login;
-        IdSMTP.Password := ES.Passw;
+        try
+          IdSMTP := TidSMTP.Create(nil);
+          try
+            IdSMTP.Port := ES.Port;
+            IdSMTP.Host := ES.Server;
+            IdSMTP.AuthenticationType := atLogin;
+            IdSMTP.Username := ES.Login;
+            IdSMTP.Password := ES.Passw;
 
-        if ES.IPSec > '' then
-        begin
-          IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
-          IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(ES.IPSec);
-          IdSMTP.IOHandler := IdSSLIOHandlerSocket;
-        end;
-
-        IdSMTP.Connect(ES.TimeOut);
-
-        if IdSMTP.Connected then
-        begin
-          if IdSMTP.Authenticate then
-          begin
-            Msg := TIdMessage.Create(nil);
-            Attachment := nil;
-            try
-              Msg.Subject := EncodeSubj(ES.Subject);
-              Msg.Recipients.EMailAddresses := ES.Recipients;
-              Msg.From.Address := ES.FromEMail;
-              Msg.Body.Text := ES.BodyText;
-              Msg.Date := Now;
-
-              if ES.FileName <> '' then
-              begin
-                Attachment := TIdAttachment.Create(Msg.MessageParts, ES.FileName);
-                Attachment.DeleteTempFile := False;
-              end;
-
-              IdSMTP.Send(Msg);
-              gdNotifierThread.Add('Сообщение отправлено', 0, 2000);
-            finally
-              FreeAndNil(Attachment);
-              Msg.Free;
+            if ES.IPSec > '' then
+            begin
+              IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
+              IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(ES.IPSec);
+              IdSMTP.IOHandler := IdSSLIOHandlerSocket;
             end;
+
+            IdSMTP.Connect(ES.TimeOut);
+
+            if IdSMTP.Connected then
+            begin
+              if IdSMTP.Authenticate then
+              begin
+                Msg := TIdMessage.Create(nil);
+                Attachment := nil;
+                try
+                  Msg.Subject := EncodeSubj(ES.Subject);
+                  Msg.Recipients.EMailAddresses := ES.Recipients;
+                  Msg.From.Address := ES.FromEMail;
+                  Msg.Body.Text := ES.BodyText;
+                  Msg.Date := Now;
+
+                  if ES.FileName <> '' then
+                  begin
+                    Attachment := TIdAttachment.Create(Msg.MessageParts, ES.FileName);
+                    Attachment.DeleteTempFile := False;
+                  end;
+
+                  IdSMTP.Send(Msg);
+                  gdNotifierThread.Add('Сообщение отправлено', 0, 2000);
+                finally
+                  FreeAndNil(Attachment);
+                  Msg.Free;
+                end;
+              end;
+            end;
+          finally
+            if IdSMTP.Connected then
+              IdSMTP.Disconnect;
+            IdSMTP.Free;
+          end;
+
+          ES.Msg := 'Done';
+        except
+          on E: Exception do
+          begin
+            ErrorMessage := E.Message;
+            gdNotifierThread.Add(ErrorMessage, 0, 2000);
+            ES.Msg := ErrorMessage;
           end;
         end;
       finally
-        if IdSMTP.Connected then
-          IdSMTP.Disconnect;
-        IdSMTP.Free;
+        Synchronize(ES.AutoTaskLog);
+        ES.Free;
       end;
-
-      ES.Msg := 'Done';
-    except
-      on E: Exception do
-        begin
-          ErrorMessage := E.Message;
-          gdNotifierThread.Add(ErrorMessage, 0, 2000);
-          ES.Msg := ErrorMessage;
-        end;
     end;
-  finally
-    Synchronize(ES.AutoTaskLog);
-    ES.Free;
-  end;
+
+    Lock;
+    try
+      Count := FEmails.Count;
+    finally
+      UnLock;
+    end;
+
+  until Count = 0;
 end;
 
 procedure TEmailSettings.AutoTaskLog;
