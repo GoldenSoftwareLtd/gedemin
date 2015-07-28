@@ -421,7 +421,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       Caption = 'Скрипт-функция'
       object iblkupFunction: TgsIBLookupComboBox
         Left = 8
-        Top = 5
+        Top = 8
         Width = 400
         Height = 21
         HelpContext = 1
@@ -458,7 +458,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       end
       object dbeCmdLine: TDBEdit
         Left = 8
-        Top = 5
+        Top = 8
         Width = 373
         Height = 21
         Anchors = []
@@ -468,7 +468,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       end
       object btnCmdLine: TButton
         Left = 381
-        Top = 4
+        Top = 7
         Width = 25
         Height = 21
         Anchors = []
@@ -515,6 +515,102 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         Caption = 'Сформировать'
         TabOrder = 1
         OnClick = btBackupClick
+      end
+    end
+    object tsReport: TTabSheet
+      Caption = 'Отчет'
+      ImageIndex = 3
+      object Label10: TLabel
+        Left = 8
+        Top = 10
+        Width = 36
+        Height = 13
+        Caption = 'Отчет:'
+      end
+      object Label11: TLabel
+        Left = 8
+        Top = 34
+        Width = 113
+        Height = 13
+        Caption = 'Учетная запись SMTP:'
+      end
+      object Label12: TLabel
+        Left = 296
+        Top = 58
+        Width = 42
+        Height = 13
+        Caption = 'Формат:'
+      end
+      object Label13: TLabel
+        Left = 8
+        Top = 58
+        Width = 40
+        Height = 13
+        Caption = 'Группа:'
+      end
+      object iblkupReport: TgsIBLookupComboBox
+        Left = 128
+        Top = 8
+        Width = 280
+        Height = 21
+        HelpContext = 1
+        DataSource = dsgdcBase
+        DataField = 'REPORTKEY'
+        ListTable = 'RP_REPORTLIST'
+        ListField = 'NAME'
+        KeyField = 'ID'
+        ItemHeight = 0
+        TabOrder = 0
+      end
+      object dbcbExportType: TDBComboBox
+        Left = 344
+        Top = 56
+        Width = 64
+        Height = 21
+        DataField = 'EXPORTTYPE'
+        DataSource = dsgdcBase
+        ItemHeight = 13
+        Items.Strings = (
+          'WORD'
+          'EXCEL'
+          'PDF'
+          'XML')
+        TabOrder = 1
+      end
+      object iblkupSMTP: TgsIBLookupComboBox
+        Left = 128
+        Top = 32
+        Width = 280
+        Height = 21
+        HelpContext = 1
+        DataSource = dsgdcBase
+        DataField = 'SMTPKEY'
+        ListTable = 'GD_SMTP'
+        ListField = 'NAME'
+        KeyField = 'ID'
+        gdClassName = 'TgdcSMTP'
+        ItemHeight = 0
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 2
+      end
+      object iblkupGroup: TgsIBLookupComboBox
+        Left = 128
+        Top = 56
+        Width = 153
+        Height = 21
+        HelpContext = 1
+        DataSource = dsgdcBase
+        DataField = 'GROUPKEY'
+        ListTable = 'GD_CONTACT'
+        ListField = 'NAME'
+        KeyField = 'ID'
+        Condition = 'GD_CONTACT.CONTACTTYPE  =  1'
+        gdClassName = 'TgdcGroup'
+        ItemHeight = 0
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 3
       end
     end
   end

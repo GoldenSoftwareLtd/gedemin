@@ -29,6 +29,7 @@ type
     btnTest: TButton;
     actCheckConnect: TAction;
     edPassw: TEdit;
+    dbcbPrincipal: TDBCheckBox;
     procedure actCheckConnectExecute(Sender: TObject);
 
   protected

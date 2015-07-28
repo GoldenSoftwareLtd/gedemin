@@ -552,9 +552,6 @@ CREATE DOMAIN dtext10
 
 CREATE DOMAIN dtext20
   AS VARCHAR(20) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
-  
-CREATE DOMAIN dtext25
-  AS VARCHAR(25) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
 
 CREATE DOMAIN dtext40
   AS VARCHAR(40) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
@@ -1541,10 +1538,7 @@ INSERT INTO fin_versioninfo
   VALUES (221, '0000.0001.0000.0252', '25.06.2015', 'Added GD_SMTP table.');
   
 INSERT INTO fin_versioninfo
-  VALUES (222, '0000.0001.0000.0253', '25.06.2015', 'Modified GD_AUTOTASK table.');
-
-INSERT INTO fin_versioninfo
-  VALUES (223, '0000.0001.0000.0254', '25.06.2015', 'Added domain dtext25.');  
+  VALUES (222, '0000.0001.0000.0253', '22.07.2015', 'Modified GD_AUTOTASK and GD_SMTP tables.');
   
 COMMIT;
 
@@ -2888,7 +2882,7 @@ CREATE TABLE gd_people
   firstname      dtext20,      /* Імя                                                            */
   surname        dtext20 NOT NULL,/* Прозвішча                                                      */
   middlename     dtext20,      /* Імя па бацьку                                                  */
-  nickname       dtext25,      /* Кароткае імя                                                   */
+  nickname       dtext20,      /* Кароткае імя                                                   */
   rank           dtext20,      /* Званіе                                                         */
 
   /* Хатнія дадзеныя */
@@ -17041,9 +17035,6 @@ CREATE TABLE gd_autotask
    reportkey        dforeignkey,      /* если задано -- будет выполняться построение отчета */
    groupkey         dforeignkey,
    smtpkey          dforeignkey,
-   msgsubject       VARCHAR(256),
-   msgbody          VARCHAR(1024),
-   filename         VARCHAR(64),
    exporttype       VARCHAR(5),
    cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
    backupfile       dtext255,         /* если задано -- имя файла архива */
@@ -17074,7 +17065,6 @@ CREATE TABLE gd_autotask
    CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
    CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > ''),
    CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0),
-   CONSTRAINT gd_chk_autotask_filename CHECK(filename > ''),
    CONSTRAINT gd_chk_autotask_exporttype CHECK(exporttype IN ('WORD', 'EXCEL', 'PDF', 'XML'))
  );
  
@@ -17109,32 +17099,32 @@ BEGIN
     NEW.monthly = NULL;
     NEW.weekly = NULL;
     NEW.daily = NULL;
-  END  
-  
+  END
+
   IF (NOT NEW.monthly IS NULL) THEN
   BEGIN
     NEW.atstartup = NULL;
     NEW.exactdate = NULL;
     NEW.weekly = NULL;
     NEW.daily = NULL;
-  END  
-  
+  END
+
   IF (NOT NEW.weekly IS NULL) THEN
   BEGIN
     NEW.atstartup = NULL;
     NEW.exactdate = NULL;
     NEW.monthly = NULL;
     NEW.daily = NULL;
-  END  
-  
+  END
+
   IF (NOT NEW.daily IS NULL) THEN
   BEGIN
     NEW.atstartup = NULL;
     NEW.exactdate = NULL;
     NEW.monthly = NULL;
     NEW.weekly = NULL;
-  END  
-  
+  END
+
   IF (NOT NEW.functionkey IS NULL) THEN
   BEGIN
     NEW.autotrkey = NULL;
@@ -17143,12 +17133,9 @@ BEGIN
     NEW.backupfile = NULL;
     NEW.groupkey = NULL;
     NEW.smtpkey = NULL;
-    NEW.msgsubject = NULL;
-    NEW.msgbody = NULL;
-    NEW.filename = NULL;
     NEW.exporttype = NULL;
   END
-  
+
   IF (NOT NEW.autotrkey IS NULL) THEN
   BEGIN
     NEW.functionkey = NULL;
@@ -17157,12 +17144,9 @@ BEGIN
     NEW.backupfile = NULL;
     NEW.groupkey = NULL;
     NEW.smtpkey = NULL;
-    NEW.msgsubject = NULL;
-    NEW.msgbody = NULL;
-    NEW.filename = NULL;
     NEW.exporttype = NULL;
   END
-  
+
   IF (NOT NEW.reportkey IS NULL) THEN
   BEGIN
     NEW.functionkey = NULL;
@@ -17170,7 +17154,7 @@ BEGIN
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
   END
-  
+
   IF (NOT NEW.cmdline IS NULL) THEN
   BEGIN
     NEW.functionkey = NULL;
@@ -17179,12 +17163,9 @@ BEGIN
     NEW.backupfile = NULL;
     NEW.groupkey = NULL;
     NEW.smtpkey = NULL;
-    NEW.msgsubject = NULL;
-    NEW.msgbody = NULL;
-    NEW.filename = NULL;
-    NEW.exporttype = NULL;	
+    NEW.exporttype = NULL;
   END
-  
+
   IF (NOT NEW.backupfile IS NULL) THEN
   BEGIN
     NEW.functionkey = NULL;
@@ -17193,10 +17174,7 @@ BEGIN
     NEW.cmdline = NULL;
     NEW.groupkey = NULL;
     NEW.smtpkey = NULL;
-    NEW.msgsubject = NULL;
-    NEW.msgbody = NULL;
-    NEW.filename = NULL;
-    NEW.exporttype = NULL;	
+    NEW.exporttype = NULL;
   END
 END
 ^ 
@@ -17251,6 +17229,7 @@ COMMIT;CREATE TABLE gd_smtp
   timeout          dinteger_notnull DEFAULT -1,
   server           dtext80 NOT NULL,            /* SMTP Sever */
   port             dinteger_notnull DEFAULT 25, /* SMTP Port */
+  principal        dboolean DEFAULT 0,
 
   creatorkey       dforeignkey,
   creationdate     dcreationdate,
@@ -17267,6 +17246,19 @@ COMMIT;CREATE TABLE gd_smtp
   CONSTRAINT gd_chk_smtp_server CHECK (server > ''),
   CONSTRAINT gd_chk_smtp_port CHECK (port > 0 AND port < 65536)
 );
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_biu_smtp FOR gd_smtp
+  BEFORE INSERT OR UPDATE
+AS
+BEGIN
+  if (NEW.principal = 1) THEN
+    UPDATE gd_smtp SET gd_smtp.principal = 0;
+END
+^
+
+SET TERM ; ^
  
 COMMIT;
 /*******************************/

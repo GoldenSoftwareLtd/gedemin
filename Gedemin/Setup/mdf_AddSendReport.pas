@@ -4,20 +4,20 @@ interface
  
 uses
   IBDatabase, gdModify;
- 
-procedure ModifyAutoTaskTable(IBDB: TIBDatabase; Log: TModifyLog);
+
+procedure ModifyAutoTaskAndSMTPTable(IBDB: TIBDatabase; Log: TModifyLog);
  
 implementation
  
 uses
   IBSQL, SysUtils, mdf_metadata_unit;
  
-procedure ModifyAutoTaskTable(IBDB: TIBDatabase; Log: TModifyLog);
+procedure ModifyAutoTaskAndSMTPTable(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
   FIBSQL: TIBSQL;
 begin
-  Log('Начато изменение таблицы GD_AUTOTASK');
+  Log('Начато изменение таблиц GD_AUTOTASK и GD_SMTP');
   FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
@@ -31,12 +31,7 @@ begin
           'ALTER TABLE gd_autotask '#13#10 +
           '  ADD groupkey dforeignkey, '#13#10 +
           '  ADD smtpkey dforeignkey, '#13#10 +
-          '  ADD msgsubject VARCHAR(256), '#13#10 +
-          '  ADD msgbody VARCHAR(1024), '#13#10 +
-          '  ADD filename VARCHAR(64), '#13#10 +
           '  ADD exporttype VARCHAR(5), '#13#10 +
-          ' '#13#10 +
-          '  ADD CONSTRAINT gd_chk_autotask_filename CHECK(filename > ''''), '#13#10 +
           '  ADD CONSTRAINT gd_chk_autotask_exporttype CHECK(exporttype IN (''WORD'', ''EXCEL'', ''PDF'', ''XML''))';
         FIBSQL.ExecQuery;
 
@@ -94,9 +89,6 @@ begin
           '    NEW.backupfile = NULL; '#13#10 +
           '    NEW.groupkey = NULL; '#13#10 +
           '    NEW.smtpkey = NULL; '#13#10 +
-          '    NEW.msgsubject = NULL; '#13#10 +
-          '    NEW.msgbody = NULL; '#13#10 +
-          '    NEW.filename = NULL; '#13#10 +
           '    NEW.exporttype = NULL; '#13#10 +
           '  END '#13#10 +
           ' '#13#10 +
@@ -108,9 +100,6 @@ begin
           '    NEW.backupfile = NULL; '#13#10 +
           '    NEW.groupkey = NULL; '#13#10 +
           '    NEW.smtpkey = NULL; '#13#10 +
-          '    NEW.msgsubject = NULL; '#13#10 +
-          '    NEW.msgbody = NULL; '#13#10 +
-          '    NEW.filename = NULL; '#13#10 +
           '    NEW.exporttype = NULL; '#13#10 +
           '  END '#13#10 +
           ' '#13#10 +
@@ -130,9 +119,6 @@ begin
           '    NEW.backupfile = NULL; '#13#10 +
           '    NEW.groupkey = NULL; '#13#10 +
           '    NEW.smtpkey = NULL; '#13#10 +
-          '    NEW.msgsubject = NULL; '#13#10 +
-          '    NEW.msgbody = NULL; '#13#10 +
-          '    NEW.filename = NULL; '#13#10 +
           '    NEW.exporttype = NULL; '#13#10 +
           '  END '#13#10 +
           ' '#13#10 +
@@ -144,23 +130,35 @@ begin
           '    NEW.cmdline = NULL; '#13#10 +
           '    NEW.groupkey = NULL; '#13#10 +
           '    NEW.smtpkey = NULL; '#13#10 +
-          '    NEW.msgsubject = NULL; '#13#10 +
-          '    NEW.msgbody = NULL; '#13#10 +
-          '    NEW.filename = NULL; '#13#10 +
           '    NEW.exporttype = NULL; '#13#10 +
           '  END '#13#10 +
           'END';
         FIBSQL.ExecQuery;
+		
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE gd_smtp '#13#10 +
+          '  ADD principal dboolean DEFAULT 0';
+        FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_biu_smtp FOR gd_smtp '#13#10 +
+          '  BEFORE INSERT OR UPDATE '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  if (NEW.principal = 1) THEN '#13#10 +
+          '    UPDATE gd_smtp SET gd_smtp.principal = 0; '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+		
+        FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
-          '  VALUES (222, ''0000.0001.0000.0253'', ''20.07.2015'', ''Modified GD_AUTOTASK table.'') '#13#10 +
+          '  VALUES (222, ''0000.0001.0000.0253'', ''22.07.2015'', ''Modified GD_AUTOTASK and GD_SMTP tables.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
         FIBSQL.Close;
 
         FTransaction.Commit;
-        Log('Изменение таблицы GD_AUTOTASK успешно завершено');
+        Log('Изменение таблиц GD_AUTOTASK и GD_SMTP успешно завершено');
       finally
         FIBSQL.Free;
       end;

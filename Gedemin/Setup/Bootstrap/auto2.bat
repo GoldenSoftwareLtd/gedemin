@@ -66,7 +66,7 @@ echo *************************************************
 cd ..\gedemin\exe
 if "%2"=="" call update_gedemin.bat /no_ftp /p
 if "%2"=="/cash" call update_gedemin.bat /no_ftp /l gedemin_positive_cash_ver.rc 17698304
-if "%2"=="/check" call update_gedemin.bat /no_ftp /l gedemin_positive_check_ver.rc 17698304
+if "%2"=="/check" call update_gedemin.bat /no_ftp /l gedemin_positive_check_ver.rc 17797120
 cd ..\setup\bootstrap
 
 if not errorlevel 0 goto Error

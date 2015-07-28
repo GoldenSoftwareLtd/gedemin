@@ -237,6 +237,9 @@ begin
   {$IFDEF WITH_INDY}
   if not Application.Terminated then
     gdWebServerControl.DeactivateServer;
+
+  gdWebClientThread.WaitingSendingEmail;
+
   {$ENDIF}
 
   SaveStorages;

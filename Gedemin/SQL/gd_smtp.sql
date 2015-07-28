@@ -10,6 +10,7 @@ CREATE TABLE gd_smtp
   timeout          dinteger_notnull DEFAULT -1,
   server           dtext80 NOT NULL,            /* SMTP Sever */
   port             dinteger_notnull DEFAULT 25, /* SMTP Port */
+  principal        dboolean DEFAULT 0,
 
   creatorkey       dforeignkey,
   creationdate     dcreationdate,
@@ -26,5 +27,18 @@ CREATE TABLE gd_smtp
   CONSTRAINT gd_chk_smtp_server CHECK (server > ''),
   CONSTRAINT gd_chk_smtp_port CHECK (port > 0 AND port < 65536)
 );
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_biu_smtp FOR gd_smtp
+  BEFORE INSERT OR UPDATE
+AS
+BEGIN
+  if (NEW.principal = 1) THEN
+    UPDATE gd_smtp SET gd_smtp.principal = 0;
+END
+^
+
+SET TERM ; ^
  
 COMMIT;

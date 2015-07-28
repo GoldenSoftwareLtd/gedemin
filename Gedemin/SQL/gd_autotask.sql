@@ -6,6 +6,9 @@ CREATE TABLE gd_autotask
    functionkey      dforeignkey,      /* если задано -- будет выполн€тьс€ скрипт-функци€ */
    autotrkey        dforeignkey,      /* если задано -- будет выполн€тьс€ автоматическа€ хоз€йственна€ операци€ */
    reportkey        dforeignkey,      /* если задано -- будет выполн€тьс€ построение отчета */
+   groupkey         dforeignkey,
+   smtpkey          dforeignkey,
+   exporttype       VARCHAR(5),
    cmdline          dtext255,         /* если задано -- командна€ строка дл€ вызова внешней программы */
    backupfile       dtext255,         /* если задано -- им€ файла архива */
    userkey          dforeignkey,      /* учетна€ запись, под которой выполн€ть. если не задана -- выполн€ть под любой*/
@@ -34,7 +37,8 @@ CREATE TABLE gd_autotask
    CONSTRAINT gd_chk_autotask_time CHECK((starttime IS NULL AND endtime IS NULL) OR (starttime < endtime)),
    CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
    CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > ''),
-   CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0)
+   CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0),
+   CONSTRAINT gd_chk_autotask_exporttype CHECK(exporttype IN ('WORD', 'EXCEL', 'PDF', 'XML'))
  );
  
 SET TERM ^ ;
@@ -68,48 +72,54 @@ BEGIN
     NEW.monthly = NULL;
     NEW.weekly = NULL;
     NEW.daily = NULL;
-  END  
-  
+  END
+
   IF (NOT NEW.monthly IS NULL) THEN
   BEGIN
     NEW.atstartup = NULL;
     NEW.exactdate = NULL;
     NEW.weekly = NULL;
     NEW.daily = NULL;
-  END  
-  
+  END
+
   IF (NOT NEW.weekly IS NULL) THEN
   BEGIN
     NEW.atstartup = NULL;
     NEW.exactdate = NULL;
     NEW.monthly = NULL;
     NEW.daily = NULL;
-  END  
-  
+  END
+
   IF (NOT NEW.daily IS NULL) THEN
   BEGIN
     NEW.atstartup = NULL;
     NEW.exactdate = NULL;
     NEW.monthly = NULL;
     NEW.weekly = NULL;
-  END  
-  
+  END
+
   IF (NOT NEW.functionkey IS NULL) THEN
   BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.groupkey = NULL;
+    NEW.smtpkey = NULL;
+    NEW.exporttype = NULL;
   END
-  
+
   IF (NOT NEW.autotrkey IS NULL) THEN
   BEGIN
     NEW.functionkey = NULL;
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.groupkey = NULL;
+    NEW.smtpkey = NULL;
+    NEW.exporttype = NULL;
   END
-  
+
   IF (NOT NEW.reportkey IS NULL) THEN
   BEGIN
     NEW.functionkey = NULL;
@@ -117,21 +127,27 @@ BEGIN
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
   END
-  
+
   IF (NOT NEW.cmdline IS NULL) THEN
   BEGIN
     NEW.functionkey = NULL;
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.backupfile = NULL;
+    NEW.groupkey = NULL;
+    NEW.smtpkey = NULL;
+    NEW.exporttype = NULL;
   END
-  
+
   IF (NOT NEW.backupfile IS NULL) THEN
   BEGIN
     NEW.functionkey = NULL;
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
+    NEW.groupkey = NULL;
+    NEW.smtpkey = NULL;
+    NEW.exporttype = NULL;
   END
 END
 ^ 
