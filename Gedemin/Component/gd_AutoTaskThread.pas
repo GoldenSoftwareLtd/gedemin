@@ -3,7 +3,8 @@ unit gd_AutoTaskThread;
 interface
 
 uses
-  Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread;
+  Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread,
+  gd_WebClientControl_unit, Messages;
 
 type
   TgdAutoTask = class(TObject)
@@ -109,6 +110,7 @@ type
     FSMTPKey: Integer;
     FGroupKey: Integer;
     FExportType: String;
+    FHandle: HWND;
 
   protected
     procedure TaskExecute; override;
@@ -118,6 +120,7 @@ type
     property SMTPKey: Integer read FSMTPKey write FSMTPKey;
     property GroupKey: Integer read FGroupKey write FGroupKey;
     property ExportType: String read FExportType write FExportType;
+    property Handle: HWND read FHandle write FHandle;
   end;
 
 
@@ -131,6 +134,8 @@ type
     procedure FindAndExecuteTask;
     procedure UpdateTaskList;
     procedure RemoveExecuteOnceTask;
+
+    procedure DoAutoReportTaskLog(var Msg: TMsg);
 
   protected
     procedure Timeout; override;
@@ -157,7 +162,7 @@ uses
   Forms, at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
   scr_i_FunctionList, gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security,
   gdNotifierThread_unit, gd_ProgressNotifier_unit, IBServices,
-  gd_common_functions, gd_directories_const, jclSysInfo, gd_WebClientControl_unit;
+  gd_common_functions, gd_directories_const, jclSysInfo;
 
 const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
@@ -404,7 +409,7 @@ end;
 procedure TgdAutoReportTask.TaskExecute;
 begin
   try
-    gdWebClientThread.BuildAndSendReport(ReportKey, SMTPKey, GroupKey, ExportType, ID);
+    gdWebClientThread.BuildAndSendReport(Handle, ReportKey, SMTPKey, GroupKey, ExportType, ID);
   except
     on E: Exception do
       FErrorMsg := E.Message;
@@ -481,6 +486,7 @@ begin
         (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('smtpkey').AsInteger;
         (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('groupkey').AsInteger;
         (Task as TgdAutoReportTask).ExportType := q.FieldbyName('exporttype').AsString;
+        (Task as TgdAutoReportTask).Handle := Self.ThreadId;
       end else
         Task := nil;
 
@@ -561,6 +567,12 @@ begin
     begin
       FSkipAtStartup := True;
       PostMsg(WM_GD_LOAD_TASK_LIST);
+      Result := True;
+    end;
+
+    WM_GD_FINISH_SEND_EMAIL:
+    begin
+      DoAutoReportTaskLog(Msg);
       Result := True;
     end;
   else
@@ -728,6 +740,23 @@ begin
   except
     // small chance that there would be a deadlock
     // but we don't care
+  end;
+end;
+
+procedure TgdAutoTaskThread.DoAutoReportTaskLog(var Msg: TMsg);
+begin
+  with TgdAutoTask.Create do
+    try
+      Id := Msg.WParam;
+      if String(PChar(Pointer(Msg.LParam))) = 'Done' then
+        Synchronize(LogEndTask)
+      else
+      begin
+        FErrorMsg := String(PChar(Pointer(Msg.LParam)));
+        Synchronize(LogErrorMsg);
+      end;
+  finally
+    Free;
   end;
 end;
 

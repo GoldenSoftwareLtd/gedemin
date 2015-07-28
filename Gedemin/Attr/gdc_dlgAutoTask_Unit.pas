@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, StdCtrls, Mask, DBCtrls,
-  gsIBLookupComboBox, ExtCtrls, xDateEdits, ComCtrls;
+  gsIBLookupComboBox, ExtCtrls, xDateEdits, ComCtrls, gd_WebClientControl_unit;
 
 type
   Tgdc_dlgAutoTask = class(Tgdc_dlgTR)
@@ -74,6 +74,9 @@ type
     procedure btnCNClick(Sender: TObject);
     procedure btnIPClick(Sender: TObject);
 
+  private
+    procedure OnWebClientThreadNotify(var Msg : TMessage); message WM_GD_FINISH_SEND_EMAIL;
+
   public
     procedure SetupRecord; override;
     procedure BeforePost; override;
@@ -88,7 +91,22 @@ implementation
 
 uses
   gd_ClassList, gd_security, gd_common_functions, gd_AutoTaskThread,
-  jclSysInfo, gd_WebClientControl_unit;
+  jclSysInfo;
+
+procedure Tgdc_dlgAutoTask.OnWebClientThreadNotify(var Msg : TMessage);
+begin
+  if Msg.WParam = 1 then
+    MessageDlg('Сообщение отправлено.',
+      mtInformation,
+      [mbOk],
+      0)
+  else
+    MessageDlg('Сбой при отправке сообщения: ' +
+      String(PChar(Pointer(Msg.LParam))),
+      mtError,
+      [mbOk],
+      0);
+end;
 
 procedure Tgdc_dlgAutoTask.SetupRecord;
 var
@@ -326,6 +344,7 @@ begin
       (Task as TgdAutoReportTask).SMTPKey := iblkupSMTP.CurrentKeyInt;
       (Task as TgdAutoReportTask).GroupKey := iblkupGroup.CurrentKeyInt;
       (Task as TgdAutoReportTask).ExportType := dbcbExportType.Text;
+      (Task as TgdAutoReportTask).Handle := Self.Handle;
     end;
 
     if Task <> nil then
