@@ -2132,7 +2132,7 @@ end;
 procedure TatBodyField.RefreshData(SQLRecord: TIBXSQLDA);
 var
   Stream: TStringStream;
-  BE: TgdClassEntry;
+  CE: TgdClassEntry;
 begin
   if (not AnsiSameText(SQLRecord.ByName('FIELDNAME').AsTrimString, FFieldName)) and
     (not AnsiSameText(SQLRecord.ByName('RDB$FIELD_NAME').AsTrimString, FFieldName)) then
@@ -2152,13 +2152,12 @@ begin
 
   FReadOnly := Boolean(SQLRecord.ByName('READONLY').AsShort);
 
-  BE := gdClassList.Find(SQLRecord.ByName('GDCLASSNAME').AsTrimString,
-    SQLRecord.ByName('GDSUBTYPE').AsTrimString);
+  CE := gdClassList.Find(SQLRecord.ByName('GDCLASSNAME').AsTrimString);
 
-  if BE <> nil then
+  if CE <> nil then
   begin
-    FgdClassName := BE.TheClass.ClassName;
-    FgdSubType := BE.SubType;
+    FgdClassName := CE.TheClass.ClassName;
+    FgdSubType := SQLRecord.ByName('GDSUBTYPE').AsTrimString;
   end else
   begin
     FgdClassName := '';
@@ -3793,13 +3792,12 @@ begin
   end else
     FDefaultValue := '';
 
-  CE := gdClassList.Find(SQLRecord.ByName('gdclassname').AsTrimString,
-    SQLRecord.ByName('gdsubtype').AsTrimString);
+  CE := gdClassList.Find(SQLRecord.ByName('gdclassname').AsTrimString);
 
   if CE <> nil then
   begin
     FgdClassName := CE.TheClass.ClassName;
-    FgdSubType := CE.SubType;
+    FgdSubType := SQLRecord.ByName('gdsubtype').AsTrimString;
   end else
   begin
     FgdClassName := '';
