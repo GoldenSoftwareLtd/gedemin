@@ -29,10 +29,33 @@ begin
         
         FIBSQL.SQL.Text :=
           'ALTER TABLE gd_autotask '#13#10 +
-          '  ADD groupkey dforeignkey, '#13#10 +
-          '  ADD smtpkey dforeignkey, '#13#10 +
-          '  ADD exporttype VARCHAR(5), '#13#10 +
-          '  ADD CONSTRAINT gd_chk_autotask_exporttype CHECK(exporttype IN (''WORD'', ''EXCEL'', ''PDF'', ''XML''))';
+          '  ADD emailgroupkey    dforeignkey, '#13#10 +
+          '  ADD emailrecipients  dtext255, '#13#10 +
+          '  ADD emailsmtpkey     dforeignkey, '#13#10 +
+          '  ADD emailexporttype  VARCHAR(3), '#13#10 +
+          '  ADD CONSTRAINT fk_gd_autotask_esk '#13#10 +
+          '    FOREIGN KEY (emailsmtpkey) REFERENCES gd_smtp(id) '#13#10 +
+          '    ON UPDATE CASCADE, '#13#10 +
+          '  ADD CONSTRAINT fk_gd_autotask_fk '#13#10 +
+          '    FOREIGN KEY (functionkey) REFERENCES gd_function(id) '#13#10 +
+          '    ON UPDATE CASCADE, '#13#10 +
+          '  ADD CONSTRAINT fk_gd_autotask_atrk '#13#10 +
+          '    FOREIGN KEY (autotrkey) REFERENCES ac_transaction(id) '#13#10 +
+          '    ON UPDATE CASCADE, '#13#10 +
+          '  ADD CONSTRAINT fk_gd_autotask_rk '#13#10 +
+          '    FOREIGN KEY (reportkey) REFERENCES rp_reportlist(id) '#13#10 +
+          '    ON UPDATE CASCADE, '#13#10 +
+          '  ADD CONSTRAINT fk_gd_autotask_uk '#13#10 +
+          '    FOREIGN KEY (userkey) REFERENCES gd_user(id) '#13#10 +
+          '    ON UPDATE CASCADE, '#13#10 +
+          '  ADD CONSTRAINT fk_gd_autotask_ck '#13#10 +
+          '    FOREIGN KEY (creatorkey) REFERENCES gd_contact(id) '#13#10 +
+          '    ON UPDATE CASCADE, '#13#10 +
+          '  ADD CONSTRAINT fk_gd_autotask_ek '#13#10 +
+          '    FOREIGN KEY (editorkey) REFERENCES gd_contact(id) '#13#10 +
+          '    ON UPDATE CASCADE, '#13#10 +
+          '  ADD CONSTRAINT gd_chk_autotask_emailrecipients CHECK(emailrecipients > ''''), '#13#10 +
+          '  ADD CONSTRAINT gd_chk_autotask_recipients CHECK((emailrecipients > '''') OR (emailgroupkey IS NOT NULL))';
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
@@ -87,9 +110,10 @@ begin
           '    NEW.reportkey = NULL; '#13#10 +
           '    NEW.cmdline = NULL; '#13#10 +
           '    NEW.backupfile = NULL; '#13#10 +
-          '    NEW.groupkey = NULL; '#13#10 +
-          '    NEW.smtpkey = NULL; '#13#10 +
-          '    NEW.exporttype = NULL; '#13#10 +
+          '    NEW.emailgroupkey = NULL; '#13#10 +
+          '    NEW.emailrecipients = NULL; '#13#10 +
+          '    NEW.emailsmtpkey = NULL; '#13#10 +
+          '    NEW.emailexporttype = NULL; '#13#10 +
           '  END '#13#10 +
           ' '#13#10 +
           '  IF (NOT NEW.autotrkey IS NULL) THEN '#13#10 +
@@ -98,9 +122,10 @@ begin
           '    NEW.reportkey = NULL; '#13#10 +
           '    NEW.cmdline = NULL; '#13#10 +
           '    NEW.backupfile = NULL; '#13#10 +
-          '    NEW.groupkey = NULL; '#13#10 +
-          '    NEW.smtpkey = NULL; '#13#10 +
-          '    NEW.exporttype = NULL; '#13#10 +
+          '    NEW.emailgroupkey = NULL; '#13#10 +
+          '    NEW.emailrecipients = NULL; '#13#10 +
+          '    NEW.emailsmtpkey = NULL; '#13#10 +
+          '    NEW.emailexporttype = NULL; '#13#10 +
           '  END '#13#10 +
           ' '#13#10 +
           '  IF (NOT NEW.reportkey IS NULL) THEN '#13#10 +
@@ -117,9 +142,10 @@ begin
           '    NEW.autotrkey = NULL; '#13#10 +
           '    NEW.reportkey = NULL; '#13#10 +
           '    NEW.backupfile = NULL; '#13#10 +
-          '    NEW.groupkey = NULL; '#13#10 +
-          '    NEW.smtpkey = NULL; '#13#10 +
-          '    NEW.exporttype = NULL; '#13#10 +
+          '    NEW.emailgroupkey = NULL; '#13#10 +
+          '    NEW.emailrecipients = NULL; '#13#10 +
+          '    NEW.emailsmtpkey = NULL; '#13#10 +
+          '    NEW.emailexporttype = NULL; '#13#10 +
           '  END '#13#10 +
           ' '#13#10 +
           '  IF (NOT NEW.backupfile IS NULL) THEN '#13#10 +
@@ -128,25 +154,51 @@ begin
           '    NEW.autotrkey = NULL; '#13#10 +
           '    NEW.reportkey = NULL; '#13#10 +
           '    NEW.cmdline = NULL; '#13#10 +
-          '    NEW.groupkey = NULL; '#13#10 +
-          '    NEW.smtpkey = NULL; '#13#10 +
-          '    NEW.exporttype = NULL; '#13#10 +
+          '    NEW.emailgroupkey = NULL; '#13#10 +
+          '    NEW.emailrecipients = NULL; '#13#10 +
+          '    NEW.emailsmtpkey = NULL; '#13#10 +
+          '    NEW.emailexporttype = NULL; '#13#10 +
           '  END '#13#10 +
           'END';
         FIBSQL.ExecQuery;
-		
+
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE gd_autotask_log '#13#10 +
+          '  ADD CONSTRAINT gd_fk_autotask_log_ck '#13#10 +
+          '    FOREIGN KEY (creatorkey) REFERENCES gd_contact(id) '#13#10 +
+          '    ON UPDATE CASCADE';
+        FIBSQL.ExecQuery;
+
         FIBSQL.SQL.Text :=
           'ALTER TABLE gd_smtp '#13#10 +
-          '  ADD principal dboolean DEFAULT 0';
+          '  ADD principal dboolean DEFAULT 0, '#13#10 +
+          '  ADD CONSTRAINT fk_gd_smtp_ck '#13#10 +
+          '    FOREIGN KEY (creatorkey) REFERENCES gd_contact(id) '#13#10 +
+          '    ON UPDATE CASCADE, '#13#10 +
+          '  ADD CONSTRAINT fk_gd_smtp_ek '#13#10 +
+          '    FOREIGN KEY (editorkey) REFERENCES gd_contact(id) '#13#10 +
+          '    ON UPDATE CASCADE';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_bi_smtp FOR gd_smtp '#13#10 +
+          '  BEFORE INSERT '#13#10 +
+          '  POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.id IS NULL) THEN '#13#10 +
+          '    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+          'END';
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
           'CREATE OR ALTER TRIGGER gd_biu_smtp FOR gd_smtp '#13#10 +
           '  BEFORE INSERT OR UPDATE '#13#10 +
+          '  POSITION 32000 '#13#10 +
           'AS '#13#10 +
           'BEGIN '#13#10 +
-          '  if (NEW.principal = 1) THEN '#13#10 +
-          '    UPDATE gd_smtp SET gd_smtp.principal = 0; '#13#10 +
+          '  IF (NEW.principal = 1) THEN '#13#10 +
+          '    UPDATE gd_smtp SET gd_smtp.principal = 0 WHERE id <> NEW.id; '#13#10 +
           'END';
         FIBSQL.ExecQuery;
 		

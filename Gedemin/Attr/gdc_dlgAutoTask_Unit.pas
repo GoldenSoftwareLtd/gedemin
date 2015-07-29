@@ -66,6 +66,8 @@ type
     iblkupSMTP: TgsIBLookupComboBox;
     iblkupGroup: TgsIBLookupComboBox;
     Label13: TLabel;
+    Label14: TLabel;
+    dbeRecipients: TDBEdit;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
@@ -199,9 +201,10 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('backupfile').Clear;
-    gdcObject.FieldByName('groupkey').Clear;
-    gdcObject.FieldByName('smtpkey').Clear;
-    gdcObject.FieldByName('exporttype').Clear;
+    gdcObject.FieldByName('emailgroupkey').Clear;
+    gdcObject.FieldByName('emailrecipients').Clear;
+    gdcObject.FieldByName('emailsmtpkey').Clear;
+    gdcObject.FieldByName('emailexporttype').Clear;
   end
   else if pcTask.ActivePage = tsCmd then
   begin
@@ -209,9 +212,10 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('backupfile').Clear;
-    gdcObject.FieldByName('groupkey').Clear;
-    gdcObject.FieldByName('smtpkey').Clear;
-    gdcObject.FieldByName('exporttype').Clear;
+    gdcObject.FieldByName('emailgroupkey').Clear;
+    gdcObject.FieldByName('emailrecipients').Clear;
+    gdcObject.FieldByName('emailsmtpkey').Clear;
+    gdcObject.FieldByName('emailexporttype').Clear;
   end
   else if pcTask.ActivePage = tsBackup then
   begin
@@ -219,9 +223,10 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('cmdline').Clear;
-    gdcObject.FieldByName('groupkey').Clear;
-    gdcObject.FieldByName('smtpkey').Clear;
-    gdcObject.FieldByName('exporttype').Clear;
+    gdcObject.FieldByName('emailgroupkey').Clear;
+    gdcObject.FieldByName('emailrecipients').Clear;
+    gdcObject.FieldByName('emailsmtpkey').Clear;
+    gdcObject.FieldByName('emailexporttype').Clear;
   end
   else if pcTask.ActivePage = tsReport then
   begin
@@ -343,6 +348,7 @@ begin
       (Task as TgdAutoReportTask).ReportKey := iblkupReport.CurrentKeyInt;
       (Task as TgdAutoReportTask).SMTPKey := iblkupSMTP.CurrentKeyInt;
       (Task as TgdAutoReportTask).GroupKey := iblkupGroup.CurrentKeyInt;
+      (Task as TgdAutoReportTask).Recipients := dbeRecipients.Text;
       (Task as TgdAutoReportTask).ExportType := dbcbExportType.Text;
       (Task as TgdAutoReportTask).Handle := Self.Handle;
     end;
@@ -361,7 +367,9 @@ begin
     or ((pcTask.ActivePage = tsCmd) and (Trim(dbeCmdLine.Text) > ''))
     or ((pcTask.ActivePage = tsBackup) and (Trim(dbeBackup.Text) > ''))
     or ((pcTask.ActivePage = tsReport) and (iblkupReport.CurrentKeyInt > 0)
-      and (dbcbExportType.Text > '') and (iblkupGroup.CurrentKeyInt > 0));
+      and (dbcbExportType.Text > '')
+      and ((iblkupGroup.CurrentKeyInt > 0) or (dbeRecipients.Text > ''))
+      );
 end;
 
 procedure Tgdc_dlgAutoTask.btnCNClick(Sender: TObject);

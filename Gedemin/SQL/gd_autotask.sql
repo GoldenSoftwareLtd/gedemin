@@ -6,9 +6,10 @@ CREATE TABLE gd_autotask
    functionkey      dforeignkey,      /* если задано -- будет выполн€тьс€ скрипт-функци€ */
    autotrkey        dforeignkey,      /* если задано -- будет выполн€тьс€ автоматическа€ хоз€йственна€ операци€ */
    reportkey        dforeignkey,      /* если задано -- будет выполн€тьс€ построение отчета */
-   groupkey         dforeignkey,
-   smtpkey          dforeignkey,
-   exporttype       VARCHAR(5),
+   emailgroupkey    dforeignkey,
+   emailrecipients  dtext255,
+   emailsmtpkey     dforeignkey,
+   emailexporttype  VARCHAR(3),
    cmdline          dtext255,         /* если задано -- командна€ строка дл€ вызова внешней программы */
    backupfile       dtext255,         /* если задано -- им€ файла архива */
    userkey          dforeignkey,      /* учетна€ запись, под которой выполн€ть. если не задана -- выполн€ть под любой*/
@@ -30,7 +31,30 @@ CREATE TABLE gd_autotask
    achag            dsecurity,
    aview            dsecurity,
    disabled         ddisabled,
-   CONSTRAINT gd_pk_autotask PRIMARY KEY (id),
+   CONSTRAINT gd_pk_autotask PRIMARY KEY(id),
+   CONSTRAINT fk_gd_autotask_esk
+     FOREIGN KEY (emailsmtpkey) REFERENCES gd_smtp(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_fk
+     FOREIGN KEY (functionkey) REFERENCES gd_function(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_atrk
+     FOREIGN KEY (autotrkey) REFERENCES ac_transaction(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_rk
+     FOREIGN KEY (reportkey) REFERENCES rp_reportlist(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_uk
+     FOREIGN KEY (userkey) REFERENCES gd_user(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_ck
+     FOREIGN KEY (creatorkey) REFERENCES gd_contact(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_ek
+     FOREIGN KEY (editorkey) REFERENCES gd_contact(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT gd_chk_autotask_emailrecipients CHECK(emailrecipients > ''),
+   CONSTRAINT gd_chk_autotask_recipients CHECK((emailrecipients > '') OR (emailgroupkey IS NOT NULL)),
    CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -31 AND 31 AND monthly <> 0),
    CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN 1 AND 7),
    CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0),
@@ -38,7 +62,7 @@ CREATE TABLE gd_autotask
    CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
    CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > ''),
    CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0),
-   CONSTRAINT gd_chk_autotask_exporttype CHECK(exporttype IN ('WORD', 'EXCEL', 'PDF', 'XML'))
+   CONSTRAINT gd_chk_autotask_exporttype CHECK(emailexporttype IN ('DOC', 'XLS', 'PDF', 'XML'))
  );
  
 SET TERM ^ ;
@@ -104,9 +128,10 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.exporttype = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
   END
 
   IF (NOT NEW.autotrkey IS NULL) THEN
@@ -115,9 +140,10 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.exporttype = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
   END
 
   IF (NOT NEW.reportkey IS NULL) THEN
@@ -134,9 +160,10 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.backupfile = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.exporttype = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
   END
 
   IF (NOT NEW.backupfile IS NULL) THEN
@@ -145,9 +172,10 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.exporttype = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
   END
 END
 ^ 
@@ -167,6 +195,9 @@ CREATE TABLE gd_autotask_log
   CONSTRAINT gd_fk_autotask_log_autotaskkey
     FOREIGN KEY (autotaskkey) REFERENCES gd_autotask (id)
     ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT gd_fk_autotask_log_ck
+    FOREIGN KEY (creatorkey) REFERENCES gd_contact (id)
     ON UPDATE CASCADE
  );
  

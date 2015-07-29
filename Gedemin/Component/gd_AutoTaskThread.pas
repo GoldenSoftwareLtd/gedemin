@@ -109,8 +109,10 @@ type
     FReportKey: Integer;
     FSMTPKey: Integer;
     FGroupKey: Integer;
+    FRecipients: String;
     FExportType: String;
-    FHandle: HWND;
+    FHandle: THandle;
+    FThreadID: THandle;
 
   protected
     procedure TaskExecute; override;
@@ -119,8 +121,10 @@ type
     property ReportKey: Integer read FReportKey write FReportKey;
     property SMTPKey: Integer read FSMTPKey write FSMTPKey;
     property GroupKey: Integer read FGroupKey write FGroupKey;
+    property Recipients: String read FRecipients write FRecipients;
     property ExportType: String read FExportType write FExportType;
-    property Handle: HWND read FHandle write FHandle;
+    property Handle: THandle read FHandle write FHandle;
+    property ThreadID: THandle read FThreadID write FThreadID;
   end;
 
 
@@ -409,7 +413,8 @@ end;
 procedure TgdAutoReportTask.TaskExecute;
 begin
   try
-    gdWebClientThread.BuildAndSendReport(Handle, ReportKey, SMTPKey, GroupKey, ExportType, ID);
+    gdWebClientThread.BuildAndSendReport(Handle, ThreadID,
+      ReportKey, SMTPKey, GroupKey, Recipients, ExportType, ID);
   except
     on E: Exception do
       FErrorMsg := E.Message;
@@ -483,10 +488,11 @@ begin
       begin
         Task := TgdAutoReportTask.Create;
         (Task as TgdAutoReportTask).ReportKey := q.FieldbyName('reportkey').AsInteger;
-        (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('smtpkey').AsInteger;
-        (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('groupkey').AsInteger;
-        (Task as TgdAutoReportTask).ExportType := q.FieldbyName('exporttype').AsString;
-        (Task as TgdAutoReportTask).Handle := Self.ThreadId;
+        (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('emailsmtpkey').AsInteger;
+        (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('emailgroupkey').AsInteger;
+        (Task as TgdAutoReportTask).Recipients := q.FieldbyName('emailrecipients').AsString;
+        (Task as TgdAutoReportTask).ExportType := q.FieldbyName('emailexporttype').AsString;
+        (Task as TgdAutoReportTask).ThreadID := Self.ThreadId;
       end else
         Task := nil;
 

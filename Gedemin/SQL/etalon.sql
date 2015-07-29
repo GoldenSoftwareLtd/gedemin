@@ -17025,7 +17025,67 @@ CREATE TABLE rpl_record (
 );
 
 COMMIT;
-CREATE TABLE gd_autotask
+CREATE TABLE gd_smtp
+(
+  id               dintkey,                     /* первичный ключ          */
+  name             dname,                       /* имя                     */
+  description      dtext180,                    /* описание                */
+  email            demail NOT NULL,             /* адрес электронной почты */
+  login            dusername,                   /* логин                   */
+  passw            VARCHAR(256) NOT NULL,       /* пароль                  */
+  ipsec            dtext8 DEFAULT NULL,         /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
+  timeout          dinteger_notnull DEFAULT -1,
+  server           dtext80 NOT NULL,            /* SMTP Sever */
+  port             dinteger_notnull DEFAULT 25, /* SMTP Port */
+  principal        dboolean DEFAULT 0,
+
+  creatorkey       dforeignkey,
+  creationdate     dcreationdate,
+  editorkey        dforeignkey,
+  editiondate      deditiondate,
+  afull            dsecurity,
+  achag            dsecurity,
+  aview            dsecurity,
+  disabled         ddisabled,
+
+  CONSTRAINT gd_pk_smtp PRIMARY KEY (id),
+  CONSTRAINT fk_gd_smtp_ck
+    FOREIGN KEY (creatorkey) REFERENCES gd_user (id)
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_gd_smtp_ek
+    FOREIGN KEY (editorkey) REFERENCES gd_user (id)
+    ON UPDATE CASCADE,
+  CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -1),
+  CONSTRAINT gd_chk_smtp_ipsec CHECK(ipsec IN ('SSLV2', 'SSLV23', 'SSLV3', 'TLSV1')),
+  CONSTRAINT gd_chk_smtp_server CHECK (server > ''),
+  CONSTRAINT gd_chk_smtp_port CHECK (port > 0 AND port < 65536)
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_bi_smtp FOR gd_smtp
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE OR ALTER TRIGGER gd_biu_smtp FOR gd_smtp
+  BEFORE INSERT OR UPDATE
+  POSITION 32000
+AS
+BEGIN
+  IF (NEW.principal = 1) THEN
+    UPDATE gd_smtp SET gd_smtp.principal = 0 WHERE id <> NEW.id;
+END
+^
+
+SET TERM ; ^
+ 
+COMMIT;CREATE TABLE gd_autotask
  (
    id               dintkey,
    name             dname,
@@ -17033,9 +17093,10 @@ CREATE TABLE gd_autotask
    functionkey      dforeignkey,      /* если задано -- будет выполн€тьс€ скрипт-функци€ */
    autotrkey        dforeignkey,      /* если задано -- будет выполн€тьс€ автоматическа€ хоз€йственна€ операци€ */
    reportkey        dforeignkey,      /* если задано -- будет выполн€тьс€ построение отчета */
-   groupkey         dforeignkey,
-   smtpkey          dforeignkey,
-   exporttype       VARCHAR(5),
+   emailgroupkey    dforeignkey,
+   emailrecipients  dtext255,
+   emailsmtpkey     dforeignkey,
+   emailexporttype  VARCHAR(3),
    cmdline          dtext255,         /* если задано -- командна€ строка дл€ вызова внешней программы */
    backupfile       dtext255,         /* если задано -- им€ файла архива */
    userkey          dforeignkey,      /* учетна€ запись, под которой выполн€ть. если не задана -- выполн€ть под любой*/
@@ -17057,7 +17118,30 @@ CREATE TABLE gd_autotask
    achag            dsecurity,
    aview            dsecurity,
    disabled         ddisabled,
-   CONSTRAINT gd_pk_autotask PRIMARY KEY (id),
+   CONSTRAINT gd_pk_autotask PRIMARY KEY(id),
+   CONSTRAINT fk_gd_autotask_esk
+     FOREIGN KEY (emailsmtpkey) REFERENCES gd_smtp(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_fk
+     FOREIGN KEY (functionkey) REFERENCES gd_function(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_atrk
+     FOREIGN KEY (autotrkey) REFERENCES ac_transaction(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_rk
+     FOREIGN KEY (reportkey) REFERENCES rp_reportlist(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_uk
+     FOREIGN KEY (userkey) REFERENCES gd_user(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_ck
+     FOREIGN KEY (creatorkey) REFERENCES gd_user(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT fk_gd_autotask_ek
+     FOREIGN KEY (editorkey) REFERENCES gd_user(id)
+     ON UPDATE CASCADE,
+   CONSTRAINT gd_chk_autotask_emailrecipients CHECK(emailrecipients > ''),
+   CONSTRAINT gd_chk_autotask_recipients CHECK((emailrecipients > '') OR (emailgroupkey IS NOT NULL)),
    CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -31 AND 31 AND monthly <> 0),
    CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN 1 AND 7),
    CONSTRAINT gd_chk_autotask_priority CHECK (priority >= 0),
@@ -17065,7 +17149,7 @@ CREATE TABLE gd_autotask
    CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
    CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > ''),
    CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0),
-   CONSTRAINT gd_chk_autotask_exporttype CHECK(exporttype IN ('WORD', 'EXCEL', 'PDF', 'XML'))
+   CONSTRAINT gd_chk_autotask_exporttype CHECK(emailexporttype IN ('DOC', 'XLS', 'PDF', 'XML'))
  );
  
 SET TERM ^ ;
@@ -17131,9 +17215,10 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.exporttype = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
   END
 
   IF (NOT NEW.autotrkey IS NULL) THEN
@@ -17142,9 +17227,10 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.exporttype = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
   END
 
   IF (NOT NEW.reportkey IS NULL) THEN
@@ -17161,9 +17247,10 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.backupfile = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.exporttype = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
   END
 
   IF (NOT NEW.backupfile IS NULL) THEN
@@ -17172,9 +17259,10 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
-    NEW.groupkey = NULL;
-    NEW.smtpkey = NULL;
-    NEW.exporttype = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
   END
 END
 ^ 
@@ -17214,49 +17302,6 @@ BEGIN
     NEW.client_address = RDB$GET_CONTEXT('SYSTEM', 'CLIENT_ADDRESS');  
 END
 ^ 
-
-SET TERM ; ^
- 
-COMMIT;CREATE TABLE gd_smtp
-(
-  id               dintkey,                     /* первичный ключ          */
-  name             dname,                       /* имя                     */
-  description      dtext180,                    /* описание                */
-  email            demail NOT NULL,             /* адрес электронной почты */
-  login            dusername,                   /* логин                   */
-  passw            VARCHAR(256) NOT NULL,       /* пароль                  */
-  ipsec            dtext8 DEFAULT NULL,         /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
-  timeout          dinteger_notnull DEFAULT -1,
-  server           dtext80 NOT NULL,            /* SMTP Sever */
-  port             dinteger_notnull DEFAULT 25, /* SMTP Port */
-  principal        dboolean DEFAULT 0,
-
-  creatorkey       dforeignkey,
-  creationdate     dcreationdate,
-  editorkey        dforeignkey,
-  editiondate      deditiondate,
-  afull            dsecurity,
-  achag            dsecurity,
-  aview            dsecurity,
-  disabled         ddisabled,
-
-  CONSTRAINT gd_pk_smtp PRIMARY KEY (id),
-  CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -1),
-  CONSTRAINT gd_chk_smtp_ipsec CHECK(ipsec IN ('SSLV2', 'SSLV23', 'SSLV3', 'TLSV1')),
-  CONSTRAINT gd_chk_smtp_server CHECK (server > ''),
-  CONSTRAINT gd_chk_smtp_port CHECK (port > 0 AND port < 65536)
-);
-
-SET TERM ^ ;
-
-CREATE OR ALTER TRIGGER gd_biu_smtp FOR gd_smtp
-  BEFORE INSERT OR UPDATE
-AS
-BEGIN
-  if (NEW.principal = 1) THEN
-    UPDATE gd_smtp SET gd_smtp.principal = 0;
-END
-^
 
 SET TERM ; ^
  

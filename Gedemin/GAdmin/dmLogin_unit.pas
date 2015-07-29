@@ -231,16 +231,15 @@ end;
 procedure TdmLogin.boLoginBeforeDisconnect(Sender: TObject);
 begin
   Application.OnException := FOldOnException;
-  
-  FreeAndNil(gdAutoTaskThread);
 
   {$IFDEF WITH_INDY}
   if not Application.Terminated then
     gdWebServerControl.DeactivateServer;
 
   gdWebClientThread.WaitingSendingEmail;
-
   {$ENDIF}
+
+  FreeAndNil(gdAutoTaskThread);
 
   SaveStorages;
 

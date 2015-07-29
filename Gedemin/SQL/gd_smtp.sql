@@ -22,6 +22,12 @@ CREATE TABLE gd_smtp
   disabled         ddisabled,
 
   CONSTRAINT gd_pk_smtp PRIMARY KEY (id),
+  CONSTRAINT fk_gd_smtp_ck
+    FOREIGN KEY (creatorkey) REFERENCES gd_contact (id)
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_gd_smtp_ek
+    FOREIGN KEY (editorkey) REFERENCES gd_contact (id)
+    ON UPDATE CASCADE,
   CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -1),
   CONSTRAINT gd_chk_smtp_ipsec CHECK(ipsec IN ('SSLV2', 'SSLV23', 'SSLV3', 'TLSV1')),
   CONSTRAINT gd_chk_smtp_server CHECK (server > ''),
@@ -30,12 +36,23 @@ CREATE TABLE gd_smtp
 
 SET TERM ^ ;
 
-CREATE OR ALTER TRIGGER gd_biu_smtp FOR gd_smtp
-  BEFORE INSERT OR UPDATE
+CREATE OR ALTER TRIGGER gd_bi_smtp FOR gd_smtp
+  BEFORE INSERT
+  POSITION 0
 AS
 BEGIN
-  if (NEW.principal = 1) THEN
-    UPDATE gd_smtp SET gd_smtp.principal = 0;
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE OR ALTER TRIGGER gd_biu_smtp FOR gd_smtp
+  BEFORE INSERT OR UPDATE
+  POSITION 32000
+AS
+BEGIN
+  IF (NEW.principal = 1) THEN
+    UPDATE gd_smtp SET gd_smtp.principal = 0 WHERE id <> NEW.id;
 END
 ^
 
