@@ -376,9 +376,10 @@ begin
           and (FErrorToSend.Value > '') then
         begin
           DoSendError;
-        end;  
+        end;
         FErrorToSend.Value := '';
       end;
+
     WM_GD_SEND_EMAIL:
       begin
         DoSendEMail;
@@ -860,7 +861,7 @@ begin
       try
         if FEmails.Count > 0 then
         begin
-          ES := TEmailSettings(FEmails[FEmails.Count - 1]);
+          ES := FEmails[FEmails.Count - 1] as TEmailSettings;
           FEmails.Delete(FEmails.Count - 1);
         end;
       finally
@@ -916,8 +917,6 @@ begin
                 end;
               end;
             finally
-              if IdSMTP.Connected then
-                IdSMTP.Disconnect;
               IdSMTP.Free;
             end;
 
