@@ -2731,7 +2731,7 @@ begin
     ////////////////////////////////////////////////////////////////////////////
 
     if Assigned(gdSplash) then
-      gdSplash.ShowText(sReadingDomens);
+      gdSplash.ShowText(sReadingDomains);
 
     ibsql.Close;
     ibsql.SQL.Text :=
@@ -3703,13 +3703,11 @@ begin
   ibsql := TIBSQL.Create(nil);
 
   try
-    ibsql.Database := aDatabase;
     ibsql.Transaction := aTransaction;
     if not ibsql.Transaction.InTransaction then
       ibsql.Transaction.Active := True;
 
-    ibsql.sql.Text := Format
-    (
+    ibsql.sql.Text :=
       'SELECT '#13#10 +
       '  r.rdb$field_name, r.rdb$relation_name, r.rdb$field_position, '#13#10 +
       '  r.rdb$field_source, r.rdb$null_flag, a.*, rf.rdb$computed_source, '#13#10 +
@@ -3720,22 +3718,18 @@ begin
       '    r.rdb$field_name = a.fieldname '#13#10 +
       '    LEFT JOIN rdb$fields rf ON a.fieldsource = rf.rdb$field_name '#13#10 +
       'WHERE '#13#10 +
-      '  a.relationname = ''%0:s'' AND '#13#10 +
-      '  a.fieldname = ''%1:s'' '#13#10 +
-      'ORDER BY 3 ',
-      [FRelation.RelationName, FFieldName]
-    );
-
+      '  a.relationname = :RN AND '#13#10 +
+      '  a.fieldname = :FN';
+    ibsql.FieldByName('RN').AsString := FRelation.RelationName;
+    ibsql.FieldByName('FN').AsString := FFieldName;
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
+    if not ibsql.EOF then
       RefreshData(ibsql.Current, aDatabase, aTransaction)
     else
       raise EatDatabaseError.CreateFmt(
         'Relation "%s" field "%s" not found in AT_RELATION_FIELDS table!',
         [FRelation.RelationName, FFieldName]);
-
-    ibsql.Close;
   finally
     ibsql.Free;
   end;
@@ -3759,24 +3753,22 @@ end;
 procedure TatBodyRelationField.RefreshData(SQLRecord: TIBXSQLDA; aDatabase: TIBDatabase; aTransaction: TIBTransaction);
 var
   L: Integer;
+  CE: TgdClassEntry;
 begin
   if
-    ((AnsiCompareText(SQLRecord.ByName('relationname').AsTrimString,
-      FRelation.RelationName) <> 0)
+    ((not AnsiSameText(SQLRecord.ByName('relationname').AsTrimString, FRelation.RelationName))
       or
-    (AnsiCompareText(SQLRecord.ByName('fieldname').AsTrimString,
-      FFieldName) <> 0)) and
-    ((AnsiCompareText(SQLRecord.ByName('rdb$relation_name').AsTrimString,
-      FRelation.RelationName) <> 0)
+    (not AnsiSameText(SQLRecord.ByName('fieldname').AsTrimString, FFieldName)))
+    and
+    ((not AnsiSameText(SQLRecord.ByName('rdb$relation_name').AsTrimString, FRelation.RelationName))
       or
-    (AnsiCompareText(SQLRecord.ByName('rdb$field_name').AsTrimString,
-      FFieldName) <> 0))
+    (not AnsiSameText(SQLRecord.ByName('rdb$field_name').AsTrimString, FFieldName)))
   then
     raise EatDatabaseError.Create('Can''t refresh relation field: incorrect relation field name!');
 
-  FLName := TrimRight(SQLRecord.ByName('lname').AsString);
-  FLShortName := TrimRight(SQLRecord.ByName('lshortname').AsString);
-  FDescription := TrimRight(SQLRecord.ByName('description').AsString);
+  FLName := SQLRecord.ByName('lname').AsTrimString;
+  FLShortName := SQLRecord.ByName('lshortname').AsTrimString;
+  FDescription := SQLRecord.ByName('description').AsTrimString;
   FAlignment := StringToFieldAlignment(ReadField(SQLRecord.ByName('alignment'), 'L'));
 
   FFormatString := ReadField(SQLRecord.ByName('format'), '');
@@ -3801,16 +3793,18 @@ begin
   end else
     FDefaultValue := '';
 
-  FgdClassName := SQLRecord.ByName('gdclassname').AsString;
-  if FgdClassName > '' then
-  begin
-    FgdClass := GetClass(FgdClassName);
-    if FgdClass = nil then
-      FgdClassName := '';
-  end else
-    FgdClass := nil;    
+  CE := gdClassList.Find(SQLRecord.ByName('gdclassname').AsTrimString,
+    SQLRecord.ByName('gdsubtype').AsTrimString);
 
-  FgdSubType := SQLRecord.ByName('gdsubtype').AsString;
+  if CE <> nil then
+  begin
+    FgdClassName := CE.TheClass.ClassName;
+    FgdSubType := CE.SubType;
+  end else
+  begin
+    FgdClassName := '';
+    FgdSubType := '';
+  end;
 
   FaFull := SQLRecord.ByName('afull').AsInteger;
   FaChag := SQLRecord.ByName('achag').AsInteger;
@@ -3836,8 +3830,8 @@ begin
     end;
   end;
 
-  FCrossRelationName := TrimRight(SQLRecord.ByName('crosstable').AsString);
-  FCrossRelationFieldName := TrimRight(SQLRecord.ByName('crossfield').AsString);
+  FCrossRelationName := SQLRecord.ByName('crosstable').AsTrimString;
+  FCrossRelationFieldName := SQLRecord.ByName('crossfield').AsTrimString;
 
   FHasRecord := not SQLRecord.ByName('relationname').IsNull and
     not SQLRecord.ByName('fieldname').IsNull;
