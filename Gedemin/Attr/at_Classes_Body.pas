@@ -591,7 +591,6 @@ begin
   ibsql := TIBSQL.Create(nil);
 
   try
-    ibsql.Database := aDatabase;
     ibsql.Transaction := aTransaction;
 
     if not ibsql.Transaction.InTransaction then
@@ -605,24 +604,19 @@ begin
       '    ON R.RDB$RELATION_NAME = A.RELATIONNAME '#13#10 +
       'WHERE '#13#10 +
       '  ((R.RDB$SYSTEM_FLAG = 0) OR (R.RDB$SYSTEM_FLAG IS NULL)) AND '#13#10 +
-      '  A.RELATIONNAME = :RN'#13#10 +
-      'ORDER BY '#13#10 +
-      '  A.LNAME, A.RELATIONNAME ';
+      '  A.RELATIONNAME = :RN';
     ibsql.ParamByName('RN').AsString := UpdateIBName(FRelationName);
 
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
+    if not ibsql.EOF then
       RefreshData(ibsql.Current, aDatabase, aTransaction, isRefreshFields)
     else
       raise EatDatabaseError.CreateFmt(
         'Relation %s not found in AT_RELATIONS table!', [FRelationName]);
-
-    ibsql.Close;
   finally
     ibsql.Free;
   end;
-
 end;
 
 procedure TatBodyRelation.RefreshData(const IsRefreshFields: Boolean = False);
@@ -642,16 +636,14 @@ end;
 procedure TatBodyRelation.RefreshData(SQLRecord: TIBXSQLDA; aDatabase: TIBDatabase;
   aTransaction: TIBTransaction; const IsRefreshFields: Boolean = False);
 begin
-  if (AnsiCompareText(SQLRecord.ByName('relationname').AsTrimString,
-    FRelationName) <> 0) and
-    (AnsiCompareText(SQLRecord.ByName('rdb$relation_name').AsTrimString,
-    FRelationName) <> 0)
+  if (not AnsiSameText(SQLRecord.ByName('relationname').AsTrimString, FRelationName)) and
+    (not AnsiSameText(SQLRecord.ByName('rdb$relation_name').AsTrimString, FRelationName))
   then
     raise EatDatabaseError.Create('Can''t refresh relation: incorrect relation name!');
 
-  FLName := TrimRight(SQLRecord.ByName('lname').AsString);
-  FLShortName := TrimRight(SQLRecord.ByName('lshortname').AsString);
-  FDescription := TrimRight(SQLRecord.ByName('description').AsString);
+  FLName := SQLRecord.ByName('lname').AsTrimString;
+  FLShortName := SQLRecord.ByName('lshortname').AsTrimString;
+  FDescription := SQLRecord.ByName('description').AsTrimString;
 
   FaFull := SQLRecord.ByName('afull').AsInteger;
   FaChag := SQLRecord.ByName('achag').AsInteger;
