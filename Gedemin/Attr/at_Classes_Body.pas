@@ -474,7 +474,7 @@ implementation
 
 uses
   Windows,           JclSysUtils,       Graphics,          Messages,
-  gd_resourcestring, IBCustomDataset,   ZLib,
+  gd_resourcestring, IBCustomDataset,   ZLib,              gd_ClassList,
   JclStrings,        gd_security,       at_sql_setup,
   gd_directories_const,                 at_sql_metadata,   gd_CmdLineParams_unit,
   IBUtils,           gd_splash,         at_frmIBUserList,  iberrorcodes,
@@ -2140,13 +2140,14 @@ end;
 procedure TatBodyField.RefreshData(SQLRecord: TIBXSQLDA);
 var
   Stream: TStringStream;
+  BE: TgdClassEntry;
 begin
-  if (AnsiCompareText(SQLRecord.ByName('FIELDNAME').AsTrimString, FFieldName) <> 0) and
-    (AnsiCompareText(SQLRecord.ByName('RDB$FIELD_NAME').AsTrimString, FFieldName) <> 0) then
+  if (not AnsiSameText(SQLRecord.ByName('FIELDNAME').AsTrimString, FFieldName)) and
+    (not AnsiSameText(SQLRecord.ByName('RDB$FIELD_NAME').AsTrimString, FFieldName)) then
     raise EatDatabaseError.Create('Can''t refresh field: incorrect field name!');
 
-  FLName := TrimRight(SQLRecord.ByName('LNAME').AsString);
-  FDescription := TrimRight(SQLRecord.ByName('DESCRIPTION').AsString);
+  FLName := SQLRecord.ByName('LNAME').AsTrimString;
+  FDescription := SQLRecord.ByName('DESCRIPTION').AsTrimString;
 
   FAlignment := StringToFieldAlignment(ReadField(SQLRecord.ByName('ALIGNMENT'), 'L'));
 
@@ -2159,16 +2160,18 @@ begin
 
   FReadOnly := Boolean(SQLRecord.ByName('READONLY').AsShort);
 
-  FgdClassName := SQLRecord.ByName('GDCLASSNAME').AsString;
-  if FgdClassName > '' then
-  begin
-    FgdClass := GetClass(FgdClassName);
-    if FgdClass = nil then
-      FgdClassName := '';
-  end else
-    FgdClass := nil;    
+  BE := gdClassList.Find(SQLRecord.ByName('GDCLASSNAME').AsTrimString,
+    SQLRecord.ByName('GDSUBTYPE').AsTrimString);
 
-  FgdSubType := SQLRecord.ByName('GDSUBTYPE').AsString;
+  if BE <> nil then
+  begin
+    FgdClassName := BE.TheClass.ClassName;
+    FgdSubType := BE.SubType;
+  end else
+  begin
+    FgdClassName := '';
+    FgdSubType := '';
+  end;
 
   FSQLType := SQLRecord.ByName('rdb$field_type').AsInteger;
   FSQLSubType := SQLRecord.ByName('rdb$field_sub_type').AsInteger;
@@ -2176,21 +2179,24 @@ begin
   FFieldScale := SQLRecord.ByName('rdb$field_scale').AsInteger;
   FIsNullable := SQLRecord.ByName('rdb$null_flag').IsNull;
 
-  FRefTableName := TrimRight(SQLRecord.ByName('REFTABLE').AsString);
+  FRefTableName := SQLRecord.ByName('REFTABLE').AsTrimString;
   FRefCondition := SQLRecord.ByName('REFCONDITION').AsString;
-  FRefListFieldName := TrimRight(SQLRecord.ByName('REFLISTFIELD').AsString);
+  FRefListFieldName := SQLRecord.ByName('REFLISTFIELD').AsTrimString;
 
   FHasRecord := not SQLRecord.ByName('FIELDNAME').IsNull;
 
-  FSetTableName := TrimRight(SQLRecord.ByName('SETTABLE').AsString);
+  FSetTableName := SQLRecord.ByName('SETTABLE').AsTrimString;
   FSetCondition := SQLRecord.ByName('SETCONDITION').AsString;
-  FSetListFieldName := TrimRight(SQLRecord.ByName('SETLISTFIELD').AsString);
+  FSetListFieldName := SQLRecord.ByName('SETLISTFIELD').AsTrimString;
 
-  Stream := TStringStream.Create(SQLRecord.ByName('Numeration').AsString);
-  try
-    MakeNumerationFromString(Stream.ReadString(Stream.Size));
-  finally
-    Stream.Free;
+  if SQLRecord.ByName('Numeration').AsString > '' then
+  begin
+    Stream := TStringStream.Create(SQLRecord.ByName('Numeration').AsString);
+    try
+      MakeNumerationFromString(Stream.ReadString(Stream.Size));
+    finally
+      Stream.Free;
+    end;
   end;
 
   UpdateData;
@@ -2698,7 +2704,7 @@ begin
     if Synchronize then
     begin
       if Assigned(gdSplash) then
-        gdSplash.ShowText(sSinchronizationAtRelations);
+        gdSplash.ShowText(sSynchronizationAtRelations);
       ibsql.SQL.Text := 'EXECUTE PROCEDURE at_p_sync';
       try
         for I := 0 to 5 do
