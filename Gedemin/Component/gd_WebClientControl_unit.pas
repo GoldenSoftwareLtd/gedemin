@@ -104,6 +104,11 @@ type
 
     procedure DoSendEMail;
 
+    function GetRecipients(AGroupKey: Integer; ARecipients: String): String;
+    function GetSMTPSettings(ASMTPKey: Integer; out AFromMail: String;
+      out AServer: String; out APort: Integer; out ALogin: String;
+      out APassw: String; out AIPSec: String; out ATimeOut: Integer): Boolean;
+
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
     function ProcessError(var AMsg: TMsg; var AnErrorMessage: String): Boolean; override;
@@ -124,6 +129,10 @@ type
       AFileName: String = ''; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False;
       AnAutoTaskKey: Integer = 0);
 
+    procedure SendReport(AHandle: THandle; ASubject: String;
+      ABodyText: String; ASMTPKey: Integer; AGroupKey: Integer; ARecipients: String;
+      AFileName: String; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False);
+
     procedure BuildAndSendReport(AHandle: THandle; AThreadID: THandle;
       AReportKey: Integer; ASMTPKey: Integer; AGroupKey: Integer;
       ARecipients: String; AnExportType: String; AnAutoTaskKey: Integer = 0);
@@ -141,6 +150,7 @@ type
 var
   gdWebClientThread: TgdWebClientThread;
   function GetIPSec(AnIPSec: String): TIdSSLVersion;
+  function GetTempFileName(AnExportType: String): String;
 
 implementation
 
@@ -177,6 +187,38 @@ begin
     raise Exception.Create('unknown ip security protocol.')
 end;
 
+function GetTempFileName(AnExportType: String): String;
+var
+  Ch: array[0..1024] of Char;
+  FileExtension: String;
+  RandDir: String;
+begin
+  if AnExportType = 'DOC' then
+    FileExtension := 'doc'
+  else if AnExportType = 'XLS' then
+    FileExtension := 'xls'
+  else if AnExportType = 'PDF' then
+    FileExtension := 'pdf'
+  else if AnExportType = 'XML' then
+    FileExtension := 'xml'
+  else
+    raise Exception.Create('unknown exporttype.');
+
+  GetTempPath(1024, Ch);
+
+  Result := IncludeTrailingBackSlash(Ch);
+
+  repeat
+    RandDir := '_gtemp' + IntToStr(100000 + Random(100000));
+  until not DirectoryExists(Result + RandDir);
+
+  Result := Result + RandDir;
+
+  if not CreateDir(Result) then
+    raise Exception.Create('Ошибка при создании директории ' + Result + '!');
+
+  Result := Result + '\' + 'report' + '.' + FileExtension;
+end;
 
 { TgdWebClientThread }
 
@@ -601,124 +643,37 @@ begin
   PostMsg(WM_GD_SEND_EMAIL);
 end;
 
+procedure TgdWebClientThread.SendReport(AHandle: THandle; ASubject: String;
+  ABodyText: String; ASMTPKey: Integer; AGroupKey: Integer; ARecipients: String;
+  AFileName: String; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False);
+var
+  LRecipients: String;
+  LFromMail: String;
+  LServer: String;
+  LPort: Integer;
+  LLogin: String;
+  LPassw: String;
+  LIPSec: String;
+  LTimeOut: Integer;
+begin
+  if not GetSMTPSettings(ASMTPKey, LFromMail, LServer,
+    LPort, LLogin, LPassw, LIPSec, LTimeOut) then
+  begin
+    raise Exception.Create('not found smtp settings.');
+  end;
+
+  LRecipients := GetRecipients(AGroupKey, ARecipients);
+
+  if LRecipients = '' then
+    raise Exception.Create('not found recipients email addresses.');
+
+  SendEMail(AHandle, 0, LRecipients, ASubject, ABodyText, LFromMail, LServer,
+    LPort, LLogin, LPassw, LIPSec, LTimeOut, AFileName, AWipeFile, AWipeDirectory);
+end;
+
 procedure TgdWebClientThread.BuildAndSendReport(AHandle: THandle; AThreadID: THandle;
   AReportKey: Integer; ASMTPKey: Integer; AGroupKey: Integer;
   ARecipients: String; AnExportType: String; AnAutoTaskKey: Integer = 0);
-
-  function GetRecipients(AGroupKey: Integer; ARecipients: String): String;
-  var
-    q: TIBSQL;
-  begin
-    Assert(gdcBaseManager <> nil);
-
-    Result := '';
-
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text :=
-        'SELECT '#13#10 +
-        '  c.email '#13#10 +
-        'FROM '#13#10 +
-        '  gd_contact c '#13#10 +
-        '    JOIN '#13#10 +
-        '      gd_contactlist g '#13#10 +
-        '    ON '#13#10 +
-        '      g.contactkey  =  c.id '#13#10 +
-        'WHERE '#13#10 +
-        '  (g.groupkey  =  :gk) '#13#10 +
-        '    AND (c.email IS NOT NULL) '#13#10 +
-        '    AND (c.email <> '''')';
-      q.ParamByName('gk').AsInteger := AGroupKey;
-
-      q.ExecQuery;
-
-      while not q.EOF do
-      begin
-        Result := Result + q.FieldByName('email').AsString + ';';
-        q.Next;
-      end;
-
-      Result := Result + ARecipients;
-    finally
-      q.Free;
-    end;
-  end;
-
-  function GetSMTPSettings(ASMTPKey: Integer; out AFromMail: String;
-    out AServer: String; out APort: Integer; out ALogin: String;
-    out APassw: String; out AIPSec: String; out ATimeOut: Integer): Boolean;
-  var
-    q: TIBSQL;
-  begin
-    Result := False;
-
-    Assert(gdcBaseManager <> nil);
-
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := gdcBaseManager.ReadTransaction;
-
-      if ASMTPKey > 0 then
-      begin
-        q.SQL.Text :=
-          'SELECT * FROM gd_smtp s WHERE s.id = :id';
-        q.ParamByName('id').AsInteger := ASMTPKey;
-      end
-      else
-        q.SQL.Text :=
-          'SELECT * FROM gd_smtp s WHERE s.principal = 1';
-
-      q.ExecQuery;
-
-      if not q.EOF then
-      begin
-        Result := True;
-        AFromMail := q.FieldByName('email').AsString;
-        AServer := q.FieldByName('server').AsString;
-        APort := q.FieldByName('port').AsInteger;
-        ALogin := q.FieldByName('login').AsString;
-        APassw := DecryptString(q.FieldByName('passw').AsString, 'PASSW');
-        AIPSec := q.FieldByName('ipsec').AsString;
-        ATimeOut := q.FieldByName('timeout').AsInteger;
-      end;
-    finally
-      q.Free;
-    end;
-  end;
-
-  function GetFileName(AnExportType: String): String;
-  var
-    Ch: array[0..1024] of Char;
-    FileExtension: String;
-    RandDir: String;
-  begin
-    if AnExportType = 'WORD' then
-      FileExtension := 'doc'
-    else if AnExportType = 'EXCEL' then
-      FileExtension := 'xls'
-    else if AnExportType = 'PDF' then
-      FileExtension := 'pdf'
-    else if AnExportType = 'XML' then
-      FileExtension := 'xml'
-    else
-      raise Exception.Create('unknown exporttype.');
-
-    GetTempPath(1024, Ch);
-
-    Result := IncludeTrailingBackSlash(Ch);
-
-    repeat
-      RandDir := '_gtemp' + IntToStr(100000 + Random(100000));
-    until not DirectoryExists(Result + RandDir);
-
-    Result := Result + RandDir;
-
-    if not CreateDir(Result) then
-      raise Exception.Create('Ошибка при создании директории ' + Result + '!');
-
-    Result := Result + '\' + 'report' + '.' + FileExtension;
-  end;
 
   function GetExportType(AnExportType: String): TExportType;
   begin
@@ -775,7 +730,7 @@ begin
   ClientReport.ShowProgress := False;
 
 
-  LFileName := GetFileName(AnExportType);
+  LFileName := GetTempFileName(AnExportType);
   ClientReport.FileName := LFileName;
 
   B := VarArrayOf([]);
@@ -948,6 +903,88 @@ begin
     until Count = 0;
   finally
     FSendingEvent.SetEvent;
+  end;
+end;
+
+function TgdWebClientThread.GetRecipients(AGroupKey: Integer; ARecipients: String): String;
+var
+  q: TIBSQL;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  Result := '';
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT '#13#10 +
+      '  c.email '#13#10 +
+      'FROM '#13#10 +
+      '  gd_contact c '#13#10 +
+      '    JOIN '#13#10 +
+      '      gd_contactlist g '#13#10 +
+      '    ON '#13#10 +
+      '      g.contactkey  =  c.id '#13#10 +
+      'WHERE '#13#10 +
+      '  (g.groupkey  =  :gk) '#13#10 +
+      '    AND (c.email IS NOT NULL) '#13#10 +
+      '    AND (c.email <> '''')';
+    q.ParamByName('gk').AsInteger := AGroupKey;
+
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin
+      Result := Result + q.FieldByName('email').AsString + ';';
+      q.Next;
+    end;
+
+    Result := Result + ARecipients;
+  finally
+    q.Free;
+  end;
+end;
+
+function TgdWebClientThread.GetSMTPSettings(ASMTPKey: Integer; out AFromMail: String;
+  out AServer: String; out APort: Integer; out ALogin: String;
+  out APassw: String; out AIPSec: String; out ATimeOut: Integer): Boolean;
+var
+  q: TIBSQL;
+begin
+  Result := False;
+
+  Assert(gdcBaseManager <> nil);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+
+    if ASMTPKey > 0 then
+    begin
+      q.SQL.Text :=
+        'SELECT * FROM gd_smtp s WHERE s.id = :id';
+      q.ParamByName('id').AsInteger := ASMTPKey;
+    end
+    else
+      q.SQL.Text :=
+        'SELECT * FROM gd_smtp s WHERE s.principal = 1';
+
+    q.ExecQuery;
+
+    if not q.EOF then
+    begin
+      Result := True;
+      AFromMail := q.FieldByName('email').AsString;
+      AServer := q.FieldByName('server').AsString;
+      APort := q.FieldByName('port').AsInteger;
+      ALogin := q.FieldByName('login').AsString;
+      APassw := DecryptString(q.FieldByName('passw').AsString, 'PASSW');
+      AIPSec := q.FieldByName('ipsec').AsString;
+      ATimeOut := q.FieldByName('timeout').AsInteger;
+    end;
+  finally
+    q.Free;
   end;
 end;
 
