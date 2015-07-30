@@ -232,6 +232,8 @@ procedure TdmLogin.boLoginBeforeDisconnect(Sender: TObject);
 begin
   Application.OnException := FOldOnException;
 
+  gdAutoTaskThread.Forbid;
+
   {$IFDEF WITH_INDY}
   if not Application.Terminated then
     gdWebServerControl.DeactivateServer;

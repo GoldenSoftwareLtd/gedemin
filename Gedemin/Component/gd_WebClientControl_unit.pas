@@ -791,26 +791,20 @@ end;
 procedure TgdWebClientThread.WaitingSendingEmail;
 var
   Count: Integer;
-  T: Integer;
 begin
-  T := 0;
   repeat
-  Lock;
-  try
-    Count := FEmails.Count;
-  finally
-    UnLock;
-  end;
+    Lock;
+    try
+      Count := FEmails.Count;
+    finally
+      UnLock;
+    end;
 
-  if Count > 0 then
-  begin
-    PostMsg(WM_GD_SEND_EMAIL);
-    Sleep(1000);
-    Inc(T);
-  end;
-  until (Count = 0) or (T = 120);
+    if Count > 0 then
+      Sleep(1000);
+  until (Count = 0);
 
-  FSendingEvent.Waitfor(120000);
+  FSendingEvent.Waitfor(INFINITE);
 end;
 
 procedure TgdWebClientThread.DoSendError;
