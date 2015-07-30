@@ -722,9 +722,9 @@ procedure TgdWebClientThread.BuildAndSendReport(AHandle: THandle; AThreadID: THa
 
   function GetExportType(AnExportType: String): TExportType;
   begin
-    if AnExportType = 'WORD' then
+    if AnExportType = 'DOC' then
       Result := etWord
-    else if AnExportType = 'EXCEL' then
+    else if AnExportType = 'XLS' then
       Result := etExcel
     else if AnExportType = 'PDF' then
       Result := etPdf
