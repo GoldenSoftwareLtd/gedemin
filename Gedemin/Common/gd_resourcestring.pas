@@ -68,8 +68,8 @@ resourcestring
   sReadingDbScheme = 'Считывание структуры базы данных';
   sLoadingStorage = 'Загрузка хранилища';
   sLoadingUserDefinedClasses = 'Загрузка бизнес-классов';
-  sSinchronizationAtRelations = 'Синхронизация таблиц';
-  sReadingDomens = 'Считывание доменов';
+  sSynchronizationAtRelations = 'Синхронизация таблиц';
+  sReadingDomains = 'Считывание доменов';
   sReadingRelations = 'Считывание таблиц';
   sReadingFields = 'Считывание полей';
   sReadingPrimKeys = 'Считывание первичных ключей';
