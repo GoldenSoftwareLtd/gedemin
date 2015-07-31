@@ -14,8 +14,6 @@ const
 type
   TgdEmailSettings = class(TObject)
   private
-    FHandle: THandle;
-    FThreadID: THandle;
     FRecipients: String;
     FSubject: String;
     FBodyText: String;
@@ -29,6 +27,8 @@ type
     FFileName: String;
     FWipeFile: Boolean;
     FWipeDirectory: Boolean;
+    FHandle: THandle;
+    FThreadID: THandle;
     FAutoTaskKey: Integer;
     FErrorMsg: String;
 
@@ -37,8 +37,6 @@ type
   public
     destructor Destroy; override;
 
-    property Handle: THandle read FHandle write FHandle;
-    property ThreadID: THandle read FThreadID write FThreadID;
     property Recipients: String read FRecipients write FRecipients;
     property Subject: String read FSubject write FSubject;
     property BodyText: String read FBodyText write FBodyText;
@@ -52,6 +50,8 @@ type
     property FileName: String read FFileName write FFileName;
     property WipeFile: Boolean read FWipeFile write FWipeFile;
     property WipeDirectory: Boolean read FWipeDirectory write FWipeDirectory;
+    property Handle: THandle read FHandle write FHandle;
+    property ThreadID: THandle read FThreadID write FThreadID;
     property AutoTaskKey: Integer read FAutoTaskKey write FAutoTaskKey;
     property ErrorMsg: String read FErrorMsg write FErrorMsg;
   end;
@@ -122,20 +122,19 @@ type
     procedure StartUpdateFiles;
     procedure SendError(const AnErrorMessage: String; const ASkipNextException: Boolean = False);
 
-    procedure SendEMail(AHandle: THandle; AThreadID: THandle;
-      ARecipients: String; ASubject: String; ABodyText: String;
+    procedure SendEMail(ARecipients: String; ASubject: String; ABodyText: String;
       AFromEMail: String; AServer: String; APort: Integer;
-      ALogin: String; APassw: String; AnIPSec: String; ATimeOut: Integer = -1;
+      ALogin: String; APassw: String; AnIPSec: String; ATimeOut: Integer;
       AFileName: String = ''; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False;
-      AnAutoTaskKey: Integer = 0);
+      AHandle: THandle = 0; AThreadID: THandle = 0; AnAutoTaskKey: Integer = 0);
 
-    procedure SendReport(AHandle: THandle; ASubject: String;
-      ABodyText: String; ASMTPKey: Integer; AGroupKey: Integer; ARecipients: String;
-      AFileName: String; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False);
+    procedure SendReport(ARecipients: String; ASubject: String;
+      ABodyText: String; ASMTPKey: Integer; AFileName: String; AHandle: THandle);
 
-    procedure BuildAndSendReport(AHandle: THandle; AThreadID: THandle;
-      AReportKey: Integer; ASMTPKey: Integer; AGroupKey: Integer;
-      ARecipients: String; AnExportType: String; AnAutoTaskKey: Integer = 0);
+
+    procedure BuildAndSendReport(AReportKey: Integer; AnExportType: String;
+      ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
+      AHandle: THandle; AThreadID: THandle; AnAutoTaskKey: Integer);
 
     procedure WaitingSendingEmail;
 
@@ -602,12 +601,11 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.SendEMail(AHandle: THandle; AThreadID: THandle;
-  ARecipients: String; ASubject: String; ABodyText: String;
+procedure TgdWebClientThread.SendEMail(ARecipients: String; ASubject: String; ABodyText: String;
   AFromEMail: String; AServer: String; APort: Integer;
-  ALogin: String; APassw: String; AnIPSec: String; ATimeOut: Integer = -1;
+  ALogin: String; APassw: String; AnIPSec: String; ATimeOut: Integer;
   AFileName: String = ''; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False;
-  AnAutoTaskKey: Integer = 0);
+  AHandle: THandle = 0; AThreadID: THandle = 0; AnAutoTaskKey: Integer = 0);
 var
   ES: TgdEmailSettings;
 begin
@@ -616,8 +614,6 @@ begin
     raise Exception.Create('Неверные параметры электронной почты.');
 
   ES := TgdEmailSettings.Create;
-  ES.Handle := AHandle;
-  ES.ThreadID := AThreadID;
   ES.Recipients := ARecipients;
   ES.Subject := ASubject;
   ES.BodyText := ABodyText;
@@ -631,6 +627,8 @@ begin
   ES.FileName := AFileName;
   ES.WipeFile := AWipeFile;
   ES.WipeDirectory := AWipeDirectory;
+  ES.Handle := AHandle;
+  ES.ThreadID := AThreadID;
   ES.AutoTaskKey := AnAutoTaskKey;
 
   Lock;
@@ -643,11 +641,9 @@ begin
   PostMsg(WM_GD_SEND_EMAIL);
 end;
 
-procedure TgdWebClientThread.SendReport(AHandle: THandle; ASubject: String;
-  ABodyText: String; ASMTPKey: Integer; AGroupKey: Integer; ARecipients: String;
-  AFileName: String; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False);
+procedure TgdWebClientThread.SendReport(ARecipients: String; ASubject: String;
+  ABodyText: String; ASMTPKey: Integer; AFileName: String; AHandle: THandle);
 var
-  LRecipients: String;
   LFromMail: String;
   LServer: String;
   LPort: Integer;
@@ -662,18 +658,18 @@ begin
     raise Exception.Create('not found smtp settings.');
   end;
 
-  LRecipients := GetRecipients(AGroupKey, ARecipients);
-
-  if LRecipients = '' then
+  if ARecipients = '' then
     raise Exception.Create('not found recipients email addresses.');
 
-  SendEMail(AHandle, 0, LRecipients, ASubject, ABodyText, LFromMail, LServer,
-    LPort, LLogin, LPassw, LIPSec, LTimeOut, AFileName, AWipeFile, AWipeDirectory);
+  SendEMail(ARecipients, ASubject, ABodyText,
+    LFromMail, LServer, LPort, LLogin, LPassw, LIPSec, LTimeOut,
+    AFileName, True, True,
+    AHandle);
 end;
 
-procedure TgdWebClientThread.BuildAndSendReport(AHandle: THandle; AThreadID: THandle;
-  AReportKey: Integer; ASMTPKey: Integer; AGroupKey: Integer;
-  ARecipients: String; AnExportType: String; AnAutoTaskKey: Integer = 0);
+procedure TgdWebClientThread.BuildAndSendReport(AReportKey: Integer; AnExportType: String;
+  ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
+  AHandle: THandle; AThreadID: THandle; AnAutoTaskKey: Integer);
 
   function GetExportType(AnExportType: String): TExportType;
   begin
@@ -739,8 +735,10 @@ begin
   LSubject := GetSubject(AReportKey);
   LBodyText := GetBodyText(AReportKey);
 
-  SendEMail(AHandle, AThreadID, LRecipients, LSubject, LBodyText, LFromMail, LServer,
-    LPort, LLogin, LPassw, LIPSec, LTimeOut, LFileName, True, True, AnAutoTaskKey);
+  SendEMail(LRecipients, LSubject, LBodyText,
+    LFromMail, LServer, LPort, LLogin, LPassw, LIPSec, LTimeOut,
+    LFileName, True, True,
+    AHandle, AThreadID, AnAutoTaskKey);
 end;
 
 procedure TgdWebClientThread.WaitingSendingEmail;
@@ -936,7 +934,7 @@ begin
 
     while not q.EOF do
     begin
-      Result := Result + q.FieldByName('email').AsString + ';';
+      Result := Result + q.FieldByName('email').AsString + ',';
       q.Next;
     end;
 
@@ -1021,7 +1019,7 @@ begin
       AutoTaskKey,
       Integer(Pointer(PChar(Msg)))
       )
-  else
+  else if Handle > 0 then
     PostMessage(Handle,
       WM_GD_FINISH_SEND_EMAIL,
       LP,

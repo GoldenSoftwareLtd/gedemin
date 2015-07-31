@@ -66,8 +66,8 @@ type
     iblkupSMTP: TgsIBLookupComboBox;
     iblkupGroup: TgsIBLookupComboBox;
     Label13: TLabel;
-    Label14: TLabel;
     dbeRecipients: TDBEdit;
+    Label15: TLabel;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
@@ -346,10 +346,10 @@ begin
     begin
       Task := TgdAutoReportTask.Create;
       (Task as TgdAutoReportTask).ReportKey := iblkupReport.CurrentKeyInt;
-      (Task as TgdAutoReportTask).SMTPKey := iblkupSMTP.CurrentKeyInt;
-      (Task as TgdAutoReportTask).GroupKey := iblkupGroup.CurrentKeyInt;
-      (Task as TgdAutoReportTask).Recipients := dbeRecipients.Text;
       (Task as TgdAutoReportTask).ExportType := dbcbExportType.Text;
+      (Task as TgdAutoReportTask).Recipients := dbeRecipients.Text;
+      (Task as TgdAutoReportTask).GroupKey := iblkupGroup.CurrentKeyInt;
+      (Task as TgdAutoReportTask).SMTPKey := iblkupSMTP.CurrentKeyInt;
       (Task as TgdAutoReportTask).Handle := Self.Handle;
     end;
 
