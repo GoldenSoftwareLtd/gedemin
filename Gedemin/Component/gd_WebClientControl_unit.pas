@@ -122,6 +122,10 @@ type
     procedure StartUpdateFiles;
     procedure SendError(const AnErrorMessage: String; const ASkipNextException: Boolean = False);
 
+    procedure SendNameSpaceLog(ARecipients: String;
+      ASubject: String; ABodyText: String; AFileName: String);
+
+
     procedure SendEMail(ARecipients: String; ASubject: String; ABodyText: String;
       AFromEMail: String; AServer: String; APort: Integer;
       ALogin: String; APassw: String; AnIPSec: String; ATimeOut: Integer;
@@ -149,6 +153,7 @@ type
 var
   gdWebClientThread: TgdWebClientThread;
   function GetIPSec(AnIPSec: String): TIdSSLVersion;
+  function GetTempDirectory: String;
   function GetTempFileName(AnExportType: String): String;
 
 implementation
@@ -186,23 +191,11 @@ begin
     raise Exception.Create('unknown ip security protocol.')
 end;
 
-function GetTempFileName(AnExportType: String): String;
+function GetTempDirectory: String;
 var
   Ch: array[0..1024] of Char;
-  FileExtension: String;
   RandDir: String;
 begin
-  if AnExportType = 'DOC' then
-    FileExtension := 'doc'
-  else if AnExportType = 'XLS' then
-    FileExtension := 'xls'
-  else if AnExportType = 'PDF' then
-    FileExtension := 'pdf'
-  else if AnExportType = 'XML' then
-    FileExtension := 'xml'
-  else
-    raise Exception.Create('unknown exporttype.');
-
   GetTempPath(1024, Ch);
 
   Result := IncludeTrailingBackSlash(Ch);
@@ -215,8 +208,41 @@ begin
 
   if not CreateDir(Result) then
     raise Exception.Create('Ошибка при создании директории ' + Result + '!');
+    
+  Result := Result + '\';
+end;
 
-  Result := Result + '\' + 'report' + '.' + FileExtension;
+function GetTempFileName(AnExportType: String): String;
+var
+  //Ch: array[0..1024] of Char;
+  FileExtension: String;
+  //RandDir: String;
+begin
+  if AnExportType = 'DOC' then
+    FileExtension := 'doc'
+  else if AnExportType = 'XLS' then
+    FileExtension := 'xls'
+  else if AnExportType = 'PDF' then
+    FileExtension := 'pdf'
+  else if AnExportType = 'XML' then
+    FileExtension := 'xml'
+  else
+    raise Exception.Create('unknown exporttype.');
+
+  {GetTempPath(1024, Ch);
+
+  Result := IncludeTrailingBackSlash(Ch);
+
+  repeat
+    RandDir := '_gtemp' + IntToStr(100000 + Random(100000));
+  until not DirectoryExists(Result + RandDir);
+
+  Result := Result + RandDir;
+
+  if not CreateDir(Result) then
+    raise Exception.Create('Ошибка при создании директории ' + Result + '!');}
+
+  Result := GetTempDirectory + 'report' + '.' + FileExtension;
 end;
 
 { TgdWebClientThread }
@@ -599,6 +625,21 @@ begin
     end;
     FSkipNextException := ASkipNextException;  
   end;
+end;
+
+procedure TgdWebClientThread.SendNameSpaceLog(ARecipients: String;
+  ASubject: String; ABodyText: String; AFileName: String);
+begin
+  SendEMail(ARecipients, ASubject, ABodyText,
+    gd_GlobalParams.GetWebClientSMTPEmail,
+    gd_GlobalParams.GetWebClientSMTPServer,
+    gd_GlobalParams.GetWebClientSMTPPort,
+    gd_GlobalParams.GetWebClientSMTPLogin,
+    gd_GlobalParams.GetWebClientSMTPPassw,
+    gd_GlobalParams.GetWebClientSMTPIPSec,
+    gd_GlobalParams.GetWebClientSMTPTimeout,
+    AFileName,
+    True, True);
 end;
 
 procedure TgdWebClientThread.SendEMail(ARecipients: String; ASubject: String; ABodyText: String;

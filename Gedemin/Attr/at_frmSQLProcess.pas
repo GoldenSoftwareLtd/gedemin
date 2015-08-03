@@ -41,6 +41,7 @@ type
   private
     FSilent: Boolean;
     FLog: TatLog;
+    FSendSettingsLog: Boolean;
 
     function GetIsError: Boolean;
     procedure PrepareItem(LI: TListItem);
@@ -302,6 +303,12 @@ begin
   inherited;
 
   FSilent := gd_CmdLineParams.QuietMode;
+
+  FSendSettingsLog := (gd_CmdLineParams.LoadSettingPath > '')
+    and (gd_CmdLineParams.LoadSettingFileName > '')
+    and gd_CmdLineParams.SendLogEmail
+    and (gd_CmdLineParams.Recipients > '');
+
   FLog := TatLog.Create;
 
   frmSQLProcess.Free;
@@ -358,10 +365,31 @@ end;
 destructor TfrmSQLProcess.Destroy;
 var
   TempPath: array[0..1023] of Char;
+  FN: String;
+  BT : String;
 begin
   frmSQLProcess := nil;
   if FSilent and (FLog.Count > 0) and (GetTempPath(SizeOf(TempPath), TempPath) > 0) then
     FLog.SaveToFile(IncludeTrailingBackslash(TempPath) + 'gedemin.log');
+
+  {$IFDEF WITH_INDY}
+  if FSendSettingsLog then
+  begin
+    if FLog.ErrorCount > 0 then
+    begin
+      FN := GetTempDirectory + 'namespace.log';
+      FLog.SaveToFile(FN);
+      BT := 'Error';
+    end
+    else
+    begin
+      FN := '';
+      BT := 'Done';
+    end;
+
+    gdWebClientThread.SendNameSpaceLog(gd_CmdLineParams.Recipients, 'NS', BT, FN);
+  end;
+  {$ENDIF}
   FLog.Free;
   inherited;
 end;
