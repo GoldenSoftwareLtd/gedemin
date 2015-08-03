@@ -29,7 +29,8 @@ type
     procedure actSendUpdate(Sender: TObject);
     procedure iblkupContactChange(Sender: TObject);
   private
-    { Private declarations }
+    FForbidSend: Boolean;
+
     FPDFExport: TfrxCustomExportFilter;
     FRTFExport: TfrxCustomExportFilter;
     FXLSExport: TfrxCustomExportFilter;
@@ -63,7 +64,7 @@ uses
 
 procedure Tdlg_EmailSend.OnWebClientThreadNotify(var Msg : TMessage);
 begin
-  actSend.Enabled := True;
+  FForbidSend := False;
 
   if Msg.WParam = 1 then
     MessageDlg('Сообщение отправлено.',
@@ -138,37 +139,48 @@ var
   TempFileName: String;
   TempShowDialog: Boolean;
 begin
-  actSend.Enabled := False;
-  
-  if cbExportType.Text = 'PDF' then
-    CurrExport := FPDFExport
-  else if cbExportType.Text = 'DOC' then
-    CurrExport := FRTFExport
-  else if cbExportType.Text = 'XLS' then
-    CurrExport := FXLSExport
-  else if cbExportType.Text = 'XML' then
-    CurrExport := FXMLExport
-  else
-    raise Exception.Create('Неверный формат отчета: ' + cbExportType.Text);
-
-  if CurrExport = nil then
-    raise Exception.Create('Отсуствует фильтр');
-
-  FN := GetTempFileName(cbExportType.Text);
-
-  TempFileName := CurrExport.FileName;
-  TempShowDialog := CurrExport.ShowDialog;
+  FForbidSend := True;
   try
-    CurrExport.FileName := FN;
-    CurrExport.ShowDialog := False;
+    if cbExportType.Text = 'PDF' then
+      CurrExport := FPDFExport
+    else if cbExportType.Text = 'DOC' then
+      CurrExport := FRTFExport
+    else if cbExportType.Text = 'XLS' then
+      CurrExport := FXLSExport
+    else if cbExportType.Text = 'XML' then
+      CurrExport := FXMLExport
+    else
+      raise Exception.Create('Неверный формат отчета: ' + cbExportType.Text);
 
-    FPreview.Export(CurrExport);
+    if CurrExport = nil then
+      raise Exception.Create('Отсуствует фильтр');
 
-    gdWebClientThread.SendReport(edRecipients.Text, edSubject.Text,
-      mBodyText.Text, iblkupSMTP.CurrentKeyInt, FN, Self.Handle);
-  finally
-    CurrExport.FileName := TempFileName;
-    CurrExport.ShowDialog := TempShowDialog;
+    FN := GetTempFileName(cbExportType.Text);
+
+    TempFileName := CurrExport.FileName;
+    TempShowDialog := CurrExport.ShowDialog;
+    try
+      CurrExport.FileName := FN;
+      CurrExport.ShowDialog := False;
+      try
+        FPreview.Export(CurrExport);
+      except
+        DeleteFile(FN);
+        RemoveDir(ExtractFileDir(FN));
+        raise;
+      end;
+      gdWebClientThread.SendReport(edRecipients.Text, edSubject.Text,
+        mBodyText.Text, iblkupSMTP.CurrentKeyInt, FN, Self.Handle);
+    finally
+      CurrExport.FileName := TempFileName;
+      CurrExport.ShowDialog := TempShowDialog;
+    end;
+  except
+    on E: Exception do
+    begin
+      FForbidSend := False;
+      raise;
+    end;
   end;
 end;
 
@@ -176,7 +188,8 @@ procedure Tdlg_EmailSend.actSendUpdate(Sender: TObject);
 begin
   actSend.Enabled := (edRecipients.Text > '')
     and (iblkupSMTP.CurrentKeyInt > 0)
-    and (cbExportType.Text > '');
+    and (cbExportType.Text > '')
+    and (not FForbidSend);
 end;
 
 procedure Tdlg_EmailSend.iblkupContactChange(Sender: TObject);
@@ -228,11 +241,13 @@ begin
 
           while not q.EOF do
           begin
-            if edRecipients.Text > '' then
-              edRecipients.Text := edRecipients.Text + ',';
+            if q.FieldByName('email').AsString > '' then
+            begin
+              if edRecipients.Text > '' then
+                edRecipients.Text := edRecipients.Text + ',';
 
-            edRecipients.Text := edRecipients.Text + q.FieldByName('email').AsString;
-
+              edRecipients.Text := edRecipients.Text + q.FieldByName('email').AsString;
+            end;
             q.Next;
           end;
         end;

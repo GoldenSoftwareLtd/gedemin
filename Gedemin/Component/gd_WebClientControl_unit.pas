@@ -728,17 +728,25 @@ begin
 
   LFileName := GetTempFileName(AnExportType);
   ClientReport.FileName := LFileName;
+  try
+    B := VarArrayOf([]);
+    TClientReportCracker(ClientReport).BuildReportWithParam(AReportKey, B);
 
-  B := VarArrayOf([]);
-  TClientReportCracker(ClientReport).BuildReportWithParam(AReportKey, B);
+    LSubject := GetSubject(AReportKey);
+    LBodyText := GetBodyText(AReportKey);
 
-  LSubject := GetSubject(AReportKey);
-  LBodyText := GetBodyText(AReportKey);
-
-  SendEMail(LRecipients, LSubject, LBodyText,
-    LFromMail, LServer, LPort, LLogin, LPassw, LIPSec, LTimeOut,
-    LFileName, True, True,
-    AHandle, AThreadID, AnAutoTaskKey);
+    SendEMail(LRecipients, LSubject, LBodyText,
+      LFromMail, LServer, LPort, LLogin, LPassw, LIPSec, LTimeOut,
+      LFileName, True, True,
+      AHandle, AThreadID, AnAutoTaskKey);
+  except
+    on E: Exception do
+    begin
+      DeleteFile(LFileName);
+      RemoveDir(ExtractFileDir(LFileName));
+      raise;
+    end;
+  end;
 end;
 
 procedure TgdWebClientThread.WaitingSendingEmail;
@@ -911,6 +919,7 @@ begin
   Assert(gdcBaseManager <> nil);
 
   Result := '';
+  Result := Result + ARecipients;
 
   q := TIBSQL.Create(nil);
   try
@@ -934,11 +943,14 @@ begin
 
     while not q.EOF do
     begin
-      Result := Result + q.FieldByName('email').AsString + ',';
+      if q.FieldByName('email').AsString > '' then
+      begin
+        if Result <> '' then
+          Result := Result + ',';
+        Result := Result + q.FieldByName('email').AsString;
+      end;
       q.Next;
     end;
-
-    Result := Result + ARecipients;
   finally
     q.Free;
   end;

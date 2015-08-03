@@ -446,7 +446,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         KeyField = 'ID'
         gdClassName = 'TgdcFunction'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0

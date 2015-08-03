@@ -171,10 +171,10 @@ uses
   gd_common_functions, gd_directories_const, jclSysInfo;
 
 const
-  WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
-  WM_GD_LOAD_TASK_LIST        = WM_GD_THREAD_USER + 2;
-  WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 3;
-  WM_GD_OUTSIDE_LOG           = WM_GD_THREAD_USER + 4;
+  WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 101;
+  WM_GD_LOAD_TASK_LIST        = WM_GD_THREAD_USER + 102;
+  WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 103;
+  WM_GD_OUTSIDE_LOG           = WM_GD_THREAD_USER + 104;
 
 { TgdAutoTask }
 

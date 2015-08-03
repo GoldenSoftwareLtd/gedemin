@@ -77,6 +77,8 @@ type
     procedure btnIPClick(Sender: TObject);
 
   private
+    FForbidExecTask: Boolean;
+
     procedure OnWebClientThreadNotify(var Msg : TMessage); message WM_GD_FINISH_SEND_EMAIL;
 
   public
@@ -97,6 +99,8 @@ uses
 
 procedure Tgdc_dlgAutoTask.OnWebClientThreadNotify(var Msg : TMessage);
 begin
+  FForbidExecTask := False;
+  
   if Msg.WParam = 1 then
     MessageDlg('Сообщение отправлено.',
       mtInformation,
@@ -354,7 +358,19 @@ begin
     end;
 
     if Task <> nil then
-      Task.TaskExecuteForDlg;
+    begin
+      FForbidExecTask := True;
+      
+      try
+        Task.TaskExecuteForDlg;
+      except
+        on E: Exception do
+        begin
+          FForbidExecTask := False;
+          raise;
+        end;
+      end;
+    end;
   finally
     FreeAndNil(Task);
   end;
@@ -369,6 +385,7 @@ begin
     or ((pcTask.ActivePage = tsReport) and (iblkupReport.CurrentKeyInt > 0)
       and (dbcbExportType.Text > '')
       and ((iblkupGroup.CurrentKeyInt > 0) or (dbeRecipients.Text > ''))
+      and (not FForbidExecTask)
       );
 end;
 
