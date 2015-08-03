@@ -36,6 +36,14 @@ type
     function GetWebClientRemoteServer: String;
     function GetWebClientTimeout: Integer;
 
+    function GetWebClientSMTPServer: String;
+    function GetWebClientSMTPPort: Integer;
+    function GetWebClientSMTPEmail: String;
+    function GetWebClientSMTPLogin: String;
+    function GetWebClientSMTPPassw: String;
+    function GetWebClientSMTPIPSec: String;
+    function GetWebClientSMTPTimeout: Integer;
+
     function GetWebServerActive: Boolean;
     function GetWebServerBindings: String;
     function GetWebServerUpdatePath: String;
@@ -144,6 +152,41 @@ end;
 function Tgd_GlobalParams.GetWebClientTimeout: Integer;
 begin
   Result := FIniFile.ReadInteger('WEB CLIENT', 'Timeout', 20000);
+end;
+
+function Tgd_GlobalParams.GetWebClientSMTPServer: String;
+begin
+  Result := FIniFile.ReadString('WEB CLIENT', 'SMTPServer', '');
+end;
+
+function Tgd_GlobalParams.GetWebClientSMTPPort: Integer;
+begin
+  Result := FIniFile.ReadInteger('WEB CLIENT', 'SMTPPort', 25);
+end;
+
+function Tgd_GlobalParams.GetWebClientSMTPEmail: String;
+begin
+  Result := FIniFile.ReadString('WEB CLIENT', 'SMTPEmail', '');
+end;
+
+function Tgd_GlobalParams.GetWebClientSMTPLogin: String;
+begin
+  Result := FIniFile.ReadString('WEB CLIENT', 'SMTPLogin', '');
+end;
+
+function Tgd_GlobalParams.GetWebClientSMTPPassw: String;
+begin
+  Result := FIniFile.ReadString('WEB CLIENT', 'SMTPPassw', '');
+end;
+
+function Tgd_GlobalParams.GetWebClientSMTPIPSec: String;
+begin
+  Result := FIniFile.ReadString('WEB CLIENT', 'SMTPIPSec', '');
+end;
+
+function Tgd_GlobalParams.GetWebClientSMTPTimeout: Integer;
+begin
+  Result := FIniFile.ReadInteger('WEB CLIENT', 'SMTPTimeout', -1);
 end;
 
 function Tgd_GlobalParams.GetWebClientActive: Boolean;

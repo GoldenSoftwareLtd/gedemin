@@ -107,10 +107,10 @@ type
   TgdAutoReportTask = class(TgdAutoTask)
   private
     FReportKey: Integer;
-    FSMTPKey: Integer;
-    FGroupKey: Integer;
-    FRecipients: String;
     FExportType: String;
+    FRecipients: String;
+    FGroupKey: Integer;
+    FSMTPKey: Integer;
     FHandle: THandle;
     FThreadID: THandle;
 
@@ -119,10 +119,10 @@ type
 
   public
     property ReportKey: Integer read FReportKey write FReportKey;
-    property SMTPKey: Integer read FSMTPKey write FSMTPKey;
-    property GroupKey: Integer read FGroupKey write FGroupKey;
-    property Recipients: String read FRecipients write FRecipients;
     property ExportType: String read FExportType write FExportType;
+    property Recipients: String read FRecipients write FRecipients;
+    property GroupKey: Integer read FGroupKey write FGroupKey;
+    property SMTPKey: Integer read FSMTPKey write FSMTPKey;
     property Handle: THandle read FHandle write FHandle;
     property ThreadID: THandle read FThreadID write FThreadID;
   end;
@@ -171,10 +171,10 @@ uses
   gd_common_functions, gd_directories_const, jclSysInfo;
 
 const
-  WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 1;
-  WM_GD_LOAD_TASK_LIST        = WM_GD_THREAD_USER + 2;
-  WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 3;
-  WM_GD_OUTSIDE_LOG           = WM_GD_THREAD_USER + 4;
+  WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 101;
+  WM_GD_LOAD_TASK_LIST        = WM_GD_THREAD_USER + 102;
+  WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 103;
+  WM_GD_OUTSIDE_LOG           = WM_GD_THREAD_USER + 104;
 
 { TgdAutoTask }
 
@@ -415,8 +415,8 @@ end;
 procedure TgdAutoReportTask.TaskExecute;
 begin
   try
-    gdWebClientThread.BuildAndSendReport(Handle, ThreadID,
-      ReportKey, SMTPKey, GroupKey, Recipients, ExportType, ID);
+    gdWebClientThread.BuildAndSendReport(ReportKey, ExportType, Recipients,
+      GroupKey, SMTPKey, Handle, ThreadID, ID);
   except
     on E: Exception do
       FErrorMsg := E.Message;
@@ -490,10 +490,10 @@ begin
       begin
         Task := TgdAutoReportTask.Create;
         (Task as TgdAutoReportTask).ReportKey := q.FieldbyName('reportkey').AsInteger;
-        (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('emailsmtpkey').AsInteger;
-        (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('emailgroupkey').AsInteger;
-        (Task as TgdAutoReportTask).Recipients := q.FieldbyName('emailrecipients').AsString;
         (Task as TgdAutoReportTask).ExportType := q.FieldbyName('emailexporttype').AsString;
+        (Task as TgdAutoReportTask).Recipients := q.FieldbyName('emailrecipients').AsString;
+        (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('emailgroupkey').AsInteger;
+        (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('emailsmtpkey').AsInteger;
         (Task as TgdAutoReportTask).ThreadID := Self.ThreadId;
       end else
         Task := nil;
