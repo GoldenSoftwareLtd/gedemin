@@ -316,7 +316,7 @@ uses
   , gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas'
   , gd_AutoTaskThread in '..\Component\gd_AutoTaskThread.pas'
   , gdcSMTP in '..\Component\GDC\gdcSMTP.pas'
-  , dlg_EmailSend_Unit in '..\FastReport 4\dlg_EmailSend_Unit.pas' {dlg_EmailSend};
+  , dlg_EmailSend_Unit in '..\Report\dlg_EmailSend_Unit.pas' {dlg_EmailSend};
 
 {$R Gedemin.TLB}
 {$R GEDEMIN.RES}
