@@ -32,25 +32,25 @@ CREATE TABLE gd_autotask
    aview            dsecurity,
    disabled         ddisabled,
    CONSTRAINT gd_pk_autotask PRIMARY KEY(id),
-   CONSTRAINT fk_gd_autotask_esk
+   CONSTRAINT gd_fk_autotask_esk
      FOREIGN KEY (emailsmtpkey) REFERENCES gd_smtp(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_fk
+   CONSTRAINT gd_fk_autotask_fk
      FOREIGN KEY (functionkey) REFERENCES gd_function(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_atrk
+   CONSTRAINT gd_fk_autotask_atrk
      FOREIGN KEY (autotrkey) REFERENCES ac_transaction(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_rk
+   CONSTRAINT gd_fk_autotask_rk
      FOREIGN KEY (reportkey) REFERENCES rp_reportlist(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_uk
+   CONSTRAINT gd_fk_autotask_uk
      FOREIGN KEY (userkey) REFERENCES gd_user(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_ck
+   CONSTRAINT gd_fk_autotask_ck
      FOREIGN KEY (creatorkey) REFERENCES gd_contact(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_ek
+   CONSTRAINT gd_fk_autotask_ek
      FOREIGN KEY (editorkey) REFERENCES gd_contact(id)
      ON UPDATE CASCADE,
    CONSTRAINT gd_chk_autotask_emailrecipients CHECK(emailrecipients > ''),

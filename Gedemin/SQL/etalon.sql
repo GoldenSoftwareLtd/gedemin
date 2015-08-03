@@ -1540,6 +1540,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (222, '0000.0001.0000.0253', '22.07.2015', 'Modified GD_AUTOTASK and GD_SMTP tables.');
   
+INSERT INTO fin_versioninfo
+  VALUES (223, '0000.0001.0000.0254', '03.08.2015', 'Modified GD_AUTOTASK and GD_SMTP tables. Attempt #2');  
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -17025,41 +17028,41 @@ CREATE TABLE rpl_record (
 );
 
 COMMIT;
-CREATE TABLE gd_smtp
-(
-  id               dintkey,                     /* первичный ключ          */
-  name             dname,                       /* имя                     */
-  description      dtext180,                    /* описание                */
-  email            demail NOT NULL,             /* адрес электронной почты */
-  login            dusername,                   /* логин                   */
-  passw            VARCHAR(256) NOT NULL,       /* пароль                  */
-  ipsec            dtext8 DEFAULT NULL,         /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
-  timeout          dinteger_notnull DEFAULT -1,
-  server           dtext80 NOT NULL,            /* SMTP Sever */
-  port             dinteger_notnull DEFAULT 25, /* SMTP Port */
-  principal        dboolean DEFAULT 0,
+  CREATE TABLE gd_smtp
+  (
+    id               dintkey,                     /* первичный ключ          */
+    name             dname,                       /* имя                     */
+    description      dtext180,                    /* описание                */
+    email            demail NOT NULL,             /* адрес электронной почты */
+    login            dname,                       /* логин                   */
+    passw            VARCHAR(256) NOT NULL,       /* пароль                  */
+    ipsec            dtext8,                      /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
+    timeout          dinteger_notnull DEFAULT -1,
+    server           dtext80 NOT NULL,            /* SMTP Sever */
+    port             dinteger_notnull DEFAULT 25, /* SMTP Port */
+    principal        dboolean_notnull,
 
-  creatorkey       dforeignkey,
-  creationdate     dcreationdate,
-  editorkey        dforeignkey,
-  editiondate      deditiondate,
-  afull            dsecurity,
-  achag            dsecurity,
-  aview            dsecurity,
-  disabled         ddisabled,
+    creatorkey       dforeignkey,
+    creationdate     dcreationdate,
+    editorkey        dforeignkey,
+    editiondate      deditiondate,
+    afull            dsecurity,
+    achag            dsecurity,
+    aview            dsecurity,
+    disabled         ddisabled,
 
-  CONSTRAINT gd_pk_smtp PRIMARY KEY (id),
-  CONSTRAINT fk_gd_smtp_ck
-    FOREIGN KEY (creatorkey) REFERENCES gd_user (id)
-    ON UPDATE CASCADE,
-  CONSTRAINT fk_gd_smtp_ek
-    FOREIGN KEY (editorkey) REFERENCES gd_user (id)
-    ON UPDATE CASCADE,
-  CONSTRAINT gd_chk_smtp_timeout CHECK (timeout >= -1),
-  CONSTRAINT gd_chk_smtp_ipsec CHECK(ipsec IN ('SSLV2', 'SSLV23', 'SSLV3', 'TLSV1')),
-  CONSTRAINT gd_chk_smtp_server CHECK (server > ''),
-  CONSTRAINT gd_chk_smtp_port CHECK (port > 0 AND port < 65536)
-);
+    CONSTRAINT gd_pk_smtp PRIMARY KEY (id),
+    CONSTRAINT gd_fk_smtp_ck
+      FOREIGN KEY (creatorkey) REFERENCES gd_contact (id)
+      ON UPDATE CASCADE,
+    CONSTRAINT gd_fk_smtp_ek
+      FOREIGN KEY (editorkey) REFERENCES gd_contact (id)
+      ON UPDATE CASCADE,
+    CONSTRAINT gd_smtp_chk_timeout CHECK (timeout >= -1),
+    CONSTRAINT gd_smtp_chk_ipsec CHECK(ipsec IN ('SSLV2', 'SSLV23', 'SSLV3', 'TLSV1')),
+    CONSTRAINT gd_smtp_chk_server CHECK (server > ''),
+    CONSTRAINT gd_smtp_chk_port CHECK (port > 0 AND port < 65536)
+  );
 
 SET TERM ^ ;
 
@@ -17073,13 +17076,14 @@ BEGIN
 END
 ^
 
-CREATE OR ALTER TRIGGER gd_biu_smtp FOR gd_smtp
-  BEFORE INSERT OR UPDATE
+CREATE OR ALTER TRIGGER gd_aiu_smtp FOR gd_smtp
+  AFTER INSERT OR UPDATE
   POSITION 32000
 AS
 BEGIN
   IF (NEW.principal = 1) THEN
-    UPDATE gd_smtp SET gd_smtp.principal = 0 WHERE id <> NEW.id;
+    UPDATE gd_smtp SET principal = 0 
+	WHERE principal = 1 AND id <> NEW.id;
 END
 ^
 
@@ -17119,26 +17123,26 @@ COMMIT;CREATE TABLE gd_autotask
    aview            dsecurity,
    disabled         ddisabled,
    CONSTRAINT gd_pk_autotask PRIMARY KEY(id),
-   CONSTRAINT fk_gd_autotask_esk
+   CONSTRAINT gd_fk_autotask_esk
      FOREIGN KEY (emailsmtpkey) REFERENCES gd_smtp(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_fk
+   CONSTRAINT gd_fk_autotask_fk
      FOREIGN KEY (functionkey) REFERENCES gd_function(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_atrk
+   CONSTRAINT gd_fk_autotask_atrk
      FOREIGN KEY (autotrkey) REFERENCES ac_transaction(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_rk
+   CONSTRAINT gd_fk_autotask_rk
      FOREIGN KEY (reportkey) REFERENCES rp_reportlist(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_uk
+   CONSTRAINT gd_fk_autotask_uk
      FOREIGN KEY (userkey) REFERENCES gd_user(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_ck
-     FOREIGN KEY (creatorkey) REFERENCES gd_user(id)
+   CONSTRAINT gd_fk_autotask_ck
+     FOREIGN KEY (creatorkey) REFERENCES gd_contact(id)
      ON UPDATE CASCADE,
-   CONSTRAINT fk_gd_autotask_ek
-     FOREIGN KEY (editorkey) REFERENCES gd_user(id)
+   CONSTRAINT gd_fk_autotask_ek
+     FOREIGN KEY (editorkey) REFERENCES gd_contact(id)
      ON UPDATE CASCADE,
    CONSTRAINT gd_chk_autotask_emailrecipients CHECK(emailrecipients > ''),
    CONSTRAINT gd_chk_autotask_recipients CHECK((emailrecipients > '') OR (emailgroupkey IS NOT NULL)),
@@ -17282,6 +17286,9 @@ CREATE TABLE gd_autotask_log
   CONSTRAINT gd_fk_autotask_log_autotaskkey
     FOREIGN KEY (autotaskkey) REFERENCES gd_autotask (id)
     ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT gd_fk_autotask_log_ck
+    FOREIGN KEY (creatorkey) REFERENCES gd_contact (id)
     ON UPDATE CASCADE
  );
  

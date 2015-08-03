@@ -17,7 +17,6 @@ var
   FTransaction: TIBTransaction;
   FIBSQL: TIBSQL;
 begin
-  Log('Начато добавление таблиц GD_AUTOTASK и GD_AUTOTASK_LOG');
   FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
@@ -26,8 +25,6 @@ begin
       FIBSQL := TIBSQL.Create(nil);
       try
         FIBSQL.Transaction := FTransaction;
-
-        //DropField2('EVT_MACROSLIST', 'RUNONLOGIN', FTransaction);
 
         if not RelationExist2('GD_AUTOTASK', FTransaction) then
         begin
@@ -96,94 +93,6 @@ begin
           'BEGIN '#13#10 +
           '  IF (NEW.id IS NULL) THEN '#13#10 +
           '    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
-          'END';
-        FIBSQL.ExecQuery;
-
-        FIBSQL.SQL.Text :=
-          'CREATE OR ALTER TRIGGER gd_biu_autotask FOR gd_autotask '#13#10 +
-          '  BEFORE INSERT OR UPDATE '#13#10 +
-          '  POSITION 27000 '#13#10 +
-          'AS '#13#10 +
-          'BEGIN '#13#10 +
-          '  IF (NOT NEW.atstartup IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.exactdate = NULL; '#13#10 +
-          '    NEW.monthly = NULL; '#13#10 +
-          '    NEW.weekly = NULL; '#13#10 +
-          '    NEW.daily = NULL; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (NOT NEW.exactdate IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.atstartup = NULL; '#13#10 +
-          '    NEW.monthly = NULL; '#13#10 +
-          '    NEW.weekly = NULL; '#13#10 +
-          '    NEW.daily = NULL; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (NOT NEW.monthly IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.atstartup = NULL; '#13#10 +
-          '    NEW.exactdate = NULL; '#13#10 +
-          '    NEW.weekly = NULL; '#13#10 +
-          '    NEW.daily = NULL; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (NOT NEW.weekly IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.atstartup = NULL; '#13#10 +
-          '    NEW.exactdate = NULL; '#13#10 +
-          '    NEW.monthly = NULL; '#13#10 +
-          '    NEW.daily = NULL; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (NOT NEW.daily IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.atstartup = NULL; '#13#10 +
-          '    NEW.exactdate = NULL; '#13#10 +
-          '    NEW.monthly = NULL; '#13#10 +
-          '    NEW.weekly = NULL; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (NOT NEW.functionkey IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.autotrkey = NULL; '#13#10 +
-          '    NEW.reportkey = NULL; '#13#10 +
-          '    NEW.cmdline = NULL; '#13#10 +
-          '    NEW.backupfile = NULL; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (NOT NEW.autotrkey IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.functionkey = NULL; '#13#10 +
-          '    NEW.reportkey = NULL; '#13#10 +
-          '    NEW.cmdline = NULL; '#13#10 +
-          '    NEW.backupfile = NULL; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (NOT NEW.reportkey IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.functionkey = NULL; '#13#10 +
-          '    NEW.autotrkey = NULL; '#13#10 +
-          '    NEW.cmdline = NULL; '#13#10 +
-          '    NEW.backupfile = NULL; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (NOT NEW.cmdline IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.functionkey = NULL; '#13#10 +
-          '    NEW.autotrkey = NULL; '#13#10 +
-          '    NEW.reportkey = NULL; '#13#10 +
-          '    NEW.backupfile = NULL; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (NOT NEW.backupfile IS NULL) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    NEW.functionkey = NULL; '#13#10 +
-          '    NEW.autotrkey = NULL; '#13#10 +
-          '    NEW.reportkey = NULL; '#13#10 +
-          '    NEW.cmdline = NULL; '#13#10 +
-          '  END '#13#10 +
           'END';
         FIBSQL.ExecQuery;
 
@@ -289,17 +198,16 @@ begin
           '  VALUES (220, ''0000.0001.0000.0251'', ''05.06.2015'', ''Added PULSE field to GD_AUTOTASK.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
-        FIBSQL.Close;
-
-        FTransaction.Commit;
-        Log('Добавление таблиц GD_AUTOTASK и GD_AUTOTASK_LOG успешно завершено');
       finally
         FIBSQL.Free;
       end;
+
+      FTransaction.Commit;
     except
       on E: Exception do
       begin
-        FTransaction.Rollback;
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
         Log(E.Message);
       end;
     end;
