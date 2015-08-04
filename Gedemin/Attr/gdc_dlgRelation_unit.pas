@@ -1493,7 +1493,10 @@ function Tgdc_dlgRelation.TestCorrect: Boolean;
       Inc(ACount);
 
     for I := 0 to CE.Count - 1 do
-      _Traverse(CE.Children[I], ARN, ACount);
+    begin
+      if (not CE.Children[I].VirtualSubType) and (not (CE.Children[I] is TgdStorageEntry)) then
+        _Traverse(CE.Children[I], ARN, ACount);
+    end;
   end;
 
   function CanInherit(const RID: TID): Boolean;
@@ -1550,7 +1553,8 @@ begin
   begin
     MessageBox(Handle,
       PChar(
-      'Нельзя наследовать класс от таблицы ' + ibcmbReference.Text),
+      'Нельзя наследовать класс от таблицы ' + ibcmbReference.Text + #13#10 +
+      'так как в БД присутствуют несколько классов для которых данная таблица указана как DistinctRelation.'),
       'Внимание', MB_OK or MB_ICONEXCLAMATION);
     Result := False;
   end;

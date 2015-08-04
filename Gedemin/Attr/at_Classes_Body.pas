@@ -3719,8 +3719,8 @@ begin
       'WHERE '#13#10 +
       '  a.relationname = :RN AND '#13#10 +
       '  a.fieldname = :FN';
-    ibsql.FieldByName('RN').AsString := FRelation.RelationName;
-    ibsql.FieldByName('FN').AsString := FFieldName;
+    ibsql.ParamByName('RN').AsString := FRelation.RelationName;
+    ibsql.ParamByName('FN').AsString := FFieldName;
     ibsql.ExecQuery;
 
     if not ibsql.EOF then
