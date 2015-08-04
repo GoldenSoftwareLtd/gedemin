@@ -1249,8 +1249,7 @@ class function TgdcDocument.GetDocumentClass(const TypeKey: Integer;
   const DocClassPart: TgdcDocumentClassPart): TgdcFullClass;
 var
   S: String;
-  ibsql: TIBSQL;
-  ClName: String;
+  DE: TgdDocumentEntry;
 begin
   //dcpHeader, dcpLine
   Result.gdClass := nil;
@@ -1259,57 +1258,12 @@ begin
 
   if TypeKey >= cstUserIDStart then
   begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := gdcBaseManager.ReadTransaction;
-      ibsql.SQL.Text :=
-        ' SELECT dt.ruid, dt.classname, dt1.classname as folderclassname ' +
-        ' FROM gd_documenttype dt LEFT JOIN gd_documenttype dt1 ON dt.lb >= dt1.lb AND ' +
-        ' dt.rb <= dt1.rb WHERE dt.id = :id' ;
-      ibsql.ParamByName('id').AsInteger := TypeKey;
-      ibsql.ExecQuery;
-      S := '';
-
-      if ibsql.RecordCount > 0 then
-      begin
-        if Trim(ibsql.FieldByName('classname').AsString) = '' then
-          ClName := ibsql.FieldByname('folderclassname').AsString
-        else
-          ClName := ibsql.FieldByname('classname').AsString;
-
-        if AnsiCompareText(ClName, 'TgdcInvDocumentType') = 0 then
-        begin
-          if DocClassPart = dcpHeader then
-            S := 'TgdcInvDocument'
-          else
-            S := 'TgdcInvDocumentLine';
-        end
-        else
-          if ANSICompareText(ClName, 'TgdcInvPriceListType') = 0 then
-          begin
-            if DocClassPart = dcpHeader then
-              S := 'TgdcInvPriceList'
-            else
-              S := 'TgdcInvPriceListLine';
-          end
-          else
-            if ANSICompareText(ClName, 'TgdcUserDocumentType') = 0 then
-            begin
-              if DocClassPart = dcpHeader then
-                S := 'TgdcUserDocument'
-              else
-                S := 'TgdcUserDocumentLine';
-            end;
-        if S <> '' then
-        begin
-          Result.gdClass := CgdcBase(GetClass(S));
-          Result.SubType := ibsql.FieldByName('ruid').AsString;
-        end;
-      end;
-
-    finally
-      ibsql.Free;
-    end;
+     DE := gdClassList.FindDocByTypeID(TypeKey, DocClassPart);
+     if (DE <> nil) and (DE.gdcClass <> nil) then
+     begin
+       Result.gdClass := CgdcBase(DE.gdcClass);
+       Result.SubType := DE.SubType;
+     end;
   end
   else begin
     S := '';
