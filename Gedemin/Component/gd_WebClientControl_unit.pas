@@ -894,7 +894,6 @@ begin
       finally
         FEmailCS.Leave;
       end;
-      ES.Free;
     end;
   end;
 end;
