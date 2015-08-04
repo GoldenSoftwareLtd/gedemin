@@ -78,9 +78,8 @@ type
     procedure btnIPClick(Sender: TObject);
 
   private
-    FForbidExecTask: Boolean;
-
-    procedure OnWebClientThreadNotify(var Msg : TMessage); message WM_GD_FINISH_SEND_EMAIL;
+    procedure OnWebClientThreadNotify(var Msg : TMessage);
+      message WM_GD_FINISH_SEND_EMAIL;
 
   public
     procedure SetupRecord; override;
@@ -99,20 +98,23 @@ uses
   jclSysInfo;
 
 procedure Tgdc_dlgAutoTask.OnWebClientThreadNotify(var Msg : TMessage);
+var
+  State: TgdEmailMessageState;
+  ErrorMsg: String;
 begin
-  FForbidExecTask := False;
-  
-  if Msg.WParam = 1 then
-    MessageDlg('Сообщение отправлено.',
-      mtInformation,
-      [mbOk],
-      0)
-  else
-    MessageDlg('Сбой при отправке сообщения: ' +
-      String(PChar(Pointer(Msg.LParam))),
-      mtError,
-      [mbOk],
-      0);
+  if gdWebClientThread.GetEmailState(Msg.WParam, State, ErrorMsg) then
+  begin
+    if State = emsSent then
+      MessageBox(Handle,
+        'Сообщение отправлено.',
+        'Внимание',
+        MB_OK or MB_ICONINFORMATION or MB_TASKMODAL)
+    else
+      MessageBox(Handle,
+        PChar(ErrorMsg),
+        'Ошибка',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  end;
 end;
 
 procedure Tgdc_dlgAutoTask.SetupRecord;
@@ -359,19 +361,7 @@ begin
     end;
 
     if Task <> nil then
-    begin
-      FForbidExecTask := True;
-      
-      try
-        Task.TaskExecuteForDlg;
-      except
-        on E: Exception do
-        begin
-          FForbidExecTask := False;
-          raise;
-        end;
-      end;
-    end;
+      Task.TaskExecuteForDlg;
   finally
     FreeAndNil(Task);
   end;
@@ -386,8 +376,8 @@ begin
     or ((pcTask.ActivePage = tsReport) and (iblkupReport.CurrentKeyInt > 0)
       and (dbcbExportType.Text > '')
       and ((iblkupGroup.CurrentKeyInt > 0) or (dbeRecipients.Text > ''))
-      and (not FForbidExecTask)
-      );
+      and (gdWebClientThread <> nil)
+      and (gdWebClientThread.EmailCount = 0));
 end;
 
 procedure Tgdc_dlgAutoTask.btnCNClick(Sender: TObject);

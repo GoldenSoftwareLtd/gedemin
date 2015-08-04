@@ -13,7 +13,7 @@ type
 
   TgdEmailMessage = class(TObject)
   private
-    FID: Integer;
+    FID: Word;
     FRecipients: String;
     FSubject: String;
     FBodyText: String;
@@ -37,7 +37,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    property ID: Integer read FID write FID;
+    property ID: Word read FID write FID;
     property Recipients: String read FRecipients write FRecipients;
     property Subject: String read FSubject write FSubject;
     property BodyText: String read FBodyText write FBodyText;
@@ -140,6 +140,8 @@ type
     procedure BuildAndSendReport(AReportKey: Integer; AnExportType: String;
       ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
       AWndHandle: THandle; AThreadID: THandle; AnAutoTaskKey: Integer);
+
+    function GetEmailState(const AnID: Word; out AState: TgdEmailMessageState; out AnErrorMsg: String): Boolean;
 
     procedure WaitingSendingEmail;
 
@@ -368,6 +370,8 @@ begin
 end;
 
 function TgdWebClientThread.ProcessMessage(var Msg: TMsg): Boolean;
+var
+  J: Integer;
 begin
   Result := True;
   case Msg.Message of
@@ -412,13 +416,30 @@ begin
           and (FErrorToSend.Value > '') then
         begin
           DoSendError;
-        end;  
+        end;
         FErrorToSend.Value := '';
       end;
-      
+
     WM_GD_SEND_EMAIL:
       begin
         DoSendEMail;
+      end;
+
+    WM_GD_FREE_EMAIL_MESSAGE:
+      if FEmailCS <> nil then
+      begin
+        FEmailCS.Enter;
+        try
+          if FEmails <> nil then
+            for J := 0 to FEmails.Count - 1 do
+              if (FEmails[J] as TgdEmailMessage).ID = Msg.WParam then
+              begin
+                FEmails.Delete(J);
+                break;
+              end;
+        finally
+          FEmailCS.Leave;
+        end;
       end;
   else
     Result := False;
@@ -642,7 +663,6 @@ begin
   try
     if FEmails = nil then
       FEmails := TObjectList.Create(True);
-
     FEmails.Add(ES);
   finally
     FEMailCS.Leave;
@@ -814,7 +834,7 @@ var
   ES: TgdEmailMessage;
   J: Integer;
 begin
-  while True do
+  while FEmailCS <> nil do
   begin
     ES := nil;
 
@@ -1010,16 +1030,46 @@ begin
 end;
 
 function TgdWebClientThread.GetEmailCount: Integer;
+var
+  I: Integer;
 begin
-  if FEmailCS = nil then
-    Result := 0
-  else begin
+  Result := 0;
+  if FEmailCS <> nil then
+  begin
     FEmailCS.Enter;
     try
-      if FEmails = nil then
-        Result := 0
-      else
-        Result := FEmails.Count;
+      if FEmails <> nil then
+      begin
+        for I := 0 to FEmails.Count - 1 do
+          if (FEmails[I] as TgdEmailMessage).State in [emsReady, emsSending] then
+            Result := Result + 1;
+      end;      
+    finally
+      FEmailCS.Leave;
+    end;
+  end;
+end;
+
+function TgdWebClientThread.GetEmailState(const AnID: Word;
+  out AState: TgdEmailMessageState; out AnErrorMsg: String): Boolean;
+var
+  J: Integer;
+begin
+  Result := False;
+
+  if FEmailCS <> nil then
+  begin
+    FEmailCS.Enter;
+    try
+      if FEmails <> nil then
+        for J := 0 to FEmails.Count - 1 do
+          if (FEmails[J] as TgdEmailMessage).ID = AnID then
+          begin
+            AState := (FEmails[J] as TgdEmailMessage).State;
+            AnErrorMsg := (FEmails[J] as TgdEmailMessage).ErrorMsg;
+            Result := True;
+            break;
+          end;
     finally
       FEmailCS.Leave;
     end;
