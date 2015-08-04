@@ -5,7 +5,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Db, IBDatabase, dmDataBase_unit, StdCtrls, gsIBLookupComboBox, gdcBaseInterface,
-  ActnList, frxClass, frxPreview, frxDsgnIntf, gd_WebClientControl_unit;
+  ActnList, frxClass, frxPreview, frxDsgnIntf, gd_WebClientControl_unit,
+  gd_messages_const;
 
 type
   Tdlg_EmailSend = class(TForm)

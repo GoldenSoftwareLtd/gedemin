@@ -6,10 +6,7 @@ interface
 uses
   Classes, Windows, Messages, SyncObjs, SysUtils, idHTTP, idURI, idComponent,
   idThreadSafe, gdMessagedThread, gd_FileList_unit, gd_ProgressNotifier_unit,
-  IdSSLOpenSSL, Contnrs;
-
-const
-  WM_GD_FINISH_SEND_EMAIL = WM_USER + 1126;
+  IdSSLOpenSSL, Contnrs, gd_messages_const;
 
 type
   TgdEmailMessage = class(TObject)
@@ -124,16 +121,15 @@ type
     procedure SendNameSpaceLog(ARecipients: String;
       ASubject: String; ABodyText: String; AFileName: String);
 
-
-    procedure SendEMail(ARecipients: String; ASubject: String; ABodyText: String;
-      AFromEMail: String; AServer: String; APort: Integer;
-      ALogin: String; APassw: String; AnIPSec: String; ATimeOut: Integer;
-      AFileName: String = ''; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False;
-      AHandle: THandle = 0; AThreadID: THandle = 0; AnAutoTaskKey: Integer = 0);
+    procedure SendEMail(const ARecipients: String; const ASubject: String;
+      const ABodyText: String; const AFromEMail: String; const AServer: String;
+      const APort: Integer; const ALogin: String; const APassw: String; const AnIPSec: String;
+      const ATimeOut: Integer; const AFileName: String = ''; const AWipeFile: Boolean = False;
+      const AWipeDirectory: Boolean = False; const AHandle: THandle = 0; const AThreadID: THandle = 0;
+      const AnAutoTaskKey: Integer = 0);
 
     procedure SendReport(ARecipients: String; ASubject: String;
       ABodyText: String; ASMTPKey: Integer; AFileName: String; AHandle: THandle);
-
 
     procedure BuildAndSendReport(AReportKey: Integer; AnExportType: String;
       ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
@@ -609,11 +605,11 @@ begin
     True, True);
 end;
 
-procedure TgdWebClientThread.SendEMail(ARecipients: String; ASubject: String; ABodyText: String;
-  AFromEMail: String; AServer: String; APort: Integer;
-  ALogin: String; APassw: String; AnIPSec: String; ATimeOut: Integer;
-  AFileName: String = ''; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False;
-  AHandle: THandle = 0; AThreadID: THandle = 0; AnAutoTaskKey: Integer = 0);
+procedure TgdWebClientThread.SendEMail(const ARecipients: String; const ASubject: String;
+  const ABodyText: String; const AFromEMail: String; const AServer: String; const APort: Integer;
+  const ALogin: String; const APassw: String; const AnIPSec: String; const ATimeOut: Integer;
+  const AFileName: String = ''; const AWipeFile: Boolean = False; const AWipeDirectory: Boolean = False;
+  const AHandle: THandle = 0; const AThreadID: THandle = 0; const AnAutoTaskKey: Integer = 0);
 var
   ES: TgdEmailMessage;
 begin

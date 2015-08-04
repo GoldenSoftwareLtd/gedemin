@@ -168,7 +168,7 @@ uses
   Forms, at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
   scr_i_FunctionList, gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security,
   gdNotifierThread_unit, gd_ProgressNotifier_unit, IBServices,
-  gd_common_functions, gd_directories_const, jclSysInfo;
+  gd_common_functions, gd_directories_const, gd_messages_const, jclSysInfo;
 
 const
   WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 101;

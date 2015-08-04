@@ -5,7 +5,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, StdCtrls, Mask, DBCtrls,
-  gsIBLookupComboBox, ExtCtrls, xDateEdits, ComCtrls, gd_WebClientControl_unit;
+  gsIBLookupComboBox, ExtCtrls, xDateEdits, ComCtrls, gd_WebClientControl_unit,
+  gd_messages_const;
 
 type
   Tgdc_dlgAutoTask = class(Tgdc_dlgTR)

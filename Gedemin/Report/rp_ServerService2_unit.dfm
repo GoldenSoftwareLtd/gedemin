@@ -25,12 +25,6 @@ object GedeminReportServer: TGedeminReportServer
     Left = 56
     Top = 8
   end
-  object ServerReport: TServerReport
-    OnCreateObject = ServerReportCreateObject
-    Database = gsIBDatabase
-    Left = 56
-    Top = 64
-  end
   object IBTransaction: TIBTransaction
     Active = False
     DefaultDatabase = gsIBDatabase

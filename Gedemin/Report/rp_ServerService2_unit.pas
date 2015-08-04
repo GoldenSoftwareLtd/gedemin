@@ -79,31 +79,6 @@ begin
   Result := ServiceController;
 end;
 
-(*procedure AppThreadEvent(const AnEventCode: TServerEventCode);
-begin
-  case AnEventCode of
-{    WM_USER_CLOSE_PROMT:
-      if (Service1.ServerReport.ActiveConnections = 0) or (MessageBox(0,
-       PChar(Format('К серверу отчетов подключено %d клиент(ов). Выгрузить сервер?',
-       [Service1.ServerReport.ActiveConnections])), 'Вопрос', MB_YESNO or MB_ICONQUESTION) = IDYES) then
-        Service1.Close;
-    WM_USER_CLOSE:
-      Service1.Close;}
-    WM_USER_PARAM:
-      if GedeminReportServer.ServerReport <> nil then
-        GedeminReportServer.ServerReport.ServerOptions;
-    WM_USER_REFRESH:
-      if GedeminReportServer.ServerReport <> nil then
-        GedeminReportServer.ServerReport.Load;
-    WM_USER_REBUILD:
-      if GedeminReportServer.ServerReport <> nil then
-        GedeminReportServer.ServerReport.RebuildReports;
-    WM_USER_RESET:
-      if GedeminReportServer.ServerReport <> nil then
-        GedeminReportServer.ServerReport.DeleteResult;
-  end;
-end;                 *)
-
 procedure TGedeminReportServer.ReadParams;
 var
   Reg: TRegistry;
