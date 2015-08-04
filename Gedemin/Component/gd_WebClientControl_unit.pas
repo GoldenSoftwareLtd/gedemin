@@ -12,7 +12,7 @@ const
   WM_GD_FINISH_SEND_EMAIL = WM_USER + 1126;
 
 type
-  TgdEmailSettings = class(TObject)
+  TgdEmailMessage = class(TObject)
   private
     FRecipients: String;
     FSubject: String;
@@ -80,10 +80,8 @@ type
     FMandatoryUpdate: Boolean;
     FErrorToSend: TidThreadSafeString;
     FSkipNextException: Boolean;
-
+    FEmailCS: TCriticalSection;
     FEmails: TObjectList;
-
-    FSendingEvent: TEvent;
 
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
@@ -108,6 +106,7 @@ type
     function GetSMTPSettings(ASMTPKey: Integer; out AFromMail: String;
       out AServer: String; out APort: Integer; out ALogin: String;
       out APassw: String; out AIPSec: String; out ATimeOut: Integer): Boolean;
+    function GetEmailCount: Integer;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -146,6 +145,7 @@ type
     property WebServerResponse: String read GetWebServerResponse;
     property Connected: Boolean read GetConnected;
     property InUpdate: Boolean read GetInUpdate;
+    property EmailCount: Integer read GetEmailCount;
   end;
 
   EgdWebClientThread = class(Exception);
@@ -154,7 +154,7 @@ var
   gdWebClientThread: TgdWebClientThread;
   function GetIPSec(AnIPSec: String): TIdSSLVersion;
   function GetTempDirectory: String;
-  function GetTempFileName(AnExportType: String): String;
+  function GetTempFileName(const AnExportType: String): String;
 
 implementation
 
@@ -212,44 +212,15 @@ begin
   Result := Result + '\';
 end;
 
-function GetTempFileName(AnExportType: String): String;
-var
-  //Ch: array[0..1024] of Char;
-  FileExtension: String;
-  //RandDir: String;
+function GetTempFileName(const AnExportType: String): String;
 begin
-  if AnExportType = 'DOC' then
-    FileExtension := 'doc'
-  else if AnExportType = 'XLS' then
-    FileExtension := 'xls'
-  else if AnExportType = 'PDF' then
-    FileExtension := 'pdf'
-  else if AnExportType = 'XML' then
-    FileExtension := 'xml'
-  else
-    raise Exception.Create('unknown exporttype.');
-
-  {GetTempPath(1024, Ch);
-
-  Result := IncludeTrailingBackSlash(Ch);
-
-  repeat
-    RandDir := '_gtemp' + IntToStr(100000 + Random(100000));
-  until not DirectoryExists(Result + RandDir);
-
-  Result := Result + RandDir;
-
-  if not CreateDir(Result) then
-    raise Exception.Create('Ошибка при создании директории ' + Result + '!');}
-
-  Result := GetTempDirectory + 'report' + '.' + FileExtension;
+  Result := GetTempDirectory + 'report' + '.' + AnExportType;
 end;
 
 { TgdWebClientThread }
 
 constructor TgdWebClientThread.Create;
 begin
-  FSendingEvent := TEvent.Create(nil, False, True, '');
   inherited Create(True);
   FreeOnTerminate := False;
   Priority := tpLowest;
@@ -267,7 +238,6 @@ begin
   FInUpdate := TidThreadSafeInteger.Create;
   FPath := ExtractFilePath(Application.ExeName);
   FErrorToSend := TidThreadSafeString.Create;
-  FEmails := TObjectList.Create(False);
 end;
 
 procedure TgdWebClientThread.AfterConnection;
@@ -452,6 +422,7 @@ begin
         end;  
         FErrorToSend.Value := '';
       end;
+      
     WM_GD_SEND_EMAIL:
       begin
         DoSendEMail;
@@ -478,8 +449,6 @@ begin
 end;
 
 destructor TgdWebClientThread.Destroy;
-var
-  I: Integer;
 begin
   inherited;
   FgdWebServerURL.Free;
@@ -492,10 +461,8 @@ begin
   FCmdList.Free;
   FURI.Free;
   FErrorToSend.Free;
-  for I := FEmails.Count - 1 downto 0 do
-    FEmails[I].Free;
   FEmails.Free;
-  FSendingEvent.Free;
+  FEmailCS.Free;
 end;
 
 function TgdWebClientThread.GetgdWebServerURL: String;
@@ -648,13 +615,13 @@ procedure TgdWebClientThread.SendEMail(ARecipients: String; ASubject: String; AB
   AFileName: String = ''; AWipeFile: Boolean = False; AWipeDirectory: Boolean = False;
   AHandle: THandle = 0; AThreadID: THandle = 0; AnAutoTaskKey: Integer = 0);
 var
-  ES: TgdEmailSettings;
+  ES: TgdEmailMessage;
 begin
   if (ARecipients = '') or (AFromEMail = '') or (AServer = '') or (APort < 0)
-    or (ALogin = '') or (APassw = '') or (ATimeOut < -1) then
+    or (APort > 65535) or (ALogin = '') or (ATimeOut < -1) then
     raise Exception.Create('Неверные параметры электронной почты.');
 
-  ES := TgdEmailSettings.Create;
+  ES := TgdEmailMessage.Create;
   ES.Recipients := ARecipients;
   ES.Subject := ASubject;
   ES.BodyText := ABodyText;
@@ -672,11 +639,17 @@ begin
   ES.ThreadID := AThreadID;
   ES.AutoTaskKey := AnAutoTaskKey;
 
-  Lock;
+  if FEmailCS = nil then
+    FEmailCS := TCriticalSection.Create;
+
+  FEmailCS.Enter;
   try
+    if FEmails = nil then
+      FEmails := TObjectList.Create(True);
+
     FEmails.Add(ES);
   finally
-    UnLock;
+    FEMailCS.Leave;
   end;
 
   PostMsg(WM_GD_SEND_EMAIL);
@@ -791,22 +764,9 @@ begin
 end;
 
 procedure TgdWebClientThread.WaitingSendingEmail;
-var
-  Count: Integer;
 begin
-  repeat
-    Lock;
-    try
-      Count := FEmails.Count;
-    finally
-      UnLock;
-    end;
-
-    if Count > 0 then
-      Sleep(1000);
-  until (Count = 0);
-
-  FSendingEvent.Waitfor(INFINITE);
+  while EmailCount > 0 do
+    Sleep(1000);
 end;
 
 procedure TgdWebClientThread.DoSendError;
@@ -855,101 +815,87 @@ var
   Msg: TIdMessage;
   IdSSLIOHandlerSocket: TIdSSLIOHandlerSocket;
   Attachment: TIdAttachment;
-  ES: TgdEmailSettings;
-  Count: Integer;
+  ES: TgdEmailMessage;
 begin
-  FSendingEvent.ResetEvent;
-  try
-    repeat
-      ES := nil;
+  ES := nil;
 
-      Lock;
+  while EmailCount > 0 do
+  begin
+    FEmailCS.Enter;
+    try
+      if FEmails.Count = 0 then
+        break;
+      ES := FEmails[FEmails.Count - 1] as TgdEmailMessage;
+    finally
+      FEmailCS.Leave;
+    end;
+
+    try
       try
-        if FEmails.Count > 0 then
-        begin
-          ES := TgdEmailSettings(FEmails[FEmails.Count - 1]);
-          FEmails.Delete(FEmails.Count - 1);
-        end;
-      finally
-        UnLock;
-      end;
-
-      if ES <> nil then
-      begin
+        IdSMTP := TidSMTP.Create(nil);
         try
-          try
-            IdSMTP := TidSMTP.Create(nil);
-            try
-              IdSMTP.Port := ES.Port;
-              IdSMTP.Host := ES.Server;
-              IdSMTP.AuthenticationType := atLogin;
-              IdSMTP.Username := ES.Login;
-              IdSMTP.Password := ES.Passw;
+          IdSMTP.Port := ES.Port;
+          IdSMTP.Host := ES.Server;
+          IdSMTP.AuthenticationType := atLogin;
+          IdSMTP.Username := ES.Login;
+          IdSMTP.Password := ES.Passw;
 
-              if ES.IPSec > '' then
-              begin
-                IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
-                IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(ES.IPSec);
-                IdSMTP.IOHandler := IdSSLIOHandlerSocket;
-              end;
+          if ES.IPSec > '' then
+          begin
+            IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
+            IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(ES.IPSec);
+            IdSMTP.IOHandler := IdSSLIOHandlerSocket;
+          end;
 
-              IdSMTP.Connect(ES.TimeOut);
+          IdSMTP.Connect(ES.TimeOut);
 
-              if IdSMTP.Connected then
-              begin
-                if IdSMTP.Authenticate then
-                begin
-                  Msg := TIdMessage.Create(nil);
-                  Attachment := nil;
-                  try
-                    Msg.Subject := EncodeSubj(ES.Subject);
-                    Msg.Recipients.EMailAddresses := ES.Recipients;
-                    Msg.From.Address := ES.FromEMail;
-                    Msg.Body.Text := ES.BodyText;
-                    Msg.Date := Now;
-
-                    if ES.FileName <> '' then
-                    begin
-                      Attachment := TIdAttachment.Create(Msg.MessageParts, ES.FileName);
-                      Attachment.DeleteTempFile := False;
-                    end;
-
-                    IdSMTP.Send(Msg);
-                    gdNotifierThread.Add('Сообщение отправлено', 0, 2000);
-                  finally
-                    FreeAndNil(Attachment);
-                    Msg.Free;
-                  end;
-                end;
-              end;
-            finally
-              if IdSMTP.Connected then
-                IdSMTP.Disconnect;
-              IdSMTP.Free;
-            end;
-          except
-            on E: Exception do
+          if IdSMTP.Connected then
+          begin
+            if IdSMTP.Authenticate then
             begin
-              ErrorMessage := E.Message;
-              ES.ErrorMsg := ErrorMessage;
-              gdNotifierThread.Add(ErrorMessage, 0, 2000);
+              Msg := TIdMessage.Create(nil);
+              Attachment := nil;
+              try
+                Msg.Subject := EncodeSubj(ES.Subject);
+                Msg.Recipients.EMailAddresses := ES.Recipients;
+                Msg.From.Address := ES.FromEMail;
+                Msg.Body.Text := ES.BodyText;
+                Msg.Date := Now;
+
+                if ES.FileName <> '' then
+                begin
+                  Attachment := TIdAttachment.Create(Msg.MessageParts, ES.FileName);
+                  Attachment.DeleteTempFile := False;
+                end;
+
+                IdSMTP.Send(Msg);
+                gdNotifierThread.Add('Сообщение отправлено', 0, 2000);
+              finally
+                Attachment.Free;
+                Msg.Free;
+              end;
             end;
           end;
         finally
-          ES.Free;
+          IdSMTP.Free;
+        end;
+      except
+        on E: Exception do
+        begin
+          ErrorMessage := E.Message;
+          ES.ErrorMsg := ErrorMessage;
+          gdNotifierThread.Add(ErrorMessage, 0, 2000);
         end;
       end;
-
-      Lock;
+    finally
+      FEmailCS.Enter;
       try
-        Count := FEmails.Count;
+        FEmails.Remove(ES);
       finally
-        UnLock;
+        FEmailCS.Leave;
       end;
-
-    until Count = 0;
-  finally
-    FSendingEvent.SetEvent;
+      ES.Free;
+    end;
   end;
 end;
 
@@ -1039,9 +985,23 @@ begin
   end;
 end;
 
-{ TgdEmailSettings }
+function TgdWebClientThread.GetEmailCount: Integer;
+begin
+  if (FEmailCS = nil) or (FEmails = nil) then
+    Result := 0
+  else begin
+    FEmailCS.Enter;
+    try
+      Result := FEmails.Count;
+    finally
+      FEmailCS.Leave;
+    end;
+  end;
+end;
 
-destructor TgdEmailSettings.Destroy;
+{ TgdEmailMessage }
+
+destructor TgdEmailMessage.Destroy;
 begin
   ResponseMsg;
 
@@ -1050,7 +1010,7 @@ begin
   inherited;
 end;
 
-procedure TgdEmailSettings.ResponseMsg;
+procedure TgdEmailMessage.ResponseMsg;
 var
   Msg: String;
   LP: Integer;

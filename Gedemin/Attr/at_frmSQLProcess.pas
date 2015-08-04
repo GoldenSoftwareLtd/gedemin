@@ -365,8 +365,10 @@ end;
 destructor TfrmSQLProcess.Destroy;
 var
   TempPath: array[0..1023] of Char;
+  {$IFDEF WITH_INDY}
   FN: String;
   BT : String;
+  {$ENDIF}
 begin
   frmSQLProcess := nil;
   if FSilent and (FLog.Count > 0) and (GetTempPath(SizeOf(TempPath), TempPath) > 0) then

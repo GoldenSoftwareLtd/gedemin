@@ -3987,6 +3987,8 @@ end;
 
 procedure TatBodyRelationField.Write(Writer: TWriter);
 begin
+  Assert(FField <> nil);
+
   with Writer do
   begin
     WriteString(FFieldName);
