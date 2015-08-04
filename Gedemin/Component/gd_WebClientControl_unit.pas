@@ -11,6 +11,7 @@ uses
 type
   TgdEmailMessage = class(TObject)
   private
+    FID: Integer;
     FRecipients: String;
     FSubject: String;
     FBodyText: String;
@@ -34,6 +35,7 @@ type
   public
     destructor Destroy; override;
 
+    property ID: Integer read FID write FID;
     property Recipients: String read FRecipients write FRecipients;
     property Subject: String read FSubject write FSubject;
     property BodyText: String read FBodyText write FBodyText;
@@ -79,6 +81,7 @@ type
     FSkipNextException: Boolean;
     FEmailCS: TCriticalSection;
     FEmails: TObjectList;
+    FEmailLastID: Integer;
 
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
@@ -158,17 +161,8 @@ uses
   gdcJournal, gd_security, gdcBaseInterface, gdNotifierThread_unit,
   gd_directories_const, JclFileUtils, Forms, gd_CmdLineParams_unit,
   gd_GlobalParams_unit, jclSysInfo, IdSMTP, IdMessage, IBSQL,
-  gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME, IBDatabase;
-
-const
-  WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
-  WM_GD_QUERY_SERVER           = WM_USER + 1119;
-  WM_GD_GET_FILES_LIST         = WM_USER + 1120;
-  WM_GD_UPDATE_FILES           = WM_USER + 1121;
-  WM_GD_PROCESS_UPDATE_COMMAND = WM_USER + 1122;
-  WM_GD_FINISH_UPDATE          = WM_USER + 1123;
-  WM_GD_SEND_ERROR             = WM_USER + 1124;
-  WM_GD_SEND_EMAIL             = WM_USER + 1125;
+  gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME,
+  IBDatabase;
 
 type
   TClientReportCracker = class(TClientReport);
@@ -617,7 +611,10 @@ begin
     or (APort > 65535) or (ALogin = '') or (ATimeOut < -1) then
     raise Exception.Create('Неверные параметры электронной почты.');
 
+  Inc(FEmailLastID);
+
   ES := TgdEmailMessage.Create;
+  ES.ID := FEmailLastID;
   ES.Recipients := ARecipients;
   ES.Subject := ASubject;
   ES.BodyText := ABodyText;
@@ -982,12 +979,15 @@ end;
 
 function TgdWebClientThread.GetEmailCount: Integer;
 begin
-  if (FEmailCS = nil) or (FEmails = nil) then
+  if FEmailCS = nil then
     Result := 0
   else begin
     FEmailCS.Enter;
     try
-      Result := FEmails.Count;
+      if FEmails = nil then
+        Result := 0
+      else
+        Result := FEmails.Count;
     finally
       FEmailCS.Leave;
     end;

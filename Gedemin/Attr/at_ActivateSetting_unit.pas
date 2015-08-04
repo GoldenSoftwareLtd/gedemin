@@ -3,11 +3,8 @@ unit at_ActivateSetting_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs;
-
-const
-  WM_ACTIVATESETTING = WM_USER + 30000;
-  WM_DEACTIVATESETTING = WM_USER + 30001;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  gd_messages_const;
 
 type
   TActivateSetting = class(TForm)

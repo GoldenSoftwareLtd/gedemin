@@ -293,7 +293,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdcStreamSaver, gdc_frmStreamSaver, gdcTableMetaData;
+  , gdcStreamSaver, gdc_frmStreamSaver, gdcTableMetaData, gd_messages_const;
 
 const
   cst_strTable = 'Таблица';
@@ -324,13 +324,6 @@ begin
 end;
 
 { TgdcSetting }
-
-{constructor TgdcSetting.Create(AnOwner: TComponent);
-begin
-  inherited;
-  FActivateError.Number := 0;
-  FActivateError.Description := '';
-end;}
 
 procedure TgdcSetting.AddMainSettings(FKeys: TStrings; const MainID: Integer = 0);
 var

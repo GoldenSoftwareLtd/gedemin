@@ -96,11 +96,9 @@ var
 implementation
 
 uses
-  SysUtils;
+  SysUtils, gd_messages_const;
 
 const
-  WM_GD_UPDATE_NOTIFIER = WM_USER + 2001;
-
   MinShowTime    = 2000;
   MaxShowTime    = 7000;
   TimerInterval  = 1000;

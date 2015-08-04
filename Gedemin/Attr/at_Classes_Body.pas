@@ -475,7 +475,7 @@ implementation
 uses
   Windows,           JclSysUtils,       Graphics,          Messages,
   gd_resourcestring, IBCustomDataset,   ZLib,              gd_ClassList,
-  JclStrings,        gd_security,       at_sql_setup,
+  JclStrings,        gd_security,       at_sql_setup,      gd_messages_const,
   gd_directories_const,                 at_sql_metadata,   gd_CmdLineParams_unit,
   IBUtils,           gd_splash,         at_frmIBUserList,  iberrorcodes,
   dmDatabase_unit,   IB,                IBHeader
@@ -484,10 +484,6 @@ uses
     , gd_localization_stub
   {$ENDIF}
   ;
-
-const
-  WM_STARTMULTITRANSACTION = WM_USER + 12653;
-  WM_LOGOFF                = WM_USER + 12654;
 
 procedure GetTableName(DS: TDataSet; const FieldName: String; out AliasName, TableName: String);
 var

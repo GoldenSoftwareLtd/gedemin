@@ -348,7 +348,8 @@ uses
   IBServices,               DBLogDlg,             at_frmSQLProcess,
   Storages,                 mdf_proclist,         gdModify,
   IBDatabaseInfo,           gd_DatabasesList_unit,gd_security_operationconst,
-  IBErrorCodes,             gd_common_functions,  gd_ClassList
+  IBErrorCodes,             gd_common_functions,  gd_ClassList,
+  gd_messages_const
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -359,10 +360,6 @@ procedure Register;
 begin
   RegisterComponents('gdSecurity', [TboLogin]);
 end;
-
-const
-  WM_FINISHOPENCOMPANY          = WM_USER + 25487;
-  WM_CONNECTIONLOST             = WM_USER + 25488;
 
 type
   TboLoginControlNexus = class(TForm)

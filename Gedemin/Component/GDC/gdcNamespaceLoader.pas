@@ -5,10 +5,8 @@ interface
 
 uses
   Classes, Windows, Messages, Forms, SysUtils, ContNrs, DB, IBDatabase, IBSQL,
-  yaml_parser, gdcBaseInterface, gdcBase, gdcNamespace, JclStrHashMap, gd_KeyAssoc;
-
-const
-  WM_LOAD_NAMESPACE = WM_USER + 1001;
+  yaml_parser, gdcBaseInterface, gdcBase, gdcNamespace, JclStrHashMap, gd_KeyAssoc,
+  gd_messages_const;
 
 type
   EgdcNamespaceLoader = class(Exception);

@@ -9,11 +9,7 @@ uses
   IBSQL, ActnList, Menus, gsDesktopManager, StdCtrls, dmImages_unit,
   gd_security_OperationConst, gdNotifierThread_unit, AppEvnts, Db,
   IBCustomDataSet, IBServices, gdHelp_Body, gd_createable_form, TB2Item,
-  TB2Dock, TB2Toolbar, gsIBLookupComboBox, TB2ExtItems;
-
-const
-  WM_GD_RELOGIN          = WM_USER + 25488;
-  //WM_GD_RUNONLOGINMACROS = WM_USER + 25489;
+  TB2Dock, TB2Toolbar, gsIBLookupComboBox, TB2ExtItems, gd_messages_const;
 
 type
   TCrackIBCustomDataset = class(TIBCustomDataset);
