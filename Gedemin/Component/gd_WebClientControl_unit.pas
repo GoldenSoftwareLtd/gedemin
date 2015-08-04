@@ -14,7 +14,7 @@ type
     FRecipients: String;
     FSubject: String;
     FBodyText: String;
-    FFromEMail: String;
+    FSenderEmail: String;
     FServer: String;
     FPort: Integer;
     FLogin: String;
@@ -24,7 +24,7 @@ type
     FFileName: String;
     FWipeFile: Boolean;
     FWipeDirectory: Boolean;
-    FHandle: THandle;
+    FWndHandle: THandle;
     FThreadID: THandle;
     FAutoTaskKey: Integer;
     FErrorMsg: String;
@@ -37,7 +37,7 @@ type
     property Recipients: String read FRecipients write FRecipients;
     property Subject: String read FSubject write FSubject;
     property BodyText: String read FBodyText write FBodyText;
-    property FromEMail: String read FFromEMail write FFromEMail;
+    property SenderEmail: String read FSenderEmail write FSenderEmail;
     property Server: String read FServer write FServer;
     property Port: Integer read FPort write FPort;
     property Login: String read FLogin write FLogin;
@@ -47,7 +47,7 @@ type
     property FileName: String read FFileName write FFileName;
     property WipeFile: Boolean read FWipeFile write FWipeFile;
     property WipeDirectory: Boolean read FWipeDirectory write FWipeDirectory;
-    property Handle: THandle read FHandle write FHandle;
+    property WndHandle: THandle read FWndHandle write FWndHandle;
     property ThreadID: THandle read FThreadID write FThreadID;
     property AutoTaskKey: Integer read FAutoTaskKey write FAutoTaskKey;
     property ErrorMsg: String read FErrorMsg write FErrorMsg;
@@ -122,18 +122,18 @@ type
       ASubject: String; ABodyText: String; AFileName: String);
 
     procedure SendEMail(const ARecipients: String; const ASubject: String;
-      const ABodyText: String; const AFromEMail: String; const AServer: String;
+      const ABodyText: String; const ASenderEmail: String; const AServer: String;
       const APort: Integer; const ALogin: String; const APassw: String; const AnIPSec: String;
       const ATimeOut: Integer; const AFileName: String = ''; const AWipeFile: Boolean = False;
-      const AWipeDirectory: Boolean = False; const AHandle: THandle = 0; const AThreadID: THandle = 0;
+      const AWipeDirectory: Boolean = False; const AWndHandle: THandle = 0; const AThreadID: THandle = 0;
       const AnAutoTaskKey: Integer = 0);
 
     procedure SendReport(ARecipients: String; ASubject: String;
-      ABodyText: String; ASMTPKey: Integer; AFileName: String; AHandle: THandle);
+      ABodyText: String; ASMTPKey: Integer; AFileName: String; AWndHandle: THandle);
 
     procedure BuildAndSendReport(AReportKey: Integer; AnExportType: String;
       ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
-      AHandle: THandle; AThreadID: THandle; AnAutoTaskKey: Integer);
+      AWndHandle: THandle; AThreadID: THandle; AnAutoTaskKey: Integer);
 
     procedure WaitingSendingEmail;
 
@@ -606,14 +606,14 @@ begin
 end;
 
 procedure TgdWebClientThread.SendEMail(const ARecipients: String; const ASubject: String;
-  const ABodyText: String; const AFromEMail: String; const AServer: String; const APort: Integer;
+  const ABodyText: String; const ASenderEmail: String; const AServer: String; const APort: Integer;
   const ALogin: String; const APassw: String; const AnIPSec: String; const ATimeOut: Integer;
   const AFileName: String = ''; const AWipeFile: Boolean = False; const AWipeDirectory: Boolean = False;
-  const AHandle: THandle = 0; const AThreadID: THandle = 0; const AnAutoTaskKey: Integer = 0);
+  const AWndHandle: THandle = 0; const AThreadID: THandle = 0; const AnAutoTaskKey: Integer = 0);
 var
   ES: TgdEmailMessage;
 begin
-  if (ARecipients = '') or (AFromEMail = '') or (AServer = '') or (APort < 0)
+  if (ARecipients = '') or (ASenderEmail = '') or (AServer = '') or (APort < 0)
     or (APort > 65535) or (ALogin = '') or (ATimeOut < -1) then
     raise Exception.Create('Неверные параметры электронной почты.');
 
@@ -621,7 +621,7 @@ begin
   ES.Recipients := ARecipients;
   ES.Subject := ASubject;
   ES.BodyText := ABodyText;
-  ES.FromEMail := AFromEMail;
+  ES.SenderEmail := ASenderEmail;
   ES.Server := AServer;
   ES.Port := APort;
   ES.Login := ALogin;
@@ -631,7 +631,7 @@ begin
   ES.FileName := AFileName;
   ES.WipeFile := AWipeFile;
   ES.WipeDirectory := AWipeDirectory;
-  ES.Handle := AHandle;
+  ES.WndHandle := AWndHandle;
   ES.ThreadID := AThreadID;
   ES.AutoTaskKey := AnAutoTaskKey;
 
@@ -652,7 +652,7 @@ begin
 end;
 
 procedure TgdWebClientThread.SendReport(ARecipients: String; ASubject: String;
-  ABodyText: String; ASMTPKey: Integer; AFileName: String; AHandle: THandle);
+  ABodyText: String; ASMTPKey: Integer; AFileName: String; AWndHandle: THandle);
 var
   LFromMail: String;
   LServer: String;
@@ -674,12 +674,12 @@ begin
   SendEMail(ARecipients, ASubject, ABodyText,
     LFromMail, LServer, LPort, LLogin, LPassw, LIPSec, LTimeOut,
     AFileName, True, True,
-    AHandle);
+    AWndHandle);
 end;
 
 procedure TgdWebClientThread.BuildAndSendReport(AReportKey: Integer; AnExportType: String;
   ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
-  AHandle: THandle; AThreadID: THandle; AnAutoTaskKey: Integer);
+  AWndHandle: THandle; AThreadID: THandle; AnAutoTaskKey: Integer);
 
   function GetExportType(AnExportType: String): TExportType;
   begin
@@ -748,7 +748,7 @@ begin
     SendEMail(LRecipients, LSubject, LBodyText,
       LFromMail, LServer, LPort, LLogin, LPassw, LIPSec, LTimeOut,
       LFileName, True, True,
-      AHandle, AThreadID, AnAutoTaskKey);
+      AWndHandle, AThreadID, AnAutoTaskKey);
   except
     on E: Exception do
     begin
@@ -854,7 +854,7 @@ begin
               try
                 Msg.Subject := EncodeSubj(ES.Subject);
                 Msg.Recipients.EMailAddresses := ES.Recipients;
-                Msg.From.Address := ES.FromEMail;
+                Msg.From.Address := ES.SenderEmail;
                 Msg.Body.Text := ES.BodyText;
                 Msg.Date := Now;
 
@@ -1027,8 +1027,8 @@ begin
       AutoTaskKey,
       Integer(Pointer(PChar(Msg)))
       )
-  else if Handle > 0 then
-    PostMessage(Handle,
+  else if WndHandle > 0 then
+    PostMessage(WndHandle,
       WM_GD_FINISH_SEND_EMAIL,
       LP,
       Integer(Pointer(PChar(Msg)))
