@@ -242,7 +242,13 @@ begin
   gdWebClientThread.WaitingSendingEmail;
   {$ENDIF}
 
-  FreeAndNil(gdAutoTaskThread);
+  // FreeAndNil clear the reference before destroying the object
+  if gdAutoTaskThread <> nil then
+  begin
+    gdAutoTaskThread.Free;
+    gdAutoTaskThread := nil;
+  end;
+
 
   SaveStorages;
 

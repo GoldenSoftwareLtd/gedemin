@@ -825,7 +825,7 @@ begin
     try
       if FEmails.Count = 0 then
         break;
-      ES := FEmails[FEmails.Count - 1] as TgdEmailMessage;
+      ES := FEmails[0] as TgdEmailMessage;
     finally
       FEmailCS.Leave;
     end;
