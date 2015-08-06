@@ -81,6 +81,9 @@ type
     procedure OnWebClientThreadNotify(var Msg : TMessage);
       message WM_GD_FINISH_SEND_EMAIL;
 
+  protected
+    procedure DestroyWindowHandle; override;
+
   public
     procedure SetupRecord; override;
     procedure BeforePost; override;
@@ -144,6 +147,8 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
+  Assert(gdWebClientThread <> nil);
 
   inherited;
 
@@ -389,6 +394,12 @@ procedure Tgdc_dlgAutoTask.btnIPClick(Sender: TObject);
 begin
   gdcObject.FieldByName('computer').AsString :=
     GetIPAddress(GetLocalComputerName);
+end;
+
+procedure Tgdc_dlgAutoTask.DestroyWindowHandle;
+begin
+  gdWebClientThread.ClearEmailCallbackHandle(Handle, 0);
+  inherited;
 end;
 
 initialization

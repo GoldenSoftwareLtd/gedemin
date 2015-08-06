@@ -29,7 +29,6 @@ type
     FWipeDirectory: Boolean;
     FWndHandle: THandle;
     FThreadID: THandle;
-    FAutoTaskKey: Integer;
     FErrorMsg: String;
     FState: TgdEmailMessageState;
 
@@ -53,7 +52,6 @@ type
     property WipeDirectory: Boolean read FWipeDirectory write FWipeDirectory;
     property WndHandle: THandle read FWndHandle write FWndHandle;
     property ThreadID: THandle read FThreadID write FThreadID;
-    property AutoTaskKey: Integer read FAutoTaskKey write FAutoTaskKey;
     property ErrorMsg: String read FErrorMsg write FErrorMsg;
     property State: TgdEmailMessageState read FState write FState;
   end;
@@ -104,12 +102,12 @@ type
     procedure DoSendError;
 
     procedure DoSendEMail;
-
     function GetRecipients(AGroupKey: Integer; ARecipients: String): String;
     function GetSMTPSettings(ASMTPKey: Integer; out AFromMail: String;
       out AServer: String; out APort: Integer; out ALogin: String;
       out APassw: String; out AIPSec: String; out ATimeOut: Integer): Boolean;
     function GetEmailCount: Integer;
+    function GetEmailAndLock(const AnID: Word; out AnEmailMessage: TgdEmailMessage): Boolean;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -127,23 +125,25 @@ type
     procedure SendNameSpaceLog(ARecipients: String;
       ASubject: String; ABodyText: String; AFileName: String);
 
-    procedure SendEMail(const ARecipients: String; const ASubject: String;
+    function SendEMail(const ARecipients: String; const ASubject: String;
       const ABodyText: String; const ASenderEmail: String; const AHost: String;
       const APort: Integer; const ALogin: String; const APassw: String; const AnIPSec: String;
       const ATimeOut: Integer; const AFileName: String = ''; const AWipeFile: Boolean = False;
-      const AWipeDirectory: Boolean = False; const AWndHandle: THandle = 0; const AThreadID: THandle = 0;
-      const AnAutoTaskKey: Integer = 0);
+      const AWipeDirectory: Boolean = False; const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word;
 
     procedure SendReport(ARecipients: String; ASubject: String;
       ABodyText: String; ASMTPKey: Integer; AFileName: String; AWndHandle: THandle);
 
     procedure BuildAndSendReport(AReportKey: Integer; AnExportType: String;
       ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
-      AWndHandle: THandle; AThreadID: THandle; AnAutoTaskKey: Integer);
+      AWndHandle: THandle; AThreadID: THandle);
 
-    function GetEmailState(const AnID: Word; out AState: TgdEmailMessageState; out AnErrorMsg: String): Boolean;
+    function GetEmailState(const AnID: Word; out AState: TgdEmailMessageState; out AnErrorMsg: String;
+      const AFreeEmailMessage: Boolean = True): Boolean;
 
     procedure WaitingSendingEmail;
+
+    procedure ClearEmailCallbackHandle(const AWndHandle: THandle; const AThreadID: THandle);
 
     property gdWebServerURL: String read GetgdWebServerURL write SetgdWebServerURL;
     property WebServerResponse: String read GetWebServerResponse;
@@ -168,9 +168,6 @@ uses
   gd_GlobalParams_unit, jclSysInfo, IdSMTP, IdMessage, IBSQL,
   gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME,
   IBDatabase;
-
-type
-  TClientReportCracker = class(TClientReport);
 
 function GetIPSec(AnIPSec: String): TIdSSLVersion;
 begin
@@ -623,11 +620,11 @@ begin
     True, True);
 end;
 
-procedure TgdWebClientThread.SendEMail(const ARecipients: String; const ASubject: String;
+function TgdWebClientThread.SendEMail(const ARecipients: String; const ASubject: String;
   const ABodyText: String; const ASenderEmail: String; const AHost: String; const APort: Integer;
   const ALogin: String; const APassw: String; const AnIPSec: String; const ATimeOut: Integer;
   const AFileName: String = ''; const AWipeFile: Boolean = False; const AWipeDirectory: Boolean = False;
-  const AWndHandle: THandle = 0; const AThreadID: THandle = 0; const AnAutoTaskKey: Integer = 0);
+  const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word;
 var
   ES: TgdEmailMessage;
 begin
@@ -654,7 +651,6 @@ begin
   ES.WipeDirectory := AWipeDirectory;
   ES.WndHandle := AWndHandle;
   ES.ThreadID := AThreadID;
-  ES.AutoTaskKey := AnAutoTaskKey;
 
   if FEmailCS = nil then
     FEmailCS := TCriticalSection.Create;
@@ -669,6 +665,7 @@ begin
   end;
 
   PostMsg(WM_GD_SEND_EMAIL);
+  Result := FEmailLastID;
 end;
 
 procedure TgdWebClientThread.SendReport(ARecipients: String; ASubject: String;
@@ -699,7 +696,7 @@ end;
 
 procedure TgdWebClientThread.BuildAndSendReport(AReportKey: Integer; AnExportType: String;
   ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
-  AWndHandle: THandle; AThreadID: THandle; AnAutoTaskKey: Integer);
+  AWndHandle: THandle; AThreadID: THandle);
 
   function GetExportType(AnExportType: String): TExportType;
   begin
@@ -760,7 +757,7 @@ begin
   ClientReport.FileName := LFileName;
   try
     B := VarArrayOf([]);
-    TClientReportCracker(ClientReport).BuildReportWithParam(AReportKey, B);
+    ClientReport.BuildReportWithParam(AReportKey, B);
 
     LSubject := GetSubject(AReportKey);
     LBodyText := GetBodyText(AReportKey);
@@ -768,7 +765,7 @@ begin
     SendEMail(LRecipients, LSubject, LBodyText,
       LFromMail, LServer, LPort, LLogin, LPassw, LIPSec, LTimeOut,
       LFileName, True, True,
-      AWndHandle, AThreadID, AnAutoTaskKey);
+      AWndHandle, AThreadID);
   except
     on E: Exception do
     begin
@@ -833,6 +830,20 @@ var
   Attachment: TIdAttachment;
   ES: TgdEmailMessage;
   J: Integer;
+  _ID: Word;
+  _Recipients: String;
+  _Subject: String;
+  _BodyText: String;
+  _SenderEmail: String;
+  _Host: String;
+  _Port: Integer;
+  _Login: String;
+  _Passw: String;
+  _IPSec: String;
+  _TimeOut: Integer;
+  _FileName: String;
+  _WndHandle: THandle;
+  _ThreadID: THandle;
 begin
   while FEmailCS <> nil do
   begin
@@ -846,6 +857,20 @@ begin
         begin
           ES := FEmails[J] as TgdEmailMessage;
           ES.State := emsSending;
+          _ID := ES.ID;
+          _Port := ES.Port;
+          _Host := ES.Host;
+          _Login := ES.Login;
+          _Passw := ES.Passw;
+          _IPSec := ES.IPSec;
+          _TimeOut := ES.TimeOut;
+          _Subject := ES.Subject;
+          _Recipients := ES.Recipients;
+          _SenderEmail := ES.SenderEmail;
+          _BodyText := ES.BodyText;
+          _FileName := ES.FileName;
+          _WndHandle := ES.WndHandle;
+          _ThreadID := ES.ThreadID;
           break;
         end;
       end;
@@ -859,20 +884,20 @@ begin
     try
       IdSMTP := TidSMTP.Create(nil);
       try
-        IdSMTP.Port := ES.Port;
-        IdSMTP.Host := ES.Host;
+        IdSMTP.Port := _Port;
+        IdSMTP.Host := _Host;
         IdSMTP.AuthenticationType := atLogin;
-        IdSMTP.Username := ES.Login;
-        IdSMTP.Password := ES.Passw;
+        IdSMTP.Username := _Login;
+        IdSMTP.Password := _Passw;
 
-        if ES.IPSec > '' then
+        if _IPSec > '' then
         begin
           IdSSLIOHandlerSocket := TIdSSLIOHandlerSocket.Create(IdSMTP);
-          IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(ES.IPSec);
+          IdSSLIOHandlerSocket.SSLOptions.Method := GetIPSec(_IPSec);
           IdSMTP.IOHandler := IdSSLIOHandlerSocket;
         end;
 
-        IdSMTP.Connect(ES.TimeOut);
+        IdSMTP.Connect(_TimeOut);
 
         if IdSMTP.Connected then
         begin
@@ -881,22 +906,22 @@ begin
             Msg := TIdMessage.Create(nil);
             Attachment := nil;
             try
-              Msg.Subject := EncodeSubj(ES.Subject);
-              Msg.Recipients.EMailAddresses := ES.Recipients;
-              Msg.From.Address := ES.SenderEmail;
-              Msg.Body.Text := ES.BodyText;
+              Msg.Subject := EncodeSubj(_Subject);
+              Msg.Recipients.EMailAddresses := _Recipients;
+              Msg.From.Address := _SenderEmail;
+              Msg.Body.Text := _BodyText;
               Msg.Date := Now;
 
-              if ES.FileName <> '' then
+              if _FileName > '' then
               begin
-                Attachment := TIdAttachment.Create(Msg.MessageParts, ES.FileName);
+                Attachment := TIdAttachment.Create(Msg.MessageParts, _FileName);
                 Attachment.DeleteTempFile := False;
               end;
 
               IdSMTP.Send(Msg);
-              gdNotifierThread.Add('Сообщение отправлено ' + ES.Subject, 0, 2000);
+              gdNotifierThread.Add('Сообщение отправлено ' + _Subject, 0, 2000);
 
-              FEmailCS.Enter;
+              if GetEmailAndLock(_ID, ES) then
               try
                 ES.State := emsSent;
               finally
@@ -908,10 +933,11 @@ begin
             end;
           end else
           begin
-            FEmailCS.Enter;
+            if GetEmailAndLock(_ID, ES) then
             try
               ES.State := emsError;
               ES.ErrorMsg := 'Can not authenticate';
+              gdNotifierThread.Add('Ошибка аутентификации при отправке почты', 0, 2000);
             finally
               FEmailCS.Leave;
             end;
@@ -923,7 +949,7 @@ begin
     except
       on E: Exception do
       begin
-        FEmailCS.Enter;
+        if GetEmailAndLock(_ID, ES) then
         try
           ES.State := emsError;
           ES.ErrorMsg := E.Message;
@@ -934,12 +960,12 @@ begin
       end;
     end;
 
-    if ES.ThreadID > 0 then
-      PostThreadMessage(ES.ThreadID, WM_GD_FINISH_SEND_EMAIL, ES.ID, 0)
-    else if ES.WndHandle > 0 then
-      PostMessage(ES.WndHandle, WM_GD_FINISH_SEND_EMAIL, ES.ID, 0)
+    if _ThreadID > 0 then
+      PostThreadMessage(_ThreadID, WM_GD_FINISH_SEND_EMAIL, _ID, 0)
+    else if _WndHandle > 0 then
+      PostMessage(_WndHandle, WM_GD_FINISH_SEND_EMAIL, _ID, 0)
     else
-      PostMsg(WM_GD_FREE_EMAIL_MESSAGE, ES.ID);
+      PostMsg(WM_GD_FREE_EMAIL_MESSAGE, _ID);
   end;
 end;
 
@@ -1050,8 +1076,24 @@ begin
   end;
 end;
 
-function TgdWebClientThread.GetEmailState(const AnID: Word;
-  out AState: TgdEmailMessageState; out AnErrorMsg: String): Boolean;
+function TgdWebClientThread.GetEmailState(const AnID: Word; out AState: TgdEmailMessageState;
+  out AnErrorMsg: String; const AFreeEmailMessage: Boolean = True): Boolean;
+var
+  ES: TgdEmailMessage;
+begin
+  if GetEmailAndLock(AnID, ES) then
+  begin
+    AState := ES.State;
+    AnErrorMsg := ES.ErrorMsg;
+    if AFreeEmailMessage then
+      PostMsg(WM_GD_FREE_EMAIL_MESSAGE, ES.ID);
+    FEmailCS.Leave;
+    Result := True;
+  end else
+    Result := False;
+end;
+
+function TgdWebClientThread.GetEmailAndLock(const AnID: Word; out AnEmailMessage: TgdEmailMessage): Boolean;
 var
   J: Integer;
 begin
@@ -1065,11 +1107,40 @@ begin
         for J := 0 to FEmails.Count - 1 do
           if (FEmails[J] as TgdEmailMessage).ID = AnID then
           begin
-            AState := (FEmails[J] as TgdEmailMessage).State;
-            AnErrorMsg := (FEmails[J] as TgdEmailMessage).ErrorMsg;
+            AnEmailMessage := FEmails[J] as TgdEmailMessage;
             Result := True;
             break;
           end;
+    finally
+      if not Result then
+        FEmailCS.Leave;
+    end;
+  end;
+end;
+
+procedure TgdWebClientThread.ClearEmailCallbackHandle(const AWndHandle,
+  AThreadID: THandle);
+var
+  J: Integer;
+  ES: TgdEmailMessage;
+begin
+  if FEmailCS <> nil then
+  begin
+    FEmailCS.Enter;
+    try
+      if FEmails <> nil then
+        for J := 0 to FEmails.Count - 1 do
+        begin
+          ES := FEmails[J] as TgdEmailMessage;
+          if ((AWndHandle <> 0) and (ES.WndHandle = AWndHandle))
+            or ((AThreadID <> 0) and (ES.ThreadID = AThreadID)) then
+          begin
+            ES.WndHandle := 0;
+            ES.ThreadID := 0;
+            if ES.State <> emsReady then
+              PostMsg(WM_GD_FREE_EMAIL_MESSAGE, ES.ID);
+          end;
+        end;
     finally
       FEmailCS.Leave;
     end;

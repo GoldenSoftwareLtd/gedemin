@@ -410,7 +410,7 @@ procedure TgdAutoReportTask.TaskExecute;
 begin
   try
     gdWebClientThread.BuildAndSendReport(ReportKey, ExportType, Recipients,
-      GroupKey, SMTPKey, Handle, ThreadID, ID);
+      GroupKey, SMTPKey, Handle, ThreadID);
   except
     on E: Exception do
       FErrorMsg := E.Message;
