@@ -1,6 +1,6 @@
 object gdc_dlgG: Tgdc_dlgG
-  Left = 899
-  Top = 402
+  Left = 416
+  Top = 248
   HelpContext = 114
   BorderIcons = [biSystemMenu, biMaximize]
   BorderStyle = bsDialog
@@ -102,14 +102,14 @@ object gdc_dlgG: Tgdc_dlgG
     object actNextRecord: TAction
       Caption = 'Cлед'
       ImageIndex = 46
-      ShortCut = 49230
+      ShortCut = 16462
       OnExecute = actNextRecordExecute
       OnUpdate = actNextRecordUpdate
     end
     object actPrevRecord: TAction
       Caption = 'Пред'
       ImageIndex = 45
-      ShortCut = 49232
+      ShortCut = 16464
       OnExecute = actPrevRecordExecute
       OnUpdate = actPrevRecordUpdate
     end
