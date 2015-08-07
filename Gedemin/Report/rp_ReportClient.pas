@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2010 by Golden Software of Belarus
+  Copyright (c) 2001 - 2015 by Golden Software of Belarus
 
   Module
 
@@ -36,8 +36,8 @@ interface
 
 uses
   Classes, SysUtils, IBDatabase, rp_BaseReport_unit, rp_ClassReportFactory,
-  {rp_vwReport_unit, }rp_ErrorMsgFactory, rp_prgReportCount_unit, rp_ReportServer,
-  {IBSQL, ScktComp,} Forms, rp_report_const, rp_i_ReportBuilder_unit;
+  rp_ErrorMsgFactory, rp_prgReportCount_unit, rp_ReportServer,
+  Forms, rp_report_const, rp_i_ReportBuilder_unit;
 
 const
   ScriptControlNotRegister = 'Класс Microsoft Script Control не зарегистрирован.';
@@ -47,8 +47,6 @@ const
 type
   TClientReport = class(TBaseReport)
   private
-//    FibsqlServerName: TIBSQL;
-
     FReportFactory: TReportFactory;
 
     FUniqueValue: Cardinal;
@@ -75,10 +73,10 @@ type
     procedure ClientEvent(const AnReportData: TCustomReport; const AnTempParam: Variant;
       const AnReportResult: TReportResult; const AnBaseQueryList: Variant);
     procedure CheckLoaded;
+
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-    procedure BuildReportWithParam(const AnReportKey: Integer; const AnParam: Variant;
-      const AnIsRebuild: Boolean = False);
+
   public
     constructor Create(Owner: TComponent); override;
     destructor Destroy; override;
@@ -92,6 +90,8 @@ type
     procedure Refresh; override;
     function DoAction(const AnKey: Integer; const AnAction: TActionType): Boolean;
     procedure Clear;
+    procedure BuildReportWithParam(const AnReportKey: Integer; const AnParam: Variant;
+      const AnIsRebuild: Boolean = False);
 
   published
     property OnCreateConst;

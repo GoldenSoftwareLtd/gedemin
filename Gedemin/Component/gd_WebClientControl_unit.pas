@@ -31,6 +31,7 @@ type
     FThreadID: THandle;
     FErrorMsg: String;
     FState: TgdEmailMessageState;
+    FSynchronousSend: Boolean;
 
   public
     constructor Create;
@@ -54,6 +55,7 @@ type
     property ThreadID: THandle read FThreadID write FThreadID;
     property ErrorMsg: String read FErrorMsg write FErrorMsg;
     property State: TgdEmailMessageState read FState write FState;
+    property SynchronousSend: Boolean read FSynchronousSend write FSynchronousSend;
   end;
 
   TgdWebClientThread = class(TgdMessagedThread)
@@ -83,6 +85,7 @@ type
     FEmailCS: TCriticalSection;
     FEmails: TObjectList;
     FEmailLastID: Integer;
+    FEmailErrorMsg: String;
 
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
@@ -125,18 +128,26 @@ type
     procedure SendNameSpaceLog(ARecipients: String;
       ASubject: String; ABodyText: String; AFileName: String);
 
-    function SendEMail(const ARecipients: String; const ASubject: String;
-      const ABodyText: String; const ASenderEmail: String; const AHost: String;
-      const APort: Integer; const ALogin: String; const APassw: String; const AnIPSec: String;
-      const ATimeOut: Integer; const AFileName: String = ''; const AWipeFile: Boolean = False;
-      const AWipeDirectory: Boolean = False; const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word;
-
-    procedure SendReport(ARecipients: String; ASubject: String;
-      ABodyText: String; ASMTPKey: Integer; AFileName: String; AWndHandle: THandle);
-
-    procedure BuildAndSendReport(AReportKey: Integer; AnExportType: String;
-      ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
-      AWndHandle: THandle; AThreadID: THandle);
+    function SendEMail(const AHost: String; const APort: Integer;
+      const AnIPSec: String; const ATimeOut: Integer;
+      const ALogin: String; const APassw: String;
+      const ASenderEmail: String; const ARecipients: String;
+      const ASubject: String; const ABodyText: String;
+      const AFileName: String = ''; const AWipeFile: Boolean = False;
+      const AWipeDirectory: Boolean = False;
+      const Sync: Boolean = False;
+      const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word; overload;
+    function SendEMail(const ASMTPKey: Integer;
+      const ARecipients: String;
+      const ASubject: String; const ABodyText: String;
+      const AFileName: String = ''; const AWipeFile: Boolean = False;
+      const AWipeDirectory: Boolean = False;
+      const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word; overload;
+    function SendEMail(const ASMTPKey: Integer;
+      const ARecipients: String;
+      const ASubject: String; const ABodyText: String;
+      const AReportKey: Integer; const AnExportType: String;
+      const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word; overload;
 
     function GetEmailState(const AnID: Word; out AState: TgdEmailMessageState; out AnErrorMsg: String;
       const AFreeEmailMessage: Boolean = True): Boolean;
@@ -150,6 +161,7 @@ type
     property Connected: Boolean read GetConnected;
     property InUpdate: Boolean read GetInUpdate;
     property EmailCount: Integer read GetEmailCount;
+    property EmailErrorMsg: String read FEmailErrorMsg;
   end;
 
   EgdWebClientThread = class(Exception);
@@ -608,6 +620,7 @@ end;
 procedure TgdWebClientThread.SendNameSpaceLog(ARecipients: String;
   ASubject: String; ABodyText: String; AFileName: String);
 begin
+{
   SendEMail(ARecipients, ASubject, ABodyText,
     gd_GlobalParams.GetWebClientSMTPEmail,
     gd_GlobalParams.GetWebClientSMTPServer,
@@ -618,15 +631,22 @@ begin
     gd_GlobalParams.GetWebClientSMTPTimeout,
     AFileName,
     True, True);
+}
 end;
 
-function TgdWebClientThread.SendEMail(const ARecipients: String; const ASubject: String;
-  const ABodyText: String; const ASenderEmail: String; const AHost: String; const APort: Integer;
-  const ALogin: String; const APassw: String; const AnIPSec: String; const ATimeOut: Integer;
-  const AFileName: String = ''; const AWipeFile: Boolean = False; const AWipeDirectory: Boolean = False;
+function TgdWebClientThread.SendEMail(const AHost: String; const APort: Integer;
+  const AnIPSec: String; const ATimeOut: Integer;
+  const ALogin: String; const APassw: String;
+  const ASenderEmail: String; const ARecipients: String;
+  const ASubject: String; const ABodyText: String;
+  const AFileName: String = ''; const AWipeFile: Boolean = False;
+  const AWipeDirectory: Boolean = False;
+  const Sync: Boolean = False;
   const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word;
 var
   ES: TgdEmailMessage;
+  State: TgdEmailMessageState;
+  Delay: Integer;
 begin
   if (ARecipients = '') or (ASenderEmail = '') or (AHost = '') or (APort < 0)
     or (APort > 65535) or (ALogin = '') or (ATimeOut < -1) then
@@ -649,6 +669,7 @@ begin
   ES.FileName := AFileName;
   ES.WipeFile := AWipeFile;
   ES.WipeDirectory := AWipeDirectory;
+  ES.SynchronousSend := Sync;
   ES.WndHandle := AWndHandle;
   ES.ThreadID := AThreadID;
 
@@ -665,115 +686,22 @@ begin
   end;
 
   PostMsg(WM_GD_SEND_EMAIL);
-  Result := FEmailLastID;
-end;
 
-procedure TgdWebClientThread.SendReport(ARecipients: String; ASubject: String;
-  ABodyText: String; ASMTPKey: Integer; AFileName: String; AWndHandle: THandle);
-var
-  LFromMail: String;
-  LServer: String;
-  LPort: Integer;
-  LLogin: String;
-  LPassw: String;
-  LIPSec: String;
-  LTimeOut: Integer;
-begin
-  if not GetSMTPSettings(ASMTPKey, LFromMail, LServer,
-    LPort, LLogin, LPassw, LIPSec, LTimeOut) then
+  if Sync then
   begin
-    raise Exception.Create('not found smtp settings.');
-  end;
-
-  if ARecipients = '' then
-    raise Exception.Create('not found recipients email addresses.');
-
-  SendEMail(ARecipients, ASubject, ABodyText,
-    LFromMail, LServer, LPort, LLogin, LPassw, LIPSec, LTimeOut,
-    AFileName, True, True,
-    AWndHandle);
-end;
-
-procedure TgdWebClientThread.BuildAndSendReport(AReportKey: Integer; AnExportType: String;
-  ARecipients: String; AGroupKey: Integer; ASMTPKey: Integer;
-  AWndHandle: THandle; AThreadID: THandle);
-
-  function GetExportType(AnExportType: String): TExportType;
-  begin
-    if AnExportType = 'DOC' then
-      Result := etWord
-    else if AnExportType = 'XLS' then
-      Result := etExcel
-    else if AnExportType = 'PDF' then
-      Result := etPdf
-    else if AnExportType = 'XML' then
-      Result := etXML
-    else
-      raise Exception.Create('unknown export type.')
-  end;
-
-  function GetSubject(AReportKey: Integer): String;
-  begin
-    Result := 'Заголовок';
-  end;
-
-  function GetBodyText(AReportKey: Integer): String;
-  begin
-    Result := 'Текст'
-  end;
-
-var
-  B: Variant;
-  LRecipients: String;
-  LSubject: String;
-  LBodyText: String;
-  LFromMail: String;
-  LServer: String;
-  LPort: Integer;
-  LLogin: String;
-  LPassw: String;
-  LIPSec: String;
-  LTimeOut: Integer;
-  LFileName: String;
-begin
-  Assert(ClientReport <> nil);
-
-  if not GetSMTPSettings(ASMTPKey, LFromMail, LServer,
-    LPort, LLogin, LPassw, LIPSec, LTimeOut) then
-  begin
-    raise Exception.Create('not found smtp settings.');
-  end;
-
-  LRecipients := GetRecipients(AGroupKey, ARecipients);
-
-  if LRecipients = '' then
-    raise Exception.Create('not found recipients email addresses.');
-
-  ClientReport.ExportType := GetExportType(AnExportType);
-  ClientReport.ShowProgress := False;
-
-
-  LFileName := GetTempFileName(AnExportType);
-  ClientReport.FileName := LFileName;
-  try
-    B := VarArrayOf([]);
-    ClientReport.BuildReportWithParam(AReportKey, B);
-
-    LSubject := GetSubject(AReportKey);
-    LBodyText := GetBodyText(AReportKey);
-
-    SendEMail(LRecipients, LSubject, LBodyText,
-      LFromMail, LServer, LPort, LLogin, LPassw, LIPSec, LTimeOut,
-      LFileName, True, True,
-      AWndHandle, AThreadID);
-  except
-    on E: Exception do
+    Delay := 10;
+    while GetEmailState(FEmailLastID, State, FEmailErrorMsg, False) and (State in [emsReady, emsSending]) do
     begin
-      DeleteFile(LFileName);
-      RemoveDir(ExtractFileDir(LFileName));
-      raise;
+      Sleep(Delay);
+      Delay := Delay * 2;
     end;
-  end;
+    PostMsg(WM_GD_FREE_EMAIL_MESSAGE, FEmailLastID);
+    if State = emsSent then
+      Result := FEmailLastID
+    else
+      Result := 0;  
+  end else
+    Result := FEmailLastID;
 end;
 
 procedure TgdWebClientThread.WaitingSendingEmail;
@@ -844,6 +772,7 @@ var
   _FileName: String;
   _WndHandle: THandle;
   _ThreadID: THandle;
+  _SynchronousSend: Boolean;
 begin
   while FEmailCS <> nil do
   begin
@@ -871,6 +800,7 @@ begin
           _FileName := ES.FileName;
           _WndHandle := ES.WndHandle;
           _ThreadID := ES.ThreadID;
+          _SynchronousSend := ES.SynchronousSend;
           break;
         end;
       end;
@@ -964,7 +894,7 @@ begin
       PostThreadMessage(_ThreadID, WM_GD_FINISH_SEND_EMAIL, _ID, 0)
     else if _WndHandle > 0 then
       PostMessage(_WndHandle, WM_GD_FINISH_SEND_EMAIL, _ID, 0)
-    else
+    else if not _SynchronousSend then
       PostMsg(WM_GD_FREE_EMAIL_MESSAGE, _ID);
   end;
 end;
@@ -1145,6 +1075,95 @@ begin
       FEmailCS.Leave;
     end;
   end;
+end;
+
+function TgdWebClientThread.SendEMail(const ASMTPKey: Integer;
+  const ARecipients, ASubject, ABodyText, AFileName: String;
+  const AWipeFile, AWipeDirectory: Boolean; const AWndHandle,
+  AThreadID: THandle): Word;
+var
+  LFromMail: String;
+  LHost: String;
+  LPort: Integer;
+  LLogin: String;
+  LPassw: String;
+  LIPSec: String;
+  LTimeOut: Integer;
+begin
+  if not GetSMTPSettings(ASMTPKey, LFromMail, LHost,
+    LPort, LLogin, LPassw, LIPSec, LTimeOut) then
+  begin
+    raise Exception.Create('SMTP settings not found.');
+  end;
+
+  {
+  SendEMail(LHost, LPort, LIPSec, LTimeOut, LLogin, LPassw,
+    LFromMail, ARecipients, ASubject, ABodyText,
+    AFileName, AWipeFile, AWipeDirectory,
+    AWndHandle, AThreadID);
+  }  
+end;
+
+function TgdWebClientThread.SendEMail(const ASMTPKey: Integer;
+  const ARecipients, ASubject, ABodyText: String;
+  const AReportKey: Integer; const AnExportType: String;
+  const AWndHandle, AThreadID: THandle): Word;
+
+  function GetExportType(AnExportType: String): TExportType;
+  begin
+    if AnExportType = 'DOC' then
+      Result := etWord
+    else if AnExportType = 'XLS' then
+      Result := etExcel
+    else if AnExportType = 'PDF' then
+      Result := etPdf
+    else if AnExportType = 'XML' then
+      Result := etXML
+    else
+      raise Exception.Create('unknown export type.')
+  end;
+
+  function GetSubject(AReportKey: Integer): String;
+  begin
+    Result := 'Заголовок';
+  end;
+
+  function GetBodyText(AReportKey: Integer): String;
+  begin
+    Result := 'Текст'
+  end;
+
+var
+  B: Variant;
+  LSubject: String;
+  LBodyText: String;
+  LFileName: String;
+begin
+  Assert(ClientReport <> nil);
+
+  ClientReport.ExportType := GetExportType(AnExportType);
+  ClientReport.ShowProgress := False;
+
+  LFileName := GetTempFileName(AnExportType);
+  ClientReport.FileName := LFileName;
+  try
+    B := VarArrayOf([]);
+    ClientReport.BuildReportWithParam(AReportKey, B);
+  except
+    on E: Exception do
+    begin
+      DeleteFile(LFileName);
+      RemoveDir(ExtractFileDir(LFileName));
+      raise;
+    end;
+  end;
+
+  LSubject := GetSubject(AReportKey);
+  LBodyText := GetBodyText(AReportKey);
+
+  SendEMail(ASMTPKey, ARecipients, LSubject, LBodyText,
+    LFileName, True, True,
+    AWndHandle, AThreadID);
 end;
 
 { TgdEmailMessage }

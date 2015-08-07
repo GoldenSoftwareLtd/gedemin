@@ -170,8 +170,10 @@ begin
         RemoveDir(ExtractFileDir(FN));
         raise;
       end;
+      {
       gdWebClientThread.SendReport(edRecipients.Text, edSubject.Text,
         mBodyText.Text, iblkupSMTP.CurrentKeyInt, FN, Self.Handle);
+      }  
     finally
       CurrExport.FileName := TempFileName;
       CurrExport.ShowDialog := TempShowDialog;
