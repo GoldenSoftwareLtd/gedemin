@@ -2358,6 +2358,7 @@ begin
       MI := TMenuItem.Create(FPopupMenu);
       MI.Caption := 'Удалить';
       MI.OnClick := OnDeleteClick;
+      MI.ShortCut := ShortCut(Ord('D'), [ssCtrl]);
       FPopupMenu.Items.Add(MI);
     end;
 
@@ -3153,18 +3154,21 @@ begin
     FactCopy.OnExecute := OnCopyExecute;
     FactCopy.OnUpdate := OnCopyUpdate;
     FactCopy.Caption := 'Копировать';
+    FactCopy.ShortCut := ShortCut(Ord('C'), [ssCtrl]);
 
     FactCut := TAction.Create(Self);
     FactCut.ActionList := FActionList;
     FactCut.OnExecute := OnCutExecute;
     FactCut.OnUpdate := OnCutUpdate;
     FactCut.Caption := 'Вырезать';
+    FactCut.ShortCut := ShortCut(Ord('X'), [ssCtrl]);
 
     FactPast := TAction.Create(Self);
     FactPast.ActionList := FActionList;
     FactPast.OnExecute := OnPastExecute;
     FactPast.OnUpdate := OnPastUpdate;
     FactPast.Caption := 'Вставить';
+    FactPast.ShortCut := ShortCut(Ord('V'), [ssCtrl]);
     {$IFDEF GEDEMIN}
     FActionList.Images := dmImages.il16x16;
     FactCopy.ImageIndex := iiCopy;

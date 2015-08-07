@@ -1,6 +1,6 @@
 object dlgFunctionWisard: TdlgFunctionWisard
-  Left = 888
-  Top = 326
+  Left = 400
+  Top = 159
   Width = 793
   Height = 462
   HelpContext = 204
@@ -1000,6 +1000,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Category = 'ClipBord'
       Caption = 'Копировать'
       ImageIndex = 10
+      ShortCut = 16451
       OnExecute = actCopyExecute
       OnUpdate = actCopyUpdate
     end
@@ -1010,6 +1011,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Category = 'ClipBord'
       Caption = 'Вырезать'
       ImageIndex = 9
+      ShortCut = 16472
       OnExecute = actCutExecute
       OnUpdate = actCutUpdate
     end
@@ -1017,6 +1019,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Category = 'ClipBord'
       Caption = 'Вставить'
       ImageIndex = 11
+      ShortCut = 16470
       OnExecute = actPastExecute
       OnUpdate = actPastUpdate
     end
@@ -1031,6 +1034,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Category = 'ClipBord'
       Caption = 'Удалить'
       ImageIndex = 2
+      ShortCut = 16452
       OnExecute = actDeleteExecute
       OnUpdate = actDeleteUpdate
     end

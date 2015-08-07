@@ -42,7 +42,7 @@ implementation
 
 uses
   Classes, Forms, Windows, FileCtrl, gd_security, jclStrings, SysUtils,
-  gdcBaseInterface, at_frmSQLProcess, at_ActivateSetting_unit;
+  gdcBaseInterface, at_frmSQLProcess, at_ActivateSetting_unit, gd_messages_const;
 
 procedure TgsDBTestCase.ActivateSettings(const ASettings: String);
 var
