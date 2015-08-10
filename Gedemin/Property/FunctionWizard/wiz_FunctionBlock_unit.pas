@@ -3903,7 +3903,7 @@ end;
 
 function TVarBlock.HeaderPrefix: string;
 begin
-  Result := 'Переменная';
+  Result := 'Позиция отчета';
 end;
 
 function TVarBlock.HeaderColor: TColor;
