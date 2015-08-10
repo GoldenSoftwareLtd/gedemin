@@ -3,8 +3,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, Buttons, ComCtrls, ImgList, Menus,
-  TB2Item, TB2Toolbar, TB2Dock, DsgnIntf, gsResizerInterface {,DsgnWnds{, LibIntf};
+  StdCtrls, ExtCtrls, Buttons, ComCtrls, ImgList, Menus, gd_messages_const,
+  TB2Item, TB2Toolbar, TB2Dock, DsgnIntf, gsResizerInterface;
 
 
 type

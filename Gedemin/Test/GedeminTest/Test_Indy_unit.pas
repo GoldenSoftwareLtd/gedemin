@@ -37,7 +37,7 @@ end;
 
 procedure TgsIndyTest.Test;
 begin
-  Check(gdWebClientThread.gdWebServerURL > '', 'WebServer not found.');
+  Check(gdWebClientControl.gdWebServerURL > '', 'WebServer not found.');
 end;
 
 procedure TgsIndyTest.Test_CompareVersionStrings;

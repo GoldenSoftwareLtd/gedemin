@@ -223,7 +223,7 @@ begin
     if gd_GlobalParams.GetWebServerActive then
       gdWebServerControl.ActivateServer
     else if gd_GlobalParams.GetWebClientActive then
-      gdWebClientThread.AfterConnection;
+      gdWebClientControl.AfterConnection;
     {$ENDIF}
   end;
 end;
@@ -239,7 +239,7 @@ begin
   if not Application.Terminated then
     gdWebServerControl.DeactivateServer;
 
-  gdWebClientThread.WaitingSendingEmail;
+  gdWebClientControl.WaitingSendingEmail;
   {$ENDIF}
 
   // FreeAndNil clear the reference before destroying the object
@@ -562,7 +562,7 @@ begin
     FOldOnException(Sender, E);
 
   {$IFDEF WITH_INDY}
-  if gdWebClientThread <> nil then
+  if gdWebClientControl <> nil then
   begin
     if Screen.ActiveCustomForm <> nil then
     begin
@@ -572,7 +572,7 @@ begin
         S := Screen.ActiveCustomForm.Name;
     end else
       S := '';
-    gdWebClientThread.SendError(S + '. ' + E.ClassName + ': ' + E.Message);
+    gdWebClientControl.SendError(S + '. ' + E.ClassName + ': ' + E.Message);
   end;
   {$ENDIF}
 end;

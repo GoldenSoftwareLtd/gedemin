@@ -7,7 +7,7 @@ uses
   Windows, Messages, SysUtils, Classes, Controls, Forms, Dialogs,
   StdCtrls, DB, IBHeader, IBDatabase, IBSQL, IBCustomDataSet,
   gsIBLookupComboBoxInterface, gsIBLookupComboBox_dlgDropDown,
-  gdcBase, gdcBaseInterface, DBCtrls;
+  gdcBase, gdcBaseInterface, DBCtrls, gd_messages_const;
 
 type
   TgsSortOrder = (soNone, soAsc, soDesc);

@@ -96,7 +96,7 @@ type
 implementation
 
 uses
-  gdcClasses, gd_directories_const;
+  gdcClasses, gd_directories_const, gd_messages_const;
 
 {$R *.DFM} 
 

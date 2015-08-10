@@ -16,19 +16,19 @@ object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   object Splitter1: TSplitter
     Left = 0
     Top = 29
-    Width = 149
-    Height = 4
+    Width = 157
+    Height = 5
     Cursor = crVSplit
     Align = alTop
   end
   object ToolBar1: TToolBar
     Left = 0
     Top = 0
-    Width = 149
+    Width = 157
     Height = 29
     EdgeBorders = [ebLeft, ebTop]
     Images = ImageList1
@@ -64,17 +64,17 @@ object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
   end
   object Panel3: TPanel
     Left = 0
-    Top = 33
-    Width = 149
-    Height = 162
+    Top = 34
+    Width = 157
+    Height = 168
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object ListView1: TListView
       Left = 0
       Top = 0
-      Width = 149
-      Height = 162
+      Width = 157
+      Height = 168
       Align = alClient
       Columns = <>
       ColumnClick = False

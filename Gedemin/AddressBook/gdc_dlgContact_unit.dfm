@@ -252,6 +252,7 @@ inherited gdc_dlgContact: Tgdc_dlgContact
         Height = 17
         Caption = 'Запись отключена'
         DataField = 'DISABLED'
+        DataSource = dsgdcBase
         TabOrder = 20
         ValueChecked = '1'
         ValueUnchecked = '0'

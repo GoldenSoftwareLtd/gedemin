@@ -31,7 +31,7 @@ uses controls, classes, windows, contnrs, forms, messages, menus, ActnList,
      dlg_gsResizer_SetSize_unit, dlg_gsResizer_TabOrder_unit,
      dlg_gsResizer_Palette_unit, dlg_gsResizer_ObjectInspector_unit,
      gsCollectionEditor, dlgImageListEditor_unit, ExtCtrls,
-     dlg_gsResizer_Components_unit;
+     dlg_gsResizer_Components_unit, gd_messages_const;
 
 resourcestring
   strCut = 'Вырезать';

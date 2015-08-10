@@ -111,8 +111,6 @@ type
     FRecipients: String;
     FGroupKey: Integer;
     FSMTPKey: Integer;
-    FHandle: THandle;
-    FThreadID: THandle;
 
   protected
     procedure TaskExecute; override;
@@ -123,8 +121,6 @@ type
     property Recipients: String read FRecipients write FRecipients;
     property GroupKey: Integer read FGroupKey write FGroupKey;
     property SMTPKey: Integer read FSMTPKey write FSMTPKey;
-    property Handle: THandle read FHandle write FHandle;
-    property ThreadID: THandle read FThreadID write FThreadID;
   end;
 
 
@@ -139,8 +135,6 @@ type
     procedure FindAndExecuteTask;
     procedure UpdateTaskList;
     procedure RemoveExecuteOnceTask;
-
-    procedure DoAutoReportTaskLog(var Msg: TMsg);
 
   protected
     procedure Timeout; override;
@@ -200,7 +194,7 @@ begin
   begin
     gdAutoTaskThread.SendNotification('Ошибка при выполнении автозадачи: ' + FErrorMsg, True);
     gdAutoTaskThread.Synchronize(LogErrorMsg);
-  end else if not (Self.ClassType = TgdAutoReportTask) then
+  end else 
   begin
     gdAutoTaskThread.SendNotification('Автозадача "' + Name + '" выполнена.', True);
     gdAutoTaskThread.Synchronize(LogEndTask);
@@ -407,10 +401,35 @@ end;
 { TgdAutoReportTask }
 
 procedure TgdAutoReportTask.TaskExecute;
+var
+  R: OleVariant;
+  ToAddresses, Subj: String;
 begin
   try
-    {gdWebClientThread.BuildAndSendReport(ReportKey, ExportType, Recipients,
-      GroupKey, SMTPKey, Handle, ThreadID);}
+    if gdcBaseManager.ExecSingleQueryResult(
+      'SELECT LIST(email, '','') ' +
+      'FROM gd_contact c JOIN gd_contactlist l ' +
+      '  ON l.contactkey = c.id ' +
+      'WHERE ' +
+      '  l.groupkey = :gk ' +
+      '  AND c.email > '''' ',
+      GroupKey,
+      R) and (not VarIsNull(R[0, 0])) then
+    begin
+      if Trim(Recipients) > '' then
+        ToAddresses := Recipients + ',' + R[0, 0]
+      else
+        ToAddresses := R[0, 0];
+    end;
+
+    if gdcBaseManager.ExecSingleQueryResult(
+      'SELECT name FROM rp_reportlist WHERE id = :id', ReportKey, R) then
+    begin
+      Subj := R[0, 0];
+    end else
+      Subj := 'Отчёт';
+
+    gdWebClientControl.SendEmail(SMTPKey, ToAddresses, Subj, '', ReportKey, ExportType, True);
   except
     on E: Exception do
       FErrorMsg := E.Message;
@@ -488,7 +507,6 @@ begin
         (Task as TgdAutoReportTask).Recipients := q.FieldbyName('emailrecipients').AsString;
         (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('emailgroupkey').AsInteger;
         (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('emailsmtpkey').AsInteger;
-        (Task as TgdAutoReportTask).ThreadID := Self.ThreadId;
       end else
         Task := nil;
 
@@ -572,12 +590,6 @@ begin
     begin
       FSkipAtStartup := True;
       PostMsg(WM_GD_LOAD_TASK_LIST);
-      Result := True;
-    end;
-
-    WM_GD_FINISH_SEND_EMAIL:
-    begin
-      DoAutoReportTaskLog(Msg);
       Result := True;
     end;
   else
@@ -745,23 +757,6 @@ begin
   except
     // small chance that there would be a deadlock
     // but we don't care
-  end;
-end;
-
-procedure TgdAutoTaskThread.DoAutoReportTaskLog(var Msg: TMsg);
-begin
-  with TgdAutoTask.Create do
-    try
-      Id := Msg.WParam;
-      if String(PChar(Pointer(Msg.LParam))) = 'Done' then
-        Synchronize(LogEndTask)
-      else
-      begin
-        FErrorMsg := String(PChar(Pointer(Msg.LParam)));
-        Synchronize(LogErrorMsg);
-      end;
-  finally
-    Free;
   end;
 end;
 

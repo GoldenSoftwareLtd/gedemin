@@ -178,7 +178,6 @@ type
 
     function ShowModal: Integer; override;
 
-
     property Resizer: TgsResizeManager read FResizer;
     property CreateableFormState: TCreateableFormStates read FCreateableFormState write FCreateableFormState;
     property UseDesigner: Boolean read FUseDesigner write FUseDesigner;
@@ -188,6 +187,7 @@ type
     // используетс€ дл€ локализации исключений в safecall ф-ци€х
     function SafeCallException(ExceptObject: TObject; ExceptAddr: Pointer):
       HResult; override;
+      
   published
     property ShowSpeedButton: Boolean read GetShowSpeedButton write SetShowSpeedButton;
     property Caption: TCaption read GetText write SetText stored IsCaptionStored;

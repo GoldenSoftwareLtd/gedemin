@@ -1259,9 +1259,9 @@ const
       begin
         FuncName := SF.Name;
         {$IFDEF WITH_INDY}
-        if gdWebClientThread <> nil then
+        if gdWebClientControl <> nil then
         begin
-          gdWebClientThread.SendError(FuncName + ', line: ' +
+          gdWebClientControl.SendError(FuncName + ', line: ' +
             IntToStr(FErrorList[0].Line) + '. ' +
             TScriptControl(Sender).Error.Description, True);
         end;

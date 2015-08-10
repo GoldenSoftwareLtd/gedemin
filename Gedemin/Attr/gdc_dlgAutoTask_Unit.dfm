@@ -1,6 +1,6 @@
 inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 644
-  Top = 8
+  Left = 645
+  Top = 9
   Caption = 'gdc_dlgAutoTask'
   ClientHeight = 565
   ClientWidth = 440
@@ -427,7 +427,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Top = 72
     Width = 421
     Height = 132
-    ActivePage = tsReport
+    ActivePage = tsFunction
     Anchors = [akLeft, akTop, akRight, akBottom]
     MultiLine = True
     TabOrder = 4
@@ -446,7 +446,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         KeyField = 'ID'
         gdClassName = 'TgdcFunction'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0

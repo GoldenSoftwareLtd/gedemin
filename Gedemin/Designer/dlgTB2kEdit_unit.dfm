@@ -3,8 +3,8 @@ object dlgTB2kEdit: TdlgTB2kEdit
   Top = 164
   AutoScroll = False
   BorderIcons = [biSystemMenu, biMinimize]
-  ClientHeight = 247
-  ClientWidth = 440
+  ClientHeight = 266
+  ClientWidth = 474
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,20 +16,20 @@ object dlgTB2kEdit: TdlgTB2kEdit
   OnActivate = FormActivate
   OnClose = FormClose
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   object Splitter1: TSplitter
-    Left = 129
+    Left = 139
     Top = 22
     Width = 3
-    Height = 225
+    Height = 244
     Cursor = crHSplit
     ResizeStyle = rsUpdate
   end
   object TreeView: TTreeView
     Left = 0
     Top = 22
-    Width = 129
-    Height = 225
+    Width = 139
+    Height = 244
     Align = alLeft
     HideSelection = False
     Indent = 19
@@ -44,19 +44,19 @@ object dlgTB2kEdit: TdlgTB2kEdit
     OnKeyPress = TreeViewKeyPress
   end
   object ListView: TListView
-    Left = 132
+    Left = 142
     Top = 22
-    Width = 308
-    Height = 225
+    Width = 332
+    Height = 244
     Align = alClient
     Columns = <
       item
         Caption = 'Caption'
-        Width = 160
+        Width = 172
       end
       item
         Caption = 'Type'
-        Width = 120
+        Width = 129
       end>
     ColumnClick = False
     DragMode = dmAutomatic
@@ -78,7 +78,7 @@ object dlgTB2kEdit: TdlgTB2kEdit
   object Toolbar: TTBToolbar
     Left = 0
     Top = 0
-    Width = 440
+    Width = 474
     Height = 22
     Align = alTop
     Caption = 'Toolbar'

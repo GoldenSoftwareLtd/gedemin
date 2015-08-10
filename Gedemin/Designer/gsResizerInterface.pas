@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2002-2013 by Golden Software of Belarus
+  Copyright (c) 2002-2015 by Golden Software of Belarus
 
   Module
     gsResizerInterface
@@ -35,23 +35,6 @@ const
   GLOBALUSERCOMPONENT_PREFIX = 'usrg_';
   USERFORM_PREFIX = 'usrf_';
   MACROSCOMPONENT_PREFIX = 'usrl_';
-
-  MESSAGE_SHIFT = WM_USER + $400;
-  CM_NEWCONTROL = MESSAGE_SHIFT + 1;
-  CM_RESIZECONTROL = MESSAGE_SHIFT + 2;
-  CM_SHOWMENU = MESSAGE_SHIFT + 3;
-  CM_ADDCONTROL = MESSAGE_SHIFT + 4;
-  CM_INSERTNEW = MESSAGE_SHIFT + 5;
-  CM_SHOWINSPECTOR = MESSAGE_SHIFT + 6;
-  CM_SHOWPALETTE = MESSAGE_SHIFT + 7;
-  CM_NEWCONTROLR = MESSAGE_SHIFT + 8;
-  CM_PROPERTYCHANGED = MESSAGE_SHIFT + 9;
-  WM_USER_MOUSEMOVE = MESSAGE_SHIFT + 10;
-  WM_USER_LBUTTONUP = MESSAGE_SHIFT + 11;
-  CM_INSERTNEW2 = MESSAGE_SHIFT + 12;
-  CM_DELETECONTROL = MESSAGE_SHIFT + 13;
-  CM_SHOWEVENTS = MESSAGE_SHIFT + 14;
-  CM_SHOWEDITFORM = MESSAGE_SHIFT + 15;
 
   PropertyTypes = [tkInteger, tkChar, tkEnumeration, tkWChar, tkFloat, tkString,
                     tkSet, tkClass, tkLString, tkWString, tkVariant,
@@ -292,7 +275,6 @@ type
     function GetResizerList: TObjectList;
 
     property ResizersList: TObjectList read GetResizerList;
-//    property Resizers[const Index: Integer]: TCustomControl read GetResizer;
 
     procedure ComponentNameChanged(AComponent: TComponent; AOldValue, ANewValue: TComponentName);
     procedure EventFunctionChanged(AComp: TComponent; AEvent: string; ANewID: integer; AName: string);

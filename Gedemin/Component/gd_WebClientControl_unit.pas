@@ -23,7 +23,6 @@ type
     FLogin: String;
     FPassw: String;
     FIPSec: String;
-    FTimeOut: Integer;
     FFileName: String;
     FWipeFile: Boolean;
     FWipeDirectory: Boolean;
@@ -47,7 +46,6 @@ type
     property Login: String read FLogin write FLogin;
     property Passw: String read FPassw write FPassw;
     property IPSec: String read FIPSec write FIPSec;
-    property TimeOut: Integer read FTimeOut write FTimeOut;
     property FileName: String read FFileName write FFileName;
     property WipeFile: Boolean read FWipeFile write FWipeFile;
     property WipeDirectory: Boolean read FWipeDirectory write FWipeDirectory;
@@ -58,7 +56,7 @@ type
     property SynchronousSend: Boolean read FSynchronousSend write FSynchronousSend;
   end;
 
-  TgdWebClientThread = class(TgdMessagedThread)
+  TgdWebClientControl = class(TgdMessagedThread)
   private
     FgdWebServerURL: TidThreadSafeString;
     FConnected: TidThreadSafeInteger;
@@ -105,10 +103,9 @@ type
     procedure DoSendError;
 
     procedure DoSendEMail;
-    function GetRecipients(AGroupKey: Integer; ARecipients: String): String;
-    function GetSMTPSettings(ASMTPKey: Integer; out AFromMail: String;
-      out AServer: String; out APort: Integer; out ALogin: String;
-      out APassw: String; out AIPSec: String; out ATimeOut: Integer): Boolean;
+    function GetSMTPSettings(const ASMTPKey: Integer; out ASenderEMail: String;
+      out AHost: String; out APort: Integer; out ALogin: String;
+      out APassw: String; out AIPSec: String): Boolean;
     function GetEmailCount: Integer;
     function GetEmailAndLock(const AnID: Word; out AnEmailMessage: TgdEmailMessage): Boolean;
 
@@ -129,7 +126,7 @@ type
       ASubject: String; ABodyText: String; AFileName: String);
 
     function SendEMail(const AHost: String; const APort: Integer;
-      const AnIPSec: String; const ATimeOut: Integer;
+      const AnIPSec: String;
       const ALogin: String; const APassw: String;
       const ASenderEmail: String; const ARecipients: String;
       const ASubject: String; const ABodyText: String;
@@ -142,11 +139,13 @@ type
       const ASubject: String; const ABodyText: String;
       const AFileName: String = ''; const AWipeFile: Boolean = False;
       const AWipeDirectory: Boolean = False;
+      const Sync: Boolean = False;
       const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word; overload;
     function SendEMail(const ASMTPKey: Integer;
       const ARecipients: String;
       const ASubject: String; const ABodyText: String;
       const AReportKey: Integer; const AnExportType: String;
+      const Sync: Boolean = False;
       const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word; overload;
 
     function GetEmailState(const AnID: Word; out AState: TgdEmailMessageState; out AnErrorMsg: String;
@@ -164,10 +163,10 @@ type
     property EmailErrorMsg: String read FEmailErrorMsg;
   end;
 
-  EgdWebClientThread = class(Exception);
+  EgdWebClientControl = class(Exception);
 
 var
-  gdWebClientThread: TgdWebClientThread;
+  gdWebClientControl: TgdWebClientControl;
   function GetIPSec(AnIPSec: String): TIdSSLVersion;
   function GetTempDirectory: String;
   function GetTempFileName(const AnExportType: String): String;
@@ -221,9 +220,9 @@ begin
   Result := GetTempDirectory + 'report' + '.' + AnExportType;
 end;
 
-{ TgdWebClientThread }
+{ TgdWebClientControl }
 
-constructor TgdWebClientThread.Create;
+constructor TgdWebClientControl.Create;
 begin
   inherited Create(True);
   FreeOnTerminate := False;
@@ -244,7 +243,7 @@ begin
   FErrorToSend := TidThreadSafeString.Create;
 end;
 
-procedure TgdWebClientThread.AfterConnection;
+procedure TgdWebClientControl.AfterConnection;
 begin
   Assert(IBLogin <> nil);
 
@@ -281,7 +280,7 @@ begin
   PostMsg(WM_GD_AFTER_CONNECTION);
 end;
 
-function TgdWebClientThread.QueryWebServer: Boolean;
+function TgdWebClientControl.QueryWebServer: Boolean;
 begin
   Result := False;
   if gdWebServerURL = '' then
@@ -313,7 +312,7 @@ begin
   end;
 end;
 
-function TgdWebClientThread.LoadWebServerURL: Boolean;
+function TgdWebClientControl.LoadWebServerURL: Boolean;
 begin
   if gdWebServerURL = '' then
   begin
@@ -333,7 +332,7 @@ begin
   end;
 end;
 
-function TgdWebClientThread.LoadFilesList: Boolean;
+function TgdWebClientControl.LoadFilesList: Boolean;
 var
   ResponseData: TStringStream;
 begin
@@ -378,7 +377,7 @@ begin
   end;
 end;
 
-function TgdWebClientThread.ProcessMessage(var Msg: TMsg): Boolean;
+function TgdWebClientControl.ProcessMessage(var Msg: TMsg): Boolean;
 var
   J: Integer;
 begin
@@ -455,7 +454,7 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.LogErrorSync;
+procedure TgdWebClientControl.LogErrorSync;
 var
   SMessage: String;
 begin
@@ -471,7 +470,7 @@ begin
   end;
 end;
 
-destructor TgdWebClientThread.Destroy;
+destructor TgdWebClientControl.Destroy;
 begin
   inherited;
   FgdWebServerURL.Free;
@@ -488,23 +487,23 @@ begin
   FEmailCS.Free;
 end;
 
-function TgdWebClientThread.GetgdWebServerURL: String;
+function TgdWebClientControl.GetgdWebServerURL: String;
 begin
   Result := FgdWebServerURL.Value;
 end;
 
-procedure TgdWebClientThread.SetgdWebServerURL(const Value: String);
+procedure TgdWebClientControl.SetgdWebServerURL(const Value: String);
 begin
   FgdWebServerURL.Value := Value;
 end;
 
-function TgdWebClientThread.ProcessUpdateCommand: Boolean;
+function TgdWebClientControl.ProcessUpdateCommand: Boolean;
 begin
   Result := FServerFileList.UpdateFile(FHTTP, gdWebServerURL,
     FCmdList, FMandatoryUpdate);
 end;
 
-procedure TgdWebClientThread.FinishUpdate;
+procedure TgdWebClientControl.FinishUpdate;
 var
   StartupInfo: TStartupInfo;
   ProcessInfo: TProcessInformation;
@@ -535,7 +534,7 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.StartUpdateFiles;
+procedure TgdWebClientControl.StartUpdateFiles;
 begin
   if gd_GlobalParams.CanUpdate and (FConnected.Value <> 0) then
   begin
@@ -544,29 +543,29 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.DoOnWork(Sender: TObject;
+procedure TgdWebClientControl.DoOnWork(Sender: TObject;
   AWorkMode: TWorkMode; const AWorkCount: Integer);
 begin
   if Terminated then
     Abort;
 end;
 
-function TgdWebClientThread.GetConnected: Boolean;
+function TgdWebClientControl.GetConnected: Boolean;
 begin
   Result := FConnected.Value <> 0;
 end;
 
-function TgdWebClientThread.GetInUpdate: Boolean;
+function TgdWebClientControl.GetInUpdate: Boolean;
 begin
   Result := FInUpdate.Value <> 0;
 end;
 
-function TgdWebClientThread.GetWebServerResponse: String;
+function TgdWebClientControl.GetWebServerResponse: String;
 begin
   Result := FWebServerResponse.Value;
 end;
 
-procedure TgdWebClientThread.SyncFinishUpdate;
+procedure TgdWebClientControl.SyncFinishUpdate;
 begin
   gd_GlobalParams.NeedRestartForUpdate := True;
   if not FQuietMode then
@@ -581,7 +580,7 @@ begin
   end;
 end;
 
-function TgdWebClientThread.ProcessError(var AMsg: TMsg;
+function TgdWebClientControl.ProcessError(var AMsg: TMsg;
   var AnErrorMessage: String): Boolean;
 begin
   if InUpdate and (AMsg.Message = WM_GD_PROCESS_UPDATE_COMMAND) then
@@ -589,7 +588,7 @@ begin
   Result := True;  
 end;
 
-function TgdWebClientThread.URIEncodeParam(const AParam: String): String;
+function TgdWebClientControl.URIEncodeParam(const AParam: String): String;
 begin
   Result := StringReplace(AParam, '=', '%3D', [rfReplaceAll]);
   Result := StringReplace(Result, '&', '%26', [rfReplaceAll]);
@@ -602,7 +601,7 @@ begin
   Result := StringReplace(Result, #$09, '%09', [rfReplaceAll]);
 end;
 
-procedure TgdWebClientThread.SendError(const AnErrorMessage: String;
+procedure TgdWebClientControl.SendError(const AnErrorMessage: String;
   const ASkipNextException: Boolean = False);
 begin
   if (FConnected.Value <> 0) and (FInUpdate.Value = 0) and (FDBID > 0)
@@ -617,7 +616,7 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.SendNameSpaceLog(ARecipients: String;
+procedure TgdWebClientControl.SendNameSpaceLog(ARecipients: String;
   ASubject: String; ABodyText: String; AFileName: String);
 begin
 {
@@ -634,8 +633,8 @@ begin
 }
 end;
 
-function TgdWebClientThread.SendEMail(const AHost: String; const APort: Integer;
-  const AnIPSec: String; const ATimeOut: Integer;
+function TgdWebClientControl.SendEMail(const AHost: String; const APort: Integer;
+  const AnIPSec: String; 
   const ALogin: String; const APassw: String;
   const ASenderEmail: String; const ARecipients: String;
   const ASubject: String; const ABodyText: String;
@@ -649,10 +648,13 @@ var
   Delay: Integer;
 begin
   if (ARecipients = '') or (ASenderEmail = '') or (AHost = '') or (APort < 0)
-    or (APort > 65535) or (ALogin = '') or (ATimeOut < -1) then
+    or (APort > 65535) or (ALogin = '') then
     raise Exception.Create('Неверные параметры электронной почты.');
 
-  Inc(FEmailLastID);
+  if FEmailLastID = $FFFF then
+    FEmailLastID := 1
+  else
+    Inc(FEmailLastID);
 
   ES := TgdEmailMessage.Create;
   ES.ID := FEmailLastID;
@@ -665,7 +667,6 @@ begin
   ES.Login := ALogin;
   ES.Passw := APassw;
   ES.IPSec := AnIPSec;
-  ES.TimeOut := ATimeOut;
   ES.FileName := AFileName;
   ES.WipeFile := AWipeFile;
   ES.WipeDirectory := AWipeDirectory;
@@ -685,6 +686,8 @@ begin
     FEMailCS.Leave;
   end;
 
+  gdNotifierThread.Add('Отправка сообщения: ' + ASubject, 0, 2000);
+
   PostMsg(WM_GD_SEND_EMAIL);
 
   if Sync then
@@ -693,24 +696,25 @@ begin
     while GetEmailState(FEmailLastID, State, FEmailErrorMsg, False) and (State in [emsReady, emsSending]) do
     begin
       Sleep(Delay);
-      Delay := Delay * 2;
+      if Delay < 30000 then
+        Delay := Delay * 2;
     end;
     PostMsg(WM_GD_FREE_EMAIL_MESSAGE, FEmailLastID);
     if State = emsSent then
       Result := FEmailLastID
     else
-      Result := 0;  
+      Result := 0;
   end else
     Result := FEmailLastID;
 end;
 
-procedure TgdWebClientThread.WaitingSendingEmail;
+procedure TgdWebClientControl.WaitingSendingEmail;
 begin
   while EmailCount > 0 do
     Sleep(1000);
 end;
 
-procedure TgdWebClientThread.DoSendError;
+procedure TgdWebClientControl.DoSendError;
 begin
   if gdWebServerURL = '' then
     ErrorMessage := 'gdWebServerURL is not assigned.'
@@ -739,7 +743,7 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.DoSendEMail;
+procedure TgdWebClientControl.DoSendEMail;
 
   function EncodeSubj(const AnSubj: String): String;
   begin
@@ -768,7 +772,6 @@ var
   _Login: String;
   _Passw: String;
   _IPSec: String;
-  _TimeOut: Integer;
   _FileName: String;
   _WndHandle: THandle;
   _ThreadID: THandle;
@@ -780,6 +783,12 @@ begin
 
     FEmailCS.Enter;
     try
+      _ID := 0;
+      _ThreadID := 0;
+      _Port := 0;
+      _WndHandle := 0;
+      _SynchronousSend := True;
+
       for J := 0 to FEmails.Count - 1 do
       begin
         if (FEmails[J] as TgdEmailMessage).State = emsReady then
@@ -792,7 +801,6 @@ begin
           _Login := ES.Login;
           _Passw := ES.Passw;
           _IPSec := ES.IPSec;
-          _TimeOut := ES.TimeOut;
           _Subject := ES.Subject;
           _Recipients := ES.Recipients;
           _SenderEmail := ES.SenderEmail;
@@ -827,7 +835,7 @@ begin
           IdSMTP.IOHandler := IdSSLIOHandlerSocket;
         end;
 
-        IdSMTP.Connect(_TimeOut);
+        IdSMTP.Connect;
 
         if IdSMTP.Connected then
         begin
@@ -849,7 +857,7 @@ begin
               end;
 
               IdSMTP.Send(Msg);
-              gdNotifierThread.Add('Сообщение отправлено ' + _Subject, 0, 2000);
+              gdNotifierThread.Add('Сообщение отправлено: ' + _Subject, 0, 2000);
 
               if GetEmailAndLock(_ID, ES) then
               try
@@ -899,60 +907,15 @@ begin
   end;
 end;
 
-function TgdWebClientThread.GetRecipients(AGroupKey: Integer; ARecipients: String): String;
+function TgdWebClientControl.GetSMTPSettings(const ASMTPKey: Integer; out ASenderEMail: String;
+  out AHost: String; out APort: Integer; out ALogin: String;
+  out APassw: String; out AIPSec: String): Boolean;
 var
   q: TIBSQL;
 begin
   Assert(gdcBaseManager <> nil);
 
-  Result := '';
-  Result := Result + ARecipients;
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text :=
-      'SELECT '#13#10 +
-      '  c.email '#13#10 +
-      'FROM '#13#10 +
-      '  gd_contact c '#13#10 +
-      '    JOIN '#13#10 +
-      '      gd_contactlist g '#13#10 +
-      '    ON '#13#10 +
-      '      g.contactkey  =  c.id '#13#10 +
-      'WHERE '#13#10 +
-      '  (g.groupkey  =  :gk) '#13#10 +
-      '    AND (c.email IS NOT NULL) '#13#10 +
-      '    AND (c.email <> '''')';
-    q.ParamByName('gk').AsInteger := AGroupKey;
-
-    q.ExecQuery;
-
-    while not q.EOF do
-    begin
-      if q.FieldByName('email').AsString > '' then
-      begin
-        if Result <> '' then
-          Result := Result + ',';
-        Result := Result + q.FieldByName('email').AsString;
-      end;
-      q.Next;
-    end;
-  finally
-    q.Free;
-  end;
-end;
-
-function TgdWebClientThread.GetSMTPSettings(ASMTPKey: Integer; out AFromMail: String;
-  out AServer: String; out APort: Integer; out ALogin: String;
-  out APassw: String; out AIPSec: String; out ATimeOut: Integer): Boolean;
-var
-  q: TIBSQL;
-begin
   Result := False;
-
-  Assert(gdcBaseManager <> nil);
-
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
@@ -962,8 +925,7 @@ begin
       q.SQL.Text :=
         'SELECT * FROM gd_smtp s WHERE s.id = :id';
       q.ParamByName('id').AsInteger := ASMTPKey;
-    end
-    else
+    end else
       q.SQL.Text :=
         'SELECT * FROM gd_smtp s WHERE s.principal = 1';
 
@@ -972,20 +934,19 @@ begin
     if not q.EOF then
     begin
       Result := True;
-      AFromMail := q.FieldByName('email').AsString;
-      AServer := q.FieldByName('server').AsString;
+      ASenderEMail := q.FieldByName('email').AsString;
+      AHost := q.FieldByName('server').AsString;
       APort := q.FieldByName('port').AsInteger;
       ALogin := q.FieldByName('login').AsString;
       APassw := DecryptString(q.FieldByName('passw').AsString, 'PASSW');
       AIPSec := q.FieldByName('ipsec').AsString;
-      ATimeOut := q.FieldByName('timeout').AsInteger;
     end;
   finally
     q.Free;
   end;
 end;
 
-function TgdWebClientThread.GetEmailCount: Integer;
+function TgdWebClientControl.GetEmailCount: Integer;
 var
   I: Integer;
 begin
@@ -1006,7 +967,7 @@ begin
   end;
 end;
 
-function TgdWebClientThread.GetEmailState(const AnID: Word; out AState: TgdEmailMessageState;
+function TgdWebClientControl.GetEmailState(const AnID: Word; out AState: TgdEmailMessageState;
   out AnErrorMsg: String; const AFreeEmailMessage: Boolean = True): Boolean;
 var
   ES: TgdEmailMessage;
@@ -1023,7 +984,7 @@ begin
     Result := False;
 end;
 
-function TgdWebClientThread.GetEmailAndLock(const AnID: Word; out AnEmailMessage: TgdEmailMessage): Boolean;
+function TgdWebClientControl.GetEmailAndLock(const AnID: Word; out AnEmailMessage: TgdEmailMessage): Boolean;
 var
   J: Integer;
 begin
@@ -1048,7 +1009,7 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.ClearEmailCallbackHandle(const AWndHandle,
+procedure TgdWebClientControl.ClearEmailCallbackHandle(const AWndHandle,
   AThreadID: THandle);
 var
   J: Integer;
@@ -1077,9 +1038,9 @@ begin
   end;
 end;
 
-function TgdWebClientThread.SendEMail(const ASMTPKey: Integer;
+function TgdWebClientControl.SendEMail(const ASMTPKey: Integer;
   const ARecipients, ASubject, ABodyText, AFileName: String;
-  const AWipeFile, AWipeDirectory: Boolean; const AWndHandle,
+  const AWipeFile, AWipeDirectory, Sync: Boolean; const AWndHandle,
   AThreadID: THandle): Word;
 var
   LFromMail: String;
@@ -1088,25 +1049,23 @@ var
   LLogin: String;
   LPassw: String;
   LIPSec: String;
-  LTimeOut: Integer;
 begin
   if not GetSMTPSettings(ASMTPKey, LFromMail, LHost,
-    LPort, LLogin, LPassw, LIPSec, LTimeOut) then
+    LPort, LLogin, LPassw, LIPSec) then
   begin
     raise Exception.Create('SMTP settings not found.');
   end;
 
-  {
-  SendEMail(LHost, LPort, LIPSec, LTimeOut, LLogin, LPassw,
+  Result := SendEMail(LHost, LPort, LIPSec, LLogin, LPassw,
     LFromMail, ARecipients, ASubject, ABodyText,
-    AFileName, AWipeFile, AWipeDirectory,
+    AFileName, AWipeFile, AWipeDirectory, Sync,
     AWndHandle, AThreadID);
-  }  
 end;
 
-function TgdWebClientThread.SendEMail(const ASMTPKey: Integer;
+function TgdWebClientControl.SendEMail(const ASMTPKey: Integer;
   const ARecipients, ASubject, ABodyText: String;
   const AReportKey: Integer; const AnExportType: String;
+  const Sync: Boolean;
   const AWndHandle, AThreadID: THandle): Word;
 
   function GetExportType(AnExportType: String): TExportType;
@@ -1123,20 +1082,8 @@ function TgdWebClientThread.SendEMail(const ASMTPKey: Integer;
       raise Exception.Create('unknown export type.')
   end;
 
-  function GetSubject(AReportKey: Integer): String;
-  begin
-    Result := 'Заголовок';
-  end;
-
-  function GetBodyText(AReportKey: Integer): String;
-  begin
-    Result := 'Текст'
-  end;
-
 var
   B: Variant;
-  LSubject: String;
-  LBodyText: String;
   LFileName: String;
 begin
   Assert(ClientReport <> nil);
@@ -1158,11 +1105,8 @@ begin
     end;
   end;
 
-  LSubject := GetSubject(AReportKey);
-  LBodyText := GetBodyText(AReportKey);
-
-  SendEMail(ASMTPKey, ARecipients, LSubject, LBodyText,
-    LFileName, True, True,
+  Result := SendEMail(ASMTPKey, ARecipients, ASubject, ABodyText,
+    LFileName, True, True, Sync,
     AWndHandle, AThreadID);
 end;
 
@@ -1182,9 +1126,9 @@ begin
 end;
 
 initialization
-  gdWebClientThread := TgdWebClientThread.Create;
-  gdWebClientThread.Resume;
+  gdWebClientControl := TgdWebClientControl.Create;
+  gdWebClientControl.Resume;
 
 finalization
-  FreeAndNil(gdWebClientThread);
+  FreeAndNil(gdWebClientControl);
 end.

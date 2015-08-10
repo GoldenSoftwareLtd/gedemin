@@ -30,7 +30,7 @@ var
 implementation
 
 uses
-  rp_report_const;
+  gd_messages_const;
 
 {$R *.DFM}
 

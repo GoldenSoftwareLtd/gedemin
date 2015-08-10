@@ -7,8 +7,6 @@ uses
   Classes, Windows, Messages, gdcBaseInterface, gdcBase;
 
 const
-  WM_UPDATESTATS = WM_USER + 377;
-
   CMD_INIT       = 0;
   CMD_UPDATE     = 1;
   CMD_CLEAR      = 2;
@@ -64,7 +62,7 @@ implementation
 
 uses
   gd_ClassList, gdc_dlgFKManager_unit, gdc_frmFKManager_unit,
-  IBDatabase, IBSQL, SysUtils, Forms, Controls;
+  IBDatabase, IBSQL, SysUtils, Forms, Controls, gd_messages_const;
 
 procedure Register;
 begin

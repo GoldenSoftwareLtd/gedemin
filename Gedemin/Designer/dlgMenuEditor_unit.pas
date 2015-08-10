@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   TB2Item, ImgList, TB2Dock, TB2Toolbar, ComCtrls, gsResizerInterface,
-  menus, ActnList;
+  menus, ActnList, gd_messages_const;
 
 type
   TdlgMenuEditor = class(TForm)

@@ -70,11 +70,7 @@ interface
 
 uses
   SysUtils, Windows, Messages, Classes, Graphics, Controls,
-  ShellAPI, Forms, Menus, gsTrayIconInterface;
-
-const
-  WM_TOOLTRAYICON = WM_USER + 1;
-  WM_RESETTOOLTIP = WM_USER + 2;
+  ShellAPI, Forms, Menus, gsTrayIconInterface, gd_messages_const;
 
 type
   TgsTrayIcon = class(TComponent, IgsTrayIcon)

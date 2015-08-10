@@ -82,14 +82,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object lbl1: TLabel
           Left = 15
           Top = 4
-          Width = 68
+          Width = 69
           Height = 13
           Caption = 'База данных:'
         end
         object Label2: TLabel
           Left = 95
           Top = 24
-          Width = 233
+          Width = 236
           Height = 13
           Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных '
           Font.Charset = RUSSIAN_CHARSET
@@ -123,7 +123,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object lbl4: TLabel
           Left = 602
           Top = 4
-          Width = 87
+          Width = 88
           Height = 13
           Caption = 'Размер буффера:'
         end

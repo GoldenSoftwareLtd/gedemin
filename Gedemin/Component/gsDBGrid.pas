@@ -37,7 +37,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Grids, DBGrids, StdCtrls, ComCtrls, Menus, ActnList, DB, xCalc, Imglist,
-  ExtCtrls, ContNrs,
+  ExtCtrls, ContNrs, gd_messages_const,
   {$IFDEF GEDEMIN}
   gdcBase,
   {$ENDIF}
@@ -54,8 +54,6 @@ const
   DefShowTotals = True;
   DefShowFooter = False;
   DefTitlesExpanding = False;
-
-  WM_CHANGEDISPLAYFORMTS = WM_USER + 21782;
 
 ///////////////////////////////////////////////////////
 // Вид меню для класса TgsCustomDBGrid

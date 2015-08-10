@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -30,7 +30,7 @@ uses
   ComObj, Gedemin_TLB, dmDatabase_unit, dmLogin_unit,  obj_Designer,
   evt_Base, evt_i_Base, ibsql, TypInfo
   {$IFDEF WITH_INDY}
-  , gd_WebServerControl_unit
+  , gd_WebServerControl_unit, gd_WebClientControl_unit
   {$ENDIF}
   ;
 
@@ -54,6 +54,7 @@ type
     FgdcBaseManager: IgsGdcBaseManager;
     FatDatabase: IgsAtDatabase;
     FgdWebServerControl: IgdWebServerControl;
+    FgdWebClientControl: IgdWebClientControl;
 
     // ”казывает можно ли подключатьс€ к базе,
     // т.е. созданы ли главные модули
@@ -114,6 +115,7 @@ type
     function  Get_Exception: IgsException; safecall;
     function  Get_nil_: IgsObject; safecall;
     function  Get_WebServerControl: IgdWebServerControl; safecall;
+    function  Get_WebClientControl: IgdWebClientControl; safecall;
 
     function  NewObject(const VBClassName: WideString): IDispatch; safecall;
     function  GlobalConst(const ConstName: WideString): OleVariant; safecall;
@@ -173,7 +175,8 @@ type
     function GetatDatabase: IgsAtDatabase;
     function GetFinallyObject: IFinallyObject;
     function GetWebServerControl: IgdWebServerControl;
-    
+    function GetWebClientControl: IgdWebClientControl;
+
     function  CmdLine: WideString; safecall;
     function  ParamStr(Index: Integer): WideString; safecall;
     function  ParamCount: Integer; safecall;
@@ -479,6 +482,7 @@ begin
   FgdcBaseManager := nil;
   FatDatabase := nil;
   FgdWebServerControl := nil;
+  FgdWebClientControl := nil;
 
   if GedeminApplication = Self then
     GedeminApplication := nil;
@@ -511,6 +515,7 @@ begin
   FIBLogin := TgsIBLogin.Create;
   {$IFDEF WITH_INDY}
   FgdWebServerControl := GetGdcOLEObject(gdWebServerControl) as IgdWebServerControl;
+  FgdWebClientControl := GetGdcOLEObject(gdWebClientControl) as IgdWebClientControl;
   {$ENDIF}
 end;
 
@@ -1027,6 +1032,16 @@ begin
   {$ELSE}
   Result := True;
   {$ENDIF}
+end;
+
+function TgsGedeminApplication.GetWebClientControl: IgdWebClientControl;
+begin
+  Result := FgdWebClientControl;
+end;
+
+function TgsGedeminApplication.Get_WebClientControl: IgdWebClientControl;
+begin
+  Result := GetWebClientControl;
 end;
 
 initialization

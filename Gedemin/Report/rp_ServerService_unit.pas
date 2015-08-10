@@ -84,13 +84,6 @@ end;
 procedure AppThreadEvent(const AnEventCode: TServerEventCode);
 begin
   case AnEventCode of
-{    WM_USER_CLOSE_PROMT:
-      if (Service1.ServerReport.ActiveConnections = 0) or (MessageBox(0,
-       PChar(Format('К серверу отчетов подключено %d клиент(ов). Выгрузить сервер?',
-       [Service1.ServerReport.ActiveConnections])), 'Вопрос', MB_YESNO or MB_ICONQUESTION) = IDYES) then
-        Service1.Close;
-    WM_USER_CLOSE:
-      Service1.Close;}
     WM_USER_PARAM:
       if GedeminReportServer.ServerReport <> nil then
         GedeminReportServer.ServerReport.ServerOptions;
@@ -150,13 +143,6 @@ procedure TGedeminReportServer.ThreadEvent(const AnEventCode: TServerEventCode);
 begin
   try
     case AnEventCode of
-      {WM_USER_CLOSE_PROMT:
-        if (ServerReport.ActiveConnections = 0) or (MessageBox(0,
-         PChar(Format('К серверу отчетов подключено %d клиент(ов). Выгрузить сервер?',
-         [ServerReport.ActiveConnections])), 'Вопрос', MB_YESNO or MB_ICONQUESTION) = IDYES) then
-          ;
-      WM_USER_CLOSE:
-        Close;}
       WM_USER_PARAM:
         if ServerReport <> nil then
           ServerReport.ServerOptions;

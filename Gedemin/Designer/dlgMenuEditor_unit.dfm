@@ -12,12 +12,12 @@ object dlgMenuEditor: TdlgMenuEditor
   Font.Style = []
   OldCreateOrder = False
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   object tvMenu: TTreeView
     Left = 0
     Top = 22
     Width = 185
-    Height = 201
+    Height = 197
     Align = alClient
     HideSelection = False
     Indent = 19

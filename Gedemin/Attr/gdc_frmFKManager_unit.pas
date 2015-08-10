@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_frmSGr_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
-  ComCtrls, gdcFKManager, IBCustomDataSet, gdcBase;
+  ComCtrls, gdcFKManager, IBCustomDataSet, gdcBase, gd_messages_const;
 
 type
   Tgdc_frmFKManager = class(Tgdc_frmSGR)

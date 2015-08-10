@@ -46,7 +46,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Grids, DBGrids, StdCtrls, ComCtrls, Menus, ActnList, DB, IBDatabase,
   IBCustomDataSet, IBQuery, IBSQL, gsDBGrid, Contnrs, at_classes, dbctrls,
-  gdcBase, JclStrHashMap;
+  gdcBase, JclStrHashMap, gd_messages_const;
 
 type
   TgsSortOrder = (soNone, soAsc, soDesc);
@@ -56,9 +56,7 @@ const
   DefSortOrder       = soNone;
   DefCheckUserRights = True;
   DefDropDownCount   = 8;
-  MESSAGE_SHIFT      = WM_USER + $500;
-  CM_DOREDUCE        = MESSAGE_SHIFT + 1;
-  
+
 type
   EDuplicateEditor = Exception;
   TgsCustomIBGrid = class;

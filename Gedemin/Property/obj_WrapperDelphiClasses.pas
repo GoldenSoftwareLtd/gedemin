@@ -4461,7 +4461,7 @@ implementation
 
 uses
   IBHeader, gdcOLEClassList, ComServ, prp_Methods, obj_VarParam, obj_QueryList,
-  OleCtrls, jpeg, TypInfo, JclMime, gsCSV
+  OleCtrls, jpeg, TypInfo, JclMime, gsCSV, gd_WebClientControl_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

@@ -105,7 +105,7 @@ var
   State: TgdEmailMessageState;
   ErrorMsg: String;
 begin
-  if gdWebClientThread.GetEmailState(Msg.WParam, State, ErrorMsg) then
+  if gdWebClientControl.GetEmailState(Msg.WParam, State, ErrorMsg) then
   begin
     if State = emsSent then
       MessageBox(Handle,
@@ -148,7 +148,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  Assert(gdWebClientThread <> nil);
+  Assert(gdWebClientControl <> nil);
 
   inherited;
 
@@ -362,7 +362,6 @@ begin
       (Task as TgdAutoReportTask).Recipients := dbeRecipients.Text;
       (Task as TgdAutoReportTask).GroupKey := iblkupGroup.CurrentKeyInt;
       (Task as TgdAutoReportTask).SMTPKey := iblkupSMTP.CurrentKeyInt;
-      (Task as TgdAutoReportTask).Handle := Self.Handle;
     end;
 
     if Task <> nil then
@@ -381,8 +380,8 @@ begin
     or ((pcTask.ActivePage = tsReport) and (iblkupReport.CurrentKeyInt > 0)
       and (dbcbExportType.Text > '')
       and ((iblkupGroup.CurrentKeyInt > 0) or (dbeRecipients.Text > ''))
-      and (gdWebClientThread <> nil)
-      and (gdWebClientThread.EmailCount = 0));
+      and (gdWebClientControl <> nil)
+      and (gdWebClientControl.EmailCount = 0));
 end;
 
 procedure Tgdc_dlgAutoTask.btnCNClick(Sender: TObject);
@@ -398,7 +397,7 @@ end;
 
 procedure Tgdc_dlgAutoTask.DestroyWindowHandle;
 begin
-  gdWebClientThread.ClearEmailCallbackHandle(Handle, 0);
+  gdWebClientControl.ClearEmailCallbackHandle(Handle, 0);
   inherited;
 end;
 

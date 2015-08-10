@@ -6,13 +6,9 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   StdCtrls, Menus, ExtCtrls, DsgnIntf, ComCtrls, ImgList, ActnList,
-  ToolWin, gsResizerInterface, contnrs;
-
-const
-  AM_DeferUpdate = WM_USER + 100;  // avoids break-before-make listview ugliness
+  ToolWin, gsResizerInterface, contnrs, gd_messages_const;
 
 type
-
   TColOption = (coAdd, coDelete, coMove);
   TColOptions = set of TColOption;
 

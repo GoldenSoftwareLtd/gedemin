@@ -21,25 +21,16 @@ type
     procedure gsIBDatabaseAfterConnect(Sender: TObject);
     procedure ServiceDestroy(Sender: TObject);
     procedure ServiceShutdown(Sender: TService);
-{    procedure ServiceCreate(Sender: TObject);
-    procedure ServiceExecute(Sender: TService);}
   private
     FHndl: THandle;
     FBaseQuery: IDispatch;
     procedure ReadParams;
   public
-//    constructor Create(AOwner: TComponent); override;
     function GetServiceController: TServiceController; override;
-//    procedure ThreadEvent(const AnEventCode: TServerEventCode);
   end;
-
-//type
-//  TCrackerThread = class(TThread);
 
 var
   GedeminReportServer: TGedeminReportServer;
-//  Hndl: THandle;
-//  FThreadEvent: TServerEventThread;
 
 implementation
 
@@ -116,35 +107,6 @@ begin
   end;
 end;
 
-(*procedure TGedeminReportServer.ThreadEvent(const AnEventCode: TServerEventCode);
-begin
-  try
-    case AnEventCode of
-      {WM_USER_CLOSE_PROMT:
-        if (ServerReport.ActiveConnections = 0) or (MessageBox(0,
-         PChar(Format('К серверу отчетов подключено %d клиент(ов). Выгрузить сервер?',
-         [ServerReport.ActiveConnections])), 'Вопрос', MB_YESNO or MB_ICONQUESTION) = IDYES) then
-          ;
-      WM_USER_CLOSE:
-        Close;}
-      WM_USER_PARAM:
-        if ServerReport <> nil then
-          ServerReport.ServerOptions;
-      WM_USER_REFRESH:
-        if ServerReport <> nil then
-          ServerReport.Load;
-      WM_USER_REBUILD:
-        if ServerReport <> nil then
-          ServerReport.RebuildReports;
-      WM_USER_RESET:
-        if ServerReport <> nil then
-          ServerReport.DeleteResult;
-    end;
-  except
-    ServerReport.SaveLog('ThreadEvent');
-  end;
-end;           *)
-
 procedure TGedeminReportServer.ServerReportCreateObject(Sender: TObject);
 begin
   WriteError('TGedeminReportServer.ServerReportCreateObject');
@@ -167,13 +129,6 @@ begin
   try
     Started := True;
 
-  {  if IBEvents1.AutoRegister then
-    begin
-      ServerReport.SaveLog('Нельзя ставить IBEvents1.AutoRegister = True!!!');
-      Started := False;
-      Exit;
-    end;}
-
     if CheckReportServerActivate <> Long_False then
     begin
       ServerReport.SaveLog('ПОПЫТКА ПОВТОРНОГО ЗАПУСКА СЕРВЕРА. Сервер отчетов уже загружен.');
@@ -189,18 +144,6 @@ begin
       Started := False;
       Exit;
     end;
-
-(*    try
-      FThreadEvent := TServerEventThread.Create(ServerReportName);
-      FThreadEvent.OnEvent := GedeminReportServer.ThreadEvent;
-      FThreadEvent.Resume;
-    except
-      on E: Exception do
-      begin
-        Started := False;
-        ServerReport.SaveLog('Произошла ошибка при запуске сервера.'#13#10 + E.Message);
-      end;
-    end;*)
 
     ServerReport.SaveLog('BeforeConnect');
     try
@@ -234,13 +177,6 @@ begin
     Stopped := True;
 
     ServerReport.SaveLog('Вызван останов сервиса');
-
-(*    try
-      FThreadEvent.UserTerminate;
-    except
-      on E: Exception do
-        ServerReport.SaveLog('Произошла ошибка при освобождении нити событий'#13#10 + E.Message);
-    end;*)
 
     try
       ReleaseMutex(FHndl);
@@ -280,59 +216,9 @@ end;
 
 procedure TGedeminReportServer.gsIBDatabaseAfterConnect(Sender: TObject);
 begin
-// Виснет нахрен сервер
-(*  try
-    TCrackerThread(ServiceThread).Synchronize(IBEvents1.RegisterEvents);
-  except
-    on E: Exception do
-      ServerReport.SaveLog('Произошла ошибка при регистрации IB событий:'#13#10 + E.Message);
-  end;*)
+  //
 end;
 
-{constructor TGedeminReportServer.Create(AOwner: TComponent);
-begin
-  try
-    WriteError('до запуска');
-    inherited;
-    WriteError('после запуска');
-  except
-    on E: Exception do
-    begin
-      WriteError(E.Message);
-      raise;
-    end;
-  end;
-end;
-
-procedure TGedeminReportServer.ServiceCreate(Sender: TObject);
-begin
-  try
-    WriteError('до запуска 2');
-    inherited;
-    WriteError('после запуска 2');
-  except
-    on E: Exception do
-    begin
-      WriteError(E.Message);
-      raise;
-    end;
-  end;
-end;
-
-procedure TGedeminReportServer.ServiceExecute(Sender: TService);
-begin
-  try
-    WriteError('до запуска 3');
-    inherited;
-    WriteError('после запуска 3');
-  except
-    on E: Exception do
-    begin
-      WriteError(E.Message);
-      raise;
-    end;
-  end;
-end;}
 
 procedure TGedeminReportServer.ServiceDestroy(Sender: TObject);
 begin

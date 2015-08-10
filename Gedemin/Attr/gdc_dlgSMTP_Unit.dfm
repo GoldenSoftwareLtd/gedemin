@@ -25,9 +25,9 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   object Label3: TLabel [2]
     Left = 8
     Top = 151
-    Width = 138
+    Width = 70
     Height = 13
-    Caption = 'Адрес электронной почты:'
+    Caption = 'Адрес почты:'
   end
   object Label4: TLabel [3]
     Left = 8

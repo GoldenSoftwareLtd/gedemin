@@ -244,10 +244,10 @@ begin
 
   chbxAutoUpdate.Checked := gd_GlobalParams.AutoUpdate;
 
-  if Assigned(gdWebClientThread) and gdWebClientThread.Connected
+  if Assigned(gdWebClientControl) and gdWebClientControl.Connected
     and gd_GlobalParams.CanUpdate then
   begin
-    if Pos('UPDATE', gdWebClientThread.WebServerResponse) > 0 then
+    if Pos('UPDATE', gdWebClientControl.WebServerResponse) > 0 then
       lblUpdateStatus.Caption := 'Доступно обновление для файлов платформы.'
     else
       lblUpdateStatus.Caption := 'Файлы платформы не нуждаются в обновлении.';
@@ -447,7 +447,7 @@ begin
   AddSection('Web Server');
   AddBoolean('Активен', gdWebServerControl.Active);
   AddSpaces('Bindings', gdWebServerControl.GetBindings);
-  AddSpaces('Remote Server', gdWebClientThread.gdWebServerURL);
+  AddSpaces('Remote Server', gdWebClientControl.gdWebServerURL);
   {$ENDIF}
 
   AddSection('Версии библиотек');
@@ -792,7 +792,7 @@ end;
 destructor Tgd_dlgAbout.Destroy;
 begin
   {$IFDEF WITH_INDY}
-  gdWebClientThread.ProgressWatch := nil;
+  gdWebClientControl.ProgressWatch := nil;
   {$ENDIF}
   FSysInfo.Free;
   inherited;
@@ -833,8 +833,8 @@ end;
 procedure Tgd_dlgAbout.actUpdateExecute(Sender: TObject);
 begin
   {$IFDEF WITH_INDY}
-  gdWebClientThread.ProgressWatch := Self;
-  gdWebClientThread.StartUpdateFiles;
+  gdWebClientControl.ProgressWatch := Self;
+  gdWebClientControl.StartUpdateFiles;
   {$ENDIF}
 end;
 
@@ -842,7 +842,7 @@ procedure Tgd_dlgAbout.actUpdateUpdate(Sender: TObject);
 begin
   {$IFDEF WITH_INDY}
   actUpdate.Enabled := gd_GlobalParams.CanUpdate
-    and (not gdWebClientThread.InUpdate);
+    and (not gdWebClientControl.InUpdate);
   {$ENDIF}
 end;
 
@@ -928,7 +928,7 @@ end;
 procedure Tgd_dlgAbout.FormDestroy(Sender: TObject);
 begin
   {$IFDEF WITH_INDY}
-  gdWebClientThread.ProgressWatch := nil;
+  gdWebClientControl.ProgressWatch := nil;
   {$ENDIF}
 end;
 

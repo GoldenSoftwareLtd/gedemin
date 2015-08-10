@@ -7,7 +7,7 @@ uses
   FileCtrl, ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
   gsDBSqueeze_CardMergeForm_unit, gsDBSqueeze_DocTypesForm_unit,
   gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gd_ProgressNotifier_unit,
-  gdMessagedThread, CommCtrl, Db, Menus, Registry;
+  gdMessagedThread, CommCtrl, Db, Menus, Registry, gd_messages_const;
 
 const
   DEFAULT_USER_NAME = 'SYSDBA';
@@ -18,8 +18,6 @@ const
   CHARSET_LIST_CH2 = 'ISO8859_8, ISO8859_9, KOI8R, KOI8U, NEXT, TIS620, WIN1250, WIN1251, WIN1252, WIN1253, WIN1254, WIN1255, WIN1256, WIN1257, WIN1258, ASCII, UNICODE_FSS, UTF8';
   MAX_PROGRESS_STEP = 12500;
   PROGRESS_COLOR = $001F67FC;
-
-  WM_STOPNOTIFY = WM_GD_THREAD_USER + 42;
 
 type
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)

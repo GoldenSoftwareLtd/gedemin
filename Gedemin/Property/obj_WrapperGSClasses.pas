@@ -52,7 +52,7 @@ uses
   gdvAcctGeneralLedger, gdvAcctCirculationList, gdv_frmAcctBaseForm_unit,
   prm_ParamFunctions_unit, gd_main_form, gsFTPClient, gsTRPOS_TLVClient, gsPLClient
   {$IFDEF WITH_INDY}
-  , gd_WebServerControl_unit
+  , gd_WebServerControl_unit, gd_WebClientControl_unit
   {$ENDIF}
   ;
 
@@ -3773,7 +3773,7 @@ type
       const AnParamType: WideString; const AnComment: WideString): SYSINT; safecall;
     function  AddLinkParam(const AnDisplayName: WideString;
       const AnParamType: WideString; const AnTableName: WideString;
-      const AnPrimaryField: WideString; const AnDisplayField: WideString; 
+      const AnPrimaryField: WideString; const AnDisplayField: WideString;
       const AnLinkConditionFunction: WideString;
       const AnLinkFunctionLanguage: WideString; const AnComment: WideString): SYSINT; safecall;
     function GetVariantArray: OleVariant; safecall;
@@ -3800,6 +3800,29 @@ type
     procedure RegisterOnGetEvent(const AComponent: IgsComponent; const AToken: WideString;
                                  const AEventName: WideString); safecall;
     procedure UnRegisterOnGetEvent(const AComponent: IgsComponent); safecall;
+  end;
+
+  TwrpGdWebClientControl = class(TwrpObject, IgdWebClientControl)
+  private
+    function GetWebClientControl: TgdWebClientControl;
+  protected
+    function  SendEMail(const Host: WideString; Port: Integer; const IPSec: WideString;
+                        const Login: WideString; const Passw: WideString;
+                        const SenderEmail: WideString; const Recipients: WideString;
+                        const Subject: WideString; const BodyText: WideString;
+                        const FileName: WideString; WipeFile: WordBool; WIpeDirectory: WordBool;
+                        Sync: WordBool; WndHandle: Integer; ThreadID: Integer): Integer; safecall;
+    function  SendEMail2(SMTPKey: Integer;
+                         const Recipients: WideString; const Subject: WideString;
+                         const BodyText: WideString; const FileName: WideString;
+                         WipeFile: WordBool; WIpeDirectory: WordBool; Sync: WordBool;
+                         WndHandle: Integer; ThreadID: Integer): Integer; safecall;
+    function  SendEMail3(SMTPKey: Integer; const Recipients: WideString; const Subject: WideString; 
+                         const BodyText: WideString; ReportKey: Integer;
+                         const ExportType: WideString; Sync: WordBool; WndHandle: Integer;
+                         ThreadID: Integer): Integer; safecall;
+    function  Get_EmailErrorMsg: WideString; safecall;
+    function  Get_EmailCount: Integer; safecall;
   end;
   {$ENDIF}
 
@@ -19253,6 +19276,53 @@ begin
   Result := TgsPLQuery.Create;
 end;
 
+{ TwrpGdWebClientControl }
+
+function TwrpGdWebClientControl.GetWebClientControl: TgdWebClientControl;
+begin
+  Result := gdWebClientControl;
+end;
+
+function TwrpGdWebClientControl.Get_EmailCount: Integer;
+begin
+  Result := GetWebClientControl.EmailCount;
+end;
+
+function TwrpGdWebClientControl.Get_EmailErrorMsg: WideString;
+begin
+  Result := GetWebClientControl.EmailErrorMsg;
+end;
+
+function TwrpGdWebClientControl.SendEMail(const Host: WideString;
+  Port: Integer; const IPSec, Login, Passw, SenderEmail, Recipients,
+  Subject, BodyText, FileName: WideString; WipeFile, WIpeDirectory,
+  Sync: WordBool; WndHandle, ThreadID: Integer): Integer;
+begin
+  Result := GetWebClientControl.SendEmail(Host, Port, IPSec, Login, Passw,
+    SenderEmail, Recipients, Subject, BodyText, FileName, WipeFile, WipeDirectory,
+    Sync, WndHandle, ThreadID);
+end;
+
+function TwrpGdWebClientControl.SendEMail2(SMTPKey: Integer;
+  const Recipients, Subject, BodyText, FileName: WideString;
+  WipeFile, WIpeDirectory, Sync: WordBool; WndHandle,
+  ThreadID: Integer): Integer;
+begin
+  Result := GetWebClientControl.SendEmail(SMTPKey,
+    Recipients, Subject, BodyText, FileName, WipeFile, WipeDirectory,
+    Sync, WndHandle, ThreadID);
+end;
+
+function TwrpGdWebClientControl.SendEMail3(SMTPKey: Integer;
+  const Recipients, Subject, BodyText: WideString; ReportKey: Integer;
+  const ExportType: WideString; Sync: WordBool; WndHandle,
+  ThreadID: Integer): Integer;
+begin
+  Result := GetWebClientControl.SendEmail(SMTPKey,
+    Recipients, Subject, BodyText, ReportKey, ExportType,
+    Sync, WndHandle, ThreadID);
+end;
+
 initialization
 
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
@@ -19493,6 +19563,7 @@ initialization
   RegisterGdcOLEClass(TfrmGedeminMain, TwrpGsFrmGedeminMain, ComServer.TypeLib, IID_IgsFrmGedeminMain);
   {$IFDEF WITH_INDY}
   RegisterGdcOLEClass(TgdWebServerControl, TwrpGdWebServerControl, ComServer.TypeLib, IID_IgdWebServerControl);
+  RegisterGdcOLEClass(TgdWebClientControl, TwrpGdWebClientControl, ComServer.TypeLib, IID_IgdWebClientControl);
   {$ENDIF}
   RegisterGdcOLEClass(TgsFTPClient, TwrpFTPClient, ComServer.TypeLib, IID_IgsFTPClient);
   RegisterGdcOLEClass(TgsTRPOSClient, TwrpTRPOSClient, ComServer.TypeLib, IID_IgsTRPOSClient);

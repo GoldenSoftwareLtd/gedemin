@@ -1038,7 +1038,18 @@ INSERT INTO GD_BANK
         260
       );
 
-  /*
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        740925,
+        740000,
+        'Почтовые сервера',
+        'SMTP',
+        'TgdcSMTP',
+        NULL,
+        160
+      );
+
+/*
   INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
     VALUES (
       750000,

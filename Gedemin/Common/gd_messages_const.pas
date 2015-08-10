@@ -8,17 +8,17 @@ uses
   
 const
   // messaged thread
-  WM_GD_THREAD_USER           = WM_USER + 1000;
-  WM_GD_EXIT_THREAD           = WM_USER + 117;
-  WM_GD_UPDATE_TIMER          = WM_USER + 118;
+  WM_GD_THREAD_USER            = WM_USER + 1000;
+  WM_GD_EXIT_THREAD            = WM_USER + 117;
+  WM_GD_UPDATE_TIMER           = WM_USER + 118;
 
-  WM_GD_FIND_AND_EXECUTE_TASK = WM_GD_THREAD_USER + 101;
-  WM_GD_LOAD_TASK_LIST        = WM_GD_THREAD_USER + 102;
-  WM_GD_RELOAD_TASK_LIST      = WM_GD_THREAD_USER + 103;
-  WM_GD_OUTSIDE_LOG           = WM_GD_THREAD_USER + 104;
-  WM_GD_FREE_EMAIL_MESSAGE    = WM_GD_THREAD_USER + 105;
+  WM_GD_FIND_AND_EXECUTE_TASK  = WM_GD_THREAD_USER + 101;
+  WM_GD_LOAD_TASK_LIST         = WM_GD_THREAD_USER + 102;
+  WM_GD_RELOAD_TASK_LIST       = WM_GD_THREAD_USER + 103;
+  WM_GD_OUTSIDE_LOG            = WM_GD_THREAD_USER + 104;
+  WM_GD_FREE_EMAIL_MESSAGE     = WM_GD_THREAD_USER + 105;
 
-  WM_DBS_TEST                 = WM_GD_THREAD_USER + 12;
+  WM_DBS_TEST                  = WM_GD_THREAD_USER + 12;
 
   WM_DBS_SETPARAMS             = WM_GD_THREAD_USER + 4;
   WM_DBS_CONNECT               = WM_GD_THREAD_USER + 6;
@@ -62,73 +62,73 @@ const
   WM_DBS_MERGECARDS            = WM_GD_THREAD_USER + 41;
   WM_STOPNOTIFY                = WM_GD_THREAD_USER + 42;
 
-  WM_GD_FINISH_SEND_EMAIL     = WM_USER + 11126;
+  WM_GD_FINISH_SEND_EMAIL      = WM_USER + 11126;
 
-  WM_ACTIVATESETTING          = WM_USER + 30000;
-  WM_DEACTIVATESETTING        = WM_USER + 30001;
+  WM_ACTIVATESETTING           = WM_USER + 30000;
+  WM_DEACTIVATESETTING         = WM_USER + 30001;
 
-  WM_STARTMULTITRANSACTION    = WM_USER + 12653;
-  WM_LOGOFF                   = WM_USER + 12654;
+  WM_STARTMULTITRANSACTION     = WM_USER + 12653;
+  WM_LOGOFF                    = WM_USER + 12654;
 
-  WM_LOAD_NAMESPACE           = WM_USER + 1001;
+  WM_LOAD_NAMESPACE            = WM_USER + 1001;
 
-  WM_GD_UPDATE_NOTIFIER       = WM_USER + 2001;
+  WM_GD_UPDATE_NOTIFIER        = WM_USER + 2001;
 
-  WM_GD_AFTER_CONNECTION      = WM_USER + 1118;
-  WM_GD_QUERY_SERVER          = WM_USER + 1119;
-  WM_GD_GET_FILES_LIST        = WM_USER + 1120;
-  WM_GD_UPDATE_FILES          = WM_USER + 1121;
-  WM_GD_PROCESS_UPDATE_COMMAND= WM_USER + 1122;
-  WM_GD_FINISH_UPDATE         = WM_USER + 1123;
-  WM_GD_SEND_ERROR            = WM_USER + 1124;
-  WM_GD_SEND_EMAIL            = WM_USER + 1125;
+  WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
+  WM_GD_QUERY_SERVER           = WM_USER + 1119;
+  WM_GD_GET_FILES_LIST         = WM_USER + 1120;
+  WM_GD_UPDATE_FILES           = WM_USER + 1121;
+  WM_GD_PROCESS_UPDATE_COMMAND = WM_USER + 1122;
+  WM_GD_FINISH_UPDATE          = WM_USER + 1123;
+  WM_GD_SEND_ERROR             = WM_USER + 1124;
+  WM_GD_SEND_EMAIL             = WM_USER + 1125;
 
-  WM_GD_RELOGIN               = WM_USER + 25488;
-  //WM_GD_RUNONLOGINMACROS    = WM_USER + 25489;
+  WM_GD_RELOGIN                = WM_USER + 25488;
+  //WM_GD_RUNONLOGINMACROS     = WM_USER + 25489;
 
-  WM_FINISHOPENCOMPANY        = WM_USER + 25487;
-  WM_CONNECTIONLOST           = WM_USER + 25488;
+  WM_FINISHOPENCOMPANY         = WM_USER + 25487;
+  WM_CONNECTIONLOST            = WM_USER + 25488;
 
-  WM_USER_CLOSE               = WM_USER + 200;
-  WM_USER_PARAM               = WM_USER + 201;
-  WM_USER_REFRESH             = WM_USER + 202;
-  WM_USER_REBUILD             = WM_USER + 203;
-  WM_USER_PRMSG_ADDREF        = WM_USER + 204;
-  WM_USER_PRMSG_RELEASE       = WM_USER + 205;
-  WM_USER_RESET               = WM_USER + 206;
-  WM_USER_CLOSE_PROMT         = WM_USER + 207;
+  WM_USER_CLOSE                = WM_USER + 200;
+  WM_USER_PARAM                = WM_USER + 201;
+  WM_USER_REFRESH              = WM_USER + 202;
+  WM_USER_REBUILD              = WM_USER + 203;
+  WM_USER_PRMSG_ADDREF         = WM_USER + 204;
+  WM_USER_PRMSG_RELEASE        = WM_USER + 205;
+  WM_USER_RESET                = WM_USER + 206;
+  WM_USER_CLOSE_PROMT          = WM_USER + 207;
 
-  WM_UPDATESTATS              = WM_USER + 377;
+  WM_UPDATESTATS               = WM_USER + 377;
 
-  WM_CHANGEDISPLAYFORMTS      = WM_USER + 21782;
+  WM_CHANGEDISPLAYFORMTS       = WM_USER + 21782;
 
-  CM_DOREDUCE                 = WM_USER + $501;
+  CM_DOREDUCE                  = WM_USER + $501;
 
-  WM_GD_SELECTDOCUMENT        = WM_USER + 2220;
-  WM_GD_OPENACCTACCCARD       = WM_USER + 2221;
+  WM_GD_SELECTDOCUMENT         = WM_USER + 2220;
+  WM_GD_OPENACCTACCCARD        = WM_USER + 2221;
 
-  WM_TOOLTRAYICON             = WM_USER + 1;
-  WM_RESETTOOLTIP             = WM_USER + 2;
+  WM_TOOLTRAYICON              = WM_USER + 1;
+  WM_RESETTOOLTIP              = WM_USER + 2;
 
-  WM_GD_CALC_FORMAT           = WM_USER + 18;
+  WM_GD_CALC_FORMAT            = WM_USER + 18;
 
-  AM_DeferUpdate              = WM_USER + 100;  // avoids break-before-make listview ugliness
+  AM_DeferUpdate               = WM_USER + 100;  // avoids break-before-make listview ugliness
 
-  CM_NEWCONTROL = WM_USER + $400 + 1;
-  CM_RESIZECONTROL = WM_USER + $400 + 2;
-  CM_SHOWMENU = WM_USER + $400 + 3;
-  CM_ADDCONTROL = WM_USER + $400 + 4;
-  CM_INSERTNEW = WM_USER + $400 + 5;
-  CM_SHOWINSPECTOR = WM_USER + $400 + 6;
-  CM_SHOWPALETTE = WM_USER + $400 + 7;
-  CM_NEWCONTROLR = WM_USER + $400 + 8;
-  CM_PROPERTYCHANGED = WM_USER + $400 + 9;
-  WM_USER_MOUSEMOVE = WM_USER + $400 + 10;
-  WM_USER_LBUTTONUP = WM_USER + $400 + 11;
-  CM_INSERTNEW2 = WM_USER + $400 + 12;
-  CM_DELETECONTROL = WM_USER + $400 + 13;
-  CM_SHOWEVENTS = WM_USER + $400 + 14;
-  CM_SHOWEDITFORM = WM_USER + $400 + 15;
+  CM_NEWCONTROL                = WM_USER + $400 + 1;
+  CM_RESIZECONTROL             = WM_USER + $400 + 2;
+  CM_SHOWMENU                  = WM_USER + $400 + 3;
+  CM_ADDCONTROL                = WM_USER + $400 + 4;
+  CM_INSERTNEW                 = WM_USER + $400 + 5;
+  CM_SHOWINSPECTOR             = WM_USER + $400 + 6;
+  CM_SHOWPALETTE               = WM_USER + $400 + 7;
+  CM_NEWCONTROLR               = WM_USER + $400 + 8;
+  CM_PROPERTYCHANGED           = WM_USER + $400 + 9;
+  WM_USER_MOUSEMOVE            = WM_USER + $400 + 10;
+  WM_USER_LBUTTONUP            = WM_USER + $400 + 11;
+  CM_INSERTNEW2                = WM_USER + $400 + 12;
+  CM_DELETECONTROL             = WM_USER + $400 + 13;
+  CM_SHOWEVENTS                = WM_USER + $400 + 14;
+  CM_SHOWEDITFORM              = WM_USER + $400 + 15;
 
 implementation
 

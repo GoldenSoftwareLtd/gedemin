@@ -44,11 +44,10 @@ interface
 
 uses
   Windows, WinProcs, Messages, SysUtils, Classes, Graphics, Controls,
-  Forms, Dialogs, StdCtrls, Buttons, ExtCtrls, DB, DBCtrls;
+  Forms, Dialogs, StdCtrls, Buttons, ExtCtrls, DB, DBCtrls, gd_messages_const;
 
 const
   DefDecDigits = {2}-1;
-  WM_GD_CALC_FORMAT = WM_USER + 18;
 
 // Действия с числами
 type

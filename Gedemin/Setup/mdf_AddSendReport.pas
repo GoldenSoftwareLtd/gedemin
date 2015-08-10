@@ -327,7 +327,22 @@ begin
           '	WHERE principal = 1 AND id <> NEW.id; '#13#10 +
           'END';
         FIBSQL.ExecQuery;
-		
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) '#13#10 +
+          'VALUES ( '#13#10 +
+          '  740925, '#13#10 +
+          '  740000, '#13#10 +
+          '  ''Почтовые сервера'', '#13#10 +
+          '  ''SMTP'', '#13#10 +
+          '  ''TgdcSMTP'', '#13#10 +
+          '  NULL, '#13#10 +
+          '  160 '#13#10 +
+          ') '#13#10 +
+          'MATCHING (id)';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (222, ''0000.0001.0000.0253'', ''22.07.2015'', ''Modified GD_AUTOTASK and GD_SMTP tables.'') '#13#10 +
@@ -338,6 +353,13 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (223, ''0000.0001.0000.0254'', ''03.08.2015'', ''Modified GD_AUTOTASK and GD_SMTP tables. Attempt #2'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (224, ''0000.0001.0000.0255'', ''09.08.2015'', ''SMTP servers command has been added to the Explorer.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

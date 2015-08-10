@@ -701,6 +701,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (223, '0000.0001.0000.0254', '03.08.2015', 'Modified GD_AUTOTASK and GD_SMTP tables. Attempt #2');  
   
+INSERT INTO fin_versioninfo
+  VALUES (224, '0000.0001.0000.0255', '09.08.2015', 'SMTP servers command has been added to the Explorer.');  
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

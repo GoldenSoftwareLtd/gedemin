@@ -366,8 +366,10 @@ destructor TfrmSQLProcess.Destroy;
 var
   TempPath: array[0..1023] of Char;
   {$IFDEF WITH_INDY}
+  {
   FN: String;
   BT : String;
+  }
   {$ENDIF}
 begin
   frmSQLProcess := nil;
@@ -375,6 +377,7 @@ begin
     FLog.SaveToFile(IncludeTrailingBackslash(TempPath) + 'gedemin.log');
 
   {$IFDEF WITH_INDY}
+  {
   if FSendSettingsLog then
   begin
     if FLog.ErrorCount > 0 then
@@ -391,6 +394,7 @@ begin
 
     gdWebClientThread.SendNameSpaceLog(gd_CmdLineParams.Recipients, 'NS', BT, FN);
   end;
+  }
   {$ENDIF}
   FLog.Free;
   inherited;
@@ -462,8 +466,8 @@ begin
     stbSQLProcess.Panels[0].Text := cstWasMistakes;
 
     {$IFDEF WITH_INDY}
-    if gdWebClientThread <> nil then
-      gdWebClientThread.SendError('Log: ' + S);
+    if gdWebClientControl <> nil then
+      gdWebClientControl.SendError('Log: ' + S);
     {$ENDIF}
   end;
 end;

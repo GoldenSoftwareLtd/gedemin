@@ -40,15 +40,6 @@ const
   FrqRebuildReport = 1;                 // Отчеты перестраиваются раз в день
   MinFrqRefresh = 3600000;              // Время минимального обновления данных в мсек
 
-  WM_USER_CLOSE = WM_USER + 200;
-  WM_USER_PARAM = WM_USER + 201;
-  WM_USER_REFRESH = WM_USER + 202;
-  WM_USER_REBUILD = WM_USER + 203;
-  WM_USER_PRMSG_ADDREF = WM_USER + 204;
-  WM_USER_PRMSG_RELEASE = WM_USER + 205;
-  WM_USER_RESET = WM_USER + 206;
-  WM_USER_CLOSE_PROMT = WM_USER + 207;
-
   DefaultTCPPort = 2048;
   rpStartBlock = 'STARTBUFFER';
   rpFinishBlock = 'FINISHBUFFER';
