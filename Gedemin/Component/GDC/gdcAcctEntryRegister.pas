@@ -1364,8 +1364,6 @@ var
   {$IFDEF DEBUGMOVE}
   T: LongWord;
   {$ENDIF}
-  ibsql: TIBSQL;
-  IsDisabled: Boolean;
   DE: TgdDocumentEntry;
 begin
   Assert(Assigned(Document), 'Ќе задан документ дл€ формировани€ проводок');
@@ -1397,23 +1395,6 @@ begin
     Exit;
   end;
 
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := ReadTransaction;
-    ibsql.SQL.Text := 'SELECT DISABLED FROM AC_TRRECORD ' +
-      'WHERE transactionkey = :transactionkey and  disabled = 0';
-    ibsql.ParamByName('transactionkey').AsInteger :=
-      Document.FieldByName(fnTransactionkey).AsInteger;
-    ibsql.ExecQuery;
-    IsDisabled := ibsql.Eof;
-
-  finally
-    ibsql.Free;
-  end;
-
-  if IsDisabled then
-    Exit;
-
   {$IFDEF DEBUGMOVE}
    T := GetTickCount;
   {$ENDIF}
@@ -1441,7 +1422,7 @@ begin
       begin
         FEntryDocumentSQL := TIBSQL.Create(Self);
         FEntryDocumentSQL.SQl.Text := 'SELECT r.id, r.functionkey, r.documenttypekey, r.documentpart FROM ac_trrecord r WHERE ' +
-          ' r.transactionkey = :transactionkey '
+          ' r.transactionkey = :transactionkey and disabled = 0'
       end;
 
       if FEntryDocumentSQL.Transaction <> Transaction then
