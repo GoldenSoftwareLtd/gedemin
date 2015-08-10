@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1996-2014 by Golden Software of Belarus
+  Copyright (c) 1996-2015 by Golden Software of Belarus
 
   Module
 
@@ -1578,7 +1578,6 @@ begin
     inherited;
   end;
 end;
-
 
 procedure TxCalculatorEdit.CMExit(var Message: TCMExit);
 var

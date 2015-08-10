@@ -1,7 +1,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -101,7 +101,6 @@ type
     tvTypeFunction: TTreeView;
     lvFunction: TListView;
     Splitter1: TSplitter;
-    Bevel1: TBevel;
     procedure tvTypeFunctionChange(Sender: TObject; Node: TTreeNode);
     procedure lvFunctionSelectItem(Sender: TObject; Item: TListItem;
       Selected: Boolean);

@@ -10,7 +10,8 @@ uses
   buttons, grids, dbctrls, mask, dbclient, IBDatabaseInfo, IBEvents, IBExtract,
   IBQuery, IBStoredProc, IBTable, IBUpdateSQL, imglist, Outline, filectrl,
   ColorGrd, toolwin, Gauges, Spin, obj_WrapperIBXClasses, dbgrids, contnrs,
-  printers, gdv_frAcctAnalytics_unit, shdocvw, JvDBImage, gsMorph, gsPeriodEdit, gsPanel;
+  printers, gdv_frAcctAnalytics_unit, shdocvw, JvDBImage, gsMorph, gsPeriodEdit,
+  gsPanel;
 
 type
   TPointArray = array of TPoint;
@@ -4461,7 +4462,7 @@ implementation
 
 uses
   IBHeader, gdcOLEClassList, ComServ, prp_Methods, obj_VarParam, obj_QueryList,
-  OleCtrls, jpeg, TypInfo, JclMime, gsCSV, gd_WebClientControl_unit
+  OleCtrls, jpeg, TypInfo, JclMime, gsCSV
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

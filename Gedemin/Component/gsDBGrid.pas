@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Module
 
@@ -690,8 +690,6 @@ type
     FSearchFlag: Boolean;                 // Флаг осуществления поиска
     FCloseDialog: Boolean;
 
-    //FAggregate: TgsAggregate;
-
     FOldX, FOldY: Integer;
     FHalfSelectedTone: TColor;          // Свет выделения агрегатов равный
                                         // полутону белого и текущего цвета выделения
@@ -840,8 +838,6 @@ type
     procedure CountScaleColumns;
 
     function NotParentFont: Boolean;
-    {function GetOnAggregateChanged: TNotifyEvent;
-    procedure SetOnAggregateChanged(const Value: TNotifyEvent);}
 
     // создаваемые внутри грида действия должны быть недоступны
     // если не подключен датасет или он не открыт

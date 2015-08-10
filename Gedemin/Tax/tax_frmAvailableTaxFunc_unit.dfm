@@ -1,8 +1,8 @@
 object frmAvailableTaxFunc: TfrmAvailableTaxFunc
-  Left = 276
-  Top = 173
+  Left = 499
+  Top = 244
   Width = 468
-  Height = 392
+  Height = 343
   HelpContext = 17
   BorderIcons = [biSystemMenu, biMaximize, biHelp]
   BorderWidth = 5
@@ -13,7 +13,7 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -24,24 +24,24 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 442
-    Height = 319
+    Width = 450
+    Height = 276
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object Splitter1: TSplitter
       Left = 0
-      Top = 182
-      Width = 442
+      Top = 128
+      Width = 450
       Height = 3
       Cursor = crVSplit
       Align = alBottom
     end
     object pnlHelp: TPanel
       Left = 0
-      Top = 185
-      Width = 442
-      Height = 134
+      Top = 131
+      Width = 450
+      Height = 145
       Align = alBottom
       BevelOuter = bvLowered
       Color = clHighlight
@@ -49,25 +49,16 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
       object pnlDecr: TPanel
         Left = 1
         Top = 1
-        Width = 440
-        Height = 132
+        Width = 448
+        Height = 143
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 0
-        object Bevel1: TBevel
-          Left = 0
-          Top = 17
-          Width = 440
-          Height = 3
-          Align = alTop
-          Shape = bsBottomLine
-          Style = bsRaised
-        end
         object mmDescription: TMemo
           Left = 0
-          Top = 20
-          Width = 440
-          Height = 112
+          Top = 18
+          Width = 448
+          Height = 125
           TabStop = False
           Align = alClient
           BorderStyle = bsNone
@@ -81,22 +72,21 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
         object pnlFuncParam: TPanel
           Left = 0
           Top = 0
-          Width = 440
-          Height = 17
+          Width = 448
+          Height = 18
           Align = alTop
-          BevelOuter = bvNone
           TabOrder = 1
           object lblFuncParam: TLabel
-            Left = 0
-            Top = 0
-            Width = 440
-            Height = 17
+            Left = 1
+            Top = 1
+            Width = 446
+            Height = 16
             Align = alClient
             Color = clBtnFace
             Font.Charset = DEFAULT_CHARSET
             Font.Color = clWindowText
-            Font.Height = -11
-            Font.Name = 'MS Sans Serif'
+            Font.Height = -12
+            Font.Name = 'Tahoma'
             Font.Style = [fsBold]
             ParentColor = False
             ParentFont = False
@@ -107,24 +97,24 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
     object Panel1: TPanel
       Left = 0
       Top = 0
-      Width = 442
-      Height = 182
+      Width = 450
+      Height = 128
       Align = alClient
       BevelOuter = bvNone
       Caption = 'Panel1'
       TabOrder = 1
       object Splitter2: TSplitter
-        Left = 216
+        Left = 233
         Top = 0
         Width = 3
-        Height = 182
+        Height = 128
         Cursor = crHSplit
       end
       object Panel2: TPanel
         Left = 0
         Top = 0
-        Width = 216
-        Height = 182
+        Width = 233
+        Height = 128
         Align = alLeft
         BevelOuter = bvNone
         Caption = 'Panel2'
@@ -132,8 +122,8 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
         object Panel4: TPanel
           Left = 0
           Top = 0
-          Width = 216
-          Height = 16
+          Width = 233
+          Height = 17
           Align = alTop
           Alignment = taLeftJustify
           BevelOuter = bvNone
@@ -141,17 +131,17 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
           Color = clInactiveCaption
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clCaptionText
-          Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Height = -12
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
           TabOrder = 0
         end
         object tvTypeFunction: TTreeView
           Left = 0
-          Top = 16
-          Width = 216
-          Height = 166
+          Top = 17
+          Width = 233
+          Height = 111
           Align = alClient
           Images = dmImages.ilTree
           Indent = 19
@@ -165,10 +155,10 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
         end
       end
       object Panel3: TPanel
-        Left = 219
+        Left = 236
         Top = 0
-        Width = 223
-        Height = 182
+        Width = 214
+        Height = 128
         Align = alClient
         BevelOuter = bvNone
         Caption = 'Panel3'
@@ -176,8 +166,8 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
         object Panel5: TPanel
           Left = 0
           Top = 0
-          Width = 223
-          Height = 16
+          Width = 214
+          Height = 17
           Align = alTop
           Alignment = taLeftJustify
           BevelOuter = bvNone
@@ -185,17 +175,17 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
           Color = clInactiveCaption
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clCaptionText
-          Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Height = -12
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
           TabOrder = 0
         end
         object lvFunction: TListView
           Left = 0
-          Top = 16
-          Width = 223
-          Height = 166
+          Top = 17
+          Width = 214
+          Height = 111
           Align = alClient
           Columns = <
             item
@@ -218,16 +208,16 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
   end
   object pnlButton: TPanel
     Left = 0
-    Top = 319
-    Width = 442
-    Height = 25
+    Top = 276
+    Width = 450
+    Height = 26
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object btnOk: TButton
-      Left = 294
-      Top = 4
-      Width = 75
+      Left = 282
+      Top = 5
+      Width = 80
       Height = 21
       Anchors = [akRight, akBottom]
       Caption = '&OK'
@@ -236,9 +226,9 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
       TabOrder = 0
     end
     object btnCancel: TButton
-      Left = 374
-      Top = 4
-      Width = 75
+      Left = 368
+      Top = 5
+      Width = 81
       Height = 21
       Anchors = [akRight, akBottom]
       Cancel = True
