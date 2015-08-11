@@ -39,8 +39,7 @@ type
     FRestoreDBFile: String;
     FWarning: String;
     FRemoteServer: String;
-    FSendLogEmail: Boolean;
-    FRecipients: String;
+    FSendLogEmail: String;
 
     function StripQuotes(const S: String): String;
     function CompareAnyString(const S: String; const S2: array of String): Boolean; overload;
@@ -85,8 +84,7 @@ type
     property RestoreBufferSize: Integer read FRestoreBufferSize;
     property Warning: String read FWarning;
     property RemoteServer: String read FRemoteServer;
-    property SendLogEmail: Boolean read FSendLogEmail;
-    property Recipients: String read FRecipients;
+    property SendLogEmail: String read FSendLogEmail;
   end;
 
 var
@@ -216,10 +214,10 @@ begin
     I := 0;
     while I < SL.Count do
     begin
-      if CompareAnyString(SL[I], ['SE'], Value) then
+      if CompareAnyString(SL[I], ['SL']) and (I < SL.Count - 1) then
       begin
-        FSendLogEmail := True;
-        FRecipients := LowerCase(Value);
+        Inc(I);
+        FSendLogEmail := SL[I];
       end else
 
       if CompareAnyString(SL[I], ['LANG'], Value) then

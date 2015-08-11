@@ -156,10 +156,10 @@ begin
     pcTask.ActivePage := tsCmd
   else if gdcObject.FieldByName('backupfile').AsString > '' then
     pcTask.ActivePage := tsBackup
-  else if gdcObject.FieldByName('functionkey').AsInteger > 0 then
-    pcTask.ActivePage := tsFunction
+  else if gdcObject.FieldByName('reportkey').AsInteger > 0 then
+    pcTask.ActivePage := tsReport
   else
-    pcTask.ActivePage := tsReport;
+    pcTask.ActivePage := tsFunction;
 
   if gdcObject.FieldByName('atstartup').AsInteger <> 0 then
     rbAtStartup.Checked := True

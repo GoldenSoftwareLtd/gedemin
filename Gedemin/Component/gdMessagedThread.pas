@@ -4,7 +4,7 @@ unit gdMessagedThread;
 interface
 
 uses
-  Classes, Windows, Messages, SyncObjs, gd_ProgressNotifier_unit;
+  Classes, Windows, Messages, SyncObjs, gd_ProgressNotifier_unit, idThreadSafe;
 
 type
   TgdMessagedThread = class(TThread)
@@ -13,13 +13,17 @@ type
     FCriticalSection: TCriticalSection;
     FTimeout: DWORD;
 
-    function GetWaiting: Boolean;
+    //function GetWaiting: Boolean;
+    function GetEnabled: Boolean;
+    procedure SetEnabled(const Value: Boolean);
 
   protected
     FErrorMessage: String;
     FErrorMsg: TMsg;
     FProgressWatch: IgdProgressWatch;
     FPI: TgdProgressInfo;
+    FEnabled: TidThreadSafeInteger;
+    FDone: Boolean;
 
     procedure PostMsg(const AMsg: Word; const AWParam: WPARAM = 0;
       const ALParam: LPARAM = 0);
@@ -28,7 +32,7 @@ type
     procedure Setup; virtual;
     procedure TearDown; virtual;
     function ProcessMessage(var Msg: TMsg): Boolean; virtual;
-    function ProcessError(var AMsg: TMsg; var AnErrorMessage: String): Boolean; virtual; 
+    function ProcessError(var AMsg: TMsg; var AnErrorMessage: String): Boolean; virtual;
     procedure LogErrorSync; virtual;
     procedure SetTimeout(const ATimeout: DWORD);
     procedure Lock;
@@ -40,6 +44,7 @@ type
       const AMessage: String = '');
     procedure DoOnProgressWatch(Sender: TObject; const AProgressInfo: TgdProgressInfo);
     procedure ExitThread;
+    procedure DoTerminate; override;
 
     property ErrorMessage: String read FErrorMessage write FErrorMessage;
     property ErrorMsg: TMsg read FErrorMsg write FErrorMsg;
@@ -48,8 +53,11 @@ type
     constructor Create(CreateSuspended: Boolean);
     destructor Destroy; override;
 
-    property Waiting: Boolean read GetWaiting;
+    procedure WaitForIdle(const ADisable: Boolean = False);
+
+    //property Waiting: Boolean read GetWaiting;
     property ProgressWatch: IgdProgressWatch read GetProgressWatch write SetProgressWatch;
+    property Enabled: Boolean read GetEnabled write SetEnabled;
   end;
 
 implementation
@@ -65,12 +73,14 @@ begin
   FCreatedEvent := TEvent.Create(nil, True, False, '');
   FWaitingEvent := TEvent.Create(nil, True, False, '');
   FCriticalSection := TCriticalSection.Create;
+  FEnabled := TidThreadSafeInteger.Create;
+  FEnabled.Value := 1;
   inherited Create(CreateSuspended);
 end;
 
 destructor TgdMessagedThread.Destroy;
 begin
-  if not Suspended then
+  if (not FDone) and (not Suspended) then
   begin
     if FCreatedEvent.WaitFor(INFINITE) = wrSignaled then
       PostThreadMessage(ThreadID, WM_GD_EXIT_THREAD, 0, 0);
@@ -81,6 +91,7 @@ begin
   FCreatedEvent.Free;
   FWaitingEvent.Free;
   FCriticalSection.Free;
+  FEnabled.Free;
 end;
 
 procedure TgdMessagedThread.DoOnProgressWatch(Sender: TObject;
@@ -88,6 +99,12 @@ procedure TgdMessagedThread.DoOnProgressWatch(Sender: TObject;
 begin
   FPI := AProgressInfo;
   Synchronize(SyncProgressWatch);
+end;
+
+procedure TgdMessagedThread.DoTerminate;
+begin
+  FDone := True;
+  inherited;
 end;
 
 procedure TgdMessagedThread.Execute;
@@ -112,7 +129,8 @@ begin
 
       if (not Terminated) and (Res = WAIT_TIMEOUT) then
       begin
-        Timeout
+        if Enabled then
+          Timeout;
       end else
       begin
         while (not Terminated) and PeekMessage(Msg, 0, 0, $FFFFFFFF, PM_REMOVE) do
@@ -122,7 +140,7 @@ begin
             WM_GD_UPDATE_TIMER: FTimeout := Msg.LParam;
           else
             try
-              if not ProcessMessage(Msg) then
+              if (not Enabled) or (not ProcessMessage(Msg)) then
               begin
                 TranslateMessage(Msg);
                 DispatchMessage(Msg);
@@ -158,6 +176,11 @@ begin
   PostMsg(WM_GD_EXIT_THREAD);
 end;
 
+function TgdMessagedThread.GetEnabled: Boolean;
+begin
+  Result := FEnabled.Value <> 0;
+end;
+
 function TgdMessagedThread.GetProgressWatch: IgdProgressWatch;
 begin
   Lock;
@@ -168,10 +191,12 @@ begin
   end;
 end;
 
+{
 function TgdMessagedThread.GetWaiting: Boolean;
 begin
   Result := FWaitingEvent.WaitFor(0) = wrSignaled;
 end;
+}
 
 procedure TgdMessagedThread.Lock;
 begin
@@ -204,10 +229,12 @@ end;
 procedure TgdMessagedThread.PostMsg(const AMsg: Word; const AWParam: WPARAM = 0;
   const ALParam: LPARAM = 0);
 begin
-  if (not Suspended) and (not Terminated) then
+  if (not FDone) and (not Suspended) and (not Terminated) then
   begin
-    if FCreatedEvent.WaitFor(INFINITE) = wrSignaled then
-      PostThreadMessage(ThreadID, AMsg, AWParam, ALParam);
+    if FCreatedEvent.WaitFor(30000) = wrSignaled then
+      PostThreadMessage(ThreadID, AMsg, AWParam, ALParam)
+    else
+      raise Exception.Create('Thread ' + Self.ClassName + ' is not created.');
   end;
 end;
 
@@ -220,6 +247,14 @@ end;
 function TgdMessagedThread.ProcessMessage(var Msg: TMsg): Boolean;
 begin
   Result := False;
+end;
+
+procedure TgdMessagedThread.SetEnabled(const Value: Boolean);
+begin
+  if Value then
+    FEnabled.Value := 1
+  else
+    FEnabled.Value := 0;  
 end;
 
 procedure TgdMessagedThread.SetProgressWatch(
@@ -262,6 +297,13 @@ end;
 procedure TgdMessagedThread.Unlock;
 begin
   FCriticalSection.Leave;
+end;
+
+procedure TgdMessagedThread.WaitForIdle(const ADisable: Boolean);
+begin
+  if (not FDone) and (not Suspended) and (FCreatedEvent.WaitFor(0) = wrSignaled) then
+    FWaitingEvent.WaitFor(INFINITE);
+  Enabled := not ADisable;
 end;
 
 end.

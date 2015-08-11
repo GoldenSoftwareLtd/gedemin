@@ -1,6 +1,6 @@
 inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 645
-  Top = 9
+  Left = 646
+  Top = 10
   Caption = 'gdc_dlgAutoTask'
   ClientHeight = 565
   ClientWidth = 440
@@ -585,7 +585,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         ListField = 'NAME'
         KeyField = 'ID'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 0
       end
       object dbcbExportType: TDBComboBox
@@ -617,7 +617,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         KeyField = 'ID'
         gdClassName = 'TgdcSMTP'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 4
@@ -636,7 +636,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         Condition = 'GD_CONTACT.CONTACTTYPE  =  1'
         gdClassName = 'TgdcGroup'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 3

@@ -151,8 +151,6 @@ type
     function GetEmailState(const AnID: Word; out AState: TgdEmailMessageState; out AnErrorMsg: String;
       const AFreeEmailMessage: Boolean = True): Boolean;
 
-    procedure WaitingSendingEmail;
-
     procedure ClearEmailCallbackHandle(const AWndHandle: THandle; const AThreadID: THandle);
 
     property gdWebServerURL: String read GetgdWebServerURL write SetgdWebServerURL;
@@ -167,9 +165,9 @@ type
 
 var
   gdWebClientControl: TgdWebClientControl;
+
   function GetIPSec(AnIPSec: String): TIdSSLVersion;
-  function GetTempDirectory: String;
-  function GetTempFileName(const AnExportType: String): String;
+  function GetEmailTempFileName(const AnExportType: String): String;
 
 implementation
 
@@ -194,7 +192,7 @@ begin
     raise Exception.Create('unknown ip security protocol.')
 end;
 
-function GetTempDirectory: String;
+function GetEmailTempDirectory: String;
 var
   Ch: array[0..1024] of Char;
   RandDir: String;
@@ -211,13 +209,13 @@ begin
 
   if not CreateDir(Result) then
     raise Exception.Create('Ошибка при создании директории ' + Result + '!');
-    
-  Result := Result + '\';
+
+  Result := IncludeTrailingBackSlash(Result);
 end;
 
-function GetTempFileName(const AnExportType: String): String;
+function GetEmailTempFileName(const AnExportType: String): String;
 begin
-  Result := GetTempDirectory + 'report' + '.' + AnExportType;
+  Result := GetEmailTempDirectory + 'report.' + AnExportType;
 end;
 
 { TgdWebClientControl }
@@ -708,12 +706,6 @@ begin
     Result := FEmailLastID;
 end;
 
-procedure TgdWebClientControl.WaitingSendingEmail;
-begin
-  while EmailCount > 0 do
-    Sleep(1000);
-end;
-
 procedure TgdWebClientControl.DoSendError;
 begin
   if gdWebServerURL = '' then
@@ -915,34 +907,48 @@ var
 begin
   Assert(gdcBaseManager <> nil);
 
-  Result := False;
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
+  if (ASMTPKey = -1) and (gd_GlobalParams.GetWebClientSMTPHost > '') then
+  begin
+    AHost := gd_GlobalParams.GetWebClientSMTPHost;
+    APort := gd_GlobalParams.GetWebClientSMTPPort;
+    ASenderEMail := gd_GlobalParams.GetWebClientSMTPEmail;
+    ALogin := gd_GlobalParams.GetWebClientSMTPLogin;
+    APassw := gd_GlobalParams.GetWebClientSMTPPassw;
+    AIPSec := gd_GlobalParams.GetWebClientSMTPIPSec;
+    Result := True;
+  end else
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
 
-    if ASMTPKey > 0 then
-    begin
       q.SQL.Text :=
         'SELECT * FROM gd_smtp s WHERE s.id = :id';
       q.ParamByName('id').AsInteger := ASMTPKey;
-    end else
-      q.SQL.Text :=
-        'SELECT * FROM gd_smtp s WHERE s.principal = 1';
+      q.ExecQuery;
 
-    q.ExecQuery;
+      if q.EOF then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'SELECT * FROM gd_smtp s WHERE s.principal = 1';
+        q.ExecQuery;
+      end;
 
-    if not q.EOF then
-    begin
-      Result := True;
-      ASenderEMail := q.FieldByName('email').AsString;
-      AHost := q.FieldByName('server').AsString;
-      APort := q.FieldByName('port').AsInteger;
-      ALogin := q.FieldByName('login').AsString;
-      APassw := DecryptString(q.FieldByName('passw').AsString, 'PASSW');
-      AIPSec := q.FieldByName('ipsec').AsString;
+      if not q.EOF then
+      begin
+        AHost := q.FieldByName('server').AsString;
+        APort := q.FieldByName('port').AsInteger;
+        ASenderEMail := q.FieldByName('email').AsString;
+        ALogin := q.FieldByName('login').AsString;
+        APassw := DecryptString(q.FieldByName('passw').AsString, 'PASSW');
+        AIPSec := q.FieldByName('ipsec').AsString;
+        Result := True;
+      end else
+        Result := False;
+    finally
+      q.Free;
     end;
-  finally
-    q.Free;
   end;
 end;
 
@@ -1091,7 +1097,7 @@ begin
   ClientReport.ExportType := GetExportType(AnExportType);
   ClientReport.ShowProgress := False;
 
-  LFileName := GetTempFileName(AnExportType);
+  LFileName := GetEmailTempFileName(AnExportType);
   ClientReport.FileName := LFileName;
   try
     B := VarArrayOf([]);

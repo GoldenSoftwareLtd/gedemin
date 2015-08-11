@@ -55,12 +55,7 @@ const
   WM_GD_EXIT_THREAD            = WM_USER + 117;
   WM_GD_UPDATE_TIMER           = WM_USER + 118;
 
-  WM_GD_FIND_AND_EXECUTE_TASK  = WM_GD_THREAD_USER + 101;
-  WM_GD_LOAD_TASK_LIST         = WM_GD_THREAD_USER + 102;
-  WM_GD_RELOAD_TASK_LIST       = WM_GD_THREAD_USER + 103;
-  WM_GD_OUTSIDE_LOG            = WM_GD_THREAD_USER + 104;
-  WM_GD_FREE_EMAIL_MESSAGE     = WM_GD_THREAD_USER + 105;
-
+  // db squeeze
   WM_DBS_TEST                  = WM_GD_THREAD_USER + 12;
 
   WM_DBS_SETPARAMS             = WM_GD_THREAD_USER + 4;
@@ -105,15 +100,13 @@ const
   WM_DBS_MERGECARDS            = WM_GD_THREAD_USER + 41;
   WM_STOPNOTIFY                = WM_GD_THREAD_USER + 42;
 
-  // gdNotifierThread
-  WM_GD_UPDATE_NOTIFIER        = WM_USER + 2001;
+  WM_GD_FIND_AND_EXECUTE_TASK  = WM_GD_THREAD_USER + 101;
+  WM_GD_LOAD_TASK_LIST         = WM_GD_THREAD_USER + 102;
+  WM_GD_RELOAD_TASK_LIST       = WM_GD_THREAD_USER + 103;
+  //WM_GD_OUTSIDE_LOG            = WM_GD_THREAD_USER + 104;
+  WM_GD_FREE_EMAIL_MESSAGE     = WM_GD_THREAD_USER + 105;
 
-  // gsIBLookupComboBoxInterface
-  WM_GD_SELECTDOCUMENT         = WM_USER + 2220;
-  WM_GD_OPENACCTACCCARD        = WM_USER + 2221;
-
-  WM_GD_FINISH_SEND_EMAIL      = WM_USER + 11126;
-
+  // gdWebClientControl
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
   WM_GD_QUERY_SERVER           = WM_USER + 1119;
   WM_GD_GET_FILES_LIST         = WM_USER + 1120;
@@ -123,11 +116,18 @@ const
   WM_GD_SEND_ERROR             = WM_USER + 1124;
   WM_GD_SEND_EMAIL             = WM_USER + 1125;
 
-  WM_FINISHOPENCOMPANY         = WM_USER + 25487;
-  WM_CONNECTIONLOST            = WM_USER + 25488;
+  // gdNotifierThread
+  WM_GD_UPDATE_NOTIFIER        = WM_USER + 2001;
+
+  // gsIBLookupComboBoxInterface
+  WM_GD_SELECTDOCUMENT         = WM_USER + 2220;
+  WM_GD_OPENACCTACCCARD        = WM_USER + 2221;
 
   // gsIBGrid
   CM_DOREDUCE                  = WM_USER + 1281;
+
+  // gdWebClientControl
+  WM_GD_FINISH_SEND_EMAIL      = WM_USER + 11126;
 
   // at_classes_body
   WM_STARTMULTITRANSACTION     = WM_USER + 12653;
@@ -136,9 +136,13 @@ const
   // gsDBGrid
   WM_CHANGEDISPLAYFORMTS       = WM_USER + 21782;
 
+  // gd_security_body
+  WM_FINISHOPENCOMPANY         = WM_USER + 25487;
+  WM_CONNECTIONLOST            = WM_USER + 25488;
+
   // gd_main_form
-  WM_GD_RELOGIN                = WM_USER + 25488;
-  //WM_GD_RUNONLOGINMACROS     = WM_USER + 25489;
+  WM_GD_RELOGIN                = WM_USER + 25489;
+  //WM_GD_RUNONLOGINMACROS     = WM_USER + 25490;
 
   // at_ActivateSetting
   WM_ACTIVATESETTING           = WM_USER + 30000;

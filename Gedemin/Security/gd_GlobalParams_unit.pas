@@ -36,7 +36,7 @@ type
     function GetWebClientRemoteServer: String;
     function GetWebClientTimeout: Integer;
 
-    function GetWebClientSMTPServer: String;
+    function GetWebClientSMTPHost: String;
     function GetWebClientSMTPPort: Integer;
     function GetWebClientSMTPEmail: String;
     function GetWebClientSMTPLogin: String;
@@ -154,9 +154,9 @@ begin
   Result := FIniFile.ReadInteger('WEB CLIENT', 'Timeout', 20000);
 end;
 
-function Tgd_GlobalParams.GetWebClientSMTPServer: String;
+function Tgd_GlobalParams.GetWebClientSMTPHost: String;
 begin
-  Result := FIniFile.ReadString('WEB CLIENT', 'SMTPServer', '');
+  Result := FIniFile.ReadString('WEB CLIENT', 'SMTPHost', '');
 end;
 
 function Tgd_GlobalParams.GetWebClientSMTPPort: Integer;
@@ -166,7 +166,7 @@ end;
 
 function Tgd_GlobalParams.GetWebClientSMTPEmail: String;
 begin
-  Result := FIniFile.ReadString('WEB CLIENT', 'SMTPEmail', '');
+  Result := FIniFile.ReadString('WEB CLIENT', 'SMTPSenderEmail', '');
 end;
 
 function Tgd_GlobalParams.GetWebClientSMTPLogin: String;

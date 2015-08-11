@@ -129,7 +129,6 @@ type
     FTaskList: TObjectList;
     FNotificationContext: Integer;
     FSkipAtStartup: Boolean;
-    FForbidden: Boolean;
 
     procedure LoadFromRelation;
     procedure FindAndExecuteTask;
@@ -150,7 +149,6 @@ type
 
     procedure SetInitialDelay;
     procedure ReLoadTaskList;
-    procedure Forbid;
   end;
 
 var
@@ -572,15 +570,12 @@ begin
 
     WM_GD_FIND_AND_EXECUTE_TASK:
     begin
-      if not FForbidden then
-      begin
-        FindAndExecuteTask;
+      FindAndExecuteTask;
 
-        if (FTaskList = nil) or (FTaskList.Count = 0) then
-        begin
-          SendNotification('Все автозадачи выполнены.');
-          SetTimeOut(INFINITE);
-        end;
+      if (FTaskList = nil) or (FTaskList.Count = 0) then
+      begin
+        SendNotification('Все автозадачи выполнены.');
+        SetTimeOut(INFINITE);
       end;
 
       Result := True;
@@ -763,11 +758,6 @@ end;
 procedure TgdAutoTaskThread.ReLoadTaskList;
 begin
   PostMsg(WM_GD_RELOAD_TASK_LIST);
-end;
-
-procedure TgdAutoTaskThread.Forbid;
-begin
-  FForbidden := True;
 end;
 
 { TgdAutoFunctionTask }

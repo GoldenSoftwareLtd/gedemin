@@ -233,13 +233,13 @@ begin
   Application.OnException := FOldOnException;
 
   if gdAutoTaskThread <> nil then
-    gdAutoTaskThread.Forbid;
+    gdAutoTaskThread.WaitForIdle(True);
 
   {$IFDEF WITH_INDY}
   if not Application.Terminated then
     gdWebServerControl.DeactivateServer;
 
-  gdWebClientControl.WaitingSendingEmail;
+  gdWebClientControl.WaitForIdle;
   {$ENDIF}
 
   // FreeAndNil clear the reference before destroying the object
@@ -248,7 +248,6 @@ begin
     gdAutoTaskThread.Free;
     gdAutoTaskThread := nil;
   end;
-
 
   SaveStorages;
 

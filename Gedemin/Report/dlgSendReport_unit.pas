@@ -30,7 +30,6 @@ type
     rbXML: TRadioButton;
     pnlState: TPanel;
     btnClose: TButton;
-    procedure FormCreate(Sender: TObject);
     procedure actSendExecute(Sender: TObject);
     procedure actSendUpdate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -107,22 +106,6 @@ begin
   edSubject.Text := ACaption;
 end;
 
-procedure TdlgSendReport.FormCreate(Sender: TObject);
-var
-  R: OleVariant;
-begin
-  Assert(gdcBaseManager <> nil);
-
-  inherited;
-
-  iblkupSMTP.Transaction := gdcBaseManager.ReadTransaction;
-  if gdcBasemanager.ExecSingleQueryResult(
-    'SELECT id FROM gd_smtp s WHERE s.principal = 1', 0, R) then
-  begin
-    iblkupSMTP.CurrentKeyInt := R[0, 0];
-  end;
-end;
-
 procedure TdlgSendReport.actSendExecute(Sender: TObject);
 var
   CurrExport: TfrxCustomExportFilter;
@@ -155,7 +138,7 @@ begin
   if CurrExport = nil then
     raise Exception.Create('Отсутствует конвертер отчета в выбранный формат');
 
-  FN := GetTempFileName(FExt);
+  FN := GetEmailTempFileName(FExt);
 
   TempFileName := CurrExport.FileName;
   TempShowDialog := CurrExport.ShowDialog;
@@ -185,7 +168,6 @@ end;
 procedure TdlgSendReport.actSendUpdate(Sender: TObject);
 begin
   actSend.Enabled := (edRecipients.Text > '')
-    and (iblkupSMTP.CurrentKeyInt > 0)
     and (FEmailID = 0);
 end;
 
@@ -200,7 +182,7 @@ var
 begin
   if gdcBaseManager.ExecSingleQueryResult(
     'SELECT '#13#10 +
-    '  LIST(email) '#13#10 +
+    '  LIST(email, '','') '#13#10 +
     'FROM '#13#10 +
     '  ( '#13#10 +
     '    SELECT '#13#10 +

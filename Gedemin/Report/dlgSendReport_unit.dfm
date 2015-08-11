@@ -1,6 +1,6 @@
 object dlgSendReport: TdlgSendReport
-  Left = 439
-  Top = 282
+  Left = 440
+  Top = 284
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Отправка отчета по электронной почте'
@@ -13,7 +13,6 @@ object dlgSendReport: TdlgSendReport
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
