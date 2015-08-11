@@ -264,6 +264,7 @@ type
     actCaseElse: TAction;
     TBItem44: TTBItem;
     actFindNext: TAction;
+    actSelectAll: TAction;
     procedure TBItem1Click(Sender: TObject);
     procedure actGenerateExecute(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
@@ -344,6 +345,8 @@ type
     procedure actCaseElseUpdate(Sender: TObject);
     procedure actFindNextExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
+    procedure actSelectAllExecute(Sender: TObject);
+    procedure actSelectAllUpdate(Sender: TObject);
   private
     FSelectedBlock: TVisualBlock;
     FDebugLink: TWizardDebugLink;
@@ -1540,6 +1543,17 @@ procedure TdlgFunctionWisard.actOkUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := (FDebugLink <> nil) and (not FDebugLink.IsRuning)
     and (IBLogin <> nil) and IBLogin.IsUserAdmin;
+end;
+
+procedure TdlgFunctionWisard.actSelectAllExecute(Sender: TObject);
+begin
+  FSelectedBlock.SelectAll;
+end;
+
+procedure TdlgFunctionWisard.actSelectAllUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := (FSelectedBlock <> nil) and
+    (FSelectedBlock.ControlCount > 0)
 end;
 
 initialization

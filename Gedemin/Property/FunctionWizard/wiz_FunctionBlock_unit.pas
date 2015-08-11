@@ -82,6 +82,7 @@ type
     FactCopy: TAction;
     FactCut: TAction;
     FactPast: TAction;
+    FactSelAll: TAction;
     FDragging: boolean;
 
     procedure SetBlockName(const Value: string);
@@ -194,6 +195,9 @@ type
     procedure OnPastExecute(Sender: TObject);
     procedure OnPastUpdate(Sender: TObject);
 
+    procedure OnSelectAllExecute(Sender: TObject);
+    procedure OnSelectAllUpdate(Sender: TObject);
+
     procedure CheckActionList; virtual;
   public
     constructor Create(AOwner: TComponent); override;
@@ -234,6 +238,7 @@ type
     procedure Copy; virtual;
     procedure Cut; virtual;
     procedure Paste; virtual;
+    procedure SelectAll; virtual;
 
     property UnWrap: Boolean read FUnWrap write SetUnWrap;
     property BlockName: string read FBlockName write SetBlockName;
@@ -2367,6 +2372,7 @@ begin
     AddMenuItem(FactCopy);
     AddMenuItem(FactCut);
     AddMenuItem(FactPast);
+    AddMenuItem(FactSelAll);
   end;
   FPopupMenu.Popup(X, Y);
 end;
@@ -3102,6 +3108,25 @@ begin
   end;
 end;
 
+procedure TVisualBlock.SelectAll;
+var
+  I: Integer;
+begin
+  if not Assigned(SelBlockList) then
+    Exit;
+
+  ClearSelBlockList;
+
+  for I := 0 to ControlCount - 1 do
+  begin
+    SelBlockList.Add(TVisualBlock(Controls[I]));
+    if Assigned(OnBlockSelect) then
+      OnBlockSelect(TVisualBlock(Controls[I]));
+  end;
+  
+  Repaint;
+end;
+
 function TVisualBlock.CanPast: Boolean;
 var
   i: integer;
@@ -3149,6 +3174,13 @@ begin
   begin
     FActionList := TActionList.Create(Self);
 
+    FactSelAll := TAction.Create(Self);
+    FactSelAll.ActionList := FActionList;
+    FactSelAll.OnExecute := OnSelectAllExecute;
+    FactSelAll.OnUpdate := OnSelectAllUpdate;
+    FactSelAll.Caption := 'Выделить все';
+    FactSelAll.ShortCut := ShortCut(Ord('A'), [ssCtrl]);
+
     FactCopy := TAction.Create(Self);
     FactCopy.ActionList := FActionList;
     FactCopy.OnExecute := OnCopyExecute;
@@ -3186,6 +3218,16 @@ end;
 procedure TVisualBlock.OnCopyUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := CanCopy
+end;
+
+procedure TVisualBlock.OnSelectAllExecute(Sender: TObject);
+begin
+  SelectAll;
+end;
+
+procedure TVisualBlock.OnSelectAllUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := True;
 end;
 
 procedure TVisualBlock.OnCutExecute(Sender: TObject);

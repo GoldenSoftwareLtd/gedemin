@@ -1,6 +1,6 @@
 object dlgFunctionWisard: TdlgFunctionWisard
-  Left = 400
-  Top = 159
+  Left = 416
+  Top = 236
   Width = 793
   Height = 462
   HelpContext = 204
@@ -1050,6 +1050,13 @@ object dlgFunctionWisard: TdlgFunctionWisard
       ImageIndex = 24
       ShortCut = 114
       OnExecute = actFindNextExecute
+    end
+    object actSelectAll: TAction
+      Category = 'ClipBord'
+      Caption = 'actSelectAll'
+      ShortCut = 16449
+      OnExecute = actSelectAllExecute
+      OnUpdate = actSelectAllUpdate
     end
   end
 end
