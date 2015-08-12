@@ -500,6 +500,8 @@ end;
 procedure TdmLogin.DoLoadNamespace;
 var
   NSC: TgdcNamespaceSyncController;
+  SL: TStringList;
+  ErrorCount, WarningCount: Integer;
 begin
   NSC := TgdcNamespaceSyncController.Create;
   try
@@ -516,6 +518,25 @@ begin
       AddMistake('Не найден файл пространства имен: ' + LoadSettingFileName);
   finally
     NSC.Free;
+  end;
+
+  if (gd_CmdLineParams.SendLogEmail > '') and (frmSQLProcess <> nil)
+    and (frmSQLProcess.Log <> nil) and (gdWebClientControl <> nil) then
+  begin
+    SL := TStringList.Create;
+    try
+      frmSQLProcess.Log.SaveToStringList(False, True, WarningCount, ErrorCount, SL);
+      if SL.Count = 0 then
+        gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
+          'Успешно загружено ПИ ' + ExtractFileName(LoadSettingFileName),
+          '', '', False, False, True)
+      else
+        gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
+          'Ошибки или предупреждения в процессе загрузки ПИ ' + ExtractFileName(LoadSettingFileName),
+          SL.Text, '', False, False, True);
+    finally
+      SL.Free;
+    end;
   end;
 end;
 

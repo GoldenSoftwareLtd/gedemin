@@ -122,9 +122,6 @@ type
     procedure StartUpdateFiles;
     procedure SendError(const AnErrorMessage: String; const ASkipNextException: Boolean = False);
 
-    procedure SendNameSpaceLog(ARecipients: String;
-      ASubject: String; ABodyText: String; AFileName: String);
-
     function SendEMail(const AHost: String; const APort: Integer;
       const AnIPSec: String;
       const ALogin: String; const APassw: String;
@@ -612,23 +609,6 @@ begin
     end;
     FSkipNextException := ASkipNextException;  
   end;
-end;
-
-procedure TgdWebClientControl.SendNameSpaceLog(ARecipients: String;
-  ASubject: String; ABodyText: String; AFileName: String);
-begin
-{
-  SendEMail(ARecipients, ASubject, ABodyText,
-    gd_GlobalParams.GetWebClientSMTPEmail,
-    gd_GlobalParams.GetWebClientSMTPServer,
-    gd_GlobalParams.GetWebClientSMTPPort,
-    gd_GlobalParams.GetWebClientSMTPLogin,
-    gd_GlobalParams.GetWebClientSMTPPassw,
-    gd_GlobalParams.GetWebClientSMTPIPSec,
-    gd_GlobalParams.GetWebClientSMTPTimeout,
-    AFileName,
-    True, True);
-}
 end;
 
 function TgdWebClientControl.SendEMail(const AHost: String; const APort: Integer;

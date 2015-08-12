@@ -4,7 +4,7 @@ unit at_Log;
 interface
 
 uses
-  gsMMFStream, gd_KeyAssoc;
+  Classes, gsMMFStream, gd_KeyAssoc;
 
 type
   TatLogType = (atltInfo, atltWarning, atltError);
@@ -27,6 +27,7 @@ type
     function GetLogRec(Index: Integer): TatLogRec;
     function GetLogText(Index: Integer): String;
     function GetErrorCount: Integer;
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -35,6 +36,8 @@ type
     procedure Clear;
     function GetRealErrorRecIndex(AListIndex: Integer): Integer;
     procedure SaveToFile(const AFileName: String);
+    procedure SaveToStringList(const AnIncludeSuccess: Boolean; const AnIncludeWarning: Boolean;
+      out AWarningCount: Integer; out AnErrorCount: Integer; SL: TStringList);
 
     property Count: Integer read FCount;
     property ErrorCount: Integer read GetErrorCount;
@@ -47,7 +50,7 @@ type
 implementation
 
 uses
-  Classes, SysUtils;
+  SysUtils;
 
 { TatLog }
 
@@ -168,6 +171,53 @@ begin
     end;
   finally
     CloseFile(F);
+  end;
+end;
+
+procedure TatLog.SaveToStringList(const AnIncludeSuccess,
+  AnIncludeWarning: Boolean; out AWarningCount, AnErrorCount: Integer;
+  SL: TStringList);
+var
+  I: Integer;
+  S, L: String;
+begin
+  Assert(SL is TStringList);
+  AWarningCount := 0;
+  AnErrorCount := 0;
+  for I := 0 to FCount - 1 do
+  begin
+    with FArray[I] do
+    begin
+      if (AnIncludeSuccess and (LogType = atltInfo))
+        or (AnIncludeWarning and (LogType = atltWarning))
+        or (LogType = atltError) then
+      begin
+        case LogType of
+          atltError:
+          begin
+            S := '[Ошибка] ';
+            Inc(AnErrorCount);
+          end;
+
+          atltWarning:
+          begin
+            S :='[Предупреждение] ';
+            Inc(AWarningCount);
+          end;
+        else
+          S := '';
+        end;
+        S := S + FormatDateTime('hh:nn:ss', Logged);
+
+        L := LogText[I];
+        if Pos(#13, L) > 0 then
+          S := S + #13#10 + L
+        else
+          S := S + '  ' + L;
+
+        SL.Add(S);
+      end;
+    end;
   end;
 end;
 

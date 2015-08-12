@@ -38,6 +38,7 @@ type
     procedure actSaveToFileUpdate(Sender: TObject);
     procedure actShowErrorsExecute(Sender: TObject);
     procedure actShowErrorsUpdate(Sender: TObject);
+
   private
     FSilent: Boolean;
     FLog: TatLog;
@@ -56,6 +57,7 @@ type
 
     property IsError: Boolean read GetIsError;
     property Silent: Boolean read FSilent write SetSilent;
+    property Log: TatLog read FLog;
   end;
 
 var
@@ -432,7 +434,7 @@ begin
     stbSQLProcess.Panels[0].Text := cstWasMistakes;
 
     {$IFDEF WITH_INDY}
-    if gdWebClientControl <> nil then
+    if (gdWebClientControl <> nil) and (gd_CmdLineParams.LoadSettingFileName = '') then
       gdWebClientControl.SendError('Log: ' + S);
     {$ENDIF}
   end;

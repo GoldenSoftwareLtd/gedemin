@@ -1,6 +1,6 @@
 object frmSQLProcess: TfrmSQLProcess
-  Left = 437
-  Top = 205
+  Left = 438
+  Top = 206
   Width = 585
   Height = 398
   HelpContext = 25

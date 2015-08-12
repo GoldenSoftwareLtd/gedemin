@@ -74,7 +74,7 @@ echo **  %1
 echo **                                             **
 echo *************************************************
 
-set params=/sn "%server_name%:%database_path%\%2.fdb" /user Administrator /password Administrator /sp %setting_path% /rd /q
+set params=/sn "%server_name%:%database_path%\%2.fdb" /user Administrator /password Administrator /sp %setting_path% /rd /q /sl gs1994@gmail.com
 ..\..\exe\gedemin.exe %params% /sfn "%~1" /ns
 if not errorlevel 0 goto Error
 

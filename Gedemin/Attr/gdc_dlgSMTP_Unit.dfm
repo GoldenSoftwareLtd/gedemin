@@ -1,6 +1,6 @@
 inherited gdc_dlgSMTP: Tgdc_dlgSMTP
-  Left = 436
-  Top = 223
+  Left = 437
+  Top = 224
   Caption = 'gdc_dlgSMTP'
   ClientHeight = 361
   ClientWidth = 399

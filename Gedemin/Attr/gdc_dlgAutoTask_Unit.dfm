@@ -1,6 +1,6 @@
 inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 646
-  Top = 10
+  Left = 648
+  Top = 11
   Caption = 'gdc_dlgAutoTask'
   ClientHeight = 565
   ClientWidth = 440
