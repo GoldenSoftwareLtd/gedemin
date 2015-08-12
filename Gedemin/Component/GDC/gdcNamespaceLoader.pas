@@ -461,6 +461,7 @@ var
   NSName, HashString: String;
   MS: TMemoryStream;
   q: TIBSQL;
+  CharReplace: LongBool;
 begin
   Assert(not FLoading);
   Assert(AList <> nil);
@@ -493,7 +494,7 @@ begin
 
     Parser := TYAMLParser.Create;
     try
-      Parser.Parse(AList[I]);
+      Parser.Parse(AList[I], CharReplace);
 
       if (Parser.YAMLStream.Count = 0)
         or ((Parser.YAMLStream[0] as TyamlDocument).Count = 0)
@@ -506,6 +507,9 @@ begin
 
       if Mapping.ReadString('StructureVersion') <> '1.0' then
         raise EgdcNamespaceLoader.Create('Unsupported YAML stream version.');
+
+      if CharReplace then
+        AddWarning('Замена символов при конвертации из UTF-8.');
 
       NSRUID := StrToRUID(Mapping.ReadString('Properties\RUID'));
       NSName := Mapping.ReadString('Properties\Name');

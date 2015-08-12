@@ -320,7 +320,7 @@ type
     destructor Destroy; override;
 
     procedure Parse(AStream: TStream; const AStopKey: AnsiString = ''); overload;
-    procedure Parse(const AFileName: AnsiString; const AStopKey: AnsiString = '';
+    procedure Parse(const AFileName: AnsiString; out ACharReplace: LongBool; const AStopKey: AnsiString = '';
       const ALimitSize: Integer = 0); overload;
 
     property YAMLStream: TyamlStream read FYAMLStream;
@@ -329,7 +329,7 @@ type
 implementation
 
 uses
-  SysUtils, JclMime, JclUnicode, JclFileUtils, gd_directories_const;
+  Windows, SysUtils, JclMime, JclUnicode, JclFileUtils, gd_directories_const;
 
 function ConvertToInteger(const S: AnsiString; out I: Integer): Boolean;
 begin
@@ -925,8 +925,66 @@ begin
   end;
 end;
 
-procedure TyamlParser.Parse(const AFileName: AnsiString; const AStopKey: AnsiString = '';
+procedure TyamlParser.Parse(const AFileName: AnsiString; out ACharReplace: LongBool; const AStopKey: AnsiString = '';
   const ALimitSize: Integer = 0);
+
+  function WideStringToStringEx(const WS: WideString; out CharReplace: LongBool): String;
+  var
+    InputLength,
+    OutputLength: Integer;
+    //SS: TFileStream;
+  begin
+    CharReplace := False;
+    InputLength := Length(WS);
+    OutputLength := WideCharToMultiByte(WIN1251_CODEPAGE, 0, PWideChar(WS), InputLength, nil, 0, nil, nil);
+    SetLength(Result, OutputLength);
+    WideCharToMultiByte(WIN1251_CODEPAGE, 0, PWideChar(WS), InputLength, PChar(Result), OutputLength, nil, @CharReplace);
+    {if CharReplace and (Length(Result) > 0) then
+    begin
+      OutputDebugString(PChar(AFileName));
+      SS := TFileStream.Create(ChangeFileExt(AFileName, 'TXT'), fmCreate);
+      try
+        SS.Write(Result[1], Length(Result));
+      finally
+        SS.Free;
+      end;
+    end;}
+  end;
+
+  function DecodeUTF8(const Source: string): WideString;
+  var
+   Index, SourceLength, FChar, NChar: Cardinal;
+  begin
+   Result := '';
+   Index := 0;
+   SourceLength := Length(Source);
+   while Index < SourceLength do
+   begin
+     Inc(Index);
+     FChar := Ord(Source[Index]);
+     if FChar >= $80 then
+     begin
+       Inc(Index);
+       if Index > SourceLength then exit;
+       FChar := FChar and $3F;
+       if (FChar and $20) <> 0 then
+       begin
+         FChar := FChar and $1F;
+         NChar := Ord(Source[Index]);
+         if (NChar and $C0) <> $80 then  exit;
+         FChar := (FChar shl 6) or (NChar and $3F);
+         Inc(Index);
+         if Index > SourceLength then exit;
+       end;
+       NChar := Ord(Source[Index]);
+       if (NChar and $C0) <> $80 then exit;
+       Result := Result + WideChar((FChar shl 6) or (NChar and $3F));
+     end
+     else
+       Result := Result + WideChar(FChar);
+   end;
+  end;
+
 var
   FS: TFileStream;
   SS1251, SSUTF8: TStringStream;
@@ -946,8 +1004,8 @@ begin
       FS.Free;
     end;
 
-    SS1251 := TStringStream.Create(WideStringToStringEx(
-      UTF8ToWideString(SSUTF8.DataString), WIN1251_CODEPAGE));
+    SS1251 := TStringStream.Create(
+      WideStringToStringEx(DecodeUTF8{UTF8ToWideString}(SSUTF8.DataString), ACharReplace));
   finally
     SSUTF8.Free;
   end;

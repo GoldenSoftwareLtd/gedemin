@@ -83,6 +83,7 @@ var
   I: Integer;
   NSRUID, UsesRuid: TRUID;
   UsesName: String;
+  CharReplace: LongBool;
 begin
   FqFindDirectory.ParamByName('filename').AsString := ExtractFilePath(AFileName);
   FqFindDirectory.ExecQuery;
@@ -109,13 +110,16 @@ begin
 
   Parser := TyamlParser.Create;
   try
-    Parser.Parse(AFileName, 'Objects', 8192);
+    Parser.Parse(AFileName, CharReplace, 'Objects', 8192);
 
     if (Parser.YAMLStream.Count > 0)
       and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
       and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping)
       and (((Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping).ReadString('Properties\Name') > '') then
     begin
+      if CharReplace then
+        DoLog(lmtWarning, 'Замена символов при конвертации из UTF-8. ' + AFileName);
+
       M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
       NSRUID := StrToRUID(M.ReadString('Properties\RUID'));
 
@@ -309,6 +313,7 @@ var
   q, qList, qUpdate: TIBSQL;
   R: TRUID;
   SRUID, SName: String;
+  CharReplace: LongBool;
 begin
   Assert(gdcBaseManager <> nil);
 
@@ -330,7 +335,7 @@ begin
     begin
       Parser := TYAMLParser.Create;
       try
-        Parser.Parse(AFileName);
+        Parser.Parse(AFileName, CharReplace);
 
         if (Parser.YAMLStream.Count = 0)
           or ((Parser.YAMLStream[0] as TyamlDocument).Count = 0)
