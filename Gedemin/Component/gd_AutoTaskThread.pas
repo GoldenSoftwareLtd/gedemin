@@ -123,7 +123,6 @@ type
     property SMTPKey: Integer read FSMTPKey write FSMTPKey;
   end;
 
-
   TgdAutoTaskThread = class(TgdMessagedThread)
   private
     FTaskList: TObjectList;
@@ -427,7 +426,8 @@ begin
     end else
       Subj := 'Îò÷¸ò';
 
-    gdWebClientControl.SendEmail(SMTPKey, ToAddresses, Subj, '', ReportKey, ExportType, True);
+    if gdWebClientControl <> nil then
+      gdWebClientControl.SendEmail(SMTPKey, ToAddresses, Subj, '', ReportKey, ExportType, True);
   except
     on E: Exception do
       FErrorMsg := E.Message;
