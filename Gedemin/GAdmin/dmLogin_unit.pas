@@ -220,9 +220,9 @@ begin
     CompanyStorage.ObjectKey := IBLogin.CompanyKey;
     if TrayIcon <> nil then TrayIcon.ToolTip := IBLogin.CompanyName;
     {$IFDEF WITH_INDY}
-    if gd_GlobalParams.GetWebServerActive then
+    if gd_GlobalParams.GetWebServerActive and (gdWebServerControl <> nil) then
       gdWebServerControl.ActivateServer
-    else if gd_GlobalParams.GetWebClientActive then
+    else if gd_GlobalParams.GetWebClientActive and (gdWebClientControl <> nil) then
       gdWebClientControl.AfterConnection;
     {$ENDIF}
   end;
@@ -233,13 +233,17 @@ begin
   Application.OnException := FOldOnException;
 
   if gdAutoTaskThread <> nil then
-    gdAutoTaskThread.WaitForIdle(True);
+  begin
+    gdAutoTaskThread.Forbid;
+    gdAutoTaskThread.WaitForIdle;
+  end;
 
   {$IFDEF WITH_INDY}
-  if not Application.Terminated then
+  if (not Application.Terminated) and (gdWebServerControl <> nil) then
     gdWebServerControl.DeactivateServer;
 
-  gdWebClientControl.WaitForIdle;
+  if gdWebClientControl <> nil then
+    gdWebClientControl.WaitForIdle;
   {$ENDIF}
 
   // FreeAndNil clear the reference before destroying the object
@@ -500,8 +504,6 @@ end;
 procedure TdmLogin.DoLoadNamespace;
 var
   NSC: TgdcNamespaceSyncController;
-  SL: TStringList;
-  ErrorCount, WarningCount: Integer;
 begin
   NSC := TgdcNamespaceSyncController.Create;
   try
@@ -518,25 +520,6 @@ begin
       AddMistake('Не найден файл пространства имен: ' + LoadSettingFileName);
   finally
     NSC.Free;
-  end;
-
-  if (gd_CmdLineParams.SendLogEmail > '') and (frmSQLProcess <> nil)
-    and (frmSQLProcess.Log <> nil) and (gdWebClientControl <> nil) then
-  begin
-    SL := TStringList.Create;
-    try
-      frmSQLProcess.Log.SaveToStringList(False, True, WarningCount, ErrorCount, SL);
-      if SL.Count = 0 then
-        gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
-          'Успешно загружено ПИ ' + ExtractFileName(LoadSettingFileName),
-          '', '', False, False, True)
-      else
-        gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
-          'Ошибки или предупреждения в процессе загрузки ПИ ' + ExtractFileName(LoadSettingFileName),
-          SL.Text, '', False, False, True);
-    finally
-      SL.Free;
-    end;
   end;
 end;
 

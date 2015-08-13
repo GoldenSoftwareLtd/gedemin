@@ -312,11 +312,13 @@ begin
             if RequestToken > '' then
             begin
               Log(FRequestInfo.RemoteIP, 'TOKN', ['token'], [RequestToken]);
-              gdNotifierThread.Add(FRequestInfo.RemoteIP + ' token=' + RequestToken, 0, 2000);
+              if gdNotifierThread <> nil then
+                gdNotifierThread.Add(FRequestInfo.RemoteIP + ' token=' + RequestToken, 0, 2000);
             end else
             begin
               Log(FRequestInfo.RemoteIP, 'DOCM', ['document'], [FRequestInfo.Document]);
-              gdNotifierThread.Add(FRequestInfo.RemoteIP + ' ' + FRequestInfo.Document, 0, 2000);
+              if gdNotifierThread <> nil then
+                gdNotifierThread.Add(FRequestInfo.RemoteIP + ' ' + FRequestInfo.Document, 0, 2000);
             end;
 
             // Формирование списка параметров
@@ -723,9 +725,9 @@ begin
 
       q.ExecQuery;
 
-      if (AnOp = 'QERY') and (Names[I] = 'c_name') then
+      if (AnOp = 'QERY') and (Names[I] = 'c_name') and (gdNotifierThread <> nil) then
         gdNotifierThread.Add('Подключение ' + Values[I] + '...', 0, 4000)
-      else if (AnOp = 'RQFL') and (Names[I] = 'file_name') then
+      else if (AnOp = 'RQFL') and (Names[I] = 'file_name') and (gdNotifierThread <> nil) then
         gdNotifierThread.Add('Передача файла ' + Values[I] + '...', 0, 2000);
     end;
 

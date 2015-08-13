@@ -14,15 +14,14 @@ type
     FTimeout: DWORD;
 
     //function GetWaiting: Boolean;
-    function GetEnabled: Boolean;
-    procedure SetEnabled(const Value: Boolean);
+    procedure Lock;
+    procedure Unlock;
 
   protected
     FErrorMessage: String;
     FErrorMsg: TMsg;
     FProgressWatch: IgdProgressWatch;
     FPI: TgdProgressInfo;
-    FEnabled: TidThreadSafeInteger;
     FDone: Boolean;
 
     procedure PostMsg(const AMsg: Word; const AWParam: WPARAM = 0;
@@ -35,8 +34,6 @@ type
     function ProcessError(var AMsg: TMsg; var AnErrorMessage: String): Boolean; virtual;
     procedure LogErrorSync; virtual;
     procedure SetTimeout(const ATimeout: DWORD);
-    procedure Lock;
-    procedure Unlock;
     procedure SyncProgressWatch;
     function GetProgressWatch: IgdProgressWatch;
     procedure SetProgressWatch(const Value: IgdProgressWatch);
@@ -53,11 +50,10 @@ type
     constructor Create(CreateSuspended: Boolean);
     destructor Destroy; override;
 
-    procedure WaitForIdle(const ADisable: Boolean = False);
+    procedure WaitForIdle;
 
     //property Waiting: Boolean read GetWaiting;
     property ProgressWatch: IgdProgressWatch read GetProgressWatch write SetProgressWatch;
-    property Enabled: Boolean read GetEnabled write SetEnabled;
   end;
 
 implementation
@@ -73,8 +69,6 @@ begin
   FCreatedEvent := TEvent.Create(nil, True, False, '');
   FWaitingEvent := TEvent.Create(nil, True, False, '');
   FCriticalSection := TCriticalSection.Create;
-  FEnabled := TidThreadSafeInteger.Create;
-  FEnabled.Value := 1;
   inherited Create(CreateSuspended);
 end;
 
@@ -91,7 +85,6 @@ begin
   FCreatedEvent.Free;
   FWaitingEvent.Free;
   FCriticalSection.Free;
-  FEnabled.Free;
 end;
 
 procedure TgdMessagedThread.DoOnProgressWatch(Sender: TObject;
@@ -113,6 +106,7 @@ var
   HArr: array[0..0] of THandle;
   Res: DWORD;
 begin
+  //OutputDebugString(PChar(Self.ClassName + ' started: ' + IntToStr(Handle)));
   PeekMessage(Msg, 0, WM_USER, WM_USER, PM_NOREMOVE);
   FCreatedEvent.SetEvent;
   LogMessage(psThreadStarted);
@@ -129,18 +123,18 @@ begin
 
       if (not Terminated) and (Res = WAIT_TIMEOUT) then
       begin
-        if Enabled then
-          Timeout;
+        Timeout;
       end else
       begin
         while (not Terminated) and PeekMessage(Msg, 0, 0, $FFFFFFFF, PM_REMOVE) do
         begin
+          //OutputDebugString(PChar(Self.ClassName + ': ' + IntToStr(Msg.Message)));
           case Msg.Message of
             WM_GD_EXIT_THREAD: exit;
             WM_GD_UPDATE_TIMER: FTimeout := Msg.LParam;
           else
             try
-              if (not Enabled) or (not ProcessMessage(Msg)) then
+              if not ProcessMessage(Msg) then
               begin
                 TranslateMessage(Msg);
                 DispatchMessage(Msg);
@@ -174,11 +168,6 @@ end;
 procedure TgdMessagedThread.ExitThread;
 begin
   PostMsg(WM_GD_EXIT_THREAD);
-end;
-
-function TgdMessagedThread.GetEnabled: Boolean;
-begin
-  Result := FEnabled.Value <> 0;
 end;
 
 function TgdMessagedThread.GetProgressWatch: IgdProgressWatch;
@@ -249,14 +238,6 @@ begin
   Result := False;
 end;
 
-procedure TgdMessagedThread.SetEnabled(const Value: Boolean);
-begin
-  if Value then
-    FEnabled.Value := 1
-  else
-    FEnabled.Value := 0;  
-end;
-
 procedure TgdMessagedThread.SetProgressWatch(
   const Value: IgdProgressWatch);
 begin
@@ -299,11 +280,10 @@ begin
   FCriticalSection.Leave;
 end;
 
-procedure TgdMessagedThread.WaitForIdle(const ADisable: Boolean);
+procedure TgdMessagedThread.WaitForIdle;
 begin
   if (not FDone) and (not Suspended) and (FCreatedEvent.WaitFor(0) = wrSignaled) then
     FWaitingEvent.WaitFor(INFINITE);
-  Enabled := not ADisable;
 end;
 
 end.

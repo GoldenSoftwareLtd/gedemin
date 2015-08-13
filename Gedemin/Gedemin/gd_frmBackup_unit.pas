@@ -332,8 +332,11 @@ begin
   except
   end;
 
-  gdNotifierThread.DeleteContext(FNotificationContext);
-  gdNotifierThread.Add(S, 0, 4000);
+  if gdNotifierThread <> nil then
+  begin
+    gdNotifierThread.DeleteContext(FNotificationContext);
+    gdNotifierThread.Add(S, 0, 4000);
+  end;
 end;
 
 procedure TBackupThread.ShowNextLine;
@@ -351,9 +354,12 @@ begin
   gd_frmBackup.mProgress.Lines.Insert(0, 'Начат процесс архивирования базы данных: ' +
     FormatDateTime('hh:nn:ss, dd mmmm yyyy', Now));
 
-  FNotificationContext := gdNotifierThread.GetNextContext;
-  gdNotifierThread.Add('Архивирование базы ' + gd_frmBackup.edDatabase.Text + '... <tmr>',
-    FNotificationContext);
+  if gdNotifierThread <> nil then
+  begin
+    FNotificationContext := gdNotifierThread.GetNextContext;
+    gdNotifierThread.Add('Архивирование базы ' + gd_frmBackup.edDatabase.Text + '... <tmr>',
+      FNotificationContext);
+  end;
 end;
 
 procedure Tgd_frmBackup.FormClose(Sender: TObject;

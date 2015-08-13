@@ -273,9 +273,12 @@ end;
 
 procedure TBasicsTest.TestNotifierThread;
 begin
-  gdNotifierThread.Add('Это сообщение с таймером и будет показываться 60 сек... <tmr>', 0, 60000);
-  gdNotifierThread.Add('Это сообщение будет показываться 30 сек...', 0, 30000);
-  Check(gdNotifierThread.Suspended = False);
+  if gdNotifierThread <> nil then
+  begin
+    gdNotifierThread.Add('Это сообщение с таймером и будет показываться 60 сек... <tmr>', 0, 60000);
+    gdNotifierThread.Add('Это сообщение будет показываться 30 сек...', 0, 30000);
+    Check(gdNotifierThread.Suspended = False);
+  end;
 end;
 
 procedure TBasicsTest.TestParseOrigin;

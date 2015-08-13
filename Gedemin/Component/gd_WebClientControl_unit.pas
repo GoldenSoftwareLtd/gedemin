@@ -284,7 +284,8 @@ begin
     ErrorMessage := 'Update process is running.'
   else begin
     FURI.URI := gdWebServerURL;
-    gdNotifierThread.Add('Подключение к серверу: ' + FURI.Host + '...', 0, 2000);
+    if gdNotifierThread <> nil then
+      gdNotifierThread.Add('Подключение к серверу: ' + FURI.Host + '...', 0, 2000);
     try
       FWebServerResponse.Value := FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/query?' +
         'dbid=' + IntToStr(FDBID) +
@@ -295,13 +296,15 @@ begin
         '&update_token=' + FUpdateToken +
         '&c_phone=' + FCompanyPhone +
         '&c_email=' + FCompanyEmail));
-      gdNotifierThread.Add('Подключение прошло успешно.', 0, 2000);
+      if gdNotifierThread <> nil then
+        gdNotifierThread.Add('Подключение прошло успешно.', 0, 2000);
       Result := True;
     except
       on E: Exception do
       begin
         ErrorMessage := E.Message;
-        gdNotifierThread.Add(ErrorMessage, 0, 2000);
+        if gdNotifierThread <> nil then
+          gdNotifierThread.Add(ErrorMessage, 0, 2000);
       end;
     end;
   end;
@@ -312,17 +315,20 @@ begin
   if gdWebServerURL = '' then
   begin
     FURI.URI := Gedemin_NameServerURL;
-    gdNotifierThread.Add('Опрос сервера: ' + FURI.Host + '...', 0, 2000);
+    if gdNotifierThread <> nil then
+      gdNotifierThread.Add('Опрос сервера: ' + FURI.Host + '...', 0, 2000);
     gdWebServerURL := FHTTP.Get(Gedemin_NameServerURL);
   end;
 
   if gdWebServerURL > '' then
   begin
-    gdNotifierThread.Add('Определен адрес удаленного сервера: ' + gdWebServerURL, 0, 2000);
+    if gdNotifierThread <> nil then
+      gdNotifierThread.Add('Определен адрес удаленного сервера: ' + gdWebServerURL, 0, 2000);
     Result := True;
   end else
   begin
-    gdNotifierThread.Add('Адрес удаленного сервера не определен.', 0, 2000);
+    if gdNotifierThread <> nil then
+      gdNotifierThread.Add('Адрес удаленного сервера не определен.', 0, 2000);
     Result := False;
   end;
 end;
@@ -359,12 +365,14 @@ begin
         FCmdList.Clear;
 
       Result := True;
-      gdNotifierThread.Add('Загружен список файлов...', 0, 2000);
+      if gdNotifierThread <> nil then
+        gdNotifierThread.Add('Загружен список файлов...', 0, 2000);
     except
       on E: Exception do
       begin
         ErrorMessage := E.Message;
-        gdNotifierThread.Add(ErrorMessage, 0, 2000);
+        if gdNotifierThread <> nil then
+          gdNotifierThread.Add(ErrorMessage, 0, 2000);
       end;
     end;
   finally
@@ -664,7 +672,8 @@ begin
     FEMailCS.Leave;
   end;
 
-  gdNotifierThread.Add('Отправка сообщения: ' + ASubject, 0, 2000);
+  if gdNotifierThread <> nil then
+    gdNotifierThread.Add('Отправка сообщения: ' + ASubject, 0, 2000);
 
   PostMsg(WM_GD_SEND_EMAIL);
 
@@ -703,13 +712,17 @@ begin
         '&user_name=' + URIEncodeParam(FUserName) +
         '&exe_ver=' + URIEncodeParam(FExeVer) +
         '&error_message=' + URIEncodeParam(FErrorToSend.Value)));
-      gdNotifierThread.Add('Отослано сообщение об ошибке:', 0, 2000);
-      gdNotifierThread.Add(FErrorToSend.Value, 0, 2000);
+      if gdNotifierThread <> nil then
+      begin
+        gdNotifierThread.Add('Отослано сообщение об ошибке:', 0, 2000);
+        gdNotifierThread.Add(FErrorToSend.Value, 0, 2000);
+      end;
     except
       on E: Exception do
       begin
         ErrorMessage := E.Message;
-        gdNotifierThread.Add(ErrorMessage, 0, 2000);
+        if gdNotifierThread <> nil then
+          gdNotifierThread.Add(ErrorMessage, 0, 2000);
       end;
     end;
   end;
@@ -829,7 +842,8 @@ begin
               end;
 
               IdSMTP.Send(Msg);
-              gdNotifierThread.Add('Сообщение отправлено: ' + _Subject, 0, 2000);
+              if gdNotifierThread <> nil then
+                gdNotifierThread.Add('Сообщение отправлено: ' + _Subject, 0, 2000);
 
               if GetEmailAndLock(_ID, ES) then
               try
@@ -847,7 +861,8 @@ begin
             try
               ES.State := emsError;
               ES.ErrorMsg := 'Can not authenticate';
-              gdNotifierThread.Add('Ошибка аутентификации при отправке почты', 0, 2000);
+              if gdNotifierThread <> nil then
+                gdNotifierThread.Add('Ошибка аутентификации при отправке почты', 0, 2000);
             finally
               FEmailCS.Leave;
             end;
@@ -866,7 +881,8 @@ begin
         finally
           FEmailCS.Leave;
         end;
-        gdNotifierThread.Add(E.Message, 0, 2000);
+        if gdNotifierThread <> nil then
+          gdNotifierThread.Add(E.Message, 0, 2000);
       end;
     end;
 

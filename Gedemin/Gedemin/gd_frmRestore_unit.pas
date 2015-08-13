@@ -424,8 +424,11 @@ begin
     // под Windows98 ограничение на размер мемо в 64К
   end;
 
-  gdNotifierThread.DeleteContext(FNotificationContext);
-  gdNotifierThread.Add(S, 0, 4000);
+  if gdNotifierThread <> nil then
+  begin
+    gdNotifierThread.DeleteContext(FNotificationContext);
+    gdNotifierThread.Add(S, 0, 4000);
+  end;
 end;
 
 procedure TRestoreThread.ShowNextLine;
@@ -443,9 +446,12 @@ begin
   gd_frmRestore.mProgress.Lines.Insert(0, 'Начат процесс восстановления базы данных: ' +
     FormatDateTime('hh:nn:ss, dd mmmm yyyy', Now));
 
-  FNotificationContext := gdNotifierThread.GetNextContext;
-  gdNotifierThread.Add('Восстановление базы ' + gd_frmRestore.edDatabase.Text + '... <tmr>',
-    FNotificationContext);
+  if gdNotifierThread <> nil then
+  begin
+    FNotificationContext := gdNotifierThread.GetNextContext;
+    gdNotifierThread.Add('Восстановление базы ' + gd_frmRestore.edDatabase.Text + '... <tmr>',
+      FNotificationContext);
+  end;
 end;
 
 constructor Tgd_frmRestore.Create(AnOwner: TComponent);

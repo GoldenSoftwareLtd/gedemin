@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread,
-  gd_WebClientControl_unit, Messages;
+  gd_WebClientControl_unit, Messages, idThreadSafe;
 
 type
   TgdAutoTask = class(TObject)
@@ -128,6 +128,7 @@ type
     FTaskList: TObjectList;
     FNotificationContext: Integer;
     FSkipAtStartup: Boolean;
+    FForbid: TidThreadSafeInteger;
 
     procedure LoadFromRelation;
     procedure FindAndExecuteTask;
@@ -148,6 +149,7 @@ type
 
     procedure SetInitialDelay;
     procedure ReLoadTaskList;
+    procedure Forbid;
   end;
 
 var
@@ -441,12 +443,14 @@ begin
   inherited Create(True);
   FreeOnTerminate := False;
   Priority := tpLowest;
+  FForbid := TidThreadSafeInteger.Create;
 end;
 
 destructor TgdAutoTaskThread.Destroy;
 begin
   inherited;
   FTaskList.Free;
+  FForbid.Free;
 end;
 
 procedure TgdAutoTaskThread.LoadFromRelation;
@@ -544,48 +548,60 @@ end;
 
 procedure TgdAutoTaskThread.Timeout;
 begin
-  if FTaskList = nil then
-    PostMsg(WM_GD_LOAD_TASK_LIST)
-  else
-    PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
+  if FForbid.Value = 0 then
+  begin
+    if FTaskList = nil then
+      PostMsg(WM_GD_LOAD_TASK_LIST)
+    else
+      PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
+  end else
+  begin
+    FreeAndNil(FTaskList);
+    SetTimeOut(INFINITE);
+  end;
 end;
 
 function TgdAutoTaskThread.ProcessMessage(var Msg: TMsg): Boolean;
 begin
+  Result := True;
+
   case Msg.Message of
     WM_GD_LOAD_TASK_LIST:
     begin
-      SendNotification('Загрузка списка автозадач...', True);
-      Synchronize(LoadFromRelation);
-
-      if (FTaskList = nil) or (FTaskList.Count = 0) then
+      if FForbid.Value = 0 then
       begin
-        SendNotification('Нет автозадач для выполнения.', True);
-        SetTimeOut(INFINITE);
-      end else
-        PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
+        SendNotification('Загрузка списка автозадач...', True);
+        Synchronize(LoadFromRelation);
 
-      Result := True;
+        if (FTaskList = nil) or (FTaskList.Count = 0) then
+        begin
+          SendNotification('Нет автозадач для выполнения.', True);
+          SetTimeOut(INFINITE);
+        end else
+          PostMsg(WM_GD_FIND_AND_EXECUTE_TASK);
+      end else
+        SetTimeOut(INFINITE);
     end;
 
     WM_GD_FIND_AND_EXECUTE_TASK:
     begin
-      FindAndExecuteTask;
-
-      if (FTaskList = nil) or (FTaskList.Count = 0) then
+      if FForbid.Value = 0 then
       begin
-        SendNotification('Все автозадачи выполнены.');
-        SetTimeOut(INFINITE);
-      end;
+        FindAndExecuteTask;
 
-      Result := True;
+        if (FTaskList = nil) or (FTaskList.Count = 0) then
+        begin
+          SendNotification('Все автозадачи выполнены.');
+          SetTimeOut(INFINITE);
+        end;
+      end else
+        SetTimeOut(INFINITE);
     end;
 
     WM_GD_RELOAD_TASK_LIST:
     begin
       FSkipAtStartup := True;
       PostMsg(WM_GD_LOAD_TASK_LIST);
-      Result := True;
     end;
   else
     Result := False;
@@ -758,6 +774,12 @@ end;
 procedure TgdAutoTaskThread.ReLoadTaskList;
 begin
   PostMsg(WM_GD_RELOAD_TASK_LIST);
+end;
+
+procedure TgdAutoTaskThread.Forbid;
+begin
+  Assert(FForbid.Value = 0);
+  FForbid.Value := 1;
 end;
 
 { TgdAutoFunctionTask }

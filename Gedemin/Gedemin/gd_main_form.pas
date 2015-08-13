@@ -531,7 +531,8 @@ type
 
 procedure TfrmGedeminMain.FormCreate(Sender: TObject);
 begin
-  gdNotifierThread.NotifierWindow := Self;
+  if gdNotifierThread <> nil then
+    gdNotifierThread.NotifierWindow := Self;
 
   if Assigned(IBLogin) then
   begin
@@ -1092,7 +1093,7 @@ begin
   RegParams.CheckRegistration(True);
   {$ENDIF}
 
-  if IBLogin.IsUserAdmin then
+  if IBLogin.IsUserAdmin and (gdNotifierThread <> nil) then
     FNotificationID := gdNotifierThread.Add(IBLogin.Database.DatabaseName)
   else
     FNotificationID := -1;
@@ -1124,7 +1125,8 @@ begin
 
   if FNotificationID >= 0 then
   begin
-    gdNotifierThread.DeleteNotification(FNotificationID);
+    if gdNotifierThread <> nil then
+      gdNotifierThread.DeleteNotification(FNotificationID);
     FNotificationID := -1;
   end;
 
@@ -1943,7 +1945,8 @@ end;
 
 procedure TfrmGedeminMain.DoDestroy;
 begin
-  gdNotifierThread.NotifierWindow := nil;
+  if gdNotifierThread <> nil then
+    gdNotifierThread.NotifierWindow := nil;
 
   inherited;
 
