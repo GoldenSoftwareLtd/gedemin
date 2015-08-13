@@ -556,25 +556,24 @@ var
 begin
   IniFile := TIniFile.Create(FIniFileName);
   try
-    Sections := TStringList.Create;
     try
-      IniFile.ReadSections(Sections);
-      for I := 0 to Sections.Count - 1 do
-        IniFile.EraseSection(Sections[I]);
-    finally
-      Sections.Free;
-    end;
+      Sections := TStringList.Create;
+      try
+        IniFile.ReadSections(Sections);
+        for I := 0 to Sections.Count - 1 do
+          IniFile.EraseSection(Sections[I]);
+      finally
+        Sections.Free;
+      end;
 
-    for I := 0 to Count - 1 do
-    try
-      (Items[I] as Tgd_DatabaseItem).WriteToIniFile(IniFile);
+      for I := 0 to Count - 1 do
+        (Items[I] as Tgd_DatabaseItem).WriteToIniFile(IniFile);
     except
       MessageBox(0,
         PChar('Невозможно записать данные в файл ' + FIniFileName + '.'#13#10#13#10 +
         'Возможно, недостаточно прав доступа или установлен атрибут "только для чтения".'),
         'Ошибка',
         MB_ICONHAND or MB_OK or MB_TASKMODAL);
-      break;
     end;
   finally
     IniFile.Free;
