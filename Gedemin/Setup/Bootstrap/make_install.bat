@@ -8,7 +8,7 @@ echo ***************************************************************************
 echo **                                                                          **
 echo **  Не указаны параметры                                                    **
 echo **                                                                          **
-echo **  make_install FSFN DBN SFN IFN AFN TFN /FTP или /NO_FTP                  **
+echo **  make_install FSFN DBN SFN IFN AFN TFN /FTP или /NO_FTP EMAIL            **
 echo **                                                                          **
 echo **    FSFN -- полное имя файла с пакетом настроек                           **
 echo **    DBN  -- только имя (без расширения) файла БД                          **
@@ -16,6 +16,7 @@ echo **    SFN  -- имя файла заставки в каталоге d:\golden\gedemin\images\splash
 echo **    IFN  -- имя файла проекта установки, без расширения                   **
 echo **    AFN  -- имя файла с архивом установки                                 **
 echo **    TFN  -- имя файла в каталоге дистрибутива установки                   **
+echo **    EMAIL-- список адресов, через запятую
 echo **                                                                          **
 echo **  Например:                                                               **
 echo **    make_install "d:\golden\setting\a.gsf" plat doc.jpg _                 **
@@ -74,7 +75,7 @@ echo **  %1
 echo **                                             **
 echo *************************************************
 
-set params=/sn "%server_name%:%database_path%\%2.fdb" /user Administrator /password Administrator /sp %setting_path% /rd /q /sl gs1994@gmail.com
+set params=/sn "%server_name%:%database_path%\%2.fdb" /user Administrator /password Administrator /sp %setting_path% /rd /q /sl %8
 ..\..\exe\gedemin.exe %params% /sfn "%~1" /ns
 if not errorlevel 0 goto Error
 

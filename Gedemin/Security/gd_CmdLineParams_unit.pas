@@ -214,7 +214,9 @@ begin
     I := 0;
     while I < SL.Count do
     begin
-      if CompareAnyString(SL[I], ['SL']) and (I < SL.Count - 1) then
+      if CompareAnyString(SL[I], ['SL']) and (I < SL.Count - 1)
+        and (Copy(SL[I + 1], 1, 1) <> '/')
+        and (Copy(SL[I + 1], 1, 1) <> '-') then
       begin
         Inc(I);
         FSendLogEmail := SL[I];

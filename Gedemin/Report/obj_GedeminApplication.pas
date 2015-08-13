@@ -514,7 +514,10 @@ begin
   FUserStorage := GetGdcOLEObject(UserStorage) as IgsGsUserStorage;
   FIBLogin := TgsIBLogin.Create;
   {$IFDEF WITH_INDY}
-  FgdWebServerControl := GetGdcOLEObject(gdWebServerControl) as IgdWebServerControl;
+  if gdWebServerControl <> nil then
+    FgdWebServerControl := GetGdcOLEObject(gdWebServerControl) as IgdWebServerControl
+  else
+    FgdWebServerControl := nil;
   if gdWebClientControl <> nil then
     FgdWebClientControl := GetGdcOLEObject(gdWebClientControl) as IgdWebClientControl
   else

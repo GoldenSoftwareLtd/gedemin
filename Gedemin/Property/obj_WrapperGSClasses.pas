@@ -18446,12 +18446,14 @@ end;
 procedure TwrpGdWebServerControl.RegisterOnGetEvent(const AComponent: IgsComponent;
   const AToken: WideString; const AEventName: WideString);
 begin
-  GetWebServerControl.RegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent, AToken, AEventName);
+  if GetWebServerControl <> nil then
+    GetWebServerControl.RegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent, AToken, AEventName);
 end;
 
 procedure TwrpGdWebServerControl.UnRegisterOnGetEvent(const AComponent: IgsComponent);
 begin
-  GetWebServerControl.UnRegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent)
+  if GetWebServerControl <> nil then
+    GetWebServerControl.UnRegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent)
 end;
 {$ENDIF}
 
