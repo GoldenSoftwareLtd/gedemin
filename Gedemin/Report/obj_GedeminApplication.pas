@@ -515,7 +515,10 @@ begin
   FIBLogin := TgsIBLogin.Create;
   {$IFDEF WITH_INDY}
   FgdWebServerControl := GetGdcOLEObject(gdWebServerControl) as IgdWebServerControl;
-  FgdWebClientControl := GetGdcOLEObject(gdWebClientControl) as IgdWebClientControl;
+  if gdWebClientControl <> nil then
+    FgdWebClientControl := GetGdcOLEObject(gdWebClientControl) as IgdWebClientControl
+  else
+    FgdWebClientControl := nil;  
   {$ENDIF}
 end;
 

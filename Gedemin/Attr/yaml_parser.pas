@@ -942,7 +942,7 @@ procedure TyamlParser.Parse(const AFileName: AnsiString; out ACharReplace: LongB
     {if CharReplace and (Length(Result) > 0) then
     begin
       OutputDebugString(PChar(AFileName));
-      SS := TFileStream.Create(ChangeFileExt(AFileName, 'TXT'), fmCreate);
+      SS := TFileStream.Create(ChangeFileExt(AFileName, '.txt'), fmCreate);
       try
         SS.Write(Result[1], Length(Result));
       finally
@@ -951,38 +951,48 @@ procedure TyamlParser.Parse(const AFileName: AnsiString; out ACharReplace: LongB
     end;}
   end;
 
-  function DecodeUTF8(const Source: string): WideString;
+  function DecodeUTF8(const Source: AnsiString): WideString;
   var
-   Index, SourceLength, FChar, NChar: Cardinal;
+    Index, SourceLength, ResultLength, FChar, NChar: Cardinal;
   begin
-   Result := '';
-   Index := 0;
-   SourceLength := Length(Source);
-   while Index < SourceLength do
-   begin
-     Inc(Index);
-     FChar := Ord(Source[Index]);
-     if FChar >= $80 then
-     begin
-       Inc(Index);
-       if Index > SourceLength then exit;
-       FChar := FChar and $3F;
-       if (FChar and $20) <> 0 then
-       begin
-         FChar := FChar and $1F;
-         NChar := Ord(Source[Index]);
-         if (NChar and $C0) <> $80 then  exit;
-         FChar := (FChar shl 6) or (NChar and $3F);
-         Inc(Index);
-         if Index > SourceLength then exit;
-       end;
-       NChar := Ord(Source[Index]);
-       if (NChar and $C0) <> $80 then exit;
-       Result := Result + WideChar((FChar shl 6) or (NChar and $3F));
-     end
-     else
-       Result := Result + WideChar(FChar);
-   end;
+    Result := '';
+    Index := 0;
+    SourceLength := Length(Source);
+    SetLength(Result, SourceLength);
+    ResultLength := 0;
+    while Index < SourceLength do
+    begin
+      Inc(Index);
+      FChar := Ord(Source[Index]);
+      if FChar >= $80 then
+      begin
+        Inc(Index);
+        if Index > SourceLength then
+          break;
+        FChar := FChar and $3F;
+        if (FChar and $20) <> 0 then
+        begin
+          FChar := FChar and $1F;
+          NChar := Ord(Source[Index]);
+          if (NChar and $C0) <> $80 then
+            break;
+          FChar := (FChar shl 6) or (NChar and $3F);
+          Inc(Index);
+          if Index > SourceLength then
+            break;
+        end;
+        NChar := Ord(Source[Index]);
+        if (NChar and $C0) <> $80 then
+          break;
+        Inc(ResultLength);
+        Result[ResultLength] := WideChar((FChar shl 6) or (NChar and $3F));
+      end
+      else begin
+       Inc(ResultLength);
+       Result[ResultLength] := WideChar(FChar);
+      end;
+    end;
+    SetLength(Result, ResultLength);
   end;
 
 var

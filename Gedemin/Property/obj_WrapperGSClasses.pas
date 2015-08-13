@@ -19285,12 +19285,18 @@ end;
 
 function TwrpGdWebClientControl.Get_EmailCount: Integer;
 begin
-  Result := GetWebClientControl.EmailCount;
+  if GetWebClientControl <> nil then
+    Result := GetWebClientControl.EmailCount
+  else
+    Result := 0;
 end;
 
 function TwrpGdWebClientControl.Get_EmailErrorMsg: WideString;
 begin
-  Result := GetWebClientControl.EmailErrorMsg;
+  if GetWebClientControl <> nil then
+    Result := GetWebClientControl.EmailErrorMsg
+  else
+    Result := '';
 end;
 
 function TwrpGdWebClientControl.SendEMail(const Host: WideString;
@@ -19298,9 +19304,12 @@ function TwrpGdWebClientControl.SendEMail(const Host: WideString;
   Subject, BodyText, FileName: WideString; WipeFile, WIpeDirectory,
   Sync: WordBool; WndHandle, ThreadID: Integer): Integer;
 begin
-  Result := GetWebClientControl.SendEmail(Host, Port, IPSec, Login, Passw,
-    SenderEmail, Recipients, Subject, BodyText, FileName, WipeFile, WipeDirectory,
-    Sync, WndHandle, ThreadID);
+  if GetWebClientControl <> nil then
+    Result := GetWebClientControl.SendEmail(Host, Port, IPSec, Login, Passw,
+      SenderEmail, Recipients, Subject, BodyText, FileName, WipeFile, WipeDirectory,
+      Sync, WndHandle, ThreadID)
+  else
+    Result := 0;
 end;
 
 function TwrpGdWebClientControl.SendEMail2(SMTPKey: Integer;
@@ -19308,9 +19317,12 @@ function TwrpGdWebClientControl.SendEMail2(SMTPKey: Integer;
   WipeFile, WIpeDirectory, Sync: WordBool; WndHandle,
   ThreadID: Integer): Integer;
 begin
-  Result := GetWebClientControl.SendEmail(SMTPKey,
-    Recipients, Subject, BodyText, FileName, WipeFile, WipeDirectory,
-    Sync, WndHandle, ThreadID);
+  if GetWebClientControl <> nil then
+    Result := GetWebClientControl.SendEmail(SMTPKey,
+      Recipients, Subject, BodyText, FileName, WipeFile, WipeDirectory,
+      Sync, WndHandle, ThreadID)
+  else
+    Result := 0;
 end;
 
 function TwrpGdWebClientControl.SendEMail3(SMTPKey: Integer;
@@ -19318,13 +19330,15 @@ function TwrpGdWebClientControl.SendEMail3(SMTPKey: Integer;
   const ExportType: WideString; Sync: WordBool; WndHandle,
   ThreadID: Integer): Integer;
 begin
-  Result := GetWebClientControl.SendEmail(SMTPKey,
-    Recipients, Subject, BodyText, ReportKey, ExportType,
-    Sync, WndHandle, ThreadID);
+  if GetWebClientControl <> nil then
+    Result := GetWebClientControl.SendEmail(SMTPKey,
+      Recipients, Subject, BodyText, ReportKey, ExportType,
+      Sync, WndHandle, ThreadID)
+  else
+    Result := 0;
 end;
 
 initialization
-
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
   RegisterGdcOLEClass(TgsIBLookupComboBox, TwrpIBLookupComboBoxX, ComServer.TypeLib, IID_IgsIBLookupComboBoxX);
   RegisterGdcOLEClass(TxDateEdit, TwrpXDateEdit, ComServer.TypeLib, IID_IgsXDateEdit);

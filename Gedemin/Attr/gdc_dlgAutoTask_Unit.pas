@@ -105,7 +105,8 @@ var
   State: TgdEmailMessageState;
   ErrorMsg: String;
 begin
-  if gdWebClientControl.GetEmailState(Msg.WParam, State, ErrorMsg) then
+  if (gdWebClientControl <> nil) and
+    gdWebClientControl.GetEmailState(Msg.WParam, State, ErrorMsg) then
   begin
     if State = emsSent then
       MessageBox(Handle,
@@ -147,8 +148,6 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-
-  Assert(gdWebClientControl <> nil);
 
   inherited;
 
@@ -397,7 +396,8 @@ end;
 
 procedure Tgdc_dlgAutoTask.DestroyWindowHandle;
 begin
-  gdWebClientControl.ClearEmailCallbackHandle(Handle, 0);
+  if gdWebClientControl <> nil then
+    gdWebClientControl.ClearEmailCallbackHandle(Handle, 0);
   inherited;
 end;
 

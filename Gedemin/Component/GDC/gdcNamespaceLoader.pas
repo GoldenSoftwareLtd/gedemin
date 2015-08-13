@@ -108,7 +108,7 @@ uses
   IBHeader, Storages, gd_security, at_classes, at_frmSQLProcess,
   at_sql_metadata, gd_common_functions, gdcNamespaceRecCmpController,
   gdcMetadata, gdcFunction, gd_directories_const, mtd_i_Base, evt_i_Base,
-  gd_CmdLineParams_unit, at_dlgNamespaceRemoveList_unit;
+  gd_CmdLineParams_unit, at_dlgNamespaceRemoveList_unit, gd_WebClientControl_unit;
 
 type
   TAtObjectRecord = class(TObject)
@@ -462,6 +462,8 @@ var
   MS: TMemoryStream;
   q: TIBSQL;
   CharReplace: LongBool;
+  SL: TStringList;
+  ErrorCount, WarningCount: Integer;
 begin
   Assert(not FLoading);
   Assert(AList <> nil);
@@ -687,6 +689,26 @@ begin
   end;
 
   FLoading := False;
+
+  if (gd_CmdLineParams.SendLogEmail > '') and FileExists(gd_CmdLineParams.LoadSettingFileName)
+    and (frmSQLProcess <> nil) and (frmSQLProcess.Log <> nil)
+    and (gdWebClientControl <> nil) then
+  begin
+    SL := TStringList.Create;
+    try
+      frmSQLProcess.Log.SaveToStringList(False, True, WarningCount, ErrorCount, SL);
+      if SL.Count = 0 then
+        gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
+          'Успешно загружено ПИ ' + ExtractFileName(gd_CmdLineParams.LoadSettingFileName),
+          '', '', False, False, True)
+      else
+        gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
+          'Ошибки или предупреждения в процессе загрузки ПИ ' + ExtractFileName(gd_CmdLineParams.LoadSettingFileName),
+          SL.Text, '', False, False, True);
+    finally
+      SL.Free;
+    end;
+  end;
 
   Assert(FAtObjectRecordCache.Count = 0);
   Assert(FRemoveList.Count = 0);

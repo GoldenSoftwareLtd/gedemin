@@ -62,7 +62,7 @@ var
   ES: TgdEmailMessageState;
   ErrorMsg: String;
 begin
-  if gdWebClientControl.GetEmailState(Msg.WParam, ES, ErrorMsg) then
+  if (gdWebClientControl <> nil) and gdWebClientControl.GetEmailState(Msg.WParam, ES, ErrorMsg) then
   begin
     if ES = emsSent then
       pnlState.Caption := 'Сообщение отправлено'
@@ -167,13 +167,14 @@ end;
 
 procedure TdlgSendReport.actSendUpdate(Sender: TObject);
 begin
-  actSend.Enabled := (edRecipients.Text > '')
+  actSend.Enabled := (gdWebClientControl <> nil) and (edRecipients.Text > '')
     and (FEmailID = 0);
 end;
 
 procedure TdlgSendReport.FormDestroy(Sender: TObject);
 begin
-  gdWebClientControl.ClearEmailCallbackHandle(Handle, 0);
+  if gdWebClientControl <> nil then
+    gdWebClientControl.ClearEmailCallbackHandle(Handle, 0);
 end;
 
 procedure TdlgSendReport.actAddContactExecute(Sender: TObject);

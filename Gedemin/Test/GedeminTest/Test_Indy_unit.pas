@@ -37,6 +37,7 @@ end;
 
 procedure TgsIndyTest.Test;
 begin
+  Check(gdWebClientControl <> nil);
   Check(gdWebClientControl.gdWebServerURL > '', 'WebServer not found.');
 end;
 

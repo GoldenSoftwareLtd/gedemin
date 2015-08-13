@@ -445,9 +445,13 @@ begin
 
   {$IFDEF WITH_INDY}
   AddSection('Web Server');
-  AddBoolean('Активен', gdWebServerControl.Active);
-  AddSpaces('Bindings', gdWebServerControl.GetBindings);
-  AddSpaces('Remote Server', gdWebClientControl.gdWebServerURL);
+  if gdWebServerControl <> nil then
+  begin
+    AddBoolean('Активен', gdWebServerControl.Active);
+    AddSpaces('Bindings', gdWebServerControl.GetBindings);
+  end;
+  if gdWebClientControl <> nil then
+    AddSpaces('Remote Server', gdWebClientControl.gdWebServerURL);
   {$ENDIF}
 
   AddSection('Версии библиотек');
@@ -792,7 +796,8 @@ end;
 destructor Tgd_dlgAbout.Destroy;
 begin
   {$IFDEF WITH_INDY}
-  gdWebClientControl.ProgressWatch := nil;
+  if gdWebClientControl <> nil then
+    gdWebClientControl.ProgressWatch := nil;
   {$ENDIF}
   FSysInfo.Free;
   inherited;
@@ -833,15 +838,18 @@ end;
 procedure Tgd_dlgAbout.actUpdateExecute(Sender: TObject);
 begin
   {$IFDEF WITH_INDY}
-  gdWebClientControl.ProgressWatch := Self;
-  gdWebClientControl.StartUpdateFiles;
+  if gdWebClientControl <> nil then
+  begin
+    gdWebClientControl.ProgressWatch := Self;
+    gdWebClientControl.StartUpdateFiles;
+  end;
   {$ENDIF}
 end;
 
 procedure Tgd_dlgAbout.actUpdateUpdate(Sender: TObject);
 begin
   {$IFDEF WITH_INDY}
-  actUpdate.Enabled := gd_GlobalParams.CanUpdate
+  actUpdate.Enabled := gd_GlobalParams.CanUpdate and (gdWebClientControl <> nil)
     and (not gdWebClientControl.InUpdate);
   {$ENDIF}
 end;
@@ -928,7 +936,8 @@ end;
 procedure Tgd_dlgAbout.FormDestroy(Sender: TObject);
 begin
   {$IFDEF WITH_INDY}
-  gdWebClientControl.ProgressWatch := nil;
+  if gdWebClientControl <> nil then
+    gdWebClientControl.ProgressWatch := nil;
   {$ENDIF}
 end;
 
