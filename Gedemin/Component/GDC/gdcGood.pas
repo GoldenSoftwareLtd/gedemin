@@ -855,9 +855,9 @@ begin
     Result :=
       'SELECT id FROM gd_good ' +
       'WHERE ' +
-      '  (COALESCE(:barcode, '''') > '''' AND :barcode = barcode) ' +
+      '  (COALESCE(:barcode, CAST('''' AS dbarcode)) > '''' AND :barcode = barcode) ' +
       '  OR ' +
-      '  (COALESCE(:barcode, '''') = COALESCE(barcode, '''') AND UPPER(name)=UPPER(:name))'
+      '  (COALESCE(:barcode, CAST('''' AS dbarcode)) = COALESCE(barcode, '''') AND UPPER(name)=UPPER(:name))'
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else if FieldByName('barcode').IsNull then
