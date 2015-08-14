@@ -4,13 +4,9 @@ unit gdNotifierThread_unit;
 interface
 
 uses
-  Classes, Windows, Messages, SyncObjs, gdMessagedThread;
+  Classes, Windows, Messages, SyncObjs, gdMessagedThread, idThreadSafe;
 
 type
-  IgdNotifierWindow = interface
-    procedure UpdateNotification(const ANotification: String);
-  end;
-
   TgdNotifierItem = class(TCollectionItem)
   private
     FText: String;
@@ -64,14 +60,14 @@ type
   TgdNotifierThread = class(TgdMessagedThread)
   private
     FQueue: TgdNotifierQueue;
-    FNotification: String;
-    FNotifierWindow: IgdNotifierWindow;
+    FNotification: TidThreadSafeString;
+    FNotifierWindow: hWnd;
     FNotifierWindowCS, FQueueCS: TCriticalSection;
 
-    procedure SyncNotification;
     function GetMin(const A, B: DWORD): DWORD;
-    function GetNotifierWindow: IgdNotifierWindow;
-    procedure SetNotifierWindow(const Value: IgdNotifierWindow);
+    function GetNotifierWindow: hWnd;
+    procedure SetNotifierWindow(const Value: hWnd);
+    function GetNotification: String;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -87,8 +83,9 @@ type
     procedure DeleteContext(const AContext: Integer);
     procedure DeleteNotification(const AnID: Integer);
 
-    property NotifierWindow: IgdNotifierWindow read GetNotifierWindow
+    property NotifierWindow: hWnd read GetNotifierWindow
       write SetNotifierWindow;
+    property Notification: String read GetNotification;  
   end;
 
 var
@@ -135,6 +132,7 @@ begin
   FQueue := TgdNotifierQueue.Create;
   FNotifierWindowCS := TCriticalSection.Create;
   FQueueCS := TCriticalSection.Create;
+  FNotification := TidThreadSafeString.Create;
 end;
 
 procedure TgdNotifierThread.DeleteNotification(const AnID: Integer);
@@ -165,6 +163,7 @@ begin
   FQueue.Free;
   FNotifierWindowCS.Free;
   FQueueCS.Free;
+  FNotification.Free;
 end;
 
 function TgdNotifierThread.GetMin(const A, B: DWORD): DWORD;
@@ -195,19 +194,11 @@ begin
     Result := False;
 end;
 
-procedure TgdNotifierThread.SyncNotification;
-begin
-  if Assigned(FNotifierWindow) then
-    FNotifierWindow.UpdateNotification(FNotification);
-end;
-
 procedure TgdNotifierThread.Timeout;
 var
   CurrItem: TgdNotifierItem;
   S: String;
-  NeedSync: Boolean;
 begin
-  NeedSync := False;
   FQueueCS.Enter;
   try
     CurrItem := FQueue.GetCurrItem;
@@ -256,20 +247,18 @@ begin
       SetTimeout(INFINITE);
     end;
 
-    if S <> FNotification then
+    if S <> FNotification.Value then
     begin
-      NeedSync := True;
-      FNotification := S;
+      FNotification.Value := S;
+      if NotifierWindow <> 0 then
+        PostMessage(NotifierWindow, WM_GD_UPDATE_NOTIFICATION, 0, 0);
     end;
   finally
     FQueueCS.Leave;
   end;
-
-  if NeedSync then
-    Synchronize(SyncNotification);
 end;
 
-function TgdNotifierThread.GetNotifierWindow: IgdNotifierWindow;
+function TgdNotifierThread.GetNotifierWindow: hWnd;
 begin
   FNotifierWindowCS.Enter;
   try
@@ -280,7 +269,7 @@ begin
 end;
 
 procedure TgdNotifierThread.SetNotifierWindow(
-  const Value: IgdNotifierWindow);
+  const Value: hWnd);
 begin
   FNotifierWindowCS.Enter;
   try
@@ -288,6 +277,11 @@ begin
   finally
     FNotifierWindowCS.Leave;
   end;
+end;
+
+function TgdNotifierThread.GetNotification: String;
+begin
+  Result := FNotification.Value;
 end;
 
 { TgdNotifierQueue }

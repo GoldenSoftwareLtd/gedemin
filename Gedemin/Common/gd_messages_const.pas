@@ -143,6 +143,7 @@ const
   // gd_main_form
   WM_GD_RELOGIN                = WM_USER + 25489;
   //WM_GD_RUNONLOGINMACROS     = WM_USER + 25490;
+  WM_GD_UPDATE_NOTIFICATION    = WM_USER + 25491;
 
   // at_ActivateSetting
   WM_ACTIVATESETTING           = WM_USER + 30000;

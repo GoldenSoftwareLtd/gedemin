@@ -15,7 +15,7 @@ type
   TCrackIBCustomDataset = class(TIBCustomDataset);
 
   TfrmGedeminMain = class(TCreateableForm, ICompanyChangeNotify,
-      IConnectChangeNotify, IgdNotifierWindow)
+      IConnectChangeNotify)
     ActionList: TActionList;
     actExit: TAction;
     actAbout: TAction;
@@ -320,7 +320,8 @@ type
     procedure WMRelogin(var Msg: TMessage);
       message WM_GD_RELOGIN;
 
-    procedure UpdateNotification(const ANotification: String);
+    procedure WMUpdateNotification(var Msg: TMessage);
+      message WM_GD_UPDATE_NOTIFICATION;
 
   protected
     procedure Loaded; override;
@@ -532,7 +533,7 @@ type
 procedure TfrmGedeminMain.FormCreate(Sender: TObject);
 begin
   if gdNotifierThread <> nil then
-    gdNotifierThread.NotifierWindow := Self;
+    gdNotifierThread.NotifierWindow := Self.Handle;
 
   if Assigned(IBLogin) then
   begin
@@ -1946,7 +1947,7 @@ end;
 procedure TfrmGedeminMain.DoDestroy;
 begin
   if gdNotifierThread <> nil then
-    gdNotifierThread.NotifierWindow := nil;
+    gdNotifierThread.NotifierWindow := 0;
 
   inherited;
 
@@ -2388,12 +2389,6 @@ begin
   end;
 end;}
 
-procedure TfrmGedeminMain.UpdateNotification(const ANotification: String);
-begin
-  if (not (csDestroying in ComponentState)) and Visible then
-    lblDatabase.Caption := StringReplace(ANotification, #13#10, ' ', [rfReplaceAll]);
-end;
-
 procedure TfrmGedeminMain.actDatabasesListExecute(Sender: TObject);
 begin
   gd_DatabasesList.ShowViewForm(False);
@@ -2408,6 +2403,12 @@ end;
 procedure TfrmGedeminMain.WMRelogin(var Msg: TMessage);
 begin
   if IBLogin <> nil then IBLogin.Relogin;
+end;
+
+procedure TfrmGedeminMain.WMUpdateNotification(var Msg: TMessage);
+begin
+  if Visible and (gdNotifierThread <> nil) then
+    lblDatabase.Caption := StringReplace(gdNotifierThread.Notification, #13#10, ' ', [rfReplaceAll]);
 end;
 
 end.
