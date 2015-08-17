@@ -1,6 +1,6 @@
 object gd_dlgAbout: Tgd_dlgAbout
-  Left = 584
-  Top = 200
+  Left = 585
+  Top = 201
   HelpContext = 119
   BorderStyle = bsDialog
   Caption = 'О программе'

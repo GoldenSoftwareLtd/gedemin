@@ -32,8 +32,8 @@ begin
           '  id               dintkey, '#13#10 +
           '  name             dname, '#13#10 +
           '  description      dtext180, '#13#10 +
-          '  email            demail NOT NULL, '#13#10 +
-          '  login            dusername, '#13#10 +
+          '  email            dname, '#13#10 +
+          '  login            dname, '#13#10 +
           '  passw            VARCHAR(256) NOT NULL, '#13#10 +
           '  ipsec            dtext8 DEFAULT NULL, '#13#10 +
           '  timeout          dinteger_notnull DEFAULT -1, '#13#10 +

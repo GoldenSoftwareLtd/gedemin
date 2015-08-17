@@ -7,9 +7,9 @@ CREATE TABLE gd_autotask
    autotrkey        dforeignkey,      /* если задано -- будет выполняться автоматическая хозяйственная операция */
    reportkey        dforeignkey,      /* если задано -- будет выполняться построение отчета */
    emailgroupkey    dforeignkey,
-   emailrecipients  dtext255,
+   emailrecipients  dtext1024,
    emailsmtpkey     dforeignkey,
-   emailexporttype  VARCHAR(3),
+   emailexporttype  VARCHAR(4),
    cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
    backupfile       dtext255,         /* если задано -- имя файла архива */
    userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/

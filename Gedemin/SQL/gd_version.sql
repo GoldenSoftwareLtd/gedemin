@@ -704,6 +704,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (224, '0000.0001.0000.0255', '09.08.2015', 'SMTP servers command has been added to the Explorer.');  
 
+INSERT INTO fin_versioninfo
+  VALUES (225, '0000.0001.0000.0256', '17.08.2015', 'Adjust some db fields.');  
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

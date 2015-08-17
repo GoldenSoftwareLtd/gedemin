@@ -419,7 +419,8 @@ begin
         ToAddresses := Recipients + ',' + R[0, 0]
       else
         ToAddresses := R[0, 0];
-    end;
+    end else
+      ToAddresses := Recipients;
 
     if gdcBaseManager.ExecSingleQueryResult(
       'SELECT name FROM rp_reportlist WHERE id = :id', ReportKey, R) then

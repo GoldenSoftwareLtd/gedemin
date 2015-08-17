@@ -27,9 +27,9 @@ begin
         FIBSQL.Transaction := FTransaction;
 
         AddField2('gd_autotask', 'emailgroupkey', 'dforeignkey', FTransaction);
-        AddField2('gd_autotask', 'emailrecipients', 'dtext255', FTransaction);
+        AddField2('gd_autotask', 'emailrecipients', 'dtext1024', FTransaction);
         AddField2('gd_autotask', 'emailsmtpkey', 'dforeignkey', FTransaction);
-        AddField2('gd_autotask', 'emailexporttype', 'VARCHAR(3)', FTransaction);
+        AddField2('gd_autotask', 'emailexporttype', 'VARCHAR(4)', FTransaction);
 
         DropConstraint2('gd_autotask', 'fk_gd_autotask_esk', FTransaction);
         if not ConstraintExist2('gd_autotask', 'gd_fk_autotask_esk', FTransaction) then
@@ -329,6 +329,22 @@ begin
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
+          'ALTER TABLE gd_autotask ALTER emailrecipients TYPE dtext1024 ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE gd_autotask ALTER emailexporttype TYPE VARCHAR(4) ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE gd_smtp ALTER email TYPE dname ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE gd_smtp ALTER login TYPE dname ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) '#13#10 +
           'VALUES ( '#13#10 +
           '  740925, '#13#10 +
@@ -360,6 +376,13 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (224, ''0000.0001.0000.0255'', ''09.08.2015'', ''SMTP servers command has been added to the Explorer.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (225, ''0000.0001.0000.0256'', ''17.08.2015'', ''Adjust some db fields.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

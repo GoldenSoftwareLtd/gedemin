@@ -114,7 +114,12 @@ begin
     IdSMTP.Host := dbeServer.Text;
     IdSMTP.AuthenticationType := atLogin;
     IdSMTP.Username := dbeLogin.Text;
-    IdSMTP.Password := edPassw.Text;
+    if edPassw.Text <> '<not changed>' then
+      IdSMTP.Password := edPassw.Text
+    else if gdcObject.FieldByName('passw').AsString = '' then
+      IdSMTP.Password := ''
+    else
+      IdSMTP.Password := DecryptString(gdcObject.FieldByName('passw').AsString, 'PASSW');
 
     if dbcbIPSec.Text > '' then
     begin

@@ -1546,6 +1546,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (224, '0000.0001.0000.0255', '09.08.2015', 'SMTP servers command has been added to the Explorer.');  
 
+INSERT INTO fin_versioninfo
+  VALUES (225, '0000.0001.0000.0256', '17.08.2015', 'Adjust some db fields.');  
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -17036,7 +17039,7 @@ COMMIT;
     id               dintkey,                     /* первичный ключ          */
     name             dname,                       /* имЯ                     */
     description      dtext180,                    /* описание                */
-    email            demail NOT NULL,             /* адрес электронной почты */
+    email            dname,                       /* адрес электронной почты */
     login            dname,                       /* логин                   */
     passw            VARCHAR(256) NOT NULL,       /* пароль                  */
     ipsec            dtext8,                      /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
@@ -17101,7 +17104,7 @@ COMMIT;CREATE TABLE gd_autotask
    autotrkey        dforeignkey,      /* если задано -- будет выполняться автоматическая хозяйственная операция */
    reportkey        dforeignkey,      /* если задано -- будет выполняться построение отчета */
    emailgroupkey    dforeignkey,
-   emailrecipients  dtext255,
+   emailrecipients  dtext1024,
    emailsmtpkey     dforeignkey,
    emailexporttype  VARCHAR(3),
    cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */

@@ -820,7 +820,7 @@ begin
           IdSMTP.IOHandler := IdSSLIOHandlerSocket;
         end;
 
-        IdSMTP.Connect;
+        IdSMTP.Connect(60000);
 
         if IdSMTP.Connected then
         begin

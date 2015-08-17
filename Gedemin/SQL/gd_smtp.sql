@@ -3,7 +3,7 @@
     id               dintkey,                     /* первичный ключ          */
     name             dname,                       /* имя                     */
     description      dtext180,                    /* описание                */
-    email            demail NOT NULL,             /* адрес электронной почты */
+    email            dname,                       /* адрес электронной почты */
     login            dname,                       /* логин                   */
     passw            VARCHAR(256) NOT NULL,       /* пароль                  */
     ipsec            dtext8,                      /* протокол безопасности   SSLV2, SSLV23, SSLV3, TLSV1 */
