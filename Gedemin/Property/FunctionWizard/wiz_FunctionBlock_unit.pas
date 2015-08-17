@@ -885,7 +885,7 @@ type
     function CanHasOwnBlock: boolean; override;
 
     //Заголовок блока
-    function HeaderPrefix: string;override;
+    function HeaderPrefix: string; override;
     function HasFootter: boolean; override;
     function HasBody: boolean; override;
 
@@ -912,9 +912,11 @@ type
 
   TTaxVarBlock = class(TVarBlock)
   protected
+    function HeaderPrefix: string; override;
     procedure DoGenerate(S: TStrings; Paragraph: Integer); override;
     function HeaderColor: TColor; override;
     function GetBlockSetMember: TBlockSetMember; override;
+
   public
     function GetEditFrame: TFrameClass; override;
   
@@ -3945,7 +3947,7 @@ end;
 
 function TVarBlock.HeaderPrefix: string;
 begin
-  Result := 'Позиция отчета';
+  Result := 'Переменная';
 end;
 
 function TVarBlock.HeaderColor: TColor;
@@ -6645,6 +6647,11 @@ begin
 end;
 
 { TTaxVarBlock }
+
+function TTaxVarBlock.HeaderPrefix: string;
+begin
+  Result := 'Позиция отчета';
+end;
 
 procedure TTaxVarBlock.DoGenerate(S: TStrings; Paragraph: Integer);
 var
