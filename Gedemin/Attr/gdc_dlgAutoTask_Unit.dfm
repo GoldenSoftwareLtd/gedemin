@@ -585,7 +585,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         ListField = 'NAME'
         KeyField = 'ID'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 0
       end
       object dbcbExportType: TDBComboBox
@@ -601,7 +601,11 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
           'DOC'
           'XLS'
           'PDF'
-          'XML')
+          'XML'
+          'TXT'
+          'HTM'
+          'ODT'
+          'ODS')
         TabOrder = 1
       end
       object iblkupSMTP: TgsIBLookupComboBox
@@ -617,7 +621,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         KeyField = 'ID'
         gdClassName = 'TgdcSMTP'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 4
@@ -636,7 +640,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         Condition = 'GD_CONTACT.CONTACTTYPE  =  1'
         gdClassName = 'TgdcGroup'
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 3

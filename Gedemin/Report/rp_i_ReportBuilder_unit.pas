@@ -15,7 +15,7 @@ type
    const AnEventFunction: TrpCustomFunction; var AnResult: Boolean) of object;
 
 type
-  TExportType = (etNone, etWord, etExcel, etPdf, etXML);
+  TExportType = (etNone, etWord, etExcel, etPdf, etXML, etText, etHTML, etODT, etODS);
 
 type
 

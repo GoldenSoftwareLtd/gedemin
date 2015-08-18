@@ -1,10 +1,10 @@
 object dlgSendReport: TdlgSendReport
-  Left = 721
-  Top = 516
+  Left = 670
+  Top = 248
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Отправка отчета по электронной почте'
-  ClientHeight = 243
+  ClientHeight = 269
   ClientWidth = 387
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -13,13 +13,14 @@ object dlgSendReport: TdlgSendReport
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  Position = poDesktopCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
     Left = 8
-    Top = 187
+    Top = 211
     Width = 93
     Height = 13
     Caption = 'Почтовый сервер:'
@@ -54,7 +55,7 @@ object dlgSendReport: TdlgSendReport
   end
   object iblkupSMTP: TgsIBLookupComboBox
     Left = 106
-    Top = 184
+    Top = 208
     Width = 155
     Height = 21
     HelpContext = 1
@@ -139,7 +140,7 @@ object dlgSendReport: TdlgSendReport
   end
   object pnlState: TPanel
     Left = 73
-    Top = 213
+    Top = 237
     Width = 305
     Height = 22
     BevelOuter = bvLowered
@@ -154,6 +155,38 @@ object dlgSendReport: TdlgSendReport
     Caption = 'Закрыть'
     ModalResult = 1
     TabOrder = 10
+  end
+  object rbTXT: TRadioButton
+    Left = 74
+    Top = 184
+    Width = 41
+    Height = 17
+    Caption = 'TXT'
+    TabOrder = 12
+  end
+  object rbHTM: TRadioButton
+    Left = 124
+    Top = 184
+    Width = 41
+    Height = 17
+    Caption = 'HTM'
+    TabOrder = 13
+  end
+  object rbODT: TRadioButton
+    Left = 174
+    Top = 184
+    Width = 41
+    Height = 17
+    Caption = 'ODT'
+    TabOrder = 14
+  end
+  object rbODS: TRadioButton
+    Left = 224
+    Top = 184
+    Width = 41
+    Height = 17
+    Caption = 'ODS'
+    TabOrder = 15
   end
   object alBase: TActionList
     Left = 272

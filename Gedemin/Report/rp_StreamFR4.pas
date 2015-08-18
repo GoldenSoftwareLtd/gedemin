@@ -276,6 +276,18 @@ begin
 
     etPdf:
       FExportFilter := Ffr4Report.FrxPDFExport;
+
+    etText:
+      FExportFilter := Ffr4Report.FrxTXTExport;
+
+    etHTML:
+      FExportFilter := Ffr4Report.FrxHTMLExport;
+
+    etODT:
+      FExportFilter := Ffr4Report.FrxODTEXPORT;
+
+    etODS:
+      FExportFilter := Ffr4Report.FrxODSEXPORT;
   else
     FExportFilter := nil;
   end;

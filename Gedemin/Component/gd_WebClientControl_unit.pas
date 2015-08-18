@@ -1096,6 +1096,14 @@ function TgdWebClientControl.SendEMail(const ASMTPKey: Integer;
       Result := etPdf
     else if AnExportType = 'XML' then
       Result := etXML
+    else if AnExportType = 'TXT' then
+      Result := etText
+    else if AnExportType = 'HTM' then
+      Result := etHTML
+    else if AnExportType = 'ODT' then
+      Result := etODT
+    else if AnExportType = 'ODS' then
+      Result := etODS
     else
       raise Exception.Create('unknown export type.')
   end;
