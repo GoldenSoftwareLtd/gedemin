@@ -745,6 +745,7 @@ var
   Msg: TIdMessage;
   IdSSLIOHandlerSocket: TIdSSLIOHandlerSocket;
   Attachment: TIdAttachment;
+  Attachments: TObjectList;
   ES: TgdEmailMessage;
   J: Integer;
   K: Integer;
@@ -829,7 +830,7 @@ begin
           if IdSMTP.Authenticate then
           begin
             Msg := TIdMessage.Create(nil);
-            Attachment := nil;
+            Attachments := nil;
             try
               Msg.Subject := EncodeSubj(_Subject);
               Msg.Recipients.EMailAddresses := _Recipients;
@@ -844,8 +845,12 @@ begin
                   SL.CommaText := _FileName;
                   for K := 0 to SL.Count - 1 do
                   begin
+                    if Attachments = nil then
+                      Attachments := TObjectList.Create(True);
+
                     Attachment := TIdAttachment.Create(Msg.MessageParts, SL[K]);
                     Attachment.DeleteTempFile := False;
+                    Attachments.Add(Attachment);
                   end;
                 finally
                   SL.Free;
@@ -863,7 +868,7 @@ begin
                 FEmailCS.Leave;
               end;
             finally
-              Attachment.Free;
+              Attachments.Free;
               Msg.Free;
             end;
           end else
@@ -1135,22 +1140,27 @@ destructor TgdEmailMessage.Destroy;
 var
   K: Integer;
   SL: TStringList;
+  SameDir: Boolean;
 begin
-  SL := TStringList.Create;
-  try
-    SL.CommaText := FileName;
-    for K := 0 to SL.Count - 1 do
-    begin
-      if WipeFile then
+  if WipeFile then
+  begin
+    SameDir := True;
+    SL := TStringList.Create;
+    try
+      SL.CommaText := FileName;
+
+      for K := 0 to SL.Count - 1 do
+      begin
         DeleteFile(SL[K]);
+        if SameDir and (K > 0) then
+          SameDir := AnsiSameText(ExtractFileDir(SL[K]), ExtractFileDir(SL[K-1]));
+      end;
+
+      if WipeDirectory and SameDir then
+        RemoveDir(ExtractFileDir(SL[0]));
+    finally
+      SL.Free;
     end;
-    for K := 0 to SL.Count - 1 do
-    begin
-      if WipeDirectory then
-        RemoveDir(ExtractFileDir(SL[K]));
-    end;
-  finally
-    SL.Free;
   end;
 
   inherited;
