@@ -34,6 +34,7 @@ type
     procedure actSendUpdate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure actAddContactExecute(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
 
   private
     FPDFExport: TfrxCustomExportFilter;
@@ -214,6 +215,12 @@ begin
       edRecipients.Text := edRecipients.Text + ',';
     edRecipients.Text := edRecipients.Text + R[0, 0];
   end;
+end;
+
+procedure TdlgSendReport.FormCreate(Sender: TObject);
+begin
+  Assert(gdcBaseManager <> nil);
+  iblkupSMTP.Transaction := gdcBaseManager.ReadTransaction;
 end;
 
 end.
