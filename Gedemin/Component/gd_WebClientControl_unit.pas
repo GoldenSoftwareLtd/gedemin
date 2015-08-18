@@ -747,6 +747,7 @@ var
   Attachment: TIdAttachment;
   ES: TgdEmailMessage;
   J: Integer;
+  K: Integer;
   _ID: Word;
   _Recipients: String;
   _Subject: String;
@@ -761,6 +762,7 @@ var
   _WndHandle: THandle;
   _ThreadID: THandle;
   _SynchronousSend: Boolean;
+  SL: TStringList;
 begin
   while FEmailCS <> nil do
   begin
@@ -837,8 +839,17 @@ begin
 
               if _FileName > '' then
               begin
-                Attachment := TIdAttachment.Create(Msg.MessageParts, _FileName);
-                Attachment.DeleteTempFile := False;
+                SL := TStringList.Create;
+                try
+                  SL.CommaText := _FileName;
+                  for K := 0 to SL.Count - 1 do
+                  begin
+                    Attachment := TIdAttachment.Create(Msg.MessageParts, SL[K]);
+                    Attachment.DeleteTempFile := False;
+                  end;
+                finally
+                  SL.Free;
+                end;
               end;
 
               IdSMTP.Send(Msg);
@@ -1121,9 +1132,27 @@ begin
 end;
 
 destructor TgdEmailMessage.Destroy;
+var
+  K: Integer;
+  SL: TStringList;
 begin
-  if WipeFile and DeleteFile(FileName) and WipeDirectory then
-    RemoveDir(ExtractFileDir(FileName));
+  SL := TStringList.Create;
+  try
+    SL.CommaText := FileName;
+    for K := 0 to SL.Count - 1 do
+    begin
+      if WipeFile then
+        DeleteFile(SL[K]);
+    end;
+    for K := 0 to SL.Count - 1 do
+    begin
+      if WipeDirectory then
+        RemoveDir(ExtractFileDir(SL[K]));
+    end;
+  finally
+    SL.Free;
+  end;
+
   inherited;
 end;
 
