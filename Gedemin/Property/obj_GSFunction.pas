@@ -1991,7 +1991,7 @@ end;
 
 procedure TobjGSFunction.SetupTransaction(SQL: TIBSQl);
 begin
-  if FTransaction <> nil then
+  if (FTransaction <> nil) and FTransaction.InTransaction then
     SQL.Transaction := FTransaction
   else
     SQL.Transaction := gdcBaseManager.ReadTransaction;  
@@ -2029,42 +2029,24 @@ var
   end;
 
   function IsWeekEnd(const ADate: TDateTime): Boolean;
-  var
-    DayNumber: Integer;
   begin
-    DayNumber := Sysutils.DayOfWeek(ADate);
-    if DayNumber in [1, 7] then
-      Result := True
-    else
-      Result := False;
+    Result := Sysutils.DayOfWeek(ADate) in [1, 7];
   end;
 
   function IsHolyday(const ADate: TDateTime): Boolean;
   begin
     IBSQL.ParamByName('THEDATE').AsDateTime := ADate;
     IBSQL.ExecQuery;
-    if IBSQL.RecordCount > 0 then
-      Result := True
-    else
-      Result := False;
+    Result := not IBSQL.EOF;
     IBSQL.Close;
   end;
 
   function IsDayOff(const ADate: TDateTime): Boolean;
   begin
     if TBLCALID > 0 then
-    begin
-      // Если передан табель, то выходной день там может быть рабочим
-      Result := IsHolyday(ADate);
-    end
+      Result := IsHolyday(ADate) // Если передан табель, то выходной день там может быть рабочим
     else
-    begin
-      // Проверим по выходным дням
-      if IsWeekEnd(ADate) then
-        Result := True
-      else
-        Result := IsHolyday(ADate);     // Если это не выходной, проверим не праздник ли это
-    end;
+      Result := IsWeekEnd(ADate) or IsHolyday(ADate);
   end;
 
   procedure LocIncDay(const AValue: Integer);
@@ -2198,13 +2180,8 @@ begin
       // Если указан ключ табеля
       IBSQL.SQL.Text := 'SELECT id FROM wg_tblcalday WHERE tblcalkey = :tblkey AND theday = :thedate AND workday = 0';
       IBSQL.ParamByName('TBLKEY').AsInteger := TBLCALID;
-      IBSQL.Prepare;
-    end
-    else
-    begin
+    end else
       IBSQL.SQL.Text := 'SELECT id FROM wg_holiday WHERE holidaydate = :thedate';
-      IBSQL.Prepare;
-    end;
 
     if UpperCase(Interval) = 'YYYY' then           // Год
     begin
@@ -2243,7 +2220,7 @@ begin
 
     Result := FormResultDate;            
   finally
-    FreeAndNil(IBSQL);
+    IBSQL.Free;
   end;
 end;
 
