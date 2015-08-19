@@ -764,6 +764,8 @@ var
   _ThreadID: THandle;
   _SynchronousSend: Boolean;
   SL: TStringList;
+  PartSL: TStringList;
+  Part: TIdText;
 begin
   while FEmailCS <> nil do
   begin
@@ -847,6 +849,35 @@ begin
                   begin
                     if Attachments = nil then
                       Attachments := TObjectList.Create(True);
+
+                    if SL.Count = 1 then
+                    begin
+                      if AnsiSameText(ExtractFileExt(SL[K]), '.HTM') then
+                      begin
+                        Msg.ContentType := 'multipart/mixed';
+                        PartSL := TStringList.Create;
+                        try
+                          PartSL.LoadFromFile(SL[K]);
+                          Part := TIdText.Create(Msg.MessageParts, PartSL);
+                          Part.ContentType := 'text/html';
+                        finally
+                          PartSL.Free;
+                        end;
+                      end;
+
+                      if AnsiSameText(ExtractFileExt(SL[K]), '.TXT') then
+                      begin
+                        Msg.ContentType := 'multipart/mixed';
+                        PartSL := TStringList.Create;
+                        try
+                          PartSL.LoadFromFile(SL[K]);
+                          Part := TIdText.Create(Msg.MessageParts, PartSL);
+                          Part.ContentType := 'text/plain';;
+                        finally
+                          PartSL.Free;
+                        end;
+                      end;
+                    end;
 
                     Attachment := TIdAttachment.Create(Msg.MessageParts, SL[K]);
                     Attachment.DeleteTempFile := False;
