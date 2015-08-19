@@ -35,6 +35,9 @@ const
   iiCopy = 10;
   iiCut = 9;
   iiPast = 11;
+  iiProperties = 1;
+  iiDelete = 2;
+
 implementation
 
 {$R *.DFM}

@@ -211,6 +211,9 @@ object dlgFunctionWisard: TdlgFunctionWisard
         object TBItem39: TTBItem
           Action = actPast
         end
+        object TBItem45: TTBItem
+          Action = actSelectAll
+        end
       end
       object TBSubmenuItem2: TTBSubmenuItem
         Caption = 'Выполнение'
@@ -1053,7 +1056,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
     end
     object actSelectAll: TAction
       Category = 'ClipBord'
-      Caption = 'actSelectAll'
+      Caption = 'Выделить все'
       ShortCut = 16449
       OnExecute = actSelectAllExecute
       OnUpdate = actSelectAllUpdate

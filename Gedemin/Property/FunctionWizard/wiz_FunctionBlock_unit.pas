@@ -2357,6 +2357,9 @@ begin
     MI := TMenuItem.Create(FPopupMenu);
     MI.Caption := 'Свойства ...';
     MI.OnClick := OnPropertyClick;
+    {$IFDEF GEDEMIN}
+    MI.ImageIndex := iiProperties;
+    {$ENDIF}
     FPopupMenu.Items.Add(MI);
 
     if not CannotDelete then
@@ -2366,6 +2369,9 @@ begin
       MI.Caption := 'Удалить';
       MI.OnClick := OnDeleteClick;
       MI.ShortCut := ShortCut(Ord('D'), [ssCtrl]);
+      {$IFDEF GEDEMIN}
+      MI.ImageIndex := iiDelete;
+      {$ENDIF}
       FPopupMenu.Items.Add(MI);
     end;
 
