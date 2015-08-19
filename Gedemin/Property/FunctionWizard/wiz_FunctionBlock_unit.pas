@@ -88,6 +88,8 @@ type
     procedure SetBlockName(const Value: string);
     procedure SetUnWrap(const Value: Boolean);
 
+    procedure CMWantSpecialKey(var Msg: TCMWantSpecialKey); message CM_WANTSPECIALKEY;
+
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
     procedure WMSetFocus(var Message: TWMSetFocus); message WM_SETFOCUS;
     procedure WMKillFocus(var Message: TWMSetFocus); message WM_KILLFOCUS;
@@ -143,6 +145,8 @@ type
     function CanDrop(Source: TObject; X, Y: Integer): boolean; virtual;
     procedure DragOver(Source: TObject; X, Y: Integer;
       State: TDragState; var Accept: Boolean); override;
+
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
 
     procedure KeyUp(var Key: Word; Shift: TShiftState); override;
     procedure AdjustSize; override;
@@ -2159,7 +2163,7 @@ begin
 
   if ssLeft in Shift then
   begin
-    if Assigned(SelBlockList) and ([ssLeft, ssShift] = Shift) then begin
+    if Assigned(SelBlockList) and ([ssLeft, ssCtrl] = Shift) then begin
       if SelBlockList.IndexOf(self) > -1 then
       begin
         if SelBlockList.Count > 1 then
@@ -2406,6 +2410,14 @@ end;
 procedure TVisualBlock.ShowErrorMessage;
 begin
 
+end;
+
+procedure TVisualBlock.CMWantSpecialKey(var Msg: TCMWantSpecialKey);
+begin
+  inherited;
+  
+  if (Msg.CharCode = VK_UP) or (Msg.CharCode = VK_DOWN) then
+    Msg.Result := 1;
 end;
 
 procedure TVisualBlock.WMEraseBkgnd(var Message: TWmEraseBkgnd);
@@ -2811,6 +2823,47 @@ end;
 function TVisualBlock.ObjectStreamVersion: Integer;
 begin
   Result := 18;
+end;
+
+procedure TVisualBlock.KeyDown(var Key: Word; Shift: TShiftState);
+var
+  I: Integer;
+  K: Integer;
+begin
+  if ((Key = VK_UP) or (Key = VK_DOWN)) and (Shift = [ssShift]) then
+  begin
+    for I := 0 to Parent.ControlCount - 1 do
+    begin
+      if Self = Parent.Controls[I] then
+      begin
+        if ((Key = VK_UP) and (I > 0))
+          or ((Key = VK_DOWN) and (I < (Parent.ControlCount - 1))) then
+        begin
+          if Assigned(SelBlockList) then
+          begin
+            if Key = VK_UP then
+              K := I - 1
+            else
+              K := I + 1;
+            if SelBlockList.IndexOf(Parent.Controls[K]) > -1 then
+            begin
+              SelBlockList.Extract(Self);
+              TVisualBlock(Self).Repaint;
+            end
+            else
+            begin
+              SelBlockList.Add(Parent.Controls[K]);
+              TVisualBlock(Parent.Controls[K]).Repaint;
+            end;
+            TVisualBlock(Parent.Controls[K]).SetFocus;
+          end;
+        end;
+        break;
+      end;
+    end;
+  end
+  else
+    inherited;
 end;
 
 procedure TVisualBlock.KeyUp(var Key: Word; Shift: TShiftState);
