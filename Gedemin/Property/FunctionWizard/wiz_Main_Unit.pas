@@ -265,6 +265,7 @@ type
     TBItem44: TTBItem;
     actFindNext: TAction;
     actSelectAll: TAction;
+    TBItem45: TTBItem;
     procedure TBItem1Click(Sender: TObject);
     procedure actGenerateExecute(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
