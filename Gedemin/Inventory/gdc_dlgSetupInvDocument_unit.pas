@@ -106,6 +106,7 @@ type
     cbSaveRestWindowOption: TCheckBox;
     cbEndMonthRemains: TCheckBox;
     cbWithoutSearchRemains: TCheckBox;
+    lblNotification: TLabel;
 
     procedure actAddFeatureExecute(Sender: TObject);
     procedure actRemoveFeatureExecute(Sender: TObject);
@@ -138,7 +139,6 @@ type
     procedure actRemoveAll_MinusFeatureExecute(Sender: TObject);
     procedure luCreditFromDropDown(Sender: TObject);
     procedure cbTemplateChange(Sender: TObject);
-    procedure edEnglishNameExit(Sender: TObject);
     procedure iblcHeaderTableChange(Sender: TObject);
 
 
@@ -2094,14 +2094,7 @@ procedure Tgdc_dlgSetupInvDocument.pcMainChanging(Sender: TObject;
   var AllowChange: Boolean);
 begin
   if pcMain.ActivePage = tsCommon then
-  begin
-    if (AnsiPos(UserPrefix, edEnglishName.Text) = 0) and
-      (atDatabase.Relations.ByRelationName(edEnglishName.Text) = nil)
-    then
-      edEnglishName.Text := UserPrefix + edEnglishName.Text;
-
     UpdateTemplate;
-  end;
 end;
 
 procedure Tgdc_dlgSetupInvDocument.rgFeaturesClick(Sender: TObject);
@@ -2300,9 +2293,14 @@ begin
     end
     else
       if Document.State = dsEdit then
-        UpdateEditingSettings
-      else
+      begin
+        UpdateEditingSettings;
+        lblNotification.Visible := False;
+      end else
+      begin
         UpdateInsertingSettings;
+        lblNotification.Visible := True;
+      end;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -2311,12 +2309,6 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGSETUPINVDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD);
   {M}end;
   {END MACRO}
-end;
-
-procedure Tgdc_dlgSetupInvDocument.edEnglishNameExit(Sender: TObject);
-begin
-  inherited;
-  UpdateTabs;
 end;
 
 procedure Tgdc_dlgSetupInvDocument.iblcHeaderTableChange(Sender: TObject);
@@ -2330,6 +2322,5 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgSetupInvDocument);
-
 end.
 

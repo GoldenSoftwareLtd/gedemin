@@ -4,7 +4,6 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
   PixelsPerInch = 96
   TextHeight = 13
   inherited pcMain: TPageControl
-    ActivePage = tsIncomeMovement
     OnChange = pcMainChange
     OnChanging = pcMainChanging
     inherited tsCommon: TTabSheet
@@ -19,6 +18,11 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       inherited Label2: TLabel
         Top = 238
+      end
+      inherited Label3: TLabel
+        Width = 145
+        Height = 26
+        Caption = 'Наименование таблицы:'
       end
       object lblDocument: TLabel [6]
         Left = 8
@@ -39,6 +43,21 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       inherited Label4: TLabel
         Top = 284
+      end
+      object lblNotification: TLabel [11]
+        Left = 8
+        Top = 344
+        Width = 459
+        Height = 13
+        Caption = 
+          'Выберите (создайте) таблицы шапки и позиции документа для настро' +
+          'йки его признаков.'
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clRed
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
       end
       inherited edDocumentName: TDBEdit
         Color = clWindow

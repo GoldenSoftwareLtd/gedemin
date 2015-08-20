@@ -666,15 +666,19 @@ end;
 
 function CheckEnName(const AName: String): Boolean;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := True;
-  for i:= 1 to Length(AName) do
-    if not (AName[i] in ['A'..'Z', 'a'..'z', '_', '$', '0'..'9'])  then
-    begin
-      Result := False;
-      exit;
-    end;
+
+  if AName > '' then
+  begin
+    for I := 1 to Length(AName) do
+      if not (AName[I] in ['A'..'Z', 'a'..'z', '_', '$', '0'..'9'])  then
+      begin
+        Result := False;
+        break;
+      end;
+  end;
 end;
 
 function StringToUpdateDeleteRule(const S: String): TUpdateDeleteRule;

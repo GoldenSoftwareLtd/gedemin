@@ -1,6 +1,6 @@
 inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
-  Left = 645
-  Top = 134
+  Left = 671
+  Top = 278
   Caption = 'Документ'
   ClientHeight = 423
   ClientWidth = 532
@@ -178,6 +178,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         ParentShowHint = False
         ShowHint = True
         TabOrder = 5
+        OnChange = iblcHeaderTableChange
       end
       object iblcLineTable: TgsIBLookupComboBox
         Left = 157
@@ -211,7 +212,6 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         Color = clBtnFace
         Enabled = False
         TabOrder = 3
-        OnChange = edEnglishNameChange
         OnExit = edEnglishNameExit
       end
       object dbcbIsCommon: TDBCheckBox
