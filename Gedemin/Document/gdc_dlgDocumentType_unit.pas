@@ -291,25 +291,18 @@ begin
 end;
 
 function Tgdc_dlgDocumentType.GetRelation(isDocument: Boolean): TatRelation;
-var
-  CurrKey: String;
 begin
   if isDocument then
-    CurrKey := iblcHeaderTable.CurrentKey
+    Result := atDatabase.Relations.ByID(iblcHeaderTable.CurrentKeyInt)
   else
-    CurrKey := iblcLineTable.CurrentKey;
-
-  if CurrKey > '' then
-    Result := atDatabase.Relations.ByID(StrToInt(CurrKey))
-  else
-    Result := nil;
+    Result := atDatabase.Relations.ByID(iblcLineTable.CurrentKeyInt);
 end;
 
 function Tgdc_dlgDocumentType.GetRootRelation(isDocument: Boolean): TatRelation;
 var
   CE: TgdClassEntry;
   Part: TgdcDocumentClassPart;
-  DocID: Integer;
+  //DocID: Integer;
 begin
   Result := nil;
 
@@ -318,12 +311,12 @@ begin
   else
     Part := dcpLine;
 
-  if gdcObject.State = dsInsert then
+  {if gdcObject.State = dsInsert then
     DocID := (gdcObject as TgdcTree).Parent
   else
-    DocID := gdcObject.ID;
+    DocID := gdcObject.ID;}
 
-  CE := gdClassList.FindDocByTypeID(DocID, Part);
+  CE := gdClassList.FindDocByTypeID(gdcObject.ID, Part);
 
   if CE <> nil then
     CE := CE.GetRootSubType;

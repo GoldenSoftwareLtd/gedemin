@@ -4,6 +4,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
   PixelsPerInch = 96
   TextHeight = 13
   inherited pcMain: TPageControl
+    ActivePage = tsIncomeMovement
     OnChange = pcMainChange
     OnChanging = pcMainChanging
     inherited tsCommon: TTabSheet
@@ -20,8 +21,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Top = 238
       end
       inherited Label3: TLabel
-        Width = 145
-        Height = 26
+        Width = 124
         Caption = 'Наименование таблицы:'
       end
       object lblDocument: TLabel [6]
@@ -79,7 +79,6 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Color = clWindow
         Enabled = True
         TabOrder = 6
-        OnChange = iblcHeaderTableChange
       end
       inherited iblcLineTable: TgsIBLookupComboBox
         Top = 234
@@ -474,7 +473,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
@@ -532,7 +531,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
@@ -542,7 +541,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end

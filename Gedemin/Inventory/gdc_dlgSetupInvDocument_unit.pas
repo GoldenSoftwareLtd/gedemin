@@ -955,7 +955,6 @@ var
 begin
   ibsql := TIBSQL.Create(nil);
   ibsql.SQL.Text := 'SELECT name FROM gd_contact WHERE id = :id';
-  ibsql.Database := Document.Database;
   ibsql.Transaction := Document.Transaction;
 
  { Movement := TgdcInvMovementContactOption.Create;
