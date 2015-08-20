@@ -19280,6 +19280,7 @@ end;
 
 { TwrpGdWebClientControl }
 
+{$IFDEF WITH_INDY}
 function TwrpGdWebClientControl.GetWebClientControl: TgdWebClientControl;
 begin
   Result := gdWebClientControl;
@@ -19339,6 +19340,7 @@ begin
   else
     Result := 0;
 end;
+{$ENDIF}
 
 initialization
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
