@@ -1872,8 +1872,8 @@ begin
     FCurrentEditor := nil;
   end;
 
-  if EditStyle <> NewStyle then
-    EditStyle := NewStyle;
+  //if EditStyle <> NewStyle then
+  EditStyle := NewStyle;
 
   inherited UpdateContents;
 
