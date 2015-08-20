@@ -281,9 +281,21 @@ begin
 end;
 
 procedure TgdMessagedThread.WaitForIdle;
+var
+  Msg: TMsg;
+  H: THandle;
 begin
+  // How does TThread.WaitFor not cause a lockup?
+  // http://www.devsuperpage.com/search/Articles.aspx?hl=en&G=1&ArtID=951084
+
   if (not FDone) and (not Suspended) and (FCreatedEvent.WaitFor(0) = wrSignaled) then
-    FWaitingEvent.WaitFor(INFINITE);
+  begin
+    H := FWaitingEvent.Handle;
+    if GetCurrentThreadID = MainThreadID then
+      while MsgWaitForMultipleObjects(1, H, False, INFINITE,
+        QS_SENDMESSAGE) = WAIT_OBJECT_0 + 1 do PeekMessage(Msg, 0, 0, 0, PM_NOREMOVE)
+    else WaitForSingleObject(H, INFINITE);
+  end;
 end;
 
 end.
