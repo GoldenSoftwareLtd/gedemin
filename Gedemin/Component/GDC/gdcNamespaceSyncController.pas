@@ -398,6 +398,9 @@ begin
 
               Obj := CgdcBase(C).Create(nil);
               try
+                if not Obj.CheckSubType(MObject.ReadString('Properties\SubType')) then
+                  continue;
+
                 Obj.SubType := MObject.ReadString('Properties\SubType');
                 Obj.SubSet := 'ByID';
                 Obj.ID := gdcBaseManager.GetIDByRUIDString(MObject.ReadString('Properties\RUID'), Tr);
