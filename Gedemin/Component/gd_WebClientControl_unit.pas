@@ -173,7 +173,7 @@ uses
   gd_directories_const, JclFileUtils, Forms, gd_CmdLineParams_unit,
   gd_GlobalParams_unit, jclSysInfo, IdSMTP, IdMessage, IBSQL,
   gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME,
-  IBDatabase;
+  IBDatabase, gd_common_functions;
 
 function GetIPSec(AnIPSec: String): TIdSSLVersion;
 begin
@@ -673,7 +673,7 @@ begin
   end;
 
   if gdNotifierThread <> nil then
-    gdNotifierThread.Add('Отправка сообщения: ' + ASubject, 0, 2000);
+    gdNotifierThread.Add('Отправка сообщения: ' + ExpandMetaVariables(ASubject), 0, 2000);
 
   PostMsg(WM_GD_SEND_EMAIL);
 
@@ -834,7 +834,7 @@ begin
             Msg := TIdMessage.Create(nil);
             Attachments := nil;
             try
-              Msg.Subject := EncodeSubj(_Subject);
+              Msg.Subject := EncodeSubj(ExpandMetaVariables(_Subject));
               Msg.Recipients.EMailAddresses := _Recipients;
               Msg.From.Address := _SenderEmail;
               Msg.Body.Text := _BodyText;
@@ -890,7 +890,7 @@ begin
 
               IdSMTP.Send(Msg);
               if gdNotifierThread <> nil then
-                gdNotifierThread.Add('Сообщение отправлено: ' + _Subject, 0, 2000);
+                gdNotifierThread.Add('Сообщение отправлено: ' + ExpandMetaVariables(_Subject), 0, 2000);
 
               if GetEmailAndLock(_ID, ES) then
               try
@@ -1116,36 +1116,13 @@ function TgdWebClientControl.SendEMail(const ASMTPKey: Integer;
   const AReportKey: Integer; const AnExportType: String;
   const Sync: Boolean;
   const AWndHandle, AThreadID: THandle): Word;
-
-  function GetExportType(AnExportType: String): TExportType;
-  begin
-    if AnExportType = 'DOC' then
-      Result := etWord
-    else if AnExportType = 'XLS' then
-      Result := etExcel
-    else if AnExportType = 'PDF' then
-      Result := etPdf
-    else if AnExportType = 'XML' then
-      Result := etXML
-    else if AnExportType = 'TXT' then
-      Result := etText
-    else if AnExportType = 'HTM' then
-      Result := etHTML
-    else if AnExportType = 'ODT' then
-      Result := etODT
-    else if AnExportType = 'ODS' then
-      Result := etODS
-    else
-      raise Exception.Create('unknown export type.')
-  end;
-
 var
   B: Variant;
   LFileName: String;
 begin
   Assert(ClientReport <> nil);
 
-  ClientReport.ExportType := GetExportType(AnExportType);
+  ClientReport.ExportType := AnExportType;
   ClientReport.ShowProgress := False;
 
   LFileName := GetEmailTempFileName(AnExportType);

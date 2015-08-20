@@ -14,7 +14,7 @@ type
     FPrinterName: String;
     FShowProgress: Boolean;
     FFileName: String;
-    FExportType: TExportType;
+    FExportType: String;
 
     function GetReportInterface(const AnTemplateStructure: TTemplateStructure;
      AnReportResult: TReportResult; const AnParams: Variant;
@@ -32,7 +32,7 @@ type
      const AnBuildDate: TDateTime; const AnPreview: Boolean;
      const AnEventFunction: TrpCustomFunction; const AnReportName: String;
      const AnPrinterName: String; const AnShowProgress: Boolean; const AnBaseQueryList: Variant;
-     const AnFileName: String; const AnExportType: TExportType; const AnModalPreview: Boolean);
+     const AnFileName: String; const AnExportType: String; const AnModalPreview: Boolean);
   published
     property OnReportEvent: TReportEvent read GetReportEvent write SetReportEvent;
   end;
@@ -65,7 +65,7 @@ begin
 
   FOnReportEvent := nil;
   FFileName := '';
-  FExportType := etNone;
+  FExportType := '';
 end;
 
 destructor TReportFactory.Destroy;
@@ -124,7 +124,7 @@ procedure TReportFactory.CreateReport(const AnTemplateStructure: TTemplateStruct
  AnReportResult: TReportResult; const AnParams: Variant; const AnBuildDate: TDateTime;
  const AnPreview: Boolean; const AnEventFunction: TrpCustomFunction; const AnReportName: String;
  const AnPrinterName: String; const AnShowProgress: Boolean; const AnBaseQueryList: Variant;
- const AnFileName: String; const AnExportType: TExportType; const AnModalPreview: Boolean);
+ const AnFileName: String; const AnExportType: String; const AnModalPreview: Boolean);
 begin
   if Assigned(Prn) then
   begin
@@ -161,7 +161,7 @@ end;
 procedure TReportFactory.ShowForm(
   const FReportInterface: IgsReportBuilder);
 begin
-  if FReportInterface.ExportType <> etNone then
+  if FReportInterface.ExportType > '' then
     FReportInterface.ExportReport(FReportInterface.ExportType, FReportInterface.FileName)
   else if FReportInterface.Preview then
     FReportInterface.BuildReport

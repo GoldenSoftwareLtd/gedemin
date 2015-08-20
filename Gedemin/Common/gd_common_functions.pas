@@ -24,6 +24,7 @@ function TryObjectBinaryToText(var S: String): Boolean;
 function TryObjectTextToBinary(var S: String): Boolean;
 function GetFileLastWrite(const AFullName: String): TDateTime;
 function ParseFieldOrigin(const AnOrigin: String; out ARelationName, AFieldName: String): Boolean;
+function ExpandMetaVariables(const S: String): String;
 
 implementation
 
@@ -227,7 +228,7 @@ begin
     end;
   end else
     Result := False;
-end; 
+end;
 
 function GetFileLastWrite(const AFullName: String): TDateTime;
 var
@@ -288,6 +289,16 @@ begin
   end;
 
   Result := AFieldName > '';
+end;
+
+function ExpandMetaVariables(const S: String): String;
+begin
+  Result := StringReplace(S,      '[YYYY]', FormatDateTime('yyyy', Now), [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, '[MM]',   FormatDateTime('mm', Now), [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, '[DD]',   FormatDateTime('dd', Now), [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, '[HH]',   FormatDateTime('hh', Now), [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, '[NN]',   FormatDateTime('nn', Now), [rfReplaceAll, rfIgnoreCase]);
+  Result := StringReplace(Result, '[SS]',   FormatDateTime('ss', Now), [rfReplaceAll, rfIgnoreCase]);
 end;
 
 end.

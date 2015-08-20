@@ -899,12 +899,7 @@ begin
       IBService.Options := [];
       IBService.DatabaseName := FFileName;
 
-      FBackupFile := StringReplace(FBackupFile, '[YYYY]', FormatDateTime('yyyy', Now), [rfReplaceAll, rfIgnoreCase]); 
-      FBackupFile := StringReplace(FBackupFile, '[MM]', FormatDateTime('mm', Now), [rfReplaceAll, rfIgnoreCase]);
-      FBackupFile := StringReplace(FBackupFile, '[DD]', FormatDateTime('dd', Now), [rfReplaceAll, rfIgnoreCase]);
-      FBackupFile := StringReplace(FBackupFile, '[HH]', FormatDateTime('hh', Now), [rfReplaceAll, rfIgnoreCase]);
-      FBackupFile := StringReplace(FBackupFile, '[NN]', FormatDateTime('nn', Now), [rfReplaceAll, rfIgnoreCase]);
-      FBackupFile := StringReplace(FBackupFile, '[SS]', FormatDateTime('ss', Now), [rfReplaceAll, rfIgnoreCase]); 
+      FBackupFile := ExpandMetaVariables(FBackupFile);
 
       IBService.BackupFile.Add(FBackupFile);
 

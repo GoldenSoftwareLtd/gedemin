@@ -65,7 +65,7 @@ object dlgSendReport: TdlgSendReport
     ItemHeight = 13
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 8
+    TabOrder = 12
   end
   object edRecipients: TEdit
     Left = 74
@@ -94,7 +94,7 @@ object dlgSendReport: TdlgSendReport
     Width = 75
     Height = 21
     Action = actSend
-    TabOrder = 9
+    TabOrder = 13
   end
   object btnAdd: TButton
     Left = 303
@@ -121,6 +121,7 @@ object dlgSendReport: TdlgSendReport
     Height = 17
     Caption = 'PDF'
     TabOrder = 5
+    TabStop = True
   end
   object rbXLS: TRadioButton
     Left = 174
@@ -129,6 +130,7 @@ object dlgSendReport: TdlgSendReport
     Height = 17
     Caption = 'XLS'
     TabOrder = 6
+    TabStop = True
   end
   object rbXML: TRadioButton
     Left = 224
@@ -137,6 +139,7 @@ object dlgSendReport: TdlgSendReport
     Height = 17
     Caption = 'XML'
     TabOrder = 7
+    TabStop = True
   end
   object pnlState: TPanel
     Left = 73
@@ -145,7 +148,7 @@ object dlgSendReport: TdlgSendReport
     Height = 22
     BevelOuter = bvLowered
     Color = clInfoBk
-    TabOrder = 11
+    TabOrder = 15
   end
   object btnClose: TButton
     Left = 303
@@ -154,7 +157,7 @@ object dlgSendReport: TdlgSendReport
     Height = 21
     Caption = 'Закрыть'
     ModalResult = 1
-    TabOrder = 10
+    TabOrder = 14
   end
   object rbTXT: TRadioButton
     Left = 74
@@ -162,7 +165,8 @@ object dlgSendReport: TdlgSendReport
     Width = 41
     Height = 17
     Caption = 'TXT'
-    TabOrder = 12
+    TabOrder = 8
+    TabStop = True
   end
   object rbHTM: TRadioButton
     Left = 124
@@ -170,7 +174,8 @@ object dlgSendReport: TdlgSendReport
     Width = 41
     Height = 17
     Caption = 'HTM'
-    TabOrder = 13
+    TabOrder = 9
+    TabStop = True
   end
   object rbODT: TRadioButton
     Left = 174
@@ -178,7 +183,8 @@ object dlgSendReport: TdlgSendReport
     Width = 41
     Height = 17
     Caption = 'ODT'
-    TabOrder = 14
+    TabOrder = 10
+    TabStop = True
   end
   object rbODS: TRadioButton
     Left = 224
@@ -186,7 +192,8 @@ object dlgSendReport: TdlgSendReport
     Width = 41
     Height = 17
     Caption = 'ODS'
-    TabOrder = 15
+    TabOrder = 11
+    TabStop = True
   end
   object alBase: TActionList
     Left = 272

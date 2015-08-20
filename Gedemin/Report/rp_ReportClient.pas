@@ -58,7 +58,7 @@ type
     FPrinterName: String;
     FShowProgress: Boolean;
     FFileName: String;
-    FExportType: TExportType;
+    FExportType: String;
 
     function ClientQuery(const ReportData: TCustomReport; const ReportResult: TReportResult;
       var ParamAndResult: Variant; const AnIsRebuild: Boolean): Boolean;
@@ -104,7 +104,7 @@ type
     property PrinterName: String read FPrinterName write FPrinterName;
     property ShowProgress: Boolean read FShowProgress write FShowProgress;
     property FileName: String read FFileName write FFileName;
-    property ExportType: TExportType read FExportType write FExportType;
+    property ExportType: String read FExportType write FExportType;
   end;
 
 // Глобальная переменная слиентской части отчетов
@@ -148,7 +148,6 @@ begin
 
   inherited Create(Owner);
 
-//  FibsqlServerName := nil;
   FUniqueValue := 0;
   FReportFactory := nil;
   FProgressForm := nil;
@@ -156,15 +155,12 @@ begin
   FFirstRead := False;
   FShowProgress := True;
   FFileName := '';
-  FExportType := etNone;
+  FExportType := '';
 
   if not (csDesigning in ComponentState) then
   begin
     FProgressForm := TprgReportCount.Create(nil);
     FClientEventFactory := TClientEventFactory.Create;
-//    FibsqlServerName := TIBSQL.Create(Self);
-//    FibsqlServerName.SQL.Text := 'SELECT computername FROM rp_reportserver ' +
-//     'WHERE id = :id';
 
     {$IFNDEF GEDEMIN}
     if not Assigned(FReportScriptControl) then
@@ -458,7 +454,7 @@ var
   OldTime: DWORD;
 begin
   FFileName := '';
-  FExportType := etNone;
+  FExportType := '';
 
   if Assigned(Debugger) and (Debugger.IsPaused) then
   begin

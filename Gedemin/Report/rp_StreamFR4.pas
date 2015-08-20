@@ -96,7 +96,7 @@ type
     function IsProcessed: Boolean; override;
     procedure BuildReport; override;
     procedure PrintReport; override;
-    procedure ExportReport(const AnExportType: TExportType; const AnFileName: String); override;
+    procedure ExportReport(const AnExportType: String; const AnFileName: String); override;
     procedure Set_ReportResult(const AnReportResult: TReportResult); override;
     function Get_ReportResult: TReportResult; override;
     procedure Set_ReportTemplate(const AnReportTemplate: TReportTemplate); override;
@@ -259,38 +259,29 @@ begin
   FErMsg := nil;
 end;
 
-procedure TFR4ReportInterface.ExportReport(const AnExportType: TExportType;
+procedure TFR4ReportInterface.ExportReport(const AnExportType: String;
   const AnFileName: String);
 var
   FExportFilter: TfrxCustomExportFilter;
 begin
-  case AnExportType of
-    etWord:
-      FExportFilter := Ffr4Report.FrxRTFExport;
-
-    etExcel:
-      FExportFilter := Ffr4Report.FrxXLSExport;
-
-    etXML:
-      FExportFilter := Ffr4Report.FrxXMLExport;
-
-    etPdf:
-      FExportFilter := Ffr4Report.FrxPDFExport;
-
-    etText:
-      FExportFilter := Ffr4Report.FrxTXTExport;
-
-    etHTML:
-      FExportFilter := Ffr4Report.FrxHTMLExport;
-
-    etODT:
-      FExportFilter := Ffr4Report.FrxODTEXPORT;
-
-    etODS:
-      FExportFilter := Ffr4Report.FrxODSEXPORT;
+  if AnsiSameText(AnExportType, 'DOC') or AnsiSameText(AnExportType, 'RTF') or AnsiSameText(AnExportType, 'WORD') then
+    FExportFilter := Ffr4Report.FrxRTFExport
+  else if AnsiSameText(AnExportType, 'XLS') or AnsiSameText(AnExportType, 'EXCEL') then
+    FExportFilter := Ffr4Report.FrxXLSExport
+  else if AnsiSameText(AnExportType, 'XML') then
+    FExportFilter := Ffr4Report.FrxXMLExport
+  else if AnsiSameText(AnExportType, 'PDF') then
+    FExportFilter := Ffr4Report.FrxPDFExport
+  else if AnsiSameText(AnExportType, 'TXT') or AnsiSameText(AnExportType, 'TEXT') then
+    FExportFilter := Ffr4Report.FrxTXTExport
+  else if AnsiSameText(AnExportType, 'HTM') or AnsiSameText(AnExportType, 'HTML') then
+    FExportFilter := Ffr4Report.FrxHTMLExport
+  else if AnsiSameText(AnExportType, 'ODT') then
+    FExportFilter := Ffr4Report.FrxODTEXPORT
+  else if AnsiSameText(AnExportType, 'ODS') then
+    FExportFilter := Ffr4Report.FrxODSEXPORT
   else
     FExportFilter := nil;
-  end;
 
   if Assigned(FExportFilter) then
   begin
@@ -304,7 +295,7 @@ begin
       try
         Ffr4Report.Export(FExportFilter);
       except
-        raise; 
+        raise;
       end;
     finally
       FExportFilter.ShowDialog := True;

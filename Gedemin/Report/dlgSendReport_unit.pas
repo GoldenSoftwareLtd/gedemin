@@ -110,19 +110,6 @@ begin
       FXLSExport := TfrxCustomExportFilter(frxExportFilters[i].Filter)
     else if TfrxCustomExportFilter(frxExportFilters[i].Filter).ClassName = 'TfrxXMLExport' then
       FXMLExport := TfrxCustomExportFilter(frxExportFilters[i].Filter)
-
-
-    //etText:
-    //  FExportFilter := Ffr4Report.FrxTXTExport;
-
-    //etHTML:
-    //  FExportFilter := Ffr4Report.FrxHTMLExport;
-
-    //etODT:
-    //  FExportFilter := Ffr4Report.FrxODTEXPORT;
-
-    //etODS:
-    //  FExportFilter := Ffr4Report.FrxODSEXPORT;
     else if TfrxCustomExportFilter(frxExportFilters[i].Filter).ClassName = 'TfrxTXTExport' then
       FTXTExport := TfrxCustomExportFilter(frxExportFilters[i].Filter)
     else if TfrxCustomExportFilter(frxExportFilters[i].Filter).ClassName = 'TfrxHTMLExport' then
@@ -191,8 +178,7 @@ begin
   begin
     CurrExport := FODSExport;
     FExt := 'ODS';
-  end
-  else
+  end else
     CurrExport := nil;
 
   if CurrExport = nil then

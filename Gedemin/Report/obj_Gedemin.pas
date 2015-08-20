@@ -524,54 +524,6 @@ begin
   Result := FName;
 end;
 
-{ TgsViewWindow }
-(*
-constructor TgsViewWindow.Create(AnForm: TForm; AnDatabase: TIBDatabase;
- AnTransaction: TIBTransaction);
-begin
-  Assert(AnForm <> nil, 'Can''t create empty window');
-
-  FForm := AnForm;
-
-  inherited Create;
-
-  FDatabase := AnDatabase;
-  FTransaction := AnTransaction;
-end;
-
-function TgsViewWindow.GetWindowInterface: IgsViewWindow;
-begin
-  Result := FForm as TCreateableForm;
-end;
-
-function TgsViewWindow.Get_SelectedKey: OleVariant;
-begin
-  Result := GetWindowInterface.SelectedKey;
-end;
-
-function TgsViewWindow.Get_WindowQuery: IgsQueryList;
-var
-  FLocalQuery: TgsQueryList;
-  I: Integer;
-begin
-  Result := GetWindowInterface.WindowQuery;
-
-  if Result <> nil then
-    Exit;
-
-  FLocalQuery := TgsQueryList.Create(FDatabase, FTransaction, True);
-  try
-    for I := 0 to FForm.ComponentCount - 1 do
-    begin
-      if (FForm.Components[I] is TIBCustomDataSet) and not (FForm.Components[I] is TIBTable) then
-        FLocalQuery.AddRealQuery(TgsRealDataSet.Create((FForm.Components[I] as TIBCustomDataSet)));
-    end;
-    Result := FLocalQuery;
-  except
-    FLocalQuery.Free;
-  end;
-end;
-  *)
 { TReportSystem }
 
 type
@@ -582,7 +534,7 @@ begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
   ClientReport.FileName := '';
-  ClientReport.ExportType := etNone;
+  ClientReport.ExportType := '';
   ClientReport.BuildReport(Unassigned, ReportKey);
 end;
 
@@ -592,7 +544,7 @@ begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
   ClientReport.FileName := '';
-  ClientReport.ExportType := etNone;
+  ClientReport.ExportType := '';
   ClientReport.BuildReport(OwnerForm, ReportKey);
 end;
 
@@ -602,7 +554,7 @@ begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
   ClientReport.FileName := '';
-  ClientReport.ExportType := etNone;
+  ClientReport.ExportType := '';
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
 end;
 
@@ -613,7 +565,7 @@ begin
   ClientReport.PrinterName := PrinterName;
   ClientReport.ShowProgress := ShowProgress;
   ClientReport.FileName := '';
-  ClientReport.ExportType := etNone;
+  ClientReport.ExportType := '';
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
 end;
 
@@ -624,29 +576,13 @@ end;
 
 procedure TReportSystem.ExportReportWithParam(ReportKey: Integer;
   Params: OleVariant; const FileName, ExportType: WideString);
-var
-  FExportType: TExportType;
-  ET: String;
 begin
   if FileName = '' then
     raise Exception.Create('Empty file name');
   CheckClientReport;
   ClientReport.ShowProgress := False;
   ClientReport.FileName := FileName;
-
-  ET := AnsiUpperCase(ExportType);
-  if Pos('WORD', ET) > 0 then
-    FExportType := etWord
-  else if Pos('EXCEL', ET) > 0 then
-    FExportType := etExcel
-  else if Pos('PDF', ET) > 0 then
-    FExportType := etPdf
-  else if Pos('XML', ET) > 0 then
-    FExportType := etXML
-  else
-    FExportType := etNone;
-
-  ClientReport.ExportType := FExportType;
+  ClientReport.ExportType := ExportType;
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
 end;
 
@@ -670,7 +606,7 @@ begin
   CheckClientReport;
   ClientReport.ShowProgress := True;
   ClientReport.FileName := '';
-  ClientReport.ExportType := etNone;
+  ClientReport.ExportType := '';
   ClientReport.BuildReport(Unassigned, ReportKey, True);
 end;
 
@@ -680,7 +616,7 @@ begin
   CheckClientReport;
   ClientReport.ShowProgress := True;
   ClientReport.FileName := '';
-  ClientReport.ExportType := etNone;  
+  ClientReport.ExportType := '';
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
 end;
 

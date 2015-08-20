@@ -17106,7 +17106,7 @@ COMMIT;CREATE TABLE gd_autotask
    emailgroupkey    dforeignkey,
    emailrecipients  dtext1024,
    emailsmtpkey     dforeignkey,
-   emailexporttype  VARCHAR(3),
+   emailexporttype  VARCHAR(4),
    cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
    backupfile       dtext255,         /* если задано -- имя файла архива */
    userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/

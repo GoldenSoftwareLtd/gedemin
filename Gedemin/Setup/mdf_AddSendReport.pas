@@ -359,6 +359,11 @@ begin
         FIBSQL.ExecQuery;
         FIBSQL.Close;
 
+        DropConstraint2('gd_autotask', 'gd_chk_autotask_exporttype', FTransaction);
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE gd_autotask ADD CONSTRAINT gd_chk_autotask_exporttype CHECK(emailexporttype IN (''DOC'', ''RTF'', ''XLS'', ''PDF'', ''XML'', ''TXT'', ''HTM'', ''ODS'', ''ODT'')) ';
+        FIBSQL.ExecQuery;
+
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (222, ''0000.0001.0000.0253'', ''22.07.2015'', ''Modified GD_AUTOTASK and GD_SMTP tables.'') '#13#10 +
@@ -383,6 +388,13 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (225, ''0000.0001.0000.0256'', ''17.08.2015'', ''Adjust some db fields.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (226, ''0000.0001.0000.0257'', ''20.08.2015'', ''Check constraint expanded.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

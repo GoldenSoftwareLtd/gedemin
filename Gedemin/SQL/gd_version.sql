@@ -707,6 +707,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (225, '0000.0001.0000.0256', '17.08.2015', 'Adjust some db fields.');  
 
+INSERT INTO fin_versioninfo
+  VALUES (226, '0000.0001.0000.0257', '20.08.2015', 'Check constraint expanded.');  
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

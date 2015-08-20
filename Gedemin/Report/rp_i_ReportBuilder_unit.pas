@@ -15,10 +15,6 @@ type
    const AnEventFunction: TrpCustomFunction; var AnResult: Boolean) of object;
 
 type
-  TExportType = (etNone, etWord, etExcel, etPdf, etXML, etText, etHTML, etODT, etODS);
-
-type
-
 // *********************************************************************//
 // Interface: IgsReportBuilder
 // Flags:     (0)
@@ -28,7 +24,7 @@ type
     ['{B5CC4034-1ED7-11D5-AECE-006052067F0D}']
     procedure BuildReport;
     procedure PrintReport;
-    procedure ExportReport(const AnExportType: TExportType; const AnFileName: String);
+    procedure ExportReport(const AnExportType: String; const AnFileName: String);
     function IsProcessed: Boolean;
     procedure Set_ReportResult(const AnReportResult: TReportResult);
     function Get_ReportResult: TReportResult;
@@ -51,8 +47,8 @@ type
     procedure Set_ShowProgress(Value: Boolean);
     function Get_FileName: String;
     procedure Set_FileName(Value: String);
-    function Get_ExportType: TExportType;
-    procedure Set_ExportType(Value: TExportType);
+    function Get_ExportType: String;
+    procedure Set_ExportType(Value: String);
     function Get_ModalPreview: Boolean;
     procedure Set_ModalPreview(const AnValue: Boolean);
 
@@ -68,7 +64,7 @@ type
     property PrinterName: String read Get_PrinterName write Set_PrinterName;
     property ShowProgress: Boolean read Get_ShowProgress write Set_ShowProgress;
     property FileName: String read Get_FileName write Set_FileName;
-    property ExportType: TExportType read Get_ExportType write Set_ExportType;
+    property ExportType: String read Get_ExportType write Set_ExportType;
   end;
 
   TCustomReportBuilder = class(TInterfacedObject, IgsReportBuilder)
@@ -81,7 +77,7 @@ type
     FPrinterName: String;
     FShowProgress: Boolean;
     FFileName: String;
-    FExportType: TExportType;
+    FExportType: String;
 
     procedure DoClose(Sender: TObject; var Action: TCloseAction);
     procedure DoDestroy(Sender: TObject);
@@ -96,7 +92,7 @@ type
 
     procedure BuildReport; virtual;
     procedure PrintReport; virtual; abstract;
-    procedure ExportReport(const AnExportType: TExportType; const AnFileName: String); virtual;
+    procedure ExportReport(const AnExportType: String; const AnFileName: String); virtual;
     function IsProcessed: Boolean; virtual;
     procedure Set_ReportResult(const AnReportResult: TReportResult);  virtual; abstract;
     function Get_ReportResult: TReportResult;  virtual; abstract;
@@ -119,8 +115,8 @@ type
     procedure Set_ShowProgress(Value: Boolean);
     function Get_FileName: String;
     procedure Set_FileName(Value: String);
-    function Get_ExportType: TExportType;
-    procedure Set_ExportType(Value: TExportType);
+    function Get_ExportType: String;
+    procedure Set_ExportType(Value: String);
     function Get_ModalPreview: Boolean; virtual;
     procedure Set_ModalPreview(const AnValue: Boolean); virtual;
   public
@@ -137,7 +133,7 @@ type
     property PrinterName: string read Get_PrinterName write Set_PrinterName;
     property ShowProgress: Boolean read Get_ShowProgress write Set_ShowProgress;
     property FileName: String read Get_FileName write Set_FileName;
-    property ExportType: TExportType read Get_ExportType write Set_ExportType;
+    property ExportType: String read Get_ExportType write Set_ExportType;
   end;
 
 implementation
@@ -169,7 +165,7 @@ begin
   FPreview := True;
   FReportEvent := nil;
   FFileName := '';
-  FExportType := etNone;
+  FExportType := '';
   FEventFunction := TrpCustomFunction.Create;
   InterlockedIncrement(FRefCount);
 end;
@@ -227,7 +223,7 @@ begin
 end;
 
 procedure TCustomReportBuilder.ExportReport(
-  const AnExportType: TExportType; const AnFileName: String);
+  const AnExportType: String; const AnFileName: String);
 begin
   Beep;
 end;
@@ -252,7 +248,7 @@ begin
   Result := FEventFunction;
 end;
 
-function TCustomReportBuilder.Get_ExportType: TExportType;
+function TCustomReportBuilder.Get_ExportType: String;
 begin
   Result := FExportType;
 end;
@@ -311,7 +307,7 @@ begin
   FEventFunction.Assign(Value);
 end;
 
-procedure TCustomReportBuilder.Set_ExportType(Value: TExportType);
+procedure TCustomReportBuilder.Set_ExportType(Value: String);
 begin
   FExportType := Value;
 end;

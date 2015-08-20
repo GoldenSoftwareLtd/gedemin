@@ -1,6 +1,6 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 395
-  Top = 88
+  Left = 398
+  Top = 91
   Width = 969
   Height = 85
   HelpContext = 76
@@ -26,7 +26,7 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockMain: TTBDock
     Left = 0
     Top = 0
-    Width = 961
+    Width = 953
     Height = 26
     LimitToOneRow = True
     object tbMainMenu: TTBToolbar
@@ -381,8 +381,8 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object TBDockForms: TTBDock
     Left = 0
-    Top = 27
-    Width = 961
+    Top = 26
+    Width = 953
     Height = 27
     BoundLines = [blTop]
     Color = clWindow

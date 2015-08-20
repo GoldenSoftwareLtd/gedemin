@@ -62,7 +62,7 @@ CREATE TABLE gd_autotask
    CONSTRAINT gd_chk_autotask_cmd CHECK(cmdline > ''),
    CONSTRAINT gd_chk_autotask_backupfile CHECK(backupfile > ''),
    CONSTRAINT gd_chk_autotask_pulse CHECK(pulse >= 0),
-   CONSTRAINT gd_chk_autotask_exporttype CHECK(emailexporttype IN ('DOC', 'XLS', 'PDF', 'XML'))
+   CONSTRAINT gd_chk_autotask_exporttype CHECK(emailexporttype IN ('DOC', 'RTF', 'XLS', 'PDF', 'XML', 'TXT', 'HTM', 'ODS', 'ODT'))
  );
  
 SET TERM ^ ;
