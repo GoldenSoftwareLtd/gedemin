@@ -242,7 +242,7 @@ begin
   if (not Application.Terminated) and (gdWebServerControl <> nil) then
     gdWebServerControl.DeactivateServer;
 
-  if gdWebClientControl <> nil then
+  if (gdWebClientControl <> nil) and gdWebClientControl.Connected then
     gdWebClientControl.WaitForIdle;
   {$ENDIF}
 
