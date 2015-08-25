@@ -149,6 +149,51 @@ END
 
 SET TERM ; ^
 
+CREATE TABLE gd_documenttype_option (
+  id                    dintkey,
+  dtkey                 dintkey,
+  option_name           dname,
+  bool_value            dboolean,
+  str_value             dtext255,
+  relationkey           dforeignkey,
+  relationfieldkey      dforeignkey,
+  contactkey            dforeignkey,
+  disabled              ddisabled,
+  
+  CONSTRAINT gd_pk_dt_option PRIMARY KEY (id),
+  CONSTRAINT gd_fk_dt_option_dtkey FOREIGN KEY (dtkey)
+    REFERENCES gd_documenttype (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT gd_fk_dt_option_relkey FOREIGN KEY (relationkey)
+    REFERENCES at_relations (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT gd_fk_dt_option_relfkey FOREIGN KEY (relationfieldkey)
+    REFERENCES at_relation_fields (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT gd_fk_dt_option_contactkey FOREIGN KEY (contactkey)
+    REFERENCES gd_contact (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT gd_uq_dt_option UNIQUE (dtkey, option_name)
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_bi_documenttype_option FOR gd_documenttype_option
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^    
+
+SET TERM ; ^
+
 /* Нумерация документов */
 
 CREATE TABLE gd_lastnumber
