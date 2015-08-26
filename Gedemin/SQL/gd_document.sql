@@ -158,6 +158,7 @@ CREATE TABLE gd_documenttype_option (
   relationkey           dforeignkey,
   relationfieldkey      dforeignkey,
   contactkey            dforeignkey,
+  invcardkey            dforeignkey,
   disabled              ddisabled,
   
   CONSTRAINT gd_pk_dt_option PRIMARY KEY (id),
@@ -175,6 +176,10 @@ CREATE TABLE gd_documenttype_option (
     ON UPDATE CASCADE,
   CONSTRAINT gd_fk_dt_option_contactkey FOREIGN KEY (contactkey)
     REFERENCES gd_contact (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT gd_fk_dt_option_invcardkey FOREIGN KEY (invcardkey)
+    REFERENCES inv_card (id)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT gd_uq_dt_option UNIQUE (dtkey, option_name)
