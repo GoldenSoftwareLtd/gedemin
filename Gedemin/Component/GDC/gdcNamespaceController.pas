@@ -428,7 +428,10 @@ var
   FSessionID: Integer;
 begin
   Assert(AnObject <> nil);
-  Assert(not AnObject.EOF);
+  { Состояние EOF объект получает не только при пустой таблице, но и в случае
+    попытки перехода на следующую запись с последней записи в таблице
+  Assert(not AnObject.EOF);                                           }
+  Assert(AnObject.RecordCount > 0);
   Assert(FibdsLink.State = dsInactive);
 
   FgdcObject := AnObject;
