@@ -146,7 +146,6 @@ type
     FIsOldEventSet: Boolean;
     FObject: TEventObject;
     FEventID: Integer;
-    FIsVirtual: Boolean;
     function GetDelphiParamString(const LocParamCount: Integer;
       const LocParams: array of Char; const AnLang: TFuncParamLang;
       out AnResultParam: String): String;
@@ -175,7 +174,6 @@ type
     property EventData: PTypeData read FEventData write FEventData;
     property EventObject: TEventObject read FObject write FObject;
     property EventID: Integer read FEventID write SetEventID;
-    property IsVirtual: Boolean read FIsVirtual write FIsVirtual;
   end;
 
   // Класс для хранения списка присвоенных ивентов
@@ -3311,7 +3309,7 @@ begin
     for I := 0 to J - 1 do
     begin
       E := AnEventObject.EventList.Find(TempPropList[I]^.Name);
-      if (E <> nil) and ((E.FunctionKey > 0) or E.IsVirtual) then
+      if (E <> nil) then
       begin
         if E.IsOldEventSet then
         begin
@@ -3320,9 +3318,6 @@ begin
            AnEventObject.EventList.ItemByName[TempPropList[I]^.Name].OldEvent);
         end;   
         AnEventObject.EventList.ItemByName[TempPropList[I]^.Name].Reset;
-
-        if E.IsVirtual then
-          AnEventObject.EventList.DeleteForName(TempPropList[I]^.Name);
       end;
     end;  
 
@@ -3429,7 +3424,7 @@ var
 begin
   if UnEventMacro then
     Exit;
-
+  
   if Assigned(AnEventObject) then
   begin
     //поиск родителей по SubType
@@ -3443,7 +3438,7 @@ begin
 
       SetFlag := (EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable);
 
-      if not SetFlag and (EI = nil)then
+      if not SetFlag and ((EI = nil) or ((EI <> nil) and (EI.FunctionKey = 0)))then
       begin
         if AnEventObject.ParentObjectsBySubType.Count > 0 then
         begin
@@ -3457,11 +3452,7 @@ begin
       end;
 
       if SetFlag and (EI = nil) then
-      begin
         AnEventObject.EventList.Add(TempPropList[I]^.Name, 0);
-        EI := AnEventObject.EventList.Last;
-        EI.IsVirtual := True;
-      end;
 
       if SetFlag then
       begin
@@ -5714,7 +5705,6 @@ begin
   FOldEvent := ASource.OldEvent;
   FEventId := ASource.EventID;
   FDisable := ASource.FDisable;
-  FIsVirtual := ASource.IsVirtual;
 end;
 
 function TEventItem.AutoFunctionName: String;
