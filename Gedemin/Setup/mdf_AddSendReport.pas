@@ -364,6 +364,9 @@ begin
           'ALTER TABLE gd_autotask ADD CONSTRAINT gd_chk_autotask_exporttype CHECK(emailexporttype IN (''DOC'', ''RTF'', ''XLS'', ''PDF'', ''XML'', ''TXT'', ''HTM'', ''ODS'', ''ODT'')) ';
         FIBSQL.ExecQuery;
 
+        FIBSQL.SQL.Text := 'UPDATE gd_documenttype SET classname = NULL WHERE id=807005';
+        FIBSQL.ExecQuery;
+
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (222, ''0000.0001.0000.0253'', ''22.07.2015'', ''Modified GD_AUTOTASK and GD_SMTP tables.'') '#13#10 +

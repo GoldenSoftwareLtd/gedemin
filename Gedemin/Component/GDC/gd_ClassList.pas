@@ -319,7 +319,7 @@ type
     function FindChild(const AClassName: AnsiString): TgdClassEntry;
     function InheritsFromCE(ACE: TgdClassEntry): Boolean;
     function GetRootSubType: TgdClassEntry;
-    procedure CheckSubType(const ASubType: TgdcSubType); virtual;
+    class function CheckSubType(const ASubType: TgdcSubType): Boolean; virtual;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
@@ -395,7 +395,7 @@ type
 
   TgdStorageEntry = class(TgdBaseEntry)
   public
-    procedure CheckSubType(const ASubType: TgdcSubType); override;
+    class function CheckSubType(const ASubType: TgdcSubType): Boolean; override;
   end;
 
   TgdFormEntry = class(TgdClassEntry)
@@ -539,7 +539,7 @@ implementation
 
 uses
   SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages,
-  gdcClasses, gd_directories_const, jclStrings
+  gdcClasses, gd_directories_const, jclStrings, Windows
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -1283,7 +1283,8 @@ begin
   FSubType := ASubType;
   FChildren := nil;
   FClassMethods := TgdClassMethods.Create(TComponentClass(FClass));
-  CheckSubType(FSubType);
+  if not CheckSubType(FSubType) then
+    raise Exception.Create('Invalid subtype string.');
 end;
 
 destructor TgdClassEntry.Destroy;
@@ -1515,9 +1516,10 @@ begin
     Result := '';    
 end;
 
-procedure TgdClassEntry.CheckSubType(const ASubType: TgdcSubType);
+class function TgdClassEntry.CheckSubType(const ASubType: TgdcSubType): Boolean;
 begin
   // any subtype is valid on this level
+  Result := True;  
 end;
 
 {TgdClassList}
@@ -2167,8 +2169,19 @@ begin
               for J := 0 to SL.Count - 1 do
               begin
                 if CEStorage.FindChild(SL.Values[SL.Names[J]]) = nil then
-                  _Create(CEStorage, TgdStorageEntry, CEStorage.TheClass,
-                    SL.Values[SL.Names[J]], SL.Names[J]);
+                begin
+                  if not TgdStorageEntry.CheckSubType(SL.Values[SL.Names[J]]) then
+                  begin
+                    MessageBox(0,
+                      PChar('Строка подтипа ' + SL.Values[SL.Names[J]] + ', заданная в Хранилище для класса ' +
+                        CEStorage.TheClass.ClassName + ' имеет недопустимый формат.'#13#10 +
+                      'Подтип не будет загружен.'),
+                      'Внимание',
+                      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+                  end else
+                    _Create(CEStorage, TgdStorageEntry, CEStorage.TheClass,
+                      SL.Values[SL.Names[J]], SL.Names[J]);
+                end;
               end;
             end;
           end;
@@ -2573,14 +2586,15 @@ end;
 
 { TgdStorageEntry }
 
-procedure TgdStorageEntry.CheckSubType(const ASubType: TgdcSubType);
+class function TgdStorageEntry.CheckSubType(const ASubType: TgdcSubType): Boolean;
 begin
-  if (ASubType = '') or (not CharIsAlpha(ASubType[1]))
+  if (ASubType = '') {or (not CharIsAlpha(ASubType[1]))}
     or (not StrIsAlphaNumUnderscore(ASubType))
     or (StrIPos('USR_', ASubType) > 0) then
   begin
-    raise Exception.Create('Invalid subtype.');
-  end;
+    Result := False;
+  end else
+    Result := inherited CheckSubType(ASubType);
 end;
 
 initialization
