@@ -28,6 +28,37 @@ interface
 
 uses Classes;
 
+const
+  //
+  // Версия документа для потока
+
+  // Незаконченный документ (не до конца настроенный документ)
+  gdcInv_Document_Undone = 'UNDONE';
+  // Версия 1.6
+  gdcInvDocument_Version1_6 = 'IDV1.6';
+  // Версия 1.7
+  gdcInvDocument_Version1_7 = 'IDV1.7';
+  // Версия 1.8
+  gdcInvDocument_Version1_8 = 'IDV1.8';
+  // Версия 1.9
+  gdcInvDocument_Version1_9 = 'IDV1.9';
+  // Версия 2.0
+  gdcInvDocument_Version2_0 = 'IDV2.0';
+  // Версия 2.1
+  gdcInvDocument_Version2_1 = 'IDV2.1';
+  // Версия 2.2
+  gdcInvDocument_Version2_2 = 'IDV2.2';
+  // Версия 2.3
+  gdcInvDocument_Version2_3 = 'IDV2.3';
+  // Версия 2.4
+  gdcInvDocument_Version2_4 = 'IDV2.4';
+  // Версия 2.5
+  gdcInvDocument_Version2_5 = 'IDV2.5';
+  // Версия 2.6
+  gdcInvDocument_Version2_6 = 'IDV2.6';
+  // Версия 3.0 Логика перенесена на триггера.
+  gdcInvDocument_Version3_0 = 'IDV3.0';
+
 type
   // Массив настроек признаков
   TgdcInvFeatures = array of String;

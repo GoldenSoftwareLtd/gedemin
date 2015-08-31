@@ -34,7 +34,7 @@ interface
 uses
   Contnrs,        Classes,   TypInfo,     Forms,            gd_KeyAssoc,
   gdcBase,        gdc_createable_form,    gdcBaseInterface, at_classes,
-  gdcClasses_Interface,
+  gdcClasses_Interface, gdcInvConsts_unit,
   {$IFDEF VER130}
   gsStringHashList
   {$ELSE}
@@ -377,6 +377,7 @@ type
     procedure Assign(CE: TgdClassEntry); override;
     function FindParentByDocumentTypeKey(const ADocumentTypeKey: Integer;
       const APart: TgdcDocumentClassPart): TgdDocumentEntry;
+    procedure ParseOptions; virtual;
 
     property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
     property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
@@ -391,6 +392,33 @@ type
     property TypeID: Integer read FTypeID write FTypeID;
     property ReportGroupKey: Integer read FReportGroupKey write FReportGroupKey;
     property BranchKey: Integer read FBranchKey write FBranchKey;
+  end;
+
+  TgdInvDocumentEntry = class(TgdDocumentEntry)
+  private
+    FDebitMovement: TgdcInvMovementContactOption;
+    FCreditMovement: TgdcInvMovementContactOption;
+    FSourceFeatures, FDestFeatures, FMinusFeatures: TStringList;
+    FDirection: TgdcInvMovementDirection;
+    FSources: TgdcInvReferenceSources;
+    FControlRemains: Boolean;
+    FLiveTimeRemains: Boolean;
+    FMinusRemains: Boolean;
+    FDelayedDocument: Boolean;
+    FIsChangeCardValue: Boolean;
+    FIsAppendCardValue: Boolean;
+    FIsUseCompanyKey: Boolean;
+    FSaveRestWindowOption: Boolean;
+    FEndMonthRemains: Boolean;
+    FWithoutSearchRemains: Boolean;
+
+  public
+    constructor Create(AParent: TgdClassEntry; const AClass: TClass;
+      const ASubType: TgdcSubType = '';
+      const ACaption: String = ''); overload; override;
+    destructor Destroy; override;
+
+    procedure ParseOptions; override;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -1940,20 +1968,21 @@ procedure TgdClassList.LoadUserDefinedClasses;
       HeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
       LineRelKey := q.FieldByName('linerelkey').AsInteger;
       BranchKey := q.FieldByName('branchkey').AsInteger;
+      ParseOptions;
     end;
   end;
 
-  function LoadDocument(Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
+  function LoadDocument(ADocClass: CgdClassEntry; Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
   var
     PrevRB: Integer;
   begin
-    Result := _Create(Prnt, TgdDocumentEntry, Prnt.TheClass,
+    Result := _Create(Prnt, ADocClass, Prnt.TheClass,
       q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
     LoadDE(TgdDocumentEntry(Result), q);
     PrevRB := q.FieldByName('rb').AsInteger;
     q.Next;
     while (not q.EOF) and (q.FieldByName('lb').AsInteger < PrevRB) do
-      LoadDocument(Result, q);
+      LoadDocument(ADocClass, Result, q);
   end;
 
   procedure CopySubTree(Src, Dst: TgdClassEntry);
@@ -2101,11 +2130,11 @@ begin
     while not q.EOF do
     begin
       if CompareText(q.FieldbyName('classname').AsString, 'TgdcUserDocumentType') = 0 then
-        LoadDocument(CEUserDocument, q)
+        LoadDocument(TgdDocumentEntry, CEUserDocument, q)
       else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvDocumentType') = 0 then
-        LoadDocument(CEInvDocument, q)
+        LoadDocument(TgdInvDocumentEntry, CEInvDocument, q)
       else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvPriceListType') = 0 then
-        LoadDocument(CEInvPriceList, q)
+        LoadDocument(TgdDocumentEntry, CEInvPriceList, q)
       else begin
         DE := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpHeader);
         if DE <> nil then
@@ -2548,6 +2577,11 @@ begin
     Result := FLineRelName;
 end;
 
+procedure TgdDocumentEntry.ParseOptions;
+begin
+  //
+end;
+
 procedure TgdDocumentEntry.SetHeaderRelKey(const Value: Integer);
 var
   R: TatRelation;
@@ -2595,6 +2629,241 @@ begin
     Result := False;
   end else
     Result := inherited CheckSubType(ASubType);
+end;
+
+{ TgdInvDocumentEntry }
+
+constructor TgdInvDocumentEntry.Create(AParent: TgdClassEntry;
+  const AClass: TClass; const ASubType: TgdcSubType;
+  const ACaption: String);
+begin
+  inherited;
+  FDebitMovement := TgdcInvMovementContactOption.Create;
+  FCreditMovement := TgdcInvMovementContactOption.Create;
+  FSourceFeatures := TStringList.Create;
+  FDestFeatures := TStringList.Create;
+  FMinusFeatures := TStringList.Create;
+end;
+
+destructor TgdInvDocumentEntry.Destroy;
+begin
+  FDebitMovement.Free;
+  FCreditMovement.Free;
+  FSourceFeatures.Free;
+  FDestFeatures.Free;
+  FMinusFeatures.Free;
+  inherited;
+end;
+
+procedure TgdInvDocumentEntry.ParseOptions;
+var
+  Version: String;
+  SS: TStringStream;
+  F: TatRelationField;
+begin
+  SS := TStringStream.Create(Options);
+  with TReader.Create(SS, 1024) do
+  try
+    Version := ReadString;
+
+    // header rel name
+    ReadString;
+    // line rel name
+    ReadString;
+
+    if (Version <> gdcInvDocument_Version2_0) and (Version <> gdcInvDocument_Version2_1) and
+       (Version <> gdcInvDocument_Version2_2) and (Version <> gdcInvDocument_Version2_3)
+    then
+      // Тип документа считываем
+      ReadInteger;
+
+    // Ключ записи из списка отчетов
+    if (Version = gdcInvDocument_Version2_2) or
+      (Version = gdcInvDocument_Version2_3) or
+      (Version = gdcInvDocument_Version2_1) or
+      (Version = gdcInvDocument_Version2_0) or
+      (Version = gdcInvDocument_Version1_9) then
+    begin
+      ReadInteger;
+    end;
+
+    // Приход
+    SetLength(FDebitMovement.Predefined, 0);
+    SetLength(FDebitMovement.SubPredefined, 0);
+
+    FDebitMovement.RelationName := ReadString;
+    FDebitMovement.SourceFieldName := ReadString;
+    FDebitMovement.SubRelationName := ReadString;
+    FDebitMovement.SubSourceFieldName := ReadString;
+
+    Read(FDebitMovement.ContactType, SizeOf(TgdcInvMovementContactType));
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FDebitMovement.Predefined,
+        Length(FDebitMovement.Predefined) + 1);
+      FDebitMovement.Predefined[Length(FDebitMovement.Predefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FDebitMovement.SubPredefined,
+        Length(FDebitMovement.SubPredefined) + 1);
+      FDebitMovement.SubPredefined[Length(FDebitMovement.SubPredefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    // Расход
+    SetLength(FCreditMovement.Predefined, 0);
+    SetLength(FCreditMovement.SubPredefined, 0);
+
+    FCreditMovement.RelationName := ReadString;
+    FCreditMovement.SourceFieldName := ReadString;
+
+    FCreditMovement.SubRelationName := ReadString;
+    FCreditMovement.SubSourceFieldName := ReadString;
+
+    Read(FCreditMovement.ContactType, SizeOf(TgdcInvMovementContactType));
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FCreditMovement.Predefined,
+        Length(FCreditMovement.Predefined) + 1);
+      FCreditMovement.Predefined[Length(FCreditMovement.Predefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FCreditMovement.SubPredefined,
+        Length(FCreditMovement.SubPredefined) + 1);
+      FCreditMovement.SubPredefined[Length(FCreditMovement.SubPredefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    // Настройки признаков
+    FSourceFeatures.Clear;
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      F := atDatabase.FindRelationField('INV_CARD', ReadString);
+      if not Assigned(F) then
+        continue;
+      FSourceFeatures.AddObject(F.FieldName, F);
+    end;
+    ReadListEnd;
+
+    FDestFeatures.Clear;
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      F := atDatabase.FindRelationField('INV_CARD', ReadString);
+      if not Assigned(F) then
+        continue;
+      FDestFeatures.AddObject(F.FieldName, F);
+    end;
+    ReadListEnd;
+
+    // Настройка справочников
+    Read(FSources, SizeOf(TgdcInvReferenceSources));
+
+    // Настройка FIFO, LIFO
+    Read(FDirection, SizeOf(TgdcInvMovementDirection));
+
+    // Контроль остатков
+    FControlRemains := ReadBoolean;
+
+    // работа только с текущими остатками
+    if (Version = gdcInvDocument_Version1_9) or
+      (Version = gdcInvDocument_Version2_0) or
+      (Version = gdcInvDocument_Version2_1) or
+      (Version = gdcInvDocument_Version2_2) or
+      (Version = gdcInvDocument_Version2_3) or
+      (Version = gdcInvDocument_Version2_4) or
+      (Version = gdcInvDocument_Version2_5) or
+      (Version = gdcInvDocument_Version2_6) or
+      (Version = gdcInvDocument_Version3_0)  then
+    begin
+      FLiveTimeRemains := ReadBoolean;
+    end else
+      FLiveTimeRemains := False;
+
+    // Документ может быть отложенным
+    FDelayedDocument := ReadBoolean;
+
+    // Может использоваться кэширование
+    ReadBoolean;
+
+    if (Version = gdcInvDocument_Version2_1) or (Version = gdcInvDocument_Version2_2)
+       or (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4)
+       or (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) or (Version = gdcInvDocument_Version3_0)
+    then
+      FMinusRemains := ReadBoolean
+    else
+      FMinusRemains := False;
+
+    if (Version = gdcInvDocument_Version2_2) or (Version = gdcInvDocument_Version2_3)
+       or (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5) or
+      (Version = gdcInvDocument_Version2_6) or (Version = gdcInvDocument_Version3_0)
+    then
+    begin
+      ReadListBegin;
+      while not EndOfList do
+      begin
+        F := atDatabase.FindRelationField('INV_CARD', ReadString);
+        if not Assigned(F) then
+          continue;
+        FMinusFeatures.AddObject(F.FieldName, F);
+      end;
+      ReadListEnd;
+    end;
+
+    if (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4) or
+       (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) or
+      (Version = gdcInvDocument_Version3_0) then
+    begin
+      FIsChangeCardValue := ReadBoolean;
+      FIsAppendCardValue := ReadBoolean;
+    end;
+
+    if (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) or
+      (Version = gdcInvDocument_Version3_0) then
+      FIsUseCompanyKey := ReadBoolean
+    else
+      FIsUseCompanyKey := True;
+
+    if (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) or
+      (Version = gdcInvDocument_Version3_0) then
+      FSaveRestWindowOption := ReadBoolean
+    else
+      FSaveRestWindowOption := False;
+
+    if (Version = gdcInvDocument_Version2_6) or (Version = gdcInvDocument_Version3_0) then
+      FEndMonthRemains := ReadBoolean
+    else
+      FEndMonthRemains := False;
+
+    if (Version = gdcInvDocument_Version3_0) then
+      FWithoutSearchRemains := ReadBoolean
+    else
+      FWithoutSearchRemains := False;
+  finally
+    Free;
+    SS.Free;
+  end;
 end;
 
 initialization
