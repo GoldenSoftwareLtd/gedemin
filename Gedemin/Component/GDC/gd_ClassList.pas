@@ -2661,6 +2661,9 @@ var
   SS: TStringStream;
   F: TatRelationField;
 begin
+  if Options = '' then
+    exit;
+
   SS := TStringStream.Create(Options);
   with TReader.Create(SS, 1024) do
   try
