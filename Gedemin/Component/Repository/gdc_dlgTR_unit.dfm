@@ -1,6 +1,6 @@
 inherited gdc_dlgTR: Tgdc_dlgTR
-  Left = 605
-  Top = 302
+  Left = 609
+  Top = 306
   Caption = 'gdc_dlgTR'
   ClientHeight = 333
   ClientWidth = 529

@@ -367,6 +367,53 @@ begin
         FIBSQL.SQL.Text := 'UPDATE gd_documenttype SET classname = NULL WHERE id=807005';
         FIBSQL.ExecQuery;
 
+        if not RelationExist2('GD_DOCUMENTTYPE_OPTION', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'CREATE TABLE gd_documenttype_option ( '#13#10 +
+            '  id                    dintkey, '#13#10 +
+            '  dtkey                 dintkey, '#13#10 +
+            '  option_name           dname, '#13#10 +
+            '  bool_value            dboolean, '#13#10 +
+            '  str_value             dtext255, '#13#10 +
+            '  relationkey           dforeignkey, '#13#10 +
+            '  relationfieldkey      dforeignkey, '#13#10 +
+            '  contactkey            dforeignkey, '#13#10 +
+            '  disabled              ddisabled, '#13#10 +
+            ' '#13#10 +
+            '  CONSTRAINT gd_pk_dt_option PRIMARY KEY (id), '#13#10 +
+            '  CONSTRAINT gd_fk_dt_option_dtkey FOREIGN KEY (dtkey) '#13#10 +
+            '    REFERENCES gd_documenttype (id) '#13#10 +
+            '    ON DELETE CASCADE '#13#10 +
+            '    ON UPDATE CASCADE, '#13#10 +
+            '  CONSTRAINT gd_fk_dt_option_relkey FOREIGN KEY (relationkey) '#13#10 +
+            '    REFERENCES at_relations (id) '#13#10 +
+            '    ON DELETE CASCADE '#13#10 +
+            '    ON UPDATE CASCADE, '#13#10 +
+            '  CONSTRAINT gd_fk_dt_option_relfkey FOREIGN KEY (relationfieldkey) '#13#10 +
+            '    REFERENCES at_relation_fields (id) '#13#10 +
+            '    ON DELETE CASCADE '#13#10 +
+            '    ON UPDATE CASCADE, '#13#10 +
+            '  CONSTRAINT gd_fk_dt_option_contactkey FOREIGN KEY (contactkey) '#13#10 +
+            '    REFERENCES gd_contact (id) '#13#10 +
+            '    ON DELETE CASCADE '#13#10 +
+            '    ON UPDATE CASCADE, '#13#10 +
+            '  CONSTRAINT gd_uq_dt_option UNIQUE (dtkey, option_name) '#13#10 +
+            ')';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_bi_documenttype_option FOR gd_documenttype_option '#13#10 +
+          '  BEFORE INSERT '#13#10 +
+          '  POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.ID IS NULL) THEN '#13#10 +
+          '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (222, ''0000.0001.0000.0253'', ''22.07.2015'', ''Modified GD_AUTOTASK and GD_SMTP tables.'') '#13#10 +
@@ -398,6 +445,13 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (226, ''0000.0001.0000.0257'', ''20.08.2015'', ''Check constraint expanded.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (227, ''0000.0001.0000.0258'', ''31.08.2015'', ''GD_DOCUMENTTYPE_OPTION'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

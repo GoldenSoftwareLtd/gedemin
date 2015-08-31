@@ -38,6 +38,7 @@ package greference;
 {$IMAGEBASE $1400000}
 {$IMPLICITBUILD ON}
 {$DEFINE SYNEDIT}
+{$DEFINE ENTRY_BALANCE}
 {$DEFINE _QBUILDER}
 {$DEFINE _FR4}
 
@@ -160,6 +161,7 @@ contains
   gdcNamespace,
   gdcRplDatabase in '..\Component\GDC\gdcRplDatabase.pas',
   gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas',
-  gdcSMTP in '..\Component\GDC\gdcSMTP.pas';
+  gdcSMTP in '..\Component\GDC\gdcSMTP.pas',
+  gdcInvDocumentOptions in '..\Component\GDC\gdcInvDocumentOptions.pas';
 
 end.

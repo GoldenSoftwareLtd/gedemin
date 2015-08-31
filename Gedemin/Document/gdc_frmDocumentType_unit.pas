@@ -24,6 +24,8 @@ type
     tbiAddInvDocument: TTBItem;
     tbiAddUserDoc: TTBItem;
     gdcBaseDocumentType: TgdcBaseDocumentType;
+    pnlDocumentOptions: TPanel;
+    splDocumentOptions: TSplitter;
     procedure FormCreate(Sender: TObject);
     procedure actNewSubExecute(Sender: TObject);
     procedure actNewSubUpdate(Sender: TObject);

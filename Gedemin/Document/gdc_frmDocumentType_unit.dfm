@@ -7,7 +7,7 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 485
+    Top = 484
     Width = 779
   end
   inherited TBDockTop: TTBDock
@@ -32,42 +32,42 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 425
+    Height = 424
   end
   inherited TBDockRight: TTBDock
     Left = 770
-    Height = 425
+    Height = 424
   end
   inherited TBDockBottom: TTBDock
-    Top = 476
+    Top = 475
     Width = 779
   end
   inherited pnlWorkArea: TPanel
     Width = 761
-    Height = 425
+    Height = 424
     inherited sMasterDetail: TSplitter
-      Height = 320
+      Height = 319
     end
     inherited spChoose: TSplitter
-      Top = 320
+      Top = 319
       Width = 761
     end
     inherited pnlMain: TPanel
-      Height = 320
+      Height = 319
       inherited pnlSearchMain: TPanel
-        Height = 320
+        Height = 319
         inherited sbSearchMain: TScrollBox
-          Height = 293
+          Height = 292
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 320
+        Height = 319
         Images = dmImages.ilTree
         OnGetImageIndex = tvGroupGetImageIndex
       end
     end
     inherited pnChoose: TPanel
-      Top = 326
+      Top = 325
       Width = 761
       inherited pnButtonChoose: TPanel
         Left = 656
@@ -81,7 +81,15 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     end
     inherited pnlDetail: TPanel
       Width = 589
-      Height = 320
+      Height = 319
+      object splDocumentOptions: TSplitter [0]
+        Left = 0
+        Top = 272
+        Width = 589
+        Height = 6
+        Cursor = crVSplit
+        Align = alBottom
+      end
       inherited TBDockDetail: TTBDock
         Width = 589
         inherited tbDetailToolbar: TTBToolbar
@@ -107,14 +115,23 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
         end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 294
+        Height = 246
         inherited sbSearchDetail: TScrollBox
-          Height = 267
+          Height = 219
         end
       end
       inherited ibgrDetail: TgsIBGrid
         Width = 429
-        Height = 294
+        Height = 246
+      end
+      object pnlDocumentOptions: TPanel
+        Left = 0
+        Top = 278
+        Width = 589
+        Height = 41
+        Align = alBottom
+        BevelOuter = bvNone
+        TabOrder = 3
       end
     end
   end

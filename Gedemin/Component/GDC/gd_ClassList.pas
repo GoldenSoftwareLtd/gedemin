@@ -1953,6 +1953,10 @@ end;
 
 procedure TgdClassList.LoadUserDefinedClasses;
 
+  procedure LoadDEOption(DE: TgdDocumentEntry; q: TIBSQL);
+  begin
+  end;
+
   procedure LoadDE(DE: TgdDocumentEntry; q: TIBSQL);
   begin
     with DE do
@@ -1974,13 +1978,18 @@ procedure TgdClassList.LoadUserDefinedClasses;
 
   function LoadDocument(ADocClass: CgdClassEntry; Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
   var
-    PrevRB: Integer;
+    PrevRB, PrevDTKey: Integer;
   begin
     Result := _Create(Prnt, ADocClass, Prnt.TheClass,
       q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
     LoadDE(TgdDocumentEntry(Result), q);
     PrevRB := q.FieldByName('rb').AsInteger;
-    q.Next;
+    PrevDTKey := q.FieldByName('id').AsInteger;
+    while (not q.EOF) and (PrevDTKey = q.FieldByName('id').AsInteger) do
+    begin
+      LoadDEOption(TgdDocumentEntry(Result), q);
+      q.Next;
+    end;
     while (not q.EOF) and (q.FieldByName('lb').AsInteger < PrevRB) do
       LoadDocument(ADocClass, Result, q);
   end;
@@ -2124,8 +2133,9 @@ begin
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
       'SELECT dt.* ' +
-      'FROM gd_documenttype dt ' +
-      'WHERE dt.documenttype = ''D'' ORDER BY lb';
+      'FROM gd_documenttype dt LEFT JOIN gd_documenttype_option opt ' +
+      '  ON dt.id = opt.dtkey ' +
+      'WHERE dt.documenttype = ''D'' ORDER BY dt.lb';
     q.ExecQuery;
     while not q.EOF do
     begin

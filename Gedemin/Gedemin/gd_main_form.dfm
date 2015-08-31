@@ -1,6 +1,6 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 398
-  Top = 91
+  Left = 403
+  Top = 95
   Width = 969
   Height = 85
   HelpContext = 76

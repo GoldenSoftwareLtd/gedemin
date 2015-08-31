@@ -78,6 +78,7 @@ uses
   gdcStorage,
   gdcFKManager,
   gdcNamespace,
+  gdcInvDocumentOptions,
   gdcTableCalendar in '..\Component\GDC\gdcTableCalendar.pas',
   gdcAcctAccount in '..\Component\GDC\gdcAcctAccount.pas',
   gdc_frmInvBaseRemains_unit in '..\Inventory\gdc_frmInvBaseRemains_unit.pas' {gdc_frmInvBaseRemains},
