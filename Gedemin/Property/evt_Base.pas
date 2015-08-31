@@ -3309,7 +3309,7 @@ begin
     for I := 0 to J - 1 do
     begin
       E := AnEventObject.EventList.Find(TempPropList[I]^.Name);
-      if (E <> nil) then
+      if E <> nil then
       begin
         if E.IsOldEventSet then
         begin
@@ -3438,7 +3438,7 @@ begin
 
       SetFlag := (EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable);
 
-      if not SetFlag and ((EI = nil) or ((EI <> nil) and (EI.FunctionKey = 0)))then
+      if (not SetFlag) and ((EI = nil) or (EI.FunctionKey = 0))then
       begin
         if AnEventObject.ParentObjectsBySubType.Count > 0 then
         begin
