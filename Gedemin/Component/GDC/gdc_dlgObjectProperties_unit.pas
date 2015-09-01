@@ -139,7 +139,7 @@ implementation
 uses
   gdcTree, Clipbrd, gd_ClassList, flt_frmSQLEditorSyn_unit, ContNrs, at_classes,
   gdcMetaData, IBUtils, IBSQL, gdcClasses, gdcNamespace, yaml_writer, jclStrings,
-  at_sql_parser, gdc_createable_form, gd_directories_const;
+  at_sql_parser, gdc_createable_form, gd_directories_const, gd_common_functions;
 
 { Tgdc_dlgObjectProperties }
 
@@ -442,18 +442,6 @@ procedure Tgdc_dlgObjectProperties.SetupRecord;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Lst: TObjectList;
-  FK: TatForeignKey;
-  PK, PK2: TatPrimaryKey;
-  I: Integer;
-  S: String;
-  CE: TgdClassEntry;
-
-  function AddSpaces(const S: String): String;
-  begin
-    Result := S + StringOfChar(' ', 20 - Length(S));
-  end;
-
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGOBJECTPROPERTIES', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -477,91 +465,9 @@ begin
   inherited;
 
   if Assigned(gdcObject) then
-  with mProp.Lines do
   begin
-    Clear;
-    Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
-    Add(AddSpaces('Идентификатор:') + IntToStr(gdcObject.ID));
-    Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
-    Add(AddSpaces('Метка типа:') + gdcObject.GetDisplayName(gdcObject.SubType));
-    Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName + ' ' +
-      gdcObject.GetCurrRecordClass.SubType);
-    CE := gdClassList.Get(TgdBaseEntry, gdcObject.ClassName, gdcObject.SubType);
-    Add(AddSpaces('Тип объекта:') + CE.TheClass.ClassName + ' ' + CE.SubType);
-    if CE.Parent <> nil then
-      Add(AddSpaces('Тип родителя:') + CE.Parent.TheClass.ClassName + ' ' + CE.Parent.SubType);
-
-    Add(AddSpaces('Имя компонента:') + gdcObject.Name);
-    if gdcObject.Owner is TCustomForm then
-    begin
-      Add(AddSpaces('Принадлежит форме:') + gdcObject.Owner.Name);
-      if gdcObject.Owner is TgdcCreateableForm then
-        Add(AddSpaces('Тип формы:') + gdcObject.Owner.ClassName + ' ' +
-          (gdcObject.Owner as TgdcCreateableForm).SubType)
-      else
-        Add(AddSpaces('Тип формы:') + gdcObject.Owner.ClassName);
-    end;
-    if gdcObject.GetDlgForm is TCustomForm then
-    begin
-      Add(AddSpaces('Текущая форма:') + gdcObject.GetDlgForm.Name);
-      Add(AddSpaces('Класс тек. формы:') + gdcObject.GetDlgForm.ClassName);
-    end;
-    Add(AddSpaces('Подмножество:') + gdcObject.SubSet);
-    if Trim(gdcObject.ExtraConditions.CommaText) > '' then
-      Add(AddSpaces('Доп. условия:') + Trim(gdcObject.ExtraConditions.CommaText));
-    if gdcObject is TgdcTree then
-    begin
-      Add(AddSpaces('Путь:') + (gdcObject as TgdcTree).GetPath);
-      if (gdcObject as TgdcTree).Parent = -1 then
-        Add(AddSpaces('Родитель:') + 'NULL')
-      else
-        Add(AddSpaces('Родитель:') + IntToStr((gdcObject as TgdcTree).Parent));
-      if gdcObject is TgdcLBRBTree then
-      begin
-        Add(AddSpaces('Левая граница:') + IntToStr((gdcObject as TgdcLBRBTree).LB));
-        Add(AddSpaces('Правая граница:') + IntToStr((gdcObject as TgdcLBRBTree).RB));
-      end;
-    end;
-    if tiCreationDate in gdcObject.gdcTableInfos then
-      Add(AddSpaces('Когда создан:') + gdcObject.FieldByName('creationdate').AsString);
-    if (tiCreatorKey in gdcObject.gdcTableInfos) and (gdcObject.CreatorName > '') then
-      Add(AddSpaces('Кем создан:') + gdcObject.CreatorName);
-    if tiEditionDate in gdcObject.gdcTableInfos then
-      Add(AddSpaces('Когда изменен:') + gdcObject.FieldByName('editiondate').AsString);
-    if (tiEditorKey in gdcObject.gdcTableInfos) and (gdcObject.EditorName > '') then
-      Add(AddSpaces('Кем изменен:') + gdcObject.EditorName);
-    Add(AddSpaces('Главная таблица:') + gdcObject.GetListTable(gdcObject.SubType));
-    Add(AddSpaces('Уникальная таблица:') + gdcObject.GetDistinctTable(gdcObject.SubType));
-    S := '';
-    Lst := TObjectList.Create(False);
-    try
-      atDatabase.ForeignKeys.ConstraintsByReferencedRelation(gdcObject.GetListTable(gdcObject.SubType),
-        Lst);
-      for I := 0 to Lst.Count - 1 do
-      begin
-        FK := Lst[I] as TatForeignKey;
-        PK := FK.ReferencesRelation.PrimaryKey;
-        PK2 := FK.Relation.PrimaryKey;
-        if (PK <> nil) and (PK.ConstraintFields.Count = 1)
-          and (FK.ConstraintFields.Count = 1)
-          and (PK2 <> nil) and (PK2.ConstraintFields.Count = 1)
-          and (PK2.ConstraintFields[0].FieldName = FK.ConstraintFields[0].FieldName) then
-        begin
-          if S > '' then S := S + ', ';
-          S := S + FK.Relation.RelationName;
-        end;
-      end;
-    finally
-      Lst.Free;
-    end;
-    if S > '' then Add(AddSpaces('Связанные таблицы:') + S);
-    if gdcObject.FindField('aview') <> nil then
-      Add(AddSpaces('Только просмотр:') + TgdcUserGroup.GetGroupList(gdcObject.FindField('aview').AsInteger));
-    if gdcObject.FindField('achag') <> nil then
-      Add(AddSpaces('Просм. и изменение:') + TgdcUserGroup.GetGroupList(gdcObject.FindField('achag').AsInteger));
-    if gdcObject.FindField('afull') <> nil then
-      Add(AddSpaces('Полный доступ:') + TgdcUserGroup.GetGroupList(gdcObject.FindField('afull').AsInteger));
-
+    mProp.Lines.Clear;
+    gdcObject.GetProperties(mProp.Lines);
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGOBJECTPROPERTIES', 'SETUPRECORD', KEYSETUPRECORD)}

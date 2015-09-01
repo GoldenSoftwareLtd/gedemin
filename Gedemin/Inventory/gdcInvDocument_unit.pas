@@ -30,7 +30,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdcBase, gd_createable_form, gdcClasses_interface, gdcClasses, at_Classes,
   gdcInvMovement, IBDatabase, DB, IBSQL, IB, IBErrorCodes, gdcInvConsts_unit,
-  gdcBaseInterface, ComObj, gd_resourcestring, gd_KeyAssoc;
+  gdcBaseInterface, ComObj, gd_resourcestring, gd_KeyAssoc, gd_ClassList;
 
 {$IFDEF DEBUGMOVE}
 const
@@ -62,8 +62,7 @@ type
   TgdcInvBaseDocument = class(TgdcDocument)
   private
     FRelationName, FRelationLineName: String; // Наименование физической таблицы
-    FMovementSource, FMovementTarget:
-      TgdcInvMovementContactOption; // Источник и получатель движения7
+    FMovementSource, FMovementTarget: TgdcInvMovementContactOption; // Источник и получатель движения
 
     FDocumentTypeKey: Integer; // Тип документа
     FReportGroupKey: Integer; // Ключ группы отчетов
@@ -96,7 +95,7 @@ type
 
     procedure SetSubType(const Value: TgdcSubType); override;
 
-    procedure WriteOptions(Stream: TStream); virtual;
+    //procedure WriteOptions(Stream: TStream); virtual;
 
     function GetJoins: TStringList; virtual; abstract;
     procedure SetJoins(const Value: TStringList); virtual; abstract;
@@ -114,31 +113,24 @@ type
 
     destructor Destroy; override;
 
+    function DocumentTypeKey: Integer; override;
     function CheckTheSameStatement: String; override;
     function JoinListFieldByFieldName(const AFieldName, AAliasName, AJoinFieldName: String): String;
-
-    procedure ReadOptions(Stream: TStream); virtual;
+    procedure ReadOptions(AnIDE: TgdInvDocumentEntry); virtual;
+    procedure GetProperties(ASL: TStrings); override;
 
     class function IsAbstractClass: Boolean; override;
+    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     property MovementSource: TgdcInvMovementContactOption read FMovementSource; // Источник движения
     property MovementTarget: TgdcInvMovementContactOption read FMovementTarget; // получатель движения
-
     property RelationName: String read FRelationName;
     property RelationLineName: String read FRelationLineName;
-
     property Relation: TatRelation read GetRelation;
     property RelationLine: TatRelation read GetRelationLine;
-
-    function DocumentTypeKey: Integer; override;
-
     property RelationType: TgdcInvRelationType read GetRelationType;
-
     property CurrentStreamVersion: String read FCurrentStreamVersion;
-
     property BranchKey: Integer read FBranchKey;
-
-    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
 
@@ -218,7 +210,7 @@ type
 {$ENDIF}
   protected
 
-    procedure WriteOptions(Stream: TStream); override;
+    //procedure WriteOptions(Stream: TStream); override;
 
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -253,13 +245,14 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure ReadOptions(Stream: TStream); override;
+    procedure ReadOptions(AnIDE: TgdInvDocumentEntry); override;
 
     function ChooseRemains: Boolean;
     function SelectGoodFeatures: Boolean;
 
     procedure UpdateGoodNames;
     procedure SetFeatures(isFrom, isTo: Boolean);
+    procedure GetProperties(ASL: TStrings); override;
 
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -381,7 +374,7 @@ uses
   gd_security_OperationConst, gdc_dlgSetupInvDocument_unit, gdc_dlgG_unit,
   gdc_dlgInvDocument_unit, gdc_dlgInvDocumentLine_unit, gd_security,
   at_sql_setup, gdc_frmInvDocument_unit, gdc_frmInvDocumentType_unit,
-  gd_ClassList, gd_ClassList_InitDoc, gdc_dlgViewMovement_unit, gdcMetaData
+  gd_ClassList_InitDoc, gdc_dlgViewMovement_unit, gdcMetaData, gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -797,20 +790,18 @@ begin
   Result := AAliasName + '_' + AFieldName + '_' + AJoinFieldName;
 end;
 
-procedure TgdcInvBaseDocument.ReadOptions(Stream: TStream);
-var
-  DE: TgdDocumentEntry;
+procedure TgdcInvBaseDocument.ReadOptions(AnIDE: TgdInvDocumentEntry);
 begin
   Assert(not Active);
+  Assert(AnIDE is TgdInvDocumentEntry);
 
-  DE := gdClassList.FindDocByRUID(SubType, GetDocumentClassPart);
-  if DE <> nil then
-  begin
-    FReportGroupKey := DE.ReportGroupKey;
-    FBranchKey := DE.BranchKey;
-  end else
-    raise EgdcInvDocumentType.Create('Складской документ не найден!');
+  FRelationName := AnIDE.HeaderRelName;
+  FRelationLineName := AnIDE.LineRelName;
 
+  FMovementTarget.Assign(AnIDE.DebitMovement);
+  FMovementSource.Assign(AnIDE.CreditMovement);
+
+  (*
   with TReader.Create(Stream, 1024) do
   try
     FCurrentStreamVersion := ReadString;
@@ -908,6 +899,7 @@ begin
   finally
     Free;
   end;
+  *)
 end;
 
 procedure TgdcInvBaseDocument.UpdatePredefinedFields;
@@ -975,7 +967,7 @@ begin
   CheckMovement(MovementTarget);
 end;
 
-procedure TgdcInvBaseDocument.WriteOptions(Stream: TStream);
+{procedure TgdcInvBaseDocument.WriteOptions(Stream: TStream);
 var
   I: Integer;
 begin
@@ -1021,7 +1013,7 @@ begin
   finally
     Free;
   end;
-end;
+end;}
 
 function TgdcInvBaseDocument.GetNotCopyField: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -1076,7 +1068,7 @@ end;
 
 procedure TgdcInvBaseDocument.SetSubType(const Value: TgdcSubType);
 var
-  Stream: TStream;
+  //Stream: TStream;
   DE: TgdDocumentEntry;
 begin
   if (SubType <> Value) then
@@ -1086,15 +1078,18 @@ begin
     if SubType > '' then
     begin
       DE := gdClassList.FindDocByRUID(Value, GetDocumentClassPart);
-      if DE <> nil then
+      if DE is TgdInvDocumentEntry then
       begin
         FDocumentTypeKey := DE.TypeID;
+        ReadOptions(DE as TgdInvDocumentEntry);
+        (*
         Stream := TStringStream.Create(DE.Options);
         try
           ReadOptions(Stream);
         finally
           Stream.Free;
         end;
+        *)
       end else
         raise EgdcInvBaseDocument.CreateObj(sInventoryDocumentDontFound, Self);
     end;
@@ -1202,6 +1197,27 @@ begin
   {M}      ClearMacrosStack2('TGDCINVBASEDOCUMENT', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
+end;
+
+procedure TgdcInvBaseDocument.GetProperties(ASL: TStrings);
+begin
+  inherited;
+
+  ASL.Add('');
+  ASL.Add('[Документ]');
+  ASL.Add(AddSpaces('Таблица шапки:') + FRelationName);
+  ASL.Add(AddSpaces('Таблица позиции:') + FRelationLineName);
+
+  ASL.Add('');
+  ASL.Add('[MovementSource]');
+  FMovementSource.GetProperties(ASL);
+  ASL.Add('');
+  ASL.Add('[MovementTarget]');
+  FMovementTarget.GetProperties(ASL);
+
+  ASL.Add(AddSpaces('ИД типа документа:') + IntToStr(FDocumentTypeKey));
+  ASL.Add(AddSpaces('ИД группы отчетов:') + IntToStr(FReportGroupKey));
+  ASL.Add(AddSpaces('ИД ветки Иссл.:') + IntToStr(FBranchKey));
 end;
 
 { TgdcInvDocument }
@@ -3032,11 +3048,49 @@ begin
   Result := False;
 end;
 
-procedure TgdcInvDocumentLine.ReadOptions(Stream: TStream);
-var
-  F: TatRelationField;
+procedure TgdcInvDocumentLine.ReadOptions(AnIDE: TgdInvDocumentEntry);
+
+  procedure SLToAS(ASL: TStringList; var AnAS: TgdcInvFeatures);
+  var
+    I: Integer;
+  begin
+    SetLength(AnAS, ASL.Count);
+    for I := 0 to ASL.Count - 1 do
+      AnAS[I] := ASL[I];
+  end;
+
+{var
+  F: TatRelationField;}
 begin
   inherited;
+
+  SLToAS(AnIDE.SourceFeatures, FSourceFeatures);
+  SLToAS(AnIDE.DestFeatures, FDestFeatures);
+  SLToAS(AnIDE.MinusFeatures, FMinusFeatures);
+  FSources := AnIDE.Sources;
+  FDirection := AnIDE.Direction;
+
+  if not (irsRemainsRef in FSources) then
+  begin
+    FControlRemains := False;
+    FLiveTimeRemains := False;
+  end else
+  begin
+    FControlRemains := AnIDE.ControlRemains;
+    FLiveTimeRemains := AnIDE.LiveTimeRemains;
+  end;
+
+  FCanBeDelayed := AnIDE.DelayedDocument;
+  FUseCachedUpdates := AnIDE.UseCachedUpdates;
+  FIsMinusRemains := AnIDE.MinusRemains;
+  FIsChangeCardValue := AnIDE.IsChangeCardValue;
+  FIsAppendCardValue := AnIDE.IsAppendCardValue;
+  FIsUseCompanyKey := AnIDE.IsUseCompanyKey;
+  FSaveRestWindowOption := AnIDE.SaveRestWindowOption;
+  FEndMonthRemains := AnIDE.EndMonthRemains;
+  FWithoutSearchRemains := AnIDE.WithoutSearchRemains;
+
+  (*
   with TReader.Create(Stream, 1024) do
   try
     SetLength(FSourceFeatures, 0);
@@ -3176,6 +3230,7 @@ begin
   finally
     Free;
   end;
+  *)
 end;
 
 function TgdcInvDocumentLine.SelectGoodFeatures: Boolean;
@@ -3281,7 +3336,7 @@ begin
   FGoodSQL.Close;
 end;
 
-procedure TgdcInvDocumentLine.WriteOptions(Stream: TStream);
+{procedure TgdcInvDocumentLine.WriteOptions(Stream: TStream);
 var
   I: Integer;
 begin
@@ -3321,7 +3376,7 @@ begin
   finally
     Free;
   end;
-end;
+end;}
 
 procedure TgdcInvDocumentLine.SetSubType(const Value: TgdcSubType);
 begin
@@ -3740,6 +3795,60 @@ begin
   {M}      ClearMacrosStack2('TGDCINVDOCUMENTLINE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
   {M}  end;
   {END MACRO}
+end;
+
+procedure TgdcInvDocumentLine.GetProperties(ASL: TStrings);
+var
+  S: String;
+  I: Integer;
+begin
+  inherited;
+
+  ASL.Add('');
+  ASL.Add('[Позиция документа]');
+
+  for I := 0 to High(FSourceFeatures) do
+    if I = 0 then
+      ASL.Add(AddSpaces('SourceFeatures:') + FSourceFeatures[0])
+    else
+      ASL.Add(AddSpaces('') + FSourceFeatures[I]);
+
+  for I := 0 to High(FDestFeatures) do
+    if I = 0 then
+      ASL.Add(AddSpaces('DestFeatures:') + FDestFeatures[0])
+    else
+      ASL.Add(AddSpaces('') + FDestFeatures[I]);
+
+  for I := 0 to High(FMinusFeatures) do
+    if I = 0 then
+      ASL.Add(AddSpaces('MinusFeatures:') + FMinusFeatures[0])
+    else
+      ASL.Add(AddSpaces('') + FMinusFeatures[I]);
+
+  if FDirection = imdFIFO then
+    S := 'FIFO'
+  else if FDirection = imdLIFO then
+    S := 'LIFO'
+  else
+    S := 'default';
+
+  ASL.Add(AddSpaces('Direction:') + S);
+  ASL.Add(AddSpaces('ControlRemains:') + BooleanToString(FControlRemains));
+  ASL.Add(AddSpaces('LiveTimeRemains:') + BooleanToString(FLiveTimeRemains));
+  ASL.Add(AddSpaces('EndMonthRemains:') + BooleanToString(FEndMonthRemains));
+  ASL.Add(AddSpaces('UseCachedUpdates:') + BooleanToString(FUseCachedUpdates));
+  ASL.Add(AddSpaces('CanBeDelayed:') + BooleanToString(FCanBeDelayed));
+  ASL.Add(AddSpaces('IsMinusRemains:') + BooleanToString(FIsMinusRemains));
+  ASL.Add(AddSpaces('IsSetFeaturesFromRemains:') + BooleanToString(FisSetFeaturesFromRemains));
+  ASL.Add(AddSpaces('IsChangeCardValue:') + BooleanToString(FisChangeCardValue));
+  ASL.Add(AddSpaces('IsAppendCardValue:') + BooleanToString(FisAppendCardValue));
+  ASL.Add(AddSpaces('IsCheckDestFeatures:') + BooleanToString(FisCheckDestFeatures));
+  ASL.Add(AddSpaces('IsChooseRemains:') + BooleanToString(FisChooseRemains));
+  ASL.Add(AddSpaces('IsUseCompanyKey:') + BooleanToString(FIsUseCompanyKey));
+  ASL.Add(AddSpaces('SaveRestWindowOption:') + BooleanToString(FSaveRestWindowOption));
+  ASL.Add(AddSpaces('WithoutSearchRemains:') + BooleanToString(FWithoutSearchRemains));
+  ASL.Add(AddSpaces('UseGoodKeyMakeMovement:') + BooleanToString(FUseGoodKeyForMakeMovement));
+  ASL.Add(AddSpaces('IsMakeMovemeOnFromCardKeyOnly:') + BooleanToString(FIsMakeMovementOnFromCardKeyOnly));
 end;
 
 { TgdcInvDocumentType }

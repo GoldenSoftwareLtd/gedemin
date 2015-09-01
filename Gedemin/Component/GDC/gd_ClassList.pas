@@ -405,6 +405,7 @@ type
     FLiveTimeRemains: Boolean;
     FMinusRemains: Boolean;
     FDelayedDocument: Boolean;
+    FUseCachedUpdates: Boolean;
     FIsChangeCardValue: Boolean;
     FIsAppendCardValue: Boolean;
     FIsUseCompanyKey: Boolean;
@@ -419,6 +420,25 @@ type
     destructor Destroy; override;
 
     procedure ParseOptions; override;
+
+    property DebitMovement: TgdcInvMovementContactOption read FDebitMovement;
+    property CreditMovement: TgdcInvMovementContactOption read FCreditMovement;
+    property SourceFeatures: TStringList read FSourceFeatures;
+    property DestFeatures: TStringList read FDestFeatures;
+    property MinusFeatures: TStringList read FMinusFeatures;
+    property Direction: TgdcInvMovementDirection read FDirection;
+    property Sources: TgdcInvReferenceSources read FSources;
+    property ControlRemains: Boolean read FControlRemains;
+    property LiveTimeRemains: Boolean read FLiveTimeRemains;
+    property MinusRemains: Boolean read FMinusRemains;
+    property DelayedDocument: Boolean read FDelayedDocument;
+    property UseCachedUpdates: Boolean read FUseCachedUpdates;
+    property IsChangeCardValue: Boolean read FIsChangeCardValue;
+    property IsAppendCardValue: Boolean read FIsAppendCardValue;
+    property IsUseCompanyKey: Boolean read FIsUseCompanyKey;
+    property SaveRestWindowOption: Boolean read FSaveRestWindowOption;
+    property EndMonthRemains: Boolean read FEndMonthRemains;
+    property WithoutSearchRemains: Boolean read FWithoutSearchRemains;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -2024,7 +2044,7 @@ procedure TgdClassList.LoadUserDefinedClasses;
     end;
   end;
 
-  procedure CopyDocSubTree(Src, Dst: TgdClassEntry);
+  procedure CopyDocSubTree(Src, Dst: TgdClassEntry; const AClass: CgdClassEntry);
   var
     I: Integer;
     CE: TgdClassEntry;
@@ -2033,11 +2053,11 @@ procedure TgdClassList.LoadUserDefinedClasses;
     begin
       if (Src.Children[I] as TgdDocumentEntry).LineRelKey > 0 then
       begin
-        CE := _Create(Dst, TgdDocumentEntry, Dst.TheClass,
+        CE := _Create(Dst, AClass, Dst.TheClass,
           Src.Children[I].SubType, Src.Children[I].Caption);
         CE.Assign(Src.Children[I]);
         if Src.Children[I].Count > 0 then
-          CopyDocSubTree(Src.Children[I], CE);
+          CopyDocSubTree(Src.Children[I], CE, AClass);
       end;
     end;
   end;
@@ -2180,9 +2200,9 @@ begin
     q.Free;
   end;
 
-  CopyDocSubTree(CEUserDocument, CEUserDocumentLine);
-  CopyDocSubTree(CEInvDocument, CEInvDocumentLine);
-  CopyDocSubTree(CEInvPriceList, CEInvPriceListLine);
+  CopyDocSubTree(CEUserDocument, CEUserDocumentLine, TgdDocumentEntry);
+  CopyDocSubTree(CEInvDocument, CEInvDocumentLine, TgdInvDocumentEntry);
+  CopyDocSubTree(CEInvPriceList, CEInvPriceListLine, TgdDocumentEntry);
 
   FSubTypes := GlobalStorage.OpenFolder('\SubTypes', False, False);
   try
@@ -2560,6 +2580,7 @@ begin
   HeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
   LineRelKey := TgdDocumentEntry(CE).LineRelKey;
   BranchKey := TgdDocumentEntry(CE).BranchKey;
+  ParseOptions;
 end;
 
 function TgdDocumentEntry.FindParentByDocumentTypeKey(
@@ -2678,6 +2699,9 @@ begin
   with TReader.Create(SS, 1024) do
   try
     Version := ReadString;
+
+    if Version = gdcInv_Document_Undone then
+      raise Exception.Create('Попытка загрузить незаконченный складской документ!');
 
     // header rel name
     ReadString;
@@ -2814,7 +2838,7 @@ begin
     FDelayedDocument := ReadBoolean;
 
     // Может использоваться кэширование
-    ReadBoolean;
+    FUseCachedUpdates := ReadBoolean;
 
     if (Version = gdcInvDocument_Version2_1) or (Version = gdcInvDocument_Version2_2)
        or (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4)

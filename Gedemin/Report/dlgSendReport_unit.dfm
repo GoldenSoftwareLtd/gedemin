@@ -1,6 +1,6 @@
 object dlgSendReport: TdlgSendReport
-  Left = 675
-  Top = 252
+  Left = 676
+  Top = 253
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Отправка отчета по электронной почте'

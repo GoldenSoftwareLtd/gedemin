@@ -4218,7 +4218,7 @@ var
   InvDocument: TgdcInvBaseDocument;
   isChange, isFirst: Boolean;
   S: String;
-  Stream: TStream;
+  //Stream: TStream;
 begin
   Result := True;
   ibsqlCardMovement := TIBSQL.Create(nil);
@@ -4304,12 +4304,15 @@ begin
           InvDocument := TgdcInvDocumentLine.Create(Self);
           try
             InvDocument.SubType := ibsqlCardMovement.FieldByName('ruid').AsString;
+            (*
+            —читывание опций произойдет при присвоении саб тайпа.
             Stream := TStringStream.Create(ibsqlCardMovement.FieldByName('options').AsString);
             try
               InvDocument.ReadOptions(Stream);
             finally
               Stream.Free;
             end;
+            *)
 
             isChange := False;
             for i:= Low((InvDocument as TgdcInvDocumentLine).SourceFeatures) to

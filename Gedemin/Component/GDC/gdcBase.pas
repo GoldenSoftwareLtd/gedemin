@@ -1534,6 +1534,9 @@ type
     // Issue 2162
     procedure Resync(Mode: TResyncMode); override;
 
+    //
+    procedure GetProperties(ASL: TStrings); virtual;
+
     // создает форму для просмотра датасета, для заданного БА
     // поскольку форм может быть предусмотрено несколько, то возможна
     // передача имени класса при вызове функции
@@ -2162,7 +2165,7 @@ uses
   TypInfo,                      dmImages_unit,                gd_ClassList,
   Messages,                     gsIBLookupCombobox,           comctrls,
   gsDBDelete_dlgTableValues,    rp_ReportClient,              gdc_dlgQueryDescendant_unit,
-  gdc_dlgObjectProperties_unit, gsDBReduction,                
+  gdc_dlgObjectProperties_unit, gsDBReduction,                gdcUser,
   flt_sql_parser,               JclStrHashMap,                gdDBImpExp_unit,
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
@@ -8883,6 +8886,89 @@ MasterSource = nil? не трогать ни транзакции, ни состояние
     if FgdcDataLink.DataSet is TgdcBase then
       (FgdcDataLink.DataSet as TgdcBase).AddDetailLink(Self);
   end;
+end;
+
+procedure TgdcBase.GetProperties(ASL: TStrings);
+var
+  {Lst: TObjectList;
+  FK: TatForeignKey;
+  PK, PK2: TatPrimaryKey;
+  I: Integer;
+  S: String;}
+  CE: TgdClassEntry;
+begin
+  Assert(ASL <> nil);
+
+  ASL.Add(AddSpaces('Наименование:') + ObjectName);
+  ASL.Add(AddSpaces('Идентификатор:') + IntToStr(ID));
+  ASL.Add(AddSpaces('RUID:') + RUIDToStr(GetRUID));
+  ASL.Add(AddSpaces('Метка типа:') + GetDisplayName(SubType));
+  ASL.Add(AddSpaces('Тип текущей записи:') + GetCurrRecordClass.gdClass.ClassName + ' ' +
+    GetCurrRecordClass.SubType);
+  CE := gdClassList.Get(TgdBaseEntry, ClassName, SubType);
+  ASL.Add(AddSpaces('Тип объекта:') + CE.TheClass.ClassName + ' ' + CE.SubType);
+  if CE.Parent <> nil then
+    ASL.Add(AddSpaces('Тип родителя:') + CE.Parent.TheClass.ClassName + ' ' + CE.Parent.SubType);
+
+  ASL.Add(AddSpaces('Имя компонента:') + Name);
+  if Owner is TCustomForm then
+  begin
+    ASL.Add(AddSpaces('Принадлежит форме:') + Owner.Name);
+    if Owner is TgdcCreateableForm then
+      ASL.Add(AddSpaces('Тип формы:') + Owner.ClassName + ' ' +
+        (Owner as TgdcCreateableForm).SubType)
+    else
+      ASL.Add(AddSpaces('Тип формы:') + Owner.ClassName);
+  end;
+  if GetDlgForm is TCustomForm then
+  begin
+    ASL.Add(AddSpaces('Текущая форма:') + GetDlgForm.Name);
+    ASL.Add(AddSpaces('Класс тек. формы:') + GetDlgForm.ClassName);
+  end;
+  ASL.Add(AddSpaces('Подмножество:') + SubSet);
+  if Trim(ExtraConditions.CommaText) > '' then
+    ASL.Add(AddSpaces('Доп. условия:') + Trim(ExtraConditions.CommaText));
+  if tiCreationDate in gdcTableInfos then
+    ASL.Add(AddSpaces('Когда создан:') + FieldByName('creationdate').AsString);
+  if (tiCreatorKey in gdcTableInfos) and (CreatorName > '') then
+    ASL.Add(AddSpaces('Кем создан:') + CreatorName);
+  if tiEditionDate in gdcTableInfos then
+    ASL.Add(AddSpaces('Когда изменен:') + FieldByName('editiondate').AsString);
+  if (tiEditorKey in gdcTableInfos) and (EditorName > '') then
+    ASL.Add(AddSpaces('Кем изменен:') + EditorName);
+  ASL.Add(AddSpaces('Главная таблица:') + GetListTable(SubType));
+  ASL.Add(AddSpaces('Уникальная таблица:') + GetDistinctTable(SubType));
+  {
+  S := '';
+  Lst := TObjectList.Create(False);
+  try
+    atDatabase.ForeignKeys.ConstraintsByReferencedRelation(GetListTable(SubType),
+      Lst);
+    for I := 0 to Lst.Count - 1 do
+    begin
+      FK := Lst[I] as TatForeignKey;
+      PK := FK.ReferencesRelation.PrimaryKey;
+      PK2 := FK.Relation.PrimaryKey;
+      if (PK <> nil) and (PK.ConstraintFields.Count = 1)
+        and (FK.ConstraintFields.Count = 1)
+        and (PK2 <> nil) and (PK2.ConstraintFields.Count = 1)
+        and (PK2.ConstraintFields[0].FieldName = FK.ConstraintFields[0].FieldName) then
+      begin
+        if S > '' then S := S + ', ';
+        S := S + FK.Relation.RelationName;
+      end;
+    end;
+  finally
+    Lst.Free;
+  end;
+  if S > '' then ASL.Add(AddSpaces('Связанные таблицы:') + S);
+  }
+  if FindField('aview') <> nil then
+    ASL.Add(AddSpaces('Только просмотр:') + TgdcUserGroup.GetGroupList(FindField('aview').AsInteger));
+  if FindField('achag') <> nil then
+    ASL.Add(AddSpaces('Просм. и изменение:') + TgdcUserGroup.GetGroupList(FindField('achag').AsInteger));
+  if FindField('afull') <> nil then
+    ASL.Add(AddSpaces('Полный доступ:') + TgdcUserGroup.GetGroupList(FindField('afull').AsInteger));
 end;
 
 { TgdcDataLink }

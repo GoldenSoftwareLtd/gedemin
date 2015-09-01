@@ -25,11 +25,26 @@ function TryObjectTextToBinary(var S: String): Boolean;
 function GetFileLastWrite(const AFullName: String): TDateTime;
 function ParseFieldOrigin(const AnOrigin: String; out ARelationName, AFieldName: String): Boolean;
 function ExpandMetaVariables(const S: String): String;
+function AddSpaces(const S: String): String;
+function BooleanToString(const B: Boolean): String;
 
 implementation
 
 uses
   Windows, SysUtils, Forms, jclFileUtils, WinSock;
+
+function BooleanToString(const B: Boolean): String;
+begin
+  if B then
+    Result := 'True'
+  else
+    Result := 'False';
+end;
+
+function AddSpaces(const S: String): String;
+begin
+  Result := S + StringOfChar(' ', 20 - Length(S));
+end;
 
 const
   HexDigits: array[0..15] of Char = '0123456789ABCDEF';

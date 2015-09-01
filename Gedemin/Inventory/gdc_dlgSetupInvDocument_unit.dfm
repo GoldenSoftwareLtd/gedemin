@@ -1,5 +1,5 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Top = 194
+  Top = 196
   Caption = 'Складской документ'
   PixelsPerInch = 96
   TextHeight = 13
@@ -473,7 +473,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
@@ -531,7 +531,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
@@ -541,7 +541,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end

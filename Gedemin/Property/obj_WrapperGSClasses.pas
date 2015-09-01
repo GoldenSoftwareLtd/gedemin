@@ -8881,7 +8881,7 @@ end;
 
 procedure TwrpGdcInvBaseDocument.ReadOptions(const Stream: IgsStream);
 begin
-  GetGdcInvBaseDocument.ReadOptions(InterfaceToObject(Stream) as TStream);
+  //GetGdcInvBaseDocument.ReadOptions(InterfaceToObject(Stream) as TStream);
 end;
 
 { TwrpGdcInvDocument }

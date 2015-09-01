@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -100,6 +100,9 @@ type
     ContactType: TgdcInvMovementContactType; // Тип контакта
     Predefined: array of Integer; // Набор возможных значений
     SubPredefined: array of Integer; // Набор возможных значений
+
+    procedure Assign(AnObject: TgdcInvMovementContactOption);
+    procedure GetProperties(ASL: TStrings);
   end;
 
   // Вид складской справочной информации
@@ -149,7 +152,6 @@ type
     iecIncorrectCardField, // Не корректное значение поля
     iecUnknowError  // Неизвестная ошибка
   );
-
 
 const
   INV_SOURCEFEATURE_PREFIX = 'FROM_';
@@ -219,5 +221,64 @@ type
   TgdcInvPriceFields = array of TgdcInvPriceField;
 
 implementation
+
+uses
+  SysUtils, gd_common_functions;
+
+{ TgdcInvMovementContactOption }
+
+procedure TgdcInvMovementContactOption.Assign(
+  AnObject: TgdcInvMovementContactOption);
+begin
+  RelationName := AnObject.RelationName;
+  SourceFieldName := AnObject.SourceFieldName;
+
+  SubRelationName := AnObject.SubRelationName;
+  SubSourceFieldName := AnObject.SubSourceFieldName;
+
+  ContactType := AnObject.ContactType;
+  Predefined := Copy(AnObject.Predefined, 0, MaxInt);
+  SubPredefined := Copy(AnObject.SubPredefined, 0, MaxInt);
+end;
+
+procedure TgdcInvMovementContactOption.GetProperties(ASL: TStrings);
+var
+  S: String;
+  I: Integer;
+begin
+  Assert(ASL <> nil);
+
+  ASL.Add(AddSpaces('Relation name:') + RelationName);
+  ASL.Add(AddSpaces('Source field name:') + SourceFieldName);
+  ASL.Add(AddSpaces('Sub relation name:') + SubRelationName);
+  ASL.Add(AddSpaces('Sub source field name:') + SubSourceFieldName);
+
+  case ContactType of
+    imctOurCompany: S := 'Наша компания';
+    imctOurDepartment: S := 'Наше подразделение';
+    imctOurPeople: S := 'Наш сотрудник';
+    imctCompany: S := 'Компания';
+    imctCompanyDepartment: S := 'Подразделение';
+    imctCompanyPeople: S := 'Сотрудник';
+    imctPeople: S := 'Физическое лицо';
+    imctOurDepartAndPeople: S := 'Наше подразделение и сотрудник';
+  end;
+
+  ASL.Add(AddSpaces('ContactType:') + S);
+
+  S := '';
+  for I := 0 to High(Predefined) do
+    S := S + IntToStr(Predefined[I]) + ', ';
+  if S > '' then
+    SetLength(S, Length(S) - 2);
+  ASL.Add(AddSpaces('Predefined:') + S);
+
+  S := '';
+  for I := 0 to High(SubPredefined) do
+    S := S + IntToStr(SubPredefined[I]) + ', ';
+  if S > '' then
+    SetLength(S, Length(S) - 2);
+  ASL.Add(AddSpaces('SubPredefined:') + S);
+end;
 
 end.

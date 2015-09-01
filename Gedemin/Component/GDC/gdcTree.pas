@@ -72,6 +72,8 @@ type
     // поля разделяются точкой с запятой.
     procedure Propagate(const AFields: String; const AnOnlyFirstLevel: Boolean = False);
 
+    procedure GetProperties(ASL: TStrings); override;
+
     //
     function GetPath(const AnIncludeSelf: Boolean = True): String; virtual;
 
@@ -117,6 +119,8 @@ type
     procedure DoBeforePost; override;
 
   public
+    procedure GetProperties(ASL: TStrings); override;
+    
     //
     class function GetSubSetList: String; override;
 
@@ -144,7 +148,7 @@ implementation
 
 uses
   Windows,    IBTable, DBClient,        gd_security,
-  at_classes, IBQuery, dmDatabase_unit;
+  at_classes, IBQuery, dmDatabase_unit, gd_common_functions;
 
 { TgdcTree }
 
@@ -924,6 +928,16 @@ begin
   end;
 end;
 
+procedure TgdcTree.GetProperties(ASL: TStrings);
+begin
+  inherited;
+  ASL.Add(AddSpaces('Путь:') + GetPath);
+  if Parent = -1 then
+    ASL.Add(AddSpaces('Родитель:') + 'NULL')
+  else
+    ASL.Add(AddSpaces('Родитель:') + IntToStr(Parent));
+end;
+
 { TgdcLBRBTree }
 
 procedure TgdcLBRBTree.CreateFields;
@@ -1228,6 +1242,13 @@ begin
   {M}      ClearMacrosStack2('TGDCLBRBTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
   {END MACRO}
+end;
+
+procedure TgdcLBRBTree.GetProperties(ASL: TStrings);
+begin
+  inherited;
+  ASL.Add(AddSpaces('Левая граница:') + IntToStr(LB));
+  ASL.Add(AddSpaces('Правая граница:') + IntToStr(RB));
 end;
 
 initialization
