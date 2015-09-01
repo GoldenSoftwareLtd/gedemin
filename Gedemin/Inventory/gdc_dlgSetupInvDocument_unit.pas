@@ -1830,6 +1830,7 @@ var
 begin
   rpgroupkey := Document.FieldByName('reportgroupkey').AsInteger;
 
+  Movement := nil;
   with TWriter.Create(Stream, 1024) do
   try
     // Общие настройки
@@ -2023,6 +2024,7 @@ begin
       WriteBoolean(False);
 
   finally
+    Movement.Free;
     Free;
   end;
 end;

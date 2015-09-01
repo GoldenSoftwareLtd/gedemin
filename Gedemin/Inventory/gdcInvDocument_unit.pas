@@ -69,8 +69,6 @@ type
     FReportGroupKey: Integer; // Ключ группы отчетов
     FBranchKey: Integer; // Ветка в исследователе
 
-
-    FSetupProceeded: Boolean; // Осуществлено ли чтение и настройка документа
     FCurrentStreamVersion: String; // Версия настроек, считанных из потока
 
     FContact: TIBSQL;
@@ -475,7 +473,6 @@ begin
   SetLength(FMovementTarget.Predefined, 0);
   SetLength(FMovementTarget.SubPredefined, 0);
 
-  FSetupProceeded := False;
   FCurrentStreamVersion := gdcInv_Document_Undone;
 end;
 
@@ -908,9 +905,6 @@ begin
         ReadInteger;
     end;
     ReadListEnd;
-
-    if Self is TgdcInvDocument then
-      FSetupProceeded := True;
   finally
     Free;
   end;
@@ -3179,8 +3173,6 @@ begin
       FWithoutSearchRemains := ReadBoolean
     else
       FWithoutSearchRemains := False;
-
-    FSetupProceeded := True;
   finally
     Free;
   end;
