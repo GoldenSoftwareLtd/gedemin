@@ -5977,20 +5977,9 @@ procedure TgdcInvDocumentType.ReadOptions(Stream: TStream);
 var
   Version: String;
   RKey: Integer;
-  ibsql: TIBSQL;
   R: TatRelation;
-
   F: TatRelationField;
-
 begin
-  ibsql := TIBSQL.Create(nil);
-  ibsql.SQL.Text := 'SELECT name FROM gd_contact WHERE id = :id';
-  ibsql.Database := Database;
-  if Transaction.InTransaction then
-    ibsql.Transaction := Transaction
-  else
-    ibsql.Transaction := ReadTransaction;
-
   with TReader.Create(Stream, 1024) do
   try
     // Общие настройки
@@ -6240,10 +6229,8 @@ begin
       WithoutSearchRemains := ReadBoolean
     else
       WithoutSearchRemains := False;
-
   finally
     Free;
-    ibsql.Free;
   end;
 end;
 
