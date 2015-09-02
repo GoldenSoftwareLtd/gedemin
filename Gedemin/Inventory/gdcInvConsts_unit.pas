@@ -91,15 +91,15 @@ type
   // в складском документе.
   TgdcInvMovementContactOption = class(TObject)
   public
-    RelationName: String[31]; // Наименование таблицы
-    SourceFieldName: String[31]; // Наименование поля-атрибута
+    RelationName: String[31];               // Наименование таблицы
+    SourceFieldName: String[31];            // Наименование поля-атрибута
 
-    SubRelationName: String[31]; // Наименование таблицы
-    SubSourceFieldName: String[31]; // Наименование дополнительного поля-атрибута
+    SubRelationName: String[31];            // Наименование таблицы
+    SubSourceFieldName: String[31];         // Наименование дополнительного поля-атрибута
 
-    ContactType: TgdcInvMovementContactType; // Тип контакта
-    Predefined: array of Integer; // Набор возможных значений
-    SubPredefined: array of Integer; // Набор возможных значений
+    ContactType: TgdcInvMovementContactType;// Тип контакта
+    Predefined: array of Integer;           // Набор возможных значений
+    SubPredefined: array of Integer;        // Набор возможных значений
 
     procedure Assign(AnObject: TgdcInvMovementContactOption);
     procedure GetProperties(ASL: TStrings);

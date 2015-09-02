@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -33,6 +33,7 @@ GRANT ALL ON GD_SUBSYSTEM TO administrator;
 GRANT ALL ON GD_USERGROUP TO administrator;
 GRANT ALL ON GD_JOURNAL TO administrator;
 GRANT ALL ON GD_DOCUMENTTYPE TO administrator;
+GRANT ALL ON GD_DOCUMENTTYPE_OPTION TO administrator;
 
 GRANT ALL ON GD_CONST TO administrator;
 GRANT ALL ON GD_CONSTVALUE TO administrator;

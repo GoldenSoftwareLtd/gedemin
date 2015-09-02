@@ -378,6 +378,7 @@ type
     function FindParentByDocumentTypeKey(const ADocumentTypeKey: Integer;
       const APart: TgdcDocumentClassPart): TgdDocumentEntry;
     procedure ParseOptions; virtual;
+    procedure ConvertOptions; virtual;
 
     property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
     property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
@@ -419,7 +420,9 @@ type
       const ACaption: String = ''); overload; override;
     destructor Destroy; override;
 
+    procedure Assign(CE: TgdClassEntry); override;
     procedure ParseOptions; override;
+    procedure ConvertOptions; override;
 
     property DebitMovement: TgdcInvMovementContactOption read FDebitMovement;
     property CreditMovement: TgdcInvMovementContactOption read FCreditMovement;
@@ -1992,7 +1995,11 @@ procedure TgdClassList.LoadUserDefinedClasses;
       HeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
       LineRelKey := q.FieldByName('linerelkey').AsInteger;
       BranchKey := q.FieldByName('branchkey').AsInteger;
-      ParseOptions;
+      if q.FieldbyName('option_name').IsNull then
+      begin
+        ParseOptions;
+        ConvertOptions;
+      end;
     end;
   end;
 
@@ -2152,7 +2159,7 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT dt.* ' +
+      'SELECT dt.*, opt.option_name ' +
       'FROM gd_documenttype dt LEFT JOIN gd_documenttype_option opt ' +
       '  ON dt.id = opt.dtkey ' +
       'WHERE dt.documenttype = ''D'' ORDER BY dt.lb';
@@ -2580,7 +2587,11 @@ begin
   HeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
   LineRelKey := TgdDocumentEntry(CE).LineRelKey;
   BranchKey := TgdDocumentEntry(CE).BranchKey;
-  ParseOptions;
+end;
+
+procedure TgdDocumentEntry.ConvertOptions;
+begin
+  //
 end;
 
 function TgdDocumentEntry.FindParentByDocumentTypeKey(
@@ -2663,6 +2674,35 @@ begin
 end;
 
 { TgdInvDocumentEntry }
+
+procedure TgdInvDocumentEntry.Assign(CE: TgdClassEntry);
+begin
+  inherited;
+  FDebitMovement.Assign((CE as TgdInvDocumentEntry).DebitMovement);
+  FCreditMovement.Assign((CE as TgdInvDocumentEntry).CreditMovement);
+  FSourceFeatures.Assign((CE as TgdInvDocumentEntry).SourceFeatures);
+  FDestFeatures.Assign((CE as TgdInvDocumentEntry).DestFeatures);
+  FMinusFeatures.Assign((CE as TgdInvDocumentEntry).MinusFeatures);
+  FDirection := (CE as TgdInvDocumentEntry).Direction;
+  FSources := (CE as TgdInvDocumentEntry).Sources;
+  FControlRemains := (CE as TgdInvDocumentEntry).ControlRemains;
+  FLiveTimeRemains := (CE as TgdInvDocumentEntry).LiveTimeRemains;
+  FMinusRemains := (CE as TgdInvDocumentEntry).MinusRemains;
+  FDelayedDocument := (CE as TgdInvDocumentEntry).DelayedDocument;
+  FUseCachedUpdates := (CE as TgdInvDocumentEntry).UseCachedUpdates;
+  FIsChangeCardValue := (CE as TgdInvDocumentEntry).IsChangeCardValue;
+  FIsAppendCardValue := (CE as TgdInvDocumentEntry).IsAppendCardValue;
+  FIsUseCompanyKey := (CE as TgdInvDocumentEntry).IsUseCompanyKey;
+  FSaveRestWindowOption := (CE as TgdInvDocumentEntry).SaveRestWindowOption;
+  FEndMonthRemains := (CE as TgdInvDocumentEntry).EndMonthRemains;
+  FWithoutSearchRemains := (CE as TgdInvDocumentEntry).WithoutSearchRemains;
+end;
+
+procedure TgdInvDocumentEntry.ConvertOptions;
+begin
+  inherited;
+
+end;
 
 constructor TgdInvDocumentEntry.Create(AParent: TgdClassEntry;
   const AClass: TClass; const ASubType: TgdcSubType;
@@ -2761,7 +2801,6 @@ begin
 
     FCreditMovement.RelationName := ReadString;
     FCreditMovement.SourceFieldName := ReadString;
-
     FCreditMovement.SubRelationName := ReadString;
     FCreditMovement.SubSourceFieldName := ReadString;
 
@@ -2793,9 +2832,8 @@ begin
     while not EndOfList do
     begin
       F := atDatabase.FindRelationField('INV_CARD', ReadString);
-      if not Assigned(F) then
-        continue;
-      FSourceFeatures.AddObject(F.FieldName, F);
+      if F <> nil then
+        FSourceFeatures.AddObject(F.FieldName, F);
     end;
     ReadListEnd;
 
@@ -2804,9 +2842,8 @@ begin
     while not EndOfList do
     begin
       F := atDatabase.FindRelationField('INV_CARD', ReadString);
-      if not Assigned(F) then
-        continue;
-      FDestFeatures.AddObject(F.FieldName, F);
+      if F <> nil then
+        FDestFeatures.AddObject(F.FieldName, F);
     end;
     ReadListEnd;
 

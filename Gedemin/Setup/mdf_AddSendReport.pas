@@ -375,7 +375,6 @@ begin
             '  dtkey                 dintkey, '#13#10 +
             '  option_name           dname, '#13#10 +
             '  bool_value            dboolean, '#13#10 +
-            '  str_value             dtext255, '#13#10 +
             '  relationkey           dforeignkey, '#13#10 +
             '  relationfieldkey      dforeignkey, '#13#10 +
             '  contactkey            dforeignkey, '#13#10 +
@@ -397,11 +396,18 @@ begin
             '  CONSTRAINT gd_fk_dt_option_contactkey FOREIGN KEY (contactkey) '#13#10 +
             '    REFERENCES gd_contact (id) '#13#10 +
             '    ON DELETE CASCADE '#13#10 +
-            '    ON UPDATE CASCADE, '#13#10 +
-            '  CONSTRAINT gd_uq_dt_option UNIQUE (dtkey, option_name) '#13#10 +
+            '    ON UPDATE CASCADE '#13#10 +
             ')';
           FIBSQL.ExecQuery;
         end;
+
+        DropField2('GD_DOCUMENTTYPE_OPTION', 'STR_VALUE', FTransaction);
+        DropConstraint2('GD_DOCUMENTTYPE_OPTION', 'GD_UQ_DT_OPTION', FTransaction);
+
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE gd_documenttype_option ADD CONSTRAINT gd_uq_dt_option '#13#10 +
+          'UNIQUE (dtkey, option_name, relationkey, relationfieldkey, contactkey)';
+        FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
           'CREATE OR ALTER TRIGGER gd_bi_documenttype_option FOR gd_documenttype_option '#13#10 +
@@ -412,6 +418,10 @@ begin
           '  IF (NEW.ID IS NULL) THEN '#13#10 +
           '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
           'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'GRANT ALL ON GD_DOCUMENTTYPE_OPTION TO administrator';
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
@@ -452,6 +462,13 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (227, ''0000.0001.0000.0258'', ''31.08.2015'', ''GD_DOCUMENTTYPE_OPTION'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (228, ''0000.0001.0000.0259'', ''02.09.2015'', ''Correction for GD_DOCUMENTTYPE_OPTION'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

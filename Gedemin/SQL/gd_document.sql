@@ -154,7 +154,6 @@ CREATE TABLE gd_documenttype_option (
   dtkey                 dintkey,
   option_name           dname,
   bool_value            dboolean,
-  str_value             dtext255,
   relationkey           dforeignkey,
   relationfieldkey      dforeignkey,
   contactkey            dforeignkey,
@@ -176,9 +175,11 @@ CREATE TABLE gd_documenttype_option (
   CONSTRAINT gd_fk_dt_option_contactkey FOREIGN KEY (contactkey)
     REFERENCES gd_contact (id)
     ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT gd_uq_dt_option UNIQUE (dtkey, option_name)
+    ON UPDATE CASCADE
 );
+
+ALTER TABLE gd_documenttype_option ADD CONSTRAINT gd_uq_dt_option 
+  UNIQUE (dtkey, option_name, relationkey, relationfieldkey, contactkey);
 
 SET TERM ^ ;
 
