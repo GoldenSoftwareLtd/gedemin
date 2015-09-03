@@ -1976,11 +1976,11 @@ end;
 
 procedure TgdClassList.LoadUserDefinedClasses;
 
-  procedure LoadDEOption(DE: TgdDocumentEntry; q: TIBSQL);
+  procedure LoadDEOption(DE: TgdDocumentEntry; qOpt: TIBSQL);
   begin
   end;
 
-  procedure LoadDE(DE: TgdDocumentEntry; q: TIBSQL);
+  procedure LoadDE(DE: TgdDocumentEntry; q, qOpt: TIBSQL);
   begin
     with DE do
     begin
@@ -1995,30 +1995,29 @@ procedure TgdClassList.LoadUserDefinedClasses;
       HeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
       LineRelKey := q.FieldByName('linerelkey').AsInteger;
       BranchKey := q.FieldByName('branchkey').AsInteger;
-      if q.FieldbyName('option_name').IsNull then
+      if qOpt.EOF or (qOpt.FieldbyName('dtkey').AsInteger <> q.FieldByName('id').AsInteger) then
       begin
-        ParseOptions;
-        ConvertOptions;
-      end;
+        if Options > '' then
+        begin
+          ParseOptions;
+          ConvertOptions;
+        end;
+      end else
+        LoadDEOption(DE, qOpt);
     end;
   end;
 
-  function LoadDocument(ADocClass: CgdClassEntry; Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
+  function LoadDocument(ADocClass: CgdClassEntry; Prnt: TgdClassEntry; q, qOpt: TIBSQL): TgdClassEntry;
   var
-    PrevRB, PrevDTKey: Integer;
+    PrevRB: Integer;
   begin
     Result := _Create(Prnt, ADocClass, Prnt.TheClass,
       q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
-    LoadDE(TgdDocumentEntry(Result), q);
+    LoadDE(TgdDocumentEntry(Result), q, qOpt);
     PrevRB := q.FieldByName('rb').AsInteger;
-    PrevDTKey := q.FieldByName('id').AsInteger;
-    while (not q.EOF) and (PrevDTKey = q.FieldByName('id').AsInteger) do
-    begin
-      LoadDEOption(TgdDocumentEntry(Result), q);
-      q.Next;
-    end;
+    q.Next;
     while (not q.EOF) and (q.FieldByName('lb').AsInteger < PrevRB) do
-      LoadDocument(ADocClass, Result, q);
+      LoadDocument(ADocClass, Result, q, qOpt);
   end;
 
   procedure CopySubTree(Src, Dst: TgdClassEntry);
@@ -2129,7 +2128,7 @@ var
   CEInvGoodRemains,
   CEStorage: TgdClassEntry;
   DE: TgdDocumentEntry;
-  q: TIBSQL;
+  q, qOpt: TIBSQL;
   FSubTypes: TgsStorageFolder;
   SL: TStringList;
   R: TatRelation;
@@ -2156,26 +2155,35 @@ begin
   CEInvPriceListLine := Get(TgdBaseEntry, 'TgdcInvPriceListLine');
 
   q := TIBSQL.Create(nil);
+  qOpt := TIBSQL.Create(nil);
   try
+    qOpt.Transaction := gdcBaseManager.ReadTransaction;
+    qOpt.SQL.Text :=
+      'SELECT opt.* ' +
+      'FROM gd_documenttype_option opt JOIN gd_documenttype dt ' +
+      '  ON dt.id = opt.dtkey ' +
+      'ORDER BY ' +
+      '  dt.lb, dt.id';
+    qOpt.ExecQuery;
+
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT dt.*, opt.option_name ' +
-      'FROM gd_documenttype dt LEFT JOIN gd_documenttype_option opt ' +
-      '  ON dt.id = opt.dtkey ' +
-      'WHERE dt.documenttype = ''D'' ORDER BY dt.lb';
+      'SELECT dt.* ' +
+      'FROM gd_documenttype dt ' +
+      'WHERE dt.documenttype = ''D'' ORDER BY dt.lb, dt.id';
     q.ExecQuery;
     while not q.EOF do
     begin
       if CompareText(q.FieldbyName('classname').AsString, 'TgdcUserDocumentType') = 0 then
-        LoadDocument(TgdDocumentEntry, CEUserDocument, q)
+        LoadDocument(TgdDocumentEntry, CEUserDocument, q, qOpt)
       else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvDocumentType') = 0 then
-        LoadDocument(TgdInvDocumentEntry, CEInvDocument, q)
+        LoadDocument(TgdInvDocumentEntry, CEInvDocument, q, qOpt)
       else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvPriceListType') = 0 then
-        LoadDocument(TgdDocumentEntry, CEInvPriceList, q)
+        LoadDocument(TgdDocumentEntry, CEInvPriceList, q, qOpt)
       else begin
         DE := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpHeader);
         if DE <> nil then
-          LoadDE(DE, q);
+          LoadDE(DE, q, qOpt);
         q.Next;
       end;
     end;
@@ -2204,6 +2212,7 @@ begin
     CopyFormSubTree(CEInvGoodRemains, Get(TgdFormEntry, 'Tgdc_frmInvSelectGoodRemains'));
     CopyFormSubTree(CEInvRemains, Get(TgdFormEntry, 'Tgdc_frmInvSelectRemains'));
   finally
+    qOpt.Free;
     q.Free;
   end;
 
