@@ -75,8 +75,14 @@ type
 
   // Тип используемого контакта в движении
   TgdcInvMovementContactType = (
-    imctOurCompany, imctOurDepartment, imctOurPeople, imctCompany,
-      imctCompanyDepartment, imctCompanyPeople, imctPeople, imctOurDepartAndPeople
+    imctOurCompany,
+    imctOurDepartment,
+    imctOurPeople,
+    imctCompany,
+    imctCompanyDepartment,
+    imctCompanyPeople,
+    imctPeople,
+    imctOurDepartAndPeople
   );
   // imctOurCompany - Наша компания
   // imctOurDepartment - Подразделение нашей компании
@@ -86,6 +92,21 @@ type
   // imctCompanyPeople - Сотрудник клиента
   // imctPeople - физическое лицо
 
+const
+  gdcInvMovementContactTypeLow = imctOurCompany;
+  gdcInvMovementContactTypeHigh = imctOurDepartAndPeople;
+  gdcInvMovementContactTypeNames: array[gdcInvMovementContactTypeLow..gdcInvMovementContactTypeHigh] of String = (
+    'imctOurCompany',
+    'imctOurDepartment',
+    'imctOurPeople',
+    'imctCompany',
+    'imctCompanyDepartment',
+    'imctCompanyPeople',
+    'imctPeople',
+    'imctOurDepartAndPeople'
+  );
+
+type
   // Структура используется при определении атрибута
   // отвечающего за источник или получателя ТМЦ
   // в складском документе.

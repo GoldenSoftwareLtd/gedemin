@@ -589,7 +589,7 @@ var
 implementation
 
 uses
-  SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages,
+  SysUtils, gs_Exception, IBSQL, IBDatabase, gd_security, gsStorage, Storages,
   gdcClasses, gd_directories_const, jclStrings, Windows
   {$IFDEF DEBUG}
   , gd_DebugLog
@@ -2708,9 +2708,131 @@ begin
 end;
 
 procedure TgdInvDocumentEntry.ConvertOptions;
-begin
-  inherited;
+var
+  q, qRUID, qNS: TIBSQL;
+  Tr: TIBTransaction;
+  NSID, NSPos, NSHeadObjectID: Integer;
 
+  procedure AddNSObject(const AnObjectName: String; const AnOptID: Integer);
+  begin
+    if NSID > -1 then
+    begin
+      Inc(NSPos);
+      qNS.ParamByName('namespacekey').AsInteger := NSID;
+      qNS.ParamByName('objectname').AsString := AnObjectName;
+      qNS.ParamByName('xid').AsInteger := AnOptID;
+      qNS.ParamByName('objectpos').AsInteger := NSPos;
+      qNS.ParamByName('headobjectkey').AsInteger := NSHeadObjectID;
+      qNS.ExecQuery;
+    end;
+  end;
+
+  function GetOptID: Integer;
+  begin
+    Result := gdcBaseManager.GetNextID;
+
+    qRUID.ParamByName('id').AsInteger := Result;
+    qRUID.ExecQuery;
+  end;
+
+  procedure ConvertRelationField(const ARelationName, AFieldName: String;
+    const AnOptionName: String);
+  var
+    F: TatRelationField;
+    OptID: Integer;
+  begin
+    F := atDatabase.FindRelationField(ARelationName, AFieldName);
+    if F <> nil then
+    begin
+      OptID := GetOptID;
+
+      q.ParamByName('id').AsInteger := OptID;
+      q.ParamByName('dtkey').AsInteger := TypeID;
+      q.ParamByName('option_name').AsString := AnOptionName;
+      q.ParamByName('bool_value').Clear;
+      q.ParamByName('relationkey').AsInteger := F.Relation.ID;
+      q.ParamByName('relationfieldkey').AsInteger := F.ID;
+      q.ParamByName('contactkey').Clear;
+      q.ExecQuery;
+
+      AddNSObject(AnOptionName, OptID);
+    end;
+  end;
+
+begin
+  q := TIBSQL.Create(nil);
+  qRUID := TIBSQL.Create(nil);
+  qNS := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    qRUID.Transaction := Tr;
+    qRUID.SQL.Text :=
+      'INSERT INTO gd_ruid (id, xid, dbid) VALUES (:id, :id, GEN_ID(gd_g_dbid, 0))';
+
+    qNS.Transaction := Tr;
+    qNS.SQL.Text :=
+      'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
+      'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT obj.* ' +
+      'FROM at_object obj JOIN gd_ruid r ' +
+      '  ON r.xid = obj.xid AND r.dbid = obj.dbid ' +
+      'WHERE ' +
+      '  r.id = :ID';
+    q.ParamByName('id').AsInteger := TypeID;
+    q.ExecQuery;
+
+    if not q.EOF then
+    begin
+      NSID := q.FieldByName('namespacekey').AsInteger;
+      NSPos := q.FieldByName('objectpos').AsInteger;
+      NSHeadObjectID := q.FieldByName('id').AsInteger;
+    end else
+    begin
+      NSID := -1;
+      NSPos := -1;
+      NSHeadObjectID := -1;
+    end;
+
+    q.Close;
+    q.SQL.Text :=
+      'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationkey, relationfieldkey, contactkey) ' +
+      ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationkey, :relationfieldkey, :contactkey';
+
+    ConvertRelationField(FDebitMovement.RelationName, FDebitMovement.SourceFieldName, 'DM.SF');
+    ConvertRelationField(FDebitMovement.SubRelationName, FDebitMovement.SubSourceFieldName, 'DM.SSF');
+
+    (*
+    FDebitMovement: TgdcInvMovementContactOption;
+    FCreditMovement: TgdcInvMovementContactOption;
+    FSourceFeatures, FDestFeatures, FMinusFeatures: TStringList;
+    FDirection: TgdcInvMovementDirection;
+    FSources: TgdcInvReferenceSources;
+    FControlRemains: Boolean;
+    FLiveTimeRemains: Boolean;
+    FMinusRemains: Boolean;
+    FDelayedDocument: Boolean;
+    FUseCachedUpdates: Boolean;
+    FIsChangeCardValue: Boolean;
+    FIsAppendCardValue: Boolean;
+    FIsUseCompanyKey: Boolean;
+    FSaveRestWindowOption: Boolean;
+    FEndMonthRemains: Boolean;
+    FWithoutSearchRemains: Boolean;
+    *)
+
+    Tr.Commit;
+  finally
+    qNS.Free;
+    qRUID.Free;
+    q.Free;
+    Tr.Free;
+  end;
 end;
 
 constructor TgdInvDocumentEntry.Create(AParent: TgdClassEntry;
