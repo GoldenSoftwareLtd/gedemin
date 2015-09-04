@@ -2750,12 +2750,88 @@ var
       q.ParamByName('dtkey').AsInteger := TypeID;
       q.ParamByName('option_name').AsString := AnOptionName;
       q.ParamByName('bool_value').Clear;
-      q.ParamByName('relationkey').AsInteger := F.Relation.ID;
       q.ParamByName('relationfieldkey').AsInteger := F.ID;
       q.ParamByName('contactkey').Clear;
       q.ExecQuery;
 
       AddNSObject(AnOptionName, OptID);
+    end;
+  end;
+
+  procedure ConvertBoolean(const AValue: Boolean; const AnOptionName: String);
+  var
+    OptID: Integer;
+  begin
+    if AValue then
+    begin
+      OptID := GetOptID;
+
+      q.ParamByName('id').AsInteger := OptID;
+      q.ParamByName('dtkey').AsInteger := TypeID;
+      q.ParamByName('option_name').AsString := AnOptionName;
+      q.ParamByName('bool_value').AsInteger := 1;
+      q.ParamByName('relationfieldkey').Clear;
+      q.ParamByName('contactkey').Clear;
+      q.ExecQuery;
+
+      AddNSObject(AnOptionName, OptID);
+    end;
+  end;
+
+  procedure ConvertContact(const AContactKey: Integer; const AnOptionName: String);
+  var
+    OptID: Integer;
+  begin
+    OptID := GetOptID;
+
+    q.ParamByName('id').AsInteger := OptID;
+    q.ParamByName('dtkey').AsInteger := TypeID;
+    q.ParamByName('option_name').AsString := AnOptionName;
+    q.ParamByName('bool_value').Clear;
+    q.ParamByName('relationfieldkey').Clear;
+    q.ParamByName('contactkey').AsInteger := AContactKey;
+    q.ExecQuery;
+
+    AddNSObject(AnOptionName, OptID);
+  end;
+
+  procedure ConvertInvMovementContactOption(AValue: TgdcInvMovementContactOption;
+    const AnOptionName: String);
+  var
+    J: Integer;
+  begin
+    ConvertRelationField(AValue.RelationName, AValue.SourceFieldName, AnOptionName + '.SF');
+    ConvertRelationField(AValue.SubRelationName, AValue.SubSourceFieldName, AnOptionName + '.SSF');
+    ConvertBoolean(True, AnOptionName + '.CT.' + gdcInvMovementContactTypeNames[AValue.ContactType]);
+    for J := Low(AValue.Predefined) to High(AValue.Predefined) do
+      ConvertContact(AValue.Predefined[J], AnOptionName + '.Predefined');
+    for J := Low(AValue.SubPredefined) to High(AValue.SubPredefined) do
+      ConvertContact(AValue.SubPredefined[J], AnOptionName + '.SubPredefined');
+  end;
+
+  procedure ConvertFeatures(SL: TStringList; const AnOptionName: String);
+  var
+    F: TatRelationField;
+    OptID: Integer;
+    J: Integer;
+  begin
+    for J := 0 to SL.Count - 1 do
+    begin
+      F := atDatabase.FindRelationField('INV_CARD', SL[J]);
+      if F <> nil then
+      begin
+        OptID := GetOptID;
+
+        q.ParamByName('id').AsInteger := OptID;
+        q.ParamByName('dtkey').AsInteger := TypeID;
+        q.ParamByName('option_name').AsString := AnOptionName;
+        q.ParamByName('bool_value').Clear;
+        q.ParamByName('relationfieldkey').AsInteger := F.ID;
+        q.ParamByName('contactkey').Clear;
+        q.ExecQuery;
+
+        AddNSObject(AnOptionName, OptID);
+      end;
     end;
   end;
 
@@ -2770,7 +2846,8 @@ begin
 
     qRUID.Transaction := Tr;
     qRUID.SQL.Text :=
-      'INSERT INTO gd_ruid (id, xid, dbid) VALUES (:id, :id, GEN_ID(gd_g_dbid, 0))';
+      'INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
+      'VALUES (:id, :id, GEN_ID(gd_g_dbid, 0), CURRENT_TIMESTAMP, <CONTACTKEY/>)';
 
     qNS.Transaction := Tr;
     qNS.SQL.Text :=
@@ -2801,30 +2878,31 @@ begin
 
     q.Close;
     q.SQL.Text :=
-      'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationkey, relationfieldkey, contactkey) ' +
-      ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationkey, :relationfieldkey, :contactkey';
+      'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey) ' +
+      ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationfieldkey, :contactkey)';
 
-    ConvertRelationField(FDebitMovement.RelationName, FDebitMovement.SourceFieldName, 'DM.SF');
-    ConvertRelationField(FDebitMovement.SubRelationName, FDebitMovement.SubSourceFieldName, 'DM.SSF');
-
-    (*
-    FDebitMovement: TgdcInvMovementContactOption;
-    FCreditMovement: TgdcInvMovementContactOption;
-    FSourceFeatures, FDestFeatures, FMinusFeatures: TStringList;
-    FDirection: TgdcInvMovementDirection;
-    FSources: TgdcInvReferenceSources;
-    FControlRemains: Boolean;
-    FLiveTimeRemains: Boolean;
-    FMinusRemains: Boolean;
-    FDelayedDocument: Boolean;
-    FUseCachedUpdates: Boolean;
-    FIsChangeCardValue: Boolean;
-    FIsAppendCardValue: Boolean;
-    FIsUseCompanyKey: Boolean;
-    FSaveRestWindowOption: Boolean;
-    FEndMonthRemains: Boolean;
-    FWithoutSearchRemains: Boolean;
-    *)
+    ConvertInvMovementContactOption(FDebitMovement, 'DM');
+    ConvertInvMovementContactOption(FCreditMovement, 'CM');
+    ConvertFeatures(FSourceFeatures, 'SF');
+    ConvertFeatures(FDestFeatures, 'DF');
+    ConvertFeatures(FMinusFeatures, 'MF');
+    ConvertBoolean(FDirection = imdFIFO, 'Direction.FIFO');
+    ConvertBoolean(FDirection = imdLIFO, 'Direction.LIFO');
+    ConvertBoolean(FDirection = imdDefault, 'Direction.Default');
+    ConvertBoolean(irsGoodRef in FSources, 'Sources.GoodRef');
+    ConvertBoolean(irsRemainsRef in FSources, 'Sources.RemainsRef');
+    ConvertBoolean(irsMacro in FSources, 'Sources.Macro');
+    ConvertBoolean(FControlRemains, 'ControlRemains');
+    ConvertBoolean(FLiveTimeRemains, 'LiveTimeRemains');
+    ConvertBoolean(FMinusRemains, 'MinusRemains');
+    ConvertBoolean(FDelayedDocument, 'DelayedDocument');
+    ConvertBoolean(FUseCachedUpdates, 'UseCachedUpdates');
+    ConvertBoolean(FIsChangeCardValue, 'ChangeCardValue');
+    ConvertBoolean(FIsAppendCardValue, 'AppendCardValue');
+    ConvertBoolean(FIsUseCompanyKey, 'UseCompanyKey');
+    ConvertBoolean(FSaveRestWindowOption, 'SaveRestWindowOption');
+    ConvertBoolean(FEndMonthRemains, 'EndMonthRemains');
+    ConvertBoolean(FWithoutSearchRemains, 'WithoutSearchRemains');
 
     Tr.Commit;
   finally

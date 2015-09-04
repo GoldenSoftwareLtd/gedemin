@@ -716,6 +716,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (228, '0000.0001.0000.0259', '02.09.2015', 'Correction for GD_DOCUMENTTYPE_OPTION');  
   
+INSERT INTO fin_versioninfo
+  VALUES (229, '0000.0001.0000.0260', '04.09.2015', 'Correction for GD_DOCUMENTTYPE_OPTION #2');  
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
