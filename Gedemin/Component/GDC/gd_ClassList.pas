@@ -2758,7 +2758,8 @@ var
     end;
   end;
 
-  procedure ConvertBoolean(const AValue: Boolean; const AnOptionName: String);
+  procedure ConvertBoolean(const AValue: Boolean; const AnOptionName: String;
+    const AnObjectName: String = '');
   var
     OptID: Integer;
   begin
@@ -2774,7 +2775,10 @@ var
       q.ParamByName('contactkey').Clear;
       q.ExecQuery;
 
-      AddNSObject(AnOptionName, OptID);
+      if AnObjectName = '' then
+        AddNSObject(AnOptionName, OptID)
+      else
+        AddNSObject(AnObjectName, OptID);
     end;
   end;
 
@@ -2802,7 +2806,8 @@ var
   begin
     ConvertRelationField(AValue.RelationName, AValue.SourceFieldName, AnOptionName + '.SF');
     ConvertRelationField(AValue.SubRelationName, AValue.SubSourceFieldName, AnOptionName + '.SSF');
-    ConvertBoolean(True, AnOptionName + '.CT.' + gdcInvMovementContactTypeNames[AValue.ContactType]);
+    ConvertBoolean(True, AnOptionName + '.CT.' + gdcInvMovementContactTypeNames[AValue.ContactType],
+      AnOptionName + '.CT');
     for J := Low(AValue.Predefined) to High(AValue.Predefined) do
       ConvertContact(AValue.Predefined[J], AnOptionName + '.Predefined');
     for J := Low(AValue.SubPredefined) to High(AValue.SubPredefined) do
