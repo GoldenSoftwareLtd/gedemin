@@ -1,6 +1,6 @@
 inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
-  Left = 184
-  Top = 125
+  Left = 185
+  Top = 126
   Caption = 'Настройка остатков'
   ClientHeight = 306
   ClientWidth = 487

@@ -1,6 +1,6 @@
 inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
-  Left = 620
-  Top = 233
+  Left = 621
+  Top = 234
   Caption = 'Свойства объекта'
   ClientHeight = 559
   ClientWidth = 657

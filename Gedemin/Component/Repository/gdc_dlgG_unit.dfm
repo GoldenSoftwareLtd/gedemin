@@ -1,6 +1,6 @@
 object gdc_dlgG: Tgdc_dlgG
-  Left = 430
-  Top = 262
+  Left = 432
+  Top = 263
   HelpContext = 114
   BorderIcons = [biSystemMenu, biMaximize]
   BorderStyle = bsDialog

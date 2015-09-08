@@ -3076,19 +3076,19 @@ begin
     FLiveTimeRemains := False;
   end else
   begin
-    FControlRemains := AnIDE.ControlRemains;
-    FLiveTimeRemains := AnIDE.LiveTimeRemains;
+    FControlRemains := AnIDE.GetFlag(efControlRemains);
+    FLiveTimeRemains := AnIDE.GetFlag(efLiveTimeRemains);
   end;
 
-  FCanBeDelayed := AnIDE.DelayedDocument;
-  FUseCachedUpdates := AnIDE.UseCachedUpdates;
-  FIsMinusRemains := AnIDE.MinusRemains;
-  FIsChangeCardValue := AnIDE.IsChangeCardValue;
-  FIsAppendCardValue := AnIDE.IsAppendCardValue;
-  FIsUseCompanyKey := AnIDE.IsUseCompanyKey;
-  FSaveRestWindowOption := AnIDE.SaveRestWindowOption;
-  FEndMonthRemains := AnIDE.EndMonthRemains;
-  FWithoutSearchRemains := AnIDE.WithoutSearchRemains;
+  FCanBeDelayed := AnIDE.GetFlag(efDelayedDocument);
+  FUseCachedUpdates := AnIDE.GetFlag(efUseCachedUpdates);
+  FIsMinusRemains := AnIDE.GetFlag(efMinusRemains);
+  FIsChangeCardValue := AnIDE.GetFlag(efIsChangeCardValue);
+  FIsAppendCardValue := AnIDE.GetFlag(efIsAppendCardValue);
+  FIsUseCompanyKey := AnIDE.GetFlag(efIsUseCompanyKey);
+  FSaveRestWindowOption := AnIDE.GetFlag(efSaveRestWindowOption);
+  FEndMonthRemains := AnIDE.GetFlag(efEndMonthRemains);
+  FWithoutSearchRemains := AnIDE.GetFlag(efWithoutSearchRemains);
 
   (*
   with TReader.Create(Stream, 1024) do

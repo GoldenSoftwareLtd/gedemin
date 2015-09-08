@@ -84,7 +84,7 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       Height = 319
       object splDocumentOptions: TSplitter [0]
         Left = 0
-        Top = 272
+        Top = 172
         Width = 589
         Height = 6
         Cursor = crVSplit
@@ -115,23 +115,59 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
         end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 246
+        Height = 146
         inherited sbSearchDetail: TScrollBox
-          Height = 219
+          Height = 119
         end
       end
       inherited ibgrDetail: TgsIBGrid
         Width = 429
-        Height = 246
+        Height = 146
       end
       object pnlDocumentOptions: TPanel
         Left = 0
-        Top = 278
+        Top = 178
         Width = 589
-        Height = 41
+        Height = 141
         Align = alBottom
         BevelOuter = bvNone
         TabOrder = 3
+        object tbdDTOptions: TTBDock
+          Left = 0
+          Top = 0
+          Width = 589
+          Height = 26
+          object tbDTOptions: TTBToolbar
+            Left = 0
+            Top = 0
+            Caption = 'tbDTOptions'
+            DockMode = dmCannotFloatOrChangeDocks
+            TabOrder = 0
+          end
+        end
+        object ibgrOptions: TgsIBGrid
+          Left = 0
+          Top = 26
+          Width = 589
+          Height = 115
+          Align = alClient
+          BorderStyle = bsNone
+          DataSource = dsInvDocumentOptions
+          ReadOnly = True
+          TabOrder = 1
+          InternalMenuKind = imkWithSeparator
+          Expands = <>
+          ExpandsActive = False
+          ExpandsSeparate = False
+          TitlesExpanding = False
+          Conditions = <>
+          ConditionsActive = False
+          CheckBox.Visible = False
+          CheckBox.FirstColumn = False
+          MinColWidth = 40
+          ColumnEditors = <>
+          Aliases = <>
+        end
       end
     end
   end
@@ -201,5 +237,18 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
   object gdcBaseDocumentType: TgdcBaseDocumentType
     Left = 72
     Top = 128
+  end
+  object gdcInvDocumentOptions: TgdcInvDocumentOptions
+    MasterSource = dsDetail
+    MasterField = 'ID'
+    DetailField = 'DocumentTypeKey'
+    SubSet = 'ByDocumentType'
+    Left = 467
+    Top = 289
+  end
+  object dsInvDocumentOptions: TDataSource
+    DataSet = gdcInvDocumentOptions
+    Left = 496
+    Top = 289
   end
 end

@@ -395,6 +395,26 @@ type
     property BranchKey: Integer read FBranchKey write FBranchKey;
   end;
 
+  TgdInvDocumentEntryFlag = (
+    efControlRemains,
+    efLiveTimeRemains,
+    efMinusRemains,
+    efDelayedDocument,
+    efUseCachedUpdates,
+    efIsChangeCardValue,
+    efIsAppendCardValue,
+    efIsUseCompanyKey,
+    efSaveRestWindowOption,
+    efEndMonthRemains,
+    efWithoutSearchRemains
+  );
+
+  TgdInvDocumentEntryFlagProp = (
+    fpValue,
+    fpOldValue,
+    fpIsSet
+  );
+
   TgdInvDocumentEntry = class(TgdDocumentEntry)
   private
     FDebitMovement: TgdcInvMovementContactOption;
@@ -402,17 +422,7 @@ type
     FSourceFeatures, FDestFeatures, FMinusFeatures: TStringList;
     FDirection: TgdcInvMovementDirection;
     FSources: TgdcInvReferenceSources;
-    FControlRemains: Boolean;
-    FLiveTimeRemains: Boolean;
-    FMinusRemains: Boolean;
-    FDelayedDocument: Boolean;
-    FUseCachedUpdates: Boolean;
-    FIsChangeCardValue: Boolean;
-    FIsAppendCardValue: Boolean;
-    FIsUseCompanyKey: Boolean;
-    FSaveRestWindowOption: Boolean;
-    FEndMonthRemains: Boolean;
-    FWithoutSearchRemains: Boolean;
+    FFlags: array[TgdInvDocumentEntryFlag, TgdInvDocumentEntryFlagProp] of Boolean;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -423,6 +433,8 @@ type
     procedure Assign(CE: TgdClassEntry); override;
     procedure ParseOptions; override;
     procedure ConvertOptions; override;
+    function GetFlag(const AFlag: TgdInvDocumentEntryFlag): Boolean;
+    procedure SetFlag(const AFlag: TgdInvDocumentEntryFlag; const AValue: Boolean = True);
 
     property DebitMovement: TgdcInvMovementContactOption read FDebitMovement;
     property CreditMovement: TgdcInvMovementContactOption read FCreditMovement;
@@ -431,17 +443,6 @@ type
     property MinusFeatures: TStringList read FMinusFeatures;
     property Direction: TgdcInvMovementDirection read FDirection;
     property Sources: TgdcInvReferenceSources read FSources;
-    property ControlRemains: Boolean read FControlRemains;
-    property LiveTimeRemains: Boolean read FLiveTimeRemains;
-    property MinusRemains: Boolean read FMinusRemains;
-    property DelayedDocument: Boolean read FDelayedDocument;
-    property UseCachedUpdates: Boolean read FUseCachedUpdates;
-    property IsChangeCardValue: Boolean read FIsChangeCardValue;
-    property IsAppendCardValue: Boolean read FIsAppendCardValue;
-    property IsUseCompanyKey: Boolean read FIsUseCompanyKey;
-    property SaveRestWindowOption: Boolean read FSaveRestWindowOption;
-    property EndMonthRemains: Boolean read FEndMonthRemains;
-    property WithoutSearchRemains: Boolean read FWithoutSearchRemains;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -2077,27 +2078,27 @@ procedure TgdClassList.LoadUserDefinedClasses;
           Exclude(DE.FSources, irsMacro);
       end
       else if OptName = 'ControlRemains' then
-        DE.FControlRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efControlRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'LiveTimeRemains' then
-        DE.FLiveTimeRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efLiveTimeRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'MinusRemains' then
-        DE.FMinusRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efMinusRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'DelayedDocument' then
-        DE.FDelayedDocument := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efDelayedDocument, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'UseCachedUpdates' then
-        DE.FUseCachedUpdates := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efUseCachedUpdates, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'ChangeCardValue' then
-        DE.FIsChangeCardValue := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efIsChangeCardValue, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'AppendCardValue' then
-        DE.FIsAppendCardValue := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efIsAppendCardValue, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'UseCompanyKey' then
-        DE.FIsUseCompanyKey := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efIsUseCompanyKey, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'SaveRestWindowOption' then
-        DE.FSaveRestWindowOption := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efSaveRestWindowOption, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'EndMonthRemains' then
-        DE.FEndMonthRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0
+        DE.SetFlag(efEndMonthRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0)
       else if OptName = 'WithoutSearchRemains' then
-        DE.FWithoutSearchRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0;
+        DE.SetFlag(efWithoutSearchRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0);
 
       qOpt.Next;
     end;
@@ -2820,17 +2821,7 @@ begin
   FMinusFeatures.Assign((CE as TgdInvDocumentEntry).MinusFeatures);
   FDirection := (CE as TgdInvDocumentEntry).Direction;
   FSources := (CE as TgdInvDocumentEntry).Sources;
-  FControlRemains := (CE as TgdInvDocumentEntry).ControlRemains;
-  FLiveTimeRemains := (CE as TgdInvDocumentEntry).LiveTimeRemains;
-  FMinusRemains := (CE as TgdInvDocumentEntry).MinusRemains;
-  FDelayedDocument := (CE as TgdInvDocumentEntry).DelayedDocument;
-  FUseCachedUpdates := (CE as TgdInvDocumentEntry).UseCachedUpdates;
-  FIsChangeCardValue := (CE as TgdInvDocumentEntry).IsChangeCardValue;
-  FIsAppendCardValue := (CE as TgdInvDocumentEntry).IsAppendCardValue;
-  FIsUseCompanyKey := (CE as TgdInvDocumentEntry).IsUseCompanyKey;
-  FSaveRestWindowOption := (CE as TgdInvDocumentEntry).SaveRestWindowOption;
-  FEndMonthRemains := (CE as TgdInvDocumentEntry).EndMonthRemains;
-  FWithoutSearchRemains := (CE as TgdInvDocumentEntry).WithoutSearchRemains;
+  FFlags := (CE as TgdInvDocumentEntry).FFlags;
 end;
 
 procedure TgdInvDocumentEntry.ConvertOptions;
@@ -3028,17 +3019,17 @@ begin
     ConvertBoolean(irsGoodRef in FSources, 'Src.GoodRef');
     ConvertBoolean(irsRemainsRef in FSources, 'Src.RemainsRef');
     ConvertBoolean(irsMacro in FSources, 'Src.Macro');
-    ConvertBoolean(FControlRemains, 'ControlRemains');
-    ConvertBoolean(FLiveTimeRemains, 'LiveTimeRemains');
-    ConvertBoolean(FMinusRemains, 'MinusRemains');
-    ConvertBoolean(FDelayedDocument, 'DelayedDocument');
-    ConvertBoolean(FUseCachedUpdates, 'UseCachedUpdates');
-    ConvertBoolean(FIsChangeCardValue, 'ChangeCardValue');
-    ConvertBoolean(FIsAppendCardValue, 'AppendCardValue');
-    ConvertBoolean(FIsUseCompanyKey, 'UseCompanyKey');
-    ConvertBoolean(FSaveRestWindowOption, 'SaveRestWindowOption');
-    ConvertBoolean(FEndMonthRemains, 'EndMonthRemains');
-    ConvertBoolean(FWithoutSearchRemains, 'WithoutSearchRemains');
+    ConvertBoolean(GetFlag(efControlRemains), 'ControlRemains');
+    ConvertBoolean(GetFlag(efLiveTimeRemains), 'LiveTimeRemains');
+    ConvertBoolean(GetFlag(efMinusRemains), 'MinusRemains');
+    ConvertBoolean(GetFlag(efDelayedDocument), 'DelayedDocument');
+    ConvertBoolean(GetFlag(efUseCachedUpdates), 'UseCachedUpdates');
+    ConvertBoolean(GetFlag(efIsChangeCardValue), 'ChangeCardValue');
+    ConvertBoolean(GetFlag(efIsAppendCardValue), 'AppendCardValue');
+    ConvertBoolean(GetFlag(efIsUseCompanyKey), 'UseCompanyKey');
+    ConvertBoolean(GetFlag(efSaveRestWindowOption), 'SaveRestWindowOption');
+    ConvertBoolean(GetFlag(efEndMonthRemains), 'EndMonthRemains');
+    ConvertBoolean(GetFlag(efWithoutSearchRemains), 'WithoutSearchRemains');
 
     Tr.Commit;
   finally
@@ -3069,6 +3060,15 @@ begin
   FDestFeatures.Free;
   FMinusFeatures.Free;
   inherited;
+end;
+
+function TgdInvDocumentEntry.GetFlag(
+  const AFlag: TgdInvDocumentEntryFlag): Boolean;
+begin
+  if (not FFlags[AFlag, fpIsSet]) and (Parent is TgdInvDocumentEntry) then
+    Result := TgdInvDocumentEntry(Parent).GetFlag(AFlag)
+  else
+    Result := FFlags[AFlag, fpValue];
 end;
 
 procedure TgdInvDocumentEntry.ParseOptions;
@@ -3199,7 +3199,7 @@ begin
     Read(FDirection, SizeOf(TgdcInvMovementDirection));
 
     // Контроль остатков
-    FControlRemains := ReadBoolean;
+    SetFlag(efControlRemains, ReadBoolean);
 
     // работа только с текущими остатками
     if (Version = gdcInvDocument_Version1_9) or
@@ -3212,24 +3212,24 @@ begin
       (Version = gdcInvDocument_Version2_6) or
       (Version = gdcInvDocument_Version3_0)  then
     begin
-      FLiveTimeRemains := ReadBoolean;
+      SetFlag(efLiveTimeRemains, ReadBoolean);
     end else
-      FLiveTimeRemains := False;
+      SetFlag(efLiveTimeRemains, False);
 
     // Документ может быть отложенным
-    FDelayedDocument := ReadBoolean;
+    SetFlag(efDelayedDocument, ReadBoolean);
 
     // Может использоваться кэширование
-    FUseCachedUpdates := ReadBoolean;
+    SetFlag(efUseCachedUpdates, ReadBoolean);
 
     if (Version = gdcInvDocument_Version2_1) or (Version = gdcInvDocument_Version2_2)
        or (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4)
        or (Version = gdcInvDocument_Version2_5)  or
       (Version = gdcInvDocument_Version2_6) or (Version = gdcInvDocument_Version3_0)
     then
-      FMinusRemains := ReadBoolean
+      SetFlag(efMinusRemains, ReadBoolean)
     else
-      FMinusRemains := False;
+      SetFlag(efMinusRemains, False);
 
     if (Version = gdcInvDocument_Version2_2) or (Version = gdcInvDocument_Version2_3)
        or (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5) or
@@ -3252,36 +3252,47 @@ begin
       (Version = gdcInvDocument_Version2_6) or
       (Version = gdcInvDocument_Version3_0) then
     begin
-      FIsChangeCardValue := ReadBoolean;
-      FIsAppendCardValue := ReadBoolean;
+      SetFlag(efIsChangeCardValue, ReadBoolean);
+      SetFlag(efIsAppendCardValue, ReadBoolean);
     end;
 
     if (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5)  or
       (Version = gdcInvDocument_Version2_6) or
       (Version = gdcInvDocument_Version3_0) then
-      FIsUseCompanyKey := ReadBoolean
+      SetFlag(efIsUseCompanyKey, ReadBoolean)
     else
-      FIsUseCompanyKey := True;
+      SetFlag(efIsUseCompanyKey, False);
 
     if (Version = gdcInvDocument_Version2_5)  or
       (Version = gdcInvDocument_Version2_6) or
       (Version = gdcInvDocument_Version3_0) then
-      FSaveRestWindowOption := ReadBoolean
+      SetFlag(efSaveRestWindowOption, ReadBoolean)
     else
-      FSaveRestWindowOption := False;
+      SetFlag(efSaveRestWindowOption, False);
 
     if (Version = gdcInvDocument_Version2_6) or (Version = gdcInvDocument_Version3_0) then
-      FEndMonthRemains := ReadBoolean
+      SetFlag(efEndMonthRemains, ReadBoolean)
     else
-      FEndMonthRemains := False;
+      SetFlag(efEndMonthRemains, False);
 
     if (Version = gdcInvDocument_Version3_0) then
-      FWithoutSearchRemains := ReadBoolean
+      SetFlag(efWithoutSearchRemains, ReadBoolean)
     else
-      FWithoutSearchRemains := False;
+      SetFlag(efWithoutSearchRemains, False);
   finally
     Free;
     SS.Free;
+  end;
+end;
+
+procedure TgdInvDocumentEntry.SetFlag(const AFlag: TgdInvDocumentEntryFlag;
+  const AValue: Boolean);
+begin
+  FFlags[AFlag, fpValue] := AValue;
+  if not FFlags[AFlag, fpIsSet] then
+  begin
+    FFlags[AFlag, fpOldValue] := AValue;
+    FFlags[AFlag, fpIsSet] := True;
   end;
 end;
 

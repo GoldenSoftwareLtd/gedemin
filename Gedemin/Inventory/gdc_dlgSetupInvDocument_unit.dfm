@@ -1,5 +1,5 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Top = 198
+  Top = 199
   Caption = 'Складской документ'
   PixelsPerInch = 96
   TextHeight = 13

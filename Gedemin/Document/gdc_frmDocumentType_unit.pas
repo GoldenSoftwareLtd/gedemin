@@ -7,7 +7,7 @@ uses
   gdc_frmMDVTree_unit, Db, Menus, ActnList, Grids, DBGrids, gsDBGrid,
   gsIBGrid, ComCtrls, gsDBTreeView, ToolWin, ExtCtrls, TB2Item, TB2Dock,
   TB2Toolbar, gdcClasses, IBCustomDataSet, gdcBase, gdcTree, StdCtrls,
-  gd_MacrosMenu, dmImages_unit;
+  gd_MacrosMenu, dmImages_unit, gdcInvDocumentOptions;
 
 type
   Tgdc_frmDocumentType = class(Tgdc_frmMDVTree)
@@ -26,6 +26,11 @@ type
     gdcBaseDocumentType: TgdcBaseDocumentType;
     pnlDocumentOptions: TPanel;
     splDocumentOptions: TSplitter;
+    tbdDTOptions: TTBDock;
+    tbDTOptions: TTBToolbar;
+    ibgrOptions: TgsIBGrid;
+    gdcInvDocumentOptions: TgdcInvDocumentOptions;
+    dsInvDocumentOptions: TDataSource;
     procedure FormCreate(Sender: TObject);
     procedure actNewSubExecute(Sender: TObject);
     procedure actNewSubUpdate(Sender: TObject);
@@ -71,6 +76,7 @@ begin
   gdcObject := gdcBaseDocumentType;
   gdcDetailObject := gdcDocumentType;
   inherited;
+  gdcInvDocumentOptions.Open;
 end;
 
 procedure Tgdc_frmDocumentType.actNewSubExecute(Sender: TObject);
