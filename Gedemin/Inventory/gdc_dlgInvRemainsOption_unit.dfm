@@ -1,6 +1,6 @@
 inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
-  Left = 181
-  Top = 122
+  Left = 184
+  Top = 125
   Caption = 'Настройка остатков'
   ClientHeight = 306
   ClientWidth = 487
@@ -8,28 +8,23 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
   Font.Name = 'MS Sans Serif'
   OldCreateOrder = False
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   inherited btnAccess: TButton
     Top = 281
-    Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
     Top = 281
-    Anchors = [akLeft, akBottom]
   end
   inherited btnHelp: TButton
     Top = 281
-    Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
     Left = 339
     Top = 280
-    Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
     Left = 411
     Top = 280
-    Anchors = [akRight, akBottom]
   end
   object pcMain: TPageControl [5]
     Left = 0
@@ -45,21 +40,21 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         Left = 8
         Top = 13
         Width = 76
-        Height = 13
+        Height = 14
         Caption = 'Наименование'
       end
       object Label2: TLabel
         Left = 8
         Top = 39
-        Width = 119
-        Height = 13
+        Width = 122
+        Height = 14
         Caption = 'Ветка в исследователе'
       end
       object dbedName: TDBEdit
         Left = 136
         Top = 9
         Width = 241
-        Height = 21
+        Height = 22
         DataField = 'NAME'
         DataSource = dsgdcBase
         TabOrder = 0
@@ -68,7 +63,7 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         Left = 136
         Top = 35
         Width = 241
-        Height = 21
+        Height = 22
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
         Transaction = ibtrCommon
@@ -77,7 +72,7 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         ListTable = 'GD_COMMAND'
         ListField = 'NAME'
         KeyField = 'ID'
-        ItemHeight = 13
+        ItemHeight = 14
         TabOrder = 1
       end
       object DBCheckBox1: TDBCheckBox
@@ -100,7 +95,7 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         Left = 0
         Top = 0
         Width = 479
-        Height = 239
+        Height = 238
         ActivePage = tsViewGood
         Align = alClient
         TabOrder = 0
@@ -256,7 +251,7 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         Left = 0
         Top = 0
         Width = 479
-        Height = 239
+        Height = 238
         ActivePage = TabSheet2
         Align = alClient
         TabOrder = 0

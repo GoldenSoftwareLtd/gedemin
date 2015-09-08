@@ -418,6 +418,43 @@ begin
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_aiu_documenttype_option FOR gd_documenttype_option '#13#10 +
+          '  AFTER INSERT OR UPDATE '#13#10 +
+          '  POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE I INTEGER = 0; '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (EXISTS( '#13#10 +
+          '    SELECT '#13#10 +
+          '      option_name, '#13#10 +
+          '      COUNT(option_name) '#13#10 +
+          '    FROM '#13#10 +
+          '      gd_documenttype_option '#13#10 +
+          '    WHERE '#13#10 +
+          '      dtkey = NEW.dtkey AND bool_value IS NOT NULL '#13#10 +
+          '    GROUP BY '#13#10 +
+          '      option_name '#13#10 +
+          '    HAVING '#13#10 +
+          '      COUNT(option_name) > 1)) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    EXCEPTION gd_e_exception ''Duplicate option''; '#13#10 +
+          '  END '#13#10 +
+          ' '#13#10 +
+          '  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = ''Dir.FIFO'')) THEN '#13#10 +
+          '    I = :I + 1; '#13#10 +
+          ' '#13#10 +
+          '  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = ''Dir.LIFO'')) THEN '#13#10 +
+          '    I = :I + 1; '#13#10 +
+          ' '#13#10 +
+          '  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = ''Dir.Default'')) THEN '#13#10 +
+          '    I = :I + 1; '#13#10 +
+          ' '#13#10 +
+          '  IF (:I > 1) THEN '#13#10 +
+          '    EXCEPTION gd_e_exception ''Duplicate option''; '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
           'GRANT ALL ON GD_DOCUMENTTYPE_OPTION TO administrator';
         FIBSQL.ExecQuery;
 

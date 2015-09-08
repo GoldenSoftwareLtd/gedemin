@@ -124,6 +124,8 @@ type
 
     procedure Assign(AnObject: TgdcInvMovementContactOption);
     procedure GetProperties(ASL: TStrings);
+    procedure AddPredefined(const AnID: Integer);
+    procedure AddSubPredefined(const AnID: Integer);
   end;
 
   // Вид складской справочной информации
@@ -247,6 +249,19 @@ uses
   SysUtils, gd_common_functions;
 
 { TgdcInvMovementContactOption }
+
+procedure TgdcInvMovementContactOption.AddPredefined(const AnID: Integer);
+begin
+  SetLength(Predefined, Length(Predefined) + 1);
+  Predefined[High(Predefined)] := AnID;
+end;
+
+procedure TgdcInvMovementContactOption.AddSubPredefined(
+  const AnID: Integer);
+begin
+  SetLength(SubPredefined, Length(SubPredefined) + 1);
+  Predefined[High(SubPredefined)] := AnID;
+end;
 
 procedure TgdcInvMovementContactOption.Assign(
   AnObject: TgdcInvMovementContactOption);

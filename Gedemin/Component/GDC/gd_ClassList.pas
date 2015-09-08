@@ -1976,8 +1976,131 @@ end;
 
 procedure TgdClassList.LoadUserDefinedClasses;
 
-  procedure LoadDEOption(DE: TgdDocumentEntry; qOpt: TIBSQL);
+  procedure LoadDEOption(DE: TgdInvDocumentEntry; qOpt: TIBSQL);
+
+    procedure LoadMovementContactOption(const AnOptName: String; M: TgdcInvMovementContactOption);
+    begin
+      if Length(AnOptName) < 2 then
+        raise Exception.Create('Invalid option name');
+
+      if (AnOptName[1] = 'C') and (AnOptName[2] = 'T') then
+      begin
+        if AnOptName = 'CT.imctOurCompany' then
+          M.ContactType := imctOurCompany
+        else if AnOptName = 'CT.imctOurDepartment' then
+          M.ContactType := imctOurDepartment
+        else if AnOptName = 'CT.imctOurPeople' then
+          M.ContactType := imctOurPeople
+        else if AnOptName = 'CT.imctCompany' then
+          M.ContactType := imctCompany
+        else if AnOptName = 'CT.imctCompanyDepartment' then
+          M.ContactType := imctCompanyDepartment
+        else if AnOptName = 'CT.imctCompanyPeople' then
+          M.ContactType := imctCompanyPeople
+        else if AnOptName = 'CT.imctPeople' then
+          M.ContactType := imctPeople
+        else if AnOptName = 'CT.imctOurDepartAndPeople' then
+          M.ContactType := imctOurDepartAndPeople;
+      end
+      else if AnOptName = 'SF' then
+      begin
+        M.RelationName := qOpt.FieldbyName('relationname').AsString;
+        M.SourceFieldName := qOpt.FieldByName('fieldname').AsString;
+      end
+      else if AnOptName = 'SSF' then
+      begin
+        M.SubRelationName := qOpt.FieldbyName('relationname').AsString;
+        M.SubSourceFieldName := qOpt.FieldByName('fieldname').AsString;
+      end
+      else if AnOptName = 'Predefined' then
+        M.AddPredefined(qOpt.FieldByName('contactkey').AsInteger)
+      else if AnOptName = 'SubPredefined' then
+        M.AddSubPredefined(qOpt.FieldByName('contactkey').AsInteger);
+    end;
+
+    procedure LoadFeatures(R: TatRelation; SL: TStringList);
+    var
+      F: TatRelationField;
+    begin
+      F := R.RelationFields.ByID(qOpt.FieldByName('relationfieldkey').AsInteger);
+      if F <> nil then
+        SL.AddObject(F.FieldName, F);
+    end;
+
+  var
+    OptName: String;
+    R: TatRelation;
   begin
+    R := atDatabase.Relations.ByRelationName('INV_CARD');
+    Assert(R <> nil);
+
+    while (not qOpt.EOF) and (qOpt.FieldbyName('dtkey').AsInteger = DE.TypeID) do
+    begin
+      OptName := qOpt.FieldbyName('option_name').AsString;
+
+      if Length(OptName) < 2 then
+        raise Exception.Create('Invalid document type option name');
+
+      if (OptName[1] = 'D') and (OptName[2] = 'M') then
+        LoadMovementContactOption(Copy(OptName, 4, 1024), DE.FDebitMovement)
+      else if (OptName[1] = 'C') and (OptName[2] = 'M') then
+        LoadMovementContactOption(Copy(OptName, 4, 1024), DE.FCreditMovement)
+      else if OptName = 'SF' then
+        LoadFeatures(R, DE.FSourceFeatures)
+      else if OptName = 'DF' then
+        LoadFeatures(R, DE.FDestFeatures)
+      else if OptName = 'MF' then
+        LoadFeatures(R, DE.FMinusFeatures)
+      else if (OptName = 'Dir.FIFO') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
+        DE.FDirection := imdFIFO
+      else if (OptName = 'Dir.LIFO') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
+        DE.FDirection := imdLIFO
+      else if (OptName = 'Dir.Default') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
+        DE.FDirection := imdDefault
+      else if OptName = 'Src.GoodRef' then
+      begin
+        if qOpt.FieldbyName('bool_value').AsInteger <> 0 then
+          Include(DE.FSources, irsGoodRef)
+        else
+          Exclude(DE.FSources, irsGoodRef);
+      end else if OptName = 'Src.RemainsRef' then
+      begin
+        if qOpt.FieldbyName('bool_value').AsInteger <> 0 then
+          Include(DE.FSources, irsRemainsRef)
+        else
+          Exclude(DE.FSources, irsRemainsRef);
+      end else if OptName = 'Src.Macro' then
+      begin
+        if qOpt.FieldbyName('bool_value').AsInteger <> 0 then
+          Include(DE.FSources, irsMacro)
+        else
+          Exclude(DE.FSources, irsMacro);
+      end
+      else if OptName = 'ControlRemains' then
+        DE.FControlRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'LiveTimeRemains' then
+        DE.FLiveTimeRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'MinusRemains' then
+        DE.FMinusRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'DelayedDocument' then
+        DE.FDelayedDocument := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'UseCachedUpdates' then
+        DE.FUseCachedUpdates := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'ChangeCardValue' then
+        DE.FIsChangeCardValue := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'AppendCardValue' then
+        DE.FIsAppendCardValue := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'UseCompanyKey' then
+        DE.FIsUseCompanyKey := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'SaveRestWindowOption' then
+        DE.FSaveRestWindowOption := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'EndMonthRemains' then
+        DE.FEndMonthRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0
+      else if OptName = 'WithoutSearchRemains' then
+        DE.FWithoutSearchRemains := qOpt.FieldbyName('bool_value').AsInteger <> 0;
+
+      qOpt.Next;
+    end;
   end;
 
   procedure LoadDE(DE: TgdDocumentEntry; q, qOpt: TIBSQL);
@@ -2002,8 +2125,9 @@ procedure TgdClassList.LoadUserDefinedClasses;
           ParseOptions;
           ConvertOptions;
         end;
-      end else
-        LoadDEOption(DE, qOpt);
+      end
+      else if DE is TgdInvDocumentEntry then
+        LoadDEOption(DE as TgdInvDocumentEntry, qOpt);
     end;
   end;
 
@@ -2159,9 +2283,10 @@ begin
   try
     qOpt.Transaction := gdcBaseManager.ReadTransaction;
     qOpt.SQL.Text :=
-      'SELECT opt.* ' +
-      'FROM gd_documenttype_option opt JOIN gd_documenttype dt ' +
-      '  ON dt.id = opt.dtkey ' +
+      'SELECT opt.*, rf.relationname, rf.fieldname ' +
+      'FROM gd_documenttype_option opt ' +
+      '  JOIN gd_documenttype dt ON dt.id = opt.dtkey ' +
+      '  LEFT JOIN at_relation_fields rf ON opt.relationfieldkey = rf.id ' +
       'ORDER BY ' +
       '  dt.lb, dt.id';
     qOpt.ExecQuery;
@@ -2170,7 +2295,8 @@ begin
     q.SQL.Text :=
       'SELECT dt.* ' +
       'FROM gd_documenttype dt ' +
-      'WHERE dt.documenttype = ''D'' ORDER BY dt.lb, dt.id';
+      'WHERE dt.documenttype = ''D'' ' +
+      'ORDER BY dt.lb, dt.id';
     q.ExecQuery;
     while not q.EOF do
     begin
@@ -2785,18 +2911,23 @@ var
   procedure ConvertContact(const AContactKey: Integer; const AnOptionName: String);
   var
     OptID: Integer;
+    R: OleVariant;
   begin
-    OptID := GetOptID;
+    if gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_contact WHERE id=:id',
+      AContactKey, R) then
+    begin
+      OptID := GetOptID;
 
-    q.ParamByName('id').AsInteger := OptID;
-    q.ParamByName('dtkey').AsInteger := TypeID;
-    q.ParamByName('option_name').AsString := AnOptionName;
-    q.ParamByName('bool_value').Clear;
-    q.ParamByName('relationfieldkey').Clear;
-    q.ParamByName('contactkey').AsInteger := AContactKey;
-    q.ExecQuery;
+      q.ParamByName('id').AsInteger := OptID;
+      q.ParamByName('dtkey').AsInteger := TypeID;
+      q.ParamByName('option_name').AsString := AnOptionName;
+      q.ParamByName('bool_value').Clear;
+      q.ParamByName('relationfieldkey').Clear;
+      q.ParamByName('contactkey').AsInteger := AContactKey;
+      q.ExecQuery;
 
-    AddNSObject(AnOptionName, OptID);
+      AddNSObject(AnOptionName, OptID);
+    end;
   end;
 
   procedure ConvertInvMovementContactOption(AValue: TgdcInvMovementContactOption;
@@ -2891,12 +3022,12 @@ begin
     ConvertFeatures(FSourceFeatures, 'SF');
     ConvertFeatures(FDestFeatures, 'DF');
     ConvertFeatures(FMinusFeatures, 'MF');
-    ConvertBoolean(FDirection = imdFIFO, 'Direction.FIFO');
-    ConvertBoolean(FDirection = imdLIFO, 'Direction.LIFO');
-    ConvertBoolean(FDirection = imdDefault, 'Direction.Default');
-    ConvertBoolean(irsGoodRef in FSources, 'Sources.GoodRef');
-    ConvertBoolean(irsRemainsRef in FSources, 'Sources.RemainsRef');
-    ConvertBoolean(irsMacro in FSources, 'Sources.Macro');
+    ConvertBoolean(FDirection = imdFIFO, 'Dir.FIFO');
+    ConvertBoolean(FDirection = imdLIFO, 'Dir.LIFO');
+    ConvertBoolean(FDirection = imdDefault, 'Dir.Default');
+    ConvertBoolean(irsGoodRef in FSources, 'Src.GoodRef');
+    ConvertBoolean(irsRemainsRef in FSources, 'Src.RemainsRef');
+    ConvertBoolean(irsMacro in FSources, 'Src.Macro');
     ConvertBoolean(FControlRemains, 'ControlRemains');
     ConvertBoolean(FLiveTimeRemains, 'LiveTimeRemains');
     ConvertBoolean(FMinusRemains, 'MinusRemains');

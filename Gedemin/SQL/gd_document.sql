@@ -188,6 +188,42 @@ BEGIN
 END
 ^    
 
+CREATE OR ALTER TRIGGER gd_aiu_documenttype_option FOR gd_documenttype_option
+  AFTER INSERT OR UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE I INTEGER = 0;
+BEGIN
+  IF (EXISTS(
+    SELECT
+      option_name,
+      COUNT(option_name)
+    FROM
+      gd_documenttype_option
+    WHERE
+      dtkey = NEW.dtkey AND bool_value IS NOT NULL
+    GROUP BY
+      option_name
+    HAVING
+      COUNT(option_name) > 1)) THEN
+  BEGIN
+    EXCEPTION gd_e_exception 'Duplicate option';
+  END
+
+  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = 'Dir.FIFO')) THEN
+    I = :I + 1;
+
+  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = 'Dir.LIFO')) THEN
+    I = :I + 1;
+
+  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = 'Dir.Default')) THEN
+    I = :I + 1;
+
+  IF (:I > 1) THEN
+    EXCEPTION gd_e_exception 'Duplicate option';
+END
+^    
+
 SET TERM ; ^
 
 /* Нумерация документов */

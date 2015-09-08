@@ -1,6 +1,6 @@
 inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
-  Left = 618
-  Top = 230
+  Left = 620
+  Top = 233
   Caption = 'Свойства объекта'
   ClientHeight = 559
   ClientWidth = 657
@@ -195,7 +195,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         KeyField = 'ID'
         gdClassName = 'TgdcUserGroup'
         StrictOnExit = False
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 5
