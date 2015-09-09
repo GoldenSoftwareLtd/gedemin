@@ -3050,13 +3050,13 @@ end;
 
 procedure TgdcInvDocumentLine.ReadOptions(AnIDE: TgdInvDocumentEntry);
 
-  procedure SLToAS(ASL: TStringList; var AnAS: TgdcInvFeatures);
+  procedure SLToAS(const AFeature: TgdInvDocumentEntryFeature; var AnAS: TgdcInvFeatures);
   var
     I: Integer;
   begin
-    SetLength(AnAS, ASL.Count);
-    for I := 0 to ASL.Count - 1 do
-      AnAS[I] := ASL[I];
+    SetLength(AnAS, AnIDE.GetFeaturesCount(AFeature));
+    for I := 0 to High(AnAS) do
+      AnAS[I] := AnIDE.GetFeature(AFeature, I);
   end;
 
 {var
@@ -3064,9 +3064,9 @@ procedure TgdcInvDocumentLine.ReadOptions(AnIDE: TgdInvDocumentEntry);
 begin
   inherited;
 
-  SLToAS(AnIDE.SourceFeatures, FSourceFeatures);
-  SLToAS(AnIDE.DestFeatures, FDestFeatures);
-  SLToAS(AnIDE.MinusFeatures, FMinusFeatures);
+  SLToAS(ftSource, FSourceFeatures);
+  SLToAS(ftDest, FDestFeatures);
+  SLToAS(ftMinus, FMinusFeatures);
   FSources := AnIDE.Sources;
   FDirection := AnIDE.Direction;
 

@@ -415,11 +415,17 @@ type
     fpIsSet
   );
 
+  TgdInvDocumentEntryFeature = (
+    ftSource,
+    ftDest,
+    ftMinus
+  );
+
   TgdInvDocumentEntry = class(TgdDocumentEntry)
   private
     FDebitMovement: TgdcInvMovementContactOption;
     FCreditMovement: TgdcInvMovementContactOption;
-    FSourceFeatures, FDestFeatures, FMinusFeatures: TStringList;
+    FFeatures: array[TgdInvDocumentEntryFeature] of TStringList;
     FDirection: TgdcInvMovementDirection;
     FSources: TgdcInvReferenceSources;
     FFlags: array[TgdInvDocumentEntryFlag, TgdInvDocumentEntryFlagProp] of Boolean;
@@ -435,12 +441,14 @@ type
     procedure ConvertOptions; override;
     function GetFlag(const AFlag: TgdInvDocumentEntryFlag): Boolean;
     procedure SetFlag(const AFlag: TgdInvDocumentEntryFlag; const AValue: Boolean = True);
+    function GetFeaturesCount(const AFeature: TgdInvDocumentEntryFeature): Integer;
+    function GetFeature(const AFeature: TgdInvDocumentEntryFeature; const AnIndex: Integer): String;
+    procedure SetFeature(const AFeature: TgdInvDocumentEntryFeature; const AnIndex: Integer;
+      const AValue: String);
+    procedure AddFeature(const AFeature: TgdInvDocumentEntryFeature; const AValue: String);
 
     property DebitMovement: TgdcInvMovementContactOption read FDebitMovement;
     property CreditMovement: TgdcInvMovementContactOption read FCreditMovement;
-    property SourceFeatures: TStringList read FSourceFeatures;
-    property DestFeatures: TStringList read FDestFeatures;
-    property MinusFeatures: TStringList read FMinusFeatures;
     property Direction: TgdcInvMovementDirection read FDirection;
     property Sources: TgdcInvReferenceSources read FSources;
   end;
@@ -2019,13 +2027,13 @@ procedure TgdClassList.LoadUserDefinedClasses;
         M.AddSubPredefined(qOpt.FieldByName('contactkey').AsInteger);
     end;
 
-    procedure LoadFeatures(R: TatRelation; SL: TStringList);
+    procedure LoadFeatures(R: TatRelation; const AFeature: TgdInvDocumentEntryFeature);
     var
       F: TatRelationField;
     begin
       F := R.RelationFields.ByID(qOpt.FieldByName('relationfieldkey').AsInteger);
       if F <> nil then
-        SL.AddObject(F.FieldName, F);
+        DE.AddFeature(AFeature, F.FieldName);
     end;
 
   var
@@ -2047,11 +2055,11 @@ procedure TgdClassList.LoadUserDefinedClasses;
       else if (OptName[1] = 'C') and (OptName[2] = 'M') then
         LoadMovementContactOption(Copy(OptName, 4, 1024), DE.FCreditMovement)
       else if OptName = 'SF' then
-        LoadFeatures(R, DE.FSourceFeatures)
+        LoadFeatures(R, ftSource)
       else if OptName = 'DF' then
-        LoadFeatures(R, DE.FDestFeatures)
+        LoadFeatures(R, ftDest)
       else if OptName = 'MF' then
-        LoadFeatures(R, DE.FMinusFeatures)
+        LoadFeatures(R, ftMinus)
       else if (OptName = 'Dir.FIFO') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
         DE.FDirection := imdFIFO
       else if (OptName = 'Dir.LIFO') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
@@ -2811,14 +2819,20 @@ end;
 
 { TgdInvDocumentEntry }
 
+procedure TgdInvDocumentEntry.AddFeature(
+  const AFeature: TgdInvDocumentEntryFeature; const AValue: String);
+begin
+  FFeatures[AFeature].Add(AValue);
+end;
+
 procedure TgdInvDocumentEntry.Assign(CE: TgdClassEntry);
 begin
   inherited;
   FDebitMovement.Assign((CE as TgdInvDocumentEntry).DebitMovement);
   FCreditMovement.Assign((CE as TgdInvDocumentEntry).CreditMovement);
-  FSourceFeatures.Assign((CE as TgdInvDocumentEntry).SourceFeatures);
-  FDestFeatures.Assign((CE as TgdInvDocumentEntry).DestFeatures);
-  FMinusFeatures.Assign((CE as TgdInvDocumentEntry).MinusFeatures);
+  FFeatures[ftSource].Assign((CE as TgdInvDocumentEntry).FFeatures[ftSource]);
+  FFeatures[ftDest].Assign((CE as TgdInvDocumentEntry).FFeatures[ftDest]);
+  FFeatures[ftMinus].Assign((CE as TgdInvDocumentEntry).FFeatures[ftMinus]);
   FDirection := (CE as TgdInvDocumentEntry).Direction;
   FSources := (CE as TgdInvDocumentEntry).Sources;
   FFlags := (CE as TgdInvDocumentEntry).FFlags;
@@ -2936,15 +2950,15 @@ var
       ConvertContact(AValue.SubPredefined[J], AnOptionName + '.SubPredefined');
   end;
 
-  procedure ConvertFeatures(SL: TStringList; const AnOptionName: String);
+  procedure ConvertFeatures(const AFeature: TgdInvDocumentEntryFeature; const AnOptionName: String);
   var
     F: TatRelationField;
     OptID: Integer;
     J: Integer;
   begin
-    for J := 0 to SL.Count - 1 do
+    for J := 0 to FFeatures[AFeature].Count - 1 do
     begin
-      F := atDatabase.FindRelationField('INV_CARD', SL[J]);
+      F := atDatabase.FindRelationField('INV_CARD', FFeatures[AFeature][J]);
       if F <> nil then
       begin
         OptID := GetOptID;
@@ -3010,9 +3024,9 @@ begin
 
     ConvertInvMovementContactOption(FDebitMovement, 'DM');
     ConvertInvMovementContactOption(FCreditMovement, 'CM');
-    ConvertFeatures(FSourceFeatures, 'SF');
-    ConvertFeatures(FDestFeatures, 'DF');
-    ConvertFeatures(FMinusFeatures, 'MF');
+    ConvertFeatures(ftSource, 'SF');
+    ConvertFeatures(ftDest, 'DF');
+    ConvertFeatures(ftMinus, 'MF');
     ConvertBoolean(FDirection = imdFIFO, 'Dir.FIFO');
     ConvertBoolean(FDirection = imdLIFO, 'Dir.LIFO');
     ConvertBoolean(FDirection = imdDefault, 'Dir.Default');
@@ -3047,19 +3061,44 @@ begin
   inherited;
   FDebitMovement := TgdcInvMovementContactOption.Create;
   FCreditMovement := TgdcInvMovementContactOption.Create;
-  FSourceFeatures := TStringList.Create;
-  FDestFeatures := TStringList.Create;
-  FMinusFeatures := TStringList.Create;
+  FFeatures[ftSource] := TStringList.Create;
+  FFeatures[ftDest] := TStringList.Create;
+  FFeatures[ftMinus] := TStringList.Create;
 end;
 
 destructor TgdInvDocumentEntry.Destroy;
 begin
   FDebitMovement.Free;
   FCreditMovement.Free;
-  FSourceFeatures.Free;
-  FDestFeatures.Free;
-  FMinusFeatures.Free;
+  FFeatures[ftSource].Free;
+  FFeatures[ftDest].Free;
+  FFeatures[ftMinus].Free;
   inherited;
+end;
+
+function TgdInvDocumentEntry.GetFeature(
+  const AFeature: TgdInvDocumentEntryFeature;
+  const AnIndex: Integer): String;
+begin
+  if (AnIndex < 0) or (AnIndex >= GetFeaturesCount(AFeature)) then
+    raise Exception.Create('Invalid feature index')
+  else if Parent is TgdInvDocumentEntry then
+  begin
+    if AnIndex < TgdInvDocumentEntry(Parent).GetFeaturesCount(AFeature) then
+      Result := TgdInvDocumentEntry(Parent).GetFeature(AFeature, AnIndex)
+    else
+      Result := FFeatures[AFeature][AnIndex - TgdInvDocumentEntry(Parent).GetFeaturesCount(AFeature)];
+  end else
+    Result := FFeatures[AFeature][AnIndex];
+end;
+
+function TgdInvDocumentEntry.GetFeaturesCount(
+  const AFeature: TgdInvDocumentEntryFeature): Integer;
+begin
+  if Parent is TgdInvDocumentEntry then
+    Result := TgdInvDocumentEntry(Parent).GetFeaturesCount(AFeature) + FFeatures[AFeature].Count
+  else
+    Result := FFeatures[AFeature].Count;
 end;
 
 function TgdInvDocumentEntry.GetFlag(
@@ -3172,23 +3211,23 @@ begin
     ReadListEnd;
 
     // Настройки признаков
-    FSourceFeatures.Clear;
+    FFeatures[ftSource].Clear;
     ReadListBegin;
     while not EndOfList do
     begin
       F := atDatabase.FindRelationField('INV_CARD', ReadString);
       if F <> nil then
-        FSourceFeatures.AddObject(F.FieldName, F);
+        FFeatures[ftSource].AddObject(F.FieldName, F);
     end;
     ReadListEnd;
 
-    FDestFeatures.Clear;
+    FFeatures[ftDest].Clear;
     ReadListBegin;
     while not EndOfList do
     begin
       F := atDatabase.FindRelationField('INV_CARD', ReadString);
       if F <> nil then
-        FDestFeatures.AddObject(F.FieldName, F);
+        FFeatures[ftDest].AddObject(F.FieldName, F);
     end;
     ReadListEnd;
 
@@ -3242,7 +3281,7 @@ begin
         F := atDatabase.FindRelationField('INV_CARD', ReadString);
         if not Assigned(F) then
           continue;
-        FMinusFeatures.AddObject(F.FieldName, F);
+        FFeatures[ftMinus].AddObject(F.FieldName, F);
       end;
       ReadListEnd;
     end;
@@ -3283,6 +3322,22 @@ begin
     Free;
     SS.Free;
   end;
+end;
+
+procedure TgdInvDocumentEntry.SetFeature(
+  const AFeature: TgdInvDocumentEntryFeature; const AnIndex: Integer;
+  const AValue: String);
+begin
+  if (AnIndex < 0) or (AnIndex >= GetFeaturesCount(AFeature)) then
+    raise Exception.Create('Invalid feature index')
+  else if Parent is TgdInvDocumentEntry then
+  begin
+    if AnIndex < TgdInvDocumentEntry(Parent).GetFeaturesCount(AFeature) then
+      TgdInvDocumentEntry(Parent).SetFeature(AFeature, AnIndex, AValue)
+    else
+      FFeatures[AFeature][AnIndex - TgdInvDocumentEntry(Parent).GetFeaturesCount(AFeature)] := AValue;
+  end else
+    FFeatures[AFeature][AnIndex] := AValue;
 end;
 
 procedure TgdInvDocumentEntry.SetFlag(const AFlag: TgdInvDocumentEntryFlag;
