@@ -25,7 +25,7 @@ function TryObjectTextToBinary(var S: String): Boolean;
 function GetFileLastWrite(const AFullName: String): TDateTime;
 function ParseFieldOrigin(const AnOrigin: String; out ARelationName, AFieldName: String): Boolean;
 function ExpandMetaVariables(const S: String): String;
-function AddSpaces(const S: String): String;
+function AddSpaces(const S: String = ''): String;
 function BooleanToString(const B: Boolean): String;
 
 implementation
@@ -41,9 +41,12 @@ begin
     Result := 'False';
 end;
 
-function AddSpaces(const S: String): String;
+function AddSpaces(const S: String = ''): String;
 begin
-  Result := S + StringOfChar(' ', 20 - Length(S));
+  if S > '' then
+    Result := S + StringOfChar(' ', 20 - Length(S)) + ' = '
+  else
+    Result := StringOfChar(' ', 23);  
 end;
 
 const

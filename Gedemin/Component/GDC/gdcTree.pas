@@ -931,11 +931,11 @@ end;
 procedure TgdcTree.GetProperties(ASL: TStrings);
 begin
   inherited;
-  ASL.Add(AddSpaces('Путь:') + GetPath);
+  ASL.Add(AddSpaces('Путь') + GetPath);
   if Parent = -1 then
-    ASL.Add(AddSpaces('Родитель:') + 'NULL')
+    ASL.Add(AddSpaces('Родитель') + 'NULL')
   else
-    ASL.Add(AddSpaces('Родитель:') + IntToStr(Parent));
+    ASL.Add(AddSpaces('Родитель') + IntToStr(Parent));
 end;
 
 { TgdcLBRBTree }
@@ -1247,8 +1247,8 @@ end;
 procedure TgdcLBRBTree.GetProperties(ASL: TStrings);
 begin
   inherited;
-  ASL.Add(AddSpaces('Левая граница:') + IntToStr(LB));
-  ASL.Add(AddSpaces('Правая граница:') + IntToStr(RB));
+  ASL.Add(AddSpaces('Левая граница') + IntToStr(LB));
+  ASL.Add(AddSpaces('Правая граница') + IntToStr(RB));
 end;
 
 initialization

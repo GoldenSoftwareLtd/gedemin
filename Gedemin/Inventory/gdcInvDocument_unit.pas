@@ -447,24 +447,7 @@ begin
   FDocumentTypeKey := -1;
   FReportGroupKey := -1;
   FBranchKey := -1;
-
-  FMovementSource.RelationName := '';
-  FMovementSource.SourceFieldName := '';
-  FMovementSource.SubRelationName := '';
-  FMovementSource.SubSourceFieldName := '';
-
-  SetLength(FMovementSource.Predefined, 0);
-  SetLength(FMovementSource.SubPredefined, 0);
-
-  FMovementTarget.RelationName := '';
-  FMovementTarget.SourceFieldName := '';
-  FMovementTarget.SubRelationName := '';
-  FMovementTarget.SubSourceFieldName := '';
-
   FContact := nil;
-
-  SetLength(FMovementTarget.Predefined, 0);
-  SetLength(FMovementTarget.SubPredefined, 0);
 
   FCurrentStreamVersion := gdcInv_Document_Undone;
 end;
@@ -538,12 +521,9 @@ end;
 
 destructor TgdcInvBaseDocument.Destroy;
 begin
-  if Assigned(FContact) then
-    FContact.Free;
-
+  FContact.Free;
   FMovementSource.Free;
   FMovementTarget.Free;
-
   inherited;
 end;
 
@@ -798,8 +778,24 @@ begin
   FRelationName := AnIDE.HeaderRelName;
   FRelationLineName := AnIDE.LineRelName;
 
-  FMovementTarget.Assign(AnIDE.DebitMovement);
-  FMovementSource.Assign(AnIDE.CreditMovement);
+  FMovementTarget.RelationName := AnIDE.GetMCORelationName(emDebit);
+  FMovementTarget.SourceFieldName := AnIDE.GetMCOSourceFieldName(emDebit);
+  FMovementTarget.SubRelationName := AnIDE.GetMCOSubRelationName(emDebit);
+  FMovementTarget.SubSourceFieldName := AnIDE.GetMCOSubSourceFieldName(emDebit);
+  FMovementTarget.ContactType := AnIDE.GetMCOContactType(emDebit);
+  AnIDE.GetMCOPredefined(emDebit, FMovementTarget.Predefined);
+  AnIDE.GetMCOSubPredefined(emDebit, FMovementTarget.SubPredefined);
+
+  FMovementSource.RelationName := AnIDE.GetMCORelationName(emCredit);
+  FMovementSource.SourceFieldName := AnIDE.GetMCOSourceFieldName(emCredit);
+  FMovementSource.SubRelationName := AnIDE.GetMCOSubRelationName(emCredit);
+  FMovementSource.SubSourceFieldName := AnIDE.GetMCOSubSourceFieldName(emCredit);
+  FMovementSource.ContactType := AnIDE.GetMCOContactType(emCredit);
+  AnIDE.GetMCOPredefined(emCredit, FMovementSource.Predefined);
+  AnIDE.GetMCOSubPredefined(emCredit, FMovementSource.SubPredefined);
+
+  //FMovementTarget.Assign(AnIDE.GetMovementContactOption(emDebit));
+  //FMovementSource.Assign(AnIDE.GetMovementContactOption(emCredit));
 
   (*
   with TReader.Create(Stream, 1024) do
@@ -1204,9 +1200,9 @@ begin
   inherited;
 
   ASL.Add('');
-  ASL.Add('[Документ]');
-  ASL.Add(AddSpaces('Таблица шапки:') + FRelationName);
-  ASL.Add(AddSpaces('Таблица позиции:') + FRelationLineName);
+  ASL.Add('[Складской документ]');
+  ASL.Add(AddSpaces('Таблица шапки') + FRelationName);
+  ASL.Add(AddSpaces('Таблица позиции') + FRelationLineName);
 
   ASL.Add('');
   ASL.Add('[MovementSource]');
@@ -1215,9 +1211,9 @@ begin
   ASL.Add('[MovementTarget]');
   FMovementTarget.GetProperties(ASL);
 
-  ASL.Add(AddSpaces('ИД типа документа:') + IntToStr(FDocumentTypeKey));
-  ASL.Add(AddSpaces('ИД группы отчетов:') + IntToStr(FReportGroupKey));
-  ASL.Add(AddSpaces('ИД ветки Иссл.:') + IntToStr(FBranchKey));
+  ASL.Add(AddSpaces('ИД типа документа') + IntToStr(FDocumentTypeKey));
+  ASL.Add(AddSpaces('ИД группы отчетов') + IntToStr(FReportGroupKey));
+  ASL.Add(AddSpaces('ИД ветки Иссл.') + IntToStr(FBranchKey));
 end;
 
 { TgdcInvDocument }
@@ -3809,19 +3805,19 @@ begin
 
   for I := 0 to High(FSourceFeatures) do
     if I = 0 then
-      ASL.Add(AddSpaces('SourceFeatures:') + FSourceFeatures[0])
+      ASL.Add(AddSpaces('SourceFeatures') + FSourceFeatures[0])
     else
       ASL.Add(AddSpaces('') + FSourceFeatures[I]);
 
   for I := 0 to High(FDestFeatures) do
     if I = 0 then
-      ASL.Add(AddSpaces('DestFeatures:') + FDestFeatures[0])
+      ASL.Add(AddSpaces('DestFeatures') + FDestFeatures[0])
     else
       ASL.Add(AddSpaces('') + FDestFeatures[I]);
 
   for I := 0 to High(FMinusFeatures) do
     if I = 0 then
-      ASL.Add(AddSpaces('MinusFeatures:') + FMinusFeatures[0])
+      ASL.Add(AddSpaces('MinusFeatures') + FMinusFeatures[0])
     else
       ASL.Add(AddSpaces('') + FMinusFeatures[I]);
 
@@ -3832,23 +3828,23 @@ begin
   else
     S := 'default';
 
-  ASL.Add(AddSpaces('Direction:') + S);
-  ASL.Add(AddSpaces('ControlRemains:') + BooleanToString(FControlRemains));
-  ASL.Add(AddSpaces('LiveTimeRemains:') + BooleanToString(FLiveTimeRemains));
-  ASL.Add(AddSpaces('EndMonthRemains:') + BooleanToString(FEndMonthRemains));
-  ASL.Add(AddSpaces('UseCachedUpdates:') + BooleanToString(FUseCachedUpdates));
-  ASL.Add(AddSpaces('CanBeDelayed:') + BooleanToString(FCanBeDelayed));
-  ASL.Add(AddSpaces('IsMinusRemains:') + BooleanToString(FIsMinusRemains));
-  ASL.Add(AddSpaces('IsSetFeaturesFromRemains:') + BooleanToString(FisSetFeaturesFromRemains));
-  ASL.Add(AddSpaces('IsChangeCardValue:') + BooleanToString(FisChangeCardValue));
-  ASL.Add(AddSpaces('IsAppendCardValue:') + BooleanToString(FisAppendCardValue));
-  ASL.Add(AddSpaces('IsCheckDestFeatures:') + BooleanToString(FisCheckDestFeatures));
-  ASL.Add(AddSpaces('IsChooseRemains:') + BooleanToString(FisChooseRemains));
-  ASL.Add(AddSpaces('IsUseCompanyKey:') + BooleanToString(FIsUseCompanyKey));
-  ASL.Add(AddSpaces('SaveRestWindowOption:') + BooleanToString(FSaveRestWindowOption));
-  ASL.Add(AddSpaces('WithoutSearchRemains:') + BooleanToString(FWithoutSearchRemains));
-  ASL.Add(AddSpaces('UseGoodKeyMakeMovement:') + BooleanToString(FUseGoodKeyForMakeMovement));
-  ASL.Add(AddSpaces('IsMakeMovemeOnFromCardKeyOnly:') + BooleanToString(FIsMakeMovementOnFromCardKeyOnly));
+  ASL.Add(AddSpaces('Direction') + S);
+  ASL.Add(AddSpaces('ControlRemains') + BooleanToString(FControlRemains));
+  ASL.Add(AddSpaces('LiveTimeRemains') + BooleanToString(FLiveTimeRemains));
+  ASL.Add(AddSpaces('EndMonthRemains') + BooleanToString(FEndMonthRemains));
+  ASL.Add(AddSpaces('UseCachedUpdates') + BooleanToString(FUseCachedUpdates));
+  ASL.Add(AddSpaces('CanBeDelayed') + BooleanToString(FCanBeDelayed));
+  ASL.Add(AddSpaces('IsMinusRemains') + BooleanToString(FIsMinusRemains));
+  ASL.Add(AddSpaces('IsSetFeaturesFromRemains') + BooleanToString(FisSetFeaturesFromRemains));
+  ASL.Add(AddSpaces('IsChangeCardValue') + BooleanToString(FisChangeCardValue));
+  ASL.Add(AddSpaces('IsAppendCardValue') + BooleanToString(FisAppendCardValue));
+  ASL.Add(AddSpaces('IsCheckDestFeatures') + BooleanToString(FisCheckDestFeatures));
+  ASL.Add(AddSpaces('IsChooseRemains') + BooleanToString(FisChooseRemains));
+  ASL.Add(AddSpaces('IsUseCompanyKey') + BooleanToString(FIsUseCompanyKey));
+  ASL.Add(AddSpaces('SaveRestWindowOption') + BooleanToString(FSaveRestWindowOption));
+  ASL.Add(AddSpaces('WithoutSearchRemains') + BooleanToString(FWithoutSearchRemains));
+  ASL.Add(AddSpaces('UseGoodKeyMakeMovement') + BooleanToString(FUseGoodKeyForMakeMovement));
+  ASL.Add(AddSpaces('IsMakeMovemeOnFromCardKeyOnly') + BooleanToString(FIsMakeMovementOnFromCardKeyOnly));
 end;
 
 { TgdcInvDocumentType }

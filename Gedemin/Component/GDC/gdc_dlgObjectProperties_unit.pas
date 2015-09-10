@@ -8,7 +8,7 @@ uses
   gsIBLookupComboBox, Grids, DBGrids, gsDBGrid, gsIBGrid, IBCustomDataSet,
   gdcBase, gdcBaseInterface, gdcUser, DBCtrls, Menus, gd_security, TB2Dock,
   TB2Toolbar, TB2Item, evt_i_base, SynEdit, SynEditHighlighter,
-  SynHighlighterGeneral;
+  SynHighlighterGeneral, SynHighlighterIni;
 
 type
   Tgdc_dlgObjectProperties = class(Tgdc_dlgTR)
@@ -63,7 +63,6 @@ type
     actGoToMethods: TAction;
     btnParentMethods: TButton;
     actGoToMethodsParent: TAction;
-    mProp: TMemo;
     tsYAML: TTabSheet;
     mYAMLFile: TSynEdit;
     SynGeneralSyn: TSynGeneralSyn;
@@ -83,6 +82,8 @@ type
     TBSeparatorItem1: TTBSeparatorItem;
     tsSubTypes: TTabSheet;
     mSubTypes: TMemo;
+    SynIniSyn: TSynIniSyn;
+    mProp: TSynEdit;
     procedure cbAccessClassChange(Sender: TObject);
     procedure actExcludeUpdate(Sender: TObject);
     procedure actExcludeExecute(Sender: TObject);
