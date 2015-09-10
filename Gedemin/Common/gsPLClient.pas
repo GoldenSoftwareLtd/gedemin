@@ -246,12 +246,16 @@ begin
     PL_ATOM:
       if PL_get_atom_chars(GetTerm(Idx), S) <> 0 then
         Result := S
+      else if PL_get_chars(GetTerm(Idx), S, PL_ATOM or REP_MB) <> 0 then
+        Result := S
       else
         raise EgsPLClientException.CreateTypeError('atom', GetTerm(Idx));
     PL_STRING:
       if PL_get_string(GetTerm(Idx), S, len) <> 0 then
         Result := S
-      else  
+      else if PL_get_chars(GetTerm(Idx), S, CVT_STRING or REP_MB) <> 0 then
+        Result := S
+      else
         raise EgsPLClientException.CreateTypeError('string', GetTerm(Idx));
   end;
 end;
@@ -431,8 +435,9 @@ begin
             ftLargeInt: (F as TLargeIntField).AsLargeInt := Query.Termv.ReadInt64(I);
             ftTime, ftDateTime: F.AsDateTime := Query.Termv.ReadDateTime(I);
             ftDate: F.AsDateTime := Query.Termv.ReadDate(I);
+            ftString: F.AsString := Query.Termv.ReadString(I);
           else
-            F.AsString := Query.Termv.ToTrimQuotesString(I);
+            raise EgsPLClientException.Create('Error data type!');
           end;
         end;
         ADataSet.Post;
@@ -609,15 +614,28 @@ end;
 
 function TermToString(ATerm: term_t): String;
 var
+  len: Cardinal;
   S: PChar;
 begin
   Result := '';
 
-  Assert(ATerm  > 0);   
-  if PL_get_chars(ATerm, S, CVT_WRITEQ) <> 0 then
-    Result := S
-  else
-    raise EgsPLClientException.Create('Error convert term to string!');   
+  Assert(ATerm  > 0);
+  case PL_term_type(ATerm) of
+    PL_STRING:
+      if PL_get_string(ATerm, S, len) <> 0 then
+        Result := '"' + S + '"'
+      else if PL_get_chars(ATerm, S, CVT_STRING or REP_MB) <> 0 then
+        Result := '"' + S + '"'
+      else
+        raise EgsPLClientException.Create('Error convert string to string!');
+    else
+      if PL_get_chars(ATerm, S, CVT_WRITEQ) <> 0 then
+        Result := S
+      else if PL_get_chars(ATerm, S, CVT_WRITEQ or REP_MB) <> 0 then
+        Result := S
+      else
+        raise EgsPLClientException.Create('Error convert term to string!');
+  end;
 end;
 
 function TgsPLClient.GetArity(ASql: TIBSQL): Integer;
