@@ -30,12 +30,14 @@ const
   CVT_ALL                 = CVT_ATOMIC or CVT_LIST;
   CVT_MASK                = $00FF;
   CVT_WRITEQ              = $00C0;
+  CVT_WRITE_CANONICAL     = $0080;
 
   BUF_DISCARDABLE         = $0000;
   BUF_RING                = $0100;
   BUF_MALLOC              = $0200;
 
   REP_UTF8                = $1000;
+  REP_MB		  = $2000;
   FL_FPC                  = CVT_ALL or REP_UTF8;
 
   Libgmp10_dll = 'libgmp-10.dll';
