@@ -34,7 +34,7 @@ interface
 uses
   Contnrs,        Classes,   TypInfo,     Forms,            gd_KeyAssoc,
   gdcBase,        gdc_createable_form,    gdcBaseInterface, at_classes,
-  gdcClasses_Interface, gdcInvConsts_unit,
+  gdcClasses_Interface, gdcInvConsts_unit,IBDatabase,
   {$IFDEF VER130}
   gsStringHashList
   {$ELSE}
@@ -379,6 +379,7 @@ type
       const APart: TgdcDocumentClassPart): TgdDocumentEntry;
     procedure ParseOptions; virtual;
     procedure ConvertOptions; virtual;
+    procedure SaveOptions(ATransaction: TIBTransaction); virtual;
 
     property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
     property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
@@ -421,14 +422,26 @@ type
     ftMinus
   );
 
+  TgdInvDocumentEntryMovement = (
+    emDebit,
+    emCredit
+  );
+
   TgdInvDocumentEntry = class(TgdDocumentEntry)
   private
-    FDebitMovement: TgdcInvMovementContactOption;
-    FCreditMovement: TgdcInvMovementContactOption;
+    FMovement: array[TgdInvDocumentEntryMovement] of TgdcInvMovementContactOption;
     FFeatures: array[TgdInvDocumentEntryFeature] of TStringList;
-    FDirection: TgdcInvMovementDirection;
-    FSources: TgdcInvReferenceSources;
+    FDirection, FOldDirection: TgdcInvMovementDirection;
+    FDirectionSet: Boolean;
+    FSources, FOldSources: TgdcInvReferenceSources;
+    FSourcesSet: Boolean;
     FFlags: array[TgdInvDocumentEntryFlag, TgdInvDocumentEntryFlagProp] of Boolean;
+    function GetMovementContactOption(
+      const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
+    function GetDirection: TgdcInvMovementDirection;
+    procedure SetDirection(const Value: TgdcInvMovementDirection);
+    function GetSources: TgdcInvReferenceSources;
+    procedure SetSources(const Value: TgdcInvReferenceSources);
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -439,6 +452,8 @@ type
     procedure Assign(CE: TgdClassEntry); override;
     procedure ParseOptions; override;
     procedure ConvertOptions; override;
+    procedure SaveOptions(ATransaction: TIBTransaction); override;
+
     function GetFlag(const AFlag: TgdInvDocumentEntryFlag): Boolean;
     procedure SetFlag(const AFlag: TgdInvDocumentEntryFlag; const AValue: Boolean = True);
     function GetFeaturesCount(const AFeature: TgdInvDocumentEntryFeature): Integer;
@@ -447,10 +462,25 @@ type
       const AValue: String);
     procedure AddFeature(const AFeature: TgdInvDocumentEntryFeature; const AValue: String);
 
-    property DebitMovement: TgdcInvMovementContactOption read FDebitMovement;
-    property CreditMovement: TgdcInvMovementContactOption read FCreditMovement;
-    property Direction: TgdcInvMovementDirection read FDirection;
-    property Sources: TgdcInvReferenceSources read FSources;
+    procedure SetMCORelationName(const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
+    procedure SetMCOSourceFieldName(const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
+    procedure SetMCOSubRelationName(const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
+    procedure SetMCOSubSourceFieldName(const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
+    procedure SetMCOContactType(const AMovement: TgdInvDocumentEntryMovement; const AValue: TgdcInvMovementContactType);
+    procedure AddMCOPredefined(const AMovement: TgdInvDocumentEntryMovement; const AValue: Integer);
+    procedure AddMCOSubPredefined(const AMovement: TgdInvDocumentEntryMovement; const AValue: Integer);
+    procedure ClearMCOPredefined(const AMovement: TgdInvDocumentEntryMovement);
+    procedure ClearMCOSubPredefined(const AMovement: TgdInvDocumentEntryMovement);
+    function GetMCORelationName(const AMovement: TgdInvDocumentEntryMovement): String;
+    function GetMCOSourceFieldName(const AMovement: TgdInvDocumentEntryMovement): String;
+    function GetMCOSubRelationName(const AMovement: TgdInvDocumentEntryMovement): String;
+    function GetMCOSubSourceFieldName(const AMovement: TgdInvDocumentEntryMovement): String;
+    function GetMCOContactType(const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactType;
+    procedure GetMCOPredefined(const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
+    procedure GetMCOSubPredefined(const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
+
+    property Direction: TgdcInvMovementDirection read GetDirection write SetDirection;
+    property Sources: TgdcInvReferenceSources read GetSources write SetSources;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -598,7 +628,7 @@ var
 implementation
 
 uses
-  SysUtils, gs_Exception, IBSQL, IBDatabase, gd_security, gsStorage, Storages,
+  SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages,
   gdcClasses, gd_directories_const, jclStrings, Windows
   {$IFDEF DEBUG}
   , gd_DebugLog
@@ -622,6 +652,22 @@ const
   METHOD_LIST_PREFIX   : TPrefixType = '^M_L';
   CLASS_METHODS_PREFIX : TPrefixType = '^C_M';
   CLASS_LIST_PREFIX    : TPrefixType = '^C_L';
+
+  InvDocumentEntryFlagFirst = efControlRemains;
+  InvDocumentEntryFlagLast = efControlRemains;
+  InvDocumentEntryFlagNames: array[TgdInvDocumentEntryFlag] of String = (
+    'ControlRemains',
+    'LiveTimeRemains',
+    'MinusRemains',
+    'DelayedDocument',
+    'UseCachedUpdates',
+    'ChangeCardValue',
+    'AppendCardValue',
+    'UseCompanyKey',
+    'SaveRestWindowOption',
+    'EndMonthRemains',
+    'WithoutSearchRemains'
+   );
 
 {$IFDEF METHODSCHECK}
 var
@@ -1987,7 +2033,7 @@ procedure TgdClassList.LoadUserDefinedClasses;
 
   procedure LoadDEOption(DE: TgdInvDocumentEntry; qOpt: TIBSQL);
 
-    procedure LoadMovementContactOption(const AnOptName: String; M: TgdcInvMovementContactOption);
+    procedure LoadMovementContactOption(const AnOptName: String; M: TgdInvDocumentEntryMovement);
     begin
       if Length(AnOptName) < 2 then
         raise Exception.Create('Invalid option name');
@@ -1995,36 +2041,36 @@ procedure TgdClassList.LoadUserDefinedClasses;
       if (AnOptName[1] = 'C') and (AnOptName[2] = 'T') then
       begin
         if AnOptName = 'CT.imctOurCompany' then
-          M.ContactType := imctOurCompany
+          DE.SetMCOContactType(M, imctOurCompany)
         else if AnOptName = 'CT.imctOurDepartment' then
-          M.ContactType := imctOurDepartment
+          DE.SetMCOContactType(M, imctOurDepartment)
         else if AnOptName = 'CT.imctOurPeople' then
-          M.ContactType := imctOurPeople
+          DE.SetMCOContactType(M, imctOurPeople)
         else if AnOptName = 'CT.imctCompany' then
-          M.ContactType := imctCompany
+          DE.SetMCOContactType(M, imctCompany)
         else if AnOptName = 'CT.imctCompanyDepartment' then
-          M.ContactType := imctCompanyDepartment
+          DE.SetMCOContactType(M, imctCompanyDepartment)
         else if AnOptName = 'CT.imctCompanyPeople' then
-          M.ContactType := imctCompanyPeople
+          DE.SetMCOContactType(M, imctCompanyPeople)
         else if AnOptName = 'CT.imctPeople' then
-          M.ContactType := imctPeople
+          DE.SetMCOContactType(M, imctPeople)
         else if AnOptName = 'CT.imctOurDepartAndPeople' then
-          M.ContactType := imctOurDepartAndPeople;
+          DE.SetMCOContactType(M, imctOurDepartAndPeople);
       end
       else if AnOptName = 'SF' then
       begin
-        M.RelationName := qOpt.FieldbyName('relationname').AsString;
-        M.SourceFieldName := qOpt.FieldByName('fieldname').AsString;
+        DE.SetMCORelationName(M, qOpt.FieldbyName('relationname').AsString);
+        DE.SetMCOSourceFieldName(M, qOpt.FieldByName('fieldname').AsString);
       end
       else if AnOptName = 'SSF' then
       begin
-        M.SubRelationName := qOpt.FieldbyName('relationname').AsString;
-        M.SubSourceFieldName := qOpt.FieldByName('fieldname').AsString;
+        DE.SetMCOSubRelationName(M, qOpt.FieldbyName('relationname').AsString);
+        DE.SetMCOSubSourceFieldName(M, qOpt.FieldByName('fieldname').AsString);
       end
       else if AnOptName = 'Predefined' then
-        M.AddPredefined(qOpt.FieldByName('contactkey').AsInteger)
+        DE.AddMCOPredefined(M, qOpt.FieldByName('contactkey').AsInteger)
       else if AnOptName = 'SubPredefined' then
-        M.AddSubPredefined(qOpt.FieldByName('contactkey').AsInteger);
+        DE.AddMCOSubPredefined(M, qOpt.FieldByName('contactkey').AsInteger);
     end;
 
     procedure LoadFeatures(R: TatRelation; const AFeature: TgdInvDocumentEntryFeature);
@@ -2039,10 +2085,15 @@ procedure TgdClassList.LoadUserDefinedClasses;
   var
     OptName: String;
     R: TatRelation;
+    TempSources: TgdcInvReferenceSources;
+    TempSourcesSet: Boolean;
+    N: TgdInvDocumentEntryFlag;
   begin
     R := atDatabase.Relations.ByRelationName('INV_CARD');
     Assert(R <> nil);
 
+    TempSources := [];
+    TempSourcesSet := False;
     while (not qOpt.EOF) and (qOpt.FieldbyName('dtkey').AsInteger = DE.TypeID) do
     begin
       OptName := qOpt.FieldbyName('option_name').AsString;
@@ -2051,9 +2102,9 @@ procedure TgdClassList.LoadUserDefinedClasses;
         raise Exception.Create('Invalid document type option name');
 
       if (OptName[1] = 'D') and (OptName[2] = 'M') then
-        LoadMovementContactOption(Copy(OptName, 4, 1024), DE.FDebitMovement)
+        LoadMovementContactOption(Copy(OptName, 4, 1024), emDebit)
       else if (OptName[1] = 'C') and (OptName[2] = 'M') then
-        LoadMovementContactOption(Copy(OptName, 4, 1024), DE.FCreditMovement)
+        LoadMovementContactOption(Copy(OptName, 4, 1024), emCredit)
       else if OptName = 'SF' then
         LoadFeatures(R, ftSource)
       else if OptName = 'DF' then
@@ -2061,55 +2112,47 @@ procedure TgdClassList.LoadUserDefinedClasses;
       else if OptName = 'MF' then
         LoadFeatures(R, ftMinus)
       else if (OptName = 'Dir.FIFO') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
-        DE.FDirection := imdFIFO
+        DE.Direction := imdFIFO
       else if (OptName = 'Dir.LIFO') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
-        DE.FDirection := imdLIFO
+        DE.Direction := imdLIFO
       else if (OptName = 'Dir.Default') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
-        DE.FDirection := imdDefault
+        DE.Direction := imdDefault
       else if OptName = 'Src.GoodRef' then
       begin
         if qOpt.FieldbyName('bool_value').AsInteger <> 0 then
-          Include(DE.FSources, irsGoodRef)
+          Include(TempSources, irsGoodRef)
         else
-          Exclude(DE.FSources, irsGoodRef);
+          Exclude(TempSources, irsGoodRef);
+        TempSourcesSet := True;
       end else if OptName = 'Src.RemainsRef' then
       begin
         if qOpt.FieldbyName('bool_value').AsInteger <> 0 then
-          Include(DE.FSources, irsRemainsRef)
+          Include(TempSources, irsRemainsRef)
         else
-          Exclude(DE.FSources, irsRemainsRef);
+          Exclude(TempSources, irsRemainsRef);
+        TempSourcesSet := True;
       end else if OptName = 'Src.Macro' then
       begin
         if qOpt.FieldbyName('bool_value').AsInteger <> 0 then
-          Include(DE.FSources, irsMacro)
+          Include(TempSources, irsMacro)
         else
-          Exclude(DE.FSources, irsMacro);
-      end
-      else if OptName = 'ControlRemains' then
-        DE.SetFlag(efControlRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'LiveTimeRemains' then
-        DE.SetFlag(efLiveTimeRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'MinusRemains' then
-        DE.SetFlag(efMinusRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'DelayedDocument' then
-        DE.SetFlag(efDelayedDocument, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'UseCachedUpdates' then
-        DE.SetFlag(efUseCachedUpdates, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'ChangeCardValue' then
-        DE.SetFlag(efIsChangeCardValue, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'AppendCardValue' then
-        DE.SetFlag(efIsAppendCardValue, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'UseCompanyKey' then
-        DE.SetFlag(efIsUseCompanyKey, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'SaveRestWindowOption' then
-        DE.SetFlag(efSaveRestWindowOption, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'EndMonthRemains' then
-        DE.SetFlag(efEndMonthRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0)
-      else if OptName = 'WithoutSearchRemains' then
-        DE.SetFlag(efWithoutSearchRemains, qOpt.FieldbyName('bool_value').AsInteger <> 0);
+          Exclude(TempSources, irsMacro);
+        TempSourcesSet := True;
+      end else
+      begin
+        for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
+          if OptName = InvDocumentEntryFlagNames[N] then
+          begin
+            DE.SetFlag(N, qOpt.FieldbyName('bool_value').AsInteger <> 0);
+            break;
+          end;
+      end;
 
       qOpt.Next;
     end;
+
+    if TempSourcesSet then
+      DE.Sources := TempSources;
   end;
 
   procedure LoadDE(DE: TgdDocumentEntry; q, qOpt: TIBSQL);
@@ -2768,6 +2811,11 @@ begin
   //
 end;
 
+procedure TgdDocumentEntry.SaveOptions(ATransaction: TIBTransaction);
+begin
+  //
+end;
+
 procedure TgdDocumentEntry.SetHeaderRelKey(const Value: Integer);
 var
   R: TatRelation;
@@ -2825,17 +2873,45 @@ begin
   FFeatures[AFeature].Add(AValue);
 end;
 
+procedure TgdInvDocumentEntry.AddMCOPredefined(
+  const AMovement: TgdInvDocumentEntryMovement; const AValue: Integer);
+begin
+  FMovement[AMovement].AddPredefined(AValue);
+end;
+
+procedure TgdInvDocumentEntry.AddMCOSubPredefined(
+  const AMovement: TgdInvDocumentEntryMovement; const AValue: Integer);
+begin
+  FMovement[AMovement].AddSubPredefined(AValue);
+end;
+
 procedure TgdInvDocumentEntry.Assign(CE: TgdClassEntry);
 begin
   inherited;
-  FDebitMovement.Assign((CE as TgdInvDocumentEntry).DebitMovement);
-  FCreditMovement.Assign((CE as TgdInvDocumentEntry).CreditMovement);
+  FMovement[emDebit].Assign((CE as TgdInvDocumentEntry).FMovement[emDebit]);
+  FMovement[emCredit].Assign((CE as TgdInvDocumentEntry).FMovement[emCredit]);
   FFeatures[ftSource].Assign((CE as TgdInvDocumentEntry).FFeatures[ftSource]);
   FFeatures[ftDest].Assign((CE as TgdInvDocumentEntry).FFeatures[ftDest]);
   FFeatures[ftMinus].Assign((CE as TgdInvDocumentEntry).FFeatures[ftMinus]);
-  FDirection := (CE as TgdInvDocumentEntry).Direction;
-  FSources := (CE as TgdInvDocumentEntry).Sources;
+  FDirection := (CE as TgdInvDocumentEntry).FDirection;
+  FOldDirection := (CE as TgdInvDocumentEntry).FOldDirection;
+  FDirectionSet := (CE as TgdInvDocumentEntry).FDirectionSet;
+  FSources := (CE as TgdInvDocumentEntry).FSources;
+  FOldSources := (CE as TgdInvDocumentEntry).FOldSources;
+  FSourcesSet := (CE as TgdInvDocumentEntry).FSourcesSet;
   FFlags := (CE as TgdInvDocumentEntry).FFlags;
+end;
+
+procedure TgdInvDocumentEntry.ClearMCOPredefined(
+  const AMovement: TgdInvDocumentEntryMovement);
+begin
+  SetLength(FMovement[Amovement].Predefined, 0);
+end;
+
+procedure TgdInvDocumentEntry.ClearMCOSubPredefined(
+  const AMovement: TgdInvDocumentEntryMovement);
+begin
+  SetLength(FMovement[Amovement].SubPredefined, 0);
 end;
 
 procedure TgdInvDocumentEntry.ConvertOptions;
@@ -2976,6 +3052,8 @@ var
     end;
   end;
 
+var
+  N: TgdInvDocumentEntryFlag;
 begin
   q := TIBSQL.Create(nil);
   qRUID := TIBSQL.Create(nil);
@@ -3022,8 +3100,8 @@ begin
       'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey) ' +
       ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationfieldkey, :contactkey)';
 
-    ConvertInvMovementContactOption(FDebitMovement, 'DM');
-    ConvertInvMovementContactOption(FCreditMovement, 'CM');
+    ConvertInvMovementContactOption(GetMovementContactOption(emDebit), 'DM');
+    ConvertInvMovementContactOption(GetMovementContactOption(emCredit), 'CM');
     ConvertFeatures(ftSource, 'SF');
     ConvertFeatures(ftDest, 'DF');
     ConvertFeatures(ftMinus, 'MF');
@@ -3033,17 +3111,9 @@ begin
     ConvertBoolean(irsGoodRef in FSources, 'Src.GoodRef');
     ConvertBoolean(irsRemainsRef in FSources, 'Src.RemainsRef');
     ConvertBoolean(irsMacro in FSources, 'Src.Macro');
-    ConvertBoolean(GetFlag(efControlRemains), 'ControlRemains');
-    ConvertBoolean(GetFlag(efLiveTimeRemains), 'LiveTimeRemains');
-    ConvertBoolean(GetFlag(efMinusRemains), 'MinusRemains');
-    ConvertBoolean(GetFlag(efDelayedDocument), 'DelayedDocument');
-    ConvertBoolean(GetFlag(efUseCachedUpdates), 'UseCachedUpdates');
-    ConvertBoolean(GetFlag(efIsChangeCardValue), 'ChangeCardValue');
-    ConvertBoolean(GetFlag(efIsAppendCardValue), 'AppendCardValue');
-    ConvertBoolean(GetFlag(efIsUseCompanyKey), 'UseCompanyKey');
-    ConvertBoolean(GetFlag(efSaveRestWindowOption), 'SaveRestWindowOption');
-    ConvertBoolean(GetFlag(efEndMonthRemains), 'EndMonthRemains');
-    ConvertBoolean(GetFlag(efWithoutSearchRemains), 'WithoutSearchRemains');
+
+    for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
+      ConvertBoolean(GetFlag(N), InvDocumentEntryFlagNames[N]);
 
     Tr.Commit;
   finally
@@ -3059,8 +3129,8 @@ constructor TgdInvDocumentEntry.Create(AParent: TgdClassEntry;
   const ACaption: String);
 begin
   inherited;
-  FDebitMovement := TgdcInvMovementContactOption.Create;
-  FCreditMovement := TgdcInvMovementContactOption.Create;
+  FMovement[emDebit] := TgdcInvMovementContactOption.Create;
+  FMovement[emCredit] := TgdcInvMovementContactOption.Create;
   FFeatures[ftSource] := TStringList.Create;
   FFeatures[ftDest] := TStringList.Create;
   FFeatures[ftMinus] := TStringList.Create;
@@ -3068,12 +3138,20 @@ end;
 
 destructor TgdInvDocumentEntry.Destroy;
 begin
-  FDebitMovement.Free;
-  FCreditMovement.Free;
+  FMovement[emDebit].Free;
+  FMovement[emCredit].Free;
   FFeatures[ftSource].Free;
   FFeatures[ftDest].Free;
   FFeatures[ftMinus].Free;
   inherited;
+end;
+
+function TgdInvDocumentEntry.GetDirection: TgdcInvMovementDirection;
+begin
+  if (not FDirectionSet) and (Parent is TgdInvDocumentEntry) then
+    Result := TgdInvDocumentEntry(Parent).Direction
+  else
+    Result := FDirection;  
 end;
 
 function TgdInvDocumentEntry.GetFeature(
@@ -3110,11 +3188,105 @@ begin
     Result := FFlags[AFlag, fpValue];
 end;
 
+function TgdInvDocumentEntry.GetMCOContactType(
+  const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactType;
+begin
+  if (not FMovement[Amovement].ContactTypeSet) and (Parent is TgdInvDocumentEntry) then
+    Result := TgdInvDocumentEntry(Parent).GetMCOContactType(AMovement)
+  else
+    Result := FMovement[AMovement].ContactType;
+end;
+
+procedure TgdInvDocumentEntry.GetMCOPredefined(
+  const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
+var
+  I, J, K: Integer;
+begin
+  if Parent is TgdInvDocumentEntry then
+    TgdInvDocumentEntry(Parent).GetMCOPredefined(AMovement, V)
+  else
+    SetLength(V, 0);
+  I := Length(V);
+  J := Length(FMovement[AMovement].Predefined);
+  SetLength(V, I + J);
+  for K := 0 to J - 1 do
+    V[I + K] := FMovement[AMovement].Predefined[K];
+end;
+
+function TgdInvDocumentEntry.GetMCORelationName(
+  const AMovement: TgdInvDocumentEntryMovement): String;
+begin
+  if (not FMovement[AMovement].SourceFieldSet) and (Parent is TgdInvDocumentEntry) then
+    Result := TgdInvDocumentEntry(Parent).GetMCORelationName(AMovement)
+  else
+    Result := FMovement[AMovement].RelationName;
+end;
+
+function TgdInvDocumentEntry.GetMCOSourceFieldName(
+  const AMovement: TgdInvDocumentEntryMovement): String;
+begin
+  if (not FMovement[Amovement].SourceFieldSet) and (Parent is TgdInvDocumentEntry) then
+    Result := TgdInvDocumentEntry(Parent).GetMCOSourceFieldName(AMovement)
+  else
+    Result := FMovement[AMovement].SourceFieldName;
+end;
+
+procedure TgdInvDocumentEntry.GetMCOSubPredefined(
+  const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
+var
+  I, J, K: Integer;
+begin
+  if Parent is TgdInvDocumentEntry then
+    TgdInvDocumentEntry(Parent).GetMCOSubPredefined(AMovement, V)
+  else
+    SetLength(V, 0);
+  I := Length(V);
+  J := Length(FMovement[AMovement].SubPredefined);
+  SetLength(V, I + J);
+  for K := 0 to J - 1 do
+    V[I + K] := FMovement[AMovement].SubPredefined[K];
+end;
+
+function TgdInvDocumentEntry.GetMCOSubRelationName(
+  const AMovement: TgdInvDocumentEntryMovement): String;
+begin
+  if (not FMovement[Amovement].SubSourceFieldSet) and (Parent is TgdInvDocumentEntry) then
+    Result := TgdInvDocumentEntry(Parent).GetMCOSubRelationName(AMovement)
+  else
+    Result := FMovement[AMovement].SubRelationName;
+end;
+
+function TgdInvDocumentEntry.GetMCOSubSourceFieldName(
+  const AMovement: TgdInvDocumentEntryMovement): String;
+begin
+  if (not FMovement[Amovement].SubSourceFieldSet) and (Parent is TgdInvDocumentEntry) then
+    Result := TgdInvDocumentEntry(Parent).GetMCOSubSourceFieldName(AMovement)
+  else
+    Result := FMovement[AMovement].SubSourceFieldName;
+end;
+
+function TgdInvDocumentEntry.GetMovementContactOption(
+  const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
+begin
+  Result := FMovement[AMovement];
+end;
+
+function TgdInvDocumentEntry.GetSources: TgdcInvReferenceSources;
+begin
+  if (not FSourcesSet) and (Parent is TgdInvDocumentEntry) then
+    Result := TgdInvDocumentEntry(Parent).Sources
+  else
+    Result := FSources;
+end;
+
 procedure TgdInvDocumentEntry.ParseOptions;
 var
   Version: String;
   SS: TStringStream;
   F: TatRelationField;
+  CT: TgdcInvMovementContactType;
+  TempDirection: TgdcInvMovementDirection;
+  TempSources: TgdcInvReferenceSources;
 begin
   if Options = '' then
     exit;
@@ -3149,65 +3321,45 @@ begin
     end;
 
     // Приход
-    SetLength(FDebitMovement.Predefined, 0);
-    SetLength(FDebitMovement.SubPredefined, 0);
+    SetMCORelationName(emDebit, ReadString);
+    SetMCOSourceFieldName(emDebit, ReadString);
+    SetMCOSubRelationName(emDebit, ReadString);
+    SetMCOSubSourceFieldName(emDebit, ReadString);
 
-    FDebitMovement.RelationName := ReadString;
-    FDebitMovement.SourceFieldName := ReadString;
-    FDebitMovement.SubRelationName := ReadString;
-    FDebitMovement.SubSourceFieldName := ReadString;
+    Read(CT, SizeOf(CT));
+    SetMCOCOntactType(emDebit, CT);
 
-    Read(FDebitMovement.ContactType, SizeOf(TgdcInvMovementContactType));
-
+    ClearMCOPredefined(emDebit);
     ReadListBegin;
     while not EndOfList do
-    begin
-      SetLength(FDebitMovement.Predefined,
-        Length(FDebitMovement.Predefined) + 1);
-      FDebitMovement.Predefined[Length(FDebitMovement.Predefined) - 1] :=
-        ReadInteger;
-    end;
+      AddMCOPredefined(emDebit, ReadInteger);
     ReadListEnd;
 
+    ClearMCOSubPredefined(emDebit);
     ReadListBegin;
     while not EndOfList do
-    begin
-      SetLength(FDebitMovement.SubPredefined,
-        Length(FDebitMovement.SubPredefined) + 1);
-      FDebitMovement.SubPredefined[Length(FDebitMovement.SubPredefined) - 1] :=
-        ReadInteger;
-    end;
+      AddMCOSubPredefined(emDebit, ReadInteger);
     ReadListEnd;
 
     // Расход
-    SetLength(FCreditMovement.Predefined, 0);
-    SetLength(FCreditMovement.SubPredefined, 0);
+    SetMCORelationName(emCredit, ReadString);
+    SetMCOSourceFieldName(emCredit, ReadString);
+    SetMCOSubRelationName(emCredit, ReadString);
+    SetMCOSubSourceFieldName(emCredit, ReadString);
 
-    FCreditMovement.RelationName := ReadString;
-    FCreditMovement.SourceFieldName := ReadString;
-    FCreditMovement.SubRelationName := ReadString;
-    FCreditMovement.SubSourceFieldName := ReadString;
+    Read(CT, SizeOf(CT));
+    SetMCOCOntactType(emCredit, CT);
 
-    Read(FCreditMovement.ContactType, SizeOf(TgdcInvMovementContactType));
-
+    ClearMCOPredefined(emCredit);
     ReadListBegin;
     while not EndOfList do
-    begin
-      SetLength(FCreditMovement.Predefined,
-        Length(FCreditMovement.Predefined) + 1);
-      FCreditMovement.Predefined[Length(FCreditMovement.Predefined) - 1] :=
-        ReadInteger;
-    end;
+      AddMCOPredefined(emCredit, ReadInteger);
     ReadListEnd;
 
+    ClearMCOSubPredefined(emCredit);
     ReadListBegin;
     while not EndOfList do
-    begin
-      SetLength(FCreditMovement.SubPredefined,
-        Length(FCreditMovement.SubPredefined) + 1);
-      FCreditMovement.SubPredefined[Length(FCreditMovement.SubPredefined) - 1] :=
-        ReadInteger;
-    end;
+      AddMCOSubPredefined(emCredit, ReadInteger);
     ReadListEnd;
 
     // Настройки признаков
@@ -3232,10 +3384,12 @@ begin
     ReadListEnd;
 
     // Настройка справочников
-    Read(FSources, SizeOf(TgdcInvReferenceSources));
+    Read(TempSources, SizeOf(TgdcInvReferenceSources));
+    Sources := TempSources;
 
     // Настройка FIFO, LIFO
-    Read(FDirection, SizeOf(TgdcInvMovementDirection));
+    Read(TempDirection, SizeOf(TgdcInvMovementDirection));
+    Direction := TempDirection;
 
     // Контроль остатков
     SetFlag(efControlRemains, ReadBoolean);
@@ -3324,6 +3478,50 @@ begin
   end;
 end;
 
+procedure TgdInvDocumentEntry.SaveOptions(ATransaction: TIBTransaction);
+var
+  q: TIBSQL;
+  N: TgdInvDocumentEntryFlag;
+begin
+  inherited;
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ATransaction;
+    q.SQL.Text :=
+      'UPDATE OR INSERT INTO gd_documenttype_option (dtkey, option_name, bool_value) ' +
+      'VALUES (:dtkey, :option_name, :bool_value) ' +
+      'MATCHING (dtkey, option_name)';
+
+    for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
+      if FFlags[N, fpIsSet] and (FFlags[N, fpValue] <> FFlags[N, fpOldValue]) then
+      begin
+        q.ParamByName('dtkey').AsInteger := TypeID;
+        q.ParamByName('option_name').AsString := InvDocumentEntryFlagNames[N];
+        if FFlags[N, fpValue] then
+          q.ParamByName('bool_value').AsInteger := 1
+        else
+          q.ParamByName('bool_value').AsInteger := 0;
+        q.ExecQuery;
+        FFlags[N, fpOldValue] := FFlags[N, fpValue];
+      end;
+
+  finally
+    q.Free;
+  end;
+end;
+
+procedure TgdInvDocumentEntry.SetDirection(
+  const Value: TgdcInvMovementDirection);
+begin
+  FDirection := Value;
+  if not FDirectionSet then
+  begin
+    FOldDirection := Value;
+    FDirectionSet := True;
+  end;
+end;
+
 procedure TgdInvDocumentEntry.SetFeature(
   const AFeature: TgdInvDocumentEntryFeature; const AnIndex: Integer;
   const AValue: String);
@@ -3348,6 +3546,53 @@ begin
   begin
     FFlags[AFlag, fpOldValue] := AValue;
     FFlags[AFlag, fpIsSet] := True;
+  end;
+end;
+
+procedure TgdInvDocumentEntry.SetMCOContactType(
+  const AMovement: TgdInvDocumentEntryMovement;
+  const AValue: TgdcInvMovementContactType);
+begin
+  FMovement[AMovement].ContactType := AValue;
+  FMovement[AMovement].ContactTypeSet := True;
+end;
+
+procedure TgdInvDocumentEntry.SetMCORelationName(
+  const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
+begin
+  FMovement[AMovement].RelationName := AValue;
+  FMovement[AMovement].SourceFieldSet := True;
+end;
+
+procedure TgdInvDocumentEntry.SetMCOSourceFieldName(
+  const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
+begin
+  FMovement[AMovement].SourceFieldName := AValue;
+  FMovement[AMovement].SourceFieldSet := True;
+end;
+
+procedure TgdInvDocumentEntry.SetMCOSubRelationName(
+  const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
+begin
+  FMovement[AMovement].SubRelationName := AValue;
+  FMovement[AMovement].SubSourceFieldSet := True;
+end;
+
+procedure TgdInvDocumentEntry.SetMCOSubSourceFieldName(
+  const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
+begin
+  FMovement[AMovement].SubSourceFieldName := AValue;
+  FMovement[AMovement].SubSourceFieldSet := True;
+end;
+
+procedure TgdInvDocumentEntry.SetSources(
+  const Value: TgdcInvReferenceSources);
+begin
+  FSources := Value;
+  if not FSourcesSet then
+  begin
+    FOldSources := Value;
+    FSourcesSet := True;
   end;
 end;
 
