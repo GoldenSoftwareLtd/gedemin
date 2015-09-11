@@ -3063,7 +3063,15 @@ begin
   SLToAS(ftSource, FSourceFeatures);
   SLToAS(ftDest, FDestFeatures);
   SLToAS(ftMinus, FMinusFeatures);
-  FSources := AnIDE.Sources;
+
+  FSources := [];
+  if AnIDE.GetFlag(efSrcGoodRef) then
+    Include(FSources, irsGoodRef);
+  if AnIDE.GetFlag(efSrcRemainsRef) then
+    Include(FSources, irsRemainsRef);
+  if AnIDE.GetFlag(efSrcMacro) then
+    Include(FSources, irsMacro);
+
   FDirection := AnIDE.Direction;
 
   if not (irsRemainsRef in FSources) then

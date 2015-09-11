@@ -407,7 +407,10 @@ type
     efIsUseCompanyKey,
     efSaveRestWindowOption,
     efEndMonthRemains,
-    efWithoutSearchRemains
+    efWithoutSearchRemains,
+    efSrcGoodRef,
+    efSrcRemainsRef,
+    efSrcMacro
   );
 
   TgdInvDocumentEntryFlagProp = (
@@ -433,15 +436,11 @@ type
     FFeatures: array[TgdInvDocumentEntryFeature] of TStringList;
     FDirection, FOldDirection: TgdcInvMovementDirection;
     FDirectionSet: Boolean;
-    FSources, FOldSources: TgdcInvReferenceSources;
-    FSourcesSet: Boolean;
     FFlags: array[TgdInvDocumentEntryFlag, TgdInvDocumentEntryFlagProp] of Boolean;
     function GetMovementContactOption(
       const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
     function GetDirection: TgdcInvMovementDirection;
     procedure SetDirection(const Value: TgdcInvMovementDirection);
-    function GetSources: TgdcInvReferenceSources;
-    procedure SetSources(const Value: TgdcInvReferenceSources);
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -480,7 +479,6 @@ type
     procedure GetMCOSubPredefined(const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
 
     property Direction: TgdcInvMovementDirection read GetDirection write SetDirection;
-    property Sources: TgdcInvReferenceSources read GetSources write SetSources;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -654,8 +652,8 @@ const
   CLASS_LIST_PREFIX    : TPrefixType = '^C_L';
 
   InvDocumentEntryFlagFirst = efControlRemains;
-  InvDocumentEntryFlagLast = efControlRemains;
-  InvDocumentEntryFlagNames: array[TgdInvDocumentEntryFlag] of String = (
+  InvDocumentEntryFlagLast = efSrcMacro;
+  InvDocumentEntryFlagNames: array[InvDocumentEntryFlagFirst..InvDocumentEntryFlagLast] of String = (
     'ControlRemains',
     'LiveTimeRemains',
     'MinusRemains',
@@ -666,7 +664,10 @@ const
     'UseCompanyKey',
     'SaveRestWindowOption',
     'EndMonthRemains',
-    'WithoutSearchRemains'
+    'WithoutSearchRemains',
+    'SrcGoodRef',
+    'SrcRemainsRef',
+    'SrcMacro'
    );
 
 {$IFDEF METHODSCHECK}
@@ -2085,15 +2086,11 @@ procedure TgdClassList.LoadUserDefinedClasses;
   var
     OptName: String;
     R: TatRelation;
-    TempSources: TgdcInvReferenceSources;
-    TempSourcesSet: Boolean;
     N: TgdInvDocumentEntryFlag;
   begin
     R := atDatabase.Relations.ByRelationName('INV_CARD');
     Assert(R <> nil);
 
-    TempSources := [];
-    TempSourcesSet := False;
     while (not qOpt.EOF) and (qOpt.FieldbyName('dtkey').AsInteger = DE.TypeID) do
     begin
       OptName := qOpt.FieldbyName('option_name').AsString;
@@ -2117,28 +2114,7 @@ procedure TgdClassList.LoadUserDefinedClasses;
         DE.Direction := imdLIFO
       else if (OptName = 'Dir.Default') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
         DE.Direction := imdDefault
-      else if OptName = 'Src.GoodRef' then
-      begin
-        if qOpt.FieldbyName('bool_value').AsInteger <> 0 then
-          Include(TempSources, irsGoodRef)
-        else
-          Exclude(TempSources, irsGoodRef);
-        TempSourcesSet := True;
-      end else if OptName = 'Src.RemainsRef' then
-      begin
-        if qOpt.FieldbyName('bool_value').AsInteger <> 0 then
-          Include(TempSources, irsRemainsRef)
-        else
-          Exclude(TempSources, irsRemainsRef);
-        TempSourcesSet := True;
-      end else if OptName = 'Src.Macro' then
-      begin
-        if qOpt.FieldbyName('bool_value').AsInteger <> 0 then
-          Include(TempSources, irsMacro)
-        else
-          Exclude(TempSources, irsMacro);
-        TempSourcesSet := True;
-      end else
+      else
       begin
         for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
           if OptName = InvDocumentEntryFlagNames[N] then
@@ -2150,9 +2126,6 @@ procedure TgdClassList.LoadUserDefinedClasses;
 
       qOpt.Next;
     end;
-
-    if TempSourcesSet then
-      DE.Sources := TempSources;
   end;
 
   procedure LoadDE(DE: TgdDocumentEntry; q, qOpt: TIBSQL);
@@ -2896,9 +2869,6 @@ begin
   FDirection := (CE as TgdInvDocumentEntry).FDirection;
   FOldDirection := (CE as TgdInvDocumentEntry).FOldDirection;
   FDirectionSet := (CE as TgdInvDocumentEntry).FDirectionSet;
-  FSources := (CE as TgdInvDocumentEntry).FSources;
-  FOldSources := (CE as TgdInvDocumentEntry).FOldSources;
-  FSourcesSet := (CE as TgdInvDocumentEntry).FSourcesSet;
   FFlags := (CE as TgdInvDocumentEntry).FFlags;
 end;
 
@@ -3108,9 +3078,6 @@ begin
     ConvertBoolean(FDirection = imdFIFO, 'Dir.FIFO');
     ConvertBoolean(FDirection = imdLIFO, 'Dir.LIFO');
     ConvertBoolean(FDirection = imdDefault, 'Dir.Default');
-    ConvertBoolean(irsGoodRef in FSources, 'Src.GoodRef');
-    ConvertBoolean(irsRemainsRef in FSources, 'Src.RemainsRef');
-    ConvertBoolean(irsMacro in FSources, 'Src.Macro');
 
     for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
       ConvertBoolean(GetFlag(N), InvDocumentEntryFlagNames[N]);
@@ -3271,14 +3238,6 @@ begin
   Result := FMovement[AMovement];
 end;
 
-function TgdInvDocumentEntry.GetSources: TgdcInvReferenceSources;
-begin
-  if (not FSourcesSet) and (Parent is TgdInvDocumentEntry) then
-    Result := TgdInvDocumentEntry(Parent).Sources
-  else
-    Result := FSources;
-end;
-
 procedure TgdInvDocumentEntry.ParseOptions;
 var
   Version: String;
@@ -3385,7 +3344,13 @@ begin
 
     // Настройка справочников
     Read(TempSources, SizeOf(TgdcInvReferenceSources));
-    Sources := TempSources;
+
+    if irsGoodRef in TempSources then
+      SetFlag(efSrcGoodRef);
+    if irsRemainsRef in TempSources then
+      SetFlag(efSrcRemainsRef);
+    if irsMacro in TempSources then
+      SetFlag(efSrcMacro);
 
     // Настройка FIFO, LIFO
     Read(TempDirection, SizeOf(TgdcInvMovementDirection));
@@ -3583,17 +3548,6 @@ procedure TgdInvDocumentEntry.SetMCOSubSourceFieldName(
 begin
   FMovement[AMovement].SubSourceFieldName := AValue;
   FMovement[AMovement].SubSourceFieldSet := True;
-end;
-
-procedure TgdInvDocumentEntry.SetSources(
-  const Value: TgdcInvReferenceSources);
-begin
-  FSources := Value;
-  if not FSourcesSet then
-  begin
-    FOldSources := Value;
-    FSourcesSet := True;
-  end;
 end;
 
 initialization
