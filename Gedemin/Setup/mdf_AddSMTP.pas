@@ -25,33 +25,36 @@ begin
       FIBSQL := TIBSQL.Create(nil);
       try
         FIBSQL.Transaction := FTransaction;
-        
-        FIBSQL.SQL.Text :=
-          'CREATE TABLE gd_smtp '#13#10 +
-          '( '#13#10 +
-          '  id               dintkey, '#13#10 +
-          '  name             dname, '#13#10 +
-          '  description      dtext180, '#13#10 +
-          '  email            dname, '#13#10 +
-          '  login            dname, '#13#10 +
-          '  passw            VARCHAR(256) NOT NULL, '#13#10 +
-          '  ipsec            dtext8 DEFAULT NULL, '#13#10 +
-          '  timeout          dinteger_notnull DEFAULT -1, '#13#10 +
-          '  server           dtext80 NOT NULL, '#13#10 +
-          '  port             dinteger_notnull DEFAULT 25, '#13#10 +
-          ' '#13#10 +
-          '  creatorkey       dforeignkey, '#13#10 +
-          '  creationdate     dcreationdate, '#13#10 +
-          '  editorkey        dforeignkey, '#13#10 +
-          '  editiondate      deditiondate, '#13#10 +
-          '  afull            dsecurity, '#13#10 +
-          '  achag            dsecurity, '#13#10 +
-          '  aview            dsecurity, '#13#10 +
-          '  disabled         ddisabled, '#13#10 +
-          ' '#13#10 +
-          '  CONSTRAINT gd_pk_smtp PRIMARY KEY (id)' +
-          ')';
-        FIBSQL.ExecQuery;
+
+        if not RelationExist2('GD_SMTP', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'CREATE TABLE gd_smtp '#13#10 +
+            '( '#13#10 +
+            '  id               dintkey, '#13#10 +
+            '  name             dname, '#13#10 +
+            '  description      dtext180, '#13#10 +
+            '  email            dname, '#13#10 +
+            '  login            dname, '#13#10 +
+            '  passw            VARCHAR(256) NOT NULL, '#13#10 +
+            '  ipsec            dtext8 DEFAULT NULL, '#13#10 +
+            '  timeout          dinteger_notnull DEFAULT -1, '#13#10 +
+            '  server           dtext80 NOT NULL, '#13#10 +
+            '  port             dinteger_notnull DEFAULT 25, '#13#10 +
+            ' '#13#10 +
+            '  creatorkey       dforeignkey, '#13#10 +
+            '  creationdate     dcreationdate, '#13#10 +
+            '  editorkey        dforeignkey, '#13#10 +
+            '  editiondate      deditiondate, '#13#10 +
+            '  afull            dsecurity, '#13#10 +
+            '  achag            dsecurity, '#13#10 +
+            '  aview            dsecurity, '#13#10 +
+            '  disabled         ddisabled, '#13#10 +
+            ' '#13#10 +
+            '  CONSTRAINT gd_pk_smtp PRIMARY KEY (id)' +
+            ')';
+          FIBSQL.ExecQuery;
+        end;  
 
         FIBSQL.SQL.Text :=
           'GRANT ALL ON GD_SMTP TO administrator';

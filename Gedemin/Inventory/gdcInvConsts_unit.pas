@@ -107,6 +107,8 @@ const
   );
 
 type
+  TgdcMCOPredefined = array of Integer;
+
   // Структура используется при определении атрибута
   // отвечающего за источник или получателя ТМЦ
   // в складском документе.
@@ -114,13 +116,17 @@ type
   public
     RelationName: String[31];               // Наименование таблицы
     SourceFieldName: String[31];            // Наименование поля-атрибута
+    SourceFieldSet: Boolean;
 
     SubRelationName: String[31];            // Наименование таблицы
     SubSourceFieldName: String[31];         // Наименование дополнительного поля-атрибута
+    SubSourceFieldSet: Boolean;
 
     ContactType: TgdcInvMovementContactType;// Тип контакта
-    Predefined: array of Integer;           // Набор возможных значений
-    SubPredefined: array of Integer;        // Набор возможных значений
+    ContactTypeSet: Boolean;
+
+    Predefined: TgdcMCOPredefined;           // Набор возможных значений
+    SubPredefined: TgdcMCOPredefined;        // Набор возможных значений
 
     procedure Assign(AnObject: TgdcInvMovementContactOption);
     procedure GetProperties(ASL: TStrings);
@@ -268,11 +274,15 @@ procedure TgdcInvMovementContactOption.Assign(
 begin
   RelationName := AnObject.RelationName;
   SourceFieldName := AnObject.SourceFieldName;
+  SourceFieldSet := AnObject.SourceFieldSet;
 
   SubRelationName := AnObject.SubRelationName;
   SubSourceFieldName := AnObject.SubSourceFieldName;
+  SubSourceFieldSet := AnObject.SubSourceFieldSet;
 
   ContactType := AnObject.ContactType;
+  ContactTypeSet := AnObject.ContactTypeSet;
+
   Predefined := Copy(AnObject.Predefined, 0, MaxInt);
   SubPredefined := Copy(AnObject.SubPredefined, 0, MaxInt);
 end;
@@ -284,10 +294,10 @@ var
 begin
   Assert(ASL <> nil);
 
-  ASL.Add(AddSpaces('Relation name:') + RelationName);
-  ASL.Add(AddSpaces('Source field name:') + SourceFieldName);
-  ASL.Add(AddSpaces('Sub relation name:') + SubRelationName);
-  ASL.Add(AddSpaces('Sub source field name:') + SubSourceFieldName);
+  ASL.Add(AddSpaces('Relation name') + RelationName);
+  ASL.Add(AddSpaces('Source field name') + SourceFieldName);
+  ASL.Add(AddSpaces('Sub relation name') + SubRelationName);
+  ASL.Add(AddSpaces('Sub source field name') + SubSourceFieldName);
 
   case ContactType of
     imctOurCompany: S := 'Наша компания';
@@ -300,21 +310,21 @@ begin
     imctOurDepartAndPeople: S := 'Наше подразделение и сотрудник';
   end;
 
-  ASL.Add(AddSpaces('ContactType:') + S);
+  ASL.Add(AddSpaces('ContactType') + S);
 
   S := '';
   for I := 0 to High(Predefined) do
     S := S + IntToStr(Predefined[I]) + ', ';
   if S > '' then
     SetLength(S, Length(S) - 2);
-  ASL.Add(AddSpaces('Predefined:') + S);
+  ASL.Add(AddSpaces('Predefined') + S);
 
   S := '';
   for I := 0 to High(SubPredefined) do
     S := S + IntToStr(SubPredefined[I]) + ', ';
   if S > '' then
     SetLength(S, Length(S) - 2);
-  ASL.Add(AddSpaces('SubPredefined:') + S);
+  ASL.Add(AddSpaces('SubPredefined') + S);
 end;
 
 end.

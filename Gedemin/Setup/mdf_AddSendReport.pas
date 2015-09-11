@@ -451,6 +451,15 @@ begin
           ' '#13#10 +
           '  IF (:I > 1) THEN '#13#10 +
           '    EXCEPTION gd_e_exception ''Duplicate option''; '#13#10 +
+          ' '#13#10 +
+          '  IF ((NEW.bool_value <> 0) AND (POSITION(''.'', NEW.option_name) > 0)) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    UPDATE gd_documenttype_option '#13#10 +
+          '    SET bool_value = 0 '#13#10 +
+          '    WHERE bool_value = 1 AND dtkey = NEW.dtkey AND id <> NEW.id '#13#10 +
+          '      AND option_name STARTING WITH '#13#10 +
+          '        LEFT(NEW.option_name, CHARACTER_LENGTH(NEW.option_name) - POSITION(''.'', REVERSE(NEW.option_name)) + 1); '#13#10 +
+          '  END '#13#10 +
           'END';
         FIBSQL.ExecQuery;
 

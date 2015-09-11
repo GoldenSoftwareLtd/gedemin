@@ -221,6 +221,15 @@ BEGIN
 
   IF (:I > 1) THEN
     EXCEPTION gd_e_exception 'Duplicate option';
+    
+  IF ((NEW.bool_value <> 0) AND (POSITION('.', NEW.option_name) > 0)) THEN
+  BEGIN
+    UPDATE gd_documenttype_option 
+    SET bool_value = 0
+    WHERE bool_value = 1 AND dtkey = NEW.dtkey AND id <> NEW.id
+      AND option_name STARTING WITH 
+        LEFT(NEW.option_name, CHARACTER_LENGTH(NEW.option_name) - POSITION('.', REVERSE(NEW.option_name)) + 1);
+  END  
 END
 ^    
 

@@ -3072,7 +3072,12 @@ begin
   if AnIDE.GetFlag(efSrcMacro) then
     Include(FSources, irsMacro);
 
-  FDirection := AnIDE.Direction;
+  if AnIDE.GetFlag(efDirFIFO) then
+    FDirection := imdFIFO
+  else if AnIDE.GetFlag(efDirLIFO) then
+    FDirection := imdLIFO
+  else if AnIDE.GetFlag(efDirDefault) then
+    FDirection := imdDefault;
 
   if not (irsRemainsRef in FSources) then
   begin

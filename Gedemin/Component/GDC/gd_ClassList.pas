@@ -410,7 +410,10 @@ type
     efWithoutSearchRemains,
     efSrcGoodRef,
     efSrcRemainsRef,
-    efSrcMacro
+    efSrcMacro,
+    efDirFIFO,
+    efDirLIFO,
+    efDirDefault
   );
 
   TgdInvDocumentEntryFlagProp = (
@@ -434,13 +437,9 @@ type
   private
     FMovement: array[TgdInvDocumentEntryMovement] of TgdcInvMovementContactOption;
     FFeatures: array[TgdInvDocumentEntryFeature] of TStringList;
-    FDirection, FOldDirection: TgdcInvMovementDirection;
-    FDirectionSet: Boolean;
     FFlags: array[TgdInvDocumentEntryFlag, TgdInvDocumentEntryFlagProp] of Boolean;
     function GetMovementContactOption(
       const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
-    function GetDirection: TgdcInvMovementDirection;
-    procedure SetDirection(const Value: TgdcInvMovementDirection);
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -477,8 +476,6 @@ type
     function GetMCOContactType(const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactType;
     procedure GetMCOPredefined(const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
     procedure GetMCOSubPredefined(const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
-
-    property Direction: TgdcInvMovementDirection read GetDirection write SetDirection;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -652,7 +649,7 @@ const
   CLASS_LIST_PREFIX    : TPrefixType = '^C_L';
 
   InvDocumentEntryFlagFirst = efControlRemains;
-  InvDocumentEntryFlagLast = efSrcMacro;
+  InvDocumentEntryFlagLast = efDirDefault;
   InvDocumentEntryFlagNames: array[InvDocumentEntryFlagFirst..InvDocumentEntryFlagLast] of String = (
     'ControlRemains',
     'LiveTimeRemains',
@@ -667,7 +664,10 @@ const
     'WithoutSearchRemains',
     'SrcGoodRef',
     'SrcRemainsRef',
-    'SrcMacro'
+    'SrcMacro',
+    'Dir.FIFO',
+    'Dir.LIFO',
+    'Dir.Default'
    );
 
 {$IFDEF METHODSCHECK}
@@ -2108,12 +2108,6 @@ procedure TgdClassList.LoadUserDefinedClasses;
         LoadFeatures(R, ftDest)
       else if OptName = 'MF' then
         LoadFeatures(R, ftMinus)
-      else if (OptName = 'Dir.FIFO') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
-        DE.Direction := imdFIFO
-      else if (OptName = 'Dir.LIFO') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
-        DE.Direction := imdLIFO
-      else if (OptName = 'Dir.Default') and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
-        DE.Direction := imdDefault
       else
       begin
         for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
@@ -2866,9 +2860,6 @@ begin
   FFeatures[ftSource].Assign((CE as TgdInvDocumentEntry).FFeatures[ftSource]);
   FFeatures[ftDest].Assign((CE as TgdInvDocumentEntry).FFeatures[ftDest]);
   FFeatures[ftMinus].Assign((CE as TgdInvDocumentEntry).FFeatures[ftMinus]);
-  FDirection := (CE as TgdInvDocumentEntry).FDirection;
-  FOldDirection := (CE as TgdInvDocumentEntry).FOldDirection;
-  FDirectionSet := (CE as TgdInvDocumentEntry).FDirectionSet;
   FFlags := (CE as TgdInvDocumentEntry).FFlags;
 end;
 
@@ -3075,9 +3066,6 @@ begin
     ConvertFeatures(ftSource, 'SF');
     ConvertFeatures(ftDest, 'DF');
     ConvertFeatures(ftMinus, 'MF');
-    ConvertBoolean(FDirection = imdFIFO, 'Dir.FIFO');
-    ConvertBoolean(FDirection = imdLIFO, 'Dir.LIFO');
-    ConvertBoolean(FDirection = imdDefault, 'Dir.Default');
 
     for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
       ConvertBoolean(GetFlag(N), InvDocumentEntryFlagNames[N]);
@@ -3111,14 +3099,6 @@ begin
   FFeatures[ftDest].Free;
   FFeatures[ftMinus].Free;
   inherited;
-end;
-
-function TgdInvDocumentEntry.GetDirection: TgdcInvMovementDirection;
-begin
-  if (not FDirectionSet) and (Parent is TgdInvDocumentEntry) then
-    Result := TgdInvDocumentEntry(Parent).Direction
-  else
-    Result := FDirection;  
 end;
 
 function TgdInvDocumentEntry.GetFeature(
@@ -3354,7 +3334,13 @@ begin
 
     // Настройка FIFO, LIFO
     Read(TempDirection, SizeOf(TgdcInvMovementDirection));
-    Direction := TempDirection;
+
+    if TempDirection = imdFIFO then
+      SetFlag(efDirFIFO)
+    else if TempDirection = imdLIFO then
+      SetFlag(efDirLIFO)
+    else
+      SetFlag(efDirDefault);
 
     // Контроль остатков
     SetFlag(efControlRemains, ReadBoolean);
@@ -3473,17 +3459,6 @@ begin
 
   finally
     q.Free;
-  end;
-end;
-
-procedure TgdInvDocumentEntry.SetDirection(
-  const Value: TgdcInvMovementDirection);
-begin
-  FDirection := Value;
-  if not FDirectionSet then
-  begin
-    FOldDirection := Value;
-    FDirectionSet := True;
   end;
 end;
 

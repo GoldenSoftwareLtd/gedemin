@@ -1941,7 +1941,7 @@ begin
         '  refsubtype        dname, '#13#10 +
         '  refeditiondate    TIMESTAMP, '#13#10 +
         ' '#13#10 +
-        '  PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname) '#13#10 +
+        '  CONSTRAINT gd_pk_object_dependencies PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname, refobjectid) '#13#10 +
         ') '#13#10 +
         '  ON COMMIT DELETE ROWS ';
       q.ExecQuery;
@@ -2260,7 +2260,7 @@ begin
         if not q.EOF then
           DropConstraint2('GD_OBJECT_DEPENDENCIES', q.Fields[0].AsTrimString, Tr);
 
-        q.Close;  
+        q.Close;
         q.SQL.Text := 'ALTER TABLE gd_object_dependencies ADD CONSTRAINT ' +
           'gd_pk_object_dependencies PRIMARY KEY ' +
           '(sessionid, masterid, reflevel, relationname, fieldname, refobjectid)';
