@@ -459,6 +459,8 @@ type
     procedure SetFeature(const AFeature: TgdInvDocumentEntryFeature; const AnIndex: Integer;
       const AValue: String);
     procedure AddFeature(const AFeature: TgdInvDocumentEntryFeature; const AValue: String);
+    function GetDirection: TgdcInvMovementDirection;
+    function GetSources: TgdcInvReferenceSources;
 
     procedure SetMCORelationName(const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
     procedure SetMCOSourceFieldName(const AMovement: TgdInvDocumentEntryMovement; const AValue: String);
@@ -3068,7 +3070,8 @@ begin
     ConvertFeatures(ftMinus, 'MF');
 
     for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
-      ConvertBoolean(GetFlag(N), InvDocumentEntryFlagNames[N]);
+      if FFlags[N, fpIsSet] then
+        ConvertBoolean(FFlags[N, fpValue], InvDocumentEntryFlagNames[N]);
 
     Tr.Commit;
   finally
@@ -3101,6 +3104,23 @@ begin
   inherited;
 end;
 
+function TgdInvDocumentEntry.GetDirection: TgdcInvMovementDirection;
+begin
+  if FFlags[efDirFIFO, fpIsSet] or FFlags[efDirLIFO, fpIsSet] or FFlags[efDirDefault, fpIsSet] then
+  begin
+    if FFlags[efDirFIFO, fpValue] then
+      Result := imdFIFO
+    else if FFlags[efDirLIFO, fpValue] then
+      Result := imdLIFO
+    else
+      Result := imdDefault;
+  end
+  else if Parent is TgdInvDocumentEntry then
+    Result := TgdInvDocumentEntry(Parent).GetDirection
+  else
+    Result := imdFIFO;
+end;
+
 function TgdInvDocumentEntry.GetFeature(
   const AFeature: TgdInvDocumentEntryFeature;
   const AnIndex: Integer): String;
@@ -3126,9 +3146,10 @@ begin
     Result := FFeatures[AFeature].Count;
 end;
 
-function TgdInvDocumentEntry.GetFlag(
-  const AFlag: TgdInvDocumentEntryFlag): Boolean;
+function TgdInvDocumentEntry.GetFlag(const AFlag: TgdInvDocumentEntryFlag): Boolean;
 begin
+  Assert(not (AFlag in [efDirFIFO, efDirLIFO, efDirDefault]));
+
   if (not FFlags[AFlag, fpIsSet]) and (Parent is TgdInvDocumentEntry) then
     Result := TgdInvDocumentEntry(Parent).GetFlag(AFlag)
   else
@@ -3216,6 +3237,18 @@ function TgdInvDocumentEntry.GetMovementContactOption(
   const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
 begin
   Result := FMovement[AMovement];
+end;
+
+function TgdInvDocumentEntry.GetSources: TgdcInvReferenceSources;
+begin
+  Result := [];
+
+  if GetFlag(efSrcGoodRef) then
+    Include(Result, irsGoodRef);
+  if GetFlag(efSrcRemainsRef) then
+    Include(Result, irsRemainsRef);
+  if GetFlag(efSrcMacro) then
+    Include(Result, irsMacro);
 end;
 
 procedure TgdInvDocumentEntry.ParseOptions;
