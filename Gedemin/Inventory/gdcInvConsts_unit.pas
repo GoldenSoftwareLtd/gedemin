@@ -116,11 +116,9 @@ type
   public
     RelationName: String[31];               // Наименование таблицы
     SourceFieldName: String[31];            // Наименование поля-атрибута
-    SourceFieldSet: Boolean;
 
     SubRelationName: String[31];            // Наименование таблицы
     SubSourceFieldName: String[31];         // Наименование дополнительного поля-атрибута
-    SubSourceFieldSet: Boolean;
 
     ContactType: TgdcInvMovementContactType;// Тип контакта
     ContactTypeSet: Boolean;
@@ -274,11 +272,9 @@ procedure TgdcInvMovementContactOption.Assign(
 begin
   RelationName := AnObject.RelationName;
   SourceFieldName := AnObject.SourceFieldName;
-  SourceFieldSet := AnObject.SourceFieldSet;
 
   SubRelationName := AnObject.SubRelationName;
   SubSourceFieldName := AnObject.SubSourceFieldName;
-  SubSourceFieldSet := AnObject.SubSourceFieldSet;
 
   ContactType := AnObject.ContactType;
   ContactTypeSet := AnObject.ContactTypeSet;
