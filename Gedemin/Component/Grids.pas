@@ -2440,7 +2440,11 @@ procedure TCustomGrid.GridRectToScreenRect(GridRect: TGridRect;
         ScreenRectMax := ScreenRectMin + GetExtent(GridRectMin)
       else
         Inc(ScreenRectMax, GetExtent(GridRectMax));
+      {$IFDEF GEDEMIN}
+      if (ScreenRectMax = -1) or (ScreenRectMax > GridExtent) then
+      {$ELSE}
       if ScreenRectMax > GridExtent then
+      {$ENDIF}
         ScreenRectMax := GridExtent;
       if IncludeLine then Inc(ScreenRectMax, EffectiveLineWidth);
     end;
