@@ -141,7 +141,6 @@ type
 
   TgdcBaseDocumentType = class(TgdcLBRBTree)
   private
-    FCurrentClassName: String;
     function GetDocLineRelationName: String;
     function GetDocRelationName: String;
     function GetIsComplexDocument: Boolean;
@@ -1946,10 +1945,7 @@ end;
 constructor TgdcBaseDocumentType.Create(AnOwner: TComponent);
 begin
   inherited;
-
   CustomProcess := [cpInsert, cpModify];
-
-  FCurrentClassName := '';
 end;
 
 procedure TgdcBaseDocumentType._DoOnNewRecord;
