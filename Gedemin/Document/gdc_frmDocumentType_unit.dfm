@@ -136,23 +136,35 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
           Left = 0
           Top = 0
           Width = 589
-          Height = 26
+          Height = 25
           object tbDTOptions: TTBToolbar
             Left = 0
             Top = 0
             Caption = 'tbDTOptions'
             DockMode = dmCannotFloatOrChangeDocks
             TabOrder = 0
+            object TBItem3: TTBItem
+              Action = actDeleteOption
+            end
+            object TBSeparatorItem2: TTBSeparatorItem
+            end
+            object TBItem4: TTBItem
+              Action = actCommitOption
+            end
+            object TBItem5: TTBItem
+              Action = actRollbackOption
+            end
           end
         end
         object ibgrOptions: TgsIBGrid
           Left = 0
-          Top = 26
+          Top = 25
           Width = 589
-          Height = 115
+          Height = 116
           Align = alClient
           BorderStyle = bsNone
           DataSource = dsInvDocumentOptions
+          Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgConfirmDelete, dgCancelOnExit]
           ReadOnly = True
           TabOrder = 1
           InternalMenuKind = imkWithSeparator
@@ -209,6 +221,24 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       OnExecute = actAddInvPriceListExecute
       OnUpdate = actAddInvPriceListUpdate
     end
+    object actDeleteOption: TAction
+      Category = 'Option'
+      Caption = 'Удалить параметр'
+      OnExecute = actDeleteOptionExecute
+      OnUpdate = actDeleteOptionUpdate
+    end
+    object actCommitOption: TAction
+      Category = 'Option'
+      Caption = 'Сохранить изменения'
+      OnExecute = actCommitOptionExecute
+      OnUpdate = actCommitOptionUpdate
+    end
+    object actRollbackOption: TAction
+      Category = 'Option'
+      Caption = 'Отменить изменения'
+      OnExecute = actRollbackOptionExecute
+      OnUpdate = actRollbackOptionUpdate
+    end
   end
   inherited pmMain: TPopupMenu
     Left = 113
@@ -238,17 +268,48 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     Left = 72
     Top = 128
   end
-  object gdcInvDocumentOptions: TgdcInvDocumentOptions
-    MasterSource = dsDetail
-    MasterField = 'ID'
-    DetailField = 'DocumentTypeKey'
-    SubSet = 'ByDocumentType'
+  object dsInvDocumentOptions: TDataSource
+    DataSet = ibdsDocumentOptions
+    Left = 496
+    Top = 289
+  end
+  object ibdsDocumentOptions: TIBDataSet
+    Transaction = ibTr
+    DeleteSQL.Strings = (
+      'DELETE FROM gd_documenttype_option WHERE id = :OLD_ID')
+    SelectSQL.Strings = (
+      'SELECT'
+      '  o.id,'
+      '  o.option_name,'
+      '  COALESCE(rf.relationname || '#39'.'#39' || rf.fieldname,'
+      '    c.name, IIF(o.bool_value = 0, '#39'No'#39', '#39'Yes'#39')) AS option_value,'
+      '  (SELECT LIST(n.name)'
+      
+        '    FROM at_namespace n JOIN at_object obj ON obj.namespacekey =' +
+        ' n.id'
+      '      JOIN gd_ruid r ON r.xid = obj.xid AND r.dbid = obj.dbid'
+      '   WHERE r.id = o.id) AS namespace'
+      'FROM'
+      '  gd_documenttype_option o'
+      '  LEFT JOIN at_relation_fields rf ON rf.id = o.relationfieldkey'
+      '  LEFT JOIN gd_contact c ON c.id = o.contactkey'
+      'WHERE'
+      '  o.dtkey = :id'
+      'ORDER BY'
+      '  o.option_name')
+    DataSource = dsDetail
+    ReadTransaction = ibTr
     Left = 467
     Top = 289
   end
-  object dsInvDocumentOptions: TDataSource
-    DataSet = gdcInvDocumentOptions
-    Left = 496
-    Top = 289
+  object ibTr: TIBTransaction
+    Active = False
+    Params.Strings = (
+      'read_committed'
+      'rec_version'
+      'nowait')
+    AutoStopAction = saNone
+    Left = 432
+    Top = 288
   end
 end

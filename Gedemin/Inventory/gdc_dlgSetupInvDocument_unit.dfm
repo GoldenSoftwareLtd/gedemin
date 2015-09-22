@@ -1,9 +1,33 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Top = 199
+  Top = 200
   Caption = 'Складской документ'
+  ClientWidth = 535
   PixelsPerInch = 96
   TextHeight = 13
+  inherited btnAccess: TButton
+    Left = 6
+    Top = 396
+  end
+  inherited btnNew: TButton
+    Left = 78
+    Top = 396
+  end
+  inherited btnHelp: TButton
+    Left = 150
+    Top = 396
+  end
+  inherited btnOK: TButton
+    Left = 389
+    Top = 396
+  end
+  inherited btnCancel: TButton
+    Left = 461
+    Top = 396
+  end
   inherited pcMain: TPageControl
+    Left = 6
+    Width = 523
+    Height = 388
     ActivePage = tsIncomeMovement
     OnChange = pcMainChange
     OnChanging = pcMainChanging
@@ -27,9 +51,9 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       object lblDocument: TLabel [6]
         Left = 8
         Top = 192
-        Width = 118
+        Width = 113
         Height = 13
-        Caption = 'Из другого документа:'
+        Caption = 'На основе документа:'
       end
       object lFormatDoc: TLabel [7]
         Left = 8
@@ -90,6 +114,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       inherited edEnglishName: TEdit
         Color = 11141119
         Enabled = True
+        MaxLength = 14
       end
       inherited dbcbIsCommon: TDBCheckBox
         Top = 306
@@ -130,7 +155,6 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         ItemHeight = 13
         TabOrder = 4
         OnChange = cbTemplateChange
-        OnClick = cbTemplateClick
         Items.Strings = (
           'Обычный складской документ'
           'Документ с изменением свойств ТМЦ'
@@ -188,7 +212,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         OnDblClick = actRemoveFeatureExecute
       end
       object btnAdd: TButton
-        Left = 242
+        Left = 241
         Top = 69
         Width = 32
         Height = 21
@@ -196,7 +220,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         TabOrder = 1
       end
       object btnRemove: TButton
-        Left = 242
+        Left = 241
         Top = 142
         Width = 32
         Height = 21
@@ -204,7 +228,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         TabOrder = 2
       end
       object btnAddAll: TButton
-        Left = 242
+        Left = 241
         Top = 105
         Width = 32
         Height = 21
@@ -212,7 +236,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         TabOrder = 3
       end
       object btnRemoveAll: TButton
-        Left = 242
+        Left = 241
         Top = 178
         Width = 32
         Height = 21
@@ -220,9 +244,9 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         TabOrder = 4
       end
       object rgFeatures: TRadioGroup
-        Left = 8
+        Left = 7
         Top = 264
-        Width = 499
+        Width = 500
         Height = 53
         ItemIndex = 0
         Items.Strings = (

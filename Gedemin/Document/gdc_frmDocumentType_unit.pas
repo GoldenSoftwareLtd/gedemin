@@ -7,7 +7,7 @@ uses
   gdc_frmMDVTree_unit, Db, Menus, ActnList, Grids, DBGrids, gsDBGrid,
   gsIBGrid, ComCtrls, gsDBTreeView, ToolWin, ExtCtrls, TB2Item, TB2Dock,
   TB2Toolbar, gdcClasses, IBCustomDataSet, gdcBase, gdcTree, StdCtrls,
-  gd_MacrosMenu, dmImages_unit, gdcInvDocumentOptions;
+  gd_MacrosMenu, dmImages_unit, gdcInvDocumentOptions, IBDatabase;
 
 type
   Tgdc_frmDocumentType = class(Tgdc_frmMDVTree)
@@ -29,8 +29,16 @@ type
     tbdDTOptions: TTBDock;
     tbDTOptions: TTBToolbar;
     ibgrOptions: TgsIBGrid;
-    gdcInvDocumentOptions: TgdcInvDocumentOptions;
     dsInvDocumentOptions: TDataSource;
+    ibdsDocumentOptions: TIBDataSet;
+    ibTr: TIBTransaction;
+    actDeleteOption: TAction;
+    TBItem3: TTBItem;
+    actCommitOption: TAction;
+    TBItem4: TTBItem;
+    TBSeparatorItem2: TTBSeparatorItem;
+    actRollbackOption: TAction;
+    TBItem5: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actNewSubExecute(Sender: TObject);
     procedure actNewSubUpdate(Sender: TObject);
@@ -44,11 +52,16 @@ type
     procedure tbsmNewClick(Sender: TObject);
     procedure actNewExecute(Sender: TObject);
     procedure tvGroupGetImageIndex(Sender: TObject; Node: TTreeNode);
-  private
+    procedure FormDestroy(Sender: TObject);
+    procedure actDeleteOptionExecute(Sender: TObject);
+    procedure actDeleteOptionUpdate(Sender: TObject);
+    procedure actCommitOptionUpdate(Sender: TObject);
+    procedure actCommitOptionExecute(Sender: TObject);
+    procedure actRollbackOptionUpdate(Sender: TObject);
+    procedure actRollbackOptionExecute(Sender: TObject);
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-
   end;
 
 var
@@ -73,10 +86,15 @@ end;
 
 procedure Tgdc_frmDocumentType.FormCreate(Sender: TObject);
 begin
+  Assert(gdcBaseManager <> nil);
+
   gdcObject := gdcBaseDocumentType;
   gdcDetailObject := gdcDocumentType;
   inherited;
-  gdcInvDocumentOptions.Open;
+
+  ibTr.DefaultDatabase := gdcBaseManager.Database;
+  ibTr.StartTransaction;
+  ibdsDocumentOptions.Open;
 end;
 
 procedure Tgdc_frmDocumentType.actNewSubExecute(Sender: TObject);
@@ -179,6 +197,45 @@ begin
   else
     Node.ImageIndex := 0;
   Node.SelectedIndex := Node.ImageIndex;
+end;
+
+procedure Tgdc_frmDocumentType.FormDestroy(Sender: TObject);
+begin
+  inherited;
+  if ibTr.InTransaction then
+    ibTr.Commit;
+end;
+
+procedure Tgdc_frmDocumentType.actDeleteOptionExecute(Sender: TObject);
+begin
+  ibdsDocumentOptions.Delete;
+end;
+
+procedure Tgdc_frmDocumentType.actDeleteOptionUpdate(Sender: TObject);
+begin
+  actDeleteOption.Enabled := not ibdsDocumentOptions.IsEmpty;
+end;
+
+procedure Tgdc_frmDocumentType.actCommitOptionUpdate(Sender: TObject);
+begin
+  actCommitOption.Enabled := ibTr.InTransaction;
+end;
+
+procedure Tgdc_frmDocumentType.actCommitOptionExecute(Sender: TObject);
+begin
+  ibTr.CommitRetaining;
+end;
+
+procedure Tgdc_frmDocumentType.actRollbackOptionUpdate(Sender: TObject);
+begin
+  actRollbackOption.Enabled := ibTr.InTransaction;
+end;
+
+procedure Tgdc_frmDocumentType.actRollbackOptionExecute(Sender: TObject);
+begin
+  ibTr.RollbackRetaining;
+  ibdsDocumentOptions.Close;
+  ibdsDocumentOptions.Open;
 end;
 
 initialization

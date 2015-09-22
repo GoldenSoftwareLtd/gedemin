@@ -295,24 +295,7 @@ type
 
   TgdcInvDocumentType = class(TgdcDocumentType)
   private
-    FSourceFeatures, FDestFeatures, FMinusFeatures: TStringList;
-    FRelationLineName: String;
-    FRelationName: String;
-    FDirection: TgdcInvMovementDirection;
     FEnglishName: String;
-    FLiveTimeRemains: Boolean;
-    FDelayedDocument: Boolean;
-    FMinusRemains: Boolean;
-    FIsChangeCardValue: Boolean;
-    FIsAppendCardValue: Boolean;
-    FSaveRestWindowOption: Boolean;
-    FIsUseCompanyKey: Boolean;
-    FEndMonthRemains: Boolean;
-    FControlRemains: Boolean;
-    FSources: TgdcInvReferenceSources;
-    FDebitMovement: TgdcInvMovementContactOption;
-    FCreditMovement: TgdcInvMovementContactOption;
-    FWithoutSearchRemains: Boolean;
 
 {$IFDEF NEWDEPOT}
     procedure CreateTriggers;
@@ -320,43 +303,20 @@ type
 {$ENDIF}
 
   protected
-    procedure DoAfterInsert; override;
     procedure CreateFields; override;
     procedure DoBeforePost; override;
-    procedure DoBeforeEdit; override;
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
 
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure ReadOptions(Stream: TStream);
-
     class function InvDocumentTypeBranchKey: Integer;
     class function GetHeaderDocumentClass: CgdcBase; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
-    property SourceFeatures: TStringList read FSourceFeatures;
-    property DestFeatures: TStringList read FDestFeatures;
-    property MinusFeatures: TStringList read FMinusFeatures;
-    property Sources: TgdcInvReferenceSources read FSources write FSources;
-    property Direction: TgdcInvMovementDirection read FDirection write FDirection;
-    property ControlRemains: Boolean read FControlRemains write FControlRemains;
-    property DebitMovement: TgdcInvMovementContactOption read FDebitMovement;
-    property CreditMovement: TgdcInvMovementContactOption read FCreditMovement;
-    property RelationName: String read FRelationName write FRelationName;
-    property RelationLineName: String read FRelationLineName write FRelationLineName;
     property EnglishName: String read FEnglishName;
-    property LiveTimeRemains: Boolean read FLiveTimeRemains write FLiveTimeRemains;
-    property DelayedDocument: Boolean read FDelayedDocument write FDelayedDocument;
-    property MinusRemains: Boolean read FMinusRemains write FMinusRemains;
-    property IsChangeCardValue: Boolean read FIsChangeCardValue write FIsChangeCardValue;
-    property IsAppendCardValue: Boolean read FIsAppendCardValue write FIsAppendCardValue;
-    property IsUseCompanyKey: Boolean read FIsUseCompanyKey write FIsUseCompanyKey;
-    property SaveRestWindowOption: Boolean read FSaveRestWindowOption write FSaveRestWindowOption;
-    property EndMonthRemains: Boolean read FEndMonthRemains write FEndMonthRemains;
-    property WithoutSearchRemains: Boolean read FWithoutSearchRemains write FWithoutSearchRemains;
   end;
 
   EgdcInvBaseDocument = class(EgdcException);
@@ -3854,12 +3814,6 @@ constructor TgdcInvDocumentType.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [cpInsert, cpModify];
-
-  FSourceFeatures := TStringList.Create;
-  FDestFeatures := TStringList.Create;
-  FMinusFeatures := TStringList.Create;
-  FDebitMovement := TgdcInvMovementContactOption.Create;
-  FCreditMovement := TgdcInvMovementContactOption.Create;  
 end;
 
 procedure TgdcInvDocumentType.CreateFields;
@@ -5653,12 +5607,6 @@ end;
 destructor TgdcInvDocumentType.Destroy;
 begin
   inherited;
-  FSourceFeatures.Free;
-  FDestFeatures.Free;
-  FMinusFeatures.Free;
-  FDebitMovement.Free;
-  FCreditMovement.Free;
-
 end;
 
 procedure TgdcInvDocumentType.DoAfterCustomProcess(Buff: Pointer;
@@ -5783,62 +5731,12 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcInvDocumentType.DoBeforeEdit;
-  VAR
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  Stream: TStream;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYDOBEFOREEDIT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREEDIT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
-  {M}          'DOBEFOREEDIT', KEYDOBEFOREEDIT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if not FieldByName('OPTIONS').IsNull then
-  begin
-    Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
-    try
-      ReadOptions(Stream);
-    finally
-      Stream.Free;
-    end;
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcInvDocumentType.DoBeforePost;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Stream: TStream;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -5865,85 +5763,10 @@ begin
   //складские документы не могут быть общими!
   FieldByName('iscommon').AsInteger := 0;
 
-  if not FieldByName('OPTIONS').IsNull then
-  begin
-    Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
-    try
-      ReadOptions(Stream);
-    finally
-      Stream.Free;
-    end;
-  end;
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcInvDocumentType.DoAfterInsert;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  Stream: TStream;
-  ibsql: TIBSQL;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYDOAFTERINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
-  {M}          'DOAFTERINSERT', KEYDOAFTERINSERT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if not (sLoadFromStream in BaseState) then
-  begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := ReadTransaction;
-      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        if not ibsql.FieldByName('OPTIONS').IsNull then
-        begin
-          FieldByName('OPTIONS').AsString := ibsql.FieldByName('OPTIONS').AsString;
-          Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
-          try
-            ReadOptions(Stream);
-          finally
-            Stream.Free;
-          end;
-        end;
-      end;
-    finally
-      ibsql.Free;
-    end;
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT);
   {M}  end;
   {END MACRO}
 end;
@@ -5970,6 +5793,7 @@ begin
   Result := INV_DOC_INVENTBRANCH;
 end;
 
+(*
 procedure TgdcInvDocumentType.ReadOptions(Stream: TStream);
 var
   Version: String;
@@ -6230,6 +6054,7 @@ begin
     Free;
   end;
 end;
+*)
 
 initialization
   RegisterGdcClass(TgdcInvDocumentType, 'Тип складского документа');

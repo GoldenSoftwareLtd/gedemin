@@ -1,6 +1,6 @@
 inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
-  Left = 680
-  Top = 287
+  Left = 684
+  Top = 290
   Caption = 'Документ'
   ClientHeight = 423
   ClientWidth = 532
@@ -8,27 +8,27 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 4
-    Top = 400
+    Top = 399
     TabOrder = 3
   end
   inherited btnNew: TButton
     Left = 76
-    Top = 400
+    Top = 399
     TabOrder = 4
   end
   inherited btnHelp: TButton
     Left = 148
-    Top = 400
+    Top = 399
     TabOrder = 5
   end
   inherited btnOK: TButton
     Left = 388
-    Top = 400
+    Top = 399
     TabOrder = 1
   end
   inherited btnCancel: TButton
     Left = 460
-    Top = 400
+    Top = 399
     TabOrder = 2
   end
   object pcMain: TPageControl [5]
@@ -215,7 +215,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         OnExit = edEnglishNameExit
       end
       object dbcbIsCommon: TDBCheckBox
-        Left = 7
+        Left = 6
         Top = 257
         Width = 163
         Height = 17

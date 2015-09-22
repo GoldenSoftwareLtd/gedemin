@@ -349,7 +349,14 @@ begin
               P := Pos(#13#10, ConType);
               if P > 0 then
               begin
-                FResponseInfo.ContentType := Trim(Copy(ConType, 14, P - 1)); // Length('Content-Type:')
+                ConType := Trim(Copy(ConType, Length('Content-Type:') + 1, P - Length('Content-Type:') - 1));
+                if Pos('charset=', ConType) = 0 then
+                begin
+                  if Copy(ConType, Length(ConType), 1) <> ';' then
+                    ConType := ConType + ';';
+                  FResponseInfo.ContentType := ConType + ' charset=Windows-1251';
+                end else
+                  FResponseInfo.ContentType := ConType;
                 FResponseInfo.ContentText := Copy(FResponseInfo.ContentText, P + 2, MaxInt);
               end else
                 FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';

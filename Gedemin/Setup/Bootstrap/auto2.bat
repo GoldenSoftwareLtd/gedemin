@@ -100,9 +100,9 @@ if "%2"=="/cash" goto exit
 if "%2"=="/check" call make_install.bat "%setting_source_path%\Меню\Фронт-офис\GS.PositiveCheck.yml"                         menufront complex.jpg kkc_positive_check   menufront_setup.rar "%install_target_path%\Меню\setup_front.exe" %send_ftp% gs1994@gmail.com,stasgm@gmail.com
 if "%2"=="/check" goto exit
 
-call make_install.bat "%setting_source_path%\Банк\Банк и касса.yml"                                         plat      doc.jpg     platlocal     plat_setup.rar     "%install_target_path%\Платежные документы\setup.exe" %send_ftp% gs1994@gmail.com,alexandra.gsoftware@gmail.com 
 call make_install.bat "%setting_source_path%\Общие\Комплексная автоматизация.yml"                           business  complex.jpg businesslocal compl_setup.rar    "%install_target_path%\Комплексная автоматизация\setup.exe" %send_ftp% gs1994@gmail.com,alexandra.gsoftware@gmail.com
 rem goto exit
+call make_install.bat "%setting_source_path%\Банк\Банк и касса.yml"                                         plat      doc.jpg     platlocal     plat_setup.rar     "%install_target_path%\Платежные документы\setup.exe" %send_ftp% gs1994@gmail.com,alexandra.gsoftware@gmail.com 
 call make_install.bat "%setting_source_path%\Общие\Общие данные.yml"                                        devel     complex.jpg devellocal    devel_setup.rar    "%install_target_path%\Разработчик\setup.exe"         %send_ftp% gs1994@gmail.com,alexandra.gsoftware@gmail.com
 call make_install.bat "%setting_source_path%\Меню\2014 Бэк-офис\GS.Общепит.back.yml"                        menuback  complex.jpg menubacklocal menuback_setup.rar "%install_target_path%\Меню\setup_back.exe" %send_ftp% gs1994@gmail.com,stasgm@gmail.com
 call make_install.bat "%setting_source_path%\Гостиница\GS.Гостиница.yml"                                    hotel     doc.jpg     hotellocal    hotel_setup.rar    "%install_target_path%\Гостиница\setup.exe" %send_ftp% gs1994@gmail.com

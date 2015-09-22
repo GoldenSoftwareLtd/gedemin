@@ -94,8 +94,7 @@ type
 
   protected
     function DlgModified: Boolean; override;
-    function GetRelation(isDocument: Boolean): TatRelation;
-    function GetRootRelation(isDocument: Boolean): TatRelation;
+    function GetRelation(const ADocHeaderRelation: Boolean): TatRelation;
 
     procedure BeforePost; override;
 
@@ -290,39 +289,13 @@ begin
   Result := True;
 end;
 
-function Tgdc_dlgDocumentType.GetRelation(isDocument: Boolean): TatRelation;
+function Tgdc_dlgDocumentType.GetRelation(const ADocHeaderRelation: Boolean): TatRelation;
 begin
-  if isDocument then
+  Assert(atDatabase <> nil);
+  if ADocHeaderRelation then
     Result := atDatabase.Relations.ByID(iblcHeaderTable.CurrentKeyInt)
   else
     Result := atDatabase.Relations.ByID(iblcLineTable.CurrentKeyInt);
-end;
-
-function Tgdc_dlgDocumentType.GetRootRelation(isDocument: Boolean): TatRelation;
-{var
-  CE: TgdClassEntry;
-  Part: TgdcDocumentClassPart;}
-  //DocID: Integer;
-begin
-  Result := GetRelation(IsDocument);
-
-  {if isDocument then
-    Part := dcpHeader
-  else
-    Part := dcpLine;}
-
-  {if gdcObject.State = dsInsert then
-    DocID := (gdcObject as TgdcTree).Parent
-  else
-    DocID := gdcObject.ID;}
-
-  {CE := gdClassList.FindDocByTypeID(gdcObject.ID, Part);
-
-  if CE <> nil then
-    CE := CE.GetRootSubType;
-
-  if CE <> nil then
-    Result := atDatabase.Relations.ByRelationName(TgdDocumentEntry(CE).DistinctRelation);}
 end;
 
 procedure Tgdc_dlgDocumentType.SetupDialog;
