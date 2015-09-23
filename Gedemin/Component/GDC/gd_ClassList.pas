@@ -2985,7 +2985,7 @@ begin
     qNS.Transaction := Tr;
     qNS.SQL.Text :=
       'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
-      'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+      'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
 
     q.Transaction := Tr;
     q.SQL.Text :=

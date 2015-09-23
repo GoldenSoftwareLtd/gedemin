@@ -6,7 +6,7 @@ uses
   Classes, gdcBaseInterface, gdcBase;
 
 type
-  TgdcInvDocumentOptions = class(TgdcBase)
+  TgdcInvDocumentTypeOptions = class(TgdcBase)
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
     
@@ -25,29 +25,29 @@ uses
 
 procedure Register;
 begin
-  RegisterComponents('gdc', [TgdcInvDocumentOptions]);
+  RegisterComponents('gdc', [TgdcInvDocumentTypeOptions]);
 end;
 
-{ TgdcInvDocumentOptions }
+{ TgdcInvDocumentTypeOptions }
 
-class function TgdcInvDocumentOptions.GetListField(
+class function TgdcInvDocumentTypeOptions.GetListField(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'OPTION_NAME';
 end;
 
-class function TgdcInvDocumentOptions.GetListTable(
+class function TgdcInvDocumentTypeOptions.GetListTable(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'GD_DOCUMENTTYPE_OPTION';
 end;
 
-class function TgdcInvDocumentOptions.GetSubSetList: String;
+class function TgdcInvDocumentTypeOptions.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + 'ByDocumentType;';
 end;
 
-procedure TgdcInvDocumentOptions.GetWhereClauseConditions(S: TStrings);
+procedure TgdcInvDocumentTypeOptions.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
   if HasSubSet('ByDocumentType') then
@@ -55,8 +55,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcInvDocumentOptions, 'Параметры складского документа');
+  RegisterGdcClass(TgdcInvDocumentTypeOptions, 'Параметры типа складского документа');
 
 finalization
-  UnregisterGdcClass(TgdcInvDocumentOptions);
+  UnregisterGdcClass(TgdcInvDocumentTypeOptions);
 end.

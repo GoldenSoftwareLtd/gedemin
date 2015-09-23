@@ -464,6 +464,25 @@ begin
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_ad_documenttype_option FOR gd_documenttype_option '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  AFTER DELETE '#13#10 +
+          '  POSITION 32000 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE xid  INTEGER = -1; '#13#10 +
+          '  DECLARE VARIABLE dbid INTEGER = -1; '#13#10 +
+          'BEGIN '#13#10 +
+          '  FOR '#13#10 +
+          '    SELECT xid, dbid FROM gd_ruid WHERE id = OLD.id '#13#10 +
+          '    INTO :xid, :dbid '#13#10 +
+          '  DO BEGIN '#13#10 +
+          '    DELETE FROM at_object WHERE xid = :xid AND dbid = :dbid; '#13#10 +
+          '    DELETE FROM gd_ruid WHERE id = OLD.id; '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
           'GRANT ALL ON GD_DOCUMENTTYPE_OPTION TO administrator';
         FIBSQL.ExecQuery;
 

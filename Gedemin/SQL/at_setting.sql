@@ -351,6 +351,24 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER gd_ad_documenttype_option FOR gd_documenttype_option
+  ACTIVE
+  AFTER DELETE
+  POSITION 32000
+AS
+  DECLARE VARIABLE xid  INTEGER = -1;
+  DECLARE VARIABLE dbid INTEGER = -1;
+BEGIN  
+  FOR
+    SELECT xid, dbid FROM gd_ruid WHERE id = OLD.id
+    INTO :xid, :dbid  
+  DO BEGIN
+    DELETE FROM at_object WHERE xid = :xid AND dbid = :dbid;
+    DELETE FROM gd_ruid WHERE id = OLD.id;
+  END  
+END
+^
+
 SET TERM ; ^
 
 CREATE TABLE at_namespace_link (

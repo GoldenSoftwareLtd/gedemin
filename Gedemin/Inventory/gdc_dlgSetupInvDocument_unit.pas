@@ -1773,7 +1773,7 @@ begin
     (cbDocument.Items.Objects[cbDocument.ItemIndex] = nil)
   then begin
     UpdateTabs;
-    Exit;
+    exit;
   end;
 
   edEnglishName.Text := TatRelation(cbDocument.Items.Objects[cbDocument.ItemIndex]).RelationName;
@@ -1781,10 +1781,10 @@ begin
   RL := atDatabase.Relations.ByRelationName(
     TatRelation(cbDocument.Items.Objects[cbDocument.ItemIndex]).RelationName + 'LINE');
 
-  if not Assigned(RL) then
+  if RL = nil then
   begin
     cbTemplate.ItemIndex := -1;
-    Exit;
+    exit;
   end;
 
   RelType := RelationTypeByRelation(RL);

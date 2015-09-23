@@ -39,6 +39,11 @@ type
     TBSeparatorItem2: TTBSeparatorItem;
     actRollbackOption: TAction;
     TBItem5: TTBItem;
+    gdcInvDocumentTypeOptions: TgdcInvDocumentTypeOptions;
+    actNewOption: TAction;
+    TBItem6: TTBItem;
+    actEditOption: TAction;
+    TBItem7: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actNewSubExecute(Sender: TObject);
     procedure actNewSubUpdate(Sender: TObject);
@@ -59,6 +64,10 @@ type
     procedure actCommitOptionExecute(Sender: TObject);
     procedure actRollbackOptionUpdate(Sender: TObject);
     procedure actRollbackOptionExecute(Sender: TObject);
+    procedure actNewOptionExecute(Sender: TObject);
+    procedure actNewOptionUpdate(Sender: TObject);
+    procedure actEditOptionExecute(Sender: TObject);
+    procedure actEditOptionUpdate(Sender: TObject);
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
@@ -95,6 +104,7 @@ begin
   ibTr.DefaultDatabase := gdcBaseManager.Database;
   ibTr.StartTransaction;
   ibdsDocumentOptions.Open;
+  gdcInvDocumentTypeOptions.Open;
 end;
 
 procedure Tgdc_frmDocumentType.actNewSubExecute(Sender: TObject);
@@ -208,12 +218,14 @@ end;
 
 procedure Tgdc_frmDocumentType.actDeleteOptionExecute(Sender: TObject);
 begin
+  gdcInvDocumentTypeOptions.Delete;
   ibdsDocumentOptions.Delete;
 end;
 
 procedure Tgdc_frmDocumentType.actDeleteOptionUpdate(Sender: TObject);
 begin
-  actDeleteOption.Enabled := not ibdsDocumentOptions.IsEmpty;
+  actDeleteOption.Enabled := (not gdcInvDocumentTypeOptions.IsEmpty)
+    and (not ibdsDocumentOptions.IsEmpty);
 end;
 
 procedure Tgdc_frmDocumentType.actCommitOptionUpdate(Sender: TObject);
@@ -236,6 +248,35 @@ begin
   ibTr.RollbackRetaining;
   ibdsDocumentOptions.Close;
   ibdsDocumentOptions.Open;
+end;
+
+procedure Tgdc_frmDocumentType.actNewOptionExecute(Sender: TObject);
+var
+  ID: Integer;
+begin
+  if gdcInvDocumentTypeOptions.CreateDialog then
+  begin
+    ID := gdcInvDocumentTypeOptions.ID;
+    ibdsDocumentOptions.Close;
+    ibdsDocumentOptions.Open;
+    ibdsDocumentOptions.Locate('id', ID, []);
+  end;
+end;
+
+procedure Tgdc_frmDocumentType.actNewOptionUpdate(Sender: TObject);
+begin
+  actNewOption.Enabled := gdcInvDocumentTypeOptions.Active;
+end;
+
+procedure Tgdc_frmDocumentType.actEditOptionExecute(Sender: TObject);
+begin
+  if gdcInvDocumentTypeOptions.EditDialog then
+    ibdsDocumentOptions.Refresh;
+end;
+
+procedure Tgdc_frmDocumentType.actEditOptionUpdate(Sender: TObject);
+begin
+  actNewOption.Enabled := not gdcInvDocumentTypeOptions.IsEmpty;
 end;
 
 initialization

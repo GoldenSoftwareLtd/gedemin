@@ -143,6 +143,12 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
             Caption = 'tbDTOptions'
             DockMode = dmCannotFloatOrChangeDocks
             TabOrder = 0
+            object TBItem6: TTBItem
+              Action = actNewOption
+            end
+            object TBItem7: TTBItem
+              Action = actEditOption
+            end
             object TBItem3: TTBItem
               Action = actDeleteOption
             end
@@ -223,7 +229,7 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     end
     object actDeleteOption: TAction
       Category = 'Option'
-      Caption = 'Удалить параметр'
+      Caption = 'Удалить'
       OnExecute = actDeleteOptionExecute
       OnUpdate = actDeleteOptionUpdate
     end
@@ -238,6 +244,18 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       Caption = 'Отменить изменения'
       OnExecute = actRollbackOptionExecute
       OnUpdate = actRollbackOptionUpdate
+    end
+    object actNewOption: TAction
+      Category = 'Option'
+      Caption = 'Создать'
+      OnExecute = actNewOptionExecute
+      OnUpdate = actNewOptionUpdate
+    end
+    object actEditOption: TAction
+      Category = 'Option'
+      Caption = 'Изменить'
+      OnExecute = actEditOptionExecute
+      OnUpdate = actEditOptionUpdate
     end
   end
   inherited pmMain: TPopupMenu
@@ -277,6 +295,24 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     Transaction = ibTr
     DeleteSQL.Strings = (
       'DELETE FROM gd_documenttype_option WHERE id = :OLD_ID')
+    RefreshSQL.Strings = (
+      'SELECT'
+      '  o.id,'
+      '  o.option_name,'
+      '  COALESCE(rf.relationname || '#39'.'#39' || rf.fieldname,'
+      '    c.name, IIF(o.bool_value = 0, '#39'No'#39', '#39'Yes'#39')) AS option_value,'
+      '  (SELECT LIST(n.name)'
+      
+        '    FROM at_namespace n JOIN at_object obj ON obj.namespacekey =' +
+        ' n.id'
+      '      JOIN gd_ruid r ON r.xid = obj.xid AND r.dbid = obj.dbid'
+      '   WHERE r.id = o.id) AS namespace'
+      'FROM'
+      '  gd_documenttype_option o'
+      '  LEFT JOIN at_relation_fields rf ON rf.id = o.relationfieldkey'
+      '  LEFT JOIN gd_contact c ON c.id = o.contactkey'
+      'WHERE'
+      '  o.id = :old_id')
     SelectSQL.Strings = (
       'SELECT'
       '  o.id,'
@@ -311,5 +347,15 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     AutoStopAction = saNone
     Left = 432
     Top = 288
+  end
+  object gdcInvDocumentTypeOptions: TgdcInvDocumentTypeOptions
+    Transaction = ibTr
+    MasterSource = dsInvDocumentOptions
+    MasterField = 'ID'
+    DetailField = 'ID'
+    SubSet = 'ByID'
+    ReadTransaction = ibTr
+    Left = 528
+    Top = 290
   end
 end

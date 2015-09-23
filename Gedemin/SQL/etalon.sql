@@ -5841,8 +5841,9 @@ BEGIN
   BEGIN
     UPDATE gd_documenttype_option 
     SET bool_value = 0
-    WHERE bool_value = 1 AND dtkey = NEW.dtkey
-      AND option_name STARTING WITH LEFT(option_name, CHARACTER_LENGTH(option_name) - POSITION('.', REVERSE(option_name)) + 1);
+    WHERE bool_value = 1 AND dtkey = NEW.dtkey AND id <> NEW.id
+      AND option_name STARTING WITH 
+        LEFT(NEW.option_name, CHARACTER_LENGTH(NEW.option_name) - POSITION('.', REVERSE(NEW.option_name)) + 1);
   END  
 END
 ^    
@@ -16698,6 +16699,24 @@ BEGIN
   IF (UPDATING OR DELETING) THEN
     UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0
       AND n.id = OLD.namespacekey;
+END
+^
+
+CREATE OR ALTER TRIGGER gd_ad_documenttype_option FOR gd_documenttype_option
+  ACTIVE
+  AFTER DELETE
+  POSITION 32000
+AS
+  DECLARE VARIABLE xid  INTEGER = -1;
+  DECLARE VARIABLE dbid INTEGER = -1;
+BEGIN  
+  FOR
+    SELECT xid, dbid FROM gd_ruid WHERE id = OLD.id
+    INTO :xid, :dbid  
+  DO BEGIN
+    DELETE FROM at_object WHERE xid = :xid AND dbid = :dbid;
+    DELETE FROM gd_ruid WHERE id = OLD.id;
+  END  
 END
 ^
 
