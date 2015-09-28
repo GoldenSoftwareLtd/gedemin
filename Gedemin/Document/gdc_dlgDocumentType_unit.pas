@@ -94,17 +94,14 @@ type
 
   protected
     function DlgModified: Boolean; override;
-    function GetRelation(const ADocHeaderRelation: Boolean): TatRelation;
-
     procedure BeforePost; override;
 
   public
-    function TestCorrect: Boolean; override;
-
     procedure SetupDialog; override;
     procedure SetupRecord; override;
-
+    function TestCorrect: Boolean; override;
     procedure Post; override;
+    function GetRelation(const ADocHeaderRelation: Boolean): TatRelation;
   end;
 
 var

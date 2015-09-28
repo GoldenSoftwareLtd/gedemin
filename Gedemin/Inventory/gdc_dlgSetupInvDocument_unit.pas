@@ -145,6 +145,7 @@ type
     FIDE: TgdInvDocumentEntry;
     FDestFeatures: TStringList;
     FSourceFeatures: TStringList;
+    FMinusFeatures: TStringList;
 
     function GetDocument: TgdcInvDocumentType;
 
@@ -168,6 +169,7 @@ type
     procedure UpdateFeatureList;
     procedure AddFeature(UsedFeatures, Features: TListView);
     procedure RemoveFeature(UsedFeatures, Features: TListView);
+    function GetMinusFeatures: TStringList;
 
   protected
     procedure ReadOptions;
@@ -180,8 +182,12 @@ type
     procedure SetupDialog; override;
     procedure SetupRecord; override;
     function TestCorrect: Boolean; override;
+    function FindFieldInCombo(Box: TComboBox): String;
 
     property Document: TgdcInvDocumentType read GetDocument;
+    property DestFeatures: TStringList read FDestFeatures;
+    property SourceFeatures: TStringList read FSourceFeatures;
+    property MinusFeatures: TStringList read GetMinusFeatures;
   end;
 
   EdlgSetupInvDocument = class(Exception);
@@ -206,7 +212,7 @@ uses
 
 {Находит последнее вхождение символа в строку. Необходимо для поиска "(" и ")",
 т.к. эти символы могут быть использованы в локализованном наименовании поля}  
-function LastCharPos(Ch: Char; S: String): Integer;
+function LastCharPos(const Ch: Char; const S: String): Integer;
 var
   I: Integer;
 begin
@@ -770,6 +776,7 @@ begin
   FTemplates.Free;
   FDestFeatures.Free;
   FSourceFeatures.Free;
+  FMinusFeatures.Free;
   inherited;
 end;
 
@@ -799,7 +806,7 @@ begin
     if AnsiCompareText(TatRelationField(List.Items[I].Data).FieldName, FeatureName) = 0 then
     begin
       Result := List.Items[I];
-      Exit;
+      exit;
     end;
 
   Result := nil;
@@ -1053,6 +1060,7 @@ begin
 end;
 
 procedure Tgdc_dlgSetupInvDocument.SetupMovementTab;
+
   procedure UpdateComboBox(R: TatRelation; Box: TComboBox);
   var
     I: Integer;
@@ -1071,21 +1079,23 @@ procedure Tgdc_dlgSetupInvDocument.SetupMovementTab;
 
     if Assigned(R) then
     begin
-      for i:= 0 to R.RelationFields.Count - 1 do
+      for I := 0 to R.RelationFields.Count - 1 do
         if R.RelationFields[i].IsUserDefined then
-          Box.Items.Add(
-            R.RelationFields[i].lname + '(' +
-              R.RelationFields[i].fieldname + ')'
-          );
+        begin
+          Box.Items.Add(R.RelationFields[I].lname + '(' +
+            R.RelationFields[I].fieldname + ')');
+        end;
     end;
 
     if ChosenField > '' then
+    begin
       for I := 0 to Box.Items.Count - 1 do
-        if AnsiPos('(' + ChosenField + ')', Box.Items[I]) > 0 then
+        if Pos('(' + ChosenField + ')', Box.Items[I]) > 0 then
         begin
           Box.ItemIndex := I;
-          Break;
+          break;
         end;
+    end;
   end;
 
 begin
@@ -1532,27 +1542,6 @@ var
   R, RL: TatRelation;
 
   I: Integer;
-
-  function FindFieldInCombo(Box: TComboBox): String;
-  var
-    S, F: Integer;
-  begin
-    if Box.ItemIndex = -1 then
-      Result := ''
-    else
-      Result := Box.Items[Box.ItemIndex];
-
-    S := LastCharPos('(', Result);
-    F := LastCharPos(')', Result);
-
-    if (Result = '') or (S = 0) or (F = 0) then
-    begin
-      Result := '';
-      Exit;
-    end;
-
-    Result := Copy(Result, S + 1, F - S - 1);
-  end;
 
   var
     rpgroupkey: Integer;
@@ -2112,6 +2101,42 @@ procedure Tgdc_dlgSetupInvDocument.iblcHeaderTableChange(Sender: TObject);
 begin
   inherited;
   UpdateTabs;
+end;
+
+function Tgdc_dlgSetupInvDocument.FindFieldInCombo(Box: TComboBox): String;
+var
+  S, F: Integer;
+begin
+  if Box.ItemIndex = -1 then
+  begin
+    Result := '';
+    exit;
+  end;
+
+  Result := Box.Items[Box.ItemIndex];
+
+  S := LastCharPos('(', Result);
+  F := LastCharPos(')', Result);
+
+  if (S = 0) or (F = 0) then
+    Result := ''
+  else
+    Result := Copy(Result, S + 1, F - S - 1);
+end;
+
+function Tgdc_dlgSetupInvDocument.GetMinusFeatures: TStringList;
+var
+  I: Integer;
+begin
+  if FMinusFeatures = nil then
+    FMinusFeatures := TStringList.Create
+  else
+    FMinusFeatures.Free;
+
+  for I := 0 to lvMinusUsedFeatures.Items.Count - 1 do
+    FMinusFeatures.Add(lvMinusUsedFeatures.Items[I].Caption);
+
+  Result := FMinusFeatures;
 end;
 
 initialization
