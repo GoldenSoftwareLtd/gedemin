@@ -607,6 +607,35 @@ var
   glbClassMethodCount, glbClassListCount: Integer;
 {$ENDIF}
 
+const
+   InvDocumentFeaturesNames: array[TgdInvDocumentEntryFeature] of String = (
+     'SF',
+     'DF',
+     'MF'
+   );
+
+  InvDocumentEntryFlagFirst = efControlRemains;
+  InvDocumentEntryFlagLast = efDirDefault;
+  InvDocumentEntryFlagNames: array[InvDocumentEntryFlagFirst..InvDocumentEntryFlagLast] of String = (
+    'ControlRemains',
+    'LiveTimeRemains',
+    'MinusRemains',
+    'DelayedDocument',
+    'UseCachedUpdates',
+    'ChangeCardValue',
+    'AppendCardValue',
+    'UseCompanyKey',
+    'SaveRestWindowOption',
+    'EndMonthRemains',
+    'WithoutSearchRemains',
+    'SrcGoodRef',
+    'SrcRemainsRef',
+    'SrcMacro',
+    'Dir.FIFO',
+    'Dir.LIFO',
+    'Dir.Default'
+   );
+
 implementation
 
 uses
@@ -634,34 +663,6 @@ const
   METHOD_LIST_PREFIX   : TPrefixType = '^M_L';
   CLASS_METHODS_PREFIX : TPrefixType = '^C_M';
   CLASS_LIST_PREFIX    : TPrefixType = '^C_L';
-
-  InvDocumentEntryFlagFirst = efControlRemains;
-  InvDocumentEntryFlagLast = efDirDefault;
-  InvDocumentEntryFlagNames: array[InvDocumentEntryFlagFirst..InvDocumentEntryFlagLast] of String = (
-    'ControlRemains',
-    'LiveTimeRemains',
-    'MinusRemains',
-    'DelayedDocument',
-    'UseCachedUpdates',
-    'ChangeCardValue',
-    'AppendCardValue',
-    'UseCompanyKey',
-    'SaveRestWindowOption',
-    'EndMonthRemains',
-    'WithoutSearchRemains',
-    'SrcGoodRef',
-    'SrcRemainsRef',
-    'SrcMacro',
-    'Dir.FIFO',
-    'Dir.LIFO',
-    'Dir.Default'
-   );
-
-   InvDocumentFeaturesNames: array[TgdInvDocumentEntryFeature] of String = (
-     'SF',
-     'DF',
-     'MF'
-   );
 
 {$IFDEF METHODSCHECK}
 var
@@ -2258,7 +2259,7 @@ var
   CEInvRemains,
   CEInvGoodRemains,
   CEStorage: TgdClassEntry;
-  DE: TgdDocumentEntry;
+  DE, DELn: TgdDocumentEntry;
   q, qOpt: TIBSQL;
   FSubTypes: TgsStorageFolder;
   SL: TStringList;
@@ -2315,8 +2316,13 @@ begin
         LoadDocument(TgdDocumentEntry, CEInvPriceList, q, qOpt)
       else begin
         DE := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpHeader);
+        DELn := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpLine);
         if DE <> nil then
+        begin
           LoadDE(DE, q, qOpt);
+          if DELn<> nil then
+            DELn.Assign(DE);
+        end;
         q.Next;
       end;
     end;
@@ -2840,7 +2846,7 @@ var
     begin
       Inc(NSPos);
       qNS.ParamByName('namespacekey').AsInteger := NSID;
-      qNS.ParamByName('objectname').AsString := AnObjectName;
+      qNS.ParamByName('objectname').AsString := Copy(AnObjectName, 1, 60);
       qNS.ParamByName('xid').AsInteger := AnOptID;
       qNS.ParamByName('objectpos').AsInteger := NSPos;
       qNS.ParamByName('headobjectkey').AsInteger := NSHeadObjectID;
@@ -2875,7 +2881,7 @@ var
       q.ParamByName('contactkey').Clear;
       q.ExecQuery;
 
-      AddNSObject(AnOptionName, OptID);
+      AddNSObject(AnOptionName + '.' + F.FieldName, OptID);
     end;
   end;
 
@@ -2908,7 +2914,7 @@ var
     OptID: Integer;
     R: OleVariant;
   begin
-    if gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_contact WHERE id=:id',
+    if gdcBaseManager.ExecSingleQueryResult('SELECT name FROM gd_contact WHERE id=:id',
       AContactKey, R) then
     begin
       OptID := GetOptID;
@@ -2921,7 +2927,7 @@ var
       q.ParamByName('contactkey').AsInteger := AContactKey;
       q.ExecQuery;
 
-      AddNSObject(AnOptionName, OptID);
+      AddNSObject(AnOptionName + '.' + R, OptID);
     end;
   end;
 
