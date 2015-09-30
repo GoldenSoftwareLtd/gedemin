@@ -2016,7 +2016,7 @@ end;
 
 function TgdcBaseDocumentType.GetParent: TID;
 begin
-  if RecordCount > 0 then
+  if not IsEmpty then
     Result := inherited GetParent
   else
 

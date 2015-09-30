@@ -182,6 +182,7 @@ type
     procedure SetupDialog; override;
     procedure SetupRecord; override;
     function TestCorrect: Boolean; override;
+    procedure Post; override;
     function FindFieldInCombo(Box: TComboBox): String;
 
     property Document: TgdcInvDocumentType read GetDocument;
@@ -2137,6 +2138,520 @@ begin
     FMinusFeatures.Add(lvMinusUsedFeatures.Items[I].Caption);
 
   Result := FMinusFeatures;
+end;
+
+procedure Tgdc_dlgSetupInvDocument.Post;
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  R, RL, CurrR: TatRelation;
+  RGKey, NSID, NSPos, HeadObjectKey: Integer;
+  q, qNS, qRUID, qDel: TIBSQL;
+  DE: TgdDocumentEntry;
+  IE: TgdInvDocumentEntry;
+  V: TgdcMCOPredefined;
+  OldIsTransaction: Boolean;
+
+  function GetOptID(const AName: String; out AnOptID: Integer): Boolean;
+  begin
+    q.Close;
+    q.SQL.Text :=
+      'SELECT id FROM gd_documenttype_option ' +
+      'WHERE dtkey = :dtkey AND option_name STARTING WITH :s';
+    q.ParamByName('dtkey').AsInteger := gdcObject.ID;
+    q.ParamByName('s').AsString := AName;
+    q.ExecQuery;
+    if q.EOF then
+    begin
+      AnOptID := gdcObject.GetNextID;
+      Result := False;
+    end else
+    begin
+      AnOptID := q.Fields[0].AsInteger;
+      Result := True;
+    end;
+  end;
+
+  procedure AddNSObject(const AnObjID: Integer; const AName: String);
+  begin
+    if NSID > -1 then
+    begin
+      qRUID.ParamByName('id').AsInteger := AnObjID;
+      qRUID.ExecQuery;
+
+      Inc(NSPos);
+      qNS.ParamByName('namespacekey').AsInteger := NSID;
+      qNS.ParamByName('objectname').AsString := System.Copy(AName, 1, 60);
+      qNS.ParamByName('xid').AsInteger := AnObjID;
+      qNS.ParamByName('objectpos').AsInteger := NSPos;
+      qNS.ParamByName('headobjectkey').AsInteger := HeadObjectKey;
+      qNS.ExecQuery;
+    end;
+  end;
+
+  procedure UpdateFlag(const AFlag: TgdInvDocumentEntryFlag; const AValue: Boolean;
+    const ACheckValue: Boolean = True);
+  var
+    OptID: Integer;
+  begin
+    if ACheckValue and (IE.GetFlag(AFlag) = AValue) then
+      exit;
+
+    if GetOptID(InvDocumentEntryFlagNames[AFlag], OptID) then
+    begin
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE gd_documenttype_option SET bool_value = :v ' +
+        'WHERE id = :id';
+      q.ParamByName('id').AsInteger := OptID;
+      if AValue then
+        q.ParamByName('v').AsInteger := 1
+      else
+        q.ParamByName('v').AsInteger := 0;
+      q.ExecQuery;
+    end else
+    begin
+      q.Close;
+      q.SQL.Text :=
+        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value) ' +
+        'VALUES (:id, :dtkey, :option_name, :v)';
+      q.ParamByName('id').AsInteger := OptID;
+      q.ParamByName('dtkey').AsInteger := gdcObject.ID;
+      q.ParamByName('option_name').AsString := InvDocumentEntryFlagNames[AFlag];
+      if AValue then
+        q.ParamByName('v').AsInteger := 1
+      else
+        q.ParamByName('v').AsInteger := 0;
+      q.ExecQuery;
+
+      AddNSObject(OptID, InvDocumentEntryFlagNames[AFlag]);
+    end;
+  end;
+
+  procedure UpdateContactTypeOption(const AValue: TgdcInvMovementContactType;
+    const APrefix: String);
+  var
+    OptID: Integer;
+  begin
+    if GetOptID(APrefix + '.CT.', OptID) then
+    begin
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE gd_documenttype_option SET bool_value = 1, option_name = :name ' +
+        'WHERE id = :id';
+      q.ParamByName('id').AsInteger := OptID;
+      q.ParamByName('option_name').AsString := APrefix + '.CT.' + gdcInvMovementContactTypeNames[AValue];
+      q.ExecQuery;
+    end else
+    begin
+      q.Close;
+      q.SQL.Text :=
+        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value) ' +
+        'VALUES (:id, :dtkey, :option_name, 1)';
+      q.ParamByName('id').AsInteger := OptID;
+      q.ParamByName('dtkey').AsInteger := gdcObject.ID;
+      q.ParamByName('option_name').AsString := APrefix + '.CT.' + gdcInvMovementContactTypeNames[AValue];
+      q.ExecQuery;
+
+      AddNSObject(OptID, APrefix + '.CT');
+    end;
+  end;
+
+  procedure UpdateRF(const ARF: TatRelationField; const AName: String);
+  var
+    OptID: Integer;
+  begin
+    if ARF = nil then
+    begin
+      qDel.ParamByName('dtkey').AsInteger := gdcObject.ID;
+      qDel.ParamByName('s').AsString := AName;
+      qDel.ExecQuery;
+    end else
+    begin
+      if GetOptID(AName, OptID) then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'UPDATE gd_documenttype_option SET relationfieldkey = :rfk ' +
+          'WHERE id = :id';
+        q.ParamByName('id').AsInteger := OptID;
+        q.ParamByName('rfk').AsInteger := ARF.ID;
+        q.ExecQuery;
+      end else
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'INSERT INTO gd_documenttype_option (id, dtkey, option_name, relatiofiekey) ' +
+          'VALUES (:id, :dtkey, :option_name, :rfk)';
+        q.ParamByName('id').AsInteger := OptID;
+        q.ParamByName('dtkey').AsInteger := gdcObject.ID;
+        q.ParamByName('option_name').AsString := AName;
+        q.ParamByName('rfk').AsInteger := ARF.ID;
+        q.ExecQuery;
+
+        AddNSObject(OptID, AName);
+      end;
+    end;
+  end;
+
+  procedure UpdateContactList(lv: TListView; const AName: String; V: TgdcMCOPredefined);
+  var
+    I, J, K, OptID: Integer;
+    Found: Boolean;
+  begin
+    for I := 0 to lv.Items.Count - 1 do
+    begin
+      K := StrToInt(lv.Items[I].SubItems[0]);
+      Found := False;
+      for J := Low(V) to High(V) do
+        if V[J] = K then
+        begin
+          Found := True;
+          break;
+        end;
+      if not Found then
+      begin
+        OptID := gdcObject.GetNextID;
+
+        q.Close;
+        q.SQL.Text :=
+          'INSERT INTO gd_documenttype_option (id, dtkey, option_name, contactkey) ' +
+          'VALUES (:id, :dtkey, :option_name, :ck)';
+        q.ParamByName('id').AsInteger := OptID;
+        q.ParamByName('dtkey').AsInteger := gdcObject.ID;
+        q.ParamByName('option_name').AsString := AName;
+        q.ParamByName('ck').AsInteger := K;
+        q.ExecQuery;
+
+        AddNSObject(OptID, AName + '.' + lv.Items[I].Caption);
+      end;
+    end;
+
+    for J := Low(V) to High(V) do
+    begin
+      Found := False;
+      for I := 0 to lv.Items.Count - 1 do
+        if StrToInt(lv.Items[I].SubItems[0]) = V[J] then
+        begin
+          Found := True;
+          break;
+        end;
+      if not Found then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'DELETE FROM gd_documenttype_option ' +
+          'WHERE dtkey = :dtkey AND option_name = :option_name AND contactkey = :ck';
+        q.ParamByName('dtkey').AsInteger := gdcObject.ID;
+        q.ParamByName('option_name').AsString := AName;
+        q.ParamByname('ck').AsInteger := V[J];
+        q.ExecQuery;  
+      end;
+    end;
+  end;
+
+  procedure UpdateFeatures(const AFeature: TgdInvDocumentEntryFeature; SL: TStrings);
+  var
+    I, J, OptID: Integer;
+    Found: Boolean;
+    RF: TatRelationField;
+  begin
+    for I := 0 to SL.Count - 1 do
+    begin
+      Found := False;
+      for J := 0 to IE.GetFeaturesCount(AFeature) - 1 do
+      begin
+        if SL[I] = IE.GetFeature(AFeature, J) then
+        begin
+          Found := True;
+          break;
+        end;
+      end;
+
+      if not Found then
+      begin
+        RF := atDatabase.FindRelationField('INV_CARD', SL[I]);
+
+        if RF = nil then
+          raise EgdcInvDocumentType.Create('Invalid INV_CARD field');
+
+        OptID := gdcObject.GetNextID;
+
+        q.Close;
+        q.SQL.Text :=
+          'INSERT INTO gd_documenttype_option (id, dtkey, option_name, relationfieldkey) ' +
+          'VALUES (:id, :dtkey, :option_name, :rfk)';
+        q.ParamByName('id').AsInteger := OptID;
+        q.ParamByName('dtkey').AsInteger := gdcObject.ID;
+        q.ParamByName('option_name').AsString := InvDocumentFeaturesNames[AFeature];
+        q.ParamByName('rfk').AsInteger := RF.ID;
+        q.ExecQuery;
+
+        AddNSObject(OptID, InvDocumentFeaturesNames[AFeature] + '.' + RF.FieldName);
+      end;
+    end;
+
+    for J := 0 to IE.GetFeaturesCount(AFeature) - 1 do
+    begin
+      Found := False;
+      for I := 0 to SL.Count - 1 do
+      begin
+        if SL[I] = IE.GetFeature(AFeature, J) then
+        begin
+          Found := True;
+          break;
+        end;
+      end;
+
+      if not Found then
+      begin
+        RF := atDatabase.FindRelationField('INV_CARD', IE.GetFeature(AFeature, J));
+
+        if RF = nil then
+          raise EgdcInvDocumentType.Create('Invalid INV_CARD field');
+
+        q.Close;
+        q.SQL.Text :=
+          'DELETE FROM at_documenttype_option ' +
+          'WHERE dtkey = :dtkey AND option_name = :option_name AND relationfieldkey = :rfk ';
+        q.ParamByName('dtk').AsInteger := gdcObject.ID;
+        q.ParamByName('option_name').AsString := InvDocumentFeaturesNames[AFeature];
+        q.ParamByname('rfk').AsInteger := RF.ID;
+        q.ExecQuery;
+      end;
+    end;
+  end;
+
+begin
+  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST)}
+  {M}  try
+  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDC_DLGSETUPINVDOCUMENT', KEYPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGSETUPINVDOCUMENT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGSETUPINVDOCUMENT',
+  {M}          'POST', KEYPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGSETUPINVDOCUMENT' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Assert(gdcObject.Transaction.InTransaction);
+
+  OldIsTransaction := FIsTransaction;
+  FIsTransaction := True;
+  try
+    RGKey := gdcObject.FieldByName('reportgroupkey').AsInteger;
+    if not Document.UpdateReportGroup('Складской учет', gdcObject.FieldByName('name').AsString, RGKey, True) then
+      raise EgdcInvDocumentType.Create('Report Group Key has not been created!');
+
+    gdcObject.FieldByName('reportgroupkey').AsInteger := RGKey;
+
+    inherited;
+
+    DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader);
+    if DE is TgdInvDocumentEntry then
+      IE := DE as TgdInvDocumentEntry
+    else if DE = nil then
+      IE := nil
+    else
+      raise EgdcInvDocumentType.Create('Not an inventory document type');
+
+    R := GetRelation(True);
+    RL := GetRelation(False);
+    if (R = nil) or (RL = nil) then
+      raise EgdcInvDocumentType.Create('Не выбраны таблицы для документа!');
+
+    q := TIBSQL.Create(nil);
+    qRUID := TIBSQL.Create(nil);
+    qNS := TIBSQL.Create(nil);
+    qDel := TIBSQL.Create(nil);
+    try
+      qRUID.Transaction := gdcObject.Transaction;
+      qRUID.SQL.Text :=
+        'INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
+        'VALUES (:id, :id, GEN_ID(gd_g_dbid, 0), CURRENT_TIMESTAMP, <CONTACTKEY/>)';
+
+      qNS.Transaction := gdcObject.Transaction;
+      qNS.SQL.Text :=
+        'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
+        'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+
+      qDel.Transaction := gdcObject.Transaction;
+      qDel.SQL.Text :=
+        'DELETE FROM gd_documenttype_option WHERE dtkey = :dtkey AND option_name STARTING WITH :s';
+
+      q.Transaction := gdcObject.Transaction;
+      q.SQL.Text :=
+        'SELECT FIRST 1 obj.id, obj.namespacekey, obj.objectpos ' +
+        'FROM at_object obj ' +
+        '  JOIN gd_ruid r ON r.xid = obj.xid AND r.dbid = obj.dbid ' +
+        'WHERE r.id = :id';
+      q.ParamByName('id').AsInteger := gdcObject.ID;
+      q.ExecQuery;
+      if q.EOF then
+      begin
+        NSID := -1;
+        NSPos := -1;
+        HeadObjectKey := -1;
+      end else
+      begin
+        NSID := q.FieldbyName('namespacekey').AsInteger;
+        NSPos := q.FieldByName('objectpos').AsInteger;
+        HeadObjectKey := q.FieldByName('id').AsInteger;
+      end;
+      q.Close;
+
+      // Приход
+
+      if (IE = nil) or (IE.GetMCOContactType(emDebit) <> TgdcInvMovementContactType(cbDebitMovement.ItemIndex)) then
+        UpdateContactTypeOption(TgdcInvMovementContactType(cbDebitMovement.ItemIndex), 'DM');
+
+      if rgDebitFrom.ItemIndex = 0 then
+        CurrR := R
+      else
+        CurrR := RL;
+
+      if (IE = nil) or (IE.GetMCORelationName(emDebit) <> CurrR.RelationName) or (IE.GetMCOSourceFieldName(emDebit) <> FindFieldInCombo(luDebitFrom)) then
+        UpdateRF(CurrR.RelationFields.ByFieldName(FindFieldInCombo(luDebitFrom)), 'DM.SF');
+
+      if cbUseIncomeSub.Checked then
+      begin
+        if rgDebitSubFrom.ItemIndex = 0 then
+          CurrR := R
+        else
+          CurrR := RL;
+
+        if (IE = nil) or (IE.GetMCOSubRelationName(emDebit) <> CurrR.RelationName) or (IE.GetMCOSubSourceFieldName(emDebit) <> FindFieldInCombo(luDebitSubFrom)) then
+          UpdateRF(CurrR.RelationFields.ByFieldName(FindFieldInCombo(luDebitSubFrom)), 'DM.SSF');
+      end else
+        UpdateRF(nil, 'DM.SSF');
+
+      if IE = nil then
+        V := nil
+      else
+        IE.GetMCOPredefined(emDebit, V);
+
+      UpdateContactList(lvDebitMovementValues, 'DM.Predefined', V);
+
+      if IE = nil then
+        V := nil
+      else
+        IE.GetMCOSubPredefined(emDebit, V);
+
+      UpdateContactList(lvSubDebitMovementValues, 'DM.SubPredefined', V);
+
+      // Расход
+
+      if (IE = nil) or (IE.GetMCOContactType(emCredit) <> TgdcInvMovementContactType(cbCreditMovement.ItemIndex)) then
+        UpdateContactTypeOption(TgdcInvMovementContactType(cbCreditMovement.ItemIndex), 'CM');
+
+      if rgCreditFrom.ItemIndex = 0 then
+        CurrR := R
+      else
+        CurrR := RL;
+
+      if (IE = nil) or (IE.GetMCORelationName(emCredit) <> CurrR.RelationName) or (IE.GetMCOSourceFieldName(emCredit) <> FindFieldInCombo(luCreditFrom)) then
+        UpdateRF(CurrR.RelationFields.ByFieldName(FindFieldInCombo(luCreditFrom)), 'CM.SF');
+
+      if cbUseOutlaySub.Checked then
+      begin
+        if rgCreditSubFrom.ItemIndex = 0 then
+          CurrR := R
+        else
+          CurrR := RL;
+
+        if (IE = nil) or (IE.GetMCOSubRelationName(emCredit) <> CurrR.RelationName) or (IE.GetMCOSubSourceFieldName(emCredit) <> FindFieldInCombo(luCreditSubFrom)) then
+          UpdateRF(CurrR.RelationFields.ByFieldName(FindFieldInCombo(luCreditSubFrom)), 'CM.SSF');
+      end else
+        UpdateRF(nil, 'CM.SSF');
+
+      if IE = nil then
+        V := nil
+      else
+        IE.GetMCOPredefined(emCredit, V);
+
+      UpdateContactList(lvCreditMovementValues, 'CM.Predefined', V);
+
+      if IE = nil then
+        V := nil
+      else
+        IE.GetMCOSubPredefined(emCredit, V);
+
+      UpdateContactList(lvSubCreditMovementValues, 'CM.SubPredefined', V);
+
+      // Настройки признаков
+      UpdateFeatures(ftSource, SourceFeatures);
+      UpdateFeatures(ftDest, DestFeatures);
+
+      // Настройка справочников
+      UpdateFlag(efSrcGoodRef, cbReference.Checked);
+      UpdateFlag(efSrcRemainsRef, cbRemains.Checked);
+
+      if IE.GetDirection <> TgdcInvMovementDirection(rgMovementDirection.ItemIndex) then
+      begin
+        case TgdcInvMovementDirection(rgMovementDirection.ItemIndex) of
+          imdFIFO: UpdateFlag(efDirFIFO, True, False);
+          imdLIFO: UpdateFlag(efDirLIFO, True, False);
+        else
+          UpdateFlag(efDirDefault, True, False);
+        end;
+      end;
+
+      // Только если используются остатки сохраняем текущее значение checkbox-ов
+      if cbRemains.Checked then
+      begin
+        UpdateFlag(efControlRemains, cbControlRemains.Checked);
+        UpdateFlag(efLiveTimeRemains, cbLiveTimeRemains.Checked);
+        UpdateFlag(efMinusRemains, cbMinusRemains.Checked);
+      end else
+      begin
+        UpdateFlag(efControlRemains, False);
+        UpdateFlag(efLiveTimeRemains, False);
+        UpdateFlag(efMinusRemains, False);
+      end;
+
+      UpdateFlag(efDelayedDocument, cbDelayedDocument.Checked);
+
+      UpdateFeatures(ftMinus, MinusFeatures);
+
+      UpdateFlag(efIsChangeCardValue, cbIsChangeCardValue.Checked);
+      UpdateFlag(efIsAppendCardValue, cbIsAppendCardValue.Checked);
+      UpdateFlag(efIsUseCompanyKey, cbIsUseCompanyKey.Checked);
+      UpdateFlag(efSaveRestWindowOption, cbSaveRestWindowOption.Checked);
+      UpdateFlag(efEndMonthRemains, cbEndMonthRemains.Checked);
+      if not cbControlRemains.Checked then
+        UpdateFlag(efWithoutSearchRemains, cbWithoutSearchRemains.Checked)
+      else
+        UpdateFlag(efWithoutSearchRemains, False);
+    finally
+      qDel.Free;
+      qNS.Free;
+      qRUID.Free;
+      q.Free;
+    end;
+
+    if not OldIsTransaction then
+      gdcObject.Transaction.Commit;
+  finally
+    FIsTransaction := OldIsTransaction;
+  end;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST);
+  {M}end;
+  {END MACRO}
 end;
 
 initialization

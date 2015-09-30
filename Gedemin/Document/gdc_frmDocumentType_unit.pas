@@ -44,6 +44,9 @@ type
     TBItem6: TTBItem;
     actEditOption: TAction;
     TBItem7: TTBItem;
+    actRefreshOption: TAction;
+    TBSeparatorItem3: TTBSeparatorItem;
+    TBItem8: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actNewSubExecute(Sender: TObject);
     procedure actNewSubUpdate(Sender: TObject);
@@ -68,6 +71,7 @@ type
     procedure actNewOptionUpdate(Sender: TObject);
     procedure actEditOptionExecute(Sender: TObject);
     procedure actEditOptionUpdate(Sender: TObject);
+    procedure actRefreshOptionExecute(Sender: TObject);
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
@@ -230,7 +234,8 @@ end;
 
 procedure Tgdc_frmDocumentType.actCommitOptionUpdate(Sender: TObject);
 begin
-  actCommitOption.Enabled := ibTr.InTransaction;
+  actCommitOption.Enabled := ibTr.InTransaction
+    and (not gdcInvDocumentTypeOptions.IsEmpty);
 end;
 
 procedure Tgdc_frmDocumentType.actCommitOptionExecute(Sender: TObject);
@@ -276,7 +281,13 @@ end;
 
 procedure Tgdc_frmDocumentType.actEditOptionUpdate(Sender: TObject);
 begin
-  actNewOption.Enabled := not gdcInvDocumentTypeOptions.IsEmpty;
+  actEditOption.Enabled := not gdcInvDocumentTypeOptions.IsEmpty;
+end;
+
+procedure Tgdc_frmDocumentType.actRefreshOptionExecute(Sender: TObject);
+begin
+  ibdsDocumentOptions.Close;
+  ibdsDocumentOptions.Open;
 end;
 
 initialization

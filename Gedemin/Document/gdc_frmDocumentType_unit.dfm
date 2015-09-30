@@ -1,6 +1,6 @@
 inherited gdc_frmDocumentType: Tgdc_frmDocumentType
-  Left = 368
-  Top = 171
+  Left = 369
+  Top = 172
   Width = 795
   Height = 542
   Caption = 'Типовые документы'
@@ -154,6 +154,11 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
             end
             object TBSeparatorItem2: TTBSeparatorItem
             end
+            object TBItem8: TTBItem
+              Action = actRefreshOption
+            end
+            object TBSeparatorItem3: TTBSeparatorItem
+            end
             object TBItem4: TTBItem
               Action = actCommitOption
             end
@@ -256,6 +261,11 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       Caption = 'Изменить'
       OnExecute = actEditOptionExecute
       OnUpdate = actEditOptionUpdate
+    end
+    object actRefreshOption: TAction
+      Category = 'Option'
+      Caption = 'Обновить'
+      OnExecute = actRefreshOptionExecute
     end
   end
   inherited pmMain: TPopupMenu
