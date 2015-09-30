@@ -640,7 +640,7 @@ implementation
 
 uses
   SysUtils, gs_Exception, gd_security, gsStorage, Storages, gdcClasses,
-  gd_directories_const, jclStrings, Windows, IBDatabase, IBSQL
+  gd_directories_const, jclStrings, Windows, IBDatabase, IBSQL, gd_CmdLineParams_unit
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -2128,7 +2128,7 @@ procedure TgdClassList.LoadUserDefinedClasses;
       BranchKey := q.FieldByName('branchkey').AsInteger;
       if qOpt.EOF or (qOpt.FieldbyName('dtkey').AsInteger <> q.FieldByName('id').AsInteger) then
       begin
-        if Options > '' then
+        if (Options > '') and (gd_CmdLineParams.LoadSettingFileName = '') then
         begin
           ParseOptions;
           ConvertOptions;
@@ -3105,7 +3105,8 @@ end;
 
 function TgdInvDocumentEntry.GetFlag(const AFlag: TgdInvDocumentEntryFlag): Boolean;
 begin
-  Assert(not (AFlag in [efDirFIFO, efDirLIFO, efDirDefault]));
+  if AFlag in [efDirFIFO, efDirLIFO, efDirDefault] then
+    raise Exception.Create('Can''t get a separate movement direction flag');
 
   if (not FFlags[AFlag, fpIsSet]) and (Parent is TgdInvDocumentEntry) then
     Result := TgdInvDocumentEntry(Parent).GetFlag(AFlag)
