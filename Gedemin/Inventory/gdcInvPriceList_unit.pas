@@ -26,19 +26,11 @@ unit gdcInvPriceList_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gdcBase, gd_createable_form, gdcClasses_interface, gdcClasses, at_Classes,
-  IBDatabase, DB, IBSQL, gdcInvConsts_unit, gdcBaseInterface;
-
-const
-  // Незаконченный документ (не до конца настроенный документ)
-  gdcInv_Price_Undone = 'UNDONE';
-  // Версия 1.0
-  gdcInvPrice_Version1_0 = 'IPV1.0';
-  // Версия 1.1
-  gdcInvPrice_Version1_1 = 'IPV1.1';
-  // Версия 1.2
-  gdcInvPrice_Version1_2 = 'IPV1.2';
+  Windows,    Messages,           SysUtils,             Classes,    Graphics,
+  Controls,   Forms,              Dialogs,              gd_ClassList,
+  gdcBase,    gd_createable_form, gdcClasses_interface, gdcClasses, at_Classes,
+  IBDatabase, DB,                 IBSQL,                gdcInvConsts_unit,
+  gdcBaseInterface;
 
 type
   TgdcInvBasePriceList = class;
@@ -50,10 +42,7 @@ type
   TgdcInvBasePriceList = class(TgdcDocument)
   private
     FHeaderFields: TgdcInvPriceFields; // Список настроек для полей шапйки прайс-листа
-    FLineFields: TgdcInvPriceFields; // Список настроек для полей позиции прайс-листа
-
-    FDocumentTypeKey: Integer; // Тип документа
-    FReportGroupKey: Integer; // Ключ группы отчетов
+    FLineFields: TgdcInvPriceFields;   // Список настроек для полей позиции прайс-листа
 
     FCurrentStreamVersion: String; // Версия настроек, считанных из потока
 
@@ -66,12 +55,9 @@ type
     class function EnumModificationList(PriceFields: TgdcInvPriceFields): String;
 
   protected
-    procedure ReadOptions(Stream: TStream); virtual;
-    procedure WriteStream(Stream: TStream); virtual;
+    procedure ReadOptions(DE: TgdDocumentEntry); override;
+    //procedure WriteStream(Stream: TStream); virtual;
 
-    procedure SetSubType(const Value: TgdcSubType); override;
-
-    function GetGroupID: Integer; override;
     function GetNotCopyField: String; override;
 
   public
@@ -79,7 +65,6 @@ type
     class function IsAbstractClass: Boolean; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
-    function DocumentTypeKey: Integer; override;
     //Функция возвращает ключ валюты по ключу цены обоснования
     function GetCurrencyKey(const RelationFieldKey: Integer): Integer;
 
@@ -143,9 +128,7 @@ type
 
   TgdcInvPriceListType = class(TgdcDocumentType)
   protected
-    procedure DoAfterInsert; override;
     procedure CreateFields; override;
-
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
 
   public
@@ -167,9 +150,9 @@ procedure Register;
 implementation
 
 uses
-  gd_security_OperationConst, gdc_dlgSetupInvPriceList_unit, gdc_frmInvPriceList_unit,
-  gdc_frmInvPriceListType_unit, gdc_dlgInvPriceList_unit, at_sql_setup, gd_ClassList,
-  gd_ClassList_InitDoc, gdc_dlgInvPriceListLine_unit, gdcInvDocument_unit;
+  gd_security_OperationConst,   gdc_dlgSetupInvPriceList_unit, gdc_frmInvPriceList_unit,
+  gdc_frmInvPriceListType_unit, gdc_dlgInvPriceList_unit,      at_sql_setup,
+  gdc_dlgInvPriceListLine_unit, gdcInvDocument_unit;
 
 procedure Register;
 begin
@@ -185,9 +168,6 @@ begin
   SetLength(FHeaderFields, 0);
   SetLength(FLineFields, 0);
 
-  FDocumentTypeKey := -1;
-  FReportGroupKey := -1;
-
   FCurrentStreamVersion := gdcInv_Price_Undone;
 
   FLastRelationCostKey := -1;
@@ -196,12 +176,6 @@ end;
 class function TgdcInvBasePriceList.IsAbstractClass: Boolean;
 begin
   Result := Self.ClassNameIs('TgdcInvBasePriceList');
-end;
-
-function TgdcInvBasePriceList.DocumentTypeKey: Integer;
-begin
-  //FDocumentTypeKey - тип документа, считываем при установке сабтайпа
-  Result := FDocumentTypeKey;
 end;
 
 class function TgdcInvBasePriceList.EnumModificationList(
@@ -282,11 +256,6 @@ begin
   end;
 end;
 
-function TgdcInvBasePriceList.GetGroupID: Integer;
-begin
-  Result := FReportGroupKey;
-end;
-
 function TgdcInvBasePriceList.GetNotCopyField: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -347,100 +316,22 @@ begin
   Result := 'Tgdc_frmInvPriceList';
 end;
 
-procedure TgdcInvBasePriceList.ReadOptions(Stream: TStream);
-var
-  NewField: TgdcInvPriceField;
-  ibsql: TIBSQL;
+procedure TgdcInvBasePriceList.ReadOptions(DE: TgdDocumentEntry);
 begin
-  ibsql := CreateReadIBSQL;
-  try
-    if not Assigned(ibsql.Transaction) then
-      ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE ruid = :ruid';
-    ibsql.ParamByName('ruid').AsString := SubType;
-    ibsql.ExecQuery;
-    if ibsql.RecordCount = 0 then
-      raise Exception.Create('Прайс-лист не найден!');
-    FReportGroupKey := ibsql.FieldByName('reportgroupkey').AsInteger;
-  finally
-    ibsql.Free;
-  end;
+  inherited;
 
-  with TReader.Create(Stream, 1024) do
-  try
-    // Версия потока
-    FCurrentStreamVersion := ReadString;
-
-    if FCurrentStreamVersion <> gdcInvPrice_Version1_2 then
-    // Тип документа считываем
-      ReadInteger;
-
-    // Считываем ключ группы отчетов
-    if (FCurrentStreamVersion = gdcInvPrice_Version1_1) or
-      (FCurrentStreamVersion = gdcInvPrice_Version1_2) then
-      ReadInteger;
-
-    // Настройки шапки прайс-листа
-
-    ReadListBegin;
-    while not EndOfList do
-    begin
-      Read(NewField, SizeOf(TgdcInvPriceField));
-
-      if not Assigned(atDatabase.FindRelationField('INV_PRICE', NewField.FieldName)) then
-        Continue;
-
-      SetLength(FHeaderFields, Length(FHeaderFields) + 1);
-      FHeaderFields[Length(FHeaderFields) - 1] := NewField;
-    end;
-    ReadListEnd;
-
-    // Настройки позиции прайс-листа
-
-    ReadListBegin;
-    while not EndOfList do
-    begin
-      Read(NewField, SizeOf(TgdcInvPriceField));
-
-      if not Assigned(atDatabase.FindRelationField('INV_PRICELINE', NewField.FieldName)) then
-        Continue;
-
-      SetLength(FLineFields, Length(FLineFields) + 1);
-      FLineFields[Length(FLineFields) - 1] := NewField;
-    end;
-    ReadListEnd;
-  finally
-    Free;
-  end;
-end;
-
-procedure TgdcInvBasePriceList.SetSubType(const Value: TgdcSubType);
-var
-  DE: TgdDocumentEntry;
-  Stream: TStream;
-begin
-  if SubType <> Value then
+  if DE <> nil then
   begin
-    inherited;
-    FDocumentTypeKey := -1;
-    if SubType > '' then
-    begin
-      DE := gdClassList.FindDocByRUID(SubType, GetDocumentClassPart);
-      if DE <> nil then
-      begin
-        FDocumentTypeKey := DE.TypeID;
-        Stream := TStringStream.Create(DE.Options);
-        try
-          ReadOptions(Stream);
-        finally
-          Stream.Free;
-        end;
-      end else
-        raise EgdcInvPriceList.CreateObj('Прайс-лист не найден!', Self);
-    end;
+    FHeaderFields := (DE as TgdInvPriceDocumentEntry).HeaderFields;
+    FLineFields := (DE as TgdInvPriceDocumentEntry).LineFields;
+  end else
+  begin
+    SetLength(FHeaderFields, 0);
+    SetLength(FLineFields, 0);
   end;
 end;
 
+{
 procedure TgdcInvBasePriceList.WriteStream(Stream: TStream);
 var
   I: Integer;
@@ -470,6 +361,7 @@ begin
     Free;
   end;
 end;
+}
 
 { TgdcInvPriceList }
 
@@ -1305,59 +1197,6 @@ begin
   CustomProcess := [cpInsert, cpModify];
 end;
 
-procedure TgdcInvPriceListType.DoAfterInsert;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  ibsql: TIBSQL;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVPRICELISTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTTYPE', KEYDOAFTERINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTTYPE',
-  {M}          'DOAFTERINSERT', KEYDOAFTERINSERT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if not (sLoadFromStream in BaseState) then
-  begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := ReadTransaction;
-      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if (not ibsql.Eof) and (not ibsql.FieldByName('OPTIONS').IsNull) then
-        FieldByName('OPTIONS').AsString := ibsql.FieldByName('OPTIONS').AsString;
-    finally
-      ibsql.Free;
-    end;
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcInvPriceListType.CreateFields;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -1405,9 +1244,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  CN: String;
-  P: TgdInitDocClassEntry;
-  CE: TgdClassEntry;
+  DE: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCINVPRICELISTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -1433,37 +1270,14 @@ begin
 
   inherited;
 
-  if (Process = cpInsert) or (Process = cpModify) then
+  if Process = cpInsert then
   begin
-    P := TgdInitDocClassEntry.Create;
-    try
-      P.Obj := Self;
-
-      CN := 'TgdcInvPriceList';
-      if (Process = cpInsert) then
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdDocumentEntry, FieldbyName('name').AsString, P)
-      else
-      begin
-        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
-        P.Init(CE);
-      end;
-
-      CN := 'TgdcInvPriceListLine';
-      if (Process = cpInsert) then
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdDocumentEntry, FieldbyName('name').AsString, P)
-      else
-      begin
-        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
-        P.Init(CE);
-      end;
-    finally
-      P.Free;
-    end;
-  end
-  else
-    gdClassList.RemoveSubType(FieldByName('ruid').AsString);
+    DE := gdClassList.Add('TgdcInvPriceList', FieldByName('ruid').AsString, GetParentSubType,
+      TgdInvPriceDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry;
+    DE.LoadDE(Transaction);
+    gdClassList.Add('TgdcInvPriceListLine', FieldByName('ruid').AsString, GetParentSubType,
+      TgdInvPriceDocumentEntry, FieldbyName('name').AsString).Assign(DE);
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  finally

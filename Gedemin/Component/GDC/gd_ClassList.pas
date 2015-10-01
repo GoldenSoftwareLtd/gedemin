@@ -34,7 +34,7 @@ interface
 uses
   Contnrs,        Classes,   TypInfo,     Forms,            gd_KeyAssoc,
   gdcBase,        gdc_createable_form,    gdcBaseInterface, at_classes,
-  gdcClasses_Interface, gdcInvConsts_unit,
+  gdcClasses_Interface, gdcInvConsts_unit,IBSQL,            IBDatabase,
   {$IFDEF VER130}
   gsStringHashList
   {$ELSE}
@@ -373,12 +373,17 @@ type
     procedure SetHeaderRelKey(const Value: Integer);
     procedure SetLineRelKey(const Value: Integer);
 
+  protected
+    procedure LoadDEOption(qOpt: TIBSQL); virtual;
+
   public
     procedure Assign(CE: TgdClassEntry); override;
     function FindParentByDocumentTypeKey(const ADocumentTypeKey: Integer;
       const APart: TgdcDocumentClassPart): TgdDocumentEntry;
     procedure ParseOptions; virtual;
     procedure ConvertOptions; virtual;
+    procedure LoadDE(q, qOpt: TIBSQL); overload; virtual;
+    procedure LoadDE(Tr: TIBTransaction); overload; virtual;
 
     property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
     property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
@@ -440,6 +445,9 @@ type
     function GetMovementContactOption(
       const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
 
+  protected
+    procedure LoadDEOption(qOpt: TIBSQL); override;
+
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
       const ASubType: TgdcSubType = '';
@@ -449,6 +457,7 @@ type
     procedure Assign(CE: TgdClassEntry); override;
     procedure ParseOptions; override;
     procedure ConvertOptions; override;
+    procedure LoadDE(Tr: TIBTransaction); overload; override;
 
     function GetFlag(const AFlag: TgdInvDocumentEntryFlag): Boolean;
     function GetFeaturesCount(const AFeature: TgdInvDocumentEntryFeature): Integer;
@@ -463,6 +472,24 @@ type
     function GetMCOContactType(const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactType;
     procedure GetMCOPredefined(const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
     procedure GetMCOSubPredefined(const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
+  end;
+
+  TgdInvPriceDocumentEntry = class(TgdDocumentEntry)
+  private
+    FHeaderFields: TgdcInvPriceFields;
+    FLineFields: TgdcInvPriceFields;
+
+  protected
+    procedure LoadDEOption(qOpt: TIBSQL); override;
+
+  public
+    procedure Assign(CE: TgdClassEntry); override;
+    procedure ParseOptions; override;
+    procedure ConvertOptions; override;
+    procedure LoadDE(Tr: TIBTransaction); overload; override;
+
+    property HeaderFields: TgdcInvPriceFields read FHeaderFields;
+    property LineFields: TgdcInvPriceFields read FLineFields;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -640,7 +667,7 @@ implementation
 
 uses
   SysUtils, gs_Exception, gd_security, gsStorage, Storages, gdcClasses,
-  gd_directories_const, jclStrings, Windows, IBDatabase, IBSQL, gd_CmdLineParams_unit
+  gd_directories_const, jclStrings, Windows, gd_CmdLineParams_unit
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -2026,126 +2053,13 @@ end;
 
 procedure TgdClassList.LoadUserDefinedClasses;
 
-  procedure LoadDEOption(DE: TgdInvDocumentEntry; qOpt: TIBSQL);
-
-    procedure LoadMovementContactOption(const AnOptName: String; M: TgdInvDocumentEntryMovement);
-    var
-      N: TgdcInvMovementContactType;
-      S: String;
-    begin
-      if Length(AnOptName) < 2 then
-        raise Exception.Create('Invalid option name');
-
-      if (AnOptName[1] = 'C') and (AnOptName[2] = 'T') then
-      begin
-        S := Copy(AnOptName, 4, 255);
-        for N := gdcInvMovementContactTypeLow to gdcInvMovementContactTypeHigh do
-          if (S = gdcInvMovementContactTypeNames[N]) and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
-          begin
-            DE.FMovement[M].ContactType := N;
-            DE.FMovement[M].ContactTypeSet := True;
-          end;
-      end
-      else if AnOptName = 'SF' then
-      begin
-        DE.FMovement[M].RelationName := qOpt.FieldbyName('relationname').AsString;
-        DE.FMovement[M].SourceFieldName := qOpt.FieldByName('fieldname').AsString;
-      end
-      else if AnOptName = 'SSF' then
-      begin
-        DE.FMovement[M].SubRelationName := qOpt.FieldbyName('relationname').AsString;
-        DE.FMovement[M].SubSourceFieldName := qOpt.FieldByName('fieldname').AsString;
-      end
-      else if AnOptName = 'Predefined' then
-        DE.FMovement[M].AddPredefined(qOpt.FieldByName('contactkey').AsInteger)
-      else if AnOptName = 'SubPredefined' then
-        DE.FMovement[M].AddSubPredefined(qOpt.FieldByName('contactkey').AsInteger);
-    end;
-
-    procedure LoadFeatures(R: TatRelation; const AFeature: TgdInvDocumentEntryFeature);
-    var
-      F: TatRelationField;
-    begin
-      F := R.RelationFields.ByID(qOpt.FieldByName('relationfieldkey').AsInteger);
-      if F <> nil then
-        DE.FFeatures[AFeature].Add(F.FieldName);
-    end;
-
-  var
-    OptName: String;
-    R: TatRelation;
-    N: TgdInvDocumentEntryFlag;
-  begin
-    R := atDatabase.Relations.ByRelationName('INV_CARD');
-    Assert(R <> nil);
-
-    while (not qOpt.EOF) and (qOpt.FieldbyName('dtkey').AsInteger = DE.TypeID) do
-    begin
-      OptName := qOpt.FieldbyName('option_name').AsString;
-
-      if Length(OptName) < 2 then
-        raise Exception.Create('Invalid document type option name');
-
-      if (OptName[1] = 'D') and (OptName[2] = 'M') then
-        LoadMovementContactOption(Copy(OptName, 4, 1024), emDebit)
-      else if (OptName[1] = 'C') and (OptName[2] = 'M') then
-        LoadMovementContactOption(Copy(OptName, 4, 1024), emCredit)
-      else if OptName = InvDocumentFeaturesNames[ftSource] then
-        LoadFeatures(R, ftSource)
-      else if OptName = InvDocumentFeaturesNames[ftDest] then
-        LoadFeatures(R, ftDest)
-      else if OptName = InvDocumentFeaturesNames[ftMinus] then
-        LoadFeatures(R, ftMinus)
-      else
-      begin
-        for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
-          if OptName = InvDocumentEntryFlagNames[N] then
-          begin
-            DE.FFlags[N, fpValue] := qOpt.FieldbyName('bool_value').AsInteger <> 0;
-            DE.FFlags[N, fpIsSet] := True;
-            break;
-          end;
-      end;
-
-      qOpt.Next;
-    end;
-  end;
-
-  procedure LoadDE(DE: TgdDocumentEntry; q, qOpt: TIBSQL);
-  begin
-    with DE do
-    begin
-      TypeID := q.FieldByName('id').AsInteger;
-      IsCommon := q.FieldByName('iscommon').AsInteger > 0;
-      HeaderFunctionKey := q.FieldByName('headerfunctionkey').AsInteger;
-      LineFunctionKey := q.FieldByName('linefunctionkey').AsInteger;
-      Description := q.FieldByName('description').AsString;
-      IsCheckNumber := TIsCheckNumber(q.FieldByName('ischecknumber').AsInteger);
-      Options := q.FieldByName('options').AsString;
-      ReportGroupKey := q.FieldByName('reportgroupkey').AsInteger;
-      HeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
-      LineRelKey := q.FieldByName('linerelkey').AsInteger;
-      BranchKey := q.FieldByName('branchkey').AsInteger;
-      if qOpt.EOF or (qOpt.FieldbyName('dtkey').AsInteger <> q.FieldByName('id').AsInteger) then
-      begin
-        if (Options > '') and (gd_CmdLineParams.LoadSettingFileName = '') then
-        begin
-          ParseOptions;
-          ConvertOptions;
-        end;
-      end
-      else if DE is TgdInvDocumentEntry then
-        LoadDEOption(DE as TgdInvDocumentEntry, qOpt);
-    end;
-  end;
-
   function LoadDocument(ADocClass: CgdClassEntry; Prnt: TgdClassEntry; q, qOpt: TIBSQL): TgdClassEntry;
   var
     PrevRB: Integer;
   begin
     Result := _Create(Prnt, ADocClass, Prnt.TheClass,
       q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
-    LoadDE(TgdDocumentEntry(Result), q, qOpt);
+    TgdDocumentEntry(Result).LoadDE(q, qOpt);
     PrevRB := q.FieldByName('rb').AsInteger;
     q.Next;
     while (not q.EOF) and (q.FieldByName('lb').AsInteger < PrevRB) do
@@ -2313,13 +2227,13 @@ begin
       else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvDocumentType') = 0 then
         LoadDocument(TgdInvDocumentEntry, CEInvDocument, q, qOpt)
       else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvPriceListType') = 0 then
-        LoadDocument(TgdDocumentEntry, CEInvPriceList, q, qOpt)
+        LoadDocument(TgdInvPriceDocumentEntry, CEInvPriceList, q, qOpt)
       else begin
         DE := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpHeader);
         DELn := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpLine);
         if DE <> nil then
         begin
-          LoadDE(DE, q, qOpt);
+          DE.LoadDE(q, qOpt);
           if DELn<> nil then
             DELn.Assign(DE);
         end;
@@ -2767,6 +2681,84 @@ begin
     Result := FLineRelName;
 end;
 
+procedure TgdDocumentEntry.LoadDE(q, qOpt: TIBSQL);
+begin
+  FTypeID := q.FieldByName('id').AsInteger;
+  FIsCommon := q.FieldByName('iscommon').AsInteger > 0;
+  FHeaderFunctionKey := q.FieldByName('headerfunctionkey').AsInteger;
+  FLineFunctionKey := q.FieldByName('linefunctionkey').AsInteger;
+  FDescription := q.FieldByName('description').AsString;
+  FIsCheckNumber := TIsCheckNumber(q.FieldByName('ischecknumber').AsInteger);
+  FOptions := q.FieldByName('options').AsString;
+  FReportGroupKey := q.FieldByName('reportgroupkey').AsInteger;
+  FHeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
+  FLineRelKey := q.FieldByName('linerelkey').AsInteger;
+  FBranchKey := q.FieldByName('branchkey').AsInteger;
+  if qOpt.EOF or (qOpt.FieldbyName('dtkey').AsInteger <> q.FieldByName('id').AsInteger) then
+  begin
+    if (FOptions > '') and (gd_CmdLineParams.LoadSettingFileName = '') then
+    begin
+      ParseOptions;
+      ConvertOptions;
+    end;
+  end else
+    LoadDEOption(qOpt);
+end;
+
+procedure TgdDocumentEntry.LoadDE(Tr: TIBTransaction);
+var
+  q, qOpt: TIBSQL;
+  TempTr: TIBTransaction;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  q := TIBSQL.Create(nil);
+  qOpt := TIBSQL.Create(nil);
+  TempTr := nil;
+  try
+    if (Tr = nil) or (not Tr.InTransaction) then
+    begin
+      TempTr := TIBTransaction.Create(nil);
+      TempTr.DefaultAction := taCommit;
+      TempTr.DefaultDatabase := gdcBaseManager.Database;
+      TempTr.StartTransaction;
+      q.Transaction := TempTr;
+      qOpt.Transaction := TempTr;
+    end else
+    begin
+      q.Transaction := Tr;
+      qOpt.Transaction := Tr;
+    end;
+
+    qOpt.SQL.Text :=
+      'SELECT opt.*, rf.relationname, rf.fieldname ' +
+      'FROM gd_documenttype_option opt ' +
+      '  LEFT JOIN at_relation_fields rf ON opt.relationfieldkey = rf.id ' +
+      'WHERE ' +
+      '  opt.dtkey = :id';
+    qOpt.ParamByName('id').AsInteger := TypeID;
+    qOpt.ExecQuery;
+
+    q.SQL.Text :=
+      'SELECT dt.* ' +
+      'FROM gd_documenttype dt ' +
+      'WHERE dt.id = :id';
+    q.ParamByName('id').AsInteger := TypeID;
+    q.ExecQuery;
+
+    LoadDE(q, qOpt);
+  finally
+    qOpt.Free;
+    q.Free;
+    TempTr.Free;
+  end;
+end;
+
+procedure TgdDocumentEntry.LoadDEOption(qOpt: TIBSQL);
+begin
+  //
+end;
+
 procedure TgdDocumentEntry.ParseOptions;
 begin
   //
@@ -3209,6 +3201,103 @@ begin
     Include(Result, irsMacro);
 end;
 
+procedure TgdInvDocumentEntry.LoadDE(Tr: TIBTransaction);
+begin
+  FMovement[emDebit].Clear;
+  FMovement[emCredit].Clear;
+  FFeatures[ftSource].Clear;
+  FFeatures[ftDest].Clear;
+  FFeatures[ftMinus].Clear;
+  FillChar(FFlags, SizeOf(FFlags), 0);
+
+  inherited;
+end;
+
+procedure TgdInvDocumentEntry.LoadDEOption(qOpt: TIBSQL);
+
+  procedure LoadMovementContactOption(const AnOptName: String; M: TgdInvDocumentEntryMovement);
+  var
+    N: TgdcInvMovementContactType;
+    S: String;
+  begin
+    if Length(AnOptName) < 2 then
+      raise Exception.Create('Invalid option name');
+
+    if (AnOptName[1] = 'C') and (AnOptName[2] = 'T') then
+    begin
+      S := Copy(AnOptName, 4, 255);
+      for N := gdcInvMovementContactTypeLow to gdcInvMovementContactTypeHigh do
+        if (S = gdcInvMovementContactTypeNames[N]) and (qOpt.FieldbyName('bool_value').AsInteger <> 0) then
+        begin
+          FMovement[M].ContactType := N;
+          FMovement[M].ContactTypeSet := True;
+        end;
+    end
+    else if AnOptName = 'SF' then
+    begin
+      FMovement[M].RelationName := qOpt.FieldbyName('relationname').AsString;
+      FMovement[M].SourceFieldName := qOpt.FieldByName('fieldname').AsString;
+    end
+    else if AnOptName = 'SSF' then
+    begin
+      FMovement[M].SubRelationName := qOpt.FieldbyName('relationname').AsString;
+      FMovement[M].SubSourceFieldName := qOpt.FieldByName('fieldname').AsString;
+    end
+    else if AnOptName = 'Predefined' then
+      FMovement[M].AddPredefined(qOpt.FieldByName('contactkey').AsInteger)
+    else if AnOptName = 'SubPredefined' then
+      FMovement[M].AddSubPredefined(qOpt.FieldByName('contactkey').AsInteger);
+  end;
+
+  procedure LoadFeatures(R: TatRelation; const AFeature: TgdInvDocumentEntryFeature);
+  var
+    F: TatRelationField;
+  begin
+    F := R.RelationFields.ByID(qOpt.FieldByName('relationfieldkey').AsInteger);
+    if F <> nil then
+      FFeatures[AFeature].Add(F.FieldName);
+  end;
+
+var
+  OptName: String;
+  R: TatRelation;
+  N: TgdInvDocumentEntryFlag;
+begin
+  R := atDatabase.Relations.ByRelationName('INV_CARD');
+  Assert(R <> nil);
+
+  while (not qOpt.EOF) and (qOpt.FieldbyName('dtkey').AsInteger = TypeID) do
+  begin
+    OptName := qOpt.FieldbyName('option_name').AsString;
+
+    if Length(OptName) < 2 then
+      raise Exception.Create('Invalid document type option name');
+
+    if (OptName[1] = 'D') and (OptName[2] = 'M') then
+      LoadMovementContactOption(Copy(OptName, 4, 1024), emDebit)
+    else if (OptName[1] = 'C') and (OptName[2] = 'M') then
+      LoadMovementContactOption(Copy(OptName, 4, 1024), emCredit)
+    else if OptName = InvDocumentFeaturesNames[ftSource] then
+      LoadFeatures(R, ftSource)
+    else if OptName = InvDocumentFeaturesNames[ftDest] then
+      LoadFeatures(R, ftDest)
+    else if OptName = InvDocumentFeaturesNames[ftMinus] then
+      LoadFeatures(R, ftMinus)
+    else
+    begin
+      for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
+        if OptName = InvDocumentEntryFlagNames[N] then
+        begin
+          FFlags[N, fpValue] := qOpt.FieldbyName('bool_value').AsInteger <> 0;
+          FFlags[N, fpIsSet] := True;
+          break;
+        end;
+    end;
+
+    qOpt.Next;
+  end;
+end;
+
 procedure TgdInvDocumentEntry.ParseOptions;
 
   procedure SetFlag(const F: TgdInvDocumentEntryFlag; const AValue: Boolean = True);
@@ -3422,6 +3511,251 @@ begin
       SetFlag(efWithoutSearchRemains, False);
   finally
     Free;
+    SS.Free;
+  end;
+end;
+
+{ TgdInvPriceDocumentEntry }
+
+procedure TgdInvPriceDocumentEntry.Assign(CE: TgdClassEntry);
+var
+  PE: TgdInvPriceDocumentEntry;
+begin
+  inherited;
+  PE := CE as TgdInvPriceDocumentEntry;
+  FHeaderFields := Copy(PE.FHeaderFields, 0, Length(PE.FHeaderFields));
+  FLineFields := Copy(PE.FLineFields, 0, Length(PE.FLineFields));
+end;
+
+procedure TgdInvPriceDocumentEntry.ConvertOptions;
+var
+  q, qRUID, qNS: TIBSQL;
+  Tr: TIBTransaction;
+  NSID, NSPos, NSHeadObjectID: Integer;
+
+  procedure AddNSObject(const AnObjectName: String; const AnOptID: Integer);
+  begin
+    if NSID > -1 then
+    begin
+      Inc(NSPos);
+      qNS.ParamByName('namespacekey').AsInteger := NSID;
+      qNS.ParamByName('objectname').AsString := Copy(AnObjectName, 1, 60);
+      qNS.ParamByName('xid').AsInteger := AnOptID;
+      qNS.ParamByName('objectpos').AsInteger := NSPos;
+      qNS.ParamByName('headobjectkey').AsInteger := NSHeadObjectID;
+      qNS.ExecQuery;
+    end;
+  end;
+
+  function GetOptID: Integer;
+  begin
+    Result := gdcBaseManager.GetNextID;
+
+    qRUID.ParamByName('id').AsInteger := Result;
+    qRUID.ExecQuery;
+  end;
+
+  procedure ConvertFields(const ARelName: String; const AnOptName: String; const AFields: TgdcInvPriceFields);
+  var
+    F: TatRelationField;
+    OptID: Integer;
+    J: Integer;
+  begin
+    for J := Low(AFields) to High(AFields) do
+    begin
+      F := atDatabase.FindRelationField(ARelName, AFields[J].FieldName);
+      if F <> nil then
+      begin
+        OptID := GetOptID;
+
+        q.ParamByName('id').AsInteger := OptID;
+        q.ParamByName('dtkey').AsInteger := TypeID;
+        q.ParamByName('option_name').AsString := AnOptName;
+        q.ParamByName('bool_value').Clear;
+        q.ParamByName('relationfieldkey').AsInteger := F.ID;
+        if AFields[J].ContactKey > 0 then
+          q.ParamByName('contactkey').AsInteger := AFields[J].ContactKey
+        else
+          q.ParamByName('contactkey').Clear;
+        if AFields[J].CurrencyKey > 0 then
+          q.ParamByName('currkey').AsInteger := AFields[J].CurrencyKey
+        else
+          q.ParamByName('currkey').Clear;
+        q.ExecQuery;
+
+        AddNSObject(AnOptName + '.' + F.FieldName, OptID);
+      end;
+    end;
+  end;
+
+begin
+  q := TIBSQL.Create(nil);
+  qRUID := TIBSQL.Create(nil);
+  qNS := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    qRUID.Transaction := Tr;
+    qRUID.SQL.Text :=
+      'INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
+      'VALUES (:id, :id, GEN_ID(gd_g_dbid, 0), CURRENT_TIMESTAMP, <CONTACTKEY/>)';
+
+    qNS.Transaction := Tr;
+    qNS.SQL.Text :=
+      'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
+      'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT obj.* ' +
+      'FROM at_object obj JOIN gd_ruid r ' +
+      '  ON r.xid = obj.xid AND r.dbid = obj.dbid ' +
+      'WHERE ' +
+      '  r.id = :ID';
+    q.ParamByName('id').AsInteger := TypeID;
+    q.ExecQuery;
+
+    if not q.EOF then
+    begin
+      NSID := q.FieldByName('namespacekey').AsInteger;
+      NSPos := q.FieldByName('objectpos').AsInteger;
+      NSHeadObjectID := q.FieldByName('id').AsInteger;
+    end else
+    begin
+      NSID := -1;
+      NSPos := -1;
+      NSHeadObjectID := -1;
+    end;
+
+    q.Close;
+    q.SQL.Text :=
+      'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey, currkey) ' +
+      ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationfieldkey, :contactkey, :currkey)';
+
+    ConvertFields('INV_PRICE', 'HF', FHeaderFields);
+    ConvertFields('INV_PRICELINE', 'LF', FLineFields);
+
+    Tr.Commit;
+  finally
+    qNS.Free;
+    qRUID.Free;
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure TgdInvPriceDocumentEntry.LoadDE(Tr: TIBTransaction);
+begin
+  SetLength(FHeaderFields, 0);
+  SetLength(FLineFields, 0);
+  inherited;
+end;
+
+procedure TgdInvPriceDocumentEntry.LoadDEOption(qOpt: TIBSQL);
+var
+  P, PL: TatRelation;
+  F: TatRelationField;
+  OptName: String;
+  NewField: TgdcInvPriceField;
+begin
+  P := atDatabase.Relations.ByRelationName('INV_PRICE');
+  PL := atDatabase.Relations.ByRelationName('INV_PRICELINE');
+  Assert((P <> nil) and (PL <> nil));
+
+  while (not qOpt.EOF) and (qOpt.FieldbyName('dtkey').AsInteger = TypeID) do
+  begin
+    OptName := qOpt.FieldbyName('option_name').AsString;
+
+    if OptName = 'HF' then
+      F := P.RelationFields.ByID(qOpt.FieldbyName('relationfieldkey').AsInteger)
+    else
+      F := PL.RelationFields.ByID(qOpt.FieldbyName('relationfieldkey').AsInteger);
+
+    if F <> nil then
+    begin
+      NewField.FieldName := F.FieldName;
+      NewField.ContactKey := qOpt.FieldbyName('contactkey').AsInteger;
+      NewField.CurrencyKey := qOpt.FieldbyName('currkey').AsInteger;
+
+      if OptName = 'HF' then
+      begin
+        SetLength(FHeaderFields, Length(FHeaderFields) + 1);
+        FHeaderFields[High(FHeaderFields)] := NewField;
+      end else
+      begin
+        SetLength(FLineFields, Length(FLineFields) + 1);
+        FHeaderFields[High(FLineFields)] := NewField;
+      end;
+    end;
+
+    qOpt.Next;
+  end;
+end;
+
+procedure TgdInvPriceDocumentEntry.ParseOptions;
+var
+  Version: String;
+  SS: TStringStream;
+  Reader: TReader;
+
+  procedure ReadList(const ARelName: String; var L: TgdcInvPriceFields);
+  var
+    NewField: TgdcInvPriceField;
+    R: OleVariant;
+  begin
+    Reader.ReadListBegin;
+    while not Reader.EndOfList do
+    begin
+      Reader.Read(NewField, SizeOf(TgdcInvPriceField));
+
+      if atDatabase.FindRelationField(ARelName, NewField.FieldName) <> nil then
+      begin
+        if (NewField.ContactKey > 0) and (not gdcBaseManager.ExecSingleQueryResult(
+          'SELECT id FROM gd_contact WHERE id = :id', NewField.ContactKey, R)) then
+        begin
+          NewField.ContactKey := -1;
+        end;
+
+        if (NewField.CurrencyKey > 0) and (not gdcBaseManager.ExecSingleQueryResult(
+          'SELECT id FROM gd_curr WHERE id = :id', NewField.CurrencyKey, R)) then
+        begin
+          NewField.CurrencyKey := -1;
+        end;
+
+        SetLength(L, Length(L) + 1);
+        FHeaderFields[Length(L) - 1] := NewField;
+      end;
+    end;
+    Reader.ReadListEnd;
+  end;
+
+begin
+  if Options = '' then
+    exit;
+
+  SS := TStringStream.Create(Options);
+  Reader := TReader.Create(SS, 1024);
+  with Reader do
+  try
+    Version := ReadString;
+
+    // Тип документа считываем
+    if Version <> gdcInvPrice_Version1_2 then
+      ReadInteger;
+
+    // Ключ группы отчетов
+    if (Version = gdcInvPrice_Version1_1) or (Version = gdcInvPrice_Version1_2) then
+      ReadInteger;
+
+    // Настройки шапки прайс-листа
+    ReadList('INV_PRICE', FHeaderFields);
+
+    // Настройки позиции прайс-листа
+    ReadList('INV_PRICELINE', FLineFields);
+  finally
+    Reader.Free;
     SS.Free;
   end;
 end;

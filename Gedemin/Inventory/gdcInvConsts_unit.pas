@@ -130,6 +130,7 @@ type
     procedure GetProperties(ASL: TStrings);
     procedure AddPredefined(const AnID: Integer);
     procedure AddSubPredefined(const AnID: Integer);
+    procedure Clear;
   end;
 
   // Вид складской справочной информации
@@ -228,7 +229,7 @@ const
   '    scrPublicVariables.AddValue "%2:s", "0" '#13#10 +
   '  End If '#13#10#13#10 +
   '  Dim EventParams(0) '#13#10 +
-  '  Set  EventParams(0) = Sender'#13#10 +
+  '  Set EventParams(0) = Sender'#13#10 +
   '  Call Inherited(Sender, "OnChange", EventParams)'#13#10#13#10#13#10 +
   'End Sub ';
 
@@ -239,13 +240,23 @@ const
 type
   // Запись для хранения поля прайс-листа
   TgdcInvPriceField = record
-    FieldName: String[31]; // Наименование поля
-    CurrencyKey: Integer; // Тип валюты
-    ContactKey: Integer; // Тип контакта
+    FieldName: String[31];    // Наименование поля
+    CurrencyKey: Integer;     // Тип валюты
+    ContactKey: Integer;      // Тип контакта
   end;
 
   // Список полей прайс-листа
   TgdcInvPriceFields = array of TgdcInvPriceField;
+
+const
+  // Незаконченный документ (не до конца настроенный документ)
+  gdcInv_Price_Undone = 'UNDONE';
+  // Версия 1.0
+  gdcInvPrice_Version1_0 = 'IPV1.0';
+  // Версия 1.1
+  gdcInvPrice_Version1_1 = 'IPV1.1';
+  // Версия 1.2
+  gdcInvPrice_Version1_2 = 'IPV1.2';  
 
 implementation
 
@@ -281,6 +292,21 @@ begin
 
   Predefined := Copy(AnObject.Predefined, 0, MaxInt);
   SubPredefined := Copy(AnObject.SubPredefined, 0, MaxInt);
+end;
+
+procedure TgdcInvMovementContactOption.Clear;
+begin
+  RelationName := '';
+  SourceFieldName := '';
+
+  SubRelationName := '';
+  SubSourceFieldName := '';
+
+  ContactType := TgdcInvMovementContactType(0);
+  ContactTypeSet := False;
+
+  SetLength(Predefined, 0);
+  SetLength(SubPredefined, 0);
 end;
 
 procedure TgdcInvMovementContactOption.GetProperties(ASL: TStrings);

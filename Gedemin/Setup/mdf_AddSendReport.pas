@@ -396,6 +396,19 @@ begin
           FIBSQL.ExecQuery;
         end;
 
+        AddField2('GD_DOCUMENTTYPE_OPTION', 'CURRKEY', 'dforeignkey', FTransaction);
+
+        if not ConstraintExist2('GD_DOCUMENTTYPE_OPTION', 'GD_FK_DT_OPTION_CURRKEY', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_documenttype_option '#13#10 +
+            'ADD CONSTRAINT gd_fk_dt_option_currkey FOREIGN KEY (currkey) '#13#10 +
+            '  REFERENCES gd_curr (id) '#13#10 +
+            '  ON DELETE CASCADE '#13#10 +
+            '  ON UPDATE CASCADE';
+          FIBSQL.ExecQuery;
+        end;
+
         DropConstraint2('GD_DOCUMENTTYPE_OPTION', 'GD_UQ_DT_OPTION', FTransaction);
         DropConstraint2('GD_DOCUMENTTYPE_OPTION', 'GD_FK_DT_OPTION_RELKEY', FTransaction);
         DropField2('GD_DOCUMENTTYPE_OPTION', 'STR_VALUE', FTransaction);
@@ -403,7 +416,7 @@ begin
 
         FIBSQL.SQL.Text :=
           'ALTER TABLE gd_documenttype_option ADD CONSTRAINT gd_uq_dt_option '#13#10 +
-          'UNIQUE (dtkey, option_name, relationfieldkey, contactkey)';
+          'UNIQUE (dtkey, option_name, relationfieldkey, contactkey, currkey)';
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
@@ -537,6 +550,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (229, ''0000.0001.0000.0260'', ''04.09.2015'', ''Correction for GD_DOCUMENTTYPE_OPTION #2'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (230, ''0000.0001.0000.0261'', ''01.10.2015'', ''Correction for GD_DOCUMENTTYPE_OPTION #3'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

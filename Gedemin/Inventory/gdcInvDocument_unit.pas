@@ -64,10 +64,6 @@ type
     FRelationName, FRelationLineName: String; // Наименование физической таблицы
     FMovementSource, FMovementTarget: TgdcInvMovementContactOption; // Источник и получатель движения
 
-    FDocumentTypeKey: Integer; // Тип документа
-    FReportGroupKey: Integer; // Ключ группы отчетов
-    FBranchKey: Integer; // Ветка в исследователе
-
     FCurrentStreamVersion: String; // Версия настроек, считанных из потока
 
     FContact: TIBSQL;
@@ -92,15 +88,13 @@ type
 
     procedure CreateFields; override;
     procedure SetActive(Value: Boolean); override;
-
-    procedure SetSubType(const Value: TgdcSubType); override;
+    procedure ReadOptions(DE: TgdDocumentEntry); override;
 
     //procedure WriteOptions(Stream: TStream); virtual;
 
     function GetJoins: TStringList; virtual; abstract;
     procedure SetJoins(const Value: TStringList); virtual; abstract;
 
-    function GetGroupID: Integer; override;
     function GetNotCopyField: String; override;
     procedure DoBeforePost; override;
 
@@ -113,10 +107,8 @@ type
 
     destructor Destroy; override;
 
-    function DocumentTypeKey: Integer; override;
     function CheckTheSameStatement: String; override;
     function JoinListFieldByFieldName(const AFieldName, AAliasName, AJoinFieldName: String): String;
-    procedure ReadOptions(AnIDE: TgdInvDocumentEntry); virtual;
     procedure GetProperties(ASL: TStrings); override;
 
     class function IsAbstractClass: Boolean; override;
@@ -209,9 +201,8 @@ type
     procedure NewCreateMovement;
 {$ENDIF}
   protected
-
     //procedure WriteOptions(Stream: TStream); override;
-
+    procedure ReadOptions(DE: TgdDocumentEntry); override;
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetGroupClause: String; override;
@@ -244,8 +235,6 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
-
-    procedure ReadOptions(AnIDE: TgdInvDocumentEntry); override;
 
     function ChooseRemains: Boolean;
     function SelectGoodFeatures: Boolean;
@@ -308,8 +297,6 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
-
-    procedure DoAfterShowDialog(DlgForm: TCreateableForm; IsOk: Boolean); override;
 
     class function InvDocumentTypeBranchKey: Integer;
     class function GetHeaderDocumentClass: CgdcBase; override;
@@ -403,9 +390,6 @@ begin
 
   FRelationName := '';
   FRelationLineName := '';
-  FDocumentTypeKey := -1;
-  FReportGroupKey := -1;
-  FBranchKey := -1;
   FContact := nil;
 
   FCurrentStreamVersion := gdcInv_Document_Undone;
@@ -456,7 +440,7 @@ begin
   {END MACRO}
   inherited;
 
-  if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
+  if (csDesigning in ComponentState) or (FDocumentTypeKey = -1) then
     Exit;
 
   FieldByName('documentkey').Required := False;
@@ -484,12 +468,6 @@ begin
   FMovementSource.Free;
   FMovementTarget.Free;
   inherited;
-end;
-
-function TgdcInvBaseDocument.DocumentTypeKey: Integer;
-begin
-  // FDocumentTypeKey - Ключ документа, считывается при смене сабтайпа
-  Result := FDocumentTypeKey;
 end;
 
 function TgdcInvBaseDocument.EnumModificationList(const ExcludeField: String = ''): String;
@@ -694,11 +672,6 @@ begin
   end;
 end;
 
-function TgdcInvBaseDocument.GetGroupID: Integer;
-begin
-  Result := FReportGroupKey;
-end;
-
 function TgdcInvBaseDocument.GetRelation: TatRelation;
 begin
   Assert(atDatabase <> nil, 'Attributes database not assigned!');
@@ -729,132 +702,43 @@ begin
   Result := AAliasName + '_' + AFieldName + '_' + AJoinFieldName;
 end;
 
-procedure TgdcInvBaseDocument.ReadOptions(AnIDE: TgdInvDocumentEntry);
+procedure TgdcInvBaseDocument.ReadOptions(DE: TgdDocumentEntry);
+var
+  AnIDE: TgdInvDocumentEntry;
 begin
   Assert(not Active);
-  Assert(AnIDE is TgdInvDocumentEntry);
 
-  FRelationName := AnIDE.HeaderRelName;
-  FRelationLineName := AnIDE.LineRelName;
+  inherited;
 
-  FMovementTarget.RelationName := AnIDE.GetMCORelationName(emDebit);
-  FMovementTarget.SourceFieldName := AnIDE.GetMCOSourceFieldName(emDebit);
-  FMovementTarget.SubRelationName := AnIDE.GetMCOSubRelationName(emDebit);
-  FMovementTarget.SubSourceFieldName := AnIDE.GetMCOSubSourceFieldName(emDebit);
-  FMovementTarget.ContactType := AnIDE.GetMCOContactType(emDebit);
-  AnIDE.GetMCOPredefined(emDebit, FMovementTarget.Predefined);
-  AnIDE.GetMCOSubPredefined(emDebit, FMovementTarget.SubPredefined);
+  if DE <> nil then
+  begin
+    AnIDE := DE as TgdInvDocumentEntry;
 
-  FMovementSource.RelationName := AnIDE.GetMCORelationName(emCredit);
-  FMovementSource.SourceFieldName := AnIDE.GetMCOSourceFieldName(emCredit);
-  FMovementSource.SubRelationName := AnIDE.GetMCOSubRelationName(emCredit);
-  FMovementSource.SubSourceFieldName := AnIDE.GetMCOSubSourceFieldName(emCredit);
-  FMovementSource.ContactType := AnIDE.GetMCOContactType(emCredit);
-  AnIDE.GetMCOPredefined(emCredit, FMovementSource.Predefined);
-  AnIDE.GetMCOSubPredefined(emCredit, FMovementSource.SubPredefined);
+    FRelationName := AnIDE.HeaderRelName;
+    FRelationLineName := AnIDE.LineRelName;
 
-  //FMovementTarget.Assign(AnIDE.GetMovementContactOption(emDebit));
-  //FMovementSource.Assign(AnIDE.GetMovementContactOption(emCredit));
+    FMovementTarget.RelationName := AnIDE.GetMCORelationName(emDebit);
+    FMovementTarget.SourceFieldName := AnIDE.GetMCOSourceFieldName(emDebit);
+    FMovementTarget.SubRelationName := AnIDE.GetMCOSubRelationName(emDebit);
+    FMovementTarget.SubSourceFieldName := AnIDE.GetMCOSubSourceFieldName(emDebit);
+    FMovementTarget.ContactType := AnIDE.GetMCOContactType(emDebit);
+    AnIDE.GetMCOPredefined(emDebit, FMovementTarget.Predefined);
+    AnIDE.GetMCOSubPredefined(emDebit, FMovementTarget.SubPredefined);
 
-  (*
-  with TReader.Create(Stream, 1024) do
-  try
-    FCurrentStreamVersion := ReadString;
-
-    if FCurrentStreamVersion = gdcInv_Document_Undone then
-      raise EgdcInvBaseDocument.
-        Create('Попытка загрузить незаконченный складской документ!');
-
-    FRelationName := ReadString;
-    FRelationLineName := ReadString;
-
-    if (FCurrentStreamVersion <> gdcInvDocument_Version2_0) and
-       (FCurrentStreamVersion <> gdcInvDocument_Version2_1) and
-       (FCurrentStreamVersion <> gdcInvDocument_Version2_2) and
-       (FCurrentStreamVersion <> gdcInvDocument_Version2_3) and
-       (FCurrentStreamVersion <> gdcInvDocument_Version2_4) and
-       (FCurrentStreamVersion <> gdcInvDocument_Version2_5) and
-       (FCurrentStreamVersion <> gdcInvDocument_Version2_6) and
-       (FCurrentStreamVersion <> gdcInvDocument_Version3_0)
-    then
-      //Раньше считывался тип документа
-      ReadInteger;
-
-    if (FCurrentStreamVersion = gdcInvDocument_Version1_9) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_0) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_6) or
-      (FCurrentStreamVersion = gdcInvDocument_Version3_0)
-    then
-      //Раньше считывался кей группы отчетов
-      ReadInteger;
-
-    SetLength(FMovementTarget.Predefined, 0);
-    SetLength(FMovementTarget.SubPredefined, 0);
-
-    FMovementTarget.RelationName := ReadString;
-    FMovementTarget.SourceFieldName := ReadString;
-    FMovementTarget.SubRelationName := ReadString;
-    FMovementTarget.SubSourceFieldName := ReadString;
-    Read(FMovementTarget.ContactType, SizeOf(TgdcInvMovementContactType));
-
-    ReadListBegin;
-    while not EndOfList do
-    begin
-      SetLength(FMovementTarget.Predefined,
-        Length(FMovementTarget.Predefined) + 1);
-      FMovementTarget.Predefined[Length(FMovementTarget.Predefined) - 1] :=
-        ReadInteger;
-    end;
-    ReadListEnd;
-
-    ReadListBegin;
-    while not EndOfList do
-    begin
-      SetLength(FMovementTarget.SubPredefined,
-        Length(FMovementTarget.SubPredefined) + 1);
-      FMovementTarget.SubPredefined[Length(FMovementTarget.SubPredefined) - 1] :=
-        ReadInteger;
-    end;
-    ReadListEnd;
-
-    SetLength(FMovementSource.Predefined, 0);
-    SetLength(FMovementSource.SubPredefined, 0);
-
-    FMovementSource.RelationName := ReadString;
-    FMovementSource.SourceFieldName := ReadString;
-    FMovementSource.SubRelationName := ReadString;
-    FMovementSource.SubSourceFieldName := ReadString;
-
-    Read(FMovementSource.ContactType, SizeOf(TgdcInvMovementContactType));
-
-    ReadListBegin;
-    while not EndOfList do
-    begin
-      SetLength(FMovementSource.Predefined,
-        Length(FMovementSource.Predefined) + 1);
-      FMovementSource.Predefined[Length(FMovementSource.Predefined) - 1] :=
-        ReadInteger;
-    end;
-    ReadListEnd;
-
-    ReadListBegin;
-    while not EndOfList do
-    begin
-      SetLength(FMovementSource.SubPredefined,
-        Length(FMovementSource.SubPredefined) + 1);
-      FMovementSource.SubPredefined[Length(FMovementSource.SubPredefined) - 1] :=
-        ReadInteger;
-    end;
-    ReadListEnd;
-  finally
-    Free;
+    FMovementSource.RelationName := AnIDE.GetMCORelationName(emCredit);
+    FMovementSource.SourceFieldName := AnIDE.GetMCOSourceFieldName(emCredit);
+    FMovementSource.SubRelationName := AnIDE.GetMCOSubRelationName(emCredit);
+    FMovementSource.SubSourceFieldName := AnIDE.GetMCOSubSourceFieldName(emCredit);
+    FMovementSource.ContactType := AnIDE.GetMCOContactType(emCredit);
+    AnIDE.GetMCOPredefined(emCredit, FMovementSource.Predefined);
+    AnIDE.GetMCOSubPredefined(emCredit, FMovementSource.SubPredefined);
+  end else
+  begin
+    FMovementSource.Clear;
+    FMovementTarget.Clear;
+    FRelationName := '';
+    FRelationLineName := '';
   end;
-  *)
 end;
 
 procedure TgdcInvBaseDocument.UpdatePredefinedFields;
@@ -1019,36 +903,6 @@ begin
   {M}      ClearMacrosStack2('TGDCINVBASEDOCUMENT', 'GETNOTCOPYFIELD', KEYGETNOTCOPYFIELD);
   {M}  end;
   {END MACRO}
-end;
-
-procedure TgdcInvBaseDocument.SetSubType(const Value: TgdcSubType);
-var
-  //Stream: TStream;
-  DE: TgdDocumentEntry;
-begin
-  if (SubType <> Value) then
-  begin
-    inherited;
-    FDocumentTypeKey := -1;
-    if SubType > '' then
-    begin
-      DE := gdClassList.FindDocByRUID(Value, GetDocumentClassPart);
-      if DE is TgdInvDocumentEntry then
-      begin
-        FDocumentTypeKey := DE.TypeID;
-        ReadOptions(DE as TgdInvDocumentEntry);
-        (*
-        Stream := TStringStream.Create(DE.Options);
-        try
-          ReadOptions(Stream);
-        finally
-          Stream.Free;
-        end;
-        *)
-      end else
-        raise EgdcInvBaseDocument.CreateObj(sInventoryDocumentDontFound, Self);
-    end;
-  end;
 end;
 
 procedure TgdcInvBaseDocument.SetActive(Value: Boolean);
@@ -1382,7 +1236,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
+  if (csDesigning in ComponentState) or (FDocumentTypeKey = -1) then
   begin
     Result := inherited GetFromClause(ARefresh);
     Exit;
@@ -1549,7 +1403,7 @@ begin
   {M}    end;
   {END MACRO}
   
-  if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
+  if (csDesigning in ComponentState) or (FDocumentTypeKey = -1) then
   begin
     Result := inherited GetSelectClause;
     Exit;
@@ -1933,7 +1787,7 @@ begin
   {END MACRO}
   inherited;
 
-  if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
+  if (csDesigning in ComponentState) or (FDocumentTypeKey = -1) then
     Exit;
 
   FieldByName('GOODNAME').Required := False;
@@ -2512,7 +2366,7 @@ procedure TgdcInvDocumentLine.DoOnCalcFields;
 begin
   inherited;
 
-  if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
+  if (csDesigning in ComponentState) or (FDocumentTypeKey = -1) then
     Exit;
 
   case RelationType of
@@ -2701,7 +2555,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
+  if (csDesigning in ComponentState) or (FDocumentTypeKey = -1) then
   begin
     Result := inherited GetFromClause(ARefresh);
     Exit;
@@ -2887,7 +2741,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
+  if (csDesigning in ComponentState) or (FDocumentTypeKey = -1) then
   begin
     Result := inherited GetSelectClause;
     Exit;
@@ -2973,7 +2827,7 @@ procedure TgdcInvDocumentLine.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
 
-  if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
+  if (csDesigning in ComponentState) or (FDocumentTypeKey = -1) then
     Exit;
 
   if RelationType = irtTransformation then
@@ -3003,8 +2857,10 @@ begin
   Result := False;
 end;
 
-procedure TgdcInvDocumentLine.ReadOptions(AnIDE: TgdInvDocumentEntry);
-
+procedure TgdcInvDocumentLine.ReadOptions(DE: TgdDocumentEntry);
+var
+  AnIDE: TgdInvDocumentEntry;
+  
   procedure SLToAS(const AFeature: TgdInvDocumentEntryFeature; var AnAS: TgdcInvFeatures);
   var
     I: Integer;
@@ -3014,179 +2870,60 @@ procedure TgdcInvDocumentLine.ReadOptions(AnIDE: TgdInvDocumentEntry);
       AnAS[I] := AnIDE.GetFeature(AFeature, I);
   end;
 
-{var
-  F: TatRelationField;}
 begin
   inherited;
 
-  SLToAS(ftSource, FSourceFeatures);
-  SLToAS(ftDest, FDestFeatures);
-  SLToAS(ftMinus, FMinusFeatures);
-
-  FSources := AnIDE.GetSources;
-  FDirection := AnIDE.GetDirection;
-
-  if not (irsRemainsRef in FSources) then
+  if DE <> nil then
   begin
-    FControlRemains := False;
-    FLiveTimeRemains := False;
-  end else
-  begin
-    FControlRemains := AnIDE.GetFlag(efControlRemains);
-    FLiveTimeRemains := AnIDE.GetFlag(efLiveTimeRemains);
-  end;
+    AnIDE := DE as TgdInvDocumentEntry;
 
-  FCanBeDelayed := AnIDE.GetFlag(efDelayedDocument);
-  FUseCachedUpdates := AnIDE.GetFlag(efUseCachedUpdates);
-  FIsMinusRemains := AnIDE.GetFlag(efMinusRemains);
-  FIsChangeCardValue := AnIDE.GetFlag(efIsChangeCardValue);
-  FIsAppendCardValue := AnIDE.GetFlag(efIsAppendCardValue);
-  FIsUseCompanyKey := AnIDE.GetFlag(efIsUseCompanyKey);
-  FSaveRestWindowOption := AnIDE.GetFlag(efSaveRestWindowOption);
-  FEndMonthRemains := AnIDE.GetFlag(efEndMonthRemains);
-  FWithoutSearchRemains := AnIDE.GetFlag(efWithoutSearchRemains);
+    SLToAS(ftSource, FSourceFeatures);
+    SLToAS(ftDest, FDestFeatures);
+    SLToAS(ftMinus, FMinusFeatures);
 
-  (*
-  with TReader.Create(Stream, 1024) do
-  try
-    SetLength(FSourceFeatures, 0);
-    SetLength(FDestFeatures, 0);
-    SetLength(FMinusFeatures, 0);    
-
-    ReadListBegin;
-    SetLength(FSourceFeatures, 0);
-    while not EndOfList do
-    begin
-      // Проверяем наличие поля в INV_CARD
-      F := atDatabase.FindRelationField('INV_CARD', ReadString);
-      if Assigned(F) then
-      begin
-        SetLength(FSourceFeatures, Length(FSourceFeatures) + 1);
-        FSourceFeatures[Length(FSourceFeatures) - 1] := F.FieldName;
-      end;
-    end;
-    ReadListEnd;
-
-    ReadListBegin;
-    SetLength(FDestFeatures, 0);
-    while not EndOfList do
-    begin
-      // Проверяем наличие поля в INV_CARD
-      F := atDatabase.FindRelationField('INV_CARD', ReadString);
-      if Assigned(F) then
-      begin
-        SetLength(FDestFeatures, Length(FDestFeatures) + 1);
-        FDestFeatures[Length(FDestFeatures) - 1] := F.FieldName;
-      end;
-    end;
-    ReadListEnd;
-
-    Read(FSources, SizeOf(TgdcInvReferenceSources));
-    Read(FDirection, SizeOf(TgdcInvMovementDirection));
-
-    FControlRemains := ReadBoolean;
-
-    if (FCurrentStreamVersion = gdcInvDocument_Version1_9) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_0) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_6) or
-      (FCurrentStreamVersion = gdcInvDocument_Version3_0) then
-      FLiveTimeRemains := ReadBoolean
-    else
-      FLiveTimeRemains := False;
+    FSources := AnIDE.GetSources;
+    FDirection := AnIDE.GetDirection;
 
     if not (irsRemainsRef in FSources) then
     begin
       FControlRemains := False;
       FLiveTimeRemains := False;
+    end else
+    begin
+      FControlRemains := AnIDE.GetFlag(efControlRemains);
+      FLiveTimeRemains := AnIDE.GetFlag(efLiveTimeRemains);
     end;
 
-    FCanBeDelayed := ReadBoolean;
-    FUseCachedUpdates := ReadBoolean;
-    if (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_6) or
-       (FCurrentStreamVersion = gdcInvDocument_Version3_0)
-    then
-      FisMinusRemains := ReadBoolean
-    else
-      FisMinusRemains := False;
+    FCanBeDelayed := AnIDE.GetFlag(efDelayedDocument);
+    FUseCachedUpdates := AnIDE.GetFlag(efUseCachedUpdates);
+    FIsMinusRemains := AnIDE.GetFlag(efMinusRemains);
+    FIsChangeCardValue := AnIDE.GetFlag(efIsChangeCardValue);
+    FIsAppendCardValue := AnIDE.GetFlag(efIsAppendCardValue);
+    FIsUseCompanyKey := AnIDE.GetFlag(efIsUseCompanyKey);
+    FSaveRestWindowOption := AnIDE.GetFlag(efSaveRestWindowOption);
+    FEndMonthRemains := AnIDE.GetFlag(efEndMonthRemains);
+    FWithoutSearchRemains := AnIDE.GetFlag(efWithoutSearchRemains);
+  end else
+  begin
+    SetLength(FSourceFeatures, 0);
+    SetLength(FDestFeatures, 0);
+    SetLength(FMinusFeatures, 0);
 
-    if (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_6) or
-       (FCurrentStreamVersion = gdcInvDocument_Version3_0)
-    then
-    begin
-      ReadListBegin;
-      SetLength(FMinusFeatures, 0);
-      while not EndOfList do
-      begin
-        // Проверяем наличие поля в INV_CARD
-        F := atDatabase.FindRelationField('INV_CARD', ReadString);
-        if Assigned(F) then
-        begin
-          SetLength(FMinusFeatures, Length(FMinusFeatures) + 1);
-          FMinusFeatures[Length(FMinusFeatures) - 1] := F.FieldName;
-        end;
-      end;
-      ReadListEnd;
-    end;
+    FSources := [];
+    FDirection := imdFIFO;
 
-    if (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_6) or
-       (FCurrentStreamVersion = gdcInvDocument_Version3_0) then
-    begin
-      FIsChangeCardValue := ReadBoolean;
-      FIsAppendCardValue := ReadBoolean;
-    end
-    else
-    begin
-      FIsChangeCardValue := False;
-      FIsAppendCardValue := False;
-    end;
-
-    if (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_6) or
-       (FCurrentStreamVersion = gdcInvDocument_Version3_0)
-    then
-      FIsUseCompanyKey := ReadBoolean
-    else
-      FIsUseCompanyKey := True;
-
-    if (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_6) or
-       (FCurrentStreamVersion = gdcInvDocument_Version3_0) then
-      FSaveRestWindowOption := ReadBoolean
-    else
-      FSaveRestWindowOption := False;
-
-    if (FCurrentStreamVersion = gdcInvDocument_Version2_6) or
-       (FCurrentStreamVersion = gdcInvDocument_Version3_0) then
-      FEndMonthRemains :=  ReadBoolean
-    else
-      FEndMonthRemains := False;
-
-    if (FCurrentStreamVersion = gdcInvDocument_Version3_0) then
-      FWithoutSearchRemains := ReadBoolean
-    else
-      FWithoutSearchRemains := False;
-  finally
-    Free;
+    FControlRemains := False;
+    FLiveTimeRemains := False;
+    FCanBeDelayed := False;
+    FUseCachedUpdates := False;
+    FIsMinusRemains := False;
+    FIsChangeCardValue := False;
+    FIsAppendCardValue := False;
+    FIsUseCompanyKey := False;
+    FSaveRestWindowOption := False;
+    FEndMonthRemains := False;
+    FWithoutSearchRemains := False;
   end;
-  *)
 end;
 
 function TgdcInvDocumentLine.SelectGoodFeatures: Boolean;
@@ -5619,9 +5356,7 @@ procedure TgdcInvDocumentType.DoAfterCustomProcess(Buff: Pointer;
   {$IFDEF NEWDEPOT}
   Stream: TStream;
   {$ENDIF}
-  CN: String;
-  P: TgdInitDocClassEntry;
-  CE: TgdClassEntry;
+  DE: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -5647,63 +5382,22 @@ begin
 
   inherited;
 
-  if (Process = cpInsert) or (Process = cpModify) then
+  if Process = cpInsert then
   begin
-    P := TgdInitDocClassEntry.Create;
-    try
-      P.Obj := Self;
+    DE := gdClassList.Add('TgdcInvDocument', FieldByName('ruid').AsString, GetParentSubType,
+      TgdInvDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry;
+    DE.LoadDE(Transaction);
+    gdClassList.Add('TgdcInvDocumentLine', FieldByName('ruid').AsString, GetParentSubType,
+      TgdInvDocumentEntry, FieldbyName('name').AsString).Assign(DE);
 
-      CN := 'TgdcInvDocument';
-      if (Process = cpInsert) then
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdDocumentEntry, FieldbyName('name').AsString, P)
-      else
-      begin
-        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
-        P.Init(CE);
-      end;
+    gdClassList.Add('TgdcInvRemains', FieldByName('ruid').AsString, GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
+    gdClassList.Add('TgdcInvGoodRemains', FieldByName('ruid').AsString, GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
+    gdClassList.Add('TgdcInvGoodRemains', FieldByName('ruid').AsString, GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
+    gdClassList.Add('TgdcInvMovement', FieldByName('ruid').AsString, GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
 
-      CN := 'TgdcInvDocumentLine';
-      if (Process = cpInsert) then
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdDocumentEntry, FieldbyName('name').AsString, P)
-      else
-      begin
-        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
-        P.Init(CE);
-      end;
-
-      if (Process = cpInsert) then
-      begin
-        CN := 'TgdcInvRemains';
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdBaseEntry, FieldbyName('name').AsString);
-
-        CN := 'TgdcInvGoodRemains';
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdBaseEntry, FieldbyName('name').AsString);
-
-        CN := 'TgdcSelectedGood';
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdBaseEntry, FieldbyName('name').AsString);
-
-        CN := 'TgdcInvMovement';
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdBaseEntry, FieldbyName('name').AsString);
-
-        CN := 'Tgdc_frmInvSelectGoodRemains';
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdFormEntry, FieldbyName('name').AsString);
-
-        CN := 'Tgdc_frmInvSelectRemains';
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdFormEntry, FieldbyName('name').AsString);
-      end;
-    finally
-      P.Free;
-    end;
-  end else
-    gdClassList.RemoveSubType(FieldByName('ruid').AsString);
+    gdClassList.Add('Tgdc_frmInvSelectGoodRemains', FieldByName('ruid').AsString, GetParentSubType, TgdFormEntry, FieldbyName('name').AsString);
+    gdClassList.Add('Tgdc_frmInvSelectRemains', FieldByName('ruid').AsString, GetParentSubType, TgdFormEntry, FieldbyName('name').AsString);
+  end;
 
   {$IFDEF NEWDEPOT}
   {
@@ -5727,46 +5421,6 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcInvDocumentType.DoAfterShowDialog(DlgForm: TCreateableForm;
-  IsOk: Boolean);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_DOAFTERSHOWDIALOG('TGDCINVDOCUMENTTYPE', 'DOAFTERSHOWDIALOG', KEYDOAFTERSHOWDIALOG)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYDOAFTERSHOWDIALOG);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERSHOWDIALOG]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self),
-  {M}          GetGdcInterface(DlgForm), IsOk]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
-  {M}          'DOAFTERSHOWDIALOG', KEYDOAFTERSHOWDIALOG, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'DOAFTERSHOWDIALOG', KEYDOAFTERSHOWDIALOG)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOAFTERSHOWDIALOG', KEYDOAFTERSHOWDIALOG);
   {M}  end;
   {END MACRO}
 end;

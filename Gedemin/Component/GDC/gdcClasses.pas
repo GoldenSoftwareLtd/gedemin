@@ -35,7 +35,8 @@ uses
   gdcTree,      Forms,             gd_createable_form,
   at_classes,   gdcBaseInterface,  DB,             gd_KeyAssoc,
   gdcConstants, gd_i_ScriptFactory,gdcClasses_Interface,
-  gd_security,  gdcOLEClassList,   DBGrids,        Contnrs;
+  gd_security,  gdcOLEClassList,   DBGrids,        Contnrs,
+  gd_ClassList;
 
 {$IFDEF DEBUGMOVE}
 const
@@ -69,6 +70,13 @@ type
   protected
     FIsCommon: Boolean;
     FTransactionFunction: Integer;
+    FDocumentTypeKey: Integer;
+    FReportGroupKey: Integer;
+    FBranchKey: Integer;
+
+    procedure SetSubType(const Value: TgdcSubType); override;
+    procedure ReadOptions(DE: TgdDocumentEntry); virtual;
+    function GetGroupID: Integer; override;
 
     // Печать отчета. OnClick - в PopupMenu
     procedure DoOnReportClick(Sender: TObject); override;
@@ -111,7 +119,6 @@ type
 
     class function ClassDocumentTypeKey: Integer; virtual;
     function DocumentTypeKey: Integer; virtual;
-
     function Reduction(BL: TBookmarkList): Boolean; override;
     function EditDialog(const ADlgClassName: String = ''): Boolean; override;
 
@@ -198,10 +205,11 @@ type
     function GetParentSubType: String;
 
   public
-    function GetCurrRecordClass: TgdcFullClass; override;
     class function GetHeaderDocumentClass: CgdcBase; virtual;
-
     class function IsAbstractClass: Boolean; override;
+
+    procedure DoAfterShowDialog(DlgForm: TCreateableForm; IsOk: Boolean); override;
+    function GetCurrRecordClass: TgdcFullClass; override;
   end;
 
   TgdcUserDocumentType = class(TgdcDocumentType)
@@ -217,14 +225,7 @@ type
 
   TgdcUserBaseDocument = class(TgdcDocument)
   protected
-    FDocumentTypeKey: Integer;
-    FReportGroupKey: Integer;
-    FBranchKey: Integer;
-
     procedure SetActive(Value: Boolean); override;
-
-    procedure SetSubType(const Value: TgdcSubType); override;
-
     function EnumRelationFields(RelationName: String; const AliasName: String = '';
       const UseDot: Boolean = True): String;
 
@@ -233,8 +234,6 @@ type
 
     function GetNotCopyField: String; override;
 
-    function GetGroupID: Integer; override;
-
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
 
@@ -242,14 +241,9 @@ type
     procedure CustomModify(Buff: Pointer); override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function IsAbstractClass: Boolean; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
-    procedure ReadOptions(const ARuid: String);
-    function DocumentTypeKey: Integer; override;
   end;
 
   TgdcUserDocument = class(TgdcUserBaseDocument)
@@ -294,8 +288,7 @@ uses
 
   gdc_frmG_unit,
 
-  gd_ClassList,
-  gd_ClassList_InitDoc,
+  //gd_ClassList_InitDoc,
   gd_security_operationconst,
 
   gdcInvDocument_unit,
@@ -438,6 +431,10 @@ begin
 в наследованных а там программист ленился ставить кастом
 процесс. надо придумать как изменить схему вообще... }
   CustomProcess := [cpInsert, cpModify];
+
+  FDocumentTypeKey := -1;
+  FReportGroupKey := -1;
+  FBranchKey := -1;
 end;
 
 procedure TgdcDocument._DoOnNewRecord;
@@ -1232,7 +1229,10 @@ end;
 
 function TgdcDocument.DocumentTypeKey: Integer;
 begin
-  Result := ClassDocumentTypeKey;
+  if FDocumentTypeKey = -1 then
+    Result := ClassDocumentTypeKey
+  else
+    Result := FDocumentTypeKey;
 end;
 
 function TgdcDocument.AcceptClipboard(CD: PgdcClipboardData): Boolean;
@@ -1940,6 +1940,47 @@ begin
   Result := -1;
 end;
 
+procedure TgdcDocument.SetSubType(const Value: TgdcSubType);
+var
+  DE: TgdDocumentEntry;
+begin
+  if SubType <> Value then
+  begin
+    inherited;
+    if SubType > '' then
+    begin
+      DE := gdClassList.FindDocByRUID(Value, GetDocumentClassPart);
+      if DE = nil then
+        raise Exception.Create('Invalid document type');
+      ReadOptions(DE);
+    end else
+      ReadOptions(nil);
+  end;
+end;
+
+procedure TgdcDocument.ReadOptions(DE: TgdDocumentEntry);
+begin
+  if DE <> nil then
+  begin
+    FDocumentTypeKey := DE.TypeID;
+    FReportGroupKey := DE.ReportGroupKey;
+    FBranchKey := DE.BranchKey;
+  end else
+  begin
+    FDocumentTypeKey := -1;
+    FReportGroupKey := -1;
+    FBranchKey := -1;
+  end;
+end;
+
+function TgdcDocument.GetGroupID: Integer;
+begin
+  if FReportGroupKey > 0 then
+    Result := FReportGroupKey
+  else
+    Result := inherited GetGroupID;
+end;
+
 { TgdcBaseDocumentType }
 
 constructor TgdcBaseDocumentType.Create(AnOwner: TComponent);
@@ -2508,6 +2549,57 @@ begin
   S.Add( ' z.documenttype = ''D'' ');
 end;
 
+procedure TgdcDocumentType.DoAfterShowDialog(DlgForm: TCreateableForm;
+  IsOk: Boolean);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  DE, DELn: TgdDocumentEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_DOAFTERSHOWDIALOG('TGDCDOCUMENTTYPE', 'DOAFTERSHOWDIALOG', KEYDOAFTERSHOWDIALOG)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCDOCUMENTTYPE', KEYDOAFTERSHOWDIALOG);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERSHOWDIALOG]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDOCUMENTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self),
+  {M}          GetGdcInterface(DlgForm), IsOk]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENTTYPE',
+  {M}          'DOAFTERSHOWDIALOG', KEYDOAFTERSHOWDIALOG, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
+
+  if DE <> nil then
+  begin
+    DE.LoadDE(Transaction);
+    DELn := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
+    if DELn <> nil then
+      DELn.Assign(DE);
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'DOAFTERSHOWDIALOG', KEYDOAFTERSHOWDIALOG)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'DOAFTERSHOWDIALOG', KEYDOAFTERSHOWDIALOG);
+  {M}  end;
+  {END MACRO}
+end;
+
 function TgdcDocumentType.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
@@ -2648,6 +2740,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
+  DE, DELn: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -2673,8 +2766,19 @@ begin
 
   inherited;
 
-  if Process <> cpDelete then
-  begin
+  if Process = cpDelete then
+    gdClassList.RemoveSubType(FieldByName('ruid').AsString)
+  else begin
+
+    if Process = cpModify then
+    begin
+      DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
+      DE.LoadDE(Transaction);
+      DELn := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
+      if DELn is TgdDocumentEntry then
+        DELn.Assign(DE);
+    end;
+
     {При загрузке из потока не будем трогать нумерацию}
     if not (sLoadFromStream in BaseState) then
     begin
@@ -2763,9 +2867,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  CN: String;
-  P: TgdInitDocClassEntry;
-  CE: TgdClassEntry;
+  DE: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCUSERDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -2791,36 +2893,19 @@ begin
 
   inherited;
 
-  if (Process = cpInsert) or (Process = cpModify) then
+  if Process = cpInsert then
   begin
-    P := TgdInitDocClassEntry.Create;
-    try
-      P.Obj := Self;
+    DE := gdClassList.Add('TgdcUserDocument', FieldByName('ruid').AsString, GetParentSubType,
+      TgdDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry;
+    DE.LoadDE(Transaction);
 
-      CN := 'TgdcUserDocument';
-      CE := gdClassList.Find(CN, FieldByName('ruid').AsString);
-      if CE is TgdDocumentEntry then
-        P.Init(CE)
-      else
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-          TgdDocumentEntry, FieldbyName('name').AsString, P);
-
-      CN := 'TgdcUserDocumentLine';
-      if FieldbyName('linerelkey').AsInteger > 0 then
-      begin
-        CE := gdClassList.Find(CN, FieldByName('ruid').AsString);
-        if CE is TgdDocumentEntry then
-          P.Init(CE)
-        else
-          gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-            TgdDocumentEntry, FieldbyName('name').AsString, P);
-      end else
-        gdClassList.Remove(CN, FieldByName('ruid').AsString);
-    finally
-      P.Free;
-    end;
-  end else
-    gdClassList.RemoveSubType(FieldByName('ruid').AsString);
+    if FieldbyName('linerelkey').AsInteger > 0 then
+    begin
+      gdClassList.Add('TgdcUserDocumentLine', FieldByName('ruid').AsString, GetParentSubType,
+        TgdDocumentEntry, FieldbyName('name').AsString).Assign(DE);
+    end else
+      gdClassList.Remove('TgdcUserDocumentLine', FieldByName('ruid').AsString);
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  finally
@@ -2842,20 +2927,6 @@ begin
 end;
 
 { TgdcUserBaseDocument }
-
-constructor TgdcUserBaseDocument.Create(AnOwner: TComponent);
-begin
-  inherited;
-  FDocumentTypeKey := -1;
-  FReportGroupKey := -1;
-  FBranchKey := -1;
-end;
-
-function TgdcUserBaseDocument.DocumentTypeKey: Integer;
-begin
-  //FDocumentTypeKey считывается при установке сабтайпа
-  Result := FDocumentTypeKey;
-end;
 
 procedure TgdcUserBaseDocument._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -3004,38 +3075,10 @@ begin
     [gdcBaseManager.GetIDByRUIDString(ASubType)]);
 end;
 
-procedure TgdcUserBaseDocument.ReadOptions(const ARUID: String);
-var
-  DE: TgdDocumentEntry;
-begin
-  DE := gdClassList.FindDocByRUID(ARUID, GetDocumentClassPart);
-  if DE <> nil then
-  begin
-    FDocumentTypeKey := DE.TypeID;
-    FReportGroupKey := DE.ReportGroupKey;
-    FBranchKey := DE.BranchKey;
-  end else
-    raise EgdcIBError.Create('Неверен тип документа');
-end;
-
-procedure TgdcUserBaseDocument.SetSubType(const Value: TgdcSubType);
-begin
-  if Value <> SubType then
-  begin
-    inherited;
-    ReadOptions(Value);
-  end;
-end;
-
 procedure TgdcUserBaseDocument.SetActive(Value: Boolean);
 begin
   if (SubType <> '') or not Value then
     inherited;
-end;
-
-function TgdcUserBaseDocument.GetGroupID: Integer;
-begin
-  Result := FReportGroupKey;
 end;
 
 function TgdcUserBaseDocument.GetSelectClause: String;

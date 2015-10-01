@@ -718,6 +718,9 @@ INSERT INTO fin_versioninfo
   
 INSERT INTO fin_versioninfo
   VALUES (229, '0000.0001.0000.0260', '04.09.2015', 'Correction for GD_DOCUMENTTYPE_OPTION #2');  
+
+INSERT INTO fin_versioninfo
+  VALUES (230, '0000.0001.0000.0261', '01.10.2015', 'Correction for GD_DOCUMENTTYPE_OPTION #3');  
   
 COMMIT;
 

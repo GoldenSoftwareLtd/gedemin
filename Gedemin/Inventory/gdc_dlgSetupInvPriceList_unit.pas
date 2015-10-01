@@ -783,11 +783,10 @@ var
   I: Integer;
 begin
   for I := 0 to List.Count - 1 do
-    if AnsiCompareText((List[I] as TinvPriceListField).PriceField.FieldName,
-      AField) = 0 then
+    if AnsiSameText((List[I] as TinvPriceListField).PriceField.FieldName, AField) then
     begin
       Result := List[I] as TinvPriceListField;
-      Exit;
+      exit;
     end;
 
   Result := nil;
