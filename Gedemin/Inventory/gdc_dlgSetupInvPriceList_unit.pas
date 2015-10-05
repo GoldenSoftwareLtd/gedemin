@@ -30,7 +30,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgG_unit, ComCtrls, ExtCtrls, Db, ActnList, StdCtrls, Mask, DBCtrls,
   ImgList, TB2Item, TB2Dock, TB2Toolbar, IBCustomDataSet, gdcInvPriceList_unit,
-  at_Classes, gdcInvConsts_unit, Contnrs, at_sql_metadata,
+  at_Classes, gdcInvConsts_unit, Contnrs, at_sql_metadata, gd_ClassList,
   gdcBase, IBSQL, gsIBLookupComboBox, gdc_dlgTR_unit, IBDatabase, gdcCurr,
   Grids, DBGrids, gsDBGrid, gsIBGrid, gdcMetaData, Menus;
 
@@ -130,21 +130,14 @@ type
   private
     FOperationCount: Integer; // Список операций по созданию полей с переподключением
     FMetaChangeCount: Integer; // Кол-во изменений в метаданных
-
     FHeaderFields, FLineFields: TObjectList; // Список выбранных полей прайс-листа
-
-    FCurrency, FContact: TIBSQL; // запросы для валюты и контактов
-
-    procedure UpdateInsertingSettings;
-    procedure UpdateEditingSettings;
+    FIPDE: TgdInvPriceDocumentEntry;
 
     procedure SetupCommonTab;
     procedure SetupHeaderTab;
     procedure SetupDetailTab;
 
     procedure TestLines;
-
-    procedure PrepareDialog;
 
     function GetDocument: TgdcInvPriceListType;
 
@@ -158,7 +151,7 @@ type
     procedure RemoveFeature(UsedFeatures, Features: TListView);
 
   protected
-    procedure ReadOptions(Stream: TStream);
+    procedure ReadOptions;
     procedure WriteOptions(Stream: TStream);
 
     procedure BeforePost; override;
@@ -172,11 +165,9 @@ type
 
     procedure SetupDialog; override;
     procedure SetupRecord; override;
-
     function TestCorrect: Boolean; override;
 
     property Document: TgdcInvPriceListType read GetDocument;
-
   end;
 
   TinvPriceListField = class
@@ -190,12 +181,9 @@ type
 
     function Get_atField: TatField;
 
-  protected
-
   public
     constructor Create(AFieldName, ALName, AFieldSource: String;
       ARelation: TatRelation);
-    destructor Destroy; override;
 
     procedure ClearValues;
     procedure AssignValues(APriceField: TgdcInvPriceField;
@@ -215,14 +203,13 @@ type
 
   EdlgSetupInvPriceList = class(Exception);
 
-
 var
   dlgSetupInvPriceList: TdlgSetupInvPriceList;
 
 implementation
 
 uses
-  dmImages_unit, at_frmSQLProcess, Storages,  gd_ClassList, gdcExplorer, gdcClasses,
+  dmImages_unit, at_frmSQLProcess, Storages, gdcExplorer, gdcClasses,
   gdcBaseInterface, gdcClasses_interface;
 
 {$R *.DFM}
@@ -230,29 +217,16 @@ uses
 constructor TdlgSetupInvPriceList.Create(AOwner: TComponent);
 begin
   inherited;
-
   FHeaderFields := TObjectList.Create;
   FLineFields := TObjectList.Create;
-
   FOperationCount := 0;
   FMetaChangeCount := 0;
-
-  FCurrency := TIBSQL.Create(nil);
-  FCurrency.SQL.Text := 'SELECT NAME FROM GD_CURR WHERE ID = :ID';
-
-  FContact := TIBSQL.Create(nil);
-  FContact.SQL.Text := 'SELECT NAME FROM GD_CONTACT WHERE ID = :ID';
-
 end;
 
 destructor TdlgSetupInvPriceList.Destroy;
 begin
   FHeaderFields.Free;
   FLineFields.Free;
-
-  FCurrency.Free;
-  FContact.Free;
-
   inherited;
 end;
 
@@ -290,74 +264,26 @@ begin
 //
 end;
 
-procedure TdlgSetupInvPriceList.PrepareDialog;
-begin
-  gdcHeaderTable.ID := Price.ID;
-  gdcHeaderTable.Open;
-
-  gdcLineTable.ID := PriceLine.ID;
-  gdcLineTable.Open;
-
-  FCurrency.Database := Document.Database;
-  FCurrency.Transaction := Document.ReadTransaction;
-
-  FContact.Database := Document.Database;
-  FContact.Transaction := Document.ReadTransaction;
-
-  pcMain.ActivePage := tsCommon;
-  CreatePriceFieldObjects;
-end;
-
-procedure TdlgSetupInvPriceList.ReadOptions(Stream: TStream);
+procedure TdlgSetupInvPriceList.ReadOptions;
 var
-  Version: String;
-  NewField: TgdcInvPriceField;
   PriceField: TinvPricelistField;
+  I: Integer;
 begin
-  with TReader.Create(Stream, 1024) do
-  try
-    // Версия потока
-    Version := ReadString;
+  if FIPDE = nil then
+    exit;
 
-    if Version <> gdcInvPrice_Version1_2 then
-    // Тип документа считываем
-      ReadInteger;
+  for I := Low(FIPDE.HeaderFields) to High(FIPDE.HeaderFields) do
+  begin
+    PriceField := FindPriceField(FIPDE.HeaderFields[I].FieldName, FHeaderFields);
+    if PriceField <> nil then
+      PriceField.AssignValues(FIPDE.HeaderFields[I], True);
+  end;
 
-    // Ключ группы отчетов
-    if (Version = gdcInvPrice_Version1_1) or
-      (Version = gdcInvPrice_Version1_2) then
-      {FReportGroupKey := ReadInteger
-    else
-      FReportGroupKey := -1;}
-      ReadInteger;
-
-    // Настройки шапки прайс-листа
-
-    ReadListBegin;
-    while not EndOfList do
-    begin
-      Read(NewField, SizeOf(TgdcInvPriceField));
-      PriceField := FindPriceField(NewField.FieldName, FHeaderFields);
-
-      if Assigned(PriceField) then
-        PriceField.AssignValues(NewField, True);
-    end;
-    ReadListEnd;
-
-    // Настройки позиции прайс-листа
-
-    ReadListBegin;
-    while not EndOfList do
-    begin
-      Read(NewField, SizeOf(TgdcInvPriceField));
-      PriceField := FindPriceField(NewField.FieldName, FLineFields);
-
-      if Assigned(PriceField) then
-        PriceField.AssignValues(NewField, True);
-    end;
-    ReadListEnd;
-  finally
-    Free;
+  for I := Low(FIPDE.LineFields) to High(FIPDE.LineFields) do
+  begin
+    PriceField := FindPriceField(FIPDE.LineFields[I].FieldName, FLineFields);
+    if PriceField <> nil then
+      PriceField.AssignValues(FIPDE.LineFields[I], True);
   end;
 end;
 
@@ -381,7 +307,7 @@ begin
   lvDetailAvailable.Items.Clear;
   lvDetailUsed.Items.Clear;
 
-  CreatePriceFieldObjects;  
+  CreatePriceFieldObjects;
 
   for I := 0 to FLineFields.Count - 1 do
   begin
@@ -404,6 +330,7 @@ var
   CurrField: TinvPriceListField;
 begin
   CreatePriceFieldObjects;
+  
   lvMasterAvailable.Items.Clear;
   lvMasterUsed.Items.Clear;
 
@@ -466,18 +393,6 @@ begin
   {M}    ClearMacrosStack('TDLGSETUPINVPRICELIST', 'TESTCORRECT', KEYTESTCORRECT);
   {M}end;
   {END MACRO}
-end;
-
-procedure TdlgSetupInvPriceList.UpdateEditingSettings;
-begin
-  SetupHeaderTab;
-  SetupDetailTab;
-end;
-
-procedure TdlgSetupInvPriceList.UpdateInsertingSettings;
-begin
-  SetupHeaderTab;
-  SetupDetailTab;
 end;
 
 procedure TdlgSetupInvPriceList.WriteOptions(Stream: TStream);
@@ -557,11 +472,6 @@ begin
   ClearValues;
 
   FRelation := ARelation;
-end;
-
-destructor TinvPriceListField.Destroy;
-begin
-  inherited;
 end;
 
 procedure TdlgSetupInvPriceList.TestLines;
@@ -699,6 +609,7 @@ procedure TdlgSetupInvPriceList.lvMasterUsedSelectItem(Sender: TObject;
 var
   Memo: TMemo;
   CurrField: TinvPriceListField;
+  R: OleVariant;
 begin
   if Sender = lvMasterUsed then
     Memo := memoHeaderInfo else
@@ -717,20 +628,16 @@ begin
 
   if Sender = lvDetailUsed then
   begin
-    if CurrField.PriceField.CurrencyKey <> -1 then
+    if gdcBaseManager.ExecSingleQueryResult('SELECT name FROM gd_curr WHERE id = :id',
+      CurrField.PriceField.CurrencyKey, R) then
     begin
-      FCurrency.ParamByName('ID').AsInteger := CurrField.PriceField.CurrencyKey;
-      FCurrency.ExecQuery;
-      memo.Lines.Add(Format('Валюта: %s', [FCurrency.Fields[0].AsString]));
-      FCurrency.Close;
+      memo.Lines.Add('Валюта: ' + R[0, 0]);
     end;
 
-    if CurrField.PriceField.ContactKey <> -1 then
+    if gdcBaseManager.ExecSingleQueryResult('SELECT name FROM gd_contact WHERE id = :id',
+      CurrField.PriceField.ContactKey, R) then
     begin
-      FContact.ParamByName('ID').AsInteger := CurrField.PriceField.ContactKey;
-      FContact.ExecQuery;
-      memo.Lines.Add(Format('Контакт: %s', [FContact.Fields[0].AsString]));
-      FContact.Close;
+      memo.Lines.Add('Организация: ' + R[0, 0]);
     end;
   end;
 end;
@@ -778,7 +685,7 @@ begin
 end;
 
 class function TdlgSetupInvPriceList.FindPriceField(AField: String;
-  List: TObjectList): TinvPriceListField;
+  List: TObjectList): TInvPriceListField;
 var
   I: Integer;
 begin
@@ -971,12 +878,20 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
   
   gdcHeaderTable.QueryFiltered := False;
   gdcPriceTableField.QueryFiltered := False;
 
-  PrepareDialog;
+  gdcHeaderTable.ID := Price.ID;
+  gdcHeaderTable.Open;
+
+  gdcLineTable.ID := PriceLine.ID;
+  gdcLineTable.Open;
+
+  pcMain.ActivePage := tsCommon;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGSETUPINVPRICELIST', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -992,9 +907,8 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Stream: TStream;
-  ibsql: TIBSQL;
   DE: TgdDocumentEntry;
+  R: OleVariant;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGSETUPINVPRICELIST', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -1018,77 +932,64 @@ begin
 
   inherited;
 
-  ActivateTransaction(gdcObject.Transaction);
-  edParentName.Text := '';
-
-  edEnglishName.Text := '';
-  edEnglishName.MaxLength := 14;
-
-  if gdcObject.State = dsEdit then
-  begin
-    DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('id').AsInteger, dcpHeader);
-    if DE <> nil then
-      edEnglishName.Text := DE.HeaderRelName;
-  end;
-
-
-  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader);
-  if DE = nil then
-  begin
-    iblcHeaderTable.CurrentKey := IntToStr(Price.ID);
-    iblcHeaderTable.Condition := 'ID = ' + IntToStr(Price.ID);
-    iblcLineTable.CurrentKey := IntToStr(PriceLine.ID);
-    iblcLineTable.Condition := 'ID = ' + IntToStr(PriceLine.ID);
-  end
+  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader);
+  if DE is TgdInvPriceDocumentEntry then
+    FIPDE := DE as TgdInvPriceDocumentEntry
+  else if DE = nil then
+    FIPDE := nil
   else
+    raise Exception.Create('Invalid inventory price list type');
+
+  ActivateTransaction(gdcObject.Transaction);
+
+  if FIPDE.Parent is TgdInvPriceDocumentEntry then
   begin
-    edParentName.Text := DE.Caption;
-    if gdcObject.State = dsInsert then
-    begin
-      gdcObject.FieldByName('name').AsString := 'Наследник ' + DE.Caption;
-      gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
-      gdcObject.FieldByName('headerrelkey').AsInteger := DE.HeaderRelKey;
-      gdcObject.FieldByName('linerelkey').AsInteger := DE.LineRelKey;
-      edEnglishName.Text := DE.HeaderRelName;
-    end;
+    edParentName.Text := FIPDE.Parent.Caption;
 
     iblcHeaderTable.gdClassName := 'TgdcInheritedDocumentTable';
     iblcLineTable.gdClassName := 'TgdcInheritedDocumentTable';
+
+    if gdcObject.State = dsInsert then
+    begin
+      gdcObject.FieldByName('name').AsString := 'Наследник ' + FIPDE.Parent.Caption;
+      gdcObject.FieldByName('branchkey').AsInteger := TgdInvPriceDocumentEntry(FIPDE.Parent).BranchKey;
+      gdcObject.FieldByName('headerrelkey').AsInteger := TgdInvPriceDocumentEntry(FIPDE.Parent).HeaderRelKey;
+      gdcObject.FieldByName('linerelkey').AsInteger := TgdInvPriceDocumentEntry(FIPDE.Parent).LineRelKey;
+      edEnglishName.Text := TgdInvPriceDocumentEntry(FIPDE.Parent).HeaderRelName;
+    end else
+      edEnglishName.Text := FIPDE.HeaderRelName;
+  end else
+  begin
+    edParentName.Text := '';
+
+    iblcHeaderTable.gdClassName := 'TgdcTable';
+    iblcLineTable.gdClassName := 'TgdcTable';
+
+    iblcHeaderTable.CurrentKeyInt := Price.ID;
+    iblcHeaderTable.Condition := 'ID = ' + IntToStr(Price.ID);
+    iblcLineTable.CurrentKeyInt := PriceLine.ID;
+    iblcLineTable.Condition := 'ID = ' + IntToStr(PriceLine.ID);
+
+    if gdcObject.State = dsInsert then
+    begin
+      edEnglishName.Text := '';
+      edEnglishName.MaxLength := 14;
+    end else
+      edEnglishName.Text := FIPDE.HeaderRelName;
   end;
 
   if Document.State in [dsEdit, dsInsert] then
   begin
-    if not Document.FieldByName('OPTIONS').IsNull then
-    begin
-      Stream := TStringStream.Create(Document.FieldByName('OPTIONS').AsString);
-      try
-        ReadOptions(Stream);
-      finally
-        Stream.Free;
-      end;
-    end;
-
-    if Document.State = dsEdit then
-      UpdateEditingSettings
-    else
-      UpdateInsertingSettings;
+    ReadOptions;
+    SetupHeaderTab;
+    SetupDetailTab;
   end;
 
   //Выведем родителя нашей ветки в исследователе
-  if (gdcObject.FieldByName('branchkey').AsInteger > 0) then
+  if gdcBaseManager.ExecSingleQueryResult('SELECT parent FROM gd_command WHERE id = :id',
+    gdcObject.FieldByName('branchkey').AsInteger, R) then
   begin
-    ibsql := TIBSQL.Create(Self);
-    try
-      ibsql.Transaction := gdcBaseManager.ReadTRansaction;
-      ibsql.SQL.Text := 'SELECT parent FROM gd_command WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('branchkey').AsInteger;
-      ibsql.ExecQuery;
-
-      if (ibsql.RecordCount > 0) and (ibsql.FieldByName('parent').AsInteger > 0) then
-        ibcmbExplorer.CurrentKeyInt := ibsql.FieldByName('parent').AsInteger;
-    finally
-      ibsql.Free;
-    end;
+    ibcmbExplorer.CurrentKeyInt := R[0, 0];
   end;
 
   //Для редактирования нескольких веток запрещаем изменении ветки исследователя

@@ -365,13 +365,13 @@ type
     FReportGroupKey: Integer;
     FHeaderRelKey: Integer;
     FLineRelKey: Integer;
-    FHeaderRelName: String;
-    FLineRelName: String;
     FBranchKey: Integer;
 
     function GetDistinctRelation: String; override;
     procedure SetHeaderRelKey(const Value: Integer);
     procedure SetLineRelKey(const Value: Integer);
+    function GetHeaderRelName: String;
+    function GetLineRelName: String;
 
   protected
     procedure LoadDEOption(qOpt: TIBSQL); virtual;
@@ -389,8 +389,8 @@ type
     property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
     property HeaderRelKey: Integer read FHeaderRelKey write SetHeaderRelKey;
     property LineRelKey: Integer read FLineRelKey write SetLineRelKey;
-    property HeaderRelName: String read FHeaderRelName;
-    property LineRelName: String read FLineRelName;
+    property HeaderRelName: String read GetHeaderRelName;
+    property LineRelName: String read GetLineRelName;
     property IsCommon: Boolean read FIsCommon write FIsCommon;
     property Description: String read FDescription write FDescription;
     property IsCheckNumber: TIsCheckNumber read FIsCheckNumber write FIsCheckNumber;
@@ -2676,9 +2676,9 @@ end;
 function TgdDocumentEntry.GetDistinctRelation: String;
 begin
   if CgdcDocument(TheClass).GetDocumentClassPart = dcpHeader then
-    Result := FHeaderRelName
+    Result := HeaderRelName
   else
-    Result := FLineRelName;
+    Result := LineRelName;
 end;
 
 procedure TgdDocumentEntry.LoadDE(q, qOpt: TIBSQL);
@@ -2703,6 +2703,28 @@ begin
     end;
   end else
     LoadDEOption(qOpt);
+end;
+
+function TgdDocumentEntry.GetHeaderRelName: String;
+var
+  R: TatRelation;
+begin
+  R := atDatabase.Relations.ByID(FHeaderRelKey);
+  if R <> nil then
+    Result := R.RelationName
+  else
+    Result := '';
+end;
+
+function TgdDocumentEntry.GetLineRelName: String;
+var
+  R: TatRelation;
+begin
+  R := atDatabase.Relations.ByID(FLineRelKey);
+  if R <> nil then
+    Result := R.RelationName
+  else
+    Result := '';
 end;
 
 procedure TgdDocumentEntry.LoadDE(Tr: TIBTransaction);
@@ -2765,27 +2787,13 @@ begin
 end;
 
 procedure TgdDocumentEntry.SetHeaderRelKey(const Value: Integer);
-var
-  R: TatRelation;
 begin
   FHeaderRelKey := Value;
-  R := atDatabase.Relations.ByID(Value);
-  if R <> nil then
-    FHeaderRelName := R.RelationName
-  else
-    FHeaderRelName := '';
 end;
 
 procedure TgdDocumentEntry.SetLineRelKey(const Value: Integer);
-var
-  R: TatRelation;
 begin
   FLineRelKey := Value;
-  R := atDatabase.Relations.ByID(Value);
-  if R <> nil then
-    FLineRelName := R.RelationName
-  else
-    FLineRelName := '';
 end;
 
 procedure TgdBaseEntry.SetDistinctRelation(const Value: String);
@@ -2919,7 +2927,7 @@ var
       q.ParamByName('contactkey').AsInteger := AContactKey;
       q.ExecQuery;
 
-      AddNSObject(AnOptionName + '.' + R, OptID);
+      AddNSObject(AnOptionName + '.' + R[0, 0], OptID);
     end;
   end;
 
@@ -3686,7 +3694,7 @@ begin
       end else
       begin
         SetLength(FLineFields, Length(FLineFields) + 1);
-        FHeaderFields[High(FLineFields)] := NewField;
+        FLineFields[High(FLineFields)] := NewField;
       end;
     end;
 
@@ -3725,7 +3733,7 @@ var
         end;
 
         SetLength(L, Length(L) + 1);
-        FHeaderFields[Length(L) - 1] := NewField;
+        L[Length(L) - 1] := NewField;
       end;
     end;
     Reader.ReadListEnd;

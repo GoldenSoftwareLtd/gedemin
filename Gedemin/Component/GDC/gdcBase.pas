@@ -12081,12 +12081,11 @@ procedure TgdcBase.Post;
     P: PChar;
   begin
     P := Pointer(StatusVectorArray[3]);
-    ExecSingleQueryResult(
+    Result := ExecSingleQueryResult(
       'SELECT rdb$constraint_name FROM rdb$relation_constraints WHERE rdb$constraint_name = :N ' +
       'AND rdb$constraint_type = ''PRIMARY KEY'' ',
       String(P),
       R);
-    Result := not VarIsEmpty(R);
   end;
 
 var
