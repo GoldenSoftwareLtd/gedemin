@@ -1,6 +1,6 @@
 inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
-  Left = 509
-  Top = 170
+  Left = 510
+  Top = 171
   Caption = 'Настройка прайс-листа'
   ClientHeight = 423
   ClientWidth = 532
@@ -45,7 +45,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
       Top = 4
       Width = 523
       Height = 385
-      ActivePage = tsCommon
+      ActivePage = tsHeader
       TabOrder = 0
       OnChange = pcMainChange
       OnChanging = pcMainChanging
@@ -139,7 +139,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           KeyField = 'ID'
           gdClassName = 'TgdcTable'
           OnCreateNewObject = iblcHeaderTableCreateNewObject
-          ItemHeight = 13
+          ItemHeight = 0
           ParentShowHint = False
           ShowHint = True
           TabOrder = 5
@@ -160,7 +160,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           KeyField = 'id'
           gdClassName = 'TgdcTable'
           OnCreateNewObject = iblcLineTableCreateNewObject
-          ItemHeight = 13
+          ItemHeight = 0
           ParentShowHint = False
           ShowHint = True
           TabOrder = 6
@@ -179,7 +179,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           Condition = '(ClassName is Null) or (ClassName = '#39#39')'
           gdClassName = 'TgdcExplorer'
           ViewType = vtTree
-          ItemHeight = 13
+          ItemHeight = 0
           ParentShowHint = False
           ShowHint = True
           TabOrder = 4
@@ -412,7 +412,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           ListField = 'name'
           KeyField = 'id'
           gdClassName = 'TgdcCurr'
-          ItemHeight = 13
+          ItemHeight = 0
           ParentShowHint = False
           ShowHint = True
           TabOrder = 7
@@ -430,7 +430,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           KeyField = 'id'
           Condition = 'contacttype=2'
           gdClassName = 'TgdcContact'
-          ItemHeight = 13
+          ItemHeight = 0
           ParentShowHint = False
           ShowHint = True
           TabOrder = 8
@@ -541,49 +541,11 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
     Top = 195
   end
   object dsDetailRelationField: TDataSource
-    DataSet = gdcPriceLineTableField
     Left = 460
     Top = 165
   end
   object dsMasterRelationField: TDataSource
-    DataSet = gdcPriceTableField
     Left = 430
     Top = 165
-  end
-  object gdcPriceTableField: TgdcTableField
-    MasterSource = dsHeader
-    MasterField = 'ID'
-    DetailField = 'relationkey'
-    SubSet = 'ByRelation'
-    Left = 356
-    Top = 112
-  end
-  object gdcPriceLineTableField: TgdcTableField
-    MasterSource = dsLine
-    MasterField = 'ID'
-    DetailField = 'relationkey'
-    SubSet = 'ByRelation'
-    Left = 132
-    Top = 280
-  end
-  object gdcHeaderTable: TgdcTable
-    SubSet = 'ByID'
-    Left = 324
-    Top = 112
-  end
-  object gdcLineTable: TgdcTable
-    SubSet = 'ByID'
-    Left = 100
-    Top = 280
-  end
-  object dsHeader: TDataSource
-    DataSet = gdcHeaderTable
-    Left = 356
-    Top = 81
-  end
-  object dsLine: TDataSource
-    DataSet = gdcLineTable
-    Left = 132
-    Top = 249
   end
 end

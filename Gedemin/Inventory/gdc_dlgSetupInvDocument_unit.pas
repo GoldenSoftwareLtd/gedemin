@@ -2154,26 +2154,6 @@ procedure Tgdc_dlgSetupInvDocument.Post;
   V: TgdcMCOPredefined;
   OldIsTransaction: Boolean;
 
-  function GetOptID(const AName: String; out AnOptID: Integer): Boolean;
-  begin
-    q.Close;
-    q.SQL.Text :=
-      'SELECT id FROM gd_documenttype_option ' +
-      'WHERE dtkey = :dtkey AND option_name STARTING WITH :s';
-    q.ParamByName('dtkey').AsInteger := gdcObject.ID;
-    q.ParamByName('s').AsString := AName;
-    q.ExecQuery;
-    if q.EOF then
-    begin
-      AnOptID := gdcObject.GetNextID;
-      Result := False;
-    end else
-    begin
-      AnOptID := q.Fields[0].AsInteger;
-      Result := True;
-    end;
-  end;
-
   procedure AddNSObject(const AnObjID: Integer; const AName: String);
   begin
     if NSID > -1 then
@@ -2199,7 +2179,7 @@ procedure Tgdc_dlgSetupInvDocument.Post;
     if ACheckValue and (IE.GetFlag(AFlag) = AValue) then
       exit;
 
-    if GetOptID(InvDocumentEntryFlagNames[AFlag], OptID) then
+    if Document.GetOptID(InvDocumentEntryFlagNames[AFlag], OptID) then
     begin
       q.Close;
       q.SQL.Text :=
@@ -2235,7 +2215,7 @@ procedure Tgdc_dlgSetupInvDocument.Post;
   var
     OptID: Integer;
   begin
-    if GetOptID(APrefix + '.CT.', OptID) then
+    if Document.GetOptID(APrefix + '.CT.', OptID) then
     begin
       q.Close;
       q.SQL.Text :=
@@ -2270,7 +2250,7 @@ procedure Tgdc_dlgSetupInvDocument.Post;
       qDel.ExecQuery;
     end else
     begin
-      if GetOptID(AName, OptID) then
+      if Document.GetOptID(AName, OptID) then
       begin
         q.Close;
         q.SQL.Text :=
@@ -2450,6 +2430,8 @@ begin
   OldIsTransaction := FIsTransaction;
   FIsTransaction := True;
   try
+    Document.InitOpt;
+
     RGKey := gdcObject.FieldByName('reportgroupkey').AsInteger;
     if not Document.UpdateReportGroup('Складской учет', gdcObject.FieldByName('name').AsString, RGKey, True) then
       raise EgdcInvDocumentType.Create('Report Group Key has not been created!');
@@ -2644,6 +2626,7 @@ begin
       gdcObject.Transaction.Commit;
   finally
     FIsTransaction := OldIsTransaction;
+    Document.DoneOpt;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST)}

@@ -284,10 +284,10 @@ type
 
   TgdcInvDocumentType = class(TgdcDocumentType)
   private
-{$IFDEF NEWDEPOT}
+    {$IFDEF NEWDEPOT}
     procedure CreateTriggers;
     procedure CreateTempTable;
-{$ENDIF}
+    {$ENDIF}
 
   protected
     procedure CreateFields; override;

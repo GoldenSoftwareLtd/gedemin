@@ -36,7 +36,7 @@ uses
   at_classes,   gdcBaseInterface,  DB,             gd_KeyAssoc,
   gdcConstants, gd_i_ScriptFactory,gdcClasses_Interface,
   gd_security,  gdcOLEClassList,   DBGrids,        Contnrs,
-  gd_ClassList;
+  gd_ClassList, IBSQL;
 
 {$IFDEF DEBUGMOVE}
 const
@@ -194,6 +194,9 @@ type
   end;
 
   TgdcDocumentType = class(TgdcBaseDocumentType)
+  private
+    FqGetOptID, FqDel: TIBSQL;
+
   protected
     procedure _DoOnNewRecord; override;
 
@@ -205,11 +208,17 @@ type
     function GetParentSubType: String;
 
   public
+    destructor Destroy; override;
+
     class function GetHeaderDocumentClass: CgdcBase; virtual;
     class function IsAbstractClass: Boolean; override;
 
     procedure DoAfterShowDialog(DlgForm: TCreateableForm; IsOk: Boolean); override;
     function GetCurrRecordClass: TgdcFullClass; override;
+
+    procedure InitOpt;
+    procedure DoneOpt;
+    function GetOptID(const AName: String; out AnOptID: Integer): Boolean;
   end;
 
   TgdcUserDocumentType = class(TgdcDocumentType)
@@ -284,7 +293,7 @@ implementation
 uses
   SysUtils, Windows,
 
-  IBSQL, IBErrorCodes,
+  IBErrorCodes,
 
   gdc_frmG_unit,
 
@@ -2849,6 +2858,54 @@ end;
 class function TgdcDocumentType.IsAbstractClass: Boolean;
 begin
   Result := Self.ClassNameIs('TgdcDocumentType');
+end;
+
+destructor TgdcDocumentType.Destroy;
+begin
+  FqGetOptID.Free;
+  FqDel.Free;
+  inherited;
+end;
+
+procedure TgdcDocumentType.DoneOpt;
+begin
+  FreeAndNil(FqGetOptID);
+  FreeAndNil(FqDel);
+end;
+
+procedure TgdcDocumentType.InitOpt;
+begin
+  Assert(FqGetOptID = nil);
+
+  FqGetOptID := TIBSQL.Create(nil);
+  FqGetOptID.Transaction := Transaction;
+  FqGetOptID.SQL.Text :=
+    'SELECT id FROM gd_documenttype_option ' +
+    'WHERE dtkey = :dtkey AND option_name STARTING WITH :s';
+
+  FqDel := TIBSQL.Create(nil);
+  FqDel.Transaction := Transaction;
+  FqDel.SQL.Text :=
+    'DELETE FROM gd_documenttype_option WHERE dtkey = :dtkey AND option_name STARTING WITH :s';
+end;
+
+function TgdcDocumentType.GetOptID(const AName: String;
+  out AnOptID: Integer): Boolean;
+begin
+  Assert(FqGetOptID <> nil);
+  FqGetOptID.Close;
+  FqGetOptID.ParamByName('dtkey').AsInteger := ID;
+  FqGetOptID.ParamByName('s').AsString := AName;
+  FqGetOptID.ExecQuery;
+  if FqGetOptID.EOF then
+  begin
+    AnOptID := GetNextID;
+    Result := False;
+  end else
+  begin
+    AnOptID := FqGetOptID.Fields[0].AsInteger;
+    Result := True;
+  end;
 end;
 
 { TgdcUserDocumentType }
