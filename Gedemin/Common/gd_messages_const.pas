@@ -126,8 +126,10 @@ const
   // gsIBGrid
   CM_DOREDUCE                  = WM_USER + 1281;
 
+  // gdLogClient
   WM_LOG_INIT                  = WM_USER + 4000;
   WM_LOG_DONE                  = WM_USER + 4001;
+  WM_LOG_PROCESS_REC           = WM_USER + 4002;
 
   // gdWebClientControl
   WM_GD_FINISH_SEND_EMAIL      = WM_USER + 11126;
