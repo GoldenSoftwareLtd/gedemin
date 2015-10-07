@@ -9,20 +9,24 @@ type
   TgdLogClient = class(TgdMessagedThread)
   private
     { Private declarations }
-    FHost: String;
-    FPort: Integer;
-    FMesS: String;
+    //FHost: String;
+    //FPort: Integer;
+    //FMesS: String;
 
   protected
-    Client: TIdTCPClient;
-    procedure Execute; override;
-    procedure DoWorkLog;
-    procedure DoWorkClient;
-    procedure ShowMesS;
+    TCPClient: TIdTCPClient;
+    function ProcessMessage(var Msg: TMsg): Boolean; override;
+
+    //procedure DoWorkLog;
+    //procedure DoWorkClient;
+    //procedure ShowMesS;
 
   public
     constructor Create;
     destructor Destroy; override;
+    
+    procedure Start;
+    procedure Finish;
   end;
 
 var
@@ -31,7 +35,7 @@ var
 implementation
 
 uses
-  SysUtils;
+  SysUtils, gd_messages_const;
 
 constructor TgdLogClient.Create;
 begin
@@ -41,16 +45,39 @@ end;
 
 destructor TgdLogClient.Destroy;
 begin
-  gdLog.Free;
   inherited;
 end;
 
-procedure TgdLogClient.Execute;
+function TgdLogClient.ProcessMessage(var Msg: TMsg): Boolean;
 begin
-  Synchronize(DoWorkLog);
-  DoWorkClient;
+  Result := True;
+
+  case Msg.Message of
+
+    WM_LOG_INIT:
+    begin
+    end;
+
+    WM_LOG_DONE:
+    begin
+    end
+
+  else
+    Result := False;
+  end;
 end;
 
+procedure TgdLogClient.Start;
+begin
+  PostMsg(WM_LOG_INIT);
+end;
+
+procedure TgdLogClient.Finish;
+begin
+  PostMsg(WM_LOG_DONE);
+end;
+
+{
 procedure TgdLogClient.DoWorkLog;
 begin
   ShowMessage('gdLog run');
@@ -63,16 +90,14 @@ end;
 procedure TgdLogClient.DoWorkClient;
 begin
   try
-    Client := TIdTCPClient.Create(nil);
-    Client.Host := FHost;
-    Client.Port := FPort;
+    TCPClient := TIdTCPClient.Create(nil);
+    TCPClient.Host := FHost;
+    TCPClient.Port := FPort;
     while True do
     begin
-      with Client do
-      begin
-        if Terminated then Exit;
-        try
-          Connect;
+      if Terminated then Exit;
+      try
+        Connect;
           try
             if Terminated then Exit;
             FMesS := ReadLn;
@@ -98,11 +123,12 @@ procedure TgdLogClient.ShowMesS;
 begin
   ShowMessage(FMesS);
 end;
+}
 
 initialization
   gdLog := TgdLogClient.Create;
   gdLog.Resume;
 
 finalization
-  FreeAndNil(gdLog);      
+  FreeAndNil(gdLog);
 end.

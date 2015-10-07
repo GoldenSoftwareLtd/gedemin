@@ -317,7 +317,8 @@ uses
   , gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas'
   , gd_AutoTaskThread in '..\Component\gd_AutoTaskThread.pas'
   , gdcSMTP in '..\Component\GDC\gdcSMTP.pas'
-  {$IFDEF FR4}, dlgSendReport_unit in '..\Report\dlgSendReport_unit.pas'{$ENDIF};
+  {$IFDEF FR4}, dlgSendReport_unit in '..\Report\dlgSendReport_unit.pas'{$ENDIF}
+  , gdLogClient in '..\GAdmin\gdLogClient.pas';
 
 {$R Gedemin.TLB}
 {$R GEDEMIN.RES}
@@ -613,6 +614,8 @@ var
   FApplicationEvents: TApplicationEvents;
 
 begin
+  gdLog.Start;
+
   if not CheckMIDASRegistered then
     exit;
 
@@ -724,7 +727,6 @@ begin
 
         Application.Run;
       end;
-
     finally
       {при завершении процесса удалятся операционной системой
       ReleaseMutex(MutexHandle);
@@ -732,6 +734,7 @@ begin
     end;
   finally
     ApplicationEventsHandler.Free;
+    gdLog.Finish;
   end;
 end.
 
