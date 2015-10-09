@@ -1,0 +1,19 @@
+program gedemin_cc;
+
+
+
+
+
+{$R '..\Component\indy\Indy50.res' '..\Component\indy\Indy50.rc'}
+
+uses
+  Forms,
+  frm_gedemin_cc_unit in 'frm_gedemin_cc_unit.pas' {frmGedeminLog};
+
+{$R *.RES}
+
+begin
+  Application.Initialize;
+  Application.CreateForm(TfrmGedeminLog, frmGedeminLog);
+  Application.Run;
+end.
