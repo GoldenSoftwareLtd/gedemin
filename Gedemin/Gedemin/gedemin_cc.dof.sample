@@ -39,10 +39,10 @@ MaxStackSize=1048576
 ImageBase=4194304
 ExeDescription=
 [Directories]
-OutputDir=
-UnitOutputDir=
-PackageDLLOutputDir=
-PackageDCPOutputDir=
+OutputDir=..\exe
+UnitOutputDir=..\dcu
+PackageDLLOutputDir=..\bpl
+PackageDCPOutputDir=..\bpl
 SearchPath=..\Component;..\Component\Doc;..\Component\GDC;..\Component\Images;..\Component\kbmMemTable;..\Component\Repository;..\Component\SynEdit;..\Component\tb2k;..\Component\tbskin;..\Component\tdbf;..\Component\TextDiff;..\Component\Indy
 Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;vclado50;ibevnt50;Vclbde50;vcldbx50;Qrpt50;TeeUI50;TeeDB50;Tee50;Dss50;TeeQR50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50;SynEdit_D5;Fr5;greference;fs5;fqb50;frx5
 Conditionals=
@@ -79,3 +79,21 @@ Comments=
 [Excluded Packages]
 $(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
 $(DELPHI)\Bin\DCLIB50.bpl=InterBase Data Access Components
+[HistoryLists\hlUnitAliases]
+Count=1
+Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+[HistoryLists\hlSearchPath]
+Count=1
+Item0=..\Component;..\Component\Doc;..\Component\GDC;..\Component\Images;..\Component\kbmMemTable;..\Component\Repository;..\Component\SynEdit;..\Component\tb2k;..\Component\tbskin;..\Component\tdbf;..\Component\TextDiff;..\Component\Indy
+[HistoryLists\hlUnitOutputDirectory]
+Count=1
+Item0=..\dcu
+[HistoryLists\hlOutputDirectorry]
+Count=1
+Item0=..\exe
+[HistoryLists\hlBPLOutput]
+Count=1
+Item0=..\bpl
+[HistoryLists\hlDCPOutput]
+Count=1
+Item0=..\bpl

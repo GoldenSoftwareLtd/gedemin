@@ -1,4 +1,4 @@
-unit frm_gedemin_cc_unit;
+unit gedemin_cc_frmMain_unit;
 
 interface
 
@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ShellApi, Menus, IdTCPConnection, IdTCPServer,
   IdSocketHandle, IdThreadMgr, IdThreadMgrDefault, IdBaseComponent,
-  IdComponent, IdAntiFreezeBase, IdAntiFreeze, IdStack;
+  IdComponent, IdAntiFreezeBase, IdAntiFreeze, IdStack, ExtCtrls;
 
 
 type
@@ -20,12 +20,19 @@ type
 
   Tfrm_gedemin_cc_main = class(TForm)
     mLog: TMemo;
-    btSave: TButton;
-    SaveDialog1: TSaveDialog;
     ClientsListBox: TListBox;
+    MainMenu1: TMainMenu;
+    N1111: TMenuItem;
+    N2221: TMenuItem;
+    N11111: TMenuItem;
+    N22221: TMenuItem;
+    Panel1: TPanel;
+    Panel2: TPanel;
+    Panel3: TPanel;
+    Panel4: TPanel;
+    Panel5: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure btSaveClick(Sender: TObject);
 
   private
 
@@ -170,17 +177,6 @@ begin
   finally
     Clients.UnlockList;
   end;
-end;
-
-procedure Tfrm_gedemin_cc_main.btSaveClick(Sender: TObject);
-var FName: String;
-begin
-  SaveDialog1.FileName := 'Log';
-  if SaveDialog1.Execute then
-    begin
-      FName := SaveDialog1.FileName;
-      mLog.Lines.SaveToFile(FName);
-    end;
 end;
 
 end.

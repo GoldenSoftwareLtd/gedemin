@@ -31,8 +31,10 @@
 -M
 -$M16384,1048576
 -K$00400000
--LE"c:\program files (x86)\borland\delphi5\Projects\Bpl"
--LN"c:\program files (x86)\borland\delphi5\Projects\Bpl"
+-E"..\exe"
+-N"..\dcu"
+-LE"..\bpl"
+-LN"..\bpl"
 -U"..\Component;..\Component\Doc;..\Component\GDC;..\Component\Images;..\Component\kbmMemTable;..\Component\Repository;..\Component\SynEdit;..\Component\tb2k;..\Component\tbskin;..\Component\tdbf;..\Component\TextDiff;..\Component\Indy"
 -O"..\Component;..\Component\Doc;..\Component\GDC;..\Component\Images;..\Component\kbmMemTable;..\Component\Repository;..\Component\SynEdit;..\Component\tb2k;..\Component\tbskin;..\Component\tdbf;..\Component\TextDiff;..\Component\Indy"
 -I"..\Component;..\Component\Doc;..\Component\GDC;..\Component\Images;..\Component\kbmMemTable;..\Component\Repository;..\Component\SynEdit;..\Component\tb2k;..\Component\tbskin;..\Component\tdbf;..\Component\TextDiff;..\Component\Indy"
