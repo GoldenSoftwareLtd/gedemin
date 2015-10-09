@@ -20,11 +20,13 @@ type
     FBuffer: array[0..MaxBufferSize - 1] of TLogRecord;
     FStart, FEnd: Integer;
     FBufferCS: TCriticalSection;
+    FTCPClient: TIdTCPClient;
 
   protected
-    TCPClient: TIdTCPClient;
     function ProcessMessage(var Msg: TMsg): Boolean; override;
     procedure DoWorkClient;
+    procedure Connect;
+    procedure Disconnect;
 
   public
     constructor Create;
@@ -33,8 +35,6 @@ type
     procedure Start;
     procedure Finish;
     procedure Log(const AMsg: String);
-    procedure Connect;
-    procedure Disconnect;
   end;
 
 var
@@ -56,8 +56,6 @@ destructor TgdLogClient.Destroy;
 begin
   inherited;
   FBufferCS.Free;
-  if TCPClient <> nil then
-    TCPClient.Free;
 end;
 
 function TgdLogClient.ProcessMessage(var Msg: TMsg): Boolean;
@@ -68,12 +66,12 @@ begin
 
     WM_LOG_INIT:
     begin
-
+      Log('Гедымин запущен');
     end;
 
     WM_LOG_DONE:
     begin
-
+      Log('Гедымин закрыт');
     end;
 
     WM_LOG_PROCESS_REC:
@@ -82,8 +80,7 @@ begin
       try
         while FStart <> FEnd do
         begin
-          // FBbuffer[FStart] -- log record for processing
-
+          DoWorkClient;
           if FStart = MaxBufferSize - 1 then
             FStart := 0
           else
@@ -122,38 +119,42 @@ begin
       FBuffer[FEnd].Msg := Copy(AMsg, 1, MaxMsgLength);
       Inc(FEnd);
     end;
-
   finally
     FBufferCS.Leave;
   end;
-  DoWorkClient;
   PostMsg(WM_LOG_PROCESS_REC);
 end;
 
 procedure TgdLogClient.Connect;
 begin
-  if not TCPClient.Connected then
+  if FTCPClient = nil then
   begin
-    TCPClient.Host := '127.0.0.1';
-    TCPClient.Port := 7070;
-    TCPClient.Connect;
-    ShowMessage('Connect');
+    FTCPClient := TIdTCPClient.Create(nil);
+    FTCPClient.Host := '127.0.0.1';
+    FTCPClient.Port := 27070;
   end;
+
+  if not FTCPClient.Connected then
+    FTCPClient.Connect;
 end;
 
 procedure TgdLogClient.Disconnect;
 begin
-  if TCPClient.Connected then
-    TCPClient.Disconnect;
+  FreeAndNil(FTCPClient);
 end;
 
 procedure TgdLogClient.DoWorkClient;
 begin
-    TCPClient := TIdTCPClient.Create(nil);
+  try
     Connect;
-    TCPClient.WriteLn('Message');
-    ShowMessage(TCPClient.ReadLn);
-    Disconnect;
+    try
+      FTCPClient.WriteLn(DateToStr(FBuffer[FStart].DT) + ', ' + TimeToStr(FBuffer[FStart].DT) + ' - ' + FBuffer[FStart].Msg);
+    finally
+      Disconnect;
+    end;
+  except
+    exit;
+  end;
 end;
 
 
