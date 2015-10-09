@@ -1,4 +1,4 @@
-unit frm_gedemin_cc_unit;
+unit gedemin_cc_frmMain_unit;
 
 interface
 
