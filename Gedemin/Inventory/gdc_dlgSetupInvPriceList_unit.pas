@@ -1144,7 +1144,7 @@ procedure TdlgSetupInvPriceList.Post;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  R, RL, CurrR: TatRelation;
+  R, RL: TatRelation;
   RGKey, NSID, NSPos, HeadObjectKey: Integer;
   q, qNS, qRUID: TIBSQL;
   DE: TgdDocumentEntry;
@@ -1191,7 +1191,7 @@ procedure TdlgSetupInvPriceList.Post;
   procedure UpdateFields(lv: TListView; const AName: String;
     R: TatRelation; AFields: TgdcInvPriceFields);
   var
-    I, J, K, OptID: Integer;
+    I, J, OptID: Integer;
     Found: Boolean;
     RF: TatRelationField;
     F: TInvPriceListField;

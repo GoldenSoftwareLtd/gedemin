@@ -194,10 +194,10 @@ type
   end;
 
   TgdcDocumentType = class(TgdcBaseDocumentType)
-  private
-    FqGetOptID, FqDel: TIBSQL;
-
   protected
+    FqGetOptID, FqDel, FqRUID, FqNS, Fq: TIBSQL;
+    FNSID, FNSPos, FHeadObjectKey: Integer;
+
     procedure _DoOnNewRecord; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
@@ -216,9 +216,11 @@ type
     procedure DoAfterShowDialog(DlgForm: TCreateableForm; IsOk: Boolean); override;
     function GetCurrRecordClass: TgdcFullClass; override;
 
-    procedure InitOpt;
-    procedure DoneOpt;
+    procedure InitOpt; virtual;
+    procedure DoneOpt; virtual;
     function GetOptID(const AName: String; out AnOptID: Integer): Boolean;
+    procedure DelOpt(const AName: String);
+    procedure AddNSObject(const AnObjID: Integer; const AName: String);
   end;
 
   TgdcUserDocumentType = class(TgdcDocumentType)
@@ -2864,6 +2866,9 @@ destructor TgdcDocumentType.Destroy;
 begin
   FqGetOptID.Free;
   FqDel.Free;
+  FqRUID.Free;
+  FqNS.Free;
+  Fq.Free;
   inherited;
 end;
 
@@ -2871,11 +2876,17 @@ procedure TgdcDocumentType.DoneOpt;
 begin
   FreeAndNil(FqGetOptID);
   FreeAndNil(FqDel);
+  FreeAndNil(FqRUID);
+  FreeAndNil(FqNS);
+  FreeAndNil(Fq);
 end;
 
 procedure TgdcDocumentType.InitOpt;
 begin
   Assert(FqGetOptID = nil);
+  Assert(FqDel = nil);
+  Assert(FqRUID = nil);
+  Assert(FqNS = nil);
 
   FqGetOptID := TIBSQL.Create(nil);
   FqGetOptID.Transaction := Transaction;
@@ -2887,6 +2898,40 @@ begin
   FqDel.Transaction := Transaction;
   FqDel.SQL.Text :=
     'DELETE FROM gd_documenttype_option WHERE dtkey = :dtkey AND option_name STARTING WITH :s';
+
+  FqRUID := TIBSQL.Create(nil);
+  FqRUID.Transaction := Transaction;
+  FqRUID.SQL.Text :=
+    'INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
+    'VALUES (:id, :id, GEN_ID(gd_g_dbid, 0), CURRENT_TIMESTAMP, <CONTACTKEY/>)';
+
+  FqNS := TIBSQL.Create(nil);
+  FqNS.Transaction := Transaction;
+  FqNS.SQL.Text :=
+    'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
+    'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+
+  Fq := TIBSQL.Create(nil);
+  Fq.Transaction := Transaction;
+  Fq.SQL.Text :=
+    'SELECT FIRST 1 obj.id, obj.namespacekey, obj.objectpos ' +
+    'FROM at_object obj ' +
+    '  JOIN gd_ruid r ON r.xid = obj.xid AND r.dbid = obj.dbid ' +
+    'WHERE r.id = :id';
+  Fq.ParamByName('id').AsInteger := ID;
+  Fq.ExecQuery;
+  if Fq.EOF then
+  begin
+    FNSID := -1;
+    FNSPos := -1;
+    FHeadObjectKey := -1;
+  end else
+  begin
+    FNSID := Fq.FieldbyName('namespacekey').AsInteger;
+    FNSPos := Fq.FieldByName('objectpos').AsInteger;
+    FHeadObjectKey := Fq.FieldByName('id').AsInteger;
+  end;
+  Fq.Close;
 end;
 
 function TgdcDocumentType.GetOptID(const AName: String;
@@ -2905,6 +2950,32 @@ begin
   begin
     AnOptID := FqGetOptID.Fields[0].AsInteger;
     Result := True;
+  end;
+end;
+
+procedure TgdcDocumentType.DelOpt(const AName: String);
+begin
+  Assert(FqDel <> nil);
+  FqDel.ParamByName('dtkey').AsInteger := ID;
+  FqDel.ParamByName('s').AsString := AName;
+  FqDel.ExecQuery;
+end;
+
+procedure TgdcDocumentType.AddNSObject(const AnObjID: Integer;
+  const AName: String);
+begin
+  if FNSID > -1 then
+  begin
+    FqRUID.ParamByName('id').AsInteger := AnObjID;
+    FqRUID.ExecQuery;
+
+    Inc(FNSPos);
+    FqNS.ParamByName('namespacekey').AsInteger := FNSID;
+    FqNS.ParamByName('objectname').AsString := System.Copy(AName, 1, 60);
+    FqNS.ParamByName('xid').AsInteger := AnObjID;
+    FqNS.ParamByName('objectpos').AsInteger := FNSPos;
+    FqNS.ParamByName('headobjectkey').AsInteger := FHeadObjectKey;
+    FqNS.ExecQuery;
   end;
 end;
 
