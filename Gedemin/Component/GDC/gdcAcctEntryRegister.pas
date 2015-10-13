@@ -1461,7 +1461,7 @@ begin
     begin
       if CIs[i].DocumentPart = Document.GetDocumentClassPart then
       begin
-        DE := gdClassList.FindDocByTypeID(Document.DocumentTypeKey, CIs[i].DocumentPart);
+        DE := gdClassList.FindDocByTypeID(Document.DocumentTypeKey, CIs[i].DocumentPart, True);
         if DE.FindParentByDocumentTypeKey(CIs[i].DocumentTypeKey, CIs[i].DocumentPart) <> nil then
         begin
           FTrRecordKey := CIs[i].TrRecordKey;

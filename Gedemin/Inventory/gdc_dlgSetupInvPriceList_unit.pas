@@ -921,7 +921,7 @@ begin
 
   inherited;
 
-  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader);
+  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
   if DE is TgdInvPriceDocumentEntry then
     FIPDE := DE as TgdInvPriceDocumentEntry
   else if DE = nil then
@@ -1303,7 +1303,7 @@ begin
 
     inherited;
 
-    DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader);
+    DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
     if DE is TgdInvPriceDocumentEntry then
       IE := DE as TgdInvPriceDocumentEntry
     else if DE = nil then

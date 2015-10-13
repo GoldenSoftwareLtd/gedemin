@@ -2043,7 +2043,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader);
+  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
 
   if DE is TgdInvDocumentEntry then
     FIDE := DE as TgdInvDocumentEntry
@@ -2189,7 +2189,7 @@ begin
 
     inherited;
 
-    DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader);
+    DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
     if DE is TgdInvDocumentEntry then
       IE := DE as TgdInvDocumentEntry
     else if DE = nil then

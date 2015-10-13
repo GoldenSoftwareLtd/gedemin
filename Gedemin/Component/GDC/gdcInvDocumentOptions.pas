@@ -9,6 +9,7 @@ type
   TgdcInvDocumentTypeOptions = class(TgdcBase)
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
+    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
     
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -23,7 +24,7 @@ procedure Register;
 implementation
 
 uses
-  SysUtils, DB, gd_directories_const, gd_ClassList;
+  SysUtils, DB, gd_directories_const, gd_ClassList, gdcClasses_Interface;
 
 procedure Register;
 begin
@@ -109,6 +110,51 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPEOPTIONS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcInvDocumentTypeOptions.DoAfterCustomProcess(Buff: Pointer;
+  Process: TgsCustomProcess);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  DE: TgdDocumentEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCINVDOCUMENTTYPEOPTIONS', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPEOPTIONS', KEYDOAFTERCUSTOMPROCESS);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPEOPTIONS') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self),
+  {M}          Integer(Buff), TgsCustomProcess(Process)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPEOPTIONS',
+  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPEOPTIONS' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  DE := gdClassList.FindDocByTypeID(FieldByName('dtkey').AsInteger, dcpHeader);
+  if DE <> nil then
+    DE.Invalid := True;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPEOPTIONS', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPEOPTIONS', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
   {M}  end;
   {END MACRO}
 end;

@@ -366,12 +366,14 @@ type
     FHeaderRelKey: Integer;
     FLineRelKey: Integer;
     FBranchKey: Integer;
+    FInvalid: Boolean;
 
     function GetDistinctRelation: String; override;
     procedure SetHeaderRelKey(const Value: Integer);
     procedure SetLineRelKey(const Value: Integer);
     function GetHeaderRelName: String;
     function GetLineRelName: String;
+    procedure SetInvalid(const Value: Boolean);
 
   protected
     procedure LoadDEOption(qOpt: TIBSQL); virtual;
@@ -398,6 +400,7 @@ type
     property TypeID: Integer read FTypeID write FTypeID;
     property ReportGroupKey: Integer read FReportGroupKey write FReportGroupKey;
     property BranchKey: Integer read FBranchKey write FBranchKey;
+    property Invalid: Boolean read FInvalid write SetInvalid;
   end;
 
   TgdInvDocumentEntryFlag = (
@@ -555,8 +558,10 @@ type
     function Find(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
     function Find(AnObj: TgdcBase): TgdBaseEntry; overload;
-    function FindDocByTypeID(const ADocTypeID: TID; const APart: TgdcDocumentClassPart): TgdDocumentEntry; overload;
-    function FindDocByRUID(const ARUID: String; const APart: TgdcDocumentClassPart): TgdDocumentEntry;
+    function FindDocByTypeID(const ADocTypeID: TID; const APart: TgdcDocumentClassPart;
+      const AnUpdate: Boolean = False): TgdDocumentEntry; overload;
+    function FindDocByRUID(const ARUID: String; const APart: TgdcDocumentClassPart;
+      const AnUpdate: Boolean = False): TgdDocumentEntry;
     function FindByRelation(const ARelationName: String): TgdBaseEntry;
 
     function Get(const AClass: CgdClassEntry; const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry;
@@ -2495,10 +2500,11 @@ begin
 end;
 
 function TgdClassList.FindDocByTypeID(const ADocTypeID: TID;
-  const APart: TgdcDocumentClassPart): TgdDocumentEntry;
+  const APart: TgdcDocumentClassPart; const AnUpdate: Boolean = False): TgdDocumentEntry;
 var
   Doc: TgdClassEntry;
   AuxRec: TAuxRec;
+  DELn: TgdDocumentEntry;
 begin
   Doc := Find('TgdcDocument');
 
@@ -2511,8 +2517,19 @@ begin
     AuxRec.CE := nil;
     Doc.Traverse(_FindDoc, @AuxRec, nil, False, False);
     if AuxRec.CE is TgdDocumentEntry then
-      Result := AuxRec.CE as TgdDocumentEntry
-    else
+    begin
+      Result := AuxRec.CE as TgdDocumentEntry;
+      if AnUpdate and Result.Invalid then
+      begin
+        Result.LoadDE(nil);
+        if APart = dcpHeader then
+        begin
+          DELn := gdClassList.FindDocByTypeID(ADocTypeID, dcpLine);
+          if DELn <> nil then
+            DELn.Assign(Result);
+        end;
+      end;
+    end else
       Result := nil;
   end;
 end;
@@ -2583,10 +2600,11 @@ begin
 end;
 
 function TgdClassList.FindDocByRUID(const ARUID: String;
-  const APart: TgdcDocumentClassPart): TgdDocumentEntry;
+  const APart: TgdcDocumentClassPart; const AnUpdate: Boolean = False): TgdDocumentEntry;
 var
   Doc: TgdClassEntry;
   AuxRec: TAuxRec;
+  DELn: TgdDocumentEntry;
 begin
   Doc := Find('TgdcDocument');
 
@@ -2599,8 +2617,19 @@ begin
     AuxRec.CE := nil;
     Doc.Traverse(_FindDocByRUID, @AuxRec, nil, False, False);
     if AuxRec.CE is TgdDocumentEntry then
-      Result := AuxRec.CE as TgdDocumentEntry
-    else
+    begin
+      Result := AuxRec.CE as TgdDocumentEntry;
+      if AnUpdate and Result.Invalid then
+      begin
+        Result.LoadDE(nil);
+        if APart = dcpHeader then
+        begin
+          DELn := gdClassList.FindDocByRUID(ARUID, dcpLine);
+          if DELn <> nil then
+            DELn.Assign(Result);
+        end;
+      end
+    end else
       Result := nil;
   end;
 end;
@@ -2649,6 +2678,7 @@ begin
   HeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
   LineRelKey := TgdDocumentEntry(CE).LineRelKey;
   BranchKey := TgdDocumentEntry(CE).BranchKey;
+  FInvalid := TgdDocumentEntry(CE).Invalid;
 end;
 
 procedure TgdDocumentEntry.ConvertOptions;
@@ -2703,6 +2733,7 @@ begin
     end;
   end else
     LoadDEOption(qOpt);
+  FInvalid := False;  
 end;
 
 function TgdDocumentEntry.GetHeaderRelName: String;
@@ -2799,6 +2830,22 @@ end;
 procedure TgdBaseEntry.SetDistinctRelation(const Value: String);
 begin
   FDistinctRelation := UpperCase(Value);
+end;
+
+procedure TgdDocumentEntry.SetInvalid(const Value: Boolean);
+var
+  DE: TgdDocumentEntry;
+begin
+  if FInvalid <> Value then
+  begin
+    FInvalid := Value;
+    if CgdcDocument(TheClass).GetDocumentClassPart = dcpHeader then
+      DE := gdClassList.FindDocByTypeID(FTypeID, dcpLine)
+    else
+      DE := gdClassList.FindDocByTypeID(FTypeID, dcpHeader);
+    if DE <> nil then
+      DE.FInvalid := Value;
+  end;
 end;
 
 { TgdInitClassEntry }

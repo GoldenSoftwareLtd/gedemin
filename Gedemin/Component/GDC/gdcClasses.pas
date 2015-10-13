@@ -760,7 +760,7 @@ function TgdcDocument.GetDocumentDescription: String;
 var
   DE: TgdDocumentEntry;
 begin
-  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart, True);
   if DE <> nil then
     Result := DE.Description
   else
@@ -771,7 +771,7 @@ function TgdcDocument.GetDocumentName: String;
 var
   DE: TgdDocumentEntry;
 begin
-  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart, True);
   if DE <> nil then
     Result := DE.Caption
   else
@@ -1166,7 +1166,7 @@ begin
     else
       Part := dcpLine;
 
-    DE := gdClassList.FindDocByTypeID(FieldByName('documenttypekey').AsInteger, Part);
+    DE := gdClassList.FindDocByTypeID(FieldByName('documenttypekey').AsInteger, Part, True);
 
     if DE <> nil then
     begin
@@ -1258,9 +1258,21 @@ end;
 class function TgdcDocument.GetDocumentClass(const TypeKey: Integer;
   const DocClassPart: TgdcDocumentClassPart): TgdcFullClass;
 var
-  S: String;
+  //S: String;
   DE: TgdDocumentEntry;
 begin
+  DE := gdClassList.FindDocByTypeID(TypeKey, DocClassPart, True);
+  if DE <> nil then
+  begin
+    Result.gdClass := DE.gdcClass;
+    Result.SubType := DE.SubType;
+  end else
+  begin
+    Result.gdClass := nil;
+    Result.SubType := '';
+  end;
+
+  (*
   //dcpHeader, dcpLine
   Result.gdClass := nil;
   Result.SubType := '';
@@ -1350,13 +1362,14 @@ begin
     Result.gdClass := CgdcBase(GetClass(S));
     Result.SubType := '';
   end;
+  *)
 end;
 
 function TgdcDocument.GetIsCommon: Boolean;
 var
   DE: TgdDocumentEntry;
 begin
-  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart, True);
   Result := (DE <> nil) and DE.IsCommon;
 end;
 
@@ -1483,7 +1496,7 @@ var
   LParams, LResult: Variant;
 begin
   FunctionKey := 0;
-  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart, True);
 
   while DE <> nil do
   begin
@@ -1870,7 +1883,7 @@ begin
   if (not IsEmpty) and (FieldByName('documenttypekey').AsInteger > 0) then
   begin
     DE := gdClassList.FindDocByTypeID(FieldByName('documenttypekey').AsInteger,
-      GetDocumentClassPart);
+      GetDocumentClassPart, True);
     if DE <> nil then
       Result := DE.IsCheckNumber
     else
@@ -1960,7 +1973,7 @@ begin
     inherited;
     if SubType > '' then
     begin
-      DE := gdClassList.FindDocByRUID(Value, GetDocumentClassPart);
+      DE := gdClassList.FindDocByRUID(Value, GetDocumentClassPart, True);
       if DE = nil then
         raise Exception.Create('Invalid document type');
       ReadOptions(DE);
@@ -3434,7 +3447,7 @@ class function TgdcUserBaseDocument.GetViewFormClassName(
 var
   DE: TgdDocumentEntry;
 begin
-  DE := gdClassList.FindDocByRUID(ASubType, GetDocumentClassPart);
+  DE := gdClassList.FindDocByRUID(ASubType, GetDocumentClassPart, True);
   if DE <> nil then
   begin
     if DE.LineRelName = '' then
@@ -3442,7 +3455,7 @@ begin
     else
       Result := 'Tgdc_frmUserComplexDocument';
   end else
-    raise EgdcIBError.Create('Неверен тип документа');
+    raise Exception.Create('Неверен тип документа');
 end;
 
 class function TgdcUserBaseDocument.IsAbstractClass: Boolean;

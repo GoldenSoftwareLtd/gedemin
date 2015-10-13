@@ -5507,7 +5507,7 @@ var
 begin
   inherited;
 
-  DE := gdClassList.FindDocByTypeID(ID, dcpHeader);
+  DE := gdClassList.FindDocByTypeID(ID, dcpHeader, True);
   if DE is TgdInvDocumentEntry then
     FIE := DE as TgdInvDocumentEntry
   else if DE = nil then
