@@ -1,6 +1,6 @@
 inherited gdc_frmDocumentType: Tgdc_frmDocumentType
-  Left = 369
-  Top = 172
+  Left = 379
+  Top = 181
   Width = 795
   Height = 542
   Caption = 'Типовые документы'
@@ -190,6 +190,8 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
           MinColWidth = 40
           ColumnEditors = <>
           Aliases = <>
+          ShowFooter = True
+          ShowTotals = False
         end
       end
     end
@@ -327,7 +329,11 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       'SELECT'
       '  o.id,'
       '  o.option_name,'
-      '  COALESCE(rf.relationname || '#39'.'#39' || rf.fieldname,'
+      
+        '  COALESCE(rf.relationname || '#39'.'#39' || rf.fieldname || '#39' - '#39' || rf' +
+        '.lname ||'
+      '    IIF(c.name IS NULL, '#39#39', '#39', '#39' || c.name) ||'
+      '    IIF(curr.name IS NULL, '#39#39', '#39', '#39' || curr.name),'
       '    c.name, IIF(o.bool_value = 0, '#39'No'#39', '#39'Yes'#39')) AS option_value,'
       '  (SELECT LIST(n.name)'
       
@@ -339,10 +345,12 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       '  gd_documenttype_option o'
       '  LEFT JOIN at_relation_fields rf ON rf.id = o.relationfieldkey'
       '  LEFT JOIN gd_contact c ON c.id = o.contactkey'
+      '  LEFT JOIN gd_curr curr ON curr.id = o.currkey'
       'WHERE'
       '  o.dtkey = :id'
       'ORDER BY'
-      '  o.option_name')
+      '  o.option_name'
+      ' ')
     DataSource = dsDetail
     ReadTransaction = ibTr
     Left = 467

@@ -395,7 +395,7 @@ begin
       
       if gdcObject.FieldByName(FunctionTemplateField).IsNull then
       begin
-        DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader);
+        DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
         while (DE <> nil) and (ParentFunctionName = '') do
         begin
           ibsql := TIBSQL.Create(nil);
@@ -411,7 +411,7 @@ begin
                 'WHERE '#13#10 +
                 '  d.id = :id '#13#10 +
                 '  AND d.documenttype = ''D'' '#13#10 +
-                '  AND d.' + FunctionTemplateField + ' is not null';
+                '  AND d.' + FunctionTemplateField + ' IS NOT NULL';
             ibsql.ParamByName('id').AsInteger := DE.TypeID;
             ibsql.ExecQuery;
             if (not ibsql.Eof) and (not ibsql.FieldByName(FunctionTemplateField).IsNull) then
@@ -674,7 +674,7 @@ begin
 
   dbcMaskChange(dbcMask);
 
-  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader);
+  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
   if DE <> nil then
   begin
     edParentName.Text := DE.Caption;
@@ -693,7 +693,7 @@ begin
 
   if gdcObject.State = dsEdit then
   begin
-    DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('id').AsInteger, dcpHeader);
+    DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('id').AsInteger, dcpHeader, True);
     if DE <> nil then
       edEnglishName.Text := DE.HeaderRelName;
   end;
