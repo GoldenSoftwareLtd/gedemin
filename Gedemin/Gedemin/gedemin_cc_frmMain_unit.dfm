@@ -3,7 +3,7 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
   Top = 200
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
-  Caption = 'Гедымин Лог'
+  Caption = 'Gedemin CC'
   ClientHeight = 520
   ClientWidth = 1020
   Color = clBtnFace
@@ -15,76 +15,96 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
   Menu = MainMenu1
   OldCreateOrder = False
   Position = poDesktopCenter
-  OnClose = FormClose
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 22
-  object Panel1: TPanel
+  object pnlTop: TPanel
     Left = 0
     Top = 0
     Width = 1020
     Height = 40
-    TabOrder = 2
+    TabOrder = 0
   end
-  object Panel2: TPanel
+  object pnlLeft: TPanel
     Left = 0
+    Top = 40
+    Width = 210
+    Height = 440
+    TabOrder = 1
+  end
+  object pnlRight: TPanel
+    Left = 810
     Top = 40
     Width = 210
     Height = 440
     TabOrder = 3
   end
-  object Panel3: TPanel
-    Left = 810
-    Top = 40
-    Width = 210
-    Height = 440
+  object pnlBottom: TPanel
+    Left = 0
+    Top = 470
+    Width = 1020
+    Height = 31
+    Align = alBottom
     TabOrder = 4
   end
-  object ClientsListBox: TListBox
-    Left = 815
-    Top = 50
-    Width = 200
-    Height = 400
-    BorderStyle = bsNone
-    ItemHeight = 22
-    TabOrder = 1
-  end
-  object Panel4: TPanel
-    Left = 0
-    Top = 480
-    Width = 1020
-    Height = 40
-    TabOrder = 5
-  end
-  object Panel5: TPanel
+  object pnlCenter: TPanel
     Left = 210
-    Top = 40
+    Top = 80
     Width = 600
-    Height = 440
-    TabOrder = 6
+    Height = 400
+    TabOrder = 5
+    object DBGrid1: TDBGrid
+      Left = 10
+      Top = 10
+      Width = 580
+      Height = 160
+      DataSource = DM.DSrc
+      TabOrder = 0
+      TitleFont.Charset = RUSSIAN_CHARSET
+      TitleFont.Color = clWindowText
+      TitleFont.Height = -16
+      TitleFont.Name = 'Trebuchet MS'
+      TitleFont.Style = []
+    end
   end
   object mLog: TMemo
     Left = 220
-    Top = 50
+    Top = 270
     Width = 580
-    Height = 420
-    BorderStyle = bsNone
+    Height = 200
     ReadOnly = True
     ScrollBars = ssBoth
-    TabOrder = 0
+    TabOrder = 6
+  end
+  object lbClients: TListBox
+    Left = 5
+    Top = 50
+    Width = 200
+    Height = 420
+    ItemHeight = 22
+    TabOrder = 2
+  end
+  object pnlFilt: TPanel
+    Left = 210
+    Top = 40
+    Width = 600
+    Height = 40
+    TabOrder = 7
+  end
+  object sb: TStatusBar
+    Left = 0
+    Top = 501
+    Width = 1020
+    Height = 19
+    Panels = <
+      item
+        Width = 50
+      end>
+    SimplePanel = False
   end
   object MainMenu1: TMainMenu
-    object N1111: TMenuItem
-      Caption = '111'
-      object N11111: TMenuItem
-        Caption = '1111'
-      end
-    end
-    object N2221: TMenuItem
-      Caption = '222'
-      object N22221: TMenuItem
-        Caption = '2222'
-      end
+    object File1: TMenuItem
+      Caption = 'File'
     end
   end
 end
