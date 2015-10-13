@@ -223,7 +223,7 @@ begin
     if Ch = S[I] then
     begin
       Result := I;
-      Break;
+      break;
     end;
   end;
 end;
@@ -366,12 +366,11 @@ begin
     Features.Selected.Delete;
 
     if Index < Features.Items.Count then
-      Features.Selected := Features.Items[Index] else
-    if Features.Items.Count > 0 then
+      Features.Selected := Features.Items[Index]
+    else if Features.Items.Count > 0 then
       Features.Selected := Features.Items[Features.Items.Count - 1];
   end;
 end;
-
 
 procedure Tgdc_dlgSetupInvDocument.actAddFeatureExecute(Sender: TObject);
 begin
@@ -391,16 +390,15 @@ var
   ListView: TListView;
 begin
   if Sender = actDeleteDebitContact then
-    ListView := lvDebitMovementValues else
-  if Sender = actDeleteSubDebitContact then
-    ListView := lvSubDebitMovementValues else
-
-  if Sender = actDeleteCreditContact then
-    ListView := lvCreditMovementValues else
-  if Sender = actDeleteSubCreditContact then
+    ListView := lvDebitMovementValues
+  else if Sender = actDeleteSubDebitContact then
+    ListView := lvSubDebitMovementValues
+  else if Sender = actDeleteCreditContact then
+    ListView := lvCreditMovementValues
+  else if Sender = actDeleteSubCreditContact then
     ListView := lvSubCreditMovementValues
   else
-    Exit;
+    exit;
 
   if ListView.Selected <> nil then
   begin
@@ -408,9 +406,8 @@ begin
     ListView.Selected.Delete;
 
     if I < ListView.Items.Count then
-      ListView.Selected := ListView.Items[I] else
-
-    if ListView.Items.Count > 0 then
+      ListView.Selected := ListView.Items[I]
+    else if ListView.Items.Count > 0 then
       ListView.Selected := ListView.Items[ListView.Items.Count - 1];
   end;
 end;
@@ -427,21 +424,20 @@ begin
     ListView := lvDebitMovementValues;
     Combo := cbDebitMovement;
     Check := nil;
-  end else
-  if Sender = actDeleteSubDebitContact then
+  end
+  else if Sender = actDeleteSubDebitContact then
   begin
     ListView := lvSubDebitMovementValues;
     Combo := cbDebitMovement;
     Check := cbUseIncomeSub;
-  end else
-
-  if Sender = actDeleteCreditContact then
+  end
+  else if Sender = actDeleteCreditContact then
   begin
     ListView := lvCreditMovementValues;
     Combo := cbCreditMovement;
     Check := nil;
-  end else
-  if Sender = actDeleteSubCreditContact then
+  end
+  else if Sender = actDeleteSubCreditContact then
   begin
     ListView := lvSubCreditMovementValues;
     Combo := cbCreditMovement;
@@ -561,9 +557,8 @@ begin
     CheckBox := cbUseIncomeSub;
 
     SubLabelCombo := lblDebitSubFrom;
-  end else
-
-  if Sender = cbCreditMovement then
+  end
+  else if Sender = cbCreditMovement then
   begin
     Combo := luCreditFrom;
     LabelCombo := lblCreditFrom;
@@ -571,7 +566,7 @@ begin
 
     SubLabelCombo := lblCreditSubFrom;
   end else
-    Exit;
+    exit;
 
   case TgdcInvMovementContactType((Sender as TComboBox).ItemIndex) of
     imctOurCompany:
@@ -586,6 +581,7 @@ begin
 
       cbUseIncomeSubClick(CheckBox);
     end;
+
     imctOurDepartment, imctOurDepartAndPeople:
     begin
       LabelCombo.Caption := 'Поле подразделения нашей компании:';
@@ -596,6 +592,7 @@ begin
       CheckBox.Visible := True;
       cbUseIncomeSubClick(CheckBox);
     end;
+
     imctOurPeople:
     begin
       LabelCombo.Caption := 'Поле сотрудника нашей компании:';
@@ -606,6 +603,7 @@ begin
       CheckBox.Visible := True;
       cbUseIncomeSubClick(CheckBox);
     end;
+
     imctCompany:
     begin
       LabelCombo.Caption := 'Поле клиента:';
@@ -618,6 +616,7 @@ begin
 
       cbUseIncomeSubClick(CheckBox);
     end;
+
     imctCompanyDepartment:
     begin
       LabelCombo.Caption := 'Поле подразделения клиента:';
@@ -629,6 +628,7 @@ begin
       CheckBox.Checked := True;
       cbUseIncomeSubClick(CheckBox);
     end;
+
     imctCompanyPeople:
     begin
       LabelCombo.Caption := 'Поле сотрудника клиента:';
@@ -640,6 +640,7 @@ begin
       CheckBox.Checked := True;
       cbUseIncomeSubClick(CheckBox);
     end;
+
     imctPeople:
     begin
       LabelCombo.Caption := 'Поле физического лица:';
@@ -667,7 +668,8 @@ var
   begin
     sOldText:= Box.Text;
     Box.Enabled := Assigned(R);
-    if not Assigned(R) then Exit;
+    if not Assigned(R) then
+      exit;
     Box.Items.Clear;
     for i:= 0 to R.RelationFields.Count - 1 do
       if R.RelationFields[i].IsUserDefined then
@@ -675,34 +677,34 @@ var
             R.RelationFields[i].lname + '(' +
             R.RelationFields[i].fieldname + ')'
           );
-    i:= Box.Items.IndexOf(sOldText);
-    Box.ItemIndex:= i;
+    i := Box.Items.IndexOf(sOldText);
+    Box.ItemIndex := i;
   end;
 
 begin
-  rg:= nil;
-  cmb:= nil;
+  rg := nil;
+  cmb := nil;
   if Sender is TComboBox then begin
-    cmb:= Sender as TComboBox;
+    cmb := Sender as TComboBox;
     if Sender = luDebitFrom then
-      rg:= rgDebitFrom
+      rg := rgDebitFrom
     else if Sender = luDebitSubFrom then
-      rg:= rgDebitSubFrom
+      rg := rgDebitSubFrom
     else if Sender = luCreditFrom then
-      rg:= rgCreditFrom
+      rg := rgCreditFrom
     else if Sender = luCreditSubFrom then
-      rg:= rgCreditSubFrom;
+      rg := rgCreditSubFrom;
   end
   else if Sender is TRadioGroup then begin
-    rg:= Sender as TRadioGroup;
+    rg := Sender as TRadioGroup;
     if Sender = rgDebitFrom then
-      cmb:= luDebitFrom
+      cmb := luDebitFrom
     else if Sender = rgDebitSubFrom then
-      cmb:= luDebitSubFrom
+      cmb := luDebitSubFrom
     else if Sender = rgCreditFrom then
-      cmb:= luCreditFrom
+      cmb := luCreditFrom
     else if Sender = rgCreditSubFrom then
-      cmb:= luCreditSubFrom;
+      cmb := luCreditSubFrom;
   end;
 
   if Assigned(rg) and Assigned(cmb) then
@@ -725,9 +727,8 @@ begin
     luDebitSubFrom.Enabled := (Sender as TCheckBox).Checked;
     lblSubDebitValue.Enabled := (Sender as TCheckBox).Checked;
     lvSubDebitMovementValues.Enabled := (Sender as TCheckBox).Checked;
-  end else
-
-  if Sender = cbUseOutlaySub then
+  end
+  else if Sender = cbUseOutlaySub then
   begin
     rgCreditSubFrom.Enabled := (Sender as TCheckBox).Checked;
     lblCreditSubFrom.Enabled := (Sender as TCheckBox).Checked;
@@ -793,18 +794,17 @@ begin
     if FindUsedFeature then
       List := lvUsedFeatures
     else
-      List := lvFeatures
-  end
-  else
+      List := lvFeatures;
+  end else
   begin
     if FindUsedFeature then
       List := lvMinusUsedFeatures
     else
-      List := lvMinusFeatures
+      List := lvMinusFeatures;
   end;
   
   for I := 0 to List.Items.Count - 1 do
-    if AnsiCompareText(TatRelationField(List.Items[I].Data).FieldName, FeatureName) = 0 then
+    if AnsiSameText(TatRelationField(List.Items[I].Data).FieldName, FeatureName) then
     begin
       Result := List.Items[I];
       exit;
@@ -1231,14 +1231,14 @@ begin
   begin
     pcMain.ActivePage := tsIncomeMovement;
     cbDebitMovement.SetFocus;
-    raise EdlgSetupInvDocument.Create('Укажите, как оформлять приход!');
+    raise EdlgSetupInvDocument.Create('Укажите как оформлять приход!');
   end;
 
   if rgDebitFrom.ItemIndex = -1 then
   begin
     pcMain.ActivePage := tsIncomeMovement;
     rgDebitFrom.SetFocus;
-    raise EdlgSetupInvDocument.Create('Укажите, откуда брать приход!');
+    raise EdlgSetupInvDocument.Create('Укажите откуда брать приход!');
   end;
 
   if luDebitFrom.ItemIndex = -1 then
@@ -1285,14 +1285,14 @@ begin
   begin
     pcMain.ActivePage := tsOutlayMovement;
     cbCreditMovement.SetFocus;
-    raise EdlgSetupInvDocument.Create('Укажите, как оформлять расход!');
+    raise EdlgSetupInvDocument.Create('Укажите как оформлять расход!');
   end;
 
   if rgCreditFrom.ItemIndex = -1 then
   begin
     pcMain.ActivePage := tsOutlayMovement;
     rgCreditFrom.SetFocus;
-    raise EdlgSetupInvDocument.Create('Укажите, откуда брать расход!');
+    raise EdlgSetupInvDocument.Create('Укажите откуда брать расход!');
   end;
 
   if luCreditFrom.ItemIndex = -1 then
@@ -1310,7 +1310,7 @@ begin
       pcMain.ActivePage := tsOutlayMovement;
       if luCreditSubFrom.CanFocus then
         luCreditSubFrom.SetFocus;
-      raise EdlgSetupInvDocument.Create('Укажите, откуда брать ограничение расхода!');
+      raise EdlgSetupInvDocument.Create('Укажите откуда брать ограничение расхода!');
     end;
 
     if luCreditSubFrom.ItemIndex = -1 then
@@ -1420,8 +1420,6 @@ begin
       'Внимание',
       MB_OK or MB_ICONEXCLAMATION);
   end;
-
-  { TODO 1 -oденис -cмакро : Сделать проверку на макрос }
 end;
 
 procedure Tgdc_dlgSetupInvDocument.UpdateDocumentTemplates;
@@ -2152,7 +2150,6 @@ procedure Tgdc_dlgSetupInvDocument.Post;
   IE: TgdInvDocumentEntry;
   V: TgdcMCOPredefined;
   OldIsTransaction: Boolean;
-
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST)}
   {M}  try

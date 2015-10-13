@@ -834,6 +834,7 @@ begin
     end;
   end;
 
+  {
   Stream := TStringStream.Create('');
   try
     WriteOptions(Stream);
@@ -841,6 +842,7 @@ begin
   finally
     Stream.Free;
   end;
+  }
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGSETUPINVPRICELIST', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally

@@ -299,7 +299,6 @@ uses
 
   gdc_frmG_unit,
 
-  //gd_ClassList_InitDoc,
   gd_security_operationconst,
 
   gdcInvDocument_unit,

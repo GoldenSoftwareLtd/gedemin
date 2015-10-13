@@ -2719,15 +2719,16 @@ begin
   FLineFunctionKey := q.FieldByName('linefunctionkey').AsInteger;
   FDescription := q.FieldByName('description').AsString;
   FIsCheckNumber := TIsCheckNumber(q.FieldByName('ischecknumber').AsInteger);
-  FOptions := q.FieldByName('options').AsString;
+  FOptions := '';
   FReportGroupKey := q.FieldByName('reportgroupkey').AsInteger;
   FHeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
   FLineRelKey := q.FieldByName('linerelkey').AsInteger;
   FBranchKey := q.FieldByName('branchkey').AsInteger;
   if qOpt.EOF or (qOpt.FieldbyName('dtkey').AsInteger <> q.FieldByName('id').AsInteger) then
   begin
-    if (FOptions > '') and (gd_CmdLineParams.LoadSettingFileName = '') then
+    if (not q.FieldByName('options').IsNull) and (gd_CmdLineParams.LoadSettingFileName = '') then
     begin
+      FOptions := q.FieldByName('options').AsString;
       ParseOptions;
       ConvertOptions;
     end;

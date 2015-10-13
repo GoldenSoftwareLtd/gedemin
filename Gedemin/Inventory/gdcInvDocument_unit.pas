@@ -332,7 +332,7 @@ uses
   gd_security_OperationConst, gdc_dlgSetupInvDocument_unit, gdc_dlgG_unit,
   gdc_dlgInvDocument_unit, gdc_dlgInvDocumentLine_unit, gd_security,
   at_sql_setup, gdc_frmInvDocument_unit, gdc_frmInvDocumentType_unit,
-  gd_ClassList_InitDoc, gdc_dlgViewMovement_unit, gdcMetaData,
+  gdc_dlgViewMovement_unit, gdcMetaData,
   gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}

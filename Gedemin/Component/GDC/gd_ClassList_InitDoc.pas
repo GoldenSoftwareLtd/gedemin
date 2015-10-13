@@ -34,7 +34,7 @@ begin
   DE.LineFunctionKey := Obj.FieldByName('linefunctionkey').AsInteger;
   DE.Description := Obj.FieldByName('description').AsString;
   DE.IsCheckNumber := TIsCheckNumber(Obj.FieldByName('ischecknumber').AsInteger);
-  DE.Options := Obj.FieldByName('options').AsString;
+  DE.Options := ''; //Obj.FieldByName('options').AsString;
   DE.ReportGroupKey := Obj.FieldByName('reportgroupkey').AsInteger;
   DE.HeaderRelKey := Obj.FieldByName('headerrelkey').AsInteger;
   DE.LineRelKey := Obj.FieldByName('linerelkey').AsInteger;
