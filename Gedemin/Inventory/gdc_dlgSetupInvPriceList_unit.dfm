@@ -1,6 +1,6 @@
 inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
-  Left = 516
-  Top = 176
+  Left = 517
+  Top = 178
   Caption = 'Настройка прайс-листа'
   ClientHeight = 423
   ClientWidth = 532

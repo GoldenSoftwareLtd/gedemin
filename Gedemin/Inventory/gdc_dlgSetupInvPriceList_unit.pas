@@ -35,8 +35,6 @@ uses
   Grids, DBGrids, gsDBGrid, gsIBGrid, gdcMetaData, Menus;
 
 type
-  TinvPriceListField = class;
-
   TdlgSetupInvPriceList = class(Tgdc_dlgTR)
     pnlMain: TPanel;
     pcMain: TPageControl;
@@ -146,7 +144,7 @@ type
 
   protected
     procedure ReadOptions;
-    procedure WriteOptions(Stream: TStream);
+    //procedure WriteOptions(Stream: TStream);
 
     procedure BeforePost; override;
 
@@ -163,34 +161,6 @@ type
     procedure Post; override;
 
     property Document: TgdcInvPriceListType read GetDocument;
-  end;
-
-  TinvPriceListField = class
-  private
-    FPriceField: TgdcInvPriceField;
-    FLName: String;
-    FFieldSource: String;
-    FRelation: TatRelation;
-    FIsUsed: Boolean;
-
-    function Get_atField: TatField;
-
-  public
-    constructor Create(AFieldName, ALName, AFieldSource: String;
-      ARelation: TatRelation);
-
-    procedure ClearValues;
-    procedure AssignValues(APriceField: TgdcInvPriceField;
-      const AnIsUsed: Boolean = False);
-
-    function CanBeUsedAsCurrency: Boolean;
-    function GetID: Integer;
-
-    property LName: String read FLName;
-    property FieldSource: String read FFieldSource;
-    property atField: TatField read Get_atField;
-    property PriceField: TgdcInvPriceField read FPriceField;
-    property IsUsed: Boolean read FIsUsed;
   end;
 
   EdlgSetupInvPriceList = class(Exception);
@@ -307,12 +277,12 @@ begin
   begin
     CurrField := FLineFields[I] as TinvPriceListField;
 
-    if CurrField.IsUsed then
+    if CurrField.FIsUsed then
       Item := lvDetailUsed.Items.Add
     else
       Item := lvDetailAvailable.Items.Add;
 
-    Item.Caption := Trim(CurrField.LName);
+    Item.Caption := Trim(CurrField.FLName);
     Item.Data := CurrField;
   end;
 end;
@@ -332,12 +302,12 @@ begin
   begin
     CurrField := FHeaderFields[I] as TinvPriceListField;
 
-    if CurrField.IsUsed then
+    if CurrField.FIsUsed then
       Item := lvMasterUsed.Items.Add
     else
       Item := lvMasterAvailable.Items.Add;
 
-    Item.Caption := Trim(CurrField.LName);
+    Item.Caption := Trim(CurrField.FLName);
     Item.Data := CurrField;
   end;
 end;
@@ -388,6 +358,7 @@ begin
   {END MACRO}
 end;
 
+(*
 procedure TdlgSetupInvPriceList.WriteOptions(Stream: TStream);
 var
   I: Integer;
@@ -428,44 +399,7 @@ begin
     Free;
   end;
 end;
-
-{ TinvPriceListField }
-
-procedure TinvPriceListField.AssignValues(APriceField: TgdcInvPriceField;
-  const AnIsUsed: Boolean = False);
-begin
-  FPriceField.CurrencyKey := APriceField.CurrencyKey;
-  FPriceField.ContactKey := APriceField.ContactKey;
-  FisUsed := AnIsUsed;
-end;
-
-function TinvPriceListField.CanBeUsedAsCurrency: Boolean;
-begin
-  Result := (atField.FieldType in [ftSmallInt, ftInteger, ftBCD,
-    ftFloat, ftLargeInt, ftCurrency])
-      and
-    not Assigned(atField.RefTable) and
-    not Assigned(atField.SetTable);
-end;
-
-procedure TinvPriceListField.ClearValues;
-begin
-  FPriceField.CurrencyKey := -1;
-  FPriceField.ContactKey := -1;
-end;
-
-constructor TinvPriceListField.Create(AFieldName, ALName, AFieldSource: String;
-  ARelation: TatRelation);
-begin
-  FPriceField.FieldName := AFieldName;
-
-  FLName := ALName;
-  FFieldSource := AFieldSource;
-
-  ClearValues;
-
-  FRelation := ARelation;
-end;
+*)
 
 procedure TdlgSetupInvPriceList.TestLines;
 begin
@@ -518,7 +452,8 @@ begin
         CurrField.FPriceField.CurrencyKey := -1;
 
       if luContact.CurrentKey > '' then
-        CurrField.FPriceField.ContactKey := luContact.CurrentKeyInt else
+        CurrField.FPriceField.ContactKey := luContact.CurrentKeyInt
+      else
         CurrField.FPriceField.ContactKey := -1;
     end;
   end;
@@ -612,7 +547,7 @@ begin
   if (Item = nil) or not Selected then Exit;
 
   CurrField := Item.Data;
-  memo.Lines.Add(Format('Поле "%s":'#13#10, [CurrField.LName]));
+  memo.Lines.Add(Format('Поле "%s":'#13#10, [CurrField.FLName]));
 
   if not CurrField.atField.IsNullable then
     memo.Lines.Add('Обязательно для заполнения'#13#10)
@@ -622,33 +557,17 @@ begin
   if Sender = lvDetailUsed then
   begin
     if gdcBaseManager.ExecSingleQueryResult('SELECT name FROM gd_curr WHERE id = :id',
-      CurrField.PriceField.CurrencyKey, R) then
+      CurrField.FPriceField.CurrencyKey, R) then
     begin
       memo.Lines.Add('Валюта: ' + R[0, 0] + #13#10);
     end;
 
     if gdcBaseManager.ExecSingleQueryResult('SELECT name FROM gd_contact WHERE id = :id',
-      CurrField.PriceField.ContactKey, R) then
+      CurrField.FPriceField.ContactKey, R) then
     begin
       memo.Lines.Add('Организация: ' + R[0, 0] + #13#10);
     end;
   end;
-end;
-
-function TinvPriceListField.GetID: Integer;
-var
-  RF: TatRelationField;
-begin
-  Assert(FRelation <> nil);
-  RF := FRelation.RelationFields.ByFieldName(FPriceField.FieldName);
-  if RF = nil then
-    raise Exception.Create('Unknown field name');
-  Result := RF.ID;
-end;
-
-function TinvPriceListField.Get_atField: TatField;
-begin
-  Result := atDatabase.Fields.ByFieldName(FFieldSource);
 end;
 
 procedure TdlgSetupInvPriceList.lvDetailUsedDeletion(Sender: TObject;
@@ -694,7 +613,7 @@ var
   I: Integer;
 begin
   for I := 0 to List.Count - 1 do
-    if AnsiSameText((List[I] as TinvPriceListField).PriceField.FieldName, AField) then
+    if AnsiSameText((List[I] as TinvPriceListField).FPriceField.FieldName, AField) then
     begin
       Result := List[I] as TinvPriceListField;
       exit;
@@ -740,7 +659,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Stream: TStringStream;
 var
   gdcExplorer: TgdcExplorer;
 begin
@@ -1147,130 +1065,10 @@ procedure TdlgSetupInvPriceList.Post;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   R, RL: TatRelation;
-  RGKey, NSID, NSPos, HeadObjectKey: Integer;
-  q, qNS, qRUID: TIBSQL;
+  RGKey: Integer;
   DE: TgdDocumentEntry;
   IE: TgdInvPriceDocumentEntry;
   OldIsTransaction: Boolean;
-
-  function GetOptID(const AName: String; out AnOptID: Integer): Boolean;
-  begin
-    q.Close;
-    q.SQL.Text :=
-      'SELECT id FROM gd_documenttype_option ' +
-      'WHERE dtkey = :dtkey AND option_name STARTING WITH :s';
-    q.ParamByName('dtkey').AsInteger := gdcObject.ID;
-    q.ParamByName('s').AsString := AName;
-    q.ExecQuery;
-    if q.EOF then
-    begin
-      AnOptID := gdcObject.GetNextID;
-      Result := False;
-    end else
-    begin
-      AnOptID := q.Fields[0].AsInteger;
-      Result := True;
-    end;
-  end;
-
-  procedure AddNSObject(const AnObjID: Integer; const AName: String);
-  begin
-    if NSID > -1 then
-    begin
-      qRUID.ParamByName('id').AsInteger := AnObjID;
-      qRUID.ExecQuery;
-
-      Inc(NSPos);
-      qNS.ParamByName('namespacekey').AsInteger := NSID;
-      qNS.ParamByName('objectname').AsString := System.Copy(AName, 1, 60);
-      qNS.ParamByName('xid').AsInteger := AnObjID;
-      qNS.ParamByName('objectpos').AsInteger := NSPos;
-      qNS.ParamByName('headobjectkey').AsInteger := HeadObjectKey;
-      qNS.ExecQuery;
-    end;
-  end;
-
-  procedure UpdateFields(lv: TListView; const AName: String;
-    R: TatRelation; AFields: TgdcInvPriceFields);
-  var
-    I, J, OptID: Integer;
-    Found: Boolean;
-    RF: TatRelationField;
-    F: TInvPriceListField;
-  begin
-    Assert(R <> nil);
-
-    for I := 0 to lv.Items.Count - 1 do
-    begin
-      F := TInvPriceListField(lv.Items[I].Data);
-      Found := False;
-
-      for J := Low(AFields) to High(AFields) do
-        if AFields[J].FieldName = F.FPriceField.FieldName then
-        begin
-          Found := True;
-          break;
-        end;
-
-      if not Found then
-      begin
-        OptID := gdcObject.GetNextID;
-
-        q.Close;
-        q.SQL.Text :=
-          'INSERT INTO gd_documenttype_option (id, dtkey, option_name, relationfieldkey, contactkey, currkey) ' +
-          'VALUES (:id, :dtkey, :option_name, :rfk, :ck :currkey)';
-        q.ParamByName('id').AsInteger := OptID;
-        q.ParamByName('dtkey').AsInteger := gdcObject.ID;
-        q.ParamByName('option_name').AsString := AName;
-        q.ParamByName('rfk').AsInteger := F.GetID;
-        if F.FPriceField.ContactKey > 0 then
-          q.ParamByName('ck').AsInteger := F.FPriceField.ContactKey
-        else
-          q.ParamByName('ck').Clear;
-        if F.FPriceField.CurrencyKey > 0 then
-          q.ParamByName('currkey').AsInteger := F.FPriceField.CurrencyKey
-        else
-          q.ParamByName('currkey').Clear;
-        q.ExecQuery;
-
-        AddNSObject(OptID, AName + '.' + F.FPriceField.FieldName);
-      end;
-    end;
-
-    for J := Low(AFields) to High(AFields) do
-    begin
-      Found := False;
-
-      for I := 0 to lv.Items.Count - 1 do
-      begin
-        F := TInvPriceListField(lv.Items[I].Data);
-        if AFields[J].FieldName = F.FPriceField.FieldName then
-        begin
-          Found := True;
-          break;
-        end;
-      end;
-
-      if not Found then
-      begin
-        RF := R.RelationFields.ByFieldName(AFields[J].FieldName);
-
-        if RF <> nil then
-        begin
-          q.Close;
-          q.SQL.Text :=
-            'DELETE FROM gd_documenttype_option ' +
-            'WHERE dtkey = :dtkey AND option_name = :option_name AND relationfieldkey = :rfk';
-          q.ParamByName('dtkey').AsInteger := gdcObject.ID;
-          q.ParamByName('option_name').AsString := AName;
-          q.ParamByname('rfk').AsInteger := RF.ID;
-          q.ExecQuery;
-        end;
-      end;
-    end;
-  end;
-
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSETUPINVPRICELIST', 'POST', KEYPOST)}
   {M}  try
@@ -1297,6 +1095,8 @@ begin
   OldIsTransaction := FIsTransaction;
   FIsTransaction := True;
   try
+    Document.InitOpt;
+
     RGKey := gdcObject.FieldByName('reportgroupkey').AsInteger;
     if not Document.UpdateReportGroup('Прайс-листы', gdcObject.FieldByName('name').AsString, RGKey, True) then
       raise EdlgSetupInvPriceList.Create('Report Group Key has not been created!');
@@ -1318,53 +1118,15 @@ begin
     if (R = nil) or (RL = nil) then
       raise Exception.Create('Отсутствуют таблицы для документа!');
 
-    q := TIBSQL.Create(nil);
-    qRUID := TIBSQL.Create(nil);
-    qNS := TIBSQL.Create(nil);
-    try
-      qRUID.Transaction := gdcObject.Transaction;
-      qRUID.SQL.Text :=
-        'INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
-        'VALUES (:id, :id, GEN_ID(gd_g_dbid, 0), CURRENT_TIMESTAMP, <CONTACTKEY/>)';
 
-      qNS.Transaction := gdcObject.Transaction;
-      qNS.SQL.Text :=
-        'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
-        'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
-
-      q.Transaction := gdcObject.Transaction;
-      q.SQL.Text :=
-        'SELECT FIRST 1 obj.id, obj.namespacekey, obj.objectpos ' +
-        'FROM at_object obj ' +
-        '  JOIN gd_ruid r ON r.xid = obj.xid AND r.dbid = obj.dbid ' +
-        'WHERE r.id = :id';
-      q.ParamByName('id').AsInteger := gdcObject.ID;
-      q.ExecQuery;
-      if q.EOF then
-      begin
-        NSID := -1;
-        NSPos := -1;
-        HeadObjectKey := -1;
-      end else
-      begin
-        NSID := q.FieldbyName('namespacekey').AsInteger;
-        NSPos := q.FieldByName('objectpos').AsInteger;
-        HeadObjectKey := q.FieldByName('id').AsInteger;
-      end;
-      q.Close;
-
-      UpdateFields(lvMasterUsed, 'HF', R, IE.HeaderFields);
-      UpdateFields(lvMasterUsed, 'LF', RL, IE.LineFields);
-    finally
-      qNS.Free;
-      qRUID.Free;
-      q.Free;
-    end;
+    Document.UpdateFields(lvMasterUsed, 'HF', R, IE.HeaderFields);
+    Document.UpdateFields(lvMasterUsed, 'LF', RL, IE.LineFields);
 
     if not OldIsTransaction then
       gdcObject.Transaction.Commit;
   finally
     FIsTransaction := OldIsTransaction;
+    Document.DoneOpt;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVPRICELIST', 'POST', KEYPOST)}

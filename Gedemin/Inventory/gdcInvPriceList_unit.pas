@@ -30,7 +30,7 @@ uses
   Controls,   Forms,              Dialogs,              gd_ClassList,
   gdcBase,    gd_createable_form, gdcClasses_interface, gdcClasses, at_Classes,
   IBDatabase, DB,                 IBSQL,                gdcInvConsts_unit,
-  gdcBaseInterface;
+  gdcBaseInterface,               ComCtrls;
 
 type
   TgdcInvBasePriceList = class;
@@ -126,6 +126,30 @@ type
     procedure UpdateGoodNames;
   end;
 
+  TinvPriceListField = class
+  private
+    function Get_atField: TatField;
+
+  public
+    FPriceField: TgdcInvPriceField;
+    FLName: String;
+    FFieldSource: String;
+    FRelation: TatRelation;
+    FIsUsed: Boolean;
+
+    constructor Create(AFieldName, ALName, AFieldSource: String;
+      ARelation: TatRelation);
+
+    procedure ClearValues;
+    procedure AssignValues(APriceField: TgdcInvPriceField;
+      const AnIsUsed: Boolean = False);
+
+    function CanBeUsedAsCurrency: Boolean;
+    function GetID: Integer;
+
+    property atField: TatField read Get_atField;
+  end;
+
   TgdcInvPriceListType = class(TgdcDocumentType)
   protected
     procedure CreateFields; override;
@@ -133,6 +157,9 @@ type
 
   public
     constructor Create(AnOwner: TComponent); override;
+
+    procedure UpdateFields(lv: TListView; const AName: String;
+      R: TatRelation; AFields: TgdcInvPriceFields);
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -1189,6 +1216,60 @@ begin
   Result := 'TdlgInvPriceLine';
 end;
 
+{ TinvPriceListField }
+
+procedure TinvPriceListField.AssignValues(APriceField: TgdcInvPriceField;
+  const AnIsUsed: Boolean = False);
+begin
+  FPriceField.CurrencyKey := APriceField.CurrencyKey;
+  FPriceField.ContactKey := APriceField.ContactKey;
+  FisUsed := AnIsUsed;
+end;
+
+function TinvPriceListField.CanBeUsedAsCurrency: Boolean;
+begin
+  Result := (atField.FieldType in [ftSmallInt, ftInteger, ftBCD,
+    ftFloat, ftLargeInt, ftCurrency])
+      and
+    not Assigned(atField.RefTable) and
+    not Assigned(atField.SetTable);
+end;
+
+procedure TinvPriceListField.ClearValues;
+begin
+  FPriceField.CurrencyKey := -1;
+  FPriceField.ContactKey := -1;
+end;
+
+constructor TinvPriceListField.Create(AFieldName, ALName, AFieldSource: String;
+  ARelation: TatRelation);
+begin
+  FPriceField.FieldName := AFieldName;
+
+  FLName := ALName;
+  FFieldSource := AFieldSource;
+
+  ClearValues;
+
+  FRelation := ARelation;
+end;
+
+function TinvPriceListField.GetID: Integer;
+var
+  RF: TatRelationField;
+begin
+  Assert(FRelation <> nil);
+  RF := FRelation.RelationFields.ByFieldName(FPriceField.FieldName);
+  if RF = nil then
+    raise Exception.Create('Unknown field name');
+  Result := RF.ID;
+end;
+
+function TinvPriceListField.Get_atField: TatField;
+begin
+  Result := atDatabase.Fields.ByFieldName(FFieldSource);
+end;
+
 { TgdcInvPriceListType }
 
 constructor TgdcInvPriceListType.Create(AnOwner: TComponent);
@@ -1307,6 +1388,87 @@ end;
 class function TgdcInvPriceListType.InvDocumentTypeBranchKey: Integer;
 begin
   Result := INV_DOC_PRICELISTBRANCH;
+end;
+
+procedure TgdcInvPriceListType.UpdateFields(lv: TListView;
+  const AName: String; R: TatRelation; AFields: TgdcInvPriceFields);
+var
+  I, J, OptID: Integer;
+  Found: Boolean;
+  RF: TatRelationField;
+  F: TInvPriceListField;
+begin
+  Assert(R <> nil);
+
+  for I := 0 to lv.Items.Count - 1 do
+  begin
+    F := TInvPriceListField(lv.Items[I].Data);
+    Found := False;
+
+    for J := Low(AFields) to High(AFields) do
+      if AFields[J].FieldName = F.FPriceField.FieldName then
+      begin
+        Found := True;
+        break;
+      end;
+
+    if not Found then
+    begin
+      OptID := GetNextID;
+
+      Fq.Close;
+      Fq.SQL.Text :=
+        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, relationfieldkey, contactkey, currkey) ' +
+        'VALUES (:id, :dtkey, :option_name, :rfk, :ck :currkey)';
+      Fq.ParamByName('id').AsInteger := OptID;
+      Fq.ParamByName('dtkey').AsInteger := ID;
+      Fq.ParamByName('option_name').AsString := AName;
+      Fq.ParamByName('rfk').AsInteger := F.GetID;
+      if F.FPriceField.ContactKey > 0 then
+        Fq.ParamByName('ck').AsInteger := F.FPriceField.ContactKey
+      else
+        Fq.ParamByName('ck').Clear;
+      if F.FPriceField.CurrencyKey > 0 then
+        Fq.ParamByName('currkey').AsInteger := F.FPriceField.CurrencyKey
+      else
+        Fq.ParamByName('currkey').Clear;
+      Fq.ExecQuery;
+
+      AddNSObject(OptID, AName + '.' + F.FPriceField.FieldName);
+    end;
+  end;
+
+  for J := Low(AFields) to High(AFields) do
+  begin
+    Found := False;
+
+    for I := 0 to lv.Items.Count - 1 do
+    begin
+      F := TInvPriceListField(lv.Items[I].Data);
+      if AFields[J].FieldName = F.FPriceField.FieldName then
+      begin
+        Found := True;
+        break;
+      end;
+    end;
+
+    if not Found then
+    begin
+      RF := R.RelationFields.ByFieldName(AFields[J].FieldName);
+
+      if RF <> nil then
+      begin
+        Fq.Close;
+        Fq.SQL.Text :=
+          'DELETE FROM gd_documenttype_option ' +
+          'WHERE dtkey = :dtkey AND option_name = :option_name AND relationfieldkey = :rfk';
+        Fq.ParamByName('dtkey').AsInteger := ID;
+        Fq.ParamByName('option_name').AsString := AName;
+        Fq.ParamByname('rfk').AsInteger := RF.ID;
+        Fq.ExecQuery;
+      end;
+    end;
+  end;
 end;
 
 initialization
