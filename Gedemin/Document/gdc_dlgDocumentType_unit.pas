@@ -95,8 +95,6 @@ type
   protected
     function DlgModified: Boolean; override;
     procedure BeforePost; override;
-
-  public
     procedure SetupDialog; override;
     procedure SetupRecord; override;
     function TestCorrect: Boolean; override;

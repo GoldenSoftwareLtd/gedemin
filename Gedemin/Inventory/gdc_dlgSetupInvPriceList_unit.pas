@@ -120,8 +120,6 @@ type
     procedure edEnglishNameChange(Sender: TObject);
 
   private
-    FOperationCount: Integer; // Список операций по созданию полей с переподключением
-    FMetaChangeCount: Integer; // Кол-во изменений в метаданных
     FHeaderFields, FLineFields: TObjectList; // Список выбранных полей прайс-листа
     FIPDE: TgdInvPriceDocumentEntry;
 
@@ -129,10 +127,7 @@ type
     procedure SetupHeaderTab;
     procedure SetupDetailTab;
 
-    procedure TestLines;
-
     function GetDocument: TgdcInvPriceListType;
-
     function GetPrice: TatRelation;
     function GetPriceLine: TatRelation;
 
@@ -147,6 +142,11 @@ type
     //procedure WriteOptions(Stream: TStream);
 
     procedure BeforePost; override;
+    procedure SetupDialog; override;
+    procedure SetupRecord; override;
+    function TestCorrect: Boolean; override;
+    procedure Post; override;
+    procedure AfterPost; override;
 
     property Price: TatRelation read GetPrice;
     property PriceLine: TatRelation read GetPriceLine;
@@ -154,11 +154,6 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-
-    procedure SetupDialog; override;
-    procedure SetupRecord; override;
-    function TestCorrect: Boolean; override;
-    procedure Post; override;
 
     property Document: TgdcInvPriceListType read GetDocument;
   end;
@@ -181,8 +176,6 @@ begin
   inherited;
   FHeaderFields := TObjectList.Create;
   FLineFields := TObjectList.Create;
-  FOperationCount := 0;
-  FMetaChangeCount := 0;
 end;
 
 destructor TdlgSetupInvPriceList.Destroy;
@@ -348,7 +341,14 @@ begin
   Result := inherited TestCorrect;
 
   if Result then
-    TestLines;
+  begin
+    if lvDetailUsed.Items.Count = 0 then
+    begin
+      pcMain.ActivePage := tsLine;
+      raise EdlgSetupInvPriceList.Create(
+        'Не указано ни одно поле для позиции прайс-листа!');
+    end;
+  end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGSETUPINVPRICELIST', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}finally
@@ -400,16 +400,6 @@ begin
   end;
 end;
 *)
-
-procedure TdlgSetupInvPriceList.TestLines;
-begin
-  if lvDetailUsed.Items.Count = 0 then
-  begin
-    pcMain.ActivePage := tsLine;
-    raise EdlgSetupInvPriceList.Create(
-      'Не указано ни одно поле для позиции прайс-листа!');
-  end;
-end;
 
 procedure TdlgSetupInvPriceList.actSelectMasterFieldExecute(
   Sender: TObject);
@@ -580,8 +570,8 @@ begin
     Memo := memoLineInfo;
 
   with (Sender as TListView) do
-  if (Selected = nil) or (Items.Count = 1) then
-    Memo.Clear;
+    if (Selected = nil) or (Items.Count = 1) then
+      Memo.Clear;
 end;
 
 procedure TdlgSetupInvPriceList.lvDetailAvailableSelectItem(
@@ -1064,25 +1054,21 @@ procedure TdlgSetupInvPriceList.Post;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  R, RL: TatRelation;
   RGKey: Integer;
-  DE: TgdDocumentEntry;
-  IE: TgdInvPriceDocumentEntry;
-  OldIsTransaction: Boolean;
 begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSETUPINVPRICELIST', 'POST', KEYPOST)}
+  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGSETUPINVPRICELIST', 'POST', KEYPOST)}
   {M}  try
   {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
   {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGSETUPINVPRICELIST', KEYPOST);
+  {M}      SetFirstMethodAssoc('TDLGSETUPINVPRICELIST', KEYPOST);
   {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGSETUPINVPRICELIST') = -1) then
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TDLGSETUPINVPRICELIST') = -1) then
   {M}      begin
   {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGSETUPINVPRICELIST',
+  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TDLGSETUPINVPRICELIST',
   {M}          'POST', KEYPOST, Params, LResult) then exit;
   {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGSETUPINVPRICELIST' then
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TDLGSETUPINVPRICELIST' then
   {M}        begin
   {M}          Inherited;
   {M}          Exit;
@@ -1092,19 +1078,31 @@ begin
 
   Assert(gdcObject.Transaction.InTransaction);
 
-  OldIsTransaction := FIsTransaction;
-  FIsTransaction := True;
+  RGKey := gdcObject.FieldByName('reportgroupkey').AsInteger;
+  if not Document.UpdateReportGroup('Прайс-листы', gdcObject.FieldByName('name').AsString, RGKey, True) then
+    raise EdlgSetupInvPriceList.Create('Report Group Key has not been created!');
+
+  gdcObject.FieldByName('reportgroupkey').AsInteger := RGKey;
+
+  inherited;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGSETUPINVPRICELIST', 'POST', KEYPOST)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TDLGSETUPINVPRICELIST', 'POST', KEYPOST);
+  {M}end;
+  {END MACRO}
+end;
+
+procedure TdlgSetupInvPriceList.AfterPost;
+var
+  DE: TgdDocumentEntry;
+  IE: TgdInvPriceDocumentEntry;
+begin
+  inherited;
+
+  Document.InitOpt;
   try
-    Document.InitOpt;
-
-    RGKey := gdcObject.FieldByName('reportgroupkey').AsInteger;
-    if not Document.UpdateReportGroup('Прайс-листы', gdcObject.FieldByName('name').AsString, RGKey, True) then
-      raise EdlgSetupInvPriceList.Create('Report Group Key has not been created!');
-
-    gdcObject.FieldByName('reportgroupkey').AsInteger := RGKey;
-
-    inherited;
-
     DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
     if DE is TgdInvPriceDocumentEntry then
       IE := DE as TgdInvPriceDocumentEntry
@@ -1113,28 +1111,11 @@ begin
     else
       raise Exception.Create('Not an inventory price document type');
 
-    R := atDatabase.Relations.ByRelationName('INV_PRICE');
-    RL := atDatabase.Relations.ByRelationName('INV_PRICELINE');
-    if (R = nil) or (RL = nil) then
-      raise Exception.Create('Отсутствуют таблицы для документа!');
-
-
-    Document.UpdateFields(lvMasterUsed, 'HF', R, IE.HeaderFields);
-    Document.UpdateFields(lvMasterUsed, 'LF', RL, IE.LineFields);
-
-    if not OldIsTransaction then
-      gdcObject.Transaction.Commit;
+    Document.UpdateFields(lvMasterUsed, 'HF', Price, IE.HeaderFields);
+    Document.UpdateFields(lvDetailUsed, 'LF', PriceLine, IE.LineFields);
   finally
-    FIsTransaction := OldIsTransaction;
     Document.DoneOpt;
   end;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVPRICELIST', 'POST', KEYPOST)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGSETUPINVPRICELIST', 'POST', KEYPOST);
-  {M}end;
-  {END MACRO}
 end;
 
 initialization

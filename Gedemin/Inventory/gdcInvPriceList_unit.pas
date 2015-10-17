@@ -1419,7 +1419,7 @@ begin
       Fq.Close;
       Fq.SQL.Text :=
         'INSERT INTO gd_documenttype_option (id, dtkey, option_name, relationfieldkey, contactkey, currkey) ' +
-        'VALUES (:id, :dtkey, :option_name, :rfk, :ck :currkey)';
+        'VALUES (:id, :dtkey, :option_name, :rfk, :ck, :currkey)';
       Fq.ParamByName('id').AsInteger := OptID;
       Fq.ParamByName('dtkey').AsInteger := ID;
       Fq.ParamByName('option_name').AsString := AName;

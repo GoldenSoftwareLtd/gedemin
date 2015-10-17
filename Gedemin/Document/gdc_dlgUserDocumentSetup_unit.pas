@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -21,7 +20,6 @@
     Initial  03-12-2001  Dennis  Initial version.
 
 --}             
-
 
 unit gdc_dlgUserDocumentSetup_unit;
        
@@ -46,14 +44,8 @@ type
     actDeleteFieldDetail: TAction;
     procedure FormCreate(Sender: TObject);
 
-  private
-//    FReportGroupKey: Integer;
-
   protected
     procedure BeforePost; override;
-
-  public
-    function TestCorrect: Boolean; override;
   end;
 
   Egdc_dlgUserDocumentSetup = class(Exception);
@@ -69,49 +61,6 @@ uses dmImages_unit, at_classes, dmDatabase_unit,  gd_ClassList, gdcClasses_inter
 
 { Tgdc_dlgUserDocumentSetup }
 
-function Tgdc_dlgUserDocumentSetup.TestCorrect: Boolean;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGUSERDOCUMENTSETUP', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}Result := True;
-  {M}try
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}  begin
-  {M}    SetFirstMethodAssoc('TGDC_DLGUSERDOCUMENTSETUP', KEYTESTCORRECT);
-  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYTESTCORRECT]);
-  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGUSERDOCUMENTSETUP') = -1) then
-  {M}    begin
-  {M}      Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGUSERDOCUMENTSETUP',
-  {M}        'TESTCORRECT', KEYTESTCORRECT, Params, LResult) then
-  {M}      begin
-  {M}        if VarType(LResult) = $000B then
-  {M}          Result := LResult;
-  {M}        exit;
-  {M}      end;
-  {M}    end else
-  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGUSERDOCUMENTSETUP' then
-  {M}      begin
-  {M}        Result := Inherited TestCorrect;
-  {M}        Exit;
-  {M}      end;
-  {M}  end;
-  {END MACRO}
-  Result := inherited TestCorrect;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERDOCUMENTSETUP', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGUSERDOCUMENTSETUP', 'TESTCORRECT', KEYTESTCORRECT);
-  {M}end;
-  {END MACRO}
-end;
-
-
 procedure Tgdc_dlgUserDocumentSetup.FormCreate(Sender: TObject);
 begin
   inherited;
@@ -119,7 +68,6 @@ begin
   if tsCommon.TabVisible then
     pcMain.ActivePage := tsCommon;
 end;
-
 
 procedure Tgdc_dlgUserDocumentSetup.BeforePost;
 var
@@ -149,7 +97,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  inherited;
+
   rpgroupkey := gdcObject.FieldByName('reportgroupkey').AsInteger;
   if not (gdcObject as TgdcBaseDocumentType).UpdateReportGroup(
     'Документы пользователя',
@@ -159,6 +107,9 @@ begin
     raise EgdcIBError.Create('Невозможно создать группу отчетов!');
 
   gdcObject.FieldByName('reportgroupkey').AsInteger := rpgroupkey;
+
+  inherited;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERDOCUMENTSETUP', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -172,6 +123,5 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserDocumentSetup);
-
 end.
 

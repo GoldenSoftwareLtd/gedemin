@@ -45,7 +45,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
       Top = 4
       Width = 523
       Height = 385
-      ActivePage = tsHeader
+      ActivePage = tsCommon
       TabOrder = 0
       OnChange = pcMainChange
       OnChanging = pcMainChanging
@@ -139,7 +139,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           KeyField = 'ID'
           gdClassName = 'TgdcTable'
           OnCreateNewObject = iblcHeaderTableCreateNewObject
-          ItemHeight = 0
+          ItemHeight = 13
           ParentShowHint = False
           ShowHint = True
           TabOrder = 5
@@ -160,7 +160,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           KeyField = 'id'
           gdClassName = 'TgdcTable'
           OnCreateNewObject = iblcLineTableCreateNewObject
-          ItemHeight = 0
+          ItemHeight = 13
           ParentShowHint = False
           ShowHint = True
           TabOrder = 6
@@ -179,7 +179,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           Condition = '(ClassName is Null) or (ClassName = '#39#39')'
           gdClassName = 'TgdcExplorer'
           ViewType = vtTree
-          ItemHeight = 0
+          ItemHeight = 13
           ParentShowHint = False
           ShowHint = True
           TabOrder = 4
@@ -412,7 +412,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           ListField = 'name'
           KeyField = 'id'
           gdClassName = 'TgdcCurr'
-          ItemHeight = 0
+          ItemHeight = 13
           ParentShowHint = False
           ShowHint = True
           TabOrder = 7
@@ -430,7 +430,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           KeyField = 'id'
           Condition = 'contacttype=2'
           gdClassName = 'TgdcContact'
-          ItemHeight = 0
+          ItemHeight = 13
           ParentShowHint = False
           ShowHint = True
           TabOrder = 8

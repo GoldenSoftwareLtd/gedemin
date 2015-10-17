@@ -186,6 +186,7 @@ type
     // но не делать датасетам ѕост или  энсел!
     procedure BeforePost; virtual;
     procedure CallBeforePost;
+    procedure AfterPost; virtual;
 
     // метод TestCorrect предназанчен дл€ проверки правильности
     // заполнени€ полей диалогового окна.
@@ -620,6 +621,8 @@ begin
             gdcObject.DetailLinks[I].ApplyUpdates;
           end;
         end;
+
+        AfterPost;
       end;
     except
       on E: Exception do
@@ -1671,6 +1674,10 @@ begin
     end;
   end else
     BeforePost;
+end;
+
+procedure Tgdc_dlgG.AfterPost;
+begin
 end;
 
 function Tgdc_dlgG.TestCorrect: Boolean;

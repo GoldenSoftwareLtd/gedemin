@@ -1,6 +1,6 @@
 inherited gdc_frmDocumentType: Tgdc_frmDocumentType
-  Left = 379
-  Top = 181
+  Left = 380
+  Top = 182
   Width = 795
   Height = 542
   Caption = 'Типовые документы'

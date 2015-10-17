@@ -172,18 +172,18 @@ type
     function GetMinusFeatures: TStringList;
 
   protected
+    procedure SetupDialog; override;
+    procedure SetupRecord; override;
+    function TestCorrect: Boolean; override;
+    procedure Post; override;
+    procedure AfterPost; override;
+    function FindFieldInCombo(Box: TComboBox): String;
     procedure ReadOptions;
     //procedure WriteOptions(Stream: TStream);
 
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-
-    procedure SetupDialog; override;
-    procedure SetupRecord; override;
-    function TestCorrect: Boolean; override;
-    procedure Post; override;
-    function FindFieldInCombo(Box: TComboBox): String;
 
     property Document: TgdcInvDocumentType read GetDocument;
     property DestFeatures: TStringList read FDestFeatures;
@@ -2144,12 +2144,7 @@ procedure Tgdc_dlgSetupInvDocument.Post;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  R, RL, CurrR: TatRelation;
   RGKey: Integer;
-  DE: TgdDocumentEntry;
-  IE: TgdInvDocumentEntry;
-  V: TgdcMCOPredefined;
-  OldIsTransaction: Boolean;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST)}
   {M}  try
@@ -2173,19 +2168,33 @@ begin
 
   Assert(gdcObject.Transaction.InTransaction);
 
-  OldIsTransaction := FIsTransaction;
-  FIsTransaction := True;
+  RGKey := gdcObject.FieldByName('reportgroupkey').AsInteger;
+  if not Document.UpdateReportGroup('Складской учет', gdcObject.FieldByName('name').AsString, RGKey, True) then
+    raise EgdcInvDocumentType.Create('Report Group Key has not been created!');
+
+  gdcObject.FieldByName('reportgroupkey').AsInteger := RGKey;
+
+  inherited;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST);
+  {M}end;
+  {END MACRO}
+end;
+
+procedure Tgdc_dlgSetupInvDocument.AfterPost;
+var
+  R, RL, CurrR: TatRelation;
+  DE: TgdDocumentEntry;
+  IE: TgdInvDocumentEntry;
+  V: TgdcMCOPredefined;
+begin
+  inherited;
+
+  Document.InitOpt;
   try
-    Document.InitOpt;
-
-    RGKey := gdcObject.FieldByName('reportgroupkey').AsInteger;
-    if not Document.UpdateReportGroup('Складской учет', gdcObject.FieldByName('name').AsString, RGKey, True) then
-      raise EgdcInvDocumentType.Create('Report Group Key has not been created!');
-
-    gdcObject.FieldByName('reportgroupkey').AsInteger := RGKey;
-
-    inherited;
-
     DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
     if DE is TgdInvDocumentEntry then
       IE := DE as TgdInvDocumentEntry
@@ -2324,20 +2333,9 @@ begin
       Document.UpdateFlag(efWithoutSearchRemains, cbWithoutSearchRemains.Checked)
     else
       Document.UpdateFlag(efWithoutSearchRemains, False);
-
-    if not OldIsTransaction then
-      gdcObject.Transaction.Commit;
   finally
-    FIsTransaction := OldIsTransaction;
     Document.DoneOpt;
   end;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST);
-  {M}end;
-  {END MACRO}
 end;
 
 initialization
