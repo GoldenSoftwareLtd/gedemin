@@ -44,14 +44,13 @@ uses
 procedure Tfrm_gedemin_cc_main.FormCreate(Sender: TObject);
 begin
   SB.Panels[0].Text := DM.IBDB.DatabaseName;
-  gedemin_cc_TCPServer.Connect;
+  ccTCPServer.Connect;
 end;
 
 procedure Tfrm_gedemin_cc_main.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
-  gedemin_cc_TCPServer.Disconnect;
+  ccTCPServer.Disconnect;
 end;
-
 
 end.
