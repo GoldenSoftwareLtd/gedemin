@@ -411,9 +411,16 @@ begin
 
         DropConstraint2('GD_DOCUMENTTYPE_OPTION', 'GD_UQ_DT_OPTION', FTransaction);
         DropConstraint2('GD_DOCUMENTTYPE_OPTION', 'GD_FK_DT_OPTION_RELKEY', FTransaction);
+
+        FTransaction.Commit;
+        FTransaction.StartTransaction;
+
         DropField2('GD_DOCUMENTTYPE_OPTION', 'STR_VALUE', FTransaction);
         DropField2('GD_DOCUMENTTYPE_OPTION', 'RELATIONKEY', FTransaction);
 
+        FTransaction.Commit;
+        FTransaction.StartTransaction;
+        
         FIBSQL.SQL.Text :=
           'ALTER TABLE gd_documenttype_option ADD CONSTRAINT gd_uq_dt_option '#13#10 +
           'UNIQUE (dtkey, option_name, relationfieldkey, contactkey, currkey)';

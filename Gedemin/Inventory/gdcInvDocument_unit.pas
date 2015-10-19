@@ -6018,7 +6018,7 @@ begin
       Fq.ParamByName('rfk').AsInteger := ARF.ID;
       Fq.ExecQuery;
 
-      AddNSObject(OptID, AName);
+      AddNSObject(OptID, AName, ARF.ID);
     end;
   end;
 end;

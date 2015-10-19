@@ -1434,7 +1434,7 @@ begin
         Fq.ParamByName('currkey').Clear;
       Fq.ExecQuery;
 
-      AddNSObject(OptID, AName + '.' + F.FPriceField.FieldName);
+      AddNSObject(OptID, AName + '.' + F.FPriceField.FieldName, F.GetID);
     end;
   end;
 

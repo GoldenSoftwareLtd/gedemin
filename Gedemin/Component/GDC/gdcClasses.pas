@@ -195,7 +195,7 @@ type
 
   TgdcDocumentType = class(TgdcBaseDocumentType)
   protected
-    FqGetOptID, FqDel, FqRUID, FqNS, Fq: TIBSQL;
+    FqGetOptID, FqDel, FqRUID, FqNS, Fq, FqFindObj: TIBSQL;
     FNSID, FNSPos, FHeadObjectKey: Integer;
 
     procedure _DoOnNewRecord; override;
@@ -220,7 +220,7 @@ type
     procedure DoneOpt; virtual;
     function GetOptID(const AName: String; out AnOptID: Integer): Boolean;
     procedure DelOpt(const AName: String);
-    procedure AddNSObject(const AnObjID: Integer; const AName: String);
+    procedure AddNSObject(const AnObjID: Integer; const AName: String; const ADependentOnID: Integer = -1);
   end;
 
   TgdcUserDocumentType = class(TgdcDocumentType)
@@ -2890,6 +2890,7 @@ begin
   FreeAndNil(FqDel);
   FreeAndNil(FqRUID);
   FreeAndNil(FqNS);
+  FreeAndNil(FqFindObj);
   FreeAndNil(Fq);
 end;
 
@@ -2922,6 +2923,13 @@ begin
   FqNS.SQL.Text :=
     'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
     'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+
+  FqFindObj := TIBSQL.Create(nil);
+  FqFindObj.Transaction := Transaction;
+  FqFindObj.SQL.Text :=
+    'SELECT o.objectpos FROM at_object o ' +
+    'JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
+    'WHERE o.namespacekey = :nk AND r.id = :id AND o.objectpos > :p';
 
   Fq := TIBSQL.Create(nil);
   Fq.Transaction := Transaction;
@@ -2974,18 +2982,39 @@ begin
 end;
 
 procedure TgdcDocumentType.AddNSObject(const AnObjID: Integer;
-  const AName: String);
+  const AName: String; const ADependentOnID: Integer = -1);
+var
+  P: Integer;
 begin
   if FNSID > -1 then
   begin
     FqRUID.ParamByName('id').AsInteger := AnObjID;
     FqRUID.ExecQuery;
 
-    Inc(FNSPos);
+    P := 0;
+
+    if ADependentOnID > 0 then
+    begin
+      FqFindObj.Close;
+      FqFindObj.ParamByName('nk').AsInteger := FNSID;
+      FqFindObj.ParamByName('id').AsInteger := ADependentOnID;
+      FqFindObj.ParamByName('p').AsInteger := FNSPos;
+      FqFindObj.ExecQuery;
+      if not FqFindObj.EOF then
+        P := FqFindObj.Fields[0].AsInteger + 1;
+      FqFindObj.Close;
+    end;
+
+    if P = 0 then
+    begin
+      Inc(FNSPos);
+      P := FNSPos;
+    end;
+
     FqNS.ParamByName('namespacekey').AsInteger := FNSID;
     FqNS.ParamByName('objectname').AsString := System.Copy(AName, 1, 60);
     FqNS.ParamByName('xid').AsInteger := AnObjID;
-    FqNS.ParamByName('objectpos').AsInteger := FNSPos;
+    FqNS.ParamByName('objectpos').AsInteger := P;
     FqNS.ParamByName('headobjectkey').AsInteger := FHeadObjectKey;
     FqNS.ExecQuery;
   end;
