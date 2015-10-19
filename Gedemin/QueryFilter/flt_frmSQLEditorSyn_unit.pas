@@ -257,6 +257,9 @@ type
     Panel2: TPanel;
     lvRelations: TListView;
     lblTablesCount: TLabel;
+    actClassesRefresh: TAction;
+    TBItem35: TTBItem;
+    TBSeparatorItem19: TTBSeparatorItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -338,6 +341,7 @@ type
     procedure actFilterExecute(Sender: TObject);
     procedure actFindNextUpdate(Sender: TObject);
     procedure edClassesFilterChange(Sender: TObject);
+    procedure actClassesRefreshExecute(Sender: TObject);
 
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
@@ -1616,38 +1620,49 @@ var
   Level: Integer;
   CE: TgdBaseEntry;
 begin
-  if not (ACE is TgdBaseEntry) then
+  if ACE is TgdBaseEntry then
   begin
-    Result := False;
-    exit;
+    CE := ACE as TgdBaseEntry;
+    S := CE.TheClass.ClassName + CE.SubType
+      + CE.gdcClass.GetDisplayName(CE.SubType)
+      + CE.gdcClass.GetListTable(CE.SubType)
+      + CE.DistinctRelation;
+  end else
+  begin
+    CE := nil;
+    S := ACE.TheClass.ClassName + ACE.SubType + ACE.Caption;
   end;
 
-  CE := ACE as TgdBaseEntry;
-
-  S := CE.TheClass.ClassName + CE.SubType
-    + CE.gdcClass.GetDisplayName(CE.SubType)
-    + CE.gdcClass.GetListTable(CE.SubType)
-    + CE.DistinctRelation;
   Level := PInteger(AData1)^;
 
   if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
   begin
     LI := lvClasses.Items.Add;
-    LI.Caption := StringOfChar(' ', Level * 2) + CE.TheClass.ClassName;
+    LI.Caption := StringOfChar(' ', Level * 2) + ACE.TheClass.ClassName;
 
-    if CE.gdcClass.IsAbstractClass then
-      LI.SubItems.Add('<Абстрактный базовый класс>')
-    else
-      LI.SubItems.Add(CE.SubType);
+    if CE <> nil then
+    begin
+      if CE.gdcClass.IsAbstractClass then
+        LI.SubItems.Add('<Абстрактный базовый класс>')
+      else
+        LI.SubItems.Add(CE.SubType);
 
-    LI.SubItems.Add(CE.gdcClass.GetDisplayName(CE.SubType));
-    LI.SubItems.Add(CE.gdcClass.GetListTable(CE.SubType));
-    LI.SubItems.Add(CE.ClassName);
-    LI.SubItems.Add(CE.DistinctRelation);
+      LI.SubItems.Add(CE.gdcClass.GetDisplayName(CE.SubType));
+      LI.SubItems.Add(CE.gdcClass.GetListTable(CE.SubType));
+      LI.SubItems.Add(CE.ClassName);
+      LI.SubItems.Add(CE.DistinctRelation);
+    end else
+    begin
+      LI.SubItems.Add(ACE.SubType);
+      LI.SubItems.Add(ACE.Caption);
+      LI.SubItems.Add('');
+      LI.SubItems.Add(ACE.ClassName);
+      LI.SubItems.Add('');
+    end;
   end;
 
   Inc(Level);
-  gdClassList.Traverse(CE.gdcClass, CE.SubType, BuildClassTree, @Level, nil, False, True);
+  gdClassList.Traverse(ACE.TheClass, ACE.SubType, BuildClassTree, @Level, nil, False, True);
 
   Result := True;
 end;
@@ -1662,10 +1677,12 @@ begin
   if gdClassList <> nil then
   begin
     lvClasses.Items.BeginUpdate;
-    Level := 0;
     try
       lvClasses.Items.Clear;
-      BuildClassTree(gdClassList.Find(TgdcBase), @Level, nil);
+      Level := 0;
+      BuildClassTree(gdClassList.Find('TgdcBase'), @Level, nil);
+      Level := 0;
+      BuildClassTree(gdClassList.Find('TgdcCreateableForm'), @Level, nil);
     finally
       lvClasses.Items.EndUpdate;
     end;
@@ -2436,18 +2453,19 @@ end;
 {$IFDEF GEDEMIN}
 function TfrmSQLEditorSyn.CreateCurrClassBusinessObject(out Obj: TgdcBase): Boolean;
 var
-  CE: TgdBaseEntry;
+  CE: TgdClassEntry;
 begin
   Assert(lvClasses.Selected <> nil);
 
   Obj := nil;
   CE := gdClassList.Find(Trim(lvClasses.Selected.Caption),
-    lvClasses.Selected.SubItems[0]) as TgdBaseEntry;
+    lvClasses.Selected.SubItems[0]);
 
-  if (CE <> nil) and (CE.gdcClass <> nil) and (not CE.gdcClass.IsAbstractClass) then
+  if (CE is TgdBaseEntry) and (TgdBaseEntry(CE).gdcClass <> nil)
+    and (not TgdBaseEntry(CE).gdcClass.IsAbstractClass) then
   begin
-    Obj := CE.gdcClass.Create(nil);
-    Obj.SubType := CE.SubType;
+    Obj := TgdBaseEntry(CE).gdcClass.Create(nil);
+    Obj.SubType := TgdBaseEntry(CE).SubType;
   end;
 
   Result := Obj <> nil;
@@ -2642,6 +2660,11 @@ begin
     edClassesFilter.Color := clWindow;
     lvClasses.Color := clWindow;
   end;
+end;
+
+procedure TfrmSQLEditorSyn.actClassesRefreshExecute(Sender: TObject);
+begin
+  FillClassesList;
 end;
 
 initialization

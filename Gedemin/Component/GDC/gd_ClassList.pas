@@ -2195,15 +2195,6 @@ var
 begin
   Assert(atDatabase <> nil);
 
-  SL := TStringList.Create;
-  try
-    for I := 0 to FCount - 1 do
-      SL.Add(FClasses[I].SubType + FClasses[I].TheClass.ClassName);
-    SL.SaveToFile('c:\temp\1.txt');  
-  finally
-    SL.Free;
-  end;
-
   CEAttrUserDefined := Get(TgdBaseEntry, 'TgdcAttrUserDefined');
   CEAttrUserDefinedTree := Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree');
   CEAttrUserDefinedLBRBTree := Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree');
