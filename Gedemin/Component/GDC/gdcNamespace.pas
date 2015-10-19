@@ -88,6 +88,16 @@ begin
   RegisterComponents('gdcNamespace', [TgdcNamespace, TgdcNamespaceObject]);
 end;
 
+type
+  TSortedFields = class(TObjectList)
+  private
+    function _Compare(F1, F2: TField): Integer;
+    function _Find(AField: TField; out Index: Integer): Boolean;
+
+  public
+    procedure AddField(AField: TField);
+  end;
+
 function GetReferenceString(AnIDField: TField; AnObjectNameField: TField; ATr: TIBTransaction): String; overload;
 begin
   Result := GetReferenceString(AnIDField, AnObjectNameField.AsString, ATr);
@@ -321,6 +331,7 @@ var
   BlobStream: TStream;
   TempS: String;
   Flag, MustFreeObj: Boolean;
+  Flds: TSortedFields;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(atDatabase <> nil);
@@ -346,6 +357,7 @@ begin
   AWriter.WriteKey('Fields');
   AWriter.IncIndent;
 
+  Flds := TSortedFields.Create(False);
   try
     for I := 0 to AgdcObject.Fields.Count - 1 do
     begin
@@ -369,6 +381,13 @@ begin
           and (Pos('RDB$', AgdcObject.FieldByName('FIELDSOURCE').AsString) = 1) then
             continue;
       end;
+
+      Flds.AddField(F);
+    end;
+
+    for I := 0 to Flds.Count - 1 do
+    begin
+      F := Flds[I] as TField;
 
       if (F.Origin > '') and not F.IsNull then
       begin
@@ -523,6 +542,7 @@ begin
 
     WriteSet(AgdcObject, AWriter);
   finally
+    Flds.Free;
     AWriter.DecIndent;
 
     if AgdcObject is TgdcStoredProc then
@@ -1534,6 +1554,66 @@ const
 begin
   Result := (StrIPos(AFieldName, PassFieldName) > 0) and
     (StrIPos(';' + AFieldName + ';', PassFieldName) > 0);
+end;
+
+{ TSortedFields }
+
+procedure TSortedFields.AddField(AField: TField);
+var
+  Index: Integer;
+begin
+  if not _Find(AField, Index) then
+    Insert(Index, AField);
+end;
+
+function TSortedFields._Compare(F1, F2: TField): Integer;
+
+  function AdjustName(const AName: String; const ABlob: Boolean): String;
+  begin
+    if AName = 'PARENT' then
+      Result := '1'
+    else if AName = 'NAME' then
+      Result := '2'
+    else if AName = 'USR$NAME' then
+      Result := '3'
+    else if AName = 'CREATIONDATE' then
+      Result := '{'
+    else if AName = 'EDITIONDATE' then
+      Result := '|'
+    else if AName = 'DISABLED' then
+      Result := '}'
+    else if ABlob then
+      Result := '~' + AName
+    else
+      Result := AName;
+  end;
+
+begin
+  Result := CompareStr(AdjustName(F1.FieldName, F1 is TBlobField),
+    AdjustName(F2.FieldName, F2 is TBlobField));
+end;
+
+function TSortedFields._Find(AField: TField; out Index: Integer): Boolean;
+var
+  L, H, C: Integer;
+begin
+  Result := False;
+  L := 0;
+  H := Count - 1;
+  while L <= H do
+  begin
+    Index := (L + H) shr 1;
+    C := _Compare(Items[Index] as TField, AField);
+    if C < 0 then
+      L := Index + 1
+    else if C > 0 then
+      H := Index - 1
+    else begin
+      Result := True;
+      exit;
+    end;
+  end;
+  Index := L;
 end;
 
 initialization
