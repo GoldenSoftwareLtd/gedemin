@@ -11,6 +11,8 @@ const
 
 type
   TLogRecord = record
+    Command: String[50];
+    ClientName: String[20];
     DT: TDateTime;
     Msg: String[MaxMsgLength];
   end;
@@ -21,6 +23,7 @@ type
     FStart, FEnd: Integer;
     FBufferCS: TCriticalSection;
     FTCPClient: TIdTCPClient;
+    Comm: String[50];
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -66,11 +69,13 @@ begin
 
     WM_LOG_INIT:
     begin
+      Comm := 'RUN';
       Log('Гедымин запущен');
     end;
 
     WM_LOG_DONE:
     begin
+      Comm := 'DONE';
       Log('Гедымин закрыт');
     end;
 
@@ -115,6 +120,8 @@ begin
 
     if (FEnd < MaxBufferSize) or (FEnd < FStart) then
     begin
+      FBuffer[FEnd].Command := Comm;
+      FBuffer[FEnd].ClientName := FTCPClient.LocalName;
       FBuffer[FEnd].DT := Now;
       FBuffer[FEnd].Msg := Copy(AMsg, 1, MaxMsgLength);
       Inc(FEnd);
@@ -122,6 +129,7 @@ begin
   finally
     FBufferCS.Leave;
   end;
+  Comm := ' ';
   PostMsg(WM_LOG_PROCESS_REC);
 end;
 
@@ -148,7 +156,7 @@ begin
   try
     Connect;
     try
-      FTCPClient.WriteLn(DateToStr(FBuffer[FStart].DT) + ', ' + TimeToStr(FBuffer[FStart].DT) + ' - ' + FBuffer[FStart].Msg);
+      FTCPClient.WriteBuffer(FBuffer[FStart], SizeOf (FBuffer[FStart]), true);
     finally
       Disconnect;
     end;
