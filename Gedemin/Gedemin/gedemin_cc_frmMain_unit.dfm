@@ -1,6 +1,6 @@
 object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
-  Left = 300
-  Top = 200
+  Left = 0
+  Top = 0
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Gedemin CC'
@@ -9,15 +9,16 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
-  Font.Height = -16
+  Font.Height = -13
   Font.Name = 'Trebuchet MS'
   Font.Style = []
   Menu = MainMenu1
   OldCreateOrder = False
   Position = poDesktopCenter
+  OnClose = FormClose
   OnCreate = FormCreate
   PixelsPerInch = 96
-  TextHeight = 22
+  TextHeight = 18
   object pnlTop: TPanel
     Left = 0
     Top = 0
@@ -41,9 +42,9 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 470
+    Top = 480
     Width = 1020
-    Height = 31
+    Height = 20
     Align = alBottom
     TabOrder = 4
   end
@@ -62,7 +63,7 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
       TabOrder = 0
       TitleFont.Charset = RUSSIAN_CHARSET
       TitleFont.Color = clWindowText
-      TitleFont.Height = -16
+      TitleFont.Height = -13
       TitleFont.Name = 'Trebuchet MS'
       TitleFont.Style = []
     end
@@ -81,7 +82,7 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
     Top = 50
     Width = 200
     Height = 420
-    ItemHeight = 22
+    ItemHeight = 18
     TabOrder = 2
   end
   object pnlFilt: TPanel
@@ -91,11 +92,11 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
     Height = 40
     TabOrder = 7
   end
-  object sb: TStatusBar
+  object SB: TStatusBar
     Left = 0
-    Top = 501
+    Top = 500
     Width = 1020
-    Height = 19
+    Height = 20
     Panels = <
       item
         Width = 50
