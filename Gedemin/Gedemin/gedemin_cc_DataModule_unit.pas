@@ -92,7 +92,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gedemin_cc_frmMain_unit;
+  gedemin_cc_frmMain_unit, gedemin_cc_TCPServer_unit;
 
 procedure TDM.CheckDB;
 var
