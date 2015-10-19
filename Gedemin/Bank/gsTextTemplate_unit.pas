@@ -2275,7 +2275,7 @@ initialization
   TAutoObjectFactory.Create(ComServer, TgsTextConverter, CLASS_gs_TextConverter,
     ciMultiInstance, tmApartment);
 
-  EofText.System := true;
+  EofText.System := True;
   EofText.Symbol := ssEOF;
 
   cstEndFile.System := True;

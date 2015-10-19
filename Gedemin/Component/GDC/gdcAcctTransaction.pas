@@ -898,7 +898,7 @@ initialization
 finalization
   UnregisterGdcClass(TgdcAcctTransaction);
   UnregisterGdcClass(TgdcAcctTransactionEntry);
-  RegistergdcClass(TgdcBaseAcctTransactionEntry);
+  UnRegistergdcClass(TgdcBaseAcctTransactionEntry);
   UnregisterGdcClass(TgdcBaseAcctTransaction);
 
   FreeAndNil(_TransactionCache);

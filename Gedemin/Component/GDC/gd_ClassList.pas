@@ -672,7 +672,8 @@ implementation
 
 uses
   SysUtils, gs_Exception, gd_security, gsStorage, Storages, gdcClasses,
-  gd_directories_const, jclStrings, Windows, gd_CmdLineParams_unit
+  gd_directories_const, jclStrings, Windows, gd_CmdLineParams_unit,
+  gdcInvDocument_unit, gdcInvPriceList_unit
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -743,8 +744,12 @@ begin
   Classes.RegisterClass(AClass);
   if AClass.InheritsFrom(TgdcDocument) then
   begin
-    Result := gdClassList.Add(AClass, '', '',
-      TgdDocumentEntry, ACaption) as TgdDocumentEntry;
+    if AClass.InheritsFrom(TgdcInvDocument) then
+      Result := gdClassList.Add(AClass, '', '', TgdInvDocumentEntry, ACaption) as TgdDocumentEntry
+    else if AClass.InheritsFrom(TgdcInvPriceList) then
+      Result := gdClassList.Add(AClass, '', '', TgdInvPriceDocumentEntry, ACaption) as TgdDocumentEntry
+    else
+      Result := gdClassList.Add(AClass, '', '', TgdDocumentEntry, ACaption) as TgdDocumentEntry;
     TgdDocumentEntry(Result).TypeID := CgdcDocument(AClass).ClassDocumentTypeKey;
   end else
     Result := gdClassList.Add(AClass, '', '', TgdBaseEntry, ACaption) as TgdBaseEntry;
@@ -752,7 +757,8 @@ end;
 
 procedure UnregisterGdcClass(AClass: CgdcBase);
 begin
-  gdClassList.Remove(AClass);
+  if _gdClassList <> nil then
+    _gdClassList.Remove(AClass);
   Classes.UnRegisterClass(AClass);
 end;
 
@@ -764,7 +770,8 @@ end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
 begin
-  gdClassList.Remove(AClass);
+  if _gdClassList <> nil then
+    _gdClassList.Remove(AClass);
   Classes.UnRegisterClass(AClass);
 end;
 
@@ -1557,9 +1564,9 @@ end;
 function TgdClassEntry.Compare(const AClassName: AnsiString;
   const ASubType: TgdcSubType): Integer;
 begin
-  Result := AnsiCompareText(FSubType, ASubType);
+  Result := CompareText(FSubType, ASubType);
   if Result = 0 then
-    Result := AnsiCompareText(FClass.ClassName, AClassName);
+    Result := CompareText(FClass.ClassName, AClassName);
 end;
 
 procedure TgdClassEntry.RemoveChild(AChild: TgdClassEntry);
@@ -1917,7 +1924,7 @@ end;
 function TgdClassList._Find(const AClassName: AnsiString; const ASubType: TgdcSubType;
   out Index: Integer): Boolean;
 var
-  L, H: Integer;
+  L, H, C: Integer;
 begin
   Result := False;
   L := 0;
@@ -1925,10 +1932,12 @@ begin
   while L <= H do
   begin
     Index := (L + H) shr 1;
-    case FClasses[Index].Compare(AClassName, ASubType) of
-      -1: L := Index + 1;
-      +1: H := Index - 1;
-    else
+    C := FClasses[Index].Compare(AClassName, ASubType);
+    if C < 0 then
+      L := Index + 1
+    else if C > 0 then
+      H := Index - 1
+    else begin
       Result := True;
       exit;
     end;
@@ -2185,6 +2194,15 @@ var
   R: TatRelation;
 begin
   Assert(atDatabase <> nil);
+
+  SL := TStringList.Create;
+  try
+    for I := 0 to FCount - 1 do
+      SL.Add(FClasses[I].SubType + FClasses[I].TheClass.ClassName);
+    SL.SaveToFile('c:\temp\1.txt');  
+  finally
+    SL.Free;
+  end;
 
   CEAttrUserDefined := Get(TgdBaseEntry, 'TgdcAttrUserDefined');
   CEAttrUserDefinedTree := Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree');
@@ -3817,7 +3835,6 @@ begin
 end;
 
 initialization
-  _gdClassList := nil;
   gdcObjectList := TObjectList.Create(False);
 
 finalization
