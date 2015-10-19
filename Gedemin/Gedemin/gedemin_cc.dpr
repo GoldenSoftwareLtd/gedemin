@@ -5,7 +5,8 @@ program gedemin_cc;
 uses
   Forms,
   gedemin_cc_frmMain_unit in 'gedemin_cc_frmMain_unit.pas',
-  gedemin_cc_DataModule_unit in 'gedemin_cc_DataModule_unit.pas' {DM: TDataModule};
+  gedemin_cc_DataModule_unit in 'gedemin_cc_DataModule_unit.pas' {DM: TDataModule},
+  gedemin_cc_TCPServer_unit in 'gedemin_cc_TCPServer_unit.pas';
 
 {$R *.RES}
 
