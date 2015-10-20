@@ -1,6 +1,6 @@
 object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
-  Left = 0
-  Top = 0
+  Left = 364
+  Top = 210
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Gedemin CC'
@@ -54,12 +54,13 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
     Width = 600
     Height = 400
     TabOrder = 5
-    object DBGrid1: TDBGrid
+    object DBGr: TDBGrid
       Left = 10
       Top = 10
       Width = 580
-      Height = 160
+      Height = 250
       DataSource = DM.DSrc
+      ReadOnly = True
       TabOrder = 0
       TitleFont.Charset = RUSSIAN_CHARSET
       TitleFont.Color = clWindowText
@@ -70,9 +71,9 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
   end
   object mLog: TMemo
     Left = 220
-    Top = 270
+    Top = 370
     Width = 580
-    Height = 200
+    Height = 100
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 6

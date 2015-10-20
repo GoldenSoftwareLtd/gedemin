@@ -38,7 +38,6 @@ type
     procedure FTCPServerDisconnect(AThread: TIdPeerThread);
     procedure FTCPServerExecute(AThread: TIdPeerThread);
     procedure Refresh;
-    procedure AddMsgDB;
   public
     FBuffer: array[0..MaxBufferSize - 1] of TLogRec;
     FStart, FEnd: Integer;
@@ -169,17 +168,19 @@ begin
             end;
             Refresh; // из списка должен удалиться закрытый клиент
           end
-          else begin // Другое действие в Гедымине
+          else begin // другое действие в Гедымине
             //
           end;
         end;
         Inc(FEnd);
-        DTRec := DateToStr(LogRec.DT) + ', ' + TimeToStr(LogRec.DT);
+        DTRec := DateTimeToStr(LogRec.DT);
 
         frm_gedemin_cc_main.mLog.Lines.Add(DTRec + ' | ' + LogRec.ClientName + ' (' + FClient.Host + ')' + ' | ' + FClient.IP + '  >>  ' + LogRec.Msg);
       end;
     finally
       AThread.Connection.Disconnect;
+      DM.InsertDB;
+      DM.UpdateGrid;
     end;
   end
   else
@@ -204,20 +205,6 @@ begin
     end;
   finally
     FClients.UnlockList;
-  end;
-end;
-
-procedure TccTCPServer.AddMsgDB;
-begin
-  //
-  while FStart <> FEnd do
-  begin
-    // запись в БД
-
-    if FStart = MaxBufferSize - 1 then
-      FStart := 0
-    else
-      Inc(FStart);
   end;
 end;
 

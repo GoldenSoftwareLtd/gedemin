@@ -4,7 +4,7 @@ interface
 
 uses
   Classes, Controls, Forms, SysUtils, FileCtrl, StdCtrls,
-  Menus, ExtCtrls, ComCtrls, Grids, DBGrids, Db;
+  Menus, ExtCtrls, ComCtrls, Grids, DBGrids, Db, DBCtrls;
 
 type
   Tfrm_gedemin_cc_main = class(TForm)
@@ -18,7 +18,7 @@ type
     lbClients: TListBox;
     MainMenu1: TMainMenu;
     File1: TMenuItem;
-    DBGrid1: TDBGrid;
+    DBGr: TDBGrid;
     SB: TStatusBar;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
