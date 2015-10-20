@@ -4756,7 +4756,7 @@ var
 begin
   R := atDatabase.Relations.ByRelationName(ARelationName);
   if R = nil then
-    raise EgdcIBError.Create('Ошибка при считывании атрибутов. Перезагрузите программу!');
+    raise EgdcIBError.Create('В объекте atDatabase не найдена таблица ' + ARelationName);
 
   Result := ttUnknow;
 

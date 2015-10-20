@@ -222,7 +222,8 @@ var
   R: TatRelation;
   RF: TatRelationField;
   Flag: Boolean;
-  TempS: String;
+  TempS, ExtraCondition: String;
+  q: TIBSQL;
 begin
   Assert(AField <> nil);
   Assert(N <> nil);
@@ -265,13 +266,35 @@ begin
         if RefID = -1 then
         begin
           AField.Clear;
+          ExtraCondition := '  AND ' + FieldName + ' IS NULL';
+
+          if AField.Required and (RF.ReferencesField <> nil) then
+          begin
+            q := TIBSQL.Create(nil);
+            try
+              q.Transaction := FTr;
+              q.SQL.Text :=
+                'SELECT FIRST 1 ' + RF.ReferencesField.FieldName +
+                '  FROM ' + RF.ReferencesField.Relation.RelationName;
+              q.ExecQuery;
+              if not q.EOF then
+              begin
+                AField.AsInteger := q.Fields[0].AsInteger;
+                ExtraCondition := '';
+                AddWarning('Для поля ' + FieldName + ' использовано временное значение ' + q.Fields[0].AsString);
+              end;
+            finally
+              q.Free;
+            end;
+          end;
+
           FDelayedUpdate.Add('UPDATE ' + RelationName + ' SET ' +
             FieldName + ' = (SELECT id FROM gd_ruid WHERE xid = ' +
             IntToStr(RefRUID.XID) + ' AND dbid = ' +
             IntToStr(RefRUID.DBID) + ') ' +
             'WHERE ' + R.PrimaryKey.ConstraintFields[0].FieldName + ' = ' +
             IntToStr((AField.DataSet as TgdcBase).ID) +
-            '  AND ' + FieldName + ' IS NULL');
+            ExtraCondition);
           exit;
         end else
         begin
@@ -910,7 +933,7 @@ begin
     else
       S := 'Изменен объект: ';
 
-    S := S + Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
+    S := S + Obj.ObjectName + ' (' + Obj.ClassName + Obj.SubType + ', ' + IntToStr(Obj.ID) + ')';
 
     Obj.Post;
     if (Obj.GetRUID.XID <> ObjRUID.XID) or (Obj.GetRUID.DBID <> ObjRUID.DBID) then
@@ -1365,7 +1388,11 @@ begin
     begin
       AParam.AsInteger := gdcBaseManager.GetIDByRUIDString(RefRUID, ATr);
       if AParam.AsInteger = -1 then
-        AddMistake('Объект не найден: ' + V.AsString);
+      begin
+        AParam.Clear;
+        AddText('Не найден объект для параметра ' + AParam.Name + ', ' + V.AsString);
+        AddText('Возможно, следует поменять порядок объектов в ПИ.');
+      end;
     end else if AParam.AsXSQLVAR.sqlscale = 0 then
       AParam.AsInteger := V.AsInteger
     else
