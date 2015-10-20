@@ -2893,19 +2893,41 @@ end;
 
 procedure TgdInvDocumentEntry.ConvertOptions;
 var
-  q, qRUID, qNS: TIBSQL;
+  q, qRUID, qNS, qFindObj: TIBSQL;
   Tr: TIBTransaction;
   NSID, NSPos, NSHeadObjectID: Integer;
 
-  procedure AddNSObject(const AnObjectName: String; const AnOptID: Integer);
+  procedure AddNSObject(const AnObjectName: String; const AnOptID: Integer;
+    const ADependentOnID: Integer = -1);
+  var
+    P: Integer;
   begin
     if NSID > -1 then
     begin
-      Inc(NSPos);
+      P := 0;
+
+      if ADependentOnID > 147000000 then
+      begin
+        qFindObj.Close;
+        qFindObj.ParamByName('nk').AsInteger := NSID;
+        qFindObj.ParamByName('id').AsInteger := ADependentOnID;
+        qFindObj.ParamByName('p').AsInteger := NSPos;
+        qFindObj.ExecQuery;
+        if not qFindObj.EOF then
+          P := qFindObj.Fields[0].AsInteger + 1;
+        qFindObj.Close;
+      end;
+
+      if P = 0 then
+      begin
+        Inc(NSPos);
+        P := NSPos;
+      end;
+
       qNS.ParamByName('namespacekey').AsInteger := NSID;
       qNS.ParamByName('objectname').AsString := Copy(AnObjectName, 1, 60);
       qNS.ParamByName('xid').AsInteger := AnOptID;
-      qNS.ParamByName('objectpos').AsInteger := NSPos;
+      qNS.ParamByName('objectpos').AsInteger := P;
       qNS.ParamByName('headobjectkey').AsInteger := NSHeadObjectID;
       qNS.ExecQuery;
     end;
@@ -2938,7 +2960,7 @@ var
       q.ParamByName('contactkey').Clear;
       q.ExecQuery;
 
-      AddNSObject(AnOptionName + '.' + F.FieldName, OptID);
+      AddNSObject(AnOptionName + '.' + F.FieldName, OptID, F.ID);
     end;
   end;
 
@@ -2984,7 +3006,7 @@ var
       q.ParamByName('contactkey').AsInteger := AContactKey;
       q.ExecQuery;
 
-      AddNSObject(AnOptionName + '.' + R[0, 0], OptID);
+      AddNSObject(AnOptionName + '.' + R[0, 0], OptID, AContactKey);
     end;
   end;
 
@@ -3024,7 +3046,7 @@ var
         q.ParamByName('contactkey').Clear;
         q.ExecQuery;
 
-        AddNSObject(InvDocumentFeaturesNames[AFeature], OptID);
+        AddNSObject(InvDocumentFeaturesNames[AFeature], OptID, F.ID);
       end;
     end;
   end;
@@ -3035,6 +3057,7 @@ begin
   q := TIBSQL.Create(nil);
   qRUID := TIBSQL.Create(nil);
   qNS := TIBSQL.Create(nil);
+  qFindObj := TIBSQL.Create(nil);
   Tr := TIBTransaction.Create(nil);
   try
     Tr.DefaultDatabase := gdcBaseManager.Database;
@@ -3049,6 +3072,12 @@ begin
     qNS.SQL.Text :=
       'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
       'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+
+    qFindObj.Transaction := Tr;
+    qFindObj.SQL.Text :=
+      'SELECT o.objectpos FROM at_object o ' +
+      'JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
+      'WHERE o.namespacekey = :nk AND r.id = :id AND o.objectpos > :p';
 
     q.Transaction := Tr;
     q.SQL.Text :=
@@ -3089,6 +3118,7 @@ begin
 
     Tr.Commit;
   finally
+    qFindObj.Free;
     qNS.Free;
     qRUID.Free;
     q.Free;
@@ -3594,19 +3624,41 @@ end;
 
 procedure TgdInvPriceDocumentEntry.ConvertOptions;
 var
-  q, qRUID, qNS: TIBSQL;
+  q, qRUID, qNS, qFindObj: TIBSQL;
   Tr: TIBTransaction;
   NSID, NSPos, NSHeadObjectID: Integer;
 
-  procedure AddNSObject(const AnObjectName: String; const AnOptID: Integer);
+  procedure AddNSObject(const AnObjectName: String; const AnOptID: Integer;
+    const ADependentOnID: Integer = -1);
+  var
+    P: Integer;  
   begin
     if NSID > -1 then
     begin
-      Inc(NSPos);
+      P := 0;
+
+      if ADependentOnID > 147000000 then
+      begin
+        qFindObj.Close;
+        qFindObj.ParamByName('nk').AsInteger := NSID;
+        qFindObj.ParamByName('id').AsInteger := ADependentOnID;
+        qFindObj.ParamByName('p').AsInteger := NSPos;
+        qFindObj.ExecQuery;
+        if not qFindObj.EOF then
+          P := qFindObj.Fields[0].AsInteger + 1;
+        qFindObj.Close;
+      end;
+
+      if P = 0 then
+      begin
+        Inc(NSPos);
+        P := NSPos;
+      end;
+
       qNS.ParamByName('namespacekey').AsInteger := NSID;
       qNS.ParamByName('objectname').AsString := Copy(AnObjectName, 1, 60);
       qNS.ParamByName('xid').AsInteger := AnOptID;
-      qNS.ParamByName('objectpos').AsInteger := NSPos;
+      qNS.ParamByName('objectpos').AsInteger := P;
       qNS.ParamByName('headobjectkey').AsInteger := NSHeadObjectID;
       qNS.ExecQuery;
     end;
@@ -3648,7 +3700,7 @@ var
           q.ParamByName('currkey').Clear;
         q.ExecQuery;
 
-        AddNSObject(AnOptName + '.' + F.FieldName, OptID);
+        AddNSObject(AnOptName + '.' + F.FieldName, OptID, F.ID);
       end;
     end;
   end;
@@ -3657,6 +3709,7 @@ begin
   q := TIBSQL.Create(nil);
   qRUID := TIBSQL.Create(nil);
   qNS := TIBSQL.Create(nil);
+  qFindObj := TIBSQL.Create(nil);
   Tr := TIBTransaction.Create(nil);
   try
     Tr.DefaultDatabase := gdcBaseManager.Database;
@@ -3671,6 +3724,12 @@ begin
     qNS.SQL.Text :=
       'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
       'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+
+    qFindObj.Transaction := Tr;
+    qFindObj.SQL.Text :=
+      'SELECT o.objectpos FROM at_object o ' +
+      'JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
+      'WHERE o.namespacekey = :nk AND r.id = :id AND o.objectpos > :p';
 
     q.Transaction := Tr;
     q.SQL.Text :=
@@ -3704,6 +3763,7 @@ begin
 
     Tr.Commit;
   finally
+    qFindObj.Free;
     qNS.Free;
     qRUID.Free;
     q.Free;

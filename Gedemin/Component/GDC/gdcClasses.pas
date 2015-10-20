@@ -2993,7 +2993,7 @@ begin
 
     P := 0;
 
-    if ADependentOnID > 0 then
+    if ADependentOnID > 147000000 then
     begin
       FqFindObj.Close;
       FqFindObj.ParamByName('nk').AsInteger := FNSID;

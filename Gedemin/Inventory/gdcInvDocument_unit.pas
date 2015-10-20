@@ -5814,7 +5814,7 @@ begin
       Fq.ParamByName('ck').AsInteger := K;
       Fq.ExecQuery;
 
-      AddNSObject(OptID, AName + '.' + lv.Items[I].Caption);
+      AddNSObject(OptID, AName + '.' + lv.Items[I].Caption, K);
     end;
   end;
 
@@ -5912,7 +5912,7 @@ begin
       Fq.ParamByName('rfk').AsInteger := RF.ID;
       Fq.ExecQuery;
 
-      AddNSObject(OptID, InvDocumentFeaturesNames[AFeature] + '.' + RF.FieldName);
+      AddNSObject(OptID, InvDocumentFeaturesNames[AFeature] + '.' + RF.FieldName, RF.ID);
     end;
   end;
 
