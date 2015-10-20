@@ -503,6 +503,45 @@ begin
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_db_connect '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  ON CONNECT '#13#10 +
+          '  POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE ingroup INTEGER = 0; '#13#10 +
+          '  DECLARE VARIABLE userkey INTEGER = 0; '#13#10 +
+          '  DECLARE VARIABLE contactkey INTEGER = 0; '#13#10 +
+          'BEGIN '#13#10 +
+          '  SELECT FIRST 1 id, contactkey, ingroup '#13#10 +
+          '  FROM gd_user '#13#10 +
+          '  WHERE ibname = CURRENT_USER '#13#10 +
+          '  INTO :userkey, :contactkey, :ingroup; '#13#10 +
+          '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_USERKEY'', :userkey); '#13#10 +
+          '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'', :contactkey); '#13#10 +
+          '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_INGROUP'', :ingroup); '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        AddField2('GD_JOURNAL', 'CLIENTADDRESS', 'CHAR(15)', FTransaction);
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_bi_journal2 FOR gd_journal '#13#10 +
+          '  BEFORE INSERT '#13#10 +
+          '  POSITION 2 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.operationdate IS NULL) THEN '#13#10 +
+          '    NEW.operationdate = CURRENT_TIMESTAMP; '#13#10 +
+          ' '#13#10 +
+          '  IF (NEW.contactkey IS NULL) THEN '#13#10 +
+          '    NEW.contactkey = RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY''); '#13#10 +
+          ' '#13#10 +
+          '  IF (NEW.clientaddress IS NULL) THEN '#13#10 +
+          '    NEW.clientaddress = RDB$GET_CONTEXT(''SYSTEM'', ''CLIENT_ADDRESS''); '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
           'GRANT ALL ON GD_DOCUMENTTYPE_OPTION TO administrator';
         FIBSQL.ExecQuery;
 
@@ -563,6 +602,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (230, ''0000.0001.0000.0261'', ''01.10.2015'', ''Correction for GD_DOCUMENTTYPE_OPTION #3'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (231, ''0000.0001.0000.0262'', ''20.10.2015'', ''Client address is added to GD_JOURNAL.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

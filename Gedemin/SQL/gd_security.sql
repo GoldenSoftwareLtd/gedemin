@@ -416,6 +416,7 @@ CREATE TABLE gd_journal
 (
   id               dintkey,
   contactkey       dforeignkey,
+  clientaddress    CHAR(15),
   operationdate    dtimestamp_notnull,
   source           dtext40,
   objectid         dforeignkey,
@@ -433,7 +434,7 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE TRIGGER gd_bi_journal FOR gd_journal
+CREATE OR ALTER TRIGGER gd_bi_journal FOR gd_journal
   BEFORE INSERT
   POSITION 0
 AS
@@ -443,20 +444,19 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER gd_bi_journal2 FOR gd_journal
+CREATE OR ALTER TRIGGER gd_bi_journal2 FOR gd_journal
   BEFORE INSERT
   POSITION 2
 AS
 BEGIN
   IF (NEW.operationdate IS NULL) THEN
-    NEW.operationdate = 'NOW';
+    NEW.operationdate = CURRENT_TIMESTAMP;
 
   IF (NEW.contactkey IS NULL) THEN
-  BEGIN
-    SELECT contactkey FROM gd_user
-    WHERE ibname = CURRENT_USER
-    INTO NEW.contactkey;
-  END
+    NEW.contactkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY'); 
+    
+  IF (NEW.clientaddress IS NULL) THEN
+    NEW.clientaddress = RDB$GET_CONTEXT('SYSTEM', 'CLIENT_ADDRESS');  
 END
 ^
 

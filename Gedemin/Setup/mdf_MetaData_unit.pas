@@ -259,7 +259,7 @@ begin
       SQL.SQL.Text := Format('ALTER TABLE %s ADD %s %s', [ARelName, AFieldName, AFieldType]);
       SQL.ExecQuery;
     finally
-      SQl.Free;
+      SQL.Free;
     end;
   end;
 end;
