@@ -526,6 +526,9 @@ type
   private
     FClasses: array of TgdClassEntry;
     FCount: Integer;
+    FFindByRelationCache: TStringList;
+    FFindDocByRUIDHdrCache, FFindDocByRUIDLineCache: TStringList;
+    FFindDocByIDHdrCache, FFindDocByIDLineCache: TgdKeyObjectAssoc;
 
     function _Find(const AClassName: AnsiString; const ASubType: TgdcSubType;
       out Index: Integer): Boolean;
@@ -540,6 +543,9 @@ type
       AData2: Pointer): Boolean;
     function _CreateFormSubTypes(ACE: TgdClassEntry; Data1,
       Data2: Pointer): Boolean;
+
+  protected
+    procedure FreeNotify(CE: TgdClassEntry);
 
   public
     constructor Create;
@@ -1429,6 +1435,8 @@ end;
 
 destructor TgdClassEntry.Destroy;
 begin
+  if _gdClassList <> nil then
+    _gdClassList.FreeNotify(Self);  
   FChildren.Free;
   FClassMethods.Free;
   inherited;
@@ -1756,6 +1764,22 @@ end;
 constructor TgdClassList.Create;
 begin
   inherited;
+
+  FFindByRelationCache := TStringList.Create;
+  FFindByRelationCache.Sorted := True;
+  FFindByRelationCache.Duplicates := dupError;
+
+  FFindDocByRUIDHdrCache := TStringList.Create;
+  FFindDocByRUIDHdrCache.Sorted := True;
+  FFindDocByRUIDHdrCache.Duplicates := dupError;
+
+  FFindDocByRUIDLineCache := TStringList.Create;
+  FFindDocByRUIDLineCache.Sorted := True;
+  FFindDocByRUIDLineCache.Duplicates := dupError;
+
+  FFindDocByIDHdrCache := TgdKeyObjectAssoc.Create;
+  FFindDocByIDLineCache := TgdKeyObjectAssoc.Create;
+
   {$IFDEF DEBUG}
   Inc(glbClassListCount);
   {$ENDIF}
@@ -1765,6 +1789,12 @@ destructor TgdClassList.Destroy;
 var
   I: Integer;
 begin
+  FreeAndNil(FFindByRelationCache);
+  FreeAndNil(FFindDocByRUIDHdrCache);
+  FreeAndNil(FFindDocByRUIDLineCache);
+  FreeAndNil(FFindDocByIDHdrCache);
+  FreeAndNil(FFindDocByIDLineCache);
+
   for I := 0 to FCount - 1 do
     FClasses[I].Free;
 
@@ -2511,35 +2541,49 @@ end;
 function TgdClassList.FindDocByTypeID(const ADocTypeID: TID;
   const APart: TgdcDocumentClassPart; const AnUpdate: Boolean = False): TgdDocumentEntry;
 var
-  Doc: TgdClassEntry;
   AuxRec: TAuxRec;
   DELn: TgdDocumentEntry;
+  Idx: Integer;
 begin
-  Doc := Find('TgdcDocument');
+  Result := nil;
 
-  if (Doc = nil) or (ADocTypeID <= 0) then
-    Result := nil
-  else begin
+  if APart = dcpHeader then
+  begin
+    if FFindDocByIDHdrCache.Find(ADocTypeID, Idx) then
+      Result := FFindDocByIDHdrCache.ObjectByIndex[Idx] as TgdDocumentEntry;
+  end else
+  begin
+    if FFindDocByIDLineCache.Find(ADocTypeID, Idx) then
+      Result := FFindDocByIDLineCache.ObjectByIndex[Idx] as TgdDocumentEntry;
+  end;
+
+  if Result = nil then
+  begin
     AuxRec.ID := ADocTypeID;
     AuxRec.Part := APart;
     AuxRec.RUID := '';
     AuxRec.CE := nil;
-    Doc.Traverse(_FindDoc, @AuxRec, nil, False, False);
+    Get(TgdDocumentEntry, 'TgdcDocument').Traverse(_FindDoc, @AuxRec, nil, False, False);
     if AuxRec.CE is TgdDocumentEntry then
     begin
       Result := AuxRec.CE as TgdDocumentEntry;
-      if AnUpdate and Result.Invalid then
-      begin
-        Result.LoadDE(nil);
-        if APart = dcpHeader then
-        begin
-          DELn := gdClassList.FindDocByTypeID(ADocTypeID, dcpLine);
-          if DELn <> nil then
-            DELn.Assign(Result);
-        end;
-      end;
-    end else
-      Result := nil;
+
+      if APart = dcpHeader then
+        FFindDocByIdHdrCache.ObjectByIndex[FFindDocByIdHdrCache.Add(ADocTypeID)] := Result
+      else
+        FFindDocByIdLineCache.ObjectByIndex[FFindDocByIdLineCache.Add(ADocTypeID)] := Result;
+    end;
+  end;
+
+  if (Result <> nil) and AnUpdate and Result.Invalid then
+  begin
+    Result.LoadDE(nil);
+    if APart = dcpHeader then
+    begin
+      DELn := gdClassList.FindDocByTypeID(ADocTypeID, dcpLine);
+      if DELn <> nil then
+        DELn.Assign(Result);
+    end;
   end;
 end;
 
@@ -2601,45 +2645,68 @@ function TgdClassList.FindByRelation(
 
 var
   CE: TgdBaseEntry;
+  I: Integer;
 begin
-  Result := nil;
-  CE := Find('TgdcBase') as TgdBaseEntry;
-  if (CE <> nil) and (ARelationName > '') then
-    Iterate(CE, Result);
+  I := FFindByRelationCache.IndexOf(ARelationName);
+  if I = -1 then
+  begin
+    Result := nil;
+    CE := Find('TgdcBase') as TgdBaseEntry;
+    if (CE <> nil) and (ARelationName > '') then
+      Iterate(CE, Result);
+    if Result <> nil then
+      FFindByRelationCache.AddObject(ARelationName, Result);  
+  end else
+    Result := FFindByRelationCache.Objects[I] as TgdBaseEntry;
 end;
 
 function TgdClassList.FindDocByRUID(const ARUID: String;
   const APart: TgdcDocumentClassPart; const AnUpdate: Boolean = False): TgdDocumentEntry;
 var
-  Doc: TgdClassEntry;
   AuxRec: TAuxRec;
   DELn: TgdDocumentEntry;
+  Idx: Integer;
 begin
-  Doc := Find('TgdcDocument');
+  Result := nil;
 
-  if (Doc = nil) or (ARUID = '') then
-    Result := nil
-  else begin
+  if APart = dcpHeader then
+  begin
+    Idx := FFindDocByRUIDHdrCache.IndexOf(ARUID);
+    if Idx <> -1 then
+      Result := FFindDocByRUIDHdrCache.Objects[Idx] as TgdDocumentEntry;
+  end else
+  begin
+    Idx := FFindDocByRUIDLineCache.IndexOf(ARUID);
+    if Idx <> -1 then
+      Result := FFindDocByRUIDLineCache.Objects[Idx] as TgdDocumentEntry;
+  end;
+
+  if Result = nil then
+  begin
     AuxRec.ID := -1;
     AuxRec.Part := APart;
     AuxRec.RUID := ARUID;
     AuxRec.CE := nil;
-    Doc.Traverse(_FindDocByRUID, @AuxRec, nil, False, False);
+    Get(TgdDocumentEntry, 'TgdcDocument').Traverse(_FindDocByRUID, @AuxRec, nil, False, False);
     if AuxRec.CE is TgdDocumentEntry then
     begin
       Result := AuxRec.CE as TgdDocumentEntry;
-      if AnUpdate and Result.Invalid then
-      begin
-        Result.LoadDE(nil);
-        if APart = dcpHeader then
-        begin
-          DELn := gdClassList.FindDocByRUID(ARUID, dcpLine);
-          if DELn <> nil then
-            DELn.Assign(Result);
-        end;
-      end
-    end else
-      Result := nil;
+      if APart = dcpHeader then
+        FFindDocByRUIDHdrCache.AddObject(ARUID, Result)
+      else
+        FFindDocByRUIDLineCache.AddObject(ARUID, Result);
+    end;
+  end;
+
+  if (Result <> nil) and AnUpdate and Result.Invalid then
+  begin
+    Result.LoadDE(nil);
+    if APart = dcpHeader then
+    begin
+      DELn := gdClassList.FindDocByRUID(ARUID, dcpLine);
+      if DELn <> nil then
+        DELn.Assign(Result);
+    end;
   end;
 end;
 
@@ -2669,6 +2736,46 @@ begin
     raise Exception.Create('Unknown class name/subtype ' + AClassName + ' ' + ASubType)
   else if not Result.InheritsFrom(AClass) then
     raise Exception.Create('Invalid type cast');
+end;
+
+procedure TgdClassList.FreeNotify(CE: TgdClassEntry);
+
+  procedure _Scan(SL: TStringList);
+  var
+    I: Integer;
+  begin
+    if SL <> nil then
+    begin
+      for I := 0 to SL.Count - 1 do
+        if SL.Objects[I] = CE then
+        begin
+          SL.Delete(I);
+          break;
+        end;
+    end;
+  end;
+
+  procedure _Scan2(KO: TgdKeyObjectAssoc);
+  var
+    I: Integer;
+  begin
+    if KO <> nil then
+    begin
+      for I := 0 to KO.Count - 1 do
+        if KO.ObjectByIndex[I] = CE then
+        begin
+          KO.Delete(I);
+          break;
+        end;
+    end;
+  end;
+
+begin
+  _Scan(FFindByRelationCache);
+  _Scan(FFindDocByRUIDHdrCache);
+  _Scan(FFindDocByRUIDLineCache);
+  _Scan2(FFindDocByIDHdrCache);
+  _Scan2(FFindDocByIDLineCache);
 end;
 
 { TgdDocumentEntry }
@@ -3586,7 +3693,7 @@ begin
       (Version = gdcInvDocument_Version3_0) then
       SetFlag(efIsUseCompanyKey, ReadBoolean)
     else
-      SetFlag(efIsUseCompanyKey, False);
+      SetFlag(efIsUseCompanyKey, True);
 
     if (Version = gdcInvDocument_Version2_5)  or
       (Version = gdcInvDocument_Version2_6) or

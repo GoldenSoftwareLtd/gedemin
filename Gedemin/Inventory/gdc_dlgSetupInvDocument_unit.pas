@@ -1027,7 +1027,7 @@ begin
 
   lvFeatures.Items.Clear;
   lvUsedFeatures.Items.Clear;
-
+  
   case rgFeatures.ItemIndex of
     0: List := FDestFeatures;
     1: List := FSourceFeatures;
@@ -2057,28 +2057,27 @@ begin
     ReadOptions;
     UpdateTabs;
 
+    pcMain.ActivePage := tsCommon;
+
+    R := GetRelation(False);
+    if Assigned(R) then
+    begin
+      RelType := RelationTypeByRelation(R);
+      if RelType <> irtInvalid then
+        cbTemplate.ItemIndex := Integer(RelType)
+      else
+        cbTemplate.ItemIndex := -1;
+    end else
+      cbTemplate.ItemIndex := -1;
+
     if Document.State = dsEdit then
     begin
       cbTemplate.Enabled := False;
-
-      R := GetRelation(False);
-      if Assigned(R) then
-      begin
-        RelType := RelationTypeByRelation(R);
-        if RelType <> irtInvalid then
-          cbTemplate.ItemIndex := Integer(RelType)
-        else
-          cbTemplate.ItemIndex := -1;
-      end else
-        cbTemplate.ItemIndex := -1;
-
       lblDocument.Visible := False;
       cbDocument.Visible := False;
       lblNotification.Visible := False;
     end else
     begin
-      pcMain.ActivePage := tsCommon;
-
       lblDocument.Visible := True;
       cbDocument.Visible := True;
 
@@ -2130,10 +2129,11 @@ begin
   if FMinusFeatures = nil then
     FMinusFeatures := TStringList.Create
   else
-    FMinusFeatures.Free;
+    FMinusFeatures.Clear;
 
   for I := 0 to lvMinusUsedFeatures.Items.Count - 1 do
-    FMinusFeatures.Add(lvMinusUsedFeatures.Items[I].Caption);
+    if lvMinusUsedFeatures.Items[I].Data <> nil then
+      FMinusFeatures.Add(TatRelationField(lvMinusUsedFeatures.Items[I].Data).FieldName);
 
   Result := FMinusFeatures;
 end;

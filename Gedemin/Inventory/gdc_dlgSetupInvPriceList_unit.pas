@@ -141,6 +141,7 @@ type
     procedure ReadOptions;
     //procedure WriteOptions(Stream: TStream);
 
+    function DlgModified: Boolean; override;
     procedure BeforePost; override;
     procedure SetupDialog; override;
     procedure SetupRecord; override;
@@ -1116,6 +1117,11 @@ begin
   finally
     Document.DoneOpt;
   end;
+end;
+
+function TdlgSetupInvPriceList.DlgModified: Boolean;
+begin
+  Result := True;
 end;
 
 initialization

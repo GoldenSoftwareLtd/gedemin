@@ -208,7 +208,6 @@ type
       const isRefreshFields: Boolean = False);
       overload; override;
 
-
     function Add(atRelation: TatRelation): Integer; override;
     procedure Delete(Index: Integer); override;
     function Remove(atRelation: TatRelation): Integer; override;
@@ -219,7 +218,6 @@ type
 
     procedure NotifyUpdateObject(const ARelationName: String); override;
     function IndexOf(AObject: TObject): Integer; override;
-
   end;
 
   TatBodyRelationField = class(TatRelationField)

@@ -1,6 +1,6 @@
 inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
-  Left = 517
-  Top = 178
+  Left = 518
+  Top = 179
   Caption = 'Настройка прайс-листа'
   ClientHeight = 423
   ClientWidth = 532
@@ -412,7 +412,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           ListField = 'name'
           KeyField = 'id'
           gdClassName = 'TgdcCurr'
-          ItemHeight = 13
+          ItemHeight = 0
           ParentShowHint = False
           ShowHint = True
           TabOrder = 7
@@ -430,7 +430,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           KeyField = 'id'
           Condition = 'contacttype=2'
           gdClassName = 'TgdcContact'
-          ItemHeight = 13
+          ItemHeight = 0
           ParentShowHint = False
           ShowHint = True
           TabOrder = 8

@@ -5939,8 +5939,8 @@ begin
 
         Fq.Close;
         Fq.SQL.Text :=
-          'DELETE FROM at_documenttype_option ' +
-          'WHERE dtkey = :dtkey AND option_name = :option_name AND relationfieldkey = :rfk ';
+          'DELETE FROM gd_documenttype_option ' +
+          'WHERE dtkey = :dtk AND option_name = :option_name AND relationfieldkey = :rfk ';
         Fq.ParamByName('dtk').AsInteger := ID;
         Fq.ParamByName('option_name').AsString := InvDocumentFeaturesNames[AFeature];
         Fq.ParamByname('rfk').AsInteger := RF.ID;

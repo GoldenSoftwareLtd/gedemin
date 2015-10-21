@@ -1,6 +1,6 @@
 inherited gdc_frmMDVTree: Tgdc_frmMDVTree
-  Left = 224
-  Top = 152
+  Left = 225
+  Top = 153
   Width = 812
   Height = 612
   Caption = 'gdc_frmMDVTree'

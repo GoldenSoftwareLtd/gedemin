@@ -1,6 +1,6 @@
 inherited gdc_frmMDV: Tgdc_frmMDV
-  Left = 433
-  Top = 147
+  Left = 435
+  Top = 149
   Width = 634
   Height = 572
   Caption = 'gdc_frmMDV'
