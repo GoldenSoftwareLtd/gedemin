@@ -17411,7 +17411,7 @@ begin
          (MessageBox(Application.Handle,
            PChar(Format('Удалить выделенную запись "%s"?', [ObjectName])),
            'Внимание!',
-           MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES)
+           MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL or MB_DEFBUTTON2) = IDYES)
        ) then
     begin
       Result := DeleteRecord;
@@ -17425,7 +17425,7 @@ begin
               'Выделено записей: ' + FormatFloat('#,##0', VarArrayHighBound(BL, 1) + 1) + #13#10 +
               'Удалить?'),
             'Внимание!',
-            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES) then
+            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL or MB_DEFBUTTON2) = IDYES) then
     begin
       OldState := FBaseState;
       try
