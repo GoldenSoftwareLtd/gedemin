@@ -724,6 +724,9 @@ INSERT INTO fin_versioninfo
   
 INSERT INTO fin_versioninfo
   VALUES (231, '0000.0001.0000.0262', '20.10.2015', 'Client address is added to GD_JOURNAL.');  
+
+INSERT INTO fin_versioninfo
+  VALUES (232, '0000.0001.0000.0263', '23.10.2015', 'Edition date to GD_DOCUMENTTYPE_OPTION.');  
   
 COMMIT;
 

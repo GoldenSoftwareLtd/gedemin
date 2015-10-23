@@ -366,6 +366,7 @@ type
     FHeaderRelKey: Integer;
     FLineRelKey: Integer;
     FBranchKey: Integer;
+    FEditionDate: TDateTime;
     FInvalid: Boolean;
 
     function GetDistinctRelation: String; override;
@@ -400,6 +401,7 @@ type
     property TypeID: Integer read FTypeID write FTypeID;
     property ReportGroupKey: Integer read FReportGroupKey write FReportGroupKey;
     property BranchKey: Integer read FBranchKey write FBranchKey;
+    property EditionDate: TDateTime read FEditionDate write FEditionDate;
     property Invalid: Boolean read FInvalid write SetInvalid;
   end;
 
@@ -2794,6 +2796,7 @@ begin
   HeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
   LineRelKey := TgdDocumentEntry(CE).LineRelKey;
   BranchKey := TgdDocumentEntry(CE).BranchKey;
+  FEditionDate := TgdDocumentEntry(CE).FEditionDate;
   FInvalid := TgdDocumentEntry(CE).Invalid;
 end;
 
@@ -2840,6 +2843,7 @@ begin
   FHeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
   FLineRelKey := q.FieldByName('linerelkey').AsInteger;
   FBranchKey := q.FieldByName('branchkey').AsInteger;
+  FEditionDate := q.FieldByName('editiondate').AsDateTime;
   if qOpt.EOF or (qOpt.FieldbyName('dtkey').AsInteger <> q.FieldByName('id').AsInteger) then
   begin
     if (not q.FieldByName('options').IsNull) and (gd_CmdLineParams.LoadSettingFileName = '') then
@@ -3036,6 +3040,8 @@ var
       qNS.ParamByName('xid').AsInteger := AnOptID;
       qNS.ParamByName('objectpos').AsInteger := P;
       qNS.ParamByName('headobjectkey').AsInteger := NSHeadObjectID;
+      qNS.ParamByName('modified').AsDateTime := EditionDate;
+      qNS.ParamByName('curr_modified').AsDateTime := EditionDate;
       qNS.ExecQuery;
     end;
   end;
@@ -3065,6 +3071,7 @@ var
       q.ParamByName('bool_value').Clear;
       q.ParamByName('relationfieldkey').AsInteger := F.ID;
       q.ParamByName('contactkey').Clear;
+      q.ParamByName('editiondate').AsDateTime := EditionDate;
       q.ExecQuery;
 
       AddNSObject(AnOptionName + '.' + F.FieldName, OptID, F.ID);
@@ -3086,6 +3093,7 @@ var
       q.ParamByName('bool_value').AsInteger := 1;
       q.ParamByName('relationfieldkey').Clear;
       q.ParamByName('contactkey').Clear;
+      q.ParamByName('editiondate').AsDateTime := EditionDate;
       q.ExecQuery;
 
       if AnObjectName = '' then
@@ -3111,6 +3119,7 @@ var
       q.ParamByName('bool_value').Clear;
       q.ParamByName('relationfieldkey').Clear;
       q.ParamByName('contactkey').AsInteger := AContactKey;
+      q.ParamByName('editiondate').AsDateTime := EditionDate;
       q.ExecQuery;
 
       AddNSObject(AnOptionName + '.' + R[0, 0], OptID, AContactKey);
@@ -3151,6 +3160,7 @@ var
         q.ParamByName('bool_value').Clear;
         q.ParamByName('relationfieldkey').AsInteger := F.ID;
         q.ParamByName('contactkey').Clear;
+        q.ParamByName('editiondate').AsDateTime := EditionDate;
         q.ExecQuery;
 
         AddNSObject(InvDocumentFeaturesNames[AFeature], OptID, F.ID);
@@ -3177,8 +3187,8 @@ begin
 
     qNS.Transaction := Tr;
     qNS.SQL.Text :=
-      'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
-      'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+      'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey, modified, curr_modified) ' +
+      'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey, :modified, :curr_modified)';
 
     qFindObj.Transaction := Tr;
     qFindObj.SQL.Text :=
@@ -3210,8 +3220,8 @@ begin
 
     q.Close;
     q.SQL.Text :=
-      'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey) ' +
-      ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationfieldkey, :contactkey)';
+      'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey, editiondate) ' +
+      ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationfieldkey, :contactkey, :editiondate)';
 
     ConvertInvMovementContactOption(GetMovementContactOption(emDebit), 'DM');
     ConvertInvMovementContactOption(GetMovementContactOption(emCredit), 'CM');
@@ -3738,7 +3748,7 @@ var
   procedure AddNSObject(const AnObjectName: String; const AnOptID: Integer;
     const ADependentOnID: Integer = -1);
   var
-    P: Integer;  
+    P: Integer;
   begin
     if NSID > -1 then
     begin
@@ -3767,6 +3777,8 @@ var
       qNS.ParamByName('xid').AsInteger := AnOptID;
       qNS.ParamByName('objectpos').AsInteger := P;
       qNS.ParamByName('headobjectkey').AsInteger := NSHeadObjectID;
+      qNS.ParamByName('modified').AsDateTime := EditionDate;
+      qNS.ParamByName('curr_modified').AsDateTime := EditionDate;
       qNS.ExecQuery;
     end;
   end;
@@ -3805,6 +3817,7 @@ var
           q.ParamByName('currkey').AsInteger := AFields[J].CurrencyKey
         else
           q.ParamByName('currkey').Clear;
+        q.ParamByName('editiondate').AsDateTime := EditionDate;
         q.ExecQuery;
 
         AddNSObject(AnOptName + '.' + F.FieldName, OptID, F.ID);
@@ -3829,8 +3842,8 @@ begin
 
     qNS.Transaction := Tr;
     qNS.SQL.Text :=
-      'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey) ' +
-      'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey)';
+      'INSERT INTO at_object (namespacekey, objectname, objectclass, xid, dbid, objectpos, headobjectkey, modified, curr_modified) ' +
+      'VALUES (:namespacekey, :objectname, ''TgdcInvDocumentTypeOptions'', :xid, GEN_ID(gd_g_dbid, 0), :objectpos, :headobjectkey, :modified, :curr_modified)';
 
     qFindObj.Transaction := Tr;
     qFindObj.SQL.Text :=
@@ -3862,8 +3875,8 @@ begin
 
     q.Close;
     q.SQL.Text :=
-      'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey, currkey) ' +
-      ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationfieldkey, :contactkey, :currkey)';
+      'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey, currkey, editiondate) ' +
+      ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationfieldkey, :contactkey, :currkey, :editiondate)';
 
     ConvertFields('INV_PRICE', 'HF', FHeaderFields);
     ConvertFields('INV_PRICELINE', 'LF', FLineFields);

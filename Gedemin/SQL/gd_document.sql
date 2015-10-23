@@ -157,6 +157,7 @@ CREATE TABLE gd_documenttype_option (
   relationfieldkey      dforeignkey,
   contactkey            dforeignkey,
   currkey               dforeignkey,
+  editiondate           deditiondate, 
   disabled              ddisabled,
   
   CONSTRAINT gd_pk_dt_option PRIMARY KEY (id),
@@ -192,6 +193,15 @@ BEGIN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 END
 ^    
+
+CREATE OR ALTER TRIGGER gd_bu_documenttype_option FOR gd_documenttype_option
+  BEFORE UPDATE
+  POSITION 1000
+AS
+BEGIN
+  NEW.EDITIONDATE = CURRENT_TIMESTAMP(0);
+END
+^  
 
 CREATE OR ALTER TRIGGER gd_aiu_documenttype_option FOR gd_documenttype_option
   AFTER INSERT OR UPDATE

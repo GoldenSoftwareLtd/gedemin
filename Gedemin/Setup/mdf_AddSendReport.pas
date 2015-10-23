@@ -397,6 +397,7 @@ begin
         end;
 
         AddField2('GD_DOCUMENTTYPE_OPTION', 'CURRKEY', 'dforeignkey', FTransaction);
+        AddField2('GD_DOCUMENTTYPE_OPTION', 'EDITIONDATE', 'deditiondate', FTransaction);
 
         if not ConstraintExist2('GD_DOCUMENTTYPE_OPTION', 'GD_FK_DT_OPTION_CURRKEY', FTransaction) then
         begin
@@ -420,7 +421,13 @@ begin
 
         FTransaction.Commit;
         FTransaction.StartTransaction;
-        
+
+        FIBSQL.SQL.Text :=
+          'UPDATE gd_documenttype_option o ' +
+          'SET o.editiondate = (SELECT t.editiondate FROM gd_documenttype t WHERE t.id = o.dtkey) ' +
+          'WHERE o.editiondate IS NULL';
+        FIBSQL.ExecQuery;
+
         FIBSQL.SQL.Text :=
           'ALTER TABLE gd_documenttype_option ADD CONSTRAINT gd_uq_dt_option '#13#10 +
           'UNIQUE (dtkey, option_name, relationfieldkey, contactkey, currkey)';
@@ -434,6 +441,16 @@ begin
           'BEGIN '#13#10 +
           '  IF (NEW.ID IS NULL) THEN '#13#10 +
           '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_bu_documenttype_option FOR gd_documenttype_option '#13#10 +
+          '  BEFORE UPDATE '#13#10 +
+          '  POSITION 1000 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  NEW.EDITIONDATE = CURRENT_TIMESTAMP(0); '#13#10 +
           'END';
         FIBSQL.ExecQuery;
 
@@ -608,6 +625,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (231, ''0000.0001.0000.0262'', ''20.10.2015'', ''Client address is added to GD_JOURNAL.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (232, ''0000.0001.0000.0263'', ''23.10.2015'', ''Edition date to GD_DOCUMENTTYPE_OPTION.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally
