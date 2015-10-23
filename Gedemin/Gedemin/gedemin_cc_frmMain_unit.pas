@@ -3,7 +3,7 @@ unit gedemin_cc_frmMain_unit;
 interface
 
 uses
-  Classes, Controls, Forms, SysUtils, FileCtrl, StdCtrls,
+  Classes, Controls, Forms, SysUtils, FileCtrl, StdCtrls, Windows,
   Menus, ExtCtrls, ComCtrls, Grids, DBGrids, Db, DBCtrls;
 
 type
@@ -28,7 +28,7 @@ type
   protected
 
   public
-
+    procedure DBGrWidth();
   end;
 
 var
@@ -52,5 +52,27 @@ procedure Tfrm_gedemin_cc_main.FormClose(Sender: TObject;
 begin
   ccTCPServer.Disconnect;
 end;
+
+procedure Tfrm_gedemin_cc_main.DBGrWidth();
+var
+  i, cf, cc, FWidth, CWidth: Integer;
+begin
+  FWidth := 0;
+  if DM.IBDS.RecordCount > 0 then
+  begin
+    cf := DBGr.FieldCount - 1;
+    cc := DBGr.Columns.Count - 1;
+    for i := 0 to cf do
+      DBGr.Fields[i].DisplayWidth := Length(DBGr.Fields[i].Value);
+    for i := 0 to cc do
+      FWidth := FWidth + DBGr.Columns[i].Width;
+    FWidth := FWidth + DBGr.FieldCount;
+    CWidth := DBGr.ClientWidth - FWidth;
+    // DisplayWidth - ширина в символах, ClientWidth - ширина в px
+    if CWidth > 0 then
+      DBGr.Columns[cc].Width := DBGr.Columns[cc].Width + CWidth;
+  end;
+end;
+
 
 end.

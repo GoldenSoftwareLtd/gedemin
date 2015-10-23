@@ -3,7 +3,7 @@ unit gdLogClient;
 interface
 
 uses
-  Classes, Dialogs, Windows, SyncObjs, gdMessagedThread, IdTCPConnection, IdTCPClient;
+  Classes, Dialogs, Windows, SyncObjs, Forms, gdMessagedThread, IdTCPConnection, IdTCPClient;
 
 const
   MaxBufferSize = 1024;
@@ -23,14 +23,16 @@ type
     FStart, FEnd: Integer;
     FBufferCS: TCriticalSection;
     FTCPClient: TIdTCPClient;
-    Comm: String[50];
+    FComm: String[50];
+    //FOSName: String[255];
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
     procedure DoWorkClient;
     procedure Connect;
     procedure Disconnect;
-
+    procedure RunCC;
+    //function GetUserFromWindows: string;
   public
     constructor Create;
     destructor Destroy; override;
@@ -69,13 +71,14 @@ begin
 
     WM_LOG_INIT:
     begin
-      Comm := 'RUN';
+      FComm := 'RUN';
       Log('Гедымин запущен');
+      //FOSName := GetUserFromWindows;
     end;
 
     WM_LOG_DONE:
     begin
-      Comm := 'DONE';
+      FComm := 'DONE';
       Log('Гедымин закрыт');
     end;
 
@@ -120,7 +123,7 @@ begin
 
     if (FEnd < MaxBufferSize) or (FEnd < FStart) then
     begin
-      FBuffer[FEnd].Command := Comm;
+      FBuffer[FEnd].Command := FComm;
       FBuffer[FEnd].ClientName := FTCPClient.LocalName;
       FBuffer[FEnd].DT := Now;
       FBuffer[FEnd].Msg := Copy(AMsg, 1, MaxMsgLength);
@@ -129,21 +132,27 @@ begin
   finally
     FBufferCS.Leave;
   end;
-  Comm := ' ';
+  FComm := ' ';
   PostMsg(WM_LOG_PROCESS_REC);
 end;
 
 procedure TgdLogClient.Connect;
 begin
-  if FTCPClient = nil then
-  begin
-    FTCPClient := TIdTCPClient.Create(nil);
-    FTCPClient.Host := '127.0.0.1';
-    FTCPClient.Port := 27070;
-  end;
+  try
+    if FTCPClient = nil then
+    begin
+      FTCPClient := TIdTCPClient.Create(nil);
+      FTCPClient.Host := '127.0.0.1';
+      FTCPClient.Port := 27070;
+    end;
 
-  if not FTCPClient.Connected then
-    FTCPClient.Connect;
+    RunCC; // run CC in local computer
+
+    if not FTCPClient.Connected then
+      FTCPClient.Connect; // if CC not run - Socket Error
+  except
+    raise Exception.Create('Except Connect');
+  end;
 end;
 
 procedure TgdLogClient.Disconnect;
@@ -161,9 +170,31 @@ begin
       Disconnect;
     end;
   except
+    raise Exception.Create('Except DoWork');
     exit;
   end;
 end;
+
+procedure TgdLogClient.RunCC;
+begin
+  try
+    if FindWindow('Tfrm_gedemin_cc_main', nil) = 0 then
+      //WinExec('gedemin_cc.exe', SW_MINIMIZE); // or SW_SHOWMINIMIZED? minimize?
+      WinExec('gedemin_cc.exe', SW_HIDE);
+  except
+    raise Exception.Create('CC not run');
+  end;
+end;
+
+{function TgdLogClient.GetUserFromWindows: string;
+var
+  Name : String[255];
+begin
+  if GetUserName(PChar(Name), 255) then
+    Result := Copy(Name, 1, 254)
+  else
+    Result := 'Unknown';
+end;}
 
 
 initialization
