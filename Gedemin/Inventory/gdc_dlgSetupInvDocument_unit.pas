@@ -179,7 +179,7 @@ type
     procedure AfterPost; override;
     function FindFieldInCombo(Box: TComboBox): String;
     procedure ReadOptions;
-    //procedure WriteOptions(Stream: TStream);
+    procedure WriteOptions(Stream: TStream);
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -1139,6 +1139,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  Stream: TStringStream;
 begin
   {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGSETUPINVDOCUMENT', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}Result := True;
@@ -1203,7 +1204,6 @@ begin
     TestMovement;
     TestReferences;
 
-    {
     Stream := TStringStream.Create('');
     try
       WriteOptions(Stream);
@@ -1211,7 +1211,6 @@ begin
     finally
       Stream.Free;
     end;
-    }
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'TESTCORRECT', KEYTESTCORRECT)}
@@ -1529,10 +1528,8 @@ begin
 
   if Assigned(RL) then
     Document.FieldByName('linerelkey').AsInteger := RL.ID;
-
 end;
 
-(*
 procedure Tgdc_dlgSetupInvDocument.WriteOptions(Stream: TStream);
 var
   Sources: TgdcInvReferenceSources;
@@ -1665,15 +1662,15 @@ begin
     // Настройки признаков
     WriteListBegin;
 
-    for I := 0 to Document.SourceFeatures.Count - 1 do
-      WriteString(Document.SourceFeatures[I]);
+    for I := 0 to SourceFeatures.Count - 1 do
+      WriteString(SourceFeatures[I]);
 
     WriteListEnd;
 
     WriteListBegin;
 
-    for I := 0 to Document.DestFeatures.Count - 1 do
-      WriteString(Document.DestFeatures[I]);
+    for I := 0 to DestFeatures.Count - 1 do
+      WriteString(DestFeatures[I]);
 
     WriteListEnd;
 
@@ -1725,8 +1722,8 @@ begin
     // Настройки признаков для отрицательных остатков
     WriteListBegin;
 
-    for I := 0 to Document.MinusFeatures.Count - 1 do
-      WriteString(Document.MinusFeatures[I]);
+    for I := 0 to MinusFeatures.Count - 1 do
+      WriteString(MinusFeatures[I]);
 
     WriteListEnd;
 
@@ -1739,13 +1736,11 @@ begin
       WriteBoolean(cbWithoutSearchRemains.Checked)
     else
       WriteBoolean(False);
-
   finally
     Movement.Free;
     Free;
   end;
 end;
-*)
 
 procedure Tgdc_dlgSetupInvDocument.cbTemplateChange(Sender: TObject);
 begin

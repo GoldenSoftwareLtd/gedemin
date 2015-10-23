@@ -139,7 +139,7 @@ type
 
   protected
     procedure ReadOptions;
-    //procedure WriteOptions(Stream: TStream);
+    procedure WriteOptions(Stream: TStream);
 
     function DlgModified: Boolean; override;
     procedure BeforePost; override;
@@ -359,7 +359,6 @@ begin
   {END MACRO}
 end;
 
-(*
 procedure TdlgSetupInvPriceList.WriteOptions(Stream: TStream);
 var
   I: Integer;
@@ -400,7 +399,6 @@ begin
     Free;
   end;
 end;
-*)
 
 procedure TdlgSetupInvPriceList.actSelectMasterFieldExecute(
   Sender: TObject);
@@ -652,6 +650,7 @@ var
   {END MACRO}
 var
   gdcExplorer: TgdcExplorer;
+  Stream: TStringStream;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGSETUPINVPRICELIST', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}  try
@@ -743,7 +742,6 @@ begin
     end;
   end;
 
-  {
   Stream := TStringStream.Create('');
   try
     WriteOptions(Stream);
@@ -751,7 +749,6 @@ begin
   finally
     Stream.Free;
   end;
-  }
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGSETUPINVPRICELIST', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally
