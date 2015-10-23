@@ -194,15 +194,6 @@ BEGIN
 END
 ^    
 
-CREATE OR ALTER TRIGGER gd_bu_documenttype_option FOR gd_documenttype_option
-  BEFORE UPDATE
-  POSITION 1000
-AS
-BEGIN
-  NEW.EDITIONDATE = CURRENT_TIMESTAMP(0);
-END
-^  
-
 CREATE OR ALTER TRIGGER gd_aiu_documenttype_option FOR gd_documenttype_option
   AFTER INSERT OR UPDATE
   POSITION 0

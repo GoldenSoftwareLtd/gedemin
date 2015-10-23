@@ -445,16 +445,6 @@ begin
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
-          'CREATE OR ALTER TRIGGER gd_bu_documenttype_option FOR gd_documenttype_option '#13#10 +
-          '  BEFORE UPDATE '#13#10 +
-          '  POSITION 1000 '#13#10 +
-          'AS '#13#10 +
-          'BEGIN '#13#10 +
-          '  NEW.EDITIONDATE = CURRENT_TIMESTAMP(0); '#13#10 +
-          'END';
-        FIBSQL.ExecQuery;
-
-        FIBSQL.SQL.Text :=
           'CREATE OR ALTER TRIGGER gd_aiu_documenttype_option FOR gd_documenttype_option '#13#10 +
           '  AFTER INSERT OR UPDATE '#13#10 +
           '  POSITION 0 '#13#10 +

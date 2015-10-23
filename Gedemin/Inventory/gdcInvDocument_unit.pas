@@ -5850,7 +5850,7 @@ begin
   begin
     Fq.Close;
     Fq.SQL.Text :=
-      'UPDATE gd_documenttype_option SET bool_value = 1, option_name = :name ' +
+      'UPDATE gd_documenttype_option SET bool_value = 1, option_name = :name, editiondate = CURRENT_TIMESTAMP(0) ' +
       'WHERE id = :id';
     Fq.ParamByName('id').AsInteger := OptID;
     Fq.ParamByName('option_name').AsString := APrefix + '.CT.' + gdcInvMovementContactTypeNames[AValue];
@@ -5962,7 +5962,7 @@ begin
   begin
     Fq.Close;
     Fq.SQL.Text :=
-      'UPDATE gd_documenttype_option SET bool_value = :v ' +
+      'UPDATE gd_documenttype_option SET bool_value = :v, editiondate = CURRENT_TIMESTAMP(0) ' +
       'WHERE id = :id';
     Fq.ParamByName('id').AsInteger := OptID;
     if AValue then
@@ -6001,7 +6001,7 @@ begin
     begin
       Fq.Close;
       Fq.SQL.Text :=
-        'UPDATE gd_documenttype_option SET relationfieldkey = :rfk ' +
+        'UPDATE gd_documenttype_option SET relationfieldkey = :rfk, editiondate = CURRENT_TIMESTAMP(0) ' +
         'WHERE id = :id';
       Fq.ParamByName('id').AsInteger := OptID;
       Fq.ParamByName('rfk').AsInteger := ARF.ID;
