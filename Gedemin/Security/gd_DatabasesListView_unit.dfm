@@ -47,6 +47,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
         Width = 75
         Height = 21
         Action = actCancel
+        Cancel = True
         TabOrder = 1
       end
     end

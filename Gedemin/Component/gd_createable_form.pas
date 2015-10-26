@@ -1309,7 +1309,13 @@ begin
 
     SC_MAXIMIZE:
       begin
-        if (Self <> Application.MainForm)
+        if (Self = Application.MainForm) then
+        begin
+          SystemParametersInfo(SPI_GETWORKAREA, 0, @RCurr, 0);
+          SetBounds(RCurr.Left, RCurr.Top, RCurr.Right - RCurr.Left + 1, RCurr.Bottom - RCurr.Top);
+          exit;
+        end
+        else if (Self <> Application.MainForm)
           and (not (cfsDesigning in FCreateableFormState))
           and (not (fsModal in Self.FormState))
           and (Self.BorderStyle = bsSizeable)

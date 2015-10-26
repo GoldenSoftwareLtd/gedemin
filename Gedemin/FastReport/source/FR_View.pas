@@ -812,7 +812,10 @@ begin
 {$IFDEF GEDEMIN}  //!!!
   ShowSpeedButton := True;
   UseDesigner := False;
+
+  Printer.Refresh;
 {$ENDIF}  //!!
+  
   PBox := TfrPBox.Create(Self);
   with PBox do
   begin

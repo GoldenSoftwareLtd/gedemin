@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 452
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsClasses
+      ActivePage = tsQuery
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -1502,14 +1502,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           BevelOuter = bvNone
           TabOrder = 0
           object lblClassesCount: TLabel
-            Left = 273
+            Left = 304
             Top = 6
             Width = 10
             Height = 13
             Caption = 'lbl'
           end
           object Label17: TLabel
-            Left = 60
+            Left = 91
             Top = 6
             Width = 42
             Height = 13
@@ -1540,7 +1540,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             end
           end
           object edClassesFilter: TEdit
-            Left = 106
+            Left = 137
             Top = 3
             Width = 160
             Height = 21

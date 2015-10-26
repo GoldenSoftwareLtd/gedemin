@@ -72,7 +72,6 @@ type
     property LineFields: TgdcInvPriceFields read FLineFields;
   end;
 
-
   TgdcInvPriceList = class(TgdcInvBasePriceList)
   private
     FIsPrePosted: Boolean;
@@ -98,6 +97,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
+    procedure GetProperties(ASL: TStrings); override;
     procedure PrePostDocumentData;
   end;
 
@@ -839,6 +839,12 @@ begin
   Result := 'TdlgInvPriceList';
 end;
 
+procedure TgdcInvPriceList.GetProperties(ASL: TStrings);
+begin
+  inherited;
+
+end;
+
 { TgdcInvPriceListLine }
 
 constructor TgdcInvPriceListLine.Create(AnOwner: TComponent);
@@ -1418,8 +1424,8 @@ begin
 
       Fq.Close;
       Fq.SQL.Text :=
-        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, relationfieldkey, contactkey, currkey) ' +
-        'VALUES (:id, :dtkey, :option_name, :rfk, :ck, :currkey)';
+        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey, currkey) ' +
+        'VALUES (:id, :dtkey, :option_name, NULL, :rfk, :ck, :currkey)';
       Fq.ParamByName('id').AsInteger := OptID;
       Fq.ParamByName('dtkey').AsInteger := ID;
       Fq.ParamByName('option_name').AsString := AName;

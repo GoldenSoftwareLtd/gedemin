@@ -1,8 +1,8 @@
 object FrmCollectionEditor: TFrmCollectionEditor
-  Left = 305
-  Top = 165
-  Width = 319
-  Height = 292
+  Left = 822
+  Top = 359
+  Width = 349
+  Height = 383
   BorderIcons = [biSystemMenu]
   Caption = 'Редактор коллекции'
   Color = clBtnFace
@@ -12,66 +12,27 @@ object FrmCollectionEditor: TFrmCollectionEditor
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = True
-  PopupMenu = PopupMenu2
-  Position = poOwnerFormCenter
+  PopupMenu = popupMain
+  Position = poScreenCenter
   OnActivate = FormActivate
   OnDeactivate = FormDeactivate
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
-  object LblCategories: TLabel
-    Left = 0
-    Top = 40
-    Width = 56
-    Height = 13
-    Caption = 'Категории:'
-  end
-  object LblActions: TLabel
-    Left = 94
-    Top = 40
-    Width = 53
-    Height = 13
-    Caption = 'Действия:'
-  end
-  object LstBxCategories: TListBox
-    Left = 0
-    Top = 56
-    Width = 89
-    Height = 208
-    Cursor = crArrow
-    Anchors = [akLeft, akTop, akBottom]
-    ItemHeight = 13
-    PopupMenu = PopupMenu2
-    TabOrder = 0
-    OnClick = LstBxCategoriesClick
-  end
-  object LstBxActions: TListBox
-    Left = 92
-    Top = 56
-    Width = 218
-    Height = 208
-    Cursor = crArrow
-    Anchors = [akLeft, akTop, akRight, akBottom]
-    ItemHeight = 13
-    PopupMenu = PopupMenu2
-    TabOrder = 1
-    OnClick = LstBxActionsClick
-    OnExit = LstBxActionsExit
-  end
   object TlBrActions: TToolBar
     Left = 0
     Top = 0
-    Width = 311
+    Width = 341
     Height = 25
     ButtonWidth = 24
     Caption = 'TlBrActions'
     EdgeBorders = [ebTop, ebBottom]
     Flat = True
-    Images = ImageList1
+    Images = ilMain
     ParentShowHint = False
-    PopupMenu = PopupMenu2
+    PopupMenu = popupMain
     ShowHint = False
-    TabOrder = 2
+    TabOrder = 0
     object ToolButton3: TToolButton
       Left = 0
       Top = 0
@@ -130,7 +91,70 @@ object FrmCollectionEditor: TFrmCollectionEditor
       OnClick = TlBtnDownClick
     end
   end
-  object ImageList1: TImageList
+  object pnlCategories: TPanel
+    Left = 0
+    Top = 25
+    Width = 119
+    Height = 327
+    Align = alLeft
+    BevelOuter = bvNone
+    BorderWidth = 3
+    TabOrder = 1
+    object LblCategories: TLabel
+      Left = 3
+      Top = 3
+      Width = 113
+      Height = 17
+      Align = alTop
+      AutoSize = False
+      Caption = 'Категории:'
+    end
+    object LstBxCategories: TListBox
+      Left = 3
+      Top = 20
+      Width = 113
+      Height = 304
+      Cursor = crArrow
+      Align = alClient
+      ItemHeight = 13
+      PopupMenu = popupMain
+      TabOrder = 0
+      OnClick = LstBxCategoriesClick
+    end
+  end
+  object pnlActions: TPanel
+    Left = 119
+    Top = 25
+    Width = 222
+    Height = 327
+    Align = alClient
+    BevelOuter = bvNone
+    BorderWidth = 3
+    TabOrder = 2
+    object LblActions: TLabel
+      Left = 3
+      Top = 3
+      Width = 216
+      Height = 17
+      Align = alTop
+      AutoSize = False
+      Caption = 'Действия:'
+    end
+    object LstBxActions: TListBox
+      Left = 3
+      Top = 20
+      Width = 216
+      Height = 304
+      Cursor = crArrow
+      Align = alClient
+      ItemHeight = 13
+      PopupMenu = popupMain
+      TabOrder = 0
+      OnClick = LstBxActionsClick
+      OnExit = LstBxActionsExit
+    end
+  end
+  object ilMain: TImageList
     Left = 248
     Top = 24
     Bitmap = {
@@ -537,8 +561,8 @@ object FrmCollectionEditor: TFrmCollectionEditor
       EFFFFC7FFE7FFFFFFFFFFFFFFEFFFFFF00000000000000000000000000000000
       000000000000}
   end
-  object PopupMenu2: TPopupMenu
-    Images = ImageList1
+  object popupMain: TPopupMenu
+    Images = ilMain
     Left = 160
     Top = 18
     object PMAddAction: TMenuItem

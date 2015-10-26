@@ -158,6 +158,7 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetNotCopyField: String; override;
     procedure DoBeforePost; override;
+    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -2470,6 +2471,64 @@ begin
   Result := DocLineRelationName > '';
 end;
 
+procedure TgdcBaseDocumentType.DoAfterCustomProcess(Buff: Pointer;
+  Process: TgsCustomProcess);
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  DE, DELn: TgdDocumentEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASEDOCUMENTTYPE', KEYDOAFTERCUSTOMPROCESS);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASEDOCUMENTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self),
+  {M}          Integer(Buff), TgsCustomProcess(Process)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASEDOCUMENTTYPE',
+  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASEDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if FieldByName('documenttype').AsString = 'D' then
+  begin
+    if Process = cpDelete then
+      gdClassList.RemoveSubType(FieldByName('ruid').AsString)
+    else if Process = cpModify then
+    begin
+      DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
+      if DE = nil then
+        raise Exception.Create('Document type info not found');
+      DE.LoadDE(Transaction);
+      DELn := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
+      if DELn is TgdDocumentEntry then
+        DELn.Assign(DE);
+    end;
+  end;  
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
+  {M}  end;
+  {END MACRO}
+end;
+
 { TgdcDocumentBranch }
 
 procedure TgdcDocumentBranch._DoOnNewRecord;
@@ -2763,7 +2822,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
-  DE, DELn: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -2789,19 +2847,8 @@ begin
 
   inherited;
 
-  if Process = cpDelete then
-    gdClassList.RemoveSubType(FieldByName('ruid').AsString)
-  else begin
-
-    if Process = cpModify then
-    begin
-      DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
-      DE.LoadDE(Transaction);
-      DELn := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
-      if DELn is TgdDocumentEntry then
-        DELn.Assign(DE);
-    end;
-
+  if Process <> cpDelete then
+  begin
     {ѕри загрузке из потока не будем трогать нумерацию}
     if not (sLoadFromStream in BaseState) then
     begin

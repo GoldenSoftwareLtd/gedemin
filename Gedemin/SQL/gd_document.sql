@@ -213,29 +213,23 @@ BEGIN
     HAVING
       COUNT(option_name) > 1)) THEN
   BEGIN
-    EXCEPTION gd_e_exception 'Duplicate option';
+    EXCEPTION gd_e_exception 'Duplicate boolean option name';
   END
-
-  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = 'Dir.FIFO')) THEN
-    I = :I + 1;
-
-  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = 'Dir.LIFO')) THEN
-    I = :I + 1;
-
-  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = 'Dir.Default')) THEN
-    I = :I + 1;
-
-  IF (:I > 1) THEN
-    EXCEPTION gd_e_exception 'Duplicate option';
-    
-  IF ((NEW.bool_value <> 0) AND (POSITION('.', NEW.option_name) > 0)) THEN
+  
+  IF (POSITION('.', NEW.option_name) > 0) THEN
   BEGIN
-    UPDATE gd_documenttype_option 
-    SET bool_value = 0
-    WHERE bool_value = 1 AND dtkey = NEW.dtkey AND id <> NEW.id
-      AND option_name STARTING WITH 
-        LEFT(NEW.option_name, CHARACTER_LENGTH(NEW.option_name) - POSITION('.', REVERSE(NEW.option_name)) + 1);
-  END  
+    IF (NEW.bool_value = 0) THEN
+      EXCEPTION gd_e_exception 'Invalid enum type value'; 
+      
+    SELECT COUNT(*) FROM gd_documenttype_option
+    WHERE dtkey = NEW.dtkey 
+      AND option_name STARTING WITH LEFT(NEW.option_name, CHARACTER_LENGTH(NEW.option_name) - POSITION('.', REVERSE(NEW.option_name)) + 1)
+      AND NEW.bool_value IS NOT NULL
+    INTO :I;
+    
+    IF (:I > 1) THEN
+      EXCEPTION gd_e_exception 'Multiple enum type values';          
+  END    
 END
 ^    
 

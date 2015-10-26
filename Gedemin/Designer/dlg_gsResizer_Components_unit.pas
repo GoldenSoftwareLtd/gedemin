@@ -17,14 +17,19 @@ type
 
   Tdlg_gsResizer_Components = class(TForm)
     Panel1: TPanel;
-    btnAdd: TButton;
-    lbComponents: TListBox;
+    pnlSearch: TPanel;
+    pnlComponents: TPanel;
+    lblName: TLabel;
     edName: TEdit;
-    Label1: TLabel;
+    lbComponents: TListBox;
+    pnlBottom: TPanel;
+    btnAdd: TButton;
+    btnCancel: TButton;
     procedure edNameChange(Sender: TObject);
     procedure lbComponentsDblClick(Sender: TObject);
     procedure edNameKeyPress(Sender: TObject; var Key: Char);
     procedure btnAddClick(Sender: TObject);
+    procedure btnCancelClick(Sender: TObject);
   private
     { Private declarations }
     FEditForm: TCustomForm;
@@ -106,7 +111,7 @@ end;
 
 procedure Tdlg_gsResizer_Components.InsertNew;
 begin
-  if Assigned(FEditForm) and (lbComponents.ItemIndex > -1)then
+  if Assigned(FEditForm) and (lbComponents.ItemIndex > -1) then
   begin
     SendMessage(FEditForm.Handle, CM_INSERTNEW2, 0, 0);
     Self.SetFocus;
@@ -116,6 +121,11 @@ end;
 procedure Tdlg_gsResizer_Components.btnAddClick(Sender: TObject);
 begin
   InsertNew;
+end;
+
+procedure Tdlg_gsResizer_Components.btnCancelClick(Sender: TObject);
+begin
+  Self.Close;
 end;
 
 end.

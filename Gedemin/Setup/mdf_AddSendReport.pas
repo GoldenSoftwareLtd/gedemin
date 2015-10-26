@@ -394,6 +394,16 @@ begin
             '    ON UPDATE CASCADE '#13#10 +
             ')';
           FIBSQL.ExecQuery;
+        end else
+        begin
+          if not FieldExist2('GD_DOCUMENTTYPE_OPTION', 'EDITIONDATE', FTransaction) then
+          begin
+            FIBSQL.SQL.Text := 'DELETE FROM gd_documenttype_option';
+            FIBSQL.ExecQuery;
+
+            FTransaction.Commit;
+            FTransaction.StartTransaction;
+          end;
         end;
 
         AddField2('GD_DOCUMENTTYPE_OPTION', 'CURRKEY', 'dforeignkey', FTransaction);
@@ -464,28 +474,22 @@ begin
           '    HAVING '#13#10 +
           '      COUNT(option_name) > 1)) THEN '#13#10 +
           '  BEGIN '#13#10 +
-          '    EXCEPTION gd_e_exception ''Duplicate option''; '#13#10 +
+          '    EXCEPTION gd_e_exception ''Duplicate boolean option name''; '#13#10 +
           '  END '#13#10 +
           ' '#13#10 +
-          '  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = ''Dir.FIFO'')) THEN '#13#10 +
-          '    I = :I + 1; '#13#10 +
-          ' '#13#10 +
-          '  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = ''Dir.LIFO'')) THEN '#13#10 +
-          '    I = :I + 1; '#13#10 +
-          ' '#13#10 +
-          '  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = ''Dir.Default'')) THEN '#13#10 +
-          '    I = :I + 1; '#13#10 +
-          ' '#13#10 +
-          '  IF (:I > 1) THEN '#13#10 +
-          '    EXCEPTION gd_e_exception ''Duplicate option''; '#13#10 +
-          ' '#13#10 +
-          '  IF ((NEW.bool_value <> 0) AND (POSITION(''.'', NEW.option_name) > 0)) THEN '#13#10 +
+          '  IF (POSITION(''.'', NEW.option_name) > 0) THEN '#13#10 +
           '  BEGIN '#13#10 +
-          '    UPDATE gd_documenttype_option '#13#10 +
-          '    SET bool_value = 0 '#13#10 +
-          '    WHERE bool_value = 1 AND dtkey = NEW.dtkey AND id <> NEW.id '#13#10 +
-          '      AND option_name STARTING WITH '#13#10 +
-          '        LEFT(NEW.option_name, CHARACTER_LENGTH(NEW.option_name) - POSITION(''.'', REVERSE(NEW.option_name)) + 1); '#13#10 +
+          '    IF (NEW.bool_value = 0) THEN '#13#10 +
+          '      EXCEPTION gd_e_exception ''Invalid enum type value''; '#13#10 +
+          ' '#13#10 +
+          '    SELECT COUNT(*) FROM gd_documenttype_option '#13#10 +
+          '    WHERE dtkey = NEW.dtkey '#13#10 +
+          '      AND option_name STARTING WITH LEFT(NEW.option_name, CHARACTER_LENGTH(NEW.option_name) - POSITION(''.'', REVERSE(NEW.option_name)) + 1) '#13#10 +
+          '      AND NEW.bool_value IS NOT NULL '#13#10 +
+          '    INTO :I; '#13#10 +
+          ' '#13#10 +
+          '    IF (:I > 1) THEN '#13#10 +
+          '      EXCEPTION gd_e_exception ''Multiple enum type values''; '#13#10 +
           '  END '#13#10 +
           'END';
         FIBSQL.ExecQuery;

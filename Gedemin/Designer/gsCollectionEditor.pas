@@ -27,7 +27,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Menus, ComCtrls, ToolWin, ImgList, ActnList, gsResizerInterface;
+  StdCtrls, Menus, ComCtrls, ToolWin, ImgList, ActnList, gsResizerInterface,
+  ExtCtrls;
 
 const
   ceAllCategory = '(Все)';
@@ -36,21 +37,23 @@ const
   ceCaption = 'Редактор коллекции:  ';
 type
   TFrmCollectionEditor = class(TForm)
-    LstBxCategories: TListBox;
-    LstBxActions: TListBox;
     TlBrActions: TToolBar;
     TlBtnAdd: TToolButton;
     TlBtnDelete: TToolButton;
     ToolButton3: TToolButton;
     TlBtnUp: TToolButton;
     TlBtnDown: TToolButton;
-    LblCategories: TLabel;
-    LblActions: TLabel;
-    ImageList1: TImageList;
+    ilMain: TImageList;
     ToolButton1: TToolButton;
-    PopupMenu2: TPopupMenu;
+    popupMain: TPopupMenu;
     PMAddAction: TMenuItem;
     PMDeleteAction: TMenuItem;
+    pnlCategories: TPanel;
+    pnlActions: TPanel;
+    LblCategories: TLabel;
+    LstBxCategories: TListBox;
+    LblActions: TLabel;
+    LstBxActions: TListBox;
     procedure LstBxCategoriesClick(Sender: TObject);
     procedure LstBxActionsExit(Sender: TObject);
     procedure FormShow(Sender: TObject);

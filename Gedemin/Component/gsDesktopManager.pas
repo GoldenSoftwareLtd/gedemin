@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2001 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -1239,7 +1239,9 @@ begin
     if Screen.Forms[I] <> Application.MainForm then
     begin
       if (Screen.Forms[I] is TCreateableForm)
-        and (not (Screen.Forms[I] is Tgdc_dlgG)) then
+        and (not (Screen.Forms[I] is Tgdc_dlgG)) 
+        and (Screen.Forms[I] as TCreateableForm).ShowSpeedButton 
+      then
       begin
         if Screen.Forms[I].Visible or (Find(Screen.Forms[I]) <> nil) then
           (Screen.Forms[I] as TCreateableForm).SaveDesktopSettings;

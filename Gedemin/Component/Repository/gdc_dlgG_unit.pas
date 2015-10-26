@@ -570,7 +570,7 @@ end;
 procedure Tgdc_dlgG.Post;
 var
   I: Integer;
-  WasCached, isError: Boolean;
+  WasCached, isError, WasInEditMode: Boolean;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
@@ -599,13 +599,17 @@ begin
 
   WasCached := False;
   isError := False;
+  WasInEditMode := False;
   try
     try
       if Assigned(gdcObject) and (not (sSubDialog in gdcObject.BaseState)) then
       begin
 
         if gdcObject.State in dsEditModes then
+        begin
           gdcObject.Post;
+          WasInEditMode := True;
+        end;
 
         for I := 0 to gdcObject.DetailLinksCount - 1 do
         begin
@@ -640,6 +644,8 @@ begin
           end;
         end;
         isError := True;
+        if WasInEditMode then
+          gdcObject.Edit;
         raise;
       end;
     end;

@@ -1,3 +1,4 @@
+.
 unit gdLogClient;
 
 interface
@@ -198,9 +199,9 @@ end;}
 
 
 initialization
-  gdLog := TgdLogClient.Create;
-  gdLog.Resume;
+  //gdLog := TgdLogClient.Create;
+  //gdLog.Resume;
 
 finalization
-  FreeAndNil(gdLog);
+  //FreeAndNil(gdLog);
 end.

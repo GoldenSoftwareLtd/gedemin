@@ -156,6 +156,18 @@ type
   // irtInventorization - инвентаризация
   // irtTransformation - трансформация
 
+const
+  InvRelationTypeFirst = irtSimple;
+  InvRelationTypeLast  = irtInvalid;
+  InvRelationTypeNames: array[InvRelationTypeFirst..InvRelationTypeLast] of String = (
+    'Обычная позиция документа',
+    'Изменение признаков документа',
+    'Инвентаризация',
+    'Трансформация',
+    'Тип не определен'
+  );
+
+type
   // Список резервных складов
   TgdcInvReserveInvents = array of Integer;
 

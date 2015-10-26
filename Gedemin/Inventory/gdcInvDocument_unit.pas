@@ -64,7 +64,7 @@ type
   private
     FRelationName, FRelationLineName: String; // Наименование физической таблицы
     FMovementSource, FMovementTarget: TgdcInvMovementContactOption; // Источник и получатель движения
-
+    FRelationType: TgdcInvRelationType;
     FCurrentStreamVersion: String; // Версия настроек, считанных из потока
 
     FContact: TIBSQL;
@@ -404,6 +404,7 @@ begin
   FRelationName := '';
   FRelationLineName := '';
   FContact := nil;
+  FRelationType := irtInvalid;
 
   FCurrentStreamVersion := gdcInv_Document_Undone;
 end;
@@ -698,15 +699,8 @@ begin
 end;
 
 function TgdcInvBaseDocument.GetRelationType: TgdcInvRelationType;
-var
-  R: TatRelation;
-  CE: TgdClassEntry;
 begin
-  CE := gdClassList.Get(TgdDocumentEntry, 'TgdcInvDocumentLine', Self.SubType).GetRootSubType;
-  Assert(atDatabase <> nil, 'Attributes database not assigned!');
-  R := atDatabase.Relations.ByRelationName(TgdDocumentEntry(CE).DistinctRelation);
-  Assert(R <> nil, 'Relation not assigned!');
-  Result := RelationTypeByRelation(R);
+  Result := FRelationType;
 end;
 
 function TgdcInvBaseDocument.JoinListFieldByFieldName(
@@ -718,6 +712,8 @@ end;
 procedure TgdcInvBaseDocument.ReadOptions(DE: TgdDocumentEntry);
 var
   AnIDE: TgdInvDocumentEntry;
+  R: TatRelation;
+  LDE: TgdInvDocumentEntry;
 begin
   Assert(not Active);
 
@@ -729,6 +725,13 @@ begin
 
     FRelationName := AnIDE.HeaderRelName;
     FRelationLineName := AnIDE.LineRelName;
+
+    LDE := gdClassList.Get(TgdInvDocumentEntry, 'TgdcInvDocumentLine', Self.SubType).GetRootSubType as TgdInvDocumentEntry;
+    R := atDatabase.Relations.ByRelationName(LDE.DistinctRelation);
+    if R <> nil then
+      FRelationType := RelationTypeByRelation(R)
+    else
+      raise EgdcInvBaseDocument.Create('Unknown document line table: ' + LDE.DistinctRelation);
 
     FMovementTarget.RelationName := AnIDE.GetMCORelationName(emDebit);
     FMovementTarget.SourceFieldName := AnIDE.GetMCOSourceFieldName(emDebit);
@@ -751,6 +754,7 @@ begin
     FMovementTarget.Clear;
     FRelationName := '';
     FRelationLineName := '';
+    FRelationType := irtInvalid;
   end;
 end;
 
@@ -1029,6 +1033,7 @@ begin
   ASL.Add('[Складской документ]');
   ASL.Add(AddSpaces('Таблица шапки') + FRelationName);
   ASL.Add(AddSpaces('Таблица позиции') + FRelationLineName);
+  ASL.Add(AddSpaces('Тип таблицы позиции') + InvRelationTypeNames[RelationType]);
 
   ASL.Add('');
   ASL.Add('[MovementSource]');
@@ -5806,8 +5811,8 @@ begin
 
       Fq.Close;
       Fq.SQL.Text :=
-        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, contactkey) ' +
-        'VALUES (:id, :dtkey, :option_name, :ck)';
+        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, contactkey) ' +
+        'VALUES (:id, :dtkey, :option_name, NULL, :ck)';
       Fq.ParamByName('id').AsInteger := OptID;
       Fq.ParamByName('dtkey').AsInteger := ID;
       Fq.ParamByName('option_name').AsString := AName;
@@ -5850,7 +5855,7 @@ begin
   begin
     Fq.Close;
     Fq.SQL.Text :=
-      'UPDATE gd_documenttype_option SET bool_value = 1, option_name = :name, editiondate = CURRENT_TIMESTAMP(0) ' +
+      'UPDATE gd_documenttype_option SET bool_value = 1, option_name = :option_name, editiondate = CURRENT_TIMESTAMP(0) ' +
       'WHERE id = :id';
     Fq.ParamByName('id').AsInteger := OptID;
     Fq.ParamByName('option_name').AsString := APrefix + '.CT.' + gdcInvMovementContactTypeNames[AValue];
@@ -5904,8 +5909,8 @@ begin
 
       Fq.Close;
       Fq.SQL.Text :=
-        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, relationfieldkey) ' +
-        'VALUES (:id, :dtkey, :option_name, :rfk)';
+        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey) ' +
+        'VALUES (:id, :dtkey, :option_name, NULL, :rfk)';
       Fq.ParamByName('id').AsInteger := OptID;
       Fq.ParamByName('dtkey').AsInteger := ID;
       Fq.ParamByName('option_name').AsString := InvDocumentFeaturesNames[AFeature];
@@ -5953,18 +5958,44 @@ end;
 procedure TgdcInvDocumentType.UpdateFlag(const AFlag: TgdInvDocumentEntryFlag;
   const AValue, ACheckValue: Boolean);
 var
-  OptID: Integer;
+  OptID, P: Integer;
+  N: String;
 begin
   if ACheckValue and ((FIE <> nil) and (FIE.GetFlag(AFlag) = AValue)) then
     exit;
 
-  if GetOptID(InvDocumentEntryFlagNames[AFlag], OptID) then
+  P := Pos('.', InvDocumentEntryFlagNames[AFlag]);
+  if P > 0 then
+  begin
+    if not AValue then
+      raise EgdcInvBaseDocument.Create('Can not set False value to an enum type');
+
+    N := System.Copy(InvDocumentEntryFlagNames[AFlag], 1, P);
+  end else
+    N := InvDocumentEntryFlagNames[AFlag];
+
+  if (AFlag in [efDirFIFO, efDirLIFO, efDirDefault]) and (
+    GetOptID(InvDocumentEntryFlagNames[efDirFIFO], OptID) or
+    GetOptID(InvDocumentEntryFlagNames[efDirLIFO], OptID) or
+    GetOptID(InvDocumentEntryFlagNames[efDirDefault], OptID)) then
   begin
     Fq.Close;
     Fq.SQL.Text :=
-      'UPDATE gd_documenttype_option SET bool_value = :v, editiondate = CURRENT_TIMESTAMP(0) ' +
+      'UPDATE gd_documenttype_option SET option_name = :option_name, bool_value = 1, editiondate = CURRENT_TIMESTAMP(0) ' +
+      'WHERE id = :id';
+    Fq.ParamByName('option_name').AsString := InvDocumentEntryFlagNames[AFlag];
+    Fq.ParamByName('id').AsInteger := OptID;
+    Fq.ExecQuery;
+  end;
+
+  if GetOptID(N, OptID) then
+  begin
+    Fq.Close;
+    Fq.SQL.Text :=
+      'UPDATE gd_documenttype_option SET option_name = :option_name, bool_value = :v, editiondate = CURRENT_TIMESTAMP(0) ' +
       'WHERE id = :id';
     Fq.ParamByName('id').AsInteger := OptID;
+    Fq.ParamByName('option_name').AsString := InvDocumentEntryFlagNames[AFlag];
     if AValue then
       Fq.ParamByName('v').AsInteger := 1
     else
@@ -5985,7 +6016,10 @@ begin
       Fq.ParamByName('v').AsInteger := 0;
     Fq.ExecQuery;
 
-    AddNSObject(OptID, InvDocumentEntryFlagNames[AFlag]);
+    if P > 0 then
+      AddNSObject(OptID, System.Copy(InvDocumentEntryFlagNames[AFlag], 1, P - 1))
+    else
+      AddNSObject(OptID, InvDocumentEntryFlagNames[AFlag]);
   end;
 end;
 
@@ -6010,8 +6044,8 @@ begin
     begin
       Fq.Close;
       Fq.SQL.Text :=
-        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, relatiofiekey) ' +
-        'VALUES (:id, :dtkey, :option_name, :rfk)';
+        'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey) ' +
+        'VALUES (:id, :dtkey, :option_name, NULL, :rfk)';
       Fq.ParamByName('id').AsInteger := OptID;
       Fq.ParamByName('dtkey').AsInteger := ID;
       Fq.ParamByName('option_name').AsString := AName;

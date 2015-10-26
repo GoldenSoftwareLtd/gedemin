@@ -11170,6 +11170,10 @@ procedure TfrReport.PrintPreparedReportDlg;
 var
   Pages:  String;
 begin
+  {$IFDEF GEDEMIN}  //!!!
+  Printer.Refresh;
+  {$ENDIF} //!!!
+  
   if (EMFPages = nil) or (Printer.Printers.Count = 0) then Exit;
 
   //!!!b

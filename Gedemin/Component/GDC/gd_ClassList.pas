@@ -2276,14 +2276,15 @@ begin
         LoadDocument(TgdInvPriceDocumentEntry, CEInvPriceList, q, qOpt)
       else begin
         DE := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpHeader);
-        DELn := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpLine);
-        if DE <> nil then
-        begin
+        if DE = nil then
+          LoadDocument(TgdDocumentEntry, Get(TgdDocumentEntry, 'TgdcDocument'), q, qOpt)
+        else begin
           DE.LoadDE(q, qOpt);
-          if DELn<> nil then
+          DELn := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpLine);
+          if DELn <> nil then
             DELn.Assign(DE);
+          q.Next;
         end;
-        q.Next;
       end;
     end;
 
@@ -3170,6 +3171,7 @@ var
 
 var
   N: TgdInvDocumentEntryFlag;
+  P: Integer;
 begin
   q := TIBSQL.Create(nil);
   qRUID := TIBSQL.Create(nil);
@@ -3231,7 +3233,14 @@ begin
 
     for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
       if FFlags[N, fpIsSet] then
-        ConvertBoolean(FFlags[N, fpValue], InvDocumentEntryFlagNames[N]);
+      begin
+        P := Pos('.', InvDocumentEntryFlagNames[N]);
+
+        if P > 0 then
+          ConvertBoolean(FFlags[N, fpValue], Copy(InvDocumentEntryFlagNames[N], 1, P - 1))
+        else
+          ConvertBoolean(FFlags[N, fpValue], InvDocumentEntryFlagNames[N]);
+      end;
 
     Tr.Commit;
   finally

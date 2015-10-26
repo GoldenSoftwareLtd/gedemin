@@ -63,6 +63,8 @@ function TgdcInvDocumentTypeOptions.CheckTheSameStatement: String;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  N: String;
+  E: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCINVDOCUMENTTYPEOPTIONS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  try
@@ -96,15 +98,67 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result := 'SELECT id FROM gd_documenttype_option WHERE dtkey=:dtkey AND option_name=:option_name ' +
-      'AND relationfieldkey IS NOT DISTINCT FROM :relationfieldkey AND contactkey IS NOT DISTINCT FROM :contactkey'
+    Result :=
+      'SELECT '#13#10 +
+      '  id '#13#10 +
+      'FROM '#13#10 +
+      '  gd_documenttype_option '#13#10 +
+      'WHERE '#13#10 +
+      '  dtkey = :dtkey '#13#10 +
+      '  AND '#13#10 +
+      '  POSITION(''.'', option_name) > 0 '#13#10 +
+      '  AND '#13#10 +
+      '  POSITION(''.'', CAST(:option_name AS dname)) > 0 '#13#10 +
+      '  AND '#13#10 +
+      '  bool_value IS NOT NULL '#13#10 +
+      '  AND '#13#10 +
+      '  option_name STARTING WITH '#13#10 +
+      '    LEFT(CAST(:option_name AS dname), '#13#10 +
+      '      CHARACTER_LENGTH(CAST(:option_name AS dname)) - '#13#10 +
+      '        POSITION(''.'', REVERSE(CAST(:option_name AS dname))) + 1) '#13#10 +
+      '  AND '#13#10 +
+      '  relationfieldkey IS NOT DISTINCT FROM :relationfieldkey '#13#10 +
+      '  AND '#13#10 +
+      '  contactkey IS NOT DISTINCT FROM :contactkey '#13#10 +
+      '   '#13#10 +
+      'UNION '#13#10 +
+      '   '#13#10 +
+      'SELECT '#13#10 +
+      '  id '#13#10 +
+      'FROM '#13#10 +
+      '  gd_documenttype_option '#13#10 +
+      'WHERE '#13#10 +
+      '  dtkey = :dtkey '#13#10 +
+      '  AND '#13#10 +
+      '  (POSITION(''.'', option_name) = 0 OR bool_value IS NULL) '#13#10 +
+      '  AND '#13#10 +
+      '  option_name = :option_name '#13#10 +
+      '  AND '#13#10 +
+      '  relationfieldkey IS NOT DISTINCT FROM :relationfieldkey '#13#10 +
+      '  AND '#13#10 +
+      '  contactkey IS NOT DISTINCT FROM :contactkey'
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT id FROM gd_documenttype_option WHERE dtkey=%d ' +
-      'AND option_name=%s AND COALESCE(relationfieldkey, 0)=%d AND COALESCE(contactkey, 0)=%d',
-      [FieldByName('dtkey').AsInteger, StringReplace(FieldByName('option_name').AsString, '''', '''''', [rfReplaceAll]),
+  else begin
+    N := FieldByName('option_name').AsString;
+    if FieldByName('bool_value').AsInteger <> 0 then
+    begin
+      E := Length(N);
+      while E > 1 do
+        if N[E] = '.' then
+        begin
+          N := System.Copy(N, 1, E);
+          break;
+        end else
+          Dec(E);
+    end;
+    Result := Format(
+      'SELECT id FROM gd_documenttype_option WHERE dtkey=%d ' +
+      'AND option_name STARTING WITH ''%s'' ' +
+      'AND COALESCE(relationfieldkey, 0)=%d AND COALESCE(contactkey, 0)=%d',
+      [FieldByName('dtkey').AsInteger, StringReplace(N, '''', '''''', [rfReplaceAll]),
       FieldByName('relationfieldkey').AsInteger, FieldByName('contactkey').AsInteger]);
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPEOPTIONS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
