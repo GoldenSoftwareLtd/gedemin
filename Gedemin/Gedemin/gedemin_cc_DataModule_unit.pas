@@ -239,14 +239,15 @@ end;
 
 procedure TDM.UpdateGrid;
 begin
+  if IBDS.Active then
+    IBDS.Close;
   IBDS.Open;
-  IBDS.FieldByName('data').OnGetText := IBDSGetText;
+  {IBDS.FieldByName('data').OnGetText := IBDSGetText;
   IBDS.Last;
   
   frm_gedemin_cc_main.DBGr.Refresh;
-  frm_gedemin_cc_main.DBGr.SetFocus;
-
   frm_gedemin_cc_main.DBGrWidth();
+  frm_gedemin_cc_main.DBGr.SetFocus;}
 end;
 
 procedure TDM.IBDSGetText (Sender: TField;

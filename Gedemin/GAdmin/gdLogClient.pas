@@ -1,10 +1,10 @@
-.
 unit gdLogClient;
 
 interface
 
 uses
-  Classes, Dialogs, Windows, SyncObjs, Forms, gdMessagedThread, IdTCPConnection, IdTCPClient;
+  Classes, Dialogs, Windows, SyncObjs, Forms, gdMessagedThread,
+  IdTCPConnection, IdTCPClient, IdThreadSafe;
 
 const
   MaxBufferSize = 1024;
@@ -25,22 +25,24 @@ type
     FBufferCS: TCriticalSection;
     FTCPClient: TIdTCPClient;
     FComm: String[50];
-    //FOSName: String[255];
+    FConnected: TidThreadSafeInteger;
+    FAttempts: Integer;
+
+    function GetConnected: Boolean;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
     procedure DoWorkClient;
-    procedure Connect;
-    procedure Disconnect;
-    procedure RunCC;
-    //function GetUserFromWindows: string;
+
   public
     constructor Create;
     destructor Destroy; override;
 
-    procedure Start;
-    procedure Finish;
+    procedure Init;
+    procedure Done;
     procedure Log(const AMsg: String);
+
+    property Connected: Boolean read GetConnected;
   end;
 
 var
@@ -56,12 +58,14 @@ begin
   inherited Create(True);
   Priority := tpLowest;
   FBufferCS := TCriticalSection.Create;
+  FConnected := TidThreadSafeInteger.Create;
 end;
 
 destructor TgdLogClient.Destroy;
 begin
   inherited;
   FBufferCS.Free;
+  FConnected.Free;
 end;
 
 function TgdLogClient.ProcessMessage(var Msg: TMsg): Boolean;
@@ -72,19 +76,45 @@ begin
 
     WM_LOG_INIT:
     begin
-      FComm := 'RUN';
-      Log('Гедымин запущен');
-      //FOSName := GetUserFromWindows;
+      if Connected then
+        exit;
+
+      if FTCPClient = nil then
+      begin
+        FTCPClient := TIdTCPClient.Create(nil);
+        FTCPClient.Host := '127.0.0.1';
+        FTCPClient.Port := 27070;
+      end;
+
+      try
+        FTCPClient.Connect;
+        FConnected.Value := 1;
+      except
+        if FAttempts = 0 then
+          PostMsg(WM_LOG_LOAD_CC);
+      end;
+    end;
+
+    WM_LOG_LOAD_CC:
+    begin
+      if (not Connected) and (WinExec('gedemin_cc.exe', SW_HIDE) > 31) then
+      begin
+        Inc(FAttempts);
+        PostMsg(WM_LOG_INIT);
+      end;
     end;
 
     WM_LOG_DONE:
     begin
-      FComm := 'DONE';
-      Log('Гедымин закрыт');
+      FreeAndNil(FTCPClient);
+      FConnected.Value := 0;
     end;
 
     WM_LOG_PROCESS_REC:
     begin
+      if (not Connected) or (FTCPClient = nil) then
+        exit;
+
       FBufferCS.Enter;
       try
         while FStart <> FEnd do
@@ -105,18 +135,21 @@ begin
   end;
 end;
 
-procedure TgdLogClient.Start;
+procedure TgdLogClient.Init;
 begin
   PostMsg(WM_LOG_INIT);
 end;
 
-procedure TgdLogClient.Finish;
+procedure TgdLogClient.Done;
 begin
   PostMsg(WM_LOG_DONE);
 end;
 
 procedure TgdLogClient.Log(const AMsg: String);
 begin
+  if not Connected then
+    exit;
+
   FBufferCS.Enter;
   try
     if (FEnd = MaxBufferSize) and (FStart > 0) then
@@ -133,75 +166,24 @@ begin
   finally
     FBufferCS.Leave;
   end;
-  FComm := ' ';
+
   PostMsg(WM_LOG_PROCESS_REC);
-end;
-
-procedure TgdLogClient.Connect;
-begin
-  try
-    if FTCPClient = nil then
-    begin
-      FTCPClient := TIdTCPClient.Create(nil);
-      FTCPClient.Host := '127.0.0.1';
-      FTCPClient.Port := 27070;
-    end;
-
-    RunCC; // run CC in local computer
-
-    if not FTCPClient.Connected then
-      FTCPClient.Connect; // if CC not run - Socket Error
-  except
-    raise Exception.Create('Except Connect');
-  end;
-end;
-
-procedure TgdLogClient.Disconnect;
-begin
-  FreeAndNil(FTCPClient);
 end;
 
 procedure TgdLogClient.DoWorkClient;
 begin
-  try
-    Connect;
-    try
-      FTCPClient.WriteBuffer(FBuffer[FStart], SizeOf (FBuffer[FStart]), true);
-    finally
-      Disconnect;
-    end;
-  except
-    raise Exception.Create('Except DoWork');
-    exit;
-  end;
+  FTCPClient.WriteBuffer(FBuffer[FStart], SizeOf(FBuffer[FStart]), true);
 end;
 
-procedure TgdLogClient.RunCC;
+function TgdLogClient.GetConnected: Boolean;
 begin
-  try
-    if FindWindow('Tfrm_gedemin_cc_main', nil) = 0 then
-      //WinExec('gedemin_cc.exe', SW_MINIMIZE); // or SW_SHOWMINIMIZED? minimize?
-      WinExec('gedemin_cc.exe', SW_HIDE);
-  except
-    raise Exception.Create('CC not run');
-  end;
+  Result := FConnected.Value <> 0;
 end;
-
-{function TgdLogClient.GetUserFromWindows: string;
-var
-  Name : String[255];
-begin
-  if GetUserName(PChar(Name), 255) then
-    Result := Copy(Name, 1, 254)
-  else
-    Result := 'Unknown';
-end;}
-
 
 initialization
-  //gdLog := TgdLogClient.Create;
-  //gdLog.Resume;
+  gdLog := TgdLogClient.Create;
+  gdLog.Resume;
 
 finalization
-  //FreeAndNil(gdLog);
+  FreeAndNil(gdLog);
 end.

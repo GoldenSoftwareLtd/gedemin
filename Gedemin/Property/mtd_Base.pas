@@ -984,7 +984,6 @@ var
   ObjectSubType: String;
   LClassName: String;
   LmtdCacheItem: TmtdCacheItem;
-  LFullClassName_: TgdcFullClassName;
   TmpFullClassName_: TgdcFullClassName;
   // указывает, что информации для данного класса нет в
   // кэше и надо сделать поиск скрипт-методов.
@@ -1026,8 +1025,7 @@ begin
   Index := AClassMethodAssoc.IndexOf(AnMethodKey);
   if AClassMethodAssoc.IntByKey[AnMethodKey] = 0 then
   begin
-    LFullClassName_.gdClassName := AnObjectClassName;
-    if gdClassList.Find(LFullClassName_) = nil then
+    if gdClassList.Find(AnObjectClassName) = nil then
     begin
       {$IFDEF DEBUG}
       raise Exception.Create('Класс ' + AnObjectClassName + ' не зарегистрирован в gdcClassList!!!');
@@ -1117,7 +1115,7 @@ begin
           begin
             LFullChildName := LCurrentFullClass;
             LCurrentFullClass.gdClassName :=
-              UpperCase(gdClassList.Get(TgdClassEntry, LCurrentFullClass.gdClassName, '').TheClass.ClassParent.ClassName);
+              UpperCase(gdClassList.Get(TgdClassEntry, LCurrentFullClass.gdClassName).TheClass.ClassParent.ClassName);
           end;
       end else
         begin

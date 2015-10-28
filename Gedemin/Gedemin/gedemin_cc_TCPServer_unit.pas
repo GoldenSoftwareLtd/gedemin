@@ -13,19 +13,26 @@ const
   MaxMsgLength = 255;
 
 type
+  TClient = class (TObject) //record
+    ID: Integer;
+    IP: String[15];
+    Host: String[30];
+    Connected: TDateTime;
+    LastTrans: TDateTime;
+  end;
+
   TLogRec = record
     Command: String[50];
-    ClientName: String[20];
+    ID: Integer;
+    IP: String[15];
+    Host: String[20];
     DT: TDateTime;
     Msg: String[MaxMsgLength];
   end;
 
-  TClient = class(TObject)
-    IP: String;
-    Host: String;
-    Connected: TDateTime;
-    LastTrans: TDateTime;
-    Thread: Pointer;
+  TInitPar = record
+    Command: String[50];
+    ID: Integer;
   end;
 
   TccTCPServer = class(TObject)
@@ -34,13 +41,20 @@ type
     FClients: TThreadList;
     FThreadMgr: TIdThreadMgrDefault;
     FIdAntiFreeze: TIdAntiFreeze;
+
     procedure FTCPServerConnect(AThread: TIdPeerThread);
     procedure FTCPServerDisconnect(AThread: TIdPeerThread);
     procedure FTCPServerExecute(AThread: TIdPeerThread);
     procedure Refresh;
+
   public
     FBuffer: array[0..MaxBufferSize - 1] of TLogRec;
     FStart, FEnd: Integer;
+    FCount: Integer;
+
+    constructor Create;
+    destructor Destroy; override;
+
     procedure Connect;
     procedure Disconnect;
   end;
@@ -53,7 +67,7 @@ implementation
 uses
   gedemin_cc_DataModule_unit, gedemin_cc_frmMain_unit;
 
-procedure TccTCPServer.Connect;
+constructor TccTCPServer.Create;
 begin
   FClients := TThreadList.Create;
 
@@ -62,125 +76,135 @@ begin
   FTCPServer.OnExecute := FTCPServerExecute;
   FTCPServer.OnDisconnect := FTCPServerDisconnect;
   FTCPServer.DefaultPort := 27070;
+end;
+
+destructor TccTCPServer.Destroy;
+begin
+  FTCPServer.Free;
+  FClients.Free;
+  inherited;
+end;
+
+procedure TccTCPServer.Connect;
+begin
   FTCPServer.Active := True;
 end;
 
 procedure TccTCPServer.Disconnect;
-var
-  List: TList;
-  I: Integer;
 begin
   Assert(FTCPServer <> nil);
-
-  List := FTCPServer.Threads.LockList;
-  try
-    for I := 0 to List.Count - 1 do
-    begin
-      try
-        TIdPeerThread(List.Items[I]).Connection.Disconnect;
-      except
-        on E: Exception do
-        begin
-          TIdPeerThread(List.Items[I]).Stop;
-        end;
-      end;
-    end;
-  finally
-    FTCPServer.Threads.UnlockList;
-  end;
-
   FTCPServer.Active := False;
-  FreeAndNil(FTCPServer);
-  FreeAndNil(FClients);
 end;
 
 procedure TccTCPServer.FTCPServerConnect(AThread: TIdPeerThread);
-var
-  FClient: TClient;
 begin
-  Assert(FClients <> nil);
-
-  FClient := TClient.Create;
-  FClient.IP := AThread.Connection.Socket.Binding.PeerIP;
-  FClient.Host := GStack.WSGetHostByAddr(FClient.IP);
-  FClient.Connected := Now;
-  FClient.LastTrans := Now;
-  FClient.Thread := AThread;
-
-  AThread.Data := TClient(FClient);
-
-  try
-    FClients.LockList.Add(FClient);
-  finally
-    FClients.UnlockList;
-  end;
+  //
 end;
 
 procedure TccTCPServer.FTCPServerDisconnect(AThread: TIdPeerThread);
-var
-  FClient: TClient;
 begin
-  Assert(FClients <> nil);
-
-  FClient := TClient(AThread.Data);
-  try
-    FClients.LockList.Remove(FClient);
-  finally
-    FClients.UnlockList;
-  end;
-
-  FClient.Free;
-  AThread.Data := nil;
+  //
 end;
 
 procedure TccTCPServer.FTCPServerExecute(AThread: TIdPeerThread);
+const // составить список сообщений, а не это
+  INIT = 1;
+  RUN = 2;
+  DONE = 3;
+  REC = 4;
 var
-  FClient: TClient;   
   LogRec: TLogRec;
   DTRec: String;
+  FClient: TClient;
+  Comm: Integer;
+  InitPar: TInitPar;
+  i: Integer;
 begin
-  // создает ли сервер еще одну нить, если запущено более 1
-  // экземпл€ра клиента на одном и том же компьютере?
-  // при запуске в списке только 1 клиент
-  // при закрытии любого экземпл€ра он удал€етс€
-  // хот€ на каждое подключение должна создаватьс€ отдельна€ нить
+  // создает ли сервер еще одну нить, если запущено более
+  // 1 экземпл€ра клиента на одном и том же компьютере?
   Assert(FClients <> nil);
-  FClient := TClient(AThread.Data);
+
   if not AThread.Terminated and AThread.Connection.Connected then
   begin
-    try
-      if (FEnd = MaxBufferSize) and (FStart > 0) then
-        FEnd := 0;
-      if (FEnd < MaxBufferSize) or (FEnd < FStart) then
+    Comm := StrToInt(AThread.Connection.ReadLn());
+    // PostThreadMessage(ThreadID, Comm, 0, 0); ???
+    case Comm of
+      INIT:
       begin
-        AThread.Connection.ReadBuffer (LogRec, SizeOf (LogRec));
-        FBuffer[FEnd] := LogRec;
-        FClient.LastTrans := Now; // CommandHandler?
-        if LogRec.Command = 'RUN' then // √едымин запущен
-          Refresh
-        else begin
-          if LogRec.Command = 'DONE' then // √едымин закрыт
+        Inc(FCount);
+        InitPar.ID := FCount;
+        InitPar.Command := 'INIT_SUCCESS';
+        AThread.Connection.WriteBuffer(InitPar, SizeOf(InitPar));
+      end;
+
+      RUN:
+      begin
+        AThread.Connection.ReadBuffer(LogRec, SizeOf(LogRec));
+        Assert(FClients <> nil);
+
+        FClient.ID := LogRec.ID;
+        FClient.IP := LogRec.IP;
+        FClient.Host := LogRec.Host;
+        FClient.Connected := LogRec.DT;
+        FClient.LastTrans := LogRec.DT;
+
+        try
+          FClients.LockList.Add(FClient);
+        finally
+          FClients.UnlockList;
+        end;
+
+        Refresh;
+
+        AThread.Connection.WriteLn('REC');
+      end;
+
+      DONE:
+      begin
+        AThread.Connection.ReadBuffer(LogRec, SizeOf(LogRec));
+        Assert(FClients <> nil);
+        // определить клиент дл€ удалени€
+        FClient.ID := LogRec.ID;
+        FClient.IP := LogRec.IP;
+        FClient.Host := LogRec.Host;
+        FClient.Connected := LogRec.DT;
+        FClient.LastTrans := LogRec.DT;
+
+        for i := 0 to FClients.LockList.Count - 1 do
+        begin
+          if FClients.LockList.Items[i] = FClient then
           begin
             try
               FClients.LockList.Remove(FClient);
             finally
               FClients.UnlockList;
             end;
-            Refresh; // из списка должен удалитьс€ закрытый клиент
-          end
-          else begin // другое действие в √едымине
-            //
+            Refresh;
           end;
         end;
-        Inc(FEnd);
-        DTRec := DateTimeToStr(LogRec.DT);
-
-        frm_gedemin_cc_main.mLog.Lines.Add(DTRec + ' | ' + LogRec.ClientName + ' (' + FClient.Host + ')' + ' | ' + FClient.IP + '  >>  ' + LogRec.Msg);
       end;
-    finally
-      AThread.Connection.Disconnect;
-      DM.InsertDB;
-      DM.UpdateGrid;
+
+      REC:
+      begin
+        try
+          if (FEnd = MaxBufferSize) and (FStart > 0) then
+            FEnd := 0;
+          if (FEnd < MaxBufferSize) or (FEnd < FStart) then
+          begin
+            AThread.Connection.ReadBuffer(LogRec, SizeOf(LogRec));
+            FBuffer[FEnd] := LogRec;
+          end;
+          Inc(FEnd);
+          DTRec := DateTimeToStr(LogRec.DT);
+          frm_gedemin_cc_main.mLog.Lines.Add(DTRec + ' | ' + LogRec.Host + '  >>  ' + LogRec.Msg);
+         finally
+           //AThread.Connection.Disconnect;
+           DM.InsertDB;
+           DM.UpdateGrid;
+         end;
+      end;
+    else
+      //
     end;
   end
   else
@@ -200,7 +224,7 @@ begin
       for I := 0 to Count - 1 do
       begin
         FClient := Items[I];
-        frm_gedemin_cc_main.lbClients.Items.AddObject(FClient.Host, FClient);
+        frm_gedemin_cc_main.lbClients.Items.AddObject(FClient.Host, TObject(FClient));
       end;
     end;
   finally

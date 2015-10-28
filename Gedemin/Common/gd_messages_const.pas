@@ -130,6 +130,7 @@ const
   WM_LOG_INIT                  = WM_USER + 4000;
   WM_LOG_DONE                  = WM_USER + 4001;
   WM_LOG_PROCESS_REC           = WM_USER + 4002;
+  WM_LOG_LOAD_CC               = WM_USER + 4003;
 
   // gdWebClientControl
   WM_GD_FINISH_SEND_EMAIL      = WM_USER + 11126;

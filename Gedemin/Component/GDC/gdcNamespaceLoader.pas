@@ -1541,8 +1541,9 @@ end;
 
 procedure TgdcNamespaceLoader.ReloginDatabase;
 begin
-  AddText('Переподключение к базе данных...');
+  AddText('Синхронизация триггеров и индексов...');
   atDatabase.SyncIndicesAndTriggers(FTr);
+  AddText('Переподключение к базе данных...');
   IBLogin.Relogin;
   FNeedRelogin := False;
 end;

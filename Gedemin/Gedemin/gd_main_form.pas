@@ -2318,8 +2318,12 @@ begin
 end;
 
 procedure TfrmGedeminMain.actReconnectExecute(Sender: TObject);
+var
+  T: TDateTime;
 begin
+  T := Now;
   IBLogin.Relogin;
+  gdNotifierThread.Add('Переподключение выполнено за ' + FormatDateTime('s.z', Now - T) + ' сек', 0, 2000);
 end;
 
 procedure TfrmGedeminMain.actDBSqueezeUpdate(Sender: TObject);

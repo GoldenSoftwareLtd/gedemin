@@ -349,7 +349,7 @@ uses
   Storages,                 mdf_proclist,         gdModify,
   IBDatabaseInfo,           gd_DatabasesList_unit,gd_security_operationconst,
   IBErrorCodes,             gd_common_functions,  gd_ClassList,
-  gd_messages_const
+  gd_messages_const,        gdLogClient
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -440,6 +440,8 @@ procedure TboLogin.AddEvent(const AData, ASource: String;
 begin
   TgdcJournal.AddEvent(AData, ASource, AnObjectID,
     ATransaction as TIBTransaction);
+
+  gdLog.Log(AData);
 end;
 
 procedure TboLogin.ClearHoldingListCache;

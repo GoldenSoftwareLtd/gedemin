@@ -524,8 +524,8 @@ end;
 procedure Tgdc_frmExplorer.dbtvExplorerPostProcess(Sender: TObject);
 var
   I: Integer;
-  S, S2: Variant;
-  LFullClass: TgdcFullClassName;
+  VS, VS2: Variant;
+  S: String;
   DataID: Integer;
 begin
   dbtvExplorer.Items.BeginUpdate;
@@ -533,32 +533,47 @@ begin
     I := 0;
     while I < dbtvExplorer.Items.Count do
     begin
-      DataID := Integer(dbtvExplorer.Items[I].Data);
-        if gdcExplorer.GetFieldValueForID(DataID,
-        'cmdtype') = cst_expl_cmdtype_function
-      then
-        Inc(I)
-      else
+      if dbtvExplorer.Items[I].HasChildren then
       begin
-        S := gdcExplorer.GetFieldValueForID(DataID, 'classname');
-        if VarIsNull(S) then S := '';
-        S2 := gdcExplorer.GetFieldValueForID(DataID, 'cmd');
-        if VarIsNull(S2) then S2 := '';
-        LFullClass.gdClassName := S;
-        LFullClass.SubType := '';
-        if (S = '') or (S2 = '') or
-          dbtvExplorer.Items[I].HasChildren or
-          (gdClassList.Find(LFullClass) <> nil) or
+        Inc(I);
+        continue;
+      end;
+
+      DataID := Integer(dbtvExplorer.Items[I].Data);
+
+      VS := gdcExplorer.GetFieldValueForID(DataID, 'classname');
+      if VarIsNull(VS) or (VS = '') then
+      begin
+        Inc(I);
+        continue;
+      end else
+      begin
+        S := VS;
+
+        if (gdClassList.Find(S) <> nil) or
           (GetClass(S) <> nil) or
           (StrIPos(USERFORM_PREFIX, S) = 1) then
         begin
           Inc(I);
-        end else
-        begin
-          dbtvExplorer.TVState.Bookmarks.Remove(DataID);
-          dbtvExplorer.Items[I].Delete;
+          continue;
         end;
+      end;  
+
+      VS2 := gdcExplorer.GetFieldValueForID(DataID, 'cmd');
+      if VarIsNull(VS2) or (VS2 = '') then
+      begin
+        Inc(I);
+        continue;
       end;
+
+      if gdcExplorer.GetFieldValueForID(DataID, 'cmdtype') = cst_expl_cmdtype_function then
+      begin
+        Inc(I);
+        continue;
+      end;
+
+      dbtvExplorer.TVState.Bookmarks.Remove(DataID);
+      dbtvExplorer.Items[I].Delete;
     end;
   finally
     dbtvExplorer.Items.EndUpdate;

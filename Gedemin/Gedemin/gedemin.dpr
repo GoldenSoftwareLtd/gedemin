@@ -614,8 +614,6 @@ var
   FApplicationEvents: TApplicationEvents;
 
 begin
-  gdLog.Start;
-
   if not CheckMIDASRegistered then
     exit;
 
@@ -631,6 +629,8 @@ begin
 
   ApplicationEventsHandler := TgdApplicationEventsHandler.Create;
   try
+    gdLog.Init;
+    
     FApplicationEvents := TApplicationEvents.Create(Application);
     FApplicationEvents.OnException := ApplicationEventsHandler.ApplicationEventsException;
     FApplicationEvents.OnHelp := ApplicationEventsHandler.ApplicationEventsHelp;
@@ -734,7 +734,7 @@ begin
     end;
   finally
     ApplicationEventsHandler.Free;
-    gdLog.Finish;
+    gdLog.Done;
   end;
 end.
 
