@@ -183,6 +183,7 @@ var
   SS: string;
 begin
   Result := False;
+  
   if gdcObjectList.IndexOf(CD^.Obj) = -1 then
   begin
     Result := False;

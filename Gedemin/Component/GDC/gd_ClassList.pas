@@ -2015,7 +2015,7 @@ function TgdClassList.Find(const AClassName: AnsiString;
 var
   Index: Integer;
 begin
-  if _Find(AClassName, ASubType, Index) then
+  if (AClassName <> '') and _Find(AClassName, ASubType, Index) then
     Result := FClasses[Index]
   else
     Result := nil;

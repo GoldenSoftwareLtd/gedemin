@@ -369,6 +369,9 @@ begin
       if SkipField(F.FieldName) then
         continue;
 
+      if Pos('"INV_CARD".', F.Origin) = 1 then
+        continue;        
+
       if AgdcObject is TgdcMetaBase then
       begin
         if Pos('RDB$', AgdcObject.ObjectName) = 1 then
