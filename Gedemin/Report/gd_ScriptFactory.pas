@@ -591,10 +591,8 @@ begin
         AMacros.FunctionKey := AFunctionKey;
         AMacros.Name := TempSQL.FieldByName('Name').AsString;
         AMacros.ServerKey := TempSQL.FieldByName('ServerKey').AsInteger;
-//        AMacros.IsLocalExecute := TempSQL.FieldByName('IsLocalExecute').AsInteger = 0;
 
         Result := True;
-        TempSQL.Close;
       finally
         TempSQL.Free;
       end;

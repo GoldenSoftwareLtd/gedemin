@@ -3548,12 +3548,13 @@ end;
 
 function TgdcUserDocument.GetDetailObject: TgdcDocument;
 begin
-// Через try except т.к. в общем случае мы не знаем есть ли detail в пользовательском документе
-  try
+  if gdClassList.Find('TgdcUserDocumentLine', SubType) <> nil then
+  begin
     Result := TgdcUserDocumentLine.CreateSubType(Owner, SubType);
-  except
+    if sLoadFromStream in BaseState then
+      Result.SetBaseState(Result.BaseState + [sLoadFromStream]);
+  end else
     Result := nil;
-  end;
 end;
 
 procedure TgdcUserDocument.GetWhereClauseConditions(S: TStrings);

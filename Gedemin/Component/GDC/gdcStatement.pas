@@ -450,7 +450,9 @@ end;
 
 function TgdcBankCatalogue.GetDetailObject: TgdcDocument;
 begin
-  Result := TgdcBankCatalogueLine.Create(Owner);
+  Result := TgdcBankCatalogueLine.CreateSubType(Owner, SubType);
+  if sLoadFromStream in BaseState then
+    Result.BaseState := Result.BaseState + [sLoadFromStream];
 end;
 
 class function TgdcBankCatalogue.GetDialogFormClassName(
@@ -1126,7 +1128,9 @@ end;
 
 function TgdcBankStatement.GetDetailObject: TgdcDocument;
 begin
-  Result := TgdcBankStatementLine.Create(Owner);
+  Result := TgdcBankStatementLine.CreateSubType(Owner, SubType);
+  if sLoadFromStream in BaseState then
+    Result.BaseState := Result.BaseState + [sLoadFromStream];
 end;
 
 class function TgdcBankStatement.GetDialogFormClassName(

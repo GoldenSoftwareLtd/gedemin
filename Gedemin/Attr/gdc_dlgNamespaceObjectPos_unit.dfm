@@ -13,57 +13,57 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
   OldCreateOrder = False
   Position = poScreenCenter
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   object pnlButtons: TPanel
     Left = 0
-    Top = 567
+    Top = 564
     Width = 513
-    Height = 29
+    Height = 31
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object btnUp: TButton
       Left = 3
       Top = 2
-      Width = 75
-      Height = 21
+      Width = 81
+      Height = 23
       Action = actUp
       ParentShowHint = False
       ShowHint = True
       TabOrder = 1
     end
     object btnDown: TButton
-      Left = 83
+      Left = 89
       Top = 2
-      Width = 75
-      Height = 21
+      Width = 81
+      Height = 23
       Action = actDown
       ParentShowHint = False
       ShowHint = True
       TabOrder = 2
     end
     object Panel3: TPanel
-      Left = 351
+      Left = 339
       Top = 0
-      Width = 162
-      Height = 29
+      Width = 174
+      Height = 31
       Align = alRight
       BevelOuter = bvNone
       TabOrder = 0
       object btnOk: TButton
         Left = 1
         Top = 2
-        Width = 75
-        Height = 21
+        Width = 81
+        Height = 23
         Action = actOK
         Default = True
         TabOrder = 0
       end
       object btnCancel: TButton
-        Left = 82
+        Left = 88
         Top = 2
-        Width = 75
-        Height = 21
+        Width = 81
+        Height = 23
         Action = actCancel
         Cancel = True
         TabOrder = 1
@@ -74,16 +74,16 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
     Left = 0
     Top = 0
     Width = 513
-    Height = 567
+    Height = 564
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
     TabOrder = 0
     object lv: TListView
       Left = 4
-      Top = 31
+      Top = 33
       Width = 505
-      Height = 532
+      Height = 527
       Align = alClient
       Columns = <
         item
@@ -101,30 +101,30 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
       Left = 4
       Top = 4
       Width = 505
-      Height = 27
+      Height = 29
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 0
       object Label1: TLabel
         Left = 2
         Top = 5
-        Width = 35
-        Height = 13
+        Width = 33
+        Height = 14
         Caption = 'Поиск:'
       end
       object edFind: TEdit
-        Left = 43
+        Left = 46
         Top = 2
-        Width = 198
-        Height = 21
+        Width = 214
+        Height = 22
         TabOrder = 0
         Text = 'edFind'
       end
       object btnFind: TButton
-        Left = 240
+        Left = 258
         Top = 1
-        Width = 75
-        Height = 21
+        Width = 81
+        Height = 23
         Action = actFind
         Caption = 'Поиск (F3)'
         TabOrder = 1

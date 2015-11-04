@@ -1860,9 +1860,13 @@ end;
 function TgdcField.GetObjectName: String;
 begin
   if Active then
-    Result := FieldByName('lname').AsString + ', ' +
-      FieldByName('fieldname').AsString
-  else
+  begin
+    if FieldByName('lname').AsString <> FieldByName('fieldname').AsString then
+      Result := FieldByName('lname').AsString + ', ' +
+        FieldByName('fieldname').AsString
+    else
+      Result := FieldByName('fieldname').AsString;
+  end else
     Result := inherited GetObjectName;    
 end;
 
@@ -2449,9 +2453,13 @@ end;
 function TgdcRelation.GetObjectName: String;
 begin
   if Active then
-    Result := FieldByName('lname').AsString + ', ' +
-      FieldByName('relationname').AsString
-  else
+  begin
+    if FieldByName('lname').AsString <> FieldByName('relationname').AsString then
+      Result := FieldByName('lname').AsString + ', ' +
+        FieldByName('relationname').AsString
+    else
+      Result := FieldByName('relationname').AsString;
+  end else
     Result := inherited GetObjectName;    
 end;
 
@@ -5401,10 +5409,16 @@ end;
 function TgdcRelationField.GetObjectName: String;
 begin
   if Active then
-    Result := FieldByName('lname').AsString + ', ' +
-      FieldByName('relationname').AsString + '.' +
-      FieldByName('fieldname').AsString
-  else
+  begin
+    if FieldByName('lname').AsString  <> FieldByName('fieldname').AsString then
+      Result := FieldByName('lname').AsString + ', ' +
+        FieldByName('relationname').AsString + '.' +
+        FieldByName('fieldname').AsString
+    else
+      Result :=
+        FieldByName('relationname').AsString + '.' +
+        FieldByName('fieldname').AsString;
+  end else
     Result := inherited GetObjectName;
 end;
 

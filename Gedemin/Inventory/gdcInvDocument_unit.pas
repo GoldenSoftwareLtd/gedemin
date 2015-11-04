@@ -1656,6 +1656,8 @@ end;
 function TgdcInvDocument.GetDetailObject: TgdcDocument;
 begin
   Result := TgdcInvDocumentLine.CreateSubType(Owner, SubType);
+  if sLoadFromStream in BaseState then
+    Result.BaseState := Result.BaseState + [sLoadFromStream];
 end;
 
 class function TgdcInvDocument.GetDialogFormClassName(

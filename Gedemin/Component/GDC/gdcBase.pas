@@ -18034,12 +18034,15 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
       if AProcessed.IndexOf(AnObject.Fields[I].AsInteger) <> -1 then
         continue;  
 
+      if Pos(AnObject.Fields[I].Origin, AnIgnoreFields) > 0 then
+        continue;
+
       ParseFieldOrigin(AnObject.Fields[I].Origin, RelationName, FieldName);
 
       if RelationName = '' then
         continue;
 
-      if StrIPos(';' + FieldName + ';', AnIgnoreFields) > 0 then
+      if Pos(';' + FieldName + ';', AnIgnoreFields) > 0 then
         continue;
 
       if (R = nil) or (AnsiCompareText(R.RelationName, RelationName) <> 0) then

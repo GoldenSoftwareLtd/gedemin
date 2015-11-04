@@ -469,7 +469,7 @@ begin
   FSessionID := AnObject.GetNextID;
 
   if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) or (FBL.Count = 0) then
-    FgdcObject.GetDependencies(FIBTransaction, FSessionID, False, ';EDITORKEY;CREATORKEY;')
+    FgdcObject.GetDependencies(FIBTransaction, FSessionID, False, '"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;')
   else begin
     FgdcObject.DisableControls;
     try
@@ -477,7 +477,7 @@ begin
       for I := 0 to FBL.Count - 1 do
       begin
         FgdcObject.Bookmark := FBL[I];
-        FgdcObject.GetDependencies(FIBTransaction, FSessionID, False, ';EDITORKEY;CREATORKEY;');
+        FgdcObject.GetDependencies(FIBTransaction, FSessionID, False, '"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;');
       end;
       FgdcObject.Bookmark := Bm;
     finally

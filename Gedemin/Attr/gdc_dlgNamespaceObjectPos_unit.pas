@@ -102,7 +102,8 @@ begin
     while (Sel <> nil) and (lv.GetNextItem(Sel, sdBelow, [isSelected]) <> nil) do
       Sel := lv.GetNextItem(Sel, sdBelow, [isSelected]);
 
-    while Sel <> nil do
+    while (Sel <> nil)
+      and (lv.GetNextItem(Sel, sdBelow, [isNone]) <> nil) do
     begin
       LI := lv.Items.Insert(Sel.Index + 2);
       LI.Caption := Sel.Caption;

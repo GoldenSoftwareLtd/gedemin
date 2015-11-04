@@ -1009,6 +1009,7 @@ const
 
 begin
   Result := False;
+
   if (csDesigning in ComponentState) then
     exit;
 

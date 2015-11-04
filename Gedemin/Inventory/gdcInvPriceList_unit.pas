@@ -831,6 +831,8 @@ end;
 function TgdcInvPriceList.GetDetailObject: TgdcDocument;
 begin
   Result := TgdcInvPriceListLine.CreateSubType(Owner, SubType);
+  if sLoadFromStream in BaseState then
+    Result.BaseState := Result.BaseState + [sLoadFromStream];
 end;
 
 class function TgdcInvPriceList.GetDialogFormClassName(
