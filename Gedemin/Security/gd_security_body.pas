@@ -162,6 +162,7 @@ type
     function GetSubSystemName: String;
     function GetUserKey: Integer;
     function GetUserName: String;
+    function GetUserPassword: String;
     function GetComputerName: String;
     function GetCompanyOpened: Boolean;
     function GetLoggedIn: Boolean;
@@ -441,7 +442,7 @@ begin
   TgdcJournal.AddEvent(AData, ASource, AnObjectID,
     ATransaction as TIBTransaction);
 
-  gdLog.Log(AData);
+  gdLog.Log(AData, ASource, AnObjectID);
 end;
 
 procedure TboLogin.ClearHoldingListCache;
@@ -2277,6 +2278,11 @@ end;
 function TboLogin.GetCompanyPhone: String;
 begin
   Result := FCompanyPhone;
+end;
+
+function TboLogin.GetUserPassword: String;
+begin
+  Result := FLastPassword;
 end;
 
 end.

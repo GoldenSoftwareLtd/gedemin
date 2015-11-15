@@ -1,10 +1,10 @@
 object dlgSendReport: TdlgSendReport
-  Left = 680
-  Top = 257
+  Left = 882
+  Top = 254
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Отправка отчета по электронной почте'
-  ClientHeight = 269
+  ClientHeight = 288
   ClientWidth = 387
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -20,7 +20,7 @@ object dlgSendReport: TdlgSendReport
   TextHeight = 13
   object Label1: TLabel
     Left = 8
-    Top = 211
+    Top = 233
     Width = 93
     Height = 13
     Caption = 'Почтовый сервер:'
@@ -55,7 +55,7 @@ object dlgSendReport: TdlgSendReport
   end
   object iblkupSMTP: TgsIBLookupComboBox
     Left = 106
-    Top = 208
+    Top = 230
     Width = 155
     Height = 21
     HelpContext = 1
@@ -65,7 +65,7 @@ object dlgSendReport: TdlgSendReport
     ItemHeight = 13
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 12
+    TabOrder = 13
   end
   object edRecipients: TEdit
     Left = 74
@@ -94,7 +94,7 @@ object dlgSendReport: TdlgSendReport
     Width = 75
     Height = 21
     Action = actSend
-    TabOrder = 13
+    TabOrder = 14
   end
   object btnAdd: TButton
     Left = 303
@@ -137,18 +137,18 @@ object dlgSendReport: TdlgSendReport
     Top = 162
     Width = 49
     Height = 17
-    Caption = 'XML'
+    Caption = 'XLSX'
     TabOrder = 7
     TabStop = True
   end
   object pnlState: TPanel
     Left = 73
-    Top = 237
+    Top = 259
     Width = 305
     Height = 22
     BevelOuter = bvLowered
     Color = clInfoBk
-    TabOrder = 15
+    TabOrder = 16
   end
   object btnClose: TButton
     Left = 303
@@ -157,7 +157,7 @@ object dlgSendReport: TdlgSendReport
     Height = 21
     Caption = 'Закрыть'
     ModalResult = 1
-    TabOrder = 14
+    TabOrder = 15
   end
   object rbTXT: TRadioButton
     Left = 74
@@ -193,6 +193,15 @@ object dlgSendReport: TdlgSendReport
     Height = 17
     Caption = 'ODS'
     TabOrder = 11
+    TabStop = True
+  end
+  object rbBIFF: TRadioButton
+    Left = 74
+    Top = 205
+    Width = 79
+    Height = 17
+    Caption = 'BIFF (XLS)'
+    TabOrder = 12
     TabStop = True
   end
   object alBase: TActionList

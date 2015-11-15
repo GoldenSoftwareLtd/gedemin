@@ -211,8 +211,18 @@ begin
 end;
 
 function GetEmailTempFileName(const AnExportType: String): String;
+var
+  Ext: String;
 begin
-  Result := GetEmailTempDirectory + 'report.' + AnExportType;
+  if (AnExportType = 'BIFF') or (AnExportType = 'EXCEL') then
+    Ext := 'XLS'
+  else if AnExportType= 'XML' then
+    Ext := 'XLSX'
+  else if AnExportType= 'WORD' then
+    Ext := 'DOC'
+  else
+    Ext := AnExportType;
+  Result := GetEmailTempDirectory + 'report.' + Ext;
 end;
 
 { TgdWebClientControl }

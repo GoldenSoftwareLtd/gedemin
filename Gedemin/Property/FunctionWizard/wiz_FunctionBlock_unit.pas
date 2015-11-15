@@ -7006,7 +7006,7 @@ end;
 procedure TTrEntryFunctionBlock._DoAfterGenerate(S: TStrings;
   Paragraph: Integer);
 var
-  lS: string;
+  lS: String;
   I: Integer;
 begin
   ls := StringOfChar(' ', Paragraph);
@@ -7021,20 +7021,22 @@ begin
   if _CheckMaster then
   begin
     if DocumentPart = dcpLine then
-    S.Insert(FCheckMasterInsertLine + 1, lS + 'If Assigned(gdcDocument.MasterSource) Then');
-    S.Insert(FCheckMasterInsertLine + 2, lS + '  Set gdcDocumentHeader = gdcDocument.MasterSource.Dataset');
-    S.Insert(FCheckMasterInsertLine + 3, lS + 'Else');
-    S.Insert(FCheckMasterInsertLine + 4, lS + '  Set gdcDocumentHeader = Creator.GetObject(nil, "' + DocumentHead.Document.ClassName + '", "")');
-    S.Insert(FCheckMasterInsertLine + 5, lS + '  gdcDocumentHeader.Transaction = Transaction');
-    S.Insert(FCheckMasterInsertLine + 6, lS + '  gdcDocumentHeader.SubType = gdcDocument.SubType');
-    S.Insert(FCheckMasterInsertLine + 7, lS + '  gdcDocumentHeader.Subset = "ByID"');
-    S.Insert(FCheckMasterInsertLine + 8, lS + '  gdcDocumentHeader.ID = gdcDocument.FieldByName("parent").AsInteger');
-    S.Insert(FCheckMasterInsertLine + 9, lS + '  gdcDocumentHeader.Open');
-    S.Insert(FCheckMasterInsertLine + 10, lS + 'End If');
-    Inc(FEndScriptLine, 11);
-    for I := 0 to ControlCount - 1 do
     begin
-      TVisualBlock(Controls[I]).InsertLine(11);
+      S.Insert(FCheckMasterInsertLine + 1, lS + 'If Assigned(gdcDocument.MasterSource) Then');
+      S.Insert(FCheckMasterInsertLine + 2, lS + '  Set gdcDocumentHeader = gdcDocument.MasterSource.Dataset');
+      S.Insert(FCheckMasterInsertLine + 3, lS + 'Else');
+      S.Insert(FCheckMasterInsertLine + 4, lS + '  Set gdcDocumentHeader = Creator.GetObject(nil, "' + DocumentHead.Document.ClassName + '", "")');
+      S.Insert(FCheckMasterInsertLine + 5, lS + '  gdcDocumentHeader.Transaction = Transaction');
+      S.Insert(FCheckMasterInsertLine + 6, lS + '  gdcDocumentHeader.SubType = gdcDocument.SubType');
+      S.Insert(FCheckMasterInsertLine + 7, lS + '  gdcDocumentHeader.Subset = "ByID"');
+      S.Insert(FCheckMasterInsertLine + 8, lS + '  gdcDocumentHeader.ID = gdcDocument.FieldByName("parent").AsInteger');
+      S.Insert(FCheckMasterInsertLine + 9, lS + '  gdcDocumentHeader.Open');
+      S.Insert(FCheckMasterInsertLine + 10, lS + 'End If');
+      Inc(FEndScriptLine, 11);
+      for I := 0 to ControlCount - 1 do
+      begin
+        TVisualBlock(Controls[I]).InsertLine(11);
+      end;
     end;
   end;
   {$ENDIF}
@@ -8417,7 +8419,8 @@ begin
   S.Add(lS + '  Set Transaction = gdcDocument.ReadTransaction');
   S.Add(lS + 'End If');
   {$IFDEF GEDEMIN}
-  if FDocumentPart = dcpLine then begin
+  if FDocumentPart = dcpLine then
+  begin
     S.Add(lS + 'If Assigned(gdcDocument.MasterSource) Then');
     S.Add(lS + '  Set gdcDocumentHeader = gdcDocument.MasterSource.Dataset');
     S.Add(lS + 'Else');

@@ -7,6 +7,17 @@ uses
   gdcBase, PLHeader, PLIntf;
 
 type
+  TgsPL = class(TObject)
+  private
+    FCount: Integer;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property Count: Integer read FCount write FCount;
+  end;
+
+type
   TgsPLTermv = class(TObject)
   private
     FTerm: term_t;
@@ -70,6 +81,7 @@ type
   private
     FInitArgv: array of PChar;
     FDebug: Boolean;
+    FIsInitialised: Boolean;
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
     function GetFileName(const AFileName: String): String;
@@ -91,6 +103,7 @@ type
 
     function GetScriptIDByName(const Name: String): Integer;
   public
+    constructor Create;
     destructor Destroy; override;
 
     function Call(const APredicateName: String; AParams: TgsPLTermv): Boolean;
@@ -122,6 +135,9 @@ type
   end;
 
   function TermToString(ATerm: term_t): String;
+
+var
+  gsPL: TgsPL;
 
 implementation
 
@@ -159,6 +175,9 @@ end;
 
 constructor TgsPLTermv.CreateTermv(const ASize: Integer);
 begin
+  if gsPL.Count = 0 then
+    raise EgsPLClientException.Create('Prolog не инициализирован!');
+
   inherited Create;
 
   FTerm := PL_new_term_refs(ASize);
@@ -281,7 +300,7 @@ end;
 
 function TgsPLTermv.ReadAtom(const Idx: LongWord): String;
 begin
-  Result := ReadString(Idx); 
+  Result := ReadString(Idx);
 end;
 
 function TgsPLTermv.ReadDate(const Idx: LongWord): TDateTime;
@@ -293,7 +312,7 @@ function TgsPLTermv.ReadInt64(const Idx: LongWord): Int64;
 begin
   if PL_get_int64(GetTerm(Idx), Result) = 0 then
     raise EgsPLClientException.CreateTypeError('int64', GetTerm(Idx));
-end; 
+end;
 
 function TgsPLTermv.GetDataType(const Idx: LongWord): Integer;
 begin
@@ -305,10 +324,13 @@ end;
 
 constructor TgsPLQuery.Create;
 begin
+  if gsPL.Count = 0 then
+    raise EgsPLClientException.Create('Prolog не инициализирован!');
+
   inherited Create;
 
   FQid := 0;
-  FEOF := False; 
+  FEOF := False;
 end;
 
 destructor TgsPLQuery.Destroy;
@@ -372,14 +394,26 @@ begin
   end;  
 end; 
 
+constructor TgsPLClient.Create;
+begin
+  inherited Create;
+
+  FIsInitialised := False;
+end;
+
 destructor TgsPLClient.Destroy;
 begin
-  if IsInitialised then
-    PL_cleanup(0);
+  gsPL.Count := gsPL.Count - 1;
+  if gsPL.Count = 0 then
+  begin
+    if IsInitialised then
+      PL_cleanup(0);
+    FIsInitialised := False;  
 
-  FreePLLibrary;
-  FreePLDependentLibraries;
-  
+    FreePLLibrary;
+    FreePLDependentLibraries;
+  end;
+
   inherited;
 end;
 
@@ -696,6 +730,12 @@ function TgsPLClient.IsInitialised: Boolean;
 var
   argc: Integer;
 begin                
+  if gsPL.Count > 0 then
+  begin
+    Result := FIsInitialised;
+    Exit;
+  end;
+  
   argc := High(FInitArgv);
   Result := (argc > -1) and TryPLLoad;
 
@@ -703,7 +743,7 @@ begin
     Result := PL_is_initialised(argc, FInitArgv) <> 0;
 end;
 
-function TgsPLClient.Initialise(const AParams: String = ''): Boolean; 
+function TgsPLClient.Initialise(const AParams: String = ''): Boolean;
 
   function GetNextElement(const S: String; var L: Integer): String;
   var
@@ -733,6 +773,17 @@ var
   I: Integer;
   TempS: String;
 begin
+  if gsPL.Count > 0 then
+  begin
+    if not FIsInitialised then
+    begin
+      gsPL.Count := gsPL.Count + 1;
+      FIsInitialised := True;
+    end;
+    Result := True;
+    Exit;
+  end;
+
   if not TryPLLoad then
     raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!');
 
@@ -746,7 +797,7 @@ begin
   SL := TStringList.Create;
   try
     //if AParams = '' then
-      GetParamsList(TempS, SL);
+    GetParamsList(TempS, SL);
 
     SetLength(FInitArgv, SL.Count + 1);
     for I := 0 to SL.Count - 1 do
@@ -756,6 +807,9 @@ begin
     if not IsInitialised then
     begin
       Result := PL_initialise(High(FInitArgv), FInitArgv) <> 0;
+      if Result then
+        gsPL.Count := 1;
+        FIsInitialised := True;
       if not Result then
         //PL_halt(1);
         PL_cleanup(0);
@@ -1101,5 +1155,25 @@ begin
       end;
     end;
 end;
+
+constructor TgsPL.Create;
+begin
+  inherited Create;
+
+  FCount := 0;
+end;
+
+destructor TgsPL.Destroy;
+begin
+  FCount := 0;
+
+  inherited;
+end;
+
+initialization
+  gsPL := TgsPL.Create;
+
+finalization
+  FreeAndNil(gsPL);
 
 end.

@@ -34,6 +34,7 @@ type
     rbHTM: TRadioButton;
     rbODT: TRadioButton;
     rbODS: TRadioButton;
+    rbBIFF: TRadioButton;
     procedure actSendExecute(Sender: TObject);
     procedure actSendUpdate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -49,6 +50,7 @@ type
     FHTMLExport: TfrxCustomExportFilter;
     FODTExport: TfrxCustomExportFilter;
     FODSExport: TfrxCustomExportFilter;
+    FBIFFExport: TfrxCustomExportFilter;
 
     FPreview: TfrxPreview;
     FEmailID: Word;
@@ -99,6 +101,7 @@ begin
   FHTMLExport := nil;
   FODTExport := nil;
   FODSExport := nil;
+  FBIFFExport := nil;
 
   for I := 0 to AfrxExportFilters.Count - 1 do
   begin
@@ -117,7 +120,9 @@ begin
     else if TfrxCustomExportFilter(frxExportFilters[i].Filter).ClassName = 'TfrxODTExport' then
       FODTExport := TfrxCustomExportFilter(frxExportFilters[i].Filter)
     else if TfrxCustomExportFilter(frxExportFilters[i].Filter).ClassName = 'TfrxODSExport' then
-      FODSExport := TfrxCustomExportFilter(frxExportFilters[i].Filter);
+      FODSExport := TfrxCustomExportFilter(frxExportFilters[i].Filter)
+    else if TfrxCustomExportFilter(frxExportFilters[i].Filter).ClassName = 'TfrxBIFFExport' then
+      FBIFFExport := TfrxCustomExportFilter(frxExportFilters[i].Filter);
   end;
 
   rbPDF.Enabled := FPDFExport <> nil;
@@ -128,6 +133,7 @@ begin
   rbHTM.Enabled := FHTMLExport <> nil;
   rbODT.Enabled := FODTExport <> nil;
   rbODS.Enabled := FODSExport <> nil;
+  rbBIFF.Enabled := FBIFFExport <> nil;
 
   edSubject.Text := ACaption;
 end;
@@ -157,7 +163,7 @@ begin
   else if rbXML.Checked then
   begin
     CurrExport := FXMLExport;
-    FExt := 'XML';
+    FExt := 'XLSX';
   end
   else if rbTXT.Checked then
   begin
@@ -178,6 +184,11 @@ begin
   begin
     CurrExport := FODSExport;
     FExt := 'ODS';
+  end 
+  else if rbBIFF.Checked then
+  begin
+    CurrExport := FBIFFExport;
+    FExt := 'XLS';
   end else
     CurrExport := nil;
 

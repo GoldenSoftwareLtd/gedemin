@@ -368,6 +368,7 @@ type
     FBranchKey: Integer;
     FEditionDate: TDateTime;
     FInvalid: Boolean;
+    FNewOptions: Boolean;
 
     function GetDistinctRelation: String; override;
     procedure SetHeaderRelKey(const Value: Integer);
@@ -403,6 +404,7 @@ type
     property BranchKey: Integer read FBranchKey write FBranchKey;
     property EditionDate: TDateTime read FEditionDate write FEditionDate;
     property Invalid: Boolean read FInvalid write SetInvalid;
+    property NewOptions: Boolean read FNewOptions write FNewOptions;
   end;
 
   TgdInvDocumentEntryFlag = (
@@ -2318,7 +2320,7 @@ begin
 
   CopyDocSubTree(CEUserDocument, CEUserDocumentLine, TgdDocumentEntry);
   CopyDocSubTree(CEInvDocument, CEInvDocumentLine, TgdInvDocumentEntry);
-  CopyDocSubTree(CEInvPriceList, CEInvPriceListLine, TgdDocumentEntry);
+  CopyDocSubTree(CEInvPriceList, CEInvPriceListLine, TgdInvPriceDocumentEntry);
 
   FSubTypes := GlobalStorage.OpenFolder('\SubTypes', False, False);
   try
@@ -2799,6 +2801,7 @@ begin
   BranchKey := TgdDocumentEntry(CE).BranchKey;
   FEditionDate := TgdDocumentEntry(CE).FEditionDate;
   FInvalid := TgdDocumentEntry(CE).Invalid;
+  FNewOptions := TgdDocumentEntry(CE).NewOptions;
 end;
 
 procedure TgdDocumentEntry.ConvertOptions;
@@ -2847,14 +2850,23 @@ begin
   FEditionDate := q.FieldByName('editiondate').AsDateTime;
   if qOpt.EOF or (qOpt.FieldbyName('dtkey').AsInteger <> q.FieldByName('id').AsInteger) then
   begin
-    if (not q.FieldByName('options').IsNull) and (gd_CmdLineParams.LoadSettingFileName = '') then
+    if not q.FieldByName('options').IsNull then
     begin
       FOptions := q.FieldByName('options').AsString;
       ParseOptions;
-      ConvertOptions;
+
+      if gd_CmdLineParams.ConvertDocOptions then
+      begin
+        ConvertOptions;
+        FNewOptions := True;
+      end else
+        FNewOptions := False;
     end;
   end else
+  begin
     LoadDEOption(qOpt);
+    FNewOptions := True;
+  end;
   FInvalid := False;  
 end;
 

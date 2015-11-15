@@ -339,6 +339,16 @@ begin
   {M}  end;
   {END MACRO}
 
+  if (FIPDE <> nil) and (not FIPDE.NewOptions) then
+  begin
+    MessageBox(Handle,
+      'Необходимо сконвертировать параметры типа документа в новый формат!',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    Result := False;
+    exit;
+  end;  
+
   Result := inherited TestCorrect;
 
   if Result then

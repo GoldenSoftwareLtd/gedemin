@@ -40,6 +40,7 @@ type
     FWarning: String;
     FRemoteServer: String;
     FSendLogEmail: String;
+    FConvertDocOptions: Boolean;
 
     function StripQuotes(const S: String): String;
     function CompareAnyString(const S: String; const S2: array of String): Boolean; overload;
@@ -85,6 +86,7 @@ type
     property Warning: String read FWarning;
     property RemoteServer: String read FRemoteServer;
     property SendLogEmail: String read FSendLogEmail;
+    property ConvertDocOptions: Boolean read FConvertDocOptions;
   end;
 
 var
@@ -329,6 +331,11 @@ begin
       if CompareAnyString(SL[I], ['TRACE']) then
       begin
         FTraceSQL := True;
+      end else
+
+      if CompareAnyString(SL[I], ['CDO']) then
+      begin
+        FConvertDocOptions := True;
       end else
 
       if CompareAnyString(SL[I], ['RS'])

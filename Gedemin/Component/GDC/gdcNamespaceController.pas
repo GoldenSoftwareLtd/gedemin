@@ -46,7 +46,7 @@ type
 implementation
 
 uses
-  Windows, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace;
+  Windows, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace, gdcClasses;
 
 type
   TIterateProc = procedure of object;
@@ -172,20 +172,25 @@ end;
 
 function TgdcNamespaceController.Include: Boolean;
 
-  procedure IterateBL(AnIterateProc: TIterateProc);
+  procedure IterateBL(AnIterateProc: TIterateProc; var AFirstRUID: TRUID);
   var
     I: Integer;
     Bm: String;
   begin
     if (FBL = nil) then
-      AnIterateProc
-    else begin
+    begin
+      AFirstRUID := FgdcObject.GetRUID;
+      AnIterateProc;
+    end else
+    begin
       Bm := FgdcObject.Bookmark;
       FgdcObject.DisableControls;
       try
         for I := 0 to FBL.Count - 1 do
         begin
           FgdcObject.Bookmark := FBL[I];
+          if I = 0 then
+            AFirstRUID := FgdcObject.GetRUID;
           AnIterateProc;
         end;
       finally
@@ -199,16 +204,20 @@ var
   gdcNamespaceObject: TgdcNamespaceObject;
   HeadObjectKey, HeadObjectPos, NSKey: Integer;
   q, qNSList, qFind: TIBSQL;
+  FirstRUID: TRUID;
 begin
   Assert(FIBTransaction.InTransaction);
 
+  FirstRUID.XID := -1;
+  FirstRUID.DBID := -1;
+
   if (FPrevNSID > -1) and (FCurrentNSID = -1) then
-    IterateBL(DeleteFromNamespace)
+    IterateBL(DeleteFromNamespace, FirstRUID)
   else if (FPrevNSID > -1) and (FCurrentNSID > -1) and (FPrevNSID <> FCurrentNSID) then
-    IterateBL(MoveBetweenNamespaces)
+    IterateBL(MoveBetweenNamespaces, FirstRUID)
   else if (FPrevNSID = -1) and (FCurrentNSID > -1) then
   begin
-    IterateBL(AddToNamespace);
+    IterateBL(AddToNamespace, FirstRUID);
 
     if FIncludeLinked then
     begin
@@ -222,8 +231,8 @@ begin
 
         gdcNamespaceObject.SubSet := 'ByObject';
         gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FCurrentNSID;
-        gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
-        gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+        gdcNamespaceObject.ParamByName('xid').AsInteger := FirstRUID.XID;
+        gdcNamespaceObject.ParamByName('dbid').AsInteger := FirstRUID.DBID;
         gdcNamespaceObject.Open;
 
         if gdcNamespaceObject.EOF then
@@ -426,6 +435,7 @@ var
   I: Integer;
   Bm: String;
   FSessionID: Integer;
+  LimitLevel: Integer;
 begin
   Assert(AnObject <> nil);
   { Состояние EOF объект получает не только при пустой таблице, но и в случае
@@ -468,8 +478,15 @@ begin
 
   FSessionID := AnObject.GetNextID;
 
+  if AnObject is TgdcDocument then
+    LimitLevel := 0
+  else
+    LimitLevel := MAXINT;
+
   if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) or (FBL.Count = 0) then
-    FgdcObject.GetDependencies(FIBTransaction, FSessionID, False, '"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;')
+    FgdcObject.GetDependencies(FIBTransaction, FSessionID, False,
+      '"GD_DOCUMENT"."TRANSACTIONKEY";"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;',
+      LimitLevel)
   else begin
     FgdcObject.DisableControls;
     try
@@ -477,7 +494,9 @@ begin
       for I := 0 to FBL.Count - 1 do
       begin
         FgdcObject.Bookmark := FBL[I];
-        FgdcObject.GetDependencies(FIBTransaction, FSessionID, False, '"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;');
+        FgdcObject.GetDependencies(FIBTransaction, FSessionID, False,
+          '"GD_DOCUMENT"."TRANSACTIONKEY";"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;',
+          LimitLevel);
       end;
       FgdcObject.Bookmark := Bm;
     finally

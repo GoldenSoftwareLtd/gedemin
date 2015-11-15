@@ -69,6 +69,8 @@ type
     Label13: TLabel;
     dbeRecipients: TDBEdit;
     Label15: TLabel;
+    tsReload: TTabSheet;
+    dbchkbxReload: TDBCheckBox;
     procedure btnCmdLineClick(Sender: TObject);
     procedure btnClearTimeClick(Sender: TObject);
     procedure btBackupClick(Sender: TObject);
@@ -157,6 +159,8 @@ begin
     pcTask.ActivePage := tsBackup
   else if gdcObject.FieldByName('reportkey').AsInteger > 0 then
     pcTask.ActivePage := tsReport
+  else if gdcObject.FieldByName('reload').AsInteger <> 0 then
+    pcTask.ActivePage := tsReload
   else
     pcTask.ActivePage := tsFunction;
 
@@ -206,12 +210,25 @@ begin
   {M}    end;
   {END MACRO}
 
-  if pcTask.ActivePage = tsFunction then
+  if pcTask.ActivePage = tsReload then
   begin
     gdcObject.FieldByName('cmdline').Clear;
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('backupfile').Clear;
+    gdcObject.FieldByName('functionkey').Clear;
+    gdcObject.FieldByName('emailgroupkey').Clear;
+    gdcObject.FieldByName('emailrecipients').Clear;
+    gdcObject.FieldByName('emailsmtpkey').Clear;
+    gdcObject.FieldByName('emailexporttype').Clear;
+  end
+  else if pcTask.ActivePage = tsFunction then
+  begin
+    gdcObject.FieldByName('cmdline').Clear;
+    gdcObject.FieldByName('autotrkey').Clear;
+    gdcObject.FieldByName('reportkey').Clear;
+    gdcObject.FieldByName('backupfile').Clear;
+    gdcObject.FieldByName('reload').AsInteger := 0;
     gdcObject.FieldByName('emailgroupkey').Clear;
     gdcObject.FieldByName('emailrecipients').Clear;
     gdcObject.FieldByName('emailsmtpkey').Clear;
@@ -223,6 +240,7 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('backupfile').Clear;
+    gdcObject.FieldByName('reload').AsInteger := 0;
     gdcObject.FieldByName('emailgroupkey').Clear;
     gdcObject.FieldByName('emailrecipients').Clear;
     gdcObject.FieldByName('emailsmtpkey').Clear;
@@ -234,6 +252,7 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('reportkey').Clear;
     gdcObject.FieldByName('cmdline').Clear;
+    gdcObject.FieldByName('reload').AsInteger := 0;
     gdcObject.FieldByName('emailgroupkey').Clear;
     gdcObject.FieldByName('emailrecipients').Clear;
     gdcObject.FieldByName('emailsmtpkey').Clear;
@@ -245,6 +264,7 @@ begin
     gdcObject.FieldByName('autotrkey').Clear;
     gdcObject.FieldByName('cmdline').Clear;
     gdcObject.FieldByName('backupfile').Clear;
+    gdcObject.FieldByName('reload').AsInteger := 0;
   end;
 
   if rbAtStartup.Checked then
@@ -361,6 +381,12 @@ begin
       (Task as TgdAutoReportTask).Recipients := dbeRecipients.Text;
       (Task as TgdAutoReportTask).GroupKey := iblkupGroup.CurrentKeyInt;
       (Task as TgdAutoReportTask).SMTPKey := iblkupSMTP.CurrentKeyInt;
+    end
+    else if pcTask.ActivePage = tsReload then
+    begin
+      Task := TgdAutoReloadTask.Create;
+      if Application.MainForm <> nil then
+        (Task as TgdAutoReloadTask).WndHandle := Application.MainForm.Handle;
     end;
 
     if Task <> nil then
@@ -373,7 +399,8 @@ end;
 procedure Tgdc_dlgAutoTask.actExecTaskUpdate(Sender: TObject);
 begin
   actExecTask.Enabled :=
-    ((pcTask.ActivePage = tsFunction) and (iblkupFunction.CurrentKeyInt > 0))
+    ((pcTask.ActivePage = tsReload) and (dbchkbxReload.Checked))
+    or ((pcTask.ActivePage = tsFunction) and (iblkupFunction.CurrentKeyInt > 0))
     or ((pcTask.ActivePage = tsCmd) and (Trim(dbeCmdLine.Text) > ''))
     or ((pcTask.ActivePage = tsBackup) and (Trim(dbeBackup.Text) > ''))
     or ((pcTask.ActivePage = tsReport) and (iblkupReport.CurrentKeyInt > 0)

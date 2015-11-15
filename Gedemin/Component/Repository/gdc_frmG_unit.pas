@@ -352,7 +352,7 @@ type
     property gdcLinkChoose: TgdcBase read FgdcLinkChoose write FgdcLinkChoose;
     property InChoose: Boolean read FInChoose;
 
-    //Список, содержащий выбранные id в том порядке, в котором их выбрали
+    //Массив, содержащий выбранные id в том порядке, в котором их выбрали
     property ChosenIDInOrder: OleVariant read GetChosenIDInOrder;
   end;
 

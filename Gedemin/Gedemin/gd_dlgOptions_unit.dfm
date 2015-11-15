@@ -395,8 +395,6 @@ object gd_dlgOptions: Tgd_dlgOptions
           Height = 14
           TabStop = False
           BorderStyle = bsNone
-          Lines.Strings = (
-            'Блокировка не распространяется на следующие группы пользователей')
           ParentColor = True
           ReadOnly = True
           TabOrder = 3
@@ -447,8 +445,6 @@ object gd_dlgOptions: Tgd_dlgOptions
           Height = 14
           TabStop = False
           BorderStyle = bsNone
-          Lines.Strings = (
-            'Блокировка не распространяется на следующие документы')
           ParentColor = True
           ReadOnly = True
           TabOrder = 6
@@ -532,6 +528,7 @@ object gd_dlgOptions: Tgd_dlgOptions
     object tsBackup: TTabSheet
       Caption = 'Архивное копирование'
       ImageIndex = 3
+      TabVisible = False
       object Label9: TLabel
         Left = 16
         Top = 42

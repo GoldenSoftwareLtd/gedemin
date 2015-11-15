@@ -84,6 +84,18 @@ type
     property CmdLine: String read FCmdLine write FCmdLine;
   end;
 
+  TgdAutoReloadTask = class(TgdAutoTask)
+  private
+    FWndHandle: THandle;
+
+  protected
+    function IsAsync: Boolean; override;
+    procedure TaskExecute; override;
+
+  public
+    property WndHandle: THandle read FWndHandle write FWndHandle;  
+  end;
+
   TgdAutoBackupTask = class(TgdAutoTask)
   private
     FBackupFile: String;
@@ -274,6 +286,8 @@ begin
     end else
     begin
       FNextStartTime := Date + FStartTime;
+      if (FPulse > 0) and (FNextStartTime <= Now) then
+        FNextStartTime := Now + FPulse / SecsPerDay;
       FNextEndTime := Date + FEndTime;
     end;
   end
@@ -510,6 +524,12 @@ begin
         (Task as TgdAutoReportTask).Recipients := q.FieldbyName('emailrecipients').AsString;
         (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('emailgroupkey').AsInteger;
         (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('emailsmtpkey').AsInteger;
+      end else
+      if q.FieldByName('reload').AsInteger <> 0 then
+      begin
+        Task := TgdAutoReloadTask.Create;
+        if Application.MainForm <> nil then
+          (Task as TgdAutoReloadTask).WndHandle := Application.MainForm.Handle;
       end else
         Task := nil;
 
@@ -872,8 +892,6 @@ procedure TgdAutoBackupTask.TaskExecute;
 var
   IBService: TIBBackupService;
 begin
-  Assert(gdAutoTaskThread <> nil);
-
   try
     IBService := TIBBackupService.Create(nil);
     try
@@ -905,7 +923,12 @@ begin
 
       IBService.ServiceStart;
       while (not IBService.Eof) and IBService.IsServiceRunning do
-        gdAutoTaskThread.SendNotification(IBService.GetNextLine);
+      begin
+        if gdAutoTaskThread <> nil then
+          gdAutoTaskThread.SendNotification(IBService.GetNextLine)
+        else
+          IBService.GetNextLine;
+      end;
     finally
       IBService.Free;
     end;
@@ -919,6 +942,19 @@ procedure TgdAutoBackupTask.TaskExecuteForDlg;
 begin
   SetupBackupTask;
   inherited;
+end;
+
+{ TgdAutoReloadTask }
+
+function TgdAutoReloadTask.IsAsync: Boolean;
+begin
+  Result := True;
+end;
+
+procedure TgdAutoReloadTask.TaskExecute;
+begin
+  if FWndHandle <> 0 then
+    PostMessage(FWndHandle, WM_GD_RELOAD, 0, 0);
 end;
 
 initialization

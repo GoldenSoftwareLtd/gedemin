@@ -169,7 +169,7 @@ var
 begin
   tsAudit.TabVisible := IBLogin.IsUserAdmin;
   tsPolicy.TabVisible := IBLogin.IsUserAdmin;
-  tsBackup.TabVisible := IBLogin.IsUserAdmin;
+  tsBackup.TabVisible := False; //IBLogin.IsUserAdmin;  -- now we back up through AutoTasks
 
   if Assigned(UserStorage) then
     with UserStorage do
@@ -222,6 +222,7 @@ begin
     chbxByLBRB.Checked := ReadBoolean('Options', 'ByLBRB', False);
     chbxBlockRecord.Checked := ReadBoolean('Options', 'BlockRec', False, False);
 
+    {
     chbxArchOn.Checked := ReadBoolean('Options\Arch', 'Enabled', False);
     edArchPath.Text := ReadString('Options\Arch', 'Path', '');
     if ReadBoolean('Options\Arch', 'OneFile', True) then
@@ -238,6 +239,7 @@ begin
     chbxArchCopy.Checked := ReadBoolean('Options\Arch', 'Copy', True);
 
     xedArchDate.DateTime := ReadDateTime('Options\Arch', 'Last', 0);
+    }
 
     if not IBLogin.IsUserAdmin then
     begin
@@ -468,6 +470,7 @@ begin
       WriteBoolean('Options\Invent', 'DontUseGoodKey', cbDontUseGoodKey.Checked);
       WriteBoolean('Options\Invent', 'UseDelMovement', cbUseDelMovement.Checked);
 
+      {
       WriteBoolean('Options\Arch', 'Enabled', chbxArchOn.Checked);
       WriteString('Options\Arch', 'Path', edArchPath.Text);
       WriteBoolean('Options\Arch', 'OneFile', rbArchOneFile.Checked);
@@ -476,6 +479,7 @@ begin
       WriteString('Options\Arch', 'Account', edArchLogin.Text);
       WriteInteger('Options\Arch', 'Interval', seArchInterval.Value);
       WriteBoolean('Options\Arch', 'Copy', chbxArchCopy.Checked);
+      }
 
       for I := 0 to lvPolicy.Items.Count - 1 do
         with lvPolicy.Items[I] do
@@ -643,17 +647,21 @@ end;
 
 procedure Tgd_dlgOptions.Button8Click(Sender: TObject);
 begin
+  {
   if IBLogin.ServerName > '' then
     edArchPath.Text := StringReplace(ExtractFilePath(IBLogin.DatabaseName),
       IBLogin.ServerName + ':', '', [rfIgnoreCase])
   else
     edArchPath.Text := ExtractFilePath(IBLogin.DatabaseName);
+  }  
 end;
 
 procedure Tgd_dlgOptions.Button9Click(Sender: TObject);
 begin
+  {
   edArchFileName.Text := ChangeFileExt(
     ExtractFileName(IBLogin.DatabaseName), '.bk');
+  }  
 end;
 
 procedure Tgd_dlgOptions.actAddBlockGroupExecute(Sender: TObject);

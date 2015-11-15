@@ -81,7 +81,8 @@ uses
   at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const,
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
   Storages, gdcMetadata, at_sql_setup, gsDesktopManager, at_Classes_body,
-  at_dlgCompareNSRecords_unit, gdcNamespaceLoader, gd_GlobalParams_unit;
+  at_dlgCompareNSRecords_unit, gdcNamespaceLoader, gd_GlobalParams_unit,
+  gdcClasses_Interface;
 
 procedure Register;
 begin
@@ -332,6 +333,7 @@ var
   TempS: String;
   Flag, MustFreeObj: Boolean;
   Flds: TSortedFields;
+  DE: TgdDocumentEntry;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(atDatabase <> nil);
@@ -386,6 +388,13 @@ begin
         if (F.FieldName = 'FIELDSOURCEKEY') and (AgdcObject.FindField('FIELDSOURCE') <> nil)
           and (Pos('RDB$', AgdcObject.FieldByName('FIELDSOURCE').AsString) = 1) then
             continue;
+      end;
+
+      if (F.Origin = '"GD_DOCUMENTTYPE"."OPTIONS"') and (AgdcObject is TgdcDocumentType) then
+      begin
+        DE := gdClassList.FindDocByTypeID(AgdcObject.ID, dcpHeader);
+        if (DE <> nil) and DE.NewOptions then
+          continue;
       end;
 
       Flds.AddField(F);
@@ -870,7 +879,7 @@ begin
     SL := TStringList.Create;
     try
       SL.Add(FN);
-      TgdcNamespaceLoader.LoadDelayed(SL, False, False, False, False);
+      TgdcNamespaceLoader.LoadDelayed(SL, False, False, False, False, True);
     finally
       SL.Free;
     end;
@@ -1557,7 +1566,7 @@ const
     ';RDB$PROCEDURE_NAME;RDB$PROCEDURE_ID;RDB$PROCEDURE_INPUTS;RDB$PROCEDURE_OUTPUTS' +
     ';RDB$PROCEDURE_OUTPUTS;RDB$PROCEDURE_SOURCE;RDB$OWNER_NAME;RDB$RUNTIME' +
     ';RDB$SYSTEM_FLAG;RDB$INDEX_ID;LASTNUMBER;READCOUNT;' +
-    ';FROMCARDKEY;TOCARDKEY;';
+    ';FROMCARDKEY;TOCARDKEY;PRINTDATE;';
 begin
   Result := (StrIPos(AFieldName, PassFieldName) > 0) and
     (StrIPos(';' + AFieldName + ';', PassFieldName) > 0);

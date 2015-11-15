@@ -1,6 +1,6 @@
 object dlgMaster: TdlgMaster
-  Left = 549
-  Top = 277
+  Left = 550
+  Top = 278
   Width = 591
   Height = 449
   HelpContext = 4
@@ -582,8 +582,8 @@ object dlgMaster: TdlgMaster
           object lvColumns: TListView
             Left = 6
             Top = 6
-            Width = 246
-            Height = 255
+            Width = 238
+            Height = 247
             Align = alClient
             Columns = <
               item
@@ -742,7 +742,7 @@ object dlgMaster: TdlgMaster
                   Width = 191
                   Height = 21
                   Style = csDropDownList
-                  ItemHeight = 0
+                  ItemHeight = 13
                   TabOrder = 1
                   OnClick = editConditionColumnClick
                 end
@@ -782,7 +782,7 @@ object dlgMaster: TdlgMaster
                   Height = 21
                   Style = csDropDownList
                   DropDownCount = 12
-                  ItemHeight = 0
+                  ItemHeight = 13
                   TabOrder = 0
                   OnClick = editConditionKindClick
                 end

@@ -1,6 +1,6 @@
 object dlgToNamespace: TdlgToNamespace
-  Left = 702
-  Top = 216
+  Left = 707
+  Top = 219
   Width = 737
   Height = 542
   Caption = 'Добавление объекта в пространство имен'
@@ -20,7 +20,7 @@ object dlgToNamespace: TdlgToNamespace
     Left = 0
     Top = 112
     Width = 721
-    Height = 392
+    Height = 391
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 8
@@ -29,7 +29,7 @@ object dlgToNamespace: TdlgToNamespace
       Left = 8
       Top = 8
       Width = 705
-      Height = 348
+      Height = 347
       Align = alClient
       DataSource = dsLink
       Options = [dgTitles, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -67,7 +67,7 @@ object dlgToNamespace: TdlgToNamespace
     end
     object pnlButtons: TPanel
       Left = 8
-      Top = 356
+      Top = 355
       Width = 705
       Height = 28
       Align = alBottom

@@ -33,6 +33,7 @@ type
     actSaveObjects: TAction;
     chbxTerminate: TCheckBox;
     chbxIgnoreMissedFields: TCheckBox;
+    chbxUnMethod: TCheckBox;
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure actLoadObjectsExecute(Sender: TObject);

@@ -1663,7 +1663,8 @@ type
     //
     procedure GetDependencies(ATr: TIBTransaction; const ASessionID: Integer;
       const AnIncludeSystemObjects: Boolean = False;
-      const AnIgnoreFields: String = '');
+      const AnIgnoreFields: String = '';
+      const ALimitLevel: Integer = MAXINT);
 
     //
     class function SelectObject(const AMessage: String = '';
@@ -17996,7 +17997,8 @@ end;
 
 procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Integer;
   const AnIncludeSystemObjects: Boolean = False;
-  const AnIgnoreFields: String = '');
+  const AnIgnoreFields: String = '';
+  const ALimitLevel: Integer = MAXINT);
 
   const
     LimitCount = 8192;
@@ -18015,6 +18017,9 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
     ArrIDs: array[0..1024] of TID;
     Locked: Boolean;
   begin
+    if ALevel > ALimitLevel then
+      exit;
+
     if ACount >= LimitCount then
       exit;
 
@@ -18028,6 +18033,9 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
 
     for I := 0 to AnObject.FieldCount - 1 do
     begin
+      if AnObject.Fields[I].IsNull then
+        continue;
+
       if AnObject.Fields[I].DataType <> ftInteger then
         continue;
 

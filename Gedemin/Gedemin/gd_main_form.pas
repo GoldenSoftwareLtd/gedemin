@@ -178,6 +178,8 @@ type
     TBItem28: TTBItem;
     TBItem29: TTBItem;
     TBSeparatorItem17: TTBSeparatorItem;
+    actReload: TAction;
+    tbiReload: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -295,6 +297,7 @@ type
     procedure actDBSqueezeExecute(Sender: TObject);
     procedure actDatabasesListExecute(Sender: TObject);
     procedure actDatabasesListUpdate(Sender: TObject);
+    procedure actReloadExecute(Sender: TObject);
 
   private
     FCanClose: Boolean;
@@ -322,6 +325,9 @@ type
 
     procedure WMUpdateNotification(var Msg: TMessage);
       message WM_GD_UPDATE_NOTIFICATION;
+
+    procedure WMReload(var Msg: TMessage);
+      message WM_GD_RELOAD;
 
   protected
     procedure Loaded; override;
@@ -738,7 +744,7 @@ end;
 
 procedure TfrmGedeminMain.actExitUpdate(Sender: TObject);
 begin
-  actExit.Enabled :=
+  (Sender as TAction).Enabled :=
     (not Assigned(Screen.ActiveForm)) or ([fsModal] * Screen.ActiveForm.FormState = []);
 end;
 
@@ -2414,6 +2420,41 @@ procedure TfrmGedeminMain.WMUpdateNotification(var Msg: TMessage);
 begin
   if Visible and (gdNotifierThread <> nil) then
     lblDatabase.Caption := StringReplace(gdNotifierThread.Notification, #13#10, ' ', [rfReplaceAll]);
+end;
+
+procedure TfrmGedeminMain.actReloadExecute(Sender: TObject);
+begin
+  PostMessage(Handle, WM_GD_RELOAD, 0, 0);
+end;
+
+procedure TfrmGedeminMain.WMReload(var Msg: TMessage);
+var
+  StartupInfo: TStartupInfo;
+  ProcessInfo: TProcessInformation;
+  FName: String;
+begin
+  if (Screen.ActiveCustomForm <> nil) and ((Screen.ActiveCustomForm.FormState *
+    [fsModal, fsCreating, fsShowing]) <> []) then
+    exit;
+
+  FName := ExtractFilePath(Application.EXEName) + Gedemin_Updater;
+  FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
+  StartupInfo.cb := SizeOf(TStartupInfo);
+  if CreateProcess(PChar(FName),
+    PChar('"' + FName + '" ' + IntToStr(GetCurrentProcessID) +
+      ' /R "' + ExtractFileName(Application.ExeName) + '" "' +
+      IBLogin.UserName + '" "' + IBLogin.UserPassword + '" "' +
+      IBLogin.DatabaseName + '"'),
+    nil, nil, False, NORMAL_PRIORITY_CLASS or CREATE_NO_WINDOW, nil, nil,
+    StartupInfo, ProcessInfo) then
+  begin
+    FCanClose := True;
+    Close;
+  end else
+    MessageBox(Handle,
+      PChar(SysErrorMessage(GetLastError)),
+      'Ошибка',
+      MB_OK or MB_ICONHAND);
 end;
 
 end.

@@ -1958,6 +1958,8 @@ type
     function  Get_DocumentDescription(ReadNow: WordBool): WideString; safecall;
     procedure CreateEntry; safecall;
     function  Get_gdcAcctEntryRegister: IgsGDCBase; safecall;
+    function  Get_RelationName: WideString; safecall;
+    function  Get_RelationLineName: WideString; safecall;
   end;
 
   TwrpGdcLBRBTree = class(TwrpGDCTree, IgsGdcLBRBTree)
@@ -2259,8 +2261,6 @@ type
   protected
     function  JoinListFieldByFieldName(const AFieldName: WideString; const AAliasName: WideString;
                                        const AJoinFieldName: WideString): WideString; safecall;
-    function  Get_RelationName: WideString; safecall;
-    function  Get_RelationLineName: WideString; safecall;
     function  Get_CurrentStreamVersion: WideString; safecall;
     function  Get_Relation: IgsAtRelation; safecall;
     function  Get_RelationLine: IgsAtRelation; safecall;
@@ -4043,7 +4043,7 @@ uses
   obj_WrapperMessageClasses,
   {$ENDIF}
   gd_i_ScriptFactory, comctrls, contnrs, windows, IBSQL, AdPort, jclStrings,
-  gsStreamHelper, dbclient, at_AddToSetting;
+  gsStreamHelper, dbclient, at_AddToSetting, gdcClasses_Interface;
 
 type
   TCrackIBControlAndQueryService = class(TIBControlAndQueryService);
@@ -8261,6 +8261,28 @@ begin
   Result := GetGDCOLEObject(GetGDCDocument.gdcAcctEntryRegister) as IgsGDCBase;
 end;
 
+function TwrpGDCDocument.Get_RelationLineName: WideString;
+var
+  DE: TgdDocumentEntry;
+begin
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, dcpLine);
+  if DE <> nil then
+    Result := DE.LineRelName
+  else
+    Result := '';
+end;
+
+function TwrpGDCDocument.Get_RelationName: WideString;
+var
+  DE: TgdDocumentEntry;
+begin
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, dcpHeader);
+  if DE <> nil then
+    Result := DE.HeaderRelName
+  else
+    Result := '';
+end;
+
 { TwrpGdcLBRBTree }
 
 function TwrpGdcLBRBTree.Get_LB: Integer;
@@ -8361,12 +8383,12 @@ end;
 
 function TwrpGdcUserBaseDocument.Get_Relation: WideString;
 begin
-  Result := ''; //GetGdcUserBaseDocument.Relation;
+  Result := Get_RelationName;
 end;
 
 function TwrpGdcUserBaseDocument.Get_RelationLine: WideString;
 begin
-  Result := ''; //GetGdcUserBaseDocument.RelationLine;
+  Result := Get_RelationLineName;
 end;
 
 function TwrpGdcUserBaseDocument.GetGdcUserBaseDocument: TgdcUserBaseDocument;
@@ -8835,16 +8857,6 @@ end;
 function TwrpGdcInvBaseDocument.Get_CurrentStreamVersion: WideString;
 begin
   Result := GetGdcInvBaseDocument.CurrentStreamVersion;
-end;
-
-function TwrpGdcInvBaseDocument.Get_RelationLineName: WideString;
-begin
-  Result := GetGdcInvBaseDocument.RelationLineName;
-end;
-
-function TwrpGdcInvBaseDocument.Get_RelationName: WideString;
-begin
-  Result := GetGdcInvBaseDocument.RelationName;
 end;
 
 function TwrpGdcInvBaseDocument.GetGdcInvBaseDocument: TgdcInvBaseDocument;

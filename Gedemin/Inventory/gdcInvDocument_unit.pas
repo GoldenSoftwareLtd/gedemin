@@ -2357,7 +2357,7 @@ begin
       ((RelationType = irtTransformation) and (FindField('OUTQUANTITY') <> nil) AND
       (FieldByName('OUTQUANTITY').AsCurrency > 0))
     then begin
-      FMovement.gdcDocumentLine := Self;
+      FMovement.gdcDocumentLine := Self;                                                                                          
       FMovement.Database := Database;
       if Transaction.InTransaction then
       begin

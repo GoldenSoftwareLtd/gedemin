@@ -92,6 +92,9 @@ object frmGedeminMain: TfrmGedeminMain
         end
         object TBSeparatorItem8888: TTBSeparatorItem
         end
+        object tbiReload: TTBItem
+          Action = actReload
+        end
         object TBItem10: TTBItem
           Action = actExit
         end
@@ -771,6 +774,12 @@ object frmGedeminMain: TfrmGedeminMain
       ImageIndex = 105
       OnExecute = actDatabasesListExecute
       OnUpdate = actDatabasesListUpdate
+    end
+    object actReload: TAction
+      Category = 'Actions'
+      Caption = 'Перезагрузка платформы'
+      OnExecute = actReloadExecute
+      OnUpdate = actExitUpdate
     end
   end
   object IBTransaction: TIBTransaction

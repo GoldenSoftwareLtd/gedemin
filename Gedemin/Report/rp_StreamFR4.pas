@@ -7,12 +7,11 @@ uses
   Forms, Printers, rp_i_ReportBuilder_unit, rp_StreamFR, frxVariables,
   rp_ErrorMsgFactory, frxDesgn, frxClass, frxDCtrl, frxChart,
   frxRich, frxBarcode, ImgList, ComCtrls, ExtCtrls, frxOLE,
-  frxCross, frxDMPExport, frxExportImage, frxExportRTF, frxExportTXT,
-  frxExportXML, frxExportXLS, frxExportHTML, frxGZip, frxExportPDF,
-  frxChBox, frxExportText, frxExportCSV, frxExportMail,
+  frxCross, frxDMPExport, frxExportBIFF, frxExportImage, frxExportRTF,
+  frxExportTXT, frxExportXML, frxExportXLS, frxExportHTML, frxGZip,
+  frxExportPDF, frxChBox, frxExportText, frxExportCSV, frxExportMail,
   frxADOComponents, frxIBXComponents, frxCrypt, frxExportODF, frxPrinter,
-  frxDBSet, frxPreview,
-  gd_MultiStringList;
+  frxDBSet, frxPreview, gd_MultiStringList;
 
 type
   Tfr4_ReportResult = class(TReportResult)
@@ -59,6 +58,7 @@ type
     FrxTXTExport:  TfrxTXTExport;
     FrxODTExport:  TfrxODTExport;
     FrxDMPExport:  TfrxDotMatrixExport;
+    FrxBIFFExport:  TfrxBIFFExport;
     //
 
     procedure SetReportResult(Value: Tfr4_ReportResult);
@@ -144,6 +144,7 @@ begin
   FrxTXTExport  := TfrxTXTExport.Create(Self);
   FrxODTExport  := TfrxODTExport.Create(Self);
   FrxDMPExport  := TfrxDotMatrixExport.Create(Self);
+  FrxBIFFExport  := TfrxBIFFExport.Create(Self);
 end;
 
 destructor Tgs_fr4Report.Destroy;
@@ -166,6 +167,7 @@ begin
   FrxTXTExport.Free;
   FrxODTExport.Free;
   FrxDMPExport.Free;
+  FrxBIFFExport.Free;
 
   inherited;
 end;
@@ -268,7 +270,7 @@ begin
     FExportFilter := Ffr4Report.FrxRTFExport
   else if AnsiSameText(AnExportType, 'XLS') or AnsiSameText(AnExportType, 'EXCEL') then
     FExportFilter := Ffr4Report.FrxXLSExport
-  else if AnsiSameText(AnExportType, 'XML') then
+  else if AnsiSameText(AnExportType, 'XML') or AnsiSameText(AnExportType, 'XLSX') then
     FExportFilter := Ffr4Report.FrxXMLExport
   else if AnsiSameText(AnExportType, 'PDF') then
     FExportFilter := Ffr4Report.FrxPDFExport
@@ -280,6 +282,8 @@ begin
     FExportFilter := Ffr4Report.FrxODTEXPORT
   else if AnsiSameText(AnExportType, 'ODS') then
     FExportFilter := Ffr4Report.FrxODSEXPORT
+  else if AnsiSameText(AnExportType, 'BIFF') then
+    FExportFilter := Ffr4Report.FrxBIFFExport
   else
     FExportFilter := nil;
 

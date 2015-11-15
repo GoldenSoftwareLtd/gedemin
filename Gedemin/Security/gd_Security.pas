@@ -190,6 +190,7 @@ type
 
     function GetUserKey: Integer;
     function GetUserName: String;
+    function GetUserPassword: String;
 
     function GetComputerName: String;
     function GetCompanyOpened: Boolean;
@@ -293,6 +294,7 @@ type
     // Пользователь
     property UserKey: Integer read GetUserKey;
     property UserName: String read GetUserName;
+    property UserPassword: String read GetUserPassword;
     property ContactKey: Integer read GetContactKey;
     property ContactName: String read GetContactName;
 

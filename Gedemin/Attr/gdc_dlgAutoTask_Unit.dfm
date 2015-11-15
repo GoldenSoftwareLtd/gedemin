@@ -1,6 +1,6 @@
 inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 648
-  Top = 11
+  Left = 429
+  Top = 127
   Caption = 'gdc_dlgAutoTask'
   ClientHeight = 565
   ClientWidth = 440
@@ -453,7 +453,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       end
     end
     object tsCmd: TTabSheet
-      Caption = 'Внешняя программа'
+      Caption = 'Программа'
       ImageIndex = 1
       object Label1: TLabel
         Left = 8
@@ -596,16 +596,20 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         Anchors = [akTop, akRight]
         DataField = 'EMAILEXPORTTYPE'
         DataSource = dsgdcBase
+        DropDownCount = 12
         ItemHeight = 13
         Items.Strings = (
+          'BIFF'
           'DOC'
-          'XLS'
-          'PDF'
-          'XML'
-          'TXT'
           'HTM'
+          'ODS'
           'ODT'
-          'ODS')
+          'PDF'
+          'TXT'
+          'XLS'
+          'XLSX'
+          'XML'
+          '')
         TabOrder = 1
       end
       object iblkupSMTP: TgsIBLookupComboBox
@@ -654,6 +658,22 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
         DataField = 'emailrecipients'
         DataSource = dsgdcBase
         TabOrder = 2
+      end
+    end
+    object tsReload: TTabSheet
+      Caption = 'Перезагрузка'
+      ImageIndex = 4
+      object dbchkbxReload: TDBCheckBox
+        Left = 8
+        Top = 8
+        Width = 233
+        Height = 17
+        Caption = 'Перезагрузка платформы'
+        DataField = 'RELOAD'
+        DataSource = dsgdcBase
+        TabOrder = 0
+        ValueChecked = '1'
+        ValueUnchecked = '0'
       end
     end
   end

@@ -30,6 +30,7 @@ begin
         AddField2('gd_autotask', 'emailrecipients', 'dtext1024', FTransaction);
         AddField2('gd_autotask', 'emailsmtpkey', 'dforeignkey', FTransaction);
         AddField2('gd_autotask', 'emailexporttype', 'VARCHAR(4)', FTransaction);
+        AddField2('gd_autotask', 'reload', 'dboolean', FTransaction);
 
         DropConstraint2('gd_autotask', 'fk_gd_autotask_esk', FTransaction);
         if not ConstraintExist2('gd_autotask', 'gd_fk_autotask_esk', FTransaction) then
@@ -171,12 +172,26 @@ begin
           '    NEW.weekly = NULL; '#13#10 +
           '  END '#13#10 +
           ' '#13#10 +
+          '  IF (NEW.reload <> 0) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    NEW.functionkey = NULL; '#13#10 +
+          '    NEW.autotrkey = NULL; '#13#10 +
+          '    NEW.reportkey = NULL; '#13#10 +
+          '    NEW.cmdline = NULL; '#13#10 +
+          '    NEW.backupfile = NULL; '#13#10 +
+          '    NEW.emailgroupkey = NULL; '#13#10 +
+          '    NEW.emailrecipients = NULL; '#13#10 +
+          '    NEW.emailsmtpkey = NULL; '#13#10 +
+          '    NEW.emailexporttype = NULL; '#13#10 +
+          '  END '#13#10 +
+          ' '#13#10 +
           '  IF (NOT NEW.functionkey IS NULL) THEN '#13#10 +
           '  BEGIN '#13#10 +
           '    NEW.autotrkey = NULL; '#13#10 +
           '    NEW.reportkey = NULL; '#13#10 +
           '    NEW.cmdline = NULL; '#13#10 +
           '    NEW.backupfile = NULL; '#13#10 +
+          '    NEW.reload = 0; '#13#10 +
           '    NEW.emailgroupkey = NULL; '#13#10 +
           '    NEW.emailrecipients = NULL; '#13#10 +
           '    NEW.emailsmtpkey = NULL; '#13#10 +
@@ -189,6 +204,7 @@ begin
           '    NEW.reportkey = NULL; '#13#10 +
           '    NEW.cmdline = NULL; '#13#10 +
           '    NEW.backupfile = NULL; '#13#10 +
+          '    NEW.reload = 0; '#13#10 +
           '    NEW.emailgroupkey = NULL; '#13#10 +
           '    NEW.emailrecipients = NULL; '#13#10 +
           '    NEW.emailsmtpkey = NULL; '#13#10 +
@@ -201,6 +217,7 @@ begin
           '    NEW.autotrkey = NULL; '#13#10 +
           '    NEW.cmdline = NULL; '#13#10 +
           '    NEW.backupfile = NULL; '#13#10 +
+          '    NEW.reload = 0; '#13#10 +
           '  END '#13#10 +
           ' '#13#10 +
           '  IF (NOT NEW.cmdline IS NULL) THEN '#13#10 +
@@ -209,6 +226,7 @@ begin
           '    NEW.autotrkey = NULL; '#13#10 +
           '    NEW.reportkey = NULL; '#13#10 +
           '    NEW.backupfile = NULL; '#13#10 +
+          '    NEW.reload = 0; '#13#10 +
           '    NEW.emailgroupkey = NULL; '#13#10 +
           '    NEW.emailrecipients = NULL; '#13#10 +
           '    NEW.emailsmtpkey = NULL; '#13#10 +
@@ -220,6 +238,7 @@ begin
           '    NEW.functionkey = NULL; '#13#10 +
           '    NEW.autotrkey = NULL; '#13#10 +
           '    NEW.reportkey = NULL; '#13#10 +
+          '    NEW.reload = 0; '#13#10 +
           '    NEW.cmdline = NULL; '#13#10 +
           '    NEW.emailgroupkey = NULL; '#13#10 +
           '    NEW.emailrecipients = NULL; '#13#10 +
@@ -361,7 +380,9 @@ begin
 
         DropConstraint2('gd_autotask', 'gd_chk_autotask_exporttype', FTransaction);
         FIBSQL.SQL.Text :=
-          'ALTER TABLE gd_autotask ADD CONSTRAINT gd_chk_autotask_exporttype CHECK(emailexporttype IN (''DOC'', ''RTF'', ''XLS'', ''PDF'', ''XML'', ''TXT'', ''HTM'', ''ODS'', ''ODT'')) ';
+          'ALTER TABLE gd_autotask ADD CONSTRAINT gd_chk_autotask_exporttype ' +
+          'CHECK(emailexporttype IN (''DOC'', ''RTF'', ''XLS'', ''XLSX'', ''BIFF'', ' +
+          ' ''PDF'', ''XML'', ''TXT'', ''HTM'', ''ODS'', ''ODT'', ''JPG'', ''BMP'', ''TIFF'')) ';
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text := 'UPDATE gd_documenttype SET classname = NULL WHERE id=807005';
@@ -625,6 +646,18 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (232, ''0000.0001.0000.0263'', ''23.10.2015'', ''Edition date to GD_DOCUMENTTYPE_OPTION.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (233, ''0000.0001.0000.0264'', ''09.11.2015'', ''XLSX type added.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (234, ''0000.0001.0000.0265'', ''14.11.2015'', ''Added Reload auto task.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

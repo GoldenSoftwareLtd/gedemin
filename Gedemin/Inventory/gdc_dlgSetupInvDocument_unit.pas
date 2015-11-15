@@ -1167,6 +1167,16 @@ begin
   {M}  end;
   {END MACRO}
 
+  if (FIDE <> nil) and (not FIDE.NewOptions) then
+  begin
+    MessageBox(Handle,
+      'Необходимо сконвертировать параметры типа документа в новый формат!',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    Result := False;
+    exit;
+  end;
+
   UpdateTabs;
 
 //Выполняется отдельно (не через общий механизм) потому как важен порядок проверки

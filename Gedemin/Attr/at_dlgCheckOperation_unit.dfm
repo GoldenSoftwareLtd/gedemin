@@ -1,6 +1,6 @@
 object dlgCheckOperation: TdlgCheckOperation
-  Left = 623
-  Top = 178
+  Left = 1091
+  Top = 423
   BorderStyle = bsDialog
   Caption = 'Синхронизация пространств имен'
   ClientHeight = 512
@@ -74,7 +74,7 @@ object dlgCheckOperation: TdlgCheckOperation
           Height = 123
           ReadOnly = True
           ScrollBars = ssVertical
-          TabOrder = 4
+          TabOrder = 5
         end
         object chbxTerminate: TCheckBox
           Left = 376
@@ -93,6 +93,14 @@ object dlgCheckOperation: TdlgCheckOperation
           Checked = True
           State = cbChecked
           TabOrder = 3
+        end
+        object chbxUnMethod: TCheckBox
+          Left = 376
+          Top = 75
+          Width = 289
+          Height = 17
+          Caption = 'Отключить перекрытые методы'
+          TabOrder = 4
         end
       end
       object pnlLoadObjects: TPanel

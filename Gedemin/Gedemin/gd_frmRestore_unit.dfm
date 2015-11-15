@@ -87,7 +87,7 @@ inherited gd_frmRestore: Tgd_frmRestore
     Width = 49
     Height = 21
     TabOrder = 6
-    Text = '1000'
+    Text = '2000'
   end
   inherited btnSelectDatabase: TButton
     Top = 106
