@@ -11,6 +11,9 @@ type
   protected
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
 
+  public
+    class function GetRestrictCondition(const ATableName,
+      ASubType: String): String; override;
   end;
 
   TgdcBaseDocumentTable = class(TgdcCustomTable)
@@ -47,6 +50,9 @@ type
   end;
 
   TgdcDocumentLineTable = class(TgdcBaseDocumentLineTable)
+  public
+    class function GetRestrictCondition(const ATableName,
+      ASubType: String): String; override;
   end;
 
 
@@ -108,6 +114,19 @@ end;
 procedure TgdcCustomTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
   {}
+end;
+
+class function TgdcCustomTable.GetRestrictCondition(const ATableName,
+  ASubType: String): String;
+begin
+  Result :=
+    '(z.id IN (SELECT d.relationkey FROM at_relation_fields d WHERE d.fieldname = ''DOCUMENTKEY'')) '#13#10 +
+    'AND '#13#10 +
+    '(z.id NOT IN (SELECT d.relationkey FROM at_relation_fields d WHERE d.fieldname = ''MASTERKEY'')) '#13#10 +
+    'AND '#13#10 +
+    '(z.relationname NOT IN (''INV_CARD'', ''INV_MOVEMENT'', ''AC_RECORD'', ''AC_ENTRY'')) '#13#10 +
+    'AND '#13#10 +
+    '(z.relationname NOT LIKE ''%LINE'')';
 end;
 
 { TgdcDocumentTable }
@@ -896,6 +915,16 @@ begin
       'Отключено', 'DDISABLED', 'Отключено', 'Отключено',
       'L', '16', '1', '1');
   end;
+end;
+
+{ TgdcDocumentLineTable }
+
+class function TgdcDocumentLineTable.GetRestrictCondition(const ATableName,
+  ASubType: String): String;
+begin
+  Result :=
+    'z.id IN (SELECT d.relationkey FROM at_relation_fields d WHERE d.fieldname = ''DOCUMENTKEY'') ' +
+    'AND z.relationname LIKE ''%LINE'' ';
 end;
 
 initialization

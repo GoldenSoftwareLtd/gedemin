@@ -28,15 +28,9 @@ type
     procedure actSubNewExecute(Sender: TObject);
     procedure ibcmbCompanyChange(Sender: TObject);
     procedure gdcDepartmentNewRecord(DataSet: TDataSet);
-  private
-    isHolding: Boolean;
 
   protected
     procedure SetGdcObject(const Value: TgdcBase); override;
-
-  public
-    procedure SaveSettings; override;
-    procedure LoadSettings; override;
   end;
 
 var
@@ -54,8 +48,6 @@ begin
   gdcObject := gdcDepartment;
   gdcDetailObject := gdcEmployee;
 
-{  ibcmbCompany.CurrentKeyInt := UserStorage.ReadInteger('Department', 'CurrentCompany', IBLogin.CompanyKey);
-  if ibcmbCompany.CurrentKeyInt = -1 then   }
   ibcmbCompany.CurrentKeyInt := IBLogin.CompanyKey;
 
   inherited;
@@ -84,118 +76,18 @@ end;
 procedure Tgdc_frmDepartment.ibcmbCompanyChange(Sender: TObject);
 var
   WasActive: Boolean;
-  ibsql: TIBSQL;
 begin
-  if ibcmbCompany.CurrentKeyInt > 0 then
-    if gdcObject.ParamByName('companykey').AsInteger <> ibcmbCompany.CurrentKeyInt then
-    begin
-      WasActive := gdcObject.Active;
-      try
-        ibsql := TIBSQL.Create(nil);
-        try
-          ibsql.SQL.Text := 'SELECT holdingkey FROM gd_holding WHERE holdingkey = ' +
-            ibcmbCompany.CurrentKey;
-          ibsql.Transaction := gdcObject.ReadTransaction;
-          ibsql.ExecQuery;
-          isHolding := ibsql.FieldByName('holdingkey').AsInteger > 0;
-        finally
-          ibsql.Free;
-        end;
-
-        gdcObject.Close;
-        if IsHolding then
-          gdcObject.AddSubSet(cst_Holding)
-        else
-          gdcObject.RemoveSubSet(cst_Holding);
-        gdcObject.ParamByName('companykey').AsInteger :=
-          ibcmbCompany.CurrentKeyInt;
-      finally
-        gdcObject.Active := WasActive;
-      end;
-    end;
-end;
-
-procedure Tgdc_frmDepartment.SaveSettings;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMDEPARTMENT', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_FRMDEPARTMENT', KEYSAVESETTINGS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSAVESETTINGS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_FRMDEPARTMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_FRMDEPARTMENT',
-  {M}          'SAVESETTINGS', KEYSAVESETTINGS, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_FRMDEPARTMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-{  if Assigned(UserStorage) then
+  if gdcObject.ParamByName('companykey').AsInteger <> ibcmbCompany.CurrentKeyInt then
   begin
-    UserStorage.SaveComponent(ibcmbCompany, ibcmbCompany.SaveToStream);
-    UserStorage.WriteInteger('Department', 'CurrentCompany', ibcmbCompany.CurrentKeyInt);
-  end; }
-
-  inherited;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMDEPARTMENT', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_FRMDEPARTMENT', 'SAVESETTINGS', KEYSAVESETTINGS);
-  {M}end;
-  {END MACRO}
-end;
-
-procedure Tgdc_frmDepartment.LoadSettings;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMDEPARTMENT', 'LOADSETTINGS', KEYLOADSETTINGS)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_FRMDEPARTMENT', KEYLOADSETTINGS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYLOADSETTINGS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_FRMDEPARTMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_FRMDEPARTMENT',
-  {M}          'LOADSETTINGS', KEYLOADSETTINGS, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_FRMDEPARTMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-{  if Assigned(UserStorage) then
-    UserStorage.LoadComponent(ibcmbCompany, ibcmbCompany.LoadFromStream);  }
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMDEPARTMENT', 'LOADSETTINGS', KEYLOADSETTINGS)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_FRMDEPARTMENT', 'LOADSETTINGS', KEYLOADSETTINGS);
-  {M}end;
-  {END MACRO}
+    WasActive := gdcObject.Active;
+    try
+      gdcObject.Active := False;
+      gdcObject.ParamByName('companykey').AsInteger :=
+        ibcmbCompany.CurrentKeyInt;
+    finally
+      gdcObject.Active := WasActive;
+    end;
+  end;
 end;
 
 procedure Tgdc_frmDepartment.gdcDepartmentNewRecord(DataSet: TDataSet);

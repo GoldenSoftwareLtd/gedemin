@@ -158,7 +158,6 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetNotCopyField: String; override;
     procedure DoBeforePost; override;
-    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -1902,7 +1901,6 @@ var
   gdcAcctComplexRecord: TgdcAcctComplexRecord;
 begin
   {@UNFOLD MACRO INH_ORIG_EDITDIALOG('TGDCDOCUMENT', 'EDITDIALOG', KEYEDITDIALOG)}
-  {M}  Result := False;
   {M}  try
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}    begin
@@ -1927,7 +1925,10 @@ begin
   {M}          end;
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENT' then
+  {M}        begin
+  {M}          Result := inherited EditDialog(ADlgClassName);
   {M}          Exit;
+  {M}        end;
   {M}    end;
   {END MACRO}
 
@@ -2300,8 +2301,7 @@ end;
 procedure TgdcBaseDocumentType.DoBeforePost;
 var
   ibsql: TIBSQL;
-  S: String;
-  L: Integer;
+  S, S2: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
   {M}
   {M}  Params, LResult: Variant;
@@ -2340,25 +2340,23 @@ begin
     else
       ibsql.Transaction := ReadTransaction;
 
-    ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE UPPER(name) = :name and id <> :id';
+    ibsql.SQL.Text :=
+      'SELECT id, name FROM gd_documenttype ' +
+      'WHERE UPPER(name) = :name and id <> :id';
     ibsql.ParamByName('name').AsString := AnsiUpperCase(FieldByName('name').AsString);
     ibsql.ParamByName('id').AsInteger := ID;
     ibsql.ExecQuery;
 
     if not ibsql.EOF then
     begin
-      if (sLoadFromStream in BaseState) then
+      if sLoadFromStream in BaseState then
       begin
-
-        S := FieldByName('name').AsString + FieldByName(GetKeyField(SubType)).AsString;
-        L := Length(S);
-        if L > 60 then
-        begin
-          S := System.Copy(FieldByName('name').AsString, 1,
-            L - Length(FieldByName(GetKeyField(SubType)).AsString)) +
-            FieldByName(GetKeyField(SubType)).AsString;
-        end;
-        FieldByName('name').AsString := S;
+        S := FieldByName('name').AsString;
+        S2 := FieldByName(GetKeyField(SubType)).AsString;
+        if Length(S) + Length(S2) <= FieldByName('name').Size then
+          FieldByName('name').AsString := S + S2
+        else
+          FieldByName('name').AsString := System.Copy(S, 1, 60 - Length(S2)) + S2;
       end else
         raise EgdcIBError.Create(
           'В базе данных уже существует документ или группа документов'#13#10 +
@@ -2471,64 +2469,6 @@ begin
   Result := DocLineRelationName > '';
 end;
 
-procedure TgdcBaseDocumentType.DoAfterCustomProcess(Buff: Pointer;
-  Process: TgsCustomProcess);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  DE, DELn: TgdDocumentEntry;
-begin
-  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBASEDOCUMENTTYPE', KEYDOAFTERCUSTOMPROCESS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASEDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self),
-  {M}          Integer(Buff), TgsCustomProcess(Process)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASEDOCUMENTTYPE',
-  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASEDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if FieldByName('documenttype').AsString = 'D' then
-  begin
-    if Process = cpDelete then
-      gdClassList.RemoveSubType(FieldByName('ruid').AsString)
-    else if Process = cpModify then
-    begin
-      DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
-      if DE = nil then
-        raise Exception.Create('Document type info not found');
-      DE.LoadDE(Transaction);
-      DELn := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
-      if DELn is TgdDocumentEntry then
-        DELn.Assign(DE);
-    end;
-  end;  
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
-  {M}  end;
-  {END MACRO}
-end;
-
 { TgdcDocumentBranch }
 
 procedure TgdcDocumentBranch._DoOnNewRecord;
@@ -2589,6 +2529,7 @@ procedure TgdcDocumentType._DoOnNewRecord;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  DEParent: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCDOCUMENTTYPE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  try
@@ -2612,10 +2553,30 @@ begin
 
   inherited;
 
-  FieldByName('documenttype').AsString := 'D';
+  if not (sLoadFromStream in BaseState) then
+  begin
+    FieldByName('documenttype').AsString := 'D';
+    FieldByName('parent').AsInteger := GetParent;
+    FieldByName('classname').AsString := ClassName;
 
-  FieldByName('parent').AsInteger := GetParent;
-  FieldByName('classname').AsString := ClassName;
+    DEParent := gdClassList.FindDocByTypeID(FieldByName('parent').AsInteger, dcpHeader, True);
+    if DEParent <> nil then
+    begin
+      FieldByName('name').AsString := 'Наследник ' + DEParent.Caption;
+      if DEParent.BranchKey > 0 then
+        FieldByName('branchkey').AsInteger := DEParent.BranchKey
+      else
+        FieldByName('branchkey').Clear;
+      if DEParent.HeaderRelKey > 0 then
+        FieldByName('headerrelkey').AsInteger := DEParent.HeaderRelKey
+      else
+        FieldByName('headerrelkey').Clear;
+      if DEParent.LineRelKey > 0 then
+        FieldByName('linerelkey').AsInteger := DEParent.LineRelKey
+      else
+        FieldByName('linerelkey').Clear;
+    end;
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
@@ -2664,14 +2625,17 @@ begin
 
   inherited;
 
-  DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
-
-  if DE <> nil then
+  if IsOk then
   begin
-    DE.LoadDE(Transaction);
-    DELn := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
-    if DELn <> nil then
-      DELn.Assign(DE);
+    DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
+
+    if DE <> nil then
+    begin
+      DE.LoadDE(Transaction);
+      DELn := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
+      if DELn <> nil then
+        DELn.Assign(DE);
+    end;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'DOAFTERSHOWDIALOG', KEYDOAFTERSHOWDIALOG)}
@@ -2822,6 +2786,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
+  DE, DELn: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -2846,6 +2811,19 @@ begin
   {END MACRO}
 
   inherited;
+
+  if Process = cpDelete then
+    gdClassList.RemoveSubType(FieldByName('ruid').AsString)
+  else if Process = cpModify then
+  begin
+    DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
+    if DE = nil then
+      raise Exception.Create('Document type info not found');
+    DE.LoadDE(Transaction);
+    DELn := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
+    if DELn is TgdDocumentEntry then
+      DELn.Assign(DE);
+  end;
 
   if Process <> cpDelete then
   begin
@@ -3113,6 +3091,7 @@ begin
   begin
     DE := gdClassList.Add('TgdcUserDocument', FieldByName('ruid').AsString, GetParentSubType,
       TgdDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry;
+    DE.TypeID := ID;
     DE.LoadDE(Transaction);
 
     if FieldbyName('linerelkey').AsInteger > 0 then
@@ -3121,6 +3100,8 @@ begin
         TgdDocumentEntry, FieldbyName('name').AsString).Assign(DE);
     end else
       gdClassList.Remove('TgdcUserDocumentLine', FieldByName('ruid').AsString);
+
+    gdClassList.CreateFormSubTypes;  
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}

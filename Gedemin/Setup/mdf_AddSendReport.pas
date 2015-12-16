@@ -577,6 +577,118 @@ begin
           'GRANT ALL ON GD_DOCUMENTTYPE_OPTION TO administrator';
         FIBSQL.ExecQuery;
 
+        DropConstraint2('GD_OBJECT_DEPENDENCIES', 'GD_PK_OBJECT_DEPENDENCIES', FTransaction);
+
+        if RelationExist2('GD_OBJECT_DEPENDENCIES', FTransaction) then
+        begin
+          FIBSQL.SQL.Text := 'DROP TABLE GD_OBJECT_DEPENDENCIES';
+          FIBSQL.ExecQuery;
+
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
+        end;
+
+        FIBSQL.SQL.Text :=
+          'CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies ( '#13#10 +
+          '  sessionid         dintkey, '#13#10 +
+          '  seqid             dintkey, '#13#10 +
+          '  masterid          dintkey, '#13#10 +
+          '  reflevel          dinteger_notnull, '#13#10 +
+          '  relationname      dtablename NOT NULL, '#13#10 +
+          '  fieldname         dfieldname NOT NULL, '#13#10 +
+          '  crossrelation     dboolean_notnull, '#13#10 +
+          '  refobjectid       dintkey, '#13#10 +
+          '  refobjectname     dname, '#13#10 +
+          '  refrelationname   dname, '#13#10 +
+          '  refclassname      dname, '#13#10 +
+          '  refsubtype        dname, '#13#10 +
+          '  refeditiondate    TIMESTAMP, '#13#10 +
+          ' '#13#10 +
+          '  CONSTRAINT gd_pk_object_dependencies PRIMARY KEY (sessionid, seqid) '#13#10 +
+          ') '#13#10 +
+          '  ON COMMIT DELETE ROWS ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text := 'GRANT ALL ON gd_object_dependencies TO administrator';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_biu_people_pn FOR gd_people '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  BEFORE INSERT OR UPDATE '#13#10 +
+          '  POSITION 32000 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (CHAR_LENGTH(NEW.personalnumber) > 0 '#13#10 +
+          '    AND (INSERTING OR NEW.personalnumber IS DISTINCT FROM OLD.personalnumber)) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    NEW.personalnumber = UPPER(TRIM(NEW.personalnumber)); '#13#10 +
+          '    NEW.personalnumber = '#13#10 +
+          '      REPLACE( '#13#10 +
+          '        REPLACE( '#13#10 +
+          '          REPLACE( '#13#10 +
+          '            REPLACE( '#13#10 +
+          '              REPLACE( '#13#10 +
+          '                REPLACE( '#13#10 +
+          '                  REPLACE( '#13#10 +
+          '                    REPLACE( '#13#10 +
+          '                      REPLACE( '#13#10 +
+          '                        REPLACE( '#13#10 +
+          '                          REPLACE( '#13#10 +
+          '                            NEW.personalnumber, '#13#10 +
+          '                            ''Õ'', ''X''), '#13#10 +
+          '                          ''Ò'', ''T''), '#13#10 +
+          '                        ''Ñ'', ''C''), '#13#10 +
+          '                      ''Ð'', ''P''), '#13#10 +
+          '                    ''Î'', ''O''), '#13#10 +
+          '                  ''Í'', ''H''), '#13#10 +
+          '                ''Ì'', ''M''), '#13#10 +
+          '              ''Ê'', ''K''), '#13#10 +
+          '            ''Å'', ''E''), '#13#10 +
+          '          ''À'', ''A''), '#13#10 +
+          '        ''Â'', ''B''); '#13#10 +
+          '  END '#13#10 +
+          '   '#13#10 +
+          '  IF (CHAR_LENGTH(NEW.passportnumber) > 0 '#13#10 +
+          '    AND (INSERTING OR NEW.passportnumber IS DISTINCT FROM OLD.passportnumber)) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    NEW.passportnumber = UPPER(TRIM(NEW.passportnumber)); '#13#10 +
+          '    NEW.passportnumber = '#13#10 +
+          '      REPLACE( '#13#10 +
+          '        REPLACE( '#13#10 +
+          '          REPLACE( '#13#10 +
+          '            REPLACE( '#13#10 +
+          '              REPLACE( '#13#10 +
+          '                REPLACE( '#13#10 +
+          '                  REPLACE( '#13#10 +
+          '                    REPLACE( '#13#10 +
+          '                      REPLACE( '#13#10 +
+          '                        REPLACE( '#13#10 +
+          '                          REPLACE( '#13#10 +
+          '                            NEW.passportnumber, '#13#10 +
+          '                            ''Õ'', ''X''), '#13#10 +
+          '                          ''Ò'', ''T''), '#13#10 +
+          '                        ''Ñ'', ''C''), '#13#10 +
+          '                      ''Ð'', ''P''), '#13#10 +
+          '                    ''Î'', ''O''), '#13#10 +
+          '                  ''Í'', ''H''), '#13#10 +
+          '                ''Ì'', ''M''), '#13#10 +
+          '              ''Ê'', ''K''), '#13#10 +
+          '            ''Å'', ''E''), '#13#10 +
+          '          ''À'', ''A''), '#13#10 +
+          '        ''Â'', ''B''); '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FTransaction.Commit;
+        FTransaction.StartTransaction;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE gd_people SET personalnumber = '' '' || personalnumber, passportnumber = '' '' || passportnumber ' +
+          'WHERE personalnumber IS NOT NULL OR passportnumber IS NOT NULL';
+        FIBSQL.ExecQuery;   
+
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (222, ''0000.0001.0000.0253'', ''22.07.2015'', ''Modified GD_AUTOTASK and GD_SMTP tables.'') '#13#10 +
@@ -658,6 +770,18 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (234, ''0000.0001.0000.0265'', ''14.11.2015'', ''Added Reload auto task.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (235, ''0000.0001.0000.0266'', ''27.11.2015'', ''Added seqid field to gd_object_dependencies table.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (236, ''0000.0001.0000.0267'', ''02.12.2015'', ''https://github.com/GoldenSoftwareLtd/GedeminSalary/issues/208'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

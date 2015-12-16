@@ -1,6 +1,6 @@
 inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
-  Left = 520
-  Top = 180
+  Left = 523
+  Top = 182
   Caption = 'Настройка прайс-листа'
   ClientHeight = 423
   ClientWidth = 532
@@ -99,9 +99,9 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         object lbEnglishName: TLabel
           Left = 8
           Top = 126
-          Width = 122
+          Width = 124
           Height = 13
-          Caption = 'Наименование на англ.:'
+          Caption = 'Наименование таблицы:'
           FocusControl = edEnglishName
           WordWrap = True
         end
@@ -137,7 +137,14 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           ListTable = 'AT_RELATIONS'
           ListField = 'LNAME'
           KeyField = 'ID'
-          gdClassName = 'TgdcTable'
+          Condition = 
+            '(AT_RELATIONS.id IN (SELECT d.relationkey FROM at_relation_field' +
+            's d WHERE d.fieldname = '#39'DOCUMENTKEY'#39')) AND (AT_RELATIONS.id NOT' +
+            ' IN (SELECT d.relationkey FROM at_relation_fields d WHERE d.fiel' +
+            'dname = '#39'MASTERKEY'#39')) AND (AT_RELATIONS.relationname NOT IN ('#39'IN' +
+            'V_CARD'#39', '#39'INV_MOVEMENT'#39', '#39'AC_RECORD'#39', '#39'AC_ENTRY'#39')) AND (AT_RELAT' +
+            'IONS.relationname NOT LIKE '#39'%LINE'#39')'
+          gdClassName = 'TgdcDocumentTable'
           OnCreateNewObject = iblcHeaderTableCreateNewObject
           ItemHeight = 13
           ParentShowHint = False
@@ -158,7 +165,11 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           ListTable = 'AT_RELATIONS'
           ListField = 'lname'
           KeyField = 'id'
-          gdClassName = 'TgdcTable'
+          Condition = 
+            'AT_RELATIONS.id IN (SELECT d.relationkey FROM at_relation_fields' +
+            ' d WHERE d.fieldname = '#39'DOCUMENTKEY'#39') AND AT_RELATIONS.relationn' +
+            'ame LIKE '#39'%LINE'#39
+          gdClassName = 'TgdcDocumentLineTable'
           OnCreateNewObject = iblcLineTableCreateNewObject
           ItemHeight = 13
           ParentShowHint = False

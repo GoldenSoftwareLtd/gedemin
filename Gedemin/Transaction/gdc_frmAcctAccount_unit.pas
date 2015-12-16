@@ -113,7 +113,6 @@ end;
 
 procedure Tgdc_frmAcctAccount.actNewSubAccountExecute(Sender: TObject);
 begin
-  gdcAcctAccount.Parent := gdcDetailObject.ID;
   gdcDetailObject.CreateDialog(TgdcAcctSubAccount);
 end;
 

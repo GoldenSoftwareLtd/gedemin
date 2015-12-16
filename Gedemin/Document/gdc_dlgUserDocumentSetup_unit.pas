@@ -19,10 +19,10 @@
 
     Initial  03-12-2001  Dennis  Initial version.
 
---}             
+--}
 
 unit gdc_dlgUserDocumentSetup_unit;
-       
+
 interface
 
 uses
@@ -42,7 +42,6 @@ type
     actNewFieldDetail: TAction;
     actEditFieldDetail: TAction;
     actDeleteFieldDetail: TAction;
-    procedure FormCreate(Sender: TObject);
 
   protected
     procedure BeforePost; override;
@@ -55,19 +54,12 @@ var
 
 implementation
 
-uses dmImages_unit, at_classes, dmDatabase_unit,  gd_ClassList, gdcClasses_interface;
+uses
+  dmImages_unit, at_classes, dmDatabase_unit,  gd_ClassList, gdcClasses_interface;
 
 {$R *.DFM}
 
 { Tgdc_dlgUserDocumentSetup }
-
-procedure Tgdc_dlgUserDocumentSetup.FormCreate(Sender: TObject);
-begin
-  inherited;
-
-  if tsCommon.TabVisible then
-    pcMain.ActivePage := tsCommon;
-end;
 
 procedure Tgdc_dlgUserDocumentSetup.BeforePost;
 var

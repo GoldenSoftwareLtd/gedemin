@@ -121,7 +121,6 @@ type
 
   private
     FHeaderFields, FLineFields: TObjectList; // Список выбранных полей прайс-листа
-    FIPDE: TgdInvPriceDocumentEntry;
 
     procedure SetupCommonTab;
     procedure SetupHeaderTab;
@@ -130,6 +129,7 @@ type
     function GetDocument: TgdcInvPriceListType;
     function GetPrice: TatRelation;
     function GetPriceLine: TatRelation;
+    function GetIPDE: TgdInvPriceDocumentEntry;
 
     class function FindPriceField(AField: String; List: TObjectList): TinvPriceListField;
     procedure CreatePriceFieldObjects;
@@ -224,11 +224,14 @@ procedure TdlgSetupInvPriceList.ReadOptions;
 var
   PriceField: TinvPricelistField;
   I: Integer;
+  FIPDE: TgdInvPriceDocumentEntry;
 begin
+  CreatePriceFieldObjects;
+
+  FIPDE := GetIPDE;
+
   if FIPDE = nil then
     exit;
-
-  CreatePriceFieldObjects;
 
   for I := Low(FIPDE.HeaderFields) to High(FIPDE.HeaderFields) do
   begin
@@ -339,7 +342,7 @@ begin
   {M}  end;
   {END MACRO}
 
-  if (FIPDE <> nil) and (not FIPDE.NewOptions) then
+  if gdClassList.OldOptions then
   begin
     MessageBox(Handle,
       'Необходимо сконвертировать параметры типа документа в новый формат!',
@@ -347,7 +350,7 @@ begin
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
     Result := False;
     exit;
-  end;  
+  end;
 
   Result := inherited TestCorrect;
 
@@ -797,8 +800,6 @@ begin
 
   inherited;
   
-  pcMain.ActivePage := tsCommon;
-
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGSETUPINVPRICELIST', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -816,6 +817,7 @@ var
   {END MACRO}
   DE: TgdDocumentEntry;
   R: OleVariant;
+  IPDEParent: TgdInvPriceDocumentEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGSETUPINVPRICELIST', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -839,51 +841,31 @@ begin
 
   inherited;
 
-  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
+  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
   if DE is TgdInvPriceDocumentEntry then
-    FIPDE := DE as TgdInvPriceDocumentEntry
-  else if DE = nil then
-    FIPDE := nil
+    IPDEParent := DE as TgdInvPriceDocumentEntry
   else
-    raise Exception.Create('Invalid inventory price list type');
+    IPDEParent := nil;
 
   ActivateTransaction(gdcObject.Transaction);
 
-  if FIPDE.Parent is TgdInvPriceDocumentEntry then
+  if IPDEParent <> nil then
   begin
-    edParentName.Text := FIPDE.Parent.Caption;
-
-    iblcHeaderTable.gdClassName := 'TgdcInheritedDocumentTable';
-    iblcLineTable.gdClassName := 'TgdcInheritedDocumentTable';
+    edParentName.Text := IPDEParent.Caption;
 
     if gdcObject.State = dsInsert then
     begin
-      gdcObject.FieldByName('name').AsString := 'Наследник ' + FIPDE.Parent.Caption;
-      gdcObject.FieldByName('branchkey').AsInteger := TgdInvPriceDocumentEntry(FIPDE.Parent).BranchKey;
-      gdcObject.FieldByName('headerrelkey').AsInteger := TgdInvPriceDocumentEntry(FIPDE.Parent).HeaderRelKey;
-      gdcObject.FieldByName('linerelkey').AsInteger := TgdInvPriceDocumentEntry(FIPDE.Parent).LineRelKey;
-      edEnglishName.Text := TgdInvPriceDocumentEntry(FIPDE.Parent).HeaderRelName;
-    end else
-      edEnglishName.Text := FIPDE.HeaderRelName;
+      gdcObject.FieldByName('name').AsString := 'Наследник ' + IPDEParent.Caption;
+      gdcObject.FieldByName('branchkey').AsInteger := IPDEParent.BranchKey;
+    end;
   end else
-  begin
     edParentName.Text := '';
 
-    iblcHeaderTable.gdClassName := 'TgdcTable';
-    iblcLineTable.gdClassName := 'TgdcTable';
-
-    iblcHeaderTable.CurrentKeyInt := Price.ID;
-    iblcHeaderTable.Condition := 'ID = ' + IntToStr(Price.ID);
-    iblcLineTable.CurrentKeyInt := PriceLine.ID;
-    iblcLineTable.Condition := 'ID = ' + IntToStr(PriceLine.ID);
-
-    if gdcObject.State = dsInsert then
-    begin
-      edEnglishName.Text := '';
-      edEnglishName.MaxLength := 14;
-    end else
-      edEnglishName.Text := FIPDE.HeaderRelName;
-  end;
+  edEnglishName.Text := Price.RelationName;
+  iblcHeaderTable.CurrentKeyInt := Price.ID;
+  iblcHeaderTable.Condition := 'ID = ' + IntToStr(Price.ID);
+  iblcLineTable.CurrentKeyInt := PriceLine.ID;
+  iblcLineTable.Condition := 'ID = ' + IntToStr(PriceLine.ID);
 
   if Document.State in [dsEdit, dsInsert] then
   begin
@@ -1114,8 +1096,6 @@ begin
     DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
     if DE is TgdInvPriceDocumentEntry then
       IE := DE as TgdInvPriceDocumentEntry
-    else if DE = nil then
-      IE := nil
     else
       raise Exception.Create('Not an inventory price document type');
 
@@ -1129,6 +1109,21 @@ end;
 function TdlgSetupInvPriceList.DlgModified: Boolean;
 begin
   Result := True;
+end;
+
+function TdlgSetupInvPriceList.GetIPDE: TgdInvPriceDocumentEntry;
+var
+  DE: TgdDocumentEntry;
+begin
+  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
+
+  if DE = nil then
+    DE := gdClassList.FindDocByTypeID((gdcObject as TgdcDocumentType).Parent, dcpHeader, True);
+
+  if DE is TgdInvPriceDocumentEntry then
+    Result := DE as TgdInvPriceDocumentEntry
+  else
+    Result := nil;
 end;
 
 initialization

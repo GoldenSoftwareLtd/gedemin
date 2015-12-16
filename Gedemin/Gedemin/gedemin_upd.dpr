@@ -12,9 +12,11 @@ var
   SL: TStringList;
   MutexHandle, GedProcHandle, LogHandle: THandle;
   I, LogType: Integer;
-  S, Cmd, FName, IniName: String;
+  S, Cmd, FName, IniName, GedName: String;
   GedProcID: DWORD;
   ss: array [0..0] of PChar;
+  StartupInfo: TStartupInfo;
+  ProcessInfo: TProcessInformation;
 
 function Ctrl_Handler(Ctrl: Longint): LongBool;
 begin
@@ -24,6 +26,13 @@ begin
 end;
 
 begin
+  if (ParamCount = 0) or (ParamStr(1) = '/?') or (ParamStr(1) = '-?') then
+  begin
+    Writeln('Gedemin Updater, v2.9');
+    Writeln('Copyright (c) 2015 by Golden Software of Belarus, Ltd');
+    exit;
+  end;
+
   Terminating := False;
   SetConsoleCtrlHandler(@Ctrl_Handler, True);
 
@@ -46,14 +55,14 @@ begin
     LogHandle := RegisterEventSource(nil, 'Gedemin Updater');
     MutexHandle := CreateMutex(nil, True, PChar(GedeminMutexName));
     try
-      if (WaitForSingleObject(MutexHandle, INFINITE) = WAIT_OBJECT_0)
+      IniName := ExtractFilePath(ParamStr(0)) + Gedemin_Updater_Ini;
+      if FileExists(IniName) and (WaitForSingleObject(MutexHandle, INFINITE) = WAIT_OBJECT_0)
         and (not Terminating) then
       try
         SL := TStringList.Create;
         try
-          IniName := ExtractFilePath(ParamStr(0)) + Gedemin_Updater_Ini;
-
           SL.LoadFromFile(IniName);
+
           for I := 0 to SL.Count - 1 do
           begin
             S := Trim(SL[I]);
@@ -140,5 +149,17 @@ begin
       CloseHandle(MutexHandle);
       DeregisterEventSource(LogHandle);
     end;
+  end;
+
+  if (ParamCount > 5) and (UpperCase(ParamStr(2)) = '/R') then
+  begin
+    GedName := ExtractFilePath(ParamStr(0)) + ParamStr(3);
+    FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
+    StartupInfo.cb := SizeOf(TStartupInfo);
+    CreateProcess(PChar(GedName),
+      PChar('"' + GedName + '" /user "' + ParamStr(4) + '" /password "' +
+        ParamStr(5) + '" /sn "' + ParamStr(6) + '" /ns'),
+      nil, nil, False, NORMAL_PRIORITY_CLASS, nil, nil,
+      StartupInfo, ProcessInfo);
   end;
 end.

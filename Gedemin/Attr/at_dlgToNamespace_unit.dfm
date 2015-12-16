@@ -29,7 +29,7 @@ object dlgToNamespace: TdlgToNamespace
       Left = 8
       Top = 8
       Width = 705
-      Height = 347
+      Height = 326
       Align = alClient
       DataSource = dsLink
       Options = [dgTitles, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -101,6 +101,25 @@ object dlgToNamespace: TdlgToNamespace
           TabOrder = 1
         end
       end
+    end
+    object tsObjects: TTabSet
+      Left = 8
+      Top = 334
+      Width = 705
+      Height = 21
+      Align = alBottom
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      SelectedColor = clActiveCaption
+      Tabs.Strings = (
+        'Зависимости'
+        'Дополнительные')
+      TabIndex = 0
+      UnselectedColor = clMenu
+      OnChange = tsObjectsChange
     end
   end
   object pnlTop: TPanel

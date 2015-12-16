@@ -41,6 +41,8 @@ type
     FRemoteServer: String;
     FSendLogEmail: String;
     FConvertDocOptions: Boolean;
+    FRun: String;
+    FExit: Boolean;
 
     function StripQuotes(const S: String): String;
     function CompareAnyString(const S: String; const S2: array of String): Boolean; overload;
@@ -87,6 +89,8 @@ type
     property RemoteServer: String read FRemoteServer;
     property SendLogEmail: String read FSendLogEmail;
     property ConvertDocOptions: Boolean read FConvertDocOptions;
+    property Run: String read FRun;
+    property _Exit: Boolean read FExit;
   end;
 
 var
@@ -338,11 +342,23 @@ begin
         FConvertDocOptions := True;
       end else
 
+      if CompareAnyString(SL[I], ['EXIT']) then
+      begin
+        FExit := True;
+      end else
+
       if CompareAnyString(SL[I], ['RS'])
         and (I < SL.Count - 1) then
       begin
         Inc(I);
         FRemoteServer := SL[I];
+      end else
+
+      if CompareAnyString(SL[I], ['RUN'])
+        and (I < SL.Count - 1) then
+      begin
+        Inc(I);
+        FRun := SL[I];
       end else
 
       if CompareAnyString(SL[I], ['SETTINGPATH', 'SP'])

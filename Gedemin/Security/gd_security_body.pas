@@ -243,6 +243,7 @@ type
     //
     procedure AddEvent(const AData: String;
       const ASource: String = '';
+      const AnObjectName: String = '';
       const AnObjectID: Integer = -1;
       const ATransaction: TObject = nil);
 
@@ -350,7 +351,7 @@ uses
   Storages,                 mdf_proclist,         gdModify,
   IBDatabaseInfo,           gd_DatabasesList_unit,gd_security_operationconst,
   IBErrorCodes,             gd_common_functions,  gd_ClassList,
-  gd_messages_const,        gdLogClient
+  gd_messages_const//,        gdLogClient
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -436,13 +437,13 @@ begin
     FConnectNotifiers.Add(Pointer(Notify));
 end;
 
-procedure TboLogin.AddEvent(const AData, ASource: String;
+procedure TboLogin.AddEvent(const AData, ASource, AnObjectName: String;
   const AnObjectID: Integer; const ATransaction: TObject);
 begin
   TgdcJournal.AddEvent(AData, ASource, AnObjectID,
     ATransaction as TIBTransaction);
 
-  gdLog.Log(AData, ASource, AnObjectID);
+  //gdLog.Log(AData, ASource, AnObjectName, AnObjectID);
 end;
 
 procedure TboLogin.ClearHoldingListCache;

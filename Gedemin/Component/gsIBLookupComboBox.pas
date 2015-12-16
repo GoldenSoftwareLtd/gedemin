@@ -1561,7 +1561,7 @@ begin
 *)
   if FCheckUserRights and (ComponentState * [csDesigning] = []) then
   begin
-    if (FgdClass <> nil) and (FgdClass.GetListTable(FSubType) = FListTable) then
+    if (FgdClass <> nil) and AnsiSameText(FgdClass.GetListTable(FSubType), FListTable) then
       FCheckUserRights := tiAView in FgdClass.GetTableInfos(FSubType)
     else if Assigned(atDatabase) and (FListTable > '') then
     begin
@@ -1677,7 +1677,7 @@ var
 //  I: Integer;
 begin
   if Assigned(FgdClass) and (FCondition = '')
-    and (FgdClass.GetListTable(FSubType) = FListTable) then
+    and AnsiSameText(FgdClass.GetListTable(FSubType), FListTable) then
   begin
     RestrCondition := GetRestrCondition;
   //  I := Pos(' ', FListTable)  - 1;
@@ -1846,7 +1846,7 @@ begin
     begin
       if (Value > '') and ((FindClass(Value) = nil) or (not FindClass(Value).InheritsFrom(TgdcBase))) then
         raise Exception.Create(Value + ' is not a valid gdc class!');
-    end;    
+    end;
 
     FgdClassName := Value;
     FreeAndNil(FdlgDropDown);
@@ -2211,7 +2211,7 @@ begin
 
     if (FCondition = '')
       and (not FEmptyCondition)
-      and (FgdClass.GetListTable(FSubType) = FListTable)
+      and AnsiSameText(FgdClass.GetListTable(FSubType), FListTable)
       and (GetRestrCondition > '') then
     begin
       FCondition := GetRestrCondition;
@@ -2624,7 +2624,7 @@ var
 begin
   if gdClass <> nil then
   begin
-    I := Pos(' ', FListTable)  - 1;
+    I := Pos(' ', FListTable) - 1;
     if I = -1 then I := Length(FListTable);
     Result := gdClass.GetRestrictCondition(Copy(FListTable, 1, I), FSubType);
     { TODO : а если в лист тэйбле будет джоин и для таблицы будет алиас? }

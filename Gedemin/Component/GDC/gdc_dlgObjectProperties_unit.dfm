@@ -1,6 +1,6 @@
 inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
-  Left = 621
-  Top = 234
+  Left = 622
+  Top = 235
   Caption = 'Свойства объекта'
   ClientHeight = 559
   ClientWidth = 657
@@ -1326,7 +1326,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       'WHERE'
       '  sessionid = 1976'
       'ORDER BY'
-      '  reflevel')
+      '  seqid')
     ReadTransaction = ibtrCommon
     Left = 72
     Top = 220

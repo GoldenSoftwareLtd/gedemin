@@ -61,8 +61,8 @@ type
     procedure ConnectionLost; safecall;
     procedure ConnectionLostMessage; safecall;
     function  LoginSilent(const AnUserName: WideString; const APassword: WideString): WordBool; safecall;
-    procedure AddEvent(const AData: WideString; const ASourse: WideString; AnObjectID: Integer;
-                       const ATransaction: IgsIBTransaction); safecall;
+    procedure AddEvent(const AData: WideString; const ASource: WideString; const AnObjectName: WideString;
+                       AnObjectID: Integer; const ATransaction: IgsIBTransaction); safecall;
     function  LoginWithParams(ReadParams: WordBool; ReLogin: WordBool): WordBool; safecall;
     procedure ClearHoldingListCache; safecall;
     procedure ChangeUser(AUserKey: Integer; ACheckMultipleConnections: WordBool); safecall;
@@ -297,10 +297,10 @@ begin
   IBLogin.UpdateUserData;
 end;
 
-procedure TgsIBLogin.AddEvent(const AData, ASourse: WideString;
+procedure TgsIBLogin.AddEvent(const AData, ASource, AnObjectName: WideString;
   AnObjectID: Integer; const ATransaction: IgsIBTransaction);
 begin
-  IBLogin.AddEvent(AData, ASourse, AnObjectID, InterfaceToObject(ATransaction))
+  IBLogin.AddEvent(AData, ASource, AnObjectName, AnObjectID, InterfaceToObject(ATransaction))
 end;
 
 function TgsIBLogin.BringOnLine: WordBool;

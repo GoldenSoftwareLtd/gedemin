@@ -318,8 +318,8 @@ type
     procedure ApplicationEventsShowHint(var HintStr: String;
       var CanShow: Boolean; var HintInfo: THintInfo);
 
-    //procedure WMRunOnLoginMacros(var Msg: TMessage);
-    //  message WM_GD_RUNONLOGINMACROS;
+    procedure WMRunOnLoginMacros(var Msg: TMessage);
+      message WM_GD_RUNONLOGINMACROS;
     procedure WMRelogin(var Msg: TMessage);
       message WM_GD_RELOGIN;
 
@@ -2358,47 +2358,30 @@ begin
   {$ENDIF}
 end;
 
-{procedure TfrmGedeminMain.WMRunOnLoginMacros(var Msg: TMessage);
+procedure TfrmGedeminMain.WMRunOnLoginMacros(var Msg: TMessage);
 var
   TempMacros: TscrMacrosItem;
-  q: TIBSQL;
   OwnerForm: IDispatch;
 begin
   Assert(Assigned(IBLogin) and IBLogin.LoggedIn);
+  Assert(gdcBaseManager <> nil);
 
-  if Assigned(ScriptFactory) then
+  if Assigned(ScriptFactory) and (gd_CmdLineParams.Run > '')
+    and (gdcBaseManager.GetIDByRUIDString(gd_CmdLineParams.Run) > 0) then
   begin
-    q := TIBSQL.Create(nil);
+    TempMacros := TscrMacrosItem.Create;
     try
-      q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text :=
-        'SELECT ml.functionkey FROM evt_macroslist ml ' +
-        'JOIN evt_macrosgroup mg ON ml.macrosgroupkey = mg.ID + 0 ' +
-        'WHERE ml.runonlogin = 1 and mg.isglobal = 1 ' +
-        'ORDER BY ml.name ';
-      q.ExecQuery;
-
-      while not q.EOF do
-      begin
-        TempMacros := TscrMacrosItem.Create;
-        try
-          OwnerForm := nil;
-          TempMacros.FunctionKey := q.FieldByName('functionkey').AsInteger;
-          ScriptFactory.ExecuteMacros(OwnerForm, TempMacros);
-        finally
-          TempMacros.Free;
-        end;
-
-        if Application.Terminated or (not q.Open) then
-          break;
-
-        q.Next;
-      end;
+      OwnerForm := nil;
+      TempMacros.FunctionKey := gdcBaseManager.GetIDByRUIDString(gd_CmdLineParams.Run);
+      ScriptFactory.ExecuteMacros(OwnerForm, TempMacros);
     finally
-      q.Free;
+      TempMacros.Free;
     end;
   end;
-end;}
+
+  if gd_CmdLineParams._Exit then
+    actExit.Execute;
+end;
 
 procedure TfrmGedeminMain.actDatabasesListExecute(Sender: TObject);
 begin

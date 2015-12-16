@@ -411,6 +411,7 @@ begin
             IBLogin.AddEvent(
               'Активизация настройки "' + ObjectName + '"',
               Self.ClassName,
+              Self.ObjectName,
               Self.ID);
           end;
 
@@ -636,6 +637,7 @@ begin
       IBLogin.AddEvent(
         'Деактивация настройки "' + ObjectName + '"',
         Self.ClassName,
+        Self.ObjectName,
         Self.ID);
     end;
 
@@ -1055,6 +1057,7 @@ begin
     IBLogin.AddEvent(
       'Формирование настройки "' + ObjectName + '"',
       Self.ClassName,
+      Self.ObjectName,
       Self.ID);
   end;
 

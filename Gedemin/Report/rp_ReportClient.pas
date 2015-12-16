@@ -281,6 +281,7 @@ begin
   begin
     IBLogin.AddEvent('Запущен на выполнение отчет.',
       AnReport.ReportName,
+      '',
       AnReport.ReportKey);
   end;
 
@@ -334,6 +335,7 @@ begin
       begin
         IBLogin.AddEvent('Ошибка при построении отчета.',
           AnReport.ReportName,
+          '',
           AnReport.ReportKey);
       end;
 
@@ -351,6 +353,7 @@ begin
           IBLogin.AddEvent('Успешно построен отчет за ' +
             FormatDateTime('hh:nn:ss', Now - T) + '.',
             AnReport.ReportName,
+            '',
             AnReport.ReportKey);
         end;
       end;

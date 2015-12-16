@@ -10,11 +10,13 @@ type
   TgsPL = class(TObject)
   private
     FCount: Integer;
+    FError: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
 
     property Count: Integer read FCount write FCount;
+    property Error: Boolean read FError write FError;
   end;
 
 type
@@ -91,13 +93,8 @@ type
     procedure WriteScript(const AText: String; AStream: TStream);
     procedure WritePredicate(const APredicateName: String; ATermv: TgsPLTermv; AStream: TStream);
 
-    //function GetConsultString(const AFileName: String): String;
     function InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
       const APredicateName: String; const AStream: TStream = nil): Integer;
-    {*function InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
-      AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-      const APredicateName: String; const AStream: TStream = nil): Integer;
-    *}
     function InternalMakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
       const APredicateName: String; const AStream: TStream = nil): Integer;
 
@@ -115,10 +112,6 @@ type
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
     function MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
-    {*function MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
-      AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-      const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
-    *}
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
     procedure SavePredicatesToFile(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
 
@@ -130,8 +123,8 @@ type
 
   EgsPLClientException = class(Exception)
   public
-    constructor CreateTypeError(const AnExpected: String; const AnActual: term_t);
-    constructor CreatePLError(AnException: term_t);
+    constructor CreateTypeError(const AnExpected: String; const AnActual: String);
+    constructor CreatePLError(const AnExpected: String);
   end;
 
   function TermToString(ATerm: term_t): String;
@@ -145,38 +138,35 @@ uses
   jclStrings, gd_GlobalParams_unit, Forms, gdcBaseInterface, rp_report_const,
   FileCtrl;
 
-constructor EgsPLClientException.CreateTypeError(const AnExpected: String; const AnActual: term_t);
+constructor EgsPLClientException.CreatePLError(const AnExpected: String);
 begin
-  Message := 'error(type_error(' + AnExpected + ',' + TermToString(AnActual) + '))';
+  gsPL.Error := True;
+  Message := AnExpected;
 end;
 
-constructor EgsPLClientException.CreatePLError(AnException: term_t);
-{var
-  a: term_t;
-  name: atom_t;
-  arity: Integer; }
+constructor EgsPLClientException.CreateTypeError(const AnExpected: String; const AnActual: String);
 begin
-  Message := TermToString(AnException);
-  {a := PL_new_term_ref;
-  if (PL_get_arg(1, AnException, a) <> 0)
-    and (PL_get_name_arity(a, name, arity) <> 0)
-  then
-    Message := PL_atom_chars(name); }
+  gsPL.Error := True;
+  Message := 'error(type_error(' + AnExpected + ',' + AnActual + '))';
 end;
 
 procedure RaisePrologError;
 var
-  ex: term_t;  
+  ex: term_t;
 begin
   ex := PL_exception(0);
   if ex <> 0 then
-    raise EgsPLClientException.CreatePLError(ex);
+    begin
+      raise EgsPLClientException.CreatePLError(TermToString(ex));
+    end;
 end;
 
 constructor TgsPLTermv.CreateTermv(const ASize: Integer);
 begin
   if gsPL.Count = 0 then
-    raise EgsPLClientException.Create('Prolog не инициализирован!');
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
+  if ASize <= 0 then
+    raise  EgsPLClientException.CreatePLError('Неверный размер вектора термов!');
 
   inherited Create;
 
@@ -187,7 +177,7 @@ end;
 function TgsPLTermv.GetTerm(const Idx: LongWord): term_t;
 begin
   if Idx >= Size then
-    raise EgsPLClientException.Create('Invalid index!');
+    raise  EgsPLClientException.CreatePLError('Превышение индекса вектора термов!');
 
   Result := FTerm + Idx;
 end;
@@ -253,7 +243,7 @@ end;
 function TgsPLTermv.ReadInteger(const Idx: LongWord): Integer;
 begin
   if PL_get_integer(GetTerm(Idx), Result) = 0 then
-    raise EgsPLClientException.CreateTypeError('integer', GetTerm(Idx));
+    raise EgsPLClientException.CreateTypeError('integer', TermToString(GetTerm(Idx)));
 end;
 
 function TgsPLTermv.ReadString(const Idx: LongWord): String;
@@ -268,21 +258,21 @@ begin
       else if PL_get_chars(GetTerm(Idx), S, PL_ATOM or REP_MB) <> 0 then
         Result := S
       else
-        raise EgsPLClientException.CreateTypeError('atom', GetTerm(Idx));
+        raise EgsPLClientException.CreateTypeError('atom', TermToString(GetTerm(Idx)));
     PL_STRING:
       if PL_get_string(GetTerm(Idx), S, len) <> 0 then
         Result := S
       else if PL_get_chars(GetTerm(Idx), S, CVT_STRING or REP_MB) <> 0 then
         Result := S
       else
-        raise EgsPLClientException.CreateTypeError('string', GetTerm(Idx));
+        raise EgsPLClientException.CreateTypeError('string', TermToString(GetTerm(Idx)));
   end;
 end;
 
 function TgsPLTermv.ReadFloat(const Idx: LongWord): Double;
 begin
   if PL_get_float(GetTerm(Idx), Result) = 0 then
-    raise EgsPLClientException.CreateTypeError('float', GetTerm(Idx));
+    raise EgsPLClientException.CreateTypeError('float', TermToString(GetTerm(Idx)));
 end;
 
 function TgsPLTermv.ReadDateTime(const Idx: LongWord): TDateTime;
@@ -294,7 +284,7 @@ begin
     Result := VarToDateTime(S);
   except
     on E:Exception do
-      raise EgsPLClientException.CreateTypeError('datetime', GetTerm(Idx));
+      raise EgsPLClientException.CreateTypeError('datetime', TermToString(GetTerm(Idx)));
   end;
 end;
 
@@ -311,13 +301,13 @@ end;
 function TgsPLTermv.ReadInt64(const Idx: LongWord): Int64;
 begin
   if PL_get_int64(GetTerm(Idx), Result) = 0 then
-    raise EgsPLClientException.CreateTypeError('int64', GetTerm(Idx));
+    raise EgsPLClientException.CreateTypeError('int64', TermToString(GetTerm(Idx)));
 end;
 
 function TgsPLTermv.GetDataType(const Idx: LongWord): Integer;
 begin
   if Idx >= Size then
-    raise EgsPLClientException.Create('Invalid index!');
+    raise  EgsPLClientException.CreatePLError('Превышение индекса вектора термов!');
 
   Result := PL_term_type(GetTerm(Idx));
 end;
@@ -325,7 +315,7 @@ end;
 constructor TgsPLQuery.Create;
 begin
   if gsPL.Count = 0 then
-    raise EgsPLClientException.Create('Prolog не инициализирован!');
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
 
   inherited Create;
 
@@ -380,7 +370,7 @@ end;
 
 procedure TgsPLQuery.NextSolution;
 var
-  ex: term_t; 
+  ex: term_t;
 begin
   if not FEof then
   begin
@@ -389,8 +379,10 @@ begin
     begin
       ex := PL_exception(FQid);
       if ex <> 0 then
-        raise EgsPLClientException.CreatePLError(ex);
-    end; 
+        begin
+          raise EgsPLClientException.CreatePLError(TermToString(ex));
+        end;
+    end;
   end;  
 end; 
 
@@ -404,14 +396,17 @@ end;
 destructor TgsPLClient.Destroy;
 begin
   gsPL.Count := gsPL.Count - 1;
-  if gsPL.Count = 0 then
+  if (gsPL.Count = 0) or gsPL.Error then
   begin
     if IsInitialised then
       PL_cleanup(0);
-    FIsInitialised := False;  
 
-    FreePLLibrary;
-    FreePLDependentLibraries;
+      FIsInitialised := False;
+
+      FreePLLibrary;
+      FreePLDependentLibraries;
+      gsPL.Count := 0;
+      gsPL.Error := False;
   end;
 
   inherited;
@@ -422,7 +417,10 @@ var
   Query: TgsPLQuery;
   FS: TFileStream;
 begin
-  Assert(ATermv <> nil);
+  if APredicateName = '' then
+    raise  EgsPLClientException.CreatePLError('Не задано имя предиката!');
+  if ATermv = nil then
+    raise  EgsPLClientException.CreatePLError('Не задан вектор термов!');
 
   FS := TFileStream.Create(GetFileName(AFileName), fmCreate);
   Query := TgsPLQuery.Create;
@@ -447,8 +445,12 @@ var
   I: LongWord;
   F: TField;
 begin
-  Assert(ADataSet <> nil);
-  Assert(ATermv <> nil);
+  if ADataSet = nil then
+    raise  EgsPLClientException.CreatePLError('Не задан набор данных!');
+  if APredicateName = '' then
+    raise  EgsPLClientException.CreatePLError('Не задано имя предиката!');
+  if ATermv = nil then
+    raise  EgsPLClientException.CreatePLError('Не задан вектор термов!');
 
   Query := TgsPLQuery.Create;
   try
@@ -471,7 +473,7 @@ begin
             ftDate: F.AsDateTime := Query.Termv.ReadDate(I);
             ftString: F.AsString := Query.Termv.ReadString(I);
           else
-            raise EgsPLClientException.Create('Error data type!');
+            raise  EgsPLClientException.CreatePLError('Ошибка типа данных!');
           end;
         end;
         ADataSet.Post;
@@ -488,33 +490,6 @@ begin
 end;
 
 function TgsPLClient.LoadScript(AScriptID: Integer): Boolean;
-
-{*
-  function GetScriptIDByName(const Name: String): Integer;
-  var
-    q: TIBSQL;
-  begin
-    Result := -1;
-
-    if Name > '' then
-    begin
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := gdcBaseManager.ReadTransaction;
-        q.SQL.Text := 'SELECT * FROM gd_function ' +
-          'WHERE UPPER(name) = UPPER(:name) AND module = :module';
-        q.ParamByName('name').AsString := Name;
-        q.ParamByName('module').AsString := scrPrologModuleName;
-        q.ExecQuery;
-
-        if not q.Eof then
-          Result := q.FieldByName('id').AsInteger;
-      finally
-        q.Free;
-      end;
-    end;
-  end;
-*}
 
   procedure LoadUsesScript(const S: String);
   const
@@ -542,7 +517,7 @@ function TgsPLClient.LoadScript(AScriptID: Integer): Boolean;
       if ID > -1 then
         LoadScript(ID)
       else
-        raise EgsPLClientException.Create('Скрипт ''' + SN + ''' не найден в базе!');
+        raise  EgsPLClientException.CreatePLError('Скрипт ''' + SN + ''' не найден в базе!');
 
       P := StrSearch(IncludePrefix, S, P);
     end;
@@ -597,7 +572,8 @@ var
   Query: TgsPLQuery;
   fid: fid_t;
 begin
-  Assert(AGoal > '');      // !!!!!!!!!!!!
+  if AGoal = '' then
+    raise  EgsPLClientException.CreatePLError('Не задан терм для выполнения!');
 
   fid := PL_open_foreign_frame();
   Termv := TgsPLTermv.CreateTermv(1);
@@ -622,7 +598,10 @@ function TgsPLClient.Call(const APredicateName: String; AParams: TgsPLTermv): Bo
 var
   Query: TgsPLQuery;
 begin
-  Assert(APredicateName > '');  // ??? это надо делать не Assert а Exception
+  if APredicateName = '' then
+    raise  EgsPLClientException.CreatePLError('Не задано имя предиката!');
+  if AParams = nil then
+    raise  EgsPLClientException.CreatePLError('Не задан вектор термов!');
 
   Query := TgsPLQuery.Create;
   try
@@ -631,13 +610,16 @@ begin
     Query.OpenQuery; 
     Result := not Query.Eof;
   finally
-    Query.Free;    
+    Query.Free;
   end;
 end;
 
 procedure TgsPLClient.Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsPLTermv);
 begin
-  Assert(AFunctor > '');
+  if AFunctor = '' then
+    raise  EgsPLClientException.CreatePLError('Не задан функтор!');
+  if ATermv = nil then
+    raise  EgsPLClientException.CreatePLError('Не задан вектор термов!');
 
   if PL_cons_functor_v(AGoal,
     PL_new_functor(PL_new_atom(PChar(AFunctor)), ATermv.size),
@@ -653,7 +635,9 @@ var
 begin
   Result := '';
 
-  Assert(ATerm  > 0);
+  if ATerm = 0 then
+    raise  EgsPLClientException.CreatePLError('Не задан терм!');
+
   case PL_term_type(ATerm) of
     PL_STRING:
       if PL_get_string(ATerm, S, len) <> 0 then
@@ -661,14 +645,14 @@ begin
       else if PL_get_chars(ATerm, S, CVT_STRING or REP_MB) <> 0 then
         Result := '"' + S + '"'
       else
-        raise EgsPLClientException.Create('Error convert string to string!');
+        raise  EgsPLClientException.CreatePLError('Ошибка конвертации строки!');
     else
       if PL_get_chars(ATerm, S, CVT_WRITEQ) <> 0 then
         Result := S
       else if PL_get_chars(ATerm, S, CVT_WRITEQ or REP_MB) <> 0 then
         Result := S
       else
-        raise EgsPLClientException.Create('Error convert term to string!');
+        raise  EgsPLClientException.CreatePLError('Ошибка конвертации терма в строку!');
   end;
 end;
 
@@ -676,7 +660,9 @@ function TgsPLClient.GetArity(ASql: TIBSQL): Integer;
 var
   I: Integer;
 begin
-  Assert(ASql <> nil);
+  if ASql = nil then
+    raise  EgsPLClientException.CreatePLError('Не задан объект TIBSQL!');
+
   Result := 0;
 
   for I := 0 to ASQL.Current.Count - 1 do
@@ -697,11 +683,11 @@ begin
   TempS := GetSWIPath;
   if not DirectoryExists(TempS) then
     if not CreateDir(TempS) then
-      raise EgsPLClientException.Create('Не удается создать директорию ''' + TempS + '''');
+      raise  EgsPLClientException.CreatePLError('Не удается создать директорию ''' + TempS + '''');
   TempS := GetSWITempPath;
   if not DirectoryExists(TempS) then
     if not CreateDir(TempS) then
-      raise EgsPLClientException.Create('Не удается создать директорию ''' + TempS + '''');
+      raise  EgsPLClientException.CreatePLError('Не удается создать директорию ''' + TempS + '''');
   Result := TempS + '\' + AFileName + '.pl';
 end; 
 
@@ -709,7 +695,9 @@ function TgsPLClient.GetArity(ADataSet: TDataSet; const AFieldList: String): Int
 var
   I: Integer;
 begin
-  Assert(ADataSet <> nil);
+  if ADataSet = nil then
+    raise  EgsPLClientException.CreatePLError('Не задан набор данных!');
+
   Result := 0;
 
   for I := 0 to ADataSet.Fields.Count - 1 do
@@ -785,7 +773,7 @@ begin
   end;
 
   if not TryPLLoad then
-    raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!');
+    raise  EgsPLClientException.CreatePLError('Клиентская часть Prolog не установлена!');
 
   if AParams > '' then
     TempS := Trim(AParams)
@@ -863,12 +851,6 @@ begin
   AStream.WriteBuffer(TempS[1], Length(TempS));
 end;
 
-{function TgsPLClient.GetConsultString(const AFileName: String): String;
-begin
-  Result := ':- consult(''' + GetFileName(AFileName) + ''').';
-  Result := StringReplace(Result, '\', '/', [rfReplaceAll]);
-end; }
-
 function TgsPLClient.InternalMakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
   const APredicateName: String; const AStream: TStream = nil): Integer;
 var
@@ -927,7 +909,7 @@ begin
             Inc(Result);
           end
           else
-            raise EgsPLClientException.Create('В процессе добавления данных ''' +
+            raise  EgsPLClientException.CreatePLError('В процессе добавления данных ''' +
               Term.ToString(0) + ''' возникла ошибка!');
           q.Next;
         end;
@@ -984,7 +966,7 @@ begin
           WriteTermv(Term, AStream);
         Inc(Result);
       end else
-        raise EgsPLClientException.Create('В процессе добавления данных ''' +
+        raise  EgsPLClientException.CreatePLError('В процессе добавления данных ''' +
           Term.ToString(0) + ''' возникла ошибка!');
       ADataSet.Next;
     end;
@@ -1042,87 +1024,6 @@ begin
     Result := InternalMakePredicatesOfSQLSelect(ASQL, ATr, APredicateName, nil);
 end;
 
-{*
-function TgsPLClient.InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
-  AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-  const APredicateName: String; const AStream: TStream = nil): Integer;
-var
-  C: TPersistentClass;
-  Obj: TgdcBase;
-  I: Integer;
-  R: Integer;
-begin
-  Result := 0;
-
-  Assert(ATr <> nil);
-  Assert(ATr.InTransaction);
-  Assert(AClassName > '');
-  Assert(ASubSet > '');
-  Assert(APredicateName > '');
-  Assert(VarIsArray(AParams));
-  Assert(VarArrayDimCount(AParams) = 1);
-
-  C := GetClass(AClassName);
-
-  if (C = nil) or (not C.InheritsFrom(TgdcBase)) then
-    raise EgsPLClientException.Create('Invalid class name ' + AClassName);
-
-  Obj := CgdcBase(C).Create(nil);
-  try
-    Obj.SubType := ASubType;
-    Obj.ReadTransaction := ATr;
-    Obj.Transaction := ATr;
-    if AnExtraConditions <> nil then
-      Obj.ExtraConditions := AnExtraConditions;
-    Obj.SubSet := ASubSet;
-    Obj.Prepare; 
-
-    for I := VarArrayLowBound(AParams,  1) to VarArrayHighBound(AParams,  1) do
-    begin
-      Obj.Params[0].AsVariant := AParams[I];
-      Obj.Open;
-      if not Obj.Eof then
-      begin
-        R := InternalMakePredicatesOfDataSet(Obj, AFieldList, APredicateName, AStream);
-        Inc(Result, R);
-      end;
-      Obj.Close;
-    end;
-  finally
-    Obj.Free;
-  end;
-end;
-*}
-
-{*
-function TgsPLClient.MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
-  AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-  const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
-var
-  FS: TFileStream;
-  FN: String;
-begin
-  if FDebug then
-  begin
-    FN := GetFileName(AFileName);
-    if AnAppend and FileExists(FN) then
-    begin
-      FS := TFileStream.Create(FN, fmOpenReadWrite);
-      FS.Seek(0, soFromEnd);
-    end else
-      FS := TFileStream.Create(FN, fmCreate);
-    try
-      Result := InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
-        AnExtraConditions, AFieldList, ATr, APredicateName, FS);
-    finally
-      FS.Free;
-    end;
-  end else
-    Result := InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
-      AnExtraConditions, AFieldList, ATr, APredicateName, nil);
-end;
-*}
-
 function TgsPLClient.GetDefaultPLInitString: String;
 var
   Path: String;
@@ -1161,11 +1062,13 @@ begin
   inherited Create;
 
   FCount := 0;
+  FError := False;
 end;
 
 destructor TgsPL.Destroy;
 begin
   FCount := 0;
+  FError := False;
 
   inherited;
 end;

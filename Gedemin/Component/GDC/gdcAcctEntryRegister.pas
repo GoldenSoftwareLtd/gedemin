@@ -2187,7 +2187,6 @@ var
 
 begin
   {@UNFOLD MACRO INH_ORIG_EDITDIALOG('TGDCACCTVIEWENTRYREGISTER', 'EDITDIALOG', KEYEDITDIALOG)}
-  {M}  Result := False;
   {M}  try
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}    begin
@@ -2212,7 +2211,10 @@ begin
   {M}          end;
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCACCTVIEWENTRYREGISTER' then
+  {M}        begin
+  {M}          Result := inherited EditDialog(ADlgClassName);
   {M}          Exit;
+  {M}        end;
   {M}    end;
   {END MACRO}
 
@@ -2227,7 +2229,7 @@ begin
         isParent := False;
         if FieldByName('masterdockey').AsInteger <>  FieldByName('documentkey').AsInteger then
         begin
-          isParent := MessageBox(ParentHandle, 'Просмотреть весь документ ?', 'Внимание',
+          isParent := MessageBox(ParentHandle, 'Просмотреть весь документ?', 'Внимание',
             mb_YesNo or mb_IconQuestion) = idYes;
         end;
       end
@@ -2243,14 +2245,16 @@ begin
       if tmpDocument.RecordCount > 0 then
         Result := tmpDocument.EditDialog(ADlgClassName)
       else
+      begin
         MessageDlg('Отсутствуют права на просмотр документа.', mtInformation, [mbOk], -1);
+        Result := False;
+      end;
     finally
       tmpDocument.Free;
     end;
-  end
-  else
+  end else
   begin
-    gdcacctComplexRecord := TgdcacctComplexRecord.Create(Self);
+    gdcAcctComplexRecord := TgdcAcctComplexRecord.Create(Self);
     try
       gdcAcctComplexRecord.Transaction := Transaction;
       gdcAcctComplexRecord.ReadTransaction := ReadTransaction;
@@ -4739,7 +4743,6 @@ begin
   FieldByName('trrecordkey').AsInteger := DefaultEntryKey;
   FieldByName('companykey').AsInteger := IBLogin.CompanyKey;
 
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTCOMPLEXRECORD', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -4763,6 +4766,7 @@ initialization
   RegisterGdcClass(TgdcAcctSimpleRecord);
   RegisterGdcClass(TgdcAcctQuantity);
   RegisterGdcClass(TgdcAcctComplexRecord);
+
 finalization
   UnregisterGdcClass(TgdcAcctEntryRegister);
   UnregisterGdcClass(TgdcAcctBaseEntryRegister);

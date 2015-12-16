@@ -176,6 +176,9 @@ type
     // 2 -- всегда Нет
     FEnterAsTab: Integer;
 
+    //
+    FAppliedMsg: String;
+
     procedure ActivateTransaction(ATransaction: TIBTransaction);
 
     // предоставляет шанс заполнить поля бизнес-объекта на основании
@@ -460,6 +463,7 @@ end;
 procedure Tgdc_dlgG.Cancel;
 var
   I: Integer;
+  S: String;
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}
   {M}  Params, LResult: Variant;
@@ -493,12 +497,15 @@ begin
       if (ModalResult = mrCancel) and (not gdcObject.IsEmpty)
         and (FAppliedID = gdcObject.ID) then
       begin
-        MessageBox(Handle,
-          'Запись уже была сохранена в базе данных.'#13#10 +
-          'Если Вы хотите не просто отменить последние изменения,'#13#10 +
-          'но и удалить запись, то выполните команду Удалить'#13#10 +
-          'после закрытия диалогового окна редактирования.',
-          'Внимание',
+        if FAppliedMsg = '' then
+          S :=
+            'Запись уже была сохранена в базе данных.'#13#10 +
+            'Если Вы хотите не просто отменить последние изменения,'#13#10 +
+            'но и удалить запись, то выполните команду Удалить'#13#10 +
+            'после закрытия диалогового окна редактирования.'
+        else
+          S := FAppliedMsg;
+        MessageBox(Handle, PChar(S), 'Внимание',
           MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
       end;
 
@@ -556,6 +563,7 @@ begin
   begin
     IBLogin.AddEvent('Окно редактирования закрыто: Отмена',
       gdcObject.ClassName + ' ' + gdcObject.SubType,
+      gdcObject.ObjectName,
       gdcObject.ID);
   end;
 
@@ -666,6 +674,7 @@ begin
   begin
     IBLogin.AddEvent('Окно редактирования закрыто: Ок',
       gdcObject.ClassName + ' ' + gdcObject.SubType,
+      gdcObject.ObjectName,
       gdcObject.ID);
   end;
 
@@ -1361,6 +1370,7 @@ begin
   begin
     IBLogin.AddEvent('Запись открыта в окне для изменения',
       gdcObject.ClassName + ' ' + gdcObject.SubType,
+      gdcObject.ObjectName,
       gdcObject.ID);
   end;
 

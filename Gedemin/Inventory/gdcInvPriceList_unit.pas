@@ -160,6 +160,7 @@ type
 
     procedure UpdateFields(lv: TListView; const AName: String;
       R: TatRelation; AFields: TgdcInvPriceFields);
+    procedure DoneOpt; override;  
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -1363,9 +1364,12 @@ begin
   begin
     DE := gdClassList.Add('TgdcInvPriceList', FieldByName('ruid').AsString, GetParentSubType,
       TgdInvPriceDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry;
+    DE.TypeID := ID;
     DE.LoadDE(Transaction);
     gdClassList.Add('TgdcInvPriceListLine', FieldByName('ruid').AsString, GetParentSubType,
       TgdInvPriceDocumentEntry, FieldbyName('name').AsString).Assign(DE);
+
+    gdClassList.CreateFormSubTypes;  
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
@@ -1374,6 +1378,16 @@ begin
   {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
   {M}  end;
   {END MACRO}
+end;
+
+procedure TgdcInvPriceListType.DoneOpt;
+var
+  DE: TgdDocumentEntry;
+begin
+  inherited;
+  DE := gdClassList.Get(TgdInvPriceDocumentEntry, 'TgdcInvPriceList', FieldByName('ruid').AsString) as TgdDocumentEntry;
+  DE.LoadDE(Transaction);
+  gdClassList.Get(TgdInvPriceDocumentEntry, 'TgdcInvPriceListLine', FieldByName('ruid').AsString).Assign(DE);
 end;
 
 class function TgdcInvPriceListType.GetDialogFormClassName(

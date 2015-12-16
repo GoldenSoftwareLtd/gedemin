@@ -158,12 +158,6 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
   inherited alBase: TActionList
     Left = 388
     Top = 8
-    inherited actNextRecord: TAction
-      ShortCut = 16462
-    end
-    inherited actPrevRecord: TAction
-      ShortCut = 16464
-    end
     object actDetailNew: TAction
       Category = 'Detail'
       Caption = 'Новый'

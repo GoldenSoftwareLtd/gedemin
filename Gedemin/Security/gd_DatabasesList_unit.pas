@@ -73,6 +73,7 @@ type
     procedure ScanDirectory;
     function FindByName(const AName: String): Tgd_DatabaseItem;
     function FindSelected: Tgd_DatabaseItem;
+    function FindFirst(const AName: String): Tgd_DatabaseItem;
 
     function ShowViewForm(const ChangeSelected: Boolean): Boolean;
     function LoginDlg(out WithoutConnection, SingleUserMode: Boolean;
@@ -91,7 +92,8 @@ implementation
 uses
   Windows, Wcrypt2, Forms, Controls, JclFileUtils, gd_common_functions,
   Registry, gd_DatabasesListView_unit, gd_DatabasesListDlg_unit,
-  gd_security_dlgLogIn2, gd_CmdLineParams_unit, gd_GlobalParams_unit;
+  gd_security_dlgLogIn2, gd_CmdLineParams_unit, gd_GlobalParams_unit,
+  jclStrings;
 
 const
   MaxUserCount = 10;
@@ -719,6 +721,23 @@ begin
     DI.FEnteredPassword := gd_CmdLineParams.UserPassword;
     DI.DIType := ditCmdLine;
     DI.Selected := True;
+  end;
+end;
+
+function Tgd_DatabasesList.FindFirst(
+  const AName: String): Tgd_DatabaseItem;
+var
+  I: Integer;
+begin
+  Result := FindByName(AName);
+  if Result = nil then
+  begin
+    for I := 0 to Count - 1 do
+      if StrIPos(AName, (Items[I] as Tgd_DatabaseItem).Name) = 1 then
+      begin
+        Result := Items[I] as Tgd_DatabaseItem;
+        break;
+      end;
   end;
 end;
 

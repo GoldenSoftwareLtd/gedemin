@@ -1,5 +1,6 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Top = 219
+  Left = 1005
+  Top = 230
   Caption = 'Складской документ'
   ClientWidth = 535
   PixelsPerInch = 96
@@ -42,10 +43,6 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       inherited Label2: TLabel
         Top = 238
-      end
-      inherited Label3: TLabel
-        Width = 124
-        Caption = 'Наименование таблицы:'
       end
       object lblDocument: TLabel [6]
         Left = 8

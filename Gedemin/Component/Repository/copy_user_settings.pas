@@ -27,6 +27,7 @@ begin
     begin
       IBLogin.AddEvent('Скопированы настройки пользователя',
         Self.ClassName + ' ' + Self.SubType,
+        '',
         -1);
     end;
 

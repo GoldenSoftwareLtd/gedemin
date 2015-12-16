@@ -5222,7 +5222,7 @@ var
     i : Integer;
   begin
     Result := ' SELECT M.CARDKEY, M.CONTACTKEY, '#13#10 +
-      '   SUM(M.BALANCE) AS BALANCE '#13#10 +
+      '   M.BALANCE '#13#10 +
       ' FROM '#13#10 +
       '   INV_BALANCE M ';
     if HasSubSet(cst_ByGoodKey) then
@@ -5240,9 +5240,9 @@ var
     begin
       if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
       begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
         if High(DepartmentKeys) < Low(DepartmentKeys) then
         begin
+          Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
           if not HasSubSet(cst_Holding) then
             Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB and CON.contacttype = 2'
           else
@@ -5256,9 +5256,9 @@ var
       end
       else
       begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
         if High(DepartmentKeys) < Low(DepartmentKeys) then
         begin
+          Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
           if not HasSubSet(cst_Holding) then
             Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB '
           else
@@ -5331,7 +5331,6 @@ var
             Result := Result + ' AND M.CONTACTKEY = :DepartmentKey ';
       end;
 
-    Result := Result + ' GROUP BY 1, 2 ';
   end;
 
   function MakeInvMovementPart: String;

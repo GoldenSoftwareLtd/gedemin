@@ -1,10 +1,11 @@
 object DM: TDM
   OldCreateOrder = False
   OnCreate = DataModuleCreate
-  Left = 273
-  Top = 223
-  Height = 563
-  Width = 1088
+  OnDestroy = DataModuleDestroy
+  Left = 285
+  Top = 161
+  Height = 479
+  Width = 741
   object IBDB: TIBDatabase
     Params.Strings = (
       'user_name=SYSDBA'
@@ -36,12 +37,23 @@ object DM: TDM
   object q: TIBSQL
     Database = IBDB
     Transaction = IBTr
-    Left = 150
-    Top = 40
+    Left = 110
+    Top = 140
   end
   object DSrc: TDataSource
     DataSet = IBDS
-    Left = 190
+    Left = 150
     Top = 40
+  end
+  object IBQ: TIBQuery
+    Database = IBDB
+    Transaction = IBTr
+    Left = 110
+    Top = 90
+  end
+  object DS: TDataSource
+    DataSet = IBQ
+    Left = 150
+    Top = 90
   end
 end

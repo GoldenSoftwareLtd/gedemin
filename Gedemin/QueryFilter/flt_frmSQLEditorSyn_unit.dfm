@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 452
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsQuery
+      ActivePage = tsClasses
       Align = alClient
       TabHeight = 23
       TabOrder = 0

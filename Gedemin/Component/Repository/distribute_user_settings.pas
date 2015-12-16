@@ -54,6 +54,7 @@ begin
   begin
     IBLogin.AddEvent('Распространены настройки формы',
       Self.ClassName + ' ' + Self.SubType,
+      '',
       -1);
   end;
 end;

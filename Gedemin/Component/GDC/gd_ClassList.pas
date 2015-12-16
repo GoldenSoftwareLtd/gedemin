@@ -368,7 +368,6 @@ type
     FBranchKey: Integer;
     FEditionDate: TDateTime;
     FInvalid: Boolean;
-    FNewOptions: Boolean;
 
     function GetDistinctRelation: String; override;
     procedure SetHeaderRelKey(const Value: Integer);
@@ -386,7 +385,7 @@ type
       const APart: TgdcDocumentClassPart): TgdDocumentEntry;
     procedure ParseOptions; virtual;
     procedure ConvertOptions; virtual;
-    procedure LoadDE(q, qOpt: TIBSQL); overload; virtual;
+    procedure LoadDE(q, qOpt: TIBSQL; const AnAllowParseOptions: Boolean = False); overload; virtual;
     procedure LoadDE(Tr: TIBTransaction); overload; virtual;
 
     property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
@@ -404,7 +403,6 @@ type
     property BranchKey: Integer read FBranchKey write FBranchKey;
     property EditionDate: TDateTime read FEditionDate write FEditionDate;
     property Invalid: Boolean read FInvalid write SetInvalid;
-    property NewOptions: Boolean read FNewOptions write FNewOptions;
   end;
 
   TgdInvDocumentEntryFlag = (
@@ -533,6 +531,7 @@ type
     FFindByRelationCache: TStringList;
     FFindDocByRUIDHdrCache, FFindDocByRUIDLineCache: TStringList;
     FFindDocByIDHdrCache, FFindDocByIDLineCache: TgdKeyObjectAssoc;
+    FOldOptions: Boolean;
 
     function _Find(const AClassName: AnsiString; const ASubType: TgdcSubType;
       out Index: Integer): Boolean;
@@ -602,8 +601,10 @@ type
     function LoadRelation(Prnt: TgdClassEntry; R: TatRelation; ACEAttrUserDefined,
       ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree: TgdClassEntry): TgdClassEntry; overload;
     function LoadRelation(const ARelationName: String): TgdClassEntry; overload;
+    procedure CreateFormSubTypes;
 
     property Count: Integer read FCount;
+    property OldOptions: Boolean read FOldOptions write FOldOptions;
   end;
 
 var
@@ -2048,12 +2049,12 @@ begin
       else
         ParentST := '';
 
-      CN := 'Tgdc_dlgUserComplexDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, Captn);
-      CN := 'Tgdc_dlgUserSimpleDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, Captn);
-    end
-    else
+      if (ACE as TgdDocumentEntry).LineRelKey > 0 then
+        CN := 'Tgdc_dlgUserComplexDocument'
+      else
+        CN := 'Tgdc_dlgUserSimpleDocument';
+      Add(CN, ACE.SubType, ParentST, TgdFormEntry, Captn);
+    end else
     begin
       CN := TgdBaseEntry(ACE).gdcClass.GetDialogFormClassName(ACE.SubType);
       if (CN > '') and (CN <> TgdcBase.GetDialogFormClassName(ACE.SubType)) then
@@ -2076,12 +2077,12 @@ begin
       else
         ParentST := '';
 
-      CN := 'Tgdc_frmUserSimpleDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, Captn);
-      CN := 'Tgdc_frmUserComplexDocument';
-      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, Captn);
-    end
-    else
+      if (ACE as TgdDocumentEntry).LineRelKey > 0 then
+        CN := 'Tgdc_frmUserComplexDocument'
+      else
+        CN := 'Tgdc_frmUserSimpleDocument';
+      Add(CN, ACE.SubType, ParentST, TgdFormEntry, Captn);
+    end else
     begin
       CN := TgdBaseEntry(ACE).gdcClass.GetViewFormClassName(ACE.SubType);
       if CN > '' then
@@ -2107,7 +2108,7 @@ procedure TgdClassList.LoadUserDefinedClasses;
   begin
     Result := _Create(Prnt, ADocClass, Prnt.TheClass,
       q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
-    TgdDocumentEntry(Result).LoadDE(q, qOpt);
+    TgdDocumentEntry(Result).LoadDE(q, qOpt, True);
     PrevRB := q.FieldByName('rb').AsInteger;
     q.Next;
     while (not q.EOF) and (q.FieldByName('lb').AsInteger < PrevRB) do
@@ -2281,7 +2282,7 @@ begin
         if DE = nil then
           LoadDocument(TgdDocumentEntry, Get(TgdDocumentEntry, 'TgdcDocument'), q, qOpt)
         else begin
-          DE.LoadDE(q, qOpt);
+          DE.LoadDE(q, qOpt, True);
           DELn := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpLine);
           if DELn <> nil then
             DELn.Assign(DE);
@@ -2375,7 +2376,7 @@ begin
 
   LoadNewForm;
 
-  Get(TgdBaseEntry, 'TgdcBase', '').Traverse(_CreateFormSubTypes, nil, nil, False, False);
+  CreateFormSubTypes;
 end;
 
 function TgdClassList.LoadRelation(Prnt: TgdClassEntry; R: TatRelation; ACEAttrUserDefined,
@@ -2783,6 +2784,11 @@ begin
   _Scan2(FFindDocByIDLineCache);
 end;
 
+procedure TgdClassList.CreateFormSubTypes;
+begin
+  Get(TgdBaseEntry, 'TgdcBase', '').Traverse(_CreateFormSubTypes, nil, nil, False, False);
+end;
+
 { TgdDocumentEntry }
 
 procedure TgdDocumentEntry.Assign(CE: TgdClassEntry);
@@ -2801,7 +2807,6 @@ begin
   BranchKey := TgdDocumentEntry(CE).BranchKey;
   FEditionDate := TgdDocumentEntry(CE).FEditionDate;
   FInvalid := TgdDocumentEntry(CE).Invalid;
-  FNewOptions := TgdDocumentEntry(CE).NewOptions;
 end;
 
 procedure TgdDocumentEntry.ConvertOptions;
@@ -2834,7 +2839,7 @@ begin
     Result := LineRelName;
 end;
 
-procedure TgdDocumentEntry.LoadDE(q, qOpt: TIBSQL);
+procedure TgdDocumentEntry.LoadDE(q, qOpt: TIBSQL; const AnAllowParseOptions: Boolean = False);
 begin
   FTypeID := q.FieldByName('id').AsInteger;
   FIsCommon := q.FieldByName('iscommon').AsInteger > 0;
@@ -2850,24 +2855,21 @@ begin
   FEditionDate := q.FieldByName('editiondate').AsDateTime;
   if qOpt.EOF or (qOpt.FieldbyName('dtkey').AsInteger <> q.FieldByName('id').AsInteger) then
   begin
-    if not q.FieldByName('options').IsNull then
+    if ((Parent is TgdInvDocumentEntry) or (Parent is TgdInvPriceDocumentEntry))
+      and (Parent.SubType = '') and (SubType > '')
+      and AnAllowParseOptions then
     begin
       FOptions := q.FieldByName('options').AsString;
       ParseOptions;
 
       if gd_CmdLineParams.ConvertDocOptions then
-      begin
-        ConvertOptions;
-        FNewOptions := True;
-      end else
-        FNewOptions := False;
+        ConvertOptions
+      else
+        gdClassList.OldOptions := True;
     end;
   end else
-  begin
     LoadDEOption(qOpt);
-    FNewOptions := True;
-  end;
-  FInvalid := False;  
+  FInvalid := False;
 end;
 
 function TgdDocumentEntry.GetHeaderRelName: String;
@@ -2898,6 +2900,7 @@ var
   TempTr: TIBTransaction;
 begin
   Assert(gdcBaseManager <> nil);
+  Assert(FTypeID > 0);
 
   q := TIBSQL.Create(nil);
   qOpt := TIBSQL.Create(nil);

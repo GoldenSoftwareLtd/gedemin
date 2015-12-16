@@ -1,6 +1,6 @@
 inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
-  Left = 692
-  Top = 298
+  Left = 700
+  Top = 306
   Caption = 'Документ'
   ClientHeight = 423
   ClientWidth = 532
@@ -84,9 +84,9 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object Label3: TLabel
         Left = 8
         Top = 123
-        Width = 122
+        Width = 124
         Height = 13
-        Caption = 'Наименование на англ.:'
+        Caption = 'Наименование таблицы:'
         FocusControl = edEnglishName
         WordWrap = True
       end
@@ -170,6 +170,13 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         ListTable = 'AT_RELATIONS'
         ListField = 'LNAME'
         KeyField = 'ID'
+        Condition = 
+          '(AT_RELATIONS.id IN (SELECT d.relationkey FROM at_relation_field' +
+          's d WHERE d.fieldname = '#39'DOCUMENTKEY'#39')) AND (AT_RELATIONS.id NOT' +
+          ' IN (SELECT d.relationkey FROM at_relation_fields d WHERE d.fiel' +
+          'dname = '#39'MASTERKEY'#39')) AND (AT_RELATIONS.relationname NOT IN ('#39'IN' +
+          'V_CARD'#39', '#39'INV_MOVEMENT'#39', '#39'AC_RECORD'#39', '#39'AC_ENTRY'#39')) AND (AT_RELAT' +
+          'IONS.relationname NOT LIKE '#39'%LINE'#39')'
         gdClassName = 'TgdcDocumentTable'
         OnCreateNewObject = iblcHeaderTableCreateNewObject
         Color = clBtnFace
@@ -194,6 +201,10 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         ListTable = 'AT_RELATIONS'
         ListField = 'LNAME'
         KeyField = 'ID'
+        Condition = 
+          'AT_RELATIONS.id IN (SELECT d.relationkey FROM at_relation_fields' +
+          ' d WHERE d.fieldname = '#39'DOCUMENTKEY'#39') AND AT_RELATIONS.relationn' +
+          'ame LIKE '#39'%LINE'#39
         gdClassName = 'TgdcDocumentLineTable'
         OnCreateNewObject = iblcLineTableCreateNewObject
         Color = clBtnFace
@@ -286,6 +297,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         Top = 30
         Width = 352
         Height = 21
+        TabStop = False
         ParentColor = True
         ReadOnly = True
         TabOrder = 1
@@ -532,8 +544,8 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
     end
   end
   inherited dsgdcBase: TDataSource
-    Left = 536
-    Top = 176
+    Left = 386
+    Top = 296
   end
   inherited pm_dlgG: TPopupMenu
     Left = 16

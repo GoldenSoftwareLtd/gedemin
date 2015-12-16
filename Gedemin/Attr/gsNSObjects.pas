@@ -223,7 +223,7 @@ begin
 
   SessionID := FNSObjects.GetNextSessionID;
   AnObject.GetDependencies(FNSObjects.Transaction, SessionID, False,
-    '"GD_DOCUMENT"."TRANSACTIONKEY";"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;');
+    '"GD_DOCUMENT"."TRANSACTIONKEY";"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY');
 
   qLink := TIBSQL.Create(nil);
   try

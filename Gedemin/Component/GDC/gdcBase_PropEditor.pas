@@ -17,6 +17,8 @@ type
 
   TgdcClassNameProperty = class(TPropertyEditor)
   private
+    FProc: TGetStrProc;
+
     function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
 
@@ -25,7 +27,6 @@ type
     procedure GetValues(Proc: TGetStrProc); override;
     function GetValue: String; override;
     procedure SetValue(const Value: String); override;
-
   end;
 
 
@@ -118,15 +119,16 @@ end;
 function TgdcClassNameProperty.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
-  if (ACE <> nil) then
-    TGetStrProc(AData1^)(ACE.TheClass.ClassName);
+  if (ACE <> nil) and (ACE.TheClass <> nil) then
+    FProc(ACE.TheClass.ClassName);
 
   Result := True;
 end;
 
 procedure TgdcClassNameProperty.GetValues(Proc: TGetStrProc);
 begin
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, @Proc, nil);
+  FProc := Proc;
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
 end;
 
 procedure TgdcClassNameProperty.SetValue(const Value: String);

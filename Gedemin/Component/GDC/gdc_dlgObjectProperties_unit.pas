@@ -283,6 +283,7 @@ var
   OldCursor: TCursor;
   SS: TStringStream;
   W: TyamlWriter;
+  Cnt: Integer;
 begin
   SyncCombo;
 
@@ -332,7 +333,8 @@ begin
     begin
       if not ibtrCommon.InTransaction then
         ibtrCommon.StartTransaction;
-      gdcObject.GetDependencies(ibtrCommon, 1976, True);
+      Cnt := 0;
+      gdcObject.GetDependencies(ibtrCommon, 1976, Cnt, True);
       ibdsDependencies.Close;
       ibdsDependencies.Open;
     end;

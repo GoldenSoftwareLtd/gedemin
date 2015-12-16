@@ -333,7 +333,6 @@ var
   TempS: String;
   Flag, MustFreeObj: Boolean;
   Flds: TSortedFields;
-  DE: TgdDocumentEntry;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(atDatabase <> nil);
@@ -392,8 +391,7 @@ begin
 
       if (F.Origin = '"GD_DOCUMENTTYPE"."OPTIONS"') and (AgdcObject is TgdcDocumentType) then
       begin
-        DE := gdClassList.FindDocByTypeID(AgdcObject.ID, dcpHeader);
-        if (DE <> nil) and DE.NewOptions then
+        if not gdClassList.OldOptions then
           continue;
       end;
 

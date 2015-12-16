@@ -1591,7 +1591,7 @@ begin
   begin
     Result := StringReplace(Result,
       'gd_contact z',
-      'gd_contact clb JOIN gd_contact z ON z.lb >= clb.lb  AND  z.rb <= clb.rb ',
+      'gd_contact clb JOIN gd_contact z ON z.lb >= clb.lb AND z.rb <= clb.rb ',
       [rfIgnoreCase]);
     if HasSubSet(cst_Holding) then
       Result := Result + ' JOIN gd_holding h ON clb.id = h.companykey ';

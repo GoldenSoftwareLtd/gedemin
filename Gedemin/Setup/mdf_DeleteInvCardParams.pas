@@ -1917,6 +1917,7 @@ begin
       q.ParamCheck := False;
       q.Transaction := Tr;
 
+      {
       if RelationExist2('GD_OBJECT_DEPENDENCIES', Tr) then
       begin
         q.SQL.Text := 'DROP TABLE GD_OBJECT_DEPENDENCIES';
@@ -1948,6 +1949,7 @@ begin
 
       q.SQL.Text := 'GRANT ALL ON gd_object_dependencies TO administrator';
       q.ExecQuery;
+      }
 
       q.Close;
       q.SQL.Text :=

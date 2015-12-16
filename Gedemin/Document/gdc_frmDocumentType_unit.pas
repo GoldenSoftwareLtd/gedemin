@@ -234,8 +234,7 @@ end;
 
 procedure Tgdc_frmDocumentType.actCommitOptionUpdate(Sender: TObject);
 begin
-  actCommitOption.Enabled := ibTr.InTransaction
-    and (not gdcInvDocumentTypeOptions.IsEmpty);
+  actCommitOption.Enabled := ibTr.InTransaction;
 end;
 
 procedure Tgdc_frmDocumentType.actCommitOptionExecute(Sender: TObject);

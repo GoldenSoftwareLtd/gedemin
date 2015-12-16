@@ -168,6 +168,9 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
+
+    procedure LoadSettings; override;
+    procedure SaveSettings; override;
   end;
 
 var
@@ -178,7 +181,7 @@ implementation
 {$R *.DFM}
 
 uses
-  FileCtrl, gd_GlobalParams_unit, gd_ExternalEditor, jclStrings,
+  FileCtrl, gd_GlobalParams_unit, gd_ExternalEditor, jclStrings, Storages,
   gdcNamespaceLoader;
 
 procedure Tat_frmSyncNamespace.actChooseDirExecute(Sender: TObject);
@@ -588,6 +591,22 @@ procedure Tat_frmSyncNamespace.actShowChangedUpdate(Sender: TObject);
 begin
   actShowChanged.Enabled := (not FNSC.DataSet.IsEmpty)
     and (not FNSC.DataSet.FieldByName('namespacekey').IsNull);
+end;
+
+procedure Tat_frmSyncNamespace.LoadSettings;
+begin
+  inherited;
+
+  if Assigned(UserStorage) then
+    UserStorage.LoadComponent(gr, gr.LoadFromStream);
+end;
+
+procedure Tat_frmSyncNamespace.SaveSettings;
+begin
+  if Assigned(UserStorage) and (gr.SettingsModified or (cfsDistributeSettings in CreateableFormState)) then
+    UserStorage.SaveComponent(gr, gr.SaveToStream);
+
+  inherited;
 end;
 
 initialization

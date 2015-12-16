@@ -385,24 +385,27 @@ begin
   Assert(gdcBaseManager <> nil);
   Assert(IBLogin <> nil);
 
-  q := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-  try
-    Tr.DefaultDatabase := gdcBaseManager.Database;
-    Tr.StartTransaction;
-    q.Transaction := Tr;
-    q.SQL.Text :=
-      'INSERT INTO gd_autotask_log (autotaskkey, eventtext, creationdate, creatorkey) ' +
-      'VALUES (:atk, :etext, :cd, :ck)';
-    q.ParamByName('atk').AsInteger := ID;
-    q.ParamByName('etext').AsString := AMsg;
-    q.ParamByName('cd').AsDateTime := Now;
-    q.ParamByName('ck').AsInteger := IBLogin.ContactKey;
-    q.ExecQuery;
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
+  if ID > 0 then
+  begin
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    try
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      Tr.StartTransaction;
+      q.Transaction := Tr;
+      q.SQL.Text :=
+        'INSERT INTO gd_autotask_log (autotaskkey, eventtext, creationdate, creatorkey) ' +
+        'VALUES (:atk, :etext, :cd, :ck)';
+      q.ParamByName('atk').AsInteger := ID;
+      q.ParamByName('etext').AsString := AMsg;
+      q.ParamByName('cd').AsDateTime := Now;
+      q.ParamByName('ck').AsInteger := IBLogin.ContactKey;
+      q.ExecQuery;
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
+    end;
   end;
 end;
 
@@ -596,6 +599,8 @@ begin
 
         if (FTaskList = nil) or (FTaskList.Count = 0) then
         begin
+          if Application.MainForm <> nil then
+            PostMessage(Application.MainForm.Handle, WM_GD_RUNONLOGINMACROS, 0, 0);
           SendNotification('Нет автозадач для выполнения.', True);
           SetTimeOut(INFINITE);
         end else
@@ -609,6 +614,13 @@ begin
       if FForbid.Value = 0 then
       begin
         FindAndExecuteTask;
+
+        if (FTaskList <> nil) and (FTaskList.Count > 0)
+          and (not (FTaskList[0] as TgdAutoTask).AtStartup) then
+        begin
+          if Application.MainForm <> nil then
+            PostMessage(Application.MainForm.Handle, WM_GD_RUNONLOGINMACROS, 0, 0);
+        end;
 
         if (FTaskList = nil) or (FTaskList.Count = 0) then
         begin

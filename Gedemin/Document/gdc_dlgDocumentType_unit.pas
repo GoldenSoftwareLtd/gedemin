@@ -75,7 +75,6 @@ type
       ANewObject: TgdcBase);
     procedure iblcLineTableCreateNewObject(Sender: TObject;
       ANewObject: TgdcBase);
-    procedure actOkUpdate(Sender: TObject);
     procedure edEnglishNameExit(Sender: TObject);
     procedure actWizardHeaderExecute(Sender: TObject);
     procedure actDeleteHeaderFunctionExecute(Sender: TObject);
@@ -162,7 +161,7 @@ begin
         'В наименовании на английском должны быть только латинские символы');
     end;
 
-    if (gdcObject.FieldByName('id').AsInteger >= cstUserIDStart) and gdcObject.FieldByName('headerrelkey').IsNull then
+    if (gdcObject.ID >= cstUserIDStart) and gdcObject.FieldByName('headerrelkey').IsNull then
     begin
       gdcObject.FieldByName('headerrelkey').FocusControl;
       Result := False;
@@ -229,24 +228,22 @@ end;
 procedure Tgdc_dlgDocumentType.iblcHeaderTableCreateNewObject(
   Sender: TObject; ANewObject: TgdcBase);
 begin
-  aNewObject.FieldByName('relationname').AsString := edEnglishName.Text;
+  if atDatabase.Relations.ByRelationName(edEnglishName.Text) = nil then
+    aNewObject.FieldByName('relationname').AsString := edEnglishName.Text;
   aNewObject.FieldByName('lname').AsString := edDocumentName.Text;
   aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
 end;
 
 procedure Tgdc_dlgDocumentType.iblcLineTableCreateNewObject(
   Sender: TObject; ANewObject: TgdcBase);
+var
+  S: String;
 begin
-  aNewObject.FieldByName('relationname').AsString := edEnglishName.Text + 'LINE';
+  S := edEnglishName.Text + 'LINE';
+  if atDatabase.Relations.ByRelationName(S) = nil then
+    aNewObject.FieldByName('relationname').AsString := S;
   aNewObject.FieldByName('lname').AsString := edDocumentName.Text + '(позиция)';
   aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
-end;
-
-procedure Tgdc_dlgDocumentType.actOkUpdate(Sender: TObject);
-begin
-  inherited;
-  iblcHeaderTable.Enabled := (edEnglishName.Text > '') and (edEnglishName.Enabled);
-  iblcLineTable.Enabled := iblcHeaderTable.Enabled and (iblcHeaderTable.CurrentKey > '');
 end;
 
 procedure Tgdc_dlgDocumentType.edEnglishNameExit(Sender: TObject);
@@ -271,11 +268,12 @@ begin
   then
     edEnglishName.Text := UserPrefix + edEnglishName.Text;
 
-  if (gdcObject.State = dsInsert)
-    and (not AnsiSameText(edEnglishName.Text, iblcHeaderTable.Text)) then
+  if (iblcHeaderTable.CurrentKeyInt > 0) and
+      ((atDatabase.Relations.ByRelationName(edEnglishName.Text) = nil)
+      or (atDatabase.Relations.ByRelationName(edEnglishName.Text).ID <> iblcHeaderTable.CurrentKeyInt)) then
   begin
-    iblcHeaderTable.CurrentKeyInt := 0;
-    iblcLineTable.CurrentKeyInt := 0;
+    iblcHeaderTable.CurrentKeyInt := -1;
+    iblcLineTable.CurrentKeyInt := -1;
   end;
 end;
 
@@ -300,6 +298,8 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  List: TStringList;
+  ibsql: TIBSQL;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDOCUMENTTYPE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -320,12 +320,44 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   ActivateTransaction(gdcObject.Transaction);
 
   gdcFunctionHeader.Transaction := gdcObject.Transaction;
   gdcFunctionLine.Transaction := gdcObject.Transaction;
+
+  List := TStringList.Create;
+  ibsql := TIBSQL.Create(nil);
+  try
+    List.Sorted := True;
+    List.Duplicates := dupIgnore;
+
+    List.Add('"NUMBER"');
+    List.Add('"DAY"-"NUMBER"');
+    List.Add('"DAY"."MONTH"-"NUMBER"');
+
+    ibsql.Transaction := gdcObject.ReadTransaction;
+
+    ibsql.SQL.Text := 'SELECT DISTINCT mask FROM gd_lastnumber';
+    ibsql.ExecQuery;
+
+    while not ibsql.EOF do
+    begin
+      if ibsql.FieldByName('mask').AsString > '' then
+        List.Add(ibsql.FieldByName('mask').AsString);
+
+      ibsql.Next;
+    end;
+
+    dbcMask.Items.Assign(List);
+  finally
+    List.Free;
+    ibsql.Free;
+  end;
+
+  edEnglishName.MaxLength := 14;
   
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGDOCUMENTTYPE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
@@ -338,7 +370,6 @@ end;
 procedure Tgdc_dlgDocumentType.actWizardHeaderExecute(Sender: TObject);
 var
   F: TdlgFunctionWisard;
-  D: TDataSet;
   Str, PStr: TStream;
   Params: TgsParamList;
   FunctionCreater: TNewDocumentTransactioCreater;
@@ -367,116 +398,115 @@ begin
     DocumentPart := dcpLine;
   end;
 
+  Str := nil;
   F := TdlgFunctionWisard.Create(Application);
   try
-    D := dsgdcBase.DataSet;
-    if D <> nil then
+    DS := gdcFunction.State;
+
+    if not (DS in [dsEdit, dsInsert]) then
     begin
-      DS := gdcFunction.State;
-      if not (gdcFunction.State in [dsEdit, dsInsert]) then
+      if gdcObject.FieldByName(FunctionKeyField).IsNull then
       begin
-        if D.FieldByName(FunctionKeyField).AsInteger = 0 then
-        begin
-          gdcFunction.Insert;
-          gdcFunction.FieldByName(fnModuleCode).AsInteger := OBJ_APPLICATION;
-          gdcFunction.FieldByName(fnModule).AsString := scrEntryModuleName;
-          gdcFunction.FieldByName(fnName).AsString := Format('AutoEntryScript%d_%d_%s',
-            [gdcFunction.FieldByName(fnId).AsInteger, IbLogin.DBID,
-            FunctionNameSufix]);
-          gdcFunction.FieldByName(fnLANGUAGE).AsString := DefaultLanguage;
-        end else
-          gdcFunction.Edit;
-      end;
+        gdcFunction.Insert;
+        gdcFunction.FieldByName(fnModuleCode).AsInteger := OBJ_APPLICATION;
+        gdcFunction.FieldByName(fnModule).AsString := scrEntryModuleName;
+        gdcFunction.FieldByName(fnName).AsString := Format('AutoEntryScript%d_%d_%s',
+          [gdcFunction.ID, IbLogin.DBID, FunctionNameSufix]);
+        gdcFunction.FieldByName(fnLANGUAGE).AsString := DefaultLanguage;
+      end else
+        gdcFunction.Edit;
+    end;
 
-      Str := D.CreateBlobStream(D.FieldByName(FunctionTemplateField), bmRead);
-      ParentFunctionName := '';
-      
-      if gdcObject.FieldByName(FunctionTemplateField).IsNull then
+    Str := gdcObject.CreateBlobStream(gdcObject.FieldByName(FunctionTemplateField), bmRead);
+    ParentFunctionName := '';
+
+    if gdcObject.FieldByName(FunctionTemplateField).IsNull then
+    begin
+      DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
+      while (DE <> nil) and (ParentFunctionName = '') do
       begin
-        DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
-        while (DE <> nil) and (ParentFunctionName = '') do
-        begin
-          ibsql := TIBSQL.Create(nil);
-          try
-            ibsql.Transaction := gdcObject.ReadTransaction;
-              ibsql.SQL.Text :=
-                'SELECT '#13#10 +
-                '  d.' + FunctionTemplateField + ',' + #13#10 +
-                '  f.Name '#13#10 +
-                'FROM gd_documenttype d '#13#10 +
-                'LEFT JOIN gd_function f '#13#10 +
-                '  ON d.' + FunctionKeyField + ' = f.id '#13#10 +
-                'WHERE '#13#10 +
-                '  d.id = :id '#13#10 +
-                '  AND d.documenttype = ''D'' '#13#10 +
-                '  AND d.' + FunctionTemplateField + ' IS NOT NULL';
-            ibsql.ParamByName('id').AsInteger := DE.TypeID;
-            ibsql.ExecQuery;
-            if (not ibsql.Eof) and (not ibsql.FieldByName(FunctionTemplateField).IsNull) then
-            begin
-              Str := TStringStream.Create(ibsql.FieldByName(FunctionTemplateField).AsString);
-              ParentFunctionName := ibsql.FieldByName(fnName).AsString
-            end;
-          finally
-            ibsql.Free;
-          end;
-
-          if DE = DE.GetRootSubType then
-            break;
-
-          DE := TgdDocumentEntry(DE.Parent);
-        end;
-      end;
-
-      try
-        FunctionCreater := TNewDocumentTransactioCreater.Create;
+        ibsql := TIBSQL.Create(nil);
         try
-          FunctionCreater.FunctionRUID := RUIDToStr(gdcFunction.GetRUID);
-          FunctionCreater.Stream := Str;
-          FunctionCreater.FunctionName := gdcFunction.FieldByName(fnName).AsString;
-          FunctionCreater.ParentFunctionName := ParentFunctionName;
-          FunctionCreater.DocumentTypeRUID := gdcBaseManager.GetRUIDStringById(D.FieldByName(fnId).AsInteger);
-          FunctionCreater.DocumentPart := DocumentPart;
-          F.CreateNewFunction(FunctionCreater);
+          ibsql.Transaction := gdcObject.ReadTransaction;
+            ibsql.SQL.Text :=
+              'SELECT '#13#10 +
+              '  d.' + FunctionTemplateField + ',' + #13#10 +
+              '  f.Name '#13#10 +
+              'FROM gd_documenttype d '#13#10 +
+              'LEFT JOIN gd_function f '#13#10 +
+              '  ON d.' + FunctionKeyField + ' = f.id '#13#10 +
+              'WHERE '#13#10 +
+              '  d.id = :id '#13#10 +
+              '  AND d.documenttype = ''D'' '#13#10 +
+              '  AND d.' + FunctionTemplateField + ' IS NOT NULL';
+          ibsql.ParamByName('id').AsInteger := DE.TypeID;
+          ibsql.ExecQuery;
+          if (not ibsql.Eof) and (not ibsql.FieldByName(FunctionTemplateField).IsNull) then
+          begin
+            Str.Free;
+            Str := TStringStream.Create(ibsql.FieldByName(FunctionTemplateField).AsString);
+            ParentFunctionName := ibsql.FieldByName(fnName).AsString;
+            break;
+          end;
         finally
-          FunctionCreater.Free;
+          ibsql.Free;
         end;
 
-        FScriptChanged := F.ShowModal = mrOk;
-        if FScriptChanged then
-        begin
-          Str := D.CreateBlobStream(D.FieldByName(FunctionTemplateField), bmReadWrite);
-          Str.size := 0;
-          Str.Position := 0;
-          F.SaveToStream(Str);
-          gdcFunction.FieldByName(fnScript).AsString := F.Script;
-          gdcFunction.FieldByName(fnName).AsString := F.MainFunctionName;
-          Params := TgsParamList.Create;
-          try
-            Params.Assign(F.Params);
-            PStr := gdcFunction.CreateBlobStream(gdcFunction.FieldByName(fnEnteredParams), DB.bmWrite);
-            try
-              Pstr.Size := 0;
-              PStr.Position := 0;
-              Params.SaveToStream(PStr);
-            finally
-              PStr.Free;
-            end;
-          finally
-            Params.Free;
-          end;
-          D.FieldByName(functionkeyfield).AsInteger :=
-            gdcFunction.FieldByName(fnid).AsInteger;
-        end else
-        begin
-          if not (DS in [dsEdit, dsInsert]) then
-            gdcFunction.Cancel;
-        end;
-      finally
-        Str.Free;
+        if DE = DE.GetRootSubType then
+          break;
+
+        DE := TgdDocumentEntry(DE.Parent);
       end;
     end;
+
+    FunctionCreater := TNewDocumentTransactioCreater.Create;
+    try
+      FunctionCreater.FunctionRUID := RUIDToStr(gdcFunction.GetRUID);
+      FunctionCreater.Stream := Str;
+      FunctionCreater.FunctionName := gdcFunction.FieldByName(fnName).AsString;
+      FunctionCreater.ParentFunctionName := ParentFunctionName;
+      FunctionCreater.DocumentTypeRUID := gdcBaseManager.GetRUIDStringById(gdcObject.ID);
+      FunctionCreater.DocumentPart := DocumentPart;
+      F.CreateNewFunction(FunctionCreater);
+    finally
+      FunctionCreater.Free;
+    end;
+
+    FScriptChanged := F.ShowModal = mrOk;
+
+    if FScriptChanged then
+    begin
+      Str.Free;
+      Str := gdcObject.CreateBlobStream(gdcObject.FieldByName(FunctionTemplateField), DB.bmReadWrite);
+      Str.Size := 0;
+      Str.Position := 0;
+      F.SaveToStream(Str);
+      gdcFunction.FieldByName(fnScript).AsString := F.Script;
+      gdcFunction.FieldByName(fnName).AsString := F.MainFunctionName;
+      Params := TgsParamList.Create;
+      try
+        Params.Assign(F.Params);
+        PStr := gdcFunction.CreateBlobStream(gdcFunction.FieldByName(fnEnteredParams), DB.bmWrite);
+        try
+          PStr.Size := 0;
+          PStr.Position := 0;
+          Params.SaveToStream(PStr);
+        finally
+          PStr.Free;
+        end;
+      finally
+        Params.Free;
+      end;
+
+      gdcObject.FieldByName(functionkeyfield).AsInteger :=
+        gdcFunction.FieldByName(fnid).AsInteger;
+    end else
+    begin
+      if not (DS in [dsEdit, dsInsert]) then
+        gdcFunction.Cancel;
+    end;
   finally
+    Str.Free;
     F.Free;
   end;
 end;
@@ -534,19 +564,16 @@ begin
     if MessageDlg('Вы действительно хотите удалить функцию?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
     begin
       Id := gdcObject.FieldByName('headerfunctionkey').AsInteger;
-      if Id > 0 then
-      begin
-        gdcBaseManager.ExecSingleQuery('UPDATE gd_documenttype SET headerfunctionkey = NULL WHERE id = ' +
-          gdcObject.FieldByName(fnID).AsString,  gdcObject.Transaction );
-
-        if gdcFunctionHeader.Active then
-          gdcFunctionHeader.Close;
-        gdcFunctionHeader.Id := Id;
-        gdcFunctionHeader.Open;
-        try
+      gdcBaseManager.ExecSingleQuery('UPDATE gd_documenttype SET headerfunctionkey = NULL WHERE id = :id',
+        gdcObject.ID, gdcObject.Transaction);
+      if gdcFunctionHeader.Active then
+        gdcFunctionHeader.Close;
+      gdcFunctionHeader.Id := Id;
+      gdcFunctionHeader.Open;
+      try
+        if not gdcFunctionHeader.EOF then
           gdcFunctionHeader.Delete;
-        except
-        end;
+      except
       end;
       gdcObject.FieldByName('headerfunctionkey').Clear;
       gdcObject.FieldByName('headerfunctiontemplate').Clear;
@@ -564,19 +591,16 @@ begin
     if MessageDlg('Вы действительно хотите удалить функцию?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
     begin
       Id := gdcObject.FieldByName('linefunctionkey').AsInteger;
-      if Id > 0 then
-      begin
-        gdcBaseManager.ExecSingleQuery('UPDATE gd_documenttype SET linefunctionkey = NULL WHERE id = ' +
-          gdcObject.FieldByName(fnID).AsString,  gdcObject.Transaction );
-
-        if gdcFunctionLine.Active then
-          gdcFunctionLine.Close;
-        gdcFunctionLine.Id := Id;
-        gdcFunctionLine.Open;
-        try
+      gdcBaseManager.ExecSingleQuery('UPDATE gd_documenttype SET linefunctionkey = NULL WHERE id = :id',
+        gdcObject.ID, gdcObject.Transaction);
+      if gdcFunctionLine.Active then
+        gdcFunctionLine.Close;
+      gdcFunctionLine.Id := Id;
+      gdcFunctionLine.Open;
+      try
+        if not gdcFunctionLine.EOF then
           gdcFunctionLine.Delete;
-        except
-        end;
+      except
       end;
       gdcObject.FieldByName('linefunctionkey').Clear;
       gdcObject.FieldByName('linefunctiontemplate').Clear;
@@ -609,9 +633,8 @@ procedure Tgdc_dlgDocumentType.SetupRecord;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
 var
-  List: TStringList;
-  ibsql: TIBSQL;
-  DE: TgdDocumentEntry;
+  DE, DEParent: TgdDocumentEntry;
+  R: OleVariant;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDOCUMENTTYPE', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -634,87 +657,45 @@ begin
   {END MACRO}
 
   inherited;
-  ActivateTransaction(gdcObject.Transaction);
 
-  edEnglishName.Text := '';
-  edEnglishName.MaxLength := 14;
-  edParentName.Text := '';
+  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
+  DEParent := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
 
-  List := TStringList.Create;
-  ibsql := TIBSQL.Create(nil);
-  try
-    List.Sorted := True;
-    List.Duplicates := dupIgnore;
+  if (DE <> nil) and (DEParent <> nil) and (DE.Parent <> DEParent) then
+    raise Exception.Create('Internal consistency check');
 
-    List.Add('"NUMBER"');
-    List.Add('"DAY"-"NUMBER"');
-    List.Add('"DAY"."MONTH"-"NUMBER"');
-
-    ibsql.Transaction := gdcObject.ReadTransaction;
-
-    ibsql.SQL.Text := 'SELECT DISTINCT mask FROM gd_lastnumber';
-    ibsql.ExecQuery;
-
-    while not ibsql.EOF do
-    begin
-      if ibsql.FieldByName('mask').AsString > '' then
-        List.Add(ibsql.FieldByName('mask').AsString);
-
-      ibsql.Next;
-    end;
-    ibsql.Close;
-
-    dbcMask.Items.Assign(List);
-  finally
-    List.Free;
-    ibsql.Free;
-  end;
-
-  dbcMaskChange(dbcMask);
-
-  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
   if DE <> nil then
-  begin
-    edParentName.Text := DE.Caption;
-    if gdcObject.State = dsInsert then
-    begin
-      gdcObject.FieldByName('name').AsString := 'Наследник ' + DE.Caption;
-      gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
-      gdcObject.FieldByName('headerrelkey').AsInteger := DE.HeaderRelKey;
-      gdcObject.FieldByName('linerelkey').AsInteger := DE.LineRelKey;
-      edEnglishName.Text := DE.HeaderRelName;
-    end;
+    edEnglishName.Text := DE.HeaderRelName
+  else if DEParent <> nil then
+    edEnglishName.Text := DEParent.HeaderRelName
+  else
+    edEnglishName.Text := '';
 
+  if DEParent <> nil then
+  begin
+    edParentName.Text := DEParent.Caption;
     iblcHeaderTable.gdClassName := 'TgdcInheritedDocumentTable';
     iblcLineTable.gdClassName := 'TgdcInheritedDocumentTable';
-  end;
-
-  if gdcObject.State = dsEdit then
+    iblcLineTable.Enabled := DEParent.LineRelKey > 0;
+  end else
   begin
-    DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('id').AsInteger, dcpHeader, True);
-    if DE <> nil then
-      edEnglishName.Text := DE.HeaderRelName;
+    edParentName.Text := '';
+    iblcHeaderTable.gdClassName := 'TgdcDocumentTable';
+    iblcLineTable.gdClassName := 'TgdcDocumentLineTable';
+    iblcLineTable.Enabled := True;
   end;
 
   //Выведем родителя нашей ветки в исследователе
-  if (gdcObject.FieldByName('branchkey').AsInteger > 0) then
+  if gdcBaseManager.ExecSingleQueryResult('SELECT parent FROM gd_command WHERE id = :id AND parent IS NOT NULL',
+    gdcObject.FieldByName('branchkey').AsInteger, R) then
   begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := gdcBaseManager.ReadTRansaction;
-      ibsql.SQL.Text := 'SELECT parent FROM gd_command WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('branchkey').AsInteger;
-      ibsql.ExecQuery;
-
-      if (not ibsql.EOF) and (ibsql.FieldByName('parent').AsInteger > 0) then
-        iblcExplorerBranch.CurrentKeyInt := ibsql.FieldByName('parent').AsInteger;
-    finally
-      ibsql.Free;
-    end;
+    iblcExplorerBranch.CurrentKeyInt := R[0, 0];
   end;
 
   //Для редактирования нескольких веток запрещаем изменении ветки исследователя
   iblcExplorerBranch.Enabled := not (sMultiple in gdcObject.BaseState);
+
+  dbcMaskChange(dbcMask);
 
   //
   chbxAutoNumeration.Checked := gdcObject.FieldByName('MASK').AsString = '';
@@ -784,8 +765,6 @@ begin
     gdcObject.FieldByName('name').FocusControl;
     raise EgdcIBError.Create('Укажите наименование типового документа!');
   end;
-
-  TestCorrect;
 
   if iblcExplorerBranch.Enabled then
   try
@@ -872,6 +851,9 @@ begin
     lblNumCompany.Caption := ' Параметры автонумерации документов для организации "' +
       IBLogin.CompanyName + '".';
   end;
+
+  if tsCommon.TabVisible then
+    pcMain.ActivePage := tsCommon;
 end;
 
 procedure Tgdc_dlgDocumentType.actAutoNumerationExecute(Sender: TObject);
@@ -891,12 +873,12 @@ end;
 
 procedure Tgdc_dlgDocumentType.actWizardHeaderUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := IBLogin.IsIBUserAdmin;
+  (Sender as TAction).Enabled := IBLogin.IsIBUserAdmin and (gdcObject <> nil);
 end;
 
 procedure Tgdc_dlgDocumentType.actWizardLineUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := IBLogin.IsIBUserAdmin;
+  (Sender as TAction).Enabled := IBLogin.IsIBUserAdmin and (gdcObject <> nil);
 end;
 
 procedure Tgdc_dlgDocumentType.iblcHeaderTableChange(Sender: TObject);

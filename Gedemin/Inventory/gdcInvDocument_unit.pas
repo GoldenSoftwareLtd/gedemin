@@ -5406,17 +5406,20 @@ begin
   begin
     DE := gdClassList.Add('TgdcInvDocument', FieldByName('ruid').AsString, GetParentSubType,
       TgdInvDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry;
+    DE.TypeID := ID;
     DE.LoadDE(Transaction);
     gdClassList.Add('TgdcInvDocumentLine', FieldByName('ruid').AsString, GetParentSubType,
       TgdInvDocumentEntry, FieldbyName('name').AsString).Assign(DE);
 
     gdClassList.Add('TgdcInvRemains', FieldByName('ruid').AsString, GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
     gdClassList.Add('TgdcInvGoodRemains', FieldByName('ruid').AsString, GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
-    gdClassList.Add('TgdcInvGoodRemains', FieldByName('ruid').AsString, GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
+    gdClassList.Add('TgdcSelectedGood', FieldByName('ruid').AsString, GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
     gdClassList.Add('TgdcInvMovement', FieldByName('ruid').AsString, GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
 
     gdClassList.Add('Tgdc_frmInvSelectGoodRemains', FieldByName('ruid').AsString, GetParentSubType, TgdFormEntry, FieldbyName('name').AsString);
     gdClassList.Add('Tgdc_frmInvSelectRemains', FieldByName('ruid').AsString, GetParentSubType, TgdFormEntry, FieldbyName('name').AsString);
+
+    gdClassList.CreateFormSubTypes;
   end;
 
   {$IFDEF NEWDEPOT}
@@ -5486,9 +5489,15 @@ begin
 end;
 
 procedure TgdcInvDocumentType.DoneOpt;
+var
+  DE: TgdDocumentEntry;
 begin
   FIE := nil;
   inherited;
+
+  DE := gdClassList.Get(TgdInvDocumentEntry, 'TgdcInvDocument', FieldByName('ruid').AsString) as TgdDocumentEntry;
+  DE.LoadDE(Transaction);
+  gdClassList.Get(TgdInvDocumentEntry, 'TgdcInvDocumentLine', FieldByName('ruid').AsString).Assign(DE);
 end;
 
 class function TgdcInvDocumentType.GetDialogFormClassName(

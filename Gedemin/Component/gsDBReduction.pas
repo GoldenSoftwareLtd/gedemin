@@ -863,6 +863,7 @@ begin
     begin
       IBLogin.AddEvent('Объединение записей: ' + FCondemnedKey + ' -> ' + FMasterKey,
         FMainTable,
+        '',
         StrToIntDef(FMasterKey, -1));
     end;
     {$ENDIF}

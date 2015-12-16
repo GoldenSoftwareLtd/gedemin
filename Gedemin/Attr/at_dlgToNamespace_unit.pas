@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Db, DBClient, StdCtrls, IBDatabase, gsIBLookupComboBox, Grids, DBGrids,
   gsDBGrid, ActnList, gdcBaseInterface, gdcBase, DBCtrls, Buttons,
-  gd_createable_form, ExtCtrls, gdcNamespaceController;
+  gd_createable_form, ExtCtrls, gdcNamespaceController, Tabs;
 
 type
   TdlgToNamespace = class(TCreateableForm)
@@ -31,12 +31,15 @@ type
     btnCancel: TButton;
     chbxIncludeLinked: TCheckBox;
     Tr: TIBTransaction;
+    tsObjects: TTabSet;
     procedure actOKExecute(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
     procedure actClearUpdate(Sender: TObject);
     procedure actOKUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure tsObjectsChange(Sender: TObject; NewTab: Integer;
+      var AllowChange: Boolean);
 
   private
     FgdcNamespaceController: TgdcNamespaceController;
@@ -56,15 +59,25 @@ implementation
 {$R *.DFM}
 
 procedure TdlgToNamespace.SetupObject(AnObject: TgdcBase; ABL: TBookmarkList);
+var
+  OldCursor: TCursor;
 begin
-  FgdcNamespaceController.Setup(AnObject, ABL);
+  OldCursor := Screen.Cursor;
+  try
+    Screen.Cursor := crHourGlass;
+    FgdcNamespaceController.Setup(AnObject, ABL);
+  finally
+    Screen.Cursor := OldCursor;
+  end;
+
+  tsObjects.Tabs.Assign(FgdcNamespaceController.Tabs);
+  tsObjects.TabIndex := 0;
 
   chbxAlwaysOverwrite.Checked := FgdcNamespaceController.AlwaysOverwrite;
   chbxDontRemove.Checked := FgdcNamespaceController.DontRemove;
   chbxIncludeSiblings.Checked := FgdcNamespaceController.IncludeSiblings;
   chbxIncludeLinked.Checked := FgdcNamespaceController.IncludeLinked;
   edObjectName.Text := FgdcNamespaceController.ObjectName;
-  dsLink.DataSet := FgdcNamespaceController.ibdsLink;
   lkupNS.CurrentKeyInt := FgdcNamespaceController.PrevNSID;
 end;
 
@@ -121,6 +134,12 @@ procedure TdlgToNamespace.FormDestroy(Sender: TObject);
 begin
   if Tr.InTransaction then
     Tr.Commit;
+end;
+
+procedure TdlgToNamespace.tsObjectsChange(Sender: TObject; NewTab: Integer;
+  var AllowChange: Boolean);
+begin
+  dsLink.DataSet := FgdcNamespaceController.SetupDS(NewTab);
 end;
 
 end.

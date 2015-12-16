@@ -1662,9 +1662,14 @@ type
 
     //
     procedure GetDependencies(ATr: TIBTransaction; const ASessionID: Integer;
+      var ACount: Integer;
       const AnIncludeSystemObjects: Boolean = False;
       const AnIgnoreFields: String = '';
-      const ALimitLevel: Integer = MAXINT);
+      const AnIgnoreRelations: String = '';
+      const ALimitLevel: Integer = MAXINT;
+      const AClearList: Boolean = True;
+      const AnExternalMasterID: Integer = -1;
+      const AStartingLevel: Integer = 0);
 
     //
     class function SelectObject(const AMessage: String = '';
@@ -5194,7 +5199,10 @@ begin
   {M}          end;
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASE' then
-  {M}          Exit;
+  {M}        begin
+  {M}          Result := False;  //inherited EditDialog(ADlgClassName);
+  {M}          exit;
+  {M}        end;
   {M}    end;
   {END MACRO}
 
@@ -5206,7 +5214,8 @@ begin
   CFull := GetCurrRecordClass;
 
   if ((UpperCase(ADlgClassName) = 'TGDC_DLGOBJECTPROPERTIES') and Assigned(CFull.gdClass))
-    or ((CFull.gdClass = Self.ClassType) and (CFull.SubType = Self.SubType)) then
+      or
+     ((CFull.gdClass = Self.ClassType) and (CFull.SubType = Self.SubType)) then
   begin
     C := GetClass(ADlgClassName);
 
@@ -5281,7 +5290,7 @@ begin
               end else
                 Self.Edit;
             end;
-          end;  
+          end;
 
           if sDialog in FBaseState then
           begin
@@ -5496,7 +5505,7 @@ begin
             except
               if State in dsEditModes then
                 Cancel;
-              raise;  
+              raise;
             end;
           finally
             FDataTransfer := False;
@@ -6366,6 +6375,7 @@ begin
 
           IBLogin.AddEvent(S,
             Self.ClassName + ' ' + Self.SubType,
+            Self.ObjectName,
             ID,
             Transaction);
 
@@ -6567,6 +6577,7 @@ begin
 
           IBLogin.AddEvent('Запись удалена',
             Self.ClassName + ' ' + Self.SubType,
+            Self.ObjectName,
             ID,
             Transaction);
 
@@ -12472,9 +12483,10 @@ class function TgdcBase.GetTableInfos(const ASubType: String): TgdcTableInfos;
 var
   R: TatRelation;
 begin
-  Assert(Assigned(atDatabase));
-  R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
   Result := [];
+  if atDatabase = nil then
+    exit;
+  R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
   if (R <> nil) and (R.RelationFields <> nil) then
   begin
     if R.RelationFields.ByFieldName(GetKeyField(ASubType)) <> nil then
@@ -17996,16 +18008,47 @@ begin
 end;
 
 procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Integer;
+  var ACount: Integer;
   const AnIncludeSystemObjects: Boolean = False;
   const AnIgnoreFields: String = '';
-  const ALimitLevel: Integer = MAXINT);
+  const AnIgnoreRelations: String = '';
+  const ALimitLevel: Integer = MAXINT;
+  const AClearList: Boolean = True;
+  const AnExternalMasterID: Integer = -1;
+  const AStartingLevel: Integer = 0);
 
   const
     LimitCount = 8192;
 
+  function TstObj(AnObject: TgdcBase): Boolean;
+  begin
+    Result :=
+      (
+        (AnObject is TgdcMetaBase)
+        and
+        (not TgdcMetaBase(AnObject).IsDerivedObject)
+        and
+        (
+          AnIncludeSystemObjects
+          or
+          (not TgdcMetaBase(AnObject).IsFirebirdObject)
+        )
+      )
+      or
+      (
+        (not (AnObject is TgdcMetaBase))
+        and
+        (
+          AnIncludeSystemObjects
+          or
+          (AnObject.ID >= cstUserIDStart)
+        )
+      );
+  end;
+
   procedure _ProcessObject(AnObject: TgdcBase; const ALevel: Integer;
     AProcessed: TgdKeyArray; AHash: TStringHashMap; AnObjects: TObjectList;
-    AqInsert: TIBSQL; var ACount: Integer; const AnIgnoreFields: String);
+    AqInsert: TIBSQL; const AnIgnoreFields: String);
   var
     I, RefCount: Integer;
     RelationName, FieldName: String;
@@ -18016,6 +18059,7 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
     ArrObjects: array[0..1024] of TgdcBase;
     ArrIDs: array[0..1024] of TID;
     Locked: Boolean;
+    ThisID: Integer;
   begin
     if ALevel > ALimitLevel then
       exit;
@@ -18024,8 +18068,10 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
       exit;
 
     if AProcessed.IndexOf(AnObject.ID) = -1 then
-      AProcessed.Add(AnObject.ID)
-    else
+    begin
+      ThisID := AnObject.ID;
+      AProcessed.Add(ThisID);
+    end else
       exit;
 
     R := nil;
@@ -18039,10 +18085,13 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
       if AnObject.Fields[I].DataType <> ftInteger then
         continue;
 
-      if AProcessed.IndexOf(AnObject.Fields[I].AsInteger) <> -1 then
-        continue;  
+      if (AnObject.Fields[I].AsInteger < cstUserIDStart) and (not AnIncludeSystemObjects) then
+        continue;
 
-      if Pos(AnObject.Fields[I].Origin, AnIgnoreFields) > 0 then
+      if AProcessed.IndexOf(AnObject.Fields[I].AsInteger) <> -1 then
+        continue;
+
+      if Pos(';' + AnObject.Fields[I].Origin + ';', ';' + AnIgnoreFields + ';') > 0 then
         continue;
 
       ParseFieldOrigin(AnObject.Fields[I].Origin, RelationName, FieldName);
@@ -18050,7 +18099,7 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
       if RelationName = '' then
         continue;
 
-      if Pos(';' + FieldName + ';', AnIgnoreFields) > 0 then
+      if Pos(';' + FieldName + ';', ';' + AnIgnoreFields + ';') > 0 then
         continue;
 
       if (R = nil) or (AnsiCompareText(R.RelationName, RelationName) <> 0) then
@@ -18122,27 +18171,10 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
         continue;
       end;
 
-      if
-        (
-          (Obj is TgdcMetaBase)
-          and
-          (
-            TgdcMetaBase(Obj).IsUserDefined
-            or
-            AnIncludeSystemObjects
-          )
-        )
-        or
-        (
-          (not (Obj is TgdcMetaBase))
-          and
-          (
-            (Obj.ID >= cstUserIDStart)
-            or
-            AnIncludeSystemObjects
-          )
-        ) then
+      if TstObj(Obj) then
       begin
+        Inc(ACount);
+        AqInsert.ParamByName('seqid').AsInteger := ACount;
         AqInsert.ParamByName('reflevel').AsInteger := ALevel;
         AqInsert.ParamByName('relationname').AsString := RelationName;
         AqInsert.ParamByName('fieldname').AsString := FieldName;
@@ -18157,7 +18189,6 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
         else
           AqInsert.ParamByName('refeditiondate').Clear;
         AqInsert.ExecQuery;
-        Inc(ACount);
       end;
 
       if RefCount < High(ArrObjects) then
@@ -18186,17 +18217,20 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
       try
         if not TempObj.EOF then
           _ProcessObject(TempObj, ALevel + 1, AProcessed, AHash,
-          AnObjects, AqInsert, ACount, AnIgnoreFields);
+          AnObjects, AqInsert, AnIgnoreFields);
       finally
         if TempObj = ArrObjects[I] then
           ArrObjects[I].Close
         else
           TempObj.Free;
-      end;    
+      end;
     end;
 
     for I := 0 to AnObject.SetAttributesCount - 1 do
     begin
+      if Pos(';' + AnObject.SetAttributes[I].CrossRelationName + ';', ';' + AnIgnoreRelations + ';') > 0 then
+        continue;
+
       C := GetBaseClassForRelation(AnObject.SetAttributes[I].ReferenceRelationName);
 
       if C.gdClass = nil then
@@ -18247,23 +18281,10 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
 
         if AProcessed.IndexOf(TempObj.ID) = -1 then
         begin
-          if
-            (
-              AnIncludeSystemObjects
-              or
-              (TempObj.ID >= cstUserIDStart)
-              or
-              (
-                (TempObj is TgdcMetaBase)
-                and
-                TgdcMetaBase(TempObj).IsUserDefined
-              )
-            )
-            and
-            (
-              ACount < LimitCount
-            ) then
+          if TstObj(TempObj) and (ACount < LimitCount) then
           begin
+            Inc(ACount);
+            AqInsert.ParamByName('seqid').AsInteger := ACount;
             AqInsert.ParamByName('reflevel').AsInteger := ALevel;
             AqInsert.ParamByName('relationname').AsString := AnObject.SetAttributes[I].CrossRelationName;
             AqInsert.ParamByName('fieldname').AsString := AnObject.SetAttributes[I].ReferenceLinkFieldName;
@@ -18278,14 +18299,13 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
             else
               AqInsert.ParamByName('refeditiondate').Clear;
             AqInsert.ExecQuery;
-            Inc(ACount);
           end;
 
           _ProcessObject(TempObj, ALevel + 1, AProcessed, AHash,
-            AnObjects, AqInsert, ACount, AnIgnoreFields);
+            AnObjects, AqInsert, AnIgnoreFields);
 
           if TempObj <> Obj then
-            TempObj.Close;  
+            TempObj.Close;
         end;
 
         Obj.Next;
@@ -18293,16 +18313,17 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
 
       Obj.Close;
     end;
+
+    AProcessed.Remove(ThisID);
   end;
 
 var
   Hash: TStringHashMap;
-  Processed: TgdKeyArray;
   Objects: TObjectList;
   q: TIBSQL;
-  Count: Integer;
   C: TgdcFullClass;
   Obj: TgdcBase;
+  Processed: TgdKeyArray;
 begin
   Assert(atDatabase <> nil);
   Assert(ATr <> nil);
@@ -18321,31 +18342,55 @@ begin
   q := TIBSQL.Create(nil);
   try
     q.Transaction := ATr;
-    q.SQL.Text :=
-      'DELETE FROM gd_object_dependencies WHERE sessionid = :sessionid';
-    q.ParamByName('sessionid').AsInteger := ASessionID;
-    q.ExecQuery;
+
+    if AClearList then
+    begin
+      q.SQL.Text :=
+        'DELETE FROM gd_object_dependencies WHERE sessionid = :sessionid';
+      q.ParamByName('sessionid').AsInteger := ASessionID;
+      q.ExecQuery;
+    end;
 
     q.SQL.Text :=
       'UPDATE OR INSERT INTO gd_object_dependencies ( ' +
-      '  sessionid, masterid, reflevel, relationname, fieldname, crossrelation, ' +
+      '  sessionid, seqid, masterid, reflevel, relationname, fieldname, crossrelation, ' +
       '  refobjectid, refobjectname, refrelationname, refclassname, refsubtype, ' +
       '  refeditiondate) ' +
       'VALUES ' +
-      '  (:sessionid, :masterid, :reflevel, :relationname, :fieldname, :crossrelation, ' +
+      '  (:sessionid, :seqid, :masterid, :reflevel, :relationname, :fieldname, :crossrelation, ' +
       '  :refobjectid, :refobjectname, :refrelationname, :refclassname, :refsubtype, ' +
       '  :refeditiondate) ' +
       'MATCHING (sessionid, masterid, reflevel, relationname, fieldname, refobjectid)';
     q.ParamByName('sessionid').AsInteger := ASessionID;
     q.ParamByName('masterid').AsInteger := Self.ID;
 
-    Count := 0;
-    _ProcessObject(Obj, 0, Processed, Hash, Objects, q, Count,
-      AnIgnoreFields + ';LB;RB;AVIEW;ACHAG;AFULL;RESERVED;');
+    if (AnExternalMasterID > -1) and TstObj(Obj) then
+    begin
+      Inc(ACount);
+      q.ParamByName('seqid').AsInteger := ACount;
+      q.ParamByName('masterid').AsInteger := AnExternalMasterID;
+      q.ParamByName('reflevel').AsInteger := AStartingLevel;
+      q.ParamByName('relationname').AsString := Obj.GetListTable(Obj.SubType);
+      q.ParamByName('fieldname').AsString := Obj.GetKeyField(Obj.SubType);
+      q.ParamByName('crossrelation').AsInteger := 0;
+      q.ParamByName('refobjectid').AsInteger := Obj.ID;
+      q.ParamByName('refobjectname').AsString := System.Copy(Obj.ObjectName, 1, 60);
+      q.ParamByName('refrelationname').AsString := Obj.GetListTable(Obj.SubType);
+      q.ParamByName('refclassname').AsString := Obj.ClassName;
+      q.ParamByName('refsubtype').AsString := Obj.SubType;
+      if Obj.FindField('editiondate') <> nil then
+        q.ParamByName('refeditiondate').AsDateTime := Obj.FieldByName('editiondate').AsDateTime
+      else
+        q.ParamByName('refeditiondate').Clear;
+      q.ExecQuery;
+    end;
+
+    _ProcessObject(Obj, AStartingLevel, Processed, Hash, Objects, q,
+      AnIgnoreFields + ';LB;RB;AVIEW;ACHAG;AFULL;RESERVED');
   finally
     q.Free;
-    Processed.Free;
     Hash.Free;
+    Processed.Free;
     Objects.Free;
     if Obj <> Self then
       Obj.Free;
@@ -18764,7 +18809,6 @@ END MACRO}
 
 //    function EditDialog(const ADlgClassName: String = ''): Boolean;
 {@DECLARE MACRO Inh_Orig_EditDialog(%ClassName%, %MethodName%, %MethodKey%)
-  Result := False;
   try
     if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
     begin
@@ -18789,10 +18833,12 @@ END MACRO}
           end;
       end else
         if tmpStrings.LastClass.gdClassName <> %ClassName% then
+        begin
+          Result := inherited EditDialog(ADlgClassName);
           Exit;
+        end;
     end;
 END MACRO}
-
 
 //    function CreateDialog(const ADlgClassName: String = ''): Boolean; overload; virtual;
 {@DECLARE MACRO Inh_Orig_CreateDialog(%ClassName%, %MethodName%, %MethodKey%)

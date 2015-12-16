@@ -50,6 +50,10 @@ inherited gdc_dlgAcctSubAccount: Tgdc_dlgAcctSubAccount
         Width = 65
         OnChange = dbedAliasChange
       end
+      inherited gsiblcGroupAccount: TgsIBLookupComboBox
+        Condition = 'accounttype in ('#39'A'#39', '#39'S'#39')'
+        gdClassName = 'TgdcAcctBase'
+      end
     end
   end
 end

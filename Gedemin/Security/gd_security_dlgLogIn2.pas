@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2012-2013 by Golden Software of Belarus
+  Copyright (c) 2012-2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -13,7 +13,7 @@
 
   Author
 
-    Andrei Kireev 
+    Andrei Kireev
 
   Revisions history
 
@@ -75,9 +75,12 @@ type
     procedure actVerUpdate(Sender: TObject);
     procedure actSingleUserUpdate(Sender: TObject);
     procedure chbxSingleUserClick(Sender: TObject);
+    procedure edDBNameChange(Sender: TObject);
 
   private
     KL: Integer;
+    FInOnChange: Boolean;
+    FPrevName, FPrevText: String;
 
     procedure SyncControls;
 
@@ -94,7 +97,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_directories_const, gd_dlgAbout_unit, gd_DatabasesList_unit
+  gd_directories_const, gd_dlgAbout_unit, gd_DatabasesList_unit, jclStrings
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
@@ -207,7 +210,8 @@ end;
 procedure TdlgSecLogIn2.actLoginUpdate(Sender: TObject);
 begin
   actLogin.Enabled := chbxWithoutConnection.Checked
-    or ((cbUser.Text > '') and (gd_DatabasesList.FindSelected <> nil));
+    or ((cbUser.Text > '') and (gd_DatabasesList.FindSelected <> nil)
+      and (edDBName.Text > ''));
 end;
 
 procedure TdlgSecLogIn2.SyncControls;
@@ -228,10 +232,14 @@ begin
     if cbUser.Items.Count > 0 then
       cbUser.Text := cbUser.Items[0];
     if DI.GetPassword(cbUser.Text) > '' then
-      edPassword.Text := '<<saved_password>>'
-    else
+    begin
+      edPassword.Text := '<<saved_password>>';
+      edPassword.SelStart := 0;
+    end else
       edPassword.Text := '';
     chbxRememberPassword.Checked := DI.RememberPassword;
+    FPrevName := DI.Name;
+    FPrevText := DI.Name;
   end else
   begin
     edDBName.Text := '';
@@ -239,6 +247,8 @@ begin
     cbUser.Text := '';
     edPassword.Text := '';
     chbxRememberPassword.Checked := False;
+    FPrevName := '';
+    FPrevText := '';
   end;
 
   if cbUser.Items.IndexOf('Administrator') = -1 then
@@ -313,6 +323,110 @@ end;
 procedure TdlgSecLogIn2.chbxSingleUserClick(Sender: TObject);
 begin
   actSingleUser.Checked := chbxSingleUser.Checked;
+end;
+
+procedure TdlgSecLogIn2.edDBNameChange(Sender: TObject);
+
+  procedure PostKeyEx32(key: Word; const shift: TShiftState; specialkey: Boolean) ;
+  {
+  http://www.tek-tips.com/viewthread.cfm?qid=1189107
+
+  Parameters :
+  * key : virtual keycode of the key to send. For printable keys this is simply the ANSI code (Ord(character)) .
+  * shift : state of the modifier keys. This is a set, so you can set several of these keys (shift, control, alt, mouse buttons) in tandem. The TShiftState type is declared in the Classes Unit.
+  * specialkey: normally this should be False. Set it to True to specify a key on the numeric keypad, for example.
+  Description:
+  Uses keybd_event to manufacture a series of key events matching the passed parameters. The events go to the control with focus.
+  Note that for characters key is always the upper-case version of the character. Sending without any modifier keys will result in a lower-case character, sending it with [ ssShift ] will result in an upper-case character!
+  }
+  type
+     TShiftKeyInfo = record
+       shift: Byte ;
+       vkey: Byte ;
+     end;
+     ByteSet = set of 0..7 ;
+  const
+     shiftkeys: array [1..3] of TShiftKeyInfo =
+       ((shift: Ord(ssCtrl) ; vkey: VK_CONTROL),
+       (shift: Ord(ssShift) ; vkey: VK_SHIFT),
+       (shift: Ord(ssAlt) ; vkey: VK_MENU)) ;
+  var
+     flag: DWORD;
+     bShift: ByteSet absolute shift;
+     j: Integer;
+  begin
+     for j := 1 to 3 do
+     begin
+       if shiftkeys[j].shift in bShift then
+         keybd_event(shiftkeys[j].vkey, MapVirtualKey(shiftkeys[j].vkey, 0), 0, 0) ;
+     end;
+     if specialkey then
+       flag := KEYEVENTF_EXTENDEDKEY
+     else
+       flag := 0;
+
+     keybd_event(key, MapvirtualKey(key, 0), flag, 0) ;
+     flag := flag or KEYEVENTF_KEYUP;
+     keybd_event(key, MapvirtualKey(key, 0), flag, 0) ;
+
+     for j := 3 downto 1 do
+     begin
+       if shiftkeys[j].shift in bShift then
+         keybd_event(shiftkeys[j].vkey, MapVirtualKey(shiftkeys[j].vkey, 0), KEYEVENTF_KEYUP, 0) ;
+     end;
+  end;
+
+var
+  DI: Tgd_DatabaseItem;
+  SS, I: Integer;
+begin
+  if FInOnChange then
+    exit;
+
+  FInOnChange := True;
+  try
+    SS := edDBName.SelStart;
+    if gd_DatabasesList <> nil then
+    begin
+      DI := gd_DatabasesList.FindFirst(edDBName.Text);
+      if DI <> nil then
+      begin
+        if (DI.Name <> FPrevName) or
+          (
+            (StrIPos(FPrevText, edDBName.Text) = 1)
+            and
+            (Length(FPrevText) < Length(edDBName.Text))
+          ) then
+        begin
+          DI.Selected := True;
+          edDBName.Text := DI.Name;
+          edDBName.SelStart := Length(DI.Name);
+          for I := SS to Length(DI.Name) - 1 do
+            PostKeyEx32(VK_LEFT, [ssShift], True);
+          DI.GetUsers(cbUser.Items);
+          if cbUser.Items.Count > 0 then
+            cbUser.Text := cbUser.Items[0];
+          if DI.GetPassword(cbUser.Text) > '' then
+            edPassword.Text := '<<saved_password>>'
+          else
+            edPassword.Text := '';
+          chbxRememberPassword.Checked := DI.RememberPassword;
+          if cbUser.Items.IndexOf('Administrator') = -1 then
+            cbUser.Items.Add('Administrator');
+          if cbUser.Text = '' then
+            cbUser.Text := cbUser.Items[0];
+          FPrevName := DI.Name;
+          FPrevText := System.Copy(DI.Name, 1, SS);
+        end;
+      end else
+      begin
+        FPrevName := '';
+        FPrevText := '';
+      end;
+    end;
+  finally
+    FInOnChange := False;
+  end;
 end;
 
 end.

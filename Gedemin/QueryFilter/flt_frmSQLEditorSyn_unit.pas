@@ -1617,7 +1617,7 @@ function TfrmSQLEditorSyn.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
 var
   LI: TListItem;
   S: String;
-  Level: Integer;
+  Level, C, L: Integer;
   CE: TgdBaseEntry;
 begin
   if ACE is TgdBaseEntry then
@@ -1634,10 +1634,14 @@ begin
   end;
 
   Level := PInteger(AData1)^;
+  L := Level + 1;
+  C := lvClasses.Items.Count;
 
-  if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
+  gdClassList.Traverse(ACE.TheClass, ACE.SubType, BuildClassTree, @L, nil, False, True);
+
+  if (lvClasses.Items.Count > C) or (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
   begin
-    LI := lvClasses.Items.Add;
+    LI := lvClasses.Items.Insert(C);
     LI.Caption := StringOfChar(' ', Level * 2) + ACE.TheClass.ClassName;
 
     if CE <> nil then
@@ -1660,9 +1664,6 @@ begin
       LI.SubItems.Add('');
     end;
   end;
-
-  Inc(Level);
-  gdClassList.Traverse(ACE.TheClass, ACE.SubType, BuildClassTree, @Level, nil, False, True);
 
   Result := True;
 end;

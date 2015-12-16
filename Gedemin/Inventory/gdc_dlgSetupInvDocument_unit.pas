@@ -142,7 +142,6 @@ type
 
   private
     FTemplates: TObjectList;
-    FIDE: TgdInvDocumentEntry;
     FDestFeatures: TStringList;
     FSourceFeatures: TStringList;
     FMinusFeatures: TStringList;
@@ -172,6 +171,8 @@ type
     function GetMinusFeatures: TStringList;
 
   protected
+    FIDE, FIDEParent: TgdInvDocumentEntry;
+
     procedure SetupDialog; override;
     procedure SetupRecord; override;
     function TestCorrect: Boolean; override;
@@ -802,7 +803,7 @@ begin
     else
       List := lvMinusFeatures;
   end;
-  
+
   for I := 0 to List.Items.Count - 1 do
     if AnsiSameText(TatRelationField(List.Items[I].Data).FieldName, FeatureName) then
     begin
@@ -824,6 +825,7 @@ var
   Item: TListItem;
   q: TIBSQL;
   V: TgdcMCOPredefined;
+  IDE: TgdInvDocumentEntry;
 
   procedure UpdateComboBox(CB: TComboBox; const FieldName: String);
   begin
@@ -833,7 +835,11 @@ var
   end;
 
 begin
-  if FIDE = nil then
+  if FIDE <> nil then
+    IDE := FIDE
+  else if FIDEParent <> nil then
+    IDE := FIDEParent
+  else
     exit;
 
   q := TIBSQL.Create(nil);
@@ -845,24 +851,24 @@ begin
 
     // Приход
 
-    cbDebitMovement.ItemIndex := Integer(FIDE.GetMCOContactType(emDebit));
-    if AnsiSameText(FIDE.GetMCORelationName(emDebit), Document.DocRelationName) then
+    cbDebitMovement.ItemIndex := Integer(IDE.GetMCOContactType(emDebit));
+    if AnsiSameText(IDE.GetMCORelationName(emDebit), Document.DocRelationName) then
       rgDebitFrom.ItemIndex := 0
     else
       rgDebitFrom.ItemIndex := 1;
 
     if cbUseIncomeSub.Checked then
     begin
-      if AnsiSameText(FIDE.GetMCOSubRelationName(emDebit), Document.DocRelationName) then
+      if AnsiSameText(IDE.GetMCOSubRelationName(emDebit), Document.DocRelationName) then
         rgDebitSubFrom.ItemIndex := 0
       else
         rgDebitSubFrom.ItemIndex := 1;
     end;
 
-    UpdateComboBox(luDebitFrom, FIDE.GetMCOSourceFieldName(emDebit));
-    UpdateComboBox(luDebitSubFrom, FIDE.GetMCOSubSourceFieldName(emDebit));
+    UpdateComboBox(luDebitFrom, IDE.GetMCOSourceFieldName(emDebit));
+    UpdateComboBox(luDebitSubFrom, IDE.GetMCOSubSourceFieldName(emDebit));
 
-    FIDE.GetMCOPredefined(emDebit, V);
+    IDE.GetMCOPredefined(emDebit, V);
 
     for I := Low(V) to High(V) do
     begin
@@ -876,7 +882,7 @@ begin
       Item.SubItems.Add(IntToStr(V[I]));
     end;
 
-    FIDE.GetMCOSubPredefined(emDebit, V);
+    IDE.GetMCOSubPredefined(emDebit, V);
 
     for I := Low(V) to High(V) do
     begin
@@ -893,30 +899,30 @@ begin
     cbDebitMovementChange(cbDebitMovement);
     if cbUseIncomeSub.Visible then
       cbUseIncomeSub.Checked :=
-        (FIDE.GetMCOSubRelationName(emDebit) > '') and (FIDE.GetMCOSubSourceFieldName(emDebit) > '');
+        (IDE.GetMCOSubRelationName(emDebit) > '') and (IDE.GetMCOSubSourceFieldName(emDebit) > '');
 
     cbUseIncomeSubClick(cbUseIncomeSub);
 
     // Расход
 
-    cbCreditMovement.ItemIndex := Integer(FIDE.GetMCOContactType(emCredit));
-    if AnsiSameText(FIDE.GetMCORelationName(emCredit), Document.DocRelationName) then
+    cbCreditMovement.ItemIndex := Integer(IDE.GetMCOContactType(emCredit));
+    if AnsiSameText(IDE.GetMCORelationName(emCredit), Document.DocRelationName) then
       rgCreditFrom.ItemIndex := 0
     else
       rgCreditFrom.ItemIndex := 1;
 
     if cbUseOutlaySub.Checked then
     begin
-      if AnsiSameText(FIDE.GetMCOSubRelationName(emCredit), Document.DocRelationName) then
+      if AnsiSameText(IDE.GetMCOSubRelationName(emCredit), Document.DocRelationName) then
         rgCreditSubFrom.ItemIndex := 0
       else
         rgCreditSubFrom.ItemIndex := 1;
     end;
 
-    UpdateComboBox(luCreditFrom, FIDE.GetMCOSourceFieldName(emCredit));
-    UpdateComboBox(luCreditSubFrom, FIDE.GetMCOSubSourceFieldName(emCredit));
+    UpdateComboBox(luCreditFrom, IDE.GetMCOSourceFieldName(emCredit));
+    UpdateComboBox(luCreditSubFrom, IDE.GetMCOSubSourceFieldName(emCredit));
 
-    FIDE.GetMCOPredefined(emCredit, V);
+    IDE.GetMCOPredefined(emCredit, V);
 
     for I := Low(V) to High(V) do
     begin
@@ -930,7 +936,7 @@ begin
       Item.SubItems.Add(IntToStr(V[I]));
     end;
 
-    FIDE.GetMCOSubPredefined(emCredit, V);
+    IDE.GetMCOSubPredefined(emCredit, V);
 
     for I := Low(V) to High(V) do
     begin
@@ -947,32 +953,32 @@ begin
     cbDebitMovementChange(cbCreditMovement);
     if cbUseOutlaySub.Visible then
       cbUseOutlaySub.Checked :=
-        (FIDE.GetMCOSubRelationName(emCredit) > '') and (FIDE.GetMCOSubSourceFieldName(emCredit) > '');
+        (IDE.GetMCOSubRelationName(emCredit) > '') and (IDE.GetMCOSubSourceFieldName(emCredit) > '');
 
     cbUseIncomeSubClick(cbUseIncomeSub);
 
     // Настройки признаков
     FDestFeatures.Clear;
-    for I := 0 to FIDE.GetFeaturesCount(ftDest) - 1 do
-      FDestFeatures.Add(FIDE.GetFeature(ftDest, I));
+    for I := 0 to IDE.GetFeaturesCount(ftDest) - 1 do
+      FDestFeatures.Add(IDE.GetFeature(ftDest, I));
     FSourceFeatures.Clear;
-    for I := 0 to FIDE.GetFeaturesCount(ftSource) - 1 do
-      FSourceFeatures.Add(FIDE.GetFeature(ftSource, I));
+    for I := 0 to IDE.GetFeaturesCount(ftSource) - 1 do
+      FSourceFeatures.Add(IDE.GetFeature(ftSource, I));
     SetupFeaturesTab;
 
     // Настройка справочников
-    cbReference.Checked := irsGoodRef in FIDE.GetSources;
-    cbRemains.Checked := irsRemainsRef in FIDE.GetSources;
+    cbReference.Checked := irsGoodRef in IDE.GetSources;
+    cbRemains.Checked := irsRemainsRef in IDE.GetSources;
 //  cbFromMacro.Checked := irsMacro in Sources;
 
     // Настройка FIFO, LIFO
-    rgMovementDirection.ItemIndex := Integer(FIDE.GetDirection);
+    rgMovementDirection.ItemIndex := Integer(IDE.GetDirection);
 
     // Конроль остатков
-    cbControlRemains.Checked := FIDE.GetFlag(efControlRemains);
+    cbControlRemains.Checked := IDE.GetFlag(efControlRemains);
 
     // работа только с текущими остатками
-    cbLiveTimeRemains.Checked := FIDE.GetFlag(efLiveTimeRemains);
+    cbLiveTimeRemains.Checked := IDE.GetFlag(efLiveTimeRemains);
 
     if not cbRemains.Checked then
     begin
@@ -984,9 +990,9 @@ begin
     end;
 
     // Документ может быть отложенным
-    cbDelayedDocument.Checked := FIDE.GetFlag(efDelayedDocument);
+    cbDelayedDocument.Checked := IDE.GetFlag(efDelayedDocument);
 
-    cbMinusRemains.Checked := FIDE.GetFlag(efMinusRemains);
+    cbMinusRemains.Checked := IDE.GetFlag(efMinusRemains);
     gbMinusFeatures.Visible := cbMinusRemains.Checked;
 
     if not cbRemains.Checked then
@@ -994,15 +1000,15 @@ begin
 
     SetupMinusFeaturesTab;
 
-    cbIsChangeCardValue.Checked := FIDE.GetFlag(efIsChangeCardValue);
-    cbIsAppendCardValue.Checked := FIDE.GetFlag(efIsAppendCardValue);
-    cbIsUseCompanyKey.Checked := FIDE.GetFlag(efIsUseCompanyKey);
-    cbSaveRestWindowOption.Checked := FIDE.GetFlag(efSaveRestWindowOption);
-    cbEndMonthRemains.Checked := FIDE.GetFlag(efEndMonthRemains);
+    cbIsChangeCardValue.Checked := IDE.GetFlag(efIsChangeCardValue);
+    cbIsAppendCardValue.Checked := IDE.GetFlag(efIsAppendCardValue);
+    cbIsUseCompanyKey.Checked := IDE.GetFlag(efIsUseCompanyKey);
+    cbSaveRestWindowOption.Checked := IDE.GetFlag(efSaveRestWindowOption);
+    cbEndMonthRemains.Checked := IDE.GetFlag(efEndMonthRemains);
 
     cbWithoutSearchRemains.Visible := not cbControlRemains.Checked and (cbTemplate.ItemIndex = 1);
     if cbWithoutSearchRemains.Visible then
-      cbWithoutSearchRemains.Checked := FIDE.GetFlag(efWithoutSearchRemains)
+      cbWithoutSearchRemains.Checked := IDE.GetFlag(efWithoutSearchRemains)
     else
       cbWithoutSearchRemains.Checked := False;
   finally
@@ -1062,11 +1068,13 @@ end;
 
 procedure Tgdc_dlgSetupInvDocument.SetupMovementTab;
 
-  procedure UpdateComboBox(R: TatRelation; Box: TComboBox);
+  procedure UpdateComboBox(const AHeaderTable: Boolean; Box: TComboBox);
   var
     I: Integer;
     ChosenField: String;
     S, F: Integer;
+    IDE: TgdInvDocumentEntry;
+    R: TatRelation;
   begin
     if Box.ItemIndex <> -1 then
     begin
@@ -1078,7 +1086,10 @@ procedure Tgdc_dlgSetupInvDocument.SetupMovementTab;
 
     Box.Items.Clear;
 
-    if Assigned(R) then
+    IDE := FIDEParent;
+    R := GetRelation(AHeaderTable);
+
+    while R <> nil do
     begin
       for I := 0 to R.RelationFields.Count - 1 do
         if R.RelationFields[i].IsUserDefined then
@@ -1086,6 +1097,20 @@ procedure Tgdc_dlgSetupInvDocument.SetupMovementTab;
           Box.Items.Add(R.RelationFields[I].lname + '(' +
             R.RelationFields[I].fieldname + ')');
         end;
+
+      if IDE <> nil then
+      begin
+        if AHeaderTable then
+          R := atDatabase.Relations.ByRelationName(IDE.HeaderRelName)
+        else
+          R := atDatabase.Relations.ByRelationName(IDE.LineRelName);
+
+        if IDE.Parent is TgdInvDocumentEntry then
+          IDE := IDE.Parent as TgdInvDocumentEntry
+        else
+          IDE := nil;
+      end else
+        break;
     end;
 
     if ChosenField > '' then
@@ -1103,14 +1128,14 @@ begin
   if pcMain.ActivePage = tsIncomeMovement then
   begin
     if rgDebitFrom.ItemIndex = 0 then
-      UpdateComboBox(GetRelation(True), luDebitFrom) else
+      UpdateComboBox(True, luDebitFrom) else
     if rgDebitFrom.ItemIndex = 1 then
-      UpdateComboBox(GetRelation(False), luDebitFrom);
+      UpdateComboBox(False, luDebitFrom);
 
     if rgDebitSubFrom.ItemIndex = 0 then
-      UpdateComboBox(GetRelation(True), luDebitSubFrom) else
+      UpdateComboBox(True, luDebitSubFrom) else
     if rgDebitSubFrom.ItemIndex = 1 then
-      UpdateComboBox(GetRelation(False), luDebitSubFrom);
+      UpdateComboBox(False, luDebitSubFrom);
 
     cbDebitMovementChange(cbDebitMovement);
   end else
@@ -1118,14 +1143,14 @@ begin
   if pcMain.ActivePage = tsOutlayMovement then
   begin
     if rgCreditFrom.ItemIndex = 0 then
-      UpdateComboBox(GetRelation(True), luCreditFrom) else
+      UpdateComboBox(True, luCreditFrom) else
     if rgCreditFrom.ItemIndex = 1 then
-      UpdateComboBox(GetRelation(False), luCreditFrom);
+      UpdateComboBox(False, luCreditFrom);
 
     if rgCreditSubFrom.ItemIndex = 0 then
-      UpdateComboBox(GetRelation(True), luCreditSubFrom) else
+      UpdateComboBox(True, luCreditSubFrom) else
     if rgCreditSubFrom.ItemIndex = 1 then
-      UpdateComboBox(GetRelation(False), luCreditSubFrom);
+      UpdateComboBox(False, luCreditSubFrom);
 
     cbDebitMovementChange(cbCreditMovement);
   end;
@@ -1167,7 +1192,7 @@ begin
   {M}  end;
   {END MACRO}
 
-  if (FIDE <> nil) and (not FIDE.NewOptions) then
+  if gdClassList.OldOptions then
   begin
     MessageBox(Handle,
       'Необходимо сконвертировать параметры типа документа в новый формат!',
@@ -1445,25 +1470,37 @@ procedure Tgdc_dlgSetupInvDocument.UpdateTabs;
 var
   R: TatRelation;
   RelType: TgdcInvRelationType;
+  IDE: TgdInvDocumentEntry;
 begin
-  if (Document.State = dsEdit) and (cbTemplate.ItemIndex = -1) and
-    (edEnglishName.Text > '') then
+  if cbTemplate.ItemIndex = -1 then
   begin
-    R := atDatabase.Relations.ByID(Document.FieldByName('linerelkey').AsInteger);
+    if FIDEParent <> nil then
+      IDE := FIDEParent
+    else
+      IDE := nil;
 
-    if R <> nil then
+    while cbTemplate.ItemIndex = -1 do
     begin
-      RelType := RelationTypeByRelation(R);
-      if RelType <> irtInvalid then
-        cbTemplate.ItemIndex := Integer(RelType)
+      if IDE = nil then
+        R := GetRelation(False)
       else
-        cbTemplate.ItemIndex := -1;
-    end else
-      cbTemplate.ItemIndex := -1;
+        R := atDatabase.Relations.ByRelationName(IDE.LineRelName);
+
+      if R <> nil then
+      begin
+        RelType := RelationTypeByRelation(R);
+        if RelType <> irtInvalid then
+          cbTemplate.ItemIndex := Integer(RelType);
+      end;
+
+      if (IDE = nil) or (not (IDE.Parent is TgdInvDocumentEntry)) then
+        break
+      else
+        IDE := IDE.Parent as TgdInvDocumentEntry;  
+    end;
   end;
 
   iblcHeaderTable.Enabled := edEnglishName.Text > '';
-
   iblcLineTable.Enabled := iblcLineTable.ItemIndex >= 0;
 
   if iblcLineTable.gdClassName <> 'TgdcInheritedDocumentTable' then
@@ -1493,7 +1530,7 @@ var
   R, RL: TatRelation;
 
 begin
-  Assert(Assigned(Document));
+  Assert(Document <> nil);
 
   //
   // По изменению шаблона таблицы осуществляем изменение ее структуры.
@@ -1840,19 +1877,27 @@ var
   Item, UsedItem: TListItem;
   R: TatRelation;
   RF: TatRelationField;
+  IDE: TgdInvDocumentEntry;
 begin
   lvMinusFeatures.Items.Clear;
   lvMinusUsedFeatures.Items.Clear;
 
-  if FIDE.GetFeaturesCount(ftMinus) = 0 then
+  if FIDE <> nil then
+    IDE := FIDE
+  else if FIDEParent <> nil then
+    IDE := FIDEParent
+  else
+    exit;
+
+  if IDE.GetFeaturesCount(ftMinus) = 0 then
     exit;
 
   R := atDatabase.Relations.ByRelationName('INV_CARD');
   Assert(R <> nil);
 
-  for I := 0 to FIDE.GetFeaturesCount(ftDest) - 1 do
+  for I := 0 to IDE.GetFeaturesCount(ftDest) - 1 do
   begin
-    RF := R.RelationFields.ByFieldName(FIDE.GetFeature(ftDest, I));
+    RF := R.RelationFields.ByFieldName(IDE.GetFeature(ftDest, I));
     if RF <> nil then
     begin
       Item := lvMinusFeatures.Items.Add;
@@ -1861,9 +1906,9 @@ begin
     end;
   end;
 
-  for I := 0 to FIDE.GetFeaturesCount(ftMinus) - 1 do
+  for I := 0 to IDE.GetFeaturesCount(ftMinus) - 1 do
   begin
-    Item := FindFeature(FIDE.GetFeature(ftMinus, I), False, True);
+    Item := FindFeature(IDE.GetFeature(ftMinus, I), False, True);
     if Item = nil then
       continue;
 
@@ -1950,12 +1995,6 @@ begin
 
   inherited;
 
-  if tsCommon.TabVisible then
-    pcMain.ActivePage := tsCommon;
-
-  cbTemplate.ItemIndex := -1;
-  cbDocument.ItemIndex := -1;
-
   // Страница признаков
   lvFeatures.Items.Clear;
 
@@ -1992,21 +2031,6 @@ begin
 
   cbCreditMovement.Items.Assign(cbDebitMovement.Items);
 
-  // Страница справочники
-  cbReference.Checked := False;
-  cbRemains.Checked := False;
-  rgMovementDirection.Visible := False;
-  cbControlRemains.Visible := False;
-  cbMinusRemains.Visible := False;
-  cbLiveTimeRemains.Visible := False;
-
-  rgMovementDirection.ItemIndex := 0;
-
-  // Страница редактирование
-  cbDelayedDocument.Checked := False;
-  iblcLineTable.Enabled := Document.State <> dsInsert;
-  iblcHeaderTable.Enabled := edEnglishName.Text > '';
-
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -2022,9 +2046,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  DE: TgdDocumentEntry;
-  R: TatRelation;
-  RelType: TgdcInvRelationType;
+  DE, DEParent: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSETUPINVDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -2046,52 +2068,68 @@ begin
   {M}    end;
   {END MACRO}
 
-  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
-
-  if DE is TgdInvDocumentEntry then
-    FIDE := DE as TgdInvDocumentEntry
-  else if DE = nil then
-    FIDE := nil
-  else
-    raise Exception.Create('Not an inventory document type.');    
-
   inherited;
 
-  if Document.State in [dsEdit, dsInsert] then
+  cbTemplate.ItemIndex := -1;
+  cbDocument.ItemIndex := -1;
+
+  DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
+  DEParent := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
+
+  if (DE <> nil) then
+    FIDE := DE as TgdInvDocumentEntry
+  else
+    FIDE := nil;
+
+  if (DEParent <> nil) then
+    FIDEParent := DEParent as TgdInvDocumentEntry
+  else
+    FIDEParent := nil;
+
+  if FIDEParent <> nil then
   begin
-    ReadOptions;
-    UpdateTabs;
-
-    pcMain.ActivePage := tsCommon;
-
-    R := GetRelation(False);
-    if Assigned(R) then
-    begin
-      RelType := RelationTypeByRelation(R);
-      if RelType <> irtInvalid then
-        cbTemplate.ItemIndex := Integer(RelType)
-      else
-        cbTemplate.ItemIndex := -1;
-    end else
-      cbTemplate.ItemIndex := -1;
-
-    if Document.State = dsEdit then
-    begin
-      cbTemplate.Enabled := False;
-      lblDocument.Visible := False;
-      cbDocument.Visible := False;
-      lblNotification.Visible := False;
-    end else
-    begin
-      lblDocument.Visible := True;
-      cbDocument.Visible := True;
-
-      CreateDocumentTemplateData;
-      UpdateDocumentTemplates;
-      lblNotification.Visible := True;
-    end;
+    iblcHeaderTable.gdClassName := 'TgdcInheritedDocumentTable';
+    iblcLineTable.gdClassName := 'TgdcInheritedDocumentTable';
+  end else
+  begin
+    iblcHeaderTable.gdClassName := 'TgdcDocumentTable';
+    iblcLineTable.gdClassName := 'TgdcDocumentLineTable';
   end;
 
+  if (FIDE <> nil) or (FIDEParent <> nil) then
+  begin
+    cbTemplate.Enabled := False;
+    lblDocument.Visible := False;
+    cbDocument.Visible := False;
+    lblNotification.Visible := False;
+  end else
+  begin
+    lblDocument.Visible := True;
+    cbDocument.Visible := True;
+
+    CreateDocumentTemplateData;
+    UpdateDocumentTemplates;
+    lblNotification.Visible := True;
+  end;
+
+  // Страница справочники
+  cbReference.Checked := False;
+  cbRemains.Checked := False;
+  rgMovementDirection.Visible := False;
+  cbControlRemains.Visible := False;
+  cbMinusRemains.Visible := False;
+  cbLiveTimeRemains.Visible := False;
+
+  rgMovementDirection.ItemIndex := 0;
+
+  // Страница редактирование
+  cbDelayedDocument.Checked := False;
+  iblcLineTable.Enabled := FIDE <> nil;
+  iblcHeaderTable.Enabled := edEnglishName.Text > '';
+
+  ReadOptions;
+  UpdateTabs;
+  
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -2179,7 +2217,7 @@ begin
 
   gdcObject.FieldByName('reportgroupkey').AsInteger := RGKey;
 
-  inherited;
+  inherited;                      
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST)}
   {M}finally
@@ -2203,8 +2241,6 @@ begin
     DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
     if DE is TgdInvDocumentEntry then
       IE := DE as TgdInvDocumentEntry
-    else if DE = nil then
-      IE := nil
     else
       raise EgdcInvDocumentType.Create('Not an inventory document type');
 
@@ -2215,7 +2251,7 @@ begin
 
     // Приход
 
-    if (IE = nil) or (IE.GetMCOContactType(emDebit) <> TgdcInvMovementContactType(cbDebitMovement.ItemIndex)) then
+    if IE.GetMCOContactType(emDebit) <> TgdcInvMovementContactType(cbDebitMovement.ItemIndex) then
       Document.UpdateContactTypeOption(TgdcInvMovementContactType(cbDebitMovement.ItemIndex), 'DM');
 
     if rgDebitFrom.ItemIndex = 0 then
@@ -2223,7 +2259,7 @@ begin
     else
       CurrR := RL;
 
-    if (IE = nil) or (IE.GetMCORelationName(emDebit) <> CurrR.RelationName)
+    if (IE.GetMCORelationName(emDebit) <> CurrR.RelationName)
       or (IE.GetMCOSourceFieldName(emDebit) <> FindFieldInCombo(luDebitFrom)) then
     begin
       Document.UpdateRF(CurrR.RelationFields.ByFieldName(FindFieldInCombo(luDebitFrom)), 'DM.SF');
@@ -2236,28 +2272,22 @@ begin
       else
         CurrR := RL;
 
-      if (IE = nil) or (IE.GetMCOSubRelationName(emDebit) <> CurrR.RelationName) or (IE.GetMCOSubSourceFieldName(emDebit) <> FindFieldInCombo(luDebitSubFrom)) then
+      if (IE.GetMCOSubRelationName(emDebit) <> CurrR.RelationName) or (IE.GetMCOSubSourceFieldName(emDebit) <> FindFieldInCombo(luDebitSubFrom)) then
         Document.UpdateRF(CurrR.RelationFields.ByFieldName(FindFieldInCombo(luDebitSubFrom)), 'DM.SSF');
     end else
       Document.UpdateRF(nil, 'DM.SSF');
 
-    if IE = nil then
-      V := nil
-    else
-      IE.GetMCOPredefined(emDebit, V);
+    IE.GetMCOPredefined(emDebit, V);
 
     Document.UpdateContactList(lvDebitMovementValues, 'DM.Predefined', V);
 
-    if IE = nil then
-      V := nil
-    else
-      IE.GetMCOSubPredefined(emDebit, V);
+    IE.GetMCOSubPredefined(emDebit, V);
 
     Document.UpdateContactList(lvSubDebitMovementValues, 'DM.SubPredefined', V);
 
     // Расход
 
-    if (IE = nil) or (IE.GetMCOContactType(emCredit) <> TgdcInvMovementContactType(cbCreditMovement.ItemIndex)) then
+    if (IE.GetMCOContactType(emCredit) <> TgdcInvMovementContactType(cbCreditMovement.ItemIndex)) then
       Document.UpdateContactTypeOption(TgdcInvMovementContactType(cbCreditMovement.ItemIndex), 'CM');
 
     if rgCreditFrom.ItemIndex = 0 then
@@ -2265,7 +2295,7 @@ begin
     else
       CurrR := RL;
 
-    if (IE = nil) or (IE.GetMCORelationName(emCredit) <> CurrR.RelationName) or (IE.GetMCOSourceFieldName(emCredit) <> FindFieldInCombo(luCreditFrom)) then
+    if (IE.GetMCORelationName(emCredit) <> CurrR.RelationName) or (IE.GetMCOSourceFieldName(emCredit) <> FindFieldInCombo(luCreditFrom)) then
       Document.UpdateRF(CurrR.RelationFields.ByFieldName(FindFieldInCombo(luCreditFrom)), 'CM.SF');
 
     if cbUseOutlaySub.Checked then
@@ -2275,22 +2305,16 @@ begin
       else
         CurrR := RL;
 
-      if (IE = nil) or (IE.GetMCOSubRelationName(emCredit) <> CurrR.RelationName) or (IE.GetMCOSubSourceFieldName(emCredit) <> FindFieldInCombo(luCreditSubFrom)) then
+      if (IE.GetMCOSubRelationName(emCredit) <> CurrR.RelationName) or (IE.GetMCOSubSourceFieldName(emCredit) <> FindFieldInCombo(luCreditSubFrom)) then
         Document.UpdateRF(CurrR.RelationFields.ByFieldName(FindFieldInCombo(luCreditSubFrom)), 'CM.SSF');
     end else
       Document.UpdateRF(nil, 'CM.SSF');
 
-    if IE = nil then
-      V := nil
-    else
-      IE.GetMCOPredefined(emCredit, V);
+    IE.GetMCOPredefined(emCredit, V);
 
     Document.UpdateContactList(lvCreditMovementValues, 'CM.Predefined', V);
 
-    if IE = nil then
-      V := nil
-    else
-      IE.GetMCOSubPredefined(emCredit, V);
+    IE.GetMCOSubPredefined(emCredit, V);
 
     Document.UpdateContactList(lvSubCreditMovementValues, 'CM.SubPredefined', V);
 

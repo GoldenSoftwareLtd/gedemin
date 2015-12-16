@@ -129,7 +129,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
       MaxLength = 20
       ParentCtl3D = False
       PasswordChar = '*'
-      TabOrder = 2
+      TabOrder = 3
     end
     object cbUser: TComboBox
       Left = 88
@@ -137,7 +137,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Width = 175
       Height = 21
       ItemHeight = 13
-      TabOrder = 1
+      TabOrder = 2
       OnChange = cbUserChange
     end
     object chbxRememberPassword: TCheckBox
@@ -146,20 +146,18 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Width = 129
       Height = 17
       Caption = 'Запомнить пароль'
-      TabOrder = 3
+      TabOrder = 4
     end
     object edDBName: TEdit
       Left = 88
       Top = 8
       Width = 151
       Height = 21
-      TabStop = False
-      Color = clBtnFace
       Ctl3D = True
       ParentCtl3D = False
-      ReadOnly = True
-      TabOrder = 4
+      TabOrder = 0
       Text = 'Комлексная автоматизация'
+      OnChange = edDBNameChange
     end
     object btnSelectDB: TButton
       Left = 239
@@ -167,7 +165,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Width = 23
       Height = 20
       Action = actSelectDB
-      TabOrder = 0
+      TabOrder = 1
     end
   end
   object btnOk: TButton
@@ -224,7 +222,6 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Height = 17
       Action = actSingleUser
       TabOrder = 1
-      OnClick = chbxSingleUserClick
     end
     object btnVer: TButton
       Left = 8

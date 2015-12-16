@@ -942,7 +942,7 @@ begin
   Result := 'Tgdc_frmReportList';
 end;
 
-function TgdcReport.EditDialog(const ADlgClassName: String): Boolean;
+function TgdcReport.EditDialog(const ADlgClassName: String = ''): Boolean;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
@@ -950,7 +950,6 @@ function TgdcReport.EditDialog(const ADlgClassName: String): Boolean;
   {END MACRO}
 begin
   {@UNFOLD MACRO INH_ORIG_EDITDIALOG('TGDCREPORT', 'EDITDIALOG', KEYEDITDIALOG)}
-  {M}  Result := False;
   {M}  try
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}    begin
@@ -975,7 +974,10 @@ begin
   {M}          end;
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCREPORT' then
+  {M}        begin
+  {M}          Result := inherited EditDialog(ADlgClassName);
   {M}          Exit;
+  {M}        end;
   {M}    end;
   {END MACRO}
 

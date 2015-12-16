@@ -55,7 +55,8 @@ type
     ttInvTransfrom,
     ttTableToTable,
     ttPrimeTable,
-    ttInheritedTable);
+    ttInheritedTable,
+    ttInheritedDocumentTable);
 
   TgdcTablePersistence = (
     tpRegular,
@@ -1923,27 +1924,31 @@ begin
   begin
     if FieldByName('relationtype').AsString = 'T' then
     begin
-      case GetTableTypeByName(FieldByName('relationname').AsString) of
-        ttInheritedTable:      CE := gdClassList.Get(TgdBaseEntry, 'TgdcInheritedTable', '');
-        ttTableToTable:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcTableToTable', '');
-        ttSimpleTable:         CE := gdClassList.Get(TgdBaseEntry, 'TgdcSimpleTable', '');
-        ttTree:                CE := gdClassList.Get(TgdBaseEntry, 'TgdcTreeTable', '');
-        ttIntervalTree:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcLBRBTreeTable', '');
-        ttCustomTable:         CE := gdClassList.Get(TgdBaseEntry, 'TgdcCustomTable', '');
-        ttDocument:            CE := gdClassList.Get(TgdBaseEntry, 'TgdcDocumentTable', '');
-        ttDocumentLine:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcDocumentLineTable', '');
-        ttInvSimple:           CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvSimpleDocumentLineTable', '');
-        ttInvFeature:          CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvFeatureDocumentLineTable', '');
-        ttInvInvent:           CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvInventDocumentLineTable', '');
-        ttInvTransfrom:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvTransformDocumentLineTable', '');
-        ttUnknow:              CE := gdClassList.Get(TgdBaseEntry, 'TgdcUnknownTable', '');
-        ttPrimeTable:          CE := gdClassList.Get(TgdBaseEntry, 'TgdcPrimeTable', '');
-      else
-        CE := nil;
-      end;
+      CE := nil;
+
+      if FieldByName('relationname').AsString > '' then
+        case GetTableTypeByName(FieldByName('relationname').AsString) of
+          ttInheritedTable:      CE := gdClassList.Get(TgdBaseEntry, 'TgdcInheritedTable', '');
+          ttTableToTable:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcTableToTable', '');
+          ttSimpleTable:         CE := gdClassList.Get(TgdBaseEntry, 'TgdcSimpleTable', '');
+          ttTree:                CE := gdClassList.Get(TgdBaseEntry, 'TgdcTreeTable', '');
+          ttIntervalTree:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcLBRBTreeTable', '');
+          ttCustomTable:         CE := gdClassList.Get(TgdBaseEntry, 'TgdcCustomTable', '');
+          ttDocument:            CE := gdClassList.Get(TgdBaseEntry, 'TgdcDocumentTable', '');
+          ttDocumentLine:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcDocumentLineTable', '');
+          ttInvSimple:           CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvSimpleDocumentLineTable', '');
+          ttInvFeature:          CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvFeatureDocumentLineTable', '');
+          ttInvInvent:           CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvInventDocumentLineTable', '');
+          ttInvTransfrom:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvTransformDocumentLineTable', '');
+          ttUnknow:              CE := gdClassList.Get(TgdBaseEntry, 'TgdcUnknownTable', '');
+          ttPrimeTable:          CE := gdClassList.Get(TgdBaseEntry, 'TgdcPrimeTable', '');
+          ttInheritedDocumentTable: CE := gdClassList.Get(TgdBaseEntry, 'TgdcInheritedDocumentTable', '');
+        end;
 
       if CE is TgdBaseEntry then
         Result.gdClass := TgdBaseEntry(CE).gdcClass
+      else if Self is TgdcBaseTable then
+        Result.gdClass := CgdcBase(Self.ClassType)
       else
         Result.gdClass := TgdcTable;
     end
@@ -4761,6 +4766,7 @@ function GetTableTypeByName(const ARelationName: String): TgdcTableType;
 var
   R: TatRelation;
   RF: TatRelationField;
+  BE: TgdBaseEntry;
 begin
   R := atDatabase.Relations.ByRelationName(ARelationName);
   if R = nil then
@@ -4788,8 +4794,14 @@ begin
   else if R.RelationFields.ByFieldName('MASTERKEY') <> nil then
     Result := ttDocumentLine
   else if R.RelationFields.ByFieldName('DOCUMENTKEY') <> nil then
-    Result := ttDocument
-  else begin
+  begin
+    BE := gdClassList.FindByRelation(ARelationName);
+    if (BE is TgdDocumentEntry) and (BE.Parent is TgdDocumentEntry)
+      and (not (TgdDocumentEntry(BE.Parent).gdcClass.IsAbstractClass)) then
+      Result := ttInheritedDocumentTable
+    else
+      Result := ttDocument;
+  end else begin
     RF := R.RelationFields.ByFieldName('ID');
     if RF <> nil then
     begin

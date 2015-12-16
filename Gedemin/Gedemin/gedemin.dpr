@@ -318,7 +318,7 @@ uses
   , gd_AutoTaskThread in '..\Component\gd_AutoTaskThread.pas'
   , gdcSMTP in '..\Component\GDC\gdcSMTP.pas'
   {$IFDEF FR4}, dlgSendReport_unit in '..\Report\dlgSendReport_unit.pas'{$ENDIF}
-  , gdLogClient in '..\GAdmin\gdLogClient.pas';
+  ;
 
 {$R Gedemin.TLB}
 {$R GEDEMIN.RES}
@@ -629,8 +629,6 @@ begin
 
   ApplicationEventsHandler := TgdApplicationEventsHandler.Create;
   try
-    gdLog.Init;
-    
     FApplicationEvents := TApplicationEvents.Create(Application);
     FApplicationEvents.OnException := ApplicationEventsHandler.ApplicationEventsException;
     FApplicationEvents.OnHelp := ApplicationEventsHandler.ApplicationEventsHelp;
@@ -734,7 +732,6 @@ begin
     end;
   finally
     ApplicationEventsHandler.Free;
-    gdLog.Done;
   end;
 end.
 

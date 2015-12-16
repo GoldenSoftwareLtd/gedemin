@@ -51,6 +51,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
+
   end;
 
   TgdcAcctFolder = class(TgdcAcctBase)
@@ -77,6 +78,8 @@ type
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
     constructor Create(AnOwner: TComponent); override;
+
+
   end;
 
   TgdcAcctAccount = class(TgdcAcctBase)
@@ -90,7 +93,7 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
     class function GetRestrictCondition(const ATableName,
       ASubType: String): String; override;
-      
+
     function CheckTheSameStatement: String; override;
   end;
 
@@ -661,6 +664,7 @@ end;
 
 { TgdcAcctSubAccount }
 
+
 function TgdcAcctSubAccount.GetAccountType: String;
 begin
   Result := 'S';
@@ -692,6 +696,8 @@ begin
   inherited;
   S.Add(GetRestrictCondition('', ''));
 end;
+
+
 
 initialization
   RegisterGdcClass(TgdcAcctBase,       'Бухгалтерский план счетов');

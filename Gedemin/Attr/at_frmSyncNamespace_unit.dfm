@@ -16,7 +16,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   TextHeight = 13
   object splMessages: TSplitter
     Left = 0
-    Top = 370
+    Top = 369
     Width = 1115
     Height = 2
     Cursor = crVSplit
@@ -26,7 +26,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object sb: TStatusBar
     Left = 0
-    Top = 461
+    Top = 460
     Width = 1115
     Height = 19
     Panels = <>
@@ -236,7 +236,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Left = 0
     Top = 72
     Width = 1115
-    Height = 298
+    Height = 297
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -371,7 +371,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object mMessages: TRichEdit
     Left = 0
-    Top = 372
+    Top = 371
     Width = 1115
     Height = 89
     Align = alBottom

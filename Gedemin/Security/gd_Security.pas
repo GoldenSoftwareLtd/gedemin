@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1998-2014 by Golden Software of Belarus
+  Copyright (c) 1998-2015 by Golden Software of Belarus
 
   Module
 
@@ -243,6 +243,7 @@ type
     //
     procedure AddEvent(const AData: String;
       const ASource: String = '';
+      const AnObjectName: String = '';
       const AnObjectID: Integer = -1;
       const ATransaction: TObject = nil);
 

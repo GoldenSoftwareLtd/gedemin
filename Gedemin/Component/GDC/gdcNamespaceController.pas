@@ -3,7 +3,7 @@ unit gdcNamespaceController;
 interface
 
 uses
-  DB, IBDatabase, IBCustomDataSet, gdcBase, DBGrids;
+  Classes, DB, IBDatabase, IBCustomDataSet, gdcBase, DBGrids;
 
 type
   TgdcNamespaceController = class(TObject)
@@ -19,6 +19,8 @@ type
     FIncludeSiblings: Boolean;
     FIncludeLinked: Boolean;
     FObjectName: String;
+    FTabs: TStringList;
+    FSessionID: Integer;
 
     procedure DeleteFromNamespace;
     procedure MoveBetweenNamespaces;
@@ -31,6 +33,7 @@ type
 
     procedure Setup(AnObject: TgdcBase; ABL: TBookmarkList);
     function Include: Boolean;
+    function SetupDS(const ATab: Integer): TDataSet;
 
     property ObjectName: String read FObjectName;
     property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
@@ -41,12 +44,15 @@ type
     property CurrentNSID: Integer read FCurrentNSID write FCurrentNSID;
     property ibdsLink: TIBDataSet read FibdsLink;
     property Enabled: Boolean read GetEnabled;
+    property Tabs: TStringList read FTabs;
   end;
 
 implementation
 
 uses
-  Windows, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace, gdcClasses;
+  Windows, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace, gdcClasses, gdcStorage,
+  gdcEvent, gdcReport, gdcMacros, gdcAcctTransaction, gdcInvDocumentOptions,
+  gdcMetaData, gdcDelphiObject, gdcClasses_Interface, gd_KeyAssoc;
 
 type
   TIterateProc = procedure of object;
@@ -118,7 +124,8 @@ begin
   FibdsLink.ReadTransaction := FIBTransaction;
   FibdsLink.Transaction := FIBTransaction;
   FibdsLink.SelectSQL.Text :=
-    'SELECT DISTINCT '#13#10 +
+    'SELECT '#13#10 +
+    '  od.seqid, ' +
     '  od.refobjectid as id, '#13#10 +
     '  r.xid as xid, '#13#10 +
     '  r.dbid as dbid, '#13#10 +
@@ -135,7 +142,9 @@ begin
     'WHERE '#13#10 +
     '  od.sessionid = :sid '#13#10 +
     'ORDER BY '#13#10 +
-    '  od.reflevel DESC';
+    '  od.seqid DESC';
+
+  FTabs := TStringList.Create;
 end;
 
 procedure TgdcNamespaceController.DeleteFromNamespace;
@@ -160,6 +169,7 @@ end;
 
 destructor TgdcNamespaceController.Destroy;
 begin
+  FTabs.Free;
   FibdsLink.Free;
   FIBTransaction.Free;
   inherited;
@@ -202,14 +212,16 @@ function TgdcNamespaceController.Include: Boolean;
 
 var
   gdcNamespaceObject: TgdcNamespaceObject;
-  HeadObjectKey, HeadObjectPos, NSKey: Integer;
+  HeadObjectKey, HeadObjectPos, NSKey, ObjCount, J: Integer;
   q, qNSList, qFind: TIBSQL;
   FirstRUID: TRUID;
+  DS: TDataSet;
 begin
   Assert(FIBTransaction.InTransaction);
 
   FirstRUID.XID := -1;
   FirstRUID.DBID := -1;
+  ObjCount := 0;
 
   if (FPrevNSID > -1) and (FCurrentNSID = -1) then
     IterateBL(DeleteFromNamespace, FirstRUID)
@@ -266,116 +278,121 @@ begin
           '  AND xid = :xid AND dbid = :dbid';
         qFind.ParamByName('CurrNS').AsInteger := FCurrentNSID;
 
-        FibdsLink.Close;
-        FibdsLink.Open;
-
-        FibdsLink.Last;
-        while not FibdsLink.BOF do
+        for J := 0 to FTabs.Count - 1 do
         begin
-          NSKey := -1;
-
-          if (not FibdsLink.FieldByName('xid').IsNull)
-            and (not FibdsLink.FieldByName('dbid').IsNull) then
+          DS := SetupDS(J);
+          DS.Last;
+          while not DS.BOF do
           begin
-            qNSList.Close;
-            qNSList.ParamByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
-            qNSList.ParamByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
-            qNSList.ExecQuery;
+            NSKey := -1;
 
-            if (not qNSList.EOF) and (qNSList.Fields[0].AsString > '') then
+            if (not DS.FieldByName('xid').IsNull)
+              and (not DS.FieldByName('dbid').IsNull) then
             begin
-              NSKey := StrToIntDef(qNSList.Fields[1].AsString, -1);
+              qNSList.Close;
+              qNSList.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+              qNSList.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+              qNSList.ExecQuery;
 
-              if NSKey = -1 then
+              if (not qNSList.EOF) and (qNSList.Fields[0].AsString > '') then
               begin
-                if MessageBox(0,
-                  PChar('Объект "' + FibdsLink.FieldByName('class').AsString +
-                  FibdsLink.FieldByName('subtype').AsString + ' - ' +
-                  FibdsLink.FieldByName('name').AsString + '"'#13#10 +
-                  'входит в пространства имен:'#13#10#13#10 +
-                  StringReplace(qNSList.Fields[0].AsString, '^', #13#10, [rfReplaceAll]) + #13#10#13#10 +
-                  'Добавить ПИ в список зависимости?'),
-                  'Внимание',
-                  MB_OKCANCEL or MB_ICONQUESTION or MB_TASKMODAL) = IDOK then
+                NSKey := StrToIntDef(qNSList.Fields[1].AsString, -1);
+
+                if NSKey = -1 then
                 begin
-                  repeat
-                    NSKey := TgdcNamespace.SelectObject(
-                      'Выберите ПИ из предложенного списка:', 'Внимание', 0,
-                      'id IN (SELECT o.namespacekey FROM at_object o WHERE o.xid = ' +
-                      FibdsLink.FieldByName('xid').AsString +
-                      ' AND o.dbid = ' +
-                      FibdsLink.FieldByName('dbid').AsString +
-                      ' AND o.namespacekey <> ' + IntToStr(FCurrentNSID) +
-                      ')');
-                   until NSKey <> -1;
-                end else
-                begin
-                  MessageBox(0,
-                    'Процесс добавления объекта прерван пользователем.',
+                  if MessageBox(0,
+                    PChar('Объект "' + DS.FieldByName('class').AsString +
+                    DS.FieldByName('subtype').AsString + ' - ' +
+                    DS.FieldByName('name').AsString + '"'#13#10 +
+                    'входит в пространства имен:'#13#10#13#10 +
+                    StringReplace(qNSList.Fields[0].AsString, '^', #13#10, [rfReplaceAll]) + #13#10#13#10 +
+                    'Добавить ПИ в список зависимости?'),
                     'Внимание',
-                    MB_OK or MB_TASKMODAL or MB_ICONEXCLAMATION);
-                  FIBTransaction.Rollback;
-                  Result := False;
-                  exit;
+                    MB_OKCANCEL or MB_ICONQUESTION or MB_TASKMODAL) = IDOK then
+                  begin
+                    repeat
+                      NSKey := TgdcNamespace.SelectObject(
+                        'Выберите ПИ из предложенного списка:', 'Внимание', 0,
+                        'id IN (SELECT o.namespacekey FROM at_object o WHERE o.xid = ' +
+                        DS.FieldByName('xid').AsString +
+                        ' AND o.dbid = ' +
+                        DS.FieldByName('dbid').AsString +
+                        ' AND o.namespacekey <> ' + IntToStr(FCurrentNSID) +
+                        ')');
+                     until NSKey <> -1;
+                  end else
+                  begin
+                    MessageBox(0,
+                      'Процесс добавления объекта прерван пользователем.',
+                      'Внимание',
+                      MB_OK or MB_TASKMODAL or MB_ICONEXCLAMATION);
+                    FIBTransaction.Rollback;
+                    Result := False;
+                    exit;
+                  end;
                 end;
-              end;  
-            end;
-          end;
-
-          if NSKey = -1 then
-          begin
-            if Pos('RDB$', FibdsLink.FieldByName('name').AsString) <> 1 then
-            begin
-              qFind.Close;
-              qFind.ParamByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
-              qFind.ParamByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
-              qFind.ExecQuery;
-
-              if qFind.EOF then
-              begin
-                gdcNamespaceObject.Insert;
-                gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
-                gdcNamespaceObject.FieldByName('objectname').AsString := FibdsLink.FieldByName('name').AsString;
-                gdcNamespaceObject.FieldByName('objectclass').AsString := FibdsLink.FieldByName('class').AsString;
-                gdcNamespaceObject.FieldByName('subtype').AsString := FibdsLink.FieldByName('subtype').AsString;
-                gdcNamespaceObject.FieldByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
-                gdcNamespaceObject.FieldByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
-                gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
-                if FAlwaysOverwrite then
-                  gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
-                else
-                  gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
-                if FDontRemove then
-                  gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
-                else
-                  gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
-                if FIncludeSiblings then
-                  gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
-                else
-                  gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
-                gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
-                if FibdsLink.FieldByName('editiondate').IsNull then
-                begin
-                  gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
-                  gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
-                end else
-                begin
-                  gdcNamespaceObject.FieldByName('modified').AsDateTime :=
-                    FibdsLink.FieldByName('editiondate').AsDateTime;
-                  gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
-                    FibdsLink.FieldByName('editiondate').AsDateTime;
-                end;
-                gdcNamespaceObject.Post;
               end;
             end;
-          end
-          else if NSKey <> FCurrentNSID then
-          begin
-            q.ParamByName('uk').AsInteger := NSKey;
-            q.ExecQuery;
+
+            if NSKey = -1 then
+            begin
+              if Pos('RDB$', DS.FieldByName('name').AsString) <> 1 then
+              begin
+                qFind.Close;
+                qFind.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+                qFind.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+                qFind.ExecQuery;
+
+                if qFind.EOF then
+                begin
+                  gdcNamespaceObject.Insert;
+                  gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
+                  gdcNamespaceObject.FieldByName('objectname').AsString := DS.FieldByName('name').AsString;
+                  gdcNamespaceObject.FieldByName('objectclass').AsString := DS.FieldByName('class').AsString;
+                  gdcNamespaceObject.FieldByName('subtype').AsString := DS.FieldByName('subtype').AsString;
+                  gdcNamespaceObject.FieldByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+                  gdcNamespaceObject.FieldByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+                  gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
+                  if FAlwaysOverwrite then
+                    gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+                  else
+                    gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+                  if FDontRemove then
+                    gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+                  else
+                    gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+                  if FIncludeSiblings then
+                    gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+                  else
+                    gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+                  gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
+                  if DS.FieldByName('editiondate').IsNull then
+                  begin
+                    gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
+                    gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+                  end else
+                  begin
+                    gdcNamespaceObject.FieldByName('modified').AsDateTime :=
+                      DS.FieldByName('editiondate').AsDateTime;
+                    gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+                      DS.FieldByName('editiondate').AsDateTime;
+                  end;
+                  gdcNamespaceObject.Post;
+                  Inc(ObjCount);
+                end;
+              end;
+            end
+            else if NSKey <> FCurrentNSID then
+            begin
+              q.ParamByName('uk').AsInteger := NSKey;
+              q.ExecQuery;
+            end;
+
+            DS.Prior;
           end;
 
-          FibdsLink.Prior;
+          HeadObjectPos := HeadObjectPos + ObjCount + 1;
+          ObjCount := 0;
         end;
       finally
         q.Free;
@@ -434,8 +451,302 @@ var
   q: TIBSQL;
   I: Integer;
   Bm: String;
-  FSessionID: Integer;
-  LimitLevel: Integer;
+  Count: Integer;
+
+  procedure GetDep(AnObject: TgdcBase; const ASessionID: Integer;
+    const AnIncludeSelf: Boolean; const ALimitLevel: Integer = MAXINT;
+    const AnIgnoreFields: String = '');
+  var
+    MasterID: Integer;
+  begin
+    if AnIncludeSelf then
+      MasterID := FgdcObject.ID
+    else
+      MasterID := -1;
+
+    AnObject.GetDependencies(FIBTransaction, ASessionID, Count, False,
+      '"GD_DOCUMENT"."TRANSACTIONKEY";"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;' + AnIgnoreFields,
+      'GD_LASTNUMBER',
+      ALimitLevel,
+      False,
+      MasterID);
+  end;
+
+  procedure AddObjects(C: CgdcBase; const ASessionID: Integer;
+    const AnSQL: String; const AnIgnoreFields: String = '');
+  var
+    qObj: TIBSQL;
+    Obj: TgdcBase;
+  begin
+    Obj := C.Create(nil);
+    qObj := TIBSQL.Create(nil);
+    try
+      Obj.SubSet := 'ByID';
+      Obj.Transaction := FIBTransaction;
+
+      qObj.Transaction := FIBTransaction;
+      qObj.SQL.Text := AnSQL;
+      qObj.ParamByName('N').AsString := RUIDToStr(FgdcObject.GetRUID);
+      qObj.ExecQuery;
+
+      while not qObj.EOF do
+      begin
+        Obj.ID := qObj.FieldByName('id').AsInteger;
+        Obj.Open;
+        if not Obj.EOF then
+          GetDep(Obj, ASessionID, True, MAXINT, AnIgnoreFields);
+        Obj.Close;
+        qObj.Next;
+      end;
+    finally
+      qObj.Free;
+      Obj.Free;
+    end;
+  end;
+
+  procedure AddDocumentLines(const AHeaderID: Integer; const ASessionID: Integer);
+  var
+    qObj: TIBSQL;
+    Obj: TgdcBase;
+  begin
+    Obj := TgdcDocument.Create(nil);
+    qObj := TIBSQL.Create(nil);
+    try
+      Obj.SubSet := 'ByID';
+      Obj.Transaction := FIBTransaction;
+
+      qObj.Transaction := FIBTransaction;
+      qObj.SQL.Text := 'SELECT id FROM gd_document WHERE parent = :P';
+      qObj.ParamByName('P').AsInteger := AHeaderID;
+      qObj.ExecQuery;
+
+      while not qObj.EOF do
+      begin
+        Obj.ID := qObj.FieldByName('id').AsInteger;
+        Obj.Open;
+        if not Obj.EOF then
+          GetDep(Obj, ASessionID, True);
+        Obj.Close;
+        qObj.Next;
+      end;
+    finally
+      qObj.Free;
+      Obj.Free;
+    end;
+  end;
+
+  procedure ProcessObject;
+  var
+    LimitLevel, SessionID2: Integer;
+    IgnoreFields: String;
+  begin
+    LimitLevel := MAXINT;
+    IgnoreFields := '';
+    SessionID2 := FSessionID;
+
+    if FgdcObject is TgdcDocument then
+    begin
+      if (FgdcObject as TgdcDocument).GetDocumentClassPart = dcpHeader then
+        AddDocumentLines(FgdcObject.ID, SessionID2);
+    end
+    else if FgdcObject is TgdcBaseDocumentType then
+    begin
+      IgnoreFields := 'HEADERRELKEY;LINERELKEY';
+
+      Inc(SessionID2);
+      FTabs.AddObject('Хранилище', Pointer(SessionID2));
+      AddObjects(TgdcStorage, SessionID2,
+        'SELECT '#13#10 +
+        '  v.id '#13#10 +
+        'FROM '#13#10 +
+        '  gd_storage_data glbl '#13#10 +
+        '  JOIN gd_storage_data dfm '#13#10 +
+        '    ON dfm.parent = glbl.id AND dfm.name = ''DFM'' '#13#10 +
+        '  JOIN gd_storage_data frm_class '#13#10 +
+        '    ON frm_class.parent = dfm.id '#13#10 +
+        '  JOIN gd_storage_data v '#13#10 +
+        '    ON v.parent = frm_class.id '#13#10 +
+        'WHERE '#13#10 +
+        '  glbl.name = ''GLOBAL'' AND glbl.data_type = ''G'' '#13#10 +
+        '  AND v.name = :N AND v.data_type = ''B'' '#13#10 +
+        'UNION ALL '#13#10 +
+        'SELECT '#13#10 +
+        '  v.id '#13#10 +
+        'FROM '#13#10 +
+        '  gd_storage_data usr '#13#10 +
+        '  JOIN gd_storage_data frm '#13#10 +
+        '    ON frm.parent = usr.id '#13#10 +
+        '  JOIN gd_storage_data ibgr '#13#10 +
+        '    ON ibgr.parent = frm.id '#13#10 +
+        '  JOIN gd_storage_data v '#13#10 +
+        '    ON v.parent = ibgr.id '#13#10 +
+        'WHERE '#13#10 +
+        '  usr.id = 990010 '#13#10 +
+        '  AND frm.name CONTAINING :N '#13#10 +
+        '  AND ibgr.name LIKE ''ibgr%'' '#13#10 +
+        '  AND v.name = ''data'' '#13#10 +
+        '  AND v.data_type = ''B''');
+
+      Inc(SessionID2);
+      FTabs.AddObject('Скрипт-объекты', Pointer(SessionID2));
+      AddObjects(TgdcEvent, SessionID2,
+        'SELECT '#13#10 +
+        '  ev.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_objectevent ev '#13#10 +
+        '  JOIN evt_object o ON o.id = ev.objectkey '#13#10 +
+        '  JOIN evt_object p ON p.id = o.parent '#13#10 +
+        'WHERE '#13#10 +
+        '  p.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  p.name LIKE ''%'' || :N' +
+        ' '#13#10 +
+        'UNION ALL '#13#10 +
+        ' '#13#10 +
+        'SELECT '#13#10 +
+        '  ev.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_objectevent ev '#13#10 +
+        '  JOIN evt_object o ON o.id = ev.objectkey '#13#10 +
+        '  JOIN evt_object r ON r.lb < o.lb AND r.rb >= o.rb '#13#10 +
+        'WHERE '#13#10 +
+        '  r.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  r.NAME = ''TgdcBase'' '#13#10 +
+        '  AND '#13#10 +
+        '  o.name LIKE ''%'' || :N '#13#10 +
+        ' '#13#10 +
+        'UNION ALL '#13#10 +
+        ' '#13#10 +
+        'SELECT '#13#10 +
+        '  ev.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_objectevent ev '#13#10 +
+        '  JOIN evt_object o ON o.id = ev.objectkey '#13#10 +
+        '  JOIN evt_object r ON r.lb < o.lb AND r.rb >= o.rb '#13#10 +
+        'WHERE '#13#10 +
+        '  r.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  r.NAME = ''TgdcCreateableForm'' '#13#10 +
+        '  AND '#13#10 +
+        '  o.name LIKE ''%'' || :N');
+
+      AddObjects(TgdcReport, SessionID2,
+        'SELECT '#13#10 +
+        '  l.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object ev '#13#10 +
+        '  JOIN rp_reportgroup gr ON ev.reportgroupkey = gr.id '#13#10 +
+        '  JOIN rp_reportlist l ON l.REPORTGROUPKEY = gr.id '#13#10 +
+        'WHERE '#13#10 +
+        '  ev.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  ev.name LIKE ''%'' || :N ' +
+        'UNION ALL ' +
+        'SELECT '#13#10 +
+        '  l.id '#13#10 +
+        'FROM '#13#10 +
+        '  gd_documenttype dt '#13#10 +
+        '  JOIN rp_reportgroup gr ON dt.reportgroupkey = gr.id '#13#10 +
+        '  JOIN rp_reportlist l ON l.REPORTGROUPKEY = gr.id '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.ruid = :N');
+
+      AddObjects(TgdcMacros, SessionID2,
+        'SELECT '#13#10 +
+        '  ml.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_macroslist ml '#13#10 +
+        '  JOIN evt_macrosgroup mg ON ml.MACROSGROUPKEY = mg.id '#13#10 +
+        '  JOIN evt_macrosgroup mgp ON mgp.lb <= mg.LB AND mgp.rb >= mg.rb '#13#10 +
+        '  JOIN evt_object p ON p.MACROSGROUPKEY = mgp.id '#13#10 +
+        'WHERE '#13#10 +
+        '  p.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  p.name LIKE ''%'' || :N');
+
+      AddObjects(TgdcAcctTransactionEntry, SessionID2,
+        'SELECT '#13#10 +
+        '  tr.id '#13#10 +
+        'FROM '#13#10 +
+        '  ac_trrecord tr '#13#10 +
+        '  JOIN gd_documenttype dt ON dt.id = tr.documenttypekey '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.ruid = :N');
+
+      AddObjects(TgdcDelphiObject, SessionID2,
+        'SELECT '#13#10 +
+        '  id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object '#13#10 +
+        'WHERE '#13#10 +
+        '  name LIKE ''%'' || :N '#13#10 +
+        '  AND '#13#10 +
+        '  parent IS NOT NULL');
+
+      AddObjects(TgdcDelphiObject, SessionID2,
+        'SELECT '#13#10 +
+        '  id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object '#13#10 +
+        'WHERE '#13#10 +
+        '  name LIKE ''%'' || :N '#13#10 +
+        '  AND '#13#10 +
+        '  parent IS NULL');
+
+      Inc(SessionID2);
+      FTabs.AddObject('Параметры документа', Pointer(SessionID2));
+      AddObjects(TgdcInvDocumentTypeOptions, SessionID2,
+        'SELECT '#13#10 +
+        '  o.id '#13#10 +
+        'FROM '#13#10 +
+        '  gd_documenttype_option o '#13#10 +
+        '  JOIN gd_documenttype dt ON dt.id = o.DTKEY '#13#10 +
+        '  JOIN gd_documenttype dth ON dth.LB >= dt.LB AND dth.rb <= dt.rb '#13#10 +
+        'WHERE '#13#10 +
+        '  dth.ruid = :N',
+        'DTKEY');
+
+      AddObjects(TgdcRelationField, FSessionID,
+        'SELECT '#13#10 +
+        '  rf.id '#13#10 +
+        'FROM '#13#10 +
+        '  at_relation_fields rf '#13#10 +
+        '  JOIN gd_documenttype dt ON dt.linerelkey = rf.relationkey '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.ruid = :N AND rf.fieldname LIKE ''USR$%'' ');
+
+      AddObjects(TgdcRelation, FSessionID,
+        'SELECT '#13#10 +
+        '  r.id '#13#10 +
+        'FROM '#13#10 +
+        '  at_relations r '#13#10 +
+        '  JOIN gd_documenttype dt ON dt.linerelkey = r.id '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.ruid = :N');
+
+      AddObjects(TgdcRelationField, FSessionID,
+        'SELECT '#13#10 +
+        '  rf.id '#13#10 +
+        'FROM '#13#10 +
+        '  at_relation_fields rf '#13#10 +
+        '  JOIN gd_documenttype dt ON dt.headerrelkey = rf.relationkey '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.ruid = :N AND rf.fieldname LIKE ''USR$%'' ');
+
+      AddObjects(TgdcRelation, FSessionID,
+        'SELECT '#13#10 +
+        '  r.id '#13#10 +
+        'FROM '#13#10 +
+        '  at_relations r '#13#10 +
+        '  JOIN gd_documenttype dt ON dt.headerrelkey = r.id '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.ruid = :N');
+    end;
+
+    GetDep(FgdcObject, FSessionID, False, LimitLevel, IgnoreFields);
+  end;
+
 begin
   Assert(AnObject <> nil);
   { Состояние EOF объект получает не только при пустой таблице, но и в случае
@@ -472,39 +783,67 @@ begin
       FDontRemove := q.FieldByName('dontremove').AsInteger <> 0;
       FIncludeSiblings := q.FieldByName('includesiblings').AsInteger <> 0;
     end;
+
+    FSessionID := AnObject.GetNextID;
+    FTabs.Clear;
+    FTabs.AddObject('Зависимости', Pointer(FSessionID));
+    Count := 0;
+
+    if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) or (FBL.Count = 0) then
+      ProcessObject
+    else begin
+      FgdcObject.DisableControls;
+      try
+        Bm := FgdcObject.Bookmark;
+        for I := 0 to FBL.Count - 1 do
+        begin
+          FgdcObject.Bookmark := FBL[I];
+          ProcessObject;
+        end;
+        FgdcObject.Bookmark := Bm;
+      finally
+        FgdcObject.EnableControls;
+      end;
+    end;
+
+    q.Close;
+    q.SQL.Text :=
+      'EXECUTE BLOCK '#13#10 +
+      'AS '#13#10 +
+      '  /*DECLARE VARIABLE sessionid dintkey;*/ '#13#10 +
+      '  DECLARE VARIABLE seqid dintkey; '#13#10 +
+      '  DECLARE VARIABLE refobjectid dintkey; '#13#10 +
+      'BEGIN '#13#10 +
+      '  FOR '#13#10 +
+      '    SELECT /*sessionid,*/ seqid, refobjectid '#13#10 +
+      '    FROM gd_object_dependencies '#13#10 +
+      '    ORDER BY /*sessionid,*/ seqid DESC'#13#10 +
+      '    INTO /*:sessionid,*/ :seqid, :refobjectid '#13#10 +
+      '  DO BEGIN '#13#10 +
+      '    DELETE FROM gd_object_dependencies '#13#10 +
+      '    WHERE /*sessionid = :sessionid '#13#10 +
+      '      AND*/ seqid < :seqid '#13#10 +
+      '      AND refobjectid = :refobjectid; '#13#10 +
+      '  END '#13#10 +
+      'END';
+    q.ExecQuery;
   finally
     q.Free;
   end;
 
-  FSessionID := AnObject.GetNextID;
+  SetupDS(0);
 
-  if AnObject is TgdcDocument then
-    LimitLevel := 0
-  else
-    LimitLevel := MAXINT;
+  FObjectName := FgdcObject.ObjectName + ' ('
+    + FgdcObject.GetDisplayName(FgdcObject.SubType) + ')';
+  if (FBL <> nil) and (FBL.Count > 1) then
+    FObjectName := FObjectName + ' и еще ' +
+      IntToStr(FBL.Count - 1) + ' объект(а, ов)';
+end;
 
-  if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) or (FBL.Count = 0) then
-    FgdcObject.GetDependencies(FIBTransaction, FSessionID, False,
-      '"GD_DOCUMENT"."TRANSACTIONKEY";"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;',
-      LimitLevel)
-  else begin
-    FgdcObject.DisableControls;
-    try
-      Bm := FgdcObject.Bookmark;
-      for I := 0 to FBL.Count - 1 do
-      begin
-        FgdcObject.Bookmark := FBL[I];
-        FgdcObject.GetDependencies(FIBTransaction, FSessionID, False,
-          '"GD_DOCUMENT"."TRANSACTIONKEY";"GD_DOCUMENT"."DOCUMENTTYPEKEY";EDITORKEY;CREATORKEY;',
-          LimitLevel);
-      end;
-      FgdcObject.Bookmark := Bm;
-    finally
-      FgdcObject.EnableControls;
-    end;
-  end;
-
-  FibdsLink.ParamByName('sid').AsInteger := FSessionID;
+function TgdcNamespaceController.SetupDS(const ATab: Integer): TDataSet;
+begin
+  FibdsLink.Close;
+  FibdsLink.ParamByName('sid').AsInteger := Integer(FTabs.Objects[ATab]);
   FibdsLink.Open;
 
   FibdsLink.FieldByName('id').Visible := False;
@@ -513,13 +852,10 @@ begin
   FibdsLink.FieldByName('subtype').Visible := False;
   FibdsLink.FieldByName('name').Visible := False;
   FibdsLink.FieldByName('editiondate').Visible := False;
+  FibdsLink.FieldByName('seqid').Visible := False;
   FibdsLink.FieldByName('displayname').DisplayLabel := 'Класс - Имя объекта';
 
-  FObjectName := FgdcObject.ObjectName + ' ('
-    + FgdcObject.GetDisplayName(FgdcObject.SubType) + ')';
-  if (FBL <> nil) and (FBL.Count > 1) then
-    FObjectName := FObjectName + ' и еще ' +
-      IntToStr(FBL.Count - 1) + ' объект(а, ов)';
+  Result := FibdsLink;
 end;
 
 end.

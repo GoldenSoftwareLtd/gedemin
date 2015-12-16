@@ -305,21 +305,21 @@ begin
       '     BEGIN '#13#10 +
       '       saldo = ncu_begin_debit - ncu_begin_credit + ncu_debit - ncu_credit; '#13#10 +
       '       IF (saldo > 0) THEN '#13#10 +
-      '         ncu_end_debit = CAST((saldo  AS NUMERIC(15, %1:d)); '#13#10 +
+      '         ncu_end_debit = CAST(saldo  AS NUMERIC(15, %1:d)); '#13#10 +
       '       ELSE '#13#10 +
-      '         ncu_end_credit = - CAST((saldo AS NUMERIC(15, %1:d)); '#13#10 +
+      '         ncu_end_credit = - CAST(saldo AS NUMERIC(15, %1:d)); '#13#10 +
       ' '#13#10 +
       '       saldocurr = curr_begin_debit - curr_begin_credit + curr_debit - curr_credit; '#13#10 +
       '       IF (saldocurr > 0) THEN '#13#10 +
-      '         curr_end_debit = CAST((saldocurr AS NUMERIC(15, %3:d)); '#13#10 +
+      '         curr_end_debit = CAST(saldocurr AS NUMERIC(15, %3:d)); '#13#10 +
       '       ELSE '#13#10 +
-      '         curr_end_credit = - CAST((saldocurr  AS NUMERIC(15, %3:d)); '#13#10 +
+      '         curr_end_credit = - CAST(saldocurr  AS NUMERIC(15, %3:d)); '#13#10 +
       ' '#13#10 +
       '       saldoeq = eq_begin_debit - eq_begin_credit + eq_debit - eq_credit; '#13#10 +
       '       IF (saldoeq > 0) THEN '#13#10 +
-      '         eq_end_debit = CAST((saldoeq AS NUMERIC(15, %5:d)); '#13#10 +
+      '         eq_end_debit = CAST(saldoeq AS NUMERIC(15, %5:d)); '#13#10 +
       '       ELSE '#13#10 +
-      '         eq_end_credit = - CAST((saldoeq AS NUMERIC(15, %5:d)); '#13#10 +
+      '         eq_end_credit = - CAST(saldoeq AS NUMERIC(15, %5:d)); '#13#10 +
       '     END '#13#10 +
       '     ELSE '#13#10 +
       '     BEGIN '#13#10 +
