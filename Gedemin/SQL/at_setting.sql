@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Script
 
@@ -185,6 +185,16 @@ BEGIN
 
   IF (TRIM(COALESCE(NEW.caption, '')) = '') THEN
     NEW.caption = NEW.name;
+END
+^
+
+CREATE OR ALTER TRIGGER at_ad_namespace FOR at_namespace
+  ACTIVE
+  AFTER DELETE
+  POSITION 0
+AS
+BEGIN
+  DELETE FROM gd_ruid WHERE id = OLD.id;
 END
 ^
 

@@ -52,7 +52,8 @@ implementation
 uses
   Windows, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace, gdcClasses, gdcStorage,
   gdcEvent, gdcReport, gdcMacros, gdcAcctTransaction, gdcInvDocumentOptions,
-  gdcMetaData, gdcDelphiObject, gdcClasses_Interface, gd_KeyAssoc;
+  gdcMetaData, gdcDelphiObject, gdcClasses_Interface, gd_KeyAssoc, ContNrs,
+  at_Classes, gd_ClassList;
 
 type
   TIterateProc = procedure of object;
@@ -212,10 +213,12 @@ function TgdcNamespaceController.Include: Boolean;
 
 var
   gdcNamespaceObject: TgdcNamespaceObject;
-  HeadObjectKey, HeadObjectPos, NSKey, ObjCount, J: Integer;
-  q, qNSList, qFind: TIBSQL;
+  HeadObjectKey, HeadObjectPos, NSKey, ObjCount, J, TempPos: Integer;
+  q, qNSList, qFind, qMove, qDelete: TIBSQL;
   FirstRUID: TRUID;
   DS: TDataSet;
+  ShouldAdd: Boolean;
+  CEExist, CENew: TgdClassEntry;
 begin
   Assert(FIBTransaction.InTransaction);
 
@@ -236,6 +239,8 @@ begin
       q := TIBSQL.Create(nil);
       qNSList := TIBSQL.Create(nil);
       qFind := TIBSQL.Create(nil);
+      qMove := TIBSQL.Create(nil);
+      qDelete := TIBSQL.Create(nil);
       gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
       try
         gdcNamespaceObject.ReadTransaction := FIBTransaction;
@@ -274,9 +279,17 @@ begin
 
         qFind.Transaction := FIBTransaction;
         qFind.SQL.Text :=
-          'SELECT id FROM at_object WHERE namespacekey = :CurrNS ' +
+          'SELECT * FROM at_object WHERE namespacekey = :CurrNS ' +
           '  AND xid = :xid AND dbid = :dbid';
         qFind.ParamByName('CurrNS').AsInteger := FCurrentNSID;
+
+        qMove.Transaction := FIBTransaction;
+        qMove.SQL.Text :=
+          'UPDATE at_object SET objectpos = :objectpos WHERE id = :id';
+
+        qDelete.Transaction := FIBTransaction;
+        qDelete.SQL.Text :=
+          'DELETE FROM at_object WHERE id = :id';
 
         for J := 0 to FTabs.Count - 1 do
         begin
@@ -338,12 +351,49 @@ begin
             begin
               if Pos('RDB$', DS.FieldByName('name').AsString) <> 1 then
               begin
+                TempPos := -1;
+
                 qFind.Close;
                 qFind.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
                 qFind.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
                 qFind.ExecQuery;
 
                 if qFind.EOF then
+                  ShouldAdd := True
+                else begin
+                  CEExist := gdClassList.Get(TgdClassEntry, qFind.FieldByName('objectclass').AsString,
+                    qFind.FieldbyName('subtype').AsString);
+                  CENew := gdClassList.Get(TgdClassEntry, DS.FieldByName('class').AsString,
+                    DS.FieldByName('subtype').AsString);
+
+                  if qFind.FieldByName('objectpos').AsInteger > HeadObjectPos then
+                  begin
+                    if (CEExist = CENew) or CEExist.InheritsFromCE(CENew) then
+                    begin
+                      qMove.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
+                      qMove.ParamByName('objectpos').AsInteger := HeadObjectPos;
+                      qMove.ExecQuery;
+                      ShouldAdd := False;
+                    end else
+                    begin
+                      qDelete.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
+                      qDelete.ExecQuery;
+                      ShouldAdd := True;
+                    end;
+                  end else
+                  begin
+                    if (CEExist = CENew) or CEExist.InheritsFromCE(CENew) then
+                      ShouldAdd := False
+                    else begin
+                      TempPos := qFind.FieldByName('objectpos').AsInteger;
+                      qDelete.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
+                      qDelete.ExecQuery;
+                      ShouldAdd := True;
+                    end;
+                  end;
+                end;
+
+                if ShouldAdd then
                 begin
                   gdcNamespaceObject.Insert;
                   gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
@@ -352,7 +402,10 @@ begin
                   gdcNamespaceObject.FieldByName('subtype').AsString := DS.FieldByName('subtype').AsString;
                   gdcNamespaceObject.FieldByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
                   gdcNamespaceObject.FieldByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
-                  gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
+                  if TempPos = -1 then
+                    gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos
+                  else
+                    gdcNamespaceObject.FieldByName('objectpos').AsInteger := TempPos;
                   if FAlwaysOverwrite then
                     gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
                   else
@@ -398,6 +451,8 @@ begin
         q.Free;
         qNSList.Free;
         qFind.Free;
+        qMove.Free;
+        qDelete.Free;
         gdcNamespaceObject.Free;
       end;
     end;
@@ -473,7 +528,8 @@ var
   end;
 
   procedure AddObjects(C: CgdcBase; const ASessionID: Integer;
-    const AnSQL: String; const AnIgnoreFields: String = '');
+    const AParam: String; const AnSQL: String;
+    const AnIgnoreFields: String = '');
   var
     qObj: TIBSQL;
     Obj: TgdcBase;
@@ -486,7 +542,7 @@ var
 
       qObj.Transaction := FIBTransaction;
       qObj.SQL.Text := AnSQL;
-      qObj.ParamByName('N').AsString := RUIDToStr(FgdcObject.GetRUID);
+      qObj.ParamByName('N').AsString := AParam;
       qObj.ExecQuery;
 
       while not qObj.EOF do
@@ -525,7 +581,7 @@ var
         Obj.ID := qObj.FieldByName('id').AsInteger;
         Obj.Open;
         if not Obj.EOF then
-          GetDep(Obj, ASessionID, True);
+          GetDep(Obj, ASessionID, True, MAXINT);
         Obj.Close;
         qObj.Next;
       end;
@@ -537,8 +593,11 @@ var
 
   procedure ProcessObject;
   var
-    LimitLevel, SessionID2: Integer;
+    LimitLevel, SessionID2, K: Integer;
     IgnoreFields: String;
+    OL: TObjectList;
+    FC: TgdcFullClass;
+    OneToOneObj: TgdcBase;
   begin
     LimitLevel := MAXINT;
     IgnoreFields := '';
@@ -547,29 +606,28 @@ var
     if FgdcObject is TgdcDocument then
     begin
       if (FgdcObject as TgdcDocument).GetDocumentClassPart = dcpHeader then
+      begin
+        Inc(SessionID2);
+        FTabs.AddObject('Позиции документа', Pointer(SessionID2));
         AddDocumentLines(FgdcObject.ID, SessionID2);
+      end;
     end
-    else if FgdcObject is TgdcBaseDocumentType then
+    else if FgdcObject is TgdcRelation then
     begin
-      IgnoreFields := 'HEADERRELKEY;LINERELKEY';
+      Inc(SessionID2);
+      FTabs.AddObject('Поля', Pointer(SessionID2));
+      AddObjects(TgdcRelationField, SessionID2, IntToStr(FgdcObject.ID),
+        'SELECT '#13#10 +
+        '  rf.id '#13#10 +
+        'FROM '#13#10 +
+        '  at_relation_fields rf '#13#10 +
+        'WHERE '#13#10 +
+        '  rf.fieldname LIKE ''USR$%'' AND rf.relationkey = :N');
 
       Inc(SessionID2);
       FTabs.AddObject('Хранилище', Pointer(SessionID2));
       AddObjects(TgdcStorage, SessionID2,
-        'SELECT '#13#10 +
-        '  v.id '#13#10 +
-        'FROM '#13#10 +
-        '  gd_storage_data glbl '#13#10 +
-        '  JOIN gd_storage_data dfm '#13#10 +
-        '    ON dfm.parent = glbl.id AND dfm.name = ''DFM'' '#13#10 +
-        '  JOIN gd_storage_data frm_class '#13#10 +
-        '    ON frm_class.parent = dfm.id '#13#10 +
-        '  JOIN gd_storage_data v '#13#10 +
-        '    ON v.parent = frm_class.id '#13#10 +
-        'WHERE '#13#10 +
-        '  glbl.name = ''GLOBAL'' AND glbl.data_type = ''G'' '#13#10 +
-        '  AND v.name = :N AND v.data_type = ''B'' '#13#10 +
-        'UNION ALL '#13#10 +
+        StringReplace(FgdcObject.FieldByName('relationname').AsString, 'USR$', 'USR_', []),
         'SELECT '#13#10 +
         '  v.id '#13#10 +
         'FROM '#13#10 +
@@ -587,9 +645,25 @@ var
         '  AND v.name = ''data'' '#13#10 +
         '  AND v.data_type = ''B''');
 
+      AddObjects(TgdcStorage, SessionID2, FgdcObject.FieldbyName('relationname').AsString,
+        'SELECT '#13#10 +
+        '  v.id '#13#10 +
+        'FROM '#13#10 +
+        '  gd_storage_data glbl '#13#10 +
+        '  JOIN gd_storage_data dfm '#13#10 +
+        '    ON dfm.parent = glbl.id AND dfm.name = ''DFM'' '#13#10 +
+        '  JOIN gd_storage_data frm_class '#13#10 +
+        '    ON frm_class.parent = dfm.id '#13#10 +
+        '  JOIN gd_storage_data v '#13#10 +
+        '    ON v.parent = frm_class.id '#13#10 +
+        'WHERE '#13#10 +
+        '  glbl.name = ''GLOBAL'' AND glbl.data_type = ''G'' '#13#10 +
+        '  AND v.name = :N AND v.data_type = ''B'' ');
+
       Inc(SessionID2);
       FTabs.AddObject('Скрипт-объекты', Pointer(SessionID2));
       AddObjects(TgdcEvent, SessionID2,
+        StringReplace(FgdcObject.FieldByName('relationname').AsString, 'USR$', 'USR_', []),
         'SELECT '#13#10 +
         '  ev.id '#13#10 +
         'FROM '#13#10 +
@@ -631,7 +705,224 @@ var
         '  AND '#13#10 +
         '  o.name LIKE ''%'' || :N');
 
+      AddObjects(TgdcMacros, SessionID2,
+        StringReplace(FgdcObject.FieldByName('relationname').AsString, 'USR$', 'USR_', []),
+        'SELECT '#13#10 +
+        '  ml.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_macroslist ml '#13#10 +
+        '  JOIN evt_macrosgroup mg ON ml.MACROSGROUPKEY = mg.id '#13#10 +
+        '  JOIN evt_macrosgroup mgp ON mgp.lb <= mg.LB AND mgp.rb >= mg.rb '#13#10 +
+        '  JOIN evt_object p ON p.MACROSGROUPKEY = mgp.id '#13#10 +
+        'WHERE '#13#10 +
+        '  p.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  p.name LIKE ''%'' || :N');
+
+      AddObjects(TgdcDelphiObject, SessionID2,
+        StringReplace(FgdcObject.FieldByName('relationname').AsString, 'USR$', 'USR_', []),
+        'SELECT '#13#10 +
+        '  id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object '#13#10 +
+        'WHERE '#13#10 +
+        '  name LIKE ''%'' || :N '#13#10 +
+        '  AND '#13#10 +
+        '  parent IS NOT NULL');
+
+      AddObjects(TgdcDelphiObject, SessionID2,
+        StringReplace(FgdcObject.FieldByName('relationname').AsString, 'USR$', 'USR_', []),
+        'SELECT '#13#10 +
+        '  id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object '#13#10 +
+        'WHERE '#13#10 +
+        '  name LIKE ''%'' || :N '#13#10 +
+        '  AND '#13#10 +
+        '  parent IS NULL');
+
+      Inc(SessionID2);
+      FTabs.AddObject('Отчеты', Pointer(SessionID2));
+      AddObjects(TgdcReport, SessionID2, FgdcObject.FieldByName('relationname').AsString,
+        'SELECT '#13#10 +
+        '  l.id '#13#10 +
+        'FROM '#13#10 +
+        '  rp_reportgroup gr '#13#10 +
+        '  JOIN rp_reportlist l ON l.REPORTGROUPKEY = gr.id '#13#10 +
+        'WHERE '#13#10 +
+        '  gr.usergroupname LIKE ''%'' || :N ');
+
       AddObjects(TgdcReport, SessionID2,
+        StringReplace(FgdcObject.FieldByName('relationname').AsString, 'USR$', 'USR_', []),
+        'SELECT '#13#10 +
+        '  l.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object ev '#13#10 +
+        '  JOIN rp_reportgroup gr ON ev.reportgroupkey = gr.parent '#13#10 +
+        '  JOIN rp_reportlist l ON l.REPORTGROUPKEY = gr.id '#13#10 +
+        'WHERE '#13#10 +
+        '  ev.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  ev.name LIKE ''%'' || :N ' +
+        'UNION ALL ' +
+        'SELECT '#13#10 +
+        '  l.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object ev '#13#10 +
+        '  JOIN rp_reportgroup gr ON ev.reportgroupkey = gr.id '#13#10 +
+        '  JOIN rp_reportlist l ON l.REPORTGROUPKEY = gr.id '#13#10 +
+        'WHERE '#13#10 +
+        '  ev.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  ev.name LIKE ''%'' || :N ');
+    end
+    else if FgdcObject is TgdcBaseDocumentType then
+    begin
+      IgnoreFields := 'HEADERRELKEY;LINERELKEY';
+
+      Inc(SessionID2);
+      FTabs.AddObject('Хранилище', Pointer(SessionID2));
+      AddObjects(TgdcStorage, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+        'SELECT '#13#10 +
+        '  v.id '#13#10 +
+        'FROM '#13#10 +
+        '  gd_storage_data glbl '#13#10 +
+        '  JOIN gd_storage_data dfm '#13#10 +
+        '    ON dfm.parent = glbl.id AND dfm.name = ''DFM'' '#13#10 +
+        '  JOIN gd_storage_data frm_class '#13#10 +
+        '    ON frm_class.parent = dfm.id '#13#10 +
+        '  JOIN gd_storage_data v '#13#10 +
+        '    ON v.parent = frm_class.id '#13#10 +
+        'WHERE '#13#10 +
+        '  glbl.name = ''GLOBAL'' AND glbl.data_type = ''G'' '#13#10 +
+        '  AND v.name = :N AND v.data_type = ''B'' '#13#10 +
+        'UNION ALL '#13#10 +
+        'SELECT '#13#10 +
+        '  v.id '#13#10 +
+        'FROM '#13#10 +
+        '  gd_storage_data usr '#13#10 +
+        '  JOIN gd_storage_data frm '#13#10 +
+        '    ON frm.parent = usr.id '#13#10 +
+        '  JOIN gd_storage_data ibgr '#13#10 +
+        '    ON ibgr.parent = frm.id '#13#10 +
+        '  JOIN gd_storage_data v '#13#10 +
+        '    ON v.parent = ibgr.id '#13#10 +
+        'WHERE '#13#10 +
+        '  usr.id = 990010 '#13#10 +
+        '  AND frm.name CONTAINING :N '#13#10 +
+        '  AND ibgr.name LIKE ''ibgr%'' '#13#10 +
+        '  AND v.name = ''data'' '#13#10 +
+        '  AND v.data_type = ''B''');
+
+      Inc(SessionID2);
+      FTabs.AddObject('Скрипт-объекты', Pointer(SessionID2));
+      AddObjects(TgdcEvent, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+        'SELECT '#13#10 +
+        '  ev.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_objectevent ev '#13#10 +
+        '  JOIN evt_object o ON o.id = ev.objectkey '#13#10 +
+        '  JOIN evt_object p ON p.id = o.parent '#13#10 +
+        'WHERE '#13#10 +
+        '  p.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  p.name LIKE ''%'' || :N' +
+        ' '#13#10 +
+        'UNION ALL '#13#10 +
+        ' '#13#10 +
+        'SELECT '#13#10 +
+        '  ev.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_objectevent ev '#13#10 +
+        '  JOIN evt_object o ON o.id = ev.objectkey '#13#10 +
+        '  JOIN evt_object r ON r.lb < o.lb AND r.rb >= o.rb '#13#10 +
+        'WHERE '#13#10 +
+        '  r.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  r.NAME = ''TgdcBase'' '#13#10 +
+        '  AND '#13#10 +
+        '  o.name LIKE ''%'' || :N '#13#10 +
+        ' '#13#10 +
+        'UNION ALL '#13#10 +
+        ' '#13#10 +
+        'SELECT '#13#10 +
+        '  ev.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_objectevent ev '#13#10 +
+        '  JOIN evt_object o ON o.id = ev.objectkey '#13#10 +
+        '  JOIN evt_object r ON r.lb < o.lb AND r.rb >= o.rb '#13#10 +
+        'WHERE '#13#10 +
+        '  r.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  r.NAME = ''TgdcCreateableForm'' '#13#10 +
+        '  AND '#13#10 +
+        '  o.name LIKE ''%'' || :N');
+
+      AddObjects(TgdcMacros, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+        'SELECT '#13#10 +
+        '  ml.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_macroslist ml '#13#10 +
+        '  JOIN evt_macrosgroup mg ON ml.MACROSGROUPKEY = mg.id '#13#10 +
+        '  JOIN evt_macrosgroup mgp ON mgp.lb <= mg.LB AND mgp.rb >= mg.rb '#13#10 +
+        '  JOIN evt_object p ON p.MACROSGROUPKEY = mgp.id '#13#10 +
+        'WHERE '#13#10 +
+        '  p.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  p.name LIKE ''%'' || :N');
+
+      AddObjects(TgdcAcctTransactionEntry, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+        'SELECT '#13#10 +
+        '  tr.id '#13#10 +
+        'FROM '#13#10 +
+        '  ac_trrecord tr '#13#10 +
+        '  JOIN gd_documenttype dt ON dt.id = tr.documenttypekey '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.ruid = :N');
+
+      AddObjects(TgdcDelphiObject, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+        'SELECT '#13#10 +
+        '  id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object '#13#10 +
+        'WHERE '#13#10 +
+        '  name LIKE ''%'' || :N '#13#10 +
+        '  AND '#13#10 +
+        '  parent IS NOT NULL');
+
+      AddObjects(TgdcDelphiObject, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+        'SELECT '#13#10 +
+        '  id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object '#13#10 +
+        'WHERE '#13#10 +
+        '  name LIKE ''%'' || :N '#13#10 +
+        '  AND '#13#10 +
+        '  parent IS NULL');
+
+      Inc(SessionID2);
+      FTabs.AddObject('Отчеты', Pointer(SessionID2));
+      AddObjects(TgdcReport, SessionID2, RUIDToStr(FgdcObject.GetRUID), 
+        'SELECT '#13#10 +
+        '  l.id '#13#10 +
+        'FROM '#13#10 +
+        '  rp_reportgroup gr '#13#10 +
+        '  JOIN rp_reportlist l ON l.REPORTGROUPKEY = gr.id '#13#10 +
+        'WHERE '#13#10 +
+        '  gr.usergroupname LIKE ''%'' || :N ');
+
+      AddObjects(TgdcReport, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+        'SELECT '#13#10 +
+        '  l.id '#13#10 +
+        'FROM '#13#10 +
+        '  evt_object ev '#13#10 +
+        '  JOIN rp_reportgroup gr ON ev.reportgroupkey = gr.parent '#13#10 +
+        '  JOIN rp_reportlist l ON l.REPORTGROUPKEY = gr.id '#13#10 +
+        'WHERE '#13#10 +
+        '  ev.parent IS NULL '#13#10 +
+        '  AND '#13#10 +
+        '  ev.name LIKE ''%'' || :N ' +
+        'UNION ALL ' +
         'SELECT '#13#10 +
         '  l.id '#13#10 +
         'FROM '#13#10 +
@@ -652,51 +943,9 @@ var
         'WHERE '#13#10 +
         '  dt.ruid = :N');
 
-      AddObjects(TgdcMacros, SessionID2,
-        'SELECT '#13#10 +
-        '  ml.id '#13#10 +
-        'FROM '#13#10 +
-        '  evt_macroslist ml '#13#10 +
-        '  JOIN evt_macrosgroup mg ON ml.MACROSGROUPKEY = mg.id '#13#10 +
-        '  JOIN evt_macrosgroup mgp ON mgp.lb <= mg.LB AND mgp.rb >= mg.rb '#13#10 +
-        '  JOIN evt_object p ON p.MACROSGROUPKEY = mgp.id '#13#10 +
-        'WHERE '#13#10 +
-        '  p.parent IS NULL '#13#10 +
-        '  AND '#13#10 +
-        '  p.name LIKE ''%'' || :N');
-
-      AddObjects(TgdcAcctTransactionEntry, SessionID2,
-        'SELECT '#13#10 +
-        '  tr.id '#13#10 +
-        'FROM '#13#10 +
-        '  ac_trrecord tr '#13#10 +
-        '  JOIN gd_documenttype dt ON dt.id = tr.documenttypekey '#13#10 +
-        'WHERE '#13#10 +
-        '  dt.ruid = :N');
-
-      AddObjects(TgdcDelphiObject, SessionID2,
-        'SELECT '#13#10 +
-        '  id '#13#10 +
-        'FROM '#13#10 +
-        '  evt_object '#13#10 +
-        'WHERE '#13#10 +
-        '  name LIKE ''%'' || :N '#13#10 +
-        '  AND '#13#10 +
-        '  parent IS NOT NULL');
-
-      AddObjects(TgdcDelphiObject, SessionID2,
-        'SELECT '#13#10 +
-        '  id '#13#10 +
-        'FROM '#13#10 +
-        '  evt_object '#13#10 +
-        'WHERE '#13#10 +
-        '  name LIKE ''%'' || :N '#13#10 +
-        '  AND '#13#10 +
-        '  parent IS NULL');
-
       Inc(SessionID2);
       FTabs.AddObject('Параметры документа', Pointer(SessionID2));
-      AddObjects(TgdcInvDocumentTypeOptions, SessionID2,
+      AddObjects(TgdcInvDocumentTypeOptions, SessionID2, RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
         '  o.id '#13#10 +
         'FROM '#13#10 +
@@ -707,7 +956,7 @@ var
         '  dth.ruid = :N',
         'DTKEY');
 
-      AddObjects(TgdcRelationField, FSessionID,
+      AddObjects(TgdcRelationField, FSessionID, RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
         '  rf.id '#13#10 +
         'FROM '#13#10 +
@@ -716,7 +965,7 @@ var
         'WHERE '#13#10 +
         '  dt.ruid = :N AND rf.fieldname LIKE ''USR$%'' ');
 
-      AddObjects(TgdcRelation, FSessionID,
+      AddObjects(TgdcRelation, FSessionID, RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
         '  r.id '#13#10 +
         'FROM '#13#10 +
@@ -725,7 +974,7 @@ var
         'WHERE '#13#10 +
         '  dt.ruid = :N');
 
-      AddObjects(TgdcRelationField, FSessionID,
+      AddObjects(TgdcRelationField, FSessionID, RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
         '  rf.id '#13#10 +
         'FROM '#13#10 +
@@ -734,7 +983,7 @@ var
         'WHERE '#13#10 +
         '  dt.ruid = :N AND rf.fieldname LIKE ''USR$%'' ');
 
-      AddObjects(TgdcRelation, FSessionID,
+      AddObjects(TgdcRelation, FSessionID, RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
         '  r.id '#13#10 +
         'FROM '#13#10 +
@@ -742,6 +991,44 @@ var
         '  JOIN gd_documenttype dt ON dt.headerrelkey = r.id '#13#10 +
         'WHERE '#13#10 +
         '  dt.ruid = :N');
+    end;
+
+    OL := TObjectList.Create(False);
+    try
+      atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
+        FgdcObject.GetListTable(FgdcObject.SubType), OL, False,
+        True, False);
+      for K := 0 to OL.Count - 1 do
+      begin
+        if (TatForeignKey(OL[K]).ConstraintFields.Count = 1) and
+          (TatForeignKey(OL[K]).ConstraintFields[0].FieldName = 'ID') then
+        begin
+          FC := GetBaseClassForRelationByID(TatForeignKey(OL[K]).Relation.RelationName,
+            FgdcObject.ID, FIBTransaction);
+          if FC.gdClass <> nil then
+          begin
+            OneToOneObj := FC.gdClass.Create(nil);
+            try
+              OneToOneObj.Transaction := FIBTransaction;
+              OneToOneObj.SubType := FC.SubType;
+              OneToOneObj.SubSet := 'ByID';
+              OneToOneObj.ID := FgdcObject.ID;
+              OneToOneObj.Open;
+              if not OneToOneObj.EOF then
+              begin
+                Inc(SessionID2);
+                FTabs.AddObject(OneToOneObj.GetDisplayName(OneToOneObj.SubType),
+                  Pointer(SessionID2));
+                GetDep(OneToOneObj, SessionID2, False, LimitLevel, 'ID');
+              end;
+            finally
+              OneToOneObj.Free;
+            end;
+          end;
+        end;
+      end;
+    finally
+      OL.Free;
     end;
 
     GetDep(FgdcObject, FSessionID, False, LimitLevel, IgnoreFields);
@@ -810,20 +1097,21 @@ begin
     q.SQL.Text :=
       'EXECUTE BLOCK '#13#10 +
       'AS '#13#10 +
-      '  /*DECLARE VARIABLE sessionid dintkey;*/ '#13#10 +
+      '  DECLARE VARIABLE sessionid dintkey; '#13#10 +
       '  DECLARE VARIABLE seqid dintkey; '#13#10 +
       '  DECLARE VARIABLE refobjectid dintkey; '#13#10 +
+      '  DECLARE VARIABLE refclassname dname; '#13#10 +
       'BEGIN '#13#10 +
       '  FOR '#13#10 +
-      '    SELECT /*sessionid,*/ seqid, refobjectid '#13#10 +
+      '    SELECT sessionid, seqid, refobjectid, refclassname '#13#10 +
       '    FROM gd_object_dependencies '#13#10 +
-      '    ORDER BY /*sessionid,*/ seqid DESC'#13#10 +
-      '    INTO /*:sessionid,*/ :seqid, :refobjectid '#13#10 +
+      '    ORDER BY sessionid, seqid DESC'#13#10 +
+      '    INTO :sessionid, :seqid, :refobjectid, :refclassname '#13#10 +
       '  DO BEGIN '#13#10 +
       '    DELETE FROM gd_object_dependencies '#13#10 +
-      '    WHERE /*sessionid = :sessionid '#13#10 +
-      '      AND*/ seqid < :seqid '#13#10 +
-      '      AND refobjectid = :refobjectid; '#13#10 +
+      '    WHERE sessionid = :sessionid '#13#10 +
+      '      AND seqid < :seqid '#13#10 +
+      '      AND refobjectid = :refobjectid AND refclassname = :refclassname; '#13#10 +
       '  END '#13#10 +
       'END';
     q.ExecQuery;

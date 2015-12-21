@@ -1539,6 +1539,7 @@ COMMIT;
 
 CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
   sessionid         dintkey,
+  seqid             dintkey,
   masterid          dintkey,
   reflevel          dinteger_notnull,
   relationname      dtablename NOT NULL,
@@ -1552,7 +1553,7 @@ CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
   refeditiondate    TIMESTAMP,
 
   CONSTRAINT gd_pk_object_dependencies PRIMARY KEY
-    (sessionid, masterid, reflevel, relationname, fieldname, refobjectid)
+    (sessionid, seqid)
 )
   ON COMMIT DELETE ROWS;
 

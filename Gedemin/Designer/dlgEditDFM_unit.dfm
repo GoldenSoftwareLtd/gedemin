@@ -14,23 +14,24 @@ object dlgEditDFM: TdlgEditDFM
   Position = poScreenCenter
   OnCloseQuery = FormCloseQuery
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   object seDFM: TSynEdit
     Left = 0
     Top = 22
     Width = 528
-    Height = 432
+    Height = 426
     Cursor = crIBeam
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
-    Font.Height = -13
+    Font.Height = -15
     Font.Name = 'Courier New'
     Font.Style = []
     ParentColor = False
     ParentFont = False
     PopupMenu = TBPopupMenu1
     TabOrder = 0
+    BorderStyle = bsNone
     Gutter.DigitCount = 2
     Gutter.Font.Charset = DEFAULT_CHARSET
     Gutter.Font.Color = clWindowText
@@ -373,16 +374,24 @@ object dlgEditDFM: TdlgEditDFM
   end
   object Panel1: TPanel
     Left = 0
-    Top = 454
+    Top = 448
     Width = 528
-    Height = 28
+    Height = 33
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
+    object Bevel1: TBevel
+      Left = 0
+      Top = 0
+      Width = 528
+      Height = 9
+      Align = alTop
+      Shape = bsTopLine
+    end
     object btnOk: TButton
-      Left = 356
-      Top = 4
-      Width = 75
+      Left = 344
+      Top = 6
+      Width = 81
       Height = 21
       Anchors = [akRight, akBottom]
       Caption = 'Сохранить'
@@ -391,9 +400,9 @@ object dlgEditDFM: TdlgEditDFM
       OnClick = btnOkClick
     end
     object Button2: TButton
-      Left = 443
-      Top = 4
-      Width = 75
+      Left = 431
+      Top = 6
+      Width = 81
       Height = 21
       Anchors = [akRight, akBottom]
       Cancel = True
@@ -402,13 +411,13 @@ object dlgEditDFM: TdlgEditDFM
       TabOrder = 1
     end
   end
-  object TBToolbar1: TTBToolbar
+  object tb: TTBToolbar
     Left = 0
     Top = 0
     Width = 528
     Height = 22
     Align = alTop
-    Caption = 'TBToolbar1'
+    Caption = 'tb'
     CloseButton = False
     DockPos = 80
     DockRow = 1

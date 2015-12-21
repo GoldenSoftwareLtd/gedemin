@@ -1257,7 +1257,17 @@ INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
 VALUES
   (741120,740400,'Внешние ключи','gdcFKManager',0,NULL,228,NULL,'TgdcFKManager',NULL,1,1,1,0,NULL);
-
+  
+  INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex)
+    VALUES (
+      790000,
+      710000,
+      'Материальный склад',
+      '790000_17',
+      NULL,
+      0
+    );
+  
 -- gd_documenttype
 -- 800001..850000
 

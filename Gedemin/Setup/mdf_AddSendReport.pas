@@ -681,6 +681,17 @@ begin
           'END';
         FIBSQL.ExecQuery;
 
+        FIBSQL.SQL.Text :=
+          ' CREATE OR ALTER TRIGGER at_ad_namespace FOR at_namespace '#13#10 +
+          '   ACTIVE '#13#10 +
+          '   AFTER DELETE '#13#10 +
+          '   POSITION 0 '#13#10 +
+          ' AS '#13#10 +
+          ' BEGIN '#13#10 +
+          '   DELETE FROM gd_ruid WHERE id = OLD.id; '#13#10 +
+          ' END';
+        FIBSQL.ExecQuery;
+
         FTransaction.Commit;
         FTransaction.StartTransaction;
 
@@ -782,6 +793,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (236, ''0000.0001.0000.0267'', ''02.12.2015'', ''https://github.com/GoldenSoftwareLtd/GedeminSalary/issues/208'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (237, ''0000.0001.0000.0268'', ''20.12.2015'', ''Delete a record from GD_RUID when deleting AT_NAMESPACE.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

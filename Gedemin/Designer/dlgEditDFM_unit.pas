@@ -24,7 +24,7 @@ type
     actCopy: TAction;
     actCut: TAction;
     actPaste: TAction;
-    TBToolbar1: TTBToolbar;
+    tb: TTBToolbar;
     TBItem18: TTBItem;
     TBItem19: TTBItem;
     TBSeparatorItem4: TTBSeparatorItem;
@@ -47,6 +47,7 @@ type
     OpenDialog1: TOpenDialog;
     SaveDialog1: TSaveDialog;
     actFindNext: TAction;
+    Bevel1: TBevel;
     procedure actLoadFromFileExecute(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
     procedure actFindExecute(Sender: TObject);

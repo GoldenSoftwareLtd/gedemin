@@ -99,7 +99,7 @@ object dlgCheckOperation: TdlgCheckOperation
           Top = 75
           Width = 289
           Height = 17
-          Caption = 'Отключить перекрытые методы'
+          Caption = 'Отключить перекрытые методы и проводки'
           TabOrder = 4
         end
       end

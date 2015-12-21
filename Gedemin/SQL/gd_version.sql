@@ -728,6 +728,21 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (232, '0000.0001.0000.0263', '23.10.2015', 'Edition date to GD_DOCUMENTTYPE_OPTION.');  
   
+INSERT INTO fin_versioninfo
+  VALUES (233, '0000.0001.0000.0264', '09.11.2015', 'XLSX type added.'); 
+  
+INSERT INTO fin_versioninfo
+  VALUES (234, '0000.0001.0000.0265', '14.11.2015', 'Added Reload auto task.');   
+
+INSERT INTO fin_versioninfo
+  VALUES (235, '0000.0001.0000.0266', '27.11.2015', 'Added seqid field to gd_object_dependencies table.');   
+  
+INSERT INTO fin_versioninfo
+  VALUES (236, '0000.0001.0000.0267', '02.12.2015', 'https://github.com/GoldenSoftwareLtd/GedeminSalary/issues/208');   
+  
+INSERT INTO fin_versioninfo
+  VALUES (237, '0000.0001.0000.0268', '20.12.2015', 'Delete a record from GD_RUID when deleting AT_NAMESPACE.');   
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

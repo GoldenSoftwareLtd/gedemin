@@ -202,6 +202,74 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER gd_biu_people_pn FOR gd_people
+  ACTIVE
+  BEFORE INSERT OR UPDATE
+  POSITION 32000
+AS
+BEGIN
+  IF (CHAR_LENGTH(NEW.personalnumber) > 0
+    AND (INSERTING OR NEW.personalnumber IS DISTINCT FROM OLD.personalnumber)) THEN
+  BEGIN
+    NEW.personalnumber = UPPER(TRIM(NEW.personalnumber));
+    NEW.personalnumber =
+      REPLACE(
+        REPLACE(
+          REPLACE(
+            REPLACE(
+              REPLACE(
+                REPLACE(
+                  REPLACE(
+                    REPLACE(
+                      REPLACE(
+                        REPLACE(
+                          REPLACE(
+                            NEW.personalnumber,
+                            'Õ', 'X'),
+                          'Ò', 'T'),
+                        'Ñ', 'C'),
+                      'Ð', 'P'),
+                    'Î', 'O'),
+                  'Í', 'H'),
+                'Ì', 'M'),
+              'Ê', 'K'),
+            'Å', 'E'),
+          'À', 'A'),
+        'Â', 'B');
+  END
+  
+  IF (CHAR_LENGTH(NEW.passportnumber) > 0
+    AND (INSERTING OR NEW.passportnumber IS DISTINCT FROM OLD.passportnumber)) THEN
+  BEGIN
+    NEW.passportnumber = UPPER(TRIM(NEW.passportnumber));
+    NEW.passportnumber =
+      REPLACE(
+        REPLACE(
+          REPLACE(
+            REPLACE(
+              REPLACE(
+                REPLACE(
+                  REPLACE(
+                    REPLACE(
+                      REPLACE(
+                        REPLACE(
+                          REPLACE(
+                            NEW.personalnumber,
+                            'Õ', 'X'),
+                          'Ò', 'T'),
+                        'Ñ', 'C'),
+                      'Ð', 'P'),
+                    'Î', 'O'),
+                  'Í', 'H'),
+                'Ì', 'M'),
+              'Ê', 'K'),
+            'Å', 'E'),
+          'À', 'A'),
+        'Â', 'B');
+  END
+END
+^
+
 SET TERM ; ^
 
 COMMIT;

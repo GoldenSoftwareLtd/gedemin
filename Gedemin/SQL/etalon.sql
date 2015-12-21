@@ -1560,6 +1560,27 @@ INSERT INTO fin_versioninfo
   
 INSERT INTO fin_versioninfo
   VALUES (229, '0000.0001.0000.0260', '04.09.2015', 'Correction for GD_DOCUMENTTYPE_OPTION #2');  
+
+INSERT INTO fin_versioninfo
+  VALUES (230, '0000.0001.0000.0261', '01.10.2015', 'Correction for GD_DOCUMENTTYPE_OPTION #3');  
+  
+INSERT INTO fin_versioninfo
+  VALUES (231, '0000.0001.0000.0262', '20.10.2015', 'Client address is added to GD_JOURNAL.');  
+
+INSERT INTO fin_versioninfo
+  VALUES (232, '0000.0001.0000.0263', '23.10.2015', 'Edition date to GD_DOCUMENTTYPE_OPTION.');  
+  
+INSERT INTO fin_versioninfo
+  VALUES (233, '0000.0001.0000.0264', '09.11.2015', 'XLSX type added.'); 
+  
+INSERT INTO fin_versioninfo
+  VALUES (234, '0000.0001.0000.0265', '14.11.2015', 'Added Reload auto task.');   
+
+INSERT INTO fin_versioninfo
+  VALUES (235, '0000.0001.0000.0266', '27.11.2015', 'Added seqid field to gd_object_dependencies table.');   
+  
+INSERT INTO fin_versioninfo
+  VALUES (236, '0000.0001.0000.0267', '02.12.2015', 'https://github.com/GoldenSoftwareLtd/GedeminSalary/issues/208');   
   
 COMMIT;
 
@@ -2001,6 +2022,7 @@ CREATE TABLE gd_journal
 (
   id               dintkey,
   contactkey       dforeignkey,
+  clientaddress    CHAR(15),
   operationdate    dtimestamp_notnull,
   source           dtext40,
   objectid         dforeignkey,
@@ -2018,7 +2040,7 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE TRIGGER gd_bi_journal FOR gd_journal
+CREATE OR ALTER TRIGGER gd_bi_journal FOR gd_journal
   BEFORE INSERT
   POSITION 0
 AS
@@ -2028,20 +2050,19 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER gd_bi_journal2 FOR gd_journal
+CREATE OR ALTER TRIGGER gd_bi_journal2 FOR gd_journal
   BEFORE INSERT
   POSITION 2
 AS
 BEGIN
   IF (NEW.operationdate IS NULL) THEN
-    NEW.operationdate = 'NOW';
+    NEW.operationdate = CURRENT_TIMESTAMP;
 
   IF (NEW.contactkey IS NULL) THEN
-  BEGIN
-    SELECT contactkey FROM gd_user
-    WHERE ibname = CURRENT_USER
-    INTO NEW.contactkey;
-  END
+    NEW.contactkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY'); 
+    
+  IF (NEW.clientaddress IS NULL) THEN
+    NEW.clientaddress = RDB$GET_CONTEXT('SYSTEM', 'CLIENT_ADDRESS');  
 END
 ^
 
@@ -3003,6 +3024,74 @@ BEGIN
   BEGIN
     SELECT name FROM gd_contact WHERE id = NEW.wcompanykey
       INTO NEW.wcompanyname;
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER gd_biu_people_pn FOR gd_people
+  ACTIVE
+  BEFORE INSERT OR UPDATE
+  POSITION 32000
+AS
+BEGIN
+  IF (CHAR_LENGTH(NEW.personalnumber) > 0
+    AND (INSERTING OR NEW.personalnumber IS DISTINCT FROM OLD.personalnumber)) THEN
+  BEGIN
+    NEW.personalnumber = UPPER(TRIM(NEW.personalnumber));
+    NEW.personalnumber =
+      REPLACE(
+        REPLACE(
+          REPLACE(
+            REPLACE(
+              REPLACE(
+                REPLACE(
+                  REPLACE(
+                    REPLACE(
+                      REPLACE(
+                        REPLACE(
+                          REPLACE(
+                            NEW.personalnumber,
+                            'Х', 'X'),
+                          'Т', 'T'),
+                        'С', 'C'),
+                      'Р', 'P'),
+                    'О', 'O'),
+                  'Н', 'H'),
+                'М', 'M'),
+              'К', 'K'),
+            'Е', 'E'),
+          'А', 'A'),
+        'В', 'B');
+  END
+  
+  IF (CHAR_LENGTH(NEW.passportnumber) > 0
+    AND (INSERTING OR NEW.passportnumber IS DISTINCT FROM OLD.passportnumber)) THEN
+  BEGIN
+    NEW.passportnumber = UPPER(TRIM(NEW.passportnumber));
+    NEW.passportnumber =
+      REPLACE(
+        REPLACE(
+          REPLACE(
+            REPLACE(
+              REPLACE(
+                REPLACE(
+                  REPLACE(
+                    REPLACE(
+                      REPLACE(
+                        REPLACE(
+                          REPLACE(
+                            NEW.personalnumber,
+                            'Х', 'X'),
+                          'Т', 'T'),
+                        'С', 'C'),
+                      'Р', 'P'),
+                    'О', 'O'),
+                  'Н', 'H'),
+                'М', 'M'),
+              'К', 'K'),
+            'Е', 'E'),
+          'А', 'A'),
+        'В', 'B');
   END
 END
 ^
@@ -5153,6 +5242,7 @@ COMMIT;
 
 CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
   sessionid         dintkey,
+  seqid             dintkey,
   masterid          dintkey,
   reflevel          dinteger_notnull,
   relationname      dtablename NOT NULL,
@@ -5166,7 +5256,7 @@ CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
   refeditiondate    TIMESTAMP,
 
   CONSTRAINT gd_pk_object_dependencies PRIMARY KEY
-    (sessionid, masterid, reflevel, relationname, fieldname, refobjectid)
+    (sessionid, seqid)
 )
   ON COMMIT DELETE ROWS;
 
@@ -5771,6 +5861,8 @@ CREATE TABLE gd_documenttype_option (
   bool_value            dboolean,
   relationfieldkey      dforeignkey,
   contactkey            dforeignkey,
+  currkey               dforeignkey,
+  editiondate           deditiondate, 
   disabled              ddisabled,
   
   CONSTRAINT gd_pk_dt_option PRIMARY KEY (id),
@@ -5785,11 +5877,15 @@ CREATE TABLE gd_documenttype_option (
   CONSTRAINT gd_fk_dt_option_contactkey FOREIGN KEY (contactkey)
     REFERENCES gd_contact (id)
     ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT gd_fk_dt_option_currkey FOREIGN KEY (currkey)
+    REFERENCES gd_curr (id)
+    ON DELETE CASCADE
     ON UPDATE CASCADE
 );
 
 ALTER TABLE gd_documenttype_option ADD CONSTRAINT gd_uq_dt_option 
-  UNIQUE (dtkey, option_name, relationfieldkey, contactkey);
+  UNIQUE (dtkey, option_name, relationfieldkey, contactkey, currkey);
 
 SET TERM ^ ;
 
@@ -5822,29 +5918,23 @@ BEGIN
     HAVING
       COUNT(option_name) > 1)) THEN
   BEGIN
-    EXCEPTION gd_e_exception 'Duplicate option';
+    EXCEPTION gd_e_exception 'Duplicate boolean option name';
   END
-
-  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = 'Dir.FIFO')) THEN
-    I = :I + 1;
-
-  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = 'Dir.LIFO')) THEN
-    I = :I + 1;
-
-  IF (EXISTS (SELECT option_name FROM gd_documenttype_option WHERE option_name = 'Dir.Default')) THEN
-    I = :I + 1;
-
-  IF (:I > 1) THEN
-    EXCEPTION gd_e_exception 'Duplicate option';
-    
-  IF ((NEW.bool_value <> 0) AND (POSITION('.', NEW.option_name) > 0)) THEN
+  
+  IF (POSITION('.', NEW.option_name) > 0) THEN
   BEGIN
-    UPDATE gd_documenttype_option 
-    SET bool_value = 0
-    WHERE bool_value = 1 AND dtkey = NEW.dtkey AND id <> NEW.id
-      AND option_name STARTING WITH 
-        LEFT(NEW.option_name, CHARACTER_LENGTH(NEW.option_name) - POSITION('.', REVERSE(NEW.option_name)) + 1);
-  END  
+    IF (NEW.bool_value = 0) THEN
+      EXCEPTION gd_e_exception 'Invalid enum type value'; 
+      
+    SELECT COUNT(*) FROM gd_documenttype_option
+    WHERE dtkey = NEW.dtkey 
+      AND option_name STARTING WITH LEFT(NEW.option_name, CHARACTER_LENGTH(NEW.option_name) - POSITION('.', REVERSE(NEW.option_name)) + 1)
+      AND NEW.bool_value IS NOT NULL
+    INTO :I;
+    
+    IF (:I > 1) THEN
+      EXCEPTION gd_e_exception 'Multiple enum type values';          
+  END    
 END
 ^    
 
@@ -16352,7 +16442,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Script
 
@@ -16536,6 +16626,16 @@ BEGIN
 
   IF (TRIM(COALESCE(NEW.caption, '')) = '') THEN
     NEW.caption = NEW.name;
+END
+^
+
+CREATE OR ALTER TRIGGER at_ad_namespace FOR at_namespace
+  ACTIVE
+  AFTER DELETE
+  POSITION 0
+AS
+BEGIN
+  DELETE FROM gd_ruid WHERE id = OLD.id;
 END
 ^
 
@@ -17225,6 +17325,7 @@ COMMIT;CREATE TABLE gd_autotask
    emailexporttype  VARCHAR(4),
    cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
    backupfile       dtext255,         /* если задано -- имя файла архива */
+   reload           dboolean,
    userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/
    computer         dtext60,
    atstartup        dboolean,
@@ -17335,12 +17436,26 @@ BEGIN
     NEW.weekly = NULL;
   END
 
+  IF (NEW.reload <> 0) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.autotrkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.cmdline = NULL;
+    NEW.backupfile = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
+  END
+  
   IF (NOT NEW.functionkey IS NULL) THEN
   BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.reload = 0; 
     NEW.emailgroupkey = NULL;
     NEW.emailrecipients = NULL;
     NEW.emailsmtpkey = NULL;
@@ -17353,6 +17468,7 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.reload = 0; 
     NEW.emailgroupkey = NULL;
     NEW.emailrecipients = NULL;
     NEW.emailsmtpkey = NULL;
@@ -17365,6 +17481,7 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.reload = 0; 
   END
 
   IF (NOT NEW.cmdline IS NULL) THEN
@@ -17373,6 +17490,7 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.backupfile = NULL;
+    NEW.reload = 0; 
     NEW.emailgroupkey = NULL;
     NEW.emailrecipients = NULL;
     NEW.emailsmtpkey = NULL;
@@ -17384,6 +17502,7 @@ BEGIN
     NEW.functionkey = NULL;
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
+    NEW.reload = 0; 
     NEW.cmdline = NULL;
     NEW.emailgroupkey = NULL;
     NEW.emailrecipients = NULL;
@@ -21721,7 +21840,17 @@ INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
 VALUES
   (741120,740400,'Внешние ключи','gdcFKManager',0,NULL,228,NULL,'TgdcFKManager',NULL,1,1,1,0,NULL);
-
+  
+  INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex)
+    VALUES (
+      790000,
+      710000,
+      'Материальный склад',
+      '790000_17',
+      NULL,
+      0
+    );
+  
 -- gd_documenttype
 -- 800001..850000
 
@@ -22203,15 +22332,21 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE TRIGGER gd_db_connect
+CREATE OR ALTER TRIGGER gd_db_connect
   ACTIVE
   ON CONNECT
   POSITION 0
 AS
   DECLARE VARIABLE ingroup INTEGER = 0;
+  DECLARE VARIABLE userkey INTEGER = 0;
+  DECLARE VARIABLE contactkey INTEGER = 0;
 BEGIN
-  SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
-    INTO :ingroup;
+  SELECT FIRST 1 id, contactkey, ingroup 
+  FROM gd_user 
+  WHERE ibname = CURRENT_USER
+  INTO :userkey, :contactkey, :ingroup;
+  RDB$SET_CONTEXT('USER_SESSION', 'GD_USERKEY', :userkey);
+  RDB$SET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY', :contactkey);
   RDB$SET_CONTEXT('USER_SESSION', 'GD_INGROUP', :ingroup);
 END
 ^

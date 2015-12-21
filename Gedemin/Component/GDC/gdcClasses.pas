@@ -318,6 +318,7 @@ uses
   gd_directories_const,
   IB, gdc_frmMDH_unit,
   gd_resourcestring,
+  mtd_i_Base,
 
   jclStrings
   {must be placed after Windows unit!}
@@ -1036,7 +1037,6 @@ begin
   {END MACRO}
 end;
 
-
 procedure TgdcDocument.MakeEntry;
 var
   DetailDoc: TgdcDocument;
@@ -1048,6 +1048,9 @@ var
   ibsql: TIBSQL;
   isCreateEntry: Boolean;
 begin
+  if UnMethodMacro then
+    exit;
+
   EntryRegister := gdcAcctEntryRegister as TgdcAcctEntryRegister;
   if EntryRegister.Active then EntryRegister.Close;
 

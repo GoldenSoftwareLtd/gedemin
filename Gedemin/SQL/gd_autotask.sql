@@ -12,6 +12,7 @@ CREATE TABLE gd_autotask
    emailexporttype  VARCHAR(4),
    cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
    backupfile       dtext255,         /* если задано -- имя файла архива */
+   reload           dboolean,
    userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/
    computer         dtext60,
    atstartup        dboolean,
@@ -122,12 +123,26 @@ BEGIN
     NEW.weekly = NULL;
   END
 
+  IF (NEW.reload <> 0) THEN
+  BEGIN
+    NEW.functionkey = NULL;
+    NEW.autotrkey = NULL;
+    NEW.reportkey = NULL;
+    NEW.cmdline = NULL;
+    NEW.backupfile = NULL;
+    NEW.emailgroupkey = NULL;
+    NEW.emailrecipients = NULL;
+    NEW.emailsmtpkey = NULL;
+    NEW.emailexporttype = NULL;
+  END
+  
   IF (NOT NEW.functionkey IS NULL) THEN
   BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.reload = 0; 
     NEW.emailgroupkey = NULL;
     NEW.emailrecipients = NULL;
     NEW.emailsmtpkey = NULL;
@@ -140,6 +155,7 @@ BEGIN
     NEW.reportkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.reload = 0; 
     NEW.emailgroupkey = NULL;
     NEW.emailrecipients = NULL;
     NEW.emailsmtpkey = NULL;
@@ -152,6 +168,7 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.cmdline = NULL;
     NEW.backupfile = NULL;
+    NEW.reload = 0; 
   END
 
   IF (NOT NEW.cmdline IS NULL) THEN
@@ -160,6 +177,7 @@ BEGIN
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
     NEW.backupfile = NULL;
+    NEW.reload = 0; 
     NEW.emailgroupkey = NULL;
     NEW.emailrecipients = NULL;
     NEW.emailsmtpkey = NULL;
@@ -171,6 +189,7 @@ BEGIN
     NEW.functionkey = NULL;
     NEW.autotrkey = NULL;
     NEW.reportkey = NULL;
+    NEW.reload = 0; 
     NEW.cmdline = NULL;
     NEW.emailgroupkey = NULL;
     NEW.emailrecipients = NULL;
