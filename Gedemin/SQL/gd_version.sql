@@ -743,6 +743,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (237, '0000.0001.0000.0268', '20.12.2015', 'Delete a record from GD_RUID when deleting AT_NAMESPACE.');   
   
+INSERT INTO fin_versioninfo
+  VALUES (238, '0000.0001.0000.0269', '21.12.2015', 'Some fixes for CHANGED flag of AT_OBJECT.');   
+  
+INSERT INTO fin_versioninfo
+  VALUES (239, '0000.0001.0000.0270', '29.12.2015', 'AT_OBJECT triggers.');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

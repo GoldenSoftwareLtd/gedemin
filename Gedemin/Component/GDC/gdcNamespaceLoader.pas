@@ -487,7 +487,7 @@ var
   NSID: TID;
   NSTimeStamp: TDateTime;
   NSRUID: TRUID;
-  NSName, HashString: String;
+  NSName, HashString, OldHashString: String;
   MS: TMemoryStream;
   q: TIBSQL;
   CharReplace: LongBool;
@@ -584,6 +584,7 @@ begin
           FgdcNamespace.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
           FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', 21);
           FgdcNamespace.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
+          FgdcNamespace.FieldByName('md5').AsString := Mapping.ReadString('Properties\MD5');
           FgdcNamespace.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AList[I]);
           if FgdcNamespace.FieldByName('filetimestamp').AsDateTime > Now then
             FgdcNamespace.FieldByName('filetimestamp').AsDateTime := Now;
@@ -692,15 +693,17 @@ begin
     q := TIBSQL.Create(nil);
     try
       q.Transaction := FTr;
-      q.SQL.Text := 'UPDATE at_namespace SET changed = 0, md5 = :md5 WHERE id = :id';
+      q.SQL.Text := 'UPDATE at_namespace SET changed = :changed, md5 = :md5 WHERE id = :id';
 
       for T := 0 to FNSList.Count - 1 do
       begin
         HashString := '';
+        OldHashString := '';
         FgdcNamespace.ID := FNSList.Keys[T];
         FgdcNamespace.Open;
         if not FgdcNamespace.EOF then
         begin
+          OldHashString := FgdcNamespace.FieldbyName('MD5').AsString;
           MS := TMemoryStream.Create;
           try
             FgdcNamespace.SaveNamespaceToStream(MS, HashString);
@@ -712,6 +715,10 @@ begin
 
         if HashString > '' then
         begin
+          if HashString = OldHashString then
+            q.ParamByName('changed').AsInteger := 0
+          else
+            q.ParamByName('changed').AsInteger := 1;
           q.ParamByName('md5').AsString := HashString;
           q.ParamByName('id').AsInteger := FNSList.Keys[T];
           q.ExecQuery;

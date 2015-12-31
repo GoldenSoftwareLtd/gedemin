@@ -631,7 +631,7 @@ begin
         S.Add('z.documenttypekey IN (' + IDs + ')');
       end;
     end
-    else
+    else if DocumentTypeKey > 0 then
       S.Add(' z.documenttypekey = ' + IntToStr(DocumentTypeKey));
 
     if GetDocumentClassPart = dcpLine then

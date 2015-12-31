@@ -1,6 +1,6 @@
 object dlgToSetting: TdlgToSetting
-  Left = 364
-  Top = 230
+  Left = 365
+  Top = 232
   BorderStyle = bsDialog
   Caption = 'Добавить в настройку'
   ClientHeight = 330

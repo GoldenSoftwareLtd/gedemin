@@ -213,12 +213,13 @@ function TgdcNamespaceController.Include: Boolean;
 
 var
   gdcNamespaceObject: TgdcNamespaceObject;
-  HeadObjectKey, HeadObjectPos, NSKey, ObjCount, J, TempPos: Integer;
+  HeadObjectKey, HeadObjectPos, NSKey, ObjCount, J, TempPos, RL: Integer;
   q, qNSList, qFind, qMove, qDelete: TIBSQL;
   FirstRUID: TRUID;
   DS: TDataSet;
   ShouldAdd: Boolean;
   CEExist, CENew: TgdClassEntry;
+  HeadObjectLevel: array of Integer;
 begin
   Assert(FIBTransaction.InTransaction);
 
@@ -293,6 +294,7 @@ begin
 
         for J := 0 to FTabs.Count - 1 do
         begin
+          SetLength(HeadObjectLevel, 0);
           DS := SetupDS(J);
           DS.Last;
           while not DS.BOF do
@@ -418,7 +420,26 @@ begin
                     gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
                   else
                     gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
-                  gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
+
+                  RL := DS.FieldByName('reflevel').AsInteger - 1;
+                  
+                  if (Length(HeadObjectLevel) = 0) or (RL < Low(HeadObjectLevel)) or (RL > High(HeadObjectLevel))
+                    or (HeadObjectLevel[RL] = -1) then
+                  begin
+                    gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
+                  end else
+                    gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectLevel[RL];
+
+                  Inc(RL);
+                  while Length(HeadObjectLevel) <= RL do
+                  begin
+                    SetLength(HeadObjectLevel, Length(HeadObjectLevel) + 1);
+                    HeadObjectLevel[High(HeadObjectLevel)] := -1;
+                  end;
+                  if High(HeadObjectLevel) > RL then
+                    SetLength(HeadObjectLevel, RL + 1);
+                  HeadObjectLevel[RL] := gdcNamespaceObject.ID;
+
                   if DS.FieldByName('editiondate').IsNull then
                   begin
                     gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
@@ -510,7 +531,8 @@ var
 
   procedure GetDep(AnObject: TgdcBase; const ASessionID: Integer;
     const AnIncludeSelf: Boolean; const ALimitLevel: Integer = MAXINT;
-    const AnIgnoreFields: String = '');
+    const AnIgnoreFields: String = '';
+    const AStartingLevel: Integer = 0);
   var
     MasterID: Integer;
   begin
@@ -524,12 +546,14 @@ var
       'GD_LASTNUMBER',
       ALimitLevel,
       False,
-      MasterID);
+      MasterID,
+      AStartingLevel);
   end;
 
   procedure AddObjects(C: CgdcBase; const ASessionID: Integer;
     const AParam: String; const AnSQL: String;
-    const AnIgnoreFields: String = '');
+    const AnIgnoreFields: String = '';
+    const AStartingLevel: Integer = 0);
   var
     qObj: TIBSQL;
     Obj: TgdcBase;
@@ -550,7 +574,7 @@ var
         Obj.ID := qObj.FieldByName('id').AsInteger;
         Obj.Open;
         if not Obj.EOF then
-          GetDep(Obj, ASessionID, True, MAXINT, AnIgnoreFields);
+          GetDep(Obj, ASessionID, True, MAXINT, AnIgnoreFields, AStartingLevel);
         Obj.Close;
         qObj.Next;
       end;
@@ -963,7 +987,8 @@ var
         '  at_relation_fields rf '#13#10 +
         '  JOIN gd_documenttype dt ON dt.linerelkey = rf.relationkey '#13#10 +
         'WHERE '#13#10 +
-        '  dt.ruid = :N AND rf.fieldname LIKE ''USR$%'' ');
+        '  dt.ruid = :N AND rf.fieldname LIKE ''USR$%'' ',
+        '', 1);
 
       AddObjects(TgdcRelation, FSessionID, RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
@@ -981,7 +1006,8 @@ var
         '  at_relation_fields rf '#13#10 +
         '  JOIN gd_documenttype dt ON dt.headerrelkey = rf.relationkey '#13#10 +
         'WHERE '#13#10 +
-        '  dt.ruid = :N AND rf.fieldname LIKE ''USR$%'' ');
+        '  dt.ruid = :N AND rf.fieldname LIKE ''USR$%'' ',
+        '', 1);
 
       AddObjects(TgdcRelation, FSessionID, RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +

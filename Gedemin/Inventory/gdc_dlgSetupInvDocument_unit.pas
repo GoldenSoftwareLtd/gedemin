@@ -2236,7 +2236,9 @@ var
 begin
   inherited;
 
+
   Document.InitOpt;
+
   try
     DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
     if DE is TgdInvDocumentEntry then

@@ -548,7 +548,7 @@ begin
   {M}    end;
   {END MACRO}
   Result := inherited GetFromClause(ARefresh) +
-    '  LEFT JOIN bn_bankcatalogueline bcl ON z.id = bcl.documentkey ' +
+    '  JOIN bn_bankcatalogueline bcl ON z.id = bcl.documentkey ' +
     '  LEFT JOIN gd_company c ON c.contactkey = bcl.companykey ' +
     '  LEFT JOIN gd_document ld ON bcl.linkdocumentkey = ld.id ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKCATALOGUELINE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
@@ -988,7 +988,7 @@ begin
   {END MACRO}
 
   Result := inherited GetFromClause(ARefresh) +
-    '  JOIN bn_bankstatement bs ON z.id = bs.documentkey ';
+    ' JOIN bn_bankstatement bs ON z.id = bs.documentkey ';
 
   if ARefresh then
     Result := Result + ' AND z.id = :NEW_ID';
@@ -1947,7 +1947,7 @@ begin
   {END MACRO}
 
   Result :=  inherited GetFromClause(ARefresh) +
-    '  LEFT JOIN bn_bankstatementline bsl ON' +
+    '  JOIN bn_bankstatementline bsl ON' +
     '    z.id = bsl.id ' +
     '  LEFT JOIN gd_document dbsl ON ' +
     '    dbsl.id = bsl.documentkey ' +
@@ -2054,8 +2054,10 @@ end;
 
 initialization
   RegisterGdcClass(TgdcBaseLine);
-  RegisterGdcClass(TgdcBankCatalogue,    'Банковская картотека');
-  RegisterGdcClass(TgdcBankCatalogueLine);
+  with RegisterGdcClass(TgdcBankCatalogue,    'Банковская картотека') as TgdBaseEntry do
+    DistinctRelation := 'BN_BANKCATALOGUE';
+  with RegisterGdcClass(TgdcBankCatalogueLine) as TgdBaseEntry do
+    DistinctRelation := 'BN_BANKCATALOGUELINE';
   with RegisterGdcClass(TgdcBankStatement, 'Банковская выписка') as TgdBaseEntry do
     DistinctRelation := 'BN_BANKSTATEMENT';
   with RegisterGdcClass(TgdcBankStatementLine) as TgdBaseEntry do

@@ -26,6 +26,12 @@ type
     TBItem5: TTBItem;
     actViewNS: TAction;
     TBItem7: TTBItem;
+    splObjects: TSplitter;
+    ibdsObjects: TIBDataSet;
+    dsObjects: TDataSource;
+    Panel1: TPanel;
+    Panel2: TPanel;
+    gsIBGrid1: TgsIBGrid;
     procedure FormCreate(Sender: TObject);
     procedure actSetObjectPosExecute(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
@@ -56,7 +62,11 @@ procedure Tgdc_frmNamespace.FormCreate(Sender: TObject);
 begin
   gdcObject := gdcNamespace;
   gdcDetailObject := gdcNamespaceObject;
+
   inherited;
+
+  ibdsObjects.Transaction := gdcObject.ReadTransaction;
+  ibdsObjects.Open;
 end;
 
 procedure Tgdc_frmNamespace.actSetObjectPosExecute(Sender: TObject);

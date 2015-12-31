@@ -144,8 +144,9 @@ end;
 
 procedure Tgdc_frmInvViewRemains.cbCurrentRemainsClick(Sender: TObject);
 begin
-  if isCreate then
+  if (gdcObject = nil) or IsCreate then
     exit;
+
   if not cbCurrentRemains.Checked then
   begin
     with Tdlg_InputDateRemains.Create(Self) do
@@ -247,6 +248,7 @@ procedure Tgdc_frmInvViewRemains.actExecRemainsUpdate(Sender: TObject);
 begin
   deDateRemains.Enabled := not cbCurrentRemains.Checked;
   lDate.Enabled := not cbCurrentRemains.Checked;
+  (Sender as TAction).Enabled := gdcObject <> nil;
 end;
 
 procedure Tgdc_frmInvViewRemains.actOptionsExecute(Sender: TObject);

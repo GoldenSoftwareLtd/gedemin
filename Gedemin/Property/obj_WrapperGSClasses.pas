@@ -6923,6 +6923,8 @@ begin
     Result := Result + 'sSkipMultiple ';
   if sAskMultiple in GetGDCBase.BaseState then
     Result := Result + 'sAskMultiple ';
+  if sSubProcess in GetGDCBase.BaseState then
+    Result := Result + 'sSubProcess ';
 end;
 
 function TwrpGDCBase.Get_DetailClasses(Index: Integer): WideString;

@@ -8,7 +8,7 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 608
+    Top = 607
     Width = 848
   end
   inherited TBDockTop: TTBDock
@@ -160,16 +160,16 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
       object cbCurrentRemains: TCheckBox
         Left = 443
         Top = 2
-        Width = 126
+        Width = 115
         Height = 17
         Caption = 'Текущие остатки'
         TabOrder = 2
         OnClick = cbCurrentRemainsClick
       end
       object cbSubDepartment: TCheckBox
-        Left = 569
+        Left = 558
         Top = 2
-        Width = 224
+        Width = 230
         Height = 17
         Caption = 'Не включать вложенные подразделения'
         TabOrder = 3
@@ -191,53 +191,53 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
   end
   inherited TBDockLeft: TTBDock
     Top = 103
-    Height = 496
+    Height = 495
   end
   inherited TBDockRight: TTBDock
     Left = 839
     Top = 103
-    Height = 496
+    Height = 495
   end
   inherited TBDockBottom: TTBDock
-    Top = 599
+    Top = 598
     Width = 848
   end
   inherited pnlWorkArea: TPanel
     Top = 103
     Width = 830
-    Height = 496
+    Height = 495
     inherited spChoose: TSplitter
-      Top = 393
+      Top = 392
       Width = 830
     end
     inherited pnlMain: TPanel
       Width = 830
-      Height = 393
+      Height = 392
       inherited Splitter1: TSplitter
-        Height = 393
+        Height = 392
       end
       inherited pnlSearchMain: TPanel
-        Height = 393
+        Height = 392
         inherited sbSearchMain: TScrollBox
-          Height = 366
+          Height = 365
         end
       end
       inherited pnMain: TPanel
-        Height = 393
+        Height = 392
         inherited tvGroup: TgsDBTreeView
-          Height = 393
+          Height = 392
         end
       end
       inherited pnDetail: TPanel
         Width = 450
-        Height = 393
+        Height = 392
         Caption = 'Для отображения остатков нажмите кнопку "Перестроить" (F5)'
         Font.Height = -13
         Font.Style = [fsBold]
         ParentFont = False
         inherited ibgrDetail: TgsIBGrid
           Width = 450
-          Height = 393
+          Height = 392
           Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
           ParentFont = False
           Visible = False
@@ -251,7 +251,7 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
       end
     end
     inherited pnChoose: TPanel
-      Top = 397
+      Top = 396
       Width = 830
       inherited pnButtonChoose: TPanel
         Left = 725

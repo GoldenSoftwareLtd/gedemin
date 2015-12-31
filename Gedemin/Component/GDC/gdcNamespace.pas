@@ -53,6 +53,7 @@ type
   protected
     function GetOrderClause: String; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
+    procedure DoBeforeDelete; override;
 
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -82,7 +83,7 @@ uses
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
   Storages, gdcMetadata, at_sql_setup, gsDesktopManager, at_Classes_body,
   at_dlgCompareNSRecords_unit, gdcNamespaceLoader, gd_GlobalParams_unit,
-  gdcClasses_Interface;
+  gdcClasses_Interface, at_dlgNamespaceDeleteDependencies_unit;
 
 procedure Register;
 begin
@@ -1628,6 +1629,102 @@ begin
     end;
   end;
   Index := L;
+end;
+
+procedure TgdcNamespaceObject.DoBeforeDelete;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  q: TIBSQL;
+  Dlg: Tat_dlgNamespaceDeleteDependencies;
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCNAMESPACEOBJECT', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCNAMESPACEOBJECT', KEYDOBEFOREDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCNAMESPACEOBJECT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCNAMESPACEOBJECT',
+  {M}          'DOBEFOREDELETE', KEYDOBEFOREDELETE, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCNAMESPACEOBJECT' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FDataTransfer then
+    exit;
+
+  if (sView in BaseState) and (not (sSubProcess in BaseState)) then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := ReadTransaction;
+      q.SQL.Text :=
+        'WITH RECURSIVE '#13#10 +
+        '  group_tree AS ( '#13#10 +
+        '    SELECT id, headobjectkey, objectname, '#13#10 +
+        '      CAST('''' AS VARCHAR(255)) AS indent '#13#10 +
+        '    FROM at_object '#13#10 +
+        '    WHERE id = :id '#13#10 +
+        ' '#13#10 +
+        '    UNION ALL '#13#10 +
+        ' '#13#10 +
+        '    SELECT g.id, g.headobjectkey, g.objectname, '#13#10 +
+        '      h.indent || rpad('''', 4) '#13#10 +
+        '    FROM at_object g JOIN group_tree h '#13#10 +
+        '    ON g.headobjectkey = h.id '#13#10 +
+        ') '#13#10 +
+        'SELECT '#13#10 +
+        '  gt.indent || gt.objectname '#13#10 +
+        'FROM '#13#10 +
+        '  group_tree gt';
+      q.ParamByName('id').AsInteger := ID;
+      q.ExecQuery;
+
+      if not q.EOF then
+      begin
+        Dlg := Tat_dlgNamespaceDeleteDependencies.Create(ParentForm);
+        try
+          while not q.EOF do
+          begin
+            Dlg.mObjects.Lines.Append(q.Fields[0].AsString);
+            q.Next;
+          end;
+
+          Dlg.Caption := 'Удаление объекта "' + ObjectName + '"';
+          if Dlg.ShowModal = mrCancel then
+            Abort;
+
+          if Dlg.rbDeleteOne.Checked then
+            ExecSingleQuery('UPDATE at_object SET headobjectkey = NULL ' +
+              'WHERE headobjectkey = :ID', ID);
+        finally
+          Dlg.Free;
+        end;
+      end;
+    finally
+      q.Free;
+    end;
+  end;
+
+  inherited;
+
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCNAMESPACEOBJECT', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCNAMESPACEOBJECT', 'DOBEFOREDELETE', KEYDOBEFOREDELETE);
+  {M}  end;
+  {END MACRO}
 end;
 
 initialization

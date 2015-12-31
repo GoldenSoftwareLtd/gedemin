@@ -66,7 +66,6 @@ type
   end;
 
   TgdcCurrBuyContract = class(TgdcCurrDocument)
-  private
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -270,7 +269,7 @@ begin
   {M}    end;
   {END MACRO}
   Result := inherited GetFromClause(ARefresh) +
-    ' RIGHT JOIN BN_CURRSELLCONTRACT CC ON z.id = cc.documentkey ' +
+    ' JOIN BN_CURRSELLCONTRACT CC ON z.id = cc.documentkey ' +
     '  LEFT JOIN GD_CURR C ON C.ID = CC.CURRKEY ' +
     '  LEFT JOIN GD_COMPANYACCOUNT A ON CC.OWNACCOUNTKEY = A.ID ' +
     '  LEFT JOIN GD_COMPANYACCOUNT AB ON CC.BANKACCOUNTKEY = AB.ID ';
@@ -483,7 +482,7 @@ begin
   {M}    end;
   {END MACRO}
   Result := inherited GetFromClause(ARefresh) + 
-    '   RIGHT JOIN bn_currcommisssell cc ON z.id = cc.documentkey ' +
+    '   JOIN bn_currcommisssell cc ON z.id = cc.documentkey ' +
     '   JOIN gd_companyaccount a ON cc.accountkey = a.id ' +
     '   JOIN gd_bank b ON a.bankkey = b.bankkey ' +
     '   JOIN gd_contact bc ON b.bankkey = bc.id ' +
@@ -723,7 +722,7 @@ begin
   {END MACRO}
   Result :=
     inherited GetFromClause(ARefresh) +
-    '  RIGHT JOIN bn_currlistallocation cc ON cc.documentkey = z.id ' +
+    '  JOIN bn_currlistallocation cc ON cc.documentkey = z.id ' +
     '  JOIN gd_companyaccount a ON cc.accountkey = a.id ' +
     '  JOIN gd_bank b ON a.bankkey = b.bankkey ' +
     '  JOIN gd_contact bc ON b.bankkey = bc.id ' +
@@ -957,7 +956,7 @@ begin
   {END MACRO}
   Result :=
     inherited GetFromClause(ARefresh) +
-    '   RIGHT JOIN bn_currbuycontract cc ON cc.documentkey = z.id ' +
+    '   JOIN bn_currbuycontract cc ON cc.documentkey = z.id ' +
     '   LEFT JOIN gd_companyaccount a ON cc.accountkey = a.id ' +
     '   LEFT JOIN gd_bank b ON a.bankkey = b.bankkey ' +
     '   LEFT JOIN gd_contact bc ON b.bankkey = bc.id ' +
@@ -1188,7 +1187,7 @@ begin
   {END MACRO}
   Result :=
     inherited GetFromClause(ARefresh) +
-    '   RIGHT JOIN bn_currconvcontract cc ON cc.documentkey = z.id ' +
+    '   JOIN bn_currconvcontract cc ON cc.documentkey = z.id ' +
     '   LEFT JOIN gd_companyaccount froma ON cc.fromaccountkey = froma.id ' +
     '   LEFT JOIN gd_companyaccount toa ON cc.toaccountkey = toa.id ' +
     '   LEFT JOIN gd_curr fromc ON cc.fromcurrkey = fromc.id ' +
@@ -1353,11 +1352,16 @@ end;
 
 initialization
   RegisterGdcClass(TgdcCurrDocument);
-  RegisterGdcClass(TgdcCurrSellContract);
-  RegisterGdcClass(TgdcCurrCommissSell);
-  RegisterGdcClass(TgdcCurrListAllocation);
-  RegisterGdcClass(TgdcCurrBuyContract);
-  RegisterGdcClass(TgdcCurrConvContract);
+  with RegisterGdcClass(TgdcCurrSellContract) as TgdBaseEntry do
+    DistinctRelation := 'BN_CURRSELLCONTRACT';
+  with RegisterGdcClass(TgdcCurrCommissSell) as TgdBaseEntry do
+    DistinctRelation := 'BN_CURRCOMMISSSELL';
+  with RegisterGdcClass(TgdcCurrListAllocation) as TgdBaseEntry do
+    DistinctRelation := 'BN_CURRLISTALLOCATION';
+  with RegisterGdcClass(TgdcCurrBuyContract) as TgdBaseEntry do
+    DistinctRelation := 'BN_CURRBUYCONTRACT';
+  with RegisterGdcClass(TgdcCurrConvContract) as TgdBaseEntry do
+    DistinctRelation := 'BN_CURRCONVCONTRACT';
 
 finalization
   UnregisterGdcClass(TgdcCurrDocument);

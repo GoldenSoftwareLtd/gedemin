@@ -50,6 +50,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure actViewGoodExecute(Sender: TObject);
     procedure actViewGoodUpdate(Sender: TObject);
+    procedure actViewCardUpdate(Sender: TObject);
+    procedure actViewFullCardUpdate(Sender: TObject);
 
   private
     FIsSetup: Boolean;
@@ -262,7 +264,7 @@ end;
 procedure Tgdc_frmInvBaseRemains.cbAllRemainsClick(Sender: TObject);
 begin
   inherited;
-  if not IsSetup then
+  if (gdcObject <> nil) and (not IsSetup) then
   begin
     if cbAllRemains.Checked then
       gdcObject.AddSubSet(cst_AllRemains)
@@ -349,7 +351,17 @@ end;
 
 procedure Tgdc_frmInvBaseRemains.actViewGoodUpdate(Sender: TObject);
 begin
-  actViewGood.Enabled := not Self.gdcObject.IsEmpty;
+  actViewGood.Enabled := (Self.gdcObject <> nil) and (not Self.gdcObject.IsEmpty);
+end;
+
+procedure Tgdc_frmInvBaseRemains.actViewCardUpdate(Sender: TObject);
+begin
+  actViewCard.Enabled := gdcObject <> nil;
+end;
+
+procedure Tgdc_frmInvBaseRemains.actViewFullCardUpdate(Sender: TObject);
+begin
+  actViewFullCard.Enabled := gdcObject <> nil;
 end;
 
 initialization

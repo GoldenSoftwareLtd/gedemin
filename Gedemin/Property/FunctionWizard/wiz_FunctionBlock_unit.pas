@@ -8384,7 +8384,6 @@ begin
   Result := FDocumentLine;
 end;
 
-
 procedure TDocumentTransactionFunction.SetDocumentPart(
   const Value: TgdcDocumentClassPart);
 begin

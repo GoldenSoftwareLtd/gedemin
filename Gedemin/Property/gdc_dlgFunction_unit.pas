@@ -40,7 +40,7 @@ type
     Label17: TLabel;
     Label18: TLabel;
     TBDock4: TTBDock;
-    TBToolbar1: TTBToolbar;
+    tb: TTBToolbar;
     TBItem16: TTBItem;
     TBItem15: TTBItem;
     TBSeparatorItem9: TTBSeparatorItem;

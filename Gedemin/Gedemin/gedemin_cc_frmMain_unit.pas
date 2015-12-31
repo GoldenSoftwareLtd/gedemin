@@ -56,6 +56,7 @@ type
     procedure lbClientsMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure DoneClientClick(Sender: TObject);
+    procedure btnDoneAllClick(Sender: TObject);
     procedure sbtnLeftClick(Sender: TObject);
     procedure sbtnRightClick(Sender: TObject);
     procedure Exit1Click(Sender: TObject);
@@ -63,7 +64,6 @@ type
     procedure OpenLog1Click(Sender: TObject);
     procedure DBGrDrawColumnCell(Sender: TObject; const Rect: TRect;
       DataCol: Integer; Column: TColumn; State: TGridDrawState);
-    procedure btnDoneAllClick(Sender: TObject);
 
   private
     FCurrStr: String;
@@ -98,6 +98,7 @@ begin
   ccTCPServer.RefMemoHandle := Self.Handle;
   ccTCPServer.RefLBHandle := Self.Handle;
   ccTCPServer.Update;
+  btnDoneAll.Enabled := false;
 end;
 
 procedure Tfrm_gedemin_cc_main.FormClose(Sender: TObject;
@@ -133,6 +134,11 @@ begin
           ClientP := TClientP(Items[i]);
           lbClients.Items.AddObject(ClientP.Host, TObject(ClientP));
         end;
+        btnDoneAll.Enabled := true;
+      end
+      else
+      begin
+        btnDoneAll.Enabled := false;
       end;
     end;
   finally
@@ -223,6 +229,16 @@ begin
   end;
   {if FindWindow('TfrmGedeminMain', nil) <> 0 then
     PostMessage(FindWindow('TfrmGedeminMain', nil), WM_QUIT, 0, 0);}
+end;
+
+procedure Tfrm_gedemin_cc_main.btnDoneAllClick(Sender: TObject);
+begin
+  FCriticalSection.Enter;
+  try
+    ccTCPServer.FDoneAll := true;
+  finally
+    FCriticalSection.Leave;
+  end;
 end;
 
 procedure Tfrm_gedemin_cc_main.sbtnLeftClick(Sender: TObject);
@@ -351,16 +367,6 @@ begin
     TDBGrid(Sender).Canvas.Brush.Color := RowColors[OddRow];
     TDBGrid(Sender).Canvas.Font.Color := Black;
     TDBGrid(Sender).DefaultDrawColumnCell(Rect, DataCol, Column, State);
-  end;
-end;
-
-procedure Tfrm_gedemin_cc_main.btnDoneAllClick(Sender: TObject);
-begin
-  FCriticalSection.Enter;
-  try
-    ccTCPServer.FDoneAll := true;
-  finally
-    FCriticalSection.Leave;
   end;
 end;
 

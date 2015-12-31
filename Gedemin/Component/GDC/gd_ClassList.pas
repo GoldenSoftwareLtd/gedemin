@@ -449,7 +449,6 @@ type
 
     function GetMovementContactOption(
       const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
-
   protected
     procedure LoadDEOption(qOpt: TIBSQL); override;
 
@@ -467,6 +466,10 @@ type
     function GetFlag(const AFlag: TgdInvDocumentEntryFlag): Boolean;
     function GetFeaturesCount(const AFeature: TgdInvDocumentEntryFeature): Integer;
     function GetFeature(const AFeature: TgdInvDocumentEntryFeature; const AnIndex: Integer): String;
+    function IsExistsFeature(const AFeature: TgdInvDocumentEntryFeature; const Feature: String): Boolean;
+    function GetFeaturesText(const AFeature: TgdInvDocumentEntryFeature): String;
+
+
     function GetDirection: TgdcInvMovementDirection;
     function GetSources: TgdcInvReferenceSources;
 
@@ -476,6 +479,9 @@ type
     function GetMCOSubSourceFieldName(const AMovement: TgdInvDocumentEntryMovement): String;
     function GetMCOContactType(const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactType;
     procedure GetMCOPredefined(const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
+    function GetMovement(
+      const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
+
     procedure GetMCOSubPredefined(const AMovement: TgdInvDocumentEntryMovement; var V: TgdcMCOPredefined);
   end;
 
@@ -2837,6 +2843,9 @@ begin
     Result := HeaderRelName
   else
     Result := LineRelName;
+
+  if Result = '' then
+    Result := inherited GetDistinctRelation;   
 end;
 
 procedure TgdDocumentEntry.LoadDE(q, qOpt: TIBSQL; const AnAllowParseOptions: Boolean = False);
@@ -3322,6 +3331,19 @@ begin
     Result := FFeatures[AFeature][AnIndex];
 end;
 
+function TgdInvDocumentEntry.GetFeaturesText(
+  const AFeature: TgdInvDocumentEntryFeature): String;
+begin
+  if Parent is TgdInvDocumentEntry then
+  begin
+    Result := TgdInvDocumentEntry(Parent).GetFeaturesText(AFeature);
+    if (FFeatures[AFeature].Count <> 0) and (Result <> '') then Result := Result + ',';
+    Result := Result + FFeatures[AFeature].CommaText;
+  end
+  else
+    Result := FFeatures[AFeature].CommaText;
+end;
+
 function TgdInvDocumentEntry.GetFeaturesCount(
   const AFeature: TgdInvDocumentEntryFeature): Integer;
 begin
@@ -3419,6 +3441,15 @@ begin
     Result := FMovement[AMovement].SubSourceFieldName;
 end;
 
+function TgdInvDocumentEntry.GetMovement(
+  const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
+begin
+  if (FMovement[Amovement].RelationName = '') and (Parent is TgdInvDocumentEntry) then
+    Result := TgdInvDocumentEntry(Parent).GetMovement(AMovement)
+  else
+    Result := FMovement[AMovement];
+end;
+
 function TgdInvDocumentEntry.GetMovementContactOption(
   const AMovement: TgdInvDocumentEntryMovement): TgdcInvMovementContactOption;
 begin
@@ -3435,6 +3466,21 @@ begin
     Include(Result, irsRemainsRef);
   if GetFlag(efSrcMacro) then
     Include(Result, irsMacro);
+end;
+
+function TgdInvDocumentEntry.IsExistsFeature(
+  const AFeature: TgdInvDocumentEntryFeature;
+  const Feature: String): Boolean;
+begin
+
+  if Parent is TgdInvDocumentEntry then
+    Result := TgdInvDocumentEntry(Parent).IsExistsFeature(AFeature, Feature)
+  else
+    Result := False;
+
+  if not Result then
+    Result := FFeatures[AFeature].IndexOf(Feature) >= 0;
+    
 end;
 
 procedure TgdInvDocumentEntry.LoadDE(Tr: TIBTransaction);

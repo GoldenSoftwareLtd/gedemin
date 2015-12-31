@@ -1521,6 +1521,16 @@ begin
 
         DeleteFromLookupCache(FCurrentKey);
 
+        if FdlgDropDown = nil then
+        begin
+          MessageBox(Handle,
+            'Упс! Нельзя настраивать лукап когда пользователь что-то выбирает из списка!'#13#10 +
+            'Проверьте нет ли где присвоения свойства gdClassName.',
+            'Ошибка разработчика',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+          exit;
+        end;
+
         if FdlgDropDown.FWasTabKey and (Parent is TWinControl) then
         begin
           W := Parent;
@@ -1537,8 +1547,11 @@ begin
         PostMessage(Self.Handle,  FdlgDropDown.FLastMessage, 0, 0);
     end;
   finally
-    if (not WasActive) and FdlgDropDown.ibdsList.ReadTransaction.InTransaction then
+    if (not WasActive) and (FdlgDropDown <> nil)
+      and FdlgDropDown.ibdsList.ReadTransaction.InTransaction then
+    begin
       FdlgDropDown.ibdsList.ReadTransaction.Commit;
+    end;
   end;
 end;
 
@@ -1805,18 +1818,14 @@ end;
 
 function TgsIBLookupComboBox.CreateGDClassInstance(const AnID: Integer): TgdcBase;
 var
-  C: TPersistentClass;
   Obj: TgdcBase;
+  CE: TgdClassEntry;
 begin
-  C := GetClass(gdClassName);
-  if (C = nil) or (not C.InheritsFrom(TgdcBase)) then
-    Result := nil
-  else begin
-    if (FSubType > '') and (not CgdcBase(C).CheckSubType(FSubType)) then
-      raise EgsIBLookupComboBoxError.Create('gsIBLookupComboBox: invalid subtype specified'#13#10 +
-          'Class: ' + FgdClassName + #13#10'Subtype: ' + FSubType);
+  CE := gdClassList.Find(gdClassName, FSubType);
 
-    Obj := CgdcBase(C).CreateSubType(Self.Owner, FSubType, 'ByID');
+  if CE is TgdBaseEntry then
+  begin
+    Obj := TgdBaseEntry(CE).gdcClass.CreateSubType(Self.Owner, FSubType, 'ByID');
     if AnID > -1 then
     begin
       Obj.ID := AnID;
@@ -1835,7 +1844,8 @@ begin
       end;
     end;
     Result := Obj;
-  end;
+  end else
+    Result := nil;
 end;
 
 procedure TgsIBLookupComboBox.SetgdClassName(const Value: TgdcClassName);

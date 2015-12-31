@@ -37,7 +37,7 @@ type
 
     procedure InitClient;
     procedure DoneClient;
-    procedure Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: Integer);
+    procedure Log(const AMsg, ASource: String; const AnObjectID: Integer);
 
     property Connected: Boolean read GetConnected;
   end;
@@ -48,7 +48,7 @@ var
 implementation
 
 uses
-  SysUtils, gd_messages_const;
+  SysUtils, gd_messages_const, jclSelected;
 
 constructor TgdLogClient.Create;
 begin
@@ -101,7 +101,7 @@ begin
           FConnPar.Done := false;
           FTCPClient.WriteBuffer(FConnPar, SizeOf(FConnPar), true);
           FTCPClient.WriteBuffer(FClient, SizeOf(FClient), true);
-          Log(GDRun, ClassName, '', 0);
+          Log(GDRun, ClassName, 0);
         end;
       except
         if FAttempts = 0 then
@@ -125,7 +125,7 @@ begin
       FConnPar.Command := CC_DONE;
       FTCPClient.WriteBuffer(FConnPar, SizeOf(FConnPar), true);
       FTCPClient.WriteBuffer(FClient, SizeOf(FClient), true);
-      Log(GDDone, ClassName, '', 0);
+      Log(GDDone, ClassName, 0);
     end;
     WM_LOG_FREE:
     begin
@@ -163,9 +163,9 @@ begin
   end;
 end;
 
-procedure TgdLogClient.Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: Integer);
+procedure TgdLogClient.Log(const AMsg, ASource: String; const AnObjectID: Integer);
 var
-  p, l: Integer;
+  P, L: Integer;
 begin
   if not Connected then
     exit;
@@ -175,28 +175,26 @@ begin
       FEnd := 0;
     if (FEnd < MaxBufferSize) or (FEnd < FStart) then
     begin
-      p := Pos(' ', ASource);
-      l := Length(ASource);
+      P := Pos(' ', ASource);
+      L := Length(ASource);
       FBuffer[FEnd].ID := FClient.ID;
       FBuffer[FEnd].DTAct := Now;
       FBuffer[FEnd].IP := FClient.IP;
       FBuffer[FEnd].Host := FClient.Host;
       FBuffer[FEnd].OSName := FClient.OSName;
       FBuffer[FEnd].Msg := Copy(AMsg, 1, MaxMsgLength);
-      if p <> 0 then
+      if P <> 0 then
       begin
-        FBuffer[FEnd].ObjClass := Copy(ASource, 1, p - 1);
-        FBuffer[FEnd].ObjSubType := Copy(ASource, p + 1, l);
+        FBuffer[FEnd].ObjClass := Copy(ASource, 1, P - 1);
+        FBuffer[FEnd].ObjSubType := Copy(ASource, P + 1, L);
       end
       else
       begin
-        FBuffer[FEnd].ObjClass := Copy(ASource, 1, l);
+        FBuffer[FEnd].ObjClass := Copy(ASource, 1, L);
         FBuffer[FEnd].ObjSubType := '';
       end;
-      FBuffer[FEnd].ObjName := AnObjectName;
       if (FBuffer[FEnd].ObjClass = '') then FBuffer[FEnd].ObjClass := '-';
       if (FBuffer[FEnd].ObjSubType = '') then FBuffer[FEnd].ObjSubType := '-';
-      if (FBuffer[FEnd].ObjName = '') then FBuffer[FEnd].ObjName := '-';
       FBuffer[FEnd].ObjID := AnObjectID;
       if Assigned(IBLogin) and IBLogin.LoggedIn then
       begin
@@ -208,9 +206,11 @@ begin
         FBuffer[FEnd].UserName := '-';
         FBuffer[FEnd].DBFileName := '-';
       end;
-      FBuffer[FEnd].CRC := 1;
-      FBuffer[FEnd].SQL := 'Text';
-      FBuffer[FEnd].OP := '????????';
+
+      FBuffer[FEnd].ObjName := '-';
+      FBuffer[FEnd].OP := '--------';
+      FBuffer[FEnd].SQL := '-';
+      FBuffer[FEnd].CRC := 0;
       FBuffer[FEnd].Param := '?.?.?';
       FBuffer[FEnd].Inti := 0;
       FBuffer[FEnd].Str := '?';

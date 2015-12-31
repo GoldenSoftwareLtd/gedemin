@@ -834,7 +834,7 @@ begin
   {M}    end;
   {END MACRO}
   Result := inherited GetFromClause(ARefresh) +
-    '   LEFT JOIN gd_taxresult tr ON tr.documentkey = z.id ' +
+    '   JOIN gd_taxresult tr ON tr.documentkey = z.id ' +
     '   LEFT JOIN gd_taxdesigndate td ON td.documentkey = tr.taxdesigndatekey ' +
     '   LEFT JOIN gd_taxactual ta ON ta.id = td.taxactualkey ' +
     '   LEFT JOIN gd_taxtype tp ON tp.id = ta.typekey ' +
@@ -1105,7 +1105,7 @@ begin
   {M}    end;
   {END MACRO}
   Result := inherited GetFromClause(ARefresh) +
-    '   LEFT JOIN gd_taxdesigndate td ON z.id = td.documentkey' +
+    '   JOIN gd_taxdesigndate td ON z.id = td.documentkey' +
     '   LEFT JOIN gd_taxactual ta ON ta.id = td.taxactualkey' +
     '   LEFT JOIN gd_taxname t ON ta.taxnamekey = t.id' +
     '   LEFT JOIN gd_taxtype tt ON tt.id = ta.typekey';
@@ -1326,8 +1326,10 @@ end;
 
 initialization
   RegisterGdcClass(TgdcTaxActual);
-  RegisterGdcClass(TgdcTaxResult);
-  RegisterGdcClass(TgdcTaxDesignDate);
+  with RegisterGdcClass(TgdcTaxResult) as TgdBaseEntry do
+    DistinctRelation := 'GD_TAXRESULT'; 
+  with RegisterGdcClass(TgdcTaxDesignDate) as TgdBaseEntry do
+    DistinctRelation := 'GD_TAXDESIGNDATE';
   RegisterGdcClass(TgdcTaxName, 'Бухгалтерский отчет');
 
 finalization

@@ -238,9 +238,14 @@ type
     sSkipMultiple,   // идет обработка нескольких записей и пользователь выбрал пропуск
                      // проблемных записей. »меет смысл только в совокупности с
                      // флагом sMultiple
-    sAskMultiple     // идет обработка нескольких записей и пользовател€ необходимо
+    sAskMultiple,    // идет обработка нескольких записей и пользовател€ необходимо
                      // спросить в случае позникновени€ проблем. »меет смысл только
                      // в совокупности с флагом sMultiple
+    sSubProcess      // в мастере идет некоторый процесс, который вызывает действи€ в
+                     // в нашем детальном объекте. Ќапример, удал€етс€ запись из мастера,
+                     // в процессе ее удалени€ удал€ютс€ детальные записи.
+                     // в таком случае у детального объекта выставл€етс€ флаг.
+
   );
   TgdcStates = set of TgdcState;
 
@@ -720,7 +725,7 @@ type
 
     // выводит список таблиц, и записей в этих таблицах, которые содержат
     // пол€-ссылки, ссылающиес€ на текущую запись. ¬ыводит в диалоговом окне
-    procedure IsUse;
+    procedure IsUse(const AMessage: String = '');
 
     //
     function GetObject: TObject;
@@ -10068,7 +10073,7 @@ begin
     ClientReport.BuildReport(Unassigned, ID);
 end;
 
-procedure TgdcBase.IsUse;
+procedure TgdcBase.IsUse(const AMessage: String = '');
 var
   I: Integer;
   LI: TListItem;
@@ -10132,7 +10137,7 @@ var
 var
   gdcCurrClass: TgdcBase;
   gdcClassByRecord: TgdcBase;
-  GroupName: String;
+  GroupName, S: String;
   FC: TgdcFullClass;
   qryID: TIBSQL;
   IDList: TStringList;
@@ -10271,11 +10276,17 @@ begin
       finally
         qryID.Free;
       end;
-    end
-    else
-      raise EgdcException.Create('Ќевозможно удалить запись "' + GetDisplayName(SubType) + '" "'
+    end else
+    begin
+      S := 'Ќевозможно удалить запись "' + GetDisplayName(SubType) + '" "'
         + FieldByName(GetListField(SubType)).AsString + '" с идентификатором: ' + IntToStr(ID) +
-        #13#10#13#10 + '¬еро€тно, на данную запись ссылаютс€ другие записи.');
+        #13#10#13#10;
+      if IBLogin.IsIBUserAdmin and (AMessage > '') then
+        S := S + AMessage
+      else
+        S := S + '¬еро€тно, на данную запись ссылаютс€ другие записи.';
+      raise EgdcException.Create(S);
+    end;
   finally
     FTableList.Free;
     FForeignList.Free;
@@ -10295,6 +10306,7 @@ var
   DL: TgdcBase;
   DidActivate, OldFiltered: Boolean;
   F: TField;
+  OldState: TgdcStates;
 begin
   Result := False;
   try
@@ -10336,8 +10348,11 @@ begin
           end;
 
           OldFiltered := DL.Filtered;
+          OldState := DL.BaseState;
           //DL.DisableControls;
           try
+            DL.BaseState := DL.BaseState + [sSubProcess];
+
             // мы должны удалить все записи,
             // следовательно снимаем фильтр с датасета
             // если он был
@@ -10365,6 +10380,7 @@ begin
           finally
             if DL.Filtered <> OldFiltered then
               DL.Filtered := OldFiltered;
+            DL.BaseState := OldState;
           end;
         end;
       end;
@@ -10449,13 +10465,13 @@ begin
           if Application.MessageBox(PChar(Format('%s'#13#10'ѕровести поиск ссылающихс€ записей?', [E.Message])),
             '¬нимание', MB_YESNO + MB_ICONERROR + MB_APPLMODAL) = IDYES then
           begin
-            isUse;
+            IsUse;
             Abort;
           end
         end
         else
         begin
-          isUse;
+          IsUse(E.Message);
           Abort;
         end;
       end else
@@ -12435,9 +12451,9 @@ begin
             end;
 
             if not (sSkipMultiple in BaseState) then
-              isUse;
+              isUse(Ex.Message);
           end else
-            isUse;
+            isUse(Ex.Message);
           Abort;
         end else
           raise;
@@ -18324,6 +18340,7 @@ var
   C: TgdcFullClass;
   Obj: TgdcBase;
   Processed: TgdKeyArray;
+  Delta: Integer;
 begin
   Assert(atDatabase <> nil);
   Assert(ATr <> nil);
@@ -18383,9 +18400,11 @@ begin
       else
         q.ParamByName('refeditiondate').Clear;
       q.ExecQuery;
-    end;
+      Delta := 1;
+    end else
+      Delta := 0;
 
-    _ProcessObject(Obj, AStartingLevel, Processed, Hash, Objects, q,
+    _ProcessObject(Obj, AStartingLevel + Delta, Processed, Hash, Objects, q,
       AnIgnoreFields + ';LB;RB;AVIEW;ACHAG;AFULL;RESERVED');
   finally
     q.Free;

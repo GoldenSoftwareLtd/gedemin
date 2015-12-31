@@ -1615,7 +1615,7 @@ begin
         q.ExecQuery;
       end;
 
-      q.SQL.Text :=
+      {q.SQL.Text :=
         'CREATE OR ALTER TRIGGER at_bi_object FOR at_object'#13#10 +
         '  ACTIVE'#13#10 +
         '  BEFORE INSERT'#13#10 +
@@ -1645,9 +1645,9 @@ begin
         '    WHERE objectpos >= NEW.objectpos AND namespacekey = NEW.namespacekey;'#13#10 +
         '  END'#13#10 +
         'END';
-      q.ExecQuery;
+      q.ExecQuery;}
 
-      q.SQL.Text :=
+      {q.SQL.Text :=
         'CREATE OR ALTER TRIGGER at_bu_object FOR at_object'#13#10 +
         '  ACTIVE'#13#10 +
         '  BEFORE UPDATE'#13#10 +
@@ -1707,9 +1707,9 @@ begin
         '    NEW.objectpos = COALESCE(NEW.objectpos, 0) + 1;'#13#10 +
         '  END'#13#10 +
         'END';
-      q.ExecQuery;
+      q.ExecQuery;}
 
-      q.SQL.Text :=
+      {q.SQL.Text :=
         'CREATE OR ALTER TRIGGER at_au_object FOR at_object'#13#10 +
         '  ACTIVE'#13#10 +
         '  AFTER UPDATE'#13#10 +
@@ -1728,7 +1728,7 @@ begin
         '    END  '#13#10 +
         '  END'#13#10 +
         'END';
-      q.ExecQuery;
+      q.ExecQuery;}
 
       q.Close;
       q.SQL.Text :=

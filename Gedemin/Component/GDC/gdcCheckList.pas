@@ -50,8 +50,6 @@ type
     procedure CustomModify(Buff: Pointer); override;
 
     procedure DoAfterOpen; override;
-    procedure DoBeforeInsert; override;
-    procedure DoBeforeEdit; override;
     procedure _DoOnNewRecord; override;
     procedure DoBeforePost; override;
 
@@ -119,6 +117,7 @@ begin
   '  (ID, DOCUMENTKEY, CHECKLISTKEY, ACCOUNTKEY, ACCOUNTTEXT, SUMNCU, NUMBER) ' +
   'values ' +
   '  (:IDLINE, :DOCUMENTKEY, :CHECKLISTKEY, :ACCOUNTKEY, :ACCOUNTTEXT, :SUMNCU, :NUMBER)', Buff);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLISTLINE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -167,6 +166,7 @@ begin
     '  SUMNCU = :SUMNCU ' +
     'where ' +
     '  ID = :OLD_ID ', Buff);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLISTLINE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -209,76 +209,6 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCCHECKLISTLINE', 'DOAFTEROPEN', KEYDOAFTEROPEN);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcCheckListLine.DoBeforeEdit;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCCHECKLISTLINE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKLISTLINE', KEYDOBEFOREEDIT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREEDIT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKLISTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKLISTLINE',
-  {M}          'DOBEFOREEDIT', KEYDOBEFOREEDIT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKLISTLINE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLISTLINE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKLISTLINE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcCheckListLine.DoBeforeInsert;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCCHECKLISTLINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKLISTLINE', KEYDOBEFOREINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKLISTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKLISTLINE',
-  {M}          'DOBEFOREINSERT', KEYDOBEFOREINSERT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKLISTLINE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLISTLINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKLISTLINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
   {M}  end;
   {END MACRO}
 end;
@@ -430,7 +360,7 @@ begin
   {M}    end;
   {END MACRO}
   Result := inherited GetFromClause(ARefresh) +
-    ' RIGHT JOIN bn_checklistline cll ON cll.documentkey = z.id ';
+    ' JOIN bn_checklistline cll ON cll.documentkey = z.id ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLISTLINE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -806,7 +736,7 @@ begin
   {M}    end;
   {END MACRO}
   Result := inherited GetFromClause(ARefresh) +
-  ' RIGHT JOIN bn_checklist cl ON cl.documentkey = z.id ';
+    ' JOIN bn_checklist cl ON cl.documentkey = z.id ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLIST', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -897,8 +827,10 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcCheckList);
-  RegisterGdcClass(TgdcCheckListLine);
+  with RegisterGdcClass(TgdcCheckList) as TgdBaseEntry do
+    DistinctRelation := 'BN_CHECKLIST';
+  with RegisterGdcClass(TgdcCheckListLine) as TgdBaseEntry do
+    DistinctRelation := 'BN_CHECKLISTLINE';
 
 finalization
   UnregisterGdcClass(TgdcCheckList);

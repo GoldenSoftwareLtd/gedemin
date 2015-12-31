@@ -11,53 +11,58 @@ type
 
   TDocumentField = class
   private
-    FDisplayName: string;
+    FDisplayName: String;
     FRelationField: TatRelationField;
     FDocumentInfo: TCustomDocumntInfo;
-    FNameInScript: string;
-    FFieldName: string;
+    FNameInScript: String;
+    FFieldName: String;
     FFieldRepresentation: String;
 
-    procedure SetDisplayName(const Value: string);
+    procedure SetDisplayName(const Value: String);
     procedure SetRelationField(const Value: TatRelationField);
     procedure SetDocumentInfo(const Value: TCustomDocumntInfo);
-    procedure SetNameInScript(const Value: string);
-    procedure SetFieldName(const Value: string);
+    procedure SetNameInScript(const Value: String);
+    procedure SetFieldName(const Value: String);
     function GetFieldRepresentation: String;
+
   public
-    function Script: string;
+    function Script: String;
 
     property RelationField: TatRelationField read FRelationField write SetRelationField;
-    property DisplayName: string read FDisplayName write SetDisplayName;
+    property DisplayName: String read FDisplayName write SetDisplayName;
     property DocumentInfo: TCustomDocumntInfo read FDocumentInfo write SetDocumentInfo;
-    property NameInScript: string read FNameInScript write SetNameInScript;
-    property FieldName: string read FFieldName write SetFieldName;
+    property NameInScript: String read FNameInScript write SetNameInScript;
+    property FieldName: String read FFieldName write SetFieldName;
     property FieldRepresentation: String read GetFieldRepresentation ;
   end;
 
   TCustomDocumntInfo = class
   private
-    FDocumentRUID: string;
+    FDocumentRUID: String;
     FDocument: TgdcBase;
     FFields: TObjectList;
-    procedure SetDocumentRUID(const Value: string);
+
+    procedure SetDocumentRUID(const Value: String);
     function GetDocument: TgdcBase;
     function GetFields(Index: Integer): TDocumentField;
     function GetFieldCount: Integer;
     procedure CheckDocument;
     procedure CheckFields;
+
   protected
     function GetDocumentClassPart: TgdcDocumentClassPart;virtual; abstract;
-    function GetDisplayDocumentClassPart: string; virtual; abstract;
+    function GetDisplayDocumentClassPart: String; virtual; abstract;
+
   public
     destructor Destroy; override;
-    function NameInScript: string; virtual; abstract;
-    procedure ForeignFields(ForeignTableName: string; List: TList);
+
+    function NameInScript: String; virtual; abstract;
+    procedure ForeignFields(ForeignTableName: String; List: TList);
     procedure SQLTypeFields(SQLType: Integer; List: TList);
-    function Find(FieldName: string): TDocumentField;
+    function Find(FieldName: String): TDocumentField;
 
     property Document: TgdcBase read GetDocument;
-    property DocumentRUID: string read FDocumentRUID write SetDocumentRUID;
+    property DocumentRUID: String read FDocumentRUID write SetDocumentRUID;
     property Fields[Index: Integer]: TDocumentField read GetFields; default;
     property FieldCount: Integer read GetFieldCount;
   end;
@@ -65,24 +70,27 @@ type
   TDocumentInfo = class(TCustomDocumntInfo)
   protected
     function GetDocumentClassPart: TgdcDocumentClassPart; override;
-    function GetDisplayDocumentClassPart: string; override;
+    function GetDisplayDocumentClassPart: String; override;
+
   public
-    function NameInScript: string; override;
+    function NameInScript: String; override;
   end;
 
   TDocumentLineInfo = class(TCustomDocumntInfo)
   protected
     function GetDocumentClassPart: TgdcDocumentClassPart; override;
-    function GetDisplayDocumentClassPart: string; override;
+    function GetDisplayDocumentClassPart: String; override;
+
   public
-    function NameInScript: string; override;
+    function NameInScript: String; override;
   end;
 
 implementation
 
 { TCustomDocumntInfo }
-procedure OriginNames(Origin: string; out TableName: string;
-  out FieldName: string);
+
+procedure OriginNames(Origin: String; out TableName: String;
+  out FieldName: String);
 var
   S: TStrings;
 begin
@@ -102,7 +110,6 @@ begin
   end;
 end;
 
-
 procedure TCustomDocumntInfo.CheckDocument;
 var
   gdcFullClass: TgdcFullClass;
@@ -116,6 +123,16 @@ begin
       raise Exception.Create(RUS_INVALIDDOCUMENTTYPE);
     FDocument := gdcFullClass.gdClass.Create(nil);
     FDocument.SubType := gdcFullClass.SubType;
+
+    // https://github.com/GoldenSoftwareLtd/gedemin/issues/3694
+    // открывать датасет с большим количеством записей
+    // может быть накладно по времени (особенно, если там
+    // присутствует сортировка или группировка)
+    // заведомо открываем с нулём записей
+    // так как нам надо только информация о полях
+    FDocument.SubSet := 'ByID';
+    FDocument.ID := 0;
+
     FDocument.Open;
   end;
 end;
@@ -123,7 +140,7 @@ end;
 procedure TCustomDocumntInfo.CheckFields;
 var
   I: Integer;
-  TableName, FieldName: string;
+  TableName, FieldName: String;
   F: TatRelationField;
   DF: TDocumentField;
 begin
@@ -164,29 +181,29 @@ begin
   inherited;
 end;
 
-function TCustomDocumntInfo.Find(FieldName: string): TDocumentField;
+function TCustomDocumntInfo.Find(FieldName: String): TDocumentField;
 var
   I: Integer;
 begin
   Result := nil;
   for I := 0 to FieldCount - 1 do
   begin
-    if UpperCase(Fields[I].FieldName) = UpperCase(FieldName) then
+    if AnsiSameText(Fields[I].FieldName, FieldName) then
     begin
       Result := Fields[I];
-      Exit;
+      exit;
     end;
   end;
 end;
 
-procedure TCustomDocumntInfo.ForeignFields(ForeignTableName: string;
+procedure TCustomDocumntInfo.ForeignFields(ForeignTableName: String;
   List: TList);
 var
   I: Integer;
   F:TatRelationField;
   Flag: Boolean;
 begin
-  Assert(List <> nil, 'Список неинициализирован');
+  Assert(List <> nil, 'Список не инициализирован');
 
   CheckFields;
   for I := 0 to FFields.Count - 1 do
@@ -196,7 +213,7 @@ begin
     repeat
       if (F <> nil) and (F.References <> nil) then
       begin
-        if (UpperCase(F.References.RelationName) = UpperCase(ForeignTableName)) then
+        if AnsiSameText(F.References.RelationName, ForeignTableName) then
         begin
           List.Add(FFields[I]);
           Flag := True;
@@ -227,7 +244,7 @@ begin
   Result := TDocumentField(FFields[Index]);
 end;
 
-procedure TCustomDocumntInfo.SetDocumentRUID(const Value: string);
+procedure TCustomDocumntInfo.SetDocumentRUID(const Value: String);
 begin
   FDocumentRUID := Value;
 end;
@@ -237,7 +254,7 @@ var
   I: Integer;
   F:TatRelationField;
 begin
-  Assert(List <> nil, 'Список неинициализирован');
+  Assert(List <> nil, 'Список не инициализирован');
 
   CheckFields;
   for I := 0 to FFields.Count - 1 do
@@ -264,23 +281,20 @@ begin
         if FRelationField.Field.SQLSubType = 0 then
         begin
           case FRelationField.Field.SQLType of
-//            7: FFieldRepresentation := 'AsSmallInt';
             7, 8, 16: FFieldRepresentation := 'AsInteger';
-//            16: FFieldRepresentation := 'AsInt64'
           end;
         end else
           FFieldRepresentation := 'AsCurrency'
       end;
       11, 10: FFieldRepresentation := 'AsFloat';
       27, 9: FFieldRepresentation := 'AsCurrency';
-//      9: FFieldRepresentation := 'AsQuard';
       261:
       begin
         if FRelationField.Field.SQLSubType = 1 then
         begin
           FFieldRepresentation := 'AsString';
         end else
-          raise Exception.Create('Нельзя обратится к BLOB полю.')
+          raise Exception.Create('Нельзя обратиться к BLOB полю.')
       end;
     end;
   end;
@@ -288,14 +302,13 @@ begin
   Result := FFieldRepresentation;
 end;
 
-function TDocumentField.Script: string;
+function TDocumentField.Script: String;
 begin
   if (FDocumentInfo <> nil) and (FRelationField <> nil) then
-    Result := '[' + FDocumentInfo.NameInScript + '.' + {FRelationField.FieldName}
-    FNameInScript + ']';
+    Result := '[' + FDocumentInfo.NameInScript + '.' + FNameInScript + ']';
 end;
 
-procedure TDocumentField.SetDisplayName(const Value: string);
+procedure TDocumentField.SetDisplayName(const Value: String);
 begin
   FDisplayName := Value;
 end;
@@ -305,13 +318,12 @@ begin
   FDocumentInfo := Value;
 end;
 
-procedure TDocumentField.SetFieldName(const Value: string);
+procedure TDocumentField.SetFieldName(const Value: String);
 begin
   FFieldName := Value;
 end;
 
-
-procedure TDocumentField.SetNameInScript(const Value: string);
+procedure TDocumentField.SetNameInScript(const Value: String);
 begin
   FNameInScript := Value;
 end;
@@ -324,7 +336,7 @@ end;
 
 { TDocumentInfo }
 
-function TDocumentInfo.GetDisplayDocumentClassPart: string;
+function TDocumentInfo.GetDisplayDocumentClassPart: String;
 begin
   Result := cwHeader;
 end;
@@ -334,14 +346,14 @@ begin
   Result := dcpHeader;
 end;
 
-function TDocumentInfo.NameInScript: string;
+function TDocumentInfo.NameInScript: String;
 begin
   Result := 'H'
 end;
 
 { TDocumentLineInfo }
 
-function TDocumentLineInfo.GetDisplayDocumentClassPart: string;
+function TDocumentLineInfo.GetDisplayDocumentClassPart: String;
 begin
   Result := cwLine
 end;
@@ -351,7 +363,7 @@ begin
   Result := dcpLine
 end;
 
-function TDocumentLineInfo.NameInScript: string;
+function TDocumentLineInfo.NameInScript: String;
 begin
   Result := 'L'
 end;

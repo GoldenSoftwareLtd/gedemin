@@ -83,14 +83,14 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
         Left = 377
         Top = 0
         Width = 3
-        Height = 564
+        Height = 563
         Cursor = crHSplit
       end
       object pnMain: TPanel
         Left = 160
         Top = 0
         Width = 217
-        Height = 564
+        Height = 563
         Align = alLeft
         BevelOuter = bvNone
         Caption = 'pnMain'
@@ -100,7 +100,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
           Left = 0
           Top = 0
           Width = 217
-          Height = 564
+          Height = 563
           DataSource = dsDetail
           KeyField = 'ID'
           ParentField = 'PARENT'
@@ -124,7 +124,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
         Left = 380
         Top = 0
         Width = 222
-        Height = 564
+        Height = 563
         Align = alClient
         BevelOuter = bvNone
         Caption = 'pnDetail'
@@ -133,7 +133,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
           Left = 0
           Top = 0
           Width = 222
-          Height = 564
+          Height = 563
           HelpContext = 3
           Align = alClient
           Ctl3D = True
@@ -215,6 +215,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
       Hint = 'Карточка по ТМЦ'
       ImageIndex = 73
       OnExecute = actViewCardExecute
+      OnUpdate = actViewCardUpdate
     end
     object actViewFullCard: TAction
       Category = 'Commands'
@@ -222,6 +223,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
       Hint = 'Полная карточка ТМЦ...'
       ImageIndex = 74
       OnExecute = actViewFullCardExecute
+      OnUpdate = actViewFullCardUpdate
     end
     object actViewGood: TAction
       Category = 'Commands'

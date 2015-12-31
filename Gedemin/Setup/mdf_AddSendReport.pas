@@ -692,6 +692,192 @@ begin
           ' END';
         FIBSQL.ExecQuery;
 
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER at_aiud_object FOR at_object '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  AFTER INSERT OR UPDATE OR DELETE '#13#10 +
+          '  POSITION 20000 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (INSERTING) THEN '#13#10 +
+          '    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0 '#13#10 +
+          '      AND n.id = NEW.namespacekey; '#13#10 +
+          ' '#13#10 +
+          '  IF (DELETING) THEN '#13#10 +
+          '    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0 '#13#10 +
+          '      AND n.id = OLD.namespacekey; '#13#10 +
+          ' '#13#10 +
+          '  IF (UPDATING) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    IF (NEW.namespacekey <> OLD.namespacekey) THEN '#13#10 +
+          '      UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0 '#13#10 +
+          '        AND n.id IN (NEW.namespacekey, OLD.namespacekey); '#13#10 +
+          ' '#13#10 +
+          '    IF (NEW.objectname <> OLD.objectname '#13#10 +
+          '      OR NEW.objectclass <> OLD.objectclass '#13#10 +
+          '      OR NEW.subtype IS DISTINCT FROM OLD.subtype '#13#10 +
+          '      OR NEW.xid <> OLD.xid '#13#10 +
+          '      OR NEW.dbid <> OLD.dbid '#13#10 +
+          '      OR NEW.objectpos IS DISTINCT FROM OLD.objectpos '#13#10 +
+          '      OR NEW.alwaysoverwrite <> OLD.alwaysoverwrite '#13#10 +
+          '      OR NEW.dontremove <> OLD.dontremove '#13#10 +
+          '      OR NEW.includesiblings <> OLD.includesiblings '#13#10 +
+          '      OR NEW.headobjectkey IS DISTINCT FROM OLD.headobjectkey '#13#10 +
+          '      OR NEW.modified IS DISTINCT FROM OLD.modified '#13#10 +
+          '      OR NEW.curr_modified IS DISTINCT FROM OLD.curr_modified) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0 '#13#10 +
+          '        AND n.id = NEW.namespacekey; '#13#10 +
+          '    END '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER at_bi_object FOR at_object '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  BEFORE INSERT '#13#10 +
+          '  POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.id IS NULL) THEN '#13#10 +
+          '    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1); '#13#10 +
+          ' '#13#10 +
+          '  IF ((NEW.xid < 147000000 AND NEW.dbid <> 17) OR '#13#10 +
+          '    (NEW.xid >= 147000000 AND NOT EXISTS(SELECT * FROM gd_ruid '#13#10 +
+          '      WHERE xid = NEW.xid AND dbid = NEW.dbid))) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    EXCEPTION gd_e_invalid_ruid ''Invalid ruid. XID = '' || '#13#10 +
+          '      NEW.xid || '', DBID = '' || NEW.dbid || ''.''; '#13#10 +
+          '  END '#13#10 +
+          ' '#13#10 +
+          '  IF (NEW.objectpos IS NULL) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    SELECT MAX(objectpos) '#13#10 +
+          '    FROM at_object '#13#10 +
+          '    WHERE namespacekey = NEW.namespacekey '#13#10 +
+          '    INTO NEW.objectpos; '#13#10 +
+          '    NEW.objectpos = COALESCE(NEW.objectpos, 0) + 1; '#13#10 +
+          '  END ELSE '#13#10 +
+          '  BEGIN '#13#10 +
+          '    IF (EXISTS(SELECT * FROM at_object WHERE objectpos = NEW.objectpos '#13#10 +
+          '      AND namespacekey = NEW.namespacekey)) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      UPDATE at_object SET objectpos = objectpos + 1 '#13#10 +
+          '        WHERE objectpos >= NEW.objectpos AND namespacekey = NEW.namespacekey; '#13#10 +
+          '    END '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        DropTrigger2('at_au_object', FTransaction);
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER at_bu_object FOR at_object '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  BEFORE UPDATE '#13#10 +
+          '  POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE depend_id dintkey; '#13#10 +
+          '  DECLARE VARIABLE p INTEGER; '#13#10 +
+          '  DECLARE VARIABLE hopos INTEGER; '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF ((NEW.xid < 147000000 AND NEW.dbid <> 17) OR '#13#10 +
+          '    (NEW.xid >= 147000000 AND NOT EXISTS(SELECT * FROM gd_ruid '#13#10 +
+          '      WHERE xid = NEW.xid AND dbid = NEW.dbid))) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    EXCEPTION gd_e_invalid_ruid ''Invalid ruid. XID = '' || '#13#10 +
+          '      NEW.xid || '', DBID = '' || NEW.dbid || ''.''; '#13#10 +
+          '  END '#13#10 +
+          ' '#13#10 +
+          '  IF (NEW.namespacekey <> OLD.namespacekey) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    IF (COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK''), 0) = 0) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      IF (NEW.objectpos IS DISTINCT FROM OLD.objectpos) THEN '#13#10 +
+          '        EXCEPTION gd_e_exception ''Can not change object position and namespace simultaneously.''; '#13#10 +
+          ' '#13#10 +
+          '      IF (NEW.headobjectkey IS DISTINCT FROM OLD.headobjectkey) THEN '#13#10 +
+          '        EXCEPTION gd_e_exception ''Can not change head object and namespace simultaneously.''; '#13#10 +
+          ' '#13#10 +
+          '      IF (NEW.headobjectkey IS NOT NULL) THEN '#13#10 +
+          '      BEGIN '#13#10 +
+          '        SELECT objectpos '#13#10 +
+          '        FROM at_object '#13#10 +
+          '        WHERE id = NEW.headobjectkey '#13#10 +
+          '        INTO :hopos; '#13#10 +
+          ' '#13#10 +
+          '        IF (:hopos > NEW.objectpos) THEN '#13#10 +
+          '        BEGIN '#13#10 +
+          '          /* prevent cycling */ '#13#10 +
+          '          DELETE FROM at_namespace_link '#13#10 +
+          '          WHERE namespacekey = NEW.namespacekey AND useskey = OLD.namespacekey; '#13#10 +
+          ' '#13#10 +
+          '          /* transfer links from old to new */ '#13#10 +
+          '          MERGE INTO at_namespace_link AS l '#13#10 +
+          '          USING (SELECT useskey FROM at_namespace_link '#13#10 +
+          '            WHERE namespacekey = OLD.namespacekey AND useskey <> NEW.namespacekey) AS u '#13#10 +
+          '          ON l.namespacekey = NEW.namespacekey AND l.useskey = u.useskey '#13#10 +
+          '          WHEN NOT MATCHED THEN INSERT (namespacekey, useskey) VALUES (NEW.namespacekey, u.useskey); '#13#10 +
+          ' '#13#10 +
+          '          /* setup link from old to new */ '#13#10 +
+          '          UPDATE OR INSERT INTO at_namespace_link (namespacekey, useskey) '#13#10 +
+          '          VALUES (OLD.namespacekey, NEW.namespacekey) '#13#10 +
+          '            MATCHING (namespacekey, useskey); '#13#10 +
+          '        END '#13#10 +
+          '        ELSE IF (:hopos < NEW.objectpos) THEN '#13#10 +
+          '        BEGIN '#13#10 +
+          '          UPDATE OR INSERT INTO at_namespace_link (namespacekey, useskey) '#13#10 +
+          '          VALUES (NEW.namespacekey, OLD.namespacekey) '#13#10 +
+          '            MATCHING (namespacekey, useskey); '#13#10 +
+          '        END '#13#10 +
+          ' '#13#10 +
+          '        NEW.headobjectkey = NULL; '#13#10 +
+          '      END '#13#10 +
+          '    END '#13#10 +
+          ' '#13#10 +
+          '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK'', '#13#10 +
+          '      COALESCE(CAST(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK'') AS INTEGER), 0) + 1); '#13#10 +
+          ' '#13#10 +
+          '    FOR '#13#10 +
+          '      SELECT id '#13#10 +
+          '      FROM at_object '#13#10 +
+          '      WHERE (headobjectkey = NEW.id OR id = NEW.id) '#13#10 +
+          '        AND namespacekey = OLD.namespacekey '#13#10 +
+          '      ORDER BY objectpos '#13#10 +
+          '      INTO :depend_id '#13#10 +
+          '    DO BEGIN '#13#10 +
+          '      p = NULL; '#13#10 +
+          '      SELECT MAX(objectpos) '#13#10 +
+          '      FROM at_object '#13#10 +
+          '      WHERE namespacekey = NEW.namespacekey '#13#10 +
+          '      INTO :p; '#13#10 +
+          '      p = COALESCE(:p, 0) + 1; '#13#10 +
+          ' '#13#10 +
+          '      IF (:depend_id = NEW.id) THEN '#13#10 +
+          '      BEGIN '#13#10 +
+          '        NEW.objectpos = :p; '#13#10 +
+          '      END ELSE '#13#10 +
+          '      BEGIN '#13#10 +
+          '        UPDATE at_object SET namespacekey = NEW.namespacekey, objectpos = :p '#13#10 +
+          '          WHERE id = :depend_id; '#13#10 +
+          '      END '#13#10 +
+          '    END '#13#10 +
+          ' '#13#10 +
+          '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK'', '#13#10 +
+          '      CAST(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK'') AS INTEGER) - 1); '#13#10 +
+          '  END '#13#10 +
+          '  ELSE IF (NEW.objectpos IS NULL) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    SELECT MAX(objectpos) '#13#10 +
+          '    FROM at_object '#13#10 +
+          '    WHERE namespacekey = NEW.namespacekey '#13#10 +
+          '    INTO NEW.objectpos; '#13#10 +
+          '    NEW.objectpos = COALESCE(NEW.objectpos, 0) + 1; '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
         FTransaction.Commit;
         FTransaction.StartTransaction;
 
@@ -799,6 +985,18 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (237, ''0000.0001.0000.0268'', ''20.12.2015'', ''Delete a record from GD_RUID when deleting AT_NAMESPACE.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (238, ''0000.0001.0000.0269'', ''21.12.2015'', ''Some fixes for CHANGED flag of AT_OBJECT.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (239, ''0000.0001.0000.0270'', ''29.12.2015'', ''AT_OBJECT triggers.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

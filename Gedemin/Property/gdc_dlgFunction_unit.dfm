@@ -1,8 +1,8 @@
 inherited gdc_dlgFunction: Tgdc_dlgFunction
-  Left = 426
-  Top = 183
+  Left = 779
+  Top = 304
   Width = 647
-  Height = 529
+  Height = 534
   BorderStyle = bsSizeable
   Caption = 'Редактирование функции'
   OnCreate = FormCreate
@@ -10,56 +10,50 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 5
-    Top = 474
-    Anchors = [akLeft, akBottom]
-    TabOrder = 1
-  end
-  inherited btnNew: TButton
-    Left = 77
-    Top = 474
-    Anchors = [akLeft, akBottom]
-    TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Left = 149
-    Top = 474
+    Top = 468
     Anchors = [akLeft, akBottom]
     TabOrder = 3
   end
-  inherited btnOK: TButton
-    Left = 483
-    Top = 474
-    Anchors = [akRight, akBottom]
-    Default = False
+  inherited btnNew: TButton
+    Left = 77
+    Top = 468
+    Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
-  inherited btnCancel: TButton
-    Left = 563
-    Top = 474
-    Anchors = [akRight, akBottom]
+  inherited btnHelp: TButton
+    Left = 149
+    Top = 468
+    Anchors = [akLeft, akBottom]
     TabOrder = 5
+  end
+  inherited btnOK: TButton
+    Left = 483
+    Top = 468
+    Anchors = [akRight, akBottom]
+    Default = False
+    TabOrder = 1
+  end
+  inherited btnCancel: TButton
+    Left = 555
+    Top = 468
+    Anchors = [akRight, akBottom]
+    TabOrder = 2
   end
   object pnlParam: TPanel [5]
     Left = 0
     Top = 0
     Width = 631
-    Height = 468
+    Height = 464
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
+    BorderWidth = 4
     TabOrder = 0
-    object Bevel1: TBevel
-      Left = 1
-      Top = 1
-      Width = 546
-      Height = 8
-      Shape = bsTopLine
-    end
     object pcFunction: TSuperPageControl
-      Left = 0
-      Top = 27
-      Width = 631
-      Height = 441
+      Left = 4
+      Top = 31
+      Width = 623
+      Height = 429
       BorderStyle = bsNone
       TabsVisible = True
       ActivePage = tsFuncMain
@@ -74,28 +68,28 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         Caption = 'Свойства'
         object Label1: TLabel
           Left = 8
-          Top = 176
+          Top = 172
           Width = 90
           Height = 13
           Caption = 'Модуль функции:'
         end
         object Label12: TLabel
           Left = 8
-          Top = 144
+          Top = 149
           Width = 74
           Height = 13
           Caption = 'Язык скрипта:'
         end
         object Label11: TLabel
           Left = 8
-          Top = 72
+          Top = 76
           Width = 71
           Height = 13
           Caption = 'Комментарий:'
         end
         object Label6: TLabel
           Left = 8
-          Top = 32
+          Top = 36
           Width = 124
           Height = 13
           Caption = 'Наименование функции:'
@@ -124,28 +118,28 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         end
         object lLabel1: TLabel
           Left = 8
-          Top = 228
+          Top = 222
           Width = 46
           Height = 13
           Caption = 'Изменил:'
         end
         object lEditorName: TLabel
           Left = 160
-          Top = 228
+          Top = 222
           Width = 57
           Height = 13
           Caption = 'lEditorName'
         end
         object lLabel2: TLabel
           Left = 8
-          Top = 249
+          Top = 243
           Width = 86
           Height = 13
           Caption = 'Дата изменения:'
         end
         object lEditDate: TLabel
           Left = 160
-          Top = 249
+          Top = 243
           Width = 43
           Height = 13
           Caption = 'lEditDate'
@@ -159,7 +153,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         end
         object Label2: TLabel
           Left = 8
-          Top = 196
+          Top = 195
           Width = 134
           Height = 13
           Caption = 'Локальное наименование:'
@@ -167,7 +161,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object dbcbModule: TDBComboBox
           Left = 160
           Top = 168
-          Width = 469
+          Width = 461
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           DataField = 'MODULE'
@@ -186,7 +180,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object dbcbLang: TDBComboBox
           Left = 160
           Top = 144
-          Width = 469
+          Width = 461
           Height = 21
           Style = csDropDownList
           Anchors = [akLeft, akTop, akRight]
@@ -203,7 +197,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object DBMemo1: TDBMemo
           Left = 160
           Top = 72
-          Width = 469
+          Width = 461
           Height = 69
           Anchors = [akLeft, akTop, akRight]
           Ctl3D = True
@@ -215,7 +209,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object dbeFunctionName: TDBEdit
           Left = 160
           Top = 32
-          Width = 469
+          Width = 461
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Color = clWhite
@@ -226,7 +220,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object DBEdit1: TDBEdit
           Left = 160
           Top = 192
-          Width = 469
+          Width = 461
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           DataField = 'LocalName'
@@ -239,8 +233,8 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         ImageIndex = 1
         object sbCoord: TStatusBar
           Left = 0
-          Top = 399
-          Width = 631
+          Top = 387
+          Width = 623
           Height = 19
           Panels = <
             item
@@ -251,8 +245,8 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object dbseScript: TgsFunctionSynEdit
           Left = 0
           Top = 0
-          Width = 631
-          Height = 399
+          Width = 623
+          Height = 387
           Cursor = crIBeam
           Align = alClient
           Ctl3D = True
@@ -606,8 +600,8 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object ScrollBox1: TScrollBox
           Left = 0
           Top = 39
-          Width = 631
-          Height = 379
+          Width = 623
+          Height = 367
           VertScrollBar.Style = ssFlat
           Align = alClient
           BorderStyle = bsNone
@@ -615,8 +609,8 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
           object Label19: TLabel
             Left = 0
             Top = 0
-            Width = 631
-            Height = 379
+            Width = 623
+            Height = 367
             Align = alClient
             Alignment = taCenter
             Caption = 'Нет параметров'
@@ -626,7 +620,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object pnlCaption: TPanel
           Left = 0
           Top = 0
-          Width = 631
+          Width = 623
           Height = 39
           Align = alTop
           BevelInner = bvRaised
@@ -681,15 +675,17 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
       end
     end
     object TBDock4: TTBDock
-      Left = 0
-      Top = 0
-      Width = 631
+      Left = 4
+      Top = 4
+      Width = 623
       Height = 27
       BoundLines = [blBottom]
-      object TBToolbar1: TTBToolbar
+      object tb: TTBToolbar
         Left = 0
         Top = 0
-        Caption = 'TBToolbar1'
+        BorderStyle = bsNone
+        Caption = 'tb'
+        DockMode = dmCannotFloatOrChangeDocks
         DockPos = 0
         FullSize = True
         ParentShowHint = False
