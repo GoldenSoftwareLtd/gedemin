@@ -9313,7 +9313,7 @@ begin
     ' BEGIN '#13#10 +
     '   IF (NEW.editorkey IS NULL) THEN '#13#10 +
     '     NEW.editorkey = RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'');'#13#10 +
-    '   IF (NEW.editiondate IS NULL OR NEW.editiondate IS NOT DISTINCT FROM OLD.editiondate) THEN '#13#10 +
+    '   IF (NEW.editiondate IS NULL) THEN '#13#10 +
     '     NEW.editiondate = CURRENT_TIMESTAMP(0);'#13#10 +
     ' END ',
     [ARelationName,
@@ -9781,7 +9781,7 @@ begin
     ' BEFORE UPDATE POSITION %3:s '#13#10 +
     ' AS '#13#10 +
     ' BEGIN '#13#10 +
-    '   IF (NEW.editiondate IS NULL OR NEW.editiondate IS NOT DISTINCT FROM OLD.editiondate) THEN '#13#10 +
+    '   IF (NEW.editiondate IS NULL) THEN '#13#10 +
     '     NEW.editiondate = CURRENT_TIMESTAMP(0);'#13#10 +
     ' END ',
     [ARelationName,

@@ -232,14 +232,15 @@ begin
         if FFilterOnlyPackages then
           FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' AND ';
         FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
-          '(POSITION(:t IN UPPER(' +
-          '  COALESCE(n.name, '''') || ' +
-          '  COALESCE(n.version, '''') || ' +
-          '  COALESCE(n.filetimestamp, '''') || ' +
-          '  COALESCE(f.filename, '''') || ' +
-          '  COALESCE(f.name, '''') || ' +
-          '  COALESCE(f.version, '''') || ' +
-          '  COALESCE(f.filetimestamp, ''''))) > 0)';
+          '(' +
+          '  CAST(COALESCE(UPPER(n.name), '''') AS VARCHAR(1024)) LIKE :t OR ' +
+          '  CAST(COALESCE(UPPER(n.version), '''') AS VARCHAR(1024)) LIKE :t OR ' +
+          '  CAST(COALESCE(UPPER(n.filetimestamp), '''') AS VARCHAR(1024)) LIKE :t OR ' +
+          '  CAST(COALESCE(UPPER(f.filename), '''') AS VARCHAR(1024)) LIKE :t OR ' +
+          '  CAST(COALESCE(UPPER(f.name), '''') AS VARCHAR(1024)) LIKE :t OR ' +
+          '  CAST(COALESCE(UPPER(f.version), '''') AS VARCHAR(1024)) LIKE :t OR ' +
+          '  CAST(COALESCE(UPPER(f.filetimestamp), '''') AS VARCHAR(1024)) LIKE :t' +
+          ')';
       end;
 
       if FFilterOperation > '' then
@@ -258,7 +259,7 @@ begin
       '  f.filename';
 
     if FFilterText > '' then
-      FDataSet.ParamByName('t').AsString := AnsiUpperCase(FFilterText);
+      FDataSet.ParamByName('t').AsString := '%' + AnsiUpperCase(FFilterText) + '%';
 
     if FFilterOperation > '' then
       FDataSet.ParamByName('op').AsString := FFilterOperation;

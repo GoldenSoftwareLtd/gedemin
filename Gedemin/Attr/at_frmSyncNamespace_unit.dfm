@@ -194,6 +194,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Top = 0
         Width = 140
         Height = 21
+        Hint = 'Используйте шаблоны % и _ '
         TabOrder = 1
         OnChange = edFilterChange
       end

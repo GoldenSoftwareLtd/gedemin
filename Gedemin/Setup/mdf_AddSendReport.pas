@@ -887,16 +887,6 @@ begin
           'WHERE personalnumber IS NOT NULL OR passportnumber IS NOT NULL';
         FIBSQL.ExecQuery;
 
-        // turn off the trigger so setting missed modify dates
-        // will not affect at_namespace CHANGED state
-
-        FIBSQL.SQL.Text :=
-          'ALTER TRIGGER at_aiud_object INACTIVE';
-        FIBSQL.ExecQuery;
-
-        FTransaction.Commit;
-        FTransaction.StartTransaction;
-
         // add EDITIONDATE field into prime tables
         // (user reference without additional system fields)
 
@@ -1054,11 +1044,6 @@ begin
 
           FIBSQL.Next;
         end;
-
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'ALTER TRIGGER at_aiud_object ACTIVE';
-        FIBSQL.ExecQuery;
 
         FTransaction.Commit;
         FTransaction.StartTransaction;
