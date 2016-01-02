@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus
 
   Module
 
@@ -245,8 +245,6 @@ type
     procedure DropCrossTable;
     function CreateInsertTrigger: String;
     function CreateEditorForeignKey: String;
-    function CreateInsertEditorTrigger: String;
-    function CreateUpdateEditorTrigger: String;
 
     procedure _DoOnNewRecord; override;
     procedure CustomDelete(Buff: Pointer); override;
@@ -270,6 +268,8 @@ type
 
     //‘ункци€ возвращ€ет пол€ через зап€тую, которые вход€т в праймари кей
     class function GetPrimaryFieldName: String; virtual;
+    class function CreateInsertEditorTrigger(const ARelationName: String): String; virtual;
+    class function CreateUpdateEditorTrigger(const ARelationName: String): String; virtual;
 
     property gdcTableField: TgdcTableField read GetgdcTableField;
     property AdditionCreateField: TStringList read FAdditionCreateField write FAdditionCreateField;
@@ -317,7 +317,8 @@ type
     procedure _DoOnNewRecord; override;
 
   public
-
+    class function CreateInsertEditorTrigger(const ARelationName: String): String; override;
+    class function CreateUpdateEditorTrigger(const ARelationName: String): String; override;
   end;
 
   TgdcSimpleTable = class(TgdcTable)
@@ -2484,7 +2485,7 @@ function TGDCBASETABLE.CreateInsertTrigger: String;
 begin
   Result := Format
   (
-    'CREATE TRIGGER %1:s FOR %0:s '#13#10 +
+    'CREATE OR ALTER TRIGGER %1:s FOR %0:s '#13#10 +
     '  BEFORE INSERT '#13#10 +
     '  POSITION 0 '#13#10 +
     'AS '#13#10 +
@@ -4078,7 +4079,7 @@ begin
           AnsiPos('_', FieldByName('crosstable').AsString) - (1 + Length(CrossTablePrefix)));
         Result := Format
         (
-          'CREATE TRIGGER %11:s FOR %0:s' + #13#10 +
+          'CREATE OR ALTER TRIGGER %11:s FOR %0:s' + #13#10 +
           '  BEFORE UPDATE ' + #13#10 +
           '  POSITION %1:s ' + #13#10 +
           'AS ' + #13#10 +
@@ -6363,8 +6364,8 @@ begin
   Scripts.Add(CreateSimpleTable);
   Scripts.Add(CreateEditorForeignKey);
   Scripts.Add(CreateInsertTrigger);
-  Scripts.Add(CreateInsertEditorTrigger);
-  Scripts.Add(CreateUpdateEditorTrigger);
+  Scripts.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
+  Scripts.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
   Scripts.Add(CreateGrantSQL);
 end;
 
@@ -6438,8 +6439,8 @@ begin
   Scripts.Add(CreateTreeTable);
   Scripts.Add(CreateEditorForeignKey);
   Scripts.Add(CreateInsertTrigger);
-  Scripts.Add(CreateInsertEditorTrigger);
-  Scripts.Add(CreateUpdateEditorTrigger);
+  Scripts.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
+  Scripts.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
   Scripts.Add(CreateGrantSQL);
 end;
 
@@ -6570,8 +6571,8 @@ begin
   Scripts.Add(CreateGrantSQL);
   Scripts.Add(CreateEditorForeignKey);
 
-  Scripts.Add(CreateInsertEditorTrigger);
-  Scripts.Add(CreateUpdateEditorTrigger);
+  Scripts.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
+  Scripts.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
 
   N := FieldByName('relationname').AsString;
   if StrIPos(UserPrefix, N) = 1 then
@@ -9286,37 +9287,37 @@ begin
      GetForeignName(FieldByName('relationname').AsString, 'editorkey')]);
 end;
 
-function TgdcBaseTable.CreateInsertEditorTrigger: String;
+class function TgdcBaseTable.CreateInsertEditorTrigger(const ARelationName: String): String;
 begin
   Result := Format(
-    ' CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+    ' CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
     ' BEFORE INSERT POSITION %3:s '#13#10 +
     ' AS '#13#10 +
     ' BEGIN '#13#10 +
     '   IF (NEW.editorkey IS NULL) THEN '#13#10 +
-    '     NEW.editorkey = %2:s; '#13#10 +
+    '     NEW.editorkey = RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'');'#13#10 +
     '   IF (NEW.editiondate IS NULL) THEN '#13#10 +
-    '     NEW.editiondate = CURRENT_TIMESTAMP;'#13#10 +
+    '     NEW.editiondate = CURRENT_TIMESTAMP(0);'#13#10 +
     ' END ',
-    [FieldByName('relationname').AsString,
-     GetTriggerName(FieldByName('relationname').AsString, 'BI', 5),
+    [ARelationName,
+     GetTriggerName(ARelationName, 'BI', 5),
      IntToStr(cstAdminKey), IntToStr(5)]);
 end;
 
-function TgdcBaseTable.CreateUpdateEditorTrigger: String;
+class function TgdcBaseTable.CreateUpdateEditorTrigger(const ARelationName: String): String;
 begin
   Result := Format(
-    ' CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+    ' CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
     ' BEFORE UPDATE POSITION %3:s '#13#10 +
     ' AS '#13#10 +
     ' BEGIN '#13#10 +
     '   IF (NEW.editorkey IS NULL) THEN '#13#10 +
-    '     NEW.editorkey = %2:s; '#13#10 +
-    '   IF (NEW.editiondate IS NULL) THEN '#13#10 +
-    '     NEW.editiondate = CURRENT_TIMESTAMP;'#13#10 +
+    '     NEW.editorkey = RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'');'#13#10 +
+    '   IF (NEW.editiondate IS NULL OR NEW.editiondate IS NOT DISTINCT FROM OLD.editiondate) THEN '#13#10 +
+    '     NEW.editiondate = CURRENT_TIMESTAMP(0);'#13#10 +
     ' END ',
-    [FieldByName('relationname').AsString,
-     GetTriggerName(FieldByName('relationname').AsString, 'BU', 5),
+    [ARelationName,
+     GetTriggerName(ARelationName, 'BU', 5),
      IntToStr(cstAdminKey), IntToStr(5)]);
 end;
 
@@ -9743,7 +9744,7 @@ function TgdcPrimeTable.CreatePrimeTable: String;
 begin
   Result := Format
   (
-    'CREATE TABLE %0:s (id dintkey, PRIMARY KEY (id))',
+    'CREATE TABLE %0:s (id dintkey, editiondate deditiondate, PRIMARY KEY (id))',
     [FieldByName('relationname').AsString]
   );
 
@@ -9753,7 +9754,39 @@ procedure TgdcPrimeTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
   Scripts.Add(CreatePrimeTable);
   Scripts.Add(CreateInsertTrigger);
+  Scripts.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
+  Scripts.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
   Scripts.Add(CreateGrantSQL);
+end;
+
+class function TgdcPrimeTable.CreateInsertEditorTrigger(const ARelationName: String): String;
+begin
+  Result := Format(
+    ' CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+    ' BEFORE INSERT POSITION %3:s '#13#10 +
+    ' AS '#13#10 +
+    ' BEGIN '#13#10 +
+    '   IF (NEW.editiondate IS NULL) THEN '#13#10 +
+    '     NEW.editiondate = CURRENT_TIMESTAMP(0);'#13#10 +
+    ' END ',
+    [ARelationName,
+     GetTriggerName(ARelationName, 'BI', 5),
+     IntToStr(cstAdminKey), IntToStr(5)]);
+end;
+
+class function TgdcPrimeTable.CreateUpdateEditorTrigger(const ARelationName: String): String;
+begin
+  Result := Format(
+    ' CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+    ' BEFORE UPDATE POSITION %3:s '#13#10 +
+    ' AS '#13#10 +
+    ' BEGIN '#13#10 +
+    '   IF (NEW.editiondate IS NULL OR NEW.editiondate IS NOT DISTINCT FROM OLD.editiondate) THEN '#13#10 +
+    '     NEW.editiondate = CURRENT_TIMESTAMP(0);'#13#10 +
+    ' END ',
+    [ARelationName,
+     GetTriggerName(ARelationName, 'BU', 5),
+     IntToStr(cstAdminKey), IntToStr(5)]);
 end;
 
 { TgdcGenerator }

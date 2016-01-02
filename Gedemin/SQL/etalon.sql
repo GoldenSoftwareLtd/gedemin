@@ -9,7 +9,7 @@ DEFAULT CHARACTER SET WIN1251;
 /****************************************************/
 /**                                                **/
 /**   Gedemin project                              **/
-/**   Copyright (c) 1999-2013 by                   **/
+/**   Copyright (c) 1999-2016 by                   **/
 /**   Golden Software of Belarus, Ltd              **/
 /**                                                **/
 /****************************************************/
@@ -1591,6 +1591,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (239, '0000.0001.0000.0270', '29.12.2015', 'AT_OBJECT triggers.');     
   
+INSERT INTO fin_versioninfo
+  VALUES (240, '0000.0001.0000.0271', '02.01.2016', 'Add edition date field to TgdcSimpleTable.');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -2592,7 +2595,7 @@ CREATE DESC INDEX gd_x_currrate_fordate ON gd_currrate(fordate);
 COMMIT;
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -4063,9 +4066,9 @@ CREATE TRIGGER at_bi_fields5 FOR at_fields
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4074,9 +4077,9 @@ CREATE TRIGGER at_bu_fields5 FOR at_fields
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4132,9 +4135,9 @@ CREATE TRIGGER at_bi_relations5 FOR at_relations
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4143,9 +4146,9 @@ CREATE TRIGGER at_bu_relations5 FOR at_relations
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4218,9 +4221,9 @@ CREATE TRIGGER at_bi_relation_fields5 FOR at_relation_fields
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4229,9 +4232,9 @@ CREATE TRIGGER at_bu_relation_fields5 FOR at_relation_fields
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4362,9 +4365,9 @@ CREATE TRIGGER at_bi_exceptions5 FOR at_exceptions
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4373,9 +4376,9 @@ CREATE TRIGGER at_bu_exceptions5 FOR at_exceptions
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 SET TERM ; ^
@@ -4469,9 +4472,9 @@ BEGIN
     NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
 
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4482,9 +4485,9 @@ CREATE TRIGGER at_bu_generators FOR at_generators
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4565,9 +4568,9 @@ CREATE TRIGGER at_bi_procedures5 FOR at_procedures
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4576,9 +4579,9 @@ CREATE TRIGGER at_bu_procedures5 FOR at_procedures
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4682,9 +4685,9 @@ CREATE TRIGGER at_bi_indices5 FOR at_indices
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4693,9 +4696,9 @@ CREATE TRIGGER at_bu_indices5 FOR at_indices
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4801,9 +4804,9 @@ CREATE TRIGGER at_bi_triggers5 FOR at_triggers
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -4812,9 +4815,9 @@ CREATE TRIGGER at_bu_triggers5 FOR at_triggers
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -5617,9 +5620,9 @@ CREATE TRIGGER gd_bi_function5 FOR gd_function
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -5628,9 +5631,9 @@ CREATE TRIGGER gd_bu_function5 FOR gd_function
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -6117,10 +6120,10 @@ BEGIN
   теперь эти поля заполняются в бизнес-объекте
 
   IF (NEW.creationdate IS NULL) THEN
-    NEW.creationdate = CURRENT_TIMESTAMP;
+    NEW.creationdate = CURRENT_TIMESTAMP(0);
 
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
   */
 END
 ^
@@ -7236,9 +7239,9 @@ CREATE TRIGGER flt_bi_savedfilter5 FOR flt_savedfilter
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -7247,9 +7250,9 @@ CREATE TRIGGER flt_bu_savedfilter5 FOR flt_savedfilter
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -14381,9 +14384,9 @@ CREATE TRIGGER rp_bi_reporttemplate5 FOR rp_reporttemplate
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -14392,9 +14395,9 @@ CREATE TRIGGER rp_bu_reporttemplate5 FOR rp_reporttemplate
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -14555,9 +14558,9 @@ CREATE TRIGGER rp_bi_reportlist5 FOR rp_reportlist
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -14566,7 +14569,7 @@ CREATE TRIGGER rp_bu_reportlist5 FOR rp_reportlist
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
     NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
@@ -14945,10 +14948,10 @@ CREATE OR ALTER TRIGGER evt_bi_object5 FOR evt_object
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
 
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -14958,9 +14961,9 @@ CREATE OR ALTER TRIGGER evt_bu_object5 FOR evt_object
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -15017,9 +15020,9 @@ CREATE OR ALTER TRIGGER evt_bi_objectevent5 FOR evt_objectevent
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -15028,9 +15031,9 @@ CREATE OR ALTER TRIGGER evt_bu_objectevent5 FOR evt_objectevent
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -15088,9 +15091,9 @@ CREATE OR ALTER TRIGGER evt_bi_macrosgroup5 FOR evt_macrosgroup
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -15099,9 +15102,9 @@ CREATE OR ALTER TRIGGER evt_bu_macrosgroup5 FOR evt_macrosgroup
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -15172,9 +15175,9 @@ CREATE OR ALTER TRIGGER evt_bi_macroslist5 FOR evt_macroslist
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -15183,9 +15186,9 @@ CREATE OR ALTER TRIGGER evt_bu_macroslist5 FOR evt_macroslist
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -17167,14 +17170,14 @@ BEGIN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 
   IF (NEW.creatorkey IS NULL) THEN
-    NEW.creatorkey = 650002;
+    NEW.creatorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.creationdate IS NULL) THEN
-    NEW.creationdate = CURRENT_TIMESTAMP;
+    NEW.creationdate = CURRENT_TIMESTAMP(0);
 
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 
   IF (NEW.parent IS NULL) THEN
   BEGIN
@@ -22012,11 +22015,11 @@ INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editork
 /*     Корень глобальных макросов                          */
 /***********************************************************/
 
-INSERT INTO EVT_MACROSGROUP (ID, LB, RB, NAME, ISGLOBAL)
-  VALUES (1020001, 1, 2, 'Глобальные макросы', 1);
+INSERT INTO EVT_MACROSGROUP (ID, LB, RB, NAME, ISGLOBAL, EDITORKEY)
+  VALUES (1020001, 1, 2, 'Глобальные макросы', 1, 650002);
 
-INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACROSGROUPKEY, OBJECTNAME)
-  VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 'APPLICATION');
+INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACROSGROUPKEY, OBJECTNAME, EDITORKEY)
+  VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 'APPLICATION', 650002);
 
 
 -- gd_compacctype
@@ -22423,17 +22426,17 @@ CREATE OR ALTER TRIGGER gd_db_connect
   ON CONNECT
   POSITION 0
 AS
-  DECLARE VARIABLE ingroup INTEGER = 0;
-  DECLARE VARIABLE userkey INTEGER = 0;
-  DECLARE VARIABLE contactkey INTEGER = 0;
+  DECLARE VARIABLE ingroup INTEGER = NULL;
+  DECLARE VARIABLE userkey INTEGER = NULL;
+  DECLARE VARIABLE contactkey INTEGER = NULL;
 BEGIN
   SELECT FIRST 1 id, contactkey, ingroup 
   FROM gd_user 
   WHERE ibname = CURRENT_USER
   INTO :userkey, :contactkey, :ingroup;
-  RDB$SET_CONTEXT('USER_SESSION', 'GD_USERKEY', :userkey);
-  RDB$SET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY', :contactkey);
-  RDB$SET_CONTEXT('USER_SESSION', 'GD_INGROUP', :ingroup);
+  RDB$SET_CONTEXT('USER_SESSION', 'GD_USERKEY', COALESCE(:userkey, 150001));
+  RDB$SET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY', COALESCE(:contactkey, 650002));
+  RDB$SET_CONTEXT('USER_SESSION', 'GD_INGROUP', COALESCE(:ingroup, 0));
 END
 ^
 

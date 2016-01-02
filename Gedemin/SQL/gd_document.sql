@@ -403,10 +403,10 @@ BEGIN
   теперь эти пол€ заполн€ютс€ в бизнес-объекте
 
   IF (NEW.creationdate IS NULL) THEN
-    NEW.creationdate = CURRENT_TIMESTAMP;
+    NEW.creationdate = CURRENT_TIMESTAMP(0);
 
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
   */
 END
 ^

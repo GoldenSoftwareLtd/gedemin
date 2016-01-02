@@ -351,9 +351,9 @@ CREATE TRIGGER at_bi_fields5 FOR at_fields
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -362,9 +362,9 @@ CREATE TRIGGER at_bu_fields5 FOR at_fields
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -420,9 +420,9 @@ CREATE TRIGGER at_bi_relations5 FOR at_relations
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -431,9 +431,9 @@ CREATE TRIGGER at_bu_relations5 FOR at_relations
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -506,9 +506,9 @@ CREATE TRIGGER at_bi_relation_fields5 FOR at_relation_fields
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -517,9 +517,9 @@ CREATE TRIGGER at_bu_relation_fields5 FOR at_relation_fields
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -650,9 +650,9 @@ CREATE TRIGGER at_bi_exceptions5 FOR at_exceptions
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -661,9 +661,9 @@ CREATE TRIGGER at_bu_exceptions5 FOR at_exceptions
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 SET TERM ; ^
@@ -757,9 +757,9 @@ BEGIN
     NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
 
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -770,9 +770,9 @@ CREATE TRIGGER at_bu_generators FOR at_generators
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -853,9 +853,9 @@ CREATE TRIGGER at_bi_procedures5 FOR at_procedures
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -864,9 +864,9 @@ CREATE TRIGGER at_bu_procedures5 FOR at_procedures
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -970,9 +970,9 @@ CREATE TRIGGER at_bi_indices5 FOR at_indices
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -981,9 +981,9 @@ CREATE TRIGGER at_bu_indices5 FOR at_indices
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -1089,9 +1089,9 @@ CREATE TRIGGER at_bi_triggers5 FOR at_triggers
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -1100,9 +1100,9 @@ CREATE TRIGGER at_bu_triggers5 FOR at_triggers
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 

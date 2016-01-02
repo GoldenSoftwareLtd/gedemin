@@ -10,12 +10,13 @@ procedure ModifyAutoTaskAndSMTPTable(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
  
 uses
-  IBSQL, SysUtils, mdf_metadata_unit;
+  IBSQL, SysUtils, mdf_metadata_unit, gdcMetaData;
  
 procedure ModifyAutoTaskAndSMTPTable(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
-  FIBSQL: TIBSQL;
+  FIBSQL, q: TIBSQL;
+  S: String;
 begin
   FTransaction := TIBTransaction.Create(nil);
   try
@@ -540,17 +541,17 @@ begin
           '  ON CONNECT '#13#10 +
           '  POSITION 0 '#13#10 +
           'AS '#13#10 +
-          '  DECLARE VARIABLE ingroup INTEGER = 0; '#13#10 +
-          '  DECLARE VARIABLE userkey INTEGER = 0; '#13#10 +
-          '  DECLARE VARIABLE contactkey INTEGER = 0; '#13#10 +
+          '  DECLARE VARIABLE ingroup INTEGER = NULL; '#13#10 +
+          '  DECLARE VARIABLE userkey INTEGER = NULL; '#13#10 +
+          '  DECLARE VARIABLE contactkey INTEGER = NULL; '#13#10 +
           'BEGIN '#13#10 +
           '  SELECT FIRST 1 id, contactkey, ingroup '#13#10 +
           '  FROM gd_user '#13#10 +
           '  WHERE ibname = CURRENT_USER '#13#10 +
           '  INTO :userkey, :contactkey, :ingroup; '#13#10 +
-          '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_USERKEY'', :userkey); '#13#10 +
-          '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'', :contactkey); '#13#10 +
-          '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_INGROUP'', :ingroup); '#13#10 +
+          '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_USERKEY'', COALESCE(:userkey, 150001)); '#13#10 +
+          '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'', COALESCE(:contactkey, 650002)); '#13#10 +
+          '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_INGROUP'', COALESCE(:ingroup, 0)); '#13#10 +
           'END';
         FIBSQL.ExecQuery;
 
@@ -884,7 +885,183 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE gd_people SET personalnumber = '' '' || personalnumber, passportnumber = '' '' || passportnumber ' +
           'WHERE personalnumber IS NOT NULL OR passportnumber IS NOT NULL';
-        FIBSQL.ExecQuery;   
+        FIBSQL.ExecQuery;
+
+        // turn off the trigger so setting missed modify dates
+        // will not affect at_namespace CHANGED state
+
+        FIBSQL.SQL.Text :=
+          'ALTER TRIGGER at_aiud_object INACTIVE';
+        FIBSQL.ExecQuery;
+
+        FTransaction.Commit;
+        FTransaction.StartTransaction;
+
+        // add EDITIONDATE field into prime tables
+        // (user reference without additional system fields)
+
+        while True do
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'select '#13#10 +
+            '  r.RDB$RELATION_NAME '#13#10 +
+            'from '#13#10 +
+            '  RDB$RELATIONS r '#13#10 +
+            '  JOIN RDB$RELATION_FIELDS rfs ON rfs.RDB$RELATION_NAME = r.RDB$RELATION_NAME AND rfs.RDB$FIELD_NAME = ''ID'' '#13#10 +
+            '  JOIN RDB$FIELDS f ON f.RDB$FIELD_NAME = rfs.RDB$FIELD_SOURCE AND f.RDB$FIELD_NAME = ''DINTKEY'' '#13#10 +
+            'where '#13#10 +
+            '  (not exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+            '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''EDITORKEY'')) '#13#10 +
+            'and '#13#10 +
+            '  (not exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+            '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''EDITIONDATE'')) '#13#10 +
+            'and '#13#10 +
+            '  (not exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+            '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''DOCUMENTKEY'')) '#13#10 +
+            'and '#13#10 +
+            '  (not exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+            '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''INHERITEDKEY'')) '#13#10 +
+            'and '#13#10 +
+            '  r.RDB$RELATION_NAME LIKE ''USR$%'' '#13#10 +
+            'and '#13#10 +
+            '  not r.RDB$RELATION_NAME LIKE ''USR$CROSS%'' '#13#10 +
+            'and '#13#10 +
+            '  r.RDB$VIEW_BLR IS NULL';
+          FIBSQL.ExecQuery;
+
+          if FIBSQL.EOF then
+            break;
+
+          S := FIBSQL.FieldByName('RDB$RELATION_NAME').AsTrimString;
+
+          FIBSQL.Close;
+
+          FIBSQL.SQL.Text := 'ALTER TABLE ' + S + ' ADD editiondate deditiondate';
+          FIBSQL.ExecQuery;
+
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
+
+          FIBSQL.SQL.Text :=
+            'MERGE INTO at_object o '#13#10 +
+            '   USING (SELECT r.xid, r.dbid FROM gd_ruid r JOIN ' + S + ' t ON t.id = r.id '#13#10 +
+            '     WHERE t.editiondate IS NULL) s '#13#10 +
+            '   ON o.xid = s.xid AND o.dbid = s.dbid '#13#10 +
+            '   WHEN MATCHED THEN '#13#10 +
+            '     UPDATE SET modified = ''25.03.1918'', curr_modified = ''25.03.1918''';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.SQL.Text :=
+            'UPDATE ' + S + ' SET editiondate = ''25.03.1918'' WHERE editiondate IS NULL';
+          FIBSQL.ExecQuery;
+        end;
+
+        // recreate triggers for Prime tables
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'select '#13#10 +
+          '  r.RDB$RELATION_NAME '#13#10 +
+          'from '#13#10 +
+          '  RDB$RELATIONS r '#13#10 +
+          '  JOIN RDB$RELATION_FIELDS rfs ON rfs.RDB$RELATION_NAME = r.RDB$RELATION_NAME AND rfs.RDB$FIELD_NAME = ''ID'' '#13#10 +
+          '  JOIN RDB$FIELDS f ON f.RDB$FIELD_NAME = rfs.RDB$FIELD_SOURCE AND f.RDB$FIELD_NAME = ''DINTKEY'' '#13#10 +
+          'where '#13#10 +
+          '  (not exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+          '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''EDITORKEY'')) '#13#10 +
+          'and '#13#10 +
+          '  (exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+          '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''EDITIONDATE'')) '#13#10 +
+          'and '#13#10 +
+          '  (not exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+          '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''DOCUMENTKEY'')) '#13#10 +
+          'and '#13#10 +
+          '  (not exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+          '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''INHERITEDKEY'')) '#13#10 +
+          'and '#13#10 +
+          '  r.RDB$RELATION_NAME LIKE ''USR$%'' '#13#10 +
+          'and '#13#10 +
+          '  not r.RDB$RELATION_NAME LIKE ''USR$CROSS%'' '#13#10 +
+          'and '#13#10 +
+          '  r.RDB$VIEW_BLR IS NULL';
+        FIBSQL.ExecQuery;
+        while not FIBSQL.EOF do
+        begin
+          S := FIBSQL.FieldByName('RDB$RELATION_NAME').AsTrimString;
+
+          q := TIBSQL.Create(nil);
+          try
+            q.Transaction := FTransaction;
+
+            q.SQL.Text := TgdcPrimeTable.CreateInsertEditorTrigger(S);
+            q.ExecQuery;
+
+            q.SQL.Text := TgdcPrimeTable.CreateUpdateEditorTrigger(S);
+            q.ExecQuery;
+          finally
+            q.Free;
+          end;
+
+          FIBSQL.Next;
+        end;
+
+        // recreate triggers for Simple tables
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'select '#13#10 +
+          '  r.RDB$RELATION_NAME '#13#10 +
+          'from '#13#10 +
+          '  RDB$RELATIONS r '#13#10 +
+          '  JOIN RDB$RELATION_FIELDS rfs ON rfs.RDB$RELATION_NAME = r.RDB$RELATION_NAME AND rfs.RDB$FIELD_NAME = ''ID'' '#13#10 +
+          '  JOIN RDB$FIELDS f ON f.RDB$FIELD_NAME = rfs.RDB$FIELD_SOURCE AND f.RDB$FIELD_NAME = ''DINTKEY'' '#13#10 +
+          'where '#13#10 +
+          '  (exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+          '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''EDITORKEY'')) '#13#10 +
+          'and '#13#10 +
+          '  (exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+          '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''EDITIONDATE'')) '#13#10 +
+          'and '#13#10 +
+          '  (not exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+          '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''DOCUMENTKEY'')) '#13#10 +
+          'and '#13#10 +
+          '  (not exists (select * from RDB$RELATION_FIELDS rf '#13#10 +
+          '    where rf.RDB$RELATION_NAME = r.RDB$RELATION_NAME and rf.RDB$FIELD_NAME = ''INHERITEDKEY'')) '#13#10 +
+          'and '#13#10 +
+          '  r.RDB$RELATION_NAME LIKE ''USR$%'' '#13#10 +
+          'and '#13#10 +
+          '  not r.RDB$RELATION_NAME LIKE ''USR$CROSS%'' '#13#10 +
+          'and '#13#10 +
+          '  r.RDB$VIEW_BLR IS NULL';
+        FIBSQL.ExecQuery;
+        while not FIBSQL.EOF do
+        begin
+          S := FIBSQL.FieldByName('RDB$RELATION_NAME').AsTrimString;
+
+          q := TIBSQL.Create(nil);
+          try
+            q.Transaction := FTransaction;
+
+            q.SQL.Text := TgdcSimpleTable.CreateInsertEditorTrigger(S);
+            q.ExecQuery;
+
+            q.SQL.Text := TgdcSimpleTable.CreateUpdateEditorTrigger(S);
+            q.ExecQuery;
+          finally
+            q.Free;
+          end;
+
+          FIBSQL.Next;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'ALTER TRIGGER at_aiud_object ACTIVE';
+        FIBSQL.ExecQuery;
+
+        FTransaction.Commit;
+        FTransaction.StartTransaction;
 
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
@@ -997,6 +1174,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (239, ''0000.0001.0000.0270'', ''29.12.2015'', ''AT_OBJECT triggers.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (240, ''0000.0001.0000.0271'', ''02.01.2016'', ''Add edition date field to TgdcSimpleTable.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

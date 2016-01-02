@@ -45,8 +45,8 @@ begin
       AddField2('GD_JOURNAL', 'OBJECTID', 'DFOREIGNKEY', FIBTransaction);
       AddField2('GD_JOURNAL', 'DATA', 'DBLOBTEXT80_1251', FIBTransaction);
 
-      ibsql.SQL.Text :=
-        'RECREATE TRIGGER gd_bi_journal2 FOR gd_journal '#13#10 +
+      {ibsql.SQL.Text :=
+        'CREATE OR ALTER TRIGGER gd_bi_journal2 FOR gd_journal '#13#10 +
         '  BEFORE INSERT '#13#10 +
         '  POSITION 2 '#13#10 +
         'AS '#13#10 +
@@ -56,18 +56,18 @@ begin
         ' '#13#10 +
         '  IF (NEW.contactkey IS NULL) THEN '#13#10 +
         '  BEGIN '#13#10 +
-        '    SELECT contactkey FROM gd_user '#13#10 +
+        '    SELECT FIRST 1 contactkey FROM gd_user '#13#10 +
         '    WHERE ibname = CURRENT_USER '#13#10 +
         '    INTO NEW.contactkey; '#13#10 +
         '  END '#13#10 +
         'END ';
-      ibsql.ExecQuery;
+      ibsql.ExecQuery;}
 
-      ibsql.SQL.Text := 'CREATE DOMAIN dtimestamp_notnull AS TIMESTAMP NOT NULL ';
-      try
+      if not DomainExist2('DTIMESTAMP_NOTNULL', FIBTransaction) then
+      begin
+        ibsql.SQL.Text := 'CREATE DOMAIN dtimestamp_notnull AS TIMESTAMP NOT NULL ';
         ibsql.ExecQuery;
-      except
-      end;
+      end;  
 
       ibsql.SQL.Text :=
         'INSERT INTO FIN_VERSIONINFO (ID,VERSIONSTRING,RELEASEDATE,COMMENT) VALUES (42,''0000.0001.0000.0032'',''2002-11-08'',''GD_JOURNAL has got its final state'')';

@@ -1343,11 +1343,11 @@ INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editork
 /*     Корень глобальных макросов                          */
 /***********************************************************/
 
-INSERT INTO EVT_MACROSGROUP (ID, LB, RB, NAME, ISGLOBAL)
-  VALUES (1020001, 1, 2, 'Глобальные макросы', 1);
+INSERT INTO EVT_MACROSGROUP (ID, LB, RB, NAME, ISGLOBAL, EDITORKEY)
+  VALUES (1020001, 1, 2, 'Глобальные макросы', 1, 650002);
 
-INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACROSGROUPKEY, OBJECTNAME)
-  VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 'APPLICATION');
+INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACROSGROUPKEY, OBJECTNAME, EDITORKEY)
+  VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 'APPLICATION', 650002);
 
 
 -- gd_compacctype

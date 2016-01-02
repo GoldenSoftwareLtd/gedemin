@@ -196,9 +196,9 @@ CREATE TRIGGER flt_bi_savedfilter5 FOR flt_savedfilter
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -207,9 +207,9 @@ CREATE TRIGGER flt_bu_savedfilter5 FOR flt_savedfilter
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 

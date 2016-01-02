@@ -749,6 +749,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (239, '0000.0001.0000.0270', '29.12.2015', 'AT_OBJECT triggers.');     
   
+INSERT INTO fin_versioninfo
+  VALUES (240, '0000.0001.0000.0271', '02.01.2016', 'Add edition date field to TgdcSimpleTable.');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

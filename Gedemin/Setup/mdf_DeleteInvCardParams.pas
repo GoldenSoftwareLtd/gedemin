@@ -1358,7 +1358,16 @@ var
         Tr.StartTransaction;
       end;
 
-      q.SQL.Text := 'UPDATE ' + ATableName + ' SET editiondate = ''01.01.2000'' ' +
+      q.SQL.Text :=
+        'MERGE INTO at_object o '#13#10 +
+        '   USING (SELECT r.xid, r.dbid FROM gd_ruid r JOIN ' + ATableName + ' t ON t.id = r.id '#13#10 +
+        '     WHERE t.editiondate IS NULL) s '#13#10 +
+        '   ON o.xid = s.xid AND o.dbid = s.dbid '#13#10 +
+        '   WHEN MATCHED THEN '#13#10 +
+        '     UPDATE SET modified = ''25.03.1918'', curr_modified = ''25.03.1918''';
+      q.ExecQuery;
+
+      q.SQL.Text := 'UPDATE ' + ATableName + ' SET editiondate = ''25.03.1918'' ' +
         'WHERE editiondate IS NULL';
       q.ExecQuery;
     end;  
@@ -1377,7 +1386,7 @@ var
         Tr.StartTransaction;
       end;
 
-      q.SQL.Text := 'UPDATE ' + ATableName + ' SET creationdate = ''01.01.2000'' ' +
+      q.SQL.Text := 'UPDATE ' + ATableName + ' SET creationdate = ''25.03.1918'' ' +
         'WHERE creationdate IS NULL';
       q.ExecQuery;
     end;

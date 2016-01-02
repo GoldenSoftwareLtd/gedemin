@@ -76,14 +76,14 @@ BEGIN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 
   IF (NEW.creatorkey IS NULL) THEN
-    NEW.creatorkey = 650002;
+    NEW.creatorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.creationdate IS NULL) THEN
-    NEW.creationdate = CURRENT_TIMESTAMP;
+    NEW.creationdate = CURRENT_TIMESTAMP(0);
 
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 
   IF (NEW.parent IS NULL) THEN
   BEGIN

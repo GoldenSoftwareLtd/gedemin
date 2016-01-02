@@ -79,9 +79,9 @@ CREATE TRIGGER rp_bi_reporttemplate5 FOR rp_reporttemplate
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -90,9 +90,9 @@ CREATE TRIGGER rp_bu_reporttemplate5 FOR rp_reporttemplate
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -253,9 +253,9 @@ CREATE TRIGGER rp_bi_reportlist5 FOR rp_reportlist
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
  IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
 ^
 
@@ -264,7 +264,7 @@ CREATE TRIGGER rp_bu_reportlist5 FOR rp_reportlist
 AS
 BEGIN
   IF (NEW.editorkey IS NULL) THEN
-    NEW.editorkey = 650002;
+    NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
     NEW.editiondate = CURRENT_TIMESTAMP(0);
 END
