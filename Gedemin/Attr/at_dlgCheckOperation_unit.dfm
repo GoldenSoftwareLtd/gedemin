@@ -97,9 +97,9 @@ object dlgCheckOperation: TdlgCheckOperation
         object chbxUnMethod: TCheckBox
           Left = 376
           Top = 75
-          Width = 289
+          Width = 321
           Height = 17
-          Caption = 'Отключить перекрытые методы и проводки'
+          Caption = 'Отключить перекрытые методы, не проводить проводки'
           TabOrder = 4
         end
       end

@@ -10,13 +10,21 @@ type
   TgsPL = class(TObject)
   private
     FCount: Integer;
+    FInitArgv: array of PChar;
+    FIsInitialised: Boolean;
     FError: Boolean;
+    function GetDefaultPLInitString: String;
+
   public
     constructor Create;
     destructor Destroy; override;
 
     property Count: Integer read FCount write FCount;
     property Error: Boolean read FError write FError;
+
+    function Initialise(const AParams: String = ''): Boolean;
+    function IsInitialised: Boolean;
+    function Cleanup: Boolean;
   end;
 
 type
@@ -81,13 +89,11 @@ type
 
   TgsPLClient = class(TObject)
   private
-    FInitArgv: array of PChar;
-    FDebug: Boolean;
     FIsInitialised: Boolean;
+    FDebug: Boolean;
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
     function GetFileName(const AFileName: String): String;
-    function GetDefaultPLInitString: String;
 
     procedure WriteTermv(ATerm: TgsPLTermv; AStream: TStream);
     procedure WriteScript(const AText: String; AStream: TStream);
@@ -108,6 +114,7 @@ type
     procedure Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsPLTermv);
     function Initialise(const AParams: String = ''): Boolean;
     function IsInitialised: Boolean;
+    function Cleanup: Boolean;
     function MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
     function MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
@@ -163,7 +170,7 @@ end;
 
 constructor TgsPLTermv.CreateTermv(const ASize: Integer);
 begin
-  if gsPL.Count = 0 then
+  if not gsPL.Count > 0 then
     raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
   if ASize <= 0 then
     raise  EgsPLClientException.CreatePLError('Ќеверный размер вектора термов!');
@@ -314,7 +321,7 @@ end;
 
 constructor TgsPLQuery.Create;
 begin
-  if gsPL.Count = 0 then
+  if not gsPL.Count > 0 then
     raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
 
   inherited Create;
@@ -396,18 +403,9 @@ end;
 destructor TgsPLClient.Destroy;
 begin
   gsPL.Count := gsPL.Count - 1;
-  if (gsPL.Count = 0) or gsPL.Error then
-  begin
-    if IsInitialised then
-      PL_cleanup(0);
 
-      FIsInitialised := False;
-
-      FreePLLibrary;
-      FreePLDependentLibraries;
-      gsPL.Count := 0;
-      gsPL.Error := False;
-  end;
+  if not (gsPL.Count > 0) or gsPL.Error then
+    gsPL.Cleanup;
 
   inherited;
 end;
@@ -417,6 +415,9 @@ var
   Query: TgsPLQuery;
   FS: TFileStream;
 begin
+  if not gsPL.Count > 0 then
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
+
   if APredicateName = '' then
     raise  EgsPLClientException.CreatePLError('Ќе задано им€ предиката!');
   if ATermv = nil then
@@ -445,6 +446,8 @@ var
   I: LongWord;
   F: TField;
 begin
+  if not gsPL.Count > 0 then
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
   if ADataSet = nil then
     raise  EgsPLClientException.CreatePLError('Ќе задан набор данных!');
   if APredicateName = '' then
@@ -528,6 +531,9 @@ var
   Termv: TgsPLTermv;
   FS: TFileStream;
 begin
+  if not gsPL.Count > 0 then
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
+
   Result := False;
   q := TIBSQL.Create(nil);
   Termv := TgsPLTermv.CreateTermv(2);
@@ -572,6 +578,8 @@ var
   Query: TgsPLQuery;
   fid: fid_t;
 begin
+  if not gsPL.Count > 0 then
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
   if AGoal = '' then
     raise  EgsPLClientException.CreatePLError('Ќе задан терм дл€ выполнени€!');
 
@@ -598,6 +606,8 @@ function TgsPLClient.Call(const APredicateName: String; AParams: TgsPLTermv): Bo
 var
   Query: TgsPLQuery;
 begin
+  if not gsPL.Count > 0 then
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
   if APredicateName = '' then
     raise  EgsPLClientException.CreatePLError('Ќе задано им€ предиката!');
   if AParams = nil then
@@ -616,6 +626,8 @@ end;
 
 procedure TgsPLClient.Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsPLTermv);
 begin
+  if not gsPL.Count > 0 then
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
   if AFunctor = '' then
     raise  EgsPLClientException.CreatePLError('Ќе задан функтор!');
   if ATermv = nil then
@@ -679,7 +691,6 @@ function TgsPLClient.GetFileName(const AFileName: String): String;
 var
   TempS: String;
 begin
-  //TempS := ExtractFilePath(Application.EXEName) + PrologTempPath;
   TempS := GetSWIPath;
   if not DirectoryExists(TempS) then
     if not CreateDir(TempS) then
@@ -714,98 +725,24 @@ begin
   end;
 end;
 
-function TgsPLClient.IsInitialised: Boolean;
-var
-  argc: Integer;
-begin                
-  if gsPL.Count > 0 then
-  begin
-    Result := FIsInitialised;
-    Exit;
-  end;
-  
-  argc := High(FInitArgv);
-  Result := (argc > -1) and TryPLLoad;
+function TgsPLClient.Cleanup: Boolean;
+begin
+  Result := gsPL.Cleanup;
 
-  if Result then
-    Result := PL_is_initialised(argc, FInitArgv) <> 0;
+  FIsInitialised := False;
+end;
+
+function TgsPLClient.IsInitialised: Boolean;
+begin
+  Result := FIsInitialised;
 end;
 
 function TgsPLClient.Initialise(const AParams: String = ''): Boolean;
-
-  function GetNextElement(const S: String; var L: Integer): String;
-  var
-    F: Integer;
-  begin
-    F := L;
-    while (F <= Length(S)) and (S[F] <> '!') and (S[F + 1] <> '@') do
-      Inc(F);
-
-
-    Result := Trim(Copy(S, L, F - L));
-    Inc(F, 2);
-    L := F;
-  end;
-
-  procedure GetParamsList(const S: String; SL: TStringList);
-  var
-    P: Integer;
-  begin
-    P := 1;
-    while P <= Length(S) do
-      SL.Add(GetNextElement(S, P));
-  end;
-
-var
-  SL: TStringList;
-  I: Integer;
-  TempS: String;
 begin
-  if gsPL.Count > 0 then
-  begin
-    if not FIsInitialised then
-    begin
-      gsPL.Count := gsPL.Count + 1;
-      FIsInitialised := True;
-    end;
-    Result := True;
-    Exit;
-  end;
+  if not FIsInitialised then
+    FIsInitialised := gsPL.Initialise(AParams);
 
-  if not TryPLLoad then
-    raise  EgsPLClientException.CreatePLError(' лиентска€ часть Prolog не установлена!');
-
-  if AParams > '' then
-    TempS := Trim(AParams)
-  else
-    TempS := GetDefaultPLInitString;
-  TempS := StringReplace(TempS, '],[', '!@', [rfReplaceAll]);
-  TempS := Copy(TempS, 2, Length(TempS) - 2);
-
-  SL := TStringList.Create;
-  try
-    //if AParams = '' then
-    GetParamsList(TempS, SL);
-
-    SetLength(FInitArgv, SL.Count + 1);
-    for I := 0 to SL.Count - 1 do
-      FInitArgv[I] := PChar(SL[I]);
-    FInitArgv[High(FInitArgv)] := nil;
-
-    if not IsInitialised then
-    begin
-      Result := PL_initialise(High(FInitArgv), FInitArgv) <> 0;
-      if Result then
-        gsPL.Count := 1;
-        FIsInitialised := True;
-      if not Result then
-        //PL_halt(1);
-        PL_cleanup(0);
-    end else
-      Result := False;
-  finally
-    SL.Free;
-  end;
+  Result := FIsInitialised;
 end;
 
 procedure TgsPLClient.WriteTermv(ATerm: TgsPLTermv; AStream: TStream);
@@ -982,6 +919,9 @@ var
   FS: TFileStream;
   FN: String;
 begin
+  if not gsPL.Count > 0 then
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
+
   if FDebug then
   begin
     FN := GetFileName(AFileName);
@@ -1006,6 +946,9 @@ var
   FN: String;
   FS: TFileStream;
 begin
+  if not gsPL.Count > 0 then
+    raise  EgsPLClientException.CreatePLError('Prolog не инициализирован!');
+
   if FDebug then
   begin
     FN := GetFileName(AFileName);
@@ -1022,14 +965,6 @@ begin
     end;
   end else
     Result := InternalMakePredicatesOfSQLSelect(ASQL, ATr, APredicateName, nil);
-end;
-
-function TgsPLClient.GetDefaultPLInitString: String;
-var
-  Path: String;
-begin
-  Path := StringReplace(GetPath, '\', '/', [rfReplaceAll]);
-  Result := Format('[libswipl.dll],[-x],[%0:sgd_pl_state.dat],[-p],[foreign=%0:slib]', [Path]);
 end;
 
 function TgsPLClient.GetScriptIDByName(const Name: String): Integer;
@@ -1062,15 +997,124 @@ begin
   inherited Create;
 
   FCount := 0;
+  FIsInitialised := False;
   FError := False;
 end;
 
 destructor TgsPL.Destroy;
 begin
-  FCount := 0;
-  FError := False;
-
   inherited;
+end;
+
+function TgsPL.Cleanup: Boolean;
+begin
+  if not IsInitialised then
+    Result := False
+  else
+    Result := PL_cleanup(0) <> 0;
+
+  FreePLLibrary;
+  FreePLDependentLibraries;
+
+  FCount := 0;
+  FIsInitialised := False;
+  FError := False;
+end;
+
+function TgsPL.IsInitialised: Boolean;
+var
+  argc: Integer;
+begin
+  argc := High(FInitArgv);
+  Result := (argc > -1) and TryPLLoad;
+
+  if Result then
+    Result := PL_is_initialised(argc, FInitArgv) <> 0;
+end;
+
+function TgsPL.Initialise(const AParams: String = ''): Boolean;
+
+  function GetNextElement(const S: String; var L: Integer): String;
+  var
+    F: Integer;
+  begin
+    F := L;
+    while (F <= Length(S)) and (S[F] <> '!') and (S[F + 1] <> '@') do
+      Inc(F);
+
+    Result := Trim(Copy(S, L, F - L));
+    Inc(F, 2);
+    L := F;
+  end;
+
+  procedure GetParamsList(const S: String; SL: TStringList);
+  var
+    P: Integer;
+  begin
+    P := 1;
+    while P <= Length(S) do
+      SL.Add(GetNextElement(S, P));
+  end;
+
+var
+  SL: TStringList;
+  I: Integer;
+  TempS: String;
+begin
+  if FError then
+    Cleanup;
+
+  if not TryPLLoad then
+    raise  EgsPLClientException.CreatePLError(' лиентска€ часть Prolog не установлена!');
+
+  if FCount > 0 then
+    begin
+      FCount := FCount + 1;
+      Result := True;
+      Exit;
+    end;
+
+  if AParams > '' then
+    TempS := Trim(AParams)
+  else
+    TempS := GetDefaultPLInitString;
+
+  TempS := StringReplace(TempS, '],[', '!@', [rfReplaceAll]);
+  TempS := Copy(TempS, 2, Length(TempS) - 2);
+
+  SL := TStringList.Create;
+  try
+    GetParamsList(TempS, SL);
+
+    SetLength(FInitArgv, SL.Count + 1);
+    for I := 0 to SL.Count - 1 do
+      FInitArgv[I] := PChar(SL[I]);
+    FInitArgv[High(FInitArgv)] := nil;
+
+    if not IsInitialised then
+      begin
+        Result := PL_initialise(High(FInitArgv), FInitArgv) <> 0;
+        if Result then
+          begin
+            FCount := 1;
+            FIsInitialised := True;
+          end
+        else
+          Cleanup;
+      end
+    else
+      Result := False;
+  finally
+    SL.Free;
+  end;
+end;
+
+function TgsPL.GetDefaultPLInitString: String;
+var
+  Path: String;
+begin
+  Path := StringReplace(GetPath, '\', '/', [rfReplaceAll]);
+  Result := Format('[%1:s],[-x],[%0:s%2:s],[-p],[foreign=%0:s%3:s]', [Path, Libswipl_dll, Gd_pl_state, Foreign_lib]);
 end;
 
 initialization

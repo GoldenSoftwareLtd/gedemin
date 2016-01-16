@@ -6,18 +6,20 @@ uses
   IBDatabase, gdModify;
 
 procedure ModifyAutoTaskAndSMTPTable(IBDB: TIBDatabase; Log: TModifyLog);
- 
+
 implementation
  
 uses
-  IBSQL, SysUtils, mdf_metadata_unit, gdcMetaData;
- 
+  Classes, IBSQL, SysUtils, mdf_metadata_unit, gdcMetaData;
+
 procedure ModifyAutoTaskAndSMTPTable(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
   FIBSQL, q: TIBSQL;
   S: String;
+  SL: TStringList;
 begin
+  SL := TStringList.Create;
   FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
@@ -460,10 +462,13 @@ begin
           'WHERE o.editiondate IS NULL';
         FIBSQL.ExecQuery;
 
-        FIBSQL.SQL.Text :=
-          'ALTER TABLE gd_documenttype_option ADD CONSTRAINT gd_uq_dt_option '#13#10 +
-          'UNIQUE (dtkey, option_name, relationfieldkey, contactkey, currkey)';
-        FIBSQL.ExecQuery;
+        if not ConstraintExist2('GD_DOCUMENTTYPE_OPTION', 'GD_UQ_DT_OPTION', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_documenttype_option ADD CONSTRAINT gd_uq_dt_option '#13#10 +
+            'UNIQUE (dtkey, option_name, relationfieldkey, contactkey, currkey)';
+          FIBSQL.ExecQuery;
+        end;
 
         FIBSQL.SQL.Text :=
           'CREATE OR ALTER TRIGGER gd_bi_documenttype_option FOR gd_documenttype_option '#13#10 +
@@ -882,10 +887,24 @@ begin
         FTransaction.Commit;
         FTransaction.StartTransaction;
 
+        AlterTriggers(GetActiveTriggers('GD_PEOPLE', SL, FTransaction), False, FTransaction);
+
         FIBSQL.SQL.Text :=
           'UPDATE gd_people SET personalnumber = '' '' || personalnumber, passportnumber = '' '' || passportnumber ' +
           'WHERE personalnumber IS NOT NULL OR passportnumber IS NOT NULL';
         FIBSQL.ExecQuery;
+
+        AlterTriggers(SL, True, FTransaction);
+
+        // turn off the trigger so setting missed modify dates
+        // will not affect at_namespace CHANGED state
+
+        FIBSQL.SQL.Text :=
+          'ALTER TRIGGER at_aiud_object INACTIVE';
+        FIBSQL.ExecQuery;
+
+        FTransaction.Commit;
+        FTransaction.StartTransaction;
 
         // add EDITIONDATE field into prime tables
         // (user reference without additional system fields)
@@ -942,9 +961,13 @@ begin
             '     UPDATE SET modified = ''25.03.1918'', curr_modified = ''25.03.1918''';
           FIBSQL.ExecQuery;
 
+          AlterTriggers(GetActiveTriggers(S, SL, FTransaction), False, FTransaction);
+
           FIBSQL.SQL.Text :=
             'UPDATE ' + S + ' SET editiondate = ''25.03.1918'' WHERE editiondate IS NULL';
           FIBSQL.ExecQuery;
+
+          AlterTriggers(SL, True, FTransaction);
         end;
 
         // recreate triggers for Prime tables
@@ -1044,6 +1067,11 @@ begin
 
           FIBSQL.Next;
         end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'ALTER TRIGGER at_aiud_object ACTIVE';
+        FIBSQL.ExecQuery;
 
         FTransaction.Commit;
         FTransaction.StartTransaction;
@@ -1167,6 +1195,12 @@ begin
           '  VALUES (240, ''0000.0001.0000.0271'', ''02.01.2016'', ''Add edition date field to TgdcSimpleTable.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (241, ''0000.0001.0000.0272'', ''09.01.2016'', ''Second try. Now with triggers disabled.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
       finally
         FIBSQL.Free;
       end;
@@ -1182,7 +1216,8 @@ begin
     end;
   finally
     FTransaction.Free;
+    SL.Free;
   end;
-end;  
- 
+end;
+
 end.

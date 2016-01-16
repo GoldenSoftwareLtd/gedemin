@@ -7,7 +7,7 @@ uses
   Menus, ExtCtrls, ComCtrls, IdTCPConnection, IdTCPServer, IdSocketHandle,
   IdThreadMgr, IdThreadMgrDefault, IdBaseComponent,
   IdComponent, IdAntiFreezeBase, IdAntiFreeze, IdStack,
-  Windows, SyncObjs, gedemin_cc_const;
+  Windows, SyncObjs, gedemin_cc_const{, IdSSLOpenSSL, IdServerIOHandler};
 
 type
   TClientP = ^TClient;
@@ -25,9 +25,13 @@ type
 
     FTCPServer: TIdTCPServer;
 
+    //SSLIOHandler: TIdServerIOHandlerSSL;
+
     procedure OnTCPServerExecute(AThread: TIdPeerThread);
     procedure ClientsAdd;
     procedure ClientsRemove;
+
+    //procedure IdServerIOHandlerSSLGetPassword(var Password: String);
 
   public
     FBuffer: array[0..MaxBufferSize - 1] of TLogRecord;
@@ -58,11 +62,28 @@ uses
   gedemin_cc_DataModule_unit;
 
 constructor TccTCPServer.Create;
+{var
+  appDir: String;}
 begin
   FCount := 0;
   FCriticalSection := TCriticalSection.Create;
   FClients := TThreadList.Create;
   FTCPServer := TIdTCPServer.Create(nil);
+
+  {SSLIOHandler := TIdServerIOHandlerSSL.Create(FTCPServer);
+  SSLIOHandler.SSLOptions.Method := sslvTLSv1;
+  SSLIOHandler.SSLOptions.Mode := sslmServer;
+  SSLIOHandler.SSLOptions.VerifyMode := [];
+  SSLIOHandler.SSLOptions.VerifyDepth := 0;
+  SSLIOHandler.OnGetPassword := IdServerIOHandlerSSLGetPassword;
+
+  appDir := ExtractFilePath(Application.ExeName);
+  SSLIOHandler.SSLOptions.KeyFile := appDir + 'sample.key';
+  SSLIOHandler.SSLOptions.CertFile := appDir + 'sample.crt';
+  SSLIOHandler.SSLOptions.RootCertFile := appDir + 'sampleRoot.pem';
+
+  FTCPServer.IOHandler := SSLIOHandler;}
+
   FTCPServer.OnExecute := OnTCPServerExecute;
   FTCPServer.DefaultPort := DefaultPort;
   FTCPServer.Active := True;
@@ -73,11 +94,17 @@ destructor TccTCPServer.Destroy;
 begin
   Assert(FTCPServer <> nil);
   FTCPServer.Active := False;
+  //SSLIOHandler.Free;
   FTCPServer.Free;
   FClients.Free;
   FCriticalSection.Free;
   inherited;
 end;
+
+{procedure TccTCPServer.IdServerIOHandlerSSLGetPassword(var Password: String);
+begin
+  Password:= 'aaaa';
+end;}
 
 procedure TccTCPServer.Update;
 begin

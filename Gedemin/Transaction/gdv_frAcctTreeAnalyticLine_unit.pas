@@ -11,17 +11,21 @@ type
   Tgdv_frAcctTreeAnalyticLine = class(TFrame)
     lAnaliticName: TLabel;
     eLevel: TEdit;
+
     procedure eLevelChange(Sender: TObject);
+
   private
     FField: TatRelationField;
     FLevels: TStrings;
+
     procedure SetField(const Value: TatRelationField);
     function CheckValue(S: string): Boolean;
     function GetLevels: TStrings;
+
   public
     destructor Destroy; override;
-    function IsEmpty: boolean;
 
+    function IsEmpty: boolean;
     procedure CheckProcedure;
     function SPName: string;
 
@@ -51,26 +55,31 @@ begin
   end;
 end;
 
-function Tgdv_frAcctTreeAnalyticLine.CheckValue(S: string): Boolean;
+function Tgdv_frAcctTreeAnalyticLine.CheckValue(S: String): Boolean;
 var
   Strings: TStrings;
-  V: string;
   I: Integer;
 begin
-  Result := Trim(S) > '';
+  S := StringReplace(S, ' ', '', [rfReplaceAll]);
+
+  Result := S > '';
+
   if Result then
   begin
     Strings := TStringList.Create;
     try
-      Strings.Text := StringReplace(S, ',', #13#10, [rfReplaceAll]);
+      Strings.CommaText := S;
       for I := 0 to Strings.Count - 1 do
       begin
-        V := Trim(Strings[I]);
         try
-          StrToInt(V);
+          if StrToInt(Strings[I]) < 0 then
+          begin
+            Result := False;
+            break;
+          end;
         except
           Result := False;
-          Exit;
+          break;
         end;
       end;
     finally
@@ -79,7 +88,7 @@ begin
   end;
 end;
 
-function Tgdv_frAcctTreeAnalyticLine.IsEmpty: boolean;
+function Tgdv_frAcctTreeAnalyticLine.IsEmpty: Boolean;
 begin
   Result := not CheckValue(eLevel.Text);
 end;
@@ -95,17 +104,17 @@ begin
   end;
 end;
 
-function Tgdv_frAcctTreeAnalyticLine.SPName: string;
+function Tgdv_frAcctTreeAnalyticLine.SPName: String;
 begin
+  Assert(FField <> nil);
+  Assert(FField.References <> nil);
   Result := Format('AC_LEDGER_%s', [FField.References.RelationName]);
 end;
 
 procedure Tgdv_frAcctTreeAnalyticLine.eLevelChange(Sender: TObject);
 begin
   if FLevels <> nil then
-  begin
     FLevels.Clear;
-  end;
 end;
 
 destructor Tgdv_frAcctTreeAnalyticLine.Destroy;
@@ -115,20 +124,18 @@ begin
 end;
 
 function Tgdv_frAcctTreeAnalyticLine.GetLevels: TStrings;
-var
-  I: Integer;
 begin
+  if not CheckValue(eLevel.Text) then
+    raise Exception.Create('Уровни аналитики должны быть заданы одним или несколькими ' +
+      'последовательными целочисленными значениями, через запятую.'#13#10#13#10 +
+      'Например: 1 или 1,2,3 и т.п.');
+
   if FLevels = nil then
     FLevels := TStringList.Create;
 
   if FLevels.Count = 0 then
-  begin
-    FLevels.Text := StringReplace(eLevel.Text, ',', #13#10, [rfReplaceAll]);
-    for I := 0 to Flevels.Count - 1 do
-    begin
-      FLevels[I] := Trim(FLevels[I]);
-    end;
-  end;
+    FLevels.CommaText := StringReplace(eLevel.Text, ' ', '', [rfReplaceAll]);
+
   Result := FLevels;
 end;
 

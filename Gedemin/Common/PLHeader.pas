@@ -52,6 +52,8 @@ const
   PrologPath = 'swipl';
   PrologTempPath = 'swipl\temp';
   {$ENDIF}
+  Gd_pl_state = 'gd_pl_state.dat';
+  Foreign_lib = 'lib';
 
 type
   size_t = Cardinal;

@@ -1479,6 +1479,8 @@ type
 
     //
     function GetCurrRecordClass: TgdcFullClass; virtual;
+    function ClassInheritsFrom(const AClassName: String; const ASubType: String = ''): Boolean;
+    function CurrRecordInheritsFrom(const AClassName: String; const ASubType: String = ''): Boolean;
 
     // Возвращает значение дисплейного поля по ключу
     class function GetListNameByID(const AnID: TID;
@@ -8986,6 +8988,26 @@ begin
     ASL.Add(AddSpaces('Просм. и изменение') + TgdcUserGroup.GetGroupList(FindField('achag').AsInteger));
   if FindField('afull') <> nil then
     ASL.Add(AddSpaces('Полный доступ') + TgdcUserGroup.GetGroupList(FindField('afull').AsInteger));
+end;
+
+function TgdcBase.ClassInheritsFrom(const AClassName,
+  ASubType: String): Boolean;
+begin
+  Result := gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType).InheritsFromCE(
+    gdClassList.Get(TgdBaseEntry, AClassName, ASubType));
+end;
+
+function TgdcBase.CurrRecordInheritsFrom(const AClassName,
+  ASubType: String): Boolean;
+var
+  FC: TgdcFullClass;
+begin
+  FC := GetCurrRecordClass;
+  if FC.gdClass <> nil then
+    Result := gdClassList.Get(TgdBaseEntry, FC.gdClass.ClassName, FC.SubType).InheritsFromCE(
+      gdClassList.Get(TgdBaseEntry, AClassName, ASubType))
+  else
+    Result := ClassInheritsFrom(AClassName, ASubType);
 end;
 
 { TgdcDataLink }

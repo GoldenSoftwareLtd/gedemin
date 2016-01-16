@@ -26,12 +26,8 @@ type
     TBItem5: TTBItem;
     actViewNS: TAction;
     TBItem7: TTBItem;
-    splObjects: TSplitter;
-    ibdsObjects: TIBDataSet;
-    dsObjects: TDataSource;
-    Panel1: TPanel;
-    Panel2: TPanel;
-    gsIBGrid1: TgsIBGrid;
+    actNS: TAction;
+    TBItem8: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actSetObjectPosExecute(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
@@ -48,6 +44,8 @@ type
     procedure actShowObjectExecute(Sender: TObject);
     procedure actShowObjectUpdate(Sender: TObject);
     procedure actViewNSExecute(Sender: TObject);
+    procedure actNSUpdate(Sender: TObject);
+    procedure actNSExecute(Sender: TObject);
   end;
 
 implementation
@@ -64,9 +62,6 @@ begin
   gdcDetailObject := gdcNamespaceObject;
 
   inherited;
-
-  ibdsObjects.Transaction := gdcObject.ReadTransaction;
-  ibdsObjects.Open;
 end;
 
 procedure Tgdc_frmNamespace.actSetObjectPosExecute(Sender: TObject);
@@ -166,7 +161,7 @@ end;
 procedure Tgdc_frmNamespace.actShowObjectUpdate(Sender: TObject);
 begin
   actShowObject.Enabled := (gdcDetailObject <> nil)
-    and (not gdcDetailObject.EOF);
+    and (not gdcDetailObject.IsEmpty);
 end;
 
 procedure Tgdc_frmNamespace.actViewNSExecute(Sender: TObject);
@@ -177,6 +172,17 @@ begin
   finally
     Free;
   end;
+end;
+
+procedure Tgdc_frmNamespace.actNSUpdate(Sender: TObject);
+begin
+  actNS.Enabled := (gdcDetailObject <> nil)
+    and (not gdcDetailObject.IsEmpty);
+end;
+
+procedure Tgdc_frmNamespace.actNSExecute(Sender: TObject);
+begin
+  (gdcDetailObject as TgdcNamespaceObject).ShowNSDialog;
 end;
 
 initialization

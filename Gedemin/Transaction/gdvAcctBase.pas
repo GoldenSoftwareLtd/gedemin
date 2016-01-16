@@ -294,9 +294,9 @@ procedure Register;
 implementation
 
 uses
-  Sysutils, Dialogs, gd_security, AcctStrings, IBBlob, gd_common_functions,
+  Sysutils, Dialogs, IB, gd_security, AcctStrings, IBBlob, gd_common_functions,
   Forms, dmImages_unit, gdcConstants, gd_security_operationconst, IBHeader,
-  gdcCurr;
+  gdcCurr, flt_frmSQLEditorSyn_unit;
 
 type
   EgsLargeSQLStatement = class(Exception);
@@ -383,7 +383,31 @@ begin
 
   // Подставим необходимые параметры в запрос
   if not FMakeEmpty then
-    SetSQLParams;
+  begin
+    try
+      SetSQLParams;
+    except
+      on E: EIBError do
+      begin
+        if (IBLogin <> nil) and IBLogin.IsIBUserAdmin then
+        begin
+          MessageBox(0,
+            PChar(E.Message),
+            'Ошибка',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL);
+
+          with TfrmSQLEditorSyn.Create(nil) do
+          try
+            ShowSQL(Self.SelectSQL.Text, nil, True);
+          finally
+            Free;
+          end;
+        end;
+
+        raise;
+      end;
+    end;
+  end;
 end;
 
 procedure TgdvAcctBase.DoBeforeBuildReport;
@@ -450,7 +474,7 @@ begin
     on E: EgsLargeSQLStatement do
     begin
       DoEmptySQL;
-      Application.MessageBox(PChar(E.Message), 'Внимание!', MB_OK or MB_ICONEXCLAMATION or MB_SYSTEMMODAL);
+      Application.MessageBox(PChar(E.Message), 'Внимание!', MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
     end;
   end;
   Self.Open;

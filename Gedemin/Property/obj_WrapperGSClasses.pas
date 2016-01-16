@@ -1697,6 +1697,8 @@ type
     procedure Set_StreamProcessingAnswer(Value: Word); safecall;
     function  Get_CopiedObjectKey: Integer; safecall;
     procedure CopyObject(AWithDetail: WordBool; AShowDialog: WordBool); safecall;
+    function  ClassInheritsFrom(const AClassName: WideString; const ASubType: WideString): WordBool; safecall;
+    function  CurrRecordInheritsFrom(const AClassName: WideString; const ASubType: WideString): WordBool; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3998,6 +4000,7 @@ type
     function Call2(const AGoal: WideString): WordBool; safecall;
     function Initialise(const AParams: WideString): WordBool; safecall;
     function IsInitialised: WordBool; safecall;
+    function Cleanup: WordBool; safecall;
     procedure ExtractData(const ADataSet: IgsClientDataSet; const APredicateName: WideString;
       const ATermv: IgsPLTermv); safecall;
     function MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;
@@ -7488,6 +7491,18 @@ end;
 function TwrpGDCBase.CheckSubType(const ASubType: WideString): WordBool;
 begin
   Result := GetGDCBase.CheckSubType(ASubType);
+end;
+
+function TwrpGDCBase.ClassInheritsFrom(const AClassName,
+  ASubType: WideString): WordBool;
+begin
+  Result := GetGDCBase.ClassInheritsFrom(AClassName, ASubType);
+end;
+
+function TwrpGDCBase.CurrRecordInheritsFrom(const AClassName,
+  ASubType: WideString): WordBool;
+begin
+  Result := GetGDCBase.CurrRecordInheritsFrom(AClassName, ASubType);
 end;
 
 { TwrpGDCClassList }
@@ -13509,7 +13524,10 @@ end;
 
 function TwrpAtRelationField.Get_ObjectsList: IgsStringList;
 begin
-  Result := GetGdcOLEObject(GetAtRelationField.ObjectsList) as IgsStringList;
+  if GetAtRelationField.ObjectsList <> nil then
+    Result := GetGdcOLEObject(GetAtRelationField.ObjectsList) as IgsStringList
+  else
+    Result := nil;  
 end;
 
 function TwrpAtRelationField.Get_ReadOnly: WordBool;
@@ -19170,6 +19188,11 @@ end;
 function TwrpPLClient.IsInitialised: WordBool;
 begin
   Result := GetPLClient.IsInitialised;
+end;
+
+function TwrpPLClient.Cleanup: WordBool;
+begin
+  Result := GetPLClient.Cleanup;
 end;
 
 procedure TwrpPLClient.ExtractData(const ADataSet: IgsClientDataSet;

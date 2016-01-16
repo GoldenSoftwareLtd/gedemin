@@ -3061,7 +3061,6 @@ begin
     ibsql.SQL.Text := 'SELECT GEN_ID(gd_g_attr_version, 0) FROM RDB$DATABASE';
     ibsql.ExecQuery;
     FAttrVersion := ibsql.Fields[0].AsInteger;
-    ibsql.Close;
 
     if FTransaction.InTransaction then
       FTransaction.Commit;
@@ -3384,13 +3383,11 @@ begin
 
         ExecQuery;
         Result := Fields[0].AsInteger <> FAttrVersion;
-        Close;
       end;
     finally
+      ibsql.Free;
       if FTransaction.InTransaction and DidActivate then
         FTransaction.Commit;
-
-      ibsql.Free;
     end;
   end;
 end;
@@ -3631,9 +3628,9 @@ begin
   FAView := DefSecurity;
 
   FRelation := atRelation;
-  FObjectsList := TStringList.Create;
+  {FObjectsList := TStringList.Create;
   FObjectsList.Sorted := True;
-  FObjectsList.Duplicates := dupError;
+  FObjectsList.Duplicates := dupError;}
 end;
 
 function TatBodyRelationField.GetIsUserDefined: Boolean;
@@ -3747,6 +3744,7 @@ procedure TatBodyRelationField.RefreshData(SQLRecord: TIBXSQLDA; aDatabase: TIBD
 var
   L: Integer;
   CE: TgdClassEntry;
+  S: String;
 begin
   if
     ((not AnsiSameText(SQLRecord.ByName('relationname').AsTrimString, FRelation.RelationName))
@@ -3830,7 +3828,20 @@ begin
 
   FIsComputed := not SQLRecord.ByName('rdb$computed_source').IsNull;
 
-  FObjectsList.CommaText := SQLRecord.ByName('objects').AsString;
+  S := SQLRecord.ByName('objects').AsString;
+
+  if S > '' then
+  begin
+    if FObjectsList = nil then
+    begin
+      FObjectsList := TStringList.Create;
+      FObjectsList.Sorted := True;
+      FObjectsList.Duplicates := dupError;
+    end;
+
+    FObjectsList.CommaText := S;
+  end else
+    FreeAndNil(FObjectsList);
 
   UpdateData;
 end;
@@ -3917,7 +3928,7 @@ end;
 
 procedure TatBodyRelationField.Read(Reader: TReader);
 var
-  DataText: String;
+  DataText, S: String;
 begin
   with Reader do
   begin
@@ -3970,7 +3981,21 @@ begin
     FID := ReadInteger;
     FIsComputed := ReadBoolean;
 
-    FObjectsList.CommaText := ReadString;
+    S := ReadString;
+
+    if S > '' then
+    begin
+      if FObjectsList = nil then
+      begin
+        FObjectsList := TStringList.Create;
+        FObjectsList.Sorted := True;
+        FObjectsList.Duplicates := dupError;
+      end;
+
+      FObjectsList.CommaText := S;
+    end else
+      FreeAndNil(FObjectsList);
+
     //с версии 1.3
     FHasDefault := ReadBoolean;
     FDefaultValue := ReadString;
@@ -4021,7 +4046,11 @@ begin
     WriteInteger(FID);
     WriteBoolean(FIsComputed);
 
-    WriteString(FObjectsList.CommaText);
+    if FObjectsList <> nil then
+      WriteString(FObjectsList.CommaText)
+    else
+      WriteString('');
+
     //с версии 1.3
     WriteBoolean(FHasDefault);
     WriteString(FDefaultValue);
@@ -4059,7 +4088,7 @@ end;
 
 function TatBodyRelationField.InObject(const AName: String): Boolean;
 begin
-  Result := FObjectsList.IndexOf(AName) <> -1;
+  Result := (FObjectsList <> nil) and (FObjectsList.IndexOf(AName) <> -1);
 end;
 
 procedure TatBodyRelationField.SetFieldName(const AFieldName: String);
