@@ -656,8 +656,8 @@ begin
       q.Close;
       Inc(I);
 
-      if C > SL.Count * SL.Count then
-        raise Exception.Create('Cyclic namespace dependance detected.');
+      if C > SL.Count * SL.Count * SL.Count / 2 then
+        raise Exception.Create('Превышен внутренний лимит на количество итераций при построении списка ПИ. Возможны циклические ссылки.');
       Inc(C);
     end;
 

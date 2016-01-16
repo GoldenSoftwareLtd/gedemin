@@ -615,12 +615,12 @@ begin
               LoadObject(Objects[J] as TYAMLMapping, NSID, NSTimeStamp, False);
             end;
 
-            FAtObjectRecordCache.IterateMethod(@NSID, Iterate_RemoveGDCObjects);
-
             if FMetadataCounter > 0 then
               ProcessMetadata;
           end;
 
+          FAtObjectRecordCache.IterateMethod(@NSID, Iterate_RemoveGDCObjects);
+          
           if Mapping.FindByName('Uses') is TYAMLSequence then
             UpdateUses(Mapping.FindByName('Uses') as TYAMLSequence, NSID);
 
@@ -674,7 +674,7 @@ begin
       AddText('Окончена повторная загрузка объектов.');
     end;
 
-    if FRemoveList.Count > 0 then
+    if (FRemoveList.Count > 0) and (not FDontRemove) then
     begin
       FTr.StartTransaction;
       try
@@ -1524,13 +1524,16 @@ begin
 
   if FRemoveList.Count > 0 then
   begin
-    with Tat_dlgNamespaceRemoveList.Create(nil) do
-    try
-      RemoveList := FRemoveList;
-      DoDialog;
-    finally
-      Free;
-    end;
+    if (not gd_CmdLineParams.QuietMode) and (gd_CmdLineParams.LoadsettingFileName = '') then
+    begin
+      with Tat_dlgNamespaceRemoveList.Create(nil) do
+      try
+        RemoveList := FRemoveList;
+        DoDialog;
+      finally
+        Free;
+      end;
+    end;  
   end;
 
   for I := FRemoveList.Count - 1 downto 0 do

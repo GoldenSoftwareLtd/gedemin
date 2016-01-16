@@ -62,6 +62,7 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     procedure ShowObject;
+    procedure ShowNSDialog;
   end;
 
   function GetReferenceString(AnIDField: TField; AnObjectNameField: TField; ATr: TIBTransaction): String; overload;
@@ -83,7 +84,7 @@ uses
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
   Storages, gdcMetadata, at_sql_setup, gsDesktopManager, at_Classes_body,
   at_dlgCompareNSRecords_unit, gdcNamespaceLoader, gd_GlobalParams_unit,
-  gdcClasses_Interface, at_dlgNamespaceDeleteDependencies_unit;
+  gdcClasses_Interface, at_dlgNamespaceDeleteDependencies_unit, at_AddToSetting;
 
 procedure Register;
 begin
@@ -390,11 +391,13 @@ begin
             continue;
       end;
 
+      {
       if (F.Origin = '"GD_DOCUMENTTYPE"."OPTIONS"') and (AgdcObject is TgdcDocumentType) then
       begin
         if not gdClassList.OldOptions then
           continue;
       end;
+      }
 
       Flds.AddField(F);
     end;
@@ -1211,6 +1214,9 @@ begin
     try
       SaveNamespaceToStream(SS, HashString, IDCANCEL);
 
+      if SS.DataString = SS1251.DataString then
+        gdcBaseManager.ExecSingleQuery('UPDATE at_namespace SET changed = 0 WHERE id = :id', ID);
+
       ScriptComparer.Compare(SS.DataString, SS1251.DataString);
       ScriptComparer.LeftCaption('Текущее состояние в базе данных:');
       ScriptComparer.RightCaption(AFileName);
@@ -1532,7 +1538,7 @@ procedure TgdcNamespaceObject.ShowObject;
 var
   ObjID: Integer;
   Obj: TgdcBase;
-  Cl: TPersistentClass;
+  CE: TgdClassEntry;
 begin
   Obj := nil;
   try
@@ -1540,16 +1546,14 @@ begin
       FieldByName('dbid').AsInteger);
     if ObjID <> -1 then
     begin
-      Cl := GetClass(FieldByName('objectclass').AsString);
-      if (Cl <> nil) and Cl.InheritsFrom(TgdcBase) then
-      begin
-        Obj := CgdcBase(Cl).CreateWithID(nil, nil, nil,
-          ObjID,
-          FieldByName('subtype').AsString);
-        Obj.Open;
-        if not Obj.IsEmpty then
-          Obj.EditDialog;
-      end;
+      CE := gdClassList.Get(TgdBaseEntry, FieldByName('objectclass').AsString,
+        FieldByName('subtype').AsString);
+      Obj := TgdBaseEntry(CE).gdcClass.CreateWithID(nil, nil, nil,
+        ObjID,
+        FieldByName('subtype').AsString);
+      Obj.Open;
+      if not Obj.IsEmpty then
+        Obj.EditDialog;
     end;
   finally
     Obj.Free;
@@ -1686,7 +1690,8 @@ begin
         'SELECT '#13#10 +
         '  gt.indent || gt.objectname '#13#10 +
         'FROM '#13#10 +
-        '  group_tree gt';
+        '  group_tree gt '#13#10 +
+        'WHERE gt.id <> :id';
       q.ParamByName('id').AsInteger := ID;
       q.ExecQuery;
 
@@ -1725,6 +1730,32 @@ begin
   {M}      ClearMacrosStack2('TGDCNAMESPACEOBJECT', 'DOBEFOREDELETE', KEYDOBEFOREDELETE);
   {M}  end;
   {END MACRO}
+end;
+
+procedure TgdcNamespaceObject.ShowNSDialog;
+var
+  ObjID: Integer;
+  Obj: TgdcBase;
+  CE: TgdClassEntry;
+begin
+  Obj := nil;
+  try
+    ObjID := gdcBaseManager.GetIDByRUID(FieldByName('xid').AsInteger,
+      FieldByName('dbid').AsInteger);
+    if ObjID <> -1 then
+    begin
+      CE := gdClassList.Get(TgdBaseEntry, FieldByName('objectclass').AsString,
+        FieldByName('subtype').AsString);
+      Obj := TgdBaseEntry(CE).gdcClass.CreateWithID(nil, nil, nil,
+        ObjID,
+        FieldByName('subtype').AsString);
+      Obj.Open;
+      if not Obj.IsEmpty then
+        AddToSetting(False, '', '', Obj, nil);
+    end;
+  finally
+    Obj.Free;
+  end;
 end;
 
 initialization

@@ -9,13 +9,12 @@ inherited gdc_frmFile: Tgdc_frmFile
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 363
-    Width = 540
+    Top = 351
+    Width = 532
   end
   inherited TBDockTop: TTBDock
-    Width = 540
+    Width = 532
     inherited tbMainCustom: TTBToolbar
-      Left = 507
       object TBItem4: TTBItem
         Action = actFolderSyncronize
       end
@@ -48,63 +47,61 @@ inherited gdc_frmFile: Tgdc_frmFile
     end
   end
   inherited TBDockLeft: TTBDock
-    Top = 69
-    Height = 285
+    Top = 71
+    Height = 271
   end
   inherited TBDockRight: TTBDock
-    Left = 531
-    Top = 69
-    Height = 285
+    Left = 523
+    Top = 71
+    Height = 271
   end
   inherited TBDockBottom: TTBDock
-    Top = 354
-    Width = 540
+    Top = 342
+    Width = 532
   end
   inherited pnlWorkArea: TPanel
-    Top = 69
-    Width = 522
-    Height = 285
+    Top = 71
+    Width = 514
+    Height = 271
     inherited sMasterDetail: TSplitter
-      Height = 182
+      Height = 166
     end
     inherited spChoose: TSplitter
-      Top = 182
-      Width = 522
+      Top = 166
+      Width = 514
     end
     inherited pnlMain: TPanel
-      Height = 182
+      Height = 166
       inherited pnlSearchMain: TPanel
-        Height = 182
+        Height = 166
         inherited sbSearchMain: TScrollBox
-          Height = 144
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 144
+          Height = 139
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 182
+        Height = 166
       end
     end
     inherited pnChoose: TPanel
-      Top = 186
-      Width = 522
+      Top = 172
+      Width = 514
       inherited pnButtonChoose: TPanel
-        Left = 417
+        Left = 409
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 417
+        Width = 409
       end
       inherited pnlChooseCaption: TPanel
-        Width = 522
+        Width = 514
       end
     end
     inherited pnlDetail: TPanel
-      Width = 352
-      Height = 182
+      Width = 342
+      Height = 166
       inherited TBDockDetail: TTBDock
-        Width = 352
+        Width = 342
         inherited tbDetailCustom: TTBToolbar
+          Images = dmImages.il16x16
           Visible = True
           object tbiViewFile: TTBItem
             Action = actViewFile
@@ -115,24 +112,21 @@ inherited gdc_frmFile: Tgdc_frmFile
         end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 156
+        Height = 140
         inherited sbSearchDetail: TScrollBox
-          Height = 118
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 118
+          Height = 113
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 192
-        Height = 156
+        Width = 182
+        Height = 140
       end
     end
   end
   object pnlRootDirectory: TPanel [6]
     Left = 0
-    Top = 49
-    Width = 540
+    Top = 51
+    Width = 532
     Height = 20
     Align = alTop
     BevelInner = bvRaised
@@ -159,7 +153,7 @@ inherited gdc_frmFile: Tgdc_frmFile
   end
   inherited alMain: TActionList
     object actViewFile: TAction
-      Caption = 'Промотреть файл'
+      Caption = 'Проcмотреть файл'
       ImageIndex = 131
       OnExecute = actViewFileExecute
       OnUpdate = actViewFileUpdate

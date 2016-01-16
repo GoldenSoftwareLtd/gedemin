@@ -3418,12 +3418,13 @@ begin
         ValueList := ValueList + ':' + FSourceFeatures[i];
       end;
       ibsql.SQL.Text :=
-        ' INSERT INTO usr$' + SubType + ' (documentkey, goodkey, typevalue, checkremains, minusremains, ' + FieldList + ') ' +
-        ' VALUES (:documentkey, :goodkey, ''F'', :checkremains, :minusremains, ' + ValueList + ') ';
+        ' INSERT INTO usr$' + SubType + ' (documentkey, goodkey, typevalue, checkremains, minusremains, ischeckdestfeatures, ' + FieldList + ') ' +
+        ' VALUES (:documentkey, :goodkey, ''F'', :checkremains, :minusremains, :ischeckdestfeatures, ' + ValueList + ') ';
       ibsql.Prepare;
       ibsql.ParamByName('documentkey').AsInteger := FieldByName('id').AsInteger;
       ibsql.ParamByName('goodkey').AsInteger := FieldByName('goodkey').AsInteger;
       ibsql.ParamByName('checkremains').AsInteger := Integer(ControlRemains);
+      ibsql.ParamByName('ischeckdestfeatures').AsInteger := Integer(IsCheckDestFeatures);
       if isMinusRemains and isChooseRemains then
         ibsql.ParamByName('minusremains').AsInteger := 1
       else
@@ -3447,12 +3448,13 @@ begin
         ValueList := ValueList + ':' + FDestFeatures[i];
       end;
       ibsql.SQL.Text :=
-        ' INSERT INTO usr$' + SubType + ' (documentkey, goodkey, typevalue, checkremains, minusremains, ' + FieldList + ') ' +
-        ' VALUES (:documentkey, :goodkey, ''T'', :checkremains, :minusremains, ' + ValueList + ') ';
+        ' INSERT INTO usr$' + SubType + ' (documentkey, goodkey, typevalue, checkremains, minusremains, ischeckdestfeatures, ' + FieldList + ') ' +
+        ' VALUES (:documentkey, :goodkey, ''T'', :checkremains, :minusremains, :ischeckdestfeatures, ' + ValueList + ') ';
       ibsql.Prepare;
       ibsql.ParamByName('documentkey').AsInteger := FieldByName('id').AsInteger;
       ibsql.ParamByName('goodkey').AsInteger := FieldByName('goodkey').AsInteger;
       ibsql.ParamByName('checkremains').AsInteger := Integer(ControlRemains);
+      ibsql.ParamByName('ischeckdestfeatures').AsInteger := Integer(ischeckdestfeatures);
       if isMinusRemains and isChooseRemains then
         ibsql.ParamByName('minusremains').AsInteger := 1
       else
@@ -3623,6 +3625,7 @@ begin
     '  goodkey INT NOT NULL,' + #13#10 +
     '  typevalue CHAR(1),' + #13#10 +
     '  checkremains DBOOLEAN, ' + #13#10 +
+    '  ischeckdestfeatures DBOOLEAN, ' + #13#10 +
     '  minusremains DBOOLEAN ' + #13#10;
 
   s := '';
@@ -3659,6 +3662,22 @@ begin
   try
 
     ibsql.Transaction := Transaction;
+    ibsql.Close;
+    ibsql.SQL.Text := 'DROP TRIGGER USR$BI_' + FieldByName('ruid').AsString;
+    try
+      ibsql.ExecQuery;
+    except
+    end;
+
+    ibsql.Close;
+    ibsql.SQL.Text := 'DROP TRIGGER USR$BU_' + FieldByName('ruid').AsString;
+    try
+      ibsql.ExecQuery;
+    except
+    end;
+
+
+    ibsql.Close;
     ibsql.SQL.Text := 'DROP TABLE ' + NameTable;
     try
       ibsql.ExecQuery;
@@ -3703,6 +3722,7 @@ const
     '  declare variable delayed integer; ' + #13#10 +
     '  declare variable checkremains DBOOLEAN; ' + #13#10 +
     '  declare variable minusremains DBOOLEAN; ' + #13#10 +
+    '  declare variable ischeckdestfeatures DBOOLEAN; ' + #13#10 +
     '  declare variable remains numeric(15, 4); ' + #13#10 +
     '  declare variable tmpquantity numeric(15, 4); ' + #13#10 +
     '  declare variable quant numeric(15, 4); ' + #13#10 +
@@ -3933,21 +3953,88 @@ begin
     s:= 'ischange';
 
   Result := '';
-  for i:= 0 to FIE.GetFeaturesCount(ftType) - 1 do
+  if ftType = ftSource then
   begin
-    if Result <> '' then Result := Result + ' OR ';
-    Result := Result + '(' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' <> ' +
-        StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + #13#10 +
-      ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is null and '  +
-        StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is not null) ' + #13#10 +
-      ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is not null and '  +
-        StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is null)) ' + #13#10;
+    for i:= 0 to FIE.GetFeaturesCount(ftType) - 1 do
+    begin
+      if Result <> '' then Result := Result + ' OR ';
+      Result := Result + '(' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' <> ' +
+          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + #13#10 +
+        ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is null and '  +
+          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is not null) ' + #13#10 +
+        ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is not null and '  +
+          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is null)) ' + #13#10;
+    end;
+    if Result <> '' then Result := Result + ' or ';
+    Result :=
+      '  ' + s + ' = 0;' + #13#10 +
+      ' if (' + Result + ' (coalesce(goodkey, 0) <> coalesce(oldgoodkey, 0)) ) then ' + #13#10 +
+      '    ' + s + ' = 1;' + #13#10;
+  end
+  else
+  begin
+    Result := '  changefields = ''''; ' + #13#10;
+    for i := 0 to FIE.GetFeaturesCount(ftType) - 1 do
+    begin
+      Result := Result + ' if (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' <> ' +
+          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + #13#10 +
+        ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is null and '  +
+          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is not null) ' + #13#10 +
+        ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is not null and '  +
+          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is null)) then ' + #13#10 +
+        '    begin ' + #13#10 +
+        '      select id from AT_RELATION_FIELDS where FIELDNAME = ''' + FIE.GetFeature(ftType, i) + ''' and RelationName = ''INV_CARD''' + #13#10 +
+        '      into :fieldkey; ' + #13#10 +
+        '      if (changefields <> '''') then ' + #13#10 +
+        '       changefields = changefields || '','';' + #13#10 +
+        '      changefields = changefields || CAST(fieldkey as VARCHAR(10)); ' + #13#10 +
+        '      ' + s + ' = 1; ' + #13#10 +
+        '    end ' + #13#10;
+
+    end;
+    Result := Result +
+      '    if ( coalesce(goodkey, 0) <> coalesce(oldgoodkey, 0) ) then ' + #13#10 +
+      '    begin ' + #13#10 +
+      '      select LIST(DISTINCT cardkey) from inv_movement ' + #13#10 +
+      '      WHERE documentkey = NEW.DOCUMENTKEY ' + #13#10 +
+      '      INTO :cardstring; ' + #13#10 +
+      '      sqlstatement = ''select FIRST(1) m.documentkey from inv_movement m ' +
+      '      where m.cardkey in ('' || cardstring || '') and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(10)); ' + #13#10 +
+      '      EXECUTE STATEMENT sqlstatement INTO :dockey; ' + #13#10 +
+      '      if (dockey is not null) then ' + #13#10 +
+      '        EXCEPTION INV_E_CANNTCHANGEGOODKEY; ' + #13#10 +
+      '    end ' + #13#10 +
+      '    if (changefields <> '''') then ' + #13#10 +
+      '    begin ' + #13#10 +
+      '      sqlstatement = ''select LIST(DISTINCT o.DTKEY) from gd_documenttype_option o where o.RELATIONFIELDKEY in ('' || changefields || '') and o.OPTION_NAME = ''''SF'''' '';' + #13#10 +
+      '      EXECUTE STATEMENT sqlstatement INTO :dtstring; ' + #13#10 +
+      '      select LIST(DISTINCT cardkey) from inv_movement ' + #13#10 +
+      '      WHERE documentkey = NEW.DOCUMENTKEY ' + #13#10 +
+      '      INTO :cardstring; ' + #13#10 +
+      '      if (ischeckdestfeatures = 1) then ' + #13#10 +
+      '      begin ' + #13#10 + 
+      '        if (dtstring is not null) then ' + #13#10 +
+      '        begin ' + #13#10 +
+      '          sqlstatement = ''select FIRST(1) m.documentkey, m1.id from inv_movement m join gd_document doc ON ' +
+      'm.documentkey = doc.id  LEFT JOIN inv_movement m1 ON m.documentkey = m1.documentkey and ' +
+      'm1.credit <> 0 and    not (m1.CARDKEY in ('' || cardstring || '')) where  m.cardkey in ('' || cardstring || '') ' +
+      'and doc.documenttypekey in ('' || dtstring || '') and  m.credit <> 0 and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(10)); ' + #13#10 +
+      '          EXECUTE STATEMENT sqlstatement INTO :dockey, :badmovekey; ' + #13#10 +
+      '          if (badmovekey is not null) then ' + #13#10 +
+      '            EXCEPTION INV_E_CANNTCHANGEFEATURCE; ' + #13#10 +
+      '        end ' + #13#10 +
+      '      end ' + #13#10 +
+      '      sqlstatement = ''INSERT INTO GD_CHANGEDDOC (sourcedockey, destdockey, editiondate, editorkey) select DISTINCT '' || CAST(NEW.documentkey as VARCHAR(10)) || '', m.documentkey, doc.editiondate, doc.editorkey from inv_movement m join gd_document doc ON ' +
+      'm.documentkey = doc.id  ' +
+      'where  m.cardkey in ('' || cardstring || '') ' +
+      'and doc.documenttypekey in ('' || dtstring || '') and  m.credit <> 0 and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(10)) || '' ' +
+      'and (NOT EXISTS (SELECT * FROM gd_changeddoc WHERE destdockey = m.documentkey AND sourcedockey = '' || CAST(NEW.documentkey as VARCHAR(10)) || ''))''; ' + #13#10 +
+      '      EXECUTE STATEMENT sqlstatement; ' + #13#10 +
+      '    end ' + #13#10
+
+
+
   end;
-  if Result <> '' then Result := Result + ' or ';
-  Result :=
-    '  ' + s + ' = 0;' + #13#10 +
-    ' if (' + Result + ' (coalesce(goodkey, 0) <> coalesce(oldgoodkey, 0)) ) then ' + #13#10 +
-    '    ' + s + ' = 1;' + #13#10;
 end;
 
 function GetReadFeatureSQL(ftType: TgdInvDocumentEntryFeature; IsFrom: Char; IsNew, OnlyFeatures: Boolean; Prefix: String): String;
@@ -3974,9 +4061,9 @@ begin
     if not OnlyFeatures then
     begin
       if s <> '' then s := s + ',';
-      s:= s + 'goodkey, checkremains, minusremains';
+      s:= s + 'goodkey, checkremains, minusremains, ischeckdestfeatures';
       if s1 <> '' then s1 := s1 + ',';
-      s1 := s1 + ':goodkey, :checkremains, :minusremains';
+      s1 := s1 + ':goodkey, :checkremains, :minusremains, :ischeckdestfeatures';
     end;
     if s <> '' then
       Result :=
@@ -3985,8 +4072,9 @@ begin
           '    where documentkey = NEW.documentkey  ' + Result + #13#10 +
           '    into ' + s1 + '; ' + #13#10 +
           '    if (ROW_COUNT = 0) then '  + #13#10 +
-          '      select ' + StringReplace(StringReplace(s, 'checkremains', 'CAST(' + IntToStr(Integer(FIE.GetFlag(efControlRemains))) + ' as INTEGER) as checkremains', [rfIgnoreCase]),
-               'minusremains', 'CAST(0 as INTEGER) as minusremains', [rfIgnoreCase])  + ' from ' + #13#10 +
+          '      select ' + StringReplace(StringReplace(StringReplace(s, 'checkremains', 'CAST(' + IntToStr(Integer(FIE.GetFlag(efControlRemains))) +
+                ' as INTEGER) as checkremains', [rfIgnoreCase]),
+               'minusremains', 'CAST(0 as INTEGER) as minusremains', [rfIgnoreCase]), 'ischeckdestfeatures', 'CAST(1 as INTEGER) as ischeckdestfeatures', [rfIgnoreCase])  + ' from ' + #13#10 +
           '      inv_card ' + #13#10 +
           '      where id = NEW.' + FieldName + #13#10 +
           '      into ' + s1 + ';' + #13#10
@@ -4208,6 +4296,13 @@ begin
     '  declare variable oldtocontactkey integer; ' + #13#10 +
     '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
     '  declare variable ischange dboolean; ' + #13#10 +
+    '  declare variable sqlstatement VARCHAR(1024); ' + #13#10 +
+    '  declare variable changefields VARCHAR(1024); ' + #13#10 +
+    '  declare variable dtstring VARCHAR(1024); ' + #13#10 +
+    '  declare variable cardstring VARCHAR(1024); ' + #13#10 +
+    '  declare variable fieldkey INTEGER; ' + #13#10 +
+    '  declare variable dockey INTEGER; ' + #13#10 +
+    '  declare variable badmovekey INTEGER; ' + #13#10 +
     MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
@@ -4566,6 +4661,13 @@ begin
     '  declare variable ischange DBOOLEAN; ' + #13#10 +
     '  declare variable istochange DBOOLEAN; ' + #13#10 +
     '  declare variable oldquantity DQUANTITY; ' + #13#10 +
+    '  declare variable sqlstatement VARCHAR(1024); ' + #13#10 +
+    '  declare variable changefields VARCHAR(1024); ' + #13#10 +
+    '  declare variable dtstring VARCHAR(1024); ' + #13#10 +
+    '  declare variable cardstring VARCHAR(1024); ' + #13#10 +
+    '  declare variable fieldkey INTEGER; ' + #13#10 +
+    '  declare variable dockey INTEGER; ' + #13#10 +
+    '  declare variable badmovekey INTEGER; ' + #13#10 +
     MakeFieldList(ftDest, 'to$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
@@ -5090,7 +5192,13 @@ begin
     '  declare variable ischange DBOOLEAN; ' + #13#10 +
     '  declare variable istochange DBOOLEAN; ' + #13#10 +
     '  declare variable oldquantity DQUANTITY; ' + #13#10 +
-    '  declare variable updatesql VARCHAR(1024); ' + #13#10 +
+    '  declare variable sqlstatement VARCHAR(1024); ' + #13#10 +
+    '  declare variable changefields VARCHAR(1024); ' + #13#10 +
+    '  declare variable dtstring VARCHAR(1024); ' + #13#10 +
+    '  declare variable cardstring VARCHAR(1024); ' + #13#10 +
+    '  declare variable fieldkey INTEGER; ' + #13#10 +
+    '  declare variable dockey INTEGER; ' + #13#10 +
+    '  declare variable badmovekey INTEGER; ' + #13#10 +
     MakeFieldList(ftDest, 'to$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +

@@ -12,11 +12,16 @@ procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
 implementation
 
 uses
-  Windows, DB, IBDatabase, IBSQL, gdcBaseInterface, at_dlgToSetting_unit,
-  at_dlgToNamespace_unit, gdcNamespace;
+  Windows, Forms, Controls, DB, IBDatabase, IBSQL, gdcBaseInterface, at_dlgToSetting_unit,
+  at_dlgToNamespace_unit, gdcNamespace, gdcNamespaceController;
 
 procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
   AgdcObject: TgdcBase; BL: TBookmarkList);
+var
+  OldCursor: TCursor;
+  FgdcNamespaceController: TgdcNamespaceController;
+  R: Boolean;
+  S: String;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(gdcBaseManager.Database <> nil);
@@ -25,12 +30,52 @@ begin
 
   if (GetAsyncKeyState(VK_SHIFT) shr 1) = 0 then
   begin
-    with TdlgToNamespace.Create(nil) do
+    FgdcNamespaceController := TgdcNamespaceController.Create;
     try
-      SetupObject(AgdcObject, BL);
-      ShowModal;
+      OldCursor := Screen.Cursor;
+      try
+        Screen.Cursor := crHourGlass;
+        R := FgdcNamespaceController.Setup(AgdcObject, BL);
+      finally
+        Screen.Cursor := OldCursor;
+      end;
+
+      if R then
+      begin
+        with TdlgToNamespace.Create(nil) do
+        try
+          SetupController(FgdcNamespaceController);
+          if ShowModal = mrOk then
+            FgdcNamespaceController.Include;
+        finally
+          Free;
+        end;
+      end else
+      begin
+        if FgdcNamespaceController.MultipleNS then
+        begin
+          if FgdcNamespaceController.MultipleObjects then
+            S := 'Объекты входят в ПИ: '
+          else
+            S := 'Объект входит в ПИ: ';
+
+          MessageBox(0,
+            PChar(S + FgdcNamespaceController.PrevNSName + #13#10#13#10 +
+            'Измените указанные ПИ так, чтобы объект входил только в одно из них.'),
+            'Внимание',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        end
+        else if FgdcNamespaceController.InconsistentParams then
+        begin
+          MessageBox(0,
+            'Групповая операция невозможна, так как параметры выбранных объектов'#13#10 +
+            'различаются или они подчиняются разным объектам.',
+            'Внимание',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        end;
+      end;
     finally
-      Free;
+      FgdcNamespaceController.Free;
     end;
   end else
   begin

@@ -5,7 +5,7 @@ interface
 uses
   Classes, Dialogs, Windows, SyncObjs, Forms, gdMessagedThread,
   IdTCPConnection, IdTCPClient, IdThreadSafe, gedemin_cc_const,
-  JclSysInfo, gd_security, IBDatabaseInfo, Messages;
+  JclSysInfo, gd_security, IBDatabaseInfo, Messages{, IdSSLOpenSSL};
 
 const
   DefaultHost = '127.0.0.1';
@@ -23,6 +23,7 @@ type
     FAttempts: Integer;
     FInitPar, FConnPar: TParam;
     FClient: TClient;
+    //SSLIOHandler: TIdSSLIOHandlerSocket;
 
     function GetConnected: Boolean;
 
@@ -37,7 +38,7 @@ type
 
     procedure InitClient;
     procedure DoneClient;
-    procedure Log(const AMsg, ASource: String; const AnObjectID: Integer);
+    procedure Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: Integer);
 
     property Connected: Boolean read GetConnected;
   end;
@@ -81,7 +82,16 @@ begin
         FTCPClient.Host := DefaultHost;
         FTCPClient.Port := DefaultPort;
       end;
+      {if SSLIOHandler = nil then
+      begin
+        SSLIOHandler := TIdSSLIOHandlerSocket.Create(FTCPClient);
+        SSLIOHandler.SSLOptions.Method := sslvTLSv1;
+        SSLIOHandler.SSLOptions.Mode := sslmUnassigned;
+        SSLIOHandler.SSLOptions.VerifyMode := [];
+        SSLIOHandler.SSLOptions.VerifyDepth := 0;
+      end;}
       try
+        //FTCPClient.IOHandler := SSLIOHandler;
         FTCPClient.Connect;
         FConnected.Value := 1;
         FInitPar.ID := 0;
@@ -101,7 +111,7 @@ begin
           FConnPar.Done := false;
           FTCPClient.WriteBuffer(FConnPar, SizeOf(FConnPar), true);
           FTCPClient.WriteBuffer(FClient, SizeOf(FClient), true);
-          Log(GDRun, ClassName, 0);
+          Log(GDRun, ClassName, '', 0);
         end;
       except
         if FAttempts = 0 then
@@ -125,12 +135,13 @@ begin
       FConnPar.Command := CC_DONE;
       FTCPClient.WriteBuffer(FConnPar, SizeOf(FConnPar), true);
       FTCPClient.WriteBuffer(FClient, SizeOf(FClient), true);
-      Log(GDDone, ClassName, 0);
+      Log(GDDone, ClassName, '', 0);
     end;
     WM_LOG_FREE:
     begin
       FTCPClient.InputBuffer.Clear;
       FTCPClient.Disconnect;
+      //FreeAndNil(SSLIOHandler);
       FreeAndNil(FTCPClient);
       FConnected.Value := 0;
       FDoneEvent.ResetEvent;
@@ -163,7 +174,7 @@ begin
   end;
 end;
 
-procedure TgdLogClient.Log(const AMsg, ASource: String; const AnObjectID: Integer);
+procedure TgdLogClient.Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: Integer);
 var
   P, L: Integer;
 begin
@@ -193,8 +204,10 @@ begin
         FBuffer[FEnd].ObjClass := Copy(ASource, 1, L);
         FBuffer[FEnd].ObjSubType := '';
       end;
+      FBuffer[FEnd].ObjName := AnObjectName;
       if (FBuffer[FEnd].ObjClass = '') then FBuffer[FEnd].ObjClass := '-';
       if (FBuffer[FEnd].ObjSubType = '') then FBuffer[FEnd].ObjSubType := '-';
+      if (FBuffer[FEnd].ObjName = '') then FBuffer[FEnd].ObjName := '-';
       FBuffer[FEnd].ObjID := AnObjectID;
       if Assigned(IBLogin) and IBLogin.LoggedIn then
       begin
@@ -207,7 +220,6 @@ begin
         FBuffer[FEnd].DBFileName := '-';
       end;
 
-      FBuffer[FEnd].ObjName := '-';
       FBuffer[FEnd].OP := '--------';
       FBuffer[FEnd].SQL := '-';
       FBuffer[FEnd].CRC := 0;

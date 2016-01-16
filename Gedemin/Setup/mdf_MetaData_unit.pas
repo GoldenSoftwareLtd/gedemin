@@ -3,7 +3,7 @@ unit mdf_MetaData_unit;
 interface
 
 uses
-  IBSQL, IBDataBase, IBScript, gdcBaseInterface;
+  Classes, IBSQL, IBDataBase, IBScript, gdcBaseInterface;
 
 type
   TmdfField = record
@@ -118,10 +118,64 @@ function HasDependencies(const AName: String; ATr: TIBTransaction): Boolean;
 
 function DomainExist2(const ADomainName: String; ATr: TIBTransaction): Boolean;
 
+function GetActiveTriggers(const ARelationName: String; ASL: TStringList;
+  ATr: TIBTransaction): TStringList;
+procedure AlterTriggers(ASL: TStringList; const AnActivate: Boolean;
+  ATr: TIBTransaction);
+
 implementation
 
 uses
   SysUtils;
+
+function GetActiveTriggers(const ARelationName: String; ASL: TStringList;
+  ATr: TIBTransaction): TStringList;
+var
+  q: TIBSQL;
+begin
+  Assert(ASL <> nil);
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ATr;
+    q.SQL.Text :=
+      'select list(trim(rdb$trigger_name), '','') as tn '#13#10 +
+      'from rdb$triggers '#13#10 +
+      'where rdb$system_flag = 0 '#13#10 +
+      '  and rdb$trigger_inactive = 0 '#13#10 +
+      '  and rdb$relation_name = :RN';
+    q.ParamByName('RN').AsString := UpperCase(ARelationName);
+    q.ExecQuery;
+    ASL.CommaText := q.FieldByName('tn').AsString;
+  finally
+    q.Free;
+  end;
+  Result := ASL;
+end;
+
+procedure AlterTriggers(ASL: TStringList; const AnActivate: Boolean;
+  ATr: TIBTransaction);
+var
+  q: TIBSQL;
+  I: Integer;
+begin
+  Assert(ASL <> nil);
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ATr;
+    for I := 0 to ASL.Count - 1 do
+    begin
+      if AnActivate then
+        q.SQL.Text := 'ALTER TRIGGER ' + ASL[I] + ' ACTIVE'
+      else
+        q.SQL.Text := 'ALTER TRIGGER ' + ASL[I] + ' INACTIVE';
+      q.ExecQuery;
+    end;
+  finally
+    q.Free;
+  end;
+  ATr.Commit;
+  ATr.StartTransaction;
+end;
 
 function FieldExist(Field: TmdfField; DB: TIBDataBase): Boolean;
 var

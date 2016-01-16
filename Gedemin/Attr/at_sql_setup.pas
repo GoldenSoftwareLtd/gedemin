@@ -1587,9 +1587,9 @@ begin
     Result := False;
 
   //Если передано имя класса с сабтайпом
-  if AnsiPos('(', AClassName) > 0 then
+  if Pos('(', AClassName) > 0 then
     //Вычленяем имя класса
-    ClNameIn := Copy(AClassName, 1, AnsiPos('(', AClassName) - 1)
+    ClNameIn := Copy(AClassName, 1, Pos('(', AClassName) - 1)
   else
     ClNameIn := AClassName;
   ClIn := GetClass(ClNameIn);
@@ -1599,24 +1599,24 @@ begin
 
   AnObjects := F.ObjectsList;
 
-  if AnObjects.Count = 0 then
+  if (AnObjects = nil) or (AnObjects.Count = 0) then
   begin
     Result := True;
-    Exit;
+    exit;
   end;
 
   for I := 0 to AnObjects.Count - 1 do
   begin
     ClName := AnObjects[I];
-    if AnsiCompareText(ClName, AClassName) = 0 then
+    if SameText(ClName, AClassName) then
     begin
       Result := True;
       Break;
     end;
 
-    if AnsiPos('(', ClName) > 0 then
+    if Pos('(', ClName) > 0 then
     //Вычленяем имя класса
-      ClName := Copy(ClName, 1, AnsiPos('(', ClName) - 1);
+      ClName := Copy(ClName, 1, Pos('(', ClName) - 1);
 
     Cl := GetClass(ClName);
     //Если выделен родитель

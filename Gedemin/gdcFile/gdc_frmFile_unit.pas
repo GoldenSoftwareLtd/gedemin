@@ -41,10 +41,6 @@ type
     procedure actFileSyncronizeExecute(Sender: TObject);
     procedure actFileSyncronizeUpdate(Sender: TObject);
     procedure ibgrDetailDblClick(Sender: TObject);
-  private
-    { Private declarations }
-  public
-    { Public declarations }
   end;
 
 var
@@ -147,5 +143,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_frmFile);
-
 end.
