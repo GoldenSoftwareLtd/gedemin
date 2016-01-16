@@ -3350,7 +3350,7 @@ END
 CREATE EXCEPTION gd_e_invalid_contact_parent 'Invalid contact parent'
 ^
 
-RECREATE TRIGGER gd_bi_contact FOR gd_contact
+CREATE OR ALTER TRIGGER gd_bi_contact FOR gd_contact
   BEFORE INSERT
   POSITION 0
 AS
