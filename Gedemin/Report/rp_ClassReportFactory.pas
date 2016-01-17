@@ -102,7 +102,7 @@ begin
   Result.ExportType := FExportType;
 
   if Result = nil then
-    MessageBox(0, PChar(Format('Тип шаблона %s отчета не поддерживается.',
+    MessageBox(0, PChar(Format('Тип шаблона отчета %s не поддерживается.',
      [AnTemplateStructure.TemplateType])), 'Внимание', MB_OK or MB_ICONWARNING or MB_TASKMODAL)
   else
   begin

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2010 by Golden Software of Belarus
+  Copyright (c) 2001 - 2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -200,10 +200,13 @@ type
     FTempMasterDetail: TFourStringList;
     FWasCreateTransaction: Boolean;
     FDataSourceList: TObjectList;
+    FAborted: Boolean;
+    FAbortMessage: String;
 
     function GetQuery(Index: Integer): TDataSet;
     function GetCount: Integer;
     function GetIndexQueryByName(const Name: WideString): Integer;
+
   protected
     function  Add(const QueryName: WideString; MemQuery: WordBool): Integer; safecall;
     procedure Clear; safecall;
@@ -219,16 +222,22 @@ type
     procedure MainInitialize; safecall;
     procedure Commit; safecall;
     function Get_Self: Integer; safecall;
+    procedure Abort(const AMessage: WideString; APreserveData: WordBool; ARollback: WordBool); safecall;
+    function  Get_Aborted: WordBool; safecall;
+    function  Get_AbortMessage: WideString; safecall;
+
   public
     constructor Create(const AnDatabase: TIBDatabase; const AnTransaction: TIBTransaction;
      const AnIsRealList: Boolean = False);
     destructor Destroy; override;
 
-    property Count: Integer read GetCount;
-    property Query[Index: Integer]: TDataSet read GetQuery;
-
     function  AddRealQuery(const AnRealQuery: TgsDataSet): Integer;
     procedure ClearObjectList;
+
+    property Count: Integer read GetCount;
+    property Query[Index: Integer]: TDataSet read GetQuery;
+    property Aborted: Boolean read FAborted;
+    property AbortMessage: String read FAbortMessage;
   end;
 
 type
@@ -862,6 +871,8 @@ begin
   FTempMasterDetail.Clear;
   FDataSourceList.Clear;
   FCurrentField := nil;
+  FAborted := False;
+  FAbortMessage := '';
 end;
 
 function TgsQueryList.Get_Self: Integer;
@@ -943,6 +954,28 @@ begin
   for I := 0 to FMasterDetail.Count - 1 do
     AddMasterDetail(FMasterDetail.MasterTable[I], FMasterDetail.MasterField[I],
      FMasterDetail.DetailTable[I], FMasterDetail.DetailField[I]);
+end;
+
+procedure TgsQueryList.Abort(const AMessage: WideString; APreserveData: WordBool; ARollback: WordBool);
+begin
+  if not APreserveData then
+  begin
+    if ARollback and (FTransaction <> nil) and FTransaction.InTransaction then
+      FTransaction.Rollback;
+    Clear;
+  end;
+  FAborted := True;
+  FAbortMessage := AMessage;
+end;
+
+function TgsQueryList.Get_Aborted: WordBool;
+begin
+  Result := FAborted;
+end;
+
+function TgsQueryList.Get_AbortMessage: WideString;
+begin
+  Result := FAbortMessage;
 end;
 
 { TgsParam }

@@ -90,7 +90,7 @@ end;
 
 function Tgdv_frAcctTreeAnalyticLine.IsEmpty: Boolean;
 begin
-  Result := not CheckValue(eLevel.Text);
+  Result := StringReplace(eLevel.Text, ' ', '', [rfReplaceAll]) = '';
 end;
 
 procedure Tgdv_frAcctTreeAnalyticLine.SetField(
@@ -124,8 +124,12 @@ begin
 end;
 
 function Tgdv_frAcctTreeAnalyticLine.GetLevels: TStrings;
+var
+  S: String;
 begin
-  if not CheckValue(eLevel.Text) then
+  S := StringReplace(eLevel.Text, ' ', '', [rfReplaceAll]);
+
+  if (S > '') and (not CheckValue(eLevel.Text)) then
     raise Exception.Create('Уровни аналитики должны быть заданы одним или несколькими ' +
       'последовательными целочисленными значениями, через запятую.'#13#10#13#10 +
       'Например: 1 или 1,2,3 и т.п.');
@@ -134,7 +138,7 @@ begin
     FLevels := TStringList.Create;
 
   if FLevels.Count = 0 then
-    FLevels.CommaText := StringReplace(eLevel.Text, ' ', '', [rfReplaceAll]);
+    FLevels.CommaText := S;
 
   Result := FLevels;
 end;
