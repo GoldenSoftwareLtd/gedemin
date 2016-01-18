@@ -17,8 +17,6 @@ type
     procedure SetDetail(const Value: TgdcBase);
 
   protected
-    function GetGroupID: Integer; override;
-
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
 
@@ -745,11 +743,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcCheckList.GetGroupID: Integer;
-begin
-  Result := grCheckList;
-end;
-
 function TgdcCheckList.GetSelectClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -828,7 +821,10 @@ end;
 
 initialization
   with RegisterGdcClass(TgdcCheckList) as TgdBaseEntry do
+  begin
     DistinctRelation := 'BN_CHECKLIST';
+    GroupID := grCheckList;
+  end;
   with RegisterGdcClass(TgdcCheckListLine) as TgdBaseEntry do
     DistinctRelation := 'BN_CHECKLISTLINE';
 

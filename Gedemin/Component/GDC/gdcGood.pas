@@ -116,8 +116,6 @@ type
     procedure DoBeforeInsert; override;
     procedure CreateFields; override;
 
-    function GetGroupID: Integer; override;
-
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
@@ -615,11 +613,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcGood.GetGroupID: Integer;
-begin
-  Result := cst_GoodGroupID;
-end;
-
 function TgdcGood.GetSelectClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -930,7 +923,7 @@ initialization
   RegisterGdcClass(TgdcTNVD, 'Код ТНВД');
   RegisterGdcClass(TgdcGoodBarCode, 'Штрих код товара');
   RegisterGdcClass(TgdcGoodGroup, 'Товарная группа');
-  RegisterGdcClass(TgdcGood, 'ТМЦ');
+  RegisterGdcClass(TgdcGood, 'ТМЦ').GroupID := cst_GoodGroupID;
   RegisterGdcClass(TgdcValue, 'Единица измерения');
   RegisterGdcClass(TgdcTax, 'Налог');
   RegisterGdcClass(TgdcMetal, 'Драгоценный металл');

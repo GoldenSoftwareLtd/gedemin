@@ -482,9 +482,10 @@ end;
 
 function TgdcTaxActual.GetGroupID: Integer;
 begin
-  Result := -1;
   if Active then
-    Result := FieldByName('reportgroupkey').AsInteger;
+    Result := FieldByName('reportgroupkey').AsInteger
+  else
+    Result := -1;
 end;
 
 class function TgdcTaxActual.GetListField(
@@ -849,11 +850,10 @@ end;
 
 function TgdcTaxResult.GetGroupID: Integer;
 begin
-  Result := - 1;
   if Active then
-  begin
-    Result := FieldByName('reportgroupkey').AsInteger;
-  end;
+    Result := FieldByName('reportgroupkey').AsInteger
+  else
+    Result := - 1;
 end;
 
 function TgdcTaxResult.GetSelectClause: String;
@@ -1119,11 +1119,10 @@ end;
 
 function TgdcTaxDesignDate.GetGroupID: Integer;
 begin
-  Result := -1;
   if Active then
-  begin
-    Result := FieldByName('reportgroupkey').AsInteger;
-  end;
+    Result := FieldByName('reportgroupkey').AsInteger
+  else
+    Result := -1;
 end;
 
 function TgdcTaxDesignDate.GetSelectClause: String;

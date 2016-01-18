@@ -35,9 +35,6 @@ type
   end;
 
   TgdcPaymentDemand = class(TgdcBasePayment)
-  protected
-    function GetGroupID: Integer; override;
-
   public
     class function ClassDocumentTypeKey: Integer; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
@@ -47,7 +44,6 @@ type
 
   TgdcPaymentOrder = class(TgdcBasePayment)
   protected
-    function GetGroupID: Integer; override;
     procedure CreateFields; override;
 
   public
@@ -58,9 +54,6 @@ type
   end;
 
   TgdcDemandOrder = class(TgdcBasePayment)
-  protected
-    function GetGroupID: Integer; override;
-
   public
     class function ClassDocumentTypeKey: Integer; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
@@ -69,9 +62,6 @@ type
   end;
 
   TgdcAdviceOfCollection = class(TgdcBasePayment)
-  protected
-    function GetGroupID: Integer; override;
-
   public
     class function ClassDocumentTypeKey: Integer; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
@@ -773,11 +763,6 @@ begin
   Result := BN_DOC_PAYMENTDEMAND;
 end;
 
-function TgdcPaymentDemand.GetGroupID: Integer;
-begin
-  Result := grPaymentDemand;
-end;
-
 class function TgdcPaymentDemand.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
@@ -801,11 +786,6 @@ end;
 class function TgdcPaymentOrder.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_PAYMENTORDER;
-end;
-
-function TgdcPaymentOrder.GetGroupID: Integer;
-begin
-  Result := grPaymentOrder;
 end;
 
 class function TgdcPaymentOrder.GetRestrictCondition(const ATableName,
@@ -870,11 +850,6 @@ begin
   Result := BN_DOC_PAYMENTDEMANDPAYMENT;
 end;
 
-function TgdcDemandOrder.GetGroupID: Integer;
-begin
-  Result := grDemandOrder;
-end;
-
 class function TgdcDemandOrder.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
@@ -900,11 +875,6 @@ begin
   Result := BN_DOC_ADVICEOFCOLLECTION;
 end;
 
-function TgdcAdviceOfCollection.GetGroupID: Integer;
-begin
-  Result := grAdviceOfCollection;
-end;
-
 class function TgdcAdviceOfCollection.GetRestrictCondition(
   const ATableName, ASubType: String): String;
 begin
@@ -924,10 +894,10 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcPaymentDemand);
-  RegisterGdcClass(TgdcPaymentOrder);
-  RegisterGdcClass(TgdcDemandOrder);
-  RegisterGdcClass(TgdcAdviceOfCollection);
+  RegisterGdcClass(TgdcPaymentDemand).GroupID := grPaymentDemand;
+  RegisterGdcClass(TgdcPaymentOrder).GroupID := grPaymentOrder;
+  RegisterGdcClass(TgdcDemandOrder).GroupID := grDemandOrder;
+  RegisterGdcClass(TgdcAdviceOfCollection).GroupID := grAdviceOfCollection;
   RegisterGdcClass(TgdcDestCode);
 
 finalization

@@ -251,8 +251,6 @@ type
       aTransaction: TIBTransaction); overload; override;
 
     procedure RecordAcquired; override;
-
-    function InObject(const AName: String): Boolean; override;
   end;
 
   TatBodyRelationFields = class(TatRelationFields)
@@ -3628,9 +3626,6 @@ begin
   FAView := DefSecurity;
 
   FRelation := atRelation;
-  {FObjectsList := TStringList.Create;
-  FObjectsList.Sorted := True;
-  FObjectsList.Duplicates := dupError;}
 end;
 
 function TatBodyRelationField.GetIsUserDefined: Boolean;
@@ -3828,7 +3823,10 @@ begin
 
   FIsComputed := not SQLRecord.ByName('rdb$computed_source').IsNull;
 
-  S := SQLRecord.ByName('objects').AsString;
+  if SQLRecord.ByName('objects').IsNull then
+    S := ''
+  else
+    S := SQLRecord.ByName('objects').AsString;
 
   if S > '' then
   begin
@@ -4084,11 +4082,6 @@ destructor TatBodyRelationField.Destroy;
 begin
   FObjectsList.Free;
   inherited;
-end;
-
-function TatBodyRelationField.InObject(const AName: String): Boolean;
-begin
-  Result := (FObjectsList <> nil) and (FObjectsList.IndexOf(AName) <> -1);
 end;
 
 procedure TatBodyRelationField.SetFieldName(const AFieldName: String);

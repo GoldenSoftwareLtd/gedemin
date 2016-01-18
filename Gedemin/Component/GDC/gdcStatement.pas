@@ -28,8 +28,6 @@ type
 
   TgdcBankCatalogue = class(TgdcBaseBank)
   protected
-    function GetGroupID: Integer; override;
-
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
 
@@ -70,8 +68,6 @@ type
 
   TgdcBankStatement = class(TgdcBaseBank)
   protected
-    function GetGroupID: Integer; override;
-
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
 
@@ -389,11 +385,6 @@ begin
   {M}      ClearMacrosStack2('TGDCBANKCATALOGUE', 'DOAFTEROPEN', KEYDOAFTEROPEN);
   {M}  end;
   {END MACRO}
-end;
-
-function TgdcBankCatalogue.GetGroupID: Integer;
-begin
-  Result := grBankCatalogue;
 end;
 
 procedure TgdcBankCatalogue.GetWhereClauseConditions(S: TStrings);
@@ -1003,11 +994,6 @@ begin
   {M}      ClearMacrosStack2('TGDCBANKSTATEMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-function TgdcBankStatement.GetGroupID: Integer;
-begin
-  Result := grBankStatement;
 end;
 
 function TgdcBankStatement.GetSelectClause: String;
@@ -2055,11 +2041,17 @@ end;
 initialization
   RegisterGdcClass(TgdcBaseLine);
   with RegisterGdcClass(TgdcBankCatalogue,    'Банковская картотека') as TgdBaseEntry do
+  begin
     DistinctRelation := 'BN_BANKCATALOGUE';
+    GroupID := grBankCatalogue;
+  end;
   with RegisterGdcClass(TgdcBankCatalogueLine) as TgdBaseEntry do
     DistinctRelation := 'BN_BANKCATALOGUELINE';
   with RegisterGdcClass(TgdcBankStatement, 'Банковская выписка') as TgdBaseEntry do
+  begin
     DistinctRelation := 'BN_BANKSTATEMENT';
+    GroupID := grBankStatement;
+  end;
   with RegisterGdcClass(TgdcBankStatementLine) as TgdBaseEntry do
     DistinctRelation := 'BN_BANKSTATEMENTLINE';
 

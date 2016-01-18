@@ -350,8 +350,6 @@ type
 
     procedure RecordAcquired; virtual; abstract;
 
-    function InObject(const AName: String): Boolean; virtual; abstract;
-
     property ID: Integer read FID;
     property FieldName: String read FFieldName write SetFieldName;
     property SQLType: Smallint read GetSQLType;

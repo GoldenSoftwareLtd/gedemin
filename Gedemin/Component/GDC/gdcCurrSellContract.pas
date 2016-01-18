@@ -24,8 +24,6 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function GetGroupID: Integer; override;
-
   public
     class function ClassDocumentTypeKey: Integer; override;
 
@@ -41,8 +39,6 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function GetGroupID: Integer; override;
-
   public
     class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -57,8 +53,6 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function GetGroupID: Integer; override;
-
   public
     class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -72,7 +66,6 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-    function GetGroupID: Integer; override;
 
   public
     class function ClassDocumentTypeKey: Integer; override;
@@ -88,7 +81,6 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-    function GetGroupID: Integer; override;
 
   public
     class function ClassDocumentTypeKey: Integer; override;
@@ -329,11 +321,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcCurrSellContract.GetGroupID: Integer;
-begin
-  Result := GD_RP_CURRSELLCONTRACT {2000311};
-end;
-
 class function TgdcCurrSellContract.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -549,11 +536,6 @@ begin
   {M}      ClearMacrosStack2('TGDCCURRCOMMISSSELL', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-function TgdcCurrCommissSell.GetGroupID: Integer;
-begin
-  Result := GD_RP_CurrCommissSell; {2000312}
 end;
 
 class function TgdcCurrCommissSell.GetViewFormClassName(
@@ -783,11 +765,6 @@ begin
   {M}      ClearMacrosStack2('TGDCCURRLISTALLOCATION', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-function TgdcCurrListAllocation.GetGroupID: Integer;
-begin
-  Result := GD_RP_CURRLISTALLOCATION;{2000313}
 end;
 
 class function TgdcCurrListAllocation.GetViewFormClassName(
@@ -1021,11 +998,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcCurrBuyContract.GetGroupID: Integer;
-begin
-  Result := GD_RP_CURRBUYCONTRACT;{2000314}
-end;
-
 class function TgdcCurrBuyContract.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -1251,11 +1223,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcCurrConvContract.GetGroupID: Integer;
-begin
-  Result := GD_RP_CURRCONVCONTRACT;{2000315}
-end;
-
 class function TgdcCurrConvContract.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -1353,15 +1320,30 @@ end;
 initialization
   RegisterGdcClass(TgdcCurrDocument);
   with RegisterGdcClass(TgdcCurrSellContract) as TgdBaseEntry do
+  begin
     DistinctRelation := 'BN_CURRSELLCONTRACT';
+    GroupID := GD_RP_CURRSELLCONTRACT;
+  end;
   with RegisterGdcClass(TgdcCurrCommissSell) as TgdBaseEntry do
+  begin
     DistinctRelation := 'BN_CURRCOMMISSSELL';
+    GroupID := GD_RP_CurrCommissSell;
+  end;
   with RegisterGdcClass(TgdcCurrListAllocation) as TgdBaseEntry do
+  begin
     DistinctRelation := 'BN_CURRLISTALLOCATION';
+    GroupID := GD_RP_CURRLISTALLOCATION;
+  end;
   with RegisterGdcClass(TgdcCurrBuyContract) as TgdBaseEntry do
+  begin
     DistinctRelation := 'BN_CURRBUYCONTRACT';
+    GroupID := GD_RP_CURRBUYCONTRACT;
+  end;
   with RegisterGdcClass(TgdcCurrConvContract) as TgdBaseEntry do
+  begin
     DistinctRelation := 'BN_CURRCONVCONTRACT';
+    GroupID := GD_RP_CURRCONVCONTRACT;
+  end;
 
 finalization
   UnregisterGdcClass(TgdcCurrDocument);

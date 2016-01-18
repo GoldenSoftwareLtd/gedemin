@@ -1076,6 +1076,65 @@ begin
         FTransaction.Commit;
         FTransaction.StartTransaction;
 
+        DropTrigger2('at_ai_relation_field', FTransaction);
+        DropTrigger2('at_au_relation_field', FTransaction);
+        DropTrigger2('at_ad_relation_field', FTransaction);
+        DropTrigger2('at_bu_rf', FTransaction);
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER at_aiud_relation_field FOR at_relation_fields '#13#10 +
+          '  AFTER INSERT OR UPDATE OR DELETE '#13#10 +
+          '  POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE VERSION INTEGER; '#13#10 +
+          'BEGIN '#13#10 +
+          '  VERSION = GEN_ID(gd_g_attr_version, 1); '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER at_biu_rf FOR at_relation_fields '#13#10 +
+          '  BEFORE INSERT OR UPDATE '#13#10 +
+          '  POSITION 1000 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  SELECT relationname FROM at_relations WHERE id = NEW.relationkey '#13#10 +
+          '  INTO NEW.relationname; '#13#10 +
+          ' '#13#10 +
+          '  IF (NEW.crossfield = '''') THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    NEW.crossfield = NULL; '#13#10 +
+          '    NEW.editiondate = CURRENT_TIMESTAMP(0); '#13#10 +
+          '  END '#13#10 +
+          ' '#13#10 +
+          '  IF (NEW.crosstable = '''') THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    NEW.crosstable = NULL; '#13#10 +
+          '    NEW.editiondate = CURRENT_TIMESTAMP(0); '#13#10 +
+          '  END '#13#10 +
+          ' '#13#10 +
+          '  NEW.objects = TRIM(NEW.objects);'#13#10 +
+          ' '#13#10 +
+          '  IF (NEW.objects = '''' OR NEW.objects LIKE ''TgdcBase%'' OR NEW.objects LIKE ''(Blob)%'') THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    NEW.objects = NULL; '#13#10 +
+          '    NEW.editiondate = CURRENT_TIMESTAMP(0); '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FTransaction.Commit;
+        FTransaction.StartTransaction;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE at_relation_fields '#13#10 +
+          '  SET objects = NULL, editiondate = CURRENT_TIMESTAMP(0) '#13#10 +
+          '  WHERE objects = '''' OR objects LIKE ''TgdcBase%'' OR objects LIKE ''(Blob)%'' ';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (222, ''0000.0001.0000.0253'', ''22.07.2015'', ''Modified GD_AUTOTASK and GD_SMTP tables.'') '#13#10 +
@@ -1199,6 +1258,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (241, ''0000.0001.0000.0272'', ''09.01.2016'', ''Second try. Now with triggers disabled.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (242, ''0000.0001.0000.0273'', ''17.01.2016'', ''Nullify objects in at_relation_fields.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally
