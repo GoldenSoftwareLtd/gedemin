@@ -70,7 +70,6 @@ type
     Label2: TLabel;
     actAddObject: TAction;
     btnAddObjects: TButton;
-    DBText1: TDBText;
     Bevel1: TBevel;
     actDelObject: TAction;
     btnDelObject: TButton;
@@ -83,6 +82,8 @@ type
     dbedSubType: TDBEdit;
     btnSelectBC: TButton;
     btnDelBC: TButton;
+    lbClasses: TListBox;
+    Label10: TLabel;
 
     procedure luFieldTypeChange(Sender: TObject);
     procedure cbCalculatedClick(Sender: TObject);
@@ -98,6 +99,9 @@ type
     procedure actDelBCUpdate(Sender: TObject);
     procedure actSelectBCExecute(Sender: TObject);
     procedure actSelectBCUpdate(Sender: TObject);
+    procedure actDelObjectUpdate(Sender: TObject);
+    procedure actDelObjectExecute(Sender: TObject);
+    procedure actAddObjectExecute(Sender: TObject);
 
   private
     IsNeedDefault: Boolean;
@@ -350,6 +354,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   //
@@ -368,7 +373,12 @@ begin
 
   if (gdcObject.State = dsInsert) and cmbRuleDelete.Visible then
     gdcObject.FieldByName('deleterule').asString := cmbRuleDelete.Text;
-    
+
+  if lbClasses.Items.Count > 0 then
+    gdcObject.FieldByName('objects').AsString := lbClasses.Items.CommaText
+  else
+    gdcObject.FieldByName('objects').Clear;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -493,6 +503,8 @@ begin
     end;
   end;
 
+  lbClasses.Items.CommaText := gdcObject.FieldByName('objects').AsString;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -595,6 +607,38 @@ end;
 procedure Tgdc_dlgRelationField.actSelectBCUpdate(Sender: TObject);
 begin
   actSelectBC.Enabled := (gdcObject <> nil) and (gdcObject.State in [dsEdit, dsInsert]);
+end;
+
+procedure Tgdc_dlgRelationField.actDelObjectUpdate(Sender: TObject);
+begin
+  actDelObject.Enabled := lbClasses.ItemIndex > -1;
+end;
+
+procedure Tgdc_dlgRelationField.actDelObjectExecute(Sender: TObject);
+begin
+  lbClasses.Items.Delete(lbClasses.ItemIndex);
+end;
+
+procedure Tgdc_dlgRelationField.actAddObjectExecute(Sender: TObject);
+var
+  FC: TgdcFullClassName;
+  S: String;
+begin
+  with Tgd_dlgClassList.Create(Self) do
+  try
+    if SelectModal('', FC) then
+    begin
+      if FC.SubType > '' then
+        S := FC.gdClassName + '(' + FC.SubType + ')'
+      else
+        S := FC.gdClassName;
+
+      if lbClasses.Items.IndexOf(S) = -1 then
+        lbClasses.Items.Add(S);
+    end;
+  finally
+    Free;
+  end;
 end;
 
 initialization

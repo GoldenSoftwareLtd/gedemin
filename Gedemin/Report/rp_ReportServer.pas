@@ -387,34 +387,23 @@ begin
     if Result then
     begin
       if AnFunction.Module = MainModuleName then
-        if (VarType(AnParamAndResult) = varDispatch) and ((LocDispatch as IgsQueryList) <> nil) then
+      begin
+        if VarType(AnParamAndResult) = varDispatch then
         begin
           LocDispatch := AnParamAndResult;
           LocReportResult := LocDispatch as IgsQueryList;
-          LocReportResult.ResultMasterDetail;
-{          try
-            VarResult := LocReportResult.ResultStream;
-
-            AnReportResult.TempStream.Size := VarArrayHighBound(VarResult, 1) - VarArrayLowBound(VarResult, 1) + 1;
-            CopyMemory(AnReportResult.TempStream.Memory, VarArrayLock(VarResult), AnReportResult.TempStream.Size);
-            VarArrayUnLock(VarResult);
-            AnReportResult.TempStream.Position := 0;
-            if not AnReportResult.IsStreamData then
-            begin
-              AnReportResult.LoadFromStream(AnReportResult.TempStream);
-              AnReportResult.TempStream.Clear;
-            end;
-          finally
-            LocReportResult.Clear;
-          end    }
+          if LocReportResult <> nil then
+            LocReportResult.ResultMasterDetail
+          else
+            Result := False
         end else
-        begin
           Result := False;
-          AnParamAndResult :=
-            'Функция отчета должна вернуть объект BaseQueryList.'#13#10 +
-            'Проверьте наличие инструкции: Set <function_name> = BaseQueryList';
-        end
-      else
+
+          if not Result then
+            AnParamAndResult :=
+              'Функция отчета должна вернуть объект BaseQueryList.'#13#10 +
+              'Проверьте наличие инструкции: Set <function_name> = BaseQueryList';
+      end else
       if AnFunction.Module = ParamModuleName then
       begin
         if not VarIsArray(AnParamAndResult) then
