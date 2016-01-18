@@ -1,33 +1,35 @@
 inherited gdc_dlgRelationField: Tgdc_dlgRelationField
-  Left = 260
-  Top = 151
+  Left = 419
+  Top = 196
   HelpContext = 86
-  ActiveControl = dbedRelationFieldName
   Caption = 'Редактирование поля'
   ClientHeight = 435
   ClientWidth = 471
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 406
+    Left = 4
+    Top = 407
     TabOrder = 3
   end
   inherited btnNew: TButton
-    Top = 406
+    Left = 76
+    Top = 407
     TabOrder = 4
   end
   inherited btnHelp: TButton
-    Top = 406
+    Left = 148
+    Top = 407
     TabOrder = 5
   end
   inherited btnOK: TButton
-    Left = 311
-    Top = 406
+    Left = 326
+    Top = 407
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 391
-    Top = 406
+    Left = 399
+    Top = 407
     TabOrder = 2
   end
   object pcRelationField: TPageControl [5]
@@ -43,9 +45,9 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       object Label1: TLabel
         Left = 12
         Top = 69
-        Width = 189
+        Width = 126
         Height = 13
-        Caption = 'Название поля на английском языке:'
+        Caption = 'Название поля таблицы:'
       end
       object lblTableName: TLabel
         Left = 12
@@ -57,8 +59,8 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       object dbtRelationName: TDBText
         Left = 250
         Top = 39
-        Width = 82
-        Height = 13
+        Width = 80
+        Height = 14
         AutoSize = True
         DataField = 'RELATIONNAME'
         DataSource = dsgdcBase
@@ -79,32 +81,32 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       object Label4: TLabel
         Left = 12
         Top = 129
-        Width = 97
+        Width = 183
         Height = 13
-        Caption = 'Краткое название:'
+        Caption = 'Краткое локализованное название:'
       end
       object Label5: TLabel
         Left = 12
-        Top = 169
+        Top = 161
         Width = 80
         Height = 13
         Caption = 'Описание поля:'
       end
       object Label6: TLabel
         Left = 12
-        Top = 225
+        Top = 224
         Width = 49
         Height = 13
         Caption = 'Тип поля:'
       end
       object Label7: TLabel
-        Left = 12
+        Left = 7
         Top = 10
-        Width = 439
+        Width = 444
         Height = 17
         AutoSize = False
         Caption = '  Наименование поля'
-        Color = clBlack
+        Color = clHighlight
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindow
         Font.Height = -11
@@ -116,14 +118,14 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object lblDefaultValue: TLabel
         Left = 12
-        Top = 255
+        Top = 254
         Width = 127
         Height = 13
         Caption = 'Значение по умолчанию:'
       end
       object lComputed: TLabel
         Left = 12
-        Top = 312
+        Top = 309
         Width = 260
         Height = 13
         Caption = 'Выражение  для вычисляемого поля на языке SQL:'
@@ -131,7 +133,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object lblRuleDelete: TLabel
         Left = 12
-        Top = 287
+        Top = 285
         Width = 99
         Height = 13
         Caption = 'Правило удаления:'
@@ -171,7 +173,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object luFieldType: TgsIBLookupComboBox
         Left = 250
-        Top = 221
+        Top = 220
         Width = 201
         Height = 21
         HelpContext = 1
@@ -193,7 +195,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object edDefaultValue: TDBMemo
         Left = 250
-        Top = 251
+        Top = 250
         Width = 201
         Height = 21
         DataField = 'defsource'
@@ -203,7 +205,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object dbedRelationFieldDescription: TDBMemo
         Left = 250
-        Top = 157
+        Top = 156
         Width = 201
         Height = 54
         DataField = 'DESCRIPTION'
@@ -212,18 +214,18 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object dbmComputed: TDBMemo
         Left = 12
-        Top = 328
+        Top = 325
         Width = 437
         Height = 38
         DataField = 'COMPUTED_VALUE'
         DataSource = dsgdcBase
-        TabOrder = 8
+        TabOrder = 9
         Visible = False
         OnChange = dbmComputedChange
       end
       object cbCalculated: TCheckBox
         Left = 149
-        Top = 225
+        Top = 224
         Width = 97
         Height = 17
         Caption = 'Вычисляемое'
@@ -232,14 +234,14 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object cmbRuleDelete: TComboBox
         Left = 250
-        Top = 283
+        Top = 281
         Width = 201
         Height = 21
         Style = csDropDownList
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 9
+        TabOrder = 8
         Visible = False
         Items.Strings = (
           'RESTRICT'
@@ -250,7 +252,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object dbcbNotNull: TDBCheckBox
         Left = 76
-        Top = 225
+        Top = 224
         Width = 57
         Height = 17
         Caption = 'Not Null'
@@ -265,13 +267,13 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       Caption = 'Визуальные'
       ImageIndex = 1
       object Label8: TLabel
-        Left = 12
+        Left = 7
         Top = 10
-        Width = 439
+        Width = 443
         Height = 17
         AutoSize = False
         Caption = '  Визуальные настройки'
-        Color = clBlack
+        Color = clHighlight
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindow
         Font.Height = -11
@@ -290,29 +292,15 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object lblFormat: TLabel
         Left = 12
-        Top = 113
+        Top = 112
         Width = 84
         Height = 13
         Caption = 'Формат вывода:'
       end
-      object lblBusinessClass: TLabel
-        Left = 12
-        Top = 207
-        Width = 70
-        Height = 13
-        Caption = 'Бизнес-класс:'
-      end
-      object lblClassSubType: TLabel
-        Left = 12
-        Top = 235
-        Width = 79
-        Height = 13
-        Caption = 'Подтип класса:'
-      end
       object dbrgAligment: TDBRadioGroup
-        Left = 12
-        Top = 144
-        Width = 439
+        Left = 6
+        Top = 136
+        Width = 444
         Height = 45
         Caption = ' Выравнивание: '
         Columns = 3
@@ -338,9 +326,9 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         TabOrder = 0
       end
       object dbcbVisible: TDBCheckBox
-        Left = 12
+        Left = 10
         Top = 62
-        Width = 326
+        Width = 327
         Height = 17
         Alignment = taLeftJustify
         Caption = 'Поле является видимым по умолчанию'
@@ -353,16 +341,16 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       object dbedFormat: TDBEdit
         Left = 182
         Top = 109
-        Width = 156
+        Width = 155
         Height = 21
         DataField = 'FORMAT'
         DataSource = dsgdcBase
         TabOrder = 3
       end
       object dbcbReadOnly: TDBCheckBox
-        Left = 12
+        Left = 10
         Top = 85
-        Width = 326
+        Width = 327
         Height = 17
         Alignment = taLeftJustify
         Caption = 'Запретить редактирование поля'
@@ -372,32 +360,74 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         ValueChecked = '1'
         ValueUnchecked = '0'
       end
-      object comboBusinessClass: TComboBox
-        Left = 182
-        Top = 203
-        Width = 270
-        Height = 21
-        Style = csDropDownList
-        ItemHeight = 13
-        Sorted = True
+      object pnlBC: TPanel
+        Left = 6
+        Top = 189
+        Width = 444
+        Height = 95
+        BevelInner = bvRaised
+        BevelOuter = bvLowered
         TabOrder = 5
-        OnChange = comboBusinessClassChange
-        OnClick = comboBusinessClassClick
-      end
-      object comboClassSubType: TComboBox
-        Left = 182
-        Top = 231
-        Width = 270
-        Height = 21
-        Style = csDropDownList
-        ItemHeight = 13
-        Sorted = True
-        TabOrder = 6
+        object lblBusinessClass: TLabel
+          Left = 12
+          Top = 11
+          Width = 70
+          Height = 13
+          Caption = 'Бизнес-класс:'
+        end
+        object Label9: TLabel
+          Left = 12
+          Top = 40
+          Width = 42
+          Height = 13
+          Caption = 'Подтип:'
+        end
+        object dbedBusinessClass: TDBEdit
+          Left = 170
+          Top = 10
+          Width = 157
+          Height = 21
+          DataField = 'GDCLASSNAME'
+          DataSource = dsgdcBase
+          TabOrder = 0
+        end
+        object dbedSubType: TDBEdit
+          Left = 170
+          Top = 37
+          Width = 157
+          Height = 21
+          DataField = 'GDSUBTYPE'
+          DataSource = dsgdcBase
+          TabOrder = 1
+        end
+        object btnSelectBC: TButton
+          Left = 169
+          Top = 64
+          Width = 75
+          Height = 21
+          Action = actSelectBC
+          TabOrder = 2
+        end
+        object btnDelBC: TButton
+          Left = 251
+          Top = 64
+          Width = 75
+          Height = 21
+          Action = actDelBC
+          TabOrder = 3
+        end
       end
     end
     object tsObjects: TTabSheet
       Caption = 'Объекты'
       ImageIndex = 2
+      object Bevel1: TBevel
+        Left = 6
+        Top = 6
+        Width = 443
+        Height = 307
+        Shape = bsFrame
+      end
       object Label2: TLabel
         Left = 0
         Top = 351
@@ -408,28 +438,63 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         Caption = ' Изменения вступят в силу после перезагрузки Гедымина.'
         Layout = tlCenter
       end
-      object tvObjects: TgsTreeView
-        Left = 0
-        Top = 0
-        Width = 455
-        Height = 351
-        Align = alClient
-        Indent = 19
-        ReadOnly = True
-        RightClickSelect = True
+      object DBText1: TDBText
+        Left = 14
+        Top = 12
+        Width = 427
+        Height = 294
+        DataField = 'OBJECTS'
+        DataSource = dsgdcBase
+        WordWrap = True
+      end
+      object btnAddObjects: TButton
+        Left = 291
+        Top = 318
+        Width = 75
+        Height = 21
+        Action = actAddObject
         TabOrder = 0
-        WithCheckBox = True
+      end
+      object btnDelObject: TButton
+        Left = 373
+        Top = 318
+        Width = 75
+        Height = 21
+        Action = actDelObject
+        TabOrder = 1
       end
     end
   end
   inherited alBase: TActionList
-    Left = 50
+    Left = 82
+    Top = 359
+    object actAddObject: TAction
+      Caption = 'Добавить...'
+    end
+    object actDelObject: TAction
+      Caption = 'Удалить...'
+    end
+    object actSelectBC: TAction
+      Caption = 'Выбрать...'
+      OnExecute = actSelectBCExecute
+      OnUpdate = actSelectBCUpdate
+    end
+    object actDelBC: TAction
+      Caption = 'Очистить'
+      OnExecute = actDelBCExecute
+      OnUpdate = actDelBCUpdate
+    end
   end
   inherited dsgdcBase: TDataSource
-    Left = 20
+    Left = 36
+    Top = 359
+  end
+  inherited pm_dlgG: TPopupMenu
+    Left = 120
+    Top = 360
   end
   inherited ibtrCommon: TIBTransaction
-    Left = 408
-    Top = 240
+    Left = 216
+    Top = 360
   end
 end

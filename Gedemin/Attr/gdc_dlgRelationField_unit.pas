@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2015 by Golden Software of Belarus
+  Copyright (c) 2001 - 2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -55,29 +55,37 @@ type
     Label8: TLabel;
     Label14: TLabel;
     lblFormat: TLabel;
-    lblBusinessClass: TLabel;
-    lblClassSubType: TLabel;
     dbrgAligment: TDBRadioGroup;
     dbedColWidth: TDBEdit;
     dbcbVisible: TDBCheckBox;
     dbedFormat: TDBEdit;
     dbcbReadOnly: TDBCheckBox;
-    comboBusinessClass: TComboBox;
-    comboClassSubType: TComboBox;
     lComputed: TLabel;
     dbmComputed: TDBMemo;
     cbCalculated: TCheckBox;
     tsObjects: TTabSheet;
-    tvObjects: TgsTreeView;
     lblRuleDelete: TLabel;
     cmbRuleDelete: TComboBox;
     dbcbNotNull: TDBCheckBox;
     Label2: TLabel;
+    actAddObject: TAction;
+    btnAddObjects: TButton;
+    DBText1: TDBText;
+    Bevel1: TBevel;
+    actDelObject: TAction;
+    btnDelObject: TButton;
+    actSelectBC: TAction;
+    actDelBC: TAction;
+    pnlBC: TPanel;
+    lblBusinessClass: TLabel;
+    Label9: TLabel;
+    dbedBusinessClass: TDBEdit;
+    dbedSubType: TDBEdit;
+    btnSelectBC: TButton;
+    btnDelBC: TButton;
 
     procedure luFieldTypeChange(Sender: TObject);
     procedure cbCalculatedClick(Sender: TObject);
-    procedure comboBusinessClassChange(Sender: TObject);
-    procedure comboBusinessClassClick(Sender: TObject);
     procedure dbmComputedChange(Sender: TObject);
     procedure dbedRelationFieldNameEnter(Sender: TObject);
     procedure dbedRelationFieldNameKeyDown(Sender: TObject; var Key: Word;
@@ -86,37 +94,22 @@ type
       var Key: Char);
     procedure pcRelationFieldChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure actDelBCExecute(Sender: TObject);
+    procedure actDelBCUpdate(Sender: TObject);
+    procedure actSelectBCExecute(Sender: TObject);
+    procedure actSelectBCUpdate(Sender: TObject);
 
   private
-    FClasses: TObjectList;
-    FCurrentSubTypes: TStringList;
     IsNeedDefault: Boolean;
 
-    procedure WriteObjectState;
-
-    procedure SetGDClass;
-
-    function BuildBaseClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean; overload;
-    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean; overload;
-
   protected
-    procedure LoadClasses;
-    procedure UpdateSubTypes;
-
     function DlgModified: Boolean; override;
 
     procedure BeforePost; override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-    destructor Destroy; override;
-
-    procedure SetupDialog; override;
     procedure SetupRecord; override;
     function TestCorrect: Boolean; override;
-
   end;
 
   Egdc_dlgRelationField = class(Exception);
@@ -129,8 +122,8 @@ implementation
 {$R *.DFM}
 
 uses
-  gdcMetaData, IBSQL, at_classes, gdcBase,
-  gd_resourcestring, jclStrings, at_sql_tools;
+  gdcMetaData, IBSQL, at_classes, gdcBase, gdcBaseInterface, gd_resourcestring,
+  jclStrings, at_sql_tools, gd_dlgClassList_unit;
 
 const
   cst_Restrict   = 'RESTRICT';
@@ -138,88 +131,7 @@ const
   cst_SetNull    = 'SET NULL';
   cst_SetDefault = 'SET DEFAULT';
 
-  //Длина краткого имени поля
-  LShortNameLong = 20;
-
 { Tgdc_dlgRelationField }
-
-constructor Tgdc_dlgRelationField.Create(AnOwner: TComponent);
-begin
-  inherited;
-
-  FClasses := TObjectList.Create;
-  FCurrentSubTypes := TStringList.Create;
-  FCurrentSubTypes.Sorted := True;
-
-end;
-
-destructor Tgdc_dlgRelationField.Destroy;
-begin
-  FClasses.Free;
-  FCurrentSubTypes.Free;
-
-  inherited;
-end;
-
-procedure Tgdc_dlgRelationField.SetupDialog;
-var
-  {@UNFOLD MACRO INH_CRFORM_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  I: Integer;
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGRELATIONFIELD', 'SETUPDIALOG', KEYSETUPDIALOG)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGRELATIONFIELD', KEYSETUPDIALOG);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUPDIALOG]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGRELATIONFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGRELATIONFIELD',
-  {M}          'SETUPDIALOG', KEYSETUPDIALOG, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGRELATIONFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  //////////////////////////////////////////////////////////////////////////////
-  //  Подготовка базовых классов
-
-  gdClassList.Traverse(TgdcBase, '', BuildBaseClassTree, nil, nil);
-
-  comboBusinessClass.ItemIndex := -1;
-  comboBusinessClass.Items.Clear;
-
-  comboBusinessClass.Items.AddObject(' ', nil);
-
-  for I := 0 to FClasses.Count - 1 do
-  with FClasses[I] as TgdcClassHandler, gdcObject do
-  begin
-{ TODO : абстрактные классы у нас не имеют имени }
-    if gdcDisplayName = '' then
-      continue;
-
-    comboBusinessClass.Items.AddObject(
-      gdcDisplayName + ' (' + gdcClassName + ')',
-      FClasses[I]
-    );
-  end;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'SETUPDIALOG', KEYSETUPDIALOG)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGRELATIONFIELD', 'SETUPDIALOG', KEYSETUPDIALOG);
-  {M}end;
-  {END MACRO}
-end;
 
 function Tgdc_dlgRelationField.TestCorrect: Boolean;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -274,46 +186,23 @@ begin
   {END MACRO}
 end;
 
-procedure Tgdc_dlgRelationField.UpdateSubTypes;
-var
-  I: Integer;
-begin
-  if comboBusinessClass.ItemIndex = -1 then
-    Exit else
-
-  begin
-    comboClassSubType.Items.Clear;
-
-    if not Assigned(comboBusinessClass.Items.
-      Objects[comboBusinessClass.ItemIndex])
-    then
-      Exit;
-
-    with (comboBusinessClass.Items.Objects[comboBusinessClass.ItemIndex]
-      as TgdcClassHandler) do
-    begin
-      if GetSubTypes(FCurrentSubTypes) then
-        for I := 0 to FCurrentSubTypes.Count - 1 do
-          comboClassSubType.Items.Add(FCurrentSubTypes.Names[I]);
-    end;
-  end;
-end;
-
 procedure Tgdc_dlgRelationField.luFieldTypeChange(Sender: TObject);
 var
   Field: TgdcField;
 begin
   if gdcObject.State = dsInsert then
   begin
-    if luFieldType.CurrentKey > '' then
+    if luFieldType.CurrentKeyInt > -1 then
       cbCalculated.Checked := False;
-    cbCalculated.Enabled := not gdcObject.CachedUpdates and (luFieldType.CurrentKey = '');
-    if luFieldType.CurrentKey > '' then
+
+    cbCalculated.Enabled := luFieldType.CurrentKeyInt = -1;
+
+    if luFieldType.CurrentKeyInt > -1 then
     begin
       Field := TgdcField.Create(nil);
       try
         Field.SubSet := 'ByID';
-        Field.ID := StrToInt(luFieldType.CurrentKey);
+        Field.ID := luFieldType.CurrentKeyInt;
         Field.Open;
 
         gdcObject.FieldByName('visible').AsString :=
@@ -355,13 +244,10 @@ begin
         else
           edDefaultValue.Text := '';
 
-        if not Field.FieldByName('reftable').IsNull or
-          not Field.FieldByName('reflistfield').IsNull  then
+        if (not Field.FieldByName('reftable').IsNull) or
+          (not Field.FieldByName('reflistfield').IsNull)  then
         begin
-          comboBusinessClass.Enabled:= True;
-          comboClassSubType.Enabled:= True;
-          lblBusinessClass.Enabled:= True;
-          lblClassSubType.Enabled:= True;
+          pnlBC.Visible := True;
           lblRuleDelete.Visible := True;
           cmbRuleDelete.Visible := True;
           if gdcObject.State = dsInsert then
@@ -375,16 +261,12 @@ begin
           cmbRuleDelete.Enabled := gdcObject.State = dsInsert;
         end else
         begin
-          comboBusinessClass.Enabled:= False;
-          comboClassSubType.Enabled:= False;
-          lblBusinessClass.Enabled:= False;
-          lblClassSubType.Enabled:= False;
+          pnlBC.Visible := False;
           lblRuleDelete.Visible := False;
           cmbRuleDelete.Visible := False;
         end;
 
-        if (Trim(Field.FieldByName('fieldname').AsString) <> Trim(Field.FieldByName('lname').AsString))
-        then
+        if (Trim(Field.FieldByName('fieldname').AsString) <> Trim(Field.FieldByName('lname').AsString)) then
         begin
           if ((gdcObject.FieldByName('fieldname').AsString = gdcObject.FieldByName('lname').AsString)
             or gdcObject.FieldByName('lname').IsNull)
@@ -395,7 +277,7 @@ begin
             or gdcObject.FieldByName('lshortname').IsNull)
           then
             gdcObject.FieldByName('lshortname').AsString :=
-              Copy(Field.FieldByName('lname').AsString, 1, LShortNameLong);
+              Copy(Field.FieldByName('lname').AsString, 1, gdcObject.FieldByName('lshortname').Size);
         end;
 
         gdcObject.FieldByName('gdclassname').AsString :=
@@ -403,17 +285,12 @@ begin
 
         gdcObject.FieldByName('gdsubtype').AsString :=
           Field.FieldByName('gdsubtype').AsString;
-
-        SetGDClass;
       finally
         Field.Free;
       end;
     end else
     begin
-      comboBusinessClass.Enabled:= False;
-      comboClassSubType.Enabled:= False;
-      lblBusinessClass.Enabled:= False;
-      lblClassSubType.Enabled:= False;
+      pnlBC.Visible := False;
       lblRuleDelete.Visible := False;
       cmbRuleDelete.Visible := False;
     end;
@@ -425,7 +302,7 @@ begin
   dbmComputed.Visible := cbCalculated.Checked;
   lComputed.Visible := dbmComputed.Visible;
   if cbCalculated.Checked then
-    luFieldType.Text := '';
+    luFieldType.CurrentKeyInt := -1;
   luFieldType.Enabled := not cbCalculated.Checked;
 
   edDefaultValue.Visible := not cbCalculated.Checked;
@@ -433,159 +310,6 @@ begin
 
   lblRuleDelete.Visible := not cbCalculated.Checked;
   cmbRuleDelete.Visible := not cbCalculated.Checked;
-end;
-
-function Tgdc_dlgRelationField.BuildBaseClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-begin
-  if (ACE is TgdBaseEntry) and (ACE.SubType = '') then
-    FClasses.Add(TgdcClassHandler.Create(
-      TgdBaseEntry(ACE).gdcClass, gdcObject.Transaction.DefaultDatabase,
-      gdcObject.Transaction));
-
-  Result := True;
-end;
-
-function Tgdc_dlgRelationField.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-var
-  LTreeNode: TTreeNode;
-begin
-  Assert(AData1 <> nil);
-  Assert(AData2 <> nil);
-
-  if not (ACE is TgdBaseEntry) then
-  begin
-    Result := False;
-    exit;
-  end;
-
-  if ACE.SubType = '' then
-  begin
-    if ACE.Caption <> ACE.TheClass.ClassName then
-      LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
-        ACE.Caption + ' [' + ACE.TheClass.ClassName + ']')
-    else
-      LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
-        ACE.TheClass.ClassName);
-
-    if gdcObject.State = dsInsert then
-    begin
-      if tvObjects.Items.Count = 1 then
-        LTreeNode.StateIndex := 1
-      else
-        LTreeNode.StateIndex := 2;
-    end
-    else
-    begin
-      if TatRelationField(AData2^).InObject(ACE.TheClass.ClassName) then
-        LTreeNode.StateIndex := 1
-      else
-        LTreeNode.StateIndex := 2;
-
-      if LTreeNode.StateIndex = 1 then
-        while (LTreeNode.Parent <> nil) and (LTreeNode.Parent.StateIndex <> 1) do
-        begin
-          LTreeNode := LTreeNode.Parent;
-          LTreeNode.StateIndex := 3;
-        end;
-    end;
-  end else
-  begin
-    LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^), ACE.Caption +
-     ' [' + ACE.TheClass.ClassName + '(' + ACE.SubType + ')]');
-    if dsgdcBase.DataSet.State = dsInsert then
-      tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2
-    else
-    begin
-      if TatRelationField(AData2^).InObject(ACE.TheClass.ClassName + '(' + ACE.SubType + ')') then
-        tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 1
-      else
-        tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2;
-
-      LTreeNode := tvObjects.Items[tvObjects.Items.Count - 1];
-        if LTreeNode.StateIndex = 1 then
-          while (LTreeNode.Parent <> nil) and (LTreeNode.Parent.StateIndex <> 1) do
-          begin
-            LTreeNode := LTreeNode.Parent;
-            LTreeNode.StateIndex := 3;
-          end;
-    end;
-  end;
-
-  if TTreeNode(AData1^) = nil then
-    TTreeNode(AData1^) := LTreeNode
-  else
-    begin
-      gdClassList.Traverse(ACE.TheClass, ACE.SubType, BuildClassTree,
-        @LTreeNode, AData2, False, True);
-    end;
-  Result := True;
-end;
-
-procedure Tgdc_dlgRelationField.LoadClasses;
-var
-  F: TatRelationField;
-  LTreeNode: TTreeNode;
-begin
-  tvObjects.SortType := stNone;
-  tvObjects.Items.Clear;
-
-  Screen.Cursor:= crHourGlass;
-  try
-    tvObjects.Items.BeginUpdate;
-    try
-      F := atDatabase.FindRelationField(gdcObject.FieldByName('relationname').AsString,
-        gdcObject.FieldByName('fieldname').AsString);
-
-      if Assigned(F) then
-      begin
-        LTreeNode := nil;
-        gdClassList.Traverse(TgdcBase, '', BuildClassTree, @LTreeNode, @F, True, True);
-      end else
-        Label2.Caption := 'Объекты будут доступны после создания поля.';
-    finally
-      tvObjects.Items.EndUpdate;
-    end;
-
-  finally
-    Screen.Cursor:= crArrow;
-  end;
-  tvObjects.SortType := stText;
-end;
-
-procedure Tgdc_dlgRelationField.comboBusinessClassChange(Sender: TObject);
-begin
-  UpdateSubTypes;
-end;
-
-procedure Tgdc_dlgRelationField.comboBusinessClassClick(Sender: TObject);
-begin
-  UpdateSubTypes;
-end;
-
-procedure Tgdc_dlgRelationField.WriteObjectState;
-var
-  I: Integer;
-  AnObjects: String;
-begin
-  AnObjects := '';
-  for I := 0 to tvObjects.Items.Count - 1 do
-    if tvObjects.Items[I].StateIndex = 1 then
-    begin
-      if AnObjects > '' then
-        AnObjects := AnObjects + ',';
-      if Pos('[', tvObjects.Items[I].Text) > 0 then
-        AnObjects := AnObjects + Copy(tvObjects.Items[I].Text,
-          Pos('[', tvObjects.Items[I].Text) + 1,
-          Length(tvObjects.Items[I].Text) - 1 - Pos('[', tvObjects.Items[I].Text))
-      else
-        AnObjects := AnObjects + tvObjects.Items[I].Text;
-    end;
-  if AnObjects > '' then
-    gdcObject.FieldByName('objects').AsString := AnObjects
-  else
-    gdcObject.FieldByName('objects').Clear;
 end;
 
 function Tgdc_dlgRelationField.DlgModified: Boolean;
@@ -642,36 +366,9 @@ begin
       raise Egdc_dlgRelationField.Create('Укажите название поля на английском языке!');
   end;
 
-  if comboBusinessClass.ItemIndex >= 0 then
-  begin
-    if not (gdcObject.State in [dsEdit, dsInsert]) then
-      gdcObject.Edit;
-    if comboBusinessClass.Items.Objects[comboBusinessClass.ItemIndex] = nil then
-      gdcObject.FieldByName('gdclassname').Clear
-    else
-      gdcObject.FieldByName('gdclassname').AsString :=
-        TgdcClassHandler(comboBusinessClass.Items.
-          Objects[comboBusinessClass.ItemIndex]).gdcClassName;
-    if comboClassSubType.ItemIndex >= 0 then
-      gdcObject.FieldByName('gdsubtype').AsString :=
-        FCurrentSubTypes.Values[FCurrentSubTypes.Names[comboClassSubType.ItemIndex]]
-    else
-      gdcObject.FieldByName('gdsubtype').Clear;
-  end
-  else
-    if not gdcObject.FieldByName('gdclassname').IsNull then
-    begin
-      if not (gdcObject.State in [dsEdit, dsInsert]) then
-        gdcObject.Edit;
-      gdcObject.FieldByName('gdclassname').Clear;
-      gdcObject.FieldByName('gdsubtype').Clear;
-    end;
-
   if (gdcObject.State = dsInsert) and cmbRuleDelete.Visible then
     gdcObject.FieldByName('deleterule').asString := cmbRuleDelete.Text;
     
-  WriteObjectState;
-
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -708,11 +405,10 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  inherited;
-  IsNeedDefault := False;
 
-  if not Assigned(gdcObject) then
-    Exit;
+  inherited;
+
+  IsNeedDefault := False;
 
   if gdcObject.State in dsEditModes then
   begin
@@ -720,6 +416,7 @@ begin
       gdcObject.FieldByName('nullflag').AsInteger :=
         gdcObject.FieldByName('sourcenullflag').AsInteger;
   end;
+
   //////////////////////////////////////////////////////////////////////////////
   //  Общие настройки для ввода нового поля и редактирования
 
@@ -754,11 +451,9 @@ begin
 
   begin
     luFieldType.Enabled := True;
-    cbCalculated.Enabled := not gdcObject.CachedUpdates;
+    cbCalculated.Enabled := True;
     dbcbNotNull.Enabled := True;
   end;
-
-  SetGDClass;
 
   (gdcObject as TgdcRelationField).ChangeComputed := False;
 
@@ -767,7 +462,7 @@ begin
   begin
     edDefaultValue.Enabled := False;
     lblDefaultValue.Enabled := False;
-    Field := TgdcField.CreateSubType(Self, '', 'ByID');
+    Field := TgdcField.CreateSubType(nil, '', 'ByID');
     try
       if gdcObject.Transaction.InTransaction then
       begin
@@ -776,8 +471,7 @@ begin
       Field.Transaction := gdcObject.Transaction;
       Field.ID := gdcObject.FieldByName('fieldsourcekey').AsInteger;
       Field.Open;
-      //если мы добавляли поля в CachedUpdates, то новые домены еще могли не попасть в базу
-      if Field.RecordCount > 0 then
+      if not Field.EOF then
       begin
         if Field.FieldByName('flag').AsInteger = 1 then
           IsNeedDefault := True;
@@ -807,55 +501,6 @@ begin
   {END MACRO}
 end;
 
-procedure Tgdc_dlgRelationField.SetGDClass;
-var
-  I: Integer;
-  CurObject: TObject;
-  sbType: String;
-begin
-  CurObject := nil;
-  for I := 0 to FClasses.Count - 1 do
-  with FClasses[I] as TgdcClassHandler, gdcObject do
-  begin
-{ TODO : абстрактные классы у нас не имеют имени }
-    if gdcDisplayName = '' then
-      continue;
-
-    if (FieldByName('gdclassname').AsString > '')
-        and
-      (AnsiCompareText(gdcClassName, FieldByName('gdclassname').AsString) = 0)
-    then
-      CurObject := FClasses[i];
-  end;
-
-  comboBusinessClass.ItemIndex := comboBusinessClass.Items.IndexOfObject(CurObject);
-
-  comboClassSubType.Sorted := False;
-  UpdateSubTypes;
-  comboClassSubType.ItemIndex := -1;
-
-  if (gdcObject.FieldByName('gdsubtype').AsString > '') then
-  begin
-    for I := 0 to FCurrentSubTypes.Count - 1 do
-      if AnsiCompareText(
-        FCurrentSubTypes.Values[FCurrentSubTypes.Names[I]],
-        gdcObject.FieldByName('gdsubtype').AsString) = 0
-      then begin
-        comboClassSubType.ItemIndex := I;
-        Break;
-      end;
-  end;
-  if comboClassSubType.ItemIndex > -1 then
-    sbType := comboClassSubType.Items[comboClassSubType.ItemIndex]
-  else
-    sbType := '';
-  comboClassSubType.Sorted := True;
-
-  if sbType > '' then
-    comboClassSubType.ItemIndex := comboClassSubType.Items.IndexOf(sbType);
-
-end;
-
 procedure Tgdc_dlgRelationField.dbedRelationFieldNameEnter(
   Sender: TObject);
 var
@@ -883,8 +528,10 @@ procedure Tgdc_dlgRelationField.pcRelationFieldChange(Sender: TObject);
 var
   Field: TgdcField;
 begin
-  if pcrelationField.ActivePage = tsVisualSettings then begin
-    if luFieldType.CurrentKey > '' then begin
+  if pcrelationField.ActivePage = tsVisualSettings then
+  begin
+    if luFieldType.CurrentKey > '' then
+    begin
       Field := TgdcField.Create(nil);
       try
         Field.SubSet := 'ByID';
@@ -902,10 +549,6 @@ begin
         Field.Free;
       end;
     end;
-  end
-  else if pcrelationField.ActivePage = tsObjects then begin
-    if tvObjects.Items.Count = 0 then
-      LoadClasses;
   end;
 end;
 
@@ -914,6 +557,44 @@ begin
   inherited;
 
   pcRelationField.ActivePage := tsCommon;
+end;
+
+procedure Tgdc_dlgRelationField.actDelBCExecute(Sender: TObject);
+begin
+  gdcObject.FieldbyName('gdclassname').Clear;
+  gdcObject.FieldbyName('gdsubtype').Clear;
+end;
+
+procedure Tgdc_dlgRelationField.actDelBCUpdate(Sender: TObject);
+begin
+  actDelBC.Enabled := (gdcObject <> nil)
+    and (gdcObject.State in [dsEdit, dsInsert])
+    and (
+      (gdcObject.FieldbyName('gdclassname').AsString > '')
+      or
+      (gdcObject.FieldbyName('gdsubtype').AsString > '')
+    );
+end;
+
+procedure Tgdc_dlgRelationField.actSelectBCExecute(Sender: TObject);
+var
+  FC: TgdcFullClassName;
+begin
+  with Tgd_dlgClassList.Create(Self) do
+  try
+    if SelectModal('', FC) then
+    begin
+      gdcObject.FieldByName('gdclassname').AsString := FC.gdClassName;
+      gdcObject.FieldByName('gdsubtype').AsString := FC.SubType;
+    end;
+  finally
+    Free;
+  end;
+end;
+
+procedure Tgdc_dlgRelationField.actSelectBCUpdate(Sender: TObject);
+begin
+  actSelectBC.Enabled := (gdcObject <> nil) and (gdcObject.State in [dsEdit, dsInsert]);
 end;
 
 initialization
