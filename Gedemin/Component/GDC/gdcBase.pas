@@ -4956,11 +4956,8 @@ var
   MenuItem: TMenuItem;
   DidActivate: Boolean;
   ReportGroup: TscrReportGroup;
-  SQL: TIBSQL;
-  CE: TgdClassEntry;
-  FormNameSL: TStringList;
-  Prnt: String;
-  I: Integer;
+  BE: TgdBaseEntry;
+  FE: TgdFormEntry;
 
   procedure FillMenu(const Parent: TObject);
   var
@@ -5022,6 +5019,40 @@ var
     end;
   end;
 
+  procedure LoadReportGroup(AGroupID: Integer);
+  begin
+    ReportGroup.Load(AGroupID);
+
+    if (ReportGroup.Count > 1) or ((ReportGroup.Count = 1) and (ReportGroup[0].ReportList.Count > 0)) then
+    begin
+      MenuItem := TMenuItem.Create(FpmReport);
+      MenuItem.Caption := '-';
+      FpmReport.Items.Add(MenuItem);
+
+      FillMenu(FpmReport);
+    end;
+  end;
+
+  procedure IterateAncestor(AFE: TgdFormEntry);
+  begin
+    Assert(AFE <> nil);
+
+    if AFE.SubType <> '' then
+      IterateAncestor(AFE.Parent as TgdFormEntry);
+
+    LoadReportGroup(AFE.GroupID);
+  end;
+
+  procedure IterateAncestor2(ABE: TgdBaseEntry);
+  begin
+    Assert(ABE <> nil);
+
+    if ABE <> ABE.GetRootSubType then
+      IterateAncestor2(ABE.Parent as TgdBaseEntry);
+
+    LoadReportGroup(ABE.GroupID);
+  end;
+
 begin
   //При изменении отчетов, добавлении или удалении необходимо перечитывать меню
   if FpmReport <> nil then
@@ -5049,76 +5080,23 @@ begin
       ReportGroup.Transaction := ReadTransaction;
       DidActivate := ActivateReadTransaction;
 
-      SQL := TIBSQL.Create(nil);
-      try
-        SQL.Transaction := ReadTransaction;
-        SQL.SQL.Text := 'SELECT * FROM evt_object WHERE Upper(objectname) = :objectname';
-        
-        if Assigned(Owner) then
-        begin
-          FormNameSL := TStringList.Create;
-          try
-            if Owner is TCreateableForm then
-            begin
-              //добавляем саму форму
-              FormNameSL.Add(TCreateableForm(Owner).InitialName);
-
-              //добавляем подителей по подтипу в пределах класса
-              if TgdcCreateableForm(Owner).SubType <> '' then
-              begin
-                CE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
-                  TgdcCreateableForm(Owner).SubType);
-
-                repeat
-                  CE := CE.Parent;
-                  Prnt := System.Copy(Owner.ClassName, 2, Length(Owner.ClassName) - 1)
-                    + CE.SubType;
-
-                  FormNameSL.Add(Prnt);
-                until CE.SubType = '';
-              end;
-            end
-            else
-              // вот здесь не понятно кто еще кроме формы может быть овнером?
-              SQL.Params[0].AsString := UpperCase(Owner.Name);
-
-            for I := FormNameSL.Count - 1 downto 0 do
-            begin
-              SQL.Params[0].AsString := UpperCase(FormNameSL[I]);
-              SQL.ExecQuery;
-              if not SQl.Eof then
-                ReportGroup.Load(SQl.FieldByName('reportgroupkey').AsInteger);
-
-              SQL.Close;
-
-              if (ReportGroup.Count > 1) or ((ReportGroup.Count = 1) and (ReportGroup[0].ReportList.Count > 0)) then
-              begin
-                MenuItem := TMenuItem.Create(FpmReport);
-                MenuItem.Caption := '-';
-                FpmReport.Items.Add(MenuItem);
-
-                FillMenu(FpmReport);
-              end;
-
-            end;
-
-          finally
-            FormNameSL.Free;
-          end;
-        end;
-      finally
-        SQL.Free;
-      end;
-
-      ReportGroup.Load(GroupID);
-      if (ReportGroup.Count > 1) or ((ReportGroup.Count = 1) and (ReportGroup[0].ReportList.Count > 0)) then
+      if Assigned(Owner) then
       begin
-        MenuItem := TMenuItem.Create(FpmReport);
-        MenuItem.Caption := '-';
-        FpmReport.Items.Add(MenuItem);
+        if Owner is TCreateableForm then
+        begin
+          FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
+            TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
 
-        FillMenu(FpmReport);
+          IterateAncestor(FE);
+        end;
+        //else
+          // вот здесь не понятно кто еще кроме формы может быть овнером?
       end;
+
+      BE := gdClassList.Get(TgdBaseEntry, ClassName, SubType) as TgdBaseEntry;
+
+      IterateAncestor2(BE);
+
     finally
       ReportGroup.Free;
     end;

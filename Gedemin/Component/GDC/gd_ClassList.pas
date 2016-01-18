@@ -512,7 +512,11 @@ type
   TgdFormEntry = class(TgdClassEntry)
   private
     FAbstractBaseForm: Boolean;
+
+    FGroupID: Integer;
     function GetFrmClass: CgdcCreateableForm;
+
+    function GetGroupID: Integer;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -521,6 +525,7 @@ type
 
     property frmClass: CgdcCreateableForm read GetFrmClass;
     property AbstractBaseForm: Boolean read FAbstractBaseForm write FAbstractBaseForm;
+    property GroupID: Integer read GetGroupID write FGroupID;
   end;
 
   TgdNewFormEntry = class(TgdFormEntry)
@@ -1503,6 +1508,38 @@ begin
     Result := CgdcCreateableForm(FClass)
   else
     Result := nil;
+end;
+
+function TgdFormEntry.GetGroupID: Integer;
+var
+  q: TIBSQL;
+  ObjectName: String;
+begin
+  if FGroupID <= 0 then
+  begin
+    Assert(gdcBaseManager <> nil);
+
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT * FROM evt_object WHERE Upper(objectname) = :objectname';
+
+      ObjectName := System.Copy(TheClass.ClassName, 2, Length(TheClass.ClassName) - 1)
+        + SubTypeToComponentName(SubType);
+
+      q.Params[0].AsString := UpperCase(ObjectName);
+
+      q.ExecQuery;
+      if not q.Eof then
+        FGroupID := q.FieldByName('reportgroupkey').AsInteger;
+
+    finally
+      q.Free;
+    end;
+
+  end;
+
+  Result := FGroupID;
 end;
 
 function TgdClassEntry.GetChildren(Index: Integer): TgdClassEntry;
