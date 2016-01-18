@@ -42,14 +42,10 @@ type
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
-    Label6: TLabel;
     Label7: TLabel;
-    lblDefaultValue: TLabel;
     dbedRelationFieldName: TDBEdit;
     dbedRelationFieldLName: TDBEdit;
     dbedRelationFieldShortLName: TDBEdit;
-    luFieldType: TgsIBLookupComboBox;
-    edDefaultValue: TDBMemo;
     dbedRelationFieldDescription: TDBMemo;
     tsVisualSettings: TTabSheet;
     Label8: TLabel;
@@ -60,13 +56,7 @@ type
     dbcbVisible: TDBCheckBox;
     dbedFormat: TDBEdit;
     dbcbReadOnly: TDBCheckBox;
-    lComputed: TLabel;
-    dbmComputed: TDBMemo;
-    cbCalculated: TCheckBox;
     tsObjects: TTabSheet;
-    lblRuleDelete: TLabel;
-    cmbRuleDelete: TComboBox;
-    dbcbNotNull: TDBCheckBox;
     Label2: TLabel;
     actAddObject: TAction;
     btnAddObjects: TButton;
@@ -84,9 +74,21 @@ type
     btnDelBC: TButton;
     lbClasses: TListBox;
     Label10: TLabel;
+    pnlType: TPanel;
+    pcType: TPageControl;
+    tsType: TTabSheet;
+    lblDefaultValue: TLabel;
+    lblRuleDelete: TLabel;
+    Label6: TLabel;
+    dbcbNotNull: TDBCheckBox;
+    luFieldType: TgsIBLookupComboBox;
+    edDefaultValue: TDBMemo;
+    cmbRuleDelete: TComboBox;
+    tsCalculated: TTabSheet;
+    lComputed: TLabel;
+    dbmComputed: TDBMemo;
 
     procedure luFieldTypeChange(Sender: TObject);
-    procedure cbCalculatedClick(Sender: TObject);
     procedure dbmComputedChange(Sender: TObject);
     procedure dbedRelationFieldNameEnter(Sender: TObject);
     procedure dbedRelationFieldNameKeyDown(Sender: TObject; var Key: Word;
@@ -107,8 +109,6 @@ type
     IsNeedDefault: Boolean;
 
   protected
-    function DlgModified: Boolean; override;
-
     procedure BeforePost; override;
 
   public
@@ -174,11 +174,15 @@ begin
 
   if Result then
   begin
-    if cbCalculated.Checked and (Trim(dbmComputed.Text) = '') then
+    if (pcType.ActivePage = tsCalculated) and (Trim(dbmComputed.Text) = '') then
     begin
       pcRelationField.ActivePage := tsCommon;
       dbmComputed.SetFocus;
-      raise Egdc_dlgRelationField.Create('Укажите выражение для вычисляемого поля');
+      MessageBox(Handle,
+        'Укажите выражение для вычисляемого поля.',
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      Result := False;
     end;
   end;
 
@@ -196,11 +200,6 @@ var
 begin
   if gdcObject.State = dsInsert then
   begin
-    if luFieldType.CurrentKeyInt > -1 then
-      cbCalculated.Checked := False;
-
-    cbCalculated.Enabled := luFieldType.CurrentKeyInt = -1;
-
     if luFieldType.CurrentKeyInt > -1 then
     begin
       Field := TgdcField.Create(nil);
@@ -299,26 +298,6 @@ begin
       cmbRuleDelete.Visible := False;
     end;
   end;
-end;
-
-procedure Tgdc_dlgRelationField.cbCalculatedClick(Sender: TObject);
-begin
-  dbmComputed.Visible := cbCalculated.Checked;
-  lComputed.Visible := dbmComputed.Visible;
-  if cbCalculated.Checked then
-    luFieldType.CurrentKeyInt := -1;
-  luFieldType.Enabled := not cbCalculated.Checked;
-
-  edDefaultValue.Visible := not cbCalculated.Checked;
-  lblDefaultValue.Visible := not cbCalculated.Checked;
-
-  lblRuleDelete.Visible := not cbCalculated.Checked;
-  cmbRuleDelete.Visible := not cbCalculated.Checked;
-end;
-
-function Tgdc_dlgRelationField.DlgModified: Boolean;
-begin
-  Result := True;
 end;
 
 procedure Tgdc_dlgRelationField.dbmComputedChange(Sender: TObject);
@@ -427,26 +406,19 @@ begin
         gdcObject.FieldByName('sourcenullflag').AsInteger;
   end;
 
-  //////////////////////////////////////////////////////////////////////////////
-  //  Общие настройки для ввода нового поля и редактирования
-
-  //
-  //  Если редактирование поля таблицы
-
   if gdcObject.State = dsEdit then
   begin
-    // При редактировании запрещаем изменять
-    // наименование поля
     dbedRelationFieldName.ReadOnly := True;
     dbedRelationFieldName.Color := clBtnFace;
 
     luFieldType.ReadOnly := True;
-    // Нельзя менять тип поля при редактировании
 
+    {
     dbmComputed.Visible := not gdcObject.FieldByName('computed_value').IsNull;
     lComputed.Visible := dbmComputed.Visible;
     cbCalculated.Enabled := False;
     cbCalculated.Checked := not gdcObject.FieldByName('computed_value').IsNull;
+    }
 
     if gdcObject.FieldByName('colwidth').IsNull then
       gdcObject.FieldByName('colwidth').AsInteger := 8;
@@ -455,13 +427,9 @@ begin
 
     dbcbNotNull.Enabled := False;
   end else
-
-  //
-  //  Если создание нового поля таблицы
-
   begin
     luFieldType.Enabled := True;
-    cbCalculated.Enabled := True;
+    //cbCalculated.Enabled := True;
     dbcbNotNull.Enabled := True;
   end;
 

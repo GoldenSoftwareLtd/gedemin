@@ -5,6 +5,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
   Caption = 'Редактирование поля'
   ClientHeight = 435
   ClientWidth = 471
+  Visible = True
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
@@ -92,13 +93,6 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         Height = 13
         Caption = 'Описание поля:'
       end
-      object Label6: TLabel
-        Left = 12
-        Top = 224
-        Width = 49
-        Height = 13
-        Caption = 'Тип поля:'
-      end
       object Label7: TLabel
         Left = 7
         Top = 10
@@ -115,29 +109,6 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         ParentColor = False
         ParentFont = False
         Layout = tlCenter
-      end
-      object lblDefaultValue: TLabel
-        Left = 12
-        Top = 254
-        Width = 127
-        Height = 13
-        Caption = 'Значение по умолчанию:'
-      end
-      object lComputed: TLabel
-        Left = 12
-        Top = 309
-        Width = 260
-        Height = 13
-        Caption = 'Выражение  для вычисляемого поля на языке SQL:'
-        Visible = False
-      end
-      object lblRuleDelete: TLabel
-        Left = 12
-        Top = 285
-        Width = 99
-        Height = 13
-        Caption = 'Правило удаления:'
-        Visible = False
       end
       object dbedRelationFieldName: TDBEdit
         Left = 250
@@ -171,38 +142,6 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         DataSource = dsgdcBase
         TabOrder = 2
       end
-      object luFieldType: TgsIBLookupComboBox
-        Left = 250
-        Top = 220
-        Width = 201
-        Height = 21
-        HelpContext = 1
-        Database = dmDatabase.ibdbGAdmin
-        Transaction = ibtrCommon
-        DataSource = dsgdcBase
-        DataField = 'FIELDSOURCEKEY'
-        Fields = 'fieldname'
-        ListTable = 'at_fields'
-        ListField = 'lname'
-        KeyField = 'id'
-        SortOrder = soAsc
-        gdClassName = 'TgdcField'
-        ItemHeight = 13
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 6
-        OnChange = luFieldTypeChange
-      end
-      object edDefaultValue: TDBMemo
-        Left = 250
-        Top = 250
-        Width = 201
-        Height = 21
-        DataField = 'defsource'
-        DataSource = dsgdcBase
-        TabOrder = 7
-        WordWrap = False
-      end
       object dbedRelationFieldDescription: TDBMemo
         Left = 250
         Top = 156
@@ -212,55 +151,137 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         DataSource = dsgdcBase
         TabOrder = 3
       end
-      object dbmComputed: TDBMemo
-        Left = 12
-        Top = 325
-        Width = 437
-        Height = 38
-        DataField = 'COMPUTED_VALUE'
-        DataSource = dsgdcBase
-        TabOrder = 9
-        Visible = False
-        OnChange = dbmComputedChange
-      end
-      object cbCalculated: TCheckBox
-        Left = 149
-        Top = 224
-        Width = 97
-        Height = 17
-        Caption = 'Вычисляемое'
-        TabOrder = 5
-        OnClick = cbCalculatedClick
-      end
-      object cmbRuleDelete: TComboBox
-        Left = 250
-        Top = 281
-        Width = 201
-        Height = 21
-        Style = csDropDownList
-        ItemHeight = 13
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 8
-        Visible = False
-        Items.Strings = (
-          'RESTRICT'
-          'NO ACTION'
-          'CASCADE'
-          'SET NULL'
-          'SET DEFAULT')
-      end
-      object dbcbNotNull: TDBCheckBox
-        Left = 76
-        Top = 224
-        Width = 57
-        Height = 17
-        Caption = 'Not Null'
-        DataField = 'nullflag'
-        DataSource = dsgdcBase
+      object pnlType: TPanel
+        Left = 0
+        Top = 232
+        Width = 455
+        Height = 137
+        Align = alBottom
+        BevelOuter = bvNone
+        BorderWidth = 4
         TabOrder = 4
-        ValueChecked = '1'
-        ValueUnchecked = '0'
+        object pcType: TPageControl
+          Left = 4
+          Top = 4
+          Width = 447
+          Height = 129
+          ActivePage = tsType
+          Align = alClient
+          TabOrder = 0
+          object tsType: TTabSheet
+            Caption = 'Тип данных'
+            object lblDefaultValue: TLabel
+              Left = 4
+              Top = 64
+              Width = 127
+              Height = 13
+              Caption = 'Значение по умолчанию:'
+            end
+            object lblRuleDelete: TLabel
+              Left = 4
+              Top = 39
+              Width = 112
+              Height = 13
+              Caption = 'При удалении записи:'
+              Visible = False
+            end
+            object Label6: TLabel
+              Left = 4
+              Top = 10
+              Width = 49
+              Height = 13
+              Caption = 'Тип поля:'
+            end
+            object dbcbNotNull: TDBCheckBox
+              Left = 340
+              Top = 10
+              Width = 57
+              Height = 17
+              Caption = 'Not Null'
+              DataField = 'nullflag'
+              DataSource = dsgdcBase
+              TabOrder = 0
+              ValueChecked = '1'
+              ValueUnchecked = '0'
+            end
+            object luFieldType: TgsIBLookupComboBox
+              Left = 128
+              Top = 6
+              Width = 201
+              Height = 21
+              HelpContext = 1
+              Database = dmDatabase.ibdbGAdmin
+              Transaction = ibtrCommon
+              DataSource = dsgdcBase
+              DataField = 'FIELDSOURCEKEY'
+              Fields = 'fieldname'
+              ListTable = 'at_fields'
+              ListField = 'lname'
+              KeyField = 'id'
+              SortOrder = soAsc
+              gdClassName = 'TgdcField'
+              ItemHeight = 13
+              ParentShowHint = False
+              ShowHint = True
+              TabOrder = 1
+              OnChange = luFieldTypeChange
+            end
+            object edDefaultValue: TDBMemo
+              Left = 136
+              Top = 60
+              Width = 201
+              Height = 21
+              DataField = 'defsource'
+              DataSource = dsgdcBase
+              TabOrder = 2
+              WordWrap = False
+            end
+            object cmbRuleDelete: TComboBox
+              Left = 128
+              Top = 35
+              Width = 201
+              Height = 21
+              Style = csDropDownList
+              ItemHeight = 13
+              ParentShowHint = False
+              ShowHint = True
+              TabOrder = 3
+              Visible = False
+              Items.Strings = (
+                'RESTRICT'
+                'NO ACTION'
+                'CASCADE'
+                'SET NULL'
+                'SET DEFAULT')
+            end
+          end
+          object tsCalculated: TTabSheet
+            BorderWidth = 2
+            Caption = 'Вычисляемое поле'
+            ImageIndex = 1
+            object lComputed: TLabel
+              Left = 0
+              Top = 0
+              Width = 435
+              Height = 13
+              Align = alTop
+              Caption = 'Выражение  для вычисляемого поля на языке SQL:'
+              Visible = False
+            end
+            object dbmComputed: TDBMemo
+              Left = 0
+              Top = 13
+              Width = 435
+              Height = 84
+              Align = alClient
+              DataField = 'COMPUTED_VALUE'
+              DataSource = dsgdcBase
+              TabOrder = 0
+              Visible = False
+              OnChange = dbmComputedChange
+            end
+          end
+        end
       end
     end
     object tsVisualSettings: TTabSheet

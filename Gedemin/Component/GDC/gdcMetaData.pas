@@ -4791,7 +4791,7 @@ begin
   begin
     BE := gdClassList.FindByRelation(ARelationName);
     if (BE is TgdDocumentEntry) and (BE.Parent is TgdDocumentEntry)
-      and (not (TgdDocumentEntry(BE.Parent).gdcClass.IsAbstractClass)) then
+      and (TgdDocumentEntry(BE.Parent).SubType > '') then
       Result := ttInheritedDocumentTable
     else
       Result := ttDocument;

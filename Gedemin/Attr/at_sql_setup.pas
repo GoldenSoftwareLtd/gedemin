@@ -1576,7 +1576,7 @@ var
   AnObjects: TStringList;
   I, P: Integer;
   F: TatRelationField;
-  CETestes, CEAllowed: TgdClassEntry;
+  CETested, CEAllowed: TgdClassEntry;
 begin
   Assert(atDatabase <> nil);
 
