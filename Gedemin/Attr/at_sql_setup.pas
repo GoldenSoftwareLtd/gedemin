@@ -1576,7 +1576,7 @@ var
   AnObjects: TStringList;
   I, P: Integer;
   F: TatRelationField;
-  CE, CE2: TgdClassEntry;
+  CETestes, CEAllowed: TgdClassEntry;
 begin
   Assert(atDatabase <> nil);
 
@@ -1590,8 +1590,7 @@ begin
 
   AnObjects := F.ObjectsList;
 
-  if (AnObjects = nil) or (AnObjects.Count = 0)
-    or (AnObjects.IndexOf(AClassName) > -1) then
+  if (AnObjects = nil) or (AnObjects.Count = 0) then
   begin
     Result := True;
     exit;
@@ -1600,28 +1599,27 @@ begin
   P := Pos('(', AClassName);
 
   if P = 0 then
-    CE := gdClassList.Get(TgdBaseEntry, AClassName, '')
+    CETested := gdClassList.Get(TgdBaseEntry, AClassName, '')
   else
-    CE := gdClassList.Get(TgdBaseEntry, Copy(AClassName, 1, P - 1),
+    CETested := gdClassList.Get(TgdBaseEntry, Copy(AClassName, 1, P - 1),
       Copy(AClassName, P + 1, Length(AClassName) - P - 1));
 
   Result := False;
-
-  for I := 0 to AnObjects.Count - 1 do
+  I := 0;
+  while (not Result) and (I < AnObjects.Count) do
   begin
     P := Pos('(', AnObjects[I]);
 
     if P = 0 then
-      CE2 := gdClassList.Get(TgdBaseEntry, AnObjects[I], '')
+      CEAllowed := gdClassList.Find(AnObjects[I], '')
     else
-      CE2 := gdClassList.Get(TgdBaseEntry, Copy(AnObjects[I], 1, P - 1),
+      CEAllowed := gdClassList.Find(Copy(AnObjects[I], 1, P - 1),
         Copy(AnObjects[I], P + 1, Length(AnObjects[I]) - P - 1));
 
-    if CE.InheritsFromCE(CE2) then
-    begin
-      Result := True;
-      break;
-    end;
+    if CEAllowed <> nil then
+      Result := CETested.InheritsFromCE(CEAllowed);
+      
+    Inc(I);
   end;
 end;
 

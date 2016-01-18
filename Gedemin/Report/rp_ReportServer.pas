@@ -399,10 +399,12 @@ begin
         end else
           Result := False;
 
-          if not Result then
-            AnParamAndResult :=
-              'Функция отчета должна вернуть объект BaseQueryList.'#13#10 +
-              'Проверьте наличие инструкции: Set <function_name> = BaseQueryList';
+        if not Result then
+        begin
+          AnParamAndResult :=
+            'Функция отчета должна вернуть объект BaseQueryList.'#13#10 +
+            'Проверьте наличие инструкции: Set <function_name> = BaseQueryList';
+        end;    
       end else
       if AnFunction.Module = ParamModuleName then
       begin
