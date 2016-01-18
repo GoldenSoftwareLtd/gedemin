@@ -1036,7 +1036,7 @@ begin
   FMovementTarget.GetProperties(ASL);
 
   ASL.Add(AddSpaces('ИД типа документа') + IntToStr(FDocumentTypeKey));
-  ASL.Add(AddSpaces('ИД группы отчетов') + IntToStr(FReportGroupKey));
+  ASL.Add(AddSpaces('ИД группы отчетов') + IntToStr(GroupID));
   ASL.Add(AddSpaces('ИД ветки Иссл.') + IntToStr(FBranchKey));
 end;
 

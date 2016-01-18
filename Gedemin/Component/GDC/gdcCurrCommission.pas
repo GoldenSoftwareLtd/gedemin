@@ -10,8 +10,6 @@ uses
 type
   TgdcCurrCommission = class(TgdcBaseBank)
   protected
-    function GetGroupID: Integer; override;
-
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
 
@@ -505,11 +503,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcCurrCommission.GetGroupID: Integer;
-begin
-  Result := grCurrCommission;
-end;
-
 function TgdcCurrCommission.GetSelectClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -608,7 +601,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcCurrCommission);
+  RegisterGdcClass(TgdcCurrCommission).GroupID := grCurrCommission;
 
 finalization
   UnregisterGdcClass(TgdcCurrCommission);

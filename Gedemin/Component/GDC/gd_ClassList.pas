@@ -336,10 +336,12 @@ type
   TgdBaseEntry = class(TgdClassEntry)
   private
     FDistinctRelation: String;
+    FGroupID: Integer;
 
     function GetGdcClass: CgdcBase;
     function GetDistinctRelation: String; virtual;
     procedure SetDistinctRelation(const Value: String);
+    function GetGroupID: Integer;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -348,6 +350,7 @@ type
 
     property gdcClass: CgdcBase read GetGdcClass;
     property DistinctRelation: String read GetDistinctRelation write SetDistinctRelation;
+    property GroupID: Integer read GetGroupID write FGroupID;
   end;
 
   TgdAttrUserDefinedEntry = class(TgdBaseEntry)
@@ -362,7 +365,6 @@ type
     FDescription: String;
     FOptions: String;
     FIsCheckNumber: TIsCheckNumber;
-    FReportGroupKey: Integer;
     FHeaderRelKey: Integer;
     FLineRelKey: Integer;
     FBranchKey: Integer;
@@ -399,7 +401,6 @@ type
     property IsCheckNumber: TIsCheckNumber read FIsCheckNumber write FIsCheckNumber;
     property Options: String read FOptions write FOptions;
     property TypeID: Integer read FTypeID write FTypeID;
-    property ReportGroupKey: Integer read FReportGroupKey write FReportGroupKey;
     property BranchKey: Integer read FBranchKey write FBranchKey;
     property EditionDate: TDateTime read FEditionDate write FEditionDate;
     property Invalid: Boolean read FInvalid write SetInvalid;
@@ -2806,8 +2807,8 @@ begin
   FLineFunctionKey := TgdDocumentEntry(CE).LineFunctionKey;
   FDescription := TgdDocumentEntry(CE).Description;
   FIsCheckNumber := TgdDocumentEntry(CE).IsCheckNumber;
+  FGroupID := TgdDocumentEntry(CE).GroupID;
   FOptions := TgdDocumentEntry(CE).Options;
-  FReportGroupKey := TgdDocumentEntry(CE).ReportGroupKey;
   HeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
   LineRelKey := TgdDocumentEntry(CE).LineRelKey;
   BranchKey := TgdDocumentEntry(CE).BranchKey;
@@ -2857,7 +2858,7 @@ begin
   FDescription := q.FieldByName('description').AsString;
   FIsCheckNumber := TIsCheckNumber(q.FieldByName('ischecknumber').AsInteger);
   FOptions := '';
-  FReportGroupKey := q.FieldByName('reportgroupkey').AsInteger;
+  FGroupID := q.FieldByName('reportgroupkey').AsInteger;
   FHeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
   FLineRelKey := q.FieldByName('linerelkey').AsInteger;
   FBranchKey := q.FieldByName('branchkey').AsInteger;
@@ -2971,6 +2972,70 @@ end;
 procedure TgdDocumentEntry.SetLineRelKey(const Value: Integer);
 begin
   FLineRelKey := Value;
+end;
+
+function TgdBaseEntry.GetGroupID: Integer;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+  N, UGN: String;
+  I: Integer;
+begin
+  if FGroupID <= 0 then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT id FROM rp_reportgroup WHERE usergroupname = :UGN';
+      UGN := UpperCase(ClassName + SubType);
+      q.ParamByName('UGN').AsString := UGN;
+      q.ExecQuery;
+      if not q.EOF then
+        FGroupID := q.FieldByName('id').AsInteger
+      else begin
+        q.Close;
+        Tr := TIBTransaction.Create(nil);
+        try
+          try
+            Tr.DefaultDatabase := gdcBaseManager.Database;
+            Tr.StartTransaction;
+
+            q.Transaction := Tr;
+            q.SQL.Text := 'SELECT id FROM rp_reportgroup WHERE name = :name AND parent IS NULL';
+            I := 0;
+            repeat
+              N := gdcClass.GetDisplayName(SubType);
+              if I > 0 then
+                N := N + IntToStr(I);
+              Inc(I);
+              q.Close;
+              q.ParamByName('name').AsString := N;
+              q.ExecQuery;
+            until q.EOF;
+
+            FGroupID := gdcBaseManager.GetNextID;
+
+            q.Close;
+            q.SQL.Text := 'INSERT INTO RP_REPORTGROUP(ID, USERGROUPNAME, NAME) VALUES (:ID, :UGN, :N)';
+            q.ParamByName('ID').AsInteger := FGroupID;
+            q.ParamByName('UGN').AsString := UGN;
+            q.ParamByName('N').AsString := N;
+            q.ExecQuery;
+
+            Tr.Commit;
+          except
+            FGroupID := -1;
+          end;
+        finally
+          Tr.Free;
+        end;
+      end;
+    finally
+      q.Free;
+    end;
+  end;
+
+  Result := FGroupID;
 end;
 
 procedure TgdBaseEntry.SetDistinctRelation(const Value: String);

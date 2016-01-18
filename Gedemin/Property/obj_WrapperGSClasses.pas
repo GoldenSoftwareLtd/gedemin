@@ -13172,7 +13172,8 @@ end;
 function TwrpGdcRelationField.ReadObjectState(const AFieldId,
   AClassName: WideString): Integer;
 begin
-  Result := GetGdcRelationField.ReadObjectState(AFieldId, AClassName);
+  { TODO : Уже нет нужды в этой функции. }
+  Result := 0; //GetGdcRelationField.ReadObjectState(AFieldId, AClassName);
 end;
 
 procedure TwrpGdcRelationField.Set_ChangeComputed(Value: WordBool);
@@ -13572,7 +13573,8 @@ end;
 
 function TwrpAtRelationField.InObject(const AName: WideString): WordBool;
 begin
-  Result := GetAtRelationField.InObject(AName);
+  { TODO : Уже нет нужды в этой функции. }
+  Result := False; //GetAtRelationField.InObject(AName);
 end;
 
 procedure TwrpAtRelationField.RecordAcquired;

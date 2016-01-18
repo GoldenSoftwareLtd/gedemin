@@ -443,56 +443,48 @@ END
  *
  */
 
-CREATE TRIGGER at_bi_rf FOR at_relation_fields
+CREATE OR ALTER TRIGGER at_bi_rf FOR at_relation_fields
   BEFORE INSERT
   POSITION 0
 AS
 BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+END
+^
 
-  IF (g_s_trim(NEW.relationname, ' ') = '') THEN
-  BEGIN
-    SELECT relationname FROM at_relations WHERE id = NEW.relationkey
-    INTO NEW.relationname;
+CREATE OR ALTER TRIGGER at_biu_rf FOR at_relation_fields
+  BEFORE INSERT OR UPDATE
+  POSITION 1000
+AS
+BEGIN
+  SELECT relationname FROM at_relations WHERE id = NEW.relationkey
+  INTO NEW.relationname;
+  
+  IF (NEW.crossfield = '') THEN 
+  BEGIN  
+    NEW.crossfield = NULL;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
   END
-  IF (NEW.crossfield= '') THEN NEW.crossfield=NULL;
-  IF (NEW.crosstable = '') THEN NEW.crosstable=NULL;
+  
+  IF (NEW.crosstable = '') THEN 
+  BEGIN
+    NEW.crosstable = NULL;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
+  END  
+  
+  NEW.objects = TRIM(NEW.objects);
+  
+  IF (NEW.objects = '' OR NEW.objects LIKE 'TgdcBase%' OR NEW.objects LIKE '(Blob)%') THEN
+  BEGIN
+    NEW.objects = NULL;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
+  END
 END
 ^
 
-CREATE TRIGGER at_bu_rf FOR at_relation_fields
-  BEFORE UPDATE
-  POSITION 0
-AS
-BEGIN
-  IF (NEW.crossfield= '') THEN NEW.crossfield=NULL;
-  IF (NEW.crosstable = '') THEN NEW.crosstable=NULL;
-END
-^
-
-CREATE TRIGGER at_ai_relation_field FOR at_relation_fields
-  AFTER INSERT
-  POSITION 0
-AS
-  DECLARE VARIABLE VERSION INTEGER;
-BEGIN
-  VERSION = GEN_ID(gd_g_attr_version, 1);
-END
-^
-
-CREATE TRIGGER at_au_relation_field FOR at_relation_fields
-  AFTER UPDATE
-  POSITION 0
-AS
-  DECLARE VARIABLE VERSION INTEGER;
-BEGIN
-  VERSION = GEN_ID(gd_g_attr_version, 1);
-END
-^
-
-CREATE TRIGGER at_ad_relation_field FOR at_relation_fields
-  AFTER DELETE
+CREATE OR ALTER TRIGGER at_aiud_relation_field FOR at_relation_fields
+  AFTER INSERT OR UPDATE OR DELETE
   POSITION 0
 AS
   DECLARE VARIABLE VERSION INTEGER;

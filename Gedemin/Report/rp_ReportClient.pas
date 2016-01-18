@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2015 by Golden Software of Belarus
+  Copyright (c) 2001 - 2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -178,8 +178,6 @@ end;
 
 destructor TClientReport.Destroy;
 begin
-//  if Assigned(FibsqlServerName) then
-//    FreeAndNil(FibsqlServerName);
   if Assigned(FProgressForm) then
     FreeAndNil(FProgressForm);
   if Assigned(FClientEventFactory) then
@@ -237,6 +235,7 @@ function TClientReport.ClientQuery(const ReportData: TCustomReport; const Report
  var ParamAndResult: Variant; const AnIsRebuild: Boolean): Boolean;
 var
   TempParam: Variant;
+  S: String;
 begin
   TempParam := ParamAndResult;
   try
@@ -245,8 +244,20 @@ begin
       Result := ExecuteFunctionWithoutParam(ReportData.MainFunction, ReportResult,
        ParamAndResult);
       if Result then
-        ClientEvent(ReportData, TempParam, ReportResult, ParamAndResult)
-      else
+      begin
+        Assert(VarType(ParamAndResult) = varDispatch);
+        if ParamAndResult.Aborted then
+        begin
+          FProgressForm.Release;
+          S := ParamAndResult.AbortMessage;
+          if S > '' then
+            MessageBox(0,
+              PChar(S),
+              'Выполнение отчета прервано',
+              MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        end else
+          ClientEvent(ReportData, TempParam, ReportResult, ParamAndResult);
+      end else
         FProgressForm.Release;
     except
       FProgressForm.Release;
@@ -344,7 +355,7 @@ begin
       begin
       {$IFDEF DEBUG}
         if UseLog then
-          Log.LogLn(DateTimeToStr(Now) + ': Удачное выполнение отчета ' + AnReport.ReportName +
+          Log.LogLn(DateTimeToStr(Now) + ': Успешное выполнение отчета ' + AnReport.ReportName +
             '  ИД ' + IntToStr(AnReport.ReportKey));
       {$ENDIF}
 
@@ -505,7 +516,7 @@ begin
       LocReportResult.IsStreamData := True;
       LocErrorMessage := '';
       if not ExecuteReport(OwnerForm, CurrentReport, LocReportResult, LocErrorMessage, AnIsRebuild) then
-        if (LocErrorMessage > '') then
+        if (Trim(LocErrorMessage) > '') then
           MessageBox(0,
             PChar('Произошла ошибка при построении отчета: '#13#10 + LocErrorMessage),
             'Внимание!',
@@ -532,8 +543,6 @@ end;
 
 procedure TClientReport.Clear;
 begin
-{  if Assigned(FReportFactory) then
-    FReportFactory.Clear;  }
   FClientEventFactory.Clear;
 end;
 
@@ -566,7 +575,6 @@ initialization
 
 finalization
   ClientReport := nil;
-  
 end.
 
 

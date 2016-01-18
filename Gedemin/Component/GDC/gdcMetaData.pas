@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2016 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -490,7 +490,6 @@ type
 
     function CheckTheSameStatement: String; override;
     function GetCurrRecordClass: TgdcFullClass; override;
-    function ReadObjectState(AFieldId, AClassName: String): Integer;
 
     property ChangeComputed: Boolean read FChangeComputed write FChangeComputed;
   end;
@@ -3836,12 +3835,6 @@ begin
 
   FieldByName('nullflag').AsInteger := 0;
 
-  if (FieldByName('objects').AsString = '')
-    and (not (sLoadFromStream in BaseState)) then
-  begin
-    FieldByName('objects').AsString := 'TgdcBase';
-  end;
-
   with FgdcDataLink do
     if Active and (DataSet is TgdcRelation) then
       FieldByName('relationname').AsString := DataSet.FieldByName('relationname').AsString;
@@ -5244,35 +5237,6 @@ begin
   end;
 
   FindInheritedSubType(Result);
-end;
-
-function TgdcRelationField.ReadObjectState(AFieldId,
-  AClassName: String): Integer;
-var
-  F: TatRelationField;
-  OL: TStringList;
-begin
-  Result := 2;
-  if not Assigned(atDatabase) then
-    atDatabase := at_Classes.atDatabase;
-
-  F := atDatabase.FindRelationField(FieldByName('relationname').AsString,
-    FieldByName('fieldname').AsString);
-  if F <> nil then
-  begin
-    if F.InObject(AClassName) then
-      Result := 1;
-  end else
-  begin
-    OL := TStringList.Create;
-    try
-      OL.CommaText := FieldByName('objects').AsString;
-      if OL.IndexOf(AClassName) > -1 then
-        Result := 1;
-    finally
-      OL.Free;
-    end;
-  end;
 end;
 
 procedure TgdcRelationField.DoAfterEdit;

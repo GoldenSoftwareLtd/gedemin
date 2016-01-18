@@ -827,7 +827,6 @@ type
     // Используется для передачи в отчеты текущей формы
     // присваивается в TgdcCreateableForm при активизации формы
     FCurrentForm: TObject;
-    FGroupID: Integer; //Идентификатор группы отчетов
 
     FCompoundClasses: TObjectList;
 
@@ -1038,7 +1037,7 @@ type
     procedure DoAfterTransactionEnd(Sender: TObject); override;
 
     procedure LoadEventList; virtual;
-    function GetGroupID: Integer; virtual;
+    function GetGroupID: Integer; virtual; 
 
     // Список полей, которые не надо копировать
     // при копировании объекта
@@ -4339,7 +4338,6 @@ begin
 
   FBaseState := [];
   FID := -1;
-  FGroupID := -1;
   FObjectName := '';
   FSQLSetup := TatSQLSetup.Create(nil);
   FExtraConditions := TStringList.Create;
@@ -10547,71 +10545,8 @@ begin
 end;
 
 function TgdcBase.GetGroupID: Integer;
-var
-  q: TIBSQL;
-  DidActivate: Boolean;
-  N, UGN: String;
-  I: Integer;
 begin
-  if (FGroupID <= 0) and (Transaction <> nil) then
-  begin
-    UGN := UpperCase(ClassName + SubType);
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := ReadTransaction;
-      q.SQL.Text := 'SELECT id FROM rp_reportgroup WHERE usergroupname = :UGN';
-      q.ParamByName('UGN').AsString := UGN;
-      q.ExecQuery;
-      if q.RecordCount > 0 then
-        FGroupID := q.FieldByName(fnID).AsInteger
-      else
-      begin
-        q.Close;
-
-        DidActivate := not Transaction.InTransaction;
-        if DidActivate then
-          Transaction.StartTransaction;
-        try
-          q.Transaction := Transaction;
-          q.ExecQuery;
-          if q.RecordCount > 0 then
-            FGroupID := q.FieldByName(fnID).AsInteger
-          else begin
-            FGroupID := GetNextID;
-            q.Close;
-            q.SQL.Text := 'SELECT id FROM rp_reportgroup WHERE name = :name AND parent IS NULL';
-            I := 0;
-
-            repeat
-              N := GetDisplayName(SubType);
-              if I > 0 then
-                N := N + IntToStr(I);
-              Inc(I);
-              q.Close;
-              q.ParamByName('name').AsString := N;
-              q.ExecQuery;
-            until q.RecordCount = 0;
-
-            q.Close;
-            q.SQL.Text := 'INSERT INTO RP_REPORTGROUP(ID, USERGROUPNAME, NAME) VALUES (:ID, :UGN, :N)';
-            q.ParamByName('ID').AsInteger := FGroupID;
-            q.ParamByName('UGN').AsString := UGN;
-            q.ParamByName('N').AsString := N;
-            q.ExecQuery;
-          end;
-          if DidActivate then
-            Transaction.Commit;
-        except
-          if Transaction.InTransaction and DidActivate then
-            Transaction.Rollback;
-          FGroupID := -1;
-        end;
-      end;
-    finally
-      q.Free;
-    end;
-  end;
-  Result := FGroupID;
+  Result := TgdBaseEntry(gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType)).GroupID;
 end;
 
 procedure TgdcBase.LoadEventList;
@@ -11348,7 +11283,6 @@ begin
 
     Close;
     FSubType := Value;
-    FGroupID := -1;
     FgdcTableInfos := GetTableInfos(FSubType);
     FModifyFromStream := NeedModifyFromStream(SubType);
     if Assigned(FQueryFilter) then

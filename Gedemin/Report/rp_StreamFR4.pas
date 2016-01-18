@@ -67,16 +67,12 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-//    procedure ShowPreparedReport; override;
     property UpdateDictionary: Tgs_frDataDictionary read GetReportDictionary;
     property ReportResult: Tfr4_ReportResult read FReportResult write SetReportResult;
   end;
 
 type
-
   Tgs_fr4SingleReport = class(Tgs_fr4Report)
-  public
-//    procedure ShowPreparedReport; override;
   end;
 
   TFR4ReportInterface = class(TCustomReportBuilder)
@@ -597,5 +593,4 @@ initialization
 
 finalization
   UnRegisterClass(Tgs_fr4SingleReport);
-
 end.

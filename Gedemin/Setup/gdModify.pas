@@ -43,7 +43,7 @@ type
 implementation
 
 uses
-  mdf_proclist, gsDatabaseShutdown, DbLogDlg, IBStoredProc, Forms;
+  mdf_proclist, gsDatabaseShutdown, DbLogDlg, IBSQL, IBStoredProc, Forms;
 
 { TgdModify }
 
@@ -77,6 +77,8 @@ procedure TgdModify.Execute;
 var
   I: Integer;
   FIBOpened: Boolean;
+  Tr: TIBTransaction;
+  q: TIBSQL;
 begin
   DoModifyLog('Процесс обновления может занять несколько десятков минут.');
   DoModifyLog('Дождитесь его завершения. Не снимайте задачу и не перезагружайте компьютер.');
@@ -135,7 +137,29 @@ begin
             raise;
           end;
         else
-          raise;    
+          raise;
+        end;
+
+        if FIBDatabase.Connected then
+        begin
+          Tr := TIBTransaction.Create(nil);
+          q := TIBSQL.Create(nil);
+          try
+            Tr.DefaultDatabase := FIBDatabase;
+            Tr.StartTransaction;
+
+            q.Transaction := Tr;
+            q.SQL.Text :=
+              'SELECT GEN_ID(gd_g_attr_version, 1) FROM rdb$database';
+            q.ExecQuery;
+
+            DoModifyLog('Очищен кэш информации о структуре базы данных.');
+
+            Tr.Commit;
+          finally
+            q.Free;
+            Tr.Free;
+          end;
         end;
       finally
         if not FIBOpened and FIBDatabase.Connected then

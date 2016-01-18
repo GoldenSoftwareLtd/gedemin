@@ -755,6 +755,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (241, '0000.0001.0000.0272', '09.01.2016', 'Second try. Now with triggers disabled.');     
   
+INSERT INTO fin_versioninfo
+  VALUES (242, '0000.0001.0000.0273', '17.01.2016', 'Nullify objects in at_relation_fields.');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

@@ -111,7 +111,6 @@ type
   TgdcBaseContact = class(TgdcLBRBTree)
   protected
     function GetFromClause(const ARefresh: Boolean = False): String; override;
-    function GetGroupID: Integer; override;
     procedure _DoOnNewRecord; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
 
@@ -998,11 +997,6 @@ begin
   end;
 
   FindInheritedSubType(Result);
-end;
-
-function TgdcBaseContact.GetGroupID: Integer;
-begin
-  Result := cst_ContactsGroupID;
 end;
 
 procedure TgdcBaseContact._DoOnNewRecord;
@@ -3738,7 +3732,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcBaseContact, 'Адресная книга');
+  RegisterGdcClass(TgdcBaseContact, 'Адресная книга').GroupID := cst_ContactsGroupID;
   RegisterGdcClass(TgdcFolder,      'Папка');
   RegisterGdcClass(TgdcGroup,       'Группа');
   RegisterGdcClass(TgdcContact,     'Физическое лицо');

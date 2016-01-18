@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2010 by Golden Software of Belarus
+  Copyright (c) 2001 - 2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -312,14 +312,6 @@ begin
     FTransaction.DefaultDatabase := FDatabase;
 
     FReportList.Database := FDatabase;
-
-//    CreateLists;
-//    SetOnCreateVBClasses(CreateVBClasses);
-//    SetOnCreateConst(CreateConstans);
-
-//    FReportScriptControl.CreateConst;
-//    FReportScriptControl.CreateObject;
-//    FReportScriptControl.CreateVBClasses;
   end;
 end;
 
@@ -395,7 +387,7 @@ begin
     if Result then
     begin
       if AnFunction.Module = MainModuleName then
-        if VarType(AnParamAndResult) = varDispatch then
+        if (VarType(AnParamAndResult) = varDispatch) and ((LocDispatch as IgsQueryList) <> nil) then
         begin
           LocDispatch := AnParamAndResult;
           LocReportResult := LocDispatch as IgsQueryList;
@@ -414,12 +406,13 @@ begin
             end;
           finally
             LocReportResult.Clear;
-          end    }                  
+          end    }
         end else
         begin
           Result := False;
-          AnParamAndResult := 'При написании скрипта должна использоваться функция.'#13#10 +
-           'Например: Set <function_result> = BaseQueryList';
+          AnParamAndResult :=
+            'Функция отчета должна вернуть объект BaseQueryList.'#13#10 +
+            'Проверьте наличие инструкции: Set <function_name> = BaseQueryList';
         end
       else
       if AnFunction.Module = ParamModuleName then

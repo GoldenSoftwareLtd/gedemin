@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -71,12 +71,10 @@ type
     FIsCommon: Boolean;
     FTransactionFunction: Integer;
     FDocumentTypeKey: Integer;
-    FReportGroupKey: Integer;
     FBranchKey: Integer;
 
     procedure SetSubType(const Value: TgdcSubType); override;
     procedure ReadOptions(DE: TgdDocumentEntry); virtual;
-    function GetGroupID: Integer; override;
 
     // Печать отчета. OnClick - в PopupMenu
     procedure DoOnReportClick(Sender: TObject); override;
@@ -444,7 +442,6 @@ begin
   CustomProcess := [cpInsert, cpModify];
 
   FDocumentTypeKey := -1;
-  FReportGroupKey := -1;
   FBranchKey := -1;
 end;
 
@@ -1991,22 +1988,12 @@ begin
   if DE <> nil then
   begin
     FDocumentTypeKey := DE.TypeID;
-    FReportGroupKey := DE.ReportGroupKey;
     FBranchKey := DE.BranchKey;
   end else
   begin
     FDocumentTypeKey := -1;
-    FReportGroupKey := -1;
     FBranchKey := -1;
   end;
-end;
-
-function TgdcDocument.GetGroupID: Integer;
-begin
-  if FReportGroupKey > 0 then
-    Result := FReportGroupKey
-  else
-    Result := inherited GetGroupID;
 end;
 
 { TgdcBaseDocumentType }

@@ -14,6 +14,7 @@ type
   private
     FEMessage: String;
     FExcClass: String;
+
   public
     constructor Create;
 
@@ -42,8 +43,9 @@ uses
 function  ExceptionCopier(const E: Exception): Exception;
 begin
   Result := nil;
+
   if E = nil then
-    Exit;
+    exit;
 
   if E.InheritsFrom(EIBError) then
   begin
@@ -59,18 +61,17 @@ end;
 procedure EScrException.AddRaise(ARaise, AnEMessage: String);
 begin
   if Trim(ARaise) = '' then
-    Exit;
+    exit;
 
   FExcClass := ARaise;
   FEMessage := AnEMessage;
   GetException;
-  raise Exception.Create('В Execute.raise передан неизвестный класс исключения - ' + Trim(FExcClass) + '.');
+  raise Exception.Create('В Exception.Raise передан неизвестный класс исключения ' + Trim(FExcClass) + '.');
 end;
 
 constructor EScrException.Create;
 begin
   inherited Create;
-
   DelRaise;
 end;
 
@@ -84,7 +85,8 @@ procedure EScrException.GetException;
 var
   S: String;
 begin
-  if Length(Trim(FEMessage)) = 0 then FEMessage := ' ';
+  if Trim(FEMessage) = '' then
+    FEMessage := ' ';
   S := UpperCase(Trim(FExcClass));
   if S = 'EABORT' then
     raise EAbort.Create(FEMessage)
@@ -95,9 +97,8 @@ begin
 end;
 
 initialization
+  gdScrException := nil;
 
 finalization
-  if Assigned(gdScrException) then
-    FreeAndNil(gdScrException);
-
+  FreeAndNil(gdScrException);
 end.
