@@ -284,12 +284,15 @@ type
     FChildren: TObjectList;
     FHidden: Boolean;
     FVirtualSubType: Boolean;
+    FGroupID: Integer;
 
     function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
     function ListCallback(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
     function GetCaption: String;
+
+    function GetGroupID: Integer; virtual;
 
   protected
     function Traverse(ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
@@ -330,18 +333,18 @@ type
     property ClassMethods: TgdClassMethods read FClassMethods;
     property Hidden: Boolean read FHidden write FHidden;
     property VirtualSubType: Boolean read FVirtualSubType write FVirtualSubType;
+    property GroupID: Integer read GetGroupID write FGroupID;
   end;
   CgdClassEntry = class of TgdClassEntry;
 
   TgdBaseEntry = class(TgdClassEntry)
   private
     FDistinctRelation: String;
-    FGroupID: Integer;
 
     function GetGdcClass: CgdcBase;
     function GetDistinctRelation: String; virtual;
     procedure SetDistinctRelation(const Value: String);
-    function GetGroupID: Integer;
+    function GetGroupID: Integer; override;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -350,7 +353,6 @@ type
 
     property gdcClass: CgdcBase read GetGdcClass;
     property DistinctRelation: String read GetDistinctRelation write SetDistinctRelation;
-    property GroupID: Integer read GetGroupID write FGroupID;
   end;
 
   TgdAttrUserDefinedEntry = class(TgdBaseEntry)
@@ -513,10 +515,13 @@ type
   private
     FAbstractBaseForm: Boolean;
 
-    FGroupID: Integer;
+    FMacrosGroupID: Integer;
+
     function GetFrmClass: CgdcCreateableForm;
 
-    function GetGroupID: Integer;
+    function GetGroupID: Integer; override;
+
+    function GetMacrosGroupID: Integer;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -525,7 +530,7 @@ type
 
     property frmClass: CgdcCreateableForm read GetFrmClass;
     property AbstractBaseForm: Boolean read FAbstractBaseForm write FAbstractBaseForm;
-    property GroupID: Integer read GetGroupID write FGroupID;
+    property MacrosGroupID: Integer read GetMacrosGroupID write FMacrosGroupID;
   end;
 
   TgdNewFormEntry = class(TgdFormEntry)
@@ -1542,6 +1547,44 @@ begin
   Result := FGroupID;
 end;
 
+function TgdFormEntry.GetMacrosGroupID: Integer;
+var
+  q: TIBSQL;
+  ObjectName: String;
+begin
+  if FMacrosGroupID <= 0 then
+  begin
+    Assert(gdcBaseManager <> nil);
+
+    ObjectName := System.Copy(TheClass.ClassName, 2, Length(TheClass.ClassName) - 1)
+      + SubTypeToComponentName(SubType);
+
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+        q.SQL.Text :=
+          'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname ' +
+          '  AND parent IS NULL';
+        q.Params[0].AsString := AnsiUpperCase(ObjectName);
+        q.ExecQuery;
+        if q.Eof then
+        begin
+          q.Close;
+          q.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
+          q.Params[0].AsString := AnsiUpperCase(ObjectName);
+          q.ExecQuery;
+        end;
+
+        if not q.Eof then
+          FMacrosGroupID := q.FieldByName('macrosgroupkey').AsInteger;
+    finally
+      q.Free;
+    end;
+  end;
+
+  Result := FMacrosGroupID;
+end;
+
 function TgdClassEntry.GetChildren(Index: Integer): TgdClassEntry;
 begin
   Result := FChildren[Index] as TgdClassEntry;
@@ -1711,6 +1754,11 @@ begin
     Result := FClass.ClassName
   else
     Result := '';    
+end;
+
+function TgdClassEntry.GetGroupID: Integer;
+begin
+  Result := -1;
 end;
 
 class function TgdClassEntry.CheckSubType(const ASubType: TgdcSubType): Boolean;
@@ -3011,6 +3059,11 @@ begin
   FLineRelKey := Value;
 end;
 
+procedure TgdBaseEntry.SetDistinctRelation(const Value: String);
+begin
+  FDistinctRelation := UpperCase(Value);
+end;
+
 function TgdBaseEntry.GetGroupID: Integer;
 var
   q: TIBSQL;
@@ -3073,11 +3126,6 @@ begin
   end;
 
   Result := FGroupID;
-end;
-
-procedure TgdBaseEntry.SetDistinctRelation(const Value: String);
-begin
-  FDistinctRelation := UpperCase(Value);
 end;
 
 procedure TgdDocumentEntry.SetInvalid(const Value: Boolean);

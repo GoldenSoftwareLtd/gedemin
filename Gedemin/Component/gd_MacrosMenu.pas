@@ -31,21 +31,20 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Menus, gdcDelphiObject, scrMacrosGroup, IBDataBase, gdcConstants, ActnList;
+  Menus, gdcDelphiObject, scrMacrosGroup, IBDataBase, gdcConstants, ActnList, Contnrs;
 
 type
   TgdMacrosMenu = class(TPopupMenu)
   private
-    FLMacrosGroup: TscrMacrosGroup;
-    FGMacrosGroup: TscrMacrosGroup;
+    //FMacrosGroup: TscrMacrosGroup;
+
+    FMacrosGroupList: TObjectList;
+
     FTransaction: TIBTransaction;
     FActionList: TActionList;
 
     procedure DoOnMenuClick(Sender: TObject);
     procedure DoOnMacrosListClick(Sender: TObject);
-
-  protected
-    procedure PrepareMenu; virtual;
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -66,7 +65,7 @@ uses
   gdcBaseInterface,          evt_i_Base,             gdcOLEClassList,
   gd_SetDatabase,            gd_i_ScriptFactory,     gs_Exception,
   gd_security_operationconst,gd_Createable_Form,     gd_security,
-  Storages;
+  Storages,                  gd_ClassList,           gdc_createable_form;
 
 procedure Register;
 begin
@@ -85,10 +84,8 @@ begin
     begin
       FTransaction :=  gdcBaseManager.ReadTransaction;
 
-      FLMacrosGroup := TscrMacrosGroup.Create(True);
-      FLMacrosGroup.Transaction := FTransaction;
-      FGMacrosGroup := TscrMacrosGroup.Create(True);
-      FGMacrosGroup.Transaction := FTransaction;
+      FMacrosGroupList := TObjectList.Create(True);
+
     end else
       raise Exception.Create(GetGsException(Self, 'Database is not assigned'));
   end;
@@ -96,8 +93,7 @@ end;
 
 destructor TgdMacrosMenu.Destroy;
 begin
-  FLMacrosGroup.Free;
-  FGMacrosGroup.Free;
+  FMacrosGroupList.Free;
   
   inherited;
 end;
@@ -136,8 +132,12 @@ begin
   inherited;
 end;
 
-procedure TgdMacrosMenu.PrepareMenu;
+procedure TgdMacrosMenu.ReloadGroup;
 var
+  gdcDelphiObject: TgdcDelphiObject;
+  LocId: Integer;
+  FE: TgdFormEntry;
+
   M: TMenuItem;
 
   procedure FillMenu(const Parent: TObject; MacrosGroup: TscrMacrosGroup);
@@ -216,9 +216,40 @@ var
     end;
   end;
 
+  procedure LoadMacrosGroup(AMacrosGroupID: Integer);
+  var
+    LMacrosGroup: TscrMacrosGroup;
+  begin
+    LMacrosGroup := TscrMacrosGroup.Create(True);
+    LMacrosGroup.Transaction := FTransaction;
+    LMacrosGroup.Load(AMacrosGroupID);
+
+    FMacrosGroupList.Add(LMacrosGroup);
+
+    if (LMacrosGroup.Count > 1) or ((LMacrosGroup.Count = 1) and (LMacrosGroup[0].MacrosList.Count > 0)) then
+    begin
+      M := TMenuItem.Create(Self);
+      M.Caption := '-';
+      Self.Items.Add(M);
+
+      FillMenu(Self, LMacrosGroup);
+    end;
+  end;
+
+  procedure IterateAncestor(AFE: TgdFormEntry);
+  begin
+    Assert(AFE <> nil);
+
+    if AFE.SubType <> '' then
+      IterateAncestor(AFE.Parent as TgdFormEntry);
+
+    LoadMacrosGroup(AFE.MacrosGroupID);
+  end;
+
 begin
   if not Assigned(Owner) then
-    Exit;
+    raise Exception.Create('Owner not assigned');
+
 
   if Assigned(FActionList) then
   begin
@@ -243,30 +274,9 @@ begin
     Self.Items.Add(M);
   end;
 
-  if (FGMacrosGroup.Count > 1) or ((FGMacrosGroup.Count = 1) and (FGMacrosGroup[0].MacrosList.Count > 0)) then
-  begin
-    M := TMenuItem.Create(Self);
-    M.Caption := '-';
-    Self.Items.Add(M);
+  FMacrosGroupList.Clear;
 
-    FillMenu(Self, FGMacrosGroup);
-  end;
-  if (FLMacrosGroup.Count > 1) or ((FLMacrosGroup.Count = 1) and (FLMacrosGroup[0].MacrosList.Count > 0)) then
-  begin
-    M := TMenuItem.Create(Self);
-    M.Caption := '-';
-    Self.Items.Add(M);
-    FillMenu(Self, FLMacrosGroup);
-  end;
-end;
-
-procedure TgdMacrosMenu.ReloadGroup;
-var
-  gdcDelphiObject: TgdcDelphiObject;
-  LocId: Integer;
-begin
-  if not Assigned(Owner) then
-    raise Exception.Create('Owner not assigned');
+  LoadMacrosGroup(OBJ_GLOBALMACROS);
 
   gdcDelphiObject := TgdcDelphiObject.Create(nil);
   try
@@ -276,12 +286,19 @@ begin
     gdcDelphiObject.ID := LocId;
     gdcDelphiObject.Open;
 
-    FLMacrosGroup.Load(gdcDelphiObject.FieldByName(fnMacrosGroupKey).AsInteger);
+    if Owner is TgdcCreateableForm then
+    begin
+      FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
+        TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
+
+      IterateAncestor(FE);
+    end
+    else
+      LoadMacrosGroup(gdcDelphiObject.FieldByName(fnMacrosGroupKey).AsInteger);
+
   finally
     gdcDelphiObject.Free;
   end;
-  FGMacrosGroup.Load(OBJ_GLOBALMACROS);
-  PrepareMenu;
 end;
 
 end.
