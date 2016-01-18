@@ -425,7 +425,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         Left = 6
         Top = 6
         Width = 443
-        Height = 307
+        Height = 294
         Shape = bsFrame
       end
       object Label2: TLabel
@@ -438,30 +438,39 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         Caption = ' Изменения вступят в силу после перезагрузки Гедымина.'
         Layout = tlCenter
       end
-      object DBText1: TDBText
-        Left = 14
-        Top = 12
-        Width = 427
-        Height = 294
-        DataField = 'OBJECTS'
-        DataSource = dsgdcBase
-        WordWrap = True
+      object Label10: TLabel
+        Left = 0
+        Top = 333
+        Width = 455
+        Height = 18
+        Align = alBottom
+        AutoSize = False
+        Caption = ' Для отображения поля во всех классах оставьте список пустым.'
+        Layout = tlCenter
       end
       object btnAddObjects: TButton
         Left = 291
-        Top = 318
+        Top = 304
         Width = 75
         Height = 21
         Action = actAddObject
-        TabOrder = 0
+        TabOrder = 1
       end
       object btnDelObject: TButton
         Left = 373
-        Top = 318
+        Top = 304
         Width = 75
         Height = 21
         Action = actDelObject
-        TabOrder = 1
+        TabOrder = 2
+      end
+      object lbClasses: TListBox
+        Left = 16
+        Top = 16
+        Width = 422
+        Height = 273
+        ItemHeight = 13
+        TabOrder = 0
       end
     end
   end
@@ -470,9 +479,12 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
     Top = 359
     object actAddObject: TAction
       Caption = 'Добавить...'
+      OnExecute = actAddObjectExecute
     end
     object actDelObject: TAction
       Caption = 'Удалить...'
+      OnExecute = actDelObjectExecute
+      OnUpdate = actDelObjectUpdate
     end
     object actSelectBC: TAction
       Caption = 'Выбрать...'

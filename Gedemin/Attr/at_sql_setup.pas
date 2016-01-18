@@ -124,7 +124,8 @@ type
 
     function AdjustSQL(const Text: String;
       const ObjectClassName: String = ''): String;
-    function IsNecessaryAttr(const AClassName, AFieldName, ARelationName: String; IsNess: Boolean): Boolean;
+    function IsNecessaryAttr(const AClassName, AFieldName, ARelationName: String;
+      const IsNess: Boolean): Boolean;
 
     procedure ChangeSQL(Parser: TsqlParser);
     //используется при разборе селект с добавлением необходимых аттрибутов
@@ -186,7 +187,7 @@ type
 implementation
 
 uses
-  jclSelected, ZLib;
+  jclSelected, ZLib, gd_ClassList;
 
 var
   atSQLSetupCache: TStringList;
@@ -1569,61 +1570,57 @@ begin
     ChangeFullEx(Parser, Full.Union);
 end;
 
-function TatSQLSetup.IsNecessaryAttr(const AClassName, AFieldName, ARelationName: String; IsNess: Boolean): Boolean;
+function TatSQLSetup.IsNecessaryAttr(const AClassName, AFieldName, ARelationName: String;
+  const IsNess: Boolean): Boolean;
 var
   AnObjects: TStringList;
-  I: Integer;
-  ClIn, Cl: TPersistentClass;
-  ClNameIn, ClName: String;
+  I, P: Integer;
   F: TatRelationField;
+  CE, CE2: TgdClassEntry;
 begin
   Assert(atDatabase <> nil);
 
   if (AClassName = '') or IsNess then
   begin
     Result := True;
-    Exit;
-  end else
-    Result := False;
-
-  //Если передано имя класса с сабтайпом
-  if Pos('(', AClassName) > 0 then
-    //Вычленяем имя класса
-    ClNameIn := Copy(AClassName, 1, Pos('(', AClassName) - 1)
-  else
-    ClNameIn := AClassName;
-  ClIn := GetClass(ClNameIn);
-  if ClIn = nil then Exit;
+    exit;
+  end;
 
   F := atDatabase.FindRelationField(ARelationName, AFieldName);
 
   AnObjects := F.ObjectsList;
 
-  if (AnObjects = nil) or (AnObjects.Count = 0) then
+  if (AnObjects = nil) or (AnObjects.Count = 0)
+    or (AnObjects.IndexOf(AClassName) > -1) then
   begin
     Result := True;
     exit;
   end;
 
+  P := Pos('(', AClassName);
+
+  if P = 0 then
+    CE := gdClassList.Get(TgdBaseEntry, AClassName, '')
+  else
+    CE := gdClassList.Get(TgdBaseEntry, Copy(AClassName, 1, P - 1),
+      Copy(AClassName, P + 1, Length(AClassName) - P - 1));
+
+  Result := False;
+
   for I := 0 to AnObjects.Count - 1 do
   begin
-    ClName := AnObjects[I];
-    if SameText(ClName, AClassName) then
+    P := Pos('(', AnObjects[I]);
+
+    if P = 0 then
+      CE2 := gdClassList.Get(TgdBaseEntry, AnObjects[I], '')
+    else
+      CE2 := gdClassList.Get(TgdBaseEntry, Copy(AnObjects[I], 1, P - 1),
+        Copy(AnObjects[I], P + 1, Length(AnObjects[I]) - P - 1));
+
+    if CE.InheritsFromCE(CE2) then
     begin
       Result := True;
-      Break;
-    end;
-
-    if Pos('(', ClName) > 0 then
-    //Вычленяем имя класса
-      ClName := Copy(ClName, 1, Pos('(', ClName) - 1);
-
-    Cl := GetClass(ClName);
-    //Если выделен родитель
-    if (Cl <> nil) and (ClIn.InheritsFrom(Cl)) then
-    begin
-      Result := True;
-      Break;
+      break;
     end;
   end;
 end;
