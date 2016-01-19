@@ -95,7 +95,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvPriceLine);
+  RegisterFrmClass(TdlgInvPriceLine).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(TdlgInvPriceLine);

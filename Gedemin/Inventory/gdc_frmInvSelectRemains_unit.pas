@@ -105,7 +105,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectRemains, 'Форма выбора товарных остатков');
+  RegisterFrmClass(Tgdc_frmInvSelectRemains, 'Форма выбора товарных остатков').AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectRemains);

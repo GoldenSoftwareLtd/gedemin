@@ -5040,7 +5040,8 @@ var
     if AFE.SubType <> '' then
       IterateAncestor(AFE.Parent as TgdFormEntry);
 
-    LoadReportGroup(AFE.GroupID);
+    if not AFE.AbstractBaseForm then
+      LoadReportGroup(AFE.GroupID);
   end;
 
   procedure IterateAncestor2(ABE: TgdBaseEntry);

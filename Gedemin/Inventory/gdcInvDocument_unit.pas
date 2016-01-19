@@ -150,7 +150,7 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    //class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
 
@@ -1451,11 +1451,11 @@ begin
     FJoins.Assign(Value);
 end;
 
-class function TgdcInvDocument.GetViewFormClassName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Tgdc_frmInvDocument';
-end;
+//class function TgdcInvDocument.GetViewFormClassName(
+//  const ASubType: TgdcSubType): String;
+//begin
+//  Result := 'Tgdc_frmInvDocument';
+//end;
 
 procedure TgdcInvDocument.GetWhereClauseConditions(S: TStrings);
 var

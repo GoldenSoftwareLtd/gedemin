@@ -3239,7 +3239,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvDocument, 'Диалоговое окно шапки складского документа');
+  RegisterFrmClass(TdlgInvDocument, 'Диалоговое окно шапки складского документа').AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(TdlgInvDocument);

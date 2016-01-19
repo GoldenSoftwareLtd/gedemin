@@ -243,7 +243,8 @@ var
     if AFE.SubType <> '' then
       IterateAncestor(AFE.Parent as TgdFormEntry);
 
-    LoadMacrosGroup(AFE.MacrosGroupID);
+    if not AFE.AbstractBaseForm then
+      LoadMacrosGroup(AFE.MacrosGroupID);
   end;
 
 begin
@@ -291,10 +292,11 @@ begin
       FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
         TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
 
-      IterateAncestor(FE);
-    end
-    else
-      LoadMacrosGroup(gdcDelphiObject.FieldByName(fnMacrosGroupKey).AsInteger);
+      if FE.SubType <> '' then
+        IterateAncestor(FE.Parent as TgdFormEntry);
+    end;
+
+    LoadMacrosGroup(gdcDelphiObject.FieldByName(fnMacrosGroupKey).AsInteger);
 
   finally
     gdcDelphiObject.Free;

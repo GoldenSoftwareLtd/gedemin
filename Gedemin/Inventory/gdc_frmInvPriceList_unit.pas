@@ -104,7 +104,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvPriceList);
+  RegisterFrmClass(Tgdc_frmInvPriceList).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvPriceList);

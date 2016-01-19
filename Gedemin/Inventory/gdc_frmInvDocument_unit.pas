@@ -280,7 +280,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvDocument);
+  RegisterFrmClass(Tgdc_frmInvDocument).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvDocument);

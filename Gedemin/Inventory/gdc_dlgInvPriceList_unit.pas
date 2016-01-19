@@ -557,7 +557,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvPriceList);
+  RegisterFrmClass(TdlgInvPriceList).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(TdlgInvPriceList);

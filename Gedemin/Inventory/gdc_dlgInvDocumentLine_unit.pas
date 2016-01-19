@@ -788,7 +788,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvDocumentLine);
+  RegisterFrmClass(TdlgInvDocumentLine).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(TdlgInvDocumentLine);

@@ -294,7 +294,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgUserComplexDocument);
+  RegisterFrmClass(Tgdc_dlgUserComplexDocument).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserComplexDocument);

@@ -3587,9 +3587,8 @@ var
   TempEO: TEventObject;
   TempChildEO: TEventObject;
   OwnerEO: TEventObject;
-  PrntCompName: String;
   I: Integer;
-  CE: TgdClassEntry;
+  FE: TgdFormEntry;
 begin
   if (AnComponent = nil) or (AnEventObject =  nil) then
     raise Exception.Create('Component is not assigned.');
@@ -3602,19 +3601,21 @@ begin
 
       if TgdcCreateableForm(AnComponent).SubType > '' then
       begin
-        CE := gdClassList.Get(TgdFormEntry, AnComponent.ClassName,
-          TgdcCreateableForm(AnComponent).SubType);
+        FE := gdClassList.Get(TgdFormEntry, AnComponent.ClassName,
+          TgdcCreateableForm(AnComponent).SubType) as TgdFormEntry;
+
         repeat
-          CE := CE.Parent;
-          PrntCompName := Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
-            + SubTypeToComponentName(CE.SubType);
-
-          PrntEO := EventObjectList.FindAllObject(PrntCompName);
+          FE := FE.Parent as TgdFormEntry;
           
-          if PrntEO <> nil then
-            AnEventObject.ParentObjectsBySubType.AddObject(PrntEO);
+          if not FE.AbstractBaseForm then
+          begin
+            PrntEO := EventObjectList.FindAllObject(FE.InitialName);
+          
+            if PrntEO <> nil then
+              AnEventObject.ParentObjectsBySubType.AddObject(PrntEO);
+          end;
 
-        until CE.SubType = '';
+        until (FE.SubType = '');
       end;
     end;
   end else

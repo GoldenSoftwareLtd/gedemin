@@ -94,7 +94,7 @@ type
     constructor Create(AnOwner: TComponent); override;
 
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
-    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    //class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     procedure GetProperties(ASL: TStrings); override;
@@ -656,11 +656,11 @@ begin
   Result := dcpHeader;
 end;
 
-class function TgdcInvPriceList.GetViewFormClassName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Tgdc_frmInvPriceList';
-end;
+//class function TgdcInvPriceList.GetViewFormClassName(
+//  const ASubType: TgdcSubType): String;
+//begin
+//  Result := 'Tgdc_frmInvPriceList';
+//end;
 
 procedure TgdcInvPriceList.PrePostDocumentData;
   function Chs(S1, S2: String; IsSecond: Boolean): String;

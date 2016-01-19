@@ -119,7 +119,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmUserSimpleDocument);
+  RegisterFrmClass(Tgdc_frmUserSimpleDocument).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmUserSimpleDocument);

@@ -26,7 +26,7 @@ uses
   gd_ClassList, gdcClasses, IBSQL, gdcBaseInterface, gdcBase;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgUserDocumentLine);
+  RegisterFrmClass(Tgdc_dlgUserDocumentLine).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserDocumentLine);

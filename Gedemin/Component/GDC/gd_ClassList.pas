@@ -522,6 +522,7 @@ type
     function GetGroupID: Integer; override;
 
     function GetMacrosGroupID: Integer;
+    function GetInitialName: String;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -531,6 +532,7 @@ type
     property frmClass: CgdcCreateableForm read GetFrmClass;
     property AbstractBaseForm: Boolean read FAbstractBaseForm write FAbstractBaseForm;
     property MacrosGroupID: Integer read GetMacrosGroupID write FMacrosGroupID;
+    property InitialName: String read GetInitialName;
   end;
 
   TgdNewFormEntry = class(TgdFormEntry)
@@ -701,7 +703,7 @@ implementation
 uses
   SysUtils, gs_Exception, gd_security, gsStorage, Storages, gdcClasses,
   gd_directories_const, jclStrings, Windows, gd_CmdLineParams_unit,
-  gdcInvDocument_unit, gdcInvPriceList_unit
+  gdcInvDocument_unit, gdcInvPriceList_unit, gd_strings
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -1518,7 +1520,6 @@ end;
 function TgdFormEntry.GetGroupID: Integer;
 var
   q: TIBSQL;
-  ObjectName: String;
 begin
   if FGroupID <= 0 then
   begin
@@ -1529,10 +1530,7 @@ begin
       q.Transaction := gdcBaseManager.ReadTransaction;
       q.SQL.Text := 'SELECT * FROM evt_object WHERE Upper(objectname) = :objectname';
 
-      ObjectName := System.Copy(TheClass.ClassName, 2, Length(TheClass.ClassName) - 1)
-        + SubTypeToComponentName(SubType);
-
-      q.Params[0].AsString := UpperCase(ObjectName);
+      q.Params[0].AsString := UpperCase(InitialName);
 
       q.ExecQuery;
       if not q.Eof then
@@ -1541,7 +1539,6 @@ begin
     finally
       q.Free;
     end;
-
   end;
 
   Result := FGroupID;
@@ -1556,8 +1553,7 @@ begin
   begin
     Assert(gdcBaseManager <> nil);
 
-    ObjectName := System.Copy(TheClass.ClassName, 2, Length(TheClass.ClassName) - 1)
-      + SubTypeToComponentName(SubType);
+    ObjectName := InitialName;
 
     q := TIBSQL.Create(nil);
     try
@@ -1583,6 +1579,11 @@ begin
   end;
 
   Result := FMacrosGroupID;
+end;
+
+function TgdFormEntry.GetInitialName: String;
+begin
+  Result := Copy(frmClass.ClassName, 2, 255) + RemoveProhibitedSymbols(SubType);
 end;
 
 function TgdClassEntry.GetChildren(Index: Integer): TgdClassEntry;
@@ -2291,7 +2292,7 @@ procedure TgdClassList.LoadUserDefinedClasses;
               FNewForm.Folders[I].ReadString('GDCSubType')) = nil) then
           begin
             CEParentForm := Get(TgdFormEntry, FNewForm.Folders[I].ReadString('Class'));
-            _Create(CEParentForm, TgdNewFormEntry, CEParentForm.TheClass,
+              _Create(CEParentForm, TgdNewFormEntry, CEParentForm.TheClass,
               FNewForm.Folders[I].ReadString('GDCSubType'), FNewForm.Folders[I].Name);
           end;
         end;

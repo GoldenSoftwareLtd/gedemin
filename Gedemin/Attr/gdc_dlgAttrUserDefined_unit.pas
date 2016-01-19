@@ -49,7 +49,7 @@ uses
 { Tgdc_dlgAttrUserDefined }
 
 initialization
-  RegisterFrmClass(Tgdc_dlgAttrUserDefined);
+  RegisterFrmClass(Tgdc_dlgAttrUserDefined).AbstractBaseForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAttrUserDefined);
