@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -349,6 +349,7 @@ type
     procedure RefreshData(SQLRecord: TIBXSQLDA; aDatabase: TIBDatabase; aTransaction: TIBTransaction); overload; virtual; abstract;
 
     procedure RecordAcquired; virtual; abstract;
+    function IsNecessaryAttr(const AClassName: String): Boolean; virtual; abstract;
 
     property ID: Integer read FID;
     property FieldName: String read FFieldName write SetFieldName;

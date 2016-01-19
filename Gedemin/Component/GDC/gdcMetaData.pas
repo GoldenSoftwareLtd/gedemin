@@ -3829,6 +3829,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+  
   inherited;
 
   FChangeComputed := False;
@@ -3838,6 +3839,7 @@ begin
   with FgdcDataLink do
     if Active and (DataSet is TgdcRelation) then
       FieldByName('relationname').AsString := DataSet.FieldByName('relationname').AsString;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

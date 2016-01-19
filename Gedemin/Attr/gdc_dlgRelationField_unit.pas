@@ -404,42 +404,37 @@ begin
     if gdcObject.FieldByName('sourcenullflag').AsInteger > 0 then
       gdcObject.FieldByName('nullflag').AsInteger :=
         gdcObject.FieldByName('sourcenullflag').AsInteger;
+    if gdcObject.FieldByName('colwidth').IsNull then
+      gdcObject.FieldByName('colwidth').AsInteger := 8;
+    if gdcObject.FieldByName('visible').IsNull then
+      gdcObject.FieldByName('visible').AsInteger := 0;
   end;
 
   if gdcObject.State = dsEdit then
   begin
     dbedRelationFieldName.ReadOnly := True;
     dbedRelationFieldName.Color := clBtnFace;
-
     luFieldType.ReadOnly := True;
-
-    {
-    dbmComputed.Visible := not gdcObject.FieldByName('computed_value').IsNull;
-    lComputed.Visible := dbmComputed.Visible;
-    cbCalculated.Enabled := False;
-    cbCalculated.Checked := not gdcObject.FieldByName('computed_value').IsNull;
-    }
-
-    if gdcObject.FieldByName('colwidth').IsNull then
-      gdcObject.FieldByName('colwidth').AsInteger := 8;
-    if gdcObject.FieldByName('visible').IsNull then
-      gdcObject.FieldByName('visible').AsInteger := 0;
-
     dbcbNotNull.Enabled := False;
-  end else
-  begin
-    luFieldType.Enabled := True;
-    //cbCalculated.Enabled := True;
-    dbcbNotNull.Enabled := True;
-  end;
-
-  (gdcObject as TgdcRelationField).ChangeComputed := False;
-
-  //установка правила удаления
-  if gdcObject.State = dsEdit then
-  begin
     edDefaultValue.Enabled := False;
     lblDefaultValue.Enabled := False;
+
+    if gdcObject.FieldByName('computed_value').IsNull then
+    begin
+      tsType.Visible := True;
+      tsType.TabVisible := True;
+      tsCalculated.TabVisible := False;
+      tsCalculated.Visible := False;
+      pcType.ActivePage := tsType;
+    end else
+    begin
+      tsType.Visible := False;
+      tsType.TabVisible := False;
+      tsCalculated.TabVisible := True;
+      tsCalculated.Visible := True;
+      pcType.ActivePage := tsCalculated;
+    end;
+
     Field := TgdcField.CreateSubType(nil, '', 'ByID');
     try
       if gdcObject.Transaction.InTransaction then
@@ -469,7 +464,14 @@ begin
     finally
       Field.Free;
     end;
+  end else
+  begin
+    luFieldType.Enabled := True;
+    //cbCalculated.Enabled := True;
+    dbcbNotNull.Enabled := True;
   end;
+
+  (gdcObject as TgdcRelationField).ChangeComputed := False;
 
   lbClasses.Items.CommaText := gdcObject.FieldByName('objects').AsString;
 
