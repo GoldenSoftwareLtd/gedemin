@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -124,8 +124,6 @@ type
 
     function AdjustSQL(const Text: String;
       const ObjectClassName: String = ''): String;
-    function IsNecessaryAttr(const AClassName, AFieldName, ARelationName: String;
-      const IsNess: Boolean): Boolean;
 
     procedure ChangeSQL(Parser: TsqlParser);
     //используется при разборе селект с добавлением необходимых аттрибутов
@@ -187,7 +185,7 @@ type
 implementation
 
 uses
-  jclSelected, ZLib, gd_ClassList;
+  jclSelected, ZLib;
 
 var
   atSQLSetupCache: TStringList;
@@ -709,7 +707,7 @@ begin
       atField := atTable.RelationFields[I];
 
       if atField.IsUserDefined and (Parser.ObjectClassName > '') then
-        NecessaryAttr := IsNecessaryAttr(Parser.ObjectClassName, atField.FieldName, atField.Relation.RelationName, False)
+        NecessaryAttr := atField.IsNecessaryAttr(Parser.ObjectClassName)
       else
         NecessaryAttr := True;
 
@@ -831,9 +829,8 @@ begin
     begin
       atField := atTable.RelationFields[I];
 
-
       if atField.IsUserDefined and (Parser.ObjectClassName > '') then
-        NecessaryAttr := IsNecessaryAttr(Parser.ObjectClassName, atField.FieldName, atField.Relation.RelationName, False)
+        NecessaryAttr := atField.IsNecessaryAttr(Parser.ObjectClassName)
       else
         NecessaryAttr := True;
 
@@ -1359,7 +1356,7 @@ begin
         end;
 
         if F.IsUserDefined then
-          NecessaryAttr := IsNecessaryAttr(Parser.ObjectClassName, F.FieldName, F.Relation.RelationName, NecessaryAttr);
+          NecessaryAttr := NecessaryAttr or F.IsNecessaryAttr(Parser.ObjectClassName);
         //Добавляем поле-аттрибут, если оно прописано для даного класса, если не указан класс,
         //если это поле из множества, или если это не атрибут
         if NecessaryAttr or (not F.IsUserDefined) or
@@ -1568,59 +1565,6 @@ begin
 
   if Full.Union <> nil then
     ChangeFullEx(Parser, Full.Union);
-end;
-
-function TatSQLSetup.IsNecessaryAttr(const AClassName, AFieldName, ARelationName: String;
-  const IsNess: Boolean): Boolean;
-var
-  AnObjects: TStringList;
-  I, P: Integer;
-  F: TatRelationField;
-  CETested, CEAllowed: TgdClassEntry;
-begin
-  Assert(atDatabase <> nil);
-
-  if (AClassName = '') or IsNess then
-  begin
-    Result := True;
-    exit;
-  end;
-
-  F := atDatabase.FindRelationField(ARelationName, AFieldName);
-
-  AnObjects := F.ObjectsList;
-
-  if (AnObjects = nil) or (AnObjects.Count = 0) then
-  begin
-    Result := True;
-    exit;
-  end;
-
-  P := Pos('(', AClassName);
-
-  if P = 0 then
-    CETested := gdClassList.Get(TgdBaseEntry, AClassName, '')
-  else
-    CETested := gdClassList.Get(TgdBaseEntry, Copy(AClassName, 1, P - 1),
-      Copy(AClassName, P + 1, Length(AClassName) - P - 1));
-
-  Result := False;
-  I := 0;
-  while (not Result) and (I < AnObjects.Count) do
-  begin
-    P := Pos('(', AnObjects[I]);
-
-    if P = 0 then
-      CEAllowed := gdClassList.Find(AnObjects[I], '')
-    else
-      CEAllowed := gdClassList.Find(Copy(AnObjects[I], 1, P - 1),
-        Copy(AnObjects[I], P + 1, Length(AnObjects[I]) - P - 1));
-
-    if CEAllowed <> nil then
-      Result := CETested.InheritsFromCE(CEAllowed);
-      
-    Inc(I);
-  end;
 end;
 
 { TatIgnore }

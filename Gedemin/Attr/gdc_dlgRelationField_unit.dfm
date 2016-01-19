@@ -153,9 +153,9 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object pnlType: TPanel
         Left = 0
-        Top = 232
+        Top = 216
         Width = 455
-        Height = 137
+        Height = 153
         Align = alBottom
         BevelOuter = bvNone
         BorderWidth = 4
@@ -164,7 +164,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
           Left = 4
           Top = 4
           Width = 447
-          Height = 129
+          Height = 145
           ActivePage = tsType
           Align = alClient
           TabOrder = 0
@@ -172,14 +172,14 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
             Caption = 'Тип данных'
             object lblDefaultValue: TLabel
               Left = 4
-              Top = 64
+              Top = 92
               Width = 127
               Height = 13
               Caption = 'Значение по умолчанию:'
             end
             object lblRuleDelete: TLabel
               Left = 4
-              Top = 39
+              Top = 63
               Width = 112
               Height = 13
               Caption = 'При удалении записи:'
@@ -187,25 +187,25 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
             end
             object Label6: TLabel
               Left = 4
-              Top = 10
+              Top = 9
               Width = 49
               Height = 13
               Caption = 'Тип поля:'
             end
             object dbcbNotNull: TDBCheckBox
-              Left = 340
-              Top = 10
+              Left = 136
+              Top = 35
               Width = 57
               Height = 17
               Caption = 'Not Null'
               DataField = 'nullflag'
               DataSource = dsgdcBase
-              TabOrder = 0
+              TabOrder = 1
               ValueChecked = '1'
               ValueUnchecked = '0'
             end
             object luFieldType: TgsIBLookupComboBox
-              Left = 128
+              Left = 136
               Top = 6
               Width = 201
               Height = 21
@@ -223,29 +223,29 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
               ItemHeight = 13
               ParentShowHint = False
               ShowHint = True
-              TabOrder = 1
+              TabOrder = 0
               OnChange = luFieldTypeChange
             end
             object edDefaultValue: TDBMemo
               Left = 136
-              Top = 60
+              Top = 89
               Width = 201
               Height = 21
               DataField = 'defsource'
               DataSource = dsgdcBase
-              TabOrder = 2
+              TabOrder = 3
               WordWrap = False
             end
             object cmbRuleDelete: TComboBox
-              Left = 128
-              Top = 35
+              Left = 136
+              Top = 60
               Width = 201
               Height = 21
               Style = csDropDownList
               ItemHeight = 13
               ParentShowHint = False
               ShowHint = True
-              TabOrder = 3
+              TabOrder = 2
               Visible = False
               Items.Strings = (
                 'RESTRICT'
@@ -272,7 +272,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
               Left = 0
               Top = 13
               Width = 435
-              Height = 84
+              Height = 100
               Align = alClient
               DataField = 'COMPUTED_VALUE'
               DataSource = dsgdcBase

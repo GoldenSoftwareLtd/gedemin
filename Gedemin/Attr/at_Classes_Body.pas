@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -249,6 +249,7 @@ type
     procedure RefreshData(aDatabase: TIBDatabase; aTransaction: TIBTransaction); overload; override;
     procedure RefreshData(SQLRecord: TIBXSQLDA; aDatabase: TIBDatabase;
       aTransaction: TIBTransaction); overload; override;
+    function IsNecessaryAttr(const AClassName: String): Boolean; override;
 
     procedure RecordAcquired; override;
   end;
@@ -338,7 +339,6 @@ type
     procedure Delete(const Index: Integer); override;
     function ByConstraintName(AConstraintName: String): TatForeignKey; override;
 
-{ TODO : вернет только первый! а остальные? }
     function ByRelationAndReferencedRelation(const ARelationName,
       AReferencedRelationName: String): TatForeignKey; override;
 
@@ -458,12 +458,8 @@ type
   EatDatabaseError = class(Exception);
 
 procedure InitDatabase(IBTransaction: TIBTransaction);
-
 procedure GetTableName(DS: TDataSet; const FieldName: String; out AliasName, TableName: String);
-//procedure LocalizeDataSet(DS: TDataSet);
-
 function UpdateIBName(const IBName: String): String;
-
 function RelationTypeToChar(const ARelationType: TatRelationType): String;
 
 implementation
@@ -672,7 +668,7 @@ var
 begin
   //без полей не может быть создан ни один констрэйнт
   if RelationFields.Count = 0 then
-    Exit;
+    exit;
 
   ibsql := TIBSQL.Create(nil);
   List := TObjectList.Create(False);
@@ -847,9 +843,7 @@ procedure TatBodyRelation.RefreshConstraints;
 begin
   try
     RefreshConstraints(FDatabase.Database, FDatabase.Transaction);
-
     FDatabase.Transaction.Commit;
-
   finally
     if FDatabase.Transaction.Active then
       FDatabase.Transaction.RollBack;
@@ -860,8 +854,6 @@ procedure TatBodyRelation.RecordAcquired;
 var
   ibsql: TIBSQL;
 begin
-  //if FRelationType = rtGedeminGlobalNamespace then Exit;
-
   Assert(not FHasRecord);
   ibsql := TIBSQL.Create(nil);
 
@@ -1052,11 +1044,8 @@ begin
     else
       raise EatDatabaseError.CreateFmt(
         'Relation %s not found in AT_RELATIONS table!', [FRelationName]);
-
-    ibsql.Close;
   finally
     ibsql.Free;
-
   end;
 end;
 
@@ -1311,8 +1300,6 @@ begin
 
       ibsql.Next;
     end;
-
-    ibsql.Close;
   finally
     ibsql.Free;
   end;
@@ -1580,7 +1567,6 @@ begin
 
     FRelation.RefreshConstraints(aDatabase, aTransaction);
     TatBodyRelation(FRelation).RefreshFormat(aDatabase, aTransaction);
-
   finally
     ibsql.Free;
   end;
@@ -1593,10 +1579,6 @@ begin
       TatBodyRelation(FRelation).FDatabase.Transaction);
 
     TatBodyRelation(FRelation).FDatabase.Transaction.Commit;
-
-{    FRelation.RefreshConstraints;
-    TatBodyRelation(FRelation).RefreshFormat;}
-
   finally
     if TatBodyRelation(FRelation).FDatabase.Transaction.Active then
       TatBodyRelation(FRelation).FDatabase.Transaction.RollBack;
@@ -1841,12 +1823,9 @@ begin
 
       ibsql.Next;
     end;
-
-    ibsql.Close;
   finally
     ibsql.Free;
   end;
-
 end;
 
 procedure TatBodyFields.RefreshData;
@@ -2074,9 +2053,7 @@ var
   ibsql: TIBSQL;
 begin
   ibsql := TIBSQL.Create(nil);
-
   try
-    ibsql.Database := aDatabase;
     ibsql.Transaction := aTransaction;
 
     if not ibsql.Transaction.InTransaction then
@@ -2100,9 +2077,6 @@ begin
       if Pos('RDB$', FFieldName) = 0 then
         raise EatDatabaseError.CreateFmt(
           'Field Type %s not found in AT_FIELDS table!', [FFieldName]);
-
-    ibsql.Close;
-
   finally
     ibsql.Free;
   end;
@@ -2112,9 +2086,7 @@ procedure TatBodyField.RefreshData;
 begin
   try
     RefreshData(FDatabase.Database, FDatabase.Transaction);
-
     FDatabase.Transaction.Commit;
-
   finally
     if FDatabase.Transaction.Active then
       FDatabase.Transaction.RollBack;
@@ -2664,7 +2636,6 @@ begin
 
   Clear;
 
-  //!!!
   Clear_atSQLSetupCache;
 
   FLoading := True;
@@ -4090,6 +4061,43 @@ begin
   FIsSecurityDescriptor := (FFieldName = 'AFULL')
     or (FFieldName = 'ACHAG')
     or (FFieldName = 'AVIEW');
+end;
+
+function TatBodyRelationField.IsNecessaryAttr(
+  const AClassName: String): Boolean;
+var
+  I, P: Integer;
+  CETested, CEAllowed: TgdClassEntry;
+begin
+  if (FObjectsList = nil) or (FObjectsList.Count = 0) then
+    Result := True
+  else begin
+    P := Pos('(', AClassName);
+
+    if P = 0 then
+      CETested := gdClassList.Get(TgdBaseEntry, AClassName, '')
+    else
+      CETested := gdClassList.Get(TgdBaseEntry, Copy(AClassName, 1, P - 1),
+        Copy(AClassName, P + 1, Length(AClassName) - P - 1));
+
+    Result := False;
+    I := 0;
+    while (not Result) and (I < FObjectsList.Count) do
+    begin
+      P := Pos('(', FObjectsList[I]);
+
+      if P = 0 then
+        CEAllowed := gdClassList.Find(FObjectsList[I], '')
+      else
+        CEAllowed := gdClassList.Find(Copy(FObjectsList[I], 1, P - 1),
+          Copy(FObjectsList[I], P + 1, Length(FObjectsList[I]) - P - 1));
+
+      if CEAllowed <> nil then
+        Result := CETested.InheritsFromCE(CEAllowed);
+
+      Inc(I);
+    end;
+  end;
 end;
 
 { TatBodyForeignKeys }
