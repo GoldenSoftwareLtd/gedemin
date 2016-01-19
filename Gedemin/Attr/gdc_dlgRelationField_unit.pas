@@ -79,7 +79,7 @@ type
     tsType: TTabSheet;
     lblDefaultValue: TLabel;
     lblRuleDelete: TLabel;
-    Label6: TLabel;
+    lblFieldType: TLabel;
     dbcbNotNull: TDBCheckBox;
     luFieldType: TgsIBLookupComboBox;
     edDefaultValue: TDBMemo;
@@ -95,7 +95,6 @@ type
       Shift: TShiftState);
     procedure dbedRelationFieldNameKeyPress(Sender: TObject;
       var Key: Char);
-    procedure pcRelationFieldChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actDelBCExecute(Sender: TObject);
     procedure actDelBCUpdate(Sender: TObject);
@@ -104,9 +103,6 @@ type
     procedure actDelObjectUpdate(Sender: TObject);
     procedure actDelObjectExecute(Sender: TObject);
     procedure actAddObjectExecute(Sender: TObject);
-
-  private
-    IsNeedDefault: Boolean;
 
   protected
     procedure BeforePost; override;
@@ -184,6 +180,17 @@ begin
         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
       Result := False;
     end;
+
+    if Length(dbedRelationFieldName.Text) <= Length(UserPrefix) then
+    begin
+      pcRelationField.ActivePage := tsCommon;
+      dbedRelationFieldName.SetFocus;
+      MessageBox(Handle,
+        'Укажите название поля на английском языке!',
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      Result := False;
+    end;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'TESTCORRECT', KEYTESTCORRECT)}
@@ -239,29 +246,31 @@ begin
 
         if not Field.FieldByName('defsource').IsNull then
         begin
-          edDefaultValue.Text := Trim(copy(Field.FieldByName('defsource').AsString, 9, 255));
-          if edDefaultValue.Text[1] = '''' then
+          edDefaultValue.Text := Trim(Copy(Field.FieldByName('defsource').AsString, 9, 255));
+          if (Length(edDefaultValue.Text) > 0) and (edDefaultValue.Text[1] = '''') then
             edDefaultValue.Text := System.Copy(edDefaultValue.Text, 2,
               Length(edDefaultValue.Text) - 2);
-        end
-        else
+        end else
           edDefaultValue.Text := '';
 
         if (not Field.FieldByName('reftable').IsNull) or
-          (not Field.FieldByName('reflistfield').IsNull)  then
+          (not Field.FieldByName('reflistfield').IsNull) then
         begin
           pnlBC.Visible := True;
           lblRuleDelete.Visible := True;
           cmbRuleDelete.Visible := True;
           if gdcObject.State = dsInsert then
-            cmbRuleDelete.ItemIndex := 0
-          else
           begin
+            lblRuleDelete.Enabled := True;
+            cmbRuleDelete.Enabled := True;
+            cmbRuleDelete.ItemIndex := 0;
+          end else
+          begin
+            lblRuleDelete.Enabled := False;
+            cmbRuleDelete.Enabled := False;
             cmbRuleDelete.ItemIndex := cmbRuleDelete.Items.IndexOf(
               UpperCase(Trim(gdcObject.FieldByName('deleterule').AsString)));
           end;
-          lblRuleDelete.Enabled := gdcObject.State = dsInsert;
-          cmbRuleDelete.Enabled := gdcObject.State = dsInsert;
         end else
         begin
           pnlBC.Visible := False;
@@ -269,25 +278,39 @@ begin
           cmbRuleDelete.Visible := False;
         end;
 
-        if (Trim(Field.FieldByName('fieldname').AsString) <> Trim(Field.FieldByName('lname').AsString)) then
+        if Trim(Field.FieldByName('fieldname').AsString) <> Trim(Field.FieldByName('lname').AsString) then
         begin
           if ((gdcObject.FieldByName('fieldname').AsString = gdcObject.FieldByName('lname').AsString)
-            or gdcObject.FieldByName('lname').IsNull)
-          then
+            or gdcObject.FieldByName('lname').IsNull) then
+          begin
             gdcObject.FieldByName('lname').AsString := Field.FieldByName('lname').AsString;
+          end;
 
           if ((gdcObject.FieldByName('fieldname').AsString = gdcObject.FieldByName('lshortname').AsString)
-            or gdcObject.FieldByName('lshortname').IsNull)
-          then
+            or gdcObject.FieldByName('lshortname').IsNull) then
+          begin
             gdcObject.FieldByName('lshortname').AsString :=
               Copy(Field.FieldByName('lname').AsString, 1, gdcObject.FieldByName('lshortname').Size);
+          end;
         end;
 
-        gdcObject.FieldByName('gdclassname').AsString :=
-          Field.FieldByName('gdclassname').AsString;
+        if Field.FieldByName('gdclassname').IsNull then
+          gdcObject.FieldByName('gdclassname').Clear
+        else
+          gdcObject.FieldByName('gdclassname').AsString := Field.FieldByName('gdclassname').AsString;
 
-        gdcObject.FieldByName('gdsubtype').AsString :=
-          Field.FieldByName('gdsubtype').AsString;
+        if Field.FieldByName('gdsubtype').IsNull then
+          gdcObject.FieldByName('gdsubtype').Clear
+        else
+          gdcObject.FieldByName('gdsubtype').AsString := Field.FieldByName('gdsubtype').AsString;
+
+        dbedFormat.Enabled:= Field.FieldByName('ffieldtype').AsInteger in
+            [blr_d_float, blr_double, blr_float,
+             blr_long, blr_int64, blr_short,
+             blr_sql_date, blr_sql_time, blr_timestamp];
+        lblFormat.Enabled:= dbedFormat.Enabled;
+        if not dbedFormat.Enabled then
+          dbedFormat.Text := '';
       finally
         Field.Free;
       end;
@@ -340,18 +363,14 @@ begin
   //  Проверка наличия префикса поля пользователя
   if gdcObject.State = dsInsert then
   begin
-    if Trim(dbedRelationFieldName.Text) <> dbedRelationFieldName.Text then
-      dbedRelationFieldName.Text := Trim(dbedRelationFieldName.Text);
+    gdcObject.FieldbyName('fieldname').AsString := Trim(gdcObject.FieldbyName('fieldname').AsString);
 
-    if StrIPos(UserPrefix, dbedRelationFieldName.Text) <> 1 then
-      dbedRelationFieldName.Text := UserPrefix + dbedRelationFieldName.Text;
+    if StrIPos(UserPrefix, gdcObject.FieldbyName('fieldname').AsString) <> 1 then
+      gdcObject.FieldbyName('fieldname').AsString := UserPrefix + gdcObject.FieldbyName('fieldname').AsString;
 
-    if Length(dbedRelationFieldName.Text) <= Length(UserPrefix) then
-      raise Egdc_dlgRelationField.Create('Укажите название поля на английском языке!');
+    if cmbRuleDelete.Visible then
+      gdcObject.FieldByName('deleterule').asString := cmbRuleDelete.Text;
   end;
-
-  if (gdcObject.State = dsInsert) and cmbRuleDelete.Visible then
-    gdcObject.FieldByName('deleterule').asString := cmbRuleDelete.Text;
 
   if lbClasses.Items.Count > 0 then
     gdcObject.FieldByName('objects').AsString := lbClasses.Items.CommaText
@@ -395,80 +414,96 @@ begin
   {M}    end;
   {END MACRO}
 
+  Assert(gdcObject.State in dsEditModes);
+
   inherited;
 
-  IsNeedDefault := False;
-
-  if gdcObject.State in dsEditModes then
-  begin
-    if gdcObject.FieldByName('sourcenullflag').AsInteger > 0 then
-      gdcObject.FieldByName('nullflag').AsInteger :=
-        gdcObject.FieldByName('sourcenullflag').AsInteger;
-    if gdcObject.FieldByName('colwidth').IsNull then
-      gdcObject.FieldByName('colwidth').AsInteger := 8;
-    if gdcObject.FieldByName('visible').IsNull then
-      gdcObject.FieldByName('visible').AsInteger := 0;
-  end;
+  if gdcObject.FieldByName('sourcenullflag').AsInteger > 0 then
+    gdcObject.FieldByName('nullflag').AsInteger :=
+      gdcObject.FieldByName('sourcenullflag').AsInteger;
+  if gdcObject.FieldByName('colwidth').IsNull then
+    gdcObject.FieldByName('colwidth').AsInteger := 8;
+  if gdcObject.FieldByName('visible').IsNull then
+    gdcObject.FieldByName('visible').AsInteger := 0;
 
   if gdcObject.State = dsEdit then
   begin
     dbedRelationFieldName.ReadOnly := True;
     dbedRelationFieldName.Color := clBtnFace;
     luFieldType.ReadOnly := True;
+    lblFieldType.Enabled := False;
     dbcbNotNull.Enabled := False;
     edDefaultValue.Enabled := False;
     lblDefaultValue.Enabled := False;
+    dbmComputed.ReadOnly := True;
 
     if gdcObject.FieldByName('computed_value').IsNull then
     begin
-      tsType.Visible := True;
-      tsType.TabVisible := True;
       tsCalculated.TabVisible := False;
-      tsCalculated.Visible := False;
+      tsType.TabVisible := True;
       pcType.ActivePage := tsType;
     end else
     begin
-      tsType.Visible := False;
       tsType.TabVisible := False;
       tsCalculated.TabVisible := True;
-      tsCalculated.Visible := True;
       pcType.ActivePage := tsCalculated;
     end;
 
     Field := TgdcField.CreateSubType(nil, '', 'ByID');
     try
-      if gdcObject.Transaction.InTransaction then
-      begin
-        Field.ReadTransaction := gdcObject.Transaction;
-      end;
       Field.Transaction := gdcObject.Transaction;
       Field.ID := gdcObject.FieldByName('fieldsourcekey').AsInteger;
       Field.Open;
-      if not Field.EOF then
+      if (not Field.EOF) and ((not Field.FieldByName('reftable').IsNull) or
+        (not Field.FieldByName('reflistfield').IsNull)) then
       begin
-        if Field.FieldByName('flag').AsInteger = 1 then
-          IsNeedDefault := True;
-
-        if not Field.FieldByName('reftable').IsNull or
-          not Field.FieldByName('reflistfield').IsNull  then
-        begin
-          lblRuleDelete.Visible := True;
-          cmbRuleDelete.Visible := True;
-          cmbRuleDelete.ItemIndex := cmbRuleDelete.Items.IndexOf(
-            UpperCase(Trim(gdcObject.FieldByName('deleterule').AsString)));
-          lblRuleDelete.Enabled := False;
-          cmbRuleDelete.Enabled := False;
-        end;
-      end else
+        lblRuleDelete.Visible := True;
+        cmbRuleDelete.Visible := True;
+        cmbRuleDelete.ItemIndex := cmbRuleDelete.Items.IndexOf(
+          UpperCase(Trim(gdcObject.FieldByName('deleterule').AsString)));
+        lblRuleDelete.Enabled := False;
         cmbRuleDelete.Enabled := False;
+        pnlBC.Visible := True;
+      end
+      else
+      begin
+        lblRuleDelete.Visible := False;
+        cmbRuleDelete.Visible := False;
+        pnlBC.Visible := False;
+      end;
+
+      dbedFormat.Enabled := Field.FieldByName('ffieldtype').AsInteger in
+          [blr_d_float, blr_double, blr_float,
+           blr_long, blr_int64, blr_short,
+           blr_sql_date, blr_sql_time, blr_timestamp];
+      lblFormat.Enabled := dbedFormat.Enabled;
+      if not dbedFormat.Enabled then
+        dbedFormat.Text := '';
     finally
       Field.Free;
     end;
   end else
   begin
-    luFieldType.Enabled := True;
-    //cbCalculated.Enabled := True;
+    dbedRelationFieldName.ReadOnly := False;
+    dbedRelationFieldName.Color := clWindow;
+    luFieldType.ReadOnly := False;
+    lblFieldType.Enabled := True;
     dbcbNotNull.Enabled := True;
+    edDefaultValue.Enabled := True;
+    lblDefaultValue.Enabled := True;
+    dbmComputed.ReadOnly := False;
+
+    tsCalculated.TabVisible := True;
+    tsType.TabVisible := True;
+    pcType.ActivePage := tsType;
+
+    lblRuleDelete.Visible := False;
+    cmbRuleDelete.Visible := False;
+
+    pnlBC.Visible := False;
+
+    lblFormat.Enabled := True;
+    dbedFormat.Enabled := True;
   end;
 
   (gdcObject as TgdcRelationField).ChangeComputed := False;
@@ -486,7 +521,7 @@ end;
 procedure Tgdc_dlgRelationField.dbedRelationFieldNameEnter(
   Sender: TObject);
 var
-  S: string;
+  S: String;
 begin
   S:= '00000409';
   LoadKeyboardLayout(@S[1], KLF_ACTIVATE);
@@ -495,9 +530,8 @@ end;
 procedure Tgdc_dlgRelationField.dbedRelationFieldNameKeyDown(
   Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-  if ((Shift = [ssShift]) and (Key = VK_INSERT)) or ((Shift = [ssCtrl]) and (Chr(Key) in ['V', 'v'])) then begin
+  if ((Shift = [ssShift]) and (Key = VK_INSERT)) or ((Shift = [ssCtrl]) and (Chr(Key) in ['V', 'v'])) then
     CheckClipboardForName;
-  end;
 end;
 
 procedure Tgdc_dlgRelationField.dbedRelationFieldNameKeyPress(
@@ -506,38 +540,9 @@ begin
   Key:= CheckNameChar(Key);
 end;
 
-procedure Tgdc_dlgRelationField.pcRelationFieldChange(Sender: TObject);
-var
-  Field: TgdcField;
-begin
-  if pcrelationField.ActivePage = tsVisualSettings then
-  begin
-    if luFieldType.CurrentKey > '' then
-    begin
-      Field := TgdcField.Create(nil);
-      try
-        Field.SubSet := 'ByID';
-        Field.ID := StrToInt(luFieldType.CurrentKey);
-        Field.Open;
-
-        dbedFormat.Enabled:= Field.FieldByName('ffieldtype').AsInteger in
-            [blr_d_float, blr_double, blr_float,
-             blr_long, blr_int64, blr_short,
-             blr_sql_date, blr_sql_time, blr_timestamp];
-        lblFormat.Enabled:= dbedFormat.Enabled;
-        if not dbedFormat.Enabled then
-          dbedFormat.Text:= '';
-      finally
-        Field.Free;
-      end;
-    end;
-  end;
-end;
-
 procedure Tgdc_dlgRelationField.FormCreate(Sender: TObject);
 begin
   inherited;
-
   pcRelationField.ActivePage := tsCommon;
 end;
 
@@ -604,7 +609,11 @@ begin
         S := FC.gdClassName;
 
       if lbClasses.Items.IndexOf(S) = -1 then
+      begin
         lbClasses.Items.Add(S);
+        if lbClasses.ItemIndex = -1 then
+          lbClasses.ItemIndex := 0;
+      end;
     end;
   finally
     Free;

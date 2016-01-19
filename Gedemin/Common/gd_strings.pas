@@ -23,9 +23,13 @@ uses Clipbrd
   ;
 
 function RemoveProhibitedSymbols(const S: String): String;
+var
+  I: Integer;
 begin
-  Result := StringReplace(StringReplace(S, '$', '_', [rfReplaceAll]),
-    ' ', '_', [rfReplaceAll]);
+  Result := S;
+  for I := 1 to Length(S) do
+    if (Result[I] = '$') or (Result[I] = ' ') then
+      Result[I] := '_';
 end;
 
 function PasteSQL(Editor: TCustomSynEdit): boolean;
