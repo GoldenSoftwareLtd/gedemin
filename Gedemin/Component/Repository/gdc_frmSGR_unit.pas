@@ -411,7 +411,11 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmSGR, 'Форма просмотра с таблицей').AbstractBaseForm := True;
+  with RegisterFrmClass(Tgdc_frmSGR, 'Форма просмотра с таблицей') do
+  begin
+    AbstractBaseForm := True;
+    FormEditForm := True;
+  end;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmSGR);

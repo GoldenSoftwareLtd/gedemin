@@ -426,7 +426,11 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmMD2H, 'Master-detail-subdetail форма').AbstractBaseForm := True;
+  with RegisterFrmClass(Tgdc_frmMD2H, 'Master-detail-subdetail форма') do
+  begin
+    AbstractBaseForm := True;
+    FormEditForm := True;
+  end;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMD2H);

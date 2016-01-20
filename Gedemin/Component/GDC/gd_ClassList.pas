@@ -514,6 +514,8 @@ type
   TgdFormEntry = class(TgdClassEntry)
   private
     FAbstractBaseForm: Boolean;
+    // формы доступные для наследования из редактора экранных форм
+    FFormEditForm: Boolean;
 
     FMacrosGroupID: Integer;
 
@@ -531,6 +533,7 @@ type
 
     property frmClass: CgdcCreateableForm read GetFrmClass;
     property AbstractBaseForm: Boolean read FAbstractBaseForm write FAbstractBaseForm;
+    property FormEditForm: Boolean read FFormEditForm write FFormEditForm;
     property MacrosGroupID: Integer read GetMacrosGroupID write FMacrosGroupID;
     property InitialName: String read GetInitialName;
   end;

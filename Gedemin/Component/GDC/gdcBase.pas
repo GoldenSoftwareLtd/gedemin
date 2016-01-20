@@ -4958,6 +4958,7 @@ var
   ReportGroup: TscrReportGroup;
   BE: TgdBaseEntry;
   FE: TgdFormEntry;
+  q: TIBSQL;
 
   procedure FillMenu(const Parent: TObject);
   var
@@ -5088,7 +5089,22 @@ begin
           FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
             TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
 
-          IterateAncestor(FE);
+          if FE.FormEditForm then
+          begin
+            q := TIBSQL.Create(nil);
+            try
+              q.Transaction := ReadTransaction;
+              q.SQL.Text := 'SELECT * FROM evt_object WHERE Upper(objectname) = :objectname';
+              q.Params[0].AsString := UpperCase(TCreateableForm(Owner).InitialName);
+              q.ExecQuery;
+              if not q.Eof then
+                LoadReportGroup(q.FieldByName('reportgroupkey').AsInteger);
+            finally
+              q.Free;
+            end;
+          end
+          else
+            IterateAncestor(FE);
         end;
         //else
           // вот здесь не понятно кто еще кроме формы может быть овнером?

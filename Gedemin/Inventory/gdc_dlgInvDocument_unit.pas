@@ -3239,7 +3239,11 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvDocument, 'Диалоговое окно шапки складского документа').AbstractBaseForm := True;
+  with RegisterFrmClass(TdlgInvDocument, 'Диалоговое окно шапки складского документа') do
+  begin
+    AbstractBaseForm := True;
+    FormEditForm := True;
+  end
 
 finalization
   UnRegisterFrmClass(TdlgInvDocument);

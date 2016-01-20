@@ -91,7 +91,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgTR, 'Диалоговое окно с транзакцией');
+  RegisterFrmClass(Tgdc_dlgTR, 'Диалоговое окно с транзакцией').FormEditForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgTR);

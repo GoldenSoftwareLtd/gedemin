@@ -89,7 +89,10 @@ type
 
     procedure FormOnCloseQuery(Sender: TObject; var CanClose: Boolean);
     function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;    
+      AData2: Pointer): Boolean;
+
+    function FillAncestorFormList(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
   end;
 
 var
@@ -108,9 +111,6 @@ uses
   gdv_frmG_unit, gdc_frmMD2H_unit, gdc_dlgInvDocument_unit;
 
 {$R *.DFM}
-
-var
-  AncestorFormList: TClassList;
 
 procedure Tdlg_NewForm_Wzrd.actPrevExecute(Sender: TObject);
 begin
@@ -175,9 +175,17 @@ begin
   Result := True;
 end;
 
+function Tdlg_NewForm_Wzrd.FillAncestorFormList(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
+begin
+  Assert(ACE <> nil);
+  if (ACE.SubType = '') and ((ACE as TgdFormEntry).FormEditForm) then
+    cbFormType.Items.AddObject(ACE.Caption + ' (' + ACE.TheClass.ClassName + ')', ACE);
+
+  Result := True;
+end;
+
 procedure Tdlg_NewForm_Wzrd.FormCreate(Sender: TObject);
-var
-  I: Integer;
 begin
   FSubTypeList := TStringList.Create;
   rbSimplyForm.Checked := True;
@@ -189,12 +197,8 @@ begin
   gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
 
   cbFormType.Clear;
-  for I := 0 to AncestorFormList.Count - 1 do
-  begin
-    cbFormType.Items.AddObject(
-      gdClassList.Get(TgdFormEntry, AncestorFormList[I].ClassName).Caption
-      + ' (' + AncestorFormList[I].ClassName + ')', Pointer(I));
-  end;
+
+  gdClassList.Traverse(TgdcCreateableForm, '', FillAncestorFormList, nil, nil);
 end;
 
 procedure Tdlg_NewForm_Wzrd.actCancelExecute(Sender: TObject);
@@ -234,18 +238,6 @@ begin
       for I := 0 to FSubTypeList.Count - 1 do
         cbGdcSubtype.Items.Add(FSubTypeList.Names[I]);
   end;
-end;
-
-procedure RegisterAncestorForm(AncestorForms: Array of TPersistentClass);
-var
-  I: Integer;
-begin
-  if not Assigned(AncestorFormList) then
-    AncestorFormList := TClassList.Create
-  else
-    AncestorFormList.Clear;
-  for I := Low(AncestorForms) to High(AncestorForms) do
-    AncestorFormList.Add(AncestorForms[I]);
 end;
 
 procedure Tdlg_NewForm_Wzrd.edFormNameExit(Sender: TObject);
@@ -290,6 +282,7 @@ var
   F: TgdcCreateableForm;
   FgdcClass: TgdcBase;
   FCS: TCreateableFormStates;
+  C: TClass;
 begin
   if rbSimplyForm.Checked then
   begin
@@ -309,11 +302,11 @@ begin
   end
   else
   begin
+    C := (cbFormType.Items.Objects[cbFormType.ItemIndex] as TgdClassEntry).TheClass;
 
-    P := TPersistentClass(AncestorFormList[Integer(cbFormType.Items.Objects[cbFormType.ItemIndex])]);
-    if P <> nil then
+    if C <> nil then
     begin
-      F := CgdcCreateableForm(P).CreateNewUser(Application, 0, FSubTypeList.Values[cbGdcSubtype.Text]);
+      F := CgdcCreateableForm(C).CreateNewUser(Application, 0, FSubTypeList.Values[cbGdcSubtype.Text]);
       F.Name := USERFORM_PREFIX + edFormName.Text;
       F.Resizer.ObjectInspectorForm.RefreshList;
       F.OnCloseQuery := FormOnCloseQuery;
@@ -368,13 +361,4 @@ begin
   FSubTypeList.Free;
 end;
 
-initialization
-  RegisterAncestorForm([Tgdc_dlgG, Tgdc_dlgTR, Tgdc_dlgTRPC, Tgdc_dlgHGR,
-                        Tgdc_frmG, Tgdc_frmMDH, Tgdc_frmMDHGR, Tgdc_frmMDHGRAccount,
-                        Tgdc_frmMDV, Tgdc_frmMDVGR, Tgdc_frmMDVTree,
-                        Tgdc_frmSGR, Tgdc_frmSGRAccount, Tgdc_frmInvViewRemains,
-                        Tgdv_frmG, Tgdc_frmMD2H, TdlgInvDocument])
-
-finalization
-  AncestorFormList.Free;
 end.

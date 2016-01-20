@@ -272,7 +272,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdv_frmG, 'Форма просмотра бухгалтерского отчета');
+  RegisterFrmClass(Tgdv_frmG, 'Форма просмотра бухгалтерского отчета').FormEditForm := True;
 
 finalization
   UnRegisterFrmClass(Tgdv_frmG);

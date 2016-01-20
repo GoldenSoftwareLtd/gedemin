@@ -2198,7 +2198,7 @@ procedure Tgdc_dlgG.actDistributeUserSettingsExecute(Sender: TObject);
 
 
 initialization
-  RegisterFrmClass(Tgdc_dlgG, 'Диалоговое окно бизнес-объекта');
+  RegisterFrmClass(Tgdc_dlgG, 'Диалоговое окно бизнес-объекта').FormEditForm := True; 
   Tgdc_dlgG.RegisterMethod;
 
 finalization
