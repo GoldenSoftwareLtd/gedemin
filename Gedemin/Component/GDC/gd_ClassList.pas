@@ -514,13 +514,10 @@ type
   TgdFormEntry = class(TgdClassEntry)
   private
     FAbstractBaseForm: Boolean;
-
     FMacrosGroupID: Integer;
 
     function GetFrmClass: CgdcCreateableForm;
-
     function GetGroupID: Integer; override;
-
     function GetMacrosGroupID: Integer;
     function GetInitialName: String;
 
@@ -1528,14 +1525,13 @@ begin
     q := TIBSQL.Create(nil);
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text := 'SELECT * FROM evt_object WHERE Upper(objectname) = :objectname';
+      q.SQL.Text := 'SELECT reportgroupkey FROM evt_object WHERE UPPER(objectname) = :objectname';
 
       q.Params[0].AsString := UpperCase(InitialName);
 
       q.ExecQuery;
       if not q.Eof then
         FGroupID := q.FieldByName('reportgroupkey').AsInteger;
-
     finally
       q.Free;
     end;
@@ -1559,19 +1555,21 @@ begin
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
         q.SQL.Text :=
-          'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname ' +
-          '  AND parent IS NULL';
+          'SELECT macrosgroupkey FROM evt_object ' +
+          'WHERE UPPER(objectname) = :objectname AND parent IS NULL';
         q.Params[0].AsString := AnsiUpperCase(ObjectName);
         q.ExecQuery;
-        if q.Eof then
+        if q.EOF then
         begin
           q.Close;
-          q.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
+          q.SQL.Text :=
+            'SELECT macrosgroupkey FROM evt_object ' +
+            'WHERE UPPER(objectname) = :objectname';
           q.Params[0].AsString := AnsiUpperCase(ObjectName);
           q.ExecQuery;
         end;
 
-        if not q.Eof then
+        if not q.EOF then
           FMacrosGroupID := q.FieldByName('macrosgroupkey').AsInteger;
     finally
       q.Free;
@@ -3074,6 +3072,8 @@ var
 begin
   if FGroupID <= 0 then
   begin
+    Assert(gdcBaseManager <> nil);
+
     q := TIBSQL.Create(nil);
     try
       q.Transaction := gdcBaseManager.ReadTransaction;

@@ -4954,10 +4954,7 @@ end;
 procedure TgdcBase.MakeReportMenu;
 var
   MenuItem: TMenuItem;
-  DidActivate: Boolean;
   ReportGroup: TscrReportGroup;
-  BE: TgdBaseEntry;
-  FE: TgdFormEntry;
 
   procedure FillMenu(const Parent: TObject);
   var
@@ -5035,9 +5032,7 @@ var
 
   procedure IterateAncestor(AFE: TgdFormEntry);
   begin
-    Assert(AFE <> nil);
-
-    if AFE.SubType <> '' then
+    if (AFE.SubType <> '') and (AFE.Parent is TgdFormEntry) then
       IterateAncestor(AFE.Parent as TgdFormEntry);
 
     if not AFE.AbstractBaseForm then
@@ -5046,11 +5041,8 @@ var
 
   procedure IterateAncestor2(ABE: TgdBaseEntry);
   begin
-    Assert(ABE <> nil);
-
-    if ABE <> ABE.GetRootSubType then
+    if (ABE <> ABE.GetRootSubType) and (ABE.Parent is TgdBaseEntry) then
       IterateAncestor2(ABE.Parent as TgdBaseEntry);
-
     LoadReportGroup(ABE.GroupID);
   end;
 
@@ -5066,45 +5058,24 @@ begin
     FpmReport := TPopupMenu.Create(Self);
   FpmReport.AutoLineReduction := Menus.maAutomatic;
 
-  DidActivate := False;
+  if IBLogin.IsUserAdmin then
+  begin
+    MenuItem := TMenuItem.Create(FpmReport);
+    MenuItem.Caption := cst_Reportregistrylist;
+    MenuItem.OnClick := DoOnReportListClick;
+    FpmReport.Items.Add(MenuItem);
+  end;
+
+  ReportGroup := TscrReportGroup.Create(FUseScriptMethod);
   try
-    if IBLogin.IsUserAdmin then
-    begin
-      MenuItem := TMenuItem.Create(FpmReport);
-      MenuItem.Caption := cst_Reportregistrylist;
-      MenuItem.OnClick := DoOnReportListClick;
-      FpmReport.Items.Add(MenuItem);
-    end;
+    if Owner is TCreateableForm then
+      IterateAncestor(gdClassList.Get(TgdFormEntry, Owner.ClassName,
+        TgdcCreateableForm(Owner).SubType) as TgdFormEntry);
 
-    ReportGroup := TscrReportGroup.Create(FUseScriptMethod);
-    try
-      ReportGroup.Transaction := ReadTransaction;
-      DidActivate := ActivateReadTransaction;
-
-      if Assigned(Owner) then
-      begin
-        if Owner is TCreateableForm then
-        begin
-          FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
-            TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
-
-          IterateAncestor(FE);
-        end;
-        //else
-          // вот здесь не понятно кто еще кроме формы может быть овнером?
-      end;
-
-      BE := gdClassList.Get(TgdBaseEntry, ClassName, SubType) as TgdBaseEntry;
-
-      IterateAncestor2(BE);
-
-    finally
-      ReportGroup.Free;
-    end;
-
+    IterateAncestor2(gdClassList.Get(TgdBaseEntry, ClassName,
+      SubType) as TgdBaseEntry);
   finally
-    if DidActivate then
-      DeactivateReadTransaction;
+    ReportGroup.Free;
   end;
 end;
 
@@ -10051,11 +10022,10 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//  ClientReport.Execute(GroupID);
+
   if Assigned(EventControl) then
-  begin
     EventControl.EditObject(Self, emReport);
-  end;
+    
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'DOONREPORTLISTCLICK', KEYDOONREPORTLISTCLICK)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -10525,7 +10495,7 @@ end;
 
 function TgdcBase.GetGroupID: Integer;
 begin
-  Result := TgdBaseEntry(gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType)).GroupID;
+  Result := gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType).GroupID;
 end;
 
 procedure TgdcBase.LoadEventList;

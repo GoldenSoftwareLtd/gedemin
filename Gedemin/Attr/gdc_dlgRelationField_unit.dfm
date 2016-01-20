@@ -2,7 +2,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
   Left = 764
   Top = 338
   HelpContext = 86
-  Caption = 'Редактирование поля'
+  Caption = 'Поле таблицы'
   ClientHeight = 435
   ClientWidth = 471
   PixelsPerInch = 96
@@ -260,7 +260,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
             object lComputed: TLabel
               Left = 0
               Top = 0
-              Width = 435
+              Width = 260
               Height = 13
               Align = alTop
               Caption = 'Выражение  для вычисляемого поля на языке SQL:'
