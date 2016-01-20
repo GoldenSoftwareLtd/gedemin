@@ -6,6 +6,9 @@ uses
   Classes, DB, IBDatabase, IBCustomDataSet, gdcBase, DBGrids;
 
 type
+  TNamespaceOp = (nopNone, nopAdd, nopDel, nopMove, nopPickOut, nopChangeProp, nopUpdate);
+  TNamespaceOps = set of TNamespaceOp;
+
   TgdcNamespaceController = class(TObject)
   private
     FIBTransaction: TIBTransaction;
@@ -27,6 +30,7 @@ type
     FInconsistentParams: Boolean;
     FMultipleObjects: Boolean;
     FHeadObjectKey: Integer;
+    FOps: TNamespaceOps;
 
     procedure DeleteFromNamespace;
     procedure MoveBetweenNamespaces;
@@ -58,6 +62,7 @@ type
     property ibdsLink: TIBDataSet read FibdsLink;
     property Enabled: Boolean read GetEnabled;
     property Tabs: TStringList read FTabs;
+    property Ops: TNamespaceOps read FOps;
   end;
 
 implementation
@@ -1337,6 +1342,7 @@ begin
       FBL := nil;
   end;
 
+  FOps := [];
   FSessionID := AnObject.GetNextID;
   Count := 0;
   FTabs.Clear;
@@ -1450,6 +1456,12 @@ begin
   if (FBL <> nil) and (FBL.Count > 1) then
     FObjectName := FObjectName + ' и еще ' +
       IntToStr(FBL.Count - 1) + ' объект(а, ов)';
+
+  if FPrevNSID = -1 then
+    System.Include(FOps, nopAdd);
+
+  if (FPrevNSID <> -1) and (FHeadObjectKey = -1) then
+    FOps := FOps + [nopMove, nopDel];
 
   Result := True;
 end;

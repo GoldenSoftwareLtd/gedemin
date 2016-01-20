@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2002 - 2015 by Golden Software of Belarus, Ltd
+  Copyright (c) 2002 - 2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -49,7 +49,6 @@ type
     FLocState: Integer;
     FDatabase: TIBDatabase;
     FTransaction: TIBTransaction;
-    //FormReportCount: TprgReportCount;
     FscrException: EScrException;
     // Если FErrorEvent <> nil, то выполняем с этим обработчиком ошибок
     FErrorEvent: TNotifyEvent;
@@ -85,8 +84,8 @@ type
     procedure SetCreateObject(const Value: TOnCreateObject);
     procedure SetCreateVBClasses(const Value: TOnCreateObject);
     procedure SetShowRaise(const Value: Boolean);
-    procedure SetDatabase(Sourse: TIBDatabase);
-    procedure SetTransaction(Sourse: TIBTransaction);
+    procedure SetDatabase(Source: TIBDatabase);
+    procedure SetTransaction(Source: TIBTransaction);
 
     procedure PrepareSourceDatabase; virtual;
     procedure UnPrepareSourceDatabase; virtual;
@@ -319,7 +318,6 @@ begin
       ScriptFactory := nil;
   end;
 
-  //FreeAndNil(FormReportCount);
   FreeAndNil(FscrException);
 
   FErrorList.Free;
@@ -419,14 +417,14 @@ begin
   FVBReportScript.ShowRaise := Value;
 end;
 
-procedure TgdScriptFactory.SetDatabase(Sourse: TIBDatabase);
+procedure TgdScriptFactory.SetDatabase(Source: TIBDatabase);
 begin
-  FDatabase := Sourse;
+  FDatabase := Source;
 end;
 
-procedure TgdScriptFactory.SetTransaction(Sourse: TIBTransaction);
+procedure TgdScriptFactory.SetTransaction(Source: TIBTransaction);
 begin
-  FTransaction := Sourse;
+  FTransaction := Source;
 end;
 
 procedure TgdScriptFactory.PrepareSourceDatabase;
@@ -470,7 +468,6 @@ begin
     glbFunctionList.ReleaseFunction(Fnc);
   end;
 end;
-
 
 procedure TgdScriptFactory.ExecuteFunctionEx
    (const AnFunction : TrpCustomFunction;
@@ -699,99 +696,6 @@ begin
   Result := FVBReportScript.OnCreateVBClasses;
 end;
 
-(*procedure TgdScriptFactory.ErrorDialog(AReportScript: TObject;
-  const AnFunction: TrpCustomFunction; const ErrorMsg: String;
-  const goException: Boolean);
-var
-  Dlg: TdlgScriptError;
-  LFunctionKey: Integer;
-//  LEvent: TNotifyEvent;
-  LErrorMsg: String;
-
-type
-  PPointer = ^Pointer;
-
-begin
-  Application.ProcessMessages;
-  if IsIconic(Application.Handle) then
-    Application.Restore;
-
-  // если не показывать, то выходим
-  // если OnError = FErrorEvent, значит используется свой обработчик, выходим
-{  LEvent := TReportScript(AReportScript).OnError;
-  if {(not FShowErrorDialog) or}
-    (Assigned(LEvent) and
-    (PPointer(@LEvent)^ <> PPointer(@FErrorEvent)^)) then
-   begin
-    if goException then
-      raise EAbort.Create(ErrorMsg)
-    else
-      Exit;
-  end;                 }
-
-{  LErrorMsg := ErrorMsg + #13#10 +
-    'Ключ скрипт-функции - ' + IntToStr(AnFunction.FunctionKey);
-  AddErrorMsgInLog(LErrorMsg);}
-
-  // Если юзер не админ и СФ это метод и событие - диалог не выводится
-  if (not IBLogin.IsIBUserAdmin) and
-    ((AnFunction.Module = scrEventModuleName) or
-      (AnFunction.Module = scrMethodModuleName)) then
-  begin
-    if goException then
-      raise EErrorScript.Create(ErrorMsg)
-    else
-      exit;
-  end;
-
-  // Создание и вывод окна диалога
-  Dlg := TdlgScriptError.Create(nil);
-  try
-    Dlg.stError.Caption :=  LErrorMsg;
-    if not IBLogin.IsUserAdmin then
-      Dlg.stError.Caption := Dlg.stError.Caption + #13#10#13#10 +
-        'Обратитесь к администратору.';
-    Dlg.ShowModal;
-    if Dlg.ModalResult = mrYes then
-    begin
-      // Вывод окна редактирования СФ
-      if Assigned(EventControl) then
-      begin
-        LFunctionKey := AnFunction.FunctionKey;
-        EventControl.EditScriptFunction(LFunctionKey);
-        if goException then
-          raise EChangedScript.create(LErrorMsg);
-      end else
-        raise Exception.Create(GetGsException(Self, 'Несоздан EventControl'));
-    end else
-      if goException then
-        raise EErrorScript.Create(LErrorMsg);
-
-  finally
-    Dlg.Free;
-  end;
-end;*)
-
-{procedure TgdScriptFactory.SetOnRSError(const Value: TNotifyEvent);
-begin
-  FVBReportScript.OnError := Value;
-end;}
-
-{procedure TgdScriptFactory.SetShowErrorDialog(const Value: Boolean);
-begin
-  FShowErrorDialog := Value;
-end;}
-
-{function TgdScriptFactory.GetShowErrorDialog: Boolean;
-begin
-  Result := FShowErrorDialog;
-end;}
-
-{function TgdScriptFactory.GetOnRSError: TNotifyEvent;
-begin
-  Result := FVBReportScript.OnError;
-end;}
-
 procedure TgdScriptFactory.ScriptTest(const AnFunction: TrpCustomFunction);
 var
   LVBRS: TReportScript;
@@ -804,7 +708,6 @@ begin
     LVBRS.OnCreateObject := FVBReportScript.OnCreateObject;
     LVBRS.OnCreateConst := FVBReportScript.OnCreateConst;
     LVBRS.OnCreateVBClasses := FVBReportScript.OnCreateVBClasses;
-//    LVBRS.OnCreateGlobalObj := FVBReportScript.OnCreateGlobalObj;
     LVBRS.OnIsCreated := FVBReportScript.OnIsCreated;
     LVBRS.IsCreate;
     LVBRS.NonLoadSFList := FVBReportScript.NonLoadSFList;
@@ -859,7 +762,6 @@ begin
             Raise Exception.Create('Массив параметров должен быть одномерный.');
         end;
 
-
         // локальное выполнение
         {$IFDEF DEBUG}
         if UseLog then
@@ -912,7 +814,6 @@ begin
         AMacros.FunctionKey := TempSQL.FieldByName('FunctionKey').AsInteger;
         AMacros.Name := AName;
         AMacros.ServerKey := TempSQL.FieldByName('ServerKey').AsInteger;
-//        AMacros.IsLocalExecute := TempSQL.FieldByName('IsLocalExecute').AsInteger = 0;
 
         Result := True;
         TempSQL.Close;
@@ -984,21 +885,21 @@ begin
 
         if Length(Trim(AnObjectName)) = 0 then
         begin
-        TempSQL.SelectSQL.Text := 'SELECT f.* '#13#10+
-          'FROM gd_function f '#13#10 +
-          'WHERE f.ModuleCode = :ObjectCode and '#13#10 +
-          ' upper(f.Name) = :FuncName';
+          TempSQL.SelectSQL.Text := 'SELECT f.* '#13#10+
+            'FROM gd_function f '#13#10 +
+            'WHERE f.ModuleCode = :ObjectCode and '#13#10 +
+            ' upper(f.Name) = :FuncName';
           TempSQL.Params[0].AsInteger := OBJ_APPLICATION;
           TempSQL.Params[1].AsString := AnsiUpperCase(AFuncName);
         end else
-          begin
-            TempSQL.SelectSQL.Text := 'SELECT f.* '#13#10+
-              'FROM gd_function f, evt_object o '#13#10 +
-              'WHERE upper(o.Name) = :ObjectName and '#13#10 +
-              'f.modulecode = o.id and upper(f.Name) = :FuncName';
-            TempSQL.Params[0].AsString := AnsiUpperCase(AnObjectName);
-            TempSQL.Params[1].AsString := AnsiUpperCase(AFuncName);
-          end;
+        begin
+          TempSQL.SelectSQL.Text := 'SELECT f.* '#13#10+
+            'FROM gd_function f, evt_object o '#13#10 +
+            'WHERE upper(o.Name) = :ObjectName and '#13#10 +
+            'f.modulecode = o.id and upper(f.Name) = :FuncName';
+          TempSQL.Params[0].AsString := AnsiUpperCase(AnObjectName);
+          TempSQL.Params[1].AsString := AnsiUpperCase(AFuncName);
+        end;
         TempSQL.Open;
         if TempSQL.Eof then
         begin
@@ -1012,7 +913,6 @@ begin
 
         AFunction.ReadFromDataSet(TempSQL);
         Result := True;
-        TempSQL.Close;
       finally
         TempSQL.Free;
       end;
@@ -1034,7 +934,6 @@ begin
     if not FindObjectFunction(AFunctionName, AObjectName, LocFunction) then
       raise Exception.Create('Скрипт-функция ' + AFunctionName + ' для объекта ' +
         AObjectName + ' не найдена.');
-
 
     // проверка на передачу параметров
     LocParams := AParams;
@@ -1089,7 +988,6 @@ procedure TgdScriptFactory.SetCreateVBClasses(
 begin
   FVBReportScript.OnCreateVBClasses := Value;
 end;
-
 
 procedure TgdScriptFactory.ResetNow;
 begin
@@ -1214,10 +1112,8 @@ begin
         AMacros.FunctionKey := TempSQL.FieldByName('FunctionKey').AsInteger;
         AMacros.Name := AName;
         AMacros.ServerKey := TempSQL.FieldByName('ServerKey').AsInteger;
-//        AMacros.IsLocalExecute := TempSQL.FieldByName('IsLocalExecute').AsInteger = 0;
 
         Result := True;
-        TempSQL.Close;
       finally
         TempSQL.Free;
       end;
@@ -1287,7 +1183,6 @@ const
       finally
         Free;
       end;
-
     finally
       if Assigned(SF) then
         glbFunctionList.ReleaseFunction(SF);
@@ -1299,7 +1194,7 @@ begin
     'Обработчик предназначен только для объектов класса TReportScript.');
 
   if (Debugger <> nil) and Debugger.IsReseted then
-    Exit;
+    exit;
 
   if FScriptExceptionError = nil then
   begin
@@ -1366,14 +1261,10 @@ begin
       end else
         AddErrorMsgInLog('**неизвестно**', LErrorItem.Msg, -1, 0);
 
-      //if Application.Terminated then
       if PeekMessage(Msg, 0, WM_QUIT, WM_QUIT, PM_NOREMOVE) then
         exit;
 
-      //Application.HandleMessage;
       Application.Restore;
-      //DefWindowProc(Application.Handle, WM_SYSCOMMAND, SC_RESTORE, 0);
-      //Application.HandleMessage;
 
       // Проверяем права пользователя и его настройки
       // Выдаем сообщение об ошибке, если пользователь не администратор, или,
@@ -1564,52 +1455,43 @@ procedure TgdScriptFactory.CreateModuleVBClass(Sender: TObject;
   const ModuleCode: Integer; VBClassArray: TgdKeyArray);
 var
   ibDatasetWork: TIBSQL;
-  //ibtrVBClass: TIBTransaction;
   SF: TrpCustomFunction;
-  i: Integer;
+  I: Integer;
 begin
   Assert(Assigned(gdcBaseManager));
 
   if VBClassArray.Count = 0 then
   begin
-    {ibtrVBClass := TIBTransaction.Create(nil);
+    ibDatasetWork := TIBSQL.Create(nil);
     try
-      ibtrVBClass.DefaultDatabase := FDatabase;
-      ibtrVBClass.StartTransaction;}
-      ibDatasetWork := TIBSQL.Create(nil);
-      try
-        ibDatasetWork.Transaction := gdcBaseManager.ReadTransaction;//ibtrVBClass;
-        ibDatasetWork.SQL.Text :=
-          'SELECT id FROM gd_function WHERE module = ''' +
-          scrVBClasses + ''' AND modulecode = :MC';
-        ibDatasetWork.ParamByName('MC').AsInteger := ModuleCode;
-        ibDatasetWork.ExecQuery;
+      ibDatasetWork.Transaction := gdcBaseManager.ReadTransaction;
+      ibDatasetWork.SQL.Text :=
+        'SELECT id FROM gd_function WHERE module = ''' +
+        scrVBClasses + ''' AND modulecode = :MC';
+      ibDatasetWork.ParamByName('MC').AsInteger := ModuleCode;
+      ibDatasetWork.ExecQuery;
 
-        VBClassArray.Clear;
+      VBClassArray.Clear;
 
-        if not ibDatasetWork.EOF then
+      if not ibDatasetWork.EOF then
+      begin
+        if not Assigned(glbFunctionList) then
+          exit;
+
+        while not ibDatasetWork.Eof do
         begin
-          if not Assigned(glbFunctionList) then
-            Exit;
-
-          while not ibDatasetWork.Eof do
+          SF := glbFunctionList.FindFunction(ibDatasetWork.FieldByName('id').AsInteger);
+          if Assigned(SF) then
           begin
-            SF := glbFunctionList.FindFunction(ibDatasetWork.FieldByName('id').AsInteger);
-            if Assigned(SF) then
-            begin
-              VBClassArray.Add(SF.FunctionKey);
-              glbFunctionList.ReleaseFunction(SF);
-            end;
-            ibDatasetWork.Next;
+            VBClassArray.Add(SF.FunctionKey);
+            glbFunctionList.ReleaseFunction(SF);
           end;
+          ibDatasetWork.Next;
         end;
-      finally
-        ibDatasetWork.Free;
       end;
-      {ibtrVBClass.Commit;
     finally
-      ibtrVBClass.Free;
-    end;}
+      ibDatasetWork.Free;
+    end;
   end;
 
   i := 0;
@@ -1731,11 +1613,6 @@ begin
     FVBReportScript.OnError := OldErrorHandler;
   end;
 end;
-
-
-initialization
-
-finalization
 
 end.
 

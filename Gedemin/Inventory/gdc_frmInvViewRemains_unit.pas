@@ -570,7 +570,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvViewRemains, 'Остатки ТМЦ').FormEditForm := True;
+  RegisterFrmClass(Tgdc_frmInvViewRemains, 'Остатки ТМЦ').ShowInFormEditor := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvViewRemains);

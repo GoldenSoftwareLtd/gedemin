@@ -754,7 +754,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgTRPC, 'Диалоговое окно с вкладками').FormEditForm := True;
+  RegisterFrmClass(Tgdc_dlgTRPC, 'Диалоговое окно с вкладками').ShowInFormEditor := True;
   Tgdc_dlgTRPC.RegisterMethod;
 
 finalization

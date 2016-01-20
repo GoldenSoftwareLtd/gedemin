@@ -238,15 +238,9 @@ type
     function GetScrException: EScrException;
     property scrException: EScrException read GetScrException;
 
-//    function GetShowErrorDialog: Boolean;
-//    procedure SetShowErrorDialog(const Value: Boolean);
-
     //Вызывается после изменения скрипт-функции
     procedure ReloadFunction(FunctionKey: Integer);
 
-//    property ShowErrorDialog: Boolean read GetShowErrorDialog write SetShowErrorDialog;
-
-//    function VBScriptControl: TReportScript;
     function GetErrorList: TgdErrorlList;
 
     {$IFDEF GEDEMIN}
@@ -358,6 +352,5 @@ initialization
 
 finalization
 //  ScriptFactory := nil;
-
 end.
 

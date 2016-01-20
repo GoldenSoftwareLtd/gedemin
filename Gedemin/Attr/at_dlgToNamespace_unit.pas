@@ -197,8 +197,7 @@ end;
 procedure TdlgToNamespace.actDeleteUpdate(Sender: TObject);
 begin
   actDelete.Visible := (FgdcNamespaceController <> nil)
-    and (FgdcNamespaceController.PrevNSID <> -1)
-    and (FgdcNamespaceController.HeadObjectKey = -1);
+    and (nopDel in FgdcNamespaceController.Ops);
 end;
 
 procedure TdlgToNamespace.actDeleteExecute(Sender: TObject);
@@ -210,8 +209,7 @@ end;
 procedure TdlgToNamespace.actMoveUpdate(Sender: TObject);
 begin
   actMove.Visible := (FgdcNamespaceController <> nil)
-    and (FgdcNamespaceController.PrevNSID <> -1)
-    and (FgdcNamespaceController.HeadObjectKey = -1);
+    and (nopMove in FgdcNamespaceController.Ops);
 end;
 
 procedure TdlgToNamespace.actMoveExecute(Sender: TObject);
@@ -233,7 +231,7 @@ end;
 procedure TdlgToNamespace.actAddUpdate(Sender: TObject);
 begin
   actAdd.Enabled := (FgdcNamespaceController <> nil)
-    and (FgdcNamespaceController.PrevNSID = -1);
+    and (nopAdd in FgdcNamespaceController.Ops);
 end;
 
 end.

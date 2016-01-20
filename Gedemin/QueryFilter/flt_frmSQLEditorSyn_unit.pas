@@ -1623,10 +1623,12 @@ begin
   if ACE is TgdBaseEntry then
   begin
     CE := ACE as TgdBaseEntry;
-    S := CE.TheClass.ClassName + CE.SubType
-      + CE.gdcClass.GetDisplayName(CE.SubType)
-      + CE.gdcClass.GetListTable(CE.SubType)
-      + CE.DistinctRelation;
+    S := CE.TheClass.ClassName + '^'
+      + CE.SubType + '^'
+      + CE.gdcClass.GetDisplayName(CE.SubType) + '^'
+      + CE.gdcClass.GetListTable(CE.SubType) + '^'
+      + CE.DistinctRelation + '^'
+      + CE.ClassName;
   end else
   begin
     CE := nil;

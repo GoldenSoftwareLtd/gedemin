@@ -414,7 +414,7 @@ initialization
   with RegisterFrmClass(Tgdc_frmSGR, 'Форма просмотра с таблицей') do
   begin
     AbstractBaseForm := True;
-    FormEditForm := True;
+    ShowInFormEditor := True;
   end;
 
 finalization

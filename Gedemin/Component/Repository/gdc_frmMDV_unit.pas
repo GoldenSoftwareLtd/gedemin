@@ -31,7 +31,7 @@ initialization
   with RegisterFrmClass(Tgdc_frmMDV, 'Master-detail форма (верт.)') do
   begin
     AbstractBaseForm := True;
-    FormEditForm := True;
+    ShowInFormEditor := True;
   end;
 
 finalization

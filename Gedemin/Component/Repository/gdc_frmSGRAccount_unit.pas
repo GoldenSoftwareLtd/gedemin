@@ -162,7 +162,7 @@ initialization
   with RegisterFrmClass(Tgdc_frmSGRAccount, 'Форма просмотра с таблицей и выбором р/с') do
   begin
     AbstractBaseForm := True;
-    FormEditForm := True;
+    ShowInFormEditor := True;
   end;
 
 finalization

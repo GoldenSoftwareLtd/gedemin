@@ -5049,15 +5049,8 @@ var
   end;
 
 begin
-  //ѕри изменении отчетов, добавлении или удалении необходимо перечитывать меню
-  if FpmReport <> nil then
-  begin
-    FpmReport.Free;
-    FpmReport := nil;
-  end;
-
-  if not Assigned(FpmReport) then
-    FpmReport := TPopupMenu.Create(Self);
+  FpmReport.Free;
+  FpmReport := TPopupMenu.Create(Self);
   FpmReport.AutoLineReduction := Menus.maAutomatic;
 
   if IBLogin.IsUserAdmin then
@@ -5072,37 +5065,32 @@ begin
   try
     ReportGroup.Transaction := ReadTransaction;
 
-    if Assigned(Owner) then
+    if Owner is TCreateableForm then
     begin
-      if Owner is TCreateableForm then
-      begin
-        FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
-          TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
+      FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
+        TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
 
-        if FE.FormEditForm then
-        begin
-          q := TIBSQL.Create(nil);
-          try
-            q.Transaction := ReadTransaction;
-            q.SQL.Text := 'SELECT * FROM evt_object WHERE Upper(objectname) = :objectname';
-            q.Params[0].AsString := UpperCase(TCreateableForm(Owner).InitialName);
-            q.ExecQuery;
-            if not q.Eof then
-              LoadReportGroup(q.FieldByName('reportgroupkey').AsInteger);
-          finally
-            q.Free;
-          end;
-        end
-        else
-          IterateAncestor(FE);
-      end;
-      //else
-        // вот здесь не пон€тно кто еще кроме формы может быть овнером?
+      if FE.ShowInFormEditor then
+      begin
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := ReadTransaction;
+          q.SQL.Text :=
+            'SELECT reportgroupkey FROM evt_object ' +
+            'WHERE UPPER(objectname) = :objectname';
+          q.Params[0].AsString := UpperCase(TCreateableForm(Owner).InitialName);
+          q.ExecQuery;
+          if not q.Eof then
+            LoadReportGroup(q.FieldByName('reportgroupkey').AsInteger);
+        finally
+          q.Free;
+        end;
+      end else
+        IterateAncestor(FE);
     end;
 
     IterateAncestor2(gdClassList.Get(TgdBaseEntry, ClassName,
       SubType) as TgdBaseEntry);
-
   finally
     ReportGroup.Free;
   end;

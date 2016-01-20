@@ -120,7 +120,10 @@ begin
     if lvClasses.Selected <> nil then
     begin
       AFullClass.gdClassName := lvClasses.Selected.Caption;
-      AFullClass.SubType := lvClasses.Selected.SubItems[0];
+      if lvClasses.Selected.SubItems[0] = '<Абстрактный базовый класс>' then
+        AFullClass.SubType := ''
+      else
+        AFullClass.SubType := lvClasses.Selected.SubItems[0];
     end else
     begin
       AFullClass.gdClassName := '';

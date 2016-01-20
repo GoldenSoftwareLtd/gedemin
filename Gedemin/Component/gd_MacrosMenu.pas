@@ -31,11 +31,7 @@ uses
 type
   TgdMacrosMenu = class(TPopupMenu)
   private
-    //FMacrosGroup: TscrMacrosGroup;
-
     FMacrosGroupList: TObjectList;
-
-    FTransaction: TIBTransaction;
     FActionList: TActionList;
 
     procedure DoOnMenuClick(Sender: TObject);
@@ -72,16 +68,7 @@ end;
 constructor TgdMacrosMenu.Create(AOwner: TComponent);
 begin
   inherited;
-
-  if not (csDesigning in ComponentState) then
-  begin
-    if gdcBaseManager <> nil then
-    begin
-      FTransaction :=  gdcBaseManager.ReadTransaction;
-      FMacrosGroupList := TObjectList.Create(True);
-    end else
-      raise Exception.Create(GetGsException(Self, 'Database is not assigned'));
-  end;
+  FMacrosGroupList := TObjectList.Create(True);
 end;
 
 destructor TgdMacrosMenu.Destroy;
@@ -96,12 +83,6 @@ var
 begin
   if Assigned(ScriptFactory) then
   begin
-    if not Assigned(ScriptFactory.Transaction) then
-      ScriptFactory.Transaction := FTransaction;
-
-    if not Assigned(ScriptFactory.DataBase) then
-      ScriptFactory.DataBase := FTransaction.DefaultDatabase;
-
     OwnerForm := nil;
     if Assigned(Self.Owner) and Self.Owner.InheritsFrom(TCreateableForm) then
     begin
@@ -140,9 +121,10 @@ var
     AddCount: Integer;
     Action: TAction;
   begin
+    Assert(Owner <> nil);
     Assert((Parent is TMenuItem) or (Parent is TPopUpMenu));
 
-    if not Assigned(FActionList) then
+    if FActionList = nil then
       FActionList := TActionList.Create(Owner);
 
     if (Parent is TMenuItem) then
@@ -212,13 +194,16 @@ var
   var
     LMacrosGroup: TscrMacrosGroup;
   begin
+    Assert(gdcBaseManager <> nil);
+
     LMacrosGroup := TscrMacrosGroup.Create(True);
-    LMacrosGroup.Transaction := FTransaction;
+    LMacrosGroup.Transaction := gdcBaseManager.ReadTransaction;
     LMacrosGroup.Load(AMacrosGroupID);
 
     FMacrosGroupList.Add(LMacrosGroup);
 
-    if (LMacrosGroup.Count > 1) or ((LMacrosGroup.Count = 1) and (LMacrosGroup[0].MacrosList.Count > 0)) then
+    if (LMacrosGroup.Count > 1) or
+      ((LMacrosGroup.Count = 1) and (LMacrosGroup[0].MacrosList.Count > 0)) then
     begin
       M := TMenuItem.Create(Self);
       M.Caption := '-';
@@ -241,11 +226,7 @@ begin
   if not Assigned(Owner) then
     raise Exception.Create('Owner not assigned');
 
-  if Assigned(FActionList) then
-  begin
-    FActionList.Free;
-    FActionList := nil;
-  end;
+  FreeAndNil(FActionList);
 
   Items.Clear;
 

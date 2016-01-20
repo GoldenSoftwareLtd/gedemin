@@ -1272,7 +1272,7 @@ initialization
   with RegisterFrmClass(Tgdc_frmMDH, 'Master-detail форма (гориз.)') do
   begin
     AbstractBaseForm := True;
-    FormEditForm := True;
+    ShowInFormEditor := True;
   end;
   Tgdc_frmMDH.RegisterMethod;
 

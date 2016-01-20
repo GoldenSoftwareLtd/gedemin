@@ -23,7 +23,7 @@ object gd_dlgClassList: Tgd_dlgClassList
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 461
+    Top = 460
     Width = 810
     Height = 31
     Align = alBottom
@@ -117,7 +117,7 @@ object gd_dlgClassList: Tgd_dlgClassList
     Left = 0
     Top = 25
     Width = 810
-    Height = 436
+    Height = 435
     Align = alClient
     Columns = <
       item

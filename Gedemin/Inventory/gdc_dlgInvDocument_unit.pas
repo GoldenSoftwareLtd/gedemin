@@ -3242,7 +3242,7 @@ initialization
   with RegisterFrmClass(TdlgInvDocument, 'Диалоговое окно шапки складского документа') do
   begin
     AbstractBaseForm := True;
-    FormEditForm := True;
+    ShowInFormEditor := True;
   end
 
 finalization

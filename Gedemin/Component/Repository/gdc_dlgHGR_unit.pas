@@ -440,7 +440,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgHGR, 'Диалоговое окно с таблицей').FormEditForm := True;
+  RegisterFrmClass(Tgdc_dlgHGR, 'Диалоговое окно с таблицей').ShowInFormEditor := True;
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgHGR);

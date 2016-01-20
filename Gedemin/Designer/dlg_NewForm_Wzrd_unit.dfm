@@ -1,6 +1,6 @@
 object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
-  Left = 337
-  Top = 275
+  Left = 526
+  Top = 414
   BorderStyle = bsDialog
   Caption = 'Новая форма'
   ClientHeight = 212
@@ -14,7 +14,6 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object Panel2: TPanel
@@ -368,6 +367,7 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
       Width = 65
       Height = 21
       Action = actOk
+      Default = True
       ModalResult = 1
       TabOrder = 2
     end
@@ -377,6 +377,7 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
       Width = 65
       Height = 21
       Action = actCancel
+      Cancel = True
       ModalResult = 2
       TabOrder = 3
     end
@@ -386,7 +387,7 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
     Top = 0
     Width = 304
     Height = 175
-    ActivePage = tsInheritedType
+    ActivePage = tsFormType
     Align = alClient
     Style = tsButtons
     TabOrder = 2
@@ -424,7 +425,6 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
       Caption = 'tsFormName'
       ImageIndex = 1
       TabVisible = False
-      OnShow = tsFormNameShow
       object Label2: TLabel
         Left = 8
         Top = 8
@@ -439,6 +439,20 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
         Height = 13
         Caption = 'usrf_'
       end
+      object lblWarning: TLabel
+        Left = 100
+        Top = 29
+        Width = 180
+        Height = 13
+        Caption = 'Форма с таким именем существует!'
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clRed
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        Visible = False
+      end
       object edFormName: TEdit
         Left = 100
         Top = 5
@@ -446,14 +460,14 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
         Height = 21
         TabOrder = 0
         Text = 'usrf'
-        OnExit = edFormNameExit
+        OnChange = edFormNameChange
         OnKeyPress = edFormNameKeyPress
       end
       object Memo1: TMemo
         Left = 6
-        Top = 40
+        Top = 47
         Width = 281
-        Height = 121
+        Height = 119
         TabStop = False
         BorderStyle = bsNone
         Lines.Strings = (
@@ -475,7 +489,6 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
       Caption = 'tsInheritedType'
       ImageIndex = 3
       TabVisible = False
-      OnShow = tsInheritedTypeShow
       object Label5: TLabel
         Left = 8
         Top = 0
@@ -484,56 +497,44 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
         Caption = 'Укажите родительский класс формы:'
       end
       object cbFormType: TComboBox
-        Left = 24
-        Top = 24
-        Width = 233
+        Left = 7
+        Top = 19
+        Width = 286
         Height = 21
         Style = csDropDownList
         DropDownCount = 24
         ItemHeight = 13
         Sorted = True
         TabOrder = 0
+        OnClick = cbFormTypeClick
       end
     end
     object tsGDC: TTabSheet
       Caption = 'tsGDC'
       ImageIndex = 2
       TabVisible = False
-      OnShow = tsGDCShow
       object Label3: TLabel
         Left = 8
         Top = 0
-        Width = 163
+        Width = 201
         Height = 13
-        Caption = 'Укажите класс объекта формы:'
+        Caption = 'Укажите бизнес-класс объекта формы:'
       end
-      object Label4: TLabel
+      object edSelectedClass: TEdit
         Left = 8
-        Top = 56
-        Width = 126
-        Height = 13
-        Caption = 'Укажите подтип класса:'
-      end
-      object cbGdcType: TComboBox
-        Left = 24
-        Top = 24
-        Width = 233
+        Top = 19
+        Width = 283
         Height = 21
-        Style = csDropDownList
-        ItemHeight = 0
-        Sorted = True
+        Color = clBtnFace
+        ReadOnly = True
         TabOrder = 0
-        OnClick = cbGdcTypeClick
       end
-      object cbGdcSubtype: TComboBox
-        Left = 24
-        Top = 80
-        Width = 233
+      object btnSelectClass: TButton
+        Left = 8
+        Top = 45
+        Width = 75
         Height = 21
-        Style = csDropDownList
-        Enabled = False
-        ItemHeight = 0
-        Sorted = True
+        Action = actSelectClass
         TabOrder = 1
       end
     end
@@ -584,6 +585,10 @@ object dlg_NewForm_Wzrd: Tdlg_NewForm_Wzrd
     object actCancel: TAction
       Caption = 'Отмена'
       OnExecute = actCancelExecute
+    end
+    object actSelectClass: TAction
+      Caption = 'Выбрать...'
+      OnExecute = actSelectClassExecute
     end
   end
 end

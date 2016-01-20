@@ -2140,7 +2140,7 @@ initialization
   with RegisterFrmClass(Tgdc_frmG, 'Форма просмотра бизнес-объекта') do
   begin
     AbstractBaseForm := True;
-    FormEditForm := True;
+    ShowInFormEditor := True;
   end;
 
   Tgdc_frmG.RegisterMethod;

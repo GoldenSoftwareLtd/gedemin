@@ -228,7 +228,7 @@ initialization
   with RegisterFrmClass(Tgdc_frmMDHGRAccount, 'Master-detail форма с таблицей и выбором р/с') do
   begin
     AbstractBaseForm := True;
-    FormEditForm := True;
+    ShowInFormEditor := True;
   end;
 
 finalization
