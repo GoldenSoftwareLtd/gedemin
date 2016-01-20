@@ -19,6 +19,8 @@ type
     FVarParam: TVarParamEvent;
     FReturnVarParam: TVarParamEvent;
     FClassMethodAssoc: TgdKeyIntAndStrAssoc;
+    FPrevCaption: String;
+    FPrevCaptionSaved: Boolean;
 
     function GetGdcMethodControl: IMethodControl;
 
@@ -36,7 +38,7 @@ type
   protected
     FgdcObject: TgdcBase;
     FSubType: String;
-                                    
+
     function CreateSelectedArr(Obj: TgdcBase; BL: TBookmarkList): OleVariant;
 
     procedure WndProc(var Message: TMessage); override;
@@ -768,6 +770,13 @@ var
   FE: TgdFormEntry;
   Pref, Postf: String;
 begin
+  if FPrevCaptionSaved then
+    Caption := FPrevCaption
+  else begin
+    FPrevCaption := Caption;
+    FPrevCaptionSaved := True;
+  end;
+
   if Pos('usrf_', Name) = 1 then
     Result := Caption
   else begin

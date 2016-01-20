@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -19,12 +19,7 @@
     1.00    15.02.02    tiptop        Initial version.
 
 --}
-{ TODO :
-Данные меню обновляются только при открытии меню
-Поэтому при изменении ShortCutов они начинают правильно
-работать только после открытия меню.
-Необходимо подумоть о способе уведомления об изменении
-макросов. }
+
 unit gd_MacrosMenu;
 
 interface
@@ -83,9 +78,7 @@ begin
     if gdcBaseManager <> nil then
     begin
       FTransaction :=  gdcBaseManager.ReadTransaction;
-
       FMacrosGroupList := TObjectList.Create(True);
-
     end else
       raise Exception.Create(GetGsException(Self, 'Database is not assigned'));
   end;
@@ -94,7 +87,6 @@ end;
 destructor TgdMacrosMenu.Destroy;
 begin
   FMacrosGroupList.Free;
-  
   inherited;
 end;
 
@@ -216,7 +208,7 @@ var
     end;
   end;
 
-  procedure LoadMacrosGroup(AMacrosGroupID: Integer);
+  procedure LoadMacrosGroup(const AMacrosGroupID: Integer);
   var
     LMacrosGroup: TscrMacrosGroup;
   begin
@@ -238,9 +230,7 @@ var
 
   procedure IterateAncestor(AFE: TgdFormEntry);
   begin
-    Assert(AFE <> nil);
-
-    if AFE.SubType <> '' then
+    if (AFE.SubType <> '') and (AFE.Parent is TgdFormEntry) then
       IterateAncestor(AFE.Parent as TgdFormEntry);
 
     if not AFE.AbstractBaseForm then
@@ -250,7 +240,6 @@ var
 begin
   if not Assigned(Owner) then
     raise Exception.Create('Owner not assigned');
-
 
   if Assigned(FActionList) then
   begin
@@ -297,7 +286,6 @@ begin
     end;
 
     LoadMacrosGroup(gdcDelphiObject.FieldByName(fnMacrosGroupKey).AsInteger);
-
   finally
     gdcDelphiObject.Free;
   end;
