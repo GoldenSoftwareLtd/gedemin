@@ -3283,12 +3283,15 @@ end;
 
 procedure TVisualBlock.OnSelectAllExecute(Sender: TObject);
 begin
-  SelectAll;
+  if (Parent <> nil) and (Parent is TVisualBlock) then
+    (Parent as TVisualBlock).SelectAll;
 end;
 
 procedure TVisualBlock.OnSelectAllUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := True;
+   TAction(Sender).Enabled := (Parent <> nil)
+    and (Parent is TVisualBlock)
+    and (Parent.ControlCount > 1);
 end;
 
 procedure TVisualBlock.OnCutExecute(Sender: TObject);
