@@ -407,6 +407,7 @@ begin
     'SELECT'#13#10 + Format(
     '  MAX(e.recordkey) AS ID,'#13#10 +
     '  doc.number,'#13#10 +
+    '  doc.editiondate,'#13#10 +
     '  e.entrydate, '#13#10 +
     '  CAST(SUM(IIF(e1.issimple = 0, e1.creditncu, e.debitncu)) / %0:d AS NUMERIC(15, %1:d)) AS NCU_DEBIT,'#13#10 +
     '  CAST(SUM(IIF(e1.issimple = 0, e1.debitncu, e.creditncu)) / %0:d AS NUMERIC(15, %1:d)) AS NCU_CREDIT, '#13#10 +
@@ -453,7 +454,7 @@ begin
       Self.InternalMovementClause +
       IIF(FCurrSumInfo.Show and (FCurrkey > 0),
         ' AND e.currkey = ' + IntToStr(FCurrkey), '') +
-    ' GROUP BY doc.number, e.entrydate, doct.name, a.alias, corr_a.alias, '#13#10 +
+    ' GROUP BY doc.number, doc.editiondate, e.entrydate, doct.name, a.alias, corr_a.alias, '#13#10 +
     '   r.description, doc.parent, '#13#10 +
     '   curr.ShortName, e.transactionkey, t.Name, tr.description, e.masterdockey ' + AGroup + ACorrGroup + #13#10 +
     ' HAVING '#13#10+
@@ -468,12 +469,8 @@ begin
     '  SUM(IIF(e1.issimple = 0, e1.debiteq, e.crediteq)) <> 0';
   end;
 
-  if (FAccounts.Count = 0) and (FCorrAccounts.Count = 0) then
-    Self.SelectSQL.Text := Self.SelectSQL.Text +
-      'ORDER BY id, e.entrydate, doc.number, a.alias, corr_a.alias'
-  else
-    Self.SelectSQL.Text := Self.SelectSQL.Text +
-      'ORDER BY e.entrydate, doc.number, a.alias, corr_a.alias';
+  Self.SelectSQL.Text := Self.SelectSQL.Text +
+    'ORDER BY e.entrydate, doc.number, a.alias, corr_a.alias';
 end;
 
 procedure TgdvAcctAccCard.SetDefaultParams;
