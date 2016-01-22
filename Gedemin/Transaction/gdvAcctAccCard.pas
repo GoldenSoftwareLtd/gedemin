@@ -200,7 +200,7 @@ begin
           [QuantityAlias, FAcctValues.Names[K], ValueAlias]);
 
 { Зачем-то было добавлено ограничение на вывод проводок только с кол-ными показателями если они указаны }
-{ Но при это не видны остальные проводки, а по идее 
+{ Но при это не видны остальные проводки, а по идее
 
 {      if AccWhereQuantity > '' then
         AccWhereQuantity := AccWhereQuantity + ' OR ';
@@ -470,10 +470,10 @@ begin
 
   if (FAccounts.Count = 0) and (FCorrAccounts.Count = 0) then
     Self.SelectSQL.Text := Self.SelectSQL.Text +
-      'ORDER BY 1, 3, 2, 10, 11 '
+      'ORDER BY id, e.entrydate, doc.number, a.alias, corr_a.alias'
   else
     Self.SelectSQL.Text := Self.SelectSQL.Text +
-      'ORDER BY 3, 2, 10, 11';
+      'ORDER BY e.entrydate, doc.number, a.alias, corr_a.alias';
 end;
 
 procedure TgdvAcctAccCard.SetDefaultParams;
