@@ -2182,7 +2182,7 @@ uses
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
   gs_Exception,                 Storages,
-  at_sql_parser,                scrReportGroup,               at_frmSQLProcess,
+  at_sql_parser,                {scrReportGroup,}               at_frmSQLProcess,
   DBConsts,                     gd_common_functions,          ComObj,
   gdc_frmMDH_unit,              AcctUtils
   {must be placed after Windows unit!}
@@ -4952,119 +4952,79 @@ begin
 end;
 
 procedure TgdcBase.MakeReportMenu;
+const
+  IdxReport       = 123;
+  IdxFolder       = 132;
+  IdxScriptEditor = 21;
+
 var
   MenuItem: TMenuItem;
-  ReportGroup: TscrReportGroup;
   q: TIBSQL;
   FE: TgdFormEntry;
+  BE: TgdBaseEntry;
+  GroupIDs, S: String;
+  CurrMenu: TComponent;
+  FormRootID, ClassRootID: Integer;
 
-  procedure FillMenu(const Parent: TObject);
-  var
-    I: Integer;
-    M: TMenuItem;
-    Index: Integer;
-    AddCount: Integer;
+  procedure IterateForms(AFE: TgdFormEntry);
   begin
-    Assert((Parent is TMenuItem) or (Parent is TPopUpMenu));
-
-    if (Parent is TMenuItem) then
-    begin
-      Index := (Parent as TMenuItem).Tag;
-      (Parent as TMenuItem).Clear;
-    end else
-      Index := 0;
-
-    AddCount := 0;
-    if (ReportGroup.Count > 0) and (Index < ReportGroup.Count) then
-    begin
-      for I := Index to ReportGroup.Count - 1 do
-      begin
-        if ReportGroup.GroupItems[Index].Id = ReportGroup.GroupItems[I].Parent then
-        begin
-          M := TMenuItem.Create(Self);
-          M.Tag := I;
-          M.Caption := ReportGroup.GroupItems[I].Name;
-          if (Parent is TMenuItem) then
-            (Parent as TMenuItem).Add(M)
-          else
-            (Parent as TPopUpMenu).Items.Add(M);
-          FillMenu(M);
-          Inc(AddCount);
-        end;
-      end;
-      for I := 0 to ReportGroup.GroupItems[Index].ReportList.Count - 1 do
-      begin
-        M := TMenuItem.Create(Self);
-        M.Tag := ReportGroup.GroupItems[Index].ReportList.Report[I].Id;
-        M.Caption := ReportGroup.GroupItems[Index].ReportList.Report[I].Name;
-        M.OnClick := DoOnReportClick;
-        if (Parent is TMenuItem) then
-          (Parent as TMenuItem).Add(M)
-        else
-          (Parent as TPopUpMenu).Items.Add(M);
-        Inc(AddCount);
-      end;
-    end;
-    if AddCount = 0 then
-    begin
-      M := TMenuItem.Create(Self);
-      M.Name := 'N' + IntToStr(Index);
-      M.Caption := 'Пусто';
-      M.Enabled := False;
-      if (Parent is TMenuItem) then
-        (Parent as TMenuItem).Add(M)
-      else
-        (Parent as TPopUpMenu).Items.Add(M);
-    end;
-  end;
-
-  procedure LoadReportGroup(AGroupID: Integer);
-  begin
-    ReportGroup.Load(AGroupID);
-
-    if (ReportGroup.Count > 1) or ((ReportGroup.Count = 1) and (ReportGroup[0].ReportList.Count > 0)) then
-    begin
-      MenuItem := TMenuItem.Create(FpmReport);
-      MenuItem.Caption := '-';
-      FpmReport.Items.Add(MenuItem);
-
-      FillMenu(FpmReport);
-    end;
-  end;
-
-  procedure IterateAncestor(AFE: TgdFormEntry);
-  begin
-    if (AFE.SubType <> '') and (AFE.Parent is TgdFormEntry) then
-      IterateAncestor(AFE.Parent as TgdFormEntry);
+    if (AFE.SubType > '') and (AFE.Parent is TgdFormEntry) then
+      IterateForms(AFE.Parent as TgdFormEntry);
 
     if not AFE.AbstractBaseForm then
-      LoadReportGroup(AFE.GroupID);
+      GroupIDs := GroupIDs + IntToStr(AFE.GroupID) + ',';
   end;
 
-  procedure IterateAncestor2(ABE: TgdBaseEntry);
+  procedure IterateClasses(ABE: TgdBaseEntry);
   begin
     if (ABE <> ABE.GetRootSubType) and (ABE.Parent is TgdBaseEntry) then
-      IterateAncestor2(ABE.Parent as TgdBaseEntry);
-    LoadReportGroup(ABE.GroupID);
+      IterateClasses(ABE.Parent as TgdBaseEntry);
+    GroupIDs := GroupIDs + IntToStr(ABE.GroupID) + ',';
+  end;
+
+  procedure AddFolder(F, M: TMenuItem);
+  var
+    I: Integer;
+  begin
+    I := F.Count - 1;
+    while I > 0 do
+    begin
+      if F.Items[I].ImageIndex <> idxReport then
+        break;
+      Dec(I);
+    end;
+    if I >= 0 then
+      F.Insert(I + 1, M)
+    else
+      F.Add(M);
   end;
 
 begin
   FpmReport.Free;
   FpmReport := TPopupMenu.Create(Self);
   FpmReport.AutoLineReduction := Menus.maAutomatic;
+  FpmReport.Tag := -1;
+  FpmReport.Images := dmImages.il16x16;
 
   if IBLogin.IsUserAdmin then
   begin
     MenuItem := TMenuItem.Create(FpmReport);
-    MenuItem.Caption := cst_Reportregistrylist;
+    MenuItem.Caption := cst_ReportRegistryList;
     MenuItem.OnClick := DoOnReportListClick;
+    MenuItem.ImageIndex := idxScriptEditor;
+    FpmReport.Items.Add(MenuItem);
+    MenuItem := TMenuItem.Create(FpmReport);
+    MenuItem.Caption := '-';
     FpmReport.Items.Add(MenuItem);
   end;
 
-  ReportGroup := TscrReportGroup.Create(FUseScriptMethod);
+  GroupIDs := '';
+  CurrMenu := FpmReport;
+  q := TIBSQL.Create(nil);
   try
-    ReportGroup.Transaction := ReadTransaction;
+    q.Transaction := ReadTransaction;
 
+    FormRootID := -1;
     if Owner is TCreateableForm then
     begin
       FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
@@ -5072,27 +5032,109 @@ begin
 
       if FE.ShowInFormEditor then
       begin
-        q := TIBSQL.Create(nil);
-        try
-          q.Transaction := ReadTransaction;
-          q.SQL.Text :=
-            'SELECT reportgroupkey FROM evt_object ' +
-            'WHERE UPPER(objectname) = :objectname';
-          q.Params[0].AsString := UpperCase(TCreateableForm(Owner).InitialName);
-          q.ExecQuery;
-          if not q.Eof then
-            LoadReportGroup(q.FieldByName('reportgroupkey').AsInteger);
-        finally
-          q.Free;
+        q.SQL.Text :=
+          'SELECT reportgroupkey FROM evt_object ' +
+          'WHERE UPPER(objectname) = :objectname';
+        q.Params[0].AsString := UpperCase(TCreateableForm(Owner).InitialName);
+        q.ExecQuery;
+        if not q.EOF then
+        begin
+          GroupIDs := GroupIDs + q.Fields[0].AsString + ',';
+          FormRootID := q.Fields[0].AsInteger;
         end;
       end else
-        IterateAncestor(FE);
+      begin
+        FormRootID := FE.GroupID;
+        IterateForms(FE);
+      end;
     end;
 
-    IterateAncestor2(gdClassList.Get(TgdBaseEntry, ClassName,
-      SubType) as TgdBaseEntry);
+    BE := gdClassList.Get(TgdBaseEntry, ClassName, SubType) as TgdBaseEntry;
+    ClassRootID := BE.GroupID;
+    IterateClasses(BE);
+
+    if GroupIDs = '' then
+      exit;
+
+    SetLength(GroupIDs, Length(GroupIDs) - 1);
+
+    if IBLogin.IsUserAdmin then
+      S := ''
+    else
+      S := 'AND BIN_AND(r.aview, :InGroup) <> 0 ';
+
+    q.Close;
+    q.SQL.Text :=
+      'SELECT '#13#10 +
+      '  g.id AS groupid, '#13#10 +
+      '  g.parent AS groupparent, '#13#10 +
+      '  g.name AS groupname, '#13#10 +
+      '  r.id, r.name '#13#10 +
+      'FROM '#13#10 +
+      '  rp_reportgroup gparent '#13#10 +
+      '  JOIN rp_reportgroup g '#13#10 +
+      '    ON g.lb >= gparent.lb AND g.rb <= gparent.rb '#13#10 +
+      '  LEFT JOIN rp_reportlist r '#13#10 +
+      '    ON r.reportgroupkey = g.id '#13#10 +
+      'WHERE '#13#10 +
+      '  gparent.id IN (' + GroupIDs + ') '#13#10 +
+      '  AND r.displayinmenu <> 0 '#13#10 +
+      S +
+      'ORDER BY '#13#10 +
+      '  gparent.lb, g.name, r.name';
+    if S > '' then
+      q.ParamByName('InGroup').AsInteger := IBLogin.InGroup;
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin
+      if CurrMenu.Tag <> q.FieldByName('groupid').AsInteger then
+      begin
+        if q.FieldbyName('groupparent').IsNull
+          or (q.FieldByName('groupid').AsInteger = FormRootID)
+          or (q.FieldbyName('groupid').AsInteger = ClassRootID) then
+        begin
+          CurrMenu := FpmReport;
+        end else
+        begin
+          MenuItem := TMenuItem.Create(FpmReport);
+          MenuItem.Caption := q.FieldbyName('groupname').AsString;
+          MenuItem.Tag := q.FieldByName('groupid').AsInteger;
+          MenuItem.ImageIndex := idxFolder;
+
+          if CurrMenu is TMenuItem then
+          begin
+            if CurrMenu.Tag = q.FieldByName('groupparent').AsInteger then
+              AddFolder(CurrMenu as TMenuItem, MenuItem)
+            else if (CurrMenu as TMenuItem).Parent is TMenuItem then
+              AddFolder((CurrMenu as TMenuItem).Parent, MenuItem)
+            else
+              AddFolder(FpmReport.Items, MenuItem);
+          end else
+            AddFolder(FpmReport.Items, MenuItem);
+
+          CurrMenu := MenuItem;
+        end;
+      end;
+
+      if q.FieldByName('id').AsInteger > 0 then
+      begin
+        MenuItem := TMenuItem.Create(FpmReport);
+        MenuItem.Caption := q.FieldbyName('name').AsString;
+        MenuItem.Tag := q.FieldByName('id').AsInteger;
+        MenuItem.OnClick := DoOnReportClick;
+        MenuItem.ImageIndex := idxReport;
+
+        if CurrMenu is TMenuItem then
+          (CurrMenu as TMenuItem).Add(MenuItem)
+        else
+          FpmReport.Items.Add(MenuItem);
+      end;
+
+      q.Next;
+    end;
   finally
-    ReportGroup.Free;
+    q.Free;
   end;
 end;
 
@@ -8985,6 +9027,7 @@ begin
   end;
   if S > '' then ASL.Add(AddSpaces('Связанные таблицы') + S);
   }
+  ASL.Add(AddSpaces('ИД группы отчетов') + IntToStr(GroupID));
   if FindField('aview') <> nil then
     ASL.Add(AddSpaces('Только просмотр') + TgdcUserGroup.GetGroupList(FindField('aview').AsInteger));
   if FindField('achag') <> nil then

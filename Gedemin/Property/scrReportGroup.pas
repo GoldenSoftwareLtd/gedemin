@@ -110,7 +110,7 @@ type
     property GlobalReportKey: Boolean read FGlobalReportKey write SetGlobalReportKey;
   end;
 
-//Класс служит для хранения данных рапортов для одного объекта.
+//Класс служит для хранения данных отчетов для одного объекта
 type
   TscrReportList = class(TObject)
   private
@@ -205,6 +205,7 @@ type
     function GetGroupItemsByID(AID: Integer): TscrReportGroupItem;
     procedure SetGroupItemsByID(AID: Integer;
       const Value: TscrReportGroupItem);
+
   public
     constructor Create(const AnUseScriptMethod: Boolean);
     destructor Destroy; override;

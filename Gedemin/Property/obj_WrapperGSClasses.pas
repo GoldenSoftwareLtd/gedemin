@@ -2718,6 +2718,7 @@ type
     procedure SaveGrid(const AGrid: IgsGsCustomDBGrid); safecall;
     procedure LoadGrid(const AGrid: IgsGsCustomDBGrid); safecall;
     function  GetSubTypeList(const SubTypeList: IgsStrings): WordBool; safecall;
+    function  Get_SubType: WideString; safecall;
   end;
 
   TwrpGdc_frmG = class(TwrpGDCCreateableForm, IgsGdc_frmG)
@@ -19380,6 +19381,11 @@ begin
     Result := 0;
 end;
 {$ENDIF}
+
+function TwrpGDCCreateableForm.Get_SubType: WideString;
+begin
+  Result := GetGDCCreateableForm.SubType;
+end;
 
 initialization
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);

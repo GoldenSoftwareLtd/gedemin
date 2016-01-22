@@ -1632,7 +1632,10 @@ begin
   end else
   begin
     CE := nil;
-    S := ACE.TheClass.ClassName + ACE.SubType + ACE.Caption;
+    S := ACE.TheClass.ClassName + '^'
+      + ACE.SubType + '^'
+      + ACE.Caption + '^'
+      + ACE.ClassName;
   end;
 
   Level := PInteger(AData1)^;

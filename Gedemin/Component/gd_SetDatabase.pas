@@ -3,7 +3,7 @@ unit gd_SetDatabase;
 interface
 
 uses
-  Forms, IBDatabase, IBCustomDataSet, IBSQL, Controls, SysUtils, Windows;
+  Forms, IBDatabase;
 
 type
   TDnIntArray = array of Integer;
@@ -15,11 +15,16 @@ type
    const AnTransaction: TIBTransaction);
   function GetUniqueKey(const AnDatabase: TIBDatabase;
    const AnTransaction: TIBTransaction): Integer;
-
-  function rpGetComputerName: String;
   function rpGetTempFileName(const Prefix: string): string;
 
 implementation
+
+uses
+  IBCustomDataSet, IBSQL, SysUtils, Windows
+{$IFDEF GEDEMIN}
+  , gdcBaseInterface
+{$ENDIF}
+  ;
 
 procedure SetDatabase(const AnForm: TForm; const AnDatabase: TIBDatabase;
  const IsTransaction: Boolean = True);
@@ -59,10 +64,16 @@ end;
 
 function GetUniqueKey(const AnDatabase: TIBDatabase;
  const AnTransaction: TIBTransaction): Integer;
+{$IFNDEF GEDEMIN}
 var
   ibsqlUniqueKey: TIBSQL;
   StateTr, StateDb: Boolean;
+{$ENDIF}
 begin
+{$IFDEF GEDEMIN}
+  Assert(gdcBaseManager <> nil);
+  Result := gdcBaseManager.GetNextID;
+{$ELSE}
   Assert(((AnDatabase <> nil) and (AnTransaction <> nil)), 'Database or Transaction not assigned.');
   ibsqlUniqueKey := TIBSQL.Create(nil);
   try
@@ -84,26 +95,7 @@ begin
   finally
     ibsqlUniqueKey.Free;
   end;
-end;
-
-function rpGetComputerName: String;
-var
-  NameSize: DWord;
-  CompName: String;
-begin
-  NameSize := MAX_COMPUTERNAME_LENGTH + 1;
-  SetLength(CompName, NameSize);
-  FillChar(CompName[1], NameSize, 0);
-  if not GetComputerName(@CompName[1], NameSize) then
-    raise Exception.Create('Нельзя определить наименование компьютера!');
-
-  NameSize := Pos(#0, CompName);
-  while NameSize <> 0 do
-  begin
-    Delete(CompName, NameSize, 1);
-    NameSize := Pos(#0, CompName);
-  end;
-  Result := CompName;
+{$ENDIF}
 end;
 
 function rpGetTempFileName(const Prefix: string): string;

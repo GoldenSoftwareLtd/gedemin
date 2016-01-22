@@ -536,8 +536,11 @@ type
     property InitialName: String read GetInitialName;
   end;
 
-  TgdNewFormEntry = class(TgdFormEntry)
+  {TgdNewFormEntry = class(TgdFormEntry)
   end;
+
+  TgdNewSimpleFormEntry = class(TgdNewFormEntry)
+  end;}
 
   TgdInitClassEntry = class(TObject)
   public
@@ -2277,7 +2280,7 @@ procedure TgdClassList.LoadUserDefinedClasses;
       IterateStorage(F.Folders[I], Prnt);
   end;
 
-  procedure LoadNewForm;
+  {procedure LoadNewForm;
   var
     FNewForm: TgsStorageFolder;
     I: Integer;
@@ -2288,20 +2291,23 @@ procedure TgdClassList.LoadUserDefinedClasses;
       try
         for I := 0 to FNewForm.FoldersCount - 1 do
         begin
-          if (FNewForm.Folders[I].ReadString('Class') > '')
-            and (FNewForm.Folders[I].ReadString('GDCSubType') > '')
-            and (Find(FNewForm.Folders[I].ReadString('Class'),
-              FNewForm.Folders[I].ReadString('GDCSubType')) = nil) then
+          CEParentForm := Find(FNewForm.Folders[I].ReadString('Class'));
+          if CEParentForm is TgdFormEntry then
           begin
-            CEParentForm := Get(TgdFormEntry, FNewForm.Folders[I].ReadString('Class'));
-              _Create(CEParentForm, TgdNewFormEntry, CEParentForm.TheClass,
-              FNewForm.Folders[I].ReadString('GDCSubType'), FNewForm.Folders[I].Name);
+            if FNewForm.Folders[I].ReadInteger('InternalType', -1) = st_ds_SimplyForm then
+            begin
+              _Create(CEParentForm, TgdNewSimpleFormEntry, CEParentForm.TheClass,
+                 FNewForm.Folders[I].Name, FNewForm.Folders[I].Name);
+            end else
+            begin
+              //
+            end;
           end;
         end;
       finally
         GlobalStorage.CloseFolder(FNewForm);
       end;
-  end;
+  end;}
 
 var
   I, J: Integer;
@@ -2469,7 +2475,7 @@ begin
     GlobalStorage.CloseFolder(FSubTypes);
   end;
 
-  LoadNewForm;
+  //LoadNewForm;
 
   CreateFormSubTypes;
 end;

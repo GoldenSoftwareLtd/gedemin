@@ -213,8 +213,6 @@ begin
               Include(FCS, cfsCloseAfterDesign);
               FNewForm.CreateableFormState := FCS;
               FNewForm.Show;
-//              FNewForm.Resizer.ObjectInspectorForm.RefreshList;
-//              FNewForm.Resizer.ObjectInspectorForm.RefreshProperties;
               FNewForm.BringToFront;
             end;
             st_ds_GDCForm: // 2;
@@ -249,8 +247,6 @@ begin
               Include(FCS, cfsCloseAfterDesign);
               FNewForm.CreateableFormState := FCS;
               FNewForm.Show;
-//              FNewForm.Resizer.ObjectInspectorForm.RefreshList;
-//              FNewForm.Resizer.ObjectInspectorForm.RefreshProperties;
               FNewForm.BringToFront;
             end
           end;

@@ -1921,44 +1921,9 @@ begin
   try
     Tr.DefaultDatabase := IBDB;
     Tr.StartTransaction;
-
     try
       q.ParamCheck := False;
       q.Transaction := Tr;
-
-      {
-      if RelationExist2('GD_OBJECT_DEPENDENCIES', Tr) then
-      begin
-        q.SQL.Text := 'DROP TABLE GD_OBJECT_DEPENDENCIES';
-        q.ExecQuery;
-
-        Tr.Commit;
-        Tr.StartTransaction;
-      end;
-
-      q.SQL.Text :=
-        'CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies ( '#13#10 +
-        '  sessionid         dintkey, '#13#10 +
-        '  masterid          dintkey, '#13#10 +
-        '  reflevel          dinteger_notnull, '#13#10 +
-        '  relationname      dtablename NOT NULL, '#13#10 +
-        '  fieldname         dfieldname NOT NULL, '#13#10 +
-        '  crossrelation     dboolean_notnull, '#13#10 +
-        '  refobjectid       dintkey, '#13#10 +
-        '  refobjectname     dname, '#13#10 +
-        '  refrelationname   dname, '#13#10 +
-        '  refclassname      dname, '#13#10 +
-        '  refsubtype        dname, '#13#10 +
-        '  refeditiondate    TIMESTAMP, '#13#10 +
-        ' '#13#10 +
-        '  CONSTRAINT gd_pk_object_dependencies PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname, refobjectid) '#13#10 +
-        ') '#13#10 +
-        '  ON COMMIT DELETE ROWS ';
-      q.ExecQuery;
-
-      q.SQL.Text := 'GRANT ALL ON gd_object_dependencies TO administrator';
-      q.ExecQuery;
-      }
 
       q.Close;
       q.SQL.Text :=
@@ -2257,26 +2222,6 @@ begin
         '    (id < 147000000 AND dbid = 17 AND id = xid) ' +
         '  )';
       q.ExecQuery;
-
-      if not ConstraintExist2('GD_OBJECT_DEPENDENCIES', 'GD_PK_OBJECT_DEPENDENCIES', Tr) then
-      begin
-        q.Close;
-        q.SQL.Text :=
-          'SELECT rdb$constraint_name ' +
-          'FROM rdb$relation_constraints ' +
-          'WHERE rdb$relation_name = ''GD_OBJECT_DEPENDENCIES'' ' +
-          '  AND rdb$constraint_type=''PRIMARY KEY'' ';
-        q.ExecQuery;
-
-        if not q.EOF then
-          DropConstraint2('GD_OBJECT_DEPENDENCIES', q.Fields[0].AsTrimString, Tr);
-
-        q.Close;
-        q.SQL.Text := 'ALTER TABLE gd_object_dependencies ADD CONSTRAINT ' +
-          'gd_pk_object_dependencies PRIMARY KEY ' +
-          '(sessionid, masterid, reflevel, relationname, fieldname, refobjectid)';
-        q.ExecQuery;
-      end;
 
       if not IndexExist2('AT_X_NAMESPACE_FILE_RUID', Tr) then
       begin

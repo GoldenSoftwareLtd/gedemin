@@ -145,7 +145,7 @@ type
 implementation
 
 uses
-  Windows, gd_SetDatabase, ShellAPI, gd_common_functions;
+  Windows, gd_SetDatabase, ShellAPI, gd_common_functions, jclSysInfo;
 
 procedure WideStrToPChar(var Dest: PChar; const Source: WideString);
 begin
@@ -203,7 +203,7 @@ end;
 
 function TgsWinAPI.GetComputerName: WideString;
 begin
-  Result := rpGetComputerName;
+  Result := GetLocalComputerName;
 end;
 
 function TgsWinAPI.GetNextWindow(hWnd, wCmd: Integer): Integer;
