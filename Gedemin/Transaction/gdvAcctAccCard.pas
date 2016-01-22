@@ -340,6 +340,7 @@ begin
     'SELECT '#13#10 +
     '  e.recordkey as id,'#13#10 +
     '  doc.number,'#13#10 +
+    '  doc.editiondate,'#13#10 +
     '  e.entrydate,'#13#10 +
     '  CAST(IIF(e1.issimple = 0, e1.creditncu, e.debitncu) / %0:d AS NUMERIC(15, %1:d)) AS NCU_DEBIT,'#13#10 +
     '  CAST(IIF(e1.issimple = 0, e1.debitncu, e.creditncu) / %0:d AS NUMERIC(15, %1:d)) AS NCU_CREDIT, '#13#10 +
