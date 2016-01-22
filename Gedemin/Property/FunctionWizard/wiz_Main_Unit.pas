@@ -1548,18 +1548,13 @@ end;
 
 procedure TdlgFunctionWisard.actSelectAllExecute(Sender: TObject);
 begin
-  if (FSelectedBlock <> nil)
-    and (FSelectedBlock.Parent <> nil)
-    and (FSelectedBlock.Parent is TVisualBlock) then
-  begin
+  if (FSelectedBlock <> nil) and (FSelectedBlock.Parent is TVisualBlock) then
     (FSelectedBlock.Parent as TVisualBlock).SelectAll;
-  end;
 end;
 
 procedure TdlgFunctionWisard.actSelectAllUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := (FSelectedBlock <> nil)
-    and (FSelectedBlock.Parent <> nil)
     and (FSelectedBlock.Parent is TVisualBlock)
     and (FSelectedBlock.Parent.ControlCount > 1);
 end;
