@@ -1,6 +1,6 @@
 object dlg_EditNewForm: Tdlg_EditNewForm
-  Left = 280
-  Top = 171
+  Left = 281
+  Top = 172
   Width = 344
   Height = 402
   HelpContext = 103
@@ -21,7 +21,7 @@ object dlg_EditNewForm: Tdlg_EditNewForm
     Left = 235
     Top = 0
     Width = 93
-    Height = 364
+    Height = 363
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
@@ -89,7 +89,7 @@ object dlg_EditNewForm: Tdlg_EditNewForm
     Left = 0
     Top = 0
     Width = 235
-    Height = 364
+    Height = 363
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -99,7 +99,7 @@ object dlg_EditNewForm: Tdlg_EditNewForm
       Left = 4
       Top = 4
       Width = 227
-      Height = 356
+      Height = 355
       Align = alClient
       ItemHeight = 13
       PopupMenu = PopupMenu1

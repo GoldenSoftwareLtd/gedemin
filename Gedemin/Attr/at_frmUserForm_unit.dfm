@@ -1,6 +1,6 @@
 object at_frmUserForm: Tat_frmUserForm
-  Left = 113
-  Top = 92
+  Left = 115
+  Top = 93
   Width = 670
   Height = 445
   Caption = 'Формы пользователя'
@@ -20,7 +20,7 @@ object at_frmUserForm: Tat_frmUserForm
   TextHeight = 13
   object sbMain: TStatusBar
     Left = 0
-    Top = 388
+    Top = 387
     Width = 654
     Height = 19
     Font.Charset = RUSSIAN_CHARSET
@@ -218,19 +218,19 @@ object at_frmUserForm: Tat_frmUserForm
     Left = 0
     Top = 51
     Width = 9
-    Height = 328
+    Height = 327
     Position = dpLeft
   end
   object TBDockRight: TTBDock
     Left = 645
     Top = 51
     Width = 9
-    Height = 328
+    Height = 327
     Position = dpRight
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 379
+    Top = 378
     Width = 654
     Height = 9
     Position = dpBottom
@@ -239,13 +239,13 @@ object at_frmUserForm: Tat_frmUserForm
     Left = 9
     Top = 51
     Width = 636
-    Height = 328
+    Height = 327
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 5
     object spChoose: TSplitter
       Left = 0
-      Top = 226
+      Top = 225
       Width = 636
       Height = 3
       Cursor = crVSplit
@@ -255,7 +255,7 @@ object at_frmUserForm: Tat_frmUserForm
       Left = 0
       Top = 0
       Width = 636
-      Height = 226
+      Height = 225
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -265,7 +265,7 @@ object at_frmUserForm: Tat_frmUserForm
         Left = 0
         Top = 0
         Width = 636
-        Height = 226
+        Height = 225
         Align = alClient
         DataSource = dsMain
         PopupMenu = pmMain
@@ -289,7 +289,7 @@ object at_frmUserForm: Tat_frmUserForm
     end
     object pnChoose: TPanel
       Left = 0
-      Top = 229
+      Top = 228
       Width = 636
       Height = 99
       Align = alBottom

@@ -1,40 +1,40 @@
 inherited gdc_frmMDHGR: Tgdc_frmMDHGR
-  Left = 458
-  Top = 237
+  Left = 459
+  Top = 239
   Width = 605
   Caption = 'gdc_frmMDHGR'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Width = 597
+    Width = 589
     OnClick = sbMainClick
   end
   inherited TBDockTop: TTBDock
-    Width = 597
+    Width = 589
     inherited tbMainInvariant: TTBToolbar
       Left = 327
     end
   end
   inherited TBDockRight: TTBDock
-    Left = 588
+    Left = 580
   end
   inherited TBDockBottom: TTBDock
-    Width = 597
+    Width = 589
   end
   inherited pnlWorkArea: TPanel
-    Width = 579
+    Width = 571
     inherited sMasterDetail: TSplitter
-      Width = 579
+      Width = 571
     end
     inherited spChoose: TSplitter
-      Width = 579
+      Width = 571
     end
     inherited pnlMain: TPanel
-      Width = 579
+      Width = 571
       object ibgrMain: TgsIBGrid
         Left = 160
         Top = 0
-        Width = 419
+        Width = 411
         Height = 167
         Align = alClient
         BorderStyle = bsNone
@@ -63,24 +63,24 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
       end
     end
     inherited pnChoose: TPanel
-      Width = 579
+      Width = 571
       inherited pnButtonChoose: TPanel
-        Left = 474
+        Left = 466
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 474
+        Width = 466
       end
       inherited pnlChooseCaption: TPanel
-        Width = 579
+        Width = 571
       end
     end
     inherited pnlDetail: TPanel
-      Width = 579
+      Width = 571
       BevelOuter = bvNone
       inherited TBDockDetail: TTBDock
         Left = 0
         Top = 0
-        Width = 579
+        Width = 571
         inherited tbDetailCustom: TTBToolbar
           Left = 275
         end
@@ -88,17 +88,17 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
       inherited pnlSearchDetail: TPanel
         Left = 0
         Top = 26
-        Height = 82
+        Height = 74
         TabOrder = 2
         inherited sbSearchDetail: TScrollBox
-          Height = 55
+          Height = 47
         end
       end
       object ibgrDetail: TgsIBGrid
         Left = 160
         Top = 26
-        Width = 419
-        Height = 82
+        Width = 411
+        Height = 74
         Align = alClient
         BorderStyle = bsNone
         DataSource = dsDetail
