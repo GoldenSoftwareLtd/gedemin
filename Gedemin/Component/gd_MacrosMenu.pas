@@ -31,7 +31,10 @@ uses
 type
   TgdMacrosMenu = class(TPopupMenu)
   private
-    FMacrosGroupList: TObjectList;
+    //FMacrosGroupList: TObjectList;
+
+    //FpmMacros: TPopupMenu;
+    FMacrosList: TscrMacrosList;
     FActionList: TActionList;
 
     procedure DoOnMenuClick(Sender: TObject);
@@ -56,7 +59,8 @@ uses
   gdcBaseInterface,          evt_i_Base,             gdcOLEClassList,
   gd_SetDatabase,            gd_i_ScriptFactory,     gs_Exception,
   gd_security_operationconst,gd_Createable_Form,     gd_security,
-  Storages,                  gd_ClassList,           gdc_createable_form;
+  Storages,                  gd_ClassList,           gdc_createable_form,
+  IBSQL,                     dmImages_unit;
 
 procedure Register;
 begin
@@ -68,12 +72,12 @@ end;
 constructor TgdMacrosMenu.Create(AOwner: TComponent);
 begin
   inherited;
-  FMacrosGroupList := TObjectList.Create(True);
 end;
 
 destructor TgdMacrosMenu.Destroy;
 begin
-  FMacrosGroupList.Free;
+  FreeAndNil(FMacrosList);
+
   inherited;
 end;
 
@@ -106,126 +110,54 @@ begin
 end;
 
 procedure TgdMacrosMenu.ReloadGroup;
+const
+  IdxMacros       = 123;
+  IdxFolder       = 132;
+  IdxScriptEditor = 21;
+
 var
+  MenuItem: TMenuItem;
+  q: TIBSQL;
+  FE: TgdFormEntry;
+  GroupIDs, S: String;
+  CurrMenu: TComponent;
+  FormRootID: Integer;
+
   gdcDelphiObject: TgdcDelphiObject;
   LocId: Integer;
-  FE: TgdFormEntry;
 
-  M: TMenuItem;
+  Action: TAction;
 
-  procedure FillMenu(const Parent: TObject; MacrosGroup: TscrMacrosGroup);
-  var
-    I: Integer;
-    M: TMenuItem;
-    Index: Integer;
-    AddCount: Integer;
-    Action: TAction;
+  MacrosItem: TscrMacrosItem;
+
+  procedure IterateForms(AFE: TgdFormEntry);
   begin
-    Assert(Owner <> nil);
-    Assert((Parent is TMenuItem) or (Parent is TPopUpMenu));
-
-    if FActionList = nil then
-      FActionList := TActionList.Create(Owner);
-
-    if (Parent is TMenuItem) then
-    begin
-      Index := (Parent as TMenuItem).Tag;
-      (Parent as TMenuItem).Clear;
-    end else
-      Index := 0;
-
-    AddCount := 0;
-    if (MacrosGroup.Count > 0) and (Index < MacrosGroup.Count) then
-    begin
-      for I := Index to MacrosGroup.Count - 1 do
-      begin
-        if MacrosGroup.GroupItems[Index].Id = MacrosGroup.GroupItems[I].Parent then
-        begin
-          M := TMenuItem.Create(Self);
-          M.Tag := I;
-//          M.Name := 'G' + IntToStr(MacrosGroup.GroupItems[I].Id);
-          M.Caption := MacrosGroup.GroupItems[I].Name;
-          if (Parent is TMenuItem) then
-            (Parent as TMenuItem).Add(M)
-          else
-            (Parent as TPopUpMenu).Items.Add(M);
-          FillMenu(M, MacrosGroup);
-          Inc(AddCount);
-        end;
-      end;
-      for I := 0 to MacrosGroup.GroupItems[Index].MacrosList.Count - 1 do
-      begin
-        Action := TAction.Create(FActionList);
-        Action.Caption := MacrosGroup.GroupItems[Index].MacrosList.Macros[I].Name;;
-//        Action.Name := 'A' + IntToStr(MacrosGroup.GroupItems[Index].MacrosList.Macros[I].Id);
-        Action.ShortCut := MacrosGroup.GroupItems[Index].MacrosList.Macros[I].ShortCut;
-        Action.ImageIndex := Integer(MacrosGroup.GroupItems[Index].MacrosList.Macros[I]);
-        Action.OnExecute := DoOnMenuClick;
-        Action.ActionList := FActionList;
-
-        M := TMenuItem.Create(Self);
-//        M.Tag := Integer(FLMacrosGroup.GroupItems[Index].MacrosList.Macros[I]);
-//        M.Name := 'M' + IntToStr(MacrosGroup.GroupItems[Index].MacrosList.Macros[I].Id);
-        M.Action := Action;
-//        M.Caption := FLMacrosGroup.GroupItems[Index].MacrosList.Macros[I].Name;
-//        M.OnClick := DoOnMenuClick;
-//        M.ShortCut := FLMacrosGroup.GroupItems[Index].MacrosList.Macros[I].ShortCut;
-        if (Parent is TMenuItem) then
-          (Parent as TMenuItem).Add(M)
-        else
-          (Parent as TPopUpMenu).Items.Add(M);
-        Inc(AddCount);
-      end;
-    end;
-    if AddCount = 0 then
-    begin
-      M := TMenuItem.Create(Self);
-//      M.Name := 'N' + IntToStr(Index);
-      M.Caption := 'Пусто';
-      M.Enabled := False;
-      if (Parent is TMenuItem) then
-        (Parent as TMenuItem).Add(M)
-      else
-        (Parent as TPopUpMenu).Items.Add(M);
-    end;
-  end;
-
-  procedure LoadMacrosGroup(const AMacrosGroupID: Integer);
-  var
-    LMacrosGroup: TscrMacrosGroup;
-  begin
-    Assert(gdcBaseManager <> nil);
-
-    LMacrosGroup := TscrMacrosGroup.Create(True);
-    LMacrosGroup.Transaction := gdcBaseManager.ReadTransaction;
-    LMacrosGroup.Load(AMacrosGroupID);
-
-    FMacrosGroupList.Add(LMacrosGroup);
-
-    if (LMacrosGroup.Count > 1) or
-      ((LMacrosGroup.Count = 1) and (LMacrosGroup[0].MacrosList.Count > 0)) then
-    begin
-      M := TMenuItem.Create(Self);
-      M.Caption := '-';
-      Self.Items.Add(M);
-
-      FillMenu(Self, LMacrosGroup);
-    end;
-  end;
-
-  procedure IterateAncestor(AFE: TgdFormEntry);
-  begin
-    if (AFE.SubType <> '') and (AFE.Parent is TgdFormEntry) then
-      IterateAncestor(AFE.Parent as TgdFormEntry);
+    if (AFE.SubType > '') and (AFE.Parent is TgdFormEntry) then
+      IterateForms(AFE.Parent as TgdFormEntry);
 
     if not AFE.AbstractBaseForm then
-      LoadMacrosGroup(AFE.MacrosGroupID);
+      GroupIDs := GroupIDs + IntToStr(AFE.MacrosGroupID) + ',';
+  end;
+
+  procedure AddFolder(F, M: TMenuItem);
+  var
+    I: Integer;
+  begin
+    I := F.Count - 1;
+    while I > 0 do
+    begin
+      if F.Items[I].ImageIndex <> idxMacros then
+        break;
+      Dec(I);
+    end;
+    if I >= 0 then
+      F.Insert(I + 1, M)
+    else
+      F.Add(M);
   end;
 
 begin
-  if not Assigned(Owner) then
-    raise Exception.Create('Owner not assigned');
-
+  FreeAndNil(FMacrosList);
   FreeAndNil(FActionList);
 
   Items.Clear;
@@ -237,17 +169,23 @@ begin
     exit;
   end;
 
+  Self.AutoLineReduction := Menus.maAutomatic;
+  Self.Tag := -1;
+  Self.Images := dmImages.il16x16;
+
   if IBLogin.IsUserAdmin then
   begin
-    M := TMenuItem.Create(Self);
-    M.Caption := CST_MacrosMENU;
-    M.OnClick := DoOnMacrosListClick;
-    Self.Items.Add(M);
+    MenuItem := TMenuItem.Create(Self);
+    MenuItem.Caption := CST_MacrosMENU;
+    MenuItem.OnClick := DoOnMacrosListClick;
+    MenuItem.ImageIndex := idxScriptEditor;
+    Self.Items.Add(MenuItem);
+    MenuItem := TMenuItem.Create(Self);
+    MenuItem.Caption := '-';
+    Self.Items.Add(MenuItem);
   end;
 
-  FMacrosGroupList.Clear;
-
-  LoadMacrosGroup(OBJ_GLOBALMACROS);
+  GroupIDs := IntToStr(OBJ_GLOBALMACROS) + ',';
 
   gdcDelphiObject := TgdcDelphiObject.Create(nil);
   try
@@ -263,12 +201,115 @@ begin
         TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
 
       if FE.SubType <> '' then
-        IterateAncestor(FE.Parent as TgdFormEntry);
+        IterateForms(FE.Parent as TgdFormEntry);
     end;
 
-    LoadMacrosGroup(gdcDelphiObject.FieldByName(fnMacrosGroupKey).AsInteger);
+    GroupIDs := GroupIDs
+      + gdcDelphiObject.FieldByName(fnMacrosGroupKey).AsString + ',';
+
   finally
     gdcDelphiObject.Free;
+  end;
+
+  SetLength(GroupIDs, Length(GroupIDs) - 1);
+
+  CurrMenu := Self;
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+
+    FormRootID := -1;
+
+    if IBLogin.IsUserAdmin then
+      S := ''
+    else
+      S := 'AND BIN_AND(r.aview, :InGroup) <> 0 ';
+
+    q.SQL.Text :=
+      'SELECT '#13#10 +
+      '  g.id AS groupid, '#13#10 +
+      '  g.parent AS groupparent, '#13#10 +
+      '  g.name AS groupname, '#13#10 +
+      '  r.* '#13#10 +
+      'FROM '#13#10 +
+      '  evt_macrosgroup gparent '#13#10 +
+      '  JOIN evt_macrosgroup g '#13#10 +
+      '    ON g.lb >= gparent.lb AND g.rb <= gparent.rb '#13#10 +
+      '  LEFT JOIN evt_macroslist r '#13#10 +
+      '    ON r.macrosgroupkey = g.id '#13#10 +
+      'WHERE '#13#10 +
+      '  gparent.id IN (' + GroupIDs + ') '#13#10 +
+      '  AND r.displayinmenu <> 0 '#13#10 +
+      S +
+      'ORDER BY '#13#10 +
+      '  gparent.lb, g.name, r.name';
+    if S > '' then
+      q.ParamByName('InGroup').AsInteger := IBLogin.InGroup;
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin
+      if CurrMenu.Tag <> q.FieldByName('groupid').AsInteger then
+      begin
+        if q.FieldbyName('groupparent').IsNull
+          or (q.FieldByName('groupid').AsInteger = FormRootID) then
+        begin
+          CurrMenu := Self;
+        end else
+        begin
+          MenuItem := TMenuItem.Create(Self);
+          MenuItem.Caption := q.FieldbyName('groupname').AsString;
+          MenuItem.Tag := q.FieldByName('groupid').AsInteger;
+          MenuItem.ImageIndex := idxFolder;
+
+          if CurrMenu is TMenuItem then
+          begin
+            if CurrMenu.Tag = q.FieldByName('groupparent').AsInteger then
+              AddFolder(CurrMenu as TMenuItem, MenuItem)
+            else if (CurrMenu as TMenuItem).Parent is TMenuItem then
+              AddFolder((CurrMenu as TMenuItem).Parent, MenuItem)
+            else
+              AddFolder(Self.Items, MenuItem);
+          end else
+            AddFolder(Self.Items, MenuItem);
+
+          CurrMenu := MenuItem;
+        end;
+      end;
+
+      if q.FieldByName('id').AsInteger > 0 then
+      begin
+        if FMacrosList = nil then
+          FMacrosList :=  TscrMacrosList.Create(True);
+        if FActionList = nil then
+          FActionList := TActionList.Create(Owner);
+
+        MacrosItem := TscrMacrosItem.Create;
+        MacrosItem.ReadFromSQL(q);
+        FMacrosList.Add(MacrosItem);
+
+        Action := TAction.Create(FActionList);
+        Action.Caption := q.FieldbyName('name').AsString;
+        Action.ShortCut := q.FieldbyName('shortcut').AsInteger;
+        Action.ImageIndex := Integer(MacrosItem);
+        Action.OnExecute := DoOnMenuClick;
+        Action.ActionList := FActionList;
+
+        MenuItem := TMenuItem.Create(Self);
+        MenuItem.Action := Action;
+        MenuItem.Tag := q.FieldByName('id').AsInteger;
+        MenuItem.ImageIndex := idxMacros;
+
+        if CurrMenu is TMenuItem then
+          (CurrMenu as TMenuItem).Add(MenuItem)
+        else
+          Self.Items.Add(MenuItem);
+      end;
+
+      q.Next;
+    end;
+  finally
+    q.Free;
   end;
 end;
 
