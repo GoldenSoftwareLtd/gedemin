@@ -758,6 +758,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (242, '0000.0001.0000.0273', '17.01.2016', 'Nullify objects in at_relation_fields.');     
   
+INSERT INTO fin_versioninfo
+  VALUES (243, '0000.0001.0000.0274', '24.01.2016', 'Issue when RUIDs of DT differ from GD_RUID record.');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

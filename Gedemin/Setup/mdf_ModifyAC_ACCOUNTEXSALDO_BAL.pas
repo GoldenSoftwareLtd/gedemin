@@ -862,7 +862,7 @@ begin
           'END ';
         q.ExecQuery;
 
-        q.SQL.Text :=
+        {q.SQL.Text :=
           'CREATE OR ALTER TRIGGER gd_aiu_documenttype FOR gd_documenttype '#13#10 +
           '  ACTIVE '#13#10 +
           '  AFTER INSERT OR UPDATE '#13#10 +
@@ -875,7 +875,7 @@ begin
           '      EXCEPTION gd_e_exception ''Document class can not include a folder.''; '#13#10 +
           '  END '#13#10 +
           'END';
-        q.ExecQuery;
+        q.ExecQuery;}
 
         q.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +

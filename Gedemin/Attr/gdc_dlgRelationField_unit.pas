@@ -80,13 +80,13 @@ type
     lblDefaultValue: TLabel;
     lblRuleDelete: TLabel;
     lblFieldType: TLabel;
-    dbcbNotNull: TDBCheckBox;
     luFieldType: TgsIBLookupComboBox;
     edDefaultValue: TDBMemo;
     cmbRuleDelete: TComboBox;
     tsCalculated: TTabSheet;
     lComputed: TLabel;
     dbmComputed: TDBMemo;
+    cbNotNull: TCheckBox;
 
     procedure luFieldTypeChange(Sender: TObject);
     procedure dbmComputedChange(Sender: TObject);
@@ -236,13 +236,13 @@ begin
         if gdcObject.FieldByName('readonly').isNull then
           gdcObject.FieldByName('readonly').AsString := '0';
 
-        gdcObject.FieldByName('nullflag').AsInteger :=
-          Field.FieldByName('flag').AsInteger;
-
-        if gdcObject.FieldByName('nullflag').AsInteger = 0 then
-          dbcbNotNull.Enabled := True
+        if Field.FieldByName('flag').IsNull then
+          gdcObject.FieldByName('nullflag').Clear
         else
-          dbcbNotNull.Enabled := False;
+          gdcObject.FieldByName('nullflag').AsInteger := Field.FieldByName('flag').AsInteger;
+
+        cbNotNull.Checked := gdcObject.FieldByName('nullflag').AsInteger <> 0;
+        cbNotNull.Enabled := Field.FieldByName('flag').AsInteger = 0;
 
         if not Field.FieldByName('defsource').IsNull then
         begin
@@ -377,6 +377,13 @@ begin
   else
     gdcObject.FieldByName('objects').Clear;
 
+  if cbNotNull.Checked then
+    gdcObject.FieldByName('nullflag').AsInteger := 1
+  else begin
+    if gdcObject.FieldByName('nullflag').AsInteger <> 0 then
+      gdcObject.FieldByName('nullflag').Clear;
+  end;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -432,7 +439,7 @@ begin
     dbedRelationFieldName.Color := clBtnFace;
     luFieldType.ReadOnly := True;
     lblFieldType.Enabled := False;
-    dbcbNotNull.Enabled := False;
+    cbNotNull.Enabled := False;
     edDefaultValue.Enabled := False;
     lblDefaultValue.Enabled := False;
     dbmComputed.ReadOnly := True;
@@ -488,7 +495,7 @@ begin
     dbedRelationFieldName.Color := clWindow;
     luFieldType.ReadOnly := False;
     lblFieldType.Enabled := True;
-    dbcbNotNull.Enabled := True;
+    cbNotNull.Enabled := True;
     edDefaultValue.Enabled := True;
     lblDefaultValue.Enabled := True;
     dbmComputed.ReadOnly := False;
@@ -509,6 +516,8 @@ begin
   (gdcObject as TgdcRelationField).ChangeComputed := False;
 
   lbClasses.Items.CommaText := gdcObject.FieldByName('objects').AsString;
+
+  cbNotNull.Checked := gdcObject.FieldByName('nullflag').AsInteger <> 0;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally

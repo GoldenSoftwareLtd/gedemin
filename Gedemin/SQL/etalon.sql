@@ -1597,6 +1597,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (241, '0000.0001.0000.0272', '09.01.2016', 'Second try. Now with triggers disabled.');     
   
+INSERT INTO fin_versioninfo
+  VALUES (242, '0000.0001.0000.0273', '17.01.2016', 'Nullify objects in at_relation_fields.');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -4161,56 +4164,48 @@ END
  *
  */
 
-CREATE TRIGGER at_bi_rf FOR at_relation_fields
+CREATE OR ALTER TRIGGER at_bi_rf FOR at_relation_fields
   BEFORE INSERT
   POSITION 0
 AS
 BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+END
+^
 
-  IF (g_s_trim(NEW.relationname, ' ') = '') THEN
-  BEGIN
-    SELECT relationname FROM at_relations WHERE id = NEW.relationkey
-    INTO NEW.relationname;
+CREATE OR ALTER TRIGGER at_biu_rf FOR at_relation_fields
+  BEFORE INSERT OR UPDATE
+  POSITION 1000
+AS
+BEGIN
+  SELECT relationname FROM at_relations WHERE id = NEW.relationkey
+  INTO NEW.relationname;
+  
+  IF (NEW.crossfield = '') THEN 
+  BEGIN  
+    NEW.crossfield = NULL;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
   END
-  IF (NEW.crossfield= '') THEN NEW.crossfield=NULL;
-  IF (NEW.crosstable = '') THEN NEW.crosstable=NULL;
+  
+  IF (NEW.crosstable = '') THEN 
+  BEGIN
+    NEW.crosstable = NULL;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
+  END  
+  
+  NEW.objects = TRIM(NEW.objects);
+  
+  IF (NEW.objects = '' OR NEW.objects LIKE 'TgdcBase%' OR NEW.objects LIKE '(Blob)%') THEN
+  BEGIN
+    NEW.objects = NULL;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
+  END
 END
 ^
 
-CREATE TRIGGER at_bu_rf FOR at_relation_fields
-  BEFORE UPDATE
-  POSITION 0
-AS
-BEGIN
-  IF (NEW.crossfield= '') THEN NEW.crossfield=NULL;
-  IF (NEW.crosstable = '') THEN NEW.crosstable=NULL;
-END
-^
-
-CREATE TRIGGER at_ai_relation_field FOR at_relation_fields
-  AFTER INSERT
-  POSITION 0
-AS
-  DECLARE VARIABLE VERSION INTEGER;
-BEGIN
-  VERSION = GEN_ID(gd_g_attr_version, 1);
-END
-^
-
-CREATE TRIGGER at_au_relation_field FOR at_relation_fields
-  AFTER UPDATE
-  POSITION 0
-AS
-  DECLARE VARIABLE VERSION INTEGER;
-BEGIN
-  VERSION = GEN_ID(gd_g_attr_version, 1);
-END
-^
-
-CREATE TRIGGER at_ad_relation_field FOR at_relation_fields
-  AFTER DELETE
+CREATE OR ALTER TRIGGER at_aiud_relation_field FOR at_relation_fields
+  AFTER INSERT OR UPDATE OR DELETE
   POSITION 0
 AS
   DECLARE VARIABLE VERSION INTEGER;
@@ -5858,11 +5853,29 @@ CREATE OR ALTER TRIGGER gd_aiu_documenttype FOR gd_documenttype
   AFTER INSERT OR UPDATE
   POSITION 20001
 AS
+  DECLARE VARIABLE P INTEGER;
+  DECLARE VARIABLE XID INTEGER;
+  DECLARE VARIABLE DBID INTEGER;
 BEGIN
   IF (NEW.documenttype = 'B') THEN
   BEGIN
     IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> 'B' AND id = NEW.parent)) THEN
       EXCEPTION gd_e_exception 'Document class can not include a folder.';
+  END
+  
+  IF (INSERTING OR (NEW.ruid <> OLD.ruid)) THEN
+  BEGIN
+    P = POSITION('_' IN NEW.ruid);
+    XID = LEFT(NEW.ruid, :P - 1);
+    DBID = RIGHT(NEW.ruid, CHAR_LENGTH(NEW.ruid) - :P);
+    
+    IF (INSERTING) THEN
+      INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
+      VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY'));
+    ELSE
+      UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
+      VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY'))
+      MATCHING(xid, dbid);    
   END
 END
 ^
@@ -14309,7 +14322,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -14575,6 +14588,25 @@ BEGIN
     NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
     NEW.editiondate = CURRENT_TIMESTAMP(0);
+END
+^
+
+CREATE OR ALTER TRIGGER rp_ad_reportlist FOR rp_reportlist
+  ACTIVE
+  AFTER DELETE 
+  POSITION 32000
+AS
+  DECLARE VARIABLE RUID VARCHAR(21) = NULL;
+BEGIN
+  SELECT xid || '_' || dbid
+  FROM gd_ruid
+  WHERE id = OLD.id
+  INTO :RUID;
+  
+  IF (COALESCE(:RUID, '') <> '') THEN
+  BEGIN
+    DELETE FROM gd_command WHERE cmdtype = 2 AND cmd = :RUID;
+  END
 END
 ^
 
@@ -16806,6 +16838,18 @@ BEGIN
   END  
 END
 ^
+
+CREATE OR ALTER TRIGGER gd_au_ruid FOR gd_ruid 
+  ACTIVE
+  AFTER UPDATE
+  POSITION 32000
+AS
+BEGIN
+  IF (NEW.xid <> OLD.xid OR NEW.dbid <> OLD.dbid) THEN
+    UPDATE at_object SET xid = NEW.xid, dbid = NEW.dbid
+      WHERE xid = OLD.xid AND dbid = OLD.dbid;
+END 
+^ 
 
 SET TERM ; ^
 
