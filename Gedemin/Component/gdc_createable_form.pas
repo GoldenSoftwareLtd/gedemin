@@ -72,6 +72,8 @@ type
 
     function GetFormCaption: String; override;
 
+    procedure RegGdcDelphiObject;
+
     {$IFDEF DUNIT_TEST}
     procedure DUnitDoTimer; virtual;
     procedure DUnitOnTimer(Sender: TObject);
@@ -129,7 +131,8 @@ uses
   SysUtils,             Storages,       gd_directories_const,
   gdcOLEClassList,      gd_ClassList,   mtd_i_Inherited,
   gsStorage,            prp_Methods,    DB,
-  Windows,              Controls,       gd_strings
+  Windows,              Controls,       gd_strings,
+  evt_Base,             gdcDelphiObject
 
   {$IFDEF DUNIT_TEST}
     , extctrls, Test_Global_unit
@@ -825,6 +828,20 @@ begin
   end;
 
   Result := Pref + Result + Postf;
+end;
+
+procedure TgdcCreateableForm.RegGdcDelphiObject;
+begin
+  if (EventControl <> nil)
+    and ((EventControl.Get_Self as TEventControl).EventObjectList.FindObject(Self.InitialName) = nil) then
+  begin
+    with TgdcDelphiObject.Create(nil) do
+    try
+      AddObject(Self);
+    finally
+      Free;
+    end;
+  end;
 end;
 
 initialization

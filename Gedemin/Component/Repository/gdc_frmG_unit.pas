@@ -665,6 +665,8 @@ begin
   FChooseControl := nil;
   FChosenIDInOrder := nil;
   PreviousSelectedID := TgdKeyArray.Create;
+
+  RegGdcDelphiObject;
 end;
 
 procedure Tgdc_frmG.actMainReductionUpdate(Sender: TObject);

@@ -324,8 +324,7 @@ uses
   IBCustomDataSet, TypInfo, gd_directories_const, Storages, gd_ClassList,
   dmImages_unit, evt_Base, evt_i_Base, jclStrings, at_frmSQLProcess, gsStorage_CompPath,
   gd_security, prp_methods, Gedemin_TLB, gsStorage, gdcUser, at_classes,
-  DBCtrls, at_AddToSetting, gdcClasses, DBGrids, gdcJournal, gdHelp_Interface,
-  gdcDelphiObject
+  DBCtrls, at_AddToSetting, gdcClasses, DBGrids, gdcJournal, gdHelp_Interface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1819,16 +1818,8 @@ begin
   FAlreadyRestory := False;
   FAppliedID := -1;
 
-  if (EventControl <> nil)
-    and ((EventControl.Get_Self as TEventControl).EventObjectList.FindObject(Self.InitialName) = nil) then
-  begin
-    with TgdcDelphiObject.Create(nil) do
-    try
-      AddObject(Self);
-    finally
-      Free;
-    end;
-  end;
+
+  RegGdcDelphiObject;
 end;
 
 constructor Tgdc_dlgG.CreateNewUser(AnOwner: TComponent;

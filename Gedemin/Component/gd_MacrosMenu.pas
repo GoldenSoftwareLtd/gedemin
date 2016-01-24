@@ -31,9 +31,6 @@ uses
 type
   TgdMacrosMenu = class(TPopupMenu)
   private
-    //FMacrosGroupList: TObjectList;
-
-    //FpmMacros: TPopupMenu;
     FMacrosList: TscrMacrosList;
     FActionList: TActionList;
 
@@ -41,7 +38,6 @@ type
     procedure DoOnMacrosListClick(Sender: TObject);
 
   public
-    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     procedure ReloadGroup;
@@ -69,14 +65,9 @@ end;
 
 { TgdMacrosMenu }
 
-constructor TgdMacrosMenu.Create(AOwner: TComponent);
-begin
-  inherited;
-end;
-
 destructor TgdMacrosMenu.Destroy;
 begin
-  FreeAndNil(FMacrosList);
+  FMacrosList.Free;
 
   inherited;
 end;
@@ -122,9 +113,6 @@ var
   GroupIDs, S: String;
   CurrMenu: TComponent;
   FormRootID: Integer;
-
-  gdcDelphiObject: TgdcDelphiObject;
-  LocId: Integer;
 
   Action: TAction;
 
@@ -187,38 +175,38 @@ begin
 
   GroupIDs := IntToStr(OBJ_GLOBALMACROS) + ',';
 
-  gdcDelphiObject := TgdcDelphiObject.Create(nil);
-  try
-    LocId := gdcDelphiObject.AddObject(Owner);
-    gdcDelphiObject.Close;
-    gdcDelphiObject.SubSet := ssById;
-    gdcDelphiObject.ID := LocId;
-    gdcDelphiObject.Open;
-
-    if Owner is TgdcCreateableForm then
-    begin
-      FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
-        TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
-
-      if FE.SubType <> '' then
-        IterateForms(FE.Parent as TgdFormEntry);
-    end;
-
-    GroupIDs := GroupIDs
-      + gdcDelphiObject.FieldByName(fnMacrosGroupKey).AsString + ',';
-
-  finally
-    gdcDelphiObject.Free;
-  end;
-
-  SetLength(GroupIDs, Length(GroupIDs) - 1);
-
   CurrMenu := Self;
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
 
     FormRootID := -1;
+
+    if Owner is TgdcCreateableForm then
+    begin
+      FE := gdClassList.Get(TgdFormEntry, Owner.ClassName,
+        TgdcCreateableForm(Owner).SubType) as TgdFormEntry;
+
+      if FE.ShowInFormEditor then
+        begin
+          q.SQL.Text :=
+            'SELECT macrosgroupkey FROM evt_object ' +
+            'WHERE UPPER(objectname) = :objectname';
+          q.Params[0].AsString := UpperCase(TCreateableForm(Owner).InitialName);
+          q.ExecQuery;
+          if not q.EOF then
+          begin
+            GroupIDs := GroupIDs + q.Fields[0].AsString + ',';
+            FormRootID := q.Fields[0].AsInteger;
+          end;
+        end else
+        begin
+          FormRootID := FE.GroupID;
+          IterateForms(FE);
+        end;
+    end;
+
+    SetLength(GroupIDs, Length(GroupIDs) - 1);
 
     if IBLogin.IsUserAdmin then
       S := ''
@@ -245,6 +233,8 @@ begin
       '  gparent.lb, g.name, r.name';
     if S > '' then
       q.ParamByName('InGroup').AsInteger := IBLogin.InGroup;
+
+    q.Close;
     q.ExecQuery;
 
     while not q.EOF do
