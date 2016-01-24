@@ -1125,8 +1125,102 @@ begin
           'END';
         FIBSQL.ExecQuery;
 
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER rp_ad_reportlist FOR rp_reportlist '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  AFTER DELETE '#13#10 +
+          '  POSITION 32000 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE RUID VARCHAR(21) = NULL; '#13#10 +
+          'BEGIN '#13#10 +
+          '  SELECT xid || ''_'' || dbid '#13#10 +
+          '  FROM gd_ruid '#13#10 +
+          '  WHERE id = OLD.id '#13#10 +
+          '  INTO :RUID; '#13#10 +
+          ' '#13#10 +
+          '  IF (COALESCE(:RUID, '''') <> '''') THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    DELETE FROM gd_command WHERE cmdtype = 2 AND cmd = :RUID; '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_au_ruid FOR gd_ruid '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  AFTER UPDATE '#13#10 +
+          '  POSITION 32000 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.xid <> OLD.xid OR NEW.dbid <> OLD.dbid) THEN '#13#10 +
+          '    UPDATE at_object SET xid = NEW.xid, dbid = NEW.dbid '#13#10 +
+          '      WHERE xid = OLD.xid AND dbid = OLD.dbid; '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_aiu_documenttype FOR gd_documenttype '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  AFTER INSERT OR UPDATE '#13#10 +
+          '  POSITION 20001 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE P INTEGER; '#13#10 +
+          '  DECLARE VARIABLE XID INTEGER; '#13#10 +
+          '  DECLARE VARIABLE DBID INTEGER; '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.documenttype = ''B'') THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> ''B'' AND id = NEW.parent)) THEN '#13#10 +
+          '      EXCEPTION gd_e_exception ''Document class can not include a folder.''; '#13#10 +
+          '  END '#13#10 +
+          ' '#13#10 +
+          '  IF (INSERTING OR (NEW.ruid <> OLD.ruid)) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    P = POSITION(''_'' IN NEW.ruid); '#13#10 +
+          '    XID = LEFT(NEW.ruid, :P - 1); '#13#10 +
+          '    DBID = RIGHT(NEW.ruid, CHAR_LENGTH(NEW.ruid) - :P); '#13#10 +
+          ' '#13#10 +
+          '    IF (INSERTING) THEN '#13#10 +
+          '      INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) '#13#10 +
+          '      VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'')); '#13#10 +
+          '    ELSE '#13#10 +
+          '      UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) '#13#10 +
+          '      VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'')) '#13#10 +
+          '      MATCHING(xid, dbid); '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
         FTransaction.Commit;
         FTransaction.StartTransaction;
+
+        FIBSQL.SQL.Text :=
+          'EXECUTE BLOCK '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE RUID VARCHAR(21); '#13#10 +
+          '  DECLARE VARIABLE XID INTEGER; '#13#10 +
+          '  DECLARE VARIABLE DBID INTEGER; '#13#10 +
+          '  DECLARE VARIABLE P INTEGER; '#13#10 +
+          'BEGIN '#13#10 +
+          '  FOR '#13#10 +
+          '    SELECT '#13#10 +
+          '      t.ruid, r.xid, r.dbid '#13#10 +
+          '    FROM gd_documenttype t JOIN gd_ruid r '#13#10 +
+          '      ON r.id = t.id '#13#10 +
+          '    WHERE '#13#10 +
+          '      t.ruid <> r.xid || ''_'' || r.dbid '#13#10 +
+          '    INTO '#13#10 +
+          '      :RUID, :XID, :DBID '#13#10 +
+          '  DO BEGIN '#13#10 +
+          '    P = POSITION(''_'' IN :RUID); '#13#10 +
+          '    UPDATE gd_ruid SET xid = LEFT(:RUID, :P - 1), '#13#10 +
+          '      dbid = RIGHT(:RUID, CHARACTER_LENGTH(:RUID) - :P) '#13#10 +
+          '    WHERE '#13#10 +
+          '      xid = :XID AND dbid = :DBID; '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
 
         FIBSQL.SQL.Text :=
           'UPDATE at_relation_fields '#13#10 +
@@ -1264,6 +1358,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (242, ''0000.0001.0000.0273'', ''17.01.2016'', ''Nullify objects in at_relation_fields.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (243, ''0000.0001.0000.0274'', ''24.01.2016'', ''Issue when RUIDs of DT differ from GD_RUID record.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

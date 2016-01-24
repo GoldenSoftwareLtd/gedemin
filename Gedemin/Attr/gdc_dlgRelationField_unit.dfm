@@ -190,18 +190,6 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
               Height = 13
               Caption = 'Домен:'
             end
-            object dbcbNotNull: TDBCheckBox
-              Left = 136
-              Top = 35
-              Width = 57
-              Height = 17
-              Caption = 'Not Null'
-              DataField = 'nullflag'
-              DataSource = dsgdcBase
-              TabOrder = 1
-              ValueChecked = '1'
-              ValueUnchecked = '0'
-            end
             object luFieldType: TgsIBLookupComboBox
               Left = 136
               Top = 6
@@ -251,6 +239,14 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
                 'CASCADE'
                 'SET NULL'
                 'SET DEFAULT')
+            end
+            object cbNotNull: TCheckBox
+              Left = 136
+              Top = 35
+              Width = 273
+              Height = 17
+              Caption = 'NOT NULL '
+              TabOrder = 1
             end
           end
           object tsCalculated: TTabSheet

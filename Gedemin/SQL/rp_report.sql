@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -267,6 +267,25 @@ BEGIN
     NEW.editorkey = RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY');
   IF (NEW.editiondate IS NULL) THEN
     NEW.editiondate = CURRENT_TIMESTAMP(0);
+END
+^
+
+CREATE OR ALTER TRIGGER rp_ad_reportlist FOR rp_reportlist
+  ACTIVE
+  AFTER DELETE 
+  POSITION 32000
+AS
+  DECLARE VARIABLE RUID VARCHAR(21) = NULL;
+BEGIN
+  SELECT xid || '_' || dbid
+  FROM gd_ruid
+  WHERE id = OLD.id
+  INTO :RUID;
+  
+  IF (COALESCE(:RUID, '') <> '') THEN
+  BEGIN
+    DELETE FROM gd_command WHERE cmdtype = 2 AND cmd = :RUID;
+  END
 END
 ^
 

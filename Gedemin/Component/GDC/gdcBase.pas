@@ -2181,15 +2181,15 @@ uses
   flt_sql_parser,               JclStrHashMap,                gdDBImpExp_unit,
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
-  gs_Exception,                 Storages,
-  at_sql_parser,                {scrReportGroup,}               at_frmSQLProcess,
-  DBConsts,                     gd_common_functions,          ComObj,
-  gdc_frmMDH_unit,              AcctUtils
+  gs_Exception,                 Storages,                     at_sql_parser,
+  at_frmSQLProcess,             DBConsts,                     gd_common_functions,
+  ComObj,                       gdc_frmMDH_unit,              AcctUtils,
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
-    , gd_localization_stub, gd_localization
+  gd_localization_stub, gd_localization,
   {$ENDIF}
-  , gdc_frmStreamSaver, gdcStreamSaver, gdcLBRBTreeMetaData, gdcTableMetaData;
+  gdc_frmStreamSaver,           gdcStreamSaver,               gdcLBRBTreeMetaData,
+  gdcTableMetaData;
 
 const
   cst_sql_SelectRuidByID =

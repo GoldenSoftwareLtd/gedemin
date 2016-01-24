@@ -372,6 +372,7 @@ begin
     and (not ibgrMain.ReadOnly)
     and (dgEditing in ibgrMain.Options);
   actEditInGrid.Enabled := Assigned(gdcObject)
+    and gdcObject.Active
     and gdcObject.CanEdit;
 end;
 

@@ -351,6 +351,18 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER gd_au_ruid FOR gd_ruid 
+  ACTIVE
+  AFTER UPDATE
+  POSITION 32000
+AS
+BEGIN
+  IF (NEW.xid <> OLD.xid OR NEW.dbid <> OLD.dbid) THEN
+    UPDATE at_object SET xid = NEW.xid, dbid = NEW.dbid
+      WHERE xid = OLD.xid AND dbid = OLD.dbid;
+END 
+^ 
+
 SET TERM ; ^
 
 CREATE TABLE at_namespace_link (

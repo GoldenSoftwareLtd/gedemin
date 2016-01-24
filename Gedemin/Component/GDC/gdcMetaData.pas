@@ -469,7 +469,6 @@ type
     procedure _DoOnNewRecord; override;
     procedure DoBeforePost; override;
     procedure DoBeforeEdit; override;
-    procedure DoAfterEdit; override;
     procedure CreateFields; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
@@ -3435,7 +3434,7 @@ begin
       end;
 
       if (FieldByName('nullflag').AsInteger = 1) and
-       IsSetDefault or NeedMultiConnection then
+        IsSetDefault or NeedMultiConnection then
       begin
         if ((FieldByName('nullflag').AsInteger = 1) and
           (FieldByName('computed_value').IsNull) or
@@ -3833,8 +3832,6 @@ begin
   inherited;
 
   FChangeComputed := False;
-
-  FieldByName('nullflag').AsInteger := 0;
 
   with FgdcDataLink do
     if Active and (DataSet is TgdcRelation) then
@@ -4989,7 +4986,12 @@ begin
               FieldByName('setlistfield').AsString := Field.FieldByName('setlistfield').AsString;
               FieldByName('stringlength').AsString := Field.FieldByName('fcharlength').AsString;
               if Field.FieldByName('flag').AsInteger > 0 then
-                FieldByName('nullflag').AsInteger := Field.FieldByName('flag').AsInteger;
+              begin
+                if Field.FieldByName('flag').IsNull then
+                  FieldByName('nullflag').Clear
+                else
+                  FieldByName('nullflag').AsInteger := Field.FieldByName('flag').AsInteger;
+              end;
 
               if FieldByName('visible').IsNull then
               begin
@@ -5239,13 +5241,6 @@ begin
   end;
 
   FindInheritedSubType(Result);
-end;
-
-procedure TgdcRelationField.DoAfterEdit;
-begin
-  inherited;
-  if FieldByName('nullflag').IsNull then
-    FieldByName('nullflag').AsInteger := 0;
 end;
 
 function TgdcRelationField.CreateAccCirculationList(const IsDrop: Boolean = False): String;
