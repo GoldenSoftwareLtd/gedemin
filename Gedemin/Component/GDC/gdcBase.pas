@@ -5039,8 +5039,8 @@ begin
         q.ExecQuery;
         if not q.EOF then
         begin
-          GroupIDs := GroupIDs + q.Fields[0].AsString + ',';
           FormRootID := q.Fields[0].AsInteger;
+          GroupIDs := GroupIDs + IntToStr(FormRootID) + ',';
         end;
       end else
       begin
