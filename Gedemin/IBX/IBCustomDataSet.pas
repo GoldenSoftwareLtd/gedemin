@@ -6378,7 +6378,7 @@ begin
         if PRecordData(pRec).rdUpdateStatus = usDeleted then
         begin
           Dec(FRecordCount);
-          Move(pRec[FRecordBufferSize], pRec^, FRecordCount - I);
+          Move(pRec[FRecordBufferSize], pRec^, (FRecordCount - I) * FRecordBufferSize);
           Dec(FDeletedRecords);
         end else
         begin
