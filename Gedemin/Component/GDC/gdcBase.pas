@@ -4953,7 +4953,7 @@ end;
 
 procedure TgdcBase.MakeReportMenu;
 const
-  IdxReport       = 123;
+  IdxReport       = 172;
   IdxFolder       = 132;
   IdxScriptEditor = 21;
 
@@ -4986,17 +4986,48 @@ var
   var
     I: Integer;
   begin
-    I := F.Count - 1;
-    while I > 0 do
+    I := 0;
+    while (I < F.Count) and
+      (
+        (F.Items[I].ImageIndex = idxScriptEditor)
+        or
+        (F.Items[I].Caption = '-')
+        or
+        (
+          (F.Items[I].ImageIndex = idxFolder)
+          and
+          (AnsiCompareText(F.Items[I].Caption, M.Caption) <= 0)
+        )
+      ) do
     begin
-      if F.Items[I].ImageIndex <> idxReport then
-        break;
-      Dec(I);
+      Inc(I);
     end;
-    if I >= 0 then
-      F.Insert(I + 1, M)
-    else
-      F.Add(M);
+    F.Insert(I, M);
+  end;
+
+  procedure AddItem(F, M: TMenuItem);
+  var
+    I: Integer;
+  begin
+    I := 0;
+    while (I < F.Count) and
+      (
+        (F.Items[I].ImageIndex = idxScriptEditor)
+        or
+        (F.Items[I].Caption = '-')
+        or
+        (F.Items[I].ImageIndex = idxFolder)
+        or
+        (
+          (F.Items[I].ImageIndex = idxReport)
+          and
+          (AnsiCompareText(F.Items[I].Caption, M.Caption) <= 0)
+        )
+      ) do
+    begin
+      Inc(I);
+    end;
+    F.Insert(I, M);
   end;
 
 begin
@@ -5081,7 +5112,7 @@ begin
       '  AND r.displayinmenu <> 0 '#13#10 +
       S +
       'ORDER BY '#13#10 +
-      '  gparent.lb, g.name, r.name';
+      '  gparent.lb';
     if S > '' then
       q.ParamByName('InGroup').AsInteger := IBLogin.InGroup;
     q.ExecQuery;
@@ -5123,12 +5154,12 @@ begin
         MenuItem.Caption := q.FieldbyName('name').AsString;
         MenuItem.Tag := q.FieldByName('id').AsInteger;
         MenuItem.OnClick := DoOnReportClick;
-        MenuItem.ImageIndex := idxReport;
+        MenuItem.ImageIndex := IdxReport;
 
         if CurrMenu is TMenuItem then
-          (CurrMenu as TMenuItem).Add(MenuItem)
+          AddItem(CurrMenu as TMenuItem, MenuItem)
         else
-          FpmReport.Items.Add(MenuItem);
+          AddItem(FpmReport.Items, MenuItem);
       end;
 
       q.Next;

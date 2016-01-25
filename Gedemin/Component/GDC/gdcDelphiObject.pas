@@ -14,7 +14,7 @@ type
     //
     // только для объектов
     procedure InsertObject(var Id: Integer; const Parent: Variant;
-      AName: string);
+      AName: String);
     procedure SetObjectType(const Value: TObjectType);
 
   protected
