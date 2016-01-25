@@ -39,6 +39,8 @@ type
     function CheckTheSameStatement: String; override;
     function AddObject(AComponent: TComponent): Integer;
 
+    class function AddO(AComponent: TComponent): Integer;
+
   published
     property ObjectType: TObjectType read FObjectType write SetObjectType;
   end;
@@ -50,7 +52,7 @@ implementation
 uses
   gd_ClassList, evt_Base, Contnrs, gd_SetDatabase, SysUtils, Windows, IBSQL,
   gdcConstants, Forms, gd_security_operationconst, evt_i_Base, gd_createable_form,
-  gd_directories_const, gdc_createable_form
+  gd_directories_const, gdc_createable_form, IBDatabase
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -215,6 +217,182 @@ begin
 
           if DidActivate2 then
             ReadTransaction.Commit;
+        end;
+      end;
+    finally
+      OL.Free;
+    end;
+
+    if (Result <> 0) and Assigned(EventControl) and Added then
+      EventControl.LoadBranch(Result);
+  except
+    on E: Exception do
+    begin
+      MessageBox(0,
+        PChar('Ошибка создания обьекта ' + E.Message),
+        'Ошибка',
+        MB_OK or MB_ICONERROR or MB_TASKMODAL);
+      Result := 0;
+    end;
+  end;
+end;
+
+class function TgdcDelphiObject.AddO(AComponent: TComponent): Integer;
+var
+  TmpCmp: TComponent;
+  OL: TList;
+  I: Integer;
+  ObjectName: string;
+  Added: Boolean;
+  SQL: TIBSQL;
+  Tr: TIBTransaction;
+
+  function Insert(const Parent: Variant; AName: string): Integer;
+  var
+    q: TIBSQL;
+    Tr: TIBTransaction;
+  begin
+    Assert(gdcBaseManager <> nil);
+
+    q := TIBSQL.Create(nil);
+    try
+      Tr := TIBTransaction.Create(nil);
+      try
+        try
+          Tr.DefaultDatabase := gdcBaseManager.Database;
+          Tr.StartTransaction;
+
+          Result := gdcBaseManager.GetNextID;
+
+          q.SQL.Text := 'INSERT INTO evt_object(id, objectname, parent, achag, afull, aview)' +
+            ' VALUES (:id, :objectname, :parent, :achag, :afull, :aview)';
+          q.ParamByName('id').AsInteger := Result;
+          q.ParamByName('objectname').AsString := AName;
+          q.ParamByName('parent').AsVariant := Parent;
+          q.ParamByName('AChag').AsInteger := -1;
+          q.ParamByName('AFull').AsInteger := -1;
+          q.ParamByName('AView').AsInteger := -1;
+          q.ExecQuery;
+
+          Tr.Commit;
+        except
+          Result := -1;
+        end;
+      finally
+        Tr.Free;
+      end;
+    finally
+      q.Free;
+    end;
+  end;
+
+begin
+  Result := 0;
+  Added := False;
+
+  if AComponent = Application then
+  begin
+    Result := OBJ_APPLICATION;
+    Exit;
+  end;
+
+  if (AComponent <> nil) and (AComponent.Name <> '') then
+  try
+    OL := TList.Create;
+    try
+      TmpCmp := AComponent;
+      while (TmpCmp <> nil) and (TmpCmp <> Application) do
+      begin
+        OL.Add(TmpCmp);
+        if (TmpCmp is TCustomForm) then
+          Break;
+        TmpCmp := TmpCmp.Owner;
+      end;
+
+      if OL.Count > 0 then
+      begin
+        SQL := TIBSQL.Create(nil);
+        try
+          SQL.Transaction := gdcBaseManager.ReadTransaction;
+          if TComponent(OL[OL.Count - 1]) is TCreateableForm then
+          begin
+            ObjectName := TCreateableForm(OL[OL.Count - 1]).InitialName;
+            SQL.SQL.Text :=
+              'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname ' +
+              '  AND parent IS NULL';
+            SQL.Params[0].AsString := AnsiUpperCase(ObjectName);
+            SQL.ExecQuery;
+            if SQL.Eof then
+            begin
+              SQL.Close;
+              SQL.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
+              SQL.Params[0].AsString := AnsiUpperCase(ObjectName);
+              SQL.ExecQuery;
+            end;
+          end
+          else
+          begin
+            SQL.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
+            ObjectName := TComponent(OL[OL.Count - 1]).Name;
+            SQL.Params[0].AsString := AnsiUpperCase(ObjectName);
+            SQL.ExecQuery;
+          end;
+
+          if SQL.Eof then
+          begin
+            Result := Insert(Null, ObjectName);
+            Added := True;
+          end
+          else
+          begin
+            Result := SQL.FieldByName(fnId).AsInteger;
+            if not SQL.FieldByName(fnParent).IsNull then
+            begin
+
+              Tr := TIBTransaction.Create(nil);
+              try
+                Tr.DefaultDatabase := gdcBaseManager.Database;
+                Tr.StartTransaction;
+
+                SQL.Transaction := Tr;
+                SQL.SQL.Text := 'UPDATE evt_object SET parent = null WHERE id = :id';
+                SQL.Params[0].AsInteger := Result;
+                SQL.ExecQuery;
+                MessageBox(0,
+                  'Обнаружена внутренняя ошибка в данных.'#13#10 +
+                  'Для её исправления необходимо перезагрузить Гедымин.',
+                  'Ошибка',
+                  MB_OK or MB_ICONERROR or MB_TASKMODAL);
+
+                Tr.Commit;
+              finally
+                Tr.Free;
+              end;
+            end;
+          end;
+
+          SQL.Close;
+
+          SQL.Transaction := gdcBaseManager.ReadTransaction;
+
+          SQL.SQL.Text := 'SELECT * FROM evt_object WHERE parent = :parent ' +
+            'and UPPER(objectname) = :objectname';
+          for I := OL.Count - 2 downto 0 do
+          begin
+            SQL.Params[0].AsInteger := Result;
+            SQL.Params[1].AsString := UpperCase(TComponent(OL[I]).Name);
+            SQL.ExecQuery;
+            if not SQL.Eof then
+              Result := SQL.FieldByName(fnId).AsInteger
+            else
+            begin
+              Result := Insert(Result, TComponent(OL[I]).Name);
+              Added := True;
+            end;
+            SQL.Close;
+          end;
+        finally
+          SQL.Free;
         end;
       end;
     finally
