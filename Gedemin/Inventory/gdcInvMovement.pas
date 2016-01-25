@@ -555,6 +555,7 @@ type
     function GetGroupClause: String; override;
 
     function GetRefreshSQLText: String; override;
+    procedure DoOnNewRecord; override;
   public
 
     constructor Create(AnOwner: TComponent); override;
@@ -7651,6 +7652,13 @@ begin
     end;
   end;
   Result := FIsHolding = 1;
+
+end;
+
+procedure TgdcInvCard.DoOnNewRecord;
+begin
+
+  Abort;
 
 end;
 

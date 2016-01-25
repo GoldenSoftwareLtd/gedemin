@@ -21,7 +21,7 @@ object DataBaseCompare: TDataBaseCompare
     Left = 0
     Top = 0
     Width = 910
-    Height = 545
+    Height = 544
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -323,13 +323,13 @@ object DataBaseCompare: TDataBaseCompare
       Left = 0
       Top = 120
       Width = 910
-      Height = 425
+      Height = 424
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
       object sbDBCompare: TStatusBar
         Left = 0
-        Top = 406
+        Top = 405
         Width = 910
         Height = 19
         Panels = <
@@ -348,7 +348,7 @@ object DataBaseCompare: TDataBaseCompare
         Left = 0
         Top = 0
         Width = 910
-        Height = 406
+        Height = 405
         BorderStyle = bsNone
         TabsVisible = True
         ActivePage = SuperTabSheet1
@@ -361,7 +361,7 @@ object DataBaseCompare: TDataBaseCompare
             Left = 0
             Top = 0
             Width = 910
-            Height = 383
+            Height = 382
             Align = alClient
             Columns = <
               item
@@ -409,8 +409,8 @@ object DataBaseCompare: TDataBaseCompare
           object lvMetaData: TgsListView
             Left = 0
             Top = 0
-            Width = 1078
-            Height = 383
+            Width = 910
+            Height = 382
             Align = alClient
             Columns = <
               item

@@ -31,6 +31,8 @@ type
     FMultipleObjects: Boolean;
     FHeadObjectKey: Integer;
     FOps: TNamespaceOps;
+    FHeadObjectName: String;
+    FSelectedOp: TNamespaceOp;
 
     procedure DeleteFromNamespace;
     procedure MoveBetweenNamespaces;
@@ -58,11 +60,13 @@ type
     property InconsistentParams: Boolean read FInconsistentParams;
     property MultipleObjects: Boolean read FMultipleObjects;
     property HeadObjectKey: Integer read FHeadObjectKey;
+    property HeadObjectName: String read FHeadObjectName;
     property CurrentNSID: Integer read FCurrentNSID write FCurrentNSID;
     property ibdsLink: TIBDataSet read FibdsLink;
     property Enabled: Boolean read GetEnabled;
     property Tabs: TStringList read FTabs;
     property Ops: TNamespaceOps read FOps;
+    property SelectedOp: TNamespaceOp read FSelectedOp write FSelectedOp;
   end;
 
 implementation
@@ -1343,10 +1347,13 @@ begin
   end;
 
   FOps := [];
+  FSelectedOp := nopNone;
   FSessionID := AnObject.GetNextID;
   Count := 0;
+  FHeadObjectKey := -1;
+  FHeadObjectName := '';
   FTabs.Clear;
-  FTabs.AddObject('Зависимости', Pointer(FSessionID));
+  FTabs.AddObject('Зависит от', Pointer(FSessionID));
 
   if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) or (FBL.Count = 0) then
   begin
@@ -1383,12 +1390,13 @@ begin
       'SELECT ' +
       '  n.id, n.name, ' +
       '  o.alwaysoverwrite, o.dontremove, o.includesiblings, ' +
-      '  o.headobjectkey ' +
+      '  o.headobjectkey, ho.objectname as headobjectname ' +
       'FROM at_object o ' +
       '  JOIN at_namespace n ON n.id = o.namespacekey ' +
       '  JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
+      '  LEFT JOIN at_object ho ON ho.id = o.headobjectkey ' +
       'WHERE r.id IN (' + IDs + ') ' +
-      'GROUP BY 1, 2, 3, 4, 5, 6';
+      'GROUP BY 1, 2, 3, 4, 5, 6, 7';
     q.ExecQuery;
 
     while not q.EOF do
@@ -1401,7 +1409,10 @@ begin
         FDontRemove := q.FieldByName('dontremove').AsInteger <> 0;
         FIncludeSiblings := q.FieldByName('includesiblings').AsInteger <> 0;
         if not q.FieldByName('headobjectkey').IsNull then
+        begin
           FHeadObjectKey := q.FieldByName('headobjectkey').AsInteger;
+          FHeadObjectName := q.FieldByName('headobjectname').AsString;
+        end;
       end else
       begin
         if FPrevNSID <> q.FieldByName('id').AsInteger then
@@ -1461,7 +1472,10 @@ begin
     System.Include(FOps, nopAdd);
 
   if (FPrevNSID <> -1) and (FHeadObjectKey = -1) then
-    FOps := FOps + [nopMove, nopDel];
+    FOps := FOps + [nopMove, nopDel, nopChangeProp, nopUpdate];
+
+  if (FPrevNSID <> -1) and (FHeadObjectKey <> -1) then
+    FOps := FOps + [nopPickOut, nopChangeProp, nopUpdate];
 
   Result := True;
 end;

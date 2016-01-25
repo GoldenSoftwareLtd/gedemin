@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, Db, IBDatabase, ActnList, IBSQL, ComCtrls, gdc_createable_form,
   rp_report_const, DBClient, prp_ScriptComparer_unit, gd_security, dmImages_unit,
-  TB2Item, TB2Dock, TB2Toolbar, gd_ClassList, DBGrids, Contnrs, Diff, HashUnit,
+  TB2Item, TB2Dock, TB2Toolbar, DBGrids, Contnrs, Diff, HashUnit,
   gdcBase, gdcSetting, gdcBaseInterface, ZLib, Menus, SuperPageControl, gsListView,
   at_SettingWalker;
 
@@ -33,13 +33,11 @@ type
     ExtID: Integer;
   end;
 
-type
   TRecordData = class(TObject)
   public
     FRecordInfo: TRecordInfo;
   end;
 
-type
   TDataBaseCompare = class(TgdcCreateableForm)
     odExternalDB: TOpenDialog;
     pnMain: TPanel;
@@ -108,6 +106,7 @@ type
     procedure actAddPosUpdate(Sender: TObject);
     procedure actAddPosExecute(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+
   private
     FRecordData: TRecordData;
     FNumber: Integer;         //Номер для сортировки
@@ -121,6 +120,7 @@ type
 
     //Сравенение скриптов
     procedure ConnectToDataBase;
+    procedure DisconnectFromDataBase;
     procedure CompareScipts(DS: TClientDataSet; ListView: TListView; Condition: String; IsSF: Boolean);
     procedure CompareMacros(DS: TClientDataSet; ListView: TListView; MacrosType: String);
     procedure FillMacros(DS: TClientDataSet; ListView: TListView);
@@ -149,9 +149,6 @@ type
     property ExtConnected: Boolean read FExtConnected write FExtConnected default False;
     property Compared: Boolean read FCompared write FCompared default False;
     property FileCompared: Boolean read FFileCompared write FFileCompared;
-
-  public
-    { Public declarations }
   end;
 
 var
@@ -163,7 +160,8 @@ implementation
 
 uses
   gdc_frmExplorer_unit, gdUpdateIndiceStat, JclStrings, at_sql_parser,
-  at_AddToSetting, cmp_dlgDataBaseCompare, gdcStreamSaver, gsStreamHelper;
+  at_AddToSetting, cmp_dlgDataBaseCompare, gdcStreamSaver, gsStreamHelper,
+  gd_ClassList;
 
 procedure TDataBaseCompare.btnExtOpenClick(Sender: TObject);
 begin
@@ -251,8 +249,8 @@ procedure TDataBaseCompare.actCompareDBExecute(Sender: TObject);
 var
   Cr: TCursor;
 begin
-  if not ExtConnected then
-    ConnectToDataBase;
+  DisconnectFromDatabase;
+  ConnectToDataBase;
 
   Compared := False;
   FileCompared := False;
@@ -1236,6 +1234,8 @@ begin
     Title := 'Загрузить настройку из файла.';
     if Execute then
     begin
+      DisconnectFromDatabase;
+
       FNumber := 0;
       Compared := False;
       FileCompared := False;
@@ -2381,7 +2381,7 @@ end;
 
 procedure TDataBaseCompare.FormDestroy(Sender: TObject);
 begin
-  if ExtConnected then
+  if ibExtDatabase.Connected then
     ibExtDataBase.Close;
   FList.Free;
   Diff.Free;
@@ -2389,9 +2389,16 @@ begin
   Source2.Free;
 end;
 
+procedure TDataBaseCompare.DisconnectFromDataBase;
+begin
+  if ibExtDatabase.Connected then
+    ibExtDataBase.Close;
+  ExtConnected := False;
+end;
+
 initialization
-  RegisterClass(TDataBaseCompare);
+  RegisterFrmClass(TDataBaseCompare, 'Сравнение баз данных');
 
 finalization
-  UnRegisterClass(TDataBaseCompare);
+  UnRegisterFrmClass(TDataBaseCompare);
 end.
