@@ -39,20 +39,20 @@ type
     Panel2: TPanel;
     rbDelete: TRadioButton;
     rbMove: TRadioButton;
-    rbAdd: TRadioButton;
+    rbChangeProp: TRadioButton;
     actDelete: TAction;
     pnlDependencies: TPanel;
     dbgrListLink: TgsDBGrid;
     tsObjects: TTabSet;
     actMove: TAction;
     rbPickOut: TRadioButton;
-    RadioButton1: TRadioButton;
+    rbAdd: TRadioButton;
     actIncludeLinked: TAction;
     actAdd: TAction;
     actChangeProperties: TAction;
-    actPickUp: TAction;
-    rbComplete: TRadioButton;
-    actComplete: TAction;
+    actPickOut: TAction;
+    rbUpdate: TRadioButton;
+    actUpdate: TAction;
     actDontModify: TAction;
     procedure actOKExecute(Sender: TObject);
     procedure actOKUpdate(Sender: TObject);
@@ -69,6 +69,15 @@ type
     procedure actMoveExecute(Sender: TObject);
     procedure actIncludeLinkedExecute(Sender: TObject);
     procedure actAddUpdate(Sender: TObject);
+    procedure actChangePropertiesUpdate(Sender: TObject);
+    procedure actChangePropertiesExecute(Sender: TObject);
+    procedure actPickOutUpdate(Sender: TObject);
+    procedure actUpdateUpdate(Sender: TObject);
+    procedure actUpdateExecute(Sender: TObject);
+    procedure actPickOutExecute(Sender: TObject);
+    procedure actAddExecute(Sender: TObject);
+    procedure actDontModifyUpdate(Sender: TObject);
+    procedure actDontModifyExecute(Sender: TObject);
 
   private
     FgdcNamespaceController: TgdcNamespaceController;
@@ -106,21 +115,16 @@ begin
 
   if FgdcNamespaceController.PrevNSID = -1 then
   begin
-    mInfo.Lines.Add('1) Выберите из списка ПИ для добавления объекта(ов): ' +
-      FgdcNamespaceController.ObjectName);
-    mInfo.Lines.Add('2) Установите параметры, которые будут ' +
-      'присвоены всем добавляемым записям');
-    mInfo.Lines.Add('3) Параметры существующих записей ' +
-      'изменяться не будут');
-    rbAdd.Checked := True;
-    chbxDontModify.Checked := True;
-    chbxDontModify.Visible := False;
+    mInfo.Lines.Add(FgdcNamespaceController.ObjectName);
   end
   else if (FgdcNamespaceController.PrevNSID <> -1) and (FgdcNamespaceController.HeadObjectKey = -1) then
   begin
     mInfo.Lines.Add('Объект(ы) "' + FgdcNamespaceController.ObjectName + '" входит в ПИ "' +
-      FgdcNamespaceController.PrevNSName + '". Выберите действие:');
+      FgdcNamespaceController.PrevNSName + '".');
   end;
+
+  if FgdcNamespaceController.HeadObjectName > '' then
+    mInfo.Lines.Add('Главный объект: ' + FgdcNamespaceController.HeadObjectName);
 end;
 
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
@@ -196,7 +200,7 @@ end;
 
 procedure TdlgToNamespace.actDeleteUpdate(Sender: TObject);
 begin
-  actDelete.Visible := (FgdcNamespaceController <> nil)
+  actDelete.Enabled := (FgdcNamespaceController <> nil)
     and (nopDel in FgdcNamespaceController.Ops);
 end;
 
@@ -208,7 +212,7 @@ end;
 
 procedure TdlgToNamespace.actMoveUpdate(Sender: TObject);
 begin
-  actMove.Visible := (FgdcNamespaceController <> nil)
+  actMove.Enabled := (FgdcNamespaceController <> nil)
     and (nopMove in FgdcNamespaceController.Ops);
 end;
 
@@ -232,6 +236,67 @@ procedure TdlgToNamespace.actAddUpdate(Sender: TObject);
 begin
   actAdd.Enabled := (FgdcNamespaceController <> nil)
     and (nopAdd in FgdcNamespaceController.Ops);
+end;
+
+procedure TdlgToNamespace.actChangePropertiesUpdate(Sender: TObject);
+begin
+  actChangeProperties.Enabled := (FgdcNamespaceController <> nil)
+    and (nopChangeProp in FgdcNamespaceController.Ops);
+end;
+
+procedure TdlgToNamespace.actChangePropertiesExecute(Sender: TObject);
+begin
+  lMessage.Visible := not rbChangeProp.Checked;
+  lkupNS.Visible := not rbChangeProp.Checked;
+  chbxDontModify.Visible := not rbChangeProp.Checked;
+end;
+
+procedure TdlgToNamespace.actPickOutUpdate(Sender: TObject);
+begin
+  actPickOut.Enabled := (FgdcNamespaceController <> nil)
+    and (nopPickOut in FgdcNamespaceController.Ops);
+end;
+
+procedure TdlgToNamespace.actUpdateUpdate(Sender: TObject);
+begin
+  actUpdate.Enabled := (FgdcNamespaceController <> nil)
+    and (nopUpdate in FgdcNamespaceController.Ops);
+end;
+
+procedure TdlgToNamespace.actUpdateExecute(Sender: TObject);
+begin
+  //
+end;
+
+procedure TdlgToNamespace.actPickOutExecute(Sender: TObject);
+begin
+  //
+end;
+
+procedure TdlgToNamespace.actAddExecute(Sender: TObject);
+begin
+  if rbAdd.Checked then
+  begin
+    FgdcNamespaceController.SelectedOp := nopAdd;
+    pnlTop.Visible := True;
+    pnlDependencies.Visible := True;
+    chbxIncludeLinked.Visible := True;
+    chbxIncludeSiblings.Visible := True;
+    chbxDontRemove.Visible := True;
+    chbxAlwaysOverwrite.Visible := True;
+    chbxDontModify.Visible := True;
+  end;
+end;
+
+procedure TdlgToNamespace.actDontModifyUpdate(Sender: TObject);
+begin
+  actDontModify.Visible := (FgdcNamespaceController <> nil)
+    and (nopAdd in FgdcNamespaceController.Ops);
+end;
+
+procedure TdlgToNamespace.actDontModifyExecute(Sender: TObject);
+begin
+  //
 end;
 
 end.

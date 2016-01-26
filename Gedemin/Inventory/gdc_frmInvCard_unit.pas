@@ -197,7 +197,10 @@ begin
         gdcInvCard.SetRemainsConditions
       else
         if Assigned(gdcInvCard.gdcInvDocumentLine) and gdcInvCard.gdcInvDocumentLine.Active then
-          gdcInvCard.SetDocumentLineConditions;
+          gdcInvCard.SetDocumentLineConditions
+        else
+          if gdcObject.HasSubSet('ByContact') then
+            gdcObject.ParamByName('contactkey').AsInteger := iblcContact.CurrentKeyInt;  
 
       if not cbAllInterval.Checked then
       begin

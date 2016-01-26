@@ -204,7 +204,7 @@ object dlgToNamespace: TdlgToNamespace
           Action = actMove
           TabOrder = 1
         end
-        object rbAdd: TRadioButton
+        object rbChangeProp: TRadioButton
           Left = 249
           Top = 5
           Width = 119
@@ -217,10 +217,10 @@ object dlgToNamespace: TdlgToNamespace
           Top = 5
           Width = 73
           Height = 17
-          Action = actPickUp
+          Action = actPickOut
           TabOrder = 3
         end
-        object RadioButton1: TRadioButton
+        object rbAdd: TRadioButton
           Left = 8
           Top = 5
           Width = 73
@@ -228,12 +228,12 @@ object dlgToNamespace: TdlgToNamespace
           Action = actAdd
           TabOrder = 4
         end
-        object rbComplete: TRadioButton
+        object rbUpdate: TRadioButton
           Left = 449
           Top = 5
           Width = 82
           Height = 17
-          Action = actComplete
+          Action = actUpdate
           TabOrder = 5
         end
       end
@@ -376,19 +376,28 @@ object dlgToNamespace: TdlgToNamespace
     end
     object actAdd: TAction
       Caption = 'Добавить'
+      OnExecute = actAddExecute
       OnUpdate = actAddUpdate
     end
     object actChangeProperties: TAction
       Caption = 'Изменить признаки'
+      OnExecute = actChangePropertiesExecute
+      OnUpdate = actChangePropertiesUpdate
     end
-    object actPickUp: TAction
+    object actPickOut: TAction
       Caption = 'Выделить'
+      OnExecute = actPickOutExecute
+      OnUpdate = actPickOutUpdate
     end
-    object actComplete: TAction
+    object actUpdate: TAction
       Caption = 'Дополнить'
+      OnExecute = actUpdateExecute
+      OnUpdate = actUpdateUpdate
     end
     object actDontModify: TAction
       Caption = 'Не изменять признаки существующих в ПИ записей'
+      OnExecute = actDontModifyExecute
+      OnUpdate = actDontModifyUpdate
     end
   end
   object Tr: TIBTransaction
