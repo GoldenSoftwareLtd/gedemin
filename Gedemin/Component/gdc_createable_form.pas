@@ -72,8 +72,6 @@ type
 
     function GetFormCaption: String; override;
 
-    procedure RegGdcDelphiObject;
-
     {$IFDEF DUNIT_TEST}
     procedure DUnitDoTimer; virtual;
     procedure DUnitOnTimer(Sender: TObject);
@@ -828,20 +826,6 @@ begin
   end;
 
   Result := Pref + Result + Postf;
-end;
-
-procedure TgdcCreateableForm.RegGdcDelphiObject;
-begin
-  if (EventControl <> nil)
-    and ((EventControl.Get_Self as TEventControl).EventObjectList.FindObject(Self.InitialName) = nil) then
-  begin
-    with TgdcDelphiObject.Create(nil) do
-    try
-      AddObject(Self);
-    finally
-      Free;
-    end;
-  end;
 end;
 
 initialization

@@ -1121,7 +1121,7 @@ uses
   gd_Security, obj_i_Debugger, dlg_gsResizer_ObjectInspector_unit,
   prp_frmGedeminProperty_Unit, gd_createable_form, mtd_i_Base,
   gdc_frmMDVTree_unit, gdcReport, FileCtrl, prp_PropertySettings, gsSupportClasses,
-  shdocvw, gdcBaseInterface, gd_ClassList, gdc_createable_form
+  shdocvw, gdcBaseInterface, gd_ClassList, gdc_createable_form, gdcDelphiObject
   {$IFDEF MODEM}
     , gsModem
   {$ENDIF}
@@ -3574,10 +3574,26 @@ end;
 
 procedure TEventControl.SetEvents(AnComponent: TComponent;
   const OnlyComponent: Boolean = False);
+var
+  EO: TEventObject;
 begin
   if AnComponent <> nil then
-    SetComponentEvent(AnComponent, FEventObjectList.FindAllObject(AnComponent),
-     OnlyComponent, False);
+  begin
+    EO := FEventObjectList.FindAllObject(AnComponent);
+
+    if (EO = nil) and (AnComponent is TgdcCreateableForm) then
+    begin
+      with TgdcDelphiObject.Create(nil) do
+        try
+          AddObject(AnComponent);
+        finally
+          Free;
+        end;
+      EO := FEventObjectList.FindAllObject(AnComponent);
+    end;
+
+    SetComponentEvent(AnComponent, EO, OnlyComponent, False);
+  end;
 end;
 
 function TEventControl.SetParentEventObjectsBySubType(AnComponent: TComponent;

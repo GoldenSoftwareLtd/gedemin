@@ -1817,9 +1817,6 @@ begin
   FFieldsCallOnSync := TFieldsCallList.Create;
   FAlreadyRestory := False;
   FAppliedID := -1;
-
-
-  RegGdcDelphiObject;
 end;
 
 constructor Tgdc_dlgG.CreateNewUser(AnOwner: TComponent;
