@@ -626,6 +626,7 @@ begin
     if ibgrdTop.CanFocus then
       ibgrdTop.SetFocus;
     DocumentLine.ChooseRemains;
+    SendMessage(ibgrdTop.Handle, wm_KeyDown, VK_F5, 0);
   end else
   if FBottomGrid.Focused then
   begin
@@ -2078,6 +2079,7 @@ begin
     if Assigned(TgsCrackCustomIBGrid(ibgrdTop).InplaceEditor) and TgsCrackCustomIBGrid(ibgrdTop).InplaceEditor.Visible then
       SendMessage(TgsCrackCustomIBGrid(ibgrdTop).InplaceEditor.Handle, wm_KeyDown, VK_F7, 0);
     DocumentLine.SelectGoodFeatures;
+    SendMessage(ibgrdTop.Handle, wm_KeyDown, VK_F5, 0);
   end
   else if FBottomGrid.Focused then
   begin
