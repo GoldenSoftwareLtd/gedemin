@@ -242,50 +242,9 @@ var
   TmpCmp: TComponent;
   OL: TList;
   I: Integer;
-  ObjectName: string;
   Added: Boolean;
-  SQL: TIBSQL;
+  q: TIBSQL;
   Tr: TIBTransaction;
-
-  function Insert(const Parent: Variant; AName: string): Integer;
-  var
-    q: TIBSQL;
-    Tr: TIBTransaction;
-  begin
-    Assert(gdcBaseManager <> nil);
-
-    q := TIBSQL.Create(nil);
-    try
-      Tr := TIBTransaction.Create(nil);
-      try
-        try
-          Tr.DefaultDatabase := gdcBaseManager.Database;
-          Tr.StartTransaction;
-
-          Result := gdcBaseManager.GetNextID;
-
-          q.SQL.Text := 'INSERT INTO evt_object(id, objectname, parent, achag, afull, aview)' +
-            ' VALUES (:id, :objectname, :parent, :achag, :afull, :aview)';
-          q.ParamByName('id').AsInteger := Result;
-          q.ParamByName('objectname').AsString := AName;
-          q.ParamByName('parent').AsVariant := Parent;
-          q.ParamByName('AChag').AsInteger := -1;
-          q.ParamByName('AFull').AsInteger := -1;
-          q.ParamByName('AView').AsInteger := -1;
-          q.ExecQuery;
-
-          Tr.Commit;
-        except
-          Result := -1;
-        end;
-      finally
-        Tr.Free;
-      end;
-    finally
-      q.Free;
-    end;
-  end;
-
 begin
   Result := 0;
   Added := False;
@@ -309,91 +268,135 @@ begin
         TmpCmp := TmpCmp.Owner;
       end;
 
-      if OL.Count > 0 then
-      begin
-        SQL := TIBSQL.Create(nil);
+      q := TIBSQL.Create(nil);
+      try
+        Tr := TIBTransaction.Create(nil);
         try
-          SQL.Transaction := gdcBaseManager.ReadTransaction;
-          if TComponent(OL[OL.Count - 1]) is TCreateableForm then
+          Tr.DefaultDatabase := gdcBaseManager.Database;
+          Tr.StartTransaction;
+          //////////////////////////////////////////////////
+          if OL.Count > 0 then
           begin
-            ObjectName := TCreateableForm(OL[OL.Count - 1]).InitialName;
-            SQL.SQL.Text :=
-              'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname ' +
-              '  AND parent IS NULL';
-            SQL.Params[0].AsString := AnsiUpperCase(ObjectName);
-            SQL.ExecQuery;
-            if SQL.Eof then
+            if TComponent(OL[OL.Count - 1]) is TCreateableForm then
             begin
-              SQL.Close;
-              SQL.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
-              SQL.Params[0].AsString := AnsiUpperCase(ObjectName);
-              SQL.ExecQuery;
-            end;
-          end
-          else
-          begin
-            SQL.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
-            ObjectName := TComponent(OL[OL.Count - 1]).Name;
-            SQL.Params[0].AsString := AnsiUpperCase(ObjectName);
-            SQL.ExecQuery;
-          end;
-
-          if SQL.Eof then
-          begin
-            Result := Insert(Null, ObjectName);
-            Added := True;
-          end
-          else
-          begin
-            Result := SQL.FieldByName(fnId).AsInteger;
-            if not SQL.FieldByName(fnParent).IsNull then
-            begin
-
-              Tr := TIBTransaction.Create(nil);
-              try
-                Tr.DefaultDatabase := gdcBaseManager.Database;
-                Tr.StartTransaction;
-
-                SQL.Transaction := Tr;
-                SQL.SQL.Text := 'UPDATE evt_object SET parent = null WHERE id = :id';
-                SQL.Params[0].AsInteger := Result;
-                SQL.ExecQuery;
-                MessageBox(0,
-                  'ќбнаружена внутренн€€ ошибка в данных.'#13#10 +
-                  'ƒл€ еЄ исправлени€ необходимо перезагрузить √едымин.',
-                  'ќшибка',
-                  MB_OK or MB_ICONERROR or MB_TASKMODAL);
-
-                Tr.Commit;
-              finally
-                Tr.Free;
-              end;
-            end;
-          end;
-
-          SQL.Close;
-
-          SQL.Transaction := gdcBaseManager.ReadTransaction;
-
-          SQL.SQL.Text := 'SELECT * FROM evt_object WHERE parent = :parent ' +
-            'and UPPER(objectname) = :objectname';
-          for I := OL.Count - 2 downto 0 do
-          begin
-            SQL.Params[0].AsInteger := Result;
-            SQL.Params[1].AsString := UpperCase(TComponent(OL[I]).Name);
-            SQL.ExecQuery;
-            if not SQL.Eof then
-              Result := SQL.FieldByName(fnId).AsInteger
+              q.SQL.Text :=
+                'EXECUTE BLOCK '#13#10 +
+                '  (OBJECTNAME VARCHAR(255) = :OBJECTNAME) '#13#10 +
+                '  RETURNS (ADDED INTEGER, FIXED INTEGER, ID INTEGER) '#13#10 +
+                'AS '#13#10 +
+                '  DECLARE variable PARENT INTEGER; '#13#10 +
+                '  DECLARE variable LID INTEGER; '#13#10 +
+                '  DECLARE variable LPARENT INTEGER; '#13#10 +
+                'BEGIN '#13#10 +
+                '  ADDED = 0; '#13#10 +
+                '  FIXED = 0; '#13#10 +
+                '  ID = -1; '#13#10 +
+                '  FOR SELECT id, parent FROM evt_object WHERE UPPER(objectname) = UPPER(:OBJECTNAME) '#13#10 +
+                '    INTO :LID, :LPARENT DO '#13#10 +
+                '  BEGIN '#13#10 +
+                '    ID = LID; '#13#10 +
+                '    PARENT = LPARENT; '#13#10 +
+                '  END '#13#10 +
+                '  IF (ID < 0) THEN '#13#10 +
+                '  BEGIN '#13#10 +
+                '    ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+                '    INSERT INTO evt_object '#13#10 +
+                '      (id, objectname, parent, achag, afull, aview) '#13#10 +
+                '      VALUES (:ID, :OBJECTNAME, NULL, -1, -1, -1); '#13#10 +
+                '    ADDED = 1; '#13#10 +
+                '  END '#13#10 +
+                '  ELSE '#13#10 +
+                '  BEGIN '#13#10 +
+                '    IF (PARENT IS NOT NULL) THEN '#13#10 +
+                '    BEGIN '#13#10 +
+                '      UPDATE evt_object SET parent = null  WHERE UPPER(objectname) = UPPER(:OBJECTNAME); '#13#10 +
+                '      FIXED = 1; '#13#10 +
+                '    END '#13#10 +
+                '  END '#13#10 +
+                '  Suspend; '#13#10 +
+                'END';
+            end
             else
             begin
-              Result := Insert(Result, TComponent(OL[I]).Name);
-              Added := True;
+              q.SQL.Text :=
+                'EXECUTE BLOCK '#13#10 +
+                '  (OBJECTNAME VARCHAR(255) = :OBJECTNAME) '#13#10 +
+                '  RETURNS (ADDED INTEGER, ID INTEGER) '#13#10 +
+                'AS '#13#10 +
+                '  DECLARE variable LID INTEGER; '#13#10 +
+                'BEGIN '#13#10 +
+                '  ADDED = 0; '#13#10 +
+                '  ID = -1; '#13#10 +
+                '  FOR SELECT id, parent FROM evt_object WHERE UPPER(objectname) = UPPER(:OBJECTNAME) '#13#10 +
+                '    INTO :LID, :LPARENT DO '#13#10 +
+                '  BEGIN '#13#10 +
+                '    ID = LID; '#13#10 +
+                '  END '#13#10 +
+                '  IF (ID < 0) THEN '#13#10 +
+                '  BEGIN '#13#10 +
+                '    ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+                '    INSERT INTO evt_object '#13#10 +
+                '      (id, objectname, parent, achag, afull, aview) '#13#10 +
+                '      VALUES (:ID, :OBJECTNAME, NULL, -1, -1, -1); '#13#10 +
+                '    ADDED = 1; '#13#10 +
+                '  END '#13#10 +
+                '  Suspend; '#13#10 +
+                'END';
             end;
-            SQL.Close;
+
+            q.Params[0].AsString := TComponent(OL[OL.Count - 1]).Name;
+            q.ExecQuery;
+
+            Assert(not q.Eof);
+
+            Added := q.FieldByName('added').AsInteger = 1;
+            Result := q.FieldByName('id').AsInteger;
+
+            if (TComponent(OL[OL.Count - 1]) is TCreateableForm)
+              and (q.FieldByName('fixed').AsInteger = 1) then
+            begin
+                /// тут вопли о перезагрузке
+            end;
+
+            for I := OL.Count - 2 downto 0 do
+            begin
+              q.SQL.Text :=
+                'EXECUTE BLOCK '#13#10 +
+                '  (OBJECTNAME VARCHAR(255) = :OBJECTNAME, PARENT INTEGER = :PARENT) '#13#10 +
+                '  RETURNS (ADDED INTEGER, RESULT INTEGER) '#13#10 +
+                'AS '#13#10 +
+                'BEGIN '#13#10 +
+                '  ADDED = 0; '#13#10 +
+                '  RESULT = -1; '#13#10 +
+                '  IF (NOT EXISTS(SELECT * FROM evt_object WHERE parent = :parent and UPPER(objectname) =  UPPER(:objectname))) THEN '#13#10 +
+                '  BEGIN '#13#10 +
+                '    RESULT = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+                '    INSERT INTO evt_object '#13#10 +
+                '      (id, objectname, parent, achag, afull, aview) '#13#10 +
+                '        VALUES (:RESULT, :OBJECTNAME, :PARENT, -1, -1, -1); '#13#10 +
+                '    ADDED = 1; '#13#10 +
+                '  END '#13#10 +
+                '  Suspend; '#13#10 +
+                'END';
+
+              q.Close;
+              q.Params[0].AsString := TComponent(OL[I]).Name;
+              q.ExecQuery;
+
+              Assert(not q.Eof);
+
+              Added := q.FieldByName('added').AsInteger = 1;
+              if Added then
+                Result := q.FieldByName('id').AsInteger;
+            end;
           end;
+          //////////////////////////////////////////////////
+          Tr.Commit;
         finally
-          SQL.Free;
+          Tr.Free;
         end;
+      finally
+        q.Free;
       end;
     finally
       OL.Free;
