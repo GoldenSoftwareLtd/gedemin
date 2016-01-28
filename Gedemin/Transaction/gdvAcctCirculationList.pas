@@ -43,7 +43,7 @@ constructor TgdvAcctCirculationList.Create(AOwner: TComponent);
 begin
   inherited;
 
-  Self.DeleteSQL.Text := 'DELETE FROM AC_LEDGER_ACCOUNTS';
+  Self.DeleteSQL.Text := 'DELETE FROM AC_LEDGER_ACCOUNTS WHERE ACCOUNTKEY = -1';
 end;
 
 class function TgdvAcctCirculationList.ConfigClassName: string;
