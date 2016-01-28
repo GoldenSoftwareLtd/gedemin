@@ -9,10 +9,10 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
   TextHeight = 13
   inherited sLeft: TSplitter
     Left = 250
-    Height = 552
+    Height = 559
   end
   inherited TBDock1: TTBDock
-    Width = 1042
+    Width = 1050
     inherited tbMainToolbar: TTBToolbar
       CloseButton = False
       object TBItem3_: TTBItem [2]
@@ -39,35 +39,35 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
   end
   inherited Panel1: TPanel
     Left = 256
-    Width = 777
-    Height = 552
+    Width = 785
+    Height = 559
     inherited ibgrMain: TgsIBGrid
-      Width = 777
-      Height = 552
+      Width = 785
+      Height = 559
       OnGetTotal = ibgrMainGetTotal
     end
   end
   inherited TBDock2: TTBDock
-    Height = 552
+    Height = 559
   end
   inherited TBDock3: TTBDock
-    Left = 1033
-    Height = 552
+    Left = 1041
+    Height = 559
   end
   inherited TBDock4: TTBDock
-    Top = 582
-    Width = 1042
+    Top = 589
+    Width = 1050
   end
   inherited pLeft: TPanel
     Width = 241
-    Height = 552
+    Height = 559
     inherited ScrollBox: TScrollBox
       Width = 241
-      Height = 535
+      Height = 542
       inherited Panel5: TPanel
         Top = 220
         Width = 224
-        Height = 68
+        Height = 88
         TabOrder = 1
         inherited Label17: TLabel
           Top = 127
@@ -110,9 +110,17 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
           Caption = 'Сворачивать сальдо'
           TabOrder = 4
         end
+        object cbOnlyAccounts: TCheckBox
+          Left = 8
+          Top = 64
+          Width = 153
+          Height = 17
+          Caption = 'Только главные счета'
+          TabOrder = 6
+        end
       end
       inherited frAcctQuantity: TfrAcctQuantity
-        Top = 329
+        Top = 349
         Width = 224
         TabOrder = 6
         inherited ppMain: TgdvParamPanel
@@ -121,7 +129,7 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
         end
       end
       inherited frAcctSum: TfrAcctSum
-        Top = 370
+        Top = 390
         Width = 224
         inherited ppMain: TgdvParamPanel
           Width = 224
@@ -137,7 +145,7 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
         end
       end
       inherited frAcctAnalytics: TfrAcctAnalytics
-        Top = 288
+        Top = 308
         Width = 224
         TabOrder = 2
         Visible = False
@@ -147,7 +155,7 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
         end
       end
       inherited frAcctCompany: TfrAcctCompany
-        Top = 591
+        Top = 611
         Width = 224
         inherited ppMain: TgdvParamPanel
           Width = 224
@@ -160,7 +168,7 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
         end
       end
       inherited ppAppear: TgdvParamPanel
-        Top = 651
+        Top = 671
         Width = 224
         Height = 42
         Visible = False
@@ -207,7 +215,6 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
             BorderStyle = bsNone
             Color = 16316664
             DragMode = dmAutomatic
-            HideSelection = False
             Indent = 19
             RightClickSelect = True
             SortType = stText
@@ -288,6 +295,8 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
   object ibdsMain: TgdvAcctCirculationList
     AfterOpen = ibdsMainAfterOpen
     CachedUpdates = True
+    DeleteSQL.Strings = (
+      'DELETE FROM AC_LEDGER_ACCOUNTS')
     InsertSQL.Strings = (
       'INSERT INTO AC_LEDGER_ACCOUNTS (ACCOUNTKEY) VALUES (-1)')
     ModifySQL.Strings = (

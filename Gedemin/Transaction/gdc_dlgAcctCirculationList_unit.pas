@@ -16,6 +16,7 @@ type
     cbShowCorrSubAccounts: TCheckBox;
     cbSubAccountsInMain: TCheckBox;
     cbDisplaceSaldo: TCheckBox;
+    cbOnlyAccounts: TCheckBox;
     procedure cbSubAccountsInMainClick(Sender: TObject);
   private
     { Private declarations }
@@ -66,8 +67,9 @@ begin
     cbShowDebit.Checked := C.ShowDebit;
     cbShowCredit.Checked := C.ShowCredit;
     cbShowCorrSubAccounts.Checked := C.ShowCorrSubAccounts;
-    cbDisplaceSaldo.Checked:= C.DisplaceSaldo;
-    cbSubAccountsInMain.Checked:= C.SubAccountsInMain;
+    cbDisplaceSaldo.Checked := C.DisplaceSaldo;
+    cbSubAccountsInMain.Checked := C.SubAccountsInMain;
+    cbOnlyAccounts.Checked := C.OnlyAccounts;
   end;
 end;
 
@@ -82,8 +84,9 @@ begin
     C.ShowDebit := cbShowDebit.Checked;
     C.ShowCredit := cbShowCredit.Checked;
     C.ShowCorrSubAccounts := cbShowCorrSubAccounts.Checked;
-    C.SubAccountsInMain:= cbSubAccountsInMain.Checked;
-    C.DisplaceSaldo:= cbDisplaceSaldo.Checked;
+    C.SubAccountsInMain := cbSubAccountsInMain.Checked;
+    C.DisplaceSaldo := cbDisplaceSaldo.Checked;
+    C.OnlyAccounts := cbOnlyAccounts.Checked;
   end;
 end;
 

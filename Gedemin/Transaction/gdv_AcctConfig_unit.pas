@@ -192,11 +192,15 @@ type
     FShowCorrSubAccounts: boolean;
     FDisplaceSaldo: boolean;
     FSubAccountsInMain: boolean;
+    FOnlyAccounts: Boolean;
+    
     procedure SetShowCorrSubAccounts(const Value: boolean);
     procedure SetShowCredit(const Value: Boolean);
     procedure SetShowDebit(const Value: Boolean);
     procedure SetDisplaceSaldo(const Value: boolean);
     procedure SetSubAccountsInMain(const Value: boolean);
+    procedure SetOnlyAccounts(const Value: boolean);
+
   public
     procedure SaveToStream(const Stream: TStream); override;
     procedure LoadFromStream(const Stream: TStream); override;
@@ -207,6 +211,7 @@ type
     property ShowCorrSubAccounts: boolean read FShowCorrSubAccounts write SetShowCorrSubAccounts;
     property SubAccountsInMain: boolean read FSubAccountsInMain write SetSubAccountsInMain;
     property DisplaceSaldo: boolean read FDisplaceSaldo write SetDisplaceSaldo;
+    property OnlyAccounts: boolean read FOnlyAccounts write SetOnlyAccounts;
   end;
 
   TAccGeneralLedgerConfig = class(TAccCirculationListConfig)
@@ -221,7 +226,7 @@ procedure SaveConfigToStream(const Config: TBaseAcctConfig; const Stream: TStrea
 implementation
 
 const
-  StreamVersion = 10;
+  StreamVersion = 11;
 
 procedure SaveConfigToStream(const Config: TBaseAcctConfig; const Stream: TStream);
 begin
@@ -756,10 +761,13 @@ begin
   FShowDebit := ReadBooleanFromStream(Stream);
   FShowCredit := ReadBooleanFromStream(Stream);
   FShowCorrSubAccounts := ReadBooleanFromStream(Stream);
-  if FStreamVersion > 7 then begin
+  if FStreamVersion > 7 then
+  begin
     FSubAccountsInMain:= ReadBooleanFromStream(Stream);
     FDisplaceSaldo:= ReadBooleanFromStream(Stream);
   end;
+  if FStreamVersion > 10 then
+    FOnlyAccounts := ReadBooleanFromStream(Stream);
 end;
 
 procedure TAccCirculationListConfig.SaveToStream(const Stream: TStream);
@@ -770,6 +778,7 @@ begin
   SaveBooleanToStream(FShowCorrSubAccounts, Stream);
   SaveBooleanToStream(FSubAccountsInMain, Stream);
   SaveBooleanToStream(FDisplaceSaldo, Stream);
+  SaveBooleanToStream(FOnlyAccounts, Stream);
 end;
 
 procedure TAccCirculationListConfig.SetDisplaceSaldo(const Value: boolean);
@@ -802,6 +811,11 @@ procedure TAccCirculationListConfig.SetSubAccountsInMain(
   const Value: boolean);
 begin
   FSubAccountsInMain := Value;
+end;
+
+procedure TAccCirculationListConfig.SetOnlyAccounts(const Value: boolean);
+begin
+  FOnlyAccounts := Value;
 end;
 
 { TAccGeneralLedgerConfig }

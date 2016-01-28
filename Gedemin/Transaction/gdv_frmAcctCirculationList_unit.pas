@@ -36,6 +36,7 @@ type
     cbDisplaceSaldo: TCheckBox;
     ibdsMain: TgdvAcctCirculationList;
     cdsTotal: TClientDataSet;
+    cbOnlyAccounts: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure tvGroupChange(Sender: TObject; Node: TTreeNode);
     procedure actRunUpdate(Sender: TObject);
@@ -335,6 +336,7 @@ begin
     C := Config as TAccCirculationListConfig;
     cbSubAccount.Checked := C.SubAccountsInMain;
     cbDisplaceSaldo.Checked := C.DisplaceSaldo;
+    cbOnlyAccounts.Checked := C.OnlyAccounts;
   end;
 end;
 
@@ -350,7 +352,9 @@ begin
     C.ShowCredit := False;
     C.ShowCorrSubAccounts := False;
     C.SubAccountsInMain:= cbSubAccount.Checked;
+    C.SubAccountsInMain:= False;
     C.DisplaceSaldo:= cbDisplaceSaldo.Checked;
+    C.OnlyAccounts := cbOnlyAccounts.Checked;
   end;
 end;
 
@@ -713,6 +717,7 @@ begin
           end;
           gdvObject.Post;
         end;
+
       finally
         for I := 0 to sl.Count - 1 do
           sl.Objects[I].Free;
@@ -725,6 +730,35 @@ begin
       gdvObject.EnableControls;
     end;
   end;
+
+  if not FMakeEmpty and cbOnlyAccounts.Checked then
+  begin
+    gdvObject.DisableControls;
+    try
+      gdvObject.First;
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := gdcBaseManager.ReadTransaction;
+        q.SQL.Text := 'SELECT * FROM ac_account a WHERE a.id = :id AND a.accounttype = ''A''';
+        while not gdvObject.Eof do
+        begin
+          q.Close;
+          q.ParamByName('id').AsInteger:= gdvObject.FieldByName('id').AsInteger;
+          q.ExecQuery;
+          if q.Eof then
+            gdvObject.Delete
+          else
+            gdvObject.Next;
+        end;
+      finally
+        q.Free;
+      end;
+    finally
+      gdvObject.First;
+      gdvObject.EnableControls;
+    end;
+  end;
+
 end;
 
 procedure Tgdv_frmAcctCirculationList.actGotoLedgerUpdate(Sender: TObject);

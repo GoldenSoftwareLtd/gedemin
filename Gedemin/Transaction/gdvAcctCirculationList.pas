@@ -3,16 +3,27 @@ unit gdvAcctCirculationList;
 interface
 
 uses
-  classes, gd_ClassList, AcctStrings, AcctUtils, gdvAcctBase, gdvAcctLedger;
+  classes, gd_ClassList, AcctStrings, AcctUtils, gdvAcctBase, gdvAcctLedger, gdv_AcctConfig_unit;
 
 type
   TgdvAcctCirculationList = class(TgdvAcctLedger)
+  private
+    FOnlyAccounts: Boolean;
+    
   protected
     class function ConfigClassName: string; override;
 
+    procedure DoLoadConfig(const Config: TBaseAcctConfig); override;
+    procedure DoSaveConfig(Config: TBaseAcctConfig); override;
+
     procedure SetDefaultParams; override;
     procedure DoBuildSQL; override;
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    property OnlyAccounts: boolean read FOnlyAccounts write FOnlyAccounts;
   end;
+
 
 procedure Register;
 
@@ -28,9 +39,42 @@ end;
 
 { TgdvAcctCirculationList }
 
+constructor TgdvAcctCirculationList.Create(AOwner: TComponent);
+begin
+  inherited;
+
+  Self.DeleteSQL.Text := 'DELETE FROM AC_LEDGER_ACCOUNTS';
+end;
+
 class function TgdvAcctCirculationList.ConfigClassName: string;
 begin
   Result := 'TAccCirculationListConfig';
+end;
+
+procedure TgdvAcctCirculationList.DoLoadConfig(const Config: TBaseAcctConfig);
+var
+  C: TAccCirculationListConfig;
+begin
+  inherited;
+
+  if Config is TAccCirculationListConfig then
+  begin
+    C := Config as TAccCirculationListConfig;
+    FOnlyAccounts := C.OnlyAccounts;
+  end;
+end;
+
+procedure TgdvAcctCirculationList.DoSaveConfig(Config: TBaseAcctConfig);
+var
+  C: TAccCirculationListConfig;
+begin
+  inherited;
+
+  if Config is TAccCirculationListConfig then
+  begin
+    C := Config as TAccCirculationListConfig;
+    C.OnlyAccounts := FOnlyAccounts;
+  end;
 end;
 
 procedure TgdvAcctCirculationList.DoBuildSQL;

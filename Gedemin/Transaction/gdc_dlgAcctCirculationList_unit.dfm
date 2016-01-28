@@ -1,6 +1,6 @@
 inherited dlgAcctCirculationList: TdlgAcctCirculationList
-  Left = 173
-  Top = 167
+  Left = 576
+  Top = 285
   Caption = 'Конфигурация оборотной ведомости'
   ClientHeight = 438
   PixelsPerInch = 96
@@ -74,14 +74,20 @@ inherited dlgAcctCirculationList: TdlgAcctCirculationList
         Caption = 'Сворачивать сальдо'
         TabOrder = 12
       end
+      object cbOnlyAccounts: TCheckBox
+        Left = 344
+        Top = 80
+        Width = 177
+        Height = 17
+        Caption = 'Только главные счета'
+        TabOrder = 13
+      end
     end
     inherited tsAnalytics: TTabSheet
       TabVisible = False
       inherited frAnalytics: TframeAnalyticValue
-        Width = 522
         Height = 404
         inherited sbAnaliseLines: TScrollBox
-          Width = 522
           Height = 404
         end
       end
