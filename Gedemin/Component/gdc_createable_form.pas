@@ -129,8 +129,7 @@ uses
   SysUtils,             Storages,       gd_directories_const,
   gdcOLEClassList,      gd_ClassList,   mtd_i_Inherited,
   gsStorage,            prp_Methods,    DB,
-  Windows,              Controls,       gd_strings,
-  evt_Base,             gdcDelphiObject
+  Windows,              Controls,       gd_strings
 
   {$IFDEF DUNIT_TEST}
     , extctrls, Test_Global_unit

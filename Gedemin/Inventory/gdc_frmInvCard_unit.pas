@@ -39,6 +39,8 @@ type
     Label3: TLabel;
     iblcContact: TgsIBLookupComboBox;
     gsPeriodEdit: TgsPeriodEdit;
+    bSetCurrent: TButton;
+    actSetCurrent: TAction;
     procedure FormCreate(Sender: TObject);
     procedure actEditExecute(Sender: TObject);
     procedure actRunExecute(Sender: TObject);
@@ -49,6 +51,8 @@ type
     procedure cbIncludeInvMovementClick(Sender: TObject);
     procedure iblcPlaceChange(Sender: TObject);
     procedure iblcContactChange(Sender: TObject);
+    procedure actSetCurrentExecute(Sender: TObject);
+    procedure actSetCurrentUpdate(Sender: TObject);
   private
     { Private declarations }
     isHolding: Integer;
@@ -179,7 +183,7 @@ begin
     begin
       gdcObject.AddSubSet('ByHolding');
       gdcObject.RemoveSubSet('ByContact');
-    end;  
+    end;
     (gdcObject as TgdcInvCard).ContactKey := -1;
   end;
 
@@ -525,6 +529,16 @@ procedure Tgdc_frmInvCard.iblcContactChange(Sender: TObject);
 begin
   if gdcInvCard.ContactKey <> iblcContact.CurrentKeyInt then
     actRun.Execute;
+end;
+
+procedure Tgdc_frmInvCard.actSetCurrentExecute(Sender: TObject);
+begin
+  iblcContact.CurrentKey := gdcInvCard.FieldByName('DEPOTKEY').AsString;
+end;
+
+procedure Tgdc_frmInvCard.actSetCurrentUpdate(Sender: TObject);
+begin
+  actSetCurrent.Enabled := not gdcInvCard.IsEmpty;
 end;
 
 initialization

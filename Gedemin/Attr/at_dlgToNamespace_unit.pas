@@ -292,6 +292,7 @@ begin
   pnlTop.Visible := True;
   lMessage.Visible := False;
   lkupNS.Visible := False;
+  chbxDontModify.Checked := False;
   chbxDontModify.Visible := False;
   bvlDontModify.Visible := False;
   chbxIncludeSiblings.Visible := True;
@@ -324,6 +325,7 @@ begin
   chbxIncludeSiblings.Visible := True;
   chbxDontRemove.Visible := True;
   chbxAlwaysOverwrite.Visible := True;
+  chbxDontModify.Checked := True;
   chbxDontModify.Visible := False;
   bvlDontModify.Visible := False;
 end;

@@ -38,6 +38,7 @@ type
     procedure DeleteFromNamespace;
     procedure MoveBetweenNamespaces;
     procedure AddToNamespace;
+    procedure ChangeProp;
     procedure PickOut;
     function GetEnabled: Boolean;
 
@@ -103,6 +104,7 @@ end;
 procedure TgdcNamespaceController.AddToNamespace;
 var
   gdcNamespaceObject: TgdcNamespaceObject;
+  T: TDateTime;
 begin
   gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   try
@@ -148,7 +150,7 @@ begin
         gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
       else
         gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
-    end;    
+    end;
     if FgdcObject.FindField('editiondate') <> nil then
     begin
       gdcNamespaceObject.FieldByName('modified').AsDateTime :=
@@ -157,10 +159,61 @@ begin
         FgdcObject.FieldByName('editiondate').AsDateTime;
     end else
     begin
-      gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
-      gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+      T := Now;
+      gdcNamespaceObject.FieldByName('modified').AsDateTime := T;
+      gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := T;
     end;
     gdcNamespaceObject.Post;
+  finally
+    gdcNamespaceObject.Free;
+  end;
+end;
+
+procedure TgdcNamespaceController.ChangeProp;
+var
+  gdcNamespaceObject: TgdcNamespaceObject;
+  T: TDateTime;
+begin
+  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+  try
+    gdcNamespaceObject.ReadTransaction := FIBTransaction;
+    gdcNamespaceObject.Transaction := FIBTransaction;
+
+    gdcNamespaceObject.SubSet := 'ByObject';
+    gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FCurrentNSID;
+    gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+    gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+    gdcNamespaceObject.Open;
+
+    if not gdcNamespaceObject.EOF then
+    begin
+      gdcNamespaceObject.Edit;
+      if FAlwaysOverwrite then
+        gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+      else
+        gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+      if FDontRemove then
+        gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+      else
+        gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+      if FIncludeSiblings then
+        gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+      else
+        gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+      if FgdcObject.FindField('editiondate') <> nil then
+      begin
+        gdcNamespaceObject.FieldByName('modified').AsDateTime :=
+          FgdcObject.FieldByName('editiondate').AsDateTime;
+        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+          FgdcObject.FieldByName('editiondate').AsDateTime;
+      end else
+      begin
+        T := Now;
+        gdcNamespaceObject.FieldByName('modified').AsDateTime := T;
+        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := T;
+      end;
+      gdcNamespaceObject.Post;
+    end;
   finally
     gdcNamespaceObject.Free;
   end;
@@ -324,6 +377,7 @@ var
   ShouldAdd: Boolean;
   CEExist, CENew: TgdClassEntry;
   SLAlwaysOverwrite, SLDontRemove, SLIncludeSiblings: TStringList;
+  T: TDateTime;
 begin
   Assert(FIBTransaction.InTransaction);
 
@@ -397,10 +451,57 @@ begin
 
     nopChangeProp:
     begin
+      FDontModify := False;
+
+      IterateBL(ChangeProp, False, FirstRUID, LastRUID);
+
+      if FIncludeLinked then
+      begin
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := FIBTransaction;
+          q.SQL.Text :=
+            'UPDATE at_object SET alwaysoverwrite = :ao, dontremove = :dr, includesiblings = :incs ' +
+            'WHERE namespacekey = :nsk AND xid = :xid AND dbid = :dbid ' +
+            '  AND (alwaysoverwrite <> :ao OR dontremove <> :dr OR includesiblings <> :incs)';
+
+          for J := 0 to FTabs.Count - 1 do
+          begin
+            DS := SetupDS(J);
+            DS.First;
+            while not DS.EOF do
+            begin
+              q.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+              q.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+              q.ParamByName('nsk').AsInteger := FCurrentNSID;
+              if FAlwaysOverwrite then
+                q.ParamByName('ao').AsInteger := 1
+              else
+                q.ParamByName('ao').AsInteger := 0;
+              if FDontRemove then
+                q.ParamByName('dr').AsInteger := 1
+              else
+                q.ParamByName('dr').AsInteger := 0;
+              if FIncludeSiblings then
+                q.ParamByName('incs').AsInteger := 1
+              else
+                q.ParamByName('incs').AsInteger := 0;
+              q.ExecQuery;
+
+              DS.Next;
+            end;
+          end;
+        finally
+          q.Free;
+        end;
+      end;
     end;
 
     nopAdd, nopUpdate:
     begin
+      if FSelectedOp = nopUpdate then
+        FDontModify := True;
+
       IterateBL(AddToNamespace, True, FirstRUID, LastRUID);
 
       if FIncludeLinked then
@@ -691,8 +792,9 @@ begin
 
                       if DS.FieldByName('editiondate').IsNull then
                       begin
-                        gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
-                        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+                        T := Now;
+                        gdcNamespaceObject.FieldByName('modified').AsDateTime := T;
+                        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := T;
                       end else
                       begin
                         gdcNamespaceObject.FieldByName('modified').AsDateTime :=

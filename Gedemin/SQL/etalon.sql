@@ -1600,6 +1600,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (242, '0000.0001.0000.0273', '17.01.2016', 'Nullify objects in at_relation_fields.');     
   
+INSERT INTO fin_versioninfo
+  VALUES (243, '0000.0001.0000.0274', '24.01.2016', 'Issue when RUIDs of DT differ from GD_RUID record.');     
+  
+INSERT INTO fin_versioninfo
+  VALUES (244, '0000.0001.0000.0275', '28.01.2016', 'Trigger to prevent namespace cyclic dependencies.');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -5861,21 +5867,19 @@ BEGIN
   BEGIN
     IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> 'B' AND id = NEW.parent)) THEN
       EXCEPTION gd_e_exception 'Document class can not include a folder.';
-  END
-  
-  IF (INSERTING OR (NEW.ruid <> OLD.ruid)) THEN
+  END ELSE
   BEGIN
-    P = POSITION('_' IN NEW.ruid);
-    XID = LEFT(NEW.ruid, :P - 1);
-    DBID = RIGHT(NEW.ruid, CHAR_LENGTH(NEW.ruid) - :P);
-    
-    IF (INSERTING) THEN
-      INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
-      VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY'));
-    ELSE
+    IF ((INSERTING OR (NEW.ruid <> OLD.ruid))
+      AND (NEW.ruid SIMILAR TO '([[:DIGIT:]]{9,10}\_[[:DIGIT:]]+)|([[:DIGIT:]]+\_17)' ESCAPE '\')) THEN
+    BEGIN
+      P = POSITION('_' IN NEW.ruid);
+      XID = LEFT(NEW.ruid, :P - 1);
+      DBID = RIGHT(NEW.ruid, CHAR_LENGTH(NEW.ruid) - :P);
+
       UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
       VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY'))
-      MATCHING(xid, dbid);    
+      MATCHING(id);
+    END
   END
 END
 ^
@@ -16893,6 +16897,40 @@ BEGIN
       AND n.id = OLD.namespacekey;
 END
 ^
+
+CREATE OR ALTER TRIGGER at_aiu_namespace_link FOR at_namespace_link
+  ACTIVE
+  AFTER INSERT OR UPDATE
+  POSITION 20001
+AS
+BEGIN
+  IF (EXISTS(
+    WITH RECURSIVE tree AS
+    (
+      SELECT 
+        namespacekey AS initial, namespacekey, useskey
+      FROM
+        at_namespace_link
+      WHERE
+        namespacekey = NEW.namespacekey AND useskey = NEW.useskey      
+     
+      UNION ALL
+     
+      SELECT
+        IIF(tr.initial <> tt.namespacekey, tr.initial, -1) AS initial,
+        tt.namespacekey,
+        tt.useskey
+      FROM
+        at_namespace_link tt JOIN tree tr ON
+          tr.useskey = tt.namespacekey AND tr.initial > 0
+     
+    )
+    SELECT * FROM tree WHERE initial = -1)) THEN
+  BEGIN
+    EXCEPTION gd_e_exception 'Обнаружена циклическая зависимость ПИ.';
+  END
+END
+^  
 
 CREATE OR ALTER TRIGGER at_bu_object FOR at_object
   ACTIVE

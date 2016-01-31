@@ -761,6 +761,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (243, '0000.0001.0000.0274', '24.01.2016', 'Issue when RUIDs of DT differ from GD_RUID record.');     
   
+INSERT INTO fin_versioninfo
+  VALUES (244, '0000.0001.0000.0275', '28.01.2016', 'Trigger to prevent namespace cyclic dependencies.');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

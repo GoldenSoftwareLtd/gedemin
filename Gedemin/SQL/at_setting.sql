@@ -406,6 +406,40 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER at_aiu_namespace_link FOR at_namespace_link
+  ACTIVE
+  AFTER INSERT OR UPDATE
+  POSITION 20001
+AS
+BEGIN
+  IF (EXISTS(
+    WITH RECURSIVE tree AS
+    (
+      SELECT 
+        namespacekey AS initial, namespacekey, useskey
+      FROM
+        at_namespace_link
+      WHERE
+        namespacekey = NEW.namespacekey AND useskey = NEW.useskey      
+     
+      UNION ALL
+     
+      SELECT
+        IIF(tr.initial <> tt.namespacekey, tr.initial, -1) AS initial,
+        tt.namespacekey,
+        tt.useskey
+      FROM
+        at_namespace_link tt JOIN tree tr ON
+          tr.useskey = tt.namespacekey AND tr.initial > 0
+     
+    )
+    SELECT * FROM tree WHERE initial = -1)) THEN
+  BEGIN
+    EXCEPTION gd_e_exception 'Обнаружена циклическая зависимость ПИ.';
+  END
+END
+^  
+
 CREATE OR ALTER TRIGGER at_bu_object FOR at_object
   ACTIVE
   BEFORE UPDATE

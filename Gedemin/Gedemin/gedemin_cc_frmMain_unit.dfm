@@ -126,6 +126,7 @@ object frm_gedemin_cc_main: Tfrm_gedemin_cc_main
       Anchors = [akLeft, akTop, akRight, akBottom]
       BorderStyle = bsNone
       DataSource = DM.DS
+      Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit]
       ReadOnly = True
       TabOrder = 0
       TitleFont.Charset = RUSSIAN_CHARSET

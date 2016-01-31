@@ -4023,7 +4023,8 @@ begin
       '            EXCEPTION INV_E_CANNTCHANGEFEATURCE; ' + #13#10 +
       '        end ' + #13#10 +
       '      end ' + #13#10 +
-      '      sqlstatement = ''INSERT INTO GD_CHANGEDDOC (sourcedockey, destdockey, editiondate, editorkey) select DISTINCT '' || CAST(NEW.documentkey as VARCHAR(10)) || '', m.documentkey, doc.editiondate, doc.editorkey from inv_movement m join gd_document doc ON ' +
+      '      sqlstatement = ''INSERT INTO GD_CHANGEDDOC (changedfields, sourcedockey, destdockey, editiondate, editorkey) select DISTINCT '''''' || changefields || '''''''' || '','' ' +
+      ' || CAST(NEW.documentkey as VARCHAR(10)) || '', m.documentkey, doc.editiondate, doc.editorkey from inv_movement m join gd_document doc ON ' +
       'm.documentkey = doc.id  ' +
       'where  m.cardkey in ('' || cardstring || '') ' +
       'and doc.documenttypekey in ('' || dtstring || '') and  m.credit <> 0 and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(10)) || '' ' +
