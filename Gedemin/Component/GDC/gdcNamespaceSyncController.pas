@@ -494,12 +494,17 @@ begin
                 ParseReferenceString(TYAMLString(UsesNS[J]).AsString, SRUID, SName);
 
                 NSID := gdcBaseManager.GetIDByRUIDString(SRUID, Tr);
-                if NSID = -1 then
+                if (NSID = -1) or (NSID = NS.ID) then
                   continue;
 
                 q.ParamByName('nsk').AsInteger := NS.ID;
                 q.ParamByName('uk').AsInteger := NSID;
-                q.ExecQuery;
+                try
+                  q.ExecQuery;
+                except
+                  on E: Exception do
+                    DoLog(lmtError, E.Message);
+                end;
               end;
             finally
               q.Free;

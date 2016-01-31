@@ -4953,7 +4953,7 @@ end;
 
 procedure TgdcBase.MakeReportMenu;
 const
-  IdxReport       = 172;
+  IdxReport       = 176;
   IdxFolder       = 132;
   IdxScriptEditor = 21;
 

@@ -1335,7 +1335,12 @@ begin
         'VALUES (:namespacekey, :useskey)';
       q.ParamByName('namespacekey').AsInteger := ANamespaceKey;
       q.ParamByName('useskey').AsInteger := NSID;
-      q.ExecQuery;
+      try
+        q.ExecQuery;
+      except
+        on E: Exception do
+          AddMistake(E.Message);
+      end;
     end;
   finally
     q.Free;

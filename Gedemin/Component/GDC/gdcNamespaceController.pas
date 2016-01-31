@@ -1,3 +1,4 @@
+
 unit gdcNamespaceController;
 
 interface
@@ -28,7 +29,7 @@ type
     FPrevNSName: String;
     FMultipleNS: Boolean;
     FInconsistentParams: Boolean;
-    FMultipleObjects: Boolean;
+    FMultipleObjects: Integer;
     FHeadObjectKey: Integer;
     FOps: TNamespaceOps;
     FHeadObjectName: String;
@@ -37,6 +38,7 @@ type
     procedure DeleteFromNamespace;
     procedure MoveBetweenNamespaces;
     procedure AddToNamespace;
+    procedure PickOut;
     function GetEnabled: Boolean;
 
   public
@@ -58,7 +60,7 @@ type
     property PrevNSName: String read FPrevNSName;
     property MultipleNS: Boolean read FMultipleNS;
     property InconsistentParams: Boolean read FInconsistentParams;
-    property MultipleObjects: Boolean read FMultipleObjects;
+    property MultipleObjects: Integer read FMultipleObjects;
     property HeadObjectKey: Integer read FHeadObjectKey;
     property HeadObjectName: String read FHeadObjectName;
     property CurrentNSID: Integer read FCurrentNSID write FCurrentNSID;
@@ -241,7 +243,8 @@ end;
 
 function TgdcNamespaceController.Include: Boolean;
 
-  procedure IterateBL(AnIterateProc: TIterateProc; var AFirstRUID, ALastRUID: TRUID);
+  procedure IterateBL(AnIterateProc: TIterateProc; const AReadPos: Boolean;
+    var AFirstRUID, ALastRUID: TRUID);
   var
     I, First, Last: Integer;
     Bm: String;
@@ -263,44 +266,47 @@ function TgdcNamespaceController.Include: Boolean;
           AnIterateProc;
         end;
 
-        q := TIBSQL.Create(nil);
-        try
-          First := High(Integer);
-          Last := Low(Integer);
+        if AReadPos then
+        begin
+          q := TIBSQL.Create(nil);
+          try
+            First := High(Integer);
+            Last := Low(Integer);
 
-          q.Transaction := FIBTransaction;
-          q.SQL.Text :=
-            'SELECT objectpos FROM at_object ' +
-            'WHERE namespacekey = :nsk ' +
-            '  AND xid = :xid AND dbid = :dbid';
+            q.Transaction := FIBTransaction;
+            q.SQL.Text :=
+              'SELECT objectpos FROM at_object ' +
+              'WHERE namespacekey = :nsk ' +
+              '  AND xid = :xid AND dbid = :dbid';
 
-          for I := 0 to FBL.Count - 1 do
-          begin
-            FgdcObject.Bookmark := FBL[I];
-
-            q.Close;
-            q.ParamByName('nsk').AsInteger := FCurrentNSID;
-            q.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
-            q.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
-            q.ExecQuery;
-
-            if q.EOF then
-              raise Exception.Create('Internal error');
-
-            if q.FieldByName('objectpos').AsInteger <= First then
+            for I := 0 to FBL.Count - 1 do
             begin
-              First := q.FieldByName('objectpos').AsInteger;
-              AFirstRUID := FgdcObject.GetRUID;
-            end;
+              FgdcObject.Bookmark := FBL[I];
 
-            if q.FieldByName('objectpos').AsInteger >= Last then
-            begin
-              Last := q.FieldByName('objectpos').AsInteger;
-              ALastRUID := FgdcObject.GetRUID;
+              q.Close;
+              q.ParamByName('nsk').AsInteger := FCurrentNSID;
+              q.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+              q.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+              q.ExecQuery;
+
+              if q.EOF then
+                raise Exception.Create('Internal error');
+
+              if q.FieldByName('objectpos').AsInteger <= First then
+              begin
+                First := q.FieldByName('objectpos').AsInteger;
+                AFirstRUID := FgdcObject.GetRUID;
+              end;
+
+              if q.FieldByName('objectpos').AsInteger >= Last then
+              begin
+                Last := q.FieldByName('objectpos').AsInteger;
+                ALastRUID := FgdcObject.GetRUID;
+              end;
             end;
+          finally
+            q.Free;
           end;
-        finally
-          q.Free;
         end;
       finally
         FgdcObject.Bookmark := Bm;
@@ -326,426 +332,516 @@ begin
   LastRUID.XID := -1;
   LastRUID.DBID := -1;
 
-  if (FPrevNSID > -1) and (FCurrentNSID = -1) then
-    IterateBL(DeleteFromNamespace, FirstRUID, LastRUID)
-  else if (FPrevNSID > -1) and (FCurrentNSID > -1) and (FPrevNSID <> FCurrentNSID) then
-  begin
-    IterateBL(MoveBetweenNamespaces, FirstRUID, LastRUID);
-  end else if FCurrentNSID > -1 then
-  begin
-    IterateBL(AddToNamespace, FirstRUID, LastRUID);
-  end;
+  case FSelectedOp of
 
-  if (FCurrentNSID > -1) and FIncludeLinked then
-  begin
-    q := TIBSQL.Create(nil);
-    qNSList := TIBSQL.Create(nil);
-    qFindInChain := TIBSQL.Create(nil);
-    qFind := TIBSQL.Create(nil);
-    qMove := TIBSQL.Create(nil);
-    qDelete := TIBSQL.Create(nil);
-    qPos := TIBSQL.Create(nil);
-    gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
-    SLAlwaysOverwrite := TStringList.Create;
-    SLDontRemove := TStringList.Create;
-    SLIncludeSiblings := TStringlist.Create;
-    try
-      q.Transaction := FIBTransaction;
+    nopNone: ;
 
-      if FDontModify then
+    nopDel:
+      IterateBL(DeleteFromNamespace, False, FirstRUID, LastRUID);
+
+    nopMove:
+    begin
+      IterateBL(MoveBetweenNamespaces, False, FirstRUID, LastRUID);
+    end;
+
+    nopPickOut:
+    begin
+      IterateBL(PickOut, True, FirstRUID, LastRUID);
+
+      if FIncludeLinked then
       begin
-        q.SQL.Text :=
-          'SELECT (o.xid || ''_'' || o.dbid) as ruid, ' +
-          '  o.alwaysoverwrite, o.dontremove, o.includesiblings ' +
-          'FROM at_object o WHERE o.namespacekey = :nsk ' +
-          '  AND o.headobjectkey = (SELECT o2.id FROM at_object o2 ' +
-          '    WHERE o2.xid = :xid AND o2.dbid = :dbid) ';
-        q.ParamByName('nsk').AsInteger := FPrevNSID;
-        q.ParamByName('xid').AsInteger := FirstRUID.XID;
-        q.ParamByName('dbid').AsInteger := FirstRUID.DBID;
-        q.ExecQuery;
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := FIBTransaction;
 
-        while not q.EOF do
-        begin
-          if q.FieldByName('alwaysoverwrite').AsInteger <> 0 then
-            SLAlwaysOverwrite.Add(q.FieldByName('ruid').AsString);
-          if q.FieldByName('dontremove').AsInteger <> 0 then
-            SLDontRemove.Add(q.FieldByName('ruid').AsString);
-          if q.FieldByName('includesiblings').AsInteger <> 0 then
-            SLIncludeSiblings.Add(q.FieldByName('ruid').AsString);
-          q.Next;
-        end;
-      end;   
+          q.SQL.Text :=
+            'SELECT id FROM at_object WHERE namespacekey = :nsk ' +
+            '  AND xid = :xid AND dbid = :dbid';
+          q.ParamByName('nsk').AsInteger := FPrevNSID;
+          q.ParamByName('xid').AsInteger := FirstRUID.XID;
+          q.ParamByName('dbid').AsInteger := FirstRUID.DBID;
+          q.ExecQuery;
 
-      q.Close;
-      q.SQL.Text :=
-        'DELETE FROM at_object WHERE namespacekey = :nsk ' +
-        '  AND headobjectkey = (SELECT o2.id FROM at_object o2 ' +
-        '    WHERE o2.xid = :xid AND o2.dbid = :dbid) ';
-      q.ParamByName('nsk').AsInteger := FPrevNSID;
-      q.ParamByName('xid').AsInteger := FirstRUID.XID;
-      q.ParamByName('dbid').AsInteger := FirstRUID.DBID;
-      q.ExecQuery;
-      q.Close;
+          if q.EOF then
+            raise Exception.Create('Object not found');
 
-      qPos.Transaction := FIBTransaction;
+          HeadObjectKey := q.FieldByName('id').AsInteger;
+          q.Close;
 
-      gdcNamespaceObject.ReadTransaction := FIBTransaction;
-      gdcNamespaceObject.Transaction := FIBTransaction;
+          q.SQL.Text :=
+            'UPDATE at_object SET headobjectkey = :new_ho ' +
+            'WHERE headobjectkey = :old_ho AND xid = :xid AND dbid = :dbid ' +
+            '  AND namespacekey = :nsk';
+          q.ParamByName('new_ho').AsInteger := HeadObjectKey;
+          q.ParamByName('old_ho').AsInteger := FHeadObjectKey;
+          q.ParamByName('nsk').AsInteger := FPrevNSID;
 
-      gdcNamespaceObject.SubSet := 'ByObject';
-      gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FCurrentNSID;
-      gdcNamespaceObject.ParamByName('xid').AsInteger := FirstRUID.XID;
-      gdcNamespaceObject.ParamByName('dbid').AsInteger := FirstRUID.DBID;
-      gdcNamespaceObject.Open;
-
-      if gdcNamespaceObject.EOF then
-        raise Exception.Create('Invalid object.');
-
-      HeadObjectKey := gdcNamespaceObject.ID;
-      HeadObjectPos := gdcNamespaceObject.FieldByName('objectpos').AsInteger;
-
-      gdcNamespaceObject.Close;
-      gdcNamespaceObject.SubSet := 'All';
-      gdcNamespaceObject.Open;
-
-      q.SQL.Text :=
-        'SELECT objectpos FROM at_object ' +
-        'WHERE namespacekey = :nsk AND headobjectkey = :hok AND objectpos < :hop ' +
-        'ORDER BY objectpos ASC ';
-      q.ParamByName('nsk').AsInteger := FCurrentNSID;
-      q.ParamByName('hok').AsInteger := HeadObjectKey;
-      q.ParamByName('hop').AsInteger := HeadObjectPos;
-      q.ExecQuery;
-
-      if not q.EOF then
-        HeadObjectPos := q.FieldByName('objectpos').AsInteger;
-
-      q.Close;
-
-      qNSList.Transaction := FIBTransaction;
-      qNSList.SQL.Text :=
-        'SELECT LIST(n.name, ''^''), LIST(n.id, ''^'') FROM at_namespace n ' +
-        '  JOIN at_object o ON o.namespacekey = n.id ' +
-        'WHERE o.xid = :xid AND o.dbid = :dbid ' +
-        '  AND o.namespacekey <> :CurrNS';
-      qNSList.ParamByName('CurrNS').AsInteger := FCurrentNSID;
-
-      qFindInChain.Transaction := FIBTransaction;
-      qFindInChain.SQL.Text :=
-        'WITH RECURSIVE '#13#10 +
-        '  CHAIN AS ( '#13#10 +
-        '    SELECT root.namespacekey, root.useskey '#13#10 +
-        '    FROM at_namespace_link root '#13#10 +
-        '    WHERE root.namespacekey = :NK '#13#10 +
-        '     '#13#10 +
-        '    UNION ALL '#13#10 +
-        '     '#13#10 +
-        '    SELECT l.namespacekey, l.useskey '#13#10 +
-        '    FROM at_namespace_link l '#13#10 +
-        '      JOIN chain ch ON l.namespacekey = ch.useskey '#13#10 +
-        '  ) '#13#10 +
-        'SELECT '#13#10 +
-        '  * '#13#10 +
-        'FROM '#13#10 +
-        '  at_object obj JOIN chain ch '#13#10 +
-        '    ON obj.namespacekey = ch.useskey '#13#10 +
-        'WHERE '#13#10 +
-        '  obj.xid = :xid AND obj.dbid = :dbid';
-      qFindInChain.ParamByName('NK').AsInteger := FCurrentNSID;
-
-      qFind.Transaction := FIBTransaction;
-      qFind.SQL.Text :=
-        'SELECT * FROM at_object WHERE namespacekey = :CurrNS ' +
-        '  AND xid = :xid AND dbid = :dbid';
-      qFind.ParamByName('CurrNS').AsInteger := FCurrentNSID;
-
-      qMove.Transaction := FIBTransaction;
-      qMove.SQL.Text :=
-        'UPDATE at_object SET objectpos = :objectpos WHERE id = :id';
-
-      qDelete.Transaction := FIBTransaction;
-      qDelete.SQL.Text :=
-        'DELETE FROM at_object WHERE id = :id';
-
-      for J := 0 to FTabs.Count - 1 do
-      begin
-        DS := SetupDS(J);
-        DS.First;
-        while not DS.EOF do
-        begin
-          qFindInChain.Close;
-          qFindInChain.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
-          qFindInChain.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
-          qFindInChain.ExecQuery;
-
-          if qFindInChain.EOF then
+          for J := 0 to FTabs.Count - 1 do
           begin
-            NSKey := -1;
-
-            if (not DS.FieldByName('xid').IsNull)
-              and (not DS.FieldByName('dbid').IsNull) then
+            DS := SetupDS(J);
+            DS.First;
+            while not DS.EOF do
             begin
-              qNSList.Close;
-              qNSList.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
-              qNSList.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
-              qNSList.ExecQuery;
-
-              if (not qNSList.EOF) and (qNSList.Fields[0].AsString > '') then
-              begin
-                NSKey := StrToIntDef(qNSList.Fields[1].AsString, -1);
-
-                if NSKey = -1 then
-                begin
-                  if MessageBox(0,
-                    PChar('Объект "' + DS.FieldByName('class').AsString +
-                    DS.FieldByName('subtype').AsString + ' - ' +
-                    DS.FieldByName('name').AsString + '"'#13#10 +
-                    'входит в пространства имен:'#13#10#13#10 +
-                    StringReplace(qNSList.Fields[0].AsString, '^', #13#10, [rfReplaceAll]) + #13#10#13#10 +
-                    'Добавить ПИ в список зависимости?'),
-                    'Внимание',
-                    MB_OKCANCEL or MB_ICONQUESTION or MB_TASKMODAL) = IDOK then
-                  begin
-                    repeat
-                      NSKey := TgdcNamespace.SelectObject(
-                        'Выберите ПИ из предложенного списка:', 'Внимание', 0,
-                        'id IN (SELECT o.namespacekey FROM at_object o WHERE o.xid = ' +
-                        DS.FieldByName('xid').AsString +
-                        ' AND o.dbid = ' +
-                        DS.FieldByName('dbid').AsString +
-                        ' AND o.namespacekey <> ' + IntToStr(FCurrentNSID) +
-                        ')');
-                     until NSKey <> -1;
-                  end else
-                  begin
-                    MessageBox(0,
-                      'Процесс добавления объекта прерван пользователем.',
-                      'Внимание',
-                      MB_OK or MB_TASKMODAL or MB_ICONEXCLAMATION);
-                    FIBTransaction.Rollback;
-                    Result := False;
-                    exit;
-                  end;
-                end;
-              end;
-            end;
-
-            if NSKey = -1 then
-            begin
-              if Pos('RDB$', DS.FieldByName('name').AsString) <> 1 then
-              begin
-                TempPos := -1;
-
-                qFind.Close;
-                qFind.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
-                qFind.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
-                qFind.ExecQuery;
-
-                if qFind.EOF then
-                  ShouldAdd := True
-                else begin
-                  CEExist := gdClassList.Get(TgdClassEntry, qFind.FieldByName('objectclass').AsString,
-                    qFind.FieldbyName('subtype').AsString);
-                  CENew := gdClassList.Get(TgdClassEntry, DS.FieldByName('class').AsString,
-                    DS.FieldByName('subtype').AsString);
-
-                  if qFind.FieldByName('objectpos').AsInteger > HeadObjectPos then
-                  begin
-                    if (CEExist = CENew) or CEExist.InheritsFromCE(CENew) then
-                    begin
-                      qMove.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
-                      qMove.ParamByName('objectpos').AsInteger := HeadObjectPos;
-                      qMove.ExecQuery;
-
-                      qPos.Close;
-                      qPos.SQL.Text :=
-                        'SELECT objectpos FROM at_object WHERE id = :id';
-                      qPos.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
-                      qPos.ExecQuery;
-
-                      if qPos.EOF then
-                        raise Exception.Create('Internal error');
-
-                      HeadObjectPos := qPos.FieldByName('objectpos').AsInteger + 1;
-                      qPos.Close;
-
-                      ShouldAdd := False;
-                    end else
-                    begin
-                      qDelete.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
-                      qDelete.ExecQuery;
-                      ShouldAdd := True;
-                    end;
-                  end else
-                  begin
-                    if (CEExist = CENew) or CEExist.InheritsFromCE(CENew) then
-                    begin
-                      ShouldAdd := False;
-                    end else
-                    begin
-                      TempPos := qFind.FieldByName('objectpos').AsInteger;
-                      qDelete.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
-                      qDelete.ExecQuery;
-                      ShouldAdd := True;
-                    end;
-                  end;
-
-                  {
-                  if (not ShouldAdd) and (qFind.FieldByName('headobjectkey').AsInteger <> HeadObjectKey) then
-                  begin
-                  end;
-                  }
-                end;
-
-                if ShouldAdd then
-                begin
-                  gdcNamespaceObject.Insert;
-                  gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
-                  gdcNamespaceObject.FieldByName('objectname').AsString := DS.FieldByName('name').AsString;
-                  gdcNamespaceObject.FieldByName('objectclass').AsString := DS.FieldByName('class').AsString;
-                  gdcNamespaceObject.FieldByName('subtype').AsString := DS.FieldByName('subtype').AsString;
-                  gdcNamespaceObject.FieldByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
-                  gdcNamespaceObject.FieldByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
-                  if TempPos = -1 then
-                  begin
-                    gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
-                    Inc(HeadObjectPos);
-                  end else
-                    gdcNamespaceObject.FieldByName('objectpos').AsInteger := TempPos;
-                  if FAlwaysOverwrite then
-                    gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
-                  else
-                    gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
-                  if FDontRemove then
-                    gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
-                  else
-                    gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
-                  if FIncludeSiblings then
-                    gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
-                  else
-                    gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
-
-                  gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
-
-                  if DS.FieldByName('editiondate').IsNull then
-                  begin
-                    gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
-                    gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
-                  end else
-                  begin
-                    gdcNamespaceObject.FieldByName('modified').AsDateTime :=
-                      DS.FieldByName('editiondate').AsDateTime;
-                    gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
-                      DS.FieldByName('editiondate').AsDateTime;
-                  end;
-                  gdcNamespaceObject.Post;
-                end;
-              end;
-            end
-            else if NSKey <> FCurrentNSID then
-            begin
-              q.Close;
-              q.SQL.Text :=
-                'SELECT * FROM at_namespace_link WHERE namespacekey = :nsk AND useskey = :uk';
-              q.ParamByName('nsk').AsInteger := NSKey;
-              q.ParamByName('uk').AsInteger := FCurrentNSID;
+              q.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+              q.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
               q.ExecQuery;
 
-              if q.EOF then
-              begin
-                q.Close;
-                q.SQL.Text :=
-                  'UPDATE OR INSERT INTO at_namespace_link (namespacekey, useskey) ' +
-                  '  VALUES (:nsk, :uk) ' +
-                  '  MATCHING (namespacekey, useskey) ';
-                q.ParamByName('nsk').AsInteger := FCurrentNSID;
-                q.ParamByName('uk').AsInteger := NSKey;
-                q.ExecQuery;
-              end;
+              DS.Next;
+            end;
+          end;
+        finally
+          q.Free;
+        end;
+      end;
+    end;
 
-              q.Close;
+    nopChangeProp:
+    begin
+    end;
+
+    nopAdd, nopUpdate:
+    begin
+      IterateBL(AddToNamespace, True, FirstRUID, LastRUID);
+
+      if FIncludeLinked then
+      begin
+        q := TIBSQL.Create(nil);
+        qNSList := TIBSQL.Create(nil);
+        qFindInChain := TIBSQL.Create(nil);
+        qFind := TIBSQL.Create(nil);
+        qMove := TIBSQL.Create(nil);
+        qDelete := TIBSQL.Create(nil);
+        qPos := TIBSQL.Create(nil);
+        gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+        SLAlwaysOverwrite := TStringList.Create;
+        SLDontRemove := TStringList.Create;
+        SLIncludeSiblings := TStringlist.Create;
+        try
+          q.Transaction := FIBTransaction;
+
+          if FDontModify then
+          begin
+            q.SQL.Text :=
+              'SELECT (o.xid || ''_'' || o.dbid) as ruid, ' +
+              '  o.alwaysoverwrite, o.dontremove, o.includesiblings ' +
+              'FROM at_object o WHERE o.namespacekey = :nsk ' +
+              '  AND o.headobjectkey = (SELECT o2.id FROM at_object o2 ' +
+              '    WHERE o2.xid = :xid AND o2.dbid = :dbid) ';
+            q.ParamByName('nsk').AsInteger := FPrevNSID;
+            q.ParamByName('xid').AsInteger := FirstRUID.XID;
+            q.ParamByName('dbid').AsInteger := FirstRUID.DBID;
+            q.ExecQuery;
+
+            while not q.EOF do
+            begin
+              if q.FieldByName('alwaysoverwrite').AsInteger <> 0 then
+                SLAlwaysOverwrite.Add(q.FieldByName('ruid').AsString);
+              if q.FieldByName('dontremove').AsInteger <> 0 then
+                SLDontRemove.Add(q.FieldByName('ruid').AsString);
+              if q.FieldByName('includesiblings').AsInteger <> 0 then
+                SLIncludeSiblings.Add(q.FieldByName('ruid').AsString);
+              q.Next;
             end;
           end;
 
-          DS.Next;
-        end;
+          q.Close;
+          q.SQL.Text :=
+            'DELETE FROM at_object WHERE namespacekey = :nsk ' +
+            '  AND headobjectkey = (SELECT o2.id FROM at_object o2 ' +
+            '    WHERE o2.xid = :xid AND o2.dbid = :dbid) ';
+          q.ParamByName('nsk').AsInteger := FPrevNSID;
+          q.ParamByName('xid').AsInteger := FirstRUID.XID;
+          q.ParamByName('dbid').AsInteger := FirstRUID.DBID;
+          q.ExecQuery;
+          q.Close;
 
-        if J = 0 then
-        begin
-          qPos.Close;
-          qPos.SQL.Text :=
+          qPos.Transaction := FIBTransaction;
+
+          gdcNamespaceObject.ReadTransaction := FIBTransaction;
+          gdcNamespaceObject.Transaction := FIBTransaction;
+
+          gdcNamespaceObject.SubSet := 'ByObject';
+          gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FCurrentNSID;
+          gdcNamespaceObject.ParamByName('xid').AsInteger := FirstRUID.XID;
+          gdcNamespaceObject.ParamByName('dbid').AsInteger := FirstRUID.DBID;
+          gdcNamespaceObject.Open;
+
+          if gdcNamespaceObject.EOF then
+            raise Exception.Create('Invalid object.');
+
+          HeadObjectKey := gdcNamespaceObject.ID;
+          HeadObjectPos := gdcNamespaceObject.FieldByName('objectpos').AsInteger;
+
+          gdcNamespaceObject.Close;
+          gdcNamespaceObject.SubSet := 'All';
+          gdcNamespaceObject.Open;
+
+          q.SQL.Text :=
             'SELECT objectpos FROM at_object ' +
-            'WHERE namespacekey = :nsk AND xid = :xid AND dbid = :dbid';
-          qPos.ParamByName('nsk').AsInteger := FCurrentNSID;
-          qPos.ParamByName('xid').AsInteger := LastRUID.XID;
-          qPos.ParamByName('dbid').AsInteger := LastRUID.DBID;
-          qPos.ExecQuery;
-
-          if qPos.EOF then
-            raise Exception.Create('Internal error');
-
-          HeadObjectPos := qPos.FieldByName('objectpos').AsInteger + 1;
-          qPos.Close;
-        end;
-      end;
-
-      if SLAlwaysOverwrite.Count > 0 then
-      begin
-        q.Close;
-        q.SQL.Text :=
-          'UPDATE at_object SET alwaysoverwrite = 1 ' +
-          'WHERE alwaysoverwrite = 0 AND (xid || ''_'' || dbid) = :ruid ' +
-          '  AND namespacekey = :nsk';
-        q.ParamByName('nsk').AsInteger := FCurrentNSID;
-        for J := 0 to SLAlwaysOverwrite.Count - 1 do
-        begin
-          q.ParamByName('ruid').AsString := SLAlwaysOverwrite[J];
+            'WHERE namespacekey = :nsk AND headobjectkey = :hok AND objectpos < :hop ' +
+            'ORDER BY objectpos ASC ';
+          q.ParamByName('nsk').AsInteger := FCurrentNSID;
+          q.ParamByName('hok').AsInteger := HeadObjectKey;
+          q.ParamByName('hop').AsInteger := HeadObjectPos;
           q.ExecQuery;
-        end;
-      end;
 
-      if SLDontRemove.Count > 0 then
-      begin
-        q.Close;
-        q.SQL.Text :=
-          'UPDATE at_object SET dontremove = 1 ' +
-          'WHERE dontremove = 0 AND (xid || ''_'' || dbid) = :ruid' +
-          '  AND namespacekey = :nsk';
-        q.ParamByName('nsk').AsInteger := FCurrentNSID;
-        for J := 0 to SLDontRemove.Count - 1 do
-        begin
-          q.ParamByName('ruid').AsString := SLDontRemove[J];
-          q.ExecQuery;
-        end;
-      end;
+          if not q.EOF then
+            HeadObjectPos := q.FieldByName('objectpos').AsInteger;
 
-      if SLIncludeSiblings.Count > 0 then
-      begin
-        q.Close;
-        q.SQL.Text :=
-          'UPDATE at_object SET includesiblings = 1 ' +
-          'WHERE includesiblings = 0 AND (xid || ''_'' || dbid) = :ruid' +
-          '  AND namespacekey = :nsk';
-        q.ParamByName('nsk').AsInteger := FCurrentNSID;
-        for J := 0 to SLIncludeSiblings.Count - 1 do
-        begin
-          q.ParamByName('ruid').AsString := SLIncludeSiblings[J];
-          q.ExecQuery;
+          q.Close;
+
+          qNSList.Transaction := FIBTransaction;
+          qNSList.SQL.Text :=
+            'SELECT LIST(n.name, ''^''), LIST(n.id, ''^'') FROM at_namespace n ' +
+            '  JOIN at_object o ON o.namespacekey = n.id ' +
+            'WHERE o.xid = :xid AND o.dbid = :dbid ' +
+            '  AND o.namespacekey <> :CurrNS';
+          qNSList.ParamByName('CurrNS').AsInteger := FCurrentNSID;
+
+          qFindInChain.Transaction := FIBTransaction;
+          qFindInChain.SQL.Text :=
+            'WITH RECURSIVE '#13#10 +
+            '  CHAIN AS ( '#13#10 +
+            '    SELECT root.namespacekey, root.useskey '#13#10 +
+            '    FROM at_namespace_link root '#13#10 +
+            '    WHERE root.namespacekey = :NK '#13#10 +
+            '     '#13#10 +
+            '    UNION ALL '#13#10 +
+            '     '#13#10 +
+            '    SELECT l.namespacekey, l.useskey '#13#10 +
+            '    FROM at_namespace_link l '#13#10 +
+            '      JOIN chain ch ON l.namespacekey = ch.useskey '#13#10 +
+            '  ) '#13#10 +
+            'SELECT '#13#10 +
+            '  * '#13#10 +
+            'FROM '#13#10 +
+            '  at_object obj JOIN chain ch '#13#10 +
+            '    ON obj.namespacekey = ch.useskey '#13#10 +
+            'WHERE '#13#10 +
+            '  obj.xid = :xid AND obj.dbid = :dbid';
+          qFindInChain.ParamByName('NK').AsInteger := FCurrentNSID;
+
+          qFind.Transaction := FIBTransaction;
+          qFind.SQL.Text :=
+            'SELECT * FROM at_object WHERE namespacekey = :CurrNS ' +
+            '  AND xid = :xid AND dbid = :dbid';
+          qFind.ParamByName('CurrNS').AsInteger := FCurrentNSID;
+
+          qMove.Transaction := FIBTransaction;
+          qMove.SQL.Text :=
+            'UPDATE at_object SET objectpos = :objectpos WHERE id = :id';
+
+          qDelete.Transaction := FIBTransaction;
+          qDelete.SQL.Text :=
+            'DELETE FROM at_object WHERE id = :id';
+
+          for J := 0 to FTabs.Count - 1 do
+          begin
+            DS := SetupDS(J);
+            DS.First;
+            while not DS.EOF do
+            begin
+              qFindInChain.Close;
+              qFindInChain.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+              qFindInChain.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+              qFindInChain.ExecQuery;
+
+              if qFindInChain.EOF then
+              begin
+                NSKey := -1;
+
+                if (not DS.FieldByName('xid').IsNull)
+                  and (not DS.FieldByName('dbid').IsNull) then
+                begin
+                  qNSList.Close;
+                  qNSList.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+                  qNSList.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+                  qNSList.ExecQuery;
+
+                  if (not qNSList.EOF) and (qNSList.Fields[0].AsString > '') then
+                  begin
+                    NSKey := StrToIntDef(qNSList.Fields[1].AsString, -1);
+
+                    if NSKey = -1 then
+                    begin
+                      if MessageBox(0,
+                        PChar('Объект "' + DS.FieldByName('class').AsString +
+                        DS.FieldByName('subtype').AsString + ' - ' +
+                        DS.FieldByName('name').AsString + '"'#13#10 +
+                        'входит в пространства имен:'#13#10#13#10 +
+                        StringReplace(qNSList.Fields[0].AsString, '^', #13#10, [rfReplaceAll]) + #13#10#13#10 +
+                        'Добавить ПИ в список зависимости?'),
+                        'Внимание',
+                        MB_OKCANCEL or MB_ICONQUESTION or MB_TASKMODAL) = IDOK then
+                      begin
+                        repeat
+                          NSKey := TgdcNamespace.SelectObject(
+                            'Выберите ПИ из предложенного списка:', 'Внимание', 0,
+                            'id IN (SELECT o.namespacekey FROM at_object o WHERE o.xid = ' +
+                            DS.FieldByName('xid').AsString +
+                            ' AND o.dbid = ' +
+                            DS.FieldByName('dbid').AsString +
+                            ' AND o.namespacekey <> ' + IntToStr(FCurrentNSID) +
+                            ')');
+                         until NSKey <> -1;
+                      end else
+                      begin
+                        MessageBox(0,
+                          'Процесс добавления объекта прерван пользователем.',
+                          'Внимание',
+                          MB_OK or MB_TASKMODAL or MB_ICONEXCLAMATION);
+                        FIBTransaction.Rollback;
+                        Result := False;
+                        exit;
+                      end;
+                    end;
+                  end;
+                end;
+
+                if NSKey = -1 then
+                begin
+                  if Pos('RDB$', DS.FieldByName('name').AsString) <> 1 then
+                  begin
+                    TempPos := -1;
+
+                    qFind.Close;
+                    qFind.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+                    qFind.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+                    qFind.ExecQuery;
+
+                    if qFind.EOF then
+                      ShouldAdd := True
+                    else begin
+                      CEExist := gdClassList.Get(TgdClassEntry, qFind.FieldByName('objectclass').AsString,
+                        qFind.FieldbyName('subtype').AsString);
+                      CENew := gdClassList.Get(TgdClassEntry, DS.FieldByName('class').AsString,
+                        DS.FieldByName('subtype').AsString);
+
+                      if qFind.FieldByName('objectpos').AsInteger > HeadObjectPos then
+                      begin
+                        if (CEExist = CENew) or CEExist.InheritsFromCE(CENew) then
+                        begin
+                          qMove.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
+                          qMove.ParamByName('objectpos').AsInteger := HeadObjectPos;
+                          qMove.ExecQuery;
+
+                          qPos.Close;
+                          qPos.SQL.Text :=
+                            'SELECT objectpos FROM at_object WHERE id = :id';
+                          qPos.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
+                          qPos.ExecQuery;
+
+                          if qPos.EOF then
+                            raise Exception.Create('Internal error');
+
+                          HeadObjectPos := qPos.FieldByName('objectpos').AsInteger + 1;
+                          qPos.Close;
+
+                          ShouldAdd := False;
+                        end else
+                        begin
+                          qDelete.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
+                          qDelete.ExecQuery;
+                          ShouldAdd := True;
+                        end;
+                      end else
+                      begin
+                        if (CEExist = CENew) or CEExist.InheritsFromCE(CENew) then
+                        begin
+                          ShouldAdd := False;
+                        end else
+                        begin
+                          TempPos := qFind.FieldByName('objectpos').AsInteger;
+                          qDelete.ParamByName('id').AsInteger := qFind.FieldByName('id').AsInteger;
+                          qDelete.ExecQuery;
+                          ShouldAdd := True;
+                        end;
+                      end;
+                    end;
+
+                    if ShouldAdd then
+                    begin
+                      gdcNamespaceObject.Insert;
+                      gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
+                      gdcNamespaceObject.FieldByName('objectname').AsString := DS.FieldByName('name').AsString;
+                      gdcNamespaceObject.FieldByName('objectclass').AsString := DS.FieldByName('class').AsString;
+                      gdcNamespaceObject.FieldByName('subtype').AsString := DS.FieldByName('subtype').AsString;
+                      gdcNamespaceObject.FieldByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+                      gdcNamespaceObject.FieldByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+                      if TempPos = -1 then
+                      begin
+                        gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
+                        Inc(HeadObjectPos);
+                      end else
+                        gdcNamespaceObject.FieldByName('objectpos').AsInteger := TempPos;
+                      if FAlwaysOverwrite then
+                        gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+                      else
+                        gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+                      if FDontRemove then
+                        gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+                      else
+                        gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+                      if FIncludeSiblings then
+                        gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+                      else
+                        gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+
+                      gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
+
+                      if DS.FieldByName('editiondate').IsNull then
+                      begin
+                        gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
+                        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+                      end else
+                      begin
+                        gdcNamespaceObject.FieldByName('modified').AsDateTime :=
+                          DS.FieldByName('editiondate').AsDateTime;
+                        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+                          DS.FieldByName('editiondate').AsDateTime;
+                      end;
+                      gdcNamespaceObject.Post;
+                    end
+                    else if not FDontModify then
+                    begin
+                      q.Close;
+                      q.SQL.Text :=
+                        'UPDATE at_object SET alwaysoverwrite = :ao, dontremove = :dr, includesiblings = :incs ' +
+                        'WHERE namespacekey = :nsk AND xid = :xid AND dbid = :dbid ' +
+                        '  AND (alwaysoverwrite <> :ao OR dontremove <> :dr OR includesiblings <> :incs)';
+                      q.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+                      q.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+                      q.ParamByName('nsk').AsInteger := FCurrentNSID;
+                      if FAlwaysOverwrite then
+                        q.ParamByName('ao').AsInteger := 1
+                      else
+                        q.ParamByName('ao').AsInteger := 0;
+                      if FDontRemove then
+                        q.ParamByName('dr').AsInteger := 1
+                      else
+                        q.ParamByName('dr').AsInteger := 0;
+                      if FIncludeSiblings then
+                        q.ParamByName('incs').AsInteger := 1
+                      else
+                        q.ParamByName('incs').AsInteger := 0;
+                      q.ExecQuery;
+                      q.Close;
+                    end;
+                  end;
+                end
+                else if NSKey <> FCurrentNSID then
+                begin
+                  q.Close;
+                  q.SQL.Text :=
+                    'SELECT * FROM at_namespace_link WHERE namespacekey = :nsk AND useskey = :uk';
+                  q.ParamByName('nsk').AsInteger := NSKey;
+                  q.ParamByName('uk').AsInteger := FCurrentNSID;
+                  q.ExecQuery;
+
+                  if q.EOF then
+                  begin
+                    q.Close;
+                    q.SQL.Text :=
+                      'UPDATE OR INSERT INTO at_namespace_link (namespacekey, useskey) ' +
+                      '  VALUES (:nsk, :uk) ' +
+                      '  MATCHING (namespacekey, useskey) ';
+                    q.ParamByName('nsk').AsInteger := FCurrentNSID;
+                    q.ParamByName('uk').AsInteger := NSKey;
+                    try
+                      q.ExecQuery;
+                    except
+                      MessageBox(0,
+                        PChar('Невозможно добавить ПИ (ID = ' + IntToStr(NSKey) + ') в список'#13#10 +
+                        'используемых из-за возникновения циклической зависимости.'),
+                        'Рекурсивная зависимость',
+                        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+                    end;
+                  end;
+
+                  q.Close;
+                end;
+              end;
+
+              DS.Next;
+            end;
+
+            if J = 0 then
+            begin
+              qPos.Close;
+              qPos.SQL.Text :=
+                'SELECT objectpos FROM at_object ' +
+                'WHERE namespacekey = :nsk AND xid = :xid AND dbid = :dbid';
+              qPos.ParamByName('nsk').AsInteger := FCurrentNSID;
+              qPos.ParamByName('xid').AsInteger := LastRUID.XID;
+              qPos.ParamByName('dbid').AsInteger := LastRUID.DBID;
+              qPos.ExecQuery;
+
+              if qPos.EOF then
+                raise Exception.Create('Internal error');
+
+              HeadObjectPos := qPos.FieldByName('objectpos').AsInteger + 1;
+              qPos.Close;
+            end;
+          end;
+
+          if SLAlwaysOverwrite.Count > 0 then
+          begin
+            q.Close;
+            q.SQL.Text :=
+              'UPDATE at_object SET alwaysoverwrite = 1 ' +
+              'WHERE alwaysoverwrite = 0 AND (xid || ''_'' || dbid) = :ruid ' +
+              '  AND namespacekey = :nsk';
+            q.ParamByName('nsk').AsInteger := FCurrentNSID;
+            for J := 0 to SLAlwaysOverwrite.Count - 1 do
+            begin
+              q.ParamByName('ruid').AsString := SLAlwaysOverwrite[J];
+              q.ExecQuery;
+            end;
+          end;
+
+          if SLDontRemove.Count > 0 then
+          begin
+            q.Close;
+            q.SQL.Text :=
+              'UPDATE at_object SET dontremove = 1 ' +
+              'WHERE dontremove = 0 AND (xid || ''_'' || dbid) = :ruid' +
+              '  AND namespacekey = :nsk';
+            q.ParamByName('nsk').AsInteger := FCurrentNSID;
+            for J := 0 to SLDontRemove.Count - 1 do
+            begin
+              q.ParamByName('ruid').AsString := SLDontRemove[J];
+              q.ExecQuery;
+            end;
+          end;
+
+          if SLIncludeSiblings.Count > 0 then
+          begin
+            q.Close;
+            q.SQL.Text :=
+              'UPDATE at_object SET includesiblings = 1 ' +
+              'WHERE includesiblings = 0 AND (xid || ''_'' || dbid) = :ruid' +
+              '  AND namespacekey = :nsk';
+            q.ParamByName('nsk').AsInteger := FCurrentNSID;
+            for J := 0 to SLIncludeSiblings.Count - 1 do
+            begin
+              q.ParamByName('ruid').AsString := SLIncludeSiblings[J];
+              q.ExecQuery;
+            end;
+          end;
+        finally
+          q.Free;
+          qNSList.Free;
+          qFindInChain.Free;
+          qFind.Free;
+          qMove.Free;
+          qDelete.Free;
+          qPos.Free;
+          gdcNamespaceObject.Free;
+          SLAlwaysOverwrite.Free;
+          SLDontRemove.Free;
+          SLIncludeSiblings.Free;
         end;
       end;
-    finally
-      q.Free;
-      qNSList.Free;
-      qFindInChain.Free;
-      qFind.Free;
-      qMove.Free;
-      qDelete.Free;
-      qPos.Free;
-      gdcNamespaceObject.Free;
-      SLAlwaysOverwrite.Free;
-      SLDontRemove.Free;
-      SLIncludeSiblings.Free;
     end;
   end;
 
@@ -758,6 +854,9 @@ var
   gdcNamespaceObject: TgdcNamespaceObject;
   q: TIBSQL;
 begin
+  Assert(FCurrentNSID > 0);
+  Assert(FPrevNSID > 0);
+
   q := TIBSQL.Create(nil);
   gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   try
@@ -788,6 +887,30 @@ begin
     end;
   finally
     q.Free;
+    gdcNamespaceObject.Free;
+  end;
+end;
+
+procedure TgdcNamespaceController.PickOut;
+var
+  gdcNamespaceObject: TgdcNamespaceObject;
+begin
+  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+  try
+    gdcNamespaceObject.ReadTransaction := FIBTransaction;
+    gdcNamespaceObject.Transaction := FIBTransaction;
+    gdcNamespaceObject.SubSet := 'ByObject';
+    gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
+    gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+    gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+    gdcNamespaceObject.Open;
+    if not gdcNamespaceObject.EOF then
+    begin
+      gdcNamespaceObject.Edit;
+      gdcNamespaceObject.FieldByName('headobjectkey').Clear;
+      gdcNamespaceObject.Post;
+    end;
+  finally
     gdcNamespaceObject.Free;
   end;
 end;
@@ -1358,10 +1481,12 @@ begin
   if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) or (FBL.Count = 0) then
   begin
     IDs := IntToStr(FgdcObject.ID);
+    FMultipleObjects := 1;
     ProcessObject;
   end else
   begin
     IDs := '';
+    FMultipleObjects := 0;
     FgdcObject.DisableControls;
     try
       Bm := FgdcObject.Bookmark;
@@ -1371,9 +1496,9 @@ begin
         if IDs > '' then
         begin
           IDs := IDs + ',' + IntToStr(FgdcObject.ID);
-          FMultipleObjects := True;
         end else
           IDs := IntToStr(FgdcObject.ID);
+        Inc(FMultipleObjects);  
         ProcessObject;
       end;
       FgdcObject.Bookmark := Bm;
@@ -1428,6 +1553,9 @@ begin
       q.Next;
     end;
 
+    if (FPrevNSID > 0) and (q.RecordCount <> FMultipleObjects) then
+      FInconsistentParams := True;
+
     if FMultipleNS or FInconsistentParams then
     begin
       Result := False;
@@ -1475,7 +1603,12 @@ begin
     FOps := FOps + [nopMove, nopDel, nopChangeProp, nopUpdate];
 
   if (FPrevNSID <> -1) and (FHeadObjectKey <> -1) then
-    FOps := FOps + [nopPickOut, nopChangeProp, nopUpdate];
+  begin
+    FOps := FOps + [nopChangeProp, nopUpdate];
+
+    if FMultipleObjects = 1 then
+      FOps := FOps + [nopPickOut];
+  end;
 
   Result := True;
 end;

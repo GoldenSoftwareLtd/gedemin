@@ -1172,21 +1172,54 @@ begin
           '  BEGIN '#13#10 +
           '    IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> ''B'' AND id = NEW.parent)) THEN '#13#10 +
           '      EXCEPTION gd_e_exception ''Document class can not include a folder.''; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  IF (INSERTING OR (NEW.ruid <> OLD.ruid)) THEN '#13#10 +
+          '  END ELSE '#13#10 +
           '  BEGIN '#13#10 +
-          '    P = POSITION(''_'' IN NEW.ruid); '#13#10 +
-          '    XID = LEFT(NEW.ruid, :P - 1); '#13#10 +
-          '    DBID = RIGHT(NEW.ruid, CHAR_LENGTH(NEW.ruid) - :P); '#13#10 +
+          '    IF ((INSERTING OR (NEW.ruid <> OLD.ruid)) '#13#10 +
+          '      AND (NEW.ruid SIMILAR TO ''([[:DIGIT:]]{9,10}\_[[:DIGIT:]]+)|([[:DIGIT:]]+\_17)'' ESCAPE ''\'')) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      P = POSITION(''_'' IN NEW.ruid); '#13#10 +
+          '      XID = LEFT(NEW.ruid, :P - 1); '#13#10 +
+          '      DBID = RIGHT(NEW.ruid, CHAR_LENGTH(NEW.ruid) - :P); '#13#10 +
           ' '#13#10 +
-          '    IF (INSERTING) THEN '#13#10 +
-          '      INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) '#13#10 +
-          '      VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'')); '#13#10 +
-          '    ELSE '#13#10 +
           '      UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) '#13#10 +
           '      VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CONTACTKEY'')) '#13#10 +
-          '      MATCHING(xid, dbid); '#13#10 +
+          '      MATCHING(id); '#13#10 +
+          '    END '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER at_aiu_namespace_link FOR at_namespace_link '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  AFTER INSERT OR UPDATE '#13#10 +
+          '  POSITION 20001 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (EXISTS( '#13#10 +
+          '    WITH RECURSIVE tree AS '#13#10 +
+          '    ( '#13#10 +
+          '      SELECT '#13#10 +
+          '        namespacekey AS initial, namespacekey, useskey '#13#10 +
+          '      FROM '#13#10 +
+          '        at_namespace_link '#13#10 +
+          '      WHERE '#13#10 +
+          '        namespacekey = NEW.namespacekey AND useskey = NEW.useskey '#13#10 +
+          ' '#13#10 +
+          '      UNION ALL '#13#10 +
+          ' '#13#10 +
+          '      SELECT '#13#10 +
+          '        IIF(tr.initial <> tt.namespacekey, tr.initial, -1) AS initial, '#13#10 +
+          '        tt.namespacekey, '#13#10 +
+          '        tt.useskey '#13#10 +
+          '      FROM '#13#10 +
+          '        at_namespace_link tt JOIN tree tr ON '#13#10 +
+          '          tr.useskey = tt.namespacekey AND tr.initial > 0 '#13#10 +
+          ' '#13#10 +
+          '    ) '#13#10 +
+          '    SELECT * FROM tree WHERE initial = -1)) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    EXCEPTION gd_e_exception ''Обнаружена циклическая зависимость ПИ.''; '#13#10 +
           '  END '#13#10 +
           'END';
         FIBSQL.ExecQuery;
@@ -1364,6 +1397,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (243, ''0000.0001.0000.0274'', ''24.01.2016'', ''Issue when RUIDs of DT differ from GD_RUID record.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (244, ''0000.0001.0000.0275'', ''28.01.2016'', ''Trigger to prevent namespace cyclic dependencies.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

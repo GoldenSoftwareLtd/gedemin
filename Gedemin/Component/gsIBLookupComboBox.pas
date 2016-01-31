@@ -479,7 +479,7 @@ var
       and (not IBLogin.IsUserAdmin) then
     begin
       Fibsql.SQL.Text := Fibsql.SQL.Text +
-        Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup]);
+        Format(' AND (BIN_AND(%s.aview, %d) <> 0) ', [MainTable, IBLogin.InGroup]);
     end;
 
     if FullCondition > '' then
@@ -506,7 +506,7 @@ begin
   // обратите внимание, что в √едымине мы не допускаем
   // идентификаторов = -1, поэтому даже не будем пытатьс€
   // выполнить запрос к базе данных в таком случае
-  if (Value > '') {$IFDEF GEDEMIN} and (Value <> '-1') {$ENDIF} then
+  if (Value > '') {$IFDEF GEDEMIN} and (Value <> '-1') and (Value <> '0') {$ENDIF} then
   begin
     PrepareSQL;
     Fibsql.ExecQuery;

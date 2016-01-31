@@ -78,12 +78,14 @@ const
     'SELECT ts, user_name, os_name, db, host_name, host_ip, obj_class, obj_subtype, obj_name, obj_id, op, sql_crc, data FROM gd_log';
   SelSQLLogID =
     'SELECT id FROM gd_log';
-  SelSQLLogFull =
+  SelSQLLogFirst =
     'SELECT gl.ts, gl.user_name, gl.os_name, gld.db, gl.host_name, gl.host_ip, gl.obj_class, gl.obj_subtype, gl.obj_name, gl.obj_id, gl.op, gls.sql, gl.data ' +
     'FROM gd_log gl ' +
     'INNER JOIN gd_log_db gld ON gl.db = gld.id ' +
-    'INNER JOIN gd_log_sql gls ON gl.sql_crc = gls.crc ' +
-    'ORDER BY gl.id';
+    'INNER JOIN gd_log_sql gls ON gl.sql_crc = gls.crc ';
+  SelSQLLogWhere = 'WHERE (gl.ts >= CAST(''TODAY'' AS TIMESTAMP) AND gl.ts <= CAST(''TOMORROW'' AS TIMESTAMP)) ';
+  SelSQLLogOrder = 'ORDER BY gl.id ';
+  SelSQLLogFull = SelSQLLogFirst + SelSQLLogWhere + SelSQLLogOrder;
   InsSQLLog =
     'INSERT INTO gd_log(id, ts, user_name, os_name, db, host_name, host_ip, obj_class, obj_subtype, obj_name, obj_id, op, sql_crc, data) ' +
     'VALUES (NEXT VALUE FOR gd_g_log, :ts, :user_name, :os_name, :db, :host_name, :host_ip, :obj_class, :obj_subtype, :obj_name, :obj_id, :op, :sql_crc, :data)';
@@ -211,7 +213,7 @@ begin
   DBID := 0;
   CRCID := 0;
   LogID := 0;
-  LogKey := 0;
+  //LogKey := 0;
   FCriticalSection.Enter;
   try
     while ccTCPServer.FStart <> ccTCPServer.FEnd do

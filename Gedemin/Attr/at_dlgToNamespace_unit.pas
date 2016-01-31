@@ -54,6 +54,7 @@ type
     rbUpdate: TRadioButton;
     actUpdate: TAction;
     actDontModify: TAction;
+    bvlDontModify: TBevel;
     procedure actOKExecute(Sender: TObject);
     procedure actOKUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -112,19 +113,29 @@ begin
   lkupNS.CurrentKeyInt := FgdcNamespaceController.PrevNSID;
 
   mInfo.Lines.Clear;
-
+  mInfo.Lines.Add(FgdcNamespaceController.ObjectName);
   if FgdcNamespaceController.PrevNSID = -1 then
   begin
-    mInfo.Lines.Add(FgdcNamespaceController.ObjectName);
+    if FgdcNamespaceController.MultipleObjects > 1 then
+      mInfo.Lines.Add('Не входят в ПИ')
+    else
+      mInfo.Lines.Add('Не входит в ПИ');
   end
-  else if (FgdcNamespaceController.PrevNSID <> -1) and (FgdcNamespaceController.HeadObjectKey = -1) then
+  else
   begin
-    mInfo.Lines.Add('Объект(ы) "' + FgdcNamespaceController.ObjectName + '" входит в ПИ "' +
-      FgdcNamespaceController.PrevNSName + '".');
+    if FgdcNamespaceController.MultipleObjects > 1 then
+      mInfo.Lines.Add('Входят в ПИ: ' +
+        FgdcNamespaceController.PrevNSName)
+    else
+      mInfo.Lines.Add('Входит в ПИ: ' +
+        FgdcNamespaceController.PrevNSName);
   end;
 
   if FgdcNamespaceController.HeadObjectName > '' then
     mInfo.Lines.Add('Главный объект: ' + FgdcNamespaceController.HeadObjectName);
+
+  pnlTop.Visible := False;
+  pnlDependencies.Visible := False;  
 end;
 
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
@@ -145,9 +156,35 @@ begin
     (not FSubObjectAdded)
     and
     (
-      ((lkupNS.Text = '') and (lkupNS.CurrentKeyInt = -1) and (FgdcNamespaceController.PrevNSID <> -1))
+      (
+        (FgdcNamespaceController.SelectedOp = nopAdd)
+        and
+        (lkupNS.CurrentKeyint > -1)
+      )
       or
-      (lkupNS.CurrentKeyInt > -1)
+      (
+        FgdcNamespaceController.SelectedOp = nopDel
+      )
+      or
+      (
+        (FgdcNamespaceController.SelectedOp = nopMove)
+        and
+        (lkupNS.CurrentKeyInt > -1)
+        and
+        (lkupNS.CurrentKeyInt <> FgdcNamespaceController.PrevNSID)
+      )
+      or
+      (
+        FgdcNamespaceController.SelectedOp = nopChangeProp
+      )
+      or
+      (
+        FgdcNamespaceController.SelectedOp = nopPickOut
+      )
+      or
+      (
+        FgdcNamespaceController.SelectedOp = nopUpdate
+      )
     );
 end;
 
@@ -206,8 +243,9 @@ end;
 
 procedure TdlgToNamespace.actDeleteExecute(Sender: TObject);
 begin
-  pnlDependencies.Visible := not rbDelete.Checked;
-  pnlTop.Visible := not rbDelete.Checked;
+  FgdcNamespaceController.SelectedOp := nopDel;
+  pnlDependencies.Visible := False;
+  pnlTop.Visible := False;
 end;
 
 procedure TdlgToNamespace.actMoveUpdate(Sender: TObject);
@@ -218,13 +256,17 @@ end;
 
 procedure TdlgToNamespace.actMoveExecute(Sender: TObject);
 begin
-  pnlTop.Visible := rbMove.Checked;
-  pnlDependencies.Visible := not rbMove.Checked;
-  chbxIncludeLinked.Visible := not rbMove.Checked;
-  chbxIncludeSiblings.Visible := not rbMove.Checked;
-  chbxDontRemove.Visible := not rbMove.Checked;
-  chbxAlwaysOverwrite.Visible := not rbMove.Checked;
-  chbxDontModify.Visible := not rbMove.Checked;
+  FgdcNamespaceController.SelectedOp := nopMove;
+  pnlTop.Visible := True;
+  lMessage.Visible := True;
+  lkupNS.Visible := True;
+  pnlDependencies.Visible := False;
+  chbxIncludeLinked.Visible := False;
+  chbxIncludeSiblings.Visible := False;
+  chbxDontRemove.Visible := False;
+  chbxAlwaysOverwrite.Visible := False;
+  chbxDontModify.Visible := False;
+  bvlDontModify.Visible := False;
 end;
 
 procedure TdlgToNamespace.actIncludeLinkedExecute(Sender: TObject);
@@ -246,9 +288,17 @@ end;
 
 procedure TdlgToNamespace.actChangePropertiesExecute(Sender: TObject);
 begin
-  lMessage.Visible := not rbChangeProp.Checked;
-  lkupNS.Visible := not rbChangeProp.Checked;
-  chbxDontModify.Visible := not rbChangeProp.Checked;
+  FgdcNamespaceController.SelectedOp := nopChangeProp;
+  pnlTop.Visible := True;
+  lMessage.Visible := False;
+  lkupNS.Visible := False;
+  chbxDontModify.Visible := False;
+  bvlDontModify.Visible := False;
+  chbxIncludeSiblings.Visible := True;
+  chbxDontRemove.Visible := True;
+  chbxAlwaysOverwrite.Visible := True;
+  pnlDependencies.Visible := True;
+  chbxIncludeLinked.Visible := True;
 end;
 
 procedure TdlgToNamespace.actPickOutUpdate(Sender: TObject);
@@ -265,27 +315,39 @@ end;
 
 procedure TdlgToNamespace.actUpdateExecute(Sender: TObject);
 begin
-  //
+  FgdcNamespaceController.SelectedOp := nopUpdate;
+  pnlTop.Visible := True;
+  lMessage.Visible := False;
+  lkupNS.Visible := False;
+  pnlDependencies.Visible := True;
+  chbxIncludeLinked.Visible := False;
+  chbxIncludeSiblings.Visible := True;
+  chbxDontRemove.Visible := True;
+  chbxAlwaysOverwrite.Visible := True;
+  chbxDontModify.Visible := False;
+  bvlDontModify.Visible := False;
 end;
 
 procedure TdlgToNamespace.actPickOutExecute(Sender: TObject);
 begin
-  //
+  FgdcNamespaceController.SelectedOp := nopPickOut;
+  pnlDependencies.Visible := False;
+  pnlTop.Visible := False;
 end;
 
 procedure TdlgToNamespace.actAddExecute(Sender: TObject);
 begin
-  if rbAdd.Checked then
-  begin
-    FgdcNamespaceController.SelectedOp := nopAdd;
-    pnlTop.Visible := True;
-    pnlDependencies.Visible := True;
-    chbxIncludeLinked.Visible := True;
-    chbxIncludeSiblings.Visible := True;
-    chbxDontRemove.Visible := True;
-    chbxAlwaysOverwrite.Visible := True;
-    chbxDontModify.Visible := True;
-  end;
+  FgdcNamespaceController.SelectedOp := nopAdd;
+  pnlTop.Visible := True;
+  lMessage.Visible := True;
+  lkupNS.Visible := True;
+  pnlDependencies.Visible := True;
+  chbxIncludeLinked.Visible := True;
+  chbxIncludeSiblings.Visible := True;
+  chbxDontRemove.Visible := True;
+  chbxAlwaysOverwrite.Visible := True;
+  chbxDontModify.Visible := True;
+  bvlDontModify.Visible := True;
 end;
 
 procedure TdlgToNamespace.actDontModifyUpdate(Sender: TObject);

@@ -72,6 +72,7 @@ function TgdLogClient.ProcessMessage(var Msg: TMsg): Boolean;
 begin
   Result := True;
   case Msg.Message of
+
     WM_LOG_INIT:
     begin
       if Connected then
@@ -118,6 +119,7 @@ begin
           PostMsg(WM_LOG_LOAD_CC);
       end;
     end;
+
     WM_LOG_LOAD_CC:
     begin
       if (not Connected) and (WinExec('gedemin_cc.exe', SW_HIDE) > 31) then
@@ -126,17 +128,19 @@ begin
         PostMsg(WM_LOG_INIT);
       end;
     end;
+
     WM_LOG_DONE:
     begin
       FDoneEvent.SetEvent;
       if (not Connected) or (FTCPClient = nil) then
         exit;
-      FTCPClient.ReadBuffer(FConnPar, SizeOf(FConnPar)); //
+      FTCPClient.ReadBuffer(FConnPar, SizeOf(FConnPar));
       FConnPar.Command := CC_DONE;
       FTCPClient.WriteBuffer(FConnPar, SizeOf(FConnPar), true);
       FTCPClient.WriteBuffer(FClient, SizeOf(FClient), true);
       Log(GDDone, ClassName, '', 0);
     end;
+
     WM_LOG_FREE:
     begin
       FTCPClient.InputBuffer.Clear;
@@ -146,6 +150,7 @@ begin
       FConnected.Value := 0;
       FDoneEvent.ResetEvent;
     end;
+
     WM_LOG_PROCESS_REC:
     begin              
       if (not Connected) or (FTCPClient = nil) then
@@ -163,12 +168,8 @@ begin
       finally
         FBufferCS.Leave;
       end;
-      {if FConnPar.Done then
-      begin
-        FConnPar.Done := false;
-        PostMessage(Application.Handle, WM_QUIT, 0, 0);
-      end;}
     end;
+
   else
     Result := False;
   end;
@@ -269,9 +270,9 @@ begin
           PostMsg(WM_LOG_FREE);
       end;
     end;
+
   except
     exit;
-    //raise;
   end;
 end;
 

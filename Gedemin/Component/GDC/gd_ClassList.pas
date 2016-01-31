@@ -2654,6 +2654,9 @@ var
 begin
   Result := nil;
 
+  if ADocTypeID <= 0 then
+    exit;
+
   if APart = dcpHeader then
   begin
     if FFindDocByIDHdrCache.Find(ADocTypeID, Idx) then
@@ -2698,7 +2701,8 @@ function TgdClassList._FindDoc(ACE: TgdClassEntry; AData1,
   AData2: Pointer): Boolean;
 begin
   if (TgdDocumentEntry(ACE).TypeID = PAuxRec(AData1)^.ID)
-    and (CgdcDocument(ACE.TheClass).GetDocumentClassPart = PAuxRec(AData1)^.Part) then
+    and (CgdcDocument(ACE.TheClass).GetDocumentClassPart = PAuxRec(AData1)^.Part)
+    and (not CgdcDocument(ACE.TheClass).IsAbstractClass) then
   begin
     PAuxRec(AData1)^.CE := ACE;
     Result := False;

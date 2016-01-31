@@ -54,7 +54,7 @@ begin
       begin
         if FgdcNamespaceController.MultipleNS then
         begin
-          if FgdcNamespaceController.MultipleObjects then
+          if FgdcNamespaceController.MultipleObjects > 1 then
             S := 'Объекты входят в ПИ: '
           else
             S := 'Объект входит в ПИ: ';
@@ -68,8 +68,8 @@ begin
         else if FgdcNamespaceController.InconsistentParams then
         begin
           MessageBox(0,
-            'Групповая операция невозможна, так как параметры выбранных объектов'#13#10 +
-            'различаются или они подчиняются разным объектам.',
+            'Групповая операция невозможна, так как параметры выбранных'#13#10 +
+            'объектов различаются или они подчиняются разным объектам.',
             'Внимание',
             MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
         end;
