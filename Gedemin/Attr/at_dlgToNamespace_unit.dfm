@@ -18,16 +18,16 @@ object dlgToNamespace: TdlgToNamespace
   TextHeight = 13
   object pnlGrid: TPanel
     Left = 0
-    Top = 208
+    Top = 181
     Width = 721
-    Height = 295
+    Height = 322
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 8
     TabOrder = 0
     object pnlButtons: TPanel
       Left = 8
-      Top = 259
+      Top = 286
       Width = 705
       Height = 28
       Align = alBottom
@@ -74,7 +74,7 @@ object dlgToNamespace: TdlgToNamespace
       Left = 8
       Top = 8
       Width = 705
-      Height = 251
+      Height = 278
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
@@ -82,7 +82,7 @@ object dlgToNamespace: TdlgToNamespace
         Left = 0
         Top = 0
         Width = 705
-        Height = 230
+        Height = 257
         Align = alClient
         DataSource = dsLink
         Options = [dgTitles, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -121,7 +121,7 @@ object dlgToNamespace: TdlgToNamespace
       end
       object tsObjects: TTabSet
         Left = 0
-        Top = 230
+        Top = 257
         Width = 705
         Height = 21
         Align = alBottom
@@ -144,7 +144,7 @@ object dlgToNamespace: TdlgToNamespace
     Left = 0
     Top = 0
     Width = 721
-    Height = 208
+    Height = 181
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 1
@@ -152,17 +152,18 @@ object dlgToNamespace: TdlgToNamespace
       Left = 0
       Top = 0
       Width = 721
-      Height = 114
+      Height = 87
       Align = alTop
+      BevelInner = bvLowered
       BevelOuter = bvNone
       BorderWidth = 8
       ParentColor = True
       TabOrder = 0
       object pnlInfo: TPanel
-        Left = 8
-        Top = 8
-        Width = 705
-        Height = 73
+        Left = 9
+        Top = 9
+        Width = 703
+        Height = 44
         Align = alClient
         BevelOuter = bvNone
         ParentColor = True
@@ -170,23 +171,29 @@ object dlgToNamespace: TdlgToNamespace
         object mInfo: TMemo
           Left = 0
           Top = 0
-          Width = 705
-          Height = 73
+          Width = 703
+          Height = 44
           Align = alClient
           BorderStyle = bsNone
-          ParentColor = True
+          Color = clActiveCaption
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
           ReadOnly = True
           TabOrder = 0
         end
       end
       object Panel2: TPanel
-        Left = 8
-        Top = 81
-        Width = 705
+        Left = 9
+        Top = 53
+        Width = 703
         Height = 25
         Align = alBottom
         BevelInner = bvRaised
-        BevelOuter = bvLowered
+        BevelOuter = bvNone
         TabOrder = 1
         object rbDelete: TRadioButton
           Left = 84
@@ -240,7 +247,7 @@ object dlgToNamespace: TdlgToNamespace
     end
     object pnlTop: TPanel
       Left = 0
-      Top = 114
+      Top = 87
       Width = 721
       Height = 94
       Align = alClient
@@ -260,9 +267,16 @@ object dlgToNamespace: TdlgToNamespace
         ParentFont = False
         WordWrap = True
       end
+      object bvlDontModify: TBevel
+        Left = 329
+        Top = 58
+        Width = 325
+        Height = 5
+        Shape = bsTopLine
+      end
       object chbxIncludeSiblings: TCheckBox
-        Left = 372
-        Top = 54
+        Left = 329
+        Top = 39
         Width = 337
         Height = 17
         Caption = 'Для древовидных иерархий включать вложенные объекты'
@@ -272,11 +286,11 @@ object dlgToNamespace: TdlgToNamespace
         Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
-        TabOrder = 4
+        TabOrder = 3
       end
       object chbxDontRemove: TCheckBox
-        Left = 372
-        Top = 38
+        Left = 329
+        Top = 22
         Width = 331
         Height = 17
         Caption = 'Не удалять объекты при удалении пространства имен'
@@ -286,11 +300,11 @@ object dlgToNamespace: TdlgToNamespace
         Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
-        TabOrder = 3
+        TabOrder = 2
       end
       object chbxAlwaysOverwrite: TCheckBox
-        Left = 372
-        Top = 21
+        Left = 329
+        Top = 5
         Width = 233
         Height = 17
         Caption = 'Всегда перезаписывать при загрузке'
@@ -300,7 +314,7 @@ object dlgToNamespace: TdlgToNamespace
         Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
-        TabOrder = 2
+        TabOrder = 1
       end
       object lkupNS: TgsIBLookupComboBox
         Left = 8
@@ -321,19 +335,19 @@ object dlgToNamespace: TdlgToNamespace
       end
       object chbxIncludeLinked: TCheckBox
         Left = 8
-        Top = 76
+        Top = 79
         Width = 665
         Height = 17
         Action = actIncludeLinked
         TabOrder = 5
       end
       object chbxDontModify: TCheckBox
-        Left = 357
-        Top = 5
+        Left = 329
+        Top = 62
         Width = 337
         Height = 17
         Action = actDontModify
-        TabOrder = 1
+        TabOrder = 4
       end
     end
   end

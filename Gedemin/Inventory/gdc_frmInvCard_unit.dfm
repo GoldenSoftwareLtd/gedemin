@@ -214,7 +214,7 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
         object iblcContact: TgsIBLookupComboBox
           Left = 96
           Top = 2
-          Width = 347
+          Width = 225
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -222,6 +222,7 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
           ListTable = 'gd_contact'
           ListField = 'name'
           KeyField = 'id'
+          SortOrder = soAsc
           Condition = 'contacttype in (2, 4)'
           gdClassName = 'TgdcBaseContact'
           ItemHeight = 13
@@ -229,6 +230,14 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
           ShowHint = True
           TabOrder = 0
           OnChange = iblcContactChange
+        end
+        object bSetCurrent: TButton
+          Left = 320
+          Top = 0
+          Width = 127
+          Height = 25
+          Action = actSetCurrent
+          TabOrder = 1
         end
       end
     end
@@ -316,6 +325,11 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
       Hint = 'Выбор свойств, которые не влияют на формирование карточки'
       ImageIndex = 94
       OnExecute = actChooseIgnoryFeaturesExecute
+    end
+    object actSetCurrent: TAction
+      Caption = 'Установить текущее'
+      OnExecute = actSetCurrentExecute
+      OnUpdate = actSetCurrentUpdate
     end
   end
   inherited pmMain: TPopupMenu

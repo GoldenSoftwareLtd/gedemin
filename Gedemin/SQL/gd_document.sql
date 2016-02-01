@@ -146,21 +146,19 @@ BEGIN
   BEGIN
     IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> 'B' AND id = NEW.parent)) THEN
       EXCEPTION gd_e_exception 'Document class can not include a folder.';
-  END
-  
-  IF (INSERTING OR (NEW.ruid <> OLD.ruid)) THEN
+  END ELSE
   BEGIN
-    P = POSITION('_' IN NEW.ruid);
-    XID = LEFT(NEW.ruid, :P - 1);
-    DBID = RIGHT(NEW.ruid, CHAR_LENGTH(NEW.ruid) - :P);
-    
-    IF (INSERTING) THEN
-      INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
-      VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY'));
-    ELSE
+    IF ((INSERTING OR (NEW.ruid <> OLD.ruid))
+      AND (NEW.ruid SIMILAR TO '([[:DIGIT:]]{9,10}\_[[:DIGIT:]]+)|([[:DIGIT:]]+\_17)' ESCAPE '\')) THEN
+    BEGIN
+      P = POSITION('_' IN NEW.ruid);
+      XID = LEFT(NEW.ruid, :P - 1);
+      DBID = RIGHT(NEW.ruid, CHAR_LENGTH(NEW.ruid) - :P);
+
       UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
       VALUES (NEW.id, :XID, :DBID, NEW.editiondate, RDB$GET_CONTEXT('USER_SESSION', 'GD_CONTACTKEY'))
-      MATCHING(xid, dbid);    
+      MATCHING(id);
+    END
   END
 END
 ^
