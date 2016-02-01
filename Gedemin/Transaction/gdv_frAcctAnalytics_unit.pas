@@ -236,6 +236,7 @@ var
   Line: TfrAcctAnalyticLine;
   P, C: Integer;
   LAnaliseLines: TObjectList;
+  K: Integer;
 
   function IndexOf(Field: TatRelationField): Integer;
   var
@@ -259,7 +260,11 @@ begin
   if FAnalyticsFieldList = nil then
   begin
     FAnalyticsFieldList := TList.Create;
-    GetAnalyticsFields(FAnalyticsFieldList);
+    // пока ограничения для карты счета и анализа счета
+    if (Owner.ClassName = 'Tgdv_frmAcctAccReview') or (Owner.ClassName = 'Tgdv_frmAcctAccCard') then
+      GetAnalyticsFields2(FAnalyticsFieldList)
+    else
+      GetAnalyticsFields(FAnalyticsFieldList);
   end;
 
   NeedNull:= ANeedNull;
@@ -274,13 +279,18 @@ begin
     SQL := TIBSQL.Create(nil);
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
-      if AIDList.Count > 0 then begin
-        for I := 0 to FAnalyticsFieldList.Count - 1 do begin
-          if SQL.SQL.Count > 0 then
-            SQL.SQL.Add(', ');
-
-          SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FAnalyticsFieldList[i]).FieldName]));
+      if AIDList.Count > 0 then
+      begin
+        for I := 0 to FAnalyticsFieldList.Count - 1 do
+        begin
+          if TatRelationField(FAnalyticsFieldList[i]).Relation.RelationName = 'AC_ENTRY' then
+          begin
+            if SQL.SQL.Count > 0 then
+              SQL.SQL.Add(', ');
+            SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FAnalyticsFieldList[i]).FieldName]));
+          end;
         end;
+
         if FAnalyticsFieldList.Count > 0 then
         begin
           SQL.SQL.Insert(0, 'SELECT ');
@@ -290,13 +300,20 @@ begin
         end;
       end;
 
+      K := 0;
+
       for I := 0 to FAnalyticsFieldList.Count - 1 do
       begin
-
-        if AIDList.Count > 0 then
-          C := SQL.Fields[i].AsInteger
+        if TatRelationField(FAnalyticsFieldList[i]).Relation.RelationName <> 'AC_ENTRY' then
+          C := AIDList.Count
         else
-          C := 0;
+        begin
+          if AIDList.Count > 0 then
+            C := SQL.Fields[K].AsInteger
+          else
+            C := 0;
+          Inc(K);
+        end;
 
         try
           if (C = AIDList.Count)

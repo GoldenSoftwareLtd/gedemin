@@ -29,6 +29,7 @@ procedure ResetNCUCache;
 function DisplayFormat(DecDig: Integer): string;
 //заполн€ет список полей аналитик
 procedure GetAnalyticsFields(const List: TList);
+procedure GetAnalyticsFields2(const List: TList);
 //провер€ет список аналитик на присутствие в Ѕƒ
 procedure CheckAnalyticsList(const List: TStringList);
 //¬озвращает ид счета по алиасу дл€ астивного плана счетов
@@ -249,6 +250,65 @@ begin
       end;
     end else
       List.Clear;
+  end;
+{$ENDIF}
+end;
+
+procedure GetAnalyticsFields2(const List: TList);
+{$IFDEF GEDEMIN}
+var
+  R: TatRelation;
+  F: TatRelationField;
+  I, Index: Integer;
+{$ENDIF}
+
+{$IFDEF GEDEMIN}
+  function IndexOf(Relation: TatRelation; FieldName: string): integer;
+  var
+    I: Integer;
+  begin
+    Result := - 1;
+    if Relation <> nil then
+    begin
+      for I :=  0 to Relation.RelationFields.Count - 1 do
+      begin
+        if Relation.RelationFields[I].FieldName = FieldName then
+        begin
+          Result := I;
+          Exit;
+        end;
+      end;
+    end;
+  end;
+{$ENDIF}
+begin
+{$IFDEF GEDEMIN}
+  if List <> nil then
+  begin
+    List.Clear;
+    R := atDatabase.Relations.ByRelationName('AC_ENTRY');
+    if R <> nil then
+      for i := 0 to R.RelationFields.Count - 1 do
+        if Pos('USR$', UpperCase(R.RelationFields[I].FieldName)) = 1 then
+          List.Add(R.RelationFields[I]);
+    R := atDataBase.Relations.ByRelationName('AC_ACCOUNT');
+    if R <> nil then
+    begin
+      for I := List.Count - 1 downto 0 do
+      begin
+        Index := IndexOf(R, TatRelationField(List[I]).FieldName);
+        if Index = - 1 then List.Delete(I);
+      end;
+    end else
+      List.Clear;
+
+    R := atDataBase.Relations.ByRelationName('GD_DOCUMENT');
+    if R <> nil then
+    begin
+      F:= R.RelationFields.ByFieldName('documenttypekey');
+      if F <> nil then
+        List.Add(F);
+    end;
   end;
 {$ENDIF}
 end;

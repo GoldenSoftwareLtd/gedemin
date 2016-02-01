@@ -131,7 +131,7 @@ type
     procedure DoAfterBuildReport; virtual;
 
     function GetNameAlias(Name: String): String;
-    function GetCondition(Alias: String): String;
+    function GetCondition(Alias: String): String; virtual;
 
     procedure FillSubAccounts(var AccountArray: TgdKeyArray); virtual;
     procedure SetDefaultParams; virtual;

@@ -29,6 +29,11 @@ type
 
     FAvailableAnalytics: TgdvAvailAnalytics;
 
+    function GetCondition(Alias: String): String; override;
+    function GetTableAlias(const ATableName: String): String;
+    function GetJoinTableClause(const Alias: String): String;
+    function GetIsDocTypeCondition: Boolean;
+
     class function ConfigClassName: string; override;
     procedure DoLoadConfig(const Config: TBaseAcctConfig); override;
     procedure DoSaveConfig(Config: TBaseAcctConfig); override;
@@ -51,6 +56,7 @@ type
 
     property CorrDebit: Boolean read FCorrDebit write FCorrDebit;
     property WithCorrSubAccounts: Boolean read FWithCorrSubAccounts write FWithCorrSubAccounts;
+    property IsDocTypeCondition : Boolean read GetIsDocTypeCondition;
 
     property IBDSSaldoBegin: TIBDataset read FIBDSSaldoBegin;
     property IBDSSaldoEnd: TIBDataset read FIBDSSaldoEnd;
@@ -93,7 +99,7 @@ procedure Register;
 implementation
 
 uses
-  ibsql, at_classes, Sysutils, Controls, gdcBaseInterface;
+  ibsql, at_classes, Sysutils, Controls, gdcBaseInterface, IBHeader;
 
 procedure Register;
 begin
@@ -172,7 +178,8 @@ begin
              and (FAvailableAnalytics[I].FieldName <> ENTRYDATE)
              and (FAvailableAnalytics[I].FieldName <> 'ACCOUNTKEY')
              and (FAvailableAnalytics[I].FieldName <> 'CURRKEY')
-             and (FAvailableAnalytics[I].FieldName <> 'COMPANYKEY') then
+             and (FAvailableAnalytics[I].FieldName <> 'COMPANYKEY')
+             and (FAvailableAnalytics[I].FieldName <> 'DOCUMENTTYPEKEY') then
           begin
             if S > '' then
               S := S + ', '#13#10;
@@ -248,6 +255,9 @@ begin
       Self.ActualAnalytics(FCorrAccounts, FAccounts, FCorrActualAnalytics);
     end;  
   end;
+
+  // При выборе аналитики "Тип документа" будем строить старым методом
+  FUseEntryBalance := not IsDocTypeCondition;
 end;
 
 procedure TgdvAcctAccReview.DoBuildSQL;
@@ -323,6 +333,7 @@ var
           '    ac_entry e '#13#10 +
             IIF(FCorrAccounts.Count > 0,
               '    JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
+              GetJoinTableClause('e') +
           '  WHERE '#13#10 +
             AccWhere + CompanyS +
           '    AND e.entrydate >= CAST(CAST(''17.11.1858'' AS DATE) + ' + IntToStr(Round(FEntryBalanceDate + IBDateDelta)) + ' AS DATE) '#13#10 +
@@ -423,6 +434,7 @@ begin
       '   ac_entry e  ' +
         IIF(FCorrAccounts.Count > 0,
           ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
+          GetJoinTableClause('e') +
       ' WHERE ' + AccWhere + '   e.entrydate < :begindate AND ' + CompanyS +
         IIF(FCurrSumInfo.Show and (FCurrkey > 0),
           ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
@@ -477,6 +489,7 @@ begin
     ' ac_entry e  ' +
       IIF(FCorrAccounts.Count > 0,
         ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
+        GetJoinTableClause('e') +
     ' WHERE ' + AccWhere +
     '   e.entrydate >= :begindate AND e.entrydate <= :enddate AND ' + CompanyS +
       IIF(FCurrSumInfo.Show and (FCurrkey > 0), ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
@@ -484,8 +497,8 @@ begin
       IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition + #13#10, '') +
     ' GROUP BY 1 ';
   FIBDSCirculation.ParamByName(BeginDate).AsDateTime := FDateBegin;
-  FIBDSCirculation.ParamByName(EndDate).AsDateTime := FDateEnd;  
-  FIBDSCirculation.Open;  
+  FIBDSCirculation.ParamByName(EndDate).AsDateTime := FDateEnd;
+  FIBDSCirculation.Open;
   // Основной запрос для анализа счета
   if FUseEntryBalance and (FCorrAccounts.Count = 0) and (FAcctValues.Count = 0) then
   begin
@@ -536,8 +549,7 @@ begin
       '      FROM '#13#10 +
       '        ac_entry e '#13#10 +
         IIF(FCorrAccounts.Count > 0,
-          ' LEFT JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart'#13#10,
-          '') +
+          ' LEFT JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart'#13#10, '') +
       '      WHERE '#13#10 +
         AccWhere + #13#10 + CompanyS + ' AND '#13#10 +
         IIF(Trim(AccWhereQuantity) > '', '        (' + AccWhereQuantity + ') AND '#13#10, '') +
@@ -585,6 +597,7 @@ begin
       '  CAST(SUM(IIF(e1.issimple = 0, e1.debiteq, e.crediteq) / %4:d) AS NUMERIC(15, %5:d)) AS EQ_CREDIT '#13#10 +
       ValueSelect + #13#10 +
       ' FROM ac_entry e  '#13#10 +
+      GetJoinTableClause('e') +
       '  LEFT JOIN ac_entry e1 ON e.recordkey = e1.recordkey AND e.accountpart <> e1.accountpart '#13#10 +
       IIF(FCurrSumInfo.Show and (FCurrkey > 0),
         ' AND 1 = IIF(e1.issimple = 0 and e1.currkey <> e.currkey and e1.debitcurr = 0 and e1.creditcurr = 0, 0, 1)'#13#10 , '') +
@@ -764,5 +777,81 @@ begin
   Result := 'TAccReviewConfig';
 end;
 
+function TgdvAcctAccReview.GetCondition(Alias: String): String;
+var
+  I: Integer;
+begin
+  Assert(Alias <> '');
+
+  Result := '';
+
+  for I := 0 to FAcctConditions.Count - 1 do
+  begin
+    if UpperCase(Trim(FAcctConditions.Names[I])) <> 'DOCUMENTTYPEKEY' then
+    begin
+      if Result > '' then
+        Result := Result + ' AND '#13#10;
+      if Trim(FAcctConditions.Values[FAcctConditions.Names[I]]) <> '' then
+        Result := Result + Format('%s.%s IN(%s)', [Alias, FAcctConditions.Names[I],
+          FAcctConditions.Values[FAcctConditions.Names[I]]])
+      else
+        Result := Result + Alias + '.' + FAcctConditions.Names[I] + ' IS NULL ';
+    end
+    else
+    begin
+      if Trim(FAcctConditions.Values[FAcctConditions.Names[I]]) <> '' then
+      begin
+        if Result > '' then
+          Result := Result + ' AND '#13#10;
+        Result := Result + Format('%s.%s IN(%s)', [GetTableAlias('GD_DOCUMENT'),
+          FAcctConditions.Names[I], FAcctConditions.Values[FAcctConditions.Names[I]]]);
+      end;
+    end;
+  end;
+end;
+
+function TgdvAcctAccReview.GetTableAlias(const ATableName: String): String;
+begin
+  Assert(ATableName = 'GD_DOCUMENT');
+
+  Result := '';
+  if ATableName = 'GD_DOCUMENT' then
+    Result := 't_doc';
+end;
+
+function TgdvAcctAccReview.GetJoinTableClause(const Alias: String): String;
+var
+  I: Integer;
+begin
+  Assert(Alias <> '');
+  Result := '';
+
+  for I := 0 to FAcctConditions.Count - 1 do
+  begin
+    if UpperCase(Trim(FAcctConditions.Names[I])) = 'DOCUMENTTYPEKEY' then
+    begin
+      Result := ' LEFT JOIN gd_document ' + GetTableAlias('GD_DOCUMENT')
+        + ' ON ' + Alias + '.documentkey = ' + GetTableAlias('GD_DOCUMENT') + '.id ';
+      Exit;
+    end
+
+  end;
+end;
+
+function TgdvAcctAccReview.GetIsDocTypeCondition: Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+
+  for I := 0 to FAcctConditions.Count - 1 do
+  begin
+    if UpperCase(Trim(FAcctConditions.Names[I])) = 'DOCUMENTTYPEKEY' then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
 end.
- 

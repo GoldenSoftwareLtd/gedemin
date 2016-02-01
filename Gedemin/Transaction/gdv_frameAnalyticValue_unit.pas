@@ -198,6 +198,8 @@ var
   H: Integer;
   P: Integer;
   LAnaliseLines: TObjectList;
+  C: Integer;
+  K: Integer;
 
   function IndexOf(Field: TatRelationField): Integer;
   var
@@ -227,16 +229,44 @@ begin
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
       H := 0; P := 0;
+      if IDList.Count > 0 then
+      begin
+        for I := 0 to FFields.Count - 1 do
+        begin
+          if TatRelationField(FFields[I]).Relation.RelationName = 'AC_ENTRY' then
+          begin
+            if SQL.SQL.Count > 0 then
+              SQL.SQL.Add(', ');
+            SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FFields[I]).FieldName]));
+          end;
+        end;
+
+        if FFields.Count > 0 then
+        begin
+          SQL.SQL.Insert(0, 'SELECT ');
+          SQL.SQL.Add('FROM ac_account ');
+          SQL.SQL.Add(Format('WHERE id IN (%s)', [AcctUtils.IdList(IdList)]));
+          SQL.ExecQuery;
+        end;
+      end;
+
+      K := 0;
+
       for I := 0 to FFields.Count - 1 do
       begin
-        SQL.SQL.Text := Format('SELECT COUNT(*) FROM AC_ACCOUNT WHERE (%s = 1)',
-          [TatRelationField(FFields[i]).FieldName]);
-        if IdList.Count > 0 then
-          SQL.SQL.Text := SQL.SQL.Text + ' AND id IN(' + AcctUtils.IdList(IdList) + ')';
-          
-        SQL.ExecQuery;
+        if TatRelationField(FFields[I]).Relation.RelationName <> 'AC_ENTRY' then
+          C := IDList.Count
+        else
+        begin
+          if IDList.Count > 0 then
+            C := SQL.Fields[K].AsInteger
+          else
+            C := 0;
+          Inc(K);
+        end;
+
         try
-          if SQL.Fields[0].AsInteger = IDList.Count then
+          if C = IDList.Count then
           begin
             Index := IndexOf(TatRelationField(FFields[i]));
             if Index = - 1 then
