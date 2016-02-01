@@ -352,6 +352,8 @@ type
     procedure WMSize(var Message: TWMSize); message WM_SIZE;
     procedure WMHScroll(var Message: TWMHScroll); message WM_HSCROLL;
     procedure WMVScroll(var Message: TWMVScroll); message WM_VSCROLL;
+    procedure WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
+
     procedure CMBiDiModeChanged(var Message: TMessage); message CM_BIDIMODECHANGED;
   protected
     procedure Paint; override;
@@ -5831,6 +5833,14 @@ begin
     inherited;
 end;
 
+procedure TScriptBlock.WMMouseWheel(var Message: TWMMouseWheel);
+begin
+  if (Message.WheelDelta < 0) then
+    PostMessage(Self.Handle, WM_VSCROLL, SB_LINEDOWN, 0)
+  else
+    PostMessage(Self.Handle, WM_VSCROLL, SB_LINEUP, 0);
+end;
+
 { TVisualBlockScrollBar }
 
 procedure TVisualBlockScrollBar.Assign(Source: TPersistent);
@@ -5940,7 +5950,7 @@ begin
   FControl := AControl;
   FKind := AKind;
   FPageIncrement := 80;
-  FIncrement := FPageIncrement div 10;
+  FIncrement := FPageIncrement div 3;
   FVisible := True;
   FDelay := 10;
   FLineDiv := 4;
