@@ -1224,6 +1224,30 @@ begin
           'END';
         FIBSQL.ExecQuery;
 
+        FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_aiu_companyaccount FOR gd_companyaccount '#13#10 +
+          '  AFTER INSERT OR UPDATE '#13#10 +
+          '  POSITION 30000 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (EXISTS( '#13#10 +
+          '    SELECT '#13#10 +
+          '      b.bankcode, b.bankbranch, a.account, COUNT(*) '#13#10 +
+          '    FROM '#13#10 +
+          '      gd_companyaccount a JOIN gd_bank b '#13#10 +
+          '        ON b.bankkey = a.bankkey '#13#10 +
+          '    WHERE '#13#10 +
+          '      a.account = NEW.account '#13#10 +
+          '    GROUP BY '#13#10 +
+          '      b.bankcode, b.bankbranch, a.account '#13#10 +
+          '    HAVING '#13#10 +
+          '      COUNT(*) > 1)) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    EXCEPTION gd_e_exception ''Дублируется номер банковского счета!''; '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+
         FTransaction.Commit;
         FTransaction.StartTransaction;
 

@@ -376,7 +376,7 @@ var
   DS: TDataSet;
   ShouldAdd: Boolean;
   CEExist, CENew: TgdClassEntry;
-  SLAlwaysOverwrite, SLDontRemove, SLIncludeSiblings: TStringList;
+  SLDeffered: TStringList;
   T: TDateTime;
 begin
   Assert(FIBTransaction.InTransaction);
@@ -514,17 +514,17 @@ begin
         qDelete := TIBSQL.Create(nil);
         qPos := TIBSQL.Create(nil);
         gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
-        SLAlwaysOverwrite := TStringList.Create;
-        SLDontRemove := TStringList.Create;
-        SLIncludeSiblings := TStringlist.Create;
+        SLDeffered := TStringList.Create;
         try
           q.Transaction := FIBTransaction;
 
           if FDontModify then
           begin
             q.SQL.Text :=
-              'SELECT (o.xid || ''_'' || o.dbid) as ruid, ' +
-              '  o.alwaysoverwrite, o.dontremove, o.includesiblings ' +
+              'SELECT ''UPDATE at_object SET alwaysoverwrite = '' || o.alwaysoverwrite || ' +
+              '  '', dontremove = '' || o.dontremove || '', includesiblings = '' || o.includesiblings || ' +
+              '  '' WHERE xid = '' || o.xid || '' AND dbid = '' || o.dbid || ' +
+              '  ''   AND namespacekey = '' || o.namespacekey ' +
               'FROM at_object o WHERE o.namespacekey = :nsk ' +
               '  AND o.headobjectkey = (SELECT o2.id FROM at_object o2 ' +
               '    WHERE o2.xid = :xid AND o2.dbid = :dbid) ';
@@ -535,12 +535,7 @@ begin
 
             while not q.EOF do
             begin
-              if q.FieldByName('alwaysoverwrite').AsInteger <> 0 then
-                SLAlwaysOverwrite.Add(q.FieldByName('ruid').AsString);
-              if q.FieldByName('dontremove').AsInteger <> 0 then
-                SLDontRemove.Add(q.FieldByName('ruid').AsString);
-              if q.FieldByName('includesiblings').AsInteger <> 0 then
-                SLIncludeSiblings.Add(q.FieldByName('ruid').AsString);
+              SLDeffered.Add(q.Fields[0].AsString);
               q.Next;
             end;
           end;
@@ -886,47 +881,12 @@ begin
             end;
           end;
 
-          if SLAlwaysOverwrite.Count > 0 then
+          if SLDeffered.Count > 0 then
           begin
             q.Close;
-            q.SQL.Text :=
-              'UPDATE at_object SET alwaysoverwrite = 1 ' +
-              'WHERE alwaysoverwrite = 0 AND (xid || ''_'' || dbid) = :ruid ' +
-              '  AND namespacekey = :nsk';
-            q.ParamByName('nsk').AsInteger := FCurrentNSID;
-            for J := 0 to SLAlwaysOverwrite.Count - 1 do
+            for J := 0 to SLDeffered.Count - 1 do
             begin
-              q.ParamByName('ruid').AsString := SLAlwaysOverwrite[J];
-              q.ExecQuery;
-            end;
-          end;
-
-          if SLDontRemove.Count > 0 then
-          begin
-            q.Close;
-            q.SQL.Text :=
-              'UPDATE at_object SET dontremove = 1 ' +
-              'WHERE dontremove = 0 AND (xid || ''_'' || dbid) = :ruid' +
-              '  AND namespacekey = :nsk';
-            q.ParamByName('nsk').AsInteger := FCurrentNSID;
-            for J := 0 to SLDontRemove.Count - 1 do
-            begin
-              q.ParamByName('ruid').AsString := SLDontRemove[J];
-              q.ExecQuery;
-            end;
-          end;
-
-          if SLIncludeSiblings.Count > 0 then
-          begin
-            q.Close;
-            q.SQL.Text :=
-              'UPDATE at_object SET includesiblings = 1 ' +
-              'WHERE includesiblings = 0 AND (xid || ''_'' || dbid) = :ruid' +
-              '  AND namespacekey = :nsk';
-            q.ParamByName('nsk').AsInteger := FCurrentNSID;
-            for J := 0 to SLIncludeSiblings.Count - 1 do
-            begin
-              q.ParamByName('ruid').AsString := SLIncludeSiblings[J];
+              q.SQL.Text := SLDeffered[J];
               q.ExecQuery;
             end;
           end;
@@ -939,9 +899,7 @@ begin
           qDelete.Free;
           qPos.Free;
           gdcNamespaceObject.Free;
-          SLAlwaysOverwrite.Free;
-          SLDontRemove.Free;
-          SLIncludeSiblings.Free;
+          SLDeffered.Free;
         end;
       end;
     end;
@@ -1556,6 +1514,7 @@ var
   q: TIBSQL;
   I: Integer;
   Bm, IDs: String;
+  CanUpdateObjects: Boolean;
 begin
   Assert(AnObject <> nil);
   Assert(not AnObject.IsEmpty);
@@ -1600,7 +1559,7 @@ begin
           IDs := IDs + ',' + IntToStr(FgdcObject.ID);
         end else
           IDs := IntToStr(FgdcObject.ID);
-        Inc(FMultipleObjects);  
+        Inc(FMultipleObjects);
         ProcessObject;
       end;
       FgdcObject.Bookmark := Bm;
@@ -1690,7 +1649,14 @@ begin
     q.Free;
   end;
 
-  SetupDS(0);
+  CanUpdateObjects := False;
+
+  // must count downto 0
+  for I := FTabs.Count - 1 downto 0 do
+  begin
+    if not SetupDS(I).IsEmpty then
+      CanUpdateObjects := True;
+  end;
 
   FObjectName := FgdcObject.ObjectName + ' ('
     + FgdcObject.GetDisplayName(FgdcObject.SubType) + ')';
@@ -1702,14 +1668,22 @@ begin
     System.Include(FOps, nopAdd);
 
   if (FPrevNSID <> -1) and (FHeadObjectKey = -1) then
-    FOps := FOps + [nopMove, nopDel, nopChangeProp, nopUpdate];
+  begin
+    FOps := FOps + [nopMove, nopDel, nopChangeProp];
+
+    if CanUpdateObjects then
+      System.Include(FOps, nopUpdate);
+  end;
 
   if (FPrevNSID <> -1) and (FHeadObjectKey <> -1) then
   begin
-    FOps := FOps + [nopChangeProp, nopUpdate];
+    System.Include(FOps, nopChangeProp);
 
     if FMultipleObjects = 1 then
-      FOps := FOps + [nopPickOut];
+      System.Include(FOps, nopPickOut);
+
+    if CanUpdateObjects then
+      System.Include(FOps, nopUpdate);
   end;
 
   Result := True;
