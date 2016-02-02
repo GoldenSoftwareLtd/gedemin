@@ -51,6 +51,9 @@ procedure SetAccountIDs(AccountsComboBox: TCustomComboBox; var AccountIds: TList
 procedure SaveHistory(ComboBox: TCustomComboBox);
 //Возвращает ключ астивного плана счетов для указанной компании
 function GetActiveAccount(CompanyKey: Integer): Integer;
+
+function GetAccounts(CompanyKey: Integer): String;
+
 procedure UpdateTabOrder(C: TWinControl);
 // Возвращает дату последнего расчета сальдо, если сальдо не рассчитано вернет 0
 function GetCalculatedBalanceDate: TDate;
@@ -582,6 +585,7 @@ begin
     S := TStringList.Create;
     try
       S.Text := StringReplace(TComboBox(AccountsComboBox).Text, ',', #13#10, [rfReplaceAll]);
+
       for I := 0 to S.Count - 1 do
       begin
         Id := GetAccountKeyByAlias(Trim(S[I]));
@@ -672,6 +676,44 @@ begin
   finally
     SQL.Free;
   end;
+end;
+
+function GetAccounts(CompanyKey: Integer): String;
+var
+  SQL: TIBSQL;
+  AA: Integer;
+begin
+  Result := '';
+  AA := GetActiveAccount(CompanyKey);
+
+  if AA > 0 then
+  begin
+  SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := gdcBaseManager.ReadTransaction;
+      SQL.SQL.Text :=
+        'SELECT '#13#10 +
+        '  a.id '#13#10 +
+        'FROM '#13#10 +
+        '  ac_account aparent '#13#10 +
+        '  JOIN ac_account a '#13#10 +
+        '    ON a.lb >= aparent.lb AND a.rb <= aparent.rb '#13#10 +
+        'WHERE '#13#10 +
+        '  aparent.id = :ID AND a.accounttype = ''A''';
+      SQL.ParamByName('id').AsInteger := AA;
+      SQL.ExecQuery;
+      while not SQL.EOF do
+      begin
+        Result := Result + SQL.FieldByName('id').AsString + ',';
+        SQL.Next;
+      end
+    finally
+      SQL.Free;
+    end;
+  end;
+
+  if Result > '' then
+    SetLength(Result, Length(Result) - 1);
 end;
 
 function CheckActiveAccount(CompanyKey: Integer; AShowMessage: Boolean = True): Boolean;

@@ -922,6 +922,7 @@ end;
 procedure Tgdv_frmAcctBaseForm.SetParams;
 var
   I: Integer;
+  S: TStringList;
 begin
   gdvObject.UseEntryBalance := True;
 
@@ -939,6 +940,22 @@ begin
     // Передадим счета
     for I := 0 to FAccountIDs.Count - 1 do
       gdvObject.AddAccount(Integer(FAccountIDs.Items[I]));
+
+    // если список счетов пуст, сформирем его из активного плана счетов
+    if FAccountIDs.Count = 0 then
+    begin
+      S := TStringList.Create;
+      try
+        S.Text := StringReplace(GetAccounts(frAcctCompany.CompanyKey),
+          ',', #13#10, [rfReplaceAll]);
+        for I := 0 to S.Count - 1 do
+        begin
+          gdvObject.AddAccount(StrToInt(Trim(S[I])));
+        end;
+      finally
+        S.Free;
+      end;
+    end;
 
     // Значения аналитик
     for I := 0 to frAcctAnalytics.AnalyticsCount - 1 do
