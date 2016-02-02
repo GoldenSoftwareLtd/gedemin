@@ -1,7 +1,7 @@
 object dlgToNamespace: TdlgToNamespace
-  Left = 691
-  Top = 281
-  Width = 737
+  Left = 378
+  Top = 210
+  Width = 759
   Height = 542
   Caption = 'Добавление/перемещение/удаление объекта пространства имен'
   Color = clBtnFace
@@ -19,7 +19,7 @@ object dlgToNamespace: TdlgToNamespace
   object pnlGrid: TPanel
     Left = 0
     Top = 181
-    Width = 721
+    Width = 743
     Height = 322
     Align = alClient
     BevelOuter = bvNone
@@ -28,13 +28,13 @@ object dlgToNamespace: TdlgToNamespace
     object pnlButtons: TPanel
       Left = 8
       Top = 286
-      Width = 705
+      Width = 727
       Height = 28
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 0
       object pnlRightBottom: TPanel
-        Left = 481
+        Left = 503
         Top = 0
         Width = 224
         Height = 28
@@ -73,7 +73,7 @@ object dlgToNamespace: TdlgToNamespace
     object pnlDependencies: TPanel
       Left = 8
       Top = 8
-      Width = 705
+      Width = 727
       Height = 278
       Align = alClient
       BevelOuter = bvNone
@@ -81,7 +81,7 @@ object dlgToNamespace: TdlgToNamespace
       object dbgrListLink: TgsDBGrid
         Left = 0
         Top = 0
-        Width = 705
+        Width = 727
         Height = 257
         Align = alClient
         DataSource = dsLink
@@ -122,7 +122,7 @@ object dlgToNamespace: TdlgToNamespace
       object tsObjects: TTabSet
         Left = 0
         Top = 257
-        Width = 705
+        Width = 727
         Height = 21
         Align = alBottom
         Font.Charset = DEFAULT_CHARSET
@@ -143,7 +143,7 @@ object dlgToNamespace: TdlgToNamespace
   object pnlObj: TPanel
     Left = 0
     Top = 0
-    Width = 721
+    Width = 743
     Height = 181
     Align = alTop
     BevelOuter = bvNone
@@ -151,7 +151,7 @@ object dlgToNamespace: TdlgToNamespace
     object pnlState: TPanel
       Left = 0
       Top = 0
-      Width = 721
+      Width = 743
       Height = 87
       Align = alTop
       BevelInner = bvLowered
@@ -162,7 +162,7 @@ object dlgToNamespace: TdlgToNamespace
       object pnlInfo: TPanel
         Left = 9
         Top = 9
-        Width = 703
+        Width = 725
         Height = 44
         Align = alClient
         BevelOuter = bvNone
@@ -171,7 +171,7 @@ object dlgToNamespace: TdlgToNamespace
         object mInfo: TMemo
           Left = 0
           Top = 0
-          Width = 703
+          Width = 725
           Height = 44
           Align = alClient
           BorderStyle = bsNone
@@ -189,7 +189,7 @@ object dlgToNamespace: TdlgToNamespace
       object Panel2: TPanel
         Left = 9
         Top = 53
-        Width = 703
+        Width = 725
         Height = 25
         Align = alBottom
         BevelInner = bvRaised
@@ -248,7 +248,7 @@ object dlgToNamespace: TdlgToNamespace
     object pnlTop: TPanel
       Left = 0
       Top = 87
-      Width = 721
+      Width = 743
       Height = 94
       Align = alClient
       BevelOuter = bvNone

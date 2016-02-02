@@ -424,7 +424,34 @@ ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_companyaccountkey
   FOREIGN KEY (companyaccountkey) REFERENCES gd_companyaccount(id)
   ON UPDATE CASCADE
   ON DELETE SET NULL;
+  
+SET TERM ^ ;
 
+CREATE OR ALTER TRIGGER gd_aiu_companyaccount FOR gd_companyaccount
+  AFTER INSERT OR UPDATE
+  POSITION 30000
+AS
+BEGIN
+  IF (EXISTS(
+    SELECT
+      b.bankcode, b.bankbranch, a.account, COUNT(*)
+    FROM
+      gd_companyaccount a JOIN gd_bank b 
+        ON b.bankkey = a.bankkey
+    WHERE
+      a.account = NEW.account
+    GROUP BY
+      b.bankcode, b.bankbranch, a.account
+    HAVING
+      COUNT(*) > 1)) THEN
+  BEGIN      
+    EXCEPTION gd_e_exception 'Дублируется номер банковского счета!'; 
+  END
+END
+^
+
+SET TERM ; ^
+  
 COMMIT;
 
 CREATE TABLE gd_contactlist

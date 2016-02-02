@@ -1,6 +1,6 @@
 inherited gdc_frmNamespace: Tgdc_frmNamespace
-  Left = 389
-  Top = 201
+  Left = 282
+  Top = 178
   Width = 1090
   Height = 742
   Caption = 'Пространства имен'

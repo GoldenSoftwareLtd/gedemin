@@ -554,11 +554,16 @@ begin
         FieldByName('swift').AsString := q.FieldByName('swift').AsString;
       end;
 
-      if (not (sLoadFromStream in BaseState)) and
-        (not IgnoryQuestion) and (not (CheckAccount(FieldByName('bankcode').AsString,
-        FieldByName('account').AsString) and
-        CheckDouble(FieldByName('account').AsString, FieldByName('bankcode').AsString)))
-      then
+      if (not (sLoadFromStream in BaseState))
+        and (not IgnoryQuestion)
+        and
+          (not
+            (
+              CheckAccount(FieldByName('bankcode').AsString, FieldByName('account').AsString)
+              {and
+              CheckDouble(FieldByName('account').AsString, FieldByName('bankcode').AsString)}
+            )
+          ) then
         raise Exception.Create('Измените расчетный счет!');
     finally
       q.Free;
@@ -574,13 +579,13 @@ begin
 end;
 
 function TgdcAccount.CheckDouble(AnAccount, ABankCode: String): Boolean;
-var
+{var
   q: TIBSQL;
   qBank: TIBSQL;
-  DidActivate: Boolean;
+  DidActivate: Boolean;}
 begin
   Result := True;
-
+{
   if (sLoadFromStream in BaseState) then Exit;
 
   q := CreateReadIBSQL(DidActivate);
@@ -617,7 +622,7 @@ begin
 
     q.Free;
     qBank.Free;
-  end;
+  end;}
 end;
 
 
