@@ -49,10 +49,10 @@ function AccountDialog(ComboBox: TCustomComboBox; ActiveAccount: Integer): Boole
 procedure SetAccountIDs(AccountsComboBox: TCustomComboBox; var AccountIds: TList;
   AIncSubAccounts: Boolean; ShowMessage: Boolean = True);
 procedure SaveHistory(ComboBox: TCustomComboBox);
-//Возвращает ключ астивного плана счетов для указанной компании
+//Возвращает ключ активного плана счетов для указанной компании
 function GetActiveAccount(CompanyKey: Integer): Integer;
-
-function GetAccounts(CompanyKey: Integer): String;
+//Возвращает список счетов активного плана счетов
+function GetAccounts: String;
 
 procedure UpdateTabOrder(C: TWinControl);
 // Возвращает дату последнего расчета сальдо, если сальдо не рассчитано вернет 0
@@ -678,38 +678,33 @@ begin
   end;
 end;
 
-function GetAccounts(CompanyKey: Integer): String;
+function GetAccounts: String;
 var
   SQL: TIBSQL;
-  AA: Integer;
 begin
   Result := '';
-  AA := GetActiveAccount(CompanyKey);
 
-  if AA > 0 then
-  begin
   SQL := TIBSQL.Create(nil);
-    try
-      SQL.Transaction := gdcBaseManager.ReadTransaction;
-      SQL.SQL.Text :=
-        'SELECT '#13#10 +
-        '  a.id '#13#10 +
-        'FROM '#13#10 +
-        '  ac_account aparent '#13#10 +
-        '  JOIN ac_account a '#13#10 +
-        '    ON a.lb >= aparent.lb AND a.rb <= aparent.rb '#13#10 +
-        'WHERE '#13#10 +
-        '  aparent.id = :ID AND a.accounttype = ''A''';
-      SQL.ParamByName('id').AsInteger := AA;
-      SQL.ExecQuery;
-      while not SQL.EOF do
-      begin
-        Result := Result + SQL.FieldByName('id').AsString + ',';
-        SQL.Next;
-      end
-    finally
-      SQL.Free;
-    end;
+  try
+    SQL.Transaction := gdcBaseManager.ReadTransaction;
+    SQL.SQL.Text :=
+      'SELECT '#13#10 +
+      '  a.id '#13#10 +
+      'FROM '#13#10 +
+      '  ac_account aparent '#13#10 +
+      '  JOIN ac_account a '#13#10 +
+      '    ON a.lb >= aparent.lb AND a.rb <= aparent.rb '#13#10 +
+      'WHERE '#13#10 +
+      '  aparent.id = :ID AND a.accounttype = ''A''';
+    SQL.ParamByName('id').AsInteger := GetActiveAccount(IBLogin.CompanyKey);
+    SQL.ExecQuery;
+    while not SQL.EOF do
+    begin
+      Result := Result + SQL.FieldByName('id').AsString + ',';
+      SQL.Next;
+    end
+  finally
+    SQL.Free;
   end;
 
   if Result > '' then

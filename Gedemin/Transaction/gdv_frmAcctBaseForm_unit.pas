@@ -946,8 +946,7 @@ begin
     begin
       S := TStringList.Create;
       try
-        S.Text := StringReplace(GetAccounts(frAcctCompany.CompanyKey),
-          ',', #13#10, [rfReplaceAll]);
+        S.Text := StringReplace(GetAccounts, ',', #13#10, [rfReplaceAll]);
         for I := 0 to S.Count - 1 do
         begin
           gdvObject.AddAccount(StrToInt(Trim(S[I])));
