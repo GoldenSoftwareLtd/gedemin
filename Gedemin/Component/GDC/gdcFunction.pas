@@ -50,8 +50,6 @@ type
     //Проверяет наличие ссылок на данную запись
     function RecordUsed: Integer;
 
-    procedure AddMethodFunction(const ClassID: Integer; const MethodName: String;
-      const FullClassName: TgdcFullClassName);
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
@@ -583,89 +581,6 @@ destructor TgdcFunction.Destroy;
 begin
   FScriptIDList.Free;
   inherited;
-end;
-
-procedure TgdcFunction.AddMethodFunction(const ClassID: Integer;
-  const MethodName: String; const FullClassName: TgdcFullClassName);
-const
-  cCMErr = 'Для класса не найден объект описания методов класса.';
-var
-  MethodItem: TMethodItem;
-  tmpObject: TObject;
-  I: Integer;
-  ClassMethods: TgdClassMethods;
-  gdcEvent: TgdcEvent;
-  CE: TgdClassEntry;
-begin
-  CE := gdClassList.Get(TgdClassEntry, FullClassName.gdClassName);
-
-  ClassMethods := CE.ClassMethods;
-
-  if ClassMethods = nil then
-    raise Exception.Create(cCMErr);
-
-  tmpObject := MethodControl.FindMethodClass(FullClassName);
-  if tmpObject = nil then
-    with TgdcDelphiObject.Create(nil) do
-    try
-      I := AddClass(FullClassName);
-      if I > -1 then
-      begin
-        tmpObject := MethodControl.AddClass(I, FullClassName, CE.TheClass);
-        if tmpObject = nil then
-          raise Exception.Create('Не найден объект для класса ' + FullClassName.gdClassName +
-            '.'#13#10 + 'Попытайтесь перекрыть метод в инспекторе скрипт-объектов.');
-            end;
-    finally
-      Free;
-    end;
-
-  MethodItem :=  TCustomMethodClass(tmpObject).MethodList.Find(MethodName);
-  if MethodItem = nil then
-  begin
-    I := TCustomMethodClass(tmpObject).MethodList.Add(MethodName, 0, False,
-      TCustomMethodClass(tmpObject));
-    MethodItem :=  TCustomMethodClass(tmpObject).MethodList.Items[I];
-  end;
-
-  while ClassMethods.gdMethods.Count = 0 do
-  begin
-    ClassMethods := ClassMethods.GetGdClassMethodsParent;
-    if ClassMethods = nil then
-      raise Exception.Create(cCMErr);
-  end;
-
-  MethodItem.MethodData :=  @ClassMethods.gdMethods.MethodByName(MethodName).ParamsData;
-
-  Insert;
-  FieldByName(fnLanguage).AsString    := 'VBScript';
-  FieldByName(fnModuleCode).AsInteger := ClassID;
-  FieldByName(fnModule).AsString      := scrMethodModuleName;
-  FieldByName(fnName).AsString        := MethodItem.AutoFunctionName;
-  FieldByName(fnScript).AsString      := MethodItem.ComplexParams[fplVBScript];
-  FieldByName(fnComment).AsString := 'Скрипт-метод';
-  Post;
-
-  gdcEvent := TgdcEvent.Create(nil);
-  try
-    gdcEvent.SubSet := cByObjectKey;
-    gdcEvent.ParamByName('objectkey').AsInteger := ClassID;
-    gdcEvent.Open;
-    gdcEvent.Insert;
-    try
-      gdcEvent.ParamByName('objectkey').AsInteger := ClassID;
-      gdcEvent.FieldByName('eventname').AsString  :=  AnsiUpperCase(MethodName);
-      gdcEvent.FieldByName('functionkey').AsInteger  := ID;
-      gdcEvent.Post;
-    except
-      gdcEvent.Cancel;
-      raise;
-    end;
-    MethodItem.MethodId := gdcEvent.ID;
-    MethodItem.FunctionKey := ID;
-  finally
-    gdcEvent.Free;
-  end;
 end;
 
 class function TgdcFunction.GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String;

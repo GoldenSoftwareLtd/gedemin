@@ -64,8 +64,8 @@ implementation
 {$R *.DFM}
 
 uses
-  dmImages_unit, Storages,  gd_ClassList, gd_security, IBSQL,
-  gd_dlgEntryFunctionWizard, gdcAcctEntryRegister, gd_security_operationconst,
+  dmImages_unit, Storages, gd_ClassList, gd_security, IBSQL,
+  gdcAcctEntryRegister, gd_security_operationconst,
   wiz_Main_Unit;
 
 function Tgdc_dlgAcctTrEntry.TestCorrect: Boolean;
@@ -101,6 +101,7 @@ begin
   {M}      end;
   {M}  end;
   {END MACRO}
+
   if Trim(gdcObject.FieldByName(fnDescription).AsString) = '' then
   begin
     ShowMessage(MSG_ENTERDESCRIPTION);
@@ -126,7 +127,6 @@ begin
   {M}end;
   {END MACRO}
 end;
-
 
 procedure Tgdc_dlgAcctTrEntry.SetupDialog;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -158,6 +158,7 @@ begin
   inherited;
 
   gdcFunction.Transaction := gdcObject.Transaction;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGACCTTRENTRY', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
