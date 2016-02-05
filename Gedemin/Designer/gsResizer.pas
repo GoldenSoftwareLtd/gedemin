@@ -3231,8 +3231,6 @@ var
   Comp: TComponent;
   q: TIBSQL;
   tr: TIBTransaction;
-  gdcEvt: TgdcEvent;
-  gdcDO: TgdcDelphiObject;
   St: TgsIBStorage;
 begin
   if not DoBeforeExit(True) then
@@ -3251,20 +3249,23 @@ begin
       MacroFlag := UnEventMacro;
       UnEventMacro := True;
 
-      if (FChangedNames.Count > 0) and Assigned(EventControl) then begin
-        q:= TIBSQL.Create(nil);
-        tr:= TIBTransaction.Create(nil);
+      if (FChangedNames.Count > 0) and Assigned(EventControl) then
+      begin
+        q := TIBSQL.Create(nil);
+        tr := TIBTransaction.Create(nil);
         try
           tr.DefaultDatabase:= dmDatabase.ibdbGAdmin;
           tr.StartTransaction;
-          q.Transaction:= tr;
-          q.SQL.Text:= 'UPDATE evt_object SET name=:name, objectname=:objname WHERE id=:objkey';
-          for i:= FChangedNames.Count - 1 downto 0 do begin
+          q.Transaction := tr;
+          q.SQL.Text:= 'UPDATE evt_object SET name = :name, objectname = :objname WHERE id = :objkey';
+          for I := FChangedNames.Count - 1 downto 0 do
+          begin
             try
-              Comp:= FEditForm.FindComponent(FChangedNames.Values[FChangedNames.Names[i]]);
-              EvtObj:= EvtCtrl.FindRealEventObject(Comp, FChangedNames.Names[i]);
-              if Assigned(EvtObj) then begin
-                EvtObj.ObjectName:= FChangedNames.Values[FChangedNames.Names[i]];
+              Comp := FEditForm.FindComponent(FChangedNames.Values[FChangedNames.Names[I]]);
+              EvtObj := EvtCtrl.FindRealEventObject(Comp, FChangedNames.Names[I]);
+              if Assigned(EvtObj) then
+              begin
+                EvtObj.ObjectName := FChangedNames.Values[FChangedNames.Names[I]];
                 q.Close;
                 q.ParamByName('name').AsString:= EvtObj.ObjectName;
                 q.ParamByName('objname').AsString:= EvtObj.ObjectName;
@@ -3272,7 +3273,7 @@ begin
                 q.ExecQuery;
               end;
             finally
-              FChangedNames.Delete(i);
+              FChangedNames.Delete(I);
             end;
           end;
           tr.Commit;
@@ -3282,34 +3283,26 @@ begin
         end;
       end;
 
-      if FDeletedComponents.Count > 0 then begin
-        gdcEvt:= TgdcEvent.Create(self);
-        gdcDO:= TgdcDelphiObject.Create(self);
+      if FDeletedComponents.Count > 0 then
+      begin
+        q := TIBSQL.Create(nil);
+        tr := TIBTransaction.Create(nil);
         try
-          gdcEvt.SubSet:= cByObjectKey;
-          gdcDO.SubSet:= ssByID;
-          for i:= FDeletedComponents.Count - 1 downto 0 do begin
-            try
-              gdcEvt.ParamByName(fnObjectKey).AsInteger:= StrToInt(FDeletedComponents[i]);
-              gdcEvt.Open;
-              gdcEvt.First;
-              while not gdcEvt.Eof do begin
-                gdcEvt.Delete;
-              end;
-              gdcEvt.Close;
-
-              gdcDO.CLose;
-              gdcDO.ID:= StrToInt(FDeletedComponents[i]);
-              gdcDO.Open;
-              if not gdcDO.Eof then
-                gdcDO.Delete;
-            finally
-              FDeletedComponents.Delete(i);
-            end;
-          end;
+          tr.DefaultDatabase:= dmDatabase.ibdbGAdmin;
+          tr.StartTransaction;
+          q.Transaction := tr;
+          q.Close;
+          q.SQL.Text := 'DELETE FROM evt_objectevent WHERE objectkey IN (' + FDeletedComponents.CommaText + ')';
+          q.ExecQuery;
+          q.Close;
+          q.SQL.Text := 'DELETE FROM evt_object WHERE id IN (' + FDeletedComponents.CommaText + ')';
+          q.ExecQuery;
+          tr.Commit;
         finally
-          gdcEvt.Free;
-          gdcDO.Free
+          for I := FDeletedComponents.Count - 1 downto 0 do
+            FDeletedComponents.Delete(I);
+          tr.Free;
+          q.Free;
         end;
       end;
 
@@ -3319,88 +3312,132 @@ begin
       FEditForm.Visible := False;
 
       try
-        if (cfsUserCreated in TCreateableForm(FEditForm).CreateableFormState) and
-          Assigned(EventControl) then
+        if (cfsUserCreated in TCreateableForm(FEditForm).CreateableFormState)
+          and Assigned(EventControl) then
+        begin
             EventControl.ResetEvents(FEditForm);
-        if Assigned(EvtCtrl) then begin
-          for i:= FDelphiEventList.Count - 1 downto 0 do begin
-            EvtObj:= EvtCtrl.FindRealEventObject(FDelphiEventList[i].Comp);
+        end;
+
+        if Assigned(EvtCtrl) then
+        begin
+          for I := FDelphiEventList.Count - 1 downto 0 do
+          begin
+            EvtObj := EvtCtrl.FindRealEventObject(FDelphiEventList[I].Comp);
             try
-              if Assigned(EvtObj) then begin
-                EvtItem:= EvtObj.EventList.Find(FDelphiEventList[i].PropInfo^.name);
-                if Assigned(EvtItem) and (EvtItem.OldEvent.Code <> FDelphiEventList[i].Method.Code) then begin
-                  EvtItem.OldEvent:= FDelphiEventList[i].Method;
+              if Assigned(EvtObj) then
+              begin
+                EvtItem:= EvtObj.EventList.Find(FDelphiEventList[I].PropInfo^.name);
+                if Assigned(EvtItem) and (EvtItem.OldEvent.Code <> FDelphiEventList[I].Method.Code) then
+                begin
+                  EvtItem.OldEvent := FDelphiEventList[I].Method;
                 end;
               end;
             finally
-              FDelphiEventList.Delete(i);
+              FDelphiEventList.Delete(I);
             end;
           end;
 
-          for i:= FChangedEventList.Count - 1 downto 0 do begin
-            if FChangedEventList[i].NewFunctionID = -1 then begin
-              EventControl.DeleteEvent(FEditForm.Name, FChangedEventList[i].Comp.Name,
-                FChangedEventList[i].EventName);
+          for I := FChangedEventList.Count - 1 downto 0 do
+          begin
+            if FChangedEventList[I].NewFunctionID = -1 then
+            begin
+              EventControl.DeleteEvent(FEditForm.Name, FChangedEventList[I].Comp.Name,
+                FChangedEventList[I].EventName);
             end
-            else begin
-              EvtObj:= EvtCtrl.FindRealEventObject(FChangedEventList[i].Comp);
-              gdcEvt:= TgdcEvent.Create(self);
-              iID:= -1;
+            else
+            begin
+              EvtObj := EvtCtrl.FindRealEventObject(FChangedEventList[I].Comp);
+              iID := -1;
+
+              q := TIBSQL.Create(nil);
+              tr := TIBTransaction.Create(nil);
               try
-                gdcEvt.SubSet:= cByObjectKey;
-                if not Assigned(EvtObj) then begin
-                  gdcDO:= TgdcDelphiObject.Create(self);
-                  try
-                    if Assigned(FChangedEventList[i].Comp.Owner) then
-                      EvtObj:= EvtCtrl.FindRealEventObject(FChangedEventList[i].Comp.Owner);
-                    if Assigned(EvtObj) then begin
-                      gdcDO.SubSet:= ssByID;
-                      gdcDO.Open;
-                      gdcDO.Insert;
-                      gdcDO.FieldByName(fnParent).AsInteger:= EvtObj.ObjectKey;
-                      gdcDO.FieldByName(fnName).AsString:= FChangedEventList[i].Comp.Name;
-                      gdcDO.FieldByName(fnObjectName).AsString:= FChangedEventList[i].Comp.Name;
-                      gdcDO.Post;
-                      iID:= gdcDO.ID;
-                      EO:= TEventObject.Create;
-                      EvtObj.ChildObjects.Add(EO);
-                      EO.ObjectName:= FChangedEventList[i].Comp.Name;
-                      EO.ObjectKey:= iID;
-                    end;
-                  finally
-                    gdcDO.Free;
+                tr.DefaultDatabase := dmDatabase.ibdbGAdmin;
+                tr.StartTransaction;
+                q.Transaction := tr;
+
+                if not Assigned(EvtObj) then
+                begin
+                  if Assigned(FChangedEventList[I].Comp.Owner) then
+                    EvtObj := EvtCtrl.FindRealEventObject(FChangedEventList[I].Comp.Owner);
+
+                  if Assigned(EvtObj) then
+                  begin
+                    iID := gdcBaseManager.GetNextID;
+
+                    q.Close;
+                    q.SQL.Text := 'INSERT INTO evt_object(id, objectname, name, parent, achag, afull, aview)' +
+                      ' VALUES (:id, :objectname, :name, :parent, :achag, :afull, :aview)';
+                    q.ParamByName('id').AsInteger := iID;
+                    q.ParamByName('objectname').AsString := FChangedEventList[i].Comp.Name;
+                    q.ParamByName('name').AsString:= FChangedEventList[i].Comp.Name;
+                    q.ParamByName('parent').AsVariant := EvtObj.ObjectKey;
+                    q.ParamByName('achag').AsInteger := -1;
+                    q.ParamByName('afull').AsInteger := -1;
+                    q.ParamByName('aview').AsInteger := -1;
+                    q.ExecQuery;
+
+                    EO := TEventObject.Create;
+                    EvtObj.ChildObjects.Add(EO);
+                    EO.ObjectName := FChangedEventList[I].Comp.Name;
+                    EO.ObjectKey := iID;
                   end;
                 end;
-                EvtObj:= EvtCtrl.FindRealEventObject(FChangedEventList[i].Comp);
-                if Assigned(EvtObj) then begin
+                EvtObj := EvtCtrl.FindRealEventObject(FChangedEventList[I].Comp);
+                if Assigned(EvtObj) then
+                begin
                   if EvtObj.ObjectKey > 0 then
-                    iID:= EvtObj.ObjectKey;
-                  EvtItem:= EvtObj.EventList.Find(FChangedEventList[i].EventName);
+                    iID := EvtObj.ObjectKey;
+
+                  EvtItem := EvtObj.EventList.Find(FChangedEventList[I].EventName);
+
                   if Assigned(EvtItem) then
-                    EvtItem.FunctionKey:= FChangedEventList[i].NewFunctionID
-                  else begin
-                    iTmp:= EvtObj.EventList.Add(FChangedEventList[i].EventName, FChangedEventList[i].NewFunctionID);
-                    EvtItem:= EvtObj.EventList[iTmp];
-                    EvtItem.EventData := GetTypeData(GetPropInfo(FChangedEventList[i].Comp,
-                      FChangedEventList[i].EventName)^.PropType^);
+                    EvtItem.FunctionKey := FChangedEventList[i].NewFunctionID
+                  else
+                  begin
+                    iTmp := EvtObj.EventList.Add(FChangedEventList[I].EventName, FChangedEventList[I].NewFunctionID);
+                    EvtItem := EvtObj.EventList[iTmp];
+                    EvtItem.EventData := GetTypeData(GetPropInfo(FChangedEventList[I].Comp,
+                      FChangedEventList[I].EventName)^.PropType^);
                   end;
                 end;
-                if iID > 0 then begin
-                  gdcEvt.ParamByName(fnObjectKey).AsInteger:= iID;
-                  gdcEvt.Open;
-                  if gdcEvt.Locate(fnEventName, AnsiUpperCase(FChangedEventList[i].EventName), []) then
-                    gdcEvt.Edit
-                  else begin
-                    gdcEvt.Insert;
-                    gdcEvt.FieldByName(fnObjectKey).AsInteger:= iID;
-                    gdcEvt.FieldByName(fnEventName).AsString:= AnsiUpperCase(FChangedEventList[i].EventName);
+
+                if iID > 0 then
+                begin
+                  q.Close;
+                  q.SQL.Text := 'SELECT id FROM evt_objectevent WHERE objectkey = :objectkey AND eventname = :eventname';
+                  q.ParamByName('objectkey').AsInteger := iID;
+                  q.ParamByName('eventname').AsString := AnsiUpperCase(FChangedEventList[i].EventName);
+                  q.ExecQuery;
+
+                  if not q.Eof then
+                  begin
+                    q.Close;
+                    q.SQL.Text:= 'UPDATE evt_object SET functionkey = :functionkey WHERE objectkey = :objectkey AND eventname = :eventname';
+                    q.ParamByName('functionkey').AsInteger := FChangedEventList[i].NewFunctionID;
+                    q.ParamByName('objectkey').AsInteger := iID;
+                    q.ParamByName('eventname').AsString := AnsiUpperCase(FChangedEventList[i].EventName);
+                  end
+                  else
+                  begin
+                    q.Close;
+                    q.SQL.Text :=
+                      'INSERT INTO evt_objectevent(id, objectkey, functionkey, eventname, afull) ' +
+                      'VALUES(:id, :objectkey, :functionkey, :eventname, :afull)';
+                    q.ParamByName('id').AsInteger := gdcBaseManager.GetNextID;
+                    q.ParamByName('objectkey').AsInteger := iID;
+                    q.ParamByName('functionkey').AsInteger := FChangedEventList[i].NewFunctionID;
+                    q.ParamByName('eventname').AsString := AnsiUpperCase(FChangedEventList[i].EventName);
+                    q.ParamByName('afull').AsInteger := -1;
                   end;
-                  gdcEvt.FieldByName(fnFunctionKey).AsInteger:= FChangedEventList[i].NewFunctionID;
-                  gdcEvt.Post;
+                  q.ExecQuery;
                 end;
+
+                tr.Commit;
               finally
-                gdcEvt.Free;
-                FChangedEventList.Delete(i);
+                tr.Free;
+                q.Free;
+                FChangedEventList.Delete(I);
               end;
             end;
           end;
@@ -3422,11 +3459,12 @@ begin
         FEditForm.Visible := OldVisible;
 
         UnEventMacro := MacroFlag;
-        if (cfsUserCreated in TCreateableForm(FEditForm).CreateableFormState) and
-          Assigned(EventControl) and
-          (not (cfsCloseAfterDesign in TCreateableForm(FEditForm).CreateableFormState)) then
+        if (cfsUserCreated in TCreateableForm(FEditForm).CreateableFormState)
+          and Assigned(EventControl)
+          and (not (cfsCloseAfterDesign in TCreateableForm(FEditForm).CreateableFormState)) then
+          begin
             EventControl.RebootEvents(FEditForm);
-
+          end;
       end;
 
       St := GlobalStorage;

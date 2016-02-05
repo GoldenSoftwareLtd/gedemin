@@ -56,7 +56,7 @@ procedure Register;
 
 implementation
 
-uses  gdcBaseInterface, evt_i_Base, gdc_createable_form,
+uses  gdcBaseInterface, evt_i_Base, gdc_createable_form, IBSQL,
   gd_SetDatabase, gd_i_ScriptFactory, gs_Exception, gd_security;
 
 procedure Register;
@@ -205,51 +205,60 @@ end;
 
 procedure TgdReportMenu.ReloadGroup;
 var
-  gdcDelphiObject: TgdcDelphiObject;
   LocId: Integer;
   F: TgdcCreateableForm;
   M: TMenuItem;
+  q: TIBSQL;
+  MGK: Integer;
 begin
   FReportGroup.Clear;
   PrepareMenu;
 
-  gdcDelphiObject := TgdcDelphiObject.Create(nil);
-  try
-    LocId := gdcDelphiObject.AddObject(Owner);
-    gdcDelphiObject.SubSet := ssById;
-    gdcDelphiObject.Close;
-    gdcDelphiObject.ID := LocId;
-    gdcDelphiObject.Open;
+  LocId := TgdcDelphiObject.AddObject(Owner);
 
-    if gdcDelphiObject.FieldByName(fnReportGroupKey).AsInteger > 0 then
-      FReportGroup.Load(gdcDelphiObject.FieldByName(fnReportGroupKey).AsInteger);
+  MGK := 0;
 
-    if (FReportGroup.Count > 1) or ((FReportGroup.Count = 1) and (FReportGroup[0].ReportList.Count > 0))  then
-    begin
-      M := TMenuItem.Create(Self);
-      M.Caption := '-';
-      Self.Items.Add(M);
-
-      FillMenu(Self);
+  if LocId > 0 then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT macrosgroupkey FROM evt_object WHERE id = :id';
+      q.ParamByName('id').AsInteger := LocId;
+      q.ExecQuery;
+      if not q.Eof then
+        MGK := q.FieldByName('macrosgroupkey').AsInteger;
+    finally
+      q.Free;
     end;
-    if Owner is TgdcCreateableForm then
-    begin
-      F := TgdcCreateableForm(Owner);
-      if F.gdcObject <> nil then
-      begin
-        FReportGroup.Load(F.gdcObject.GroupID);
-        if (FReportGroup.Count > 1) or ((FReportGroup.Count = 1) and (FReportGroup[0].ReportList.Count > 0))  then
-        begin
-          M := TMenuItem.Create(Self);
-          M.Caption := '-';
-          Self.Items.Add(M);
+  end;
 
-          FillMenu(Self);
-        end;
+  if MGK > 0 then
+    FReportGroup.Load(MGK);
+
+  if (FReportGroup.Count > 1) or ((FReportGroup.Count = 1) and (FReportGroup[0].ReportList.Count > 0))  then
+  begin
+    M := TMenuItem.Create(Self);
+    M.Caption := '-';
+    Self.Items.Add(M);
+
+    FillMenu(Self);
+  end;
+  if Owner is TgdcCreateableForm then
+  begin
+    F := TgdcCreateableForm(Owner);
+    if F.gdcObject <> nil then
+    begin
+      FReportGroup.Load(F.gdcObject.GroupID);
+      if (FReportGroup.Count > 1) or ((FReportGroup.Count = 1) and (FReportGroup[0].ReportList.Count > 0))  then
+      begin
+        M := TMenuItem.Create(Self);
+        M.Caption := '-';
+        Self.Items.Add(M);
+
+        FillMenu(Self);
       end;
     end;
-  finally
-    gdcDelphiObject.Free;
   end;
 end;
 

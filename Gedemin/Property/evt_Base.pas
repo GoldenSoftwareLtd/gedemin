@@ -3583,12 +3583,7 @@ begin
 
     if (EO = nil) and (AnComponent is TgdcCreateableForm) then
     begin
-      with TgdcDelphiObject.Create(nil) do
-        try
-          AddObject(AnComponent);
-        finally
-          Free;
-        end;
+      TgdcDelphiObject.AddObject(AnComponent);
       EO := FEventObjectList.FindAllObject(AnComponent);
     end;
 

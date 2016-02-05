@@ -544,7 +544,6 @@ var
   {END MACRO}
   gdcFunction: TIBCustomDataSet;
   Str: TStream;
-  DelphiObject: TgdcDelphiObject;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGFUNCTION', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}  try
@@ -584,14 +583,8 @@ begin
   gdcFunction.FieldByName('publicfunction').Required := False;
   if gdcFunction.FieldByName('modulecode').IsNull then
   begin
-    DelphiObject := TgdcDelphiObject.Create(Self);
-    try
-      DelphiObject.Transaction := gdcFunction.Transaction;
-      gdcFunction.FieldByName('modulecode').AsInteger :=
-        DelphiObject.AddObject(Owner);
-    finally
-      DelphiObject.Free;
-    end;
+    gdcFunction.FieldByName('modulecode').AsInteger :=
+      TgdcDelphiObject.AddObject(Owner, gdcFunction.Transaction);
   end;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGFUNCTION', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally

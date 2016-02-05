@@ -3,7 +3,7 @@ unit gdcDelphiObject;
 interface
 
 uses
-  gdcBase, gdcTree, DB, Classes, gdcBaseInterface;
+  gdcBase, gdcTree, DB, Classes, gdcBaseInterface, IBDatabase;
 
 type
   TObjectType = (otObject, otClass);
@@ -11,10 +11,7 @@ type
   TgdcDelphiObject = class(TgdcLBRBTree)
   private
     FObjectType: TObjectType;
-    //
-    // только для объектов
-    procedure InsertObject(var Id: Integer; const Parent: Variant;
-      AName: String);
+
     procedure SetObjectType(const Value: TObjectType);
 
   protected
@@ -31,15 +28,13 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
-    class function AddClass(const gdcClass: TgdcFullClassName): Integer;
-
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
-    function AddObject(AComponent: TComponent): Integer;
 
-    class function AddO(AComponent: TComponent): Integer;
+    class function AddObject(AnComponent: TComponent;
+      ATransaction: TIBTransaction = nil): Integer;
 
   published
     property ObjectType: TObjectType read FObjectType write SetObjectType;
@@ -52,7 +47,7 @@ implementation
 uses
   gd_ClassList, evt_Base, Contnrs, gd_SetDatabase, SysUtils, Windows, IBSQL,
   gdcConstants, Forms, gd_security_operationconst, evt_i_Base, gd_createable_form,
-  gd_directories_const, gdc_createable_form, IBDatabase
+  gd_directories_const, gdc_createable_form
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -66,353 +61,153 @@ end;
 
 { TgdcObject }
 
-procedure TgdcDelphiObject.InsertObject(var Id: Integer; const Parent: Variant; AName: string);
-begin
-  Open;
-  try
-    Insert;
-    FieldByName(fnObjectName).AsString := AName;
-    FieldByName(fnParent).AsVariant := Parent;
-    Post;
-    Id := FieldByName(fnId).AsInteger;
-  finally
-    Close;
-  end;
-end;
-
-function TgdcDelphiObject.AddObject(AComponent: TComponent): Integer;
+class function TgdcDelphiObject.AddObject(AnComponent: TComponent;
+  ATransaction: TIBTransaction = nil): Integer;
 var
-  TmpCmp: TComponent;
-  OL: TList;
-  I: Integer;
-  ObjectName: string;
-  Added: Boolean;
-  S: string;
-  SQL: TIBSQL;
-  A: Boolean;
-  DidActivate, DidActivate2: Boolean;
-begin
-  Result := 0;
-  Added := False;
+  Branch: Integer;
 
-  if AComponent = Application then
+  function Insert(const Parent: Variant; AName: string): Integer;
+  var
+    q: TIBSQL;
+    Tr: TIBTransaction;
   begin
-    Result := OBJ_APPLICATION;
-    Exit;
-  end;
+    Assert(gdcBaseManager <> nil);
 
-  if (AComponent <> nil) and (AComponent.Name <> '') then
-  try
-    OL := TList.Create;
+    q := TIBSQL.Create(nil);
     try
-      TmpCmp := AComponent;
-      while (TmpCmp <> nil) and (TmpCmp <> Application) do
-      begin
-        OL.Add(TmpCmp);
-        if (TmpCmp is TCustomForm) then
-          Break;
-        TmpCmp := TmpCmp.Owner;
-      end;
-
-      if OL.Count > 0 then
-      begin
-        DidActivate2 := False;
-        SQL := TIBSQL.Create(nil);
-        try
-          SQL.Transaction := ReadTransaction;
-          DidActivate2 := not ReadTransaction.InTransaction;
-          if DidActivate2 then
-            ReadTransaction.StartTransaction;
-          A := Active;
-          Close;
-          try
-            S := SubSet;
-            SubSet := ssAll;
-            if TComponent(OL[OL.Count - 1]) is TCreateableForm then
-            begin
-              ObjectName := TCreateableForm(OL[OL.Count - 1]).InitialName;
-              SQL.SQL.Text :=
-                'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname ' +
-                '  AND parent IS NULL';
-              SQL.Params[0].AsString := AnsiUpperCase(ObjectName);
-              SQL.ExecQuery;
-              if SQL.Eof then
-              begin
-                SQL.Close;
-                SQL.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
-                SQL.Params[0].AsString := AnsiUpperCase(ObjectName);
-                SQL.ExecQuery;
-              end;
-            end else
-              begin
-                SQL.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
-                ObjectName := TComponent(OL[OL.Count - 1]).Name;
-                SQL.Params[0].AsString := AnsiUpperCase(ObjectName);
-                SQL.ExecQuery;
-              end;
-
-            if SQL.Eof then
-            begin
-              InsertObject(Result, Null, ObjectName);
-              Added := True;
-            end else
-            begin
-              Result := SQL.FieldByName(fnId).AsInteger;
-              if not SQL.FieldByName(fnParent).IsNull then
-              begin
-                //Для формы парент должен быть нул. Если это не так то
-                //исправляем и выдаем предупреждение
-                SQL.Close;
-                SQL.Transaction := Transaction;
-                try
-                  DidActivate := not Transaction.InTransaction;
-                  if DidActivate then
-                    Transaction.StartTransaction;
-                  try
-                    SQL.SQL.Text := 'UPDATE evt_object SET parent = null WHERE id = :id';
-                    SQL.Params[0].AsInteger := Result;
-                    SQL.ExecQuery;
-                    MessageBox(0,
-                      'Обнаружена внутренняя ошибка в данных.'#13#10 +
-                      'Для её исправления необходимо перезагрузить Гедымин.',
-                      'Ошибка',
-                      MB_OK or MB_ICONERROR or MB_TASKMODAL);
-                    if DidActivate then
-                      Transaction.Commit;
-                  except
-                    if Didactivate then
-                      Transaction.RollBack;
-                  end;
-                finally
-                  SQL.Transaction := ReadTransaction;
-                end;
-              end;
-            end;
-
-            SQL.Close;
-            SQL.SQL.Text := 'SELECT * FROM evt_object WHERE parent = :parent ' +
-              'and UPPER(objectname) = :objectname';
-            for I := OL.Count - 2 downto 0 do
-            begin
-              SQL.Params[0].AsInteger := Result;
-              SQL.Params[1].AsString := UpperCase(TComponent(OL[I]).Name);
-              SQL.ExecQuery;
-              if not SQL.Eof then
-                Result := SQL.FieldByName(fnId).AsInteger
-              else
-              begin
-                InsertObject(Result, Result, TComponent(OL[I]).Name);
-                Added := True;
-              end;
-              SQL.Close;
-            end;
-          finally
-            Close;
-            if S <> SubSet then
-              Subset := S;
-            Active := A;
-          end;
-        finally
-          SQL.Free;
-
-          if DidActivate2 then
-            ReadTransaction.Commit;
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-
-    if (Result <> 0) and Assigned(EventControl) and Added then
-      EventControl.LoadBranch(Result);
-  except
-    on E: Exception do
-    begin
-      MessageBox(0,
-        PChar('Ошибка создания обьекта ' + E.Message),
-        'Ошибка',
-        MB_OK or MB_ICONERROR or MB_TASKMODAL);
-      Result := 0;
-    end;
-  end;
-end;
-
-class function TgdcDelphiObject.AddO(AComponent: TComponent): Integer;
-var
-  TmpCmp: TComponent;
-  OL: TList;
-  I: Integer;
-  Added: Boolean;
-  q: TIBSQL;
-  Tr: TIBTransaction;
-begin
-  Result := 0;
-  Added := False;
-
-  if AComponent = Application then
-  begin
-    Result := OBJ_APPLICATION;
-    Exit;
-  end;
-
-  if (AComponent <> nil) and (AComponent.Name <> '') then
-  try
-    OL := TList.Create;
-    try
-      TmpCmp := AComponent;
-      while (TmpCmp <> nil) and (TmpCmp <> Application) do
-      begin
-        OL.Add(TmpCmp);
-        if (TmpCmp is TCustomForm) then
-          Break;
-        TmpCmp := TmpCmp.Owner;
-      end;
-
-      q := TIBSQL.Create(nil);
-      try
+      if ATransaction <> nil then
+        Tr := ATransaction
+      else
         Tr := TIBTransaction.Create(nil);
-        try
-          Tr.DefaultDatabase := gdcBaseManager.Database;
+      try
+        Tr.DefaultDatabase := gdcBaseManager.Database;
+
+        if ATransaction = nil then
           Tr.StartTransaction;
-          //////////////////////////////////////////////////
-          if OL.Count > 0 then
-          begin
-            if TComponent(OL[OL.Count - 1]) is TCreateableForm then
-            begin
-              q.SQL.Text :=
-                'EXECUTE BLOCK '#13#10 +
-                '  (OBJECTNAME VARCHAR(255) = :OBJECTNAME) '#13#10 +
-                '  RETURNS (ADDED INTEGER, FIXED INTEGER, ID INTEGER) '#13#10 +
-                'AS '#13#10 +
-                '  DECLARE variable PARENT INTEGER; '#13#10 +
-                '  DECLARE variable LID INTEGER; '#13#10 +
-                '  DECLARE variable LPARENT INTEGER; '#13#10 +
-                'BEGIN '#13#10 +
-                '  ADDED = 0; '#13#10 +
-                '  FIXED = 0; '#13#10 +
-                '  ID = -1; '#13#10 +
-                '  FOR SELECT id, parent FROM evt_object WHERE UPPER(objectname) = UPPER(:OBJECTNAME) '#13#10 +
-                '    INTO :LID, :LPARENT DO '#13#10 +
-                '  BEGIN '#13#10 +
-                '    ID = LID; '#13#10 +
-                '    PARENT = LPARENT; '#13#10 +
-                '  END '#13#10 +
-                '  IF (ID < 0) THEN '#13#10 +
-                '  BEGIN '#13#10 +
-                '    ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
-                '    INSERT INTO evt_object '#13#10 +
-                '      (id, objectname, parent, achag, afull, aview) '#13#10 +
-                '      VALUES (:ID, :OBJECTNAME, NULL, -1, -1, -1); '#13#10 +
-                '    ADDED = 1; '#13#10 +
-                '  END '#13#10 +
-                '  ELSE '#13#10 +
-                '  BEGIN '#13#10 +
-                '    IF (PARENT IS NOT NULL) THEN '#13#10 +
-                '    BEGIN '#13#10 +
-                '      UPDATE evt_object SET parent = null  WHERE UPPER(objectname) = UPPER(:OBJECTNAME); '#13#10 +
-                '      FIXED = 1; '#13#10 +
-                '    END '#13#10 +
-                '  END '#13#10 +
-                '  Suspend; '#13#10 +
-                'END';
-            end
-            else
-            begin
-              q.SQL.Text :=
-                'EXECUTE BLOCK '#13#10 +
-                '  (OBJECTNAME VARCHAR(255) = :OBJECTNAME) '#13#10 +
-                '  RETURNS (ADDED INTEGER, ID INTEGER) '#13#10 +
-                'AS '#13#10 +
-                '  DECLARE variable LID INTEGER; '#13#10 +
-                'BEGIN '#13#10 +
-                '  ADDED = 0; '#13#10 +
-                '  ID = -1; '#13#10 +
-                '  FOR SELECT id, parent FROM evt_object WHERE UPPER(objectname) = UPPER(:OBJECTNAME) '#13#10 +
-                '    INTO :LID, :LPARENT DO '#13#10 +
-                '  BEGIN '#13#10 +
-                '    ID = LID; '#13#10 +
-                '  END '#13#10 +
-                '  IF (ID < 0) THEN '#13#10 +
-                '  BEGIN '#13#10 +
-                '    ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
-                '    INSERT INTO evt_object '#13#10 +
-                '      (id, objectname, parent, achag, afull, aview) '#13#10 +
-                '      VALUES (:ID, :OBJECTNAME, NULL, -1, -1, -1); '#13#10 +
-                '    ADDED = 1; '#13#10 +
-                '  END '#13#10 +
-                '  Suspend; '#13#10 +
-                'END';
-            end;
 
-            q.Params[0].AsString := TComponent(OL[OL.Count - 1]).Name;
-            q.ExecQuery;
+        Result := gdcBaseManager.GetNextID;
 
-            Assert(not q.Eof);
+        q.Transaction := Tr;
 
-            Added := q.FieldByName('added').AsInteger = 1;
-            Result := q.FieldByName('id').AsInteger;
-
-            if (TComponent(OL[OL.Count - 1]) is TCreateableForm)
-              and (q.FieldByName('fixed').AsInteger = 1) then
-            begin
-                /// тут вопли о перезагрузке
-            end;
-
-            for I := OL.Count - 2 downto 0 do
-            begin
-              q.SQL.Text :=
-                'EXECUTE BLOCK '#13#10 +
-                '  (OBJECTNAME VARCHAR(255) = :OBJECTNAME, PARENT INTEGER = :PARENT) '#13#10 +
-                '  RETURNS (ADDED INTEGER, RESULT INTEGER) '#13#10 +
-                'AS '#13#10 +
-                'BEGIN '#13#10 +
-                '  ADDED = 0; '#13#10 +
-                '  RESULT = -1; '#13#10 +
-                '  IF (NOT EXISTS(SELECT * FROM evt_object WHERE parent = :parent and UPPER(objectname) =  UPPER(:objectname))) THEN '#13#10 +
-                '  BEGIN '#13#10 +
-                '    RESULT = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
-                '    INSERT INTO evt_object '#13#10 +
-                '      (id, objectname, parent, achag, afull, aview) '#13#10 +
-                '        VALUES (:RESULT, :OBJECTNAME, :PARENT, -1, -1, -1); '#13#10 +
-                '    ADDED = 1; '#13#10 +
-                '  END '#13#10 +
-                '  Suspend; '#13#10 +
-                'END';
-
-              q.Close;
-              q.Params[0].AsString := TComponent(OL[I]).Name;
-              q.ExecQuery;
-
-              Assert(not q.Eof);
-
-              Added := q.FieldByName('added').AsInteger = 1;
-              if Added then
-                Result := q.FieldByName('id').AsInteger;
-            end;
-          end;
-          //////////////////////////////////////////////////
+        q.SQL.Text := 'INSERT INTO evt_object(id, objectname, parent, achag, afull, aview)' +
+          ' VALUES (:id, :objectname, :parent, :achag, :afull, :aview)';
+        q.ParamByName('id').AsInteger := Result;
+        q.ParamByName('objectname').AsString := AName;
+        q.ParamByName('parent').AsVariant := Parent;
+        q.ParamByName('AChag').AsInteger := -1;
+        q.ParamByName('AFull').AsInteger := -1;
+        q.ParamByName('AView').AsInteger := -1;
+        q.ExecQuery;
+        
+        if ATransaction = nil then
           Tr.Commit;
-        finally
-          Tr.Free;
-        end;
       finally
-        q.Free;
+        if ATransaction = nil then
+          Tr.Free;
       end;
     finally
-      OL.Free;
+      q.Free;
     end;
+  end;
 
-    if (Result <> 0) and Assigned(EventControl) and Added then
-      EventControl.LoadBranch(Result);
-  except
-    on E: Exception do
-    begin
-      MessageBox(0,
-        PChar('Ошибка создания обьекта ' + E.Message),
-        'Ошибка',
-        MB_OK or MB_ICONERROR or MB_TASKMODAL);
-      Result := 0;
+  function IterateOwner(C: TComponent; var ABranch: Integer): Integer;
+  var
+    q: TIBSQL;
+    Parent: Variant;
+    ObjectName: String;
+    Tr: TIBTransaction;
+  begin
+    Assert(C <> nil);
+    Assert(gdcBaseManager <> nil);
+
+    if (C.Owner <> nil) and (C.Owner <> Application) and (not (C is TCustomForm))then
+      Parent := IterateOwner(C.Owner, ABranch)
+    else
+      Parent := Null;
+
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      if C is TCreateableForm then
+      begin
+        ObjectName := TCreateableForm(C).InitialName;
+        q.SQL.Text :=
+          'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname ' +
+          '  AND parent IS NULL';
+        q.Params[0].AsString := AnsiUpperCase(ObjectName);
+        q.ExecQuery;
+        if q.Eof then
+        begin
+          q.Close;
+          q.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
+          q.Params[0].AsString := AnsiUpperCase(ObjectName);
+          q.ExecQuery;
+        end;
+      end
+      else
+      begin
+        q.SQL.Text := 'SELECT * FROM evt_object WHERE UPPER(objectname) = :objectname';
+        ObjectName := TComponent(C).Name;
+        q.Params[0].AsString := AnsiUpperCase(ObjectName);
+        q.ExecQuery;
+      end;
+
+      if q.Eof then
+      begin
+        Result := Insert(Parent, ObjectName);
+        ABranch := Result;
+      end
+      else
+      begin
+        Result := q.FieldByName('id').AsInteger;
+
+        if (C is TCreateableForm) and (not q.FieldByName(fnParent).IsNull) then
+        begin
+          //Для формы парент должен быть нул. Если это не так то
+          //исправляем и выдаем предупреждение
+          Tr := TIBTransaction.Create(nil);
+          try
+            Tr.DefaultDatabase := gdcBaseManager.Database;
+
+            Tr.StartTransaction;
+            q.Transaction := Tr;
+            q.Close;
+            q.SQL.Text := 'UPDATE evt_object SET parent = null WHERE id = :id';
+            q.Params[0].AsInteger := Result;
+            q.ExecQuery;
+            MessageBox(0,
+              'Обнаружена внутренняя ошибка в данных.'#13#10 +
+              'Для её исправления необходимо перезагрузить Гедымин.',
+              'Ошибка',
+              MB_OK or MB_ICONERROR or MB_TASKMODAL);
+            Tr.Commit;
+          finally
+            Tr.Free;
+          end;
+        end;
+      end;
+
+    finally
+      q.Free;
     end;
+  end;
+
+begin
+  Result := 0;
+
+  if AnComponent = Application then
+  begin
+    Result := OBJ_APPLICATION;
+    Exit;
+  end;
+
+  if (AnComponent <> nil) and (AnComponent.Name <> '') then
+  begin
+    Branch := 0;
+    Result := IterateOwner(AnComponent, Branch);
+
+    if (Branch > 0) and (EventControl <> nil) then
+      EventControl.LoadBranch(Branch);
   end;
 end;
 
@@ -579,131 +374,10 @@ begin
   FObjectType := Value;
 end;
 
-class function TgdcDelphiObject.AddClass(const gdcClass: TgdcFullClassName): Integer;
-var
-  I, K: Integer;
-  ReadSQL: TIBSQL;
-  TmpSubTypeList: TStrings;
-  FClArray: array of TgdcFullClassName;
-  TmpFullName: TgdcFullClassName;
-  gdcDelphiObject: TgdcDelphiObject;
-
-  function GetParentFullName(ChildFN: TgdcFullClassName): TgdcFullClassName;
-  var
-    CE: TgdClassEntry;
-  begin
-    Result.gdClassName := '';
-    Result.SubType := '';
-
-    CE := gdClassList.Find(ChildFN);
-
-    if CE = nil then
-      raise Exception.Create('Передан некорректный класс.');
-
-    if CE is TgdBaseEntry then
-    begin
-      if CE.Parent <> nil then
-      begin
-        Result.gdClassName := CE.Parent.TheClass.ClassName;
-        Result.SubType := CE.Parent.SubType;
-      end;
-    end
-    else if CE is TgdFormEntry then
-    begin
-      if CE.Parent <> nil then
-      begin
-        Result.gdClassName := CE.Parent.TheClass.ClassName;
-        Result.SubType := CE.Parent.SubType;
-      end;
-    end;
-  end;
-
-  function GetClassID(ClFullName: TgdcFullClassName): Integer;
-  begin
-    Result := -1;
-    if ReadSQL.Open then
-      ReadSQL.Close;
-    ReadSQL.ParamByName('classname').AsString := ClFullName.gdClassName;
-    ReadSQL.ParamByName('subtype').AsString := ClFullName.SubType;
-    ReadSQL.ExecQuery;
-    if not ReadSQL.Eof then
-    begin
-      Result := ReadSQL.FieldByName('id').AsInteger;
-    end;
-    ReadSQL.Close;
-  end;
-
-  function InsertClass(const Parent: Integer;
-    InsFullName: TgdcFullClassName): Integer;
-  begin
-    if not gdcDelphiObject.Active then gdcDelphiObject.Open;
-    gdcDelphiObject.Insert;
-    try
-      gdcDelphiObject.FieldByName(fnClassName).AsString := InsFullName.gdClassName;
-      gdcDelphiObject.FieldByName(fnSubType).AsString := InsFullName.Subtype;
-      if Parent = -1 then
-        gdcDelphiObject.FieldByName(fnParent).Clear
-      else
-        gdcDelphiObject.FieldByName(fnParent).Value := Parent;
-      gdcDelphiObject.Post;
-    except
-      gdcDelphiObject.Cancel;
-      raise;
-    end;
-    Result := gdcDelphiObject.ID;
-  end;
-
-begin
-  ReadSQL := TIBSQL.Create(nil);
-  try
-    ReadSQL.Transaction := gdcBaseManager.ReadTransaction;
-    ReadSQL.SQL.Text :=
-      'SELECT * FROM evt_object WHERE classname = :classname and subtype = :subtype';
-    TmpSubTypeList := TStringList.Create;
-    try
-      Result := GetClassID(gdcClass);
-      if Result > -1 then
-        Exit;
-
-      SetLength(FClArray, 1);
-      FClArray[0] := gdcClass;
-      I := -1;
-      TmpFullName := GetParentFullName(gdcClass);
-      while (I = -1) and (Length(Trim(TmpFullName.gdClassName)) > 0) do
-      begin
-        I := GetClassID(TmpFullName);
-        if I = -1 then
-        begin
-          SetLength(FClArray, Length(FClArray) + 1);
-          FClArray[Length(FClArray) - 1] := TmpFullName;
-          TmpFullName := GetParentFullName(TmpFullName);
-        end;
-      end;
-
-      gdcDelphiObject := TgdcDelphiObject.Create(nil);
-      try
-      for K := Length(FClArray) - 1 downto 0 do
-        begin
-          TmpFullName := FClArray[K];
-          I := InsertClass(I, TmpFullName);
-        end;
-      finally
-        gdcDelphiObject.Free;
-      end;
-      Result := GetClassID(gdcClass);
-
-    finally
-      TmpSubTypeList.Free;
-    end;
-  finally
-    ReadSQL.Free;
-  end;
-end;
-
 class function TgdcDelphiObject.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'Tgdc_frmDelphiObject'
+  Result := 'Tgdc_frmDelphiObject';
 end;
 
 initialization
