@@ -70,6 +70,9 @@ begin
     cbDisplaceSaldo.Checked := C.DisplaceSaldo;
     cbSubAccountsInMain.Checked := C.SubAccountsInMain;
     cbOnlyAccounts.Checked := C.OnlyAccounts;
+
+    cbDisplaceSaldo.Enabled := cbSubAccountsInMain.Checked;
+    cbOnlyAccounts.Enabled := cbSubAccountsInMain.Checked;
   end;
 end;
 
@@ -94,6 +97,7 @@ procedure TdlgAcctCirculationList.cbSubAccountsInMainClick(
   Sender: TObject);
 begin
   cbDisplaceSaldo.Enabled:= cbSubAccountsInMain.Checked;
+  cbOnlyAccounts.Enabled:= cbSubAccountsInMain.Checked;
 end;
 
 initialization

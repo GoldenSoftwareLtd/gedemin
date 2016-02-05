@@ -67,7 +67,7 @@ inherited dlgAcctCirculationList: TdlgAcctCirculationList
         OnClick = cbSubAccountsInMainClick
       end
       object cbDisplaceSaldo: TCheckBox
-        Left = 344
+        Left = 356
         Top = 64
         Width = 141
         Height = 17
@@ -75,7 +75,7 @@ inherited dlgAcctCirculationList: TdlgAcctCirculationList
         TabOrder = 12
       end
       object cbOnlyAccounts: TCheckBox
-        Left = 344
+        Left = 356
         Top = 80
         Width = 177
         Height = 17

@@ -104,6 +104,9 @@ begin
   gdcAcctChart.Open;
     
   UpdateControls;
+
+  cbDisplaceSaldo.Enabled := cbSubAccount.Checked;
+  cbOnlyAccounts.Enabled := cbSubAccount.Checked;
 end;
 
 procedure Tgdv_frmAcctCirculationList.LoadSettings;
@@ -337,6 +340,9 @@ begin
     cbSubAccount.Checked := C.SubAccountsInMain;
     cbDisplaceSaldo.Checked := C.DisplaceSaldo;
     cbOnlyAccounts.Checked := C.OnlyAccounts;
+
+    cbDisplaceSaldo.Enabled := cbSubAccount.Checked;
+    cbOnlyAccounts.Enabled := cbSubAccount.Checked;
   end;
 end;
 
@@ -458,6 +464,7 @@ procedure Tgdv_frmAcctCirculationList.cbSubAccountClick(Sender: TObject);
 begin
   inherited;
   cbDisplaceSaldo.Enabled := cbSubAccount.Checked;
+  cbOnlyAccounts.Enabled := cbSubAccount.Checked;
 end;
 
 function Tgdv_frmAcctCirculationList.GetGdvObject: TgdvAcctBase;
@@ -725,40 +732,33 @@ begin
         q.Free;
       end;
       ibgrMain.OnGetTotal := ibgrMainGetTotal;
-    finally
-      gdvObject.First;
-      gdvObject.EnableControls;
-    end;
-  end;
 
-  if not FMakeEmpty and cbOnlyAccounts.Checked then
-  begin
-    gdvObject.DisableControls;
-    try
-      gdvObject.First;
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := gdcBaseManager.ReadTransaction;
-        q.SQL.Text := 'SELECT * FROM ac_account a WHERE a.id = :id AND a.accounttype = ''A''';
-        while not gdvObject.Eof do
-        begin
-          q.Close;
-          q.ParamByName('id').AsInteger:= gdvObject.FieldByName('id').AsInteger;
-          q.ExecQuery;
-          if q.Eof then
-            gdvObject.Delete
-          else
-            gdvObject.Next;
+      if cbOnlyAccounts.Checked then
+      begin
+        gdvObject.First;
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := gdcBaseManager.ReadTransaction;
+          q.SQL.Text := 'SELECT * FROM ac_account a WHERE a.id = :id AND a.accounttype = ''A''';
+          while not gdvObject.Eof do
+          begin
+            q.Close;
+            q.ParamByName('id').AsInteger:= gdvObject.FieldByName('id').AsInteger;
+            q.ExecQuery;
+            if q.Eof then
+              gdvObject.Delete
+            else
+              gdvObject.Next;
+          end;
+        finally
+          q.Free;
         end;
-      finally
-        q.Free;
       end;
     finally
       gdvObject.First;
       gdvObject.EnableControls;
     end;
   end;
-
 end;
 
 procedure Tgdv_frmAcctCirculationList.actGotoLedgerUpdate(Sender: TObject);

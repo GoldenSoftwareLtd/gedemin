@@ -1,6 +1,6 @@
 inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
-  Left = 190
-  Top = 241
+  Left = 401
+  Top = 225
   Width = 1058
   Height = 629
   HelpContext = 159
@@ -111,7 +111,7 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
           TabOrder = 4
         end
         object cbOnlyAccounts: TCheckBox
-          Left = 8
+          Left = 20
           Top = 64
           Width = 153
           Height = 17
