@@ -3371,7 +3371,7 @@ begin
                     q.ParamByName('id').AsInteger := iID;
                     q.ParamByName('objectname').AsString := FChangedEventList[i].Comp.Name;
                     q.ParamByName('name').AsString:= FChangedEventList[i].Comp.Name;
-                    q.ParamByName('parent').AsVariant := EvtObj.ObjectKey;
+                    q.ParamByName('parent').AsInteger := EvtObj.ObjectKey;
                     q.ParamByName('achag').AsInteger := -1;
                     q.ParamByName('afull').AsInteger := -1;
                     q.ParamByName('aview').AsInteger := -1;
@@ -3413,7 +3413,7 @@ begin
                   if not q.Eof then
                   begin
                     q.Close;
-                    q.SQL.Text:= 'UPDATE evt_object SET functionkey = :functionkey WHERE objectkey = :objectkey AND eventname = :eventname';
+                    q.SQL.Text:= 'UPDATE evt_objectevent SET functionkey = :functionkey WHERE objectkey = :objectkey AND eventname = :eventname';
                     q.ParamByName('functionkey').AsInteger := FChangedEventList[i].NewFunctionID;
                     q.ParamByName('objectkey').AsInteger := iID;
                     q.ParamByName('eventname').AsString := AnsiUpperCase(FChangedEventList[i].EventName);

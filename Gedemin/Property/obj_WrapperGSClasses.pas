@@ -8452,7 +8452,7 @@ end;
 function TwrpGdcDelphiObject.AddObject(
   const AComponent: IgsComponent): Integer;
 begin
-  Result := GetGdcDelphiObject.AddObject(InterfaceToObject(AComponent) as TComponent);
+  Result := TgdcDelphiObject.AddObject(InterfaceToObject(AComponent) as TComponent);
 end;
 
 function TwrpGdcDelphiObject.GetGdcDelphiObject: TgdcDelphiObject;
