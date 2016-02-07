@@ -1257,23 +1257,32 @@ begin
           '  DECLARE VARIABLE RUID VARCHAR(21); '#13#10 +
           '  DECLARE VARIABLE XID INTEGER; '#13#10 +
           '  DECLARE VARIABLE DBID INTEGER; '#13#10 +
+          '  DECLARE VARIABLE DOC_XID INTEGER; '#13#10 +
+          '  DECLARE VARIABLE DOC_DBID INTEGER; '#13#10 +
           '  DECLARE VARIABLE P INTEGER; '#13#10 +
+          '  DECLARE VARIABLE ID INTEGER; '#13#10 +
           'BEGIN '#13#10 +
           '  FOR '#13#10 +
           '    SELECT '#13#10 +
-          '      t.ruid, r.xid, r.dbid '#13#10 +
+          '      t.id, t.ruid, r.xid, r.dbid '#13#10 +
           '    FROM gd_documenttype t JOIN gd_ruid r '#13#10 +
           '      ON r.id = t.id '#13#10 +
           '    WHERE '#13#10 +
           '      t.ruid <> r.xid || ''_'' || r.dbid '#13#10 +
+          '      AND POSITION(''_'' IN t.ruid) > 0 '#13#10 +
           '    INTO '#13#10 +
-          '      :RUID, :XID, :DBID '#13#10 +
+          '      :ID, :RUID, :XID, :DBID '#13#10 +
           '  DO BEGIN '#13#10 +
           '    P = POSITION(''_'' IN :RUID); '#13#10 +
-          '    UPDATE gd_ruid SET xid = LEFT(:RUID, :P - 1), '#13#10 +
-          '      dbid = RIGHT(:RUID, CHARACTER_LENGTH(:RUID) - :P) '#13#10 +
+          '    DOC_XID = LEFT(:RUID, :P - 1); '#13#10 +
+          '    DOC_DBID = RIGHT(:RUID, CHARACTER_LENGTH(:RUID) - :P); '#13#10 +
+          ''#13#10 +
+          '    DELETE FROM gd_ruid WHERE id <> :ID '#13#10 +
+          '      AND xid = :DOC_XID AND dbid = :DOC_DBID;'#13#10 +
+          '    UPDATE gd_ruid SET xid = :DOC_XID, '#13#10 +
+          '      dbid = :DOC_DBID '#13#10 +
           '    WHERE '#13#10 +
-          '      xid = :XID AND dbid = :DBID; '#13#10 +
+          '      id = :ID; '#13#10 +
           '  END '#13#10 +
           'END';
         FIBSQL.ExecQuery;

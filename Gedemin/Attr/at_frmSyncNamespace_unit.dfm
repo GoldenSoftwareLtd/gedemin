@@ -556,6 +556,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object actOnlyCompare: TAction
       Caption = '<-- Сравнить -->'
       Hint = 'Сравнить с файлом'
+      ShortCut = 16498
       OnExecute = actOnlyCompareExecute
       OnUpdate = actOnlyCompareUpdate
     end

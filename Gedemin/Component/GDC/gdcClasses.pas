@@ -2817,40 +2817,57 @@ begin
 
   if Process <> cpDelete then
   begin
-    {ѕри загрузке из потока не будем трогать нумерацию}
-    if not (sLoadFromStream in BaseState) then
-    begin
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := Transaction;
-        q.SQL.Text := cst_sql_GetLastNumber;
-        q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
-        q.ParamByName('dtk').AsInteger := ID;
-        q.ExecQuery;
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := Transaction;
+      q.SQL.Text := cst_sql_GetLastNumber;
+      q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
+      q.ParamByName('dtk').AsInteger := ID;
+      q.ExecQuery;
 
-        if q.EOF then
-        begin
+      if q.EOF then
+      begin
         //Ќумераци€ не задана
         //ƒобавим запись в нумерацию, использу€ самый распространенный алгоритм дл€
         //нумерации (числова€ с приростом 1)
-          q.Close;
-          q.SQL.Text := cst_sql_InsertLastNumber;
-          q.ParamByName('lastnumber').AsInteger := FieldByName('lastnumber').AsInteger;
-          q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
-          q.ParamByName('dtk').AsInteger := ID;
-          if FieldByName('mask').AsString = '' then
+        q.Close;
+        q.SQL.Text := cst_sql_InsertLastNumber;
+        q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
+        q.ParamByName('dtk').AsInteger := ID;
+        q.ParamByName('lastnumber').AsInteger := FieldByName('lastnumber').AsInteger;
+
+        if not (sLoadFromStream in BaseState) then
+        begin
+          if FieldByName('mask').IsNull then
             q.ParamByName('mask').AsString := NumerationVars[0]
           else
             q.ParamByName('mask').AsString := FieldByName('mask').AsString;
-          q.ParamByName('addnumber').AsInteger := 1;
-          if FieldByName('fixlength').AsInteger <= 0 then
-            q.ParamByName('fixlength').Clear
+          if FieldbyName('addnumber').IsNull then
+            q.ParamByName('addnumber').AsInteger := 1
           else
-            q.ParamByName('fixlength').AsInteger := FieldByName('fixlength').AsInteger;
-          q.ExecQuery;
+            q.ParamByName('addnumber').AsInteger := FieldByName('addnumber').AsInteger;
         end else
         begin
-          //Ќумераци€ задана и это не загрузка из потока
+          if FieldByName('mask').IsNull then
+            q.ParamByName('mask').Clear
+          else
+            q.ParamByName('mask').AsString := FieldByName('mask').AsString;
+          if FieldbyName('addnumber').IsNull then
+            q.ParamByName('addnumber').Clear
+          else
+            q.ParamByName('addnumber').AsInteger := FieldByName('addnumber').AsInteger;
+        end;
+
+        if FieldByName('fixlength').AsInteger <= 0 then
+          q.ParamByName('fixlength').Clear
+        else
+          q.ParamByName('fixlength').AsInteger := FieldByName('fixlength').AsInteger;
+        q.ExecQuery;
+      end else
+      begin
+        //Ќумераци€ задана и это не загрузка из потока
+        if not (sLoadFromStream in BaseState) then
+        begin
           q.Close;
           q.SQL.Text := cst_sql_UpdateLastNumber;
           q.ParamByName('lastnumber').AsInteger := FieldByName('lastnumber').AsInteger;
@@ -2865,9 +2882,9 @@ begin
             q.ParamByName('fixlength').AsInteger := FieldByName('fixlength').AsInteger;
           q.ExecQuery;
         end;
-      finally
-        q.Free;
       end;
+    finally
+      q.Free;
     end;
   end;
 

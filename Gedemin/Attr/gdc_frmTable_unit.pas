@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001-2015 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -53,7 +52,6 @@ type
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     procedure RemoveSubSetList(S: TStrings); override;
-
   end;
 
 var
@@ -65,7 +63,8 @@ implementation
 
 uses
   gdcBaseInterface,           at_classes,             gd_ClassList,
-  gd_security,                flt_frmSQLEditorSyn_unit
+  gd_security,                flt_frmSQLEditorSyn_unit,
+  ContNrs,                    gd_dlgClassList_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -90,26 +89,53 @@ end;
 
 procedure Tgdc_frmTable.actOpenTableExecute(Sender: TObject);
 var
-  C: TgdcFullClass;
   F: TForm;
+  OL: TObjectList;
+  BE: TgdBaseEntry;
+  CE: TgdClassEntry;
 begin
-  C := GetBaseClassForRelation(gdcObject.FieldByName('relationname').AsString);
-  if Assigned(C.gdClass) then
+  OL := TObjectList.Create(False);
+  try
+    gdClassList.FindByRelation2(gdcObject.FieldByName('relationname').AsString, OL);
+
+    if OL.Count = 1 then
+      BE := OL[0] as TgdBaseEntry
+    else if OL.Count > 1 then
+    begin
+      with Tgd_dlgClassList.Create(Self) do
+      try
+        CE := SelectModal(gdcObject.FieldByName('relationname').AsString);
+        if CE is TgdBaseEntry then
+          BE := CE as TgdBaseEntry
+        else
+          BE := nil;
+      finally
+        Free;
+      end;
+    end else
+    begin
+      BE := nil;
+      MessageBox(Handle,
+        'Данная таблица не является базовой для бизнес-класса.',
+        'Внимание',
+        MB_OK or MB_ICONINFORMATION);
+    end;
+  finally
+    OL.Free;
+  end;
+
+  if BE <> nil then
   begin
-    F := C.gdClass.CreateViewForm(Application, '', C.SubType, True);
+    F := BE.gdcClass.CreateViewForm(Application, '', BE.SubType, True);
     if Assigned(F) then
       F.Show
     else
       MessageBox(Handle,
         PChar(Format('Для класса %s и подтипа "%s" не определена форма просмотра.',
-          [C.gdClass.ClassName, C.SubType])),
+          [BE.TheClass.ClassName, BE.SubType])),
         'Внимание',
         MB_OK or MB_ICONINFORMATION);
-  end else
-    MessageBox(Handle,
-      'Данная таблица не является базовой для бизнес-класса.',
-      'Внимание',
-      MB_OK or MB_ICONINFORMATION);
+  end;
 end;
 
 procedure Tgdc_frmTable.actOpenTableUpdate(Sender: TObject);

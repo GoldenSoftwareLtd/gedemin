@@ -47,7 +47,8 @@ type
 
   public
     function SelectModal(const AFilter: String;
-      var AFullClass: TgdcFullClassName): Boolean;
+      var AFullClass: TgdcFullClassName): Boolean; overload;
+    function SelectModal(const AFilter: String): TgdClassEntry; overload;
   end;
 
 var
@@ -87,7 +88,8 @@ begin
         (StrIPos(edFilter.Text, CE.SubType) > 0)
       )
       or (StrIPos(edFilter.Text, CE.gdcClass.GetDisplayName(CE.SubType)) > 0)
-      or (StrIPos(edFilter.Text, CE.gdcClass.GetListTable(CE.SubType)) > 0) then
+      or (StrIPos(edFilter.Text, CE.gdcClass.GetListTable(CE.SubType)) > 0)
+      or (StrIPos(edFilter.Text, CE.DistinctRelation) > 0) then
     begin
       LI := lvClasses.Items.Add;
       LI.Caption := CE.TheClass.ClassName;
@@ -219,6 +221,16 @@ end;
 procedure Tgd_dlgClassList.lvClassesDblClick(Sender: TObject);
 begin
   actOk.Execute;
+end;
+
+function Tgd_dlgClassList.SelectModal(const AFilter: String): TgdClassEntry;
+var
+  FC: TgdcFullClassName;
+begin
+  if SelectModal(AFilter, FC) then
+    Result := gdClassList.Find(FC.gdClassName, FC.SubType)
+  else
+    Result := nil;
 end;
 
 end.

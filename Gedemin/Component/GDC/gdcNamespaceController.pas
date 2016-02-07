@@ -41,6 +41,7 @@ type
     procedure ChangeProp;
     procedure PickOut;
     function GetEnabled: Boolean;
+    function AddTab(const ATabName: String; var ASessionID: Integer): Integer;
 
   public
     constructor Create;
@@ -99,6 +100,21 @@ begin
   finally
     Obj.Free;
   end;
+end;
+
+function TgdcNamespaceController.AddTab(const ATabName: String;
+  var ASessionID: Integer): Integer;
+var
+  I: Integer;
+begin
+  I := FTabs.IndexOf(ATabName);
+  if I = -1 then
+  begin
+    Inc(ASessionID);
+    FTabs.AddObject(ATabName, Pointer(ASessionID));
+  end else
+    ASessionID := Integer(FTabs.Objects[I]);
+  Result := ASessionID;
 end;
 
 procedure TgdcNamespaceController.AddToNamespace;
@@ -1080,17 +1096,11 @@ var
     if FgdcObject is TgdcDocument then
     begin
       if (FgdcObject as TgdcDocument).GetDocumentClassPart = dcpHeader then
-      begin
-        Inc(SessionID2);
-        FTabs.AddObject('Позиции документа', Pointer(SessionID2));
-        AddDocumentLines(FgdcObject.ID, SessionID2);
-      end;
+        AddDocumentLines(FgdcObject.ID, AddTab('Позиции документа', SessionID2));
     end
     else if FgdcObject is TgdcRelation then
     begin
-      Inc(SessionID2);
-      FTabs.AddObject('Поля', Pointer(SessionID2));
-      AddObjects(TgdcRelationField, SessionID2, IntToStr(FgdcObject.ID),
+      AddObjects(TgdcRelationField, AddTab('Поля', SessionID2), IntToStr(FgdcObject.ID),
         'SELECT '#13#10 +
         '  rf.id '#13#10 +
         'FROM '#13#10 +
@@ -1098,9 +1108,7 @@ var
         'WHERE '#13#10 +
         '  rf.fieldname LIKE ''USR$%'' AND rf.relationkey = :N');
 
-      Inc(SessionID2);
-      FTabs.AddObject('Хранилище', Pointer(SessionID2));
-      AddObjects(TgdcStorage, SessionID2,
+      AddObjects(TgdcStorage, AddTab('Хранилище', SessionID2),
         StringReplace(FgdcObject.FieldByName('relationname').AsString, 'USR$', 'USR_', []),
         'SELECT '#13#10 +
         '  v.id '#13#10 +
@@ -1134,9 +1142,7 @@ var
         '  glbl.name = ''GLOBAL'' AND glbl.data_type = ''G'' '#13#10 +
         '  AND v.name = :N AND v.data_type = ''B'' ');
 
-      Inc(SessionID2);
-      FTabs.AddObject('Скрипт-объекты', Pointer(SessionID2));
-      AddObjects(TgdcEvent, SessionID2,
+      AddObjects(TgdcEvent, AddTab('Скрипт-объекты', SessionID2),
         StringReplace(FgdcObject.FieldByName('relationname').AsString, 'USR$', 'USR_', []),
         'SELECT '#13#10 +
         '  ev.id '#13#10 +
@@ -1215,9 +1221,8 @@ var
         '  AND '#13#10 +
         '  parent IS NULL');
 
-      Inc(SessionID2);
-      FTabs.AddObject('Отчеты', Pointer(SessionID2));
-      AddObjects(TgdcReport, SessionID2, FgdcObject.FieldByName('relationname').AsString,
+      AddObjects(TgdcReport, AddTab('Отчеты', SessionID2),
+        FgdcObject.FieldByName('relationname').AsString,
         'SELECT '#13#10 +
         '  l.id '#13#10 +
         'FROM '#13#10 +
@@ -1254,9 +1259,8 @@ var
     begin
       IgnoreFields := 'HEADERRELKEY;LINERELKEY';
 
-      Inc(SessionID2);
-      FTabs.AddObject('Хранилище', Pointer(SessionID2));
-      AddObjects(TgdcStorage, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+      AddObjects(TgdcStorage, AddTab('Хранилище', SessionID2),
+        RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
         '  v.id '#13#10 +
         'FROM '#13#10 +
@@ -1288,9 +1292,8 @@ var
         '  AND v.name = ''data'' '#13#10 +
         '  AND v.data_type = ''B''');
 
-      Inc(SessionID2);
-      FTabs.AddObject('Скрипт-объекты', Pointer(SessionID2));
-      AddObjects(TgdcEvent, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+      AddObjects(TgdcEvent, AddTab('Скрипт-объекты', SessionID2),
+        RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
         '  ev.id '#13#10 +
         'FROM '#13#10 +
@@ -1374,9 +1377,8 @@ var
         '  AND '#13#10 +
         '  parent IS NULL');
 
-      Inc(SessionID2);
-      FTabs.AddObject('Отчеты', Pointer(SessionID2));
-      AddObjects(TgdcReport, SessionID2, RUIDToStr(FgdcObject.GetRUID), 
+      AddObjects(TgdcReport, AddTab('Отчеты', SessionID2),
+        RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
         '  l.id '#13#10 +
         'FROM '#13#10 +
@@ -1417,9 +1419,8 @@ var
         'WHERE '#13#10 +
         '  dt.ruid = :N');
 
-      Inc(SessionID2);
-      FTabs.AddObject('Параметры документа', Pointer(SessionID2));
-      AddObjects(TgdcInvDocumentTypeOptions, SessionID2, RUIDToStr(FgdcObject.GetRUID),
+      AddObjects(TgdcInvDocumentTypeOptions, AddTab('Параметры документа', SessionID2),
+        RUIDToStr(FgdcObject.GetRUID),
         'SELECT '#13#10 +
         '  o.id '#13#10 +
         'FROM '#13#10 +
@@ -1492,10 +1493,8 @@ var
               OneToOneObj.Open;
               if not OneToOneObj.EOF then
               begin
-                Inc(SessionID2);
-                FTabs.AddObject(OneToOneObj.GetDisplayName(OneToOneObj.SubType),
-                  Pointer(SessionID2));
-                GetDep(OneToOneObj, SessionID2, False, LimitLevel, 'ID');
+                GetDep(OneToOneObj, AddTab(OneToOneObj.GetDisplayName(OneToOneObj.SubType),
+                  SessionID2), False, LimitLevel, 'ID');
               end;
             finally
               OneToOneObj.Free;
@@ -1613,9 +1612,6 @@ begin
       end;
       q.Next;
     end;
-
-    if (FPrevNSID > 0) and (q.RecordCount <> FMultipleObjects) then
-      FInconsistentParams := True;
 
     if FMultipleNS or FInconsistentParams then
     begin

@@ -595,6 +595,7 @@ type
     function FindDocByRUID(const ARUID: String; const APart: TgdcDocumentClassPart;
       const AnUpdate: Boolean = False): TgdDocumentEntry;
     function FindByRelation(const ARelationName: String): TgdBaseEntry;
+    procedure FindByRelation2(const ARelationName: String; OL: TObjectList);
 
     function Get(const AClass: CgdClassEntry; const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry;
 
@@ -2766,7 +2767,7 @@ begin
     if (CE <> nil) and (ARelationName > '') then
       Iterate(CE, Result);
     if Result <> nil then
-      FFindByRelationCache.AddObject(ARelationName, Result);  
+      FFindByRelationCache.AddObject(ARelationName, Result);
   end else
     Result := FFindByRelationCache.Objects[I] as TgdBaseEntry;
 end;
@@ -2892,6 +2893,31 @@ end;
 procedure TgdClassList.CreateFormSubTypes;
 begin
   Get(TgdBaseEntry, 'TgdcBase', '').Traverse(_CreateFormSubTypes, nil, nil, False, False);
+end;
+
+procedure TgdClassList.FindByRelation2(const ARelationName: String;
+  OL: TObjectList);
+
+  function Iterate(ACE: TgdBaseEntry): Boolean;
+  var
+    I: Integer;
+  begin
+    if CompareText(ARelationName, ACE.DistinctRelation) = 0 then
+      OL.Add(ACE);
+
+    for I := 0 to ACE.Count - 1 do
+      Iterate(ACE.Children[I] as TgdBaseEntry);
+
+    Result := True;  
+  end;
+
+var
+  CE: TgdBaseEntry;
+begin
+  Assert((OL is TObjectList) and (not OL.OwnsObjects));
+  CE := Find('TgdcBase') as TgdBaseEntry;
+  if (CE <> nil) and (ARelationName > '') then
+    Iterate(CE);
 end;
 
 { TgdDocumentEntry }

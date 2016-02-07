@@ -231,23 +231,6 @@ BEGIN
     WHERE id = OLD.messagekey;
 END
 ^
-/*
-CREATE TRIGGER msg_au_message FOR msg_message
-  BEFORE UPDATE
-  POSITION 1000
-AS
-BEGIN
-  IF (NEW.attachmentcount IS NULL) THEN
-  BEGIN
-    NEW.attachmentcount = 0;
-    SELECT COUNT(*) FROM msg_attachment
-      WHERE messagekey=NEW.id
-      INTO NEW.attachmentcount;
-  END
-END
-^
-*/
-
 
 SET TERM ; ^
 
@@ -340,3 +323,57 @@ END
 SET TERM ; ^
 
 COMMIT;
+
+/*
+
+CREATE TABLE msg_feedback (
+  id              dintkey,
+  
+  msgstate        dinteger NOT NULL,
+  
+  msgtype         dinteger NOT NULL,
+  subject
+  msgbody
+  rating          dinteger,
+  
+  prevkey
+  
+  companyname     dname,
+  companyid       druid,
+  
+  contactkey      dforeignkey, 
+  contactid       druid,
+  contactname     dname,
+  contactphone    dphone,
+  
+  userkey         dforeignkey,
+  username        dname,
+  
+  callback        dboolean_notnull,
+  
+  toname
+  toid
+  
+  hostname        dname,
+  
+  posted
+  sent
+  
+  creationdate
+  creatorkey
+  
+  editiondate
+  editorkey
+  
+  CONSTRAINT msg_pk_feedback PRIMARY KEY (id),
+  CONSTRAINT msg_fk_feedback_contactkey FOREIGN KEY (contactkey)
+    REFERENCES gd_contact (id)
+    ON UPDATE CASCADE,
+  CONSTRAINT msg_fk_feedback_userkey FOREIGN KEY (userkey)
+    REFERENCES gd_user (id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL,
+  CONSTRAINT msg_chk_feedback_rating CHECK (rating BETWEEN 0 AND 10)    
+);
+
+*/

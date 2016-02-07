@@ -369,6 +369,10 @@ begin
       if F.FieldKind <> fkData then
         continue;
 
+      // поля, которые вычисляются прямо в запросе
+      if F.Origin = '' then
+        continue;
+
       if SkipField(F.FieldName) then
         continue;
 
@@ -1569,7 +1573,7 @@ const
     ';RDB$PROCEDURE_NAME;RDB$PROCEDURE_ID;RDB$PROCEDURE_INPUTS;RDB$PROCEDURE_OUTPUTS' +
     ';RDB$PROCEDURE_OUTPUTS;RDB$PROCEDURE_SOURCE;RDB$OWNER_NAME;RDB$RUNTIME' +
     ';RDB$SYSTEM_FLAG;RDB$INDEX_ID;LASTNUMBER;READCOUNT;' +
-    ';FROMCARDKEY;TOCARDKEY;PRINTDATE;';
+    ';FROMCARDKEY;TOCARDKEY;PRINTDATE;EXCEPTIONNUMBER;';
 begin
   Result := (StrIPos(AFieldName, PassFieldName) > 0) and
     (StrIPos(';' + AFieldName + ';', PassFieldName) > 0);

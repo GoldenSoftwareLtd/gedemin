@@ -7,6 +7,7 @@ inherited gdc_frmTable: Tgdc_frmTable
   TextHeight = 13
   inherited TBDockTop: TTBDock
     inherited tbMainCustom: TTBToolbar
+      Left = 510
       Images = dmImages.il16x16
       object TBItem3: TTBItem
         Action = actMainToSetting

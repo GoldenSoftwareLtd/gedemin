@@ -5080,7 +5080,9 @@ begin
       end;
     end;
 
-    BE := gdClassList.Get(TgdBaseEntry, ClassName, SubType) as TgdBaseEntry;
+    BE := gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType) as TgdBaseEntry;
+    if BE.GroupID <> Self.GroupID then
+      BE.GroupID := Self.GroupID;
     ClassRootID := BE.GroupID;
     IterateClasses(BE);
 

@@ -130,7 +130,6 @@ object dlgToNamespace: TdlgToNamespace
         Font.Height = -11
         Font.Name = 'Tahoma'
         Font.Style = []
-        SelectedColor = clActiveCaption
         Tabs.Strings = (
           'Зависимости'
           'Дополнительные')
@@ -175,7 +174,7 @@ object dlgToNamespace: TdlgToNamespace
           Height = 44
           Align = alClient
           BorderStyle = bsNone
-          Color = clActiveCaption
+          Color = clBtnFace
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
