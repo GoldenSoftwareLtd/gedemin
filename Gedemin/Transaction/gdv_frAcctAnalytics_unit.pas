@@ -29,7 +29,7 @@ type
     procedure SetValues(const Value: string);
     procedure ClearValues;
     function IndexOf(FieldName: string): Integer;
-    function GetCondition: string;
+    //function GetCondition: string;
     procedure SetOnValueChange(const Value: TNotifyEvent);
     procedure OnFrameResize(Sender: TObject);
     function GetDescription: String;
@@ -45,7 +45,7 @@ type
 
     property Alias:  string read FAlias write SetAlias;
     property Values: string read GetValues write SetValues;
-    property Condition: string read GetCondition;
+    //property Condition: string read GetCondition;
     property OnValueChange: TNotifyEvent read FOnValueChange write SetOnValueChange;
     property NeedNull: Boolean read FNeedNull write FNeedNull;
     property NeedSet: Boolean read FNeedSet write FNeedSet;
@@ -92,7 +92,7 @@ begin
     Result := FAnalyticsLineList.Count;
 end;
 
-function TfrAcctAnalytics.GetCondition: string;
+{function TfrAcctAnalytics.GetCondition: string;
 var
   I: Integer;
   Line: TfrAcctAnalyticLine;
@@ -120,7 +120,7 @@ begin
       end;
     end;
   end;
-end;
+end;}
 
 function TfrAcctAnalytics.GetValues: string;
 var
@@ -260,11 +260,7 @@ begin
   if FAnalyticsFieldList = nil then
   begin
     FAnalyticsFieldList := TList.Create;
-    // пока ограничения для карты счета и анализа счета
-    if (Owner.ClassName = 'Tgdv_frmAcctAccReview') or (Owner.ClassName = 'Tgdv_frmAcctAccCard') then
-      GetAnalyticsFields2(FAnalyticsFieldList)
-    else
-      GetAnalyticsFields(FAnalyticsFieldList);
+    GetAnalyticsFields(FAnalyticsFieldList);
   end;
 
   NeedNull:= ANeedNull;

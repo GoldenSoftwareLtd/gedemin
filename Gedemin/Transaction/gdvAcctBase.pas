@@ -131,7 +131,8 @@ type
     procedure DoAfterBuildReport; virtual;
 
     function GetNameAlias(Name: String): String;
-    function GetCondition(Alias: String): String; virtual;
+
+    function GetIsDocTypeCondition: Boolean;
 
     procedure FillSubAccounts(var AccountArray: TgdKeyArray); virtual;
     procedure SetDefaultParams; virtual;
@@ -172,6 +173,8 @@ type
     function ParamByName(Idx: String): TIBXSQLVAR;
 
     function InternalMovementClause(TableAlias: String = 'e'): string; virtual;
+    function GetCondition(Alias: String): String;
+    function GetJoinTableClause(const Alias: String): String;
 
     property Accounts: TgdKeyArray read FAccounts;
     property CorrAccounts: TgdKeyArray read FCorrAccounts;
@@ -187,6 +190,7 @@ type
     property IncludeInternalMovement: Boolean read FIncludeInternalMovement write FIncludeInternalMovement;
     property ShowExtendedFields: Boolean read FShowExtendedFields write FShowExtendedFields;
     property UseEntryBalance: Boolean read FUseEntryBalance write SetUseEntryBalance;
+    property IsDocTypeCondition : Boolean read GetIsDocTypeCondition;
 
   published
     { TIBCustomDataSet }
@@ -429,6 +433,9 @@ begin
   if FUseEntryBalance and (FAcctValues.Count > 0) then
     FUseEntryBalance := False;
 
+  // При выборе аналитики "Тип документа" будем строить старым методом
+  FUseEntryBalance := not IsDocTypeCondition;
+
   if FWithSubAccounts then
     FillSubAccounts(FAccounts);
 
@@ -597,12 +604,16 @@ var
   I: Integer;
   F: TatRelationField;
   InternalMovementWhereClause: string;
+  InternalMovementWhereCondition: string;
+  InternalMovementJoinGdDoc: string;
 begin
   Result := '';
   // Если установлен флаг 'Включать внутренние проводки'
   if not FIncludeInternalMovement then
   begin
     InternalMovementWhereClause := '';
+    InternalMovementWhereCondition := '';
+    InternalMovementJoinGdDoc := '';
 
     // Использовать новый метод построения бух. отчетов
     if FUseEntryBalance then
@@ -629,20 +640,33 @@ begin
     begin
       for I := 0 to FAcctConditions.Count - 1 do
       begin
-        F := atDatabase.FindRelationField(AC_ENTRY, FAcctConditions.Names[I]);
+        if UpperCase(Trim(FAcctConditions.Names[I])) = 'DOCUMENTTYPEKEY' then
+          F := atDatabase.FindRelationField('GD_DOCUMENT', FAcctConditions.Names[I])
+        else
+          F := atDatabase.FindRelationField(AC_ENTRY, FAcctConditions.Names[I]);
         if Assigned(F) and (F.FieldName <> EntryDate) then
         begin
           // Если тип INTEGER
           if F.SQLType in [blr_short, blr_long, blr_int64] then
-            InternalMovementWhereClause := InternalMovementWhereClause +
-              Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName])
+            if F.FieldName = 'DOCUMENTTYPEKEY' then
+            begin
+              InternalMovementJoinGdDoc :=
+                ' LEFT JOIN GD_DOCUMENT e_m_doc ON e_m_doc.id = e_m.documentkey'#13#10 +
+                ' LEFT JOIN GD_DOCUMENT e_cm_doc ON e_cm_doc.id = e_cm.documentkey'#13#10;
+              InternalMovementWhereCondition :=
+                Format(' AND'#13#10' e_m_doc.%0:s = e_cm_doc.%0:s + 0 ', [F.FieldName]);
+            end
+            else
+              InternalMovementWhereClause := InternalMovementWhereClause +
+                Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName])
           else
             InternalMovementWhereClause := InternalMovementWhereClause +
               Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s ', [F.FieldName]);
         end;
       end;
 
-      Result := Format(cInternalMovementClauseTemplate, [InternalMovementWhereClause]);
+      Result := Format(cInternalMovementClauseTemplate,
+        [InternalMovementWhereClause, InternalMovementJoinGdDoc, InternalMovementWhereCondition]);
     end;
   end;
 end;
@@ -1079,17 +1103,65 @@ function TgdvAcctBase.GetCondition(Alias: String): String;
 var
   I: Integer;
 begin
+  Assert(Alias <> '');
+
   Result := '';
-  if Alias <> '' then
+
+  for I := 0 to FAcctConditions.Count - 1 do
   begin
-    for I := 0 to FAcctConditions.Count - 1 do
+    if UpperCase(Trim(FAcctConditions.Names[I])) <> 'DOCUMENTTYPEKEY' then
     begin
       if Result > '' then
         Result := Result + ' AND '#13#10;
       if Trim(FAcctConditions.Values[FAcctConditions.Names[I]]) <> '' then
-        Result := Result + Format('%s.%s IN(%s)', [Alias, FAcctConditions.Names[I], FAcctConditions.Values[FAcctConditions.Names[I]]])
+        Result := Result + Format('%s.%s IN(%s)', [Alias, FAcctConditions.Names[I],
+          FAcctConditions.Values[FAcctConditions.Names[I]]])
       else
         Result := Result + Alias + '.' + FAcctConditions.Names[I] + ' IS NULL ';
+    end
+    else
+    begin
+      if Trim(FAcctConditions.Values[FAcctConditions.Names[I]]) <> '' then
+      begin
+        if Result > '' then
+          Result := Result + ' AND '#13#10;
+        Result := Result + Format('%s.%s IN(%s)', ['t_doc',
+          FAcctConditions.Names[I], FAcctConditions.Values[FAcctConditions.Names[I]]]);
+      end;
+    end;
+  end;
+end;
+
+function TgdvAcctBase.GetJoinTableClause(const Alias: String): String;
+var
+  I: Integer;
+begin
+  Assert(Alias <> '');
+  Result := '';
+
+  for I := 0 to FAcctConditions.Count - 1 do
+  begin
+    if UpperCase(Trim(FAcctConditions.Names[I])) = 'DOCUMENTTYPEKEY' then
+    begin
+      Result := ' LEFT JOIN gd_document t_doc'#13#10 +
+        ' ON ' + Alias + '.documentkey = t_doc.id '#13#10;
+      Exit;
+    end
+  end;
+end;
+
+function TgdvAcctBase.GetIsDocTypeCondition: Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+
+  for I := 0 to FAcctConditions.Count - 1 do
+  begin
+    if UpperCase(Trim(FAcctConditions.Names[I])) = 'DOCUMENTTYPEKEY' then
+    begin
+      Result := True;
+      Exit;
     end;
   end;
 end;

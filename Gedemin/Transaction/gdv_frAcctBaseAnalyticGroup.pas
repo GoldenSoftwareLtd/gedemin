@@ -401,32 +401,19 @@ begin
 
       for I := 0 to FAvailFieldList.Count - 1 do
       begin
-        if (FAvailFieldList[i].Field <> nil) and
-          (FAvailFieldList[i].FieldName <> ENTRYDATE) and
-          (FAvailFieldList[i].FieldName <> 'ACCOUNTKEY') and
-          (FAvailFieldList[i].FieldName <> 'CURRKEY') and
-          (FAvailFieldList[i].FieldName <> 'COMPANYKEY') then
+        if (FAvailFieldList[i].Field <> nil)
+          and (FAvailFieldList[i].FieldName <> ENTRYDATE)
+          and (FAvailFieldList[i].FieldName <> 'ACCOUNTKEY')
+          and (FAvailFieldList[i].FieldName <> 'CURRKEY')
+          and (FAvailFieldList[i].FieldName <> 'COMPANYKEY')
+          and (FAvailFieldList[i].FieldName <> 'DOCUMENTTYPEKEY') then
         begin
           if SQL.SQL.Count > 0 then
             SQL.SQL.Add(', ');
 
           SQL.SQL.Add(Format('Sum(%s)', [FAvailFieldList[i].FieldName]));
-
-{          SQL.SQL.Text := Format('SELECT COUNT(*) FROM AC_ACCOUNT WHERE ' +
-            '(%s = 1)', [FAvailFieldList[i].FieldName]);
-
-          if AIDList.Count > 0 then
-            SQL.SQL.Add(Format('AND id IN (%s)', [AcctUtils.IdList(AIdList)]));
-
-          SQL.ExecQuery;
-          try
-            if (SQL.Fields[0].AsInteger = AIDList.Count) or (AIDList.Count = 0) then
-              ListBoxAvail.Items.AddObject(FAvailFieldList[i].Caption,
-                FAvailFieldList[I]);
-          finally
-            SQL.Close;
-          end;                      }
-        end else
+        end
+        else
         begin
           StringListAvail.AddObject(FAvailFieldList[i].Caption, FAvailFieldList[I]);
         end;
@@ -440,12 +427,13 @@ begin
         SQL.ExecQuery;
         for I := 0 to FAvailFieldList.Count - 1 do
         begin
-          if (FAvailFieldList[i].Field <> nil) and
-            (FAvailFieldList[i].FieldName <> ENTRYDATE) and
-            (FAvailFieldList[i].FieldName <> 'ACCOUNTKEY') and
-            (FAvailFieldList[i].FieldName <> 'CURRKEY') and
-            (FAvailFieldList[i].FieldName <> 'COMPANYKEY') and
-            ((SQL.Fields[i].AsInteger = AIDList.Count) or (AIDList.Count = 0)) then
+          if (FAvailFieldList[i].Field <> nil)
+            and (FAvailFieldList[i].FieldName <> ENTRYDATE)
+            and (FAvailFieldList[i].FieldName <> 'ACCOUNTKEY')
+            and (FAvailFieldList[i].FieldName <> 'CURRKEY')
+            and (FAvailFieldList[i].FieldName <> 'COMPANYKEY')
+            and (FAvailFieldList[i].FieldName <> 'DOCUMENTTYPEKEY')
+            and ((SQL.Fields[i].AsInteger = AIDList.Count) or (AIDList.Count = 0)) then
           begin
             StringListAvail.AddObject(FAvailFieldList[i].Caption, FAvailFieldList[I]);
           end;

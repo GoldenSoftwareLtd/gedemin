@@ -91,6 +91,7 @@ var
   ValueSelect, ValueJoin, ValueAlias, QuantityAlias, IDValues: String;
   K: Integer;
   ASelect, AFrom, AGroup, ACorrSelect, ACorrFrom, ACorrGroup: String;
+  EntryFrom: String;
 
   function FormBalanceQuery(ADate: TDate): String;
   begin
@@ -230,6 +231,7 @@ begin
   end;
 
   BalanceCondition := Self.GetCondition('bal');
+  EntryFrom := GetJoinTableClause('e');
   EntryCondition := Self.GetCondition('e');
 
   // Ñאכüהמ םא םאקאכמ
@@ -258,7 +260,7 @@ begin
       '   ac_entry e  ' +
         IIF(FCorrAccounts.Count > 0,
           ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
-          GetJoinTableClause('e') +
+          EntryFrom +
       ' WHERE ' + AccWhere + ' e.entrydate < :begindate AND ' + CompanyS +
         IIF(FCurrSumInfo.Show and (FCurrkey > 0),
           ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
@@ -315,7 +317,7 @@ begin
     'FROM ' +
     '  ac_entry e  ' +
     '  JOIN ac_quantity q ON e.id = q.entrykey AND q.valuekey IN (' + IDValues + ')' +
-    GetJoinTableClause('e');
+    EntryFrom;
 
   if FCorrAccounts.Count > 0 then
     FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text +
@@ -379,7 +381,7 @@ begin
     '  LEFT JOIN ac_account a ON a.id = e.accountkey '#13#10 +
     '  LEFT JOIN ac_record r ON e.recordkey = r.id '#13#10 +
     '  LEFT JOIN ac_trrecord tr ON r.trrecordkey = tr.id'#13#10 +
-    GetJoinTableClause('e') +
+    EntryFrom +
     ValueJoin + #13#10 + AFrom + ACorrFrom + #13#10 +
     ' WHERE '#13#10 + AccWhere +
     '  ' + CompanyS + ' AND '#13#10 +
@@ -451,7 +453,7 @@ begin
     '  LEFT JOIN ac_record r ON e.recordkey = r.id '#13#10 +
     '  LEFT JOIN ac_trrecord tr ON r.trrecordkey = tr.id '#13#10 +
       ValueJoin + #13#10 + AFrom + ACorrFrom +
-      GetJoinTableClause('e') +
+      EntryFrom +
     ' WHERE '#13#10 + AccWhere +
     '  ' + CompanyS + ' AND '#13#10 +
     '  e.entrydate >= :begindate AND e.entrydate <= :enddate '#13#10 +

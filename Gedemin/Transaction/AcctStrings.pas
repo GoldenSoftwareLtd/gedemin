@@ -75,8 +75,9 @@ const
     '        e_m.debitcurr = e_cm.creditcurr AND'#13#10 +
     '        e_m.creditcurr = e_cm.debitcurr) ' +
     '    %s'#13#10 +
+    '    %s'#13#10 +
     '    WHERE'#13#10 +
-    '      e_m.id = e.id)'#13#10;
+    '      e_m.id = e.id %s)'#13#10;
 
   cInternalMovementClauseTemplateNew =
     ' AND NOT EXISTS( '#13#10 +

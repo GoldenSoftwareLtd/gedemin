@@ -548,7 +548,10 @@ begin
       end;
     end;
     // ≈сли это уровни по новой аналитике
-    F := atDatabase.FindRelationField(AC_ENTRY, AnalyticName);
+    if UpperCase(AnalyticName) = 'DOCUMENTTYPEKEY' then
+      F := atDatabase.FindRelationField('GD_DOCUMENT', AnalyticName)
+    else
+      F := atDatabase.FindRelationField(AC_ENTRY, AnalyticName);
     if Assigned(F) then
     begin
       AnalyticLevel := TgdvAcctAnalyticLevels.Create;
@@ -571,11 +574,13 @@ begin
   inherited;
 
   // ѕоищем аналитику USR$GS_DOCUMENT, если така€ есть то будем строить старым методом
+  // “акже старым методом будем строить если есть групировка по типу документа
   if FUseEntryBalance then
   begin
     DontBalanceAnalytic := GetDontBalanceAnalyticList;
     for I := 0 to FAcctGroupBy.Count - 1 do
-      if AnsiPos(';' + FAcctGroupBy.Analytics[I].FieldName + ';', DontBalanceAnalytic) > 0 then
+      if (AnsiPos(';' + FAcctGroupBy.Analytics[I].FieldName + ';', DontBalanceAnalytic) > 0)
+        or (FAcctGroupBy.Analytics[I].FieldName = 'DOCUMENTTYPEKEY') then
       begin
         FUseEntryBalance := False;
         Break;
@@ -623,6 +628,7 @@ begin
             ibsql.SQL.Add('e.id,');
             ibsql.SQL.Add(IntToStr(FSQLHandle));
             ibsql.SQL.Add('FROM ac_entry e LEFT JOIN ac_record r ON r.id = e.recordkey');
+            ibsql.SQL.Add(GetJoinTableClause('e'));
             ibsql.SQL.Add('WHERE');
             if FAccounts.Count > 0 then
               ibsql.SQL.Add('e.accountkey IN (' + IDList(FAccounts) + ') AND');
@@ -683,6 +689,7 @@ var
   CorrSelect, CorrSubSelect, CorrSubSubSelect: String;
   CorrJoin, CorrWhere, CorrGroup, CorrOrder, CorrInto: String;
   AccWhereQuantity: String;
+  GdDocJoined: Boolean;
 
   procedure ProcessAnalytic(CurrentAnalytic: TgdvAnalytics; IsTreeAnalytic: Boolean = False);
   var
@@ -1995,12 +2002,16 @@ begin
 
   end
   else
+  ///// отсюда начинаем править код, здесь не используетс€ ентри баланс
   begin
     Strings := TgdvCorrFieldInfoList.Create;
     try
       DebitCreditSQL := '';
       FromClause := '';
       FromClause1 := '';
+
+      FromClause := GetJoinTableClause('e');
+
       GroupClause := '';
       OrderClause := '';
       IDSelect := '';
@@ -2062,6 +2073,8 @@ begin
         end;
       end;
 
+      GdDocJoined := GetIsDocTypeCondition;
+
       SelectClause := '';
       N := FAcctGroupBy.Count;
       for I := 0 to FAcctGroupBy.Count - 1 do
@@ -2082,11 +2095,27 @@ begin
                 SortName := Format('s%d', [N]);
 
                 ProcessAnalytic(FAcctGroupBy[I]);
-                FromClause := FromClause + Format('  LEFT JOIN %s(%s, e.%s) lg_%s ON 1=1'#13#10,
-                  [Line.SPName, Line.Levels[J], F.FieldName, Alias]) +
-                  Format('  LEFT JOIN %s %s ON %s.%s = lg_%s.Id'#13#10,
-                  [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
-                  Alias]);
+
+                if F.FieldName = 'DOCUMENTTYPEKEY' then
+                begin
+                  if not GdDocJoined then
+                  begin
+                    FromClause := FromClause + ' LEFT JOIN gd_document t_doc ON e.documentkey = t_doc.id'#13#10;
+                    GdDocJoined := True;
+                  end;
+
+                  FromClause := FromClause + Format('  LEFT JOIN %s(%s, t_doc.%s) lg_%s ON 1=1'#13#10,
+                    [Line.SPName, Line.Levels[J], F.FieldName, Alias]) +
+                    Format('  LEFT JOIN %s %s ON %s.%s = lg_%s.Id'#13#10,
+                    [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
+                    Alias]);
+                end
+                else
+                  FromClause := FromClause + Format('  LEFT JOIN %s(%s, e.%s) lg_%s ON 1=1'#13#10,
+                    [Line.SPName, Line.Levels[J], F.FieldName, Alias]) +
+                    Format('  LEFT JOIN %s %s ON %s.%s = lg_%s.Id'#13#10,
+                    [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
+                    Alias]);
 
                 Inc(N);
               end;
@@ -2101,9 +2130,22 @@ begin
         ProcessAnalytic(FAcctGroupBy[I]);
         if Assigned(F) and Assigned(F.ReferencesField) then
         begin
-          FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = e.%s'#13#10,
-            [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
-            F.FieldName]);
+          if F.FieldName = 'DOCUMENTTYPEKEY' then
+          begin
+            if not GdDocJoined then
+            begin
+              FromClause := FromClause + ' LEFT JOIN gd_document t_doc ON e.documentkey = t_doc.id'#13#10;
+              GdDocJoined := True;
+            end;
+
+            FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = t_doc.%s'#13#10,
+              [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
+              F.FieldName])
+          end
+          else
+            FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = e.%s'#13#10,
+              [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
+              F.FieldName]);
         end;
         //****
         QuantityGroup := '';
@@ -2377,8 +2419,8 @@ begin
               FEQSumInfo.Scale, EQDecDig,
               FEQSumInfo.Scale, EQDecDig,
               FEQSumInfo.Scale, EQDecDig, L_S,
-              FromClause1, AccountInClause('e'), AnalyticFilter, FromClause + GetSumJoinClause,
-              FCompanyList, CurrId, InternalMovementClause,
+              FromClause1, AccountInClause('e'), '', FromClause + GetSumJoinClause,
+              FCompanyList, CurrId, InternalMovementClause + AnalyticFilter,
               GroupClause1]) +  HavingCount + DebitCreditSQL;
           end
           else
@@ -2400,9 +2442,9 @@ begin
               FEQSumInfo.Scale, EQDecDig,
               FEQSumInfo.Scale, EQDecDig,
               L_S, FromClause1,
-              AccountInClause('e'), FAcctGroupBy[0].Additional, AnalyticFilter,
+              AccountInClause('e'), FAcctGroupBy[0].Additional, '',
               FromClause + GetSumJoinClause, FCompanyList,
-              CurrId, InternalMovementClause , GroupClause1]) +
+              CurrId, InternalMovementClause + AnalyticFilter, GroupClause1]) +
               HavingCount + DebitCreditSQL;
           end;
       end;
@@ -2508,6 +2550,7 @@ begin
   end;
   SQL.SQL.Add('FROM');
   SQL.SQL.Add('  ac_entry e LEFT JOIN ac_record r ON r.id = e.recordkey');
+  SQL.SQL.Add(GetJoinTableClause('e'));
   for I := 0 to FAcctValues.Count - 1 do
   begin
     VKeyAlias := GetKeyAlias(FAcctValues.Names[I]);
@@ -2666,12 +2709,18 @@ var
   F: TatRelationField;
   I: Integer;
   InternalMovementWhereClause: string;
+  InternalMovementWhereCondition: string;
+  InternalMovementJoinGdDoc: string;
+  GdDocAdded: Boolean;
 begin
   Result := '';
 
   if not FIncludeInternalMovement then
   begin
     InternalMovementWhereClause := '';
+    InternalMovementWhereCondition := '';
+    InternalMovementJoinGdDoc := '';
+    GdDocAdded := False;
     if FUseEntryBalance then
     begin
       for I := 0 to FAcctGroupBy.Count  - 1 do
@@ -2734,12 +2783,25 @@ begin
           {≈сли тип INTEGER}
           if F.SQLType in [blr_short, blr_long, blr_int64] then
           begin
-            if (F.FieldName <> 'ACCOUNTKEY') then
-              InternalMovementWhereClause := InternalMovementWhereClause +
-                Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName])
+            if F.FieldName = 'DOCUMENTTYPEKEY' then
+            begin
+              if  not GdDocAdded then
+              begin
+                InternalMovementJoinGdDoc :=
+                  ' LEFT JOIN GD_DOCUMENT e_m_doc ON e_m_doc.id = e_m.documentkey'#13#10 +
+                  ' LEFT JOIN GD_DOCUMENT e_cm_doc ON e_cm_doc.id = e_cm.documentkey'#13#10;
+                InternalMovementWhereCondition :=
+                  Format(' AND'#13#10' e_m_doc.%0:s = e_cm_doc.%0:s + 0 ', [F.FieldName]);
+                GdDocAdded := True;
+              end;
+            end
             else
-              InternalMovementWhereClause := InternalMovementWhereClause +
-                Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0', [F.FieldName]);
+              if (F.FieldName <> 'ACCOUNTKEY') then
+                InternalMovementWhereClause := InternalMovementWhereClause +
+                  Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName])
+              else
+                InternalMovementWhereClause := InternalMovementWhereClause +
+                  Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0', [F.FieldName]);
           end
           else
             InternalMovementWhereClause := InternalMovementWhereClause +
@@ -2750,19 +2812,35 @@ begin
 
       for I := 0 to FAcctConditions.Count - 1 do
       begin
-        F := atDatabase.FindRelationField(AC_ENTRY, FAcctConditions.Names[I]);
+        if UpperCase(Trim(FAcctConditions.Names[I])) = 'DOCUMENTTYPEKEY' then
+          F := atDatabase.FindRelationField('GD_DOCUMENT', FAcctConditions.Names[I])
+        else
+          F := atDatabase.FindRelationField(AC_ENTRY, FAcctConditions.Names[I]);
 
         if (F <> nil) and (F.FieldName <> EntryDate) then
         begin
           {≈сли тип INTEGER}
           if F.SQLType in [blr_short, blr_long, blr_int64] then
           begin
-            if (F.FieldName <> 'ACCOUNTKEY') then
-              InternalMovementWhereClause := InternalMovementWhereClause +
-                Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName])
+            if F.FieldName = 'DOCUMENTTYPEKEY' then
+            begin
+              if  not GdDocAdded then
+              begin
+                InternalMovementJoinGdDoc :=
+                  ' LEFT JOIN GD_DOCUMENT e_m_doc ON e_m_doc.id = e_m.documentkey'#13#10 +
+                  ' LEFT JOIN GD_DOCUMENT e_cm_doc ON e_cm_doc.id = e_cm.documentkey'#13#10;
+                InternalMovementWhereCondition :=
+                  Format(' AND'#13#10' e_m_doc.%0:s = e_cm_doc.%0:s + 0 ', [F.FieldName]);
+                GdDocAdded := True;
+              end;
+            end
             else
-              InternalMovementWhereClause := InternalMovementWhereClause +
-                Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName]);
+              if (F.FieldName <> 'ACCOUNTKEY') then
+                InternalMovementWhereClause := InternalMovementWhereClause +
+                  Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName])
+              else
+                InternalMovementWhereClause := InternalMovementWhereClause +
+                  Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName]);
           end
           else
             InternalMovementWhereClause := InternalMovementWhereClause +
@@ -2771,7 +2849,8 @@ begin
         end;
       end;
 
-      Result := Format(cInternalMovementClauseTemplate, [InternalMovementWhereClause]);
+      Result := Format(cInternalMovementClauseTemplate,
+        [InternalMovementWhereClause, InternalMovementJoinGdDoc, InternalMovementWhereCondition]);
     end;
   end;
 end;

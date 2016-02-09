@@ -724,6 +724,7 @@ var
   SortName, SortSelect: string;
   VKeyAlias: string;
   NcuBegin, CurrBegin: string;
+  AccountKeys: String;
 begin
   Result := '';
   Strings := TgdvCorrFieldInfoList.Create;
@@ -738,7 +739,7 @@ begin
     WhereClause := '';
 
     frAcctAnalytics.Alias := 'e';
-    AnalyticFilter := frAcctAnalytics.Condition;
+    AnalyticFilter := gdvObject.GetCondition('e');
     if AnalyticFilter > '' then
       AnalyticFilter := ' AND '#13#10 + AnalyticFilter + #13#10;
 
@@ -830,9 +831,17 @@ begin
 
       if (F <> nil) and  (F.ReferencesField <> nil) then
       begin
-        FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = e.%s'#13#10,
-          [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
-          F.FieldName]);
+        if F.FieldName = 'DOCUMENTTYPEKEY' then
+        begin
+          FromClause := FromClause + ' LEFT JOIN gd_document z_doc ON e.documentkey = z_doc.id'#13#10;
+          FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = z_doc.%s'#13#10,
+            [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
+            F.FieldName]);
+        end
+        else
+          FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = e.%s'#13#10,
+            [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
+            F.FieldName]);
       end;
 
       if GroupClause > '' then  GroupClause := GroupClause + ', ';
@@ -934,8 +943,17 @@ begin
 
       HavingClause := 'HAVING ' + HavingClause;
 
+      //это не относится к аналитике "тип документа"
+      //возможно счета лучше брать из БО
+      AccountKeys := '';
+      if FAccountIDs.Count > 0 then
+      begin
+        AccountKeys := Format('e.accountkey IN(%s) AND ', [IDList(FAccountIDs)]);
+      end;
+      //////////////////////////////////////////////
+
       DebitCreditSQL := Format(cBeginSaldoSQLTemplate, [SelectClause, NcuBegin,
-        CurrBegin, FromClause, Format('e.accountkey IN(%s) AND ', [IDList(FAccountIDs)]), frAcctCompany.CompanyList,
+        CurrBegin, FromClause + gdvObject.GetJoinTableClause('e') , AccountKeys, frAcctCompany.CompanyList,
         CurrId, gdvObject.InternalMovementClause + AnalyticFilter, GroupClause, HavingClause]);
     end;
 
