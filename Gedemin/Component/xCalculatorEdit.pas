@@ -1021,7 +1021,7 @@ begin
         if Key in ['0'..'9'] then
         begin
           P := Pos(DecimalSeparator, Text);
-          if (P > 0) and (SelStart >= P) and ((Length(Text) - P) >= DecDigits) then
+          if (P > 0) and (SelStart >= P) and ((Length(Trim(Text)) - P) >= DecDigits) then
             Key := #0;
         end
         else if Key = DecimalSeparator then
