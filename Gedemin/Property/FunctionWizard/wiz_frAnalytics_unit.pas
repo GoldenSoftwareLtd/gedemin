@@ -12,6 +12,8 @@ type
   TfrAnalytics = class(TFrame)
     Panel: TPanel;
     sbAnalytics: TScrollBox;
+    procedure sbAnalyticsMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   private
     FAvailAnalyticFields: TList;
     FAccountKey: Integer;
@@ -29,7 +31,6 @@ type
     { Private declarations }
   public
     { Public declarations }
-    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure UpdateAnalytics;
     property Analytics: string read GetAnalytics write SetAnalytics;
@@ -48,11 +49,6 @@ begin
 end;
 
 { TfrAnalytics }
-
-constructor TfrAnalytics.Create(AOwner: TComponent);
-begin
-  inherited;
-end;
 
 destructor TfrAnalytics.Destroy;
 begin
@@ -326,6 +322,18 @@ begin
   finally
     Lines.Free;
   end;
+end;
+
+procedure TfrAnalytics.sbAnalyticsMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  if WheelDelta > 0 then
+    sbAnalytics.VertScrollBar.Position := sbAnalytics.VertScrollBar.Position - sbAnalytics.VertScrollBar.Increment
+  else
+    sbAnalytics.VertScrollBar.Position := sbAnalytics.VertScrollBar.Position + sbAnalytics.VertScrollBar.Increment;
+    
+  Handled := True;
 end;
 
 end.

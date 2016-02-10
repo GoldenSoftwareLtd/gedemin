@@ -18,9 +18,11 @@ object frAnalytics: TfrAnalytics
       Top = 1
       Width = 318
       Height = 238
+      VertScrollBar.Increment = 16
       Align = alClient
       BorderStyle = bsNone
       TabOrder = 0
+      OnMouseWheel = sbAnalyticsMouseWheel
     end
   end
 end
