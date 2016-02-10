@@ -162,6 +162,7 @@ contains
   gdcRplDatabase in '..\Component\GDC\gdcRplDatabase.pas',
   gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas',
   gdcSMTP in '..\Component\GDC\gdcSMTP.pas',
-  gdcInvDocumentOptions in '..\Component\GDC\gdcInvDocumentOptions.pas';
+  gdcInvDocumentOptions in '..\Component\GDC\gdcInvDocumentOptions.pas',
+  gsScrollBox in '..\Component\gsScrollBox.pas';
 
 end.

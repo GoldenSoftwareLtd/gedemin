@@ -4,7 +4,7 @@ object frameAnalyticValue: TframeAnalyticValue
   Width = 632
   Height = 91
   TabOrder = 0
-  object sbAnaliseLines: TScrollBox
+  object sbAnaliseLines: TgsScrollBox
     Left = 0
     Top = 0
     Width = 632
@@ -15,6 +15,5 @@ object frameAnalyticValue: TframeAnalyticValue
     Color = clBtnFace
     ParentColor = False
     TabOrder = 0
-    OnMouseWheel = sbAnaliseLinesMouseWheel
   end
 end
