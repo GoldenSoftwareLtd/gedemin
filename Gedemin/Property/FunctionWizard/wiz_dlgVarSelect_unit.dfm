@@ -1,7 +1,7 @@
 object dlgVarSelect: TdlgVarSelect
-  Left = 318
-  Top = 166
-  Width = 400
+  Left = 675
+  Top = 375
+  Width = 571
   Height = 264
   ActiveControl = lbVars
   BorderWidth = 5
@@ -21,30 +21,30 @@ object dlgVarSelect: TdlgVarSelect
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 382
-    Height = 199
+    Width = 553
+    Height = 195
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object Splitter1: TSplitter
-      Left = 185
+      Left = 275
       Top = 0
       Width = 3
-      Height = 199
+      Height = 195
       Cursor = crHSplit
     end
     object Panel2: TPanel
       Left = 0
       Top = 0
-      Width = 185
-      Height = 199
+      Width = 275
+      Height = 195
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 0
       object Panel4: TPanel
         Left = 0
         Top = 0
-        Width = 185
+        Width = 275
         Height = 16
         Align = alTop
         Alignment = taLeftJustify
@@ -62,8 +62,8 @@ object dlgVarSelect: TdlgVarSelect
       object lbVars: TListBox
         Left = 0
         Top = 16
-        Width = 185
-        Height = 183
+        Width = 275
+        Height = 179
         Align = alClient
         ItemHeight = 13
         TabOrder = 0
@@ -72,17 +72,17 @@ object dlgVarSelect: TdlgVarSelect
       end
     end
     object Panel3: TPanel
-      Left = 188
+      Left = 278
       Top = 0
-      Width = 194
-      Height = 199
+      Width = 275
+      Height = 195
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
       object Panel5: TPanel
         Left = 0
         Top = 0
-        Width = 194
+        Width = 275
         Height = 16
         Align = alTop
         Alignment = taLeftJustify
@@ -100,8 +100,8 @@ object dlgVarSelect: TdlgVarSelect
       object mDescription: TMemo
         Left = 0
         Top = 16
-        Width = 194
-        Height = 183
+        Width = 275
+        Height = 179
         Align = alClient
         Color = clInfoBk
         TabOrder = 0
@@ -110,14 +110,14 @@ object dlgVarSelect: TdlgVarSelect
   end
   object Panel6: TPanel
     Left = 0
-    Top = 199
-    Width = 382
+    Top = 195
+    Width = 553
     Height = 28
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object Button1: TButton
-      Left = 305
+      Left = 476
       Top = 7
       Width = 75
       Height = 21
@@ -126,7 +126,7 @@ object dlgVarSelect: TdlgVarSelect
       TabOrder = 1
     end
     object Button2: TButton
-      Left = 225
+      Left = 396
       Top = 7
       Width = 75
       Height = 21
