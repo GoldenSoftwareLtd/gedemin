@@ -9,6 +9,8 @@ uses
 type
   TframeAnalyticValue = class(TFrame)
     sbAnaliseLines: TScrollBox;
+    procedure sbAnaliseLinesMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   private
     { Private declarations }
     FAnaliseLines: TObjectList;
@@ -310,6 +312,18 @@ begin
   finally
     LAnaliseLines.Free;
   end;
+end;
+
+procedure TframeAnalyticValue.sbAnaliseLinesMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  if WheelDelta > 0 then
+    sbAnaliseLines.VertScrollBar.Position := sbAnaliseLines.VertScrollBar.Position - sbAnaliseLines.VertScrollBar.Increment
+  else
+    sbAnaliseLines.VertScrollBar.Position := sbAnaliseLines.VertScrollBar.Position + sbAnaliseLines.VertScrollBar.Increment;
+
+  Handled := True;
 end;
 
 end.

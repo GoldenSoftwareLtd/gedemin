@@ -15,5 +15,6 @@ object frameAnalyticValue: TframeAnalyticValue
     Color = clBtnFace
     ParentColor = False
     TabOrder = 0
+    OnMouseWheel = sbAnaliseLinesMouseWheel
   end
 end
