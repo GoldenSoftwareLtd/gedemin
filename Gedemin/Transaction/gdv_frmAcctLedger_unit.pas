@@ -943,14 +943,14 @@ begin
 
       HavingClause := 'HAVING ' + HavingClause;
 
-      //это не относится к аналитике "тип документа"
-      //возможно счета лучше брать из БО
       AccountKeys := '';
       if FAccountIDs.Count > 0 then
-      begin
-        AccountKeys := Format('e.accountkey IN(%s) AND ', [IDList(FAccountIDs)]);
-      end;
-      //////////////////////////////////////////////
+        AccountKeys := IDList(FAccountIDs)
+      else
+        AccountKeys := GetAccounts;
+
+      if AccountKeys > '' then
+        AccountKeys := Format('e.accountkey IN(%s) AND ', [AccountKeys]);
 
       DebitCreditSQL := Format(cBeginSaldoSQLTemplate, [SelectClause, NcuBegin,
         CurrBegin, FromClause + gdvObject.GetJoinTableClause('e') , AccountKeys, frAcctCompany.CompanyList,

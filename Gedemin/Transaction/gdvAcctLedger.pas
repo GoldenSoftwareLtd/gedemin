@@ -2870,6 +2870,7 @@ var
   AccountIn: string;
   APart: string;
   AnalyticsCond: string;
+  AnalyticsFrom: String;
 begin
   if Assigned(Strings) then
   begin
@@ -2908,6 +2909,8 @@ begin
 
       AnalyticsCond := Self.GetCondition('e');
       if AnalyticsCond > '' then AnalyticsCond := ' AND ' + AnalyticsCond;
+
+      AnalyticsFrom := Self.GetJoinTableClause('e');
 
       // –асчет с использованием AC_ENTRY_BALANCE будет работать только на FB 2.0+
       if UseEntryBalance then
@@ -2984,6 +2987,7 @@ begin
             '  LEFT JOIN ac_entry e1 ON e1.recordkey = e.recordkey and ' +
             '    e1.accountpart <> e.accountpart ' +
             '  left join ac_account a on e1.accountkey = a.id ' +
+            AnalyticsFrom +
             'where ' + AccountIn + APart +
             '  e.entrydate >= :datebegin and e.entrydate <= :dateend AND ' +
             '  e.companykey in (' + FCompanyList + ') ' +
@@ -3003,6 +3007,7 @@ begin
             '  join ac_account a on e1.accountkey = a.id ' +
             '  join ac_account a1 on a1.accounttype = ''A'' and a1.lb <= a.lb and ' +
             '    a1.rb >= a.rb ' +
+            AnalyticsFrom +
             'where ' + AccountIn + APart +
             '  e.entrydate >= :datebegin and e.entrydate <= :dateend and '+
             '  e.companykey in (' + FCompanyList + ') ' +
