@@ -2160,6 +2160,8 @@ procedure TVisualBlock.MouseDown(Button: TMouseButton; Shift: TShiftState;
 var
   R: TRect;
   P: TPoint;
+  I: Integer;
+  StartIndex, EndIndex: Integer;
 begin
   inherited;
 
@@ -2178,8 +2180,73 @@ begin
         SelBlockList.Add(self);
       end;
     end;
-    if [ssLeft] = Shift then begin
-      if Assigned(SelBlockList) and (SelBlockList.IndexOf(self) = -1) then
+
+    if Assigned(SelBlockList) and ([ssShift, ssLeft] = Shift) then
+    begin
+      if Self.Parent <> nil then
+      begin
+        if ((SelBlockList.Count > 0) and (TVisualBlock(SelBlockList[0]).Parent <> nil))
+          or (SelBlockList.Count = 0) then
+        begin
+          StartIndex := -1;
+          EndIndex := -1;
+
+          if (SelBlockList.Count = 0) or (TVisualBlock(SelBlockList[0]).Parent <> Self.Parent) then
+            StartIndex := 0;
+
+          for I := 0 to Parent.ControlCount - 1 do
+          begin
+            if Parent.Controls[I] <> nil then
+            begin
+              if (SelBlockList.Count > 0) and (SelBlockList[0] <> nil)
+                and (SelBlockList[0] = Parent.Controls[I]) then
+              begin
+                StartIndex := I;
+              end;
+
+              if Self = Parent.Controls[I] then
+                EndIndex := I;
+            end;
+          end;
+          
+          if (StartIndex > -1) and (EndIndex > -1) then
+          begin
+            ClearSelBlockList;
+
+            if EndIndex > StartIndex then
+            begin
+              for I := StartIndex to EndIndex do
+              begin
+                if Parent.Controls[I] <> nil then
+                begin
+                  SelBlockList.Add(Parent.Controls[I]);
+                  if Assigned(OnBlockSelect) then
+                    OnBlockSelect(TVisualBlock(Parent.Controls[I]));
+                  TVisualBlock(Parent).Repaint;
+                end;
+              end;
+            end
+            else
+            begin
+              for I := StartIndex downto EndIndex do
+              begin
+                if Parent.Controls[I] <> nil then
+                begin
+                  SelBlockList.Add(Parent.Controls[I]);
+                  if Assigned(OnBlockSelect) then
+                    OnBlockSelect(TVisualBlock(Parent.Controls[I]));
+                  TVisualBlock(Parent).Repaint;
+                end;
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    if [ssLeft] = Shift then
+    begin
+      if Assigned(SelBlockList) then
       begin
         ClearSelBlockList;
         CancelDrag;
