@@ -32,7 +32,7 @@ begin
       CreateException2('gd_e_cannotchangebranch', 'Can not change branch!', Tr);
 
       SQL.ParamCheck := False;
-      SQL.SQL.Text :=
+      {SQL.SQL.Text :=
         'CREATE OR ALTER TRIGGER gd_au_documenttype FOR gd_documenttype '#13#10 +
         '  ACTIVE '#13#10 +
         '  AFTER UPDATE '#13#10 +
@@ -58,7 +58,7 @@ begin
         '    END '#13#10 +
         '  END '#13#10 +
         'END ';
-      SQL.ExecQuery;
+      SQL.ExecQuery;}
 
       SQL.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +

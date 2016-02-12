@@ -1289,6 +1289,41 @@ begin
         FIBSQL.Close;
 
         FIBSQL.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_au_documenttype FOR gd_documenttype '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  AFTER UPDATE '#13#10 +
+          '  POSITION 20000 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE new_root INTEGER = NULL; '#13#10 +
+          '  DECLARE VARIABLE old_root INTEGER = NULL; '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.parent IS DISTINCT FROM OLD.parent) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    SELECT id FROM gd_documenttype '#13#10 +
+          '    WHERE parent IS NULL AND lb <= NEW.lb AND rb >= NEW.rb '#13#10 +
+          '    INTO :new_root; '#13#10 +
+          ' '#13#10 +
+          '    SELECT id FROM gd_documenttype '#13#10 +
+          '    WHERE parent IS NULL AND lb <= OLD.lb AND rb >= OLD.rb '#13#10 +
+          '    INTO :old_root; '#13#10 +
+          ' '#13#10 +
+          '    IF (:new_root <> :old_root) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      IF (:new_root IN (804000, 805000) OR :old_root IN (804000, 805000)) THEN '#13#10 +
+          '        EXCEPTION gd_e_cannotchangebranch; '#13#10 +
+          '    END '#13#10 +
+          ' '#13#10 +
+          '    IF (NEW.documenttype = ''B'') THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> ''B'' AND id = NEW.parent)) THEN '#13#10 +
+          '        EXCEPTION gd_e_exception ''Document class can not include a folder.''; '#13#10 +
+          '    END '#13#10 +
+          '  END '#13#10 +
+          'END';
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
+        FIBSQL.SQL.Text :=
           'UPDATE at_relation_fields '#13#10 +
           '  SET objects = NULL, editiondate = CURRENT_TIMESTAMP(0) '#13#10 +
           '  WHERE objects = '''' OR objects LIKE ''TgdcBase%'' OR objects LIKE ''(Blob)%'' ';
@@ -1436,6 +1471,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (244, ''0000.0001.0000.0275'', ''28.01.2016'', ''Trigger to prevent namespace cyclic dependencies.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (245, ''0000.0001.0000.0276'', ''12.02.2016'', ''Fixed minor bugs.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

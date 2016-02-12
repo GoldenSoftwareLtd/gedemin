@@ -4007,11 +4007,19 @@ begin
       '    begin ' + #13#10 +
       '      sqlstatement = ''select LIST(DISTINCT o.DTKEY) from gd_documenttype_option o where o.RELATIONFIELDKEY in ('' || changefields || '') and o.OPTION_NAME = ''''SF'''' '';' + #13#10 +
       '      EXECUTE STATEMENT sqlstatement INTO :dtstring; ' + #13#10 +
-      '      select LIST(DISTINCT cardkey) from inv_movement ' + #13#10 +
-      '      WHERE documentkey = NEW.DOCUMENTKEY ' + #13#10 +
+      '      with recursive tree ' + #13#10 +
+      '      as ' + #13#10  +
+      '        (select t.id, t.parent ' + #13#10 +
+      '         from inv_movement m join inv_card t ON m.cardkey = t.id and m.debit > 0 ' + #13#10 +
+      '         where m.documentkey = NEW.documentkey ' + #13#10 +
+      '         union all ' + #13#10 +
+      '         select c.id, c.parent ' + #13#10 +
+      '         from inv_card c ' + #13#10 +
+      '         inner join tree prior ON prior.id = c.parent) ' + #13#10 +
+      '      select LIST(tr.id) from tree tr ' + #13#10 +
       '      INTO :cardstring; ' + #13#10 +
       '      if (ischeckdestfeatures = 1) then ' + #13#10 +
-      '      begin ' + #13#10 + 
+      '      begin ' + #13#10 +
       '        if (dtstring is not null) then ' + #13#10 +
       '        begin ' + #13#10 +
       '          sqlstatement = ''select FIRST(1) m.documentkey, m1.id from inv_movement m join gd_document doc ON ' +

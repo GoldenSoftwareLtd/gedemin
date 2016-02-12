@@ -4,14 +4,22 @@ interface
 
 uses
   Classes, Dialogs, Windows, SyncObjs, Forms, gdMessagedThread,
-  IdTCPConnection, IdTCPClient, IdThreadSafe, gedemin_cc_const,
-  JclSysInfo, gd_security, IBDatabaseInfo, Messages{, IdSSLOpenSSL};
+  IdTCPConnection, IdTCPClient, IdThreadSafe, IdException, gedemin_cc_const,
+  JclSysInfo, gd_security, IBDatabaseInfo, Messages, IdSSLOpenSSL;
 
 const
   DefaultHost = '127.0.0.1';
   ClassName = 'TgdLogClient';
 
 type
+  TCRCRecord = record
+    ObjClass: String[40];
+    ObjSubType: String[31];
+    Text: String;
+    Comm: String[6];
+    CRCSQL: Integer;
+  end;
+
   TgdLogClient = class(TgdMessagedThread)
   private
     FBuffer: array[0..MaxBufferSize - 1] of TLogRecord;
@@ -24,6 +32,9 @@ type
     FInitPar, FConnPar: TParam;
     FClient: TClient;
     //SSLIOHandler: TIdSSLIOHandlerSocket;
+    FCRC: array[0..50] of TCRCRecord;
+    FCRCI: Integer;                  
+    FCRCCS: TCriticalSection;
 
     function GetConnected: Boolean;
 
@@ -39,6 +50,8 @@ type
     procedure InitClient;
     procedure DoneClient;
     procedure Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: Integer);
+
+    procedure GetCRCSQL(const AText, AnObjectClassName: String);
 
     property Connected: Boolean read GetConnected;
   end;
@@ -58,11 +71,16 @@ begin
   FBufferCS := TCriticalSection.Create;
   FDoneEvent := TEvent.Create(nil, True, False, '');
   FConnected := TidThreadSafeInteger.Create;
+
+  FCRCCS := TCriticalSection.Create;
 end;
 
 destructor TgdLogClient.Destroy;
 begin
   inherited;
+
+  FCRCCS.Free;
+
   FDoneEvent.Free;
   FBufferCS.Free;
   FConnected.Free;
@@ -77,11 +95,20 @@ begin
     begin
       if Connected then
         exit;
+
+      {if (FindWindow('Tfrm_gedemin_cc_main', nil) = 0) then
+      begin
+        PostMsg(WM_LOG_LOAD_CC);
+        exit;
+      end;}
+
       if FTCPClient = nil then
       begin
         FTCPClient := TIdTCPClient.Create(nil);
         FTCPClient.Host := DefaultHost;
         FTCPClient.Port := DefaultPort;
+
+        //FTCPClient.ReadTimeout := 7000;
       end;
       {if SSLIOHandler = nil then
       begin
@@ -115,8 +142,16 @@ begin
           Log(GDRun, ClassName, '', 0);
         end;
       except
-        if FAttempts = 0 then
-          PostMsg(WM_LOG_LOAD_CC);
+        on EIdSocketError do
+        begin
+          //if FAttempts < 2 then
+          if FAttempts = 0 then
+            PostMsg(WM_LOG_LOAD_CC);
+        end;
+        on EIdOSSLConnectError do
+        begin
+          //
+        end;
       end;
     end;
 
@@ -177,7 +212,9 @@ end;
 
 procedure TgdLogClient.Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: Integer);
 var
-  P, L: Integer;
+  P, L, i: Integer;
+  f: Boolean;
+  CurrStr: String;
 begin
   if not Connected then
     exit;
@@ -206,6 +243,40 @@ begin
         FBuffer[FEnd].ObjSubType := '';
       end;
       FBuffer[FEnd].ObjName := AnObjectName;
+
+      CurrStr := Copy(FBuffer[FEnd].Msg, 1, 8);
+      if CurrStr = 'Запись д' then
+        CurrStr := 'INSERT';
+      if CurrStr = 'Запись и' then
+        CurrStr := 'UPDATE';
+      if CurrStr = 'Запись у' then
+        CurrStr := 'DELETE';
+      if CurrStr = 'Запись о' then
+        CurrStr := 'SELECT';
+      if CurrStr = 'Окно ред' then
+        CurrStr := 'SELECT';
+      FCRCCS.Enter; // в зависимости от операции выбирать sql-запрос            // Запись добавлена - Insert
+      try                                                                       // Запись изменена - Modify (-Update-)
+        f := false;                                                             // Запись удалена - Delete
+        for i := 0 to 50 do                                                     // Запись открыта в окне для изменения - Select
+        begin                                                                   // Окно редактирования закрыто: Ок/Отмена - Refresh (-Select-)
+          if (FCRC[i].ObjClass = FBuffer[FEnd].ObjClass) and (FCRC[i].ObjSubType = FBuffer[FEnd].ObjSubType) and (FCRC[i].Comm = CurrStr) then
+          begin
+            FBuffer[FEnd].CRC := FCRC[i].CRCSQL;
+            FBuffer[FEnd].SQL := FCRC[i].Text;
+            f := true;
+            break;
+          end;
+        end;
+        if not f then
+        begin
+          FBuffer[FEnd].CRC := 0;
+          FBuffer[FEnd].SQL := '-';
+        end;
+      finally
+        FCRCCS.Leave;
+      end;
+
       if (FBuffer[FEnd].ObjClass = '') then FBuffer[FEnd].ObjClass := '-';
       if (FBuffer[FEnd].ObjSubType = '') then FBuffer[FEnd].ObjSubType := '-';
       if (FBuffer[FEnd].ObjName = '') then FBuffer[FEnd].ObjName := '-';
@@ -222,8 +293,8 @@ begin
       end;
 
       FBuffer[FEnd].OP := '--------';
-      FBuffer[FEnd].SQL := '-';
       FBuffer[FEnd].CRC := 0;
+      FBuffer[FEnd].SQL := '-';
       FBuffer[FEnd].Param := '?.?.?';
       FBuffer[FEnd].Inti := 0;
       FBuffer[FEnd].Str := '?';
@@ -236,6 +307,64 @@ begin
     FBufferCS.Leave;
   end;
   PostMsg(WM_LOG_PROCESS_REC);
+end;
+
+procedure TgdLogClient.GetCRCSQL(const AText, AnObjectClassName: String);
+var
+  ObjClass: String[40];
+  ObjSubType: String[31];
+  Text: String;
+  CRCSQL: Integer;
+  PL, PR, L, i: Integer;
+  f: Boolean;
+  Comm: String[6];
+begin
+  PL := Pos('(', AnObjectClassName);
+  PR := Pos(')', AnObjectClassName);
+  if PL = 1 then
+    ObjClass := ''
+  else
+    ObjClass := Copy(AnObjectClassName, 1, PL - 1);
+  if ((PR - PL) = 1) then
+    ObjSubType := ''
+  else
+    ObjSubType := Copy(AnObjectClassName, PL + 1, PR - 1);
+  Text := AText;
+  L := Length(Text);
+  CRCSQL := CRC32_P(@Text[1], L, 0);
+  Comm := UpperCase(Copy(Trim(Text), 1, 6));
+
+  FCRCCS.Enter;
+  try
+    f := false;
+    for i := 0 to 50 do      // как различить select и refresh?
+    begin                    // (+ UPDATE OR INSERT - ?)
+      if (FCRC[i].ObjClass = ObjClass)
+          and (FCRC[i].ObjSubType = ObjSubType)
+          and (FCRC[i].Comm = Comm) then
+      begin
+        FCRC[i].Text := Text;
+        FCRC[i].CRCSQL := CRCSQL;
+        f := true;
+        break;
+      end;
+    end;
+    if not f then
+    begin
+      if FCRCI = 50 then
+        FCRCI := 0
+      else
+        Inc(FCRCI);
+      FCRC[FCRCI].ObjClass := ObjClass;
+      FCRC[FCRCI].ObjSubType := ObjSubType;
+      FCRC[FCRCI].Text := Text;
+      FCRC[FCRCI].Comm := Comm;
+      FCRC[FCRCI].CRCSQL := CRCSQL;
+    end;
+  finally
+    FCRCCS.Leave;
+  end;
+
 end;
 
 procedure TgdLogClient.InitClient;

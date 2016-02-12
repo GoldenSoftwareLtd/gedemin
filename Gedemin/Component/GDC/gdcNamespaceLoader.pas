@@ -492,6 +492,7 @@ var
   q: TIBSQL;
   CharReplace: LongBool;
   OldUnMethodMacro: Boolean;
+  NewNS: Boolean;
 begin
   Assert(not FLoading);
   Assert(AList <> nil);
@@ -564,33 +565,35 @@ begin
           begin
             FgdcNamespace.Open;
             FgdcNamespace.Insert;
+            FgdcNamespace.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
+            FgdcNamespace.FieldByName('caption').AsString := Mapping.ReadString('Properties\Caption', 255);
+            FgdcNamespace.FieldByName('version').AsString := Mapping.ReadString('Properties\Version', 20);
+            FgdcNamespace.FieldByName('dbversion').AsString := Mapping.ReadString('Properties\DBversion', 20);
+            FgdcNamespace.FieldByName('optional').AsInteger := Mapping.ReadInteger('Properties\Optional', 0);
+            FgdcNamespace.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
+            FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', 21);
+            FgdcNamespace.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
+            FgdcNamespace.FieldByName('md5').AsString := Mapping.ReadString('Properties\MD5');
+            FgdcNamespace.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AList[I]);
+            if FgdcNamespace.FieldByName('filetimestamp').AsDateTime > Now then
+              FgdcNamespace.FieldByName('filetimestamp').AsDateTime := Now;
+            FgdcNamespace.FieldByName('filename').AsString := System.Copy(AList[I], 1, 255);
+            (FgdcNamespace.FieldByName('filedata') as TBlobField).LoadFromFile(AList[I]);
+            FgdcNamespace.Post;
             AddText('Создано новое пространство имен: ' + NSName);
+            NewNS := True;
           end else
           begin
             FgdcNamespace.ID := FqFindNS.FieldByName('id').AsInteger;
             FgdcNamespace.Open;
-            FgdcNamespace.Edit;
+            if FgdcNamespace.EOF then
+              raise EgdcNamespaceLoader.Create('Internal consistency check');
             if FqFindNS.FieldByName('ByName').AsInteger <> 0 then
               AddText('Пространство имен найдено по наименованию: ' + NSName)
             else
               AddText('Пространство имен найдено по РУИД: ' + NSName);
+            NewNS := False;
           end;
-
-          FgdcNamespace.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
-          FgdcNamespace.FieldByName('caption').AsString := Mapping.ReadString('Properties\Caption', 255);
-          FgdcNamespace.FieldByName('version').AsString := Mapping.ReadString('Properties\Version', 20);
-          FgdcNamespace.FieldByName('dbversion').AsString := Mapping.ReadString('Properties\DBversion', 20);
-          FgdcNamespace.FieldByName('optional').AsInteger := Mapping.ReadInteger('Properties\Optional', 0);
-          FgdcNamespace.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
-          FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', 21);
-          FgdcNamespace.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
-          FgdcNamespace.FieldByName('md5').AsString := Mapping.ReadString('Properties\MD5');
-          FgdcNamespace.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AList[I]);
-          if FgdcNamespace.FieldByName('filetimestamp').AsDateTime > Now then
-            FgdcNamespace.FieldByName('filetimestamp').AsDateTime := Now;
-          FgdcNamespace.FieldByName('filename').AsString := System.Copy(AList[I], 1, 255);
-          (FgdcNamespace.FieldByName('filedata') as TBlobField).LoadFromFile(AList[I]);
-          FgdcNamespace.Post;
 
           NSID := FgdcNamespace.ID;
           FNSList.Add(NSID, True);
@@ -629,6 +632,29 @@ begin
 
           if FgdcNamespace.Active then
             FgdcNamespace.Close;
+
+          if not NewNS then
+          begin
+            FgdcNamespace.ID := NSID;
+            FgdcNamespace.Open;
+            FgdcNamespace.Insert;
+            FgdcNamespace.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
+            FgdcNamespace.FieldByName('caption').AsString := Mapping.ReadString('Properties\Caption', 255);
+            FgdcNamespace.FieldByName('version').AsString := Mapping.ReadString('Properties\Version', 20);
+            FgdcNamespace.FieldByName('dbversion').AsString := Mapping.ReadString('Properties\DBversion', 20);
+            FgdcNamespace.FieldByName('optional').AsInteger := Mapping.ReadInteger('Properties\Optional', 0);
+            FgdcNamespace.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
+            FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', 21);
+            FgdcNamespace.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
+            FgdcNamespace.FieldByName('md5').AsString := Mapping.ReadString('Properties\MD5');
+            FgdcNamespace.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AList[I]);
+            if FgdcNamespace.FieldByName('filetimestamp').AsDateTime > Now then
+              FgdcNamespace.FieldByName('filetimestamp').AsDateTime := Now;
+            FgdcNamespace.FieldByName('filename').AsString := System.Copy(AList[I], 1, 255);
+            (FgdcNamespace.FieldByName('filedata') as TBlobField).LoadFromFile(AList[I]);
+            FgdcNamespace.Post;
+            FgdcNamespace.Close;
+          end;
 
           FTr.Commit;
 

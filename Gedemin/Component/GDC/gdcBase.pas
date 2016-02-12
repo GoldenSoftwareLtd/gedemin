@@ -11209,7 +11209,7 @@ end;
 
 function TgdcBase.GetObjectName: String;
 begin
-  if Active then
+  if Active and (not IsEmpty) then
   begin
     if AnsiCompareText(GetListField(SubType), GetKeyField(SubType)) = 0 then
       Result := GetDisplayName(SubType) + ', ÐÓÈÄ: ' + RUIDToStr(GetRUID)

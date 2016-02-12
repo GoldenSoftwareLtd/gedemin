@@ -329,6 +329,9 @@ type
     procedure WMReload(var Msg: TMessage);
       message WM_GD_RELOAD;
 
+    procedure WMUserFeedback(var Msg: TMessage);
+      message WM_GD_USER_FEEDBACK;  
+
   protected
     procedure Loaded; override;
 
@@ -509,10 +512,8 @@ uses
   IBSQLCache,
   tmp_ScanTemplate_unit,
   gd_KeyAssoc,
-  //mtd_i_Base,
   dm_i_ClientReport_unit,
   gdcBaseInterface, dmLogin_unit,
-  //gd_dlgAutoBackup_unit,
   prp_frmGedeminProperty_Unit,
   cmp_frmDataBaseCompare,
   gd_frmMonitoring_unit,
@@ -531,7 +532,8 @@ uses
   {$ENDIF}
   , gdcExplorer,
   gd_dlgStreamSaverOptions,
-  gdc_frmStreamSaver;
+  gdc_frmStreamSaver,
+  gd_frmFeedback_unit;
 
 type
   TCrackPopupMenu = class(TPopupMenu);
@@ -758,6 +760,7 @@ begin
     and (IBLogin.CompanyKey < cstUserIDStart)
     and (System.Copy(IBLogin.CompanyName, 1, 1) = '<')
     and (not gd_CmdLineParams.QuietMode)
+    and (not gd_CmdLineParams.Embedding)
     and (gd_CmdLineParams.LoadSettingFileName = '') then
   begin
     q := TIBSQL.Create(nil);
@@ -853,6 +856,16 @@ begin
   end;
 
   _IBSQLCache.Enabled := True;
+
+  {
+  if (not IBLogin.Relogining)
+    and (not gd_CmdLineParams.QuietMode)
+    and (not gd_CmdLineParams.Embedding)
+    and (gd_CmdLineParams.LoadSettingFileName = '') then
+  begin
+    PostMessage(Handle, WM_GD_USER_FEEDBACK, 0, 0);
+  end;
+  }  
 end;
 
 procedure TfrmGedeminMain.DoBeforeChangeCompany;
@@ -943,6 +956,8 @@ begin
   gdcBaseManager.Database.TraceFlags := [];
 
   if (not IBLogin.Relogining)
+    and (not gd_CmdLineParams.QuietMode)
+    and (not gd_CmdLineParams.Embedding)
     and (gd_CmdLineParams.LoadSettingFileName = '')
     and Assigned(GlobalStorage)
     and GlobalStorage.FolderExists('Options\Arch') then
@@ -2438,6 +2453,16 @@ begin
       PChar(SysErrorMessage(GetLastError)),
       'Îøèáêà',
       MB_OK or MB_ICONHAND);
+end;
+
+procedure TfrmGedeminMain.WMUserFeedback(var Msg: TMessage);
+begin
+  with Tgd_frmFeedback.Create(Self) do
+  try
+    ShowModal;
+  finally
+    Free;
+  end;
 end;
 
 end.

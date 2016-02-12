@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2015 by Golden Software of Belarus
+  Copyright (c) 2001 - 2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -2778,6 +2778,7 @@ var
   AuxRec: TAuxRec;
   DELn: TgdDocumentEntry;
   Idx: Integer;
+  R: TRUID;
 begin
   Result := nil;
 
@@ -2800,6 +2801,7 @@ begin
     AuxRec.RUID := ARUID;
     AuxRec.CE := nil;
     Get(TgdDocumentEntry, 'TgdcDocument').Traverse(_FindDocByRUID, @AuxRec, nil, False, False);
+
     if AuxRec.CE is TgdDocumentEntry then
     begin
       Result := AuxRec.CE as TgdDocumentEntry;
@@ -2807,6 +2809,14 @@ begin
         FFindDocByRUIDHdrCache.AddObject(ARUID, Result)
       else
         FFindDocByRUIDLineCache.AddObject(ARUID, Result);
+    end else
+    begin
+      R := StrToRUID(ARUID);
+      if R.DBID = cstEtalonDBID then
+      begin
+        Result := FindDocByTypeID(R.XID, APart, AnUpdate);
+        exit;
+      end;
     end;
   end;
 
@@ -3118,7 +3128,7 @@ begin
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
       q.SQL.Text := 'SELECT id FROM rp_reportgroup WHERE usergroupname = :UGN';
-      UGN := UpperCase(ClassName + SubType);
+      UGN := UpperCase(TheClass.ClassName + SubType);
       q.ParamByName('UGN').AsString := UGN;
       q.ExecQuery;
       if not q.EOF then

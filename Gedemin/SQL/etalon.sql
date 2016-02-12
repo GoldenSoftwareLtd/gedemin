@@ -5853,8 +5853,8 @@ CREATE OR ALTER TRIGGER gd_au_documenttype FOR gd_documenttype
   AFTER UPDATE
   POSITION 20000
 AS
-  DECLARE VARIABLE new_root dintkey;
-  DECLARE VARIABLE old_root dintkey;
+  DECLARE VARIABLE new_root INTEGER = NULL;
+  DECLARE VARIABLE old_root INTEGER = NULL;
 BEGIN
   IF (NEW.parent IS DISTINCT FROM OLD.parent) THEN
   BEGIN
