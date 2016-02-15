@@ -556,27 +556,31 @@ begin
 end;
 
 procedure TdmLogin.ApplicationOnException(Sender: TObject; E: Exception);
-{$IFDEF WITH_INDY}
-var
-  S: String;
+{$IFNDEF EXCMAGIC_GEDEMIN}
+  {$IFDEF WITH_INDY}
+  var
+    S: String;
+  {$ENDIF}
 {$ENDIF}
 begin
   if Assigned(FOldOnException) then
     FOldOnException(Sender, E);
 
-  {$IFDEF WITH_INDY}
-  if gdWebClientControl <> nil then
-  begin
-    if Screen.ActiveCustomForm <> nil then
+  {$IFNDEF EXCMAGIC_GEDEMIN}
+    {$IFDEF WITH_INDY}
+    if gdWebClientControl <> nil then
     begin
-      if Screen.ActiveCustomForm.Name = '' then
-        S := Screen.ActiveCustomForm.ClassName
-      else
-        S := Screen.ActiveCustomForm.Name;
-    end else
-      S := '';
-    gdWebClientControl.SendError(S + '. ' + E.ClassName + ': ' + E.Message);
-  end;
+      if Screen.ActiveCustomForm <> nil then
+      begin
+        if Screen.ActiveCustomForm.Name = '' then
+          S := Screen.ActiveCustomForm.ClassName
+        else
+          S := Screen.ActiveCustomForm.Name;
+      end else
+        S := '';
+      gdWebClientControl.SendError(S + '. ' + E.ClassName + ': ' + E.Message);
+    end;
+    {$ENDIF}
   {$ENDIF}
 end;
 

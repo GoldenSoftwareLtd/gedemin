@@ -15,10 +15,17 @@ type
       Buffer: PChar; BufferSize: Integer; CustomInfo: TStrings): Integer; override;
   end;
 
+var
+  ExcMagicAdditionalInfo: String;
+
 implementation
 
 uses
-  SysUtils, gdcJournal;
+  SysUtils,
+  {$IFDEF WITH_INDY}
+  gd_WebClientControl_unit,
+  {$ENDIF}
+  gdcJournal;
 
 var
   gdExceptionFilter: IExcMagicFilter;
@@ -31,6 +38,18 @@ begin
     -1,
     nil,
     True);
+
+  {$IFDEF WITH_INDY}
+  if (gdWebClientControl <> nil) and (CallStack <> nil) then
+  begin
+    if ExcMagicAdditionalInfo > '' then
+      ExcMagicAdditionalInfo := ExcMagicAdditionalInfo + #13#10#13#10;
+    gdWebClientControl.SendError(ExcMagicAdditionalInfo +
+      ExceptionMessage + #13#10#13#10 + CallStack.Text);
+  end;
+  {$ENDIF}
+
+  ExcMagicAdditionalInfo := '';
 
   Result := EXC_FILTER_CONTINUE;
 end;
@@ -48,6 +67,7 @@ begin
 end;
 
 initialization
+  ExcMagicAdditionalInfo := '';
   gdExceptionFilter := TgdExceptionFilter.Create;
   ExceptionHook.RegisterExceptionFilter(Exception, gdExceptionFilter, False);
   ExceptionHook.LogEnabled := False;

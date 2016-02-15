@@ -269,6 +269,9 @@ uses
   {$IFDEF WITH_INDY}
     , gd_WebClientControl_unit
   {$ENDIF}
+  {$IFDEF EXCMAGIC_GEDEMIN}
+    , ExcMagic_Gedemin
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1152,13 +1155,18 @@ const
       if Assigned(SF) then
       begin
         FuncName := SF.Name;
-        {$IFDEF WITH_INDY}
-        if gdWebClientControl <> nil then
-        begin
-          gdWebClientControl.SendError(FuncName + ', line: ' +
-            IntToStr(FErrorList[0].Line) + '. ' +
-            TScriptControl(Sender).Error.Description, True);
-        end;
+        {$IFNDEF EXCMAGIC_GEDEMIN}
+          {$IFDEF WITH_INDY}
+          if gdWebClientControl <> nil then
+          begin
+            gdWebClientControl.SendError(FuncName + ', line: ' +
+              IntToStr(FErrorList[0].Line) + '. ' +
+              TScriptControl(Sender).Error.Description, True);
+          end;
+          {$ENDIF}
+        {$ELSE}
+          ExcMagicAdditionalInfo := FuncName + ', line: ' +
+            IntToStr(FErrorList[0].Line);
         {$ENDIF}
       end else
         FuncName := '**неизвестно**';

@@ -637,7 +637,7 @@ begin
           begin
             FgdcNamespace.ID := NSID;
             FgdcNamespace.Open;
-            FgdcNamespace.Insert;
+            FgdcNamespace.Edit;
             FgdcNamespace.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
             FgdcNamespace.FieldByName('caption').AsString := Mapping.ReadString('Properties\Caption', 255);
             FgdcNamespace.FieldByName('version').AsString := Mapping.ReadString('Properties\Version', 20);
