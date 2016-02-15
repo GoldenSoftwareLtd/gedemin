@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -290,7 +290,10 @@ begin
               for J := cNames - 1 downto 1 do
               begin
                 if BStrList^[J] <> nil then
+                begin
                   SysFreeString(BStrList^[J]);
+                  BStrList^[J] := nil;
+                end;
               end;
             end
           finally
@@ -364,7 +367,10 @@ begin
               for J := cNames - 1 downto 1 do
               begin
                 if BStrList^[J] <> nil then
+                begin
                   SysFreeString(BStrList^[J]);
+                  BStrList^[J] := nil;
+                end;
               end;
             end
           finally
@@ -1087,7 +1093,10 @@ begin
           for J := cNames - 1 downto 1 do
           begin
             if BStrList^[J] <> nil then
+            begin
               SysFreeString(BStrList^[J]);
+              BStrList^[J] := nil;
+            end;
           end;
         end
       finally
@@ -1165,15 +1174,6 @@ begin
     prpClassesFrm.GetClassesTree.Items.AddChild(Node, PropName);
   NodeItem :=
     AddItemData(Result, ciPropertyR, 'Глобальный объект ' + PropName + '.', prpClassesFrm);
-
-//  if NodeItem.InheritsFrom(TWithResultItem) then
-//  begin
-//    NodeItem.ItemData := Pointer(TypeInfo);
-//    TWithResultItem(NodeItem).ResultClassRef := Pointer(TypeInfo);
-//    TWithResultItem(NodeItem).ResultTypeName := Str;
-//    TWithResultItem(NodeItem).NodeText := Result.Text;
-//  end;
-
 end;
 
 procedure TprpClassesInspector.Clear;
@@ -1189,6 +1189,7 @@ var
   TypeInfo: ITypeInfo;
   TypeAttr: PTypeAttr;
   FuncDesc: PFuncDesc;
+  _FuncDesc: TFuncDesc;
   VarDesc:  PVarDesc;
   cNames: Integer;
   Str: String;
@@ -1199,10 +1200,6 @@ var
   BStrList: PciBStrList;
   ResNode: TTreeNode;
   tmpSortList: TStringList;
-  TypeLib: ITypeLib;
-  pptlibattr: PTLibAttr;
-  y: Integer;
-
 begin
   Assert(ClassInterface <> nil);
 
@@ -1215,27 +1212,18 @@ begin
       PropNode := nil;
       MetNode := nil;
 
-
-//      ClassInterface.
       if (ClassInterface.GetTypeInfo(0, 0, TypeInfo) = S_OK) then
       try
-
-        TypeInfo.GetContainingTypeLib(TypeLib, y);
-        TypeLib.GetLibAttr(pptlibattr);
-        try
-        finally
-          TypeLib.ReleaseTLibAttr(pptlibattr);
-        end;
-
-
-
         TypeInfo.GetDocumentation(-1, nil, @pbstrDocString, nil, nil);
         try
           if (Node.Data <> nil) and (Length(pbstrDocString) > 0) then
             TInspectorItem(Node.Data).Description := pbstrDocString;
         finally
           if pbstrDocString <> nil then
+          begin
             SysFreeString(pbstrDocString);
+            pbstrDocString := nil;
+          end;
         end;
         if (TypeInfo.GetTypeAttr(TypeAttr) = S_Ok) then
         begin
@@ -1243,105 +1231,110 @@ begin
           begin
             if (TypeInfo.GetFuncDesc(I, FuncDesc) = S_OK) then
             try
-              if (TypeInfo.GetNames(FuncDesc.memid, PBStrList(BStrList), MaxFuncParams, cNames) =
-                S_OK) then
-//              with FfrmClassesInspector do
+              _FuncDesc := FuncDesc^;
+              if TypeInfo.GetNames(FuncDesc.memid, PBStrList(BStrList), MaxFuncParams, cNames) = S_OK then
               try
-                if FNoShowList.IndexOf(BStrList^[0]) = -1 then
-                begin
-                  Str := BStrList^[0];
-                  Str := '';
-                  case FuncDesc.invkind of
-                    DISPATCH_METHOD:
-                    begin
-                      if MetNode = nil then
+                if _FuncDesc.memid <> FuncDesc.memid then
+                  // in rare case we have FuncDesc corrupted after GetNames call
+                  // restore in order to free it without errors
+                  FuncDesc^ := _FuncDesc
+                else begin
+                  if FNoShowList.IndexOf(BStrList^[0]) = -1 then
+                  begin
+                    Str := BStrList^[0];
+                    Str := '';
+                    case FuncDesc.invkind of
+                      DISPATCH_METHOD:
                       begin
-                        MetNode := TCrackTreeView(Node.TreeView).Items.AddChild(Node, cnMethods);
-                        AddItemData(MetNode, ciMethodFolder,
-                          'Методы класса ' + Node.Text + '.', prpClassesFrm);
-                      end;
-                      AddMethod(MetNode, BStrList, FuncDesc, TypeInfo, cNames, prpClassesFrm);
-                    end;
-
-                    DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT, DISPATCH_PROPERTYPUTREF:
-                    begin
-                      if not Assigned(PropNode) then
-                      begin
-                        PropNode := TCrackTreeView(Node.TreeView).Items.AddChild(Node, cnProperty);
-                        AddItemData(PropNode, ciPropertyFolder,
-                          'Свойства класса ' + Node.Text + '.', prpClassesFrm);
-                      end;
-
-                      H := tmpSortList.IndexOf(BStrList^[0]);
-
-                      InspectorItem := nil;
-                      if H = -1 then
-                      begin
-                        ItemNode := TCrackTreeView(Node.TreeView).Items.AddChild(PropNode, BStrList^[0]);
-                        InspectorItem := AddItemData(ItemNode, ciPropertyR, '', ClassRef, prpClassesFrm);
-                        InspectorItem.ItemType := ciUnknown;
-                        H := tmpSortList.Add(String(BStrList^[0]));
-                        tmpSortList.Objects[H] := ItemNode;
-                      end else
+                        if MetNode = nil then
                         begin
-                          ItemNode := TTreeNode(tmpSortList.Objects[H]);
-                          if TObject(ItemNode.Data).InheritsFrom(TInspectorItem) then
-                            InspectorItem := TInspectorItem(ItemNode.Data);
+                          MetNode := TCrackTreeView(Node.TreeView).Items.AddChild(Node, cnMethods);
+                          AddItemData(MetNode, ciMethodFolder,
+                            'Методы класса ' + Node.Text + '.', prpClassesFrm);
+                        end;
+                        AddMethod(MetNode, BStrList, FuncDesc, TypeInfo, cNames, prpClassesFrm);
+                      end;
+
+                      DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT, DISPATCH_PROPERTYPUTREF:
+                      begin
+                        if not Assigned(PropNode) then
+                        begin
+                          PropNode := TCrackTreeView(Node.TreeView).Items.AddChild(Node, cnProperty);
+                          AddItemData(PropNode, ciPropertyFolder,
+                            'Свойства класса ' + Node.Text + '.', prpClassesFrm);
                         end;
 
-                      if InspectorItem = nil then
-                        Continue;
+                        H := tmpSortList.IndexOf(BStrList^[0]);
 
-                      case FuncDesc.invkind of
-                        DISPATCH_PROPERTYGET:
+                        InspectorItem := nil;
+                        if H = -1 then
                         begin
-                          if InspectorItem.ItemType = ciPropertyW then
-                            SetCorrectType(ItemNode, ciPropertyRW)
-                          else
-                            SetCorrectType(ItemNode, ciPropertyR);
-                        end;
-                        DISPATCH_PROPERTYPUT:
-                        begin
-                          if InspectorItem.ItemType = ciPropertyR then
-                            SetCorrectType(ItemNode, ciPropertyRW)
-                          else
-                            SetCorrectType(ItemNode, ciPropertyW);
-                        end;
-                        DISPATCH_PROPERTYPUTREF:
-                        begin
-                          InspectorItem := AddItemData(ItemNode, ciPropertyRW, '', ClassRef, prpClassesFrm);
-                        end;
-                      end;
-                      TypeInfo.GetDocumentation(FuncDesc.memid, nil, @pbstrDocString, nil, nil);
-                      try
-                        TInspectorItem(ItemNode.Data).Description := pbstrDocString;
-                      finally
-                        if pbstrDocString <> nil then
-                          SysFreeString(pbstrDocString);
-                      end;
-                      if Length(Trim(TInspectorItem(ItemNode.Data).Description)) = 0 then
-                      begin
-                        TInspectorItem(ItemNode.Data).Description := 'Описание отсутствует.';
-                      end;
+                          ItemNode := TCrackTreeView(Node.TreeView).Items.AddChild(PropNode, BStrList^[0]);
+                          InspectorItem := AddItemData(ItemNode, ciPropertyR, '', ClassRef, prpClassesFrm);
+                          InspectorItem.ItemType := ciUnknown;
+                          H := tmpSortList.Add(String(BStrList^[0]));
+                          tmpSortList.Objects[H] := ItemNode;
+                        end else
+                          begin
+                            ItemNode := TTreeNode(tmpSortList.Objects[H]);
+                            if TObject(ItemNode.Data).InheritsFrom(TInspectorItem) then
+                              InspectorItem := TInspectorItem(ItemNode.Data);
+                          end;
 
-                      if (FuncDesc.invkind = DISPATCH_PROPERTYGET) or
-                        (FuncDesc.invkind = DISPATCH_PROPERTYPUTREF) or
-                        (FuncDesc.invkind = DISPATCH_METHOD)
-                      then
-                      begin
-                        ResNode :=
-                          GetResultType(ItemNode, TypeInfo, FuncDesc.elemdescFunc, Str, ClassRef, prpClassesFrm);
-                        if Length(Trim(Str)) > 0 then
-                          ItemNode.Text := ItemNode.Text + ': ' + Str;
-                        if InspectorItem.InheritsFrom(TWithResultItem) then
-                        begin
-                          TWithResultItem(InspectorItem).ResultNodeRef := ResNode;
-                          TWithResultItem(InspectorItem).ResultClassRef := ClassRef;
-                          TWithResultItem(InspectorItem).ResultTypeName := Str;
-                          TWithResultItem(InspectorItem).NodeText := ItemNode.Text;
-                        end;
-                      end;
+                        if InspectorItem = nil then
+                          Continue;
 
+                        case FuncDesc.invkind of
+                          DISPATCH_PROPERTYGET:
+                          begin
+                            if InspectorItem.ItemType = ciPropertyW then
+                              SetCorrectType(ItemNode, ciPropertyRW)
+                            else
+                              SetCorrectType(ItemNode, ciPropertyR);
+                          end;
+                          DISPATCH_PROPERTYPUT:
+                          begin
+                            if InspectorItem.ItemType = ciPropertyR then
+                              SetCorrectType(ItemNode, ciPropertyRW)
+                            else
+                              SetCorrectType(ItemNode, ciPropertyW);
+                          end;
+                          DISPATCH_PROPERTYPUTREF:
+                          begin
+                            InspectorItem := AddItemData(ItemNode, ciPropertyRW, '', ClassRef, prpClassesFrm);
+                          end;
+                        end;
+                        TypeInfo.GetDocumentation(FuncDesc.memid, nil, @pbstrDocString, nil, nil);
+                        try
+                          TInspectorItem(ItemNode.Data).Description := pbstrDocString;
+                        finally
+                          if pbstrDocString <> nil then
+                            SysFreeString(pbstrDocString);
+                        end;
+                        if Length(Trim(TInspectorItem(ItemNode.Data).Description)) = 0 then
+                        begin
+                          TInspectorItem(ItemNode.Data).Description := 'Описание отсутствует.';
+                        end;
+
+                        if (FuncDesc.invkind = DISPATCH_PROPERTYGET) or
+                          (FuncDesc.invkind = DISPATCH_PROPERTYPUTREF) or
+                          (FuncDesc.invkind = DISPATCH_METHOD)
+                        then
+                        begin
+                          ResNode :=
+                            GetResultType(ItemNode, TypeInfo, FuncDesc.elemdescFunc, Str, ClassRef, prpClassesFrm);
+                          if Length(Trim(Str)) > 0 then
+                            ItemNode.Text := ItemNode.Text + ': ' + Str;
+                          if InspectorItem.InheritsFrom(TWithResultItem) then
+                          begin
+                            TWithResultItem(InspectorItem).ResultNodeRef := ResNode;
+                            TWithResultItem(InspectorItem).ResultClassRef := ClassRef;
+                            TWithResultItem(InspectorItem).ResultTypeName := Str;
+                            TWithResultItem(InspectorItem).NodeText := ItemNode.Text;
+                          end;
+                        end;
+
+                      end;
                     end;
                   end;
                 end;
@@ -1349,7 +1342,10 @@ begin
                 for J := cNames - 1 downto 0 do
                 begin
                   if BStrList^[J] <> nil then
+                  begin
                     SysFreeString(BStrList^[J]);
+                    BStrList^[J] := nil;
+                  end;
                 end;
               end;
             finally
@@ -1399,7 +1395,10 @@ begin
                   for J := cNames - 1 downto 0 do
                 begin
                   if BStrList^[J] <> nil then
+                  begin
                     SysFreeString(BStrList^[J]);
+                    BStrList^[J] := nil;
+                  end;
                 end;
               end;
 
@@ -1594,7 +1593,10 @@ begin
                   for J := cNames - 1 downto 0 do
                 begin
                   if BStrList^[J] <> nil then
+                  begin
                     SysFreeString(BStrList^[J]);
+                    BStrList^[J] := nil;
+                  end;
                 end;
               end;
             finally

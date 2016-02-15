@@ -1,6 +1,6 @@
 object dlgToNamespace: TdlgToNamespace
-  Left = 378
-  Top = 210
+  Left = 380
+  Top = 214
   Width = 759
   Height = 542
   Caption = 'Добавление/перемещение/удаление объекта пространства имен'
