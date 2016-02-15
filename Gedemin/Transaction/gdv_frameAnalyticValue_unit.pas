@@ -13,10 +13,7 @@ type
     { Private declarations }
     FAnaliseLines: TObjectList;
     FFields: TObjectList;
-    FAlias: string;
     function GetAnalyticCount: Integer;
-    //function GetCondition: string;
-    procedure SetAlias(const Value: string);
     procedure SetValues(const Value: string);
     function GetValues: string;
     procedure ClearValues;
@@ -28,8 +25,6 @@ type
     procedure UpdateAnalytic(IdList: TList);
 
     property AnalyticCount: Integer read GetAnalyticCount;
-    //property Condition: string read GetCondition;
-    property Alias:  string read FAlias write SetAlias;
     property Values: string read GetValues write SetValues;
   end;
 
@@ -50,8 +45,6 @@ begin
   for I := 0 to FAnaliseLines.Count - 1 do
   begin
     Line := TframeMapOfAnaliticLine(FAnaliseLines[I]);
-    //Line.cbAnalitic.CurrentKey := '';
-    //Line.eAnalitic.Text := '';
     Line.Clear;
   end;
 end;
@@ -84,29 +77,6 @@ begin
      Result := Result + TframeMapOfAnaliticLine(FAnaliseLines[I]).Count;
    end;
 end;
-
-{function TframeAnalyticValue.GetCondition: string;
-var
-  I: Integer;
-  Line: TframeMapOfAnaliticLine;
-  F: TatRelationField;
-  S: String;
-begin
-  Result := '';
-
-  for I := 0 to FAnaliseLines.Count - 1 do
-  begin
-    Line := TframeMapOfAnaliticLine(FAnaliseLines[I]);
-    F := Line.Field;
-    S := Line.Value;
-    if S > '' then
-    begin
-      if Result > '' then
-        Result := Result + #13#10;
-      Result := Result + F.FieldName + '=' + S;
-    end;
-  end;
-end;}
 
 function TframeAnalyticValue.GetValues: string;
 var
@@ -154,11 +124,6 @@ begin
       Exit;
     end;
   end;
-end;
-
-procedure TframeAnalyticValue.SetAlias(const Value: string);
-begin
-  FAlias := Value;
 end;
 
 procedure TframeAnalyticValue.SetValues(const Value: string);

@@ -87,7 +87,7 @@ inherited dlgAcctCirculationList: TdlgAcctCirculationList
       TabVisible = False
       inherited frAnalytics: TframeAnalyticValue
         Height = 404
-        inherited sbAnaliseLines: TScrollBox
+        inherited sbAnaliseLines: TgsScrollBox
           Height = 404
         end
       end

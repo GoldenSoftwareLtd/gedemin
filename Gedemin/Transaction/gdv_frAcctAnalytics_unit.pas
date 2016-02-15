@@ -16,7 +16,6 @@ type
   private
     FAnalyticsLineList: TObjectList;
     FAnalyticsFieldList: TList;
-    FAlias: string;
     FOnValueChange: TNotifyEvent;
     FNeedNull: Boolean;
     FNeedSet: Boolean;
@@ -25,11 +24,9 @@ type
     function GetAnalyticsCount: Integer;
     function GetAnalytics(Index: Integer): TfrAcctAnalyticLine;
     function GetValues: string;
-    procedure SetAlias(const Value: string);
     procedure SetValues(const Value: string);
     procedure ClearValues;
     function IndexOf(FieldName: string): Integer;
-    //function GetCondition: string;
     procedure SetOnValueChange(const Value: TNotifyEvent);
     procedure OnFrameResize(Sender: TObject);
     function GetDescription: String;
@@ -42,10 +39,7 @@ type
 
     property AnalyticsCount: Integer read GetAnalyticsCount;
     property Analytics[Index: Integer]: TfrAcctAnalyticLine read GetAnalytics; default;
-
-    property Alias:  string read FAlias write SetAlias;
     property Values: string read GetValues write SetValues;
-    //property Condition: string read GetCondition;
     property OnValueChange: TNotifyEvent read FOnValueChange write SetOnValueChange;
     property NeedNull: Boolean read FNeedNull write FNeedNull;
     property NeedSet: Boolean read FNeedSet write FNeedSet;
@@ -92,36 +86,6 @@ begin
     Result := FAnalyticsLineList.Count;
 end;
 
-{function TfrAcctAnalytics.GetCondition: string;
-var
-  I: Integer;
-  Line: TfrAcctAnalyticLine;
-  F: TatRelationField;
-begin
-  Result := '';
-  if FAnalyticsLineList <> nil then
-  begin
-    for I := 0 to FAnalyticsLineList.Count - 1 do
-    begin
-      Line := Analytics[I];
-      F := Line.Field;
-      if not Line.IsEmpty then
-      begin
-        if Result > '' then
-          Result := Result + ' AND '#13#10;
-        Result := Result + Format('%s.%s IN (%s)', [FAlias, F.FieldName, Line.Value]);
-      end
-      else begin
-        if FNeedNull and Line.IsNull then begin
-          if Result > '' then
-            Result := Result + ' AND '#13#10;
-          Result := Result + FAlias + '.' + F.FieldName + ' IS NULL ';
-        end;
-      end;
-    end;
-  end;
-end;}
-
 function TfrAcctAnalytics.GetValues: string;
 var
   I: Integer;
@@ -165,11 +129,6 @@ begin
         Exit;
       end;
     end;
-end;
-
-procedure TfrAcctAnalytics.SetAlias(const Value: string);
-begin
-  FAlias := Value;
 end;
 
 procedure TfrAcctAnalytics.SetValues(const Value: string);

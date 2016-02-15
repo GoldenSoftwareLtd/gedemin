@@ -18,8 +18,7 @@ type
     cbDisplaceSaldo: TCheckBox;
     cbOnlyAccounts: TCheckBox;
     procedure cbSubAccountsInMainClick(Sender: TObject);
-  private
-    { Private declarations }
+
   protected
     class function ConfigClassName: string; override;
     class function DefImageIndex: Integer; override;
@@ -27,8 +26,6 @@ type
 
     procedure DoLoadConfig(const Config: TBaseAcctConfig); override;
     procedure DoSaveConfig(Config: TBaseAcctConfig); override;
-  public
-    { Public declarations }
   end;
 
 var
@@ -61,6 +58,7 @@ var
   C: TAccCirculationListConfig;
 begin
   inherited;
+  
   if Config is TAccCirculationListConfig then
   begin
     C := Config as TAccCirculationListConfig;
@@ -70,7 +68,6 @@ begin
     cbDisplaceSaldo.Checked := C.DisplaceSaldo;
     cbSubAccountsInMain.Checked := C.SubAccountsInMain;
     cbOnlyAccounts.Checked := C.OnlyAccounts;
-
     cbDisplaceSaldo.Enabled := cbSubAccountsInMain.Checked;
     cbOnlyAccounts.Enabled := cbSubAccountsInMain.Checked;
   end;
@@ -81,6 +78,7 @@ var
   C: TAccCirculationListConfig;
 begin
   inherited;
+
   if Config is TAccCirculationListConfig then
   begin
     C := Config as TAccCirculationListConfig;

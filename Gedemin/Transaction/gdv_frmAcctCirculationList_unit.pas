@@ -339,9 +339,8 @@ begin
     C := Config as TAccCirculationListConfig;
     cbSubAccount.Checked := C.SubAccountsInMain;
     cbDisplaceSaldo.Checked := C.DisplaceSaldo;
-    cbOnlyAccounts.Checked := C.OnlyAccounts;
-
     cbDisplaceSaldo.Enabled := cbSubAccount.Checked;
+    cbOnlyAccounts.Checked := C.OnlyAccounts;
     cbOnlyAccounts.Enabled := cbSubAccount.Checked;
   end;
 end;
@@ -358,7 +357,6 @@ begin
     C.ShowCredit := False;
     C.ShowCorrSubAccounts := False;
     C.SubAccountsInMain:= cbSubAccount.Checked;
-    C.SubAccountsInMain:= False;
     C.DisplaceSaldo:= cbDisplaceSaldo.Checked;
     C.OnlyAccounts := cbOnlyAccounts.Checked;
   end;

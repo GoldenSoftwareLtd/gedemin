@@ -738,7 +738,6 @@ begin
     NameSelect := '';
     WhereClause := '';
 
-    frAcctAnalytics.Alias := 'e';
     AnalyticFilter := gdvObject.GetCondition('e');
     if AnalyticFilter > '' then
       AnalyticFilter := ' AND '#13#10 + AnalyticFilter + #13#10;

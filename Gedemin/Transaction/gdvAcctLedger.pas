@@ -256,6 +256,8 @@ type
 
     procedure CheckAnalyticLevelProcedures;
     procedure UpdateEntryDateIsFirst;
+
+    function GetIsDocTypeGroupBy: Boolean;
     
     //процедура возвращает — Ћ запрос дл€ вычислени€ начального сальдо
     //когда выбрана фиксированна€ аналитика и дата стоит первой аналитикой
@@ -332,6 +334,7 @@ type
     property ShowCorrSubAccounts: Boolean read FShowCorrSubAccounts write FShowCorrSubAccounts;
     property EnchancedSaldo: Boolean read FEnchancedSaldo write FEnchancedSaldo;
     property SumNull: Boolean read FSumNull write FSumNull;
+    property IsDocTypeGroupBy: Boolean read GetIsDocTypeGroupBy;
   end;
 
 procedure Register;
@@ -548,7 +551,7 @@ begin
       end;
     end;
     // ≈сли это уровни по новой аналитике
-    if UpperCase(AnalyticName) = 'DOCUMENTTYPEKEY' then
+    if AnalyticName = 'DOCUMENTTYPEKEY' then
       F := atDatabase.FindRelationField('GD_DOCUMENT', AnalyticName)
     else
       F := atDatabase.FindRelationField(AC_ENTRY, AnalyticName);
@@ -573,14 +576,16 @@ var
 begin
   inherited;
 
+  if IsDocTypeGroupBy then
+    FUseEntryBalance := False;
+
   // ѕоищем аналитику USR$GS_DOCUMENT, если така€ есть то будем строить старым методом
-  // “акже старым методом будем строить если есть групировка по типу документа
   if FUseEntryBalance then
   begin
     DontBalanceAnalytic := GetDontBalanceAnalyticList;
     for I := 0 to FAcctGroupBy.Count - 1 do
-      if (AnsiPos(';' + FAcctGroupBy.Analytics[I].FieldName + ';', DontBalanceAnalytic) > 0)
-        or (FAcctGroupBy.Analytics[I].FieldName = 'DOCUMENTTYPEKEY') then
+      if AnsiPos(';' + FAcctGroupBy.Analytics[I].FieldName + ';', DontBalanceAnalytic) > 0 then
+
       begin
         FUseEntryBalance := False;
         Break;
@@ -2002,7 +2007,6 @@ begin
 
   end
   else
-  ///// отсюда начинаем править код, здесь не используетс€ ентри баланс
   begin
     Strings := TgdvCorrFieldInfoList.Create;
     try
@@ -4535,6 +4539,20 @@ begin
       Break;
     end;
   end;
+end;
+
+function TgdvAcctLedger.GetIsDocTypeGroupBy: Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+
+  for I := 0 to FAcctGroupBy.Count - 1 do
+    if FAcctGroupBy.Analytics[I].FieldName = 'DOCUMENTTYPEKEY' then
+    begin
+      Result := True;
+      Exit;
+    end;
 end;
 
 { TgdvCorrFieldInfo }

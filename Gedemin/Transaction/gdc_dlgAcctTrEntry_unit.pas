@@ -43,13 +43,16 @@ type
     dbcbIsDiasabled: TDBCheckBox;
     procedure actWizardExecute(Sender: TObject);
     procedure actWizardUpdate(Sender: TObject);
+
   private
     FScriptChanged: Boolean;
+
   protected
     procedure SetupRecord; override;
     procedure SetupDialog; override;
     procedure Post; override;
     procedure Cancel; override;
+
   public
     function TestCorrect: Boolean; override;
   end;
@@ -65,8 +68,7 @@ implementation
 
 uses
   dmImages_unit, Storages, gd_ClassList, gd_security, IBSQL,
-  gdcAcctEntryRegister, gd_security_operationconst,
-  wiz_Main_Unit;
+  gdcAcctEntryRegister, gd_security_operationconst, wiz_Main_Unit;
 
 function Tgdc_dlgAcctTrEntry.TestCorrect: Boolean;
 var
@@ -106,13 +108,13 @@ begin
   begin
     ShowMessage(MSG_ENTERDESCRIPTION);
     Result := False;
-  end else
-  if gdcObject.FieldByName(fnDocumenttypekey).AsInteger = 0 then
+  end
+  else if gdcObject.FieldByName(fnDocumenttypekey).AsInteger = 0 then
   begin
     ShowMessage(MSG_ENTERDOCUMENTTYPE);
     Result := False;
-  end else
-  if gdcObject.FieldByName(fnFunctionKey).AsInteger = 0 then
+  end
+  else if gdcObject.FieldByName(fnFunctionKey).AsInteger = 0 then
   begin
     ShowMessage(MSG_ENTERFUNCTIONKEY);
     Result := False;
@@ -194,7 +196,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
+
   if (gdcObject.State = dsInsert) then
   begin
     if (gdcObject.FieldByName(fnFunctionKey).AsInteger = 0) then
@@ -236,6 +240,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   if gdcFunction.State in [dsEdit, dsInsert] then
     gdcFunction.Cancel;
 
@@ -285,6 +290,7 @@ begin
   begin
     ScriptFactory.ReloadFunction(gdcObject.FieldByName(fnFunctionKey).AsInteger);
   end;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGACCTTRENTRY', 'POST', KEYPOST)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -392,11 +398,11 @@ end;
 
 procedure Tgdc_dlgAcctTrEntry.actWizardUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := (gdcObject <> nil) and
-    (gdcObject.FieldByName(fndocumenttypekey).AsInteger > 0) and
-    (gdcObject.FieldByName(fndocumentpart).AsString > '') and
-    (gdcObject.FieldByName(fnAccountKey).AsInteger > 0) and
-    IBLogin.IsIBUserAdmin
+  TAction(Sender).Enabled := (gdcObject <> nil)
+    and (gdcObject.FieldByName(fndocumenttypekey).AsInteger > 0)
+    and (gdcObject.FieldByName(fndocumentpart).AsString > '')
+    and (gdcObject.FieldByName(fnAccountKey).AsInteger > 0)
+    and IBLogin.IsIBUserAdmin
 end;
 
 initialization
