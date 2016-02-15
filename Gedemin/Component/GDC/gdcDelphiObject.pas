@@ -33,7 +33,7 @@ type
 
     function CheckTheSameStatement: String; override;
 
-    class function AddObject(AnComponent: TComponent;
+    class function AddObject(AComponent: TComponent;
       ATransaction: TIBTransaction = nil): Integer;
 
   published
@@ -61,29 +61,34 @@ end;
 
 { TgdcObject }
 
-class function TgdcDelphiObject.AddObject(AnComponent: TComponent;
+class function TgdcDelphiObject.AddObject(AComponent: TComponent;
   ATransaction: TIBTransaction = nil): Integer;
 var
   Branch: Integer;
 
-  function Insert(const Parent: Variant; AName: string): Integer;
+  function Insert(const AParent: Variant; AName: string): Integer;
   var
     q: TIBSQL;
     Tr: TIBTransaction;
+    CreateTransaction: Boolean;
   begin
     Assert(gdcBaseManager <> nil);
 
     q := TIBSQL.Create(nil);
     try
-      if ATransaction <> nil then
-        Tr := ATransaction
-      else
-        Tr := TIBTransaction.Create(nil);
-      try
-        Tr.DefaultDatabase := gdcBaseManager.Database;
+      CreateTransaction := ATransaction = nil;
 
-        if ATransaction = nil then
+      if CreateTransaction then
+        Tr := TIBTransaction.Create(nil)
+      else
+        Tr := ATransaction;
+
+      try
+        if CreateTransaction then
+        begin
+          Tr.DefaultDatabase := gdcBaseManager.Database;
           Tr.StartTransaction;
+        end;
 
         Result := gdcBaseManager.GetNextID;
 
@@ -93,16 +98,16 @@ var
           ' VALUES (:id, :objectname, :parent, :achag, :afull, :aview)';
         q.ParamByName('id').AsInteger := Result;
         q.ParamByName('objectname').AsString := AName;
-        q.ParamByName('parent').AsVariant := Parent;
+        q.ParamByName('parent').AsVariant := AParent;
         q.ParamByName('AChag').AsInteger := -1;
         q.ParamByName('AFull').AsInteger := -1;
         q.ParamByName('AView').AsInteger := -1;
         q.ExecQuery;
         
-        if ATransaction = nil then
+        if CreateTransaction then
           Tr.Commit;
       finally
-        if ATransaction = nil then
+        if CreateTransaction then
           Tr.Free;
       end;
     finally
@@ -195,16 +200,16 @@ var
 begin
   Result := 0;
 
-  if AnComponent = Application then
+  if AComponent = Application then
   begin
     Result := OBJ_APPLICATION;
     Exit;
   end;
 
-  if (AnComponent <> nil) and (AnComponent.Name <> '') then
+  if (AComponent <> nil) and (AComponent.Name <> '') then
   begin
     Branch := 0;
-    Result := IterateOwner(AnComponent, Branch);
+    Result := IterateOwner(AComponent, Branch);
 
     if (Branch > 0) and (EventControl <> nil) then
       EventControl.LoadBranch(Branch);
