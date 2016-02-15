@@ -2073,7 +2073,7 @@ begin
         end;
       end;
 
-      GdDocJoined := GetIsDocTypeCondition;
+      GdDocJoined := False;
 
       SelectClause := '';
       N := FAcctGroupBy.Count;
@@ -2850,7 +2850,7 @@ begin
       end;
 
       Result := Format(cInternalMovementClauseTemplate,
-        [InternalMovementWhereClause, InternalMovementJoinGdDoc, InternalMovementWhereCondition]);
+        [InternalMovementWhereClause + InternalMovementJoinGdDoc, InternalMovementWhereCondition]);
     end;
   end;
 end;

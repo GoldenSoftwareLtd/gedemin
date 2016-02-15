@@ -434,7 +434,8 @@ begin
     FUseEntryBalance := False;
 
   // При выборе аналитики "Тип документа" будем строить старым методом
-  FUseEntryBalance := not IsDocTypeCondition;
+  if IsDocTypeCondition then
+    FUseEntryBalance := False;
 
   if FWithSubAccounts then
     FillSubAccounts(FAccounts);
@@ -666,7 +667,7 @@ begin
       end;
 
       Result := Format(cInternalMovementClauseTemplate,
-        [InternalMovementWhereClause, InternalMovementJoinGdDoc, InternalMovementWhereCondition]);
+        [InternalMovementWhereClause + InternalMovementJoinGdDoc, InternalMovementWhereCondition]);
     end;
   end;
 end;
