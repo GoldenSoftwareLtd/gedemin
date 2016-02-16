@@ -1,6 +1,6 @@
 object gd_frmFeedback: Tgd_frmFeedback
-  Left = 531
-  Top = 319
+  Left = 533
+  Top = 322
   BorderStyle = bsDialog
   Caption = 'Форма обратной связи'
   ClientHeight = 171

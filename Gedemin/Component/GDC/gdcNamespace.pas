@@ -1219,7 +1219,9 @@ begin
       SaveNamespaceToStream(SS, HashString, IDCANCEL);
 
       if SS.DataString = SS1251.DataString then
-        gdcBaseManager.ExecSingleQuery('UPDATE at_namespace SET changed = 0 WHERE id = :id', ID);
+        gdcBaseManager.ExecSingleQuery(
+          'UPDATE at_namespace SET changed = 0, md5 = :md5 WHERE id = ' +
+          IntToStr(ID), HashString);
 
       ScriptComparer.Compare(SS.DataString, SS1251.DataString);
       ScriptComparer.LeftCaption('Текущее состояние в базе данных:');

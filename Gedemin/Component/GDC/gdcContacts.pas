@@ -2657,10 +2657,10 @@ function TgdcCompany.GetCurrRecordClass: TgdcFullClass;
 var
   q: TIBSQL;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := SubType;
+  Result := inherited GetCurrRecordClass;
 
-  if (not IsEmpty) and Assigned(IBLogin) then
+  if (Result.gdClass = TgdcCompany) and (Result.SubType = '') and
+    (not IsEmpty) and Assigned(IBLogin) then
   begin
     if ID = IBLogin.CompanyKey then
       Result.gdClass := TgdcOurCompany
@@ -2679,8 +2679,6 @@ begin
       end;
     end;
   end;
-
-  FindInheritedSubType(Result);
 end;
 
 procedure TgdcCompany.DoBeforePost;
