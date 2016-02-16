@@ -18,12 +18,12 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
     TabOrder = 5
   end
   inherited btnOK: TButton
-    Left = 453
+    Left = 371
     Top = 474
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 527
+    Left = 445
     Top = 474
     TabOrder = 2
   end
@@ -87,8 +87,8 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
       object smViewBody: TSynMemo
         Left = 0
         Top = 0
-        Width = 584
-        Height = 408
+        Width = 502
+        Height = 404
         Cursor = crIBeam
         Align = alTop
         Anchors = [akLeft, akTop, akRight, akBottom]
@@ -429,8 +429,8 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
           end>
       end
       object btnCreateView: TButton
-        Left = 506
-        Top = 414
+        Left = 502
+        Top = 410
         Width = 75
         Height = 21
         Action = actCreateView

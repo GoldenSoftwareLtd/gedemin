@@ -1820,6 +1820,7 @@ function TgsIBLookupComboBox.CreateGDClassInstance(const AnID: Integer): TgdcBas
 var
   Obj: TgdcBase;
   CE: TgdClassEntry;
+  FC: TgdcFullClass;
 begin
   CE := gdClassList.Find(gdClassName, FSubType);
 
@@ -1842,7 +1843,23 @@ begin
         Obj.Free;
         Abort;
       end;
+
+      FC := Obj.GetCurrRecordClass;
+
+      if (FC.gdClass <> Obj.ClassType) or (FC.SubType <> Obj.SubType) then
+      begin
+        Obj.Free;
+        Obj := FC.gdClass.CreateSubType(Self.Owner, FC.SubType, 'ByID');
+        Obj.ID := AnID;
+        Obj.Open;
+        if Obj.IsEmpty then
+        begin
+          Obj.Free;
+          raise EgsIBLookupComboBoxError.Create('Internal consistency check');
+        end;
+      end;
     end;
+
     Result := Obj;
   end else
     Result := nil;

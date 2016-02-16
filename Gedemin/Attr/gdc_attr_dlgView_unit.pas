@@ -259,5 +259,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_attr_dlgView);
-
 end.
