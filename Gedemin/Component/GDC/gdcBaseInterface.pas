@@ -151,6 +151,7 @@ const
 
 var
   gdcBaseManager: IgdcBaseManager;
+  Global_LoadingNamespace: Boolean;
 
 implementation
 
@@ -208,4 +209,9 @@ begin
   Result.DBID := DBID;
 end;
 
+initialization
+  Global_LoadingNamespace := False;
+
+finalization
+  //  
 end.

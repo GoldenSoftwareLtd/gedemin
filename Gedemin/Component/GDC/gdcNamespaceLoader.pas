@@ -116,6 +116,9 @@ uses
   gd_CmdLineParams_unit, at_dlgNamespaceRemoveList_unit,
   gd_WebClientControl_unit, gdcContacts;
 
+var
+  FNexus: TgdcNamespaceLoaderNexus;
+
 type
   TAtObjectRecord = class(TObject)
   public
@@ -130,9 +133,6 @@ type
     HeadObjectKey: Integer;
     Loaded: Boolean;
   end;
-
-var
-  FNexus: TgdcNamespaceLoaderNexus;
 
 { TgdcNamespaceLoader }
 
@@ -500,6 +500,7 @@ begin
 
   FNSList.Clear;
   FLoading := True;
+  Global_LoadingNamespace := True;
   FRemoveList.Clear;
   LoadOurCompanies;
 
@@ -756,6 +757,7 @@ begin
     end;
   finally
     UnMethodMacro := OldUnMethodMacro;
+    Global_LoadingNamespace := False;
   end;
 
   FLoading := False;
@@ -1026,6 +1028,27 @@ begin
           FSecondPassList.Add(TempMapping);
         end;
       end;
+    end;
+  end else
+  begin
+    if (AtObjectRecord <> nil)
+      and
+      (
+        (
+          (tiEditionDate in Obj.GetTableInfos(Obj.SubType))
+           and
+          (Fields.ReadDateTime('EDITIONDATE', 0) <= AtObjectRecord.Modified)
+        )
+        or
+        (
+          (not (tiEditionDate in Obj.GetTableInfos(Obj.SubType)))
+           and
+          (AFileTimeStamp <= AtObjectRecord.Modified)
+        )
+      ) then
+    begin
+      AddText('Объект ' + Obj.ObjectName + '(' + Obj.ClassName + ') ' +
+        'не будет изменен. Дата в файле <=  дате и времени изменения объекта в БД.');
     end;
   end;
 

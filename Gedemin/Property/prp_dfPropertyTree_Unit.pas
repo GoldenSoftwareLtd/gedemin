@@ -5208,7 +5208,7 @@ begin
       try
         gdcReportGroup.Insert;
         gdcReportGroup.FieldByName(fnid).AsInteger := Id;
-        gdcReportGroup.FieldByName(fnName).AsString := gdcObject.GetDisplayName(gdcObject.SubSet);
+        gdcReportGroup.FieldByName(fnName).AsString := gdcObject.GetDisplayName(gdcObject.SubType);
         gdcReportGroup.FieldByName(fnUserGroupName).AsString := UpperCase(gdcObject.ClassName + gdcObject.SubType);
         gdcReportGroup.Post;
       finally

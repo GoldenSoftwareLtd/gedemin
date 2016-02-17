@@ -1,6 +1,6 @@
 inherited gdc_dlgRelation: Tgdc_dlgRelation
-  Left = 380
-  Top = 196
+  Left = 381
+  Top = 197
   Width = 538
   Height = 544
   HelpContext = 84

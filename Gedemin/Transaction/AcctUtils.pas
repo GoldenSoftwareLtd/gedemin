@@ -210,7 +210,6 @@ procedure GetAnalyticsFields(const List: TList);
 {$IFDEF GEDEMIN}
 var
   R: TatRelation;
-  F: TatRelationField;
   I, Index: Integer;
 {$ENDIF}
 
@@ -253,14 +252,6 @@ begin
       end;
     end else
       List.Clear;
-
-    R := atDataBase.Relations.ByRelationName('GD_DOCUMENT');
-    if R <> nil then
-    begin
-      F:= R.RelationFields.ByFieldName('documenttypekey');
-      if F <> nil then
-        List.Add(F);
-    end;
   end;
 {$ENDIF}
 end;
@@ -631,18 +622,16 @@ function GetAccounts: String;
 var
   SQL: TIBSQL;
 begin
-  Result := '';
-
   SQL := TIBSQL.Create(nil);
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQL.SQL.Text :=
       'SELECT '#13#10 +
-      '  LIST(a.id, '','') AS IDS '#13#10 +
+      '  LIST(a.id, '','') '#13#10 +
       'FROM '#13#10 +
       '  ac_account aparent '#13#10 +
       '  JOIN ac_companyaccount ca '#13#10 +
-      '    ON aparent.id = ca.accountkey AND ca.companykey = :companykey AND ca.IsActive = 1 '#13#10 +
+      '    ON aparent.id = ca.accountkey AND ca.companykey = :companykey AND ca.isactive = 1 '#13#10 +
       '  JOIN ac_account a '#13#10 +
       '    ON a.lb >= aparent.lb AND a.rb <= aparent.rb '#13#10 +
       'WHERE '#13#10 +
@@ -650,7 +639,9 @@ begin
     SQL.ParamByName('companykey').AsInteger := IBLogin.CompanyKey;
     SQL.ExecQuery;
     if not SQL.EOF then
-      Result := SQL.FieldByName('IDS').AsString;
+      Result := SQL.Fields[0].AsString
+    else
+      Result := '';
   finally
     SQL.Free;
   end;

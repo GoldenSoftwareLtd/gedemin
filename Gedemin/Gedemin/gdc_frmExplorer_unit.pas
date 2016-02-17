@@ -361,6 +361,7 @@ end;
 
 procedure Tgdc_frmExplorer.FormCreate(Sender: TObject);
 begin
+  gdcExplorer.SubSet := 'ByExplorer';
   gdcObject := gdcExplorer;
 
   inherited;
