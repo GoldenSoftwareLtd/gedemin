@@ -4207,7 +4207,8 @@ begin
   if (sView in BaseState)
     and (Owner is Tgdc_frmMDH)
     and (Tgdc_frmMDH(Owner).gdcObject = Self)
-    and (DetailLinksCount > 0) then
+    and (DetailLinksCount > 0)
+    and (Self is TgdcDocument) then
   begin
     case MessageBox(ParentHandle,
       'Копировать вместе с позициями?',
@@ -4223,7 +4224,7 @@ begin
     end;
   end
   else
-    UserChoice := True;
+    UserChoice := Self is TgdcDocument;
 
   if (DetailLinksCount > 0) and UserChoice then
     Result := CopyObject(True, True)
@@ -5956,7 +5957,7 @@ begin
     Result :=
       SelectClause + ' ' + GetSetTableSelect +
       FromClause + ' ' + GetSetTableJoin +
-      Format('WHERE %s ', [GetWhereClauseForSet])
+      Format(' WHERE %s ', [GetWhereClauseForSet])
   else
   begin
     Cond := Format('%s.%s=:NEW_%s', [GetListTableAlias,

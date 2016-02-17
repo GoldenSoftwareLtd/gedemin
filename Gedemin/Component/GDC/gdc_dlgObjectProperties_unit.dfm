@@ -649,7 +649,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Height = -9
         Font.Name = 'Tahoma'
         Font.Style = []
-        ItemHeight = 0
+        ItemHeight = 11
         ParentFont = False
         TabOrder = 2
       end
@@ -1189,7 +1189,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Height = 478
         Align = alClient
         DataSource = dsNS
-        Options = [dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
+        Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         ReadOnly = True
         TabOrder = 1
         InternalMenuKind = imkWithSeparator
@@ -1201,6 +1201,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         ConditionsActive = False
         CheckBox.Visible = False
         CheckBox.FirstColumn = False
+        ScaleColumns = True
         MinColWidth = 40
         ColumnEditors = <>
         Aliases = <>
@@ -1342,7 +1343,15 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       'DELETE FROM at_object WHERE id = :ObjectID')
     SelectSQL.Strings = (
       'SELECT'
-      '  n.name, o.id AS ObjectID, n.id AS NSID'
+      '  n.name AS Namespace, '
+      '  o.id AS ObjectID, '
+      '  n.id AS NSID,'
+      '  n.changed AS NSChanged,'
+      '  o.modified,'
+      '  o.curr_modified,'
+      
+        '  IIF(o.modified <> o.curr_modified, '#39'Изменен'#39', '#39'Не изменен'#39') AS' +
+        ' InDBState'
       'FROM'
       '  at_object o'
       '    JOIN at_namespace n ON n.id = o.namespacekey'

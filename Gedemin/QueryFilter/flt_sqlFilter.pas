@@ -1224,6 +1224,11 @@ begin
   if (GetAsyncKeyState(VK_SHIFT) shr 1) <> 0 then
     exit;
 
+  {$IFDEF GEDEMIN}
+  if Global_LoadingNamespace then
+    exit;
+  {$ENDIF}
+
   // Ключ компонента
   ExtractComponentKey;
 

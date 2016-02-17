@@ -1606,6 +1606,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (244, '0000.0001.0000.0275', '28.01.2016', 'Trigger to prevent namespace cyclic dependencies.');     
   
+INSERT INTO fin_versioninfo
+  VALUES (245, '0000.0001.0000.0276', '12.02.2016', 'Fixed minor bugs.');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

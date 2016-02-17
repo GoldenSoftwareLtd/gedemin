@@ -1,6 +1,6 @@
 object gdc_frmG: Tgdc_frmG
-  Left = 267
-  Top = 352
+  Left = 269
+  Top = 154
   Width = 1059
   Height = 784
   HelpContext = 116

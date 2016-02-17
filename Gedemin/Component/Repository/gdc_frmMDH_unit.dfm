@@ -1,6 +1,6 @@
 inherited gdc_frmMDH: Tgdc_frmMDH
-  Left = 533
-  Top = 201
+  Left = 536
+  Top = 205
   Width = 732
   Height = 496
   HelpContext = 115
