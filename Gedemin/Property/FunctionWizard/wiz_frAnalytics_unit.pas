@@ -6,12 +6,14 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, AcctUtils, IBSQL, gdcBaseInterface, wiz_FunctionBlock_unit,
   at_Classes, contnrs, gdc_frmAnalyticsSel_unit, wiz_frAnalyticLine_unit,
-  Math, gsScrollBox;
+  Math;
 
 type
   TfrAnalytics = class(TFrame)
     Panel: TPanel;
-    sbAnalytics: TgsScrollBox;
+    sbAnalytics: TScrollBox;
+    procedure sbAnalyticsMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   private
     FAvailAnalyticFields: TList;
     FAccountKey: Integer;
@@ -319,6 +321,25 @@ begin
     end;
   finally
     Lines.Free;
+  end;
+end;
+
+procedure TfrAnalytics.sbAnalyticsMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  if Sender is TScrollBox then
+  begin
+    if WheelDelta > 0 then
+      (Sender as TScrollBox).VertScrollBar.Position :=
+        (Sender as TScrollBox).VertScrollBar.Position -
+        (Sender as TScrollBox).VertScrollBar.Increment
+    else
+      (Sender as TScrollBox).VertScrollBar.Position :=
+        (Sender as TScrollBox).VertScrollBar.Position +
+        (Sender as TScrollBox).VertScrollBar.Increment;
+
+    Handled := True;
   end;
 end;
 

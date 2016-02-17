@@ -4,11 +4,13 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  contnrs, AcctUtils, StdCtrls, ExtCtrls, gsScrollBox;
+  contnrs, AcctUtils, StdCtrls, ExtCtrls;
 
 type
   TframeAnalyticValue = class(TFrame)
-    sbAnaliseLines: TgsScrollBox;
+    sbAnaliseLines: TScrollBox;
+    procedure sbAnaliseLinesMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   private
     { Private declarations }
     FAnaliseLines: TObjectList;
@@ -164,7 +166,6 @@ var
   P: Integer;
   LAnaliseLines: TObjectList;
   C: Integer;
-  K: Integer;
 
   function IndexOf(Field: TatRelationField): Integer;
   var
@@ -198,12 +199,9 @@ begin
       begin
         for I := 0 to FFields.Count - 1 do
         begin
-          if TatRelationField(FFields[I]).Relation.RelationName = 'AC_ENTRY' then
-          begin
-            if SQL.SQL.Count > 0 then
-              SQL.SQL.Add(', ');
-            SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FFields[I]).FieldName]));
-          end;
+          if SQL.SQL.Count > 0 then
+            SQL.SQL.Add(', ');
+          SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FFields[I]).FieldName]));
         end;
 
         if FFields.Count > 0 then
@@ -215,20 +213,12 @@ begin
         end;
       end;
 
-      K := 0;
-
       for I := 0 to FFields.Count - 1 do
       begin
-        if TatRelationField(FFields[I]).Relation.RelationName <> 'AC_ENTRY' then
-          C := IDList.Count
+        if IDList.Count > 0 then
+          C := SQL.Fields[I].AsInteger
         else
-        begin
-          if IDList.Count > 0 then
-            C := SQL.Fields[K].AsInteger
-          else
-            C := 0;
-          Inc(K);
-        end;
+          C := 0;
 
         try
           if C = IDList.Count then
@@ -274,6 +264,25 @@ begin
 
   finally
     LAnaliseLines.Free;
+  end;
+end;
+
+procedure TframeAnalyticValue.sbAnaliseLinesMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  if Sender is TScrollBox then
+  begin
+    if WheelDelta > 0 then
+      (Sender as TScrollBox).VertScrollBar.Position :=
+        (Sender as TScrollBox).VertScrollBar.Position -
+        (Sender as TScrollBox).VertScrollBar.Increment
+    else
+      (Sender as TScrollBox).VertScrollBar.Position :=
+        (Sender as TScrollBox).VertScrollBar.Position +
+        (Sender as TScrollBox).VertScrollBar.Increment;
+
+    Handled := True;
   end;
 end;
 

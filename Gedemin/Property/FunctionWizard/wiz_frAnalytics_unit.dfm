@@ -13,7 +13,7 @@ object frAnalytics: TfrAnalytics
     BevelOuter = bvLowered
     FullRepaint = False
     TabOrder = 0
-    object sbAnalytics: TgsScrollBox
+    object sbAnalytics: TScrollBox
       Left = 1
       Top = 1
       Width = 318
@@ -22,6 +22,7 @@ object frAnalytics: TfrAnalytics
       Align = alClient
       BorderStyle = bsNone
       TabOrder = 0
+      OnMouseWheel = sbAnalyticsMouseWheel
     end
   end
 end

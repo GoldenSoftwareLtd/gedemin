@@ -93,7 +93,7 @@ procedure Register;
 implementation
 
 uses
-  ibsql, at_classes, Sysutils, Controls, gdcBaseInterface, IBHeader;
+  ibsql, at_classes, Sysutils, Controls, gdcBaseInterface;
 
 procedure Register;
 begin
@@ -172,8 +172,7 @@ begin
              and (FAvailableAnalytics[I].FieldName <> ENTRYDATE)
              and (FAvailableAnalytics[I].FieldName <> 'ACCOUNTKEY')
              and (FAvailableAnalytics[I].FieldName <> 'CURRKEY')
-             and (FAvailableAnalytics[I].FieldName <> 'COMPANYKEY')
-             and (FAvailableAnalytics[I].FieldName <> 'DOCUMENTTYPEKEY') then
+             and (FAvailableAnalytics[I].FieldName <> 'COMPANYKEY') then
           begin
             if S > '' then
               S := S + ', '#13#10;
@@ -261,7 +260,6 @@ var
 //  ASelect, AGroup, AFrom, ACorrSelect, ACorrFrom, ACorrGroup: string;
   CompanySBalance, AccWhereBalance: String;
   CurrentKeyAlias: String;
-  EntryFrom: String;
 
   function FormBalanceQuery(ADate: TDate): String;
   begin
@@ -325,7 +323,6 @@ var
           '    ac_entry e '#13#10 +
             IIF(FCorrAccounts.Count > 0,
               '    JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
-              EntryFrom +
           '  WHERE '#13#10 +
             AccWhere + CompanyS +
           '    AND e.entrydate >= CAST(CAST(''17.11.1858'' AS DATE) + ' + IntToStr(Round(FEntryBalanceDate + IBDateDelta)) + ' AS DATE) '#13#10 +
@@ -398,7 +395,6 @@ begin
   end;
   // Ограничения накладываемые аналитиками
   BalanceCondition := Self.GetCondition('bal');
-  EntryFrom := GetJoinTableClause('e');
   EntryCondition := Self.GetCondition('e');
 
   FIBDSSaldoBegin.Close;
@@ -427,7 +423,6 @@ begin
       '   ac_entry e  ' +
         IIF(FCorrAccounts.Count > 0,
           ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
-          EntryFrom +
       ' WHERE ' + AccWhere + '   e.entrydate < :begindate AND ' + CompanyS +
         IIF(FCurrSumInfo.Show and (FCurrkey > 0),
           ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
@@ -482,7 +477,6 @@ begin
     ' ac_entry e  ' +
       IIF(FCorrAccounts.Count > 0,
         ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
-        EntryFrom +
     ' WHERE ' + AccWhere +
     '   e.entrydate >= :begindate AND e.entrydate <= :enddate AND ' + CompanyS +
       IIF(FCurrSumInfo.Show and (FCurrkey > 0), ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
@@ -542,7 +536,8 @@ begin
       '      FROM '#13#10 +
       '        ac_entry e '#13#10 +
         IIF(FCorrAccounts.Count > 0,
-          ' LEFT JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart'#13#10, '') +
+          ' LEFT JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart'#13#10,
+          '') +
       '      WHERE '#13#10 +
         AccWhere + #13#10 + CompanyS + ' AND '#13#10 +
         IIF(Trim(AccWhereQuantity) > '', '        (' + AccWhereQuantity + ') AND '#13#10, '') +
@@ -590,7 +585,6 @@ begin
       '  CAST(SUM(IIF(e1.issimple = 0, e1.debiteq, e.crediteq) / %4:d) AS NUMERIC(15, %5:d)) AS EQ_CREDIT '#13#10 +
       ValueSelect + #13#10 +
       ' FROM ac_entry e  '#13#10 +
-      EntryFrom +
       '  LEFT JOIN ac_entry e1 ON e.recordkey = e1.recordkey AND e.accountpart <> e1.accountpart '#13#10 +
       IIF(FCurrSumInfo.Show and (FCurrkey > 0),
         ' AND 1 = IIF(e1.issimple = 0 and e1.currkey <> e.currkey and e1.debitcurr = 0 and e1.creditcurr = 0, 0, 1)'#13#10 , '') +

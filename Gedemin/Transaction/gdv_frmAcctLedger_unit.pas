@@ -830,17 +830,9 @@ begin
 
       if (F <> nil) and  (F.ReferencesField <> nil) then
       begin
-        if F.FieldName = 'DOCUMENTTYPEKEY' then
-        begin
-          FromClause := FromClause + ' LEFT JOIN gd_document z_doc ON e.documentkey = z_doc.id'#13#10;
-          FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = z_doc.%s'#13#10,
-            [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
-            F.FieldName]);
-        end
-        else
-          FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = e.%s'#13#10,
-            [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
-            F.FieldName]);
+        FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = e.%s'#13#10,
+          [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
+          F.FieldName]);
       end;
 
       if GroupClause > '' then  GroupClause := GroupClause + ', ';
@@ -952,7 +944,7 @@ begin
         AccountKeys := Format('e.accountkey IN(%s) AND ', [AccountKeys]);
 
       DebitCreditSQL := Format(cBeginSaldoSQLTemplate, [SelectClause, NcuBegin,
-        CurrBegin, FromClause + gdvObject.GetJoinTableClause('e') , AccountKeys, frAcctCompany.CompanyList,
+        CurrBegin, FromClause, AccountKeys, frAcctCompany.CompanyList,
         CurrId, gdvObject.InternalMovementClause + AnalyticFilter, GroupClause, HavingClause]);
     end;
 

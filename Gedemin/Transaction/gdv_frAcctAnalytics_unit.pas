@@ -195,7 +195,6 @@ var
   Line: TfrAcctAnalyticLine;
   P, C: Integer;
   LAnaliseLines: TObjectList;
-  K: Integer;
 
   function IndexOf(Field: TatRelationField): Integer;
   var
@@ -238,12 +237,9 @@ begin
       begin
         for I := 0 to FAnalyticsFieldList.Count - 1 do
         begin
-          if TatRelationField(FAnalyticsFieldList[i]).Relation.RelationName = 'AC_ENTRY' then
-          begin
-            if SQL.SQL.Count > 0 then
-              SQL.SQL.Add(', ');
-            SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FAnalyticsFieldList[i]).FieldName]));
-          end;
+          if SQL.SQL.Count > 0 then
+            SQL.SQL.Add(', ');
+          SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FAnalyticsFieldList[i]).FieldName]));
         end;
 
         if FAnalyticsFieldList.Count > 0 then
@@ -255,20 +251,12 @@ begin
         end;
       end;
 
-      K := 0;
-
       for I := 0 to FAnalyticsFieldList.Count - 1 do
       begin
-        if TatRelationField(FAnalyticsFieldList[i]).Relation.RelationName <> 'AC_ENTRY' then
-          C := AIDList.Count
+        if AIDList.Count > 0 then
+          C := SQL.Fields[i].AsInteger
         else
-        begin
-          if AIDList.Count > 0 then
-            C := SQL.Fields[K].AsInteger
-          else
-            C := 0;
-          Inc(K);
-        end;
+          C := 0;
 
         try
           if (C = AIDList.Count)

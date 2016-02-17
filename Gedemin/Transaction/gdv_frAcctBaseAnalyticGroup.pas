@@ -405,8 +405,7 @@ begin
           and (FAvailFieldList[i].FieldName <> ENTRYDATE)
           and (FAvailFieldList[i].FieldName <> 'ACCOUNTKEY')
           and (FAvailFieldList[i].FieldName <> 'CURRKEY')
-          and (FAvailFieldList[i].FieldName <> 'COMPANYKEY')
-          and (FAvailFieldList[i].FieldName <> 'DOCUMENTTYPEKEY') then
+          and (FAvailFieldList[i].FieldName <> 'COMPANYKEY') then
         begin
           if SQL.SQL.Count > 0 then
             SQL.SQL.Add(', ');
@@ -432,7 +431,6 @@ begin
             and (FAvailFieldList[i].FieldName <> 'ACCOUNTKEY')
             and (FAvailFieldList[i].FieldName <> 'CURRKEY')
             and (FAvailFieldList[i].FieldName <> 'COMPANYKEY')
-            and (FAvailFieldList[i].FieldName <> 'DOCUMENTTYPEKEY')
             and ((SQL.Fields[i].AsInteger = AIDList.Count) or (AIDList.Count = 0)) then
           begin
             StringListAvail.AddObject(FAvailFieldList[i].Caption, FAvailFieldList[I]);
