@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2002-2015 by Golden Software of Belarus
+  Copyright (c) 2002-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -3278,8 +3278,8 @@ begin
           end;
           tr.Commit;
         finally
-          tr.Free;
           q.Free;
+          tr.Free;
         end;
       end;
 
@@ -3301,8 +3301,8 @@ begin
         finally
           for I := FDeletedComponents.Count - 1 downto 0 do
             FDeletedComponents.Delete(I);
-          tr.Free;
           q.Free;
+          tr.Free;
         end;
       end;
 
@@ -3367,14 +3367,11 @@ begin
 
                     q.Close;
                     q.SQL.Text := 'INSERT INTO evt_object(id, objectname, name, parent, achag, afull, aview)' +
-                      ' VALUES (:id, :objectname, :name, :parent, :achag, :afull, :aview)';
+                      ' VALUES (:id, :objectname, :name, :parent, -1, -1, -1)';
                     q.ParamByName('id').AsInteger := iID;
                     q.ParamByName('objectname').AsString := FChangedEventList[i].Comp.Name;
                     q.ParamByName('name').AsString:= FChangedEventList[i].Comp.Name;
                     q.ParamByName('parent').AsInteger := EvtObj.ObjectKey;
-                    q.ParamByName('achag').AsInteger := -1;
-                    q.ParamByName('afull').AsInteger := -1;
-                    q.ParamByName('aview').AsInteger := -1;
                     q.ExecQuery;
 
                     EO := TEventObject.Create;
@@ -3423,20 +3420,19 @@ begin
                     q.Close;
                     q.SQL.Text :=
                       'INSERT INTO evt_objectevent(id, objectkey, functionkey, eventname, afull) ' +
-                      'VALUES(:id, :objectkey, :functionkey, :eventname, :afull)';
+                      'VALUES(:id, :objectkey, :functionkey, :eventname, -1)';
                     q.ParamByName('id').AsInteger := gdcBaseManager.GetNextID;
                     q.ParamByName('objectkey').AsInteger := iID;
                     q.ParamByName('functionkey').AsInteger := FChangedEventList[i].NewFunctionID;
                     q.ParamByName('eventname').AsString := AnsiUpperCase(FChangedEventList[i].EventName);
-                    q.ParamByName('afull').AsInteger := -1;
                   end;
                   q.ExecQuery;
                 end;
 
                 tr.Commit;
               finally
-                tr.Free;
                 q.Free;
+                tr.Free;
                 FChangedEventList.Delete(I);
               end;
             end;

@@ -468,7 +468,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-
+  WasInsert: Boolean;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGG', 'CANCEL', KEYCANCEL)}
   {M}  try
@@ -490,48 +490,50 @@ begin
   {M}    end;
   {END MACRO}
 
+  if gdcObject = nil then
+    exit;
+
+  WasInsert := gdcObject.State = dsInsert;
+
   try
-    if Assigned(gdcObject) then
+    if (ModalResult = mrCancel) and (not gdcObject.IsEmpty)
+      and (FAppliedID = gdcObject.ID) then
     begin
-      if (ModalResult = mrCancel) and (not gdcObject.IsEmpty)
-        and (FAppliedID = gdcObject.ID) then
+      if FAppliedMsg = '' then
+        S :=
+          'Запись уже была сохранена в базе данных.'#13#10 +
+          'Если Вы хотите не просто отменить последние изменения,'#13#10 +
+          'но и удалить запись, то выполните команду Удалить'#13#10 +
+          'после закрытия диалогового окна редактирования.'
+      else
+        S := FAppliedMsg;
+      MessageBox(Handle, PChar(S), 'Внимание',
+        MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+    end;
+
+    for I := 0 to gdcObject.DetailLinksCount - 1 do
+    begin
+      if gdcObject.DetailLinks[I].State in dsEditModes then
+        gdcObject.DetailLinks[I].Cancel;
+
+      if gdcObject.DetailLinks[I].CachedUpdates and gdcObject.DetailLinks[I].UpdatesPending then
+        gdcObject.DetailLinks[I].CancelUpdates;
+
+      if not FIntermediate then
       begin
-        if FAppliedMsg = '' then
-          S :=
-            'Запись уже была сохранена в базе данных.'#13#10 +
-            'Если Вы хотите не просто отменить последние изменения,'#13#10 +
-            'но и удалить запись, то выполните команду Удалить'#13#10 +
-            'после закрытия диалогового окна редактирования.'
-        else
-          S := FAppliedMsg;
-        MessageBox(Handle, PChar(S), 'Внимание',
-          MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+        if (gdcObject.DetailLinks[I].Owner = Self) then
+          gdcObject.DetailLinks[I].Close;
       end;
+    end;
 
-      for I := 0 to gdcObject.DetailLinksCount - 1 do
+    if gdcObject.State in dsEditModes then
+    begin
+      if sSubDialog in gdcObject.BaseState then
       begin
-        if gdcObject.DetailLinks[I].State in dsEditModes then
-          gdcObject.DetailLinks[I].Cancel;
-
-        if gdcObject.DetailLinks[I].CachedUpdates and gdcObject.DetailLinks[I].UpdatesPending then
-          gdcObject.DetailLinks[I].CancelUpdates;
-
-        if not FIntermediate then
-        begin
-          if (gdcObject.DetailLinks[I].Owner = Self) then
-            gdcObject.DetailLinks[I].Close;
-        end;
-      end;
-
-      if gdcObject.State in dsEditModes then
+        gdcObject.RevertRecord
+      end else
       begin
-        if sSubDialog in gdcObject.BaseState then
-        begin
-          gdcObject.RevertRecord
-        end else
-        begin
-          gdcObject.Cancel;
-        end;
+        gdcObject.Cancel;
       end;
     end;
   finally
@@ -549,7 +551,7 @@ begin
         FSharedTransaction.Rollback;
     end;
 
-    if Assigned(gdcObject) and (gdcObject.PostCount <> FOldPostCount) then
+    if gdcObject.PostCount <> FOldPostCount then
     begin
       if not (sSubDialog in gdcObject.BaseState) then
       begin
@@ -558,12 +560,18 @@ begin
     end;
   end;
 
-  if Assigned(gdcObject) and Assigned(IBLogin) then
+  if Assigned(IBLogin) then
   begin
-    IBLogin.AddEvent('Окно редактирования закрыто: Отмена',
-      gdcObject.ClassName + ' ' + gdcObject.SubType,
-      gdcObject.ObjectName,
-      gdcObject.ID);
+    if WasInsert then
+      IBLogin.AddEvent('Окно редактирования закрыто: Отмена',
+        gdcObject.ClassName + ' ' + gdcObject.SubType,
+        '',
+        -1)
+    else
+      IBLogin.AddEvent('Окно редактирования закрыто: Отмена',
+        gdcObject.ClassName + ' ' + gdcObject.SubType,
+        gdcObject.ObjectName,
+        gdcObject.ID);
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'CANCEL', KEYCANCEL)}

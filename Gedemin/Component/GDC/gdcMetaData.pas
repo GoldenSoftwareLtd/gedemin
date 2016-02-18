@@ -2150,6 +2150,7 @@ var
   ibsql: TIBSQL;
   S: String;
   L: Integer;
+  V: Variant;
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
   {M}
   {M}  Params, LResult: Variant;
@@ -2189,6 +2190,17 @@ begin
 
     if FieldByName('description').AsString = '' then
       FieldByName('description').AsString := FieldByName('lname').AsString;
+
+    if (sLoadFromStream in BaseState) and (State = dsEdit) then
+    begin
+      V := GetOldFieldValue('listfield');
+      if (not VarIsEmpty(V)) and (not VarIsNull(V)) and (V > '') then
+        FieldByName('listfield').AsString := V;
+
+      V := GetOldFieldValue('extendedfields');
+      if (not VarIsEmpty(V)) and (not VarIsNull(V)) and (V > '') then
+        FieldByName('extendedfields').AsString := V;
+    end;
   end;
 
   {  Если мы в состоянии загрузки из потока, выполним проверку на уникальность lname, lshortname

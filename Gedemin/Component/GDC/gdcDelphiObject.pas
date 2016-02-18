@@ -66,48 +66,41 @@ class function TgdcDelphiObject.AddObject(AComponent: TComponent;
 var
   Branch: Integer;
 
-  function Insert(const AParent: Variant; AName: string): Integer;
+  function _Insert(const AParent: Integer; const AName: String): Integer;
   var
     q: TIBSQL;
     Tr: TIBTransaction;
-    CreateTransaction: Boolean;
   begin
     Assert(gdcBaseManager <> nil);
 
     q := TIBSQL.Create(nil);
     try
-      CreateTransaction := ATransaction = nil;
-
-      if CreateTransaction then
+      if ATransaction = nil then
+      begin
         Tr := TIBTransaction.Create(nil)
-      else
+        Tr.DefaultDatabase := gdcBaseManager.Database;
+        Tr.StartTransaction;
+      end else
         Tr := ATransaction;
 
       try
-        if CreateTransaction then
-        begin
-          Tr.DefaultDatabase := gdcBaseManager.Database;
-          Tr.StartTransaction;
-        end;
-
         Result := gdcBaseManager.GetNextID;
 
         q.Transaction := Tr;
-
         q.SQL.Text := 'INSERT INTO evt_object(id, objectname, parent, achag, afull, aview)' +
-          ' VALUES (:id, :objectname, :parent, :achag, :afull, :aview)';
+          ' VALUES (:id, :objectname, :parent, -1, -1, -1)';
         q.ParamByName('id').AsInteger := Result;
         q.ParamByName('objectname').AsString := AName;
-        q.ParamByName('parent').AsVariant := AParent;
-        q.ParamByName('AChag').AsInteger := -1;
-        q.ParamByName('AFull').AsInteger := -1;
-        q.ParamByName('AView').AsInteger := -1;
+        if AParent > 0 then
+          q.ParamByName('parent').AsInteger := AParent
+        else
+          q.ParamByName('parent').Clear;
         q.ExecQuery;
         
-        if CreateTransaction then
+        if ATransaction = nil then
           Tr.Commit;
       finally
-        if CreateTransaction then
+        if ATransaction = nil then
           Tr.Free;
       end;
     finally
@@ -125,10 +118,10 @@ var
     Assert(C <> nil);
     Assert(gdcBaseManager <> nil);
 
-    if (C.Owner <> nil) and (C.Owner <> Application) and (not (C is TCustomForm))then
+    if (C.Owner <> nil) and (C.Owner <> Application) and (not (C is TCustomForm)) then
       Parent := IterateOwner(C.Owner, ABranch)
     else
-      Parent := Null;
+      Parent := -1;
 
     q := TIBSQL.Create(nil);
     try
@@ -159,10 +152,9 @@ var
 
       if q.Eof then
       begin
-        Result := Insert(Parent, ObjectName);
+        Result := _Insert(Parent, ObjectName);
         ABranch := Result;
-      end
-      else
+      end else
       begin
         Result := q.FieldByName('id').AsInteger;
 
@@ -175,8 +167,8 @@ var
             Tr.DefaultDatabase := gdcBaseManager.Database;
 
             Tr.StartTransaction;
-            q.Transaction := Tr;
             q.Close;
+            q.Transaction := Tr;
             q.SQL.Text := 'UPDATE evt_object SET parent = null WHERE id = :id';
             q.Params[0].AsInteger := Result;
             q.ExecQuery;
@@ -191,19 +183,16 @@ var
           end;
         end;
       end;
-
     finally
       q.Free;
     end;
   end;
 
 begin
-  Result := 0;
-
   if AComponent = Application then
   begin
     Result := OBJ_APPLICATION;
-    Exit;
+    exit;
   end;
 
   if (AComponent <> nil) and (AComponent.Name <> '') then
@@ -213,7 +202,8 @@ begin
 
     if (Branch > 0) and (EventControl <> nil) then
       EventControl.LoadBranch(Branch);
-  end;
+  end end
+    Result := 0;
 end;
 
 function TgdcDelphiObject.CheckName(const AUserName: String): Boolean;
