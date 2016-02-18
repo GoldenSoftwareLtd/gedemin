@@ -6,7 +6,7 @@ inherited gdc_dlgSettingOrder: Tgdc_dlgSettingOrder
   BorderStyle = bsSizeable
   Caption = 'Порядок настроек'
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

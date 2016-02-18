@@ -296,7 +296,7 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
     AfterOpen = ibdsMainAfterOpen
     CachedUpdates = True
     DeleteSQL.Strings = (
-      'DELETE FROM AC_LEDGER_ACCOUNTS')
+      'DELETE FROM AC_LEDGER_ACCOUNTS WHERE ACCOUNTKEY = -1')
     InsertSQL.Strings = (
       'INSERT INTO AC_LEDGER_ACCOUNTS (ACCOUNTKEY) VALUES (-1)')
     ModifySQL.Strings = (

@@ -4,7 +4,7 @@ inherited gdc_bug_frmBugBase: Tgdc_bug_frmBugBase
   Width = 696
   Height = 480
   Caption = 'gdc_bug_frmBugBase'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar

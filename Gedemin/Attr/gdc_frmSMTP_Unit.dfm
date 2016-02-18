@@ -4,7 +4,7 @@ inherited gdc_frmSMTP: Tgdc_frmSMTP
   Width = 928
   Height = 480
   Caption = 'gdc_frmSMTP'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

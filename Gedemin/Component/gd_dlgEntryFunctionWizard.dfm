@@ -10,7 +10,7 @@ object dlgEntryFunctionWizard: TdlgEntryFunctionWizard
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -68,7 +68,7 @@ object dlgEntryFunctionWizard: TdlgEntryFunctionWizard
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindow
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
@@ -97,7 +97,7 @@ object dlgEntryFunctionWizard: TdlgEntryFunctionWizard
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clCaptionText
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
@@ -119,7 +119,7 @@ object dlgEntryFunctionWizard: TdlgEntryFunctionWizard
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clCaptionText
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False

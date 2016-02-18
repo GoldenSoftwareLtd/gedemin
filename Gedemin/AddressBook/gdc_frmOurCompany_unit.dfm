@@ -4,7 +4,7 @@ inherited gdc_frmOurCompany: Tgdc_frmOurCompany
   Width = 696
   Height = 480
   Caption = 'gdc_frmOurCompany'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

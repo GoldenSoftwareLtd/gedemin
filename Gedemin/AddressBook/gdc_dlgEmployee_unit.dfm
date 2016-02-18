@@ -5,7 +5,7 @@ inherited gdc_dlgEmployee: Tgdc_dlgEmployee
   Caption = 'Сотрудник предприятия'
   ClientHeight = 373
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

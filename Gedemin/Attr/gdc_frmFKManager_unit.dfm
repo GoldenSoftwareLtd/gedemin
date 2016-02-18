@@ -4,7 +4,7 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
   Width = 870
   Height = 640
   Caption = 'gdc_frmFKManager'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 14

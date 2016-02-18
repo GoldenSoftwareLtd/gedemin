@@ -4,7 +4,7 @@ inherited gdc_frmDestCode: Tgdc_frmDestCode
   Width = 696
   Height = 480
   Caption = 'Назначения платежа'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar

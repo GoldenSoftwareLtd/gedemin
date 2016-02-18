@@ -10,7 +10,7 @@ object ctl_dlgSetupCattle: Tctl_dlgSetupCattle
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
@@ -35,7 +35,7 @@ object ctl_dlgSetupCattle: Tctl_dlgSetupCattle
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsUnderline]
     ParentFont = False
   end
@@ -118,7 +118,7 @@ object ctl_dlgSetupCattle: Tctl_dlgSetupCattle
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clGrayText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     ReadOnly = True

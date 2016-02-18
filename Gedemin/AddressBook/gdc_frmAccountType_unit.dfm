@@ -5,7 +5,7 @@ inherited gdc_frmAccountType: Tgdc_frmAccountType
   Height = 480
   HelpContext = 133
   Caption = 'Типы банковских счетов'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   PixelsPerInch = 96
   TextHeight = 14
   inherited sbMain: TStatusBar

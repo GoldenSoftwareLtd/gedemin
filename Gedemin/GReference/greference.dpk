@@ -15,6 +15,7 @@ package greference;
 {$R '..\..\comp5\xBulbBtn.dcr'}
 {$R '..\..\comp5\mmCheckBoxEx.dcr'}
 {$R '..\..\comp5\Xlcdlbl.dcr'}
+{$R '..\Component\rf_Control.dcr'}
 {$ALIGN ON}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
@@ -162,6 +163,7 @@ contains
   gdcRplDatabase in '..\Component\GDC\gdcRplDatabase.pas',
   gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas',
   gdcSMTP in '..\Component\GDC\gdcSMTP.pas',
-  gdcInvDocumentOptions in '..\Component\GDC\gdcInvDocumentOptions.pas';
+  gdcInvDocumentOptions in '..\Component\GDC\gdcInvDocumentOptions.pas',
+  rf_Control in '..\Component\rf_Control.pas';
 
 end.

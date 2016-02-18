@@ -8,7 +8,7 @@ object frmPrintReport: TfrmPrintReport
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   OnClose = FormClose
@@ -38,7 +38,7 @@ object frmPrintReport: TfrmPrintReport
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ParentColor = True
     ParentFont = False
@@ -79,7 +79,7 @@ object frmPrintReport: TfrmPrintReport
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clBlack
       Font.Height = -11
-      Font.Name = 'MS Sans Serif'
+      Font.Name = 'Tahoma'
       Font.Style = []
       ParentColor = True
       ParentFont = False

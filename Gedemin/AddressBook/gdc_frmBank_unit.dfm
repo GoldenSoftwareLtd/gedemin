@@ -4,7 +4,7 @@ inherited gdc_frmBank: Tgdc_frmBank
   Width = 696
   Height = 480
   Caption = 'Банки'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   OnActivate = actAddToSelectedExecute
   PixelsPerInch = 96

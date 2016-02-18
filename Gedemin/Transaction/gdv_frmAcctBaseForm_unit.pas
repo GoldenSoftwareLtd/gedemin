@@ -946,7 +946,7 @@ begin
     begin
       S := TStringList.Create;
       try
-        S.Text := StringReplace(GetAccounts, ',', #13#10, [rfReplaceAll]);
+        S.CommaText := GetAccounts;
         for I := 0 to S.Count - 1 do
         begin
           gdvObject.AddAccount(StrToInt(Trim(S[I])));

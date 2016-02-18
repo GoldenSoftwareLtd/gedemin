@@ -10,7 +10,7 @@ object FormMain: TFormMain
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   Icon.Data = {
     0000010001002020100000000000E80200001600000028000000200000004000
@@ -51,7 +51,7 @@ object FormMain: TFormMain
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -17
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 0
@@ -148,7 +148,7 @@ object FormMain: TFormMain
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -16
-      Font.Name = 'MS Sans Serif'
+      Font.Name = 'Tahoma'
       Font.Style = [fsBold]
       ParentFont = False
       TabOrder = 0
@@ -164,7 +164,7 @@ object FormMain: TFormMain
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -17
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 1
@@ -262,7 +262,7 @@ object FormMain: TFormMain
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -13
-      Font.Name = 'MS Sans Serif'
+      Font.Name = 'Tahoma'
       Font.Style = [fsBold]
       ParentFont = False
       ReadOnly = True
@@ -279,7 +279,7 @@ object FormMain: TFormMain
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -13
-      Font.Name = 'MS Sans Serif'
+      Font.Name = 'Tahoma'
       Font.Style = [fsBold]
       Lines.Strings = (
         'MemoInfo')

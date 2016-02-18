@@ -484,8 +484,8 @@ begin
       IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition + #13#10, '') +
     ' GROUP BY 1 ';
   FIBDSCirculation.ParamByName(BeginDate).AsDateTime := FDateBegin;
-  FIBDSCirculation.ParamByName(EndDate).AsDateTime := FDateEnd;
-  FIBDSCirculation.Open;
+  FIBDSCirculation.ParamByName(EndDate).AsDateTime := FDateEnd;  
+  FIBDSCirculation.Open;  
   // Основной запрос для анализа счета
   if FUseEntryBalance and (FCorrAccounts.Count = 0) and (FAcctValues.Count = 0) then
   begin
@@ -765,3 +765,4 @@ begin
 end;
 
 end.
+ 

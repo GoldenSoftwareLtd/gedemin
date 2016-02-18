@@ -5,7 +5,7 @@ inherited bn_frmCurrCommission: Tbn_frmCurrCommission
   Height = 480
   Caption = 'Поручение на перевод валюты'
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar

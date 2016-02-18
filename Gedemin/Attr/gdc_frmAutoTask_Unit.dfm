@@ -4,7 +4,7 @@ inherited gdc_frmAutoTask: Tgdc_frmAutoTask
   Width = 1044
   Height = 531
   Caption = 'gdc_frmAutoTask'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
