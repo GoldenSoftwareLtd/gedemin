@@ -133,7 +133,8 @@ begin
     133:
     begin
       ScanRead();
-      Sleep(10);
+      Sleep(50);
+     // MCScanReadCancel();
     end;
   end;
 
@@ -144,10 +145,12 @@ end;
 procedure TBaseAddInformation.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState
   );
 begin
+  // Application.MessageBox(PChar(IntToStr(Key)), '', 0);
   if Key = 133 then
   begin
+   Sleep(50);
    MCScanReadCancel();
-   Sleep(10);
+
   end;
 end;
 
@@ -181,7 +184,6 @@ begin
 
    MCScanReadCancel();
    Sleep(10);
-
    Result := '';
 
    for i := 0 to 100 do
@@ -217,7 +219,6 @@ end;
 procedure TBaseAddInformation.ScanRead;
 var inres:integer;
 begin
-
    if IsReading then
    begin
       inres := MCScanReadCancel();
@@ -230,7 +231,6 @@ begin
    begin
      Application.MessageBox(PChar(IntToStr(inres)), '', 0);
      IsReading := false;
-
    end;
 end;
 end.

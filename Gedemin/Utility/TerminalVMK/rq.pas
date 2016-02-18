@@ -18,6 +18,7 @@ type
 
   TRQ = class(TBaseAddInformation)
     procedure FormCreate(Sender: TObject);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     { private declarations }
     FRQName: String;
@@ -64,6 +65,11 @@ begin
   FRQName := '';
 end;
 
+procedure TRQ.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+end;
+
 
 procedure TRQ.Enter;
 var
@@ -81,6 +87,8 @@ function TRQ.CheckCode(const ACode: String): boolean;
 var
   OL: TStringList;
   Index: Integer;
+  TempValue: String;
+  SearchResult : TSearchRec;
 begin
   Result := True;
 
@@ -110,7 +118,19 @@ begin
             OL.SaveToFile(ExtractFilePath(Application.ExeName) + 'OPERATIONLOG.TXT');
           end else
             Result := False;
-        end;
+        end
+        else
+          begin
+            TempValue := 'ov3';
+            TempValue := TempValue + Copy(ACode, 12, Length(TempValue) - 11) + Copy(ACode, 9, 3) + Copy(ACode, 1, 8) ;
+            SetCurrentDir(ExtractFilePath(Application.ExeName) + PrefixDelay);
+            if FindFirst( TempValue + '*', faAnyFile, SearchResult ) = 0  then
+              begin
+                FRQName := SearchResult.name;
+              end;
+            SetCurrentDir('..');
+          end;
+
       finally
         OL.Free;
       end;

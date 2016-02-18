@@ -14,6 +14,7 @@ type
 
   TSubDevision = class(TBaseAddInformation)
     lInfoMsg: TLabel;
+    procedure eInfoEnter(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
     { private declarations }
@@ -41,6 +42,11 @@ begin
   lInfo.Caption := 'Код подразделения: ';
   lInfoMsg.Caption := 'Введите код ' + #13#10 + 'подразделения на ' + #13#10 +
     'которое идет отгрузка';
+end;
+
+procedure TSubDevision.eInfoEnter(Sender: TObject);
+begin
+  inherited;
 end;
 
 

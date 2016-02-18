@@ -37,6 +37,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     { private declarations }
     CurrGood: String;
@@ -412,5 +413,12 @@ end;
       inherited;
     end;
  end;
+
+procedure TOperationRQ.FormKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+   inherited;
+end;
+
 end.
 

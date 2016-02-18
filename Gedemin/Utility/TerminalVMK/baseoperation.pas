@@ -205,6 +205,8 @@ begin
    end;
    IsReading := true;
    inres := MCScanRead();
+ //  Sleep(500);
+ //  MCScanReadCancel();
    if inres < 0 then
    begin
      Application.MessageBox(PChar(IntToStr(inres)), '', 0);
@@ -216,10 +218,11 @@ end;
 procedure TBaseOperation.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState
   );
 begin
+ // Application.MessageBox(PChar(IntToStr(Key)), '', 0);
   if Key = 133 then
   begin
-   MCScanReadCancel();
    Sleep(10);
+   MCScanReadCancel();
   end;
 end;
 
@@ -252,7 +255,6 @@ begin
     133:
     begin
       ScanRead();
-      Sleep(10);
     end;
 
   //  VK_RETURN: if ssCtrl in Shift then ModalResult := mrOk;
@@ -344,18 +346,16 @@ var
   i: integer;
   Result: string;
 begin
-
      for i := 0 to 100 do
        Str[i] := 0;
 
      MCGetScanDataByte(@Str, @T);
 
      MCScanReadCancel();
-     Sleep(10);
 
      Result := '';
 
-     for i := 0 to 100 do
+     for i := 0 to 50 do
        if Str[i] <> 0 then
          Result := Result + Chr(Str[i]);
      beep();

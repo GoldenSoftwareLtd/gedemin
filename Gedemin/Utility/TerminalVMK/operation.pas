@@ -14,6 +14,8 @@ type
 
   TOperationTP = class(TBaseOperation)
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+
   private
     { private declarations }
   protected
@@ -48,6 +50,14 @@ begin
   end else
     inherited;
 end;
+
+procedure TOperationTP.FormKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  inherited;
+end;
+
+
 
 procedure TOperationTP.SaveToFile;
 var
