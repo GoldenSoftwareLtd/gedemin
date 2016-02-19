@@ -209,32 +209,32 @@ var
   F: TgdcCreateableForm;
   M: TMenuItem;
   q: TIBSQL;
-  MGK: Integer;
+  RGK: Integer;
 begin
   FReportGroup.Clear;
   PrepareMenu;
 
   LocId := TgdcDelphiObject.AddObject(Owner);
 
-  MGK := 0;
+  RGK := 0;
 
   if LocId > 0 then
   begin
     q := TIBSQL.Create(nil);
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text := 'SELECT macrosgroupkey FROM evt_object WHERE id = :id';
+      q.SQL.Text := 'SELECT reportgroupkey FROM evt_object WHERE id = :id';
       q.ParamByName('id').AsInteger := LocId;
       q.ExecQuery;
       if not q.Eof then
-        MGK := q.FieldByName('macrosgroupkey').AsInteger;
+        RGK := q.FieldByName('reportgroupkey').AsInteger;
     finally
       q.Free;
     end;
   end;
 
-  if MGK > 0 then
-    FReportGroup.Load(MGK);
+  if RGK > 0 then
+    FReportGroup.Load(RGK);
 
   if (FReportGroup.Count > 1) or ((FReportGroup.Count = 1) and (FReportGroup[0].ReportList.Count > 0))  then
   begin
