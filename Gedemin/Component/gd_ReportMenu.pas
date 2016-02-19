@@ -1,6 +1,7 @@
+
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -33,12 +34,10 @@ type
   TgdReportMenu = class(TPopupMenu)
   private
     FReportGroup: TscrReportGroup;
-    FTransaction: TIBTransaction;
 
     procedure DoOnMenuClick(Sender: TObject);
     procedure DoOnReportListClick(Sender: TObject);
   protected
-    procedure PrepareMenu; virtual;
     procedure FillMenu(const Parent: TObject);
 
     procedure ReloadGroup;
@@ -69,25 +68,18 @@ end;
 constructor TgdReportMenu.Create(AOwner: TComponent);
 begin
   inherited;
+  FReportGroup := TscrReportGroup.Create(True);
   if not (csDesigning in ComponentState) then
   begin
     if gdcBaseManager <> nil then
-    begin
-      FTransaction := gdcBaseManager.ReadTransaction;
-      FTransaction.DefaultDataBase := gdcBaseManager.Database;
-
-      FReportGroup := TscrReportGroup.Create(True);
-      FReportGroup.Transaction := FTransaction;
-    end else
-      raise Exception.Create(GetGsException(Self, 'Database is not assigned'));
-  end;    
+      FReportGroup.Transaction := gdcBaseManager.ReadTransaction;
+  end;
 end;
 
 destructor TgdReportMenu.Destroy;
 begin
-  inherited;
-
   FReportGroup.Free;
+  inherited;
 end;
 
 procedure TgdReportMenu.DoOnMenuClick(Sender: TObject);
@@ -118,6 +110,7 @@ var
   AddCount: Integer;
 begin
   Assert((Parent is TMenuItem) or (Parent is TPopUpMenu));
+  Assert(FReportGroup <> nil);
 
   if (Parent is TMenuItem) then
   begin
@@ -149,7 +142,6 @@ begin
     begin
       M := TMenuItem.Create(Self);
       M.Tag := Integer(FReportGroup.GroupItems[Index].ReportList.Report[I]);
-//      M.Name := 'M' + IntToStr(FReportGroup.GroupItems[Index].ReportList.Report[I].Id);
       M.Caption := FReportGroup.GroupItems[Index].ReportList.Report[I].Name;
       M.OnClick := DoOnMenuClick;
       if (Parent is TMenuItem) then
@@ -186,23 +178,6 @@ begin
   inherited Popup(Pt.X, Pt.Y);
 end;
 
-procedure TgdReportMenu.PrepareMenu;
-var
-  M: TMenuItem;
-
-begin
-  Items.Clear;
-
-  if IBLogin.IsUserAdmin then
-  begin
-    M := TMenuItem.Create(Self);
-    M.Caption := CST_ReportMENU;
-    M.OnClick := DoOnReportListClick;
-    Self.Items.Add(M);
-  end;
-
-end;
-
 procedure TgdReportMenu.ReloadGroup;
 var
   LocId: Integer;
@@ -211,8 +186,18 @@ var
   q: TIBSQL;
   RGK: Integer;
 begin
+  Assert(FReportGroup <> nil);
+
   FReportGroup.Clear;
-  PrepareMenu;
+  Self.Items.Clear;
+
+  if IBLogin.IsUserAdmin then
+  begin
+    M := TMenuItem.Create(Self);
+    M.Caption := CST_ReportMENU;
+    M.OnClick := DoOnReportListClick;
+    Self.Items.Add(M);
+  end;
 
   LocId := TgdcDelphiObject.AddObject(Owner);
 

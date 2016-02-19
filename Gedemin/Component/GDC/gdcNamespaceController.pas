@@ -1581,6 +1581,16 @@ begin
       '  JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
       '  LEFT JOIN at_object ho ON ho.id = o.headobjectkey ' +
       'WHERE r.id IN (' + IDs + ') ' +
+      'GROUP BY 1, 2, 3, 4, 5, 6, 7 ' +
+      'UNION ' +
+      'SELECT ' +
+      '  n.id, n.name, ' +
+      '  o.alwaysoverwrite, o.dontremove, o.includesiblings, ' +
+      '  o.headobjectkey, ho.objectname as headobjectname ' +
+      'FROM at_object o ' +
+      '  JOIN at_namespace n ON n.id = o.namespacekey ' +
+      '  LEFT JOIN at_object ho ON ho.id = o.headobjectkey ' +
+      'WHERE o.xid IN (' + IDs + ') AND o.dbid = 17 ' +
       'GROUP BY 1, 2, 3, 4, 5, 6, 7';
     q.ExecQuery;
 

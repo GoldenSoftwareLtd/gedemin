@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -562,8 +562,6 @@ begin
   try
     gdcReport.UseScriptMethod := FUseScriptMethod;
     gdcReport.OnlyDisplaying := True;
-    { И на фига это?????
-    gdcReport.QueryFiltered := True;}
     gdcReport.QueryFiltered := False;
     if Assigned(FTransaction) then
     begin
@@ -844,15 +842,10 @@ begin
           FTransaction.StartTransaction;
         try
           DataSet.Transaction := FTransaction;
-  //        if AId > 0 then
-  //        begin
-            DataSet.SubSet := ssTree;
-            DataSet.ParamByName(fnId).AsInteger := AId;
-  //        end else
-  //          DataSet.SubSet := ssAll;
+          DataSet.SubSet := ssTree;
+          DataSet.ParamByName(fnId).AsInteger := AId;
 
           DataSet.Open;
-//          Clear;
           while not DataSet.Eof do
           begin
             Add(TscrReportGroupItem.Create(FUseScriptMethod));

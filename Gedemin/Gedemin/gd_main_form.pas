@@ -365,6 +365,7 @@ implementation
 {$R *.DFM}
 
 uses
+  FastMM4,
   jclBase,
   jclFileUtils,
   jclStrings,
@@ -1342,8 +1343,10 @@ var
   I: Integer;
 begin
   for I := tbForms.Items.Count - 1 downto 0 do
-    if TForm(Sender) = TForm(tbForms.Items[I].Tag) then
+  begin
+    if Integer(Sender) = tbForms.Items[I].Tag then
       tbForms.Items[I].Free;
+  end;
 end;
 
 destructor TfrmGedeminMain.Destroy;
@@ -1679,102 +1682,139 @@ end;
 procedure TfrmGedeminMain.actCloseFormExecute(Sender: TObject);
 var
   TabPos: TPoint;
+  P: Pointer;
   Form: TObject;
   ToggleItem: TTBCustomItem;
 begin
   TabPos := TCrackPopupMenu(pmForms).PopupPoint;
   TabPos := tbForms.ScreenToClient(TabPos);
-  ToggleItem := tbForms.View.ViewerFromPoint(TabPos).Item;
-  if Assigned(ToggleItem) and (ToggleItem is TTBItem) then
-  try
-    Form := TForm(ToggleItem.Tag);
-    if Form is TfrmGedeminProperty then
+
+  if (tbForms.View <> nil) and (tbForms.View.ViewerFromPoint(TabPos) is TTBItemViewer) then
+    ToggleItem := tbForms.View.ViewerFromPoint(TabPos).Item
+  else
+    ToggleItem := nil;
+
+  if ToggleItem is TTBItem then
+  begin
+    P := Pointer(ToggleItem.Tag);
+
+    if DetectClassInstance(P) <> nil then
     begin
-      if (Form as TfrmGedeminProperty).Restored then
-       (Form as TForm).Free;
-    end else if Form is TForm then
+      Form := TObject(P);
+
+      if Form is TfrmGedeminProperty then
+      begin
+        if (Form as TfrmGedeminProperty).Restored then
+          Form.Free;
+      end
+      else if Form is TForm then
       begin
         (Form as TForm).Close;
-        (Form as TForm).Free;
+        Form.Free;
       end;
-  except
-    tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
+    end else
+      tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
   end;
 end;
 
 procedure TfrmGedeminMain.actHideFormExecute(Sender: TObject);
 var
   TabPos: TPoint;
+  F: TObject;
+  P: Pointer;
   ToggleItem: TTBCustomItem;
 begin
   TabPos := tbForms.ScreenToClient(TCrackPopupMenu(pmForms).PopupPoint);
-  ToggleItem := tbForms.View.ViewerFromPoint(TabPos).Item;
-  if Assigned(ToggleItem) and (ToggleItem is TTBItem) then
-    try
-      TForm(ToggleItem.Tag).Close;
-    except
+
+  if tbForms.View.ViewerFromPoint(TabPos) <> nil then
+    ToggleItem := tbForms.View.ViewerFromPoint(TabPos).Item
+  else
+    ToggleItem := nil;
+
+  if ToggleItem is TTBItem then
+  begin
+    P := Pointer(ToggleItem.Tag);
+
+    if DetectClassInstance(P) <> nil then
+    begin
+      F := TObject(P);
+      if F is TForm then
+        (F as TForm).Close;
+    end else
       tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
-    end;
+  end;
 end;
 
 procedure TfrmGedeminMain.actHideAllExecute(Sender: TObject);
 var
   I: Integer;
+  P: Pointer;
+  F: TObject;
 begin
   for I := 0 to tbForms.Items.Count - 1 do
+  begin
     if tbForms.Items[I] is TTBItem then
-      try
-        TForm(tbForms.Items[I].Tag).Close;
-      except
+    begin
+      P := Pointer(tbForms.Items[I].Tag);
+      if DetectClassInstance(P) <> nil then
+      begin
+        F := TObject(P);
+        if F is TForm then
+          (F as TForm).Close;
+      end else
         tbForms.Items.Delete(I);
-      end;
+    end;
+  end;
 end;
 
 procedure TfrmGedeminMain.actCloseAllExecute(Sender: TObject);
 var
   I: Integer;
   Form: TObject;
+  P: Pointer;
   Asked: Boolean;
 begin
   Asked := False;
   for I := tbForms.Items.Count - 1 downto 0 do
   begin
     if tbForms.Items[I] is TTBItem then
-    try
-      try
-        Form := TForm(tbForms.Items[I].Tag);
+    begin
+      P := Pointer(tbForms.Items[I].Tag);
 
-        if gdc_frmExplorer = Form then
-          continue;
-
-        if not Asked then
-        begin
-          if MessageBox(Handle,
-            'Закрыть все формы просмотра?',
-            'Внимание',
-            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
-          begin
-            Asked := True;
-          end else
-            break;
-        end;
-
-        if Form is TForm then
-        begin
-          if Form is TfrmGedeminProperty then
-          begin
-            if (Form as TfrmGedeminProperty).Restored then
-              (Form as TForm).Free;
-          end
-          else
-            (Form as TForm).Free;
-        end;
-      except
+      if DetectClassInstance(P) = nil then
+      begin
         tbForms.Items.Delete(I);
+        continue;
       end;
-    except
+
+      Form := TObject(P);
+
+      if gdc_frmExplorer = Form then
+        continue;
+
+      if not Asked then
+      begin
+        if MessageBox(Handle,
+          'Закрыть все формы просмотра?',
+          'Внимание',
+          MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+        begin
+          Asked := True;
+        end else
+          break;
+      end;
+
+      if Form is TForm then
+      begin
+        if Form is TfrmGedeminProperty then
+        begin
+          if (Form as TfrmGedeminProperty).Restored then
+            Form.Free;
+        end else
+          Form.Free;
+      end;
     end;
-  end;  
+  end;
 end;
 
 procedure TfrmGedeminMain.actWorkingCompaniesExecute(Sender: TObject);
@@ -2262,7 +2302,7 @@ begin
   Result := -1;
   for I := tbForms.Items.Count - 1 downto 0 do
     // т.к. тег заполняется и у разделителей, то проверим кнопка ли это
-    if (AForm = TForm(tbForms.Items[I].Tag)) and (tbForms.Items[I] is TTBItem) then
+    if (Integer(AForm) = tbForms.Items[I].Tag) and (tbForms.Items[I] is TTBItem) then
     begin
       Result := I;
       Break;
@@ -2299,20 +2339,21 @@ end;
 
 procedure TfrmGedeminMain.OnFormToggleItemClick(Sender: TObject);
 var
+  P: Pointer;
   frm: TForm;
   ToggleItem: TTBItem;
 begin
   ToggleItem := Sender as TTBItem;
-  if Assigned(TForm(ToggleItem.Tag)) then
-  try
-    frm := TForm(ToggleItem.Tag);
+
+  P := Pointer(ToggleItem.Tag);
+
+  if DetectClassInstance(P) <> nil then
+  begin
+    frm := TObject(P) as TForm;
 
     if FormsList.IndexOf(frm) = -1 then
-    begin
-      tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
-    end
-    else
-    begin
+      tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem))
+    else begin
       if not frm.Visible then
         frm.Show;
       frm.BringToFront;
@@ -2324,9 +2365,8 @@ begin
 
       ToggleItem.Checked := True;
     end;
-  except
+  end else
     tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
-  end;
 end;
 
 procedure TfrmGedeminMain.actReconnectUpdate(Sender: TObject);

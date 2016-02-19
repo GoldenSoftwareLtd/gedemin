@@ -1,6 +1,6 @@
 inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
-  Left = 70
-  Top = 163
+  Left = 244
+  Top = 156
   Width = 900
   Height = 656
   Caption = 'gdv_frmAcctBaseForm'

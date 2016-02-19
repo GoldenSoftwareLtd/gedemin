@@ -1358,8 +1358,27 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       '    JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid'
       'WHERE'
       '  r.id = :id'
+      ''
+      'UNION'
+      ''
+      'SELECT'
+      '  n.name AS Namespace, '
+      '  o.id AS ObjectID, '
+      '  n.id AS NSID,'
+      '  n.changed AS NSChanged,'
+      '  o.modified,'
+      '  o.curr_modified,'
+      
+        '  IIF(o.modified <> o.curr_modified, '#39'Изменен'#39', '#39'Не изменен'#39') AS' +
+        ' InDBState'
+      'FROM'
+      '  at_object o'
+      '    JOIN at_namespace n ON n.id = o.namespacekey'
+      'WHERE'
+      '  o.xid = :id AND o.dbid = 17'
+      ''
       'ORDER BY'
-      '  n.name')
+      '  1')
     ReadTransaction = ibtrCommon
     Left = 72
     Top = 268
