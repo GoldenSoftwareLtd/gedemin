@@ -89,6 +89,7 @@ var
   Index: Integer;
   TempValue: String;
   SearchResult : TSearchRec;
+  SearchResOv : TSearchRec;
 begin
   Result := True;
 
@@ -122,13 +123,26 @@ begin
         else
           begin
             TempValue := 'ov3';
-            TempValue := TempValue + Copy(ACode, 12, Length(TempValue) - 11) + Copy(ACode, 9, 3) + Copy(ACode, 1, 8) ;
-            SetCurrentDir(ExtractFilePath(Application.ExeName) + PrefixDelay);
-            if FindFirst( TempValue + '*', faAnyFile, SearchResult ) = 0  then
+            TempValue := TempValue + Copy(ACode, 12, Length(ACode) - 11);
+            if FindFirst(ExtractFilePath(Application.ExeName) + DelayPath + TempValue + '*', faAnyFile, SearchResult ) = 0  then
               begin
-                FRQName := SearchResult.name;
+              if FindFirst(ExtractFilePath(Application.ExeName) + SavePath + TempValue + '*', faAnyFile, SearchResOv ) = 0  then
+                begin
+                if (MessageForm.MessageDlg('Заявка уже отгружена!Пересоздать?', 'Внимание',
+                  mtInformation, [mbYes, mbNo]) = mrYes) then
+                   begin
+                     FRQName := SearchResult.name;
+                     FRQName := Copy(FRQName, 1, Length(FRQName) - 4) ;
+                   end else
+                     Result := False;
+                SysUtils.FindClose(SearchResOv);
+                end else
+                begin
+                  FRQName := SearchResult.name;
+                  FRQName := Copy(FRQName, 1, Length(FRQName) - 4) ;
+                end;
+                SysUtils.FindClose(searchResult);
               end;
-            SetCurrentDir('..');
           end;
 
       finally

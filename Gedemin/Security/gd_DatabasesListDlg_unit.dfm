@@ -45,7 +45,7 @@ object gd_DatabasesListDlg: Tgd_DatabasesListDlg
   object edName: TEdit
     Left = 94
     Top = 8
-    Width = 281
+    Width = 261
     Height = 21
     TabOrder = 0
   end
@@ -85,12 +85,24 @@ object gd_DatabasesListDlg: Tgd_DatabasesListDlg
   end
   object btnSelectFile: TButton
     Left = 355
-    Top = 60
+    Top = 59
     Width = 21
     Height = 21
     Caption = '...'
     TabOrder = 3
     OnClick = btnSelectFileClick
+  end
+  object btnCliboard: TButton
+    Left = 355
+    Top = 7
+    Width = 21
+    Height = 21
+    Hint = 'Вставка полного имени БД из буфера'
+    Caption = 'Б'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 6
+    OnClick = btnCliboardClick
   end
   object ActionList: TActionList
     Left = 304

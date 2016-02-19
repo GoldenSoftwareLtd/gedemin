@@ -21,9 +21,11 @@ type
     actOk: TAction;
     Label3: TLabel;
     OpenDialog: TOpenDialog;
+    btnCliboard: TButton;
     procedure btnSelectFileClick(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
+    procedure btnCliboardClick(Sender: TObject);
 
   private
     FDI: Tgd_DatabaseItem;
@@ -39,6 +41,9 @@ var
 implementation
 
 {$R *.DFM}
+
+uses
+  ClipBrd, gd_common_functions;
 
 procedure Tgd_DatabasesListDlg.btnSelectFileClick(Sender: TObject);
 begin
@@ -88,6 +93,20 @@ begin
     edName.Text := FDI.Name;
     edServer.Text := FDI.Server;
     edFileName.Text := FDI.FileName;
+  end;
+end;
+
+procedure Tgd_DatabasesListDlg.btnCliboardClick(Sender: TObject);
+var
+  FN, Srv: String;
+  Port: Integer;
+begin
+  if Length(Clipboard.AsText) < 299 then
+  begin
+    ParseDatabaseName(Clipboard.AsText, Srv, Port, FN);
+    edName.Text := ExtractFileName(FN);
+    edServer.Text := Srv;
+    edFileName.Text := FN;
   end;
 end;
 

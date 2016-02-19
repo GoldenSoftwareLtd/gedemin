@@ -77,7 +77,7 @@ var
     try
       if ATransaction = nil then
       begin
-        Tr := TIBTransaction.Create(nil)
+        Tr := TIBTransaction.Create(nil);
         Tr.DefaultDatabase := gdcBaseManager.Database;
         Tr.StartTransaction;
       end else
@@ -202,7 +202,7 @@ begin
 
     if (Branch > 0) and (EventControl <> nil) then
       EventControl.LoadBranch(Branch);
-  end end
+  end else
     Result := 0;
 end;
 
