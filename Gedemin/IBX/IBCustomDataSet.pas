@@ -3423,9 +3423,18 @@ begin
   bOld := (FCache = FOldBufferCache);
   pCache := PChar(AdjustPosition(FCache, Offset, Origin));
   if not bOld then
-    pCache := FBufferCache + Integer(pCache)
-  else
-    pCache := FOldBufferCache + Integer(pCache);
+  begin
+    if Integer(pCache) <= (FCacheSize - FRecordBufferSize) then
+      pCache := FBufferCache + Integer(pCache)
+    else
+      raise Exception.Create('IBCustomDataSet cache buffer overflow');
+  end else
+  begin
+    if Integer(pCache) <= (FOldCacheSize - FRecordBufferSize) then
+      pCache := FOldBufferCache + Integer(pCache)
+    else
+      raise Exception.Create('IBCustomDataSet old cache buffer overflow');
+  end;
   {$IFDEF HEAP_STRING_FIELD}
   if Buffer <> pCache then
     FinalizeRecordBuffer(pCache);

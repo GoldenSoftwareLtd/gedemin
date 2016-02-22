@@ -66,7 +66,7 @@ type
     procedure LoadObject(AMapping: TYAMLMapping; const ANamespaceKey: TID;
       const AFileTimeStamp: TDateTime; const ASecondPass: Boolean);
     function CopyRecord(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings): Boolean;
-    procedure CopyField(AField: TField; N: TyamlScalar);
+    procedure CopyField(AField: TField; N: TyamlScalar; const SelfRUID: TRUID; const SelfID: TID);
     procedure CopySetAttributes(AnObj: TgdcBase; const AnObjID: TID; ASequence: TYAMLSequence);
     procedure OverwriteRUID(const AnID, AXID, ADBID: TID);
     function Iterate_RemoveGDCObjects(AUserData: PUserData; const AStr: string; var APtr: PData): Boolean;
@@ -145,12 +145,17 @@ var
   SL: TStringList;
   KV: TyamlKeyValue;
   S, SName: String;
+  SelfRUID: TRUID;
+  SelfID: TID;
 begin
   Assert(AnObj <> nil);
   Assert(AMapping <> nil);
   Assert(AnObj.State in [dsEdit, dsInsert]);
 
   Result := False;
+
+  SelfRUID := AnObj.GetRUID;
+  SelfID := AnObj.ID;
 
   if AnObj.State = dsInsert then
   begin
@@ -187,7 +192,7 @@ begin
         Idx := SL.IndexOf(F.FieldName);
         if Idx > -1 then
         begin
-          CopyField(F, SL.Objects[Idx] as TyamlScalar);
+          CopyField(F, SL.Objects[Idx] as TyamlScalar, SelfRUID, SelfID);
           SL.Delete(Idx);
         end else if (Pos('USR$', F.FieldName) = 1) and (not F.ReadOnly) and (not F.Calculated) then
           AddWarning('Отсутствует в файле: ' + F.Origin);
@@ -213,13 +218,14 @@ begin
       F := AnObj.FieldByName(AnOverwriteFields[I]);
       N := AMapping.FindByName(F.FieldName);
       if N is TyamlScalar then
-        CopyField(F, N as TyamlScalar)
+        CopyField(F, N as TyamlScalar, SelfRUID, SelfID)
       else if (Pos('USR$', F.FieldName) = 1) and (not F.ReadOnly) and (not F.Calculated) then
         AddWarning('Отсутствует в файле: ' + F.Origin);
     end;
 end;
 
-procedure TgdcNamespaceLoader.CopyField(AField: TField; N: TyamlScalar);
+procedure TgdcNamespaceLoader.CopyField(AField: TField; N: TyamlScalar;
+  const SelfRUID: TRUID; const SelfID: TID);
 var
   RelationName, FieldName: String;
   RefName: String;
@@ -257,7 +263,11 @@ begin
         and (R.PrimaryKey.ConstraintFields[0] <> RF) then
       begin
         TgdcNamespace.ParseReferenceString(N.AsString, RefRUID, RefName);
-        RefID := gdcBaseManager.GetIDByRUID(RefRUID.XID, RefRUID.DBID, FTr);
+
+        if (RefRUID.XID = SelfRUID.XID) and (RefRUID.DBID = SelfRUID.DBID) then
+          RefID := SelfID
+        else
+          RefID := gdcBaseManager.GetIDByRUID(RefRUID.XID, RefRUID.DBID, FTr);
 
         if RF.References.RelationName = 'GD_OURCOMPANY' then
         begin

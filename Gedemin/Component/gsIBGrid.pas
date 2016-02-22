@@ -2343,7 +2343,7 @@ end;
 
 function TgsCustomIBGrid.FindFieldOrigin(const FieldName: String): TatRelationField;
 begin
-  if not FOrigins.Find(FieldName, Result) then
+  if (FOrigins.HashSize = 0) or (not FOrigins.Find(FieldName, Result)) then
     Result := nil;
 end;
 
