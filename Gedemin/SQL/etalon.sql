@@ -1607,7 +1607,10 @@ INSERT INTO fin_versioninfo
   VALUES (244, '0000.0001.0000.0275', '28.01.2016', 'Trigger to prevent namespace cyclic dependencies.');     
   
 INSERT INTO fin_versioninfo
-  VALUES (245, '0000.0001.0000.0276', '12.02.2016', 'Fixed minor bugs.');     
+  VALUES (245, '0000.0001.0000.0276', '12.02.2016', 'Fixed minor bugs.');
+
+INSERT INTO fin_versioninfo
+  VALUES (246, '0000.0001.0000.0277', '23.02.2016', 'Added Style Tables.');
   
 COMMIT;
 
@@ -5305,6 +5308,97 @@ CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
     (sessionid, seqid)
 )
   ON COMMIT DELETE ROWS;
+
+COMMIT;
+
+CREATE TABLE at_theme (
+  id       dintkey,
+  name     dname,
+ 
+  CONSTRAINT at_pk_theme PRIMARY KEY (id),
+  CONSTRAINT at_chk_theme CHECK(name > '')  
+);
+ 
+CREATE UNIQUE INDEX at_x_theme_name 
+  ON at_theme COMPUTED BY (UPPER(name));
+  
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER at_bi_theme FOR at_theme
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+CREATE TABLE at_style_object (
+  id              dintkey,
+  objtype         dinteger_notnull,  -- тип объекта. 0 -- тип данных, 1 -- домен, 2 -- таблица, 3 -- поле таблицы...
+  objname         dtext255 NOT NULL,             
+ 
+  CONSTRAINT at_pk_style_object PRIMARY KEY (id),
+  CONSTRAINT at_chk_style_object CHECK(objname > '') 
+);
+
+CREATE UNIQUE INDEX at_x_style_object 
+  ON at_style_object COMPUTED BY (UPPER(objname));
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER at_bi_style_object FOR at_style_object
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+CREATE TABLE at_style (
+  id              dintkey,
+  objectkey       dintkey,
+  propid          dinteger_notnull,
+  intvalue        dinteger,
+  strvalue        dtext60,
+  userkey         dforeignkey,
+  themekey        dforeignkey,
+ 
+  CONSTRAINT at_pk_style PRIMARY KEY (id),
+  CONSTRAINT at_fk_style_uk FOREIGN KEY (userkey)
+    REFERENCES gd_user (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT at_fk_style_tk FOREIGN KEY (themekey)
+    REFERENCES at_theme (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT at_fk_style_ok FOREIGN KEY (objectkey)
+    REFERENCES at_style_object (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER at_bi_style FOR at_style
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
 
 COMMIT;
 
