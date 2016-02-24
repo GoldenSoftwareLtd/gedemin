@@ -46,6 +46,7 @@ type
     lblIniFile: TLabel;
     Bevel1: TBevel;
     tc: TTabControl;
+    actCopyToClipboard: TAction;
     procedure actOkExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actCreateExecute(Sender: TObject);
@@ -69,6 +70,8 @@ type
     procedure actBackupUpdate(Sender: TObject);
     procedure actRestoreUpdate(Sender: TObject);
     procedure tcChange(Sender: TObject);
+    procedure actCopyToClipboardUpdate(Sender: TObject);
+    procedure actCopyToClipboardExecute(Sender: TObject);
 
   private
     FChosen: Tgd_DatabaseItem;
@@ -90,7 +93,7 @@ implementation
 {$R *.DFM}
 
 uses
-  jclStrings, gd_createable_form, gd_frmBackup_unit, gd_frmRestore_unit;
+  jclStrings, gd_createable_form, gd_frmBackup_unit, gd_frmRestore_unit, Clipbrd;
 
 procedure Tgd_DatabasesListView.actOkExecute(Sender: TObject);
 begin
@@ -419,6 +422,26 @@ end;
 procedure Tgd_DatabasesListView.tcChange(Sender: TObject);
 begin
   SyncControls;
+end;
+
+procedure Tgd_DatabasesListView.actCopyToClipboardUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := (gd_DatabasesList <> nil)
+    and (lv.Selected <> nil);
+end;
+
+procedure Tgd_DatabasesListView.actCopyToClipboardExecute(Sender: TObject);
+var
+  DI: Tgd_DatabaseItem;
+begin
+  if lv.Selected <> nil then
+  begin
+    DI := gd_DatabasesList.FindByName(lv.Selected.Caption);
+    if DI <> nil then
+    begin
+      Clipboard.AsText := DI.DatabaseName;
+    end;
+  end;
 end;
 
 end.

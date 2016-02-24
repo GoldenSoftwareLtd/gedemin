@@ -114,7 +114,7 @@ uses
   at_sql_metadata, gd_common_functions, gdcNamespaceRecCmpController,
   gdcMetadata, gdcFunction, gd_directories_const, mtd_i_Base, evt_i_Base,
   gd_CmdLineParams_unit, at_dlgNamespaceRemoveList_unit,
-  gd_WebClientControl_unit, gdcContacts;
+  gd_WebClientControl_unit, gdcContacts, gd_AutoTaskThread;
 
 var
   FNexus: TgdcNamespaceLoaderNexus;
@@ -511,6 +511,8 @@ begin
   FNSList.Clear;
   FLoading := True;
   Global_LoadingNamespace := True;
+  if gdAutoTaskThread <> nil then
+    gdAutoTaskThread.Forbid;
   FRemoveList.Clear;
   LoadOurCompanies;
 
@@ -771,6 +773,13 @@ begin
   end;
 
   FLoading := False;
+
+  if gdAutoTaskThread <> nil then
+  begin
+    gdAutoTaskThread.Activate;
+    gdAutoTaskThread.ReloadTaskList;
+  end else
+    ReloginDatabase;
 
   Assert(FAtObjectRecordCache.Count = 0);
   Assert(FRemoveList.Count = 0);

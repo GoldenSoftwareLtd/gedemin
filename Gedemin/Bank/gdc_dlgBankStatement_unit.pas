@@ -79,6 +79,7 @@ end;
 procedure Tgdc_dlgBankStatement.ibcmbAccountCreateNewObject(
   Sender: TObject; ANewObject: TgdcBase);
 begin
+  Assert(aNewObject <> nil);
   inherited;
   aNewObject.FieldByName('companykey').AsInteger := IBLogin.CompanyKey;
 end;
@@ -93,15 +94,13 @@ begin
     ' WHERE a.id = :id ';
   ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('accountkey').AsInteger;
   ibsql.ExecQuery;
-  if ibsql.RecordCount > 0 then
+  if not ibsql.EOF then
   begin
     edCurrency.Text := ibsql.FieldByName('name').AsString + ', ' +
       ibsql.FieldByName('sign').AsString;
   end else
     edCurrency.Text := 'не указана';
-
   ibsql.Close;
-
 end;
 
 procedure Tgdc_dlgBankStatement.SetupDialog;
@@ -142,7 +141,7 @@ begin
     if gdcObject.DetailLinks[I] is TgdcBaseStatementLine then
     begin
       FgdcDEtailObject := gdcObject.DetailLinks[I];
-      Break;
+      break;
     end;
 
   if not Assigned(FgdcDetailObject) then
@@ -419,7 +418,7 @@ begin
       ' WHERE c.contactkey = :ck ';
     ibsql.ParamByName('ck').AsInteger := gdcDetailObject.FieldByName('companykeyline').AsInteger;
     ibsql.ExecQuery;
-    if ibsql.RecordCount > 0 then
+    if not ibsql.EOF then
     begin
       gdcDetailObject.FieldByName('account').AsString :=
         ibsql.FieldByName('account').AsString;

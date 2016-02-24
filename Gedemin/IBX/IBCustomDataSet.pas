@@ -1146,35 +1146,57 @@ end;
 function TIBStringField.GetValue(var Value: string): Boolean;
 var
   Buffer: PChar;
+  FixedBuffer: array[0..1024] of Char;
+  BufferAllocated: Boolean;
 begin
-  Buffer := nil;
-  IBAlloc(Buffer, 0, Size + 1);
+  if Size < SizeOf(FixedBuffer) then
+  begin
+    Buffer := FixedBuffer;
+    BufferAllocated := False;
+  end else
+  begin
+    Buffer := nil;
+    IBAlloc(Buffer, 0, Size + 1);
+    BufferAllocated := True;
+  end;
   try
     Result := GetData(Buffer);
     if Result then
     begin
-      Value := string(Buffer);
-      if Transliterate and (Value <> '') then
-        DataSet.Translate(PChar(Value), PChar(Value), False);
+      if Transliterate and (Buffer <> #0) then
+        DataSet.Translate(Buffer, Buffer, False);
+      Value := String(Buffer);
     end
   finally
-    FreeMem(Buffer);
+    if BufferAllocated then
+      FreeMem(Buffer);
   end;
 end;
 
 procedure TIBStringField.SetAsString(const Value: string);
 var
   Buffer: PChar;
+  FixedBuffer: array[0..1024] of Char;
+  BufferAllocated: Boolean;
 begin
-  Buffer := nil;
-  IBAlloc(Buffer, 0, Size + 1);
+  if Size < SizeOf(FixedBuffer) then
+  begin
+    Buffer := FixedBuffer;
+    BufferAllocated := False;
+  end else
+  begin
+    Buffer := nil;
+    IBAlloc(Buffer, 0, Size + 1);
+    BufferAllocated := True;
+  end;
   try
     StrLCopy(Buffer, PChar(Value), Size);
-    if Transliterate then
+    if Transliterate and (Buffer <> #0) then
       DataSet.Translate(Buffer, Buffer, True);
     SetData(Buffer);
   finally
-    FreeMem(Buffer);
+    if BufferAllocated then
+      FreeMem(Buffer);
   end;
 end;
 

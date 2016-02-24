@@ -905,6 +905,7 @@ var
   SearchR: TSearchRec;
   S: String;
   J: DWORD;
+  DI: Tgd_DatabaseItem;
 begin
   ClearFltComponentCache;
 
@@ -1118,8 +1119,13 @@ begin
 
   if IBLogin.IsUserAdmin and (gdNotifierThread <> nil) then
     FNotificationID := gdNotifierThread.Add(IBLogin.Database.DatabaseName)
-  else
-    FNotificationID := -1;
+  else begin
+    DI := gd_DatabasesList.FindSelected;
+    if (DI <> nil) and (DI.Name > '') then
+      FNotificationID := gdNotifierThread.Add(DI.Name)
+    else
+      FNotificationID := -1;
+  end;
 
   // Issue 1992
   if FormAssigned(gdc_frmExplorer) then

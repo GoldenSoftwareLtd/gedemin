@@ -162,6 +162,7 @@ type
     procedure SetInitialDelay;
     procedure ReLoadTaskList;
     procedure Forbid;
+    procedure Activate;
   end;
 
 var
@@ -811,8 +812,12 @@ end;
 
 procedure TgdAutoTaskThread.Forbid;
 begin
-  Assert(FForbid.Value = 0);
   FForbid.Value := 1;
+end;
+
+procedure TgdAutoTaskThread.Activate;
+begin
+  FForbid.Value := 0;
 end;
 
 { TgdAutoFunctionTask }

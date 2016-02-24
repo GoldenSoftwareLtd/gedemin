@@ -198,12 +198,12 @@ begin
     end;
   end;
 
-  if (not IBLogin.Relogining)
-    and (gdAutoTaskThread = nil)
+  if (gdAutoTaskThread = nil)
     and (gd_CmdLineParams <> nil)
     and (not gd_CmdLineParams.Embedding)
     and (not gd_CmdLineParams.Unmethod)
-    and (gd_CmdLineParams.LoadSettingFileName = '') then
+    and (gd_CmdLineParams.LoadSettingFileName = '')
+    and (not Global_LoadingNamespace) then
   begin
     gdAutoTaskThread := TgdAutoTaskThread.Create;
     gdAutoTaskThread.SetInitialDelay;

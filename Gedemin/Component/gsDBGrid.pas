@@ -9307,14 +9307,14 @@ var
   DrawInfo: TGridDrawInfo; 
   A: TgdcAggregate;
   S, V: String;
-  bInAggregates: boolean;
+  bInAggregates: Boolean;
   W: Integer;
   CurrExpand: TColumnExpand;
   ExpandsList: TList;
   CurrLine, DefRowHeight: Integer;
   K: Integer;
   CurrAlignment: TAlignment;
-  DrawColumn: TColumn;
+  DrawColumn, TestColumn: TColumn;
 begin
   if FInDrawTotals then
     exit;
@@ -9344,14 +9344,17 @@ begin
             AggregatesActive := True;
             for I := 0 to Columns.Count - 1 do
               if Columns[I].Visible
-                and ((Columns[I] as TgsColumn).TotalType = ttSum)
-                and (Columns[I].Field <> nil) and (Columns[I].Field.DataType in
+                and (Columns[I].Field <> nil)
+                and (Columns[I].Field.DataType in
                   [ftSmallInt, ftInteger, ftWord, ftFloat, ftCurrency, ftBCD, ftLargeInt]) then
               begin
-                A := Aggregates.Add;
-                A.DataType := Columns[I].Field.DataType;
-                A.Expression := Columns[I].Field.FieldName;
-                A.DisplayName := Columns[I].Field.FieldName;
+                if (Columns[I] as TgsColumn).TotalType = ttSum then
+                begin
+                  A := Aggregates.Add;
+                  A.DataType := Columns[I].Field.DataType;
+                  A.Expression := Columns[I].Field.FieldName;
+                  A.DisplayName := Columns[I].Field.FieldName;
+                end;  
 
                 if FExpandsActive then
                 begin
@@ -9362,10 +9365,15 @@ begin
                     for K := 0 to ExpandsList.Count - 1 do
                     begin
                       CurrExpand := ExpandsList[K];
-                      TheField := DataLink.DataSet.FindField(CurrExpand.FieldName);
 
-                      if (TheField <> nil) and (TheField.DataType in
-                        [ftSmallInt, ftInteger, ftWord, ftFloat, ftCurrency, ftBCD, ftLargeInt])
+                      TheField := DataLink.DataSet.FindField(CurrExpand.FieldName);
+                      TestColumn := ColumnByField(TheField);
+
+                      if (TheField <> nil)
+                        and (TestColumn is TgsColumn)
+                        and ((TestColumn as TgsColumn).TotalType = ttSum)
+                        and (TheField.DataType in
+                          [ftSmallInt, ftInteger, ftWord, ftFloat, ftCurrency, ftBCD, ftLargeInt])
                         and (Aggregates.Find(TheField.FieldName) = nil) then
                       begin
                         A := Aggregates.Add;
@@ -9437,7 +9445,7 @@ begin
                 begin
                   for J := 0 to Aggregates.Count - 1 do
                   begin
-                    if AnsiCompareText(Aggregates[J].Expression, TheField.FieldName) = 0 then
+                    if AnsiSameText(Aggregates[J].Expression, TheField.FieldName) then
                     begin
                       if (Columns[I] as TgsColumn).DisplayFormat > '' then
                         S := FormatFloat((Columns[I] as TgsColumn).DisplayFormat, Aggregates[J].Value)
@@ -9585,130 +9593,62 @@ begin
                 begin
                   with DataSource.DataSet as TIBCustomDataSet do
                   begin
+                    V := '';
+
                     for J := 0 to Aggregates.Count - 1 do
                     begin
-                      if AnsiCompareText(Aggregates[J].Expression, TheField.FieldName) = 0 then
+                      if AnsiSameText(Aggregates[J].Expression, TheField.FieldName) then
                       begin
-                        DefRowHeight := GetDefaultRowHeight;
-                        Canvas.Font := FSelectedFont;
-
                         if (TheField is TNumericField)
                           and ((TheField as TNumericField).DisplayFormat > '')
                         then
                           V := FormatFloat((TheField as TNumericField).DisplayFormat, Aggregates[J].Value)
                         else
                           V := Aggregates[J].Value;
-                        W := Canvas.TextWidth(V) + 4;
-                        (Columns[I] as TgsColumn).TotalWidth := W;
-                        if FIsResize and (Columns[I].Width < W) then
-                          Columns[I].Width := W;
+                        break;
+                      end;
+                    end;
 
-                        if Canvas.TextWidth(V) > (R.Right - R.Left - 4) then
-                          V := '########'; 
+                    DefRowHeight := GetDefaultRowHeight;
+                    Canvas.Font := FSelectedFont;
 
-                        if FExpandsActive and Assigned(DrawColumn.Field) then
+                    W := Canvas.TextWidth(V) + 4;
+                    (Columns[I] as TgsColumn).TotalWidth := W;
+                    if FIsResize and (Columns[I].Width < W) then
+                      Columns[I].Width := W;
+
+                    if Canvas.TextWidth(V) > (R.Right - R.Left - 4) then
+                      V := '########';
+
+                    if FExpandsActive and Assigned(DrawColumn.Field) then
+                    begin
+                      ExpandsList := TList.Create;
+                      try
+                        GetExpandsList(TheField, ExpandsList);
+                        CurrLine := 0;
+                        CurrExpand := FindMainExpand(ExpandsList);
+
+                        if Assigned(CurrExpand) then
                         begin
-                          ExpandsList := TList.Create;
-                          try
-                            GetExpandsList(DrawColumn.Field, ExpandsList);
-                            CurrLine := 0;
-                            CurrExpand := FindMainExpand(ExpandsList);
+                          WriteText
+                          (
+                            Canvas,
+                            Rect
+                            ( R.Left,
+                              R.Top,
+                              R.Right,
+                              R.Top + DefRowHeight * (CurrLine + CurrExpand.LineCount)
+                            ),
+                            R,
+                            2, 2,
+                            V, DrawColumn.Alignment,
+                            UseRightToLeftAlignmentForField(DrawColumn.Field, DrawColumn.Alignment),
+                            (CurrLine + CurrExpand.LineCount - 1) > 0
+                          );
 
-                            if Assigned(CurrExpand) then
-                            begin
-                              WriteText
-                              (
-                                Canvas,
-                                Rect
-                                ( R.Left,
-                                  R.Top,
-                                  R.Right,
-                                  R.Top + DefRowHeight * (CurrLine + CurrExpand.LineCount)
-                                ),
-                                R,
-                                2, 2,
-                                V, DrawColumn.Alignment,
-                                UseRightToLeftAlignmentForField(DrawColumn.Field, DrawColumn.Alignment),
-                                (CurrLine + CurrExpand.LineCount - 1) > 0
-                              );
-
-                              CurrLine := CurrExpand.LineCount;
-                            end
-                            else begin
-                              WriteText
-                              (
-                                Canvas,
-                                R,
-                                R,
-                                2, 2,
-                                V,
-                                DrawColumn.Alignment,
-                                UseRightToLeftAlignmentForField(DrawColumn.Field, DrawColumn.Alignment),
-                                True
-                              );
-
-                              CurrLine := 1;
-                            end;
-
-                            for K := 0 to ExpandsList.Count - 1 do
-                            begin
-                              CurrExpand := ExpandsList[K];
-
-                              if ceoAddField in CurrExpand.Options then
-                              begin
-                                F := DataLink.DataSet.FindField(CurrExpand.FieldName);
-
-                                V := '';
-                                if F <> nil then
-                                begin
-                                  A := Aggregates.Find(CurrExpand.FieldName);
-                                  if A <> nil then
-                                  begin
-                                    if F is TNumericField
-                                      and ((F as TNumericField).DisplayFormat > '')
-                                    then
-                                      V := FormatFloat((F as TNumericField).DisplayFormat, A.Value)
-                                    else
-                                      V := A.Value;
-                                  end;
-                                  CurrAlignment := F.Alignment;
-                                end else
-                                  CurrAlignment := DrawColumn.Alignment;
-
-                                WriteText
-                                (
-                                  Canvas,
-                                  Rect
-                                  ( R.Left,
-                                    R.Top + DefRowHeight * CurrLine,
-                                    R.Right,
-                                    R.Top + DefRowHeight * (CurrLine + CurrExpand.LineCount)
-                                  ),
-                                  Rect
-                                  ( R.Left,
-                                    R.Top + DefRowHeight * CurrLine,
-                                    R.Right,
-                                    R.Bottom
-                                  ),
-                                  2, 2, V, CurrAlignment,
-                                  UseRightToLeftAlignmentForField(DrawColumn.Field, DrawColumn.Alignment),
-                                  ceoAddFieldMultiline in CurrExpand.Options
-                                );   
-
-                                if FExpandsSeparate then
-                                begin
-                                  Canvas.MoveTo(R.Left, R.Top + DefRowHeight * CurrLine);
-                                  Canvas.LineTo(R.Right, R.Top + DefRowHeight * CurrLine);
-                                end;
-
-                                Inc(CurrLine, CurrExpand.LineCount);
-                              end;
-                            end;
-                          finally
-                            ExpandsList.Free;
-                          end;
-                        end else
-                        begin
+                          CurrLine := CurrExpand.LineCount;
+                        end
+                        else begin
                           WriteText
                           (
                             Canvas,
@@ -9716,16 +9656,88 @@ begin
                             R,
                             2, 2,
                             V,
-                            TheField.Alignment,
-                            UseRightToLeftAlignmentForField(TheField, TheField.Alignment),
+                            DrawColumn.Alignment,
+                            UseRightToLeftAlignmentForField(DrawColumn.Field, DrawColumn.Alignment),
                             True
                           );
+
+                          CurrLine := 1;
                         end;
+
+                        for K := 0 to ExpandsList.Count - 1 do
+                        begin
+                          CurrExpand := ExpandsList[K];
+
+                          if ceoAddField in CurrExpand.Options then
+                          begin
+                            F := DataLink.DataSet.FindField(CurrExpand.FieldName);
+
+                            V := '';
+                            if F <> nil then
+                            begin
+                              A := Aggregates.Find(CurrExpand.FieldName);
+                              if A <> nil then
+                              begin
+                                if F is TNumericField
+                                  and ((F as TNumericField).DisplayFormat > '')
+                                then
+                                  V := FormatFloat((F as TNumericField).DisplayFormat, A.Value)
+                                else
+                                  V := A.Value;
+                              end;
+                              CurrAlignment := F.Alignment;
+                            end else
+                              CurrAlignment := DrawColumn.Alignment;
+
+                            WriteText
+                            (
+                              Canvas,
+                              Rect
+                              ( R.Left,
+                                R.Top + DefRowHeight * CurrLine,
+                                R.Right,
+                                R.Top + DefRowHeight * (CurrLine + CurrExpand.LineCount)
+                              ),
+                              Rect
+                              ( R.Left,
+                                R.Top + DefRowHeight * CurrLine,
+                                R.Right,
+                                R.Bottom
+                              ),
+                              2, 2, V, CurrAlignment,
+                              UseRightToLeftAlignmentForField(DrawColumn.Field, DrawColumn.Alignment),
+                              ceoAddFieldMultiline in CurrExpand.Options
+                            );
+
+                            if FExpandsSeparate then
+                            begin
+                              Canvas.MoveTo(R.Left, R.Top + DefRowHeight * CurrLine);
+                              Canvas.LineTo(R.Right, R.Top + DefRowHeight * CurrLine);
+                            end;
+
+                            Inc(CurrLine, CurrExpand.LineCount);
+                          end;
+                        end;
+                      finally
+                        ExpandsList.Free;
                       end;
+                    end else
+                    begin
+                      WriteText
+                      (
+                        Canvas,
+                        R,
+                        R,
+                        2, 2,
+                        V,
+                        TheField.Alignment,
+                        UseRightToLeftAlignmentForField(TheField, TheField.Alignment),
+                        True
+                      );
                     end;
                   end;
                 end
-                else if (Columns[I] as TgsColumn).TotalType = ttSum then
+                else if ((Columns[I] as TgsColumn).TotalType = ttSum) or FExpandsActive then
                 begin
                   Canvas.Font := FSelectedFont;
 
@@ -9735,7 +9747,7 @@ begin
                     R,
                     R,
                     2, 2,
-                    'Расcчитать...',
+                    'Рассчитать...',
                     TheField.Alignment,
                     UseRightToLeftAlignmentForField(TheField, TheField.Alignment),
                     True

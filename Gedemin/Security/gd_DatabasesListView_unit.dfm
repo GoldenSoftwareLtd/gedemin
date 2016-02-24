@@ -1,6 +1,6 @@
 object gd_DatabasesListView: Tgd_DatabasesListView
-  Left = 515
-  Top = 282
+  Left = 540
+  Top = 275
   Width = 741
   Height = 606
   Caption = 'Список баз данных'
@@ -18,7 +18,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   TextHeight = 13
   object pnlBottom: TPanel
     Left = 0
-    Top = 534
+    Top = 533
     Width = 725
     Height = 34
     Align = alBottom
@@ -56,7 +56,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     Left = 0
     Top = 26
     Width = 725
-    Height = 508
+    Height = 507
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -72,7 +72,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       Left = 0
       Top = 2
       Width = 725
-      Height = 482
+      Height = 481
       Align = alClient
       BorderStyle = bsNone
       Columns = <
@@ -100,7 +100,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     end
     object tc: TTabControl
       Left = 0
-      Top = 484
+      Top = 483
       Width = 725
       Height = 24
       Align = alBottom
@@ -206,24 +206,28 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     object actCreate: TAction
       Caption = 'Создать...'
       ImageIndex = 0
+      ShortCut = 113
       OnExecute = actCreateExecute
       OnUpdate = actImportUpdate
     end
     object actEdit: TAction
       Caption = 'Изменить...'
       ImageIndex = 1
+      ShortCut = 115
       OnExecute = actEditExecute
       OnUpdate = actEditUpdate
     end
     object actDelete: TAction
       Caption = 'Удалить'
       ImageIndex = 2
+      ShortCut = 119
       OnExecute = actDeleteExecute
       OnUpdate = actDeleteUpdate
     end
     object actImport: TAction
       Caption = 'Импорт из системного реестра'
       ImageIndex = 230
+      ShortCut = 16457
       OnExecute = actImportExecute
       OnUpdate = actImportUpdate
     end
@@ -235,20 +239,31 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     object actBackup: TAction
       Caption = 'Архивное копирование...'
       ImageIndex = 109
+      ShortCut = 16450
       OnExecute = actBackupExecute
       OnUpdate = actBackupUpdate
     end
     object actRestore: TAction
       Caption = 'Восстановление из архива...'
       ImageIndex = 106
+      ShortCut = 16466
       OnExecute = actRestoreExecute
       OnUpdate = actRestoreUpdate
     end
     object actCopy: TAction
       Caption = 'Дублировать...'
       ImageIndex = 3
+      ShortCut = 16452
       OnExecute = actCopyExecute
       OnUpdate = actCopyUpdate
+    end
+    object actCopyToClipboard: TAction
+      Caption = 'actCopyToClipboard'
+      Hint = 'Копировать в буфер'
+      ImageIndex = 10
+      ShortCut = 16451
+      OnExecute = actCopyToClipboardExecute
+      OnUpdate = actCopyToClipboardUpdate
     end
   end
 end
