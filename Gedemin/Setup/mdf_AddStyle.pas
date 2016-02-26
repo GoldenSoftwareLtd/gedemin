@@ -10,12 +10,13 @@ procedure AddStyleTables(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
  
 uses
-  IBSQL, SysUtils, mdf_metadata_unit;
+  IBSQL, SysUtils, mdf_metadata_unit, gd_StyleManager;
  
 procedure AddStyleTables(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
   FIBSQL: TIBSQL;
+  GridParser: TgdGridParser;
 begin
   FTransaction := TIBTransaction.Create(nil);
   try
@@ -137,6 +138,16 @@ begin
         FIBSQL.ExecQuery;
       finally
         FIBSQL.Free;
+      end;
+      
+      FTransaction.Commit;
+      FTransaction.StartTransaction;
+
+      GridParser := TgdGridParser.Create(FTransaction);
+      try
+        GridParser.Run;
+      finally
+        GridParser.Free;
       end;
 
       FTransaction.Commit;
