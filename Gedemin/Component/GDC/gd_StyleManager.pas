@@ -6,7 +6,10 @@ uses
   Contnrs, Classes, TypInfo, Forms, SysUtils, gsDBGrid, Graphics, Windows, IBDatabase;
 
 const
+  cDefMaxLengthStrValue = 60;
+
   //ObjTypes
+  cGlobal    = 1;
   cGrid      = 10;
   cExpand    = 11;
   cCondition = 12;
@@ -51,7 +54,7 @@ const
   cExpandFieldName          = 1028;
   cExpandDisplayField       = 1029;
   cExpandLineCount          = 1030;
-  cExpandOption             = 1031;
+  cExpandOptions            = 1031;
 
   cExpandsActive            = 1032;
   cExpandsSeparate          = 1033;
@@ -71,7 +74,7 @@ const
   cConditionExpression1     = 1045;
   cConditionExpression2     = 1046;
   cConditionKind            = 1047;
-  cConditionDisplayOption   = 1048;
+  cConditionDisplayOptions  = 1048;
   cConditionEvaluateFormula = 1049;
   cConditionUserCondition   = 1050;
 
@@ -110,9 +113,9 @@ const
   cColumnTitleAlignment     = 1079;
   cColumnAlignment          = 1080;
 
-  //Default Values
+  {//Default Values
   //Table
-  cDefTableFontName            = 'Tahoma';
+  cDefTableFontName            = 'MS Sans Serif';
   cDefTableFontColor           = clWindowText;
   cDefTableFontHeight          = -11;
   cDefTableFontPitch           = fpDefault;
@@ -122,7 +125,7 @@ const
   cDefTableColor               = clWindow;
 
   //Selected
-  cDefSelectedFontName         = 'Tahoma';
+  cDefSelectedFontName         = 'MS Sans Serif';
   cDefSelectedFontColor        = clHighlightText;
   cDefSelectedFontHeight       = -11;
   cDefSelectedFontPitch        = fpDefault;
@@ -132,7 +135,7 @@ const
   cDefSelectedColor            = clHighlight;
 
   //Title
-  cDefTitleFontName            = 'Tahoma';
+  cDefTitleFontName            = 'MS Sans Serif';
   cDefTitleFontColor           = clWindowText;
   cDefTitleFontHeight          = -11;
   cDefTitleFontPitch           = fpDefault;
@@ -153,7 +156,7 @@ const
 
   //Condition
   cDefConditionFieldName       = '';
-  cDefConditionFontName        = 'Tahoma';
+  cDefConditionFontName        = 'MS Sans Serif';
   cDefConditionFontColor       = clWindowText;
   cDefConditionFontHeight      = -11;
   cDefConditionFontPitch       = fpDefault;
@@ -182,7 +185,7 @@ const
   cDefColumnTotalSum           = False;
   cDefColumnWidth              = 0;
 
-  cDefColumnTitleFontName      = 'Tahoma';
+  cDefColumnTitleFontName      = 'MS Sans Serif';
   cDefColumnTitleFontColor     = clWindowText;
   cDefColumnTitleFontHeight    = -11;
   cDefColumnTitleFontPitch     = fpDefault;
@@ -191,7 +194,7 @@ const
   cDefColumnTitleFontCharSet   = DEFAULT_CHARSET;
   cDefColumnTitleColor         = clBtnFace;
 
-  cDefColumnFontName           = 'Tahoma';
+  cDefColumnFontName           = 'MS Sans Serif';
   cDefColumnFontColor          = clWindowText;
   cDefColumnFontHeight         = -11;
   cDefColumnFontPitch          = fpDefault;
@@ -201,7 +204,7 @@ const
   cDefColumnColor              = clWindow;
 
   cDefColumnTitleAlignment     = taLeftJustify;
-  cDefColumnAlignment          = taLeftJustify;
+  cDefColumnAlignment          = taLeftJustify;}
 
 type
 
@@ -288,11 +291,49 @@ type
     procedure SaveBoolValue(const AnObjectKey: Integer;
       const APropID: Integer; const AnBoolValue: Boolean; const AnUserKey: Integer);
 
+    procedure ReadFont(R: TReader; AFont: TFont);
+
+    procedure SaveConditions(R: TReader; AnObjectName: String; AnUserKey: Integer);
+
+    procedure SaveColumns(R: TReader; AnObjectName: String; AnUserKey: Integer);
+
+    procedure SaveExpands(R: TReader; AnObjectName: String; AnUserKey: Integer);
+
+    procedure SaveFont(AFont: TFont;
+      CurrFontName: Integer;
+      CurrFontColor: Integer;
+      CurrFontHeight: Integer;
+      CurrFontPitch: Integer;
+      CurrFontSize: Integer;
+      CurrFontStyle: Integer;
+      CurrFontCharSet: Integer;
+      AnObjKey: Integer; AnUserKey: Integer);
+
+    procedure SaveColumnFont(const AValue: String; AFont: TFont; AnObjKey: Integer; AnUserKey: Integer);
+
+    procedure SaveGridFont(const AValue: String; R: TReader; AnObjKey: Integer; AnUserKey: Integer);
+
     procedure ParseGridStream(const AnObjectName: String;
       const AnUserKey: Integer; Stream: TStream);
 
+    function GetDefaultStrValue(APropID: Integer; AnUserKey: Integer): String;
+    function GetDefaultIntValue(APropID: Integer; AnUserKey: Integer): Integer;
+    function GetDefaultBollValue(APropID: Integer; AnUserKey: Integer): Boolean;
+
+    procedure DeleteStrValues(APropID: Integer; const AStrValue: String; AnUserKey: Integer);
+    procedure DeleteIntValues(APropID: Integer; AnIntValue: Integer; AnUserKey: Integer);
+    procedure DeleteBoolValues(APropID: Integer; ABollValue: Boolean; AnUserKey: Integer);
+
+    function GetUserKeys: String;
+
+    procedure _SetDefault(AnObjKey: Integer; AnUserKey: Integer);
+
+    procedure SetDefault;
+
   public
     constructor Create(ATransaction: TIBTransaction);
+    destructor Destroy; override;
+
     procedure Run;
   end;
 
@@ -495,7 +536,14 @@ end;
 constructor TgdGridParser.Create(ATransaction: TIBTransaction);
 begin
   Assert(ATransaction <> nil);
+
   FTransaction := ATransaction;
+end;
+
+destructor TgdGridParser.Destroy;
+begin
+
+  inherited;
 end;
 
 function TgdGridParser.GetObjID(const AnObjType: Integer; const AnObjName: String): Integer;
@@ -508,24 +556,22 @@ begin
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FTransaction;
-    q.SQL.Text := 'SELECT id FROM at_style_object WHERE objtype = :objtype AND objname = :objname';
-    q.ParamByName('objtype').AsInteger := AnObjType;
-    q.ParamByName('objname').AsString := AnObjName;
-    q.ExecQuery;
-    if not q.EOF then
-      Result := q.FieldByName('id').AsInteger
-    else
-    begin
+    //q.SQL.Text := 'SELECT id FROM at_style_object WHERE objtype = :objtype AND objname = :objname';
+    //q.ParamByName('objtype').AsInteger := AnObjType;
+    //q.ParamByName('objname').AsString := AnObjName;
+    //q.ExecQuery;
+    //if not q.EOF then
+      //Result := q.FieldByName('id').AsInteger
+    //else
+    //begin
       q.Close;
       Result := gdcBaseManager.GetNextID;
-
       q.SQL.Text := 'INSERT INTO at_style_object(id, objtype, objname) VALUES (:id, :objtype, :objname)';
-
       q.ParamByName('id').AsInteger := Result;
       q.ParamByName('objtype').AsInteger := AnObjType;
       q.ParamByName('objname').AsString := AnObjName;
       q.ExecQuery;
-    end;
+    //end;
   finally
     q.Free;
   end;
@@ -538,16 +584,15 @@ var
 begin
   Assert(AnObjectKey > 0);
   Assert(APropID > 0);
-  Assert(AStrValue > '');
+  //Assert(AStrValue > '');
   Assert(AnUserKey > 0);
 
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FTransaction;
     q.SQL.Text :=
-      'UPDATE OR INSERT INTO at_style (objectkey, propid, strvalue, userkey) ' +
-      'VALUES (:objectkey, :propid, :strvalue, :userkey) ' +
-      'matching (objectkey, propid, userkey)';
+      'INSERT INTO at_style (objectkey, propid, strvalue, userkey) ' +
+      'VALUES (:objectkey, :propid, :strvalue, :userkey)';
     q.ParamByName('objectkey').AsInteger := AnObjectKey;
     q.ParamByName('propid').AsInteger := APropID;
     q.ParamByName('strvalue').AsString := AStrValue;
@@ -571,9 +616,8 @@ begin
   try
     q.Transaction := FTransaction;
     q.SQL.Text :=
-      'UPDATE OR INSERT INTO at_style (objectkey, propid, intvalue, userkey) ' +
-      'VALUES (:objectkey, :propid, :intvalue, :userkey) ' +
-      'matching (objectkey, propid, userkey)';
+      'INSERT INTO at_style (objectkey, propid, intvalue, userkey) ' +
+      'VALUES (:objectkey, :propid, :intvalue, :userkey)';
     q.ParamByName('objectkey').AsInteger := AnObjectKey;
     q.ParamByName('propid').AsInteger := APropID;
     q.ParamByName('intvalue').AsInteger := AIntValue;
@@ -601,261 +645,45 @@ begin
   SaveIntValue(AnObjectKey, APropID, IntValue, AnUserKey);
 end;
 
-procedure TgdGridParser.ParseGridStream(const AnObjectName: String;
-  const AnUserKey: Integer; Stream: TStream);
+procedure TgdGridParser.ReadFont(R: TReader; AFont: TFont);
 var
-  R: TReader;
-  I: Integer;
-  Version: String;
-  ObjectKey: Integer;
-  Color: TColor;
-  Striped: Boolean;
-  StripeOdd: TColor;
-  StripeEven: TColor;
-  Columns: TgsColumns;
-  Expands: TColumnExpands;
+  Pitch: TFontPitch;
+  Style: TFontStyles;
+begin
+  Assert(R <> nil);
+  Assert(AFont <> nil);
+
+  R.ReadListBegin;
+  try
+    AFont.Name := R.ReadString;
+    AFont.Color := StringToColor(R.ReadString);
+    AFont.Height := R.ReadInteger;
+    R.Read(Pitch, SizeOf(TFontPitch));
+    AFont.Pitch := Pitch;
+    AFont.Size := R.ReadInteger;
+    R.Read(Style, SizeOf(TFontStyles));
+    AFont.Style := Style;
+    AFont.CharSet := R.ReadInteger;
+    R.ReadListEnd;
+  except
+    R.ReadListEnd;
+  end;
+end;
+
+procedure TgdGridParser.SaveConditions(R: TReader; AnObjectName: String; AnUserKey: Integer);
+var
   Conditions: TGridConditions;
-  ExpandsActive: Boolean;
-  ExpandsSeparate: Boolean;
-  ScaleColumns: Boolean;
-  ConditionsActive: Boolean;
-  TitlesExpanding: Boolean;
-  O: TDBGridOptions;
-  ShowRowLines: Boolean;
-  ShowTotals: Boolean;
-  ShowFooter: Boolean;
+  OK: Integer;
+  I: Integer;
+  S: String;
+begin
+  Assert(R <> nil);
+  Assert(AnObjectName > '');
+  Assert(AnUserKey > 0);
 
-  procedure SaveTableFont;
-  var
-    Name: String;
-    Color: TColor;
-    Height: Integer;
-    Pitch: TFontPitch; {(fpDefault, fpVariable, fpFixed);}
-    Size: Integer;
-    Styles: TFontStyles;  {(fsBold, fsItalic, fsUnderline, fsStrikeOut);}
-    CharSet: TFontCharset;
-  begin
-    R.ReadListBegin;
-
-    try
-      Name := R.ReadString;
-      if (Name <> cDefTableFontName) and (Name > '') then
-        SaveStrValue(ObjectKey, cTableFontName, Name, AnUserKey);
-
-      Color := StringToColor(R.ReadString);
-      if Color <> cDefTableFontColor then
-        SaveStrValue(ObjectKey, cTableFontColor, ColorToString(Color), AnUserKey);
-
-      Height := R.ReadInteger;
-      if Height <> cDefTableFontHeight then
-        SaveIntValue(ObjectKey, cTableFontHeight, Height, AnUserKey);
-
-      R.Read(Pitch, SizeOf(TFontPitch));
-      if Pitch <> cDefTableFontPitch then
-      begin
-        if Pitch = fpVariable then
-          SaveStrValue(ObjectKey, cTableFontPitch, 'fpVariable', AnUserKey)
-        else
-          SaveStrValue(ObjectKey, cTableFontPitch, 'fpFixed', AnUserKey);
-      end;
-
-      Size := R.ReadInteger;
-      if Size <> 8 then
-        SaveIntValue(ObjectKey, cTableFontSize, Size, AnUserKey);
-
-      R.Read(Styles, SizeOf(TFontStyles));
-      if Styles <> cDefTableFontStyles then
-      begin
-        if fsBold in Styles then
-          SaveStrValue(ObjectKey, cTableFontStyle, 'fsBold', AnUserKey);
-        if fsItalic in Styles then
-          SaveStrValue(ObjectKey, cTableFontStyle, 'fsItalic', AnUserKey);
-        if fsUnderline in Styles then
-          SaveStrValue(ObjectKey, cTableFontStyle, 'fsUnderline', AnUserKey);
-        if fsStrikeOut in Styles then
-          SaveStrValue(ObjectKey, cTableFontStyle, 'fsStrikeOut', AnUserKey);
-      end;
-
-      CharSet := R.ReadInteger;
-      if CharSet <> cDefTableFontCharSet then
-        SaveIntValue(ObjectKey, cTableFontCharSet, CharSet, AnUserKey);
-
-      R.ReadListEnd;
-    except
-      R.ReadListEnd;
-    end;
-  end;
-
-  ///////////////////////////////////////////////////////////////////////////////
-
-  procedure SaveSelectedFont;
-  var
-    Name: String;
-    Color: TColor;
-    Height: Integer;
-    Pitch: TFontPitch;
-    Size: Integer;
-    Styles: TFontStyles;
-    CharSet: TFontCharset;
-  begin
-    R.ReadListBegin;
-
-    try
-      Name := R.ReadString;
-      if (Name <> cDefSelectedFontName) and (Name > '') then
-        SaveStrValue(ObjectKey, cSelectedFontName, Name, AnUserKey);
-
-      Color := StringToColor(R.ReadString);
-      if Color <> cDefSelectedFontColor then
-        SaveStrValue(ObjectKey, cSelectedFontColor, ColorToString(Color), AnUserKey);
-
-      Height := R.ReadInteger;
-      if Height <> cDefSelectedFontHeight then
-        SaveIntValue(ObjectKey, cSelectedFontHeight, Height, AnUserKey);
-
-      R.Read(Pitch, SizeOf(TFontPitch));
-      if Pitch <> cDefSelectedFontPitch then
-      begin
-        if Pitch = fpVariable then
-          SaveStrValue(ObjectKey, cSelectedFontPitch, 'fpVariable', AnUserKey)
-        else
-          SaveStrValue(ObjectKey, cSelectedFontPitch, 'fpFixed', AnUserKey);
-      end;
-
-      Size := R.ReadInteger;
-      if Size <> 8 then
-        SaveIntValue(ObjectKey, cSelectedFontSize, Size, AnUserKey);
-
-      R.Read(Styles, SizeOf(TFontStyles));
-      if Styles <> cDefSelectedFontStyles then
-      begin
-        if fsBold in Styles then
-          SaveStrValue(ObjectKey, cSelectedFontStyle, 'fsBold', AnUserKey);
-        if fsItalic in Styles then
-          SaveStrValue(ObjectKey, cSelectedFontStyle, 'fsItalic', AnUserKey);
-        if fsUnderline in Styles then
-          SaveStrValue(ObjectKey, cSelectedFontStyle, 'fsUnderline', AnUserKey);
-        if fsStrikeOut in Styles then
-          SaveStrValue(ObjectKey, cSelectedFontStyle, 'fsStrikeOut', AnUserKey);
-      end;
-
-      CharSet := R.ReadInteger;
-      if CharSet <> cDefSelectedFontCharSet then
-        SaveIntValue(ObjectKey, cSelectedFontCharSet, CharSet, AnUserKey);
-
-      R.ReadListEnd;
-    except
-      R.ReadListEnd;
-    end;
-  end;
-
-  ////////////////////////////////////////////////////////////////////////////////
-
-  procedure SaveTitleFont;
-  var
-    Name: String;
-    Color: TColor;
-    Height: Integer;
-    Pitch: TFontPitch; {(fpDefault, fpVariable, fpFixed);}
-    Size: Integer;
-    Styles: TFontStyles;  {(fsBold, fsItalic, fsUnderline, fsStrikeOut);}
-    CharSet: TFontCharset;
-  begin
-    R.ReadListBegin;
-
-    try
-      Name := R.ReadString;
-      if (Name <> cDefTitleFontName) and (Name > '') then
-        SaveStrValue(ObjectKey, cTitleFontName, Name, AnUserKey);
-
-      Color := StringToColor(R.ReadString);
-      if Color <> cDefTitleFontColor then
-        SaveStrValue(ObjectKey, cTitleFontColor, ColorToString(Color), AnUserKey);
-
-      Height := R.ReadInteger;
-      if Height <> cDefTitleFontHeight then
-        SaveIntValue(ObjectKey, cTitleFontHeight, Height, AnUserKey);
-
-      R.Read(Pitch, SizeOf(TFontPitch));
-      if Pitch <> cDefTitleFontPitch then
-      begin
-        if Pitch = fpVariable then
-          SaveStrValue(ObjectKey, cTitleFontPitch, 'fpVariable', AnUserKey)
-        else
-          SaveStrValue(ObjectKey, cTitleFontPitch, 'fpFixed', AnUserKey);
-      end;
-
-      Size := R.ReadInteger;
-      if Size <> 8 then
-        SaveIntValue(ObjectKey, cTitleFontSize, Size, AnUserKey);
-
-      R.Read(Styles, SizeOf(TFontStyles));
-      if Styles <> cDefTitleFontStyles then
-      begin
-        if fsBold in Styles then
-          SaveStrValue(ObjectKey, cTitleFontStyle, 'fsBold', AnUserKey);
-        if fsItalic in Styles then
-          SaveStrValue(ObjectKey, cTitleFontStyle, 'fsItalic', AnUserKey);
-        if fsUnderline in Styles then
-          SaveStrValue(ObjectKey, cTitleFontStyle, 'fsUnderline', AnUserKey);
-        if fsStrikeOut in Styles then
-          SaveStrValue(ObjectKey, cTitleFontStyle, 'fsStrikeOut', AnUserKey);
-      end;
-
-      CharSet := R.ReadInteger;
-      if CharSet <> cDefTitleFontCharSet then
-        SaveIntValue(ObjectKey, cTitleFontCharSet, CharSet, AnUserKey);
-
-      R.ReadListEnd;
-    except
-      R.ReadListEnd;
-    end;
-  end;
-
-  procedure SaveExpands;
-  var
-    OK: Integer;
-    I: Integer;
-  begin
-    Assert(Expands <> nil);
-    //objname записываем так (форма, грид, Expand(DisplayField, FieldName))
-    //DisplayField - имя поля в котором отображается
-    //И все равно так не уникально, в программе в расширенное отображение можно добавить одно и то же поле несколько раз, но возможно это ошибка!!! сомнительный функционал
-
-    for I := 0 to Expands.Count - 1 do
-    begin
-      if Expands[I].FieldName > '' then
-      begin
-        OK := GetObjID(cExpand, AnObjectName + ',' +
-          'Expand(' + Expands[I].DisplayField + '/' + Expands[I].FieldName +')');
-
-        SaveStrValue(OK, cExpandFieldName, Expands[I].FieldName, AnUserKey);
-        SaveStrValue(OK, cExpandDisplayField, Expands[I].DisplayField, AnUserKey);
-        SaveIntValue(OK, cExpandLineCount, Expands[I].LineCount, AnUserKey);
-
-        //Возможно нужно сохранять порядковый номар!!!
-
-        if Expands[I].Options <> cDefExpandOptions then
-        begin
-          if ceoAddField in Expands[I].Options then
-            SaveStrValue(OK, cExpandOption, 'ceoAddField', AnUserKey);
-
-          if ceoAddFieldMultiline in Expands[I].Options then
-            SaveStrValue(OK, cExpandOption, 'ceoAddFieldMultiline', AnUserKey);
-
-          if ceoMultiline in Expands[I].Options then
-            SaveStrValue(OK, cExpandOption, 'ceoMultiline', AnUserKey);
-        end;
-      end;
-    end;
-  end;
-
-  procedure SaveConditions;
-  var
-    I: Integer;
-    OK: Integer;
-  begin
-    Assert(Conditions <> nil);
+  Conditions := TGridConditions.Create(nil);
+  try
+    R.ReadCollection(Conditions);
 
     for I := 0 to Conditions.Count - 1 do
     begin
@@ -863,123 +691,105 @@ var
       if Conditions[I].ConditionName = '' then
          Conditions[I].ConditionName := 'cn_' + IntToStr(Random(100000) + 1000000);
       Assert(Conditions[I].ConditionName > '');
+
       OK := GetObjID(cCondition, AnObjectName + ',' + 'Condition(' + Conditions[I].ConditionName +')');
 
       SaveStrValue(OK, cConditionName, Conditions[I].ConditionName, AnUserKey);
 
-      //DisplayFields Странное конечно условие
-      if (Length(Conditions[I].DisplayFields) <= 60) and (Conditions[I].DisplayFields > '') then
-      SaveStrValue(OK, cConditionDisplayFields, Conditions[I].DisplayFields, AnUserKey);
+      //DisplayFields
+      if (Length(Conditions[I].DisplayFields) <= cDefMaxLengthStrValue)
+        and (Conditions[I].DisplayFields > '') then
+      begin
+        SaveStrValue(OK, cConditionDisplayFields, Conditions[I].DisplayFields, AnUserKey);
+      end;
 
       //FieldName
-      if Conditions[I].FieldName <> cDefConditionFieldName then
-        SaveStrValue(OK, cConditionFieldName, Conditions[I].FieldName, AnUserKey);
+      SaveStrValue(OK, cConditionFieldName, Conditions[I].FieldName, AnUserKey);
 
-      //Font//////////////////////////////////////////////////////////////////////
-
-      if Conditions[I].Font.Name <> cDefConditionFontName then
-        SaveStrValue(OK, cConditionFontName, Conditions[I].Font.Name, AnUserKey);
-
-      if Conditions[I].Font.Color <> cDefConditionFontColor then
-        SaveStrValue(OK, cConditionFontColor, ColorToString(Conditions[I].Font.Color), AnUserKey);
-
-      if Conditions[I].Font.Height <> cDefConditionFontHeight then
-        SaveIntValue(OK, cConditionFontHeight, Conditions[I].Font.Height, AnUserKey);
-
-      if Conditions[I].Font.Pitch <> cDefConditionFontPitch then
-      begin
-        if Conditions[I].Font.Pitch = fpVariable then
-          SaveStrValue(OK, cConditionFontPitch, 'fpVariable', AnUserKey)
-        else
-          SaveStrValue(OK, cConditionFontPitch, 'fpFixed', AnUserKey);
-      end;
-
-      if Conditions[I].Font.Size <> cDefConditionFontSize then
-        SaveIntValue(OK, cConditionFontSize, Conditions[I].Font.Size, AnUserKey);
-
-
-      if Conditions[I].Font.Style <> cDefConditionFontStyles then
-      begin
-        if fsBold in Conditions[I].Font.Style then
-          SaveStrValue(OK, cConditionFontStyle, 'fsBold', AnUserKey);
-        if fsItalic in Conditions[I].Font.Style then
-          SaveStrValue(OK, cConditionFontStyle, 'fsItalic', AnUserKey);
-        if fsUnderline in Conditions[I].Font.Style then
-          SaveStrValue(OK, cConditionFontStyle, 'fsUnderline', AnUserKey);
-        if fsStrikeOut in Conditions[I].Font.Style then
-          SaveStrValue(OK, cConditionFontStyle, 'fsStrikeOut', AnUserKey);
-      end;
-
-      if Conditions[I].Font.CharSet <> cDefConditionFontCharSet then
-        SaveIntValue(OK, cConditionFontCharSet, Conditions[I].Font.CharSet, AnUserKey);
+      //Font
+      SaveColumnFont('ConditionFont', Conditions[I].Font, OK, AnUserKey);
 
       //Color
-      if Conditions[I].Color <> cDefConditionColor then
-        SaveStrValue(OK, cConditionColor, ColorToString(Conditions[I].Color), AnUserKey);
+      SaveStrValue(OK, cConditionColor, ColorToString(Conditions[I].Color), AnUserKey);
+
       // тут тоже не факт что будет меньше 60-ти
-      if Conditions[I].Expression1 > cDefConditionExpression1 then
+      if (Conditions[I].Expression1 > '')
+        and (Length(Conditions[I].Expression1) <= cDefMaxLengthStrValue) then
+      begin
         SaveStrValue(OK, cConditionExpression1, Conditions[I].Expression1, AnUserKey);
+      end;
 
-      if Conditions[I].Expression2 > cDefConditionExpression2 then
+      if (Conditions[I].Expression2 > '')
+        and (Length(Conditions[I].Expression2) <= cDefMaxLengthStrValue) then
+      begin
         SaveStrValue(OK, cConditionExpression2, Conditions[I].Expression2, AnUserKey);
-
-      if Conditions[I].ConditionKind <> cDefConditionKind then
-      begin
-        if Conditions[I].ConditionKind = ckEqual then
-          SaveStrValue(OK, cConditionKind, 'ckEqual', AnUserKey)
-        else if Conditions[I].ConditionKind = ckNotEqual then
-          SaveStrValue(OK, cConditionKind, 'ckNotEqual', AnUserKey)
-        else if Conditions[I].ConditionKind = ckIn then
-          SaveStrValue(OK, cConditionKind, 'ckIn', AnUserKey)
-        else if Conditions[I].ConditionKind = ckOut then
-          SaveStrValue(OK, cConditionKind, 'ckOut', AnUserKey)
-        else if Conditions[I].ConditionKind = ckBigger then
-          SaveStrValue(OK, cConditionKind, 'ckBigger', AnUserKey)
-        else if Conditions[I].ConditionKind = ckSmaller then
-          SaveStrValue(OK, cConditionKind, 'ckSmaller', AnUserKey)
-        else if Conditions[I].ConditionKind = ckBiggerEqual then
-          SaveStrValue(OK, cConditionKind, 'ckBiggerEqual', AnUserKey)
-        else if Conditions[I].ConditionKind = ckSmallerEqual then
-          SaveStrValue(OK, cConditionKind, 'ckSmallerEqual', AnUserKey)
-        else if Conditions[I].ConditionKind = ckStarts then
-          SaveStrValue(OK, cConditionKind, 'ckStarts', AnUserKey)
-        else if Conditions[I].ConditionKind = ckContains then
-          SaveStrValue(OK, cConditionKind, 'ckContains', AnUserKey)
-        else if Conditions[I].ConditionKind = ckExist then
-          SaveStrValue(OK, cConditionKind, 'ckExist', AnUserKey)
-        else if Conditions[I].ConditionKind = ckNotExist then
-          SaveStrValue(OK, cConditionKind, 'ckNotExist', AnUserKey)
-        else
-          Assert(False);
       end;
 
-      if Conditions[I].DisplayOptions <> cDefConditionDisplayOptions then
-      begin
-        if doColor in Conditions[I].DisplayOptions then
-          SaveStrValue(OK, cConditionDisplayOption, 'doColor', AnUserKey);
-        if doFont in Conditions[I].DisplayOptions then
-          SaveStrValue(OK, cConditionDisplayOption, 'doFont', AnUserKey);
-      end;
+      if Conditions[I].ConditionKind = ckEqual then
+        SaveStrValue(OK, cConditionKind, 'ckEqual', AnUserKey)
+      else if Conditions[I].ConditionKind = ckNotEqual then
+        SaveStrValue(OK, cConditionKind, 'ckNotEqual', AnUserKey)
+      else if Conditions[I].ConditionKind = ckIn then
+        SaveStrValue(OK, cConditionKind, 'ckIn', AnUserKey)
+      else if Conditions[I].ConditionKind = ckOut then
+        SaveStrValue(OK, cConditionKind, 'ckOut', AnUserKey)
+      else if Conditions[I].ConditionKind = ckBigger then
+        SaveStrValue(OK, cConditionKind, 'ckBigger', AnUserKey)
+      else if Conditions[I].ConditionKind = ckSmaller then
+        SaveStrValue(OK, cConditionKind, 'ckSmaller', AnUserKey)
+      else if Conditions[I].ConditionKind = ckBiggerEqual then
+        SaveStrValue(OK, cConditionKind, 'ckBiggerEqual', AnUserKey)
+      else if Conditions[I].ConditionKind = ckSmallerEqual then
+        SaveStrValue(OK, cConditionKind, 'ckSmallerEqual', AnUserKey)
+      else if Conditions[I].ConditionKind = ckStarts then
+        SaveStrValue(OK, cConditionKind, 'ckStarts', AnUserKey)
+      else if Conditions[I].ConditionKind = ckContains then
+        SaveStrValue(OK, cConditionKind, 'ckContains', AnUserKey)
+      else if Conditions[I].ConditionKind = ckExist then
+        SaveStrValue(OK, cConditionKind, 'ckExist', AnUserKey)
+      else if Conditions[I].ConditionKind = ckNotExist then
+        SaveStrValue(OK, cConditionKind, 'ckNotExist', AnUserKey)
+      else if Conditions[I].ConditionKind = ckNone then
+        SaveStrValue(OK, cConditionKind, 'ckNone', AnUserKey);
 
-      if Conditions[I].EvaluateFormula <> cDefConditionEvaluateFormula then
-        SaveBoolValue(OK, cConditionEvaluateFormula, Conditions[I].EvaluateFormula, AnUserKey);
+      S := '';
 
-      if Conditions[I].UserCondition <> cDefConditionUserCondition then
-        SaveBoolValue(OK, cConditionUserCondition, Conditions[I].UserCondition, AnUserKey);
+      if doColor in Conditions[I].DisplayOptions then
+        S := S + 'doColor' + ',';
+      if doFont in Conditions[I].DisplayOptions then
+        S := S + 'doFont' + ',';
+
+      if S > '' then
+        SetLength(S, Length(S) - 1);
+
+      SaveStrValue(OK, cConditionDisplayOptions, S, AnUserKey);
+
+      SaveBoolValue(OK, cConditionEvaluateFormula, Conditions[I].EvaluateFormula, AnUserKey);
+
+      SaveBoolValue(OK, cConditionUserCondition, Conditions[I].UserCondition, AnUserKey);
 
       // Вот с этим пока не знаю что делать!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       //Conditions[I].OnUserCondition
     end;
+  finally
+    Conditions.Free;
   end;
+end;
 
-  procedure SaveColumns;
-  var
-    TotalSum: Boolean;
-    I: Integer;
-    OK: Integer;
-    TitleCaption: String;
-  begin
-    Assert(Columns <> nil);
+procedure TgdGridParser.SaveColumns(R: TReader; AnObjectName: String; AnUserKey: Integer);
+var
+  Columns: TgsColumns;
+  I: Integer;
+  OK: Integer;
+  TitleCaption: String;
+begin
+  Assert(R <> nil);
+  Assert(AnObjectName > '');
+  Assert(AnUserKey > 0);
+
+  Columns := TgsColumns.Create(nil, TgsColumn, False);
+  try
+    R.ReadCollection(Columns);
 
     for I := 0 to Columns.Count - 1 do
     begin
@@ -994,132 +804,279 @@ var
         if Length(TitleCaption) > 60 then
           SetLength(TitleCaption, 60);
 
-        if TitleCaption <> cDefColumnTitleCaption then
-          SaveStrValue(OK, cColumnTitleCaption, TitleCaption, AnUserKey);
+        SaveStrValue(OK, cColumnTitleCaption, TitleCaption, AnUserKey);
 
         // Формат
-        if Columns[I].DisplayFormat <> cDefColumnDisplayFormat then
-          SaveStrValue(OK, cColumnDisplayFormat, Columns[I].DisplayFormat, AnUserKey);
+        SaveStrValue(OK, cColumnDisplayFormat, Columns[I].DisplayFormat, AnUserKey);
 
         // колонка отображается
-        if Columns[I].Visible <> cDefColumnVisible then
-          SaveBoolValue(OK, cColumnVisible, Columns[I].Visible, AnUserKey);
+        SaveBoolValue(OK, cColumnVisible, Columns[I].Visible, AnUserKey);
 
         // только чтение
-        if Columns[I].ReadOnly <> cDefColumnReadOnly then
-          SaveBoolValue(OK, cColumnReadOnly, Columns[I].ReadOnly, AnUserKey);
+        SaveBoolValue(OK, cColumnReadOnly, Columns[I].ReadOnly, AnUserKey);
 
         // подсчитывать итоговое значение
-        TotalSum := Columns[I].TotalType = ttSum;
-        if TotalSum <> cDefColumnTotalSum then
-          SaveBoolValue(OK, cColumnTotalSum, TotalSum, AnUserKey);
+        SaveBoolValue(OK, cColumnTotalSum, Columns[I].TotalType = ttSum, AnUserKey);
 
         // ширина колонки
-        if Columns[I].Width <> cDefColumnWidth then
-          SaveIntValue(OK, cColumnWidth, Columns[I].Width, AnUserKey);
+        SaveIntValue(OK, cColumnWidth, Columns[I].Width, AnUserKey);
 
         // шрифт заголовка
-        if Columns[I].Title.Font.Name <> cDefColumnTitleFontName then
-          SaveStrValue(OK, cColumnTitleFontName, Columns[I].Title.Font.Name, AnUserKey);
-
-        if Columns[I].Title.Font.Color <> cDefColumnTitleFontColor then
-          SaveStrValue(OK, cColumnTitleFontColor, ColorToString(Columns[I].Title.Font.Color), AnUserKey);
-
-        if Columns[I].Title.Font.Height <> cDefColumnTitleFontHeight then
-          SaveIntValue(OK, cColumnTitleFontHeight, Columns[I].Title.Font.Height, AnUserKey);
-
-        if Columns[I].Title.Font.Pitch <> cDefColumnTitleFontPitch then
-        begin
-          if Columns[I].Title.Font.Pitch = fpVariable then
-            SaveStrValue(OK, cColumnTitleFontPitch, 'fpVariable', AnUserKey)
-          else
-            SaveStrValue(OK, cColumnTitleFontPitch, 'fpFixed', AnUserKey);
-        end;
-
-        if Columns[I].Title.Font.Size <> cDefColumnTitleFontSize then
-          SaveIntValue(OK, cColumnTitleFontSize, Columns[I].Title.Font.Size, AnUserKey);
-
-        if Columns[I].Title.Font.Style <> cDefColumnTitleFontStyles then
-        begin
-          if fsBold in Columns[I].Title.Font.Style then
-            SaveStrValue(OK, cColumnTitleFontStyle, 'fsBold', AnUserKey);
-          if fsItalic in Columns[I].Title.Font.Style then
-            SaveStrValue(OK, cColumnTitleFontStyle, 'fsItalic', AnUserKey);
-          if fsUnderline in Columns[I].Title.Font.Style then
-            SaveStrValue(OK, cColumnTitleFontStyle, 'fsUnderline', AnUserKey);
-          if fsStrikeOut in Columns[I].Title.Font.Style then
-            SaveStrValue(OK, cColumnTitleFontStyle, 'fsStrikeOut', AnUserKey);
-        end;
-
-        if Columns[I].Title.Font.CharSet <> cDefColumnTitleFontCharSet then
-          SaveIntValue(OK, cColumnTitleFontCharSet, Columns[I].Title.Font.CharSet, AnUserKey);
+        SaveColumnFont('ColumnTitleFont', Columns[I].Title.Font, OK, AnUserKey);
 
         // Цвет заголовка
-        if Columns[I].Title.Color <> cDefColumnTitleColor then
-          SaveStrValue(OK, cColumnTitleColor, ColorToString(Columns[I].Title.Color), AnUserKey);
+        SaveStrValue(OK, cColumnTitleColor, ColorToString(Columns[I].Title.Color), AnUserKey);
 
         // шрифт колонки
-        if Columns[I].Font.Name <> cDefColumnFontName then
-          SaveStrValue(OK, cColumnFontName, Columns[I].Font.Name, AnUserKey);
-
-        if Columns[I].Font.Color <> cDefColumnFontColor then
-          SaveStrValue(OK, cColumnFontColor, ColorToString(Columns[I].Font.Color), AnUserKey);
-
-        if Columns[I].Font.Height <> cDefColumnFontHeight then
-          SaveIntValue(OK, cColumnFontHeight, Columns[I].Font.Height, AnUserKey);
-
-        if Columns[I].Font.Pitch <> cDefColumnFontPitch then
-        begin
-          if Columns[I].Font.Pitch = fpVariable then
-            SaveStrValue(OK, cColumnFontPitch, 'fpVariable', AnUserKey)
-          else
-            SaveStrValue(OK, cColumnFontPitch, 'fpFixed', AnUserKey);
-        end;
-
-        if Columns[I].Font.Size <> cDefColumnFontSize then
-          SaveIntValue(OK, cColumnFontSize, Columns[I].Font.Size, AnUserKey);
-
-        if Columns[I].Font.Style <> cDefColumnFontStyles then
-        begin
-          if fsBold in Columns[I].Font.Style then
-            SaveStrValue(OK, cColumnFontStyle, 'fsBold', AnUserKey);
-          if fsItalic in Columns[I].Font.Style then
-            SaveStrValue(OK, cColumnFontStyle, 'fsItalic', AnUserKey);
-          if fsUnderline in Columns[I].Font.Style then
-            SaveStrValue(OK, cColumnFontStyle, 'fsUnderline', AnUserKey);
-          if fsStrikeOut in Columns[I].Font.Style then
-            SaveStrValue(OK, cColumnFontStyle, 'fsStrikeOut', AnUserKey);
-        end;
-
-        if Columns[I].Font.CharSet <> cDefColumnFontCharSet then
-          SaveIntValue(OK, cColumnFontCharSet, Columns[I].Font.CharSet, AnUserKey);
+        SaveColumnFont('ColumnFont', Columns[I].Font, OK, AnUserKey);
 
         // цвет колонки
-        if Columns[I].Color <> cDefColumnColor then
-          SaveStrValue(OK, cColumnColor, ColorToString(Columns[I].Color), AnUserKey);
+        SaveStrValue(OK, cColumnColor, ColorToString(Columns[I].Color), AnUserKey);
 
         // Выравнивание в заголовке
-        if Columns[I].Title.Alignment <> cDefColumnTitleAlignment then
-        begin
-          if Columns[I].Title.Alignment = taRightJustify then
-            SaveStrValue(OK, cColumnTitleAlignment, 'taRightJustify', AnUserKey)
-          else
-            SaveStrValue(OK, cColumnTitleAlignment, 'taCenter', AnUserKey);
-        end;
+        if Columns[I].Title.Alignment = taLeftJustify then
+          SaveStrValue(OK, cColumnTitleAlignment, 'taLeftJustify', AnUserKey)
+        else if Columns[I].Title.Alignment = taRightJustify then
+          SaveStrValue(OK, cColumnTitleAlignment, 'taRightJustify', AnUserKey)
+        else
+          SaveStrValue(OK, cColumnTitleAlignment, 'taCenter', AnUserKey);
 
         // Выравнивание в колонке
-        if Columns[I].Alignment <> cDefColumnAlignment then
-        begin
-          if Columns[I].Alignment = taRightJustify then
-            SaveStrValue(OK, cColumnAlignment, 'taRightJustify', AnUserKey)
-          else
-            SaveStrValue(OK, cColumnAlignment, 'taCenter', AnUserKey)
-        end;
+        if Columns[I].Alignment = taLeftJustify then
+          SaveStrValue(OK, cColumnAlignment, 'taLeftJustify', AnUserKey)
+        else if Columns[I].Alignment = taRightJustify then
+          SaveStrValue(OK, cColumnAlignment, 'taRightJustify', AnUserKey)
+        else
+          SaveStrValue(OK, cColumnAlignment, 'taCenter', AnUserKey)
       end;
-
     end;
+  finally
+    Columns.Free;
   end;
+end;
 
+procedure TgdGridParser.SaveExpands(R: TReader; AnObjectName: String; AnUserKey: Integer);
+var
+  Expands: TColumnExpands;
+  I: Integer;
+  OK: Integer;
+  S: String;
+begin
+  Assert(R <> nil);
+  Assert(AnObjectName > '');
+  Assert(AnUserKey > 0);
+
+  Expands := TColumnExpands.Create(nil);
+  try
+    R.ReadCollection(Expands);
+    //objname записываем так (форма, грид, Expand(DisplayField/FieldName))
+    //DisplayField - имя поля в котором отображается
+    //И все равно так не уникально, в программе в расширенное отображение
+    //можно добавить одно и то же поле несколько раз, но возможно это ошибка!!! сомнительный функционал
+    for I := 0 to Expands.Count - 1 do
+    begin
+      if Expands[I].FieldName > '' then
+      begin
+        OK := GetObjID(cExpand, AnObjectName + ',' +
+          'Expand(' + Expands[I].DisplayField + '/' + Expands[I].FieldName +')');
+
+        SaveStrValue(OK, cExpandFieldName, Expands[I].FieldName, AnUserKey);
+        SaveStrValue(OK, cExpandDisplayField, Expands[I].DisplayField, AnUserKey);
+        SaveIntValue(OK, cExpandLineCount, Expands[I].LineCount, AnUserKey);
+
+        //Возможно нужно сохранять порядковый номар!!!
+
+
+        S := '';
+
+        if ceoAddField in Expands[I].Options then
+          S := S + 'ceoAddField' + ',';
+        if ceoAddFieldMultiline in Expands[I].Options then
+          S := S + 'ceoAddFieldMultiline' + ',';
+        if ceoMultiline in Expands[I].Options then
+          S := S + 'ceoAddFieldMultiline' + ',';
+
+        if S > '' then
+          SetLength(S, Length(S) - 1);
+
+        SaveStrValue(OK, cExpandOptions, S, AnUserKey);
+      end;
+    end;
+  finally
+    Expands.Free;
+  end;
+end;
+
+procedure TgdGridParser.SaveFont(AFont: TFont;
+  CurrFontName: Integer;
+  CurrFontColor: Integer;
+  CurrFontHeight: Integer;
+  CurrFontPitch: Integer;
+  CurrFontSize: Integer;
+  CurrFontStyle: Integer;
+  CurrFontCharSet: Integer;
+  AnObjKey: Integer; AnUserKey: Integer);
+var
+  S: String;
+begin
+  Assert(AFont <> nil);
+  Assert(CurrFontName > 0);
+  Assert(CurrFontColor > 0);
+  Assert(CurrFontHeight > 0);
+  Assert(CurrFontPitch > 0);
+  Assert(CurrFontSize > 0);
+  Assert(CurrFontStyle > 0);
+  Assert(CurrFontCharSet > 0);
+  Assert(AnObjKey > 0);
+  Assert(AnUserKey > 0);
+
+  SaveStrValue(AnObjKey, CurrFontName, AFont.Name, AnUserKey);
+
+  SaveStrValue(AnObjKey, CurrFontColor, ColorToString(AFont.Color), AnUserKey);
+
+  SaveIntValue(AnObjKey, CurrFontHeight, AFont.Height, AnUserKey);
+
+  if AFont.Pitch = fpDefault then
+    SaveStrValue(AnObjKey, CurrFontPitch, 'fpDefault', AnUserKey)
+  else if AFont.Pitch = fpFixed then
+    SaveStrValue(AnObjKey, CurrFontPitch, 'fpFixed', AnUserKey)
+  else
+    SaveStrValue(AnObjKey, CurrFontPitch, 'fpVariable', AnUserKey);
+
+  SaveIntValue(AnObjKey, CurrFontSize, AFont.Size, AnUserKey);
+
+  S := '';
+
+  if fsBold in AFont.Style then
+    S := S + 'fsBold' + ',';
+  if fsItalic in AFont.Style then
+    S := S + 'fsItalic' + ',';
+  if fsUnderline in AFont.Style then
+    S := S + 'fsUnderline' + ',';
+  if fsStrikeOut in AFont.Style then
+    S := S + 'fsStrikeOut' + ',';
+
+  if S > '' then
+    SetLength(S, Length(S) - 1);
+
+  SaveStrValue(AnObjKey, CurrFontStyle, S, AnUserKey);
+
+  SaveIntValue(AnObjKey, CurrFontCharSet, AFont.CharSet, AnUserKey);
+end;
+
+procedure TgdGridParser.SaveColumnFont(const AValue: String; AFont: TFont; AnObjKey: Integer; AnUserKey: Integer);
+begin
+  Assert(AValue > '');
+  Assert(TFont <> nil);
+  Assert(AnObjKey > 0);
+  Assert(AnUserKey > 0);
+
+  if AValue = 'ColumnTitleFont' then
+    SaveFont(AFont,
+      cColumnTitleFontName,
+      cColumnTitleFontColor,
+      cColumnTitleFontHeight,
+      cColumnTitleFontPitch,
+      cColumnTitleFontSize,
+      cColumnTitleFontStyle,
+      cColumnTitleFontCharSet,
+      AnObjKey, AnUserKey)
+  else if AValue = 'ColumnFont' then
+    SaveFont(AFont,
+      cColumnFontName,
+      cColumnFontColor,
+      cColumnFontHeight,
+      cColumnFontPitch,
+      cColumnFontSize,
+      cColumnFontStyle,
+      cColumnFontCharSet,
+      AnObjKey, AnUserKey)
+  else if AValue = 'ConditionFont' then
+    SaveFont(AFont,
+      cConditionFontName,
+      cConditionFontColor,
+      cConditionFontHeight,
+      cConditionFontPitch,
+      cConditionFontSize,
+      cConditionFontStyle,
+      cConditionFontCharSet,
+      AnObjKey, AnUserKey)
+  else
+    Assert(False);
+
+end;
+
+procedure TgdGridParser.SaveGridFont(const AValue: String; R: TReader; AnObjKey: Integer; AnUserKey: Integer);
+var
+  Font: TFont;
+begin
+  Assert(AValue > '');
+  Assert(R <> nil);
+  Assert(AnObjKey > 0);
+  Assert(AnUserKey > 0);
+
+  Font := TFont.Create;
+  try
+    ReadFont(R, Font);
+
+    if AValue = 'TableFont' then
+      SaveFont(Font,
+        cTableFontName,
+        cTableFontColor,
+        cTableFontHeight,
+        cTableFontPitch,
+        cTableFontSize,
+        cTableFontStyle,
+        cTableFontCharSet,
+        AnObjKey, AnUserKey)
+    else if AValue = 'TitleFont' then
+      SaveFont(Font,
+        cTitleFontName,
+        cTitleFontColor,
+        cTitleFontHeight,
+        cTitleFontPitch,
+        cTitleFontSize,
+        cTitleFontStyle,
+        cTitleFontCharSet,
+        AnObjKey, AnUserKey)
+    else if AValue = 'SelectedFont' then
+      SaveFont(Font,
+        cSelectedFontName,
+        cSelectedFontColor,
+        cSelectedFontHeight,
+        cSelectedFontPitch,
+        cSelectedFontSize,
+        cSelectedFontStyle,
+        cSelectedFontCharSet,
+        AnObjKey, AnUserKey)
+    else
+      Assert(False);
+
+  finally
+    Font.Free;
+  end;
+end;
+
+procedure TgdGridParser.ParseGridStream(const AnObjectName: String;
+  const AnUserKey: Integer; Stream: TStream);
+var
+  R: TReader;
+  I: Integer;
+  Version: String;
+  ObjectKey: Integer;
+  Color: TColor;
+  Striped: Boolean;
+  StripeOdd: TColor;
+  StripeEven: TColor;
+  ExpandsActive: Boolean;
+  ExpandsSeparate: Boolean;
+  ScaleColumns: Boolean;
+  ConditionsActive: Boolean;
+  TitlesExpanding: Boolean;
+  O: TDBGridOptions;
+  ShowRowLines: Boolean;
+  ShowTotals: Boolean;
+  ShowFooter: Boolean;
 begin
   Assert(AnObjectName > '');
   Assert(AnUserKey > 0);
@@ -1153,114 +1110,73 @@ begin
         Version := '';
       end;
 
-      SaveTableFont;
+      SaveGridFont('TableFont', R, ObjectKey, AnUserKey);
 
       Color := StringToColor(R.ReadString);
-      if Color <> cDefTableColor then
-        SaveStrValue(ObjectKey, cTableColor, ColorToString(Color), AnUserKey);
+      SaveStrValue(ObjectKey, cTableColor, ColorToString(Color), AnUserKey);
 
-      SaveSelectedFont;
-
-      Color := StringToColor(R.ReadString);
-      if Color <> cDefSelectedColor then
-        SaveStrValue(ObjectKey, cSelectedColor, ColorToString(Color), AnUserKey);
-
-      SaveTitleFont;
+      SaveGridFont('SelectedFont', R, ObjectKey, AnUserKey);
 
       Color := StringToColor(R.ReadString);
-      if Color <> cDefTitleColor then
-        SaveStrValue(ObjectKey, cTitleColor, ColorToString(Color), AnUserKey);
+      SaveStrValue(ObjectKey, cSelectedColor, ColorToString(Color), AnUserKey);
+
+      SaveGridFont('TitleFont', R, ObjectKey, AnUserKey);
+
+      Color := StringToColor(R.ReadString);
+      SaveStrValue(ObjectKey, cTitleColor, ColorToString(Color), AnUserKey);
 
       Striped := R.ReadBoolean;
-      if Striped <> cDefStriped then
-        SaveBoolValue(ObjectKey, cStriped, Striped, AnUserKey);
+      SaveBoolValue(ObjectKey, cStriped, Striped, AnUserKey);
 
       StripeOdd := StringToColor(R.ReadString);
-      if StripeOdd <> cDefStripeOdd then
-        SaveStrValue(ObjectKey, cStripeOdd, ColorToString(StripeOdd), AnUserKey);
+      SaveStrValue(ObjectKey, cStripeOdd, ColorToString(StripeOdd), AnUserKey);
 
       StripeEven := StringToColor(R.ReadString);
-      if StripeOdd <> cDefStripeEven then
-        SaveStrValue(ObjectKey, cStripeEven, ColorToString(StripeEven), AnUserKey);
+      SaveStrValue(ObjectKey, cStripeEven, ColorToString(StripeEven), AnUserKey);
 
       if R.ReadValue = vaCollection then
-      begin
-        Expands := TColumnExpands.Create(nil);
-        try
-        R.ReadCollection(Expands);
-        SaveExpands;
-        finally
-          Expands.Free;
-        end;
-      end;
+        SaveExpands(R, AnObjectName, AnUserKey);
 
       ExpandsActive := R.ReadBoolean;
-      if ExpandsActive <> cDefExpandsActive then
-        SaveBoolValue(ObjectKey, cExpandsActive, ExpandsActive, AnUserKey);
+      SaveBoolValue(ObjectKey, cExpandsActive, ExpandsActive, AnUserKey);
 
       ExpandsSeparate := R.ReadBoolean;
-      if ExpandsSeparate <> cDefExpandsSeparate then
-        SaveBoolValue(ObjectKey, cExpandsSeparate, ExpandsActive, AnUserKey);
+      SaveBoolValue(ObjectKey, cExpandsSeparate, ExpandsSeparate, AnUserKey);
 
       if R.ReadValue = vaCollection then
-      begin
-        Conditions := TGridConditions.Create(nil);
-        try
-          R.ReadCollection(Conditions);
-          SaveConditions;
-        finally
-          Conditions.Free;
-        end;
-      end;
+        SaveConditions(R, AnObjectName, AnUserKey);
 
       ConditionsActive := R.ReadBoolean;
-      if ConditionsActive <> cDefConditionsActive then
-        SaveBoolValue(ObjectKey, cConditionsActive, ConditionsActive, AnUserKey);
+      SaveBoolValue(ObjectKey, cConditionsActive, ConditionsActive, AnUserKey);
 
       if R.ReadValue = vaCollection then
-      begin
-        Columns := TgsColumns.Create(nil, TgsColumn, False);
-        try
-          R.ReadCollection(Columns);
-          SaveColumns;
-        finally
-          Columns.Free;
-        end;
-      end;
+        SaveColumns(R, AnObjectName, AnUserKey);
 
       ScaleColumns := R.ReadBoolean;
-      if ScaleColumns <> cDefScaleColumns then
-        SaveBoolValue(ObjectKey, cScaleColumns, ScaleColumns, AnUserKey);
-
+      SaveBoolValue(ObjectKey, cScaleColumns, ScaleColumns, AnUserKey);
 
       if (Version = 'GRID_STREAM_2') then
       begin
         TitlesExpanding := R.ReadBoolean;
-        if TitlesExpanding <> cDefTitlesExpanding then
-          SaveBoolValue(ObjectKey, cTitlesExpanding, TitlesExpanding, AnUserKey);
+        SaveBoolValue(ObjectKey, cTitlesExpanding, TitlesExpanding, AnUserKey);
       end
       else if (Version = 'GRID_STREAM_3') or (Version = 'GRID_STREAM_4') then
       begin
         TitlesExpanding := R.ReadBoolean;
-        if TitlesExpanding <> cDefTitlesExpanding then
-          SaveBoolValue(ObjectKey, cTitlesExpanding, TitlesExpanding, AnUserKey);
+        SaveBoolValue(ObjectKey, cTitlesExpanding, TitlesExpanding, AnUserKey);
 
         R.Read(O, SizeOf(TDBGridOptions));
         ShowRowLines := dgRowLines in O;
-
-        if ShowRowLines <> cDefShowRowLines then
-          SaveBoolValue(ObjectKey, cShowRowLines, True, AnUserKey);
+        SaveBoolValue(ObjectKey, cShowRowLines, ShowRowLines, AnUserKey);
       end;
 
       if (Version = 'GRID_STREAM_4') then
       begin
         ShowTotals := R.ReadBoolean;
-        if ShowTotals <> cDefShowTotals then
-          SaveBoolValue(ObjectKey, cShowTotals, ShowTotals, AnUserKey);
+        SaveBoolValue(ObjectKey, cShowTotals, ShowTotals, AnUserKey);
 
         ShowFooter := R.ReadBoolean;
-        if ShowFooter <> cDefShowFooter then
-          SaveBoolValue(ObjectKey, cShowFooter, ShowFooter, AnUserKey);
+        SaveBoolValue(ObjectKey, cShowFooter, ShowFooter, AnUserKey);
       end;
     finally
       R.Free;
@@ -1437,7 +1353,8 @@ begin
           begin
             S.WriteBuffer(T[1], Length(T));
             S.Position := 0;
-            ParseGridStream(q.FieldByName('pname').AsString + ',' + q.FieldByName('name').AsString, q.FieldByName('userkey').AsInteger, S);
+            ParseGridStream(q.FieldByName('pname').AsString + ',' +
+              q.FieldByName('name').AsString, q.FieldByName('userkey').AsInteger, S);
           end;
         finally
           S.Free;
@@ -1447,6 +1364,508 @@ begin
     end;
   finally
     q.Free
+  end;
+
+  SetDefault;
+end;
+
+function TgdGridParser.GetDefaultStrValue(APropID: Integer; AnUserKey: Integer): String;
+var
+  q: TIBSQL;
+begin
+  Assert(APropID > 0);
+  Assert(AnUserKey > 0);
+
+  Result := '';
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTransaction;
+    q.SQL.Text :=
+      'SELECT '#13#10 +
+      '  count(strvalue) AS c, '#13#10 +
+      '  strvalue AS s '#13#10 +
+      'FROM at_style '#13#10 +
+      'WHERE propid = :propid AND userkey = :userkey '#13#10 +
+      'GROUP BY strvalue '#13#10 +
+      'ORDER BY c DESC';
+    q.ParamByName('propid').AsInteger := APropID;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
+    q.ExecQuery;
+    if not q.EoF then
+      Result := q.FieldByName('s').AsString
+    else
+      Assert(False);
+  finally
+    q.Free
+  end;
+end;
+
+function TgdGridParser.GetDefaultIntValue(APropID: Integer; AnUserKey: Integer): Integer;
+var
+  q: TIBSQL;
+begin
+  Assert(APropID > 0);
+  Assert(AnUserKey > 0);
+
+  Result := 0;
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTransaction;
+    q.SQL.Text :=
+      'SELECT '#13#10 +
+      '  count(intvalue) AS c, '#13#10 +
+      '  intvalue AS i '#13#10 +
+      'FROM at_style '#13#10 +
+      'WHERE propid = :propid AND userkey = :userkey '#13#10 +
+      'GROUP BY intvalue '#13#10 +
+      'ORDER BY c DESC';
+    q.ParamByName('propid').AsInteger := APropID;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
+    q.ExecQuery;
+    if not q.EoF then
+      Result := q.FieldByName('i').AsInteger
+    else
+      Assert(False);
+  finally
+    q.Free
+  end;
+end;
+
+function TgdGridParser.GetDefaultBollValue(APropID: Integer; AnUserKey: Integer): Boolean;
+var
+  K: Integer;
+begin
+  Assert(APropID > 0);
+  Assert(AnUserKey > 0);
+
+  Result := False;
+
+  K := GetDefaultIntValue(APropID, AnUserKey);
+
+  if K = 0 then
+    Result := False
+  else if K = 1 then
+    Result := True
+  else
+    Assert(False);
+end;
+
+procedure TgdGridParser.DeleteStrValues(APropID: Integer; const AStrValue: String; AnUserKey: Integer);
+var
+  q: TIBSQL;
+begin
+  Assert(APropID > 0);
+  Assert(AnUserKey > 0);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTransaction;
+    q.SQL.Text :=
+      'DELETE FROM at_style WHERE propid = :propid AND strvalue = :strvalue AND userkey = :userkey';
+    q.ParamByName('propid').AsInteger := APropID;
+    q.ParamByName('strvalue').AsString := AStrValue;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
+    q.ExecQuery;
+  finally
+    q.Free
+  end;
+end;
+
+procedure TgdGridParser.DeleteIntValues(APropID: Integer; AnIntValue: Integer; AnUserKey: Integer);
+var
+  q: TIBSQL;
+begin
+  Assert(APropID > 0);
+  Assert(AnUserKey > 0);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTransaction;
+    q.SQL.Text :=
+      'DELETE FROM at_style WHERE propid = :propid AND intvalue = :intvalue AND userkey = :userkey';
+    q.ParamByName('propid').AsInteger := APropID;
+    q.ParamByName('intvalue').AsInteger := AnIntValue;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
+    q.ExecQuery;
+  finally
+    q.Free
+  end;
+end;
+
+procedure TgdGridParser.DeleteBoolValues(APropID: Integer; ABollValue: Boolean; AnUserKey: Integer);
+begin
+ if ABollValue then
+   DeleteIntValues(APropID, 1, AnUserKey)
+ else
+   DeleteIntValues(APropID, 0, AnUserKey);
+end;
+
+function TgdGridParser.GetUserKeys: String;
+var
+  q: TIBSQL;
+begin
+  Result := '';
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTransaction;
+    q.SQL.Text :=
+      'SELECT LIST(userkey) FROM (SELECT userkey FROM at_style GROUP BY userkey)';
+    q.ExecQuery;
+    if not q.EoF then
+      Result := q.FieldByName('list').AsString;
+  finally
+    q.Free
+  end;
+
+  Assert(Result > '');
+end;
+
+procedure TgdGridParser._SetDefault(AnObjKey: Integer; AnUserKey: Integer);
+var
+  Str: String;
+  Int: Integer;
+  Bool: Boolean;
+begin
+  Assert(AnObjKey > 0);
+  Assert(AnUserKey > 0);
+
+  //cTableFontName
+  Str := GetDefaultStrValue(cTableFontName, AnUserKey);
+  DeleteStrValues(cTableFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableFontName, Str, AnUserKey);
+
+  //cTableFontColor
+  Str := GetDefaultStrValue(cTableFontColor, AnUserKey);
+  DeleteStrValues(cTableFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableFontColor, Str, AnUserKey);
+
+  //cTableFontHeight          = 1003;
+  Int := GetDefaultIntValue(cTableFontHeight, AnUserKey);
+  DeleteIntValues(cTableFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTableFontHeight, Int, AnUserKey);
+
+  //cTableFontPitch           = 1004;
+  Str := GetDefaultStrValue(cTableFontPitch, AnUserKey);
+  DeleteStrValues(cTableFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableFontPitch, Str, AnUserKey);
+
+  //cTableFontSize            = 1005;
+  Int := GetDefaultIntValue(cTableFontSize, AnUserKey);
+  DeleteIntValues(cTableFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTableFontSize, Int, AnUserKey);
+
+  //cTableFontStyle           = 1006;
+  Str := GetDefaultStrValue(cTableFontStyle, AnUserKey);
+  DeleteStrValues(cTableFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableFontStyle, Str, AnUserKey);
+
+  //cTableFontCharSet         = 1007;
+  Int := GetDefaultIntValue(cTableFontCharSet, AnUserKey);
+  DeleteIntValues(cTableFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTableFontCharSet, Int, AnUserKey);
+
+  //cTableColor               = 1008;
+  Str := GetDefaultStrValue(cTableColor, AnUserKey);
+  DeleteStrValues(cTableColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableColor, Str, AnUserKey);
+
+  //Selected
+  //cSelectedFontName         = 1009;
+  Str := GetDefaultStrValue(cSelectedFontName, AnUserKey);
+  DeleteStrValues(cSelectedFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedFontName, Str, AnUserKey);
+
+  //cSelectedFontColor        = 1010;
+  Str := GetDefaultStrValue(cSelectedFontColor, AnUserKey);
+  DeleteStrValues(cSelectedFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedFontColor, Str, AnUserKey);
+
+  //cSelectedFontHeight       = 1011;
+  Int := GetDefaultIntValue(cSelectedFontHeight, AnUserKey);
+  DeleteIntValues(cSelectedFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cSelectedFontHeight, Int, AnUserKey);
+
+  //cSelectedFontPitch        = 1012;
+  Str := GetDefaultStrValue(cSelectedFontPitch, AnUserKey);
+  DeleteStrValues(cSelectedFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedFontPitch, Str, AnUserKey);
+
+
+  //cSelectedFontSize         = 1013;
+  Int := GetDefaultIntValue(cSelectedFontSize, AnUserKey);
+  DeleteIntValues(cSelectedFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cSelectedFontSize, Int, AnUserKey);
+
+  //cSelectedFontStyle        = 1014;
+  Str := GetDefaultStrValue(cSelectedFontStyle, AnUserKey);
+  DeleteStrValues(cSelectedFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedFontStyle, Str, AnUserKey);
+
+  //cSelectedFontCharSet      = 1015;
+  Int := GetDefaultIntValue(cSelectedFontCharSet, AnUserKey);
+  DeleteIntValues(cSelectedFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cSelectedFontCharSet, Int, AnUserKey);
+
+  //cSelectedColor            = 1016;
+  Str := GetDefaultStrValue(cSelectedColor, AnUserKey);
+  DeleteStrValues(cSelectedColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedColor, Str, AnUserKey);
+
+  //Title
+  //cTitleFontName            = 1017;
+  Str := GetDefaultStrValue(cTitleFontName, AnUserKey);
+  DeleteStrValues(cTitleFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleFontName, Str, AnUserKey);
+
+  //cTitleFontColor           = 1018;
+  Str := GetDefaultStrValue(cTitleFontColor, AnUserKey);
+  DeleteStrValues(cTitleFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleFontColor, Str, AnUserKey);
+
+  //cTitleFontHeight          = 1019;
+  Int := GetDefaultIntValue(cTitleFontHeight, AnUserKey);
+  DeleteIntValues(cTitleFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTitleFontHeight, Int, AnUserKey);
+
+  //cTitleFontPitch           = 1020;
+  Str := GetDefaultStrValue(cTitleFontPitch, AnUserKey);
+  DeleteStrValues(cTitleFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleFontPitch, Str, AnUserKey);
+
+  //cTitleFontSize            = 1021;
+  Int := GetDefaultIntValue(cTitleFontSize, AnUserKey);
+  DeleteIntValues(cTitleFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTitleFontSize, Int, AnUserKey);
+
+  //cTitleFontStyle           = 1022;
+  Str := GetDefaultStrValue(cTitleFontStyle, AnUserKey);
+  DeleteStrValues(cTitleFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleFontStyle, Str, AnUserKey);
+
+  //cTitleFontCharSet         = 1023;
+  Int := GetDefaultIntValue(cTitleFontCharSet, AnUserKey);
+  DeleteIntValues(cTitleFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTitleFontCharSet, Int, AnUserKey);
+
+  //cTitleColor               = 1024;
+  Str := GetDefaultStrValue(cTitleColor, AnUserKey);
+  DeleteStrValues(cTitleColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleColor, Str, AnUserKey);
+
+  //cStriped                  = 1025;
+  Bool := GetDefaultBollValue(cStriped, AnUserKey);
+  DeleteBoolValues(cStriped, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cStriped, Bool, AnUserKey);
+
+  //cStripeEven               = 1026;
+  Str := GetDefaultStrValue(cStripeEven, AnUserKey);
+  DeleteStrValues(cStripeEven, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cStripeEven, Str, AnUserKey);
+
+  //cStripeOdd                = 1027;
+  Str := GetDefaultStrValue(cStripeOdd, AnUserKey);
+  DeleteStrValues(cStripeOdd, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cStripeOdd, Str, AnUserKey);
+
+  {//expand
+  cExpandFieldName          = 1028;
+  cExpandDisplayField       = 1029;
+  cExpandLineCount          = 1030;
+  cExpandOptions             = 1031;
+  cExpandsActive            = 1032;
+  cExpandsSeparate          = 1033;
+
+  //Condition
+  cConditionName            = 1034;
+  cConditionDisplayFields   = 1035;
+  cConditionFieldName       = 1036;
+  cConditionFontName        = 1037;
+  cConditionFontColor       = 1038;
+  cConditionFontHeight      = 1039;
+  cConditionFontPitch       = 1040;
+  cConditionFontSize        = 1041;
+  cConditionFontStyle       = 1042;
+  cConditionFontCharSet     = 1043;
+  cConditionColor           = 1044;
+  cConditionExpression1     = 1045;
+  cConditionExpression2     = 1046;
+  cConditionKind            = 1047;
+  cConditionDisplayOptions  = 1048;
+  cConditionEvaluateFormula = 1049;
+  cConditionUserCondition   = 1050;}
+
+  //cScaleColumns             = 1051;
+  Bool := GetDefaultBollValue(cScaleColumns, AnUserKey);
+  DeleteBoolValues(cScaleColumns, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cScaleColumns, Bool, AnUserKey);
+
+  //cShowTotals               = 1052;
+  Bool := GetDefaultBollValue(cShowTotals, AnUserKey);
+  DeleteBoolValues(cShowTotals, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cShowTotals, Bool, AnUserKey);
+
+  //cShowFooter               = 1053;
+  Bool := GetDefaultBollValue(cShowFooter, AnUserKey);
+  DeleteBoolValues(cShowFooter, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cShowFooter, Bool, AnUserKey);
+
+  //cTitlesExpanding          = 1054;
+  Bool := GetDefaultBollValue(cTitlesExpanding, AnUserKey);
+  DeleteBoolValues(cTitlesExpanding, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cTitlesExpanding, Bool, AnUserKey);
+
+  //cConditionsActive         = 1055;
+  Bool := GetDefaultBollValue(cConditionsActive, AnUserKey);
+  DeleteBoolValues(cConditionsActive, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cConditionsActive, Bool, AnUserKey);
+
+  //cShowRowLines             = 1056;
+  Bool := GetDefaultBollValue(cShowRowLines, AnUserKey);
+  DeleteBoolValues(cShowRowLines, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cShowRowLines, Bool, AnUserKey);
+
+  //cColumnTitleCaption       = 1057;
+  Str := '';
+  DeleteStrValues(cColumnTitleCaption, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleCaption, Str, AnUserKey);
+
+  //cColumnDisplayFormat      = 1058;
+  Str := GetDefaultStrValue(cColumnDisplayFormat, AnUserKey);
+  DeleteStrValues(cColumnDisplayFormat, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnDisplayFormat, Str, AnUserKey);
+
+  //cColumnVisible            = 1059;
+  Bool := GetDefaultBollValue(cColumnVisible, AnUserKey);
+  DeleteBoolValues(cColumnVisible, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cColumnVisible, Bool, AnUserKey);
+
+  //cColumnReadOnly           = 1060;
+  Bool := GetDefaultBollValue(cColumnReadOnly, AnUserKey);
+  DeleteBoolValues(cColumnReadOnly, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cColumnReadOnly, Bool, AnUserKey);
+
+  //cColumnTotalSum           = 1061;
+  Bool := GetDefaultBollValue(cColumnTotalSum, AnUserKey);
+  DeleteBoolValues(cColumnTotalSum, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cColumnTotalSum, Bool, AnUserKey);
+
+  //cColumnWidth              = 1062;
+  Int := GetDefaultIntValue(cColumnWidth, AnUserKey);
+  DeleteIntValues(cColumnWidth, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnWidth, Int, AnUserKey);
+
+  //cColumnTitleFontName      = 1063;
+  Str := GetDefaultStrValue(cColumnTitleFontName, AnUserKey);
+  DeleteStrValues(cColumnTitleFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleFontName, Str, AnUserKey);
+
+  //cColumnTitleFontColor     = 1064;
+  Str := GetDefaultStrValue(cColumnTitleFontColor, AnUserKey);
+  DeleteStrValues(cColumnTitleFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleFontColor, Str, AnUserKey);
+
+  //cColumnTitleFontHeight    = 1065;
+  Int := GetDefaultIntValue(cColumnTitleFontHeight, AnUserKey);
+  DeleteIntValues(cColumnTitleFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnTitleFontHeight, Int, AnUserKey);
+
+  //cColumnTitleFontPitch     = 1066;
+  Str := GetDefaultStrValue(cColumnTitleFontPitch, AnUserKey);
+  DeleteStrValues(cColumnTitleFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleFontPitch, Str, AnUserKey);
+
+  //cColumnTitleFontSize      = 1067;
+  Int := GetDefaultIntValue(cColumnTitleFontSize, AnUserKey);
+  DeleteIntValues(cColumnTitleFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnTitleFontSize, Int, AnUserKey);
+
+  //cColumnTitleFontStyle     = 1068;
+  Str := GetDefaultStrValue(cColumnTitleFontStyle, AnUserKey);
+  DeleteStrValues(cColumnTitleFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleFontStyle, Str, AnUserKey);
+
+  //cColumnTitleFontCharSet   = 1069;
+  Int := GetDefaultIntValue(cColumnTitleFontCharSet, AnUserKey);
+  DeleteIntValues(cColumnTitleFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnTitleFontCharSet, Int, AnUserKey);
+
+  //cColumnTitleColor         = 1070;
+  Str := GetDefaultStrValue(cColumnTitleColor, AnUserKey);
+  DeleteStrValues(cColumnTitleColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleColor, Str, AnUserKey);
+
+  //cColumnFontName           = 1071;
+  Str := GetDefaultStrValue(cColumnFontName, AnUserKey);
+  DeleteStrValues(cColumnFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnFontName, Str, AnUserKey);
+
+  //cColumnFontColor          = 1072;
+  Str := GetDefaultStrValue(cColumnFontColor, AnUserKey);
+  DeleteStrValues(cColumnFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnFontColor, Str, AnUserKey);
+
+  //cColumnFontHeight         = 1073;
+  Int := GetDefaultIntValue(cColumnFontHeight, AnUserKey);
+  DeleteIntValues(cColumnFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnFontHeight, Int, AnUserKey);
+
+  //cColumnFontPitch          = 1074;
+  Str := GetDefaultStrValue(cColumnFontPitch, AnUserKey);
+  DeleteStrValues(cColumnFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnFontPitch, Str, AnUserKey);
+
+  //cColumnFontSize           = 1075;
+  Int := GetDefaultIntValue(cColumnFontSize, AnUserKey);
+  DeleteIntValues(cColumnFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnFontSize, Int, AnUserKey);
+
+  //cColumnFontStyle          = 1076;
+  Str := GetDefaultStrValue(cColumnFontStyle, AnUserKey);
+  DeleteStrValues(cColumnFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnFontStyle, Str, AnUserKey);
+
+  //cColumnFontCharSet        = 1077;
+  Int := GetDefaultIntValue(cColumnFontCharSet, AnUserKey);
+  DeleteIntValues(cColumnFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnFontCharSet, Int, AnUserKey);
+
+  //cColumnColor              = 1078;
+  Str := GetDefaultStrValue(cColumnColor, AnUserKey);
+  DeleteStrValues(cColumnColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnColor, Str, AnUserKey);
+
+  //cColumnTitleAlignment     = 1079;
+  Str := GetDefaultStrValue(cColumnTitleAlignment, AnUserKey);
+  DeleteStrValues(cColumnTitleAlignment, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleAlignment, Str, AnUserKey);
+
+  //cColumnAlignment          = 1080;
+  Str := GetDefaultStrValue(cColumnAlignment, AnUserKey);
+  DeleteStrValues(cColumnAlignment, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnAlignment, Str, AnUserKey);
+end;
+
+procedure TgdGridParser.SetDefault;
+var
+  SL: TStringList;
+  I: Integer;
+  ObjKey: Integer;
+begin
+  SL := TStringList.Create;
+  try
+    SL.CommaText := GetUserKeys;
+
+    ObjKey := GetObjID(cGlobal, 'global');
+
+    for I := 0 to SL.Count - 1 do
+    begin
+      _SetDefault(ObjKey, StrToInt(SL[I]));
+    end;
+  finally
+    SL.Free;
   end;
 end;
 
