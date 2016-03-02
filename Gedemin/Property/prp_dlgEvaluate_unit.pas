@@ -4,14 +4,17 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, obj_i_Debugger;
+  StdCtrls, obj_i_Debugger, ExtCtrls;
 
 type
   TdlgEvaluate = class(TForm)
-    lbExpression: TLabel;
-    cbExpression: TComboBox;
+    Panel1: TPanel;
+    Panel2: TPanel;
     lbResult: TLabel;
     mResult: TMemo;
+    Panel3: TPanel;
+    lbExpression: TLabel;
+    cbExpression: TComboBox;
     procedure cbExpressionKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure FormShow(Sender: TObject);
@@ -26,8 +29,8 @@ type
     procedure AddToExpressionList(Expression: string);
     //Выполняет выражение
     procedure ExecExpression(Script: string);
+    
   public
-    { Public declarations }
     procedure Eval(Expression: string);
   end;
 

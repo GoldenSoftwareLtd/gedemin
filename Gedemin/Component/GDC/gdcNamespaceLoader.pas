@@ -674,7 +674,10 @@ begin
           FLoadedNSList.Add(AList[I]);
         finally
           if FTr.InTransaction then
+          begin
             FTr.Rollback;
+            gdcBase.ClearCacheList;
+          end;
           FAtObjectRecordCache.Iterate(nil, Iterate_FreeObjects);
           FAtObjectRecordCache.Clear;
         end;

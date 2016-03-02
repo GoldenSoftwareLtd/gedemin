@@ -7565,9 +7565,12 @@ begin
             end
             else begin
             {$ENDIF}
-              DataLink.DataSet.MoveBy(RC);
-              if DataLink.DataSet.BookmarkValid(Pointer(Bm)) then
-                DataLink.DataSet.Bookmark := Bm;
+              if RC < 16384 then
+              begin
+                DataLink.DataSet.MoveBy(RC);
+                if DataLink.DataSet.BookmarkValid(Pointer(Bm)) then
+                  DataLink.DataSet.Bookmark := Bm;
+              end;    
             {$IFDEF GEDEMIN}
             end;
             {$ENDIF}

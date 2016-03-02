@@ -1781,11 +1781,7 @@ begin
       Value := 'CStr(gdcBaseManager.GetIdByRUIDString("' + V + '"))'
     else
     begin
-      try
-        id := StrToInt(V);
-      except
-        id := 0;
-      end;
+      id := StrToIntDef(V, 0);
       if id > 0 then
         Value := V
       else
@@ -4294,7 +4290,7 @@ const
                                      DocumentPart := TDocumentTransactionFunction(MainFunction).DocumentPart;
                                    end;
 
-                                   if (DI <> nil) and (DI.RelationField.ReferencesField = nil) then
+                                   if (DI <> nil) and (DI.RelationField <> nil) and (not DI.RelationField.IsNullable) then
                                    begin
                                      V := DI.FieldRepresentation
                                    end else
@@ -4338,7 +4334,7 @@ const
                                      Di := TDocumentTransactionFunction(MainFunction).DocumentLine.Find(FieldName);
                                    end;
 
-                                   if (DI <> nil) and (DI.RelationField.ReferencesField = nil) then
+                                   if (DI <> nil) and (DI.RelationField <> nil) and (not DI.RelationField.IsNullable) then
                                    begin
                                      V := DI.FieldRepresentation;
                                    end else
@@ -5033,8 +5029,17 @@ const
       if CheckRUID(alias) then
       begin
         Id := gdcBaseManager.GetIdByRUIDString(Alias);
-        if id < cstUserIDStart then
-          Result := IntTostr(Id)
+        if Id <= 0 then
+        begin
+          MessageBox(Handle,
+            PChar(Format('Неправильный РУИД бухгалтерского счета в блоке "%s".',
+              [BlockName])),
+            'Ошибка',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL);
+
+          Result := '-1 '' Неправильный РУИД ' + Alias;
+        end else if Id < cstUserIDStart then
+          Result := IntToStr(Id)
         else
           Result := Format('gdcBaseManager.GetIdByRUIDString("%s")',
             [Alias]);
@@ -7105,15 +7110,16 @@ begin
       S.Insert(FCheckMasterInsertLine + 3, lS + 'Else');
       S.Insert(FCheckMasterInsertLine + 4, lS + '  Set gdcDocumentHeader = Creator.GetObject(nil, "' + DocumentHead.Document.ClassName + '", "")');
       S.Insert(FCheckMasterInsertLine + 5, lS + '  gdcDocumentHeader.Transaction = Transaction');
-      S.Insert(FCheckMasterInsertLine + 6, lS + '  gdcDocumentHeader.SubType = gdcDocument.SubType');
-      S.Insert(FCheckMasterInsertLine + 7, lS + '  gdcDocumentHeader.Subset = "ByID"');
-      S.Insert(FCheckMasterInsertLine + 8, lS + '  gdcDocumentHeader.ID = gdcDocument.FieldByName("parent").AsInteger');
-      S.Insert(FCheckMasterInsertLine + 9, lS + '  gdcDocumentHeader.Open');
-      S.Insert(FCheckMasterInsertLine + 10, lS + 'End If');
-      Inc(FEndScriptLine, 11);
+      S.Insert(FCheckMasterInsertLine + 6, lS + '  gdcDocumentHeader.ReadTransaction = Transaction');
+      S.Insert(FCheckMasterInsertLine + 7, lS + '  gdcDocumentHeader.SubType = gdcDocument.SubType');
+      S.Insert(FCheckMasterInsertLine + 8, lS + '  gdcDocumentHeader.SubSet = "ByID"');
+      S.Insert(FCheckMasterInsertLine + 9, lS + '  gdcDocumentHeader.ID = gdcDocument.FieldByName("parent").AsInteger');
+      S.Insert(FCheckMasterInsertLine + 10, lS + '  gdcDocumentHeader.Open');
+      S.Insert(FCheckMasterInsertLine + 11, lS + 'End If');
+      Inc(FEndScriptLine, 12);
       for I := 0 to ControlCount - 1 do
       begin
-        TVisualBlock(Controls[I]).InsertLine(11);
+        TVisualBlock(Controls[I]).InsertLine(12);
       end;
     end;
   end;
@@ -8503,8 +8509,9 @@ begin
     S.Add(lS + 'Else');
     S.Add(lS + '  Set gdcDocumentHeader = Creator.GetObject(nil, "' + DocumentHead.Document.ClassName + '", "")');
     S.Add(lS + '  gdcDocumentHeader.Transaction = Transaction');
+    S.Add(lS + '  gdcDocumentHeader.ReadTransaction = Transaction');
     S.Add(lS + '  gdcDocumentHeader.SubType = gdcDocument.SubType');
-    S.Add(lS + '  gdcDocumentHeader.Subset = "ByID"');
+    S.Add(lS + '  gdcDocumentHeader.SubSet = "ByID"');
     S.Add(lS + '  gdcDocumentHeader.ID = gdcDocument.FieldByName("parent").AsInteger');
     S.Add(lS + '  gdcDocumentHeader.Open');
     S.Add(lS + 'End If');

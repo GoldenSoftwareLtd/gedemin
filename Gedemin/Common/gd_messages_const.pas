@@ -133,6 +133,13 @@ const
   WM_LOG_LOAD_CC               = WM_USER + 4003;
   WM_LOG_FREE                  = WM_USER + 4004;
 
+  //
+  WM_GDCC_CONNECT              = WM_USER + 4201;
+  WM_GDCC_DISCONNECT           = WM_USER + 4203;
+  WM_GDCC_COMMANDRECEIVED      = WM_USER + 4204;
+  WM_GDCC_SERVERDISCONNECTED   = WM_USER + 4205;
+  WM_GDCC_SENDCOMMAND          = WM_USER + 4206;
+
   // gdWebClientControl
   WM_GD_FINISH_SEND_EMAIL      = WM_USER + 11126;
 

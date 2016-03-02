@@ -1,6 +1,6 @@
 object dlgStreamSaverOptions: TdlgStreamSaverOptions
-  Left = 523
-  Top = 179
+  Left = 524
+  Top = 180
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Опции переноса данных'
@@ -45,7 +45,7 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
         object lblSettingFormat: TLabel
           Left = 8
           Top = 46
-          Width = 90
+          Width = 88
           Height = 13
           Caption = 'Файлы настроек:'
         end
@@ -100,7 +100,7 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
       object lblWebServerPort: TLabel
         Left = 10
         Top = 14
-        Width = 164
+        Width = 169
         Height = 13
         Caption = 'Порт для входящих соединений:'
       end

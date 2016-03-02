@@ -2949,7 +2949,7 @@ begin
     LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
       FieldName, AggregatesObsolete, GetVarInterface(DisplayString)]);
 
-   _EventExecute(Sender, LParams, cKeyPressEventName);
+   _EventExecute(Sender, LParams, cGetFooterEventName);
 
    DisplayString := String(GetVarParam(LParams[3]));
   end
@@ -4126,27 +4126,6 @@ begin
   SetEvents(AnComponent);
 end;
 
-{procedure TEventControl.OnChangeTab(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cChangeEventName);
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, Sender, cChangeEventName);
-  end else
-    raise Exception.Create(cMsgCantFindObject);
-end;}
-
 procedure TEventControl.OnChanging(Sender: TObject;
   var AllowChange: Boolean);
 var
@@ -5114,14 +5093,8 @@ begin
   AnStream.WriteBuffer(FObjectName[1], Len);
 
   FChildObjects.SaveToStream(AnStream);
-//  SaveSLtoStreamEx(FEventList, AnStream);
   AnStream.WriteBuffer(strEndObject, SizeOf(strEndObject));
 end;
-
-{procedure TEventObject.SetHasSpecEvent(const Value: Boolean);
-begin
-  FHasSpecEvent := Value;
-end;}
 
 procedure TEventObject.SetObjectRef(const Value: TComponent);
 begin

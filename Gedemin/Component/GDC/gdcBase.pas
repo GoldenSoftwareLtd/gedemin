@@ -2162,6 +2162,7 @@ function CreateSelectedArr(Obj: TgdcBase;
 function  CheckNameChar(const Key: Char): Char;
 procedure CheckClipboardForName;
 function GetUserByTransaction(const ATrID: Integer): String;
+procedure ClearCacheList;
 
 implementation
 
@@ -2225,6 +2226,12 @@ type
     ID: TID;
     RefID: TID;
   end;
+
+procedure ClearCacheList;
+begin
+  if CacheList <> nil then
+    CacheList.Clear;
+end;
 
 procedure Register;
 begin
@@ -6244,8 +6251,8 @@ begin
     FOnGetOrderClause(Self, OrderClause);
 
   Result :=
-    SelectClause + ' ' + GetSetTableSelect +
-    FromClause + ' ' + GetSetTableJoin +
+    SelectClause + ' ' + GetSetTableSelect + ' ' +
+    FromClause + ' ' + GetSetTableJoin + ' ' +
     WhereClause + ' ';
   if (GroupClause > '') and
     ((not HasSubSet('ByID')) or (HasAggregates(SelectClause))) then

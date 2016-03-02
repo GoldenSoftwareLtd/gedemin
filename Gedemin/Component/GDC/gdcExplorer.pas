@@ -559,7 +559,7 @@ procedure TgdcExplorer.DoBeforePost;
         begin
           S := 'UPDATE ' + AListTable + ' SET ' + SetRightClause +
             ' WHERE ' + AKeyField + ' IN ('+ 'SELECT ' + AListTableAlias + '.' + AKeyField + ' ' +
-            TgdcBaseCrack(Obj).GetFromClause(False) + TgdcBaseCrack(Obj).GetWhereClause + ')';
+            TgdcBaseCrack(Obj).GetFromClause(False) + ' ' + TgdcBaseCrack(Obj).GetWhereClause + ')';
 
           ExecSingleQuery(S);
         end;

@@ -2132,7 +2132,8 @@ begin
   FSQLSubType := SQLRecord.ByName('rdb$field_sub_type').AsInteger;
   FFieldLength := SQLRecord.ByName('rdb$field_length').AsInteger;
   FFieldScale := SQLRecord.ByName('rdb$field_scale').AsInteger;
-  FIsNullable := SQLRecord.ByName('rdb$null_flag').IsNull;
+  FIsNullable := SQLRecord.ByName('rdb$null_flag').IsNull
+    or (SQLRecord.ByName('rdb$null_flag').AsInteger = 0);
 
   FRefTableName := SQLRecord.ByName('REFTABLE').AsTrimString;
   FRefCondition := SQLRecord.ByName('REFCONDITION').AsString;
@@ -3730,7 +3731,6 @@ begin
 
   FFormatString := ReadField(SQLRecord.ByName('format'), '');
   FVisible := ReadField(SQLRecord.ByName('visible'), 0) <> 0;
-  FIsNullable := ReadField(SQLRecord.ByName('rdb$null_flag'), 0) = 0;
   FColWidth := ReadField(SQLRecord.ByName('colwidth'), DefColWidth);
   FReadOnly := Boolean(SQLRecord.ByName('readonly').AsShort);
   FHasDefault := (not SQLRecord.ByName('rdefsource').IsNull) or
@@ -3785,6 +3785,8 @@ begin
       raise;
     end;
   end;
+
+  FIsNullable := FField.IsNullable and (ReadField(SQLRecord.ByName('rdb$null_flag'), 0) = 0);
 
   FCrossRelationName := SQLRecord.ByName('crosstable').AsTrimString;
   FCrossRelationFieldName := SQLRecord.ByName('crossfield').AsTrimString;

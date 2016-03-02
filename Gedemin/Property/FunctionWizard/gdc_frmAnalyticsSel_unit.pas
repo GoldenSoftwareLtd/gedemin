@@ -111,7 +111,7 @@ end;
 function TfrmAnalyticSel.GetAnalyticsRUID: string;
 begin
   if not cbNeedId.Checked then
-    Result := Format('%s', [gdcBaseManager.GetRUIDStringByID(GetAnalyticsKey)])
+    Result := gdcBaseManager.GetRUIDStringByID(GetAnalyticsKey)
   else
     Result := Format('gdcBaseManager.GetIdByRUIDString("%s")',
       [gdcBaseManager.GetRUIDStringByID(GetAnalyticsKey)]);

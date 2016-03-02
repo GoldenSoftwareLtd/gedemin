@@ -3350,44 +3350,58 @@ function TIBCustomDataSet.AdjustPosition(FCache: PChar; Offset: DWORD;
   end;
 
 var
-  OldCacheSize: Integer;
+  SavedCacheSize, SavedBPos: Integer;
 begin
   if (FCache = FBufferCache) then
   begin
+    SavedBPos := FBPos;
+    SavedCacheSize := FCacheSize;
+
     case Origin of
       FILE_BEGIN:    FBPos := Offset;
       FILE_CURRENT:  FBPos := FBPos + Offset;
       FILE_END:      FBPos := DWORD(FBEnd) + Offset;
     end;
-    OldCacheSize := FCacheSize;
     while (FBPos >= DWORD(FCacheSize)) do
-      //Inc(FCacheSize, FBufferChunkSize);
       FCacheSize := CalcCacheSize(FCacheSize);
-    if FCacheSize > OldCacheSize then
+    if FCacheSize > SavedCacheSize then
+    try
       {$IFDEF HEAP_STRING_FIELD}
-      IBAlloc(FBufferCache, OldCacheSize, FCacheSize);
+      IBAlloc(FBufferCache, SavedCacheSize, FCacheSize);
       {$ELSE}
       IBAlloc(FBufferCache, FCacheSize, FCacheSize);
       {$ENDIF}
-    result := FBPos;
+    except
+      FCacheSize := SavedCacheSize;
+      FBPos := SavedBPos;
+      raise;
+    end;
+    Result := FBPos;
   end
   else begin
+    SavedBPos := FOBPos;
+    SavedCacheSize := FOldCacheSize;
+
     case Origin of
       FILE_BEGIN:    FOBPos := Offset;
       FILE_CURRENT:  FOBPos := FOBPos + Offset;
       FILE_END:      FOBPos := DWORD(FOBEnd) + Offset;
     end;
-    OldCacheSize := FOldCacheSize;
-    while (FBPos >= DWORD(FOldCacheSize)) do
-      //Inc(FOldCacheSize, FBufferChunkSize);
+    while (FOBPos >= DWORD(FOldCacheSize)) do
       FOldCacheSize := CalcCacheSize(FOldCacheSize);
-    if FOldCacheSize > OldCacheSize then
+    if FOldCacheSize > SavedCacheSize then
+    try
       {$IFDEF HEAP_STRING_FIELD}
-      IBAlloc(FOldBufferCache, OldCacheSize, FOldCacheSize);
+      IBAlloc(FOldBufferCache, SavedCacheSize, FOldCacheSize);
       {$ELSE}
       IBAlloc(FOldBufferCache, FOldCacheSize, FOldCacheSize);
       {$ENDIF}
-    result := FOBPos;
+    except
+      FOldCacheSize := SavedCacheSize;
+      FOBPos := SavedBPos;
+      raise;
+    end;
+    Result := FOBPos;
   end;
 end;
 
@@ -4448,9 +4462,9 @@ var
 {$ENDIF}
 begin
   FCurrentRecord := -1;
+  {$IFDEF NEW_GRID}
   {ниже кандидат на удаление}
   exit;
-  {$IFDEF NEW_GRID}
   if GroupSortExist and not FPseudoRecordsOn then
   begin
     DisableControls;
@@ -4723,7 +4737,19 @@ begin
     try
       while FQSelect.Next <> nil do
       begin
-        FetchCurrentRecordToBuffer(FQSelect, FRecordCount, Buffer);
+        try
+          FetchCurrentRecordToBuffer(FQSelect, FRecordCount, Buffer);
+        except
+          on E: EOutOfMemory do
+          begin
+            MessageBox(0,
+              'Ќедостаточно оперативной пам€ти дл€ размещени€ данных.',
+              'Ќедостаточно пам€ти',
+              MB_OK or MB_ICONHAND or MB_TASKMODAL);
+            //Application.HandleException(E);  
+            break;
+          end;
+        end;
         Inc(FRecordCount);
         if ShowWindow then
         begin

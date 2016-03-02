@@ -1,6 +1,6 @@
 object dlgMaster: TdlgMaster
-  Left = 550
-  Top = 278
+  Left = 552
+  Top = 279
   Width = 591
   Height = 449
   HelpContext = 4

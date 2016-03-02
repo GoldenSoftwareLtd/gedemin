@@ -4313,7 +4313,21 @@ var
 begin
   Field := SelectedField;
   if Assigned(Field) then
+  {$IFDEF GEDEMIN}
+  begin
+    if Field is TNumericField then
+    begin
+      Field.Text := StringReplace(
+        StringReplace(
+          StringReplace(FEditText, CurrencyString, '', []),
+          ' ', '', [rfReplaceAll]),
+        ThousandSeparator, '', [rfReplaceAll]);
+    end else
+      Field.Text := FEditText;
+  end
+  {$ELSE}
     Field.Text := FEditText;
+  {$ENDIF}
 end;
 
 procedure TCustomDBGrid.UpdateRowCount;

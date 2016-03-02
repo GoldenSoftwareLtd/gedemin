@@ -134,8 +134,12 @@ begin
   if FgdcNamespaceController.HeadObjectName > '' then
     mInfo.Lines.Add('ֳכאגםûי מבתוךע: ' + FgdcNamespaceController.HeadObjectName);
 
-  pnlTop.Visible := False;
-  pnlDependencies.Visible := False;  
+  if nopAdd in FgdcNamespaceController.Ops then
+    rbAdd.Checked := True
+  else begin
+    pnlTop.Visible := False;
+    pnlDependencies.Visible := False;
+  end;    
 end;
 
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);

@@ -786,7 +786,7 @@ begin
         {если у нас была ветка в исследователе и мы захотели ее удалить}
         gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
         gdcExplorer.Open;
-        if gdcExplorer.RecordCount > 0 then
+        if not gdcExplorer.EOF then
         begin
           gdcExplorer.Delete;
         end;
@@ -799,7 +799,7 @@ begin
         {если у нас была ветка в исследователе, подредактируем ее и заменим наименование, родителя}
         gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
         gdcExplorer.Open;
-        if (gdcExplorer.RecordCount = 0) or
+        if gdcExplorer.EOF or
           (gdcExplorer.FieldByName('subtype').AsString <> gdcObject.FieldByName('ruid').AsString)
         then
         begin

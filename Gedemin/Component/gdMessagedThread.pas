@@ -106,7 +106,6 @@ var
   HArr: array[0..0] of THandle;
   Res: DWORD;
 begin
-  //OutputDebugString(PChar(Self.ClassName + ' started: ' + IntToStr(Handle)));
   PeekMessage(Msg, 0, WM_USER, WM_USER, PM_NOREMOVE);
   FCreatedEvent.SetEvent;
   LogMessage(psThreadStarted);
@@ -128,7 +127,6 @@ begin
       begin
         while (not Terminated) and PeekMessage(Msg, 0, 0, $FFFFFFFF, PM_REMOVE) do
         begin
-          //OutputDebugString(PChar(Self.ClassName + ': ' + IntToStr(Msg.Message)));
           case Msg.Message of
             WM_GD_EXIT_THREAD: exit;
             WM_GD_UPDATE_TIMER: FTimeout := Msg.LParam;
