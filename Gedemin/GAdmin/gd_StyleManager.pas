@@ -556,22 +556,13 @@ begin
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FTransaction;
-    //q.SQL.Text := 'SELECT id FROM at_style_object WHERE objtype = :objtype AND objname = :objname';
-    //q.ParamByName('objtype').AsInteger := AnObjType;
-    //q.ParamByName('objname').AsString := AnObjName;
-    //q.ExecQuery;
-    //if not q.EOF then
-      //Result := q.FieldByName('id').AsInteger
-    //else
-    //begin
-      q.Close;
-      Result := gdcBaseManager.GetNextID;
-      q.SQL.Text := 'INSERT INTO at_style_object(id, objtype, objname) VALUES (:id, :objtype, :objname)';
-      q.ParamByName('id').AsInteger := Result;
-      q.ParamByName('objtype').AsInteger := AnObjType;
-      q.ParamByName('objname').AsString := AnObjName;
-      q.ExecQuery;
-    //end;
+    q.Close;
+    Result := gdcBaseManager.GetNextID;
+    q.SQL.Text := 'INSERT INTO at_style_object(id, objtype, objname) VALUES (:id, :objtype, :objname)';
+    q.ParamByName('id').AsInteger := Result;
+    q.ParamByName('objtype').AsInteger := AnObjType;
+    q.ParamByName('objname').AsString := AnObjName;
+    q.ExecQuery;
   finally
     q.Free;
   end;
@@ -676,6 +667,8 @@ var
   OK: Integer;
   I: Integer;
   S: String;
+  N: Integer;
+  SL: TStringList;
 begin
   Assert(R <> nil);
   Assert(AnObjectName > '');
@@ -685,91 +678,105 @@ begin
   try
     R.ReadCollection(Conditions);
 
-    for I := 0 to Conditions.Count - 1 do
-    begin
-      //ConditionName не уникально, так что с этим надо что то придумать, возможно генерировать
-      if Conditions[I].ConditionName = '' then
-         Conditions[I].ConditionName := 'cn_' + IntToStr(Random(100000) + 1000000);
-      Assert(Conditions[I].ConditionName > '');
-
-      OK := GetObjID(cCondition, AnObjectName + ',' + 'Condition(' + Conditions[I].ConditionName +')');
-
-      SaveStrValue(OK, cConditionName, Conditions[I].ConditionName, AnUserKey);
-
-      //DisplayFields
-      if (Length(Conditions[I].DisplayFields) <= cDefMaxLengthStrValue)
-        and (Conditions[I].DisplayFields > '') then
+    // Ќа случай если ConditionName окажетс€ не уникальным или пустым делаем подстраховку
+    SL := TStringList.Create;
+    try
+      N := 0;
+      for I := 0 to Conditions.Count - 1 do
       begin
-        SaveStrValue(OK, cConditionDisplayFields, Conditions[I].DisplayFields, AnUserKey);
+
+        if (Conditions[I].ConditionName = '')
+          or (SL.IndexOf(Conditions[I].ConditionName) <> -1) then
+        begin
+           Conditions[I].ConditionName := 'cn_' + IntToStr(N);
+           Inc(N);
+        end;
+
+        SL.Add(Conditions[I].ConditionName);
+
+        Assert(Conditions[I].ConditionName > '');
+
+        OK := GetObjID(cCondition, AnObjectName + ',' + Conditions[I].ConditionName);
+
+        SaveStrValue(OK, cConditionName, Conditions[I].ConditionName, AnUserKey);
+
+        //DisplayFields
+        if (Length(Conditions[I].DisplayFields) <= cDefMaxLengthStrValue)
+          and (Conditions[I].DisplayFields > '') then
+        begin
+          SaveStrValue(OK, cConditionDisplayFields, Conditions[I].DisplayFields, AnUserKey);
+        end;
+
+        //FieldName
+        SaveStrValue(OK, cConditionFieldName, Conditions[I].FieldName, AnUserKey);
+
+        //Font
+        SaveColumnFont('ConditionFont', Conditions[I].Font, OK, AnUserKey);
+
+        //Color
+        SaveStrValue(OK, cConditionColor, ColorToString(Conditions[I].Color), AnUserKey);
+
+        // тут тоже не факт что будет меньше 60-ти
+        if (Conditions[I].Expression1 > '')
+          and (Length(Conditions[I].Expression1) <= cDefMaxLengthStrValue) then
+        begin
+          SaveStrValue(OK, cConditionExpression1, Conditions[I].Expression1, AnUserKey);
+        end;
+
+        if (Conditions[I].Expression2 > '')
+          and (Length(Conditions[I].Expression2) <= cDefMaxLengthStrValue) then
+        begin
+          SaveStrValue(OK, cConditionExpression2, Conditions[I].Expression2, AnUserKey);
+        end;
+
+        if Conditions[I].ConditionKind = ckEqual then
+          SaveStrValue(OK, cConditionKind, 'ckEqual', AnUserKey)
+        else if Conditions[I].ConditionKind = ckNotEqual then
+          SaveStrValue(OK, cConditionKind, 'ckNotEqual', AnUserKey)
+        else if Conditions[I].ConditionKind = ckIn then
+          SaveStrValue(OK, cConditionKind, 'ckIn', AnUserKey)
+        else if Conditions[I].ConditionKind = ckOut then
+          SaveStrValue(OK, cConditionKind, 'ckOut', AnUserKey)
+        else if Conditions[I].ConditionKind = ckBigger then
+          SaveStrValue(OK, cConditionKind, 'ckBigger', AnUserKey)
+        else if Conditions[I].ConditionKind = ckSmaller then
+          SaveStrValue(OK, cConditionKind, 'ckSmaller', AnUserKey)
+        else if Conditions[I].ConditionKind = ckBiggerEqual then
+          SaveStrValue(OK, cConditionKind, 'ckBiggerEqual', AnUserKey)
+        else if Conditions[I].ConditionKind = ckSmallerEqual then
+          SaveStrValue(OK, cConditionKind, 'ckSmallerEqual', AnUserKey)
+        else if Conditions[I].ConditionKind = ckStarts then
+          SaveStrValue(OK, cConditionKind, 'ckStarts', AnUserKey)
+        else if Conditions[I].ConditionKind = ckContains then
+          SaveStrValue(OK, cConditionKind, 'ckContains', AnUserKey)
+        else if Conditions[I].ConditionKind = ckExist then
+          SaveStrValue(OK, cConditionKind, 'ckExist', AnUserKey)
+        else if Conditions[I].ConditionKind = ckNotExist then
+          SaveStrValue(OK, cConditionKind, 'ckNotExist', AnUserKey)
+        else if Conditions[I].ConditionKind = ckNone then
+          SaveStrValue(OK, cConditionKind, 'ckNone', AnUserKey);
+
+        S := '';
+
+        if doColor in Conditions[I].DisplayOptions then
+          S := S + 'doColor' + ',';
+        if doFont in Conditions[I].DisplayOptions then
+          S := S + 'doFont' + ',';
+
+        if S > '' then
+          SetLength(S, Length(S) - 1);
+
+        SaveStrValue(OK, cConditionDisplayOptions, S, AnUserKey);
+
+        SaveBoolValue(OK, cConditionEvaluateFormula, Conditions[I].EvaluateFormula, AnUserKey);
+
+        SaveBoolValue(OK, cConditionUserCondition, Conditions[I].UserCondition, AnUserKey);
+
+        // ¬от с этим пока не знаю что делать!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        //Conditions[I].OnUserCondition
       end;
-
-      //FieldName
-      SaveStrValue(OK, cConditionFieldName, Conditions[I].FieldName, AnUserKey);
-
-      //Font
-      SaveColumnFont('ConditionFont', Conditions[I].Font, OK, AnUserKey);
-
-      //Color
-      SaveStrValue(OK, cConditionColor, ColorToString(Conditions[I].Color), AnUserKey);
-
-      // тут тоже не факт что будет меньше 60-ти
-      if (Conditions[I].Expression1 > '')
-        and (Length(Conditions[I].Expression1) <= cDefMaxLengthStrValue) then
-      begin
-        SaveStrValue(OK, cConditionExpression1, Conditions[I].Expression1, AnUserKey);
-      end;
-
-      if (Conditions[I].Expression2 > '')
-        and (Length(Conditions[I].Expression2) <= cDefMaxLengthStrValue) then
-      begin
-        SaveStrValue(OK, cConditionExpression2, Conditions[I].Expression2, AnUserKey);
-      end;
-
-      if Conditions[I].ConditionKind = ckEqual then
-        SaveStrValue(OK, cConditionKind, 'ckEqual', AnUserKey)
-      else if Conditions[I].ConditionKind = ckNotEqual then
-        SaveStrValue(OK, cConditionKind, 'ckNotEqual', AnUserKey)
-      else if Conditions[I].ConditionKind = ckIn then
-        SaveStrValue(OK, cConditionKind, 'ckIn', AnUserKey)
-      else if Conditions[I].ConditionKind = ckOut then
-        SaveStrValue(OK, cConditionKind, 'ckOut', AnUserKey)
-      else if Conditions[I].ConditionKind = ckBigger then
-        SaveStrValue(OK, cConditionKind, 'ckBigger', AnUserKey)
-      else if Conditions[I].ConditionKind = ckSmaller then
-        SaveStrValue(OK, cConditionKind, 'ckSmaller', AnUserKey)
-      else if Conditions[I].ConditionKind = ckBiggerEqual then
-        SaveStrValue(OK, cConditionKind, 'ckBiggerEqual', AnUserKey)
-      else if Conditions[I].ConditionKind = ckSmallerEqual then
-        SaveStrValue(OK, cConditionKind, 'ckSmallerEqual', AnUserKey)
-      else if Conditions[I].ConditionKind = ckStarts then
-        SaveStrValue(OK, cConditionKind, 'ckStarts', AnUserKey)
-      else if Conditions[I].ConditionKind = ckContains then
-        SaveStrValue(OK, cConditionKind, 'ckContains', AnUserKey)
-      else if Conditions[I].ConditionKind = ckExist then
-        SaveStrValue(OK, cConditionKind, 'ckExist', AnUserKey)
-      else if Conditions[I].ConditionKind = ckNotExist then
-        SaveStrValue(OK, cConditionKind, 'ckNotExist', AnUserKey)
-      else if Conditions[I].ConditionKind = ckNone then
-        SaveStrValue(OK, cConditionKind, 'ckNone', AnUserKey);
-
-      S := '';
-
-      if doColor in Conditions[I].DisplayOptions then
-        S := S + 'doColor' + ',';
-      if doFont in Conditions[I].DisplayOptions then
-        S := S + 'doFont' + ',';
-
-      if S > '' then
-        SetLength(S, Length(S) - 1);
-
-      SaveStrValue(OK, cConditionDisplayOptions, S, AnUserKey);
-
-      SaveBoolValue(OK, cConditionEvaluateFormula, Conditions[I].EvaluateFormula, AnUserKey);
-
-      SaveBoolValue(OK, cConditionUserCondition, Conditions[I].UserCondition, AnUserKey);
-
-      // ¬от с этим пока не знаю что делать!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      //Conditions[I].OnUserCondition
+    finally
+      SL.Free;
     end;
   finally
     Conditions.Free;
@@ -796,13 +803,13 @@ begin
       if Columns[I].FieldName > '' then
       begin
         Assert(Columns[I].FieldName > '');
-        OK := GetObjID(cColumn, AnObjectName + ',' + 'Column(' + Columns[I].FieldName +')');
+        OK := GetObjID(cColumn, AnObjectName + ',' + Columns[I].FieldName);
 
         // «аглавие колонки
         TitleCaption := Columns[I].Title.Caption;
         // ќбрезаем
-        if Length(TitleCaption) > 60 then
-          SetLength(TitleCaption, 60);
+        if Length(TitleCaption) > cDefMaxLengthStrValue then
+          SetLength(TitleCaption, cDefMaxLengthStrValue);
 
         SaveStrValue(OK, cColumnTitleCaption, TitleCaption, AnUserKey);
 
@@ -1315,50 +1322,72 @@ end;
 procedure TgdGridParser.Run;
 var
   q: TIBSQL;
-  S: TMemoryStream;
-  T: String;
+  S: TStringStream;
+  OwnerName: String;
+  CompName: String;
+  K: Integer;
 begin
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FTransaction;
-    // «апрос €вно не правильный!!! Ќадо переделать!!!!!!!
     q.SQL.Text :=
+      'WITH RECURSIVE '#13#10 +
+      '  grid_data AS ( '#13#10 +
+      '    SELECT id, parent, name, int_data '#13#10 +
+      '    FROM gd_storage_data '#13#10 +
+      '    WHERE data_type = ''U'' '#13#10 +
+      '    UNION ALL '#13#10 +
+      '    SELECT sd2.id, sd2.parent, sd2.name, gd.int_data '#13#10 +
+      '    FROM gd_storage_data sd2 '#13#10 +
+      '    JOIN grid_data gd '#13#10 +
+      '      ON gd.id = sd2.parent) '#13#10 +
       'SELECT '#13#10 +
-      '  gsd.name, '#13#10 +
-      '  gsd2.name as pname, '#13#10 +
-      '  gsd3.blob_data, '#13#10 +
-      '  gsd4.int_data as userkey '#13#10 +
-      '   '#13#10 +
-      'FROM gd_storage_data gsd '#13#10 +
-      'LEFT JOIN gd_storage_data gsd2 '#13#10 +
-      '  ON gsd.parent = gsd2.id '#13#10 +
-      'LEFT JOIN gd_storage_data gsd3 '#13#10 +
-      '  ON gsd.id = gsd3.parent '#13#10 +
-      '   '#13#10 +
-      'LEFT JOIN gd_storage_data gsd4 '#13#10 +
-      '  ON gsd4.id = gsd2.parent '#13#10 +
-      ' '#13#10 +
-      'WHERE gsd.name LIKE ''%(TgsIBGrid)%'' AND gsd3.name = ''data''';
+      '  sd3.name AS parentname, '#13#10 +
+      '  gd2.name AS name, '#13#10 +
+      '  gd2.int_data AS userkey, '#13#10 +
+      '  IIF(sd6.name = ''data'', sd6.blob_data, sd4.blob_data) AS bdata '#13#10 +
+      'FROM grid_data gd2 '#13#10 +
+      'JOIN gd_storage_data sd3 '#13#10 +
+      '  ON gd2.parent = sd3.id '#13#10 +
+      'LEFT JOIN gd_storage_data sd4 '#13#10 +
+      '  ON sd4.parent = gd2.id AND (sd4.name = ''data'') '#13#10 +
+      'LEFT JOIN gd_storage_data sd5 '#13#10 +
+      '  ON sd5.parent = gd2.id AND (POSITION(sd5.name || ''('', sd3.name) > 0) '#13#10 +
+      'LEFT JOIN gd_storage_data sd6 '#13#10 +
+      '  ON sd6.parent = sd5.id AND (sd6.name = ''data'') '#13#10 +
+      'WHERE gd2.name LIKE ''%(TgsIBGrid)%'' '#13#10 +
+      '  AND (sd4.name = ''data'' OR sd6.name = ''data'')';
     q.ExecQuery;
     while not q.EoF do
     begin
       if q.FieldByName('userkey').AsInteger > 0 then
+      begin
+        if q.FieldByName('bdata').AsString > '' then
         begin
-        S := TMemoryStream.Create;
-        try
-          S.Size := 0;
-          T := q.FieldByName('blob_data').AsString;
+          S := TStringStream.Create(q.FieldByName('bdata').AsString);
+          try
+            OwnerName := q.FieldByName('parentname').AsString;
+            K := Pos('(', OwnerName);
+            if K > 0 then
+              OwnerName := Copy(OwnerName, 1, K - 1)
+            else
+              Assert(False);
 
-          if Length(T) > 0 then
-          begin
-            S.WriteBuffer(T[1], Length(T));
-            S.Position := 0;
-            ParseGridStream(q.FieldByName('pname').AsString + ',' +
-              q.FieldByName('name').AsString, q.FieldByName('userkey').AsInteger, S);
+            CompName := q.FieldByName('name').AsString;
+            K := Pos('(', CompName);
+            if K > 0 then
+              CompName := Copy(CompName, 1, K - 1)
+            else
+              Assert(False);
+
+            ParseGridStream(OwnerName + ',' +
+              CompName, q.FieldByName('userkey').AsInteger, S);
+          finally
+            S.Free;
           end;
-        finally
-          S.Free;
-        end;
+        end
+        else
+          Assert(False);
       end;
       q.Next;
     end;
