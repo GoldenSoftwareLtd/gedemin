@@ -63,6 +63,7 @@ uses
   Registry,                     inst_const,            gdcSetting,
   gdcBaseInterface,             dm_i_ClientReport_unit,gd_GlobalParams_unit,
   prp_PropertySettings,         gd_i_ScriptFactory,    flt_sqlFilterCache,
+  gd_StyleManager,
 
   {$IFDEF WITH_INDY}
   gd_WebServerControl_unit, gd_WebClientControl_unit,
@@ -119,6 +120,8 @@ begin
     gdSplash.ShowText(sLoadingUserDefinedClasses);
 
   gdClassList.LoadUserDefinedClasses;
+
+  gdStyleManager.LoadFromDB;
 
   // ћы отказываемс€ от использовани€ раздельных системных настроек
   // внутри √едымина

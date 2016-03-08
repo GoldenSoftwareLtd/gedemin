@@ -3,7 +3,9 @@ unit gd_StyleManager;
 interface
 
 uses
-  Contnrs, Classes, TypInfo, Forms, SysUtils, gsDBGrid, Graphics, Windows, IBDatabase;
+  Classes,
+  Graphics,
+  IBDatabase;
 
 const
   cDefMaxLengthStrValue = 60;
@@ -208,72 +210,63 @@ const
 
 type
 
-  TgdStyleEntry = class
-  private
-    FID: Integer;
-    FObjectKey: Integer;
-    FPropID: Integer;
-    FIntValue: Integer;
-    FStrValue: String;
-    FUserKey: Integer;
-    FThemeKey: Integer;
-
-  public
-    property ID: Integer read FID;
-    property ObjectKey: Integer read FObjectKey;
-    property PropID: Integer read FPropID;
-    property IntValue: Integer read FIntValue;
-    property StrValue: String read FStrValue;
-    property UserKey: Integer read FUserKey;
-    property ThemeKey: Integer read FThemeKey;
+  PPHashNode = ^PHashNode;
+  PHashNode = ^THashNode;
+  THashNode = record
+    Str: string;
+    StrVal: String;
+    IntVal: Integer;
+    IsInt: Boolean;
+    Left: PHashNode;
+    Right: PHashNode;
   end;
 
-  TgdStyleObject = class
+  PHashArray = ^THashArray;
+  THashArray = array [0..MaxInt div SizeOf(PHashNode) - 1] of PHashNode;
+
+  TStyleHash = class(TObject)
   private
-    FID: Integer;
-    FObjectType: Integer;
-    FObjectName: String;
+    FHashSize: Cardinal;
+    FCount: Cardinal;
+    FLeftDelete: Boolean;
+    FList: PHashArray;
 
-    FEntry: TObjectList;
+    function AllocNode: PHashNode;
+    procedure FreeNode(ANode: PHashNode);
 
-    function GetEntry(Index: Integer): TgdStyleEntry;
-    function GetCount: Integer;
+    function FindNode(const S: string): PPHashNode;
+
+    function Hash(const S: string): Cardinal;
+    function Compare(const L, R: string): Integer;
+
+    procedure DeleteNodes(var Q: PHashNode);
+    procedure DeleteNode(var Q: PHashNode);
+
+    function Add(const S: string): PPHashNode;
+
+    procedure Clear;
 
   public
-    function Compare(const AnObjectType: Integer;
-      const AnObjectName: String): Integer;
+    constructor Create;
+    destructor Destroy; override;
 
-    property ID: Integer read FID;
-    property ObjectType: Integer read FObjectType;
-    property ObjectName: String read FObjectName;
+    procedure AddStr(const S: string; const AStrValue: String);
+    procedure AddInt(const S: string; AnIntValue: Integer);
+    procedure Remove(const S: string);
 
-
-
-    property Entry[Index: Integer]: TgdStyleEntry read GetEntry;
-    property Count: Integer read GetCount;
+    function FindStr(const S: String; out AStrValue: String): Boolean;
+    function FindInt(const S: String; out AnIntValue: Integer): Boolean;
   end;
 
   TgdStyleManager = class
   private
-    FStyleObjects: array of TgdStyleObject;
-    FCount: Integer;
-
-    FChanges: TStringList;
-
-    procedure _Grow;
-    procedure _Compact;
-
-    function _Find(const AnObjectType: Integer; const AnObjectName: String;
-      out Index: Integer): Boolean;
-    procedure _Insert(const Index: Integer; ASO: TgdStyleObject);
+    FStyleHash: TStyleHash;
 
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure LoadFromDB;
-    procedure SaveToDB;
-
   end;
 
   TgdGridParser = class
@@ -345,7 +338,12 @@ function gdStyleManager: TgdStyleManager;
 implementation
 
 uses
-  gd_security, gdcBaseInterface, IBSQL, DBGrids;
+  SysUtils,
+  gsDBGrid,
+  gd_security,
+  gdcBaseInterface,
+  IBSQL,
+  DBGrids;
 
 function gdStyleManager: TgdStyleManager;
 begin
@@ -354,35 +352,304 @@ begin
   Result := _gdStyleManager;
 end;
 
-{ TgdStyleEntry }
+{ TStyleHash }
 
-{ TgdStyleObject }
-
-function TgdStyleObject.GetEntry(Index: Integer): TgdStyleEntry;
+constructor TStyleHash.Create;
 begin
-  Result := FEntry[Index] as TgdStyleEntry;
+  inherited Create;
+
+  FHashSize := 2048;
+  GetMem(FList, FHashSize * SizeOf(FList^[0]));
+  FillChar(FList^, FHashSize * SizeOf(FList^[0]), 0);
 end;
 
-function TgdStyleObject.GetCount: Integer;
+destructor TStyleHash.Destroy;
 begin
-  if FEntry = nil then
-    Result := 0
-  else
-    Result := FEntry.Count;
+  Clear;
+
+  if FCount > 0 then
+    Assert(False);
+  FreeMem(FList);
+  FList := nil;
+  FHashSize := 0;
+
+  inherited Destroy;
 end;
 
-function TgdStyleObject.Compare(const AnObjectType: Integer;
-  const AnObjectName: String): Integer;
+function TStyleHash.Add(const S: string): PPHashNode;
 begin
-  if FObjectType > AnObjectType then
-    Result := 1
-  else if FObjectType < AnObjectType then
-    Result := -1
-  else
-    Result := 0;
+  Result := FindNode(S);
 
-  if Result = 0 then
-    Result := CompareText(FObjectName, AnObjectName);
+  if Result^ = nil then
+  begin
+    Result^ := AllocNode;
+    Inc(FCount);
+    Result^^.Str := S;
+  end
+  else
+    Assert(False);
+end;
+
+procedure TStyleHash.AddStr(const S: string; const AStrValue: String);
+var
+  PPN: PPHashNode;
+begin
+  PPN := Add(S);
+
+  if PPN^ <> nil then
+  begin
+    PPN^^.StrVal := AStrValue;
+    PPN^^.IsInt := False;
+  end
+  else
+    Assert(False);
+end;
+
+procedure TStyleHash.AddInt(const S: string; AnIntValue: Integer);
+var
+  PPN: PPHashNode;
+begin
+  PPN := Add(S);
+
+  if PPN^ <> nil then
+  begin
+    PPN^^.IntVal := AnIntValue;
+    PPN^^.IsInt := True;
+  end
+  else
+    Assert(False);
+end;
+
+procedure TStyleHash.Remove(const S: string);
+var
+  PPN: PPHashNode;
+begin
+  PPN := FindNode(S);
+
+  if PPN^ <> nil then
+    DeleteNode(PPN^)
+  else
+    Assert(False);
+end;
+
+function TStyleHash.FindStr(const S: String; out AStrValue: String): Boolean;
+var
+  PPN: PPHashNode;
+begin
+  Result := False;
+
+  PPN := FindNode(S);
+
+  if PPN^ <> nil then
+  begin
+    if PPN^^.IsInt then
+      Assert(False);
+
+    Result := True;
+    AStrValue := PPN^^.StrVal;
+  end
+  else
+    Assert(False);
+end;
+
+function TStyleHash.FindInt(const S: String; out AnIntValue: Integer): Boolean;
+var
+  PPN: PPHashNode;
+begin
+  Result := False;
+
+  PPN := FindNode(S);
+
+  if PPN^ <> nil then
+  begin
+    if not PPN^^.IsInt then
+      Assert(False);
+
+    Result := True;
+    AnIntValue := PPN^^.IntVal;
+  end
+  else
+    Assert(False);
+end;
+
+procedure TStyleHash.Clear;
+var
+  I: Integer;
+  PPN: PPHashNode;
+begin
+  for I := 0 to FHashSize - 1 do
+  begin
+    PPN := @FList^[I];
+    if PPN^ <> nil then
+      DeleteNodes(PPN^);
+  end;
+  FCount := 0;
+end;
+
+procedure TStyleHash.DeleteNodes(var Q: PHashNode);
+begin
+  if Q^.Left <> nil then
+    DeleteNodes(Q^.Left);
+  if Q^.Right <> nil then
+    DeleteNodes(Q^.Right);
+  FreeNode(Q);
+  Q := nil;
+end;
+
+procedure TStyleHash.DeleteNode(var Q: PHashNode);
+var
+  T, R, S: PHashNode;
+begin
+  { we must delete node Q without destroying binary tree }
+  { Knuth 6.2.2 D (pg 432 Vol 3 2nd ed) }
+
+  { alternating between left / right delete to preserve decent
+    performance over multiple insertion / deletion }
+  FLeftDelete := not FLeftDelete;
+
+  { T will be the node we delete }
+  T := Q;
+
+  if FLeftDelete then
+  begin
+    if T^.Right = nil then
+      Q := T^.Left
+    else
+    begin
+      R := T^.Right;
+      if R^.Left = nil then
+      begin
+        R^.Left := T^.Left;
+        Q := R;
+      end
+      else
+      begin
+        S := R^.Left;
+        if S^.Left <> nil then
+          repeat
+            R := S;
+            S := R^.Left;
+          until S^.Left = nil;
+        { now, S = symmetric successor of Q }
+        S^.Left := T^.Left;
+        R^.Left :=  S^.Right;
+        S^.Right := T^.Right;
+        Q := S;
+      end;
+    end;
+  end
+  else
+  begin
+    if T^.Left = nil then
+      Q := T^.Right
+    else
+    begin
+      R := T^.Left;
+      if R^.Right = nil then
+      begin
+        R^.Right := T^.Right;
+        Q := R;
+      end
+      else
+      begin
+        S := R^.Right;
+        if S^.Right <> nil then
+          repeat
+            R := S;
+            S := R^.Right;
+          until S^.Right = nil;
+        { now, S = symmetric predecessor of Q }
+        S^.Right := T^.Right;
+        R^.Right := S^.Left;
+        S^.Left := T^.Left;
+        Q := S;
+      end;
+    end;
+  end;
+
+  { we decrement before because the tree is already adjusted
+    => any exception in FreeNode MUST be ignored.
+
+    It's unlikely that FreeNode would raise an exception anyway. }
+  Dec(FCount);
+  FreeNode(T);
+end;
+
+procedure TStyleHash.FreeNode(ANode: PHashNode);
+begin
+  Dispose(ANode);
+end;
+
+function TStyleHash.AllocNode: PHashNode;
+begin
+  New(Result);
+  Result^.Left := nil;
+  Result^.Right := nil;
+end;
+
+function TStyleHash.FindNode(const S: string): PPHashNode;
+var
+  I: Cardinal;
+  R: Integer;
+  PPN: PPHashNode;
+begin
+  { we start at the node offset by S in the hash list }
+  I := Hash(S) mod FHashSize;
+
+  PPN := @FList^[I];
+
+  if PPN^ <> nil then
+    while True do
+    begin
+      R := Compare(S, PPN^^.Str);
+
+      { left, then right, then match }
+      if R < 0 then
+        PPN := @PPN^^.Left
+      else
+      if R > 0 then
+        PPN := @PPN^^.Right
+      else
+        Break;
+
+      { check for empty position after drilling left or right }
+      if PPN^ = nil then
+        Break;
+    end;
+
+  Result := PPN;
+end;
+
+function TStyleHash.Hash(const S: string): Cardinal;
+  const
+  cLongBits = 32;
+  cOneEight = 4;
+  cThreeFourths = 24;
+  cHighBits = $F0000000;
+var
+  I: Integer;
+  P: PChar;
+  Temp: Cardinal;
+begin
+  { TODO : I should really be processing 4 bytes at once... }
+  Result := 0;
+  P := PChar(S);
+
+  I := Length(S);
+  while I > 0 do
+  begin
+    Result := (Result shl cOneEight) + Ord(UpCase(P^));
+    Temp := Result and cHighBits;
+    if Temp <> 0 then
+      Result := (Result xor (Temp shr cThreeFourths)) and (not cHighBits);
+    Dec(I);
+    Inc(P);
+  end;
+end;
+
+function TStyleHash.Compare(const L, R: string): Integer;
+begin
+  Result := CompareText(L, R);
 end;
 
 { TgdStyleManager }
@@ -391,143 +658,82 @@ constructor TgdStyleManager.Create;
 begin
   inherited;
 
-  FChanges := TStringList.Create;
+  FStyleHash := TStyleHash.Create;
 end;
 
 destructor TgdStyleManager.Destroy;
 begin
-  FChanges.Free;
+  FStyleHash.Free;
 
   inherited;
-end;
-
-procedure TgdStyleManager._Grow;
-begin
-  if High(FStyleObjects) = -1 then
-    SetLength(FStyleObjects, 2048)
-  else
-    SetLength(FStyleObjects, High(FStyleObjects) + 1 + 1024);
-end;
-
-procedure TgdStyleManager._Compact;
-var
-  B, E: Integer;
-begin
-  B := 0;
-  while B < FCount do
-  begin
-    E := B;
-    while (E < FCount) and (FStyleObjects[E] = nil) do
-      Inc(E);
-    if E = FCount then
-    begin
-      FCount := B;
-      break;
-    end;
-    if E > B then
-    begin
-      System.Move(FStyleObjects[E], FStyleObjects[B], (FCount - E) * SizeOf(FStyleObjects[0]));
-      Dec(FCount, E - B);
-    end;
-    Inc(B);
-  end;
-end;
-
-function TgdStyleManager._Find(const AnObjectType: Integer; const AnObjectName: String;
-  out Index: Integer): Boolean;
-var
-  L, H, C: Integer;
-begin
-  Result := False;
-  L := 0;
-  H := FCount - 1;
-  while L <= H do
-  begin
-    Index := (L + H) shr 1;
-    C := FStyleObjects[Index].Compare(AnObjectType, AnObjectName);
-    if C < 0 then
-      L := Index + 1
-    else if C > 0 then
-      H := Index - 1
-    else begin
-      Result := True;
-      exit;
-    end;
-  end;
-  Index := L;
-end;
-
-procedure TgdStyleManager._Insert(const Index: Integer; ASO: TgdStyleObject);
-begin
-  if FCount > High(FStyleObjects) then _Grow;
-  if Index < FCount then
-  begin
-    System.Move(FStyleObjects[Index], FStyleObjects[Index + 1],
-      (FCount - Index) * SizeOf(FStyleObjects[0]));
-  end;
-  FStyleObjects[Index] := ASO;
-  Inc(FCount);
 end;
 
 procedure TgdStyleManager.LoadFromDB;
 var
   q: TIBSQL;
-  Tr: TIBTransaction;
+  Str: String;
+  Int: Integer;
+  S: String;
+
 begin
   Assert(gdcBaseManager <> nil);
 
   q := TIBSQL.Create(nil);
   try
-    Tr := TIBTransaction.Create(nil);
-    try
-      Tr.DefaultDatabase := gdcBaseManager.Database;
-      Tr.StartTransaction;
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT '#13#10 +
+      '  so.objtype, '#13#10 +
+      '  so.objname, '#13#10 +
+      '  s.id, '#13#10 +
+      '  s.objectkey, '#13#10 +
+      '  s.propid, '#13#10 +
+      '  s.intvalue, '#13#10 +
+      '  s.strvalue, '#13#10 +
+      '  s.userkey, '#13#10 +
+      '  s.themekey '#13#10 +
+      'FROM at_style_object so '#13#10 +
+      'JOIN at_style s '#13#10 +
+      '  ON so.id = s.objectkey';
+    q.ExecQuery;
 
-      q.SQL.Text := ''; 
+    while not q.Eof do
+    begin
+      S := q.FieldByName('objname').AsString + ','
+        + IntToStr(q.FieldByName('propid').AsInteger);
 
-      q.ExecQuery;
-      Tr.Commit;
-    finally
-      Tr.Free;
+      if q.FieldByName('userkey').AsInteger > 0 then
+        S := S + ',' + IntToStr(q.FieldByName('userkey').AsInteger);
+
+      if q.FieldByName('themekey').AsInteger > 0 then
+        S := S + ',' + IntToStr(q.FieldByName('themekey').AsInteger);
+
+      if not q.FieldByName('strvalue').IsNull then
+      begin
+        FStyleHash.AddStr(S, q.FieldByName('strvalue').AsString);
+
+        //проверка//
+        Assert(FStyleHash.FindStr(S, Str));
+        Assert(Str = q.FieldByName('strvalue').AsString);
+        ////////////
+      end
+
+      else if not q.FieldByName('intvalue').IsNull then
+      begin
+        FStyleHash.AddInt(S, q.FieldByName('intvalue').AsInteger);
+
+        //проверка//
+        Assert(FStyleHash.FindInt(S, Int));
+        Assert(Int = q.FieldByName('intvalue').AsInteger);
+        ////////////
+      end
+      else
+        Assert(False);
+
+      q.Next;
     end;
   finally
     q.Free;
-  end;
-end;
-
-procedure TgdStyleManager.SaveToDB;
-var
-  I: Integer;
-  q: TIBSQL;
-  Tr: TIBTransaction;
-begin
-  if FChanges.Count > 0 then
-  begin
-    try
-      Assert(gdcBaseManager <> nil);
-
-      q := TIBSQL.Create(nil);
-      try
-        Tr := TIBTransaction.Create(nil);
-        try
-          Tr.DefaultDatabase := gdcBaseManager.Database;
-          Tr.StartTransaction;
-          for I := 0 to FChanges.Count - 1 do
-          begin
-            q.Close;
-            q.SQL.Text := FChanges[I];
-            q.ExecQuery;
-          end;
-          Tr.Commit;
-        finally
-          Tr.Free;
-        end;
-      finally
-        q.Free;
-      end;
-    finally
-      FChanges.Clear;
-    end;
   end;
 end;
 
