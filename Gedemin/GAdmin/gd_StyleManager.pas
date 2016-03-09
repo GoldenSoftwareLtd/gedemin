@@ -5,7 +5,8 @@ interface
 uses
   Classes,
   Graphics,
-  IBDatabase;
+  IBDatabase,
+  JclStrHashMap;
 
 const
   cDefMaxLengthStrValue = 60;
@@ -209,62 +210,30 @@ const
   cDefColumnAlignment          = taLeftJustify;}
 
 type
-
-  PPHashNode = ^PHashNode;
-  PHashNode = ^THashNode;
-  THashNode = record
-    Str: string;
+  PStyle = ^TStyle;
+  TStyle = record
     StrVal: String;
     IntVal: Integer;
     IsInt: Boolean;
-    Left: PHashNode;
-    Right: PHashNode;
-  end;
-
-  PHashArray = ^THashArray;
-  THashArray = array [0..MaxInt div SizeOf(PHashNode) - 1] of PHashNode;
-
-  TStyleHash = class(TObject)
-  private
-    FHashSize: Cardinal;
-    FCount: Cardinal;
-    FLeftDelete: Boolean;
-    FList: PHashArray;
-
-    function AllocNode: PHashNode;
-    procedure FreeNode(ANode: PHashNode);
-
-    function FindNode(const S: string): PPHashNode;
-
-    function Hash(const S: string): Cardinal;
-    function Compare(const L, R: string): Integer;
-
-    procedure DeleteNodes(var Q: PHashNode);
-    procedure DeleteNode(var Q: PHashNode);
-
-    function Add(const S: string): PPHashNode;
-
-    procedure Clear;
-
-  public
-    constructor Create;
-    destructor Destroy; override;
-
-    procedure AddStr(const S: string; const AStrValue: String);
-    procedure AddInt(const S: string; AnIntValue: Integer);
-    procedure Remove(const S: string);
-
-    function FindStr(const S: String; out AStrValue: String): Boolean;
-    function FindInt(const S: String; out AnIntValue: Integer): Boolean;
   end;
 
   TgdStyleManager = class
   private
-    FStyleHash: TStyleHash;
+    FStyleList: TStringHashMap;
+
+    procedure ClearData;
+    function Iterate_FreeStyle(AUserData: PUserData; const AStr: string; var AData {$IFNDEF CLR}: PData{$ENDIF}): Boolean;
 
   public
     constructor Create;
     destructor Destroy; override;
+
+    function FindStr(const S: String; out AStrValue: String): Boolean;
+    function FindInt(const S: String; out AnIntValue: Integer): Boolean;
+
+    procedure AddStr(const S: string; const AStrValue: String);
+    procedure AddInt(const S: string; AnIntValue: Integer);
+    procedure Remove(const S: string);
 
     procedure LoadFromDB;
   end;
@@ -352,320 +321,104 @@ begin
   Result := _gdStyleManager;
 end;
 
-{ TStyleHash }
-
-constructor TStyleHash.Create;
-begin
-  inherited Create;
-
-  FHashSize := 2048;
-  GetMem(FList, FHashSize * SizeOf(FList^[0]));
-  FillChar(FList^, FHashSize * SizeOf(FList^[0]), 0);
-end;
-
-destructor TStyleHash.Destroy;
-begin
-  Clear;
-
-  if FCount > 0 then
-    Assert(False);
-  FreeMem(FList);
-  FList := nil;
-  FHashSize := 0;
-
-  inherited Destroy;
-end;
-
-function TStyleHash.Add(const S: string): PPHashNode;
-begin
-  Result := FindNode(S);
-
-  if Result^ = nil then
-  begin
-    Result^ := AllocNode;
-    Inc(FCount);
-    Result^^.Str := S;
-  end
-  else
-    Assert(False);
-end;
-
-procedure TStyleHash.AddStr(const S: string; const AStrValue: String);
-var
-  PPN: PPHashNode;
-begin
-  PPN := Add(S);
-
-  if PPN^ <> nil then
-  begin
-    PPN^^.StrVal := AStrValue;
-    PPN^^.IsInt := False;
-  end
-  else
-    Assert(False);
-end;
-
-procedure TStyleHash.AddInt(const S: string; AnIntValue: Integer);
-var
-  PPN: PPHashNode;
-begin
-  PPN := Add(S);
-
-  if PPN^ <> nil then
-  begin
-    PPN^^.IntVal := AnIntValue;
-    PPN^^.IsInt := True;
-  end
-  else
-    Assert(False);
-end;
-
-procedure TStyleHash.Remove(const S: string);
-var
-  PPN: PPHashNode;
-begin
-  PPN := FindNode(S);
-
-  if PPN^ <> nil then
-    DeleteNode(PPN^)
-  else
-    Assert(False);
-end;
-
-function TStyleHash.FindStr(const S: String; out AStrValue: String): Boolean;
-var
-  PPN: PPHashNode;
-begin
-  Result := False;
-
-  PPN := FindNode(S);
-
-  if PPN^ <> nil then
-  begin
-    if PPN^^.IsInt then
-      Assert(False);
-
-    Result := True;
-    AStrValue := PPN^^.StrVal;
-  end
-  else
-    Assert(False);
-end;
-
-function TStyleHash.FindInt(const S: String; out AnIntValue: Integer): Boolean;
-var
-  PPN: PPHashNode;
-begin
-  Result := False;
-
-  PPN := FindNode(S);
-
-  if PPN^ <> nil then
-  begin
-    if not PPN^^.IsInt then
-      Assert(False);
-
-    Result := True;
-    AnIntValue := PPN^^.IntVal;
-  end
-  else
-    Assert(False);
-end;
-
-procedure TStyleHash.Clear;
-var
-  I: Integer;
-  PPN: PPHashNode;
-begin
-  for I := 0 to FHashSize - 1 do
-  begin
-    PPN := @FList^[I];
-    if PPN^ <> nil then
-      DeleteNodes(PPN^);
-  end;
-  FCount := 0;
-end;
-
-procedure TStyleHash.DeleteNodes(var Q: PHashNode);
-begin
-  if Q^.Left <> nil then
-    DeleteNodes(Q^.Left);
-  if Q^.Right <> nil then
-    DeleteNodes(Q^.Right);
-  FreeNode(Q);
-  Q := nil;
-end;
-
-procedure TStyleHash.DeleteNode(var Q: PHashNode);
-var
-  T, R, S: PHashNode;
-begin
-  { we must delete node Q without destroying binary tree }
-  { Knuth 6.2.2 D (pg 432 Vol 3 2nd ed) }
-
-  { alternating between left / right delete to preserve decent
-    performance over multiple insertion / deletion }
-  FLeftDelete := not FLeftDelete;
-
-  { T will be the node we delete }
-  T := Q;
-
-  if FLeftDelete then
-  begin
-    if T^.Right = nil then
-      Q := T^.Left
-    else
-    begin
-      R := T^.Right;
-      if R^.Left = nil then
-      begin
-        R^.Left := T^.Left;
-        Q := R;
-      end
-      else
-      begin
-        S := R^.Left;
-        if S^.Left <> nil then
-          repeat
-            R := S;
-            S := R^.Left;
-          until S^.Left = nil;
-        { now, S = symmetric successor of Q }
-        S^.Left := T^.Left;
-        R^.Left :=  S^.Right;
-        S^.Right := T^.Right;
-        Q := S;
-      end;
-    end;
-  end
-  else
-  begin
-    if T^.Left = nil then
-      Q := T^.Right
-    else
-    begin
-      R := T^.Left;
-      if R^.Right = nil then
-      begin
-        R^.Right := T^.Right;
-        Q := R;
-      end
-      else
-      begin
-        S := R^.Right;
-        if S^.Right <> nil then
-          repeat
-            R := S;
-            S := R^.Right;
-          until S^.Right = nil;
-        { now, S = symmetric predecessor of Q }
-        S^.Right := T^.Right;
-        R^.Right := S^.Left;
-        S^.Left := T^.Left;
-        Q := S;
-      end;
-    end;
-  end;
-
-  { we decrement before because the tree is already adjusted
-    => any exception in FreeNode MUST be ignored.
-
-    It's unlikely that FreeNode would raise an exception anyway. }
-  Dec(FCount);
-  FreeNode(T);
-end;
-
-procedure TStyleHash.FreeNode(ANode: PHashNode);
-begin
-  Dispose(ANode);
-end;
-
-function TStyleHash.AllocNode: PHashNode;
-begin
-  New(Result);
-  Result^.Left := nil;
-  Result^.Right := nil;
-end;
-
-function TStyleHash.FindNode(const S: string): PPHashNode;
-var
-  I: Cardinal;
-  R: Integer;
-  PPN: PPHashNode;
-begin
-  { we start at the node offset by S in the hash list }
-  I := Hash(S) mod FHashSize;
-
-  PPN := @FList^[I];
-
-  if PPN^ <> nil then
-    while True do
-    begin
-      R := Compare(S, PPN^^.Str);
-
-      { left, then right, then match }
-      if R < 0 then
-        PPN := @PPN^^.Left
-      else
-      if R > 0 then
-        PPN := @PPN^^.Right
-      else
-        Break;
-
-      { check for empty position after drilling left or right }
-      if PPN^ = nil then
-        Break;
-    end;
-
-  Result := PPN;
-end;
-
-function TStyleHash.Hash(const S: string): Cardinal;
-  const
-  cLongBits = 32;
-  cOneEight = 4;
-  cThreeFourths = 24;
-  cHighBits = $F0000000;
-var
-  I: Integer;
-  P: PChar;
-  Temp: Cardinal;
-begin
-  { TODO : I should really be processing 4 bytes at once... }
-  Result := 0;
-  P := PChar(S);
-
-  I := Length(S);
-  while I > 0 do
-  begin
-    Result := (Result shl cOneEight) + Ord(UpCase(P^));
-    Temp := Result and cHighBits;
-    if Temp <> 0 then
-      Result := (Result xor (Temp shr cThreeFourths)) and (not cHighBits);
-    Dec(I);
-    Inc(P);
-  end;
-end;
-
-function TStyleHash.Compare(const L, R: string): Integer;
-begin
-  Result := CompareText(L, R);
-end;
-
 { TgdStyleManager }
 
 constructor TgdStyleManager.Create;
 begin
   inherited;
 
-  FStyleHash := TStyleHash.Create;
+  FStyleList := TStringHashMap.Create(CaseInsensitiveTraits, 1024);
 end;
 
 destructor TgdStyleManager.Destroy;
 begin
-  FStyleHash.Free;
+  ClearData;
+  FStyleList.Free;
 
   inherited;
+end;
+
+function TgdStyleManager.FindStr(const S: String; out AStrValue: String): Boolean;
+var
+  PS: PStyle;
+begin
+  Result := FStyleList.Find(S, PS);
+
+  if Result then
+  begin
+    if PS^.IsInt then
+      Assert(False);
+
+    AStrValue := PS^.StrVal;
+  end;
+end;
+
+function TgdStyleManager.FindInt(const S: String; out AnIntValue: Integer): Boolean;
+var
+  PS: PStyle;
+begin
+  Result := FStyleList.Find(S, PS);
+
+  if Result then
+  begin
+    if not PS^.IsInt then
+      Assert(False);
+
+    AnIntValue := PS^.IntVal;
+  end;
+end;
+
+procedure TgdStyleManager.AddStr(const S: string; const AStrValue: String);
+var
+  PS: PStyle;
+  P: Pointer;
+begin
+  if FStyleList.Find(S, P) then
+    Assert(False);
+
+  New(PS);
+  PS^.StrVal := AStrValue;
+  PS^.IsInt := False;
+
+  FStyleList.Add(S, PS);
+end;
+
+procedure TgdStyleManager.AddInt(const S: string; AnIntValue: Integer);
+var
+  PS: PStyle;
+  P: Pointer;
+begin
+  if FStyleList.Find(S, P) then
+    Assert(False);
+
+  New(PS);
+  PS^.IntVal := AnIntValue;
+  PS^.IsInt := True;
+
+  FStyleList.Add(S, PS);
+end;
+
+procedure TgdStyleManager.Remove(const S: string);
+var
+  PS: PStyle;
+begin
+  PS := FStyleList.Remove(S);
+  Dispose(PS);
+end;
+
+procedure TgdStyleManager.ClearData;
+begin
+  FStyleList.IterateMethod(nil, Iterate_FreeStyle);
+end;
+
+function TgdStyleManager.Iterate_FreeStyle(AUserData: PUserData; const AStr: string; var AData {$IFNDEF CLR}: PData{$ENDIF}): Boolean;
+var
+  PS: PStyle;
+begin
+  PS := AData;
+  Dispose(PS);
+  AData := nil;
+  Result := True;
 end;
 
 procedure TgdStyleManager.LoadFromDB;
@@ -710,20 +463,20 @@ begin
 
       if not q.FieldByName('strvalue').IsNull then
       begin
-        FStyleHash.AddStr(S, q.FieldByName('strvalue').AsString);
+        AddStr(S, q.FieldByName('strvalue').AsString);
 
         //проверка//
-        Assert(FStyleHash.FindStr(S, Str));
+        Assert(FindStr(S, Str));
         Assert(Str = q.FieldByName('strvalue').AsString);
         ////////////
       end
 
       else if not q.FieldByName('intvalue').IsNull then
       begin
-        FStyleHash.AddInt(S, q.FieldByName('intvalue').AsInteger);
+        AddInt(S, q.FieldByName('intvalue').AsInteger);
 
         //проверка//
-        Assert(FStyleHash.FindInt(S, Int));
+        Assert(FindInt(S, Int));
         Assert(Int = q.FieldByName('intvalue').AsInteger);
         ////////////
       end
