@@ -143,6 +143,10 @@ const
   // gdWebClientControl
   WM_GD_FINISH_SEND_EMAIL      = WM_USER + 11126;
 
+  //hidden server
+  WM_GD_HS_POOL                = WM_USER + 11700;
+  //WM_GD_HS_RESULT              = WM_USER + 11701;
+
   // at_classes_body
   WM_STARTMULTITRANSACTION     = WM_USER + 12653;
   WM_LOGOFF                    = WM_USER + 12654;

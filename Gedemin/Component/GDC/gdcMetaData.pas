@@ -3458,13 +3458,14 @@ begin
         atDatabase.NotifyMultiConnectionTransaction;
       end;
 
-      {Сделано через системную таюлицу, чтобы хоть каким-то образом восстановить порядок полей}
-      if (sLoadFromStream in BaseState) and Self.IsUserDefined  then
-        FQuery.Add(Format('UPDATE rdb$relation_fields SET rdb$field_position = %0:d ' +
-          ' WHERE rdb$relation_name = ''%2:s'' AND rdb$field_name = ''%1:s'' ',
-        [FieldByName('rdb$field_position').AsInteger,
-         AnsiUpperCase(Trim(FieldByName('fieldname').AsString)),
-         AnsiUpperCase(FieldByName('relationname').AsString)]));
+      if (sLoadFromStream in BaseState) and Self.IsUserDefined
+        and (not FieldByName('rdb$field_position').IsNull) then
+      begin
+        FQuery.Add(Format('ALTER TABLE %2:s ALTER COLUMN %1:s POSITION %0:d ',
+          [FieldByName('rdb$field_position').AsInteger + 1,
+           FieldByName('fieldname').AsString,
+           FieldByName('relationname').AsString]));
+      end;
 
       ShowSQLProcess(FQuery);
 
@@ -3604,18 +3605,16 @@ begin
       end;
     end;
 
-    {Сделано через системные таблицы чтобы хоть как-то сохранить порядок полей}
-    if (sLoadFromStream in BaseState) and Self.IsUserDefined then
+    if (sLoadFromStream in BaseState) and Self.IsUserDefined
+      and (not FieldByName('rdb$field_position').IsNull) then
     begin
-      FQuery.Add(Format('UPDATE rdb$relation_fields SET rdb$field_position = %0:d ' +
-        ' WHERE rdb$relation_name = ''%2:s'' AND rdb$field_name = ''%1:s'' ',
-        [FieldByName('rdb$field_position').AsInteger,
-         AnsiUpperCase(Trim(FieldByName('fieldname').AsString)),
-         AnsiUpperCase(FieldByName('relationname').AsString)]));
+      FQuery.Add(Format('ALTER TABLE %2:s ALTER COLUMN %1:s POSITION %0:d ',
+        [FieldByName('rdb$field_position').AsInteger + 1,
+         FieldByName('fieldname').AsString,
+         FieldByName('relationname').AsString]));
     end;
 
     ShowSQLProcess(FQuery);
-
   finally
     FQuery.Free;
   end;

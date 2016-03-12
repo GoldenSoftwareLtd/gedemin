@@ -62,7 +62,8 @@ implementation
 {$R *.DFM}
 
 uses
-  Storages,  gd_ClassList, gdcCurr, Gedemin_TLB, gsStorage_CompPath
+  Storages,  gd_ClassList, gdcCurr, Gedemin_TLB, gsStorage_CompPath,
+  gd_CmdLineParams_unit, gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -325,11 +326,22 @@ begin
       ARate := gdcCurr.gs_GetCurrRate(gdcObject.FieldByName('documentdate').AsDateTime,
         ibsql1.FieldByName('currkey').AsInteger, gdcObject.ReadTransaction);
 
-      if gdcObject.FieldByName('rate').IsNull or ((ARate <> gdcObject.FieldByName('rate').AsCurrency)  and
-         (MessageBox(0, PChar(Format('Введенный курс %g не соответствует курсу справочника %g.'#13#10 +
-          'Изменить курс на курс из справочника?', [gdcObject.FieldByName('rate').AsCurrency,
-          ARate])), 'Внимание', MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL or MB_DEFBUTTON2) = IDYES))
-      then
+      if gdcObject.FieldByName('rate').IsNull
+        or
+        (
+          (ARate <> gdcObject.FieldByName('rate').AsCurrency)
+          and
+          (not gd_CmdLineParams.QuietMode)
+          and
+          (not Global_LoadingNamespace)
+          and
+          (MessageBox(0,
+            PChar(Format('Введенный курс %g не соответствует курсу справочника %g.'#13#10 +
+              'Изменить курс на курс из справочника?',
+              [gdcObject.FieldByName('rate').AsCurrency, ARate])),
+            'Внимание',
+            MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL or MB_DEFBUTTON2) = IDYES)
+        ) then
       begin
         NotDoFieldChange := True;
         try

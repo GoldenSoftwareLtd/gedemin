@@ -1226,6 +1226,7 @@ begin
 
         FIBSQL.SQL.Text :=
           'CREATE OR ALTER TRIGGER gd_aiu_companyaccount FOR gd_companyaccount '#13#10 +
+          '  INACTIVE '#13#10 +
           '  AFTER INSERT OR UPDATE '#13#10 +
           '  POSITION 30000 '#13#10 +
           'AS '#13#10 +
@@ -1477,6 +1478,12 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
           '  VALUES (245, ''0000.0001.0000.0276'', ''12.02.2016'', ''Fixed minor bugs.'') '#13#10 +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo '#13#10 +
+          '  VALUES (246, ''0000.0001.0000.0277'', ''11.03.2016'', ''Fixed minor bugs.'') '#13#10 +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally

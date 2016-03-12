@@ -48,6 +48,9 @@ type
     function GetWebServerBindings: String;
     function GetWebServerUpdatePath: String;
 
+    function GetRelayServer: String;
+    function GetRelayAlias: String;
+
     function GetExternalEditor(const ALang: String): String;
     function GetExternalDiff(const ALang: String): String;
 
@@ -259,6 +262,16 @@ begin
   {$IFDEF GEDEMIN_LOCK}
   FIniFile.WriteString('WEB CLIENT', 'InnerParam', Value);
   {$ENDIF}
+end;
+
+function Tgd_GlobalParams.GetRelayAlias: String;
+begin
+  Result := FIniFile.ReadString('WEB SERVER', 'RelayAlias', '');
+end;
+
+function Tgd_GlobalParams.GetRelayServer: String;
+begin
+  Result := FIniFile.ReadString('WEB SERVER', 'RelayServer', '');
 end;
 
 initialization

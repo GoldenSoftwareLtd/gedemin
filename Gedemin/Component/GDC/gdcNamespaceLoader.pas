@@ -60,6 +60,7 @@ type
     FNSList: TgdKeyArray;
     FIgnoreMissedFields: Boolean;
     FUnMethod: Boolean;
+    FNeedClearObjectCache: Boolean;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -114,7 +115,11 @@ uses
   at_sql_metadata, gd_common_functions, gdcNamespaceRecCmpController,
   gdcMetadata, gdcFunction, gd_directories_const, mtd_i_Base, evt_i_Base,
   gd_CmdLineParams_unit, at_dlgNamespaceRemoveList_unit,
-  gd_WebClientControl_unit, gdcContacts, gd_AutoTaskThread;
+  gd_WebClientControl_unit, gdcContacts,
+  {$IFDEF WITH_INDY}
+  gdccGlobal,
+  {$ENDIF}
+  gd_AutoTaskThread;
 
 var
   FNexus: TgdcNamespaceLoaderNexus;
@@ -503,6 +508,9 @@ var
   CharReplace: LongBool;
   OldUnMethodMacro: Boolean;
   NewNS: Boolean;
+  {$IFDEF WITH_INDY}
+  Progress: TgdccProgress;
+  {$ENDIF}
 begin
   Assert(not FLoading);
   Assert(AList <> nil);
@@ -518,7 +526,14 @@ begin
 
   OldUnMethodMacro := UnMethodMacro;
   UnMethodMacro := FUnMethod;
+  {$IFDEF WITH_INDY}
+  Progress := TgdccProgress.Create;
+  {$ENDIF}
   try
+    {$IFDEF WITH_INDY}
+    Progress.StartWork('Загрузка ПИ', 'Загрузка ПИ', AList.Count);
+    {$ENDIF}
+
     if UnMethodMacro then
       AddText('На время загрузки будут отключены перекрытые методы.');
 
@@ -531,6 +546,10 @@ begin
 
     for I := 0 to AList.Count - 1 do
     begin
+      {$IFDEF WITH_INDY}
+      Progress.StartStep(AList[I]);
+      {$ENDIF}
+
       if FLoadedNSList.IndexOf(AList[I]) > -1 then
         continue;
 
@@ -770,9 +789,16 @@ begin
       q.Free;
       FTr.Commit;
     end;
+
+    {$IFDEF WITH_INDY}
+    Progress.EndWork('');
+    {$ENDIF}
   finally
     UnMethodMacro := OldUnMethodMacro;
     Global_LoadingNamespace := False;
+    {$IFDEF WITH_INDY}
+    Progress.Free;
+    {$ENDIF}
   end;
 
   FLoading := False;
@@ -844,6 +870,8 @@ var
   ObjPosted, ObjPreserved, CrossTableCreated: Boolean;
   NeedSecondPass, PartialOverwrite: Boolean;
   TempMapping: TyamlMapping;
+  ObjInserted: Boolean;
+  R: TatRelation;
 begin
   ObjPosted := False;
   ObjPreserved := False;
@@ -1002,9 +1030,14 @@ begin
       NeedSecondPass := CopyRecord(Obj, Fields, nil);
 
     if Obj.State = dsInsert then
-      S := 'Создан объект: '
-    else
+    begin
+      ObjInserted := True;
+      S := 'Создан объект: ';
+    end else
+    begin
+      ObjInserted := False;
       S := 'Изменен объект: ';
+    end;
 
     S := S + Obj.ObjectName + ' (' + Obj.ClassName + Obj.SubType + ', ' + IntToStr(Obj.ID) + ')';
 
@@ -1025,8 +1058,25 @@ begin
     if ObjName = '' then
       ObjName := Obj.GetDisplayName(Obj.SubType);
 
-    if (Obj is TgdcRelationField) and (Obj.FieldByName('crosstable').AsString > '') then
-      CrossTableCreated := True;
+    if Obj is TgdcRelationField then
+    begin
+      if Obj.FieldByName('crosstable').AsString > '' then
+        CrossTableCreated := True
+      else
+      if ObjInserted then
+      begin
+        R := atDatabase.Relations.ByRelationName(Obj.FieldByName('relationname').AsString);
+        if (R <> nil)
+          and (R.PrimaryKey <> nil)
+          and (R.PrimaryKey.ConstraintFields <> nil)
+          and (R.PrimaryKey.ConstraintFields.Count = 2)
+          and (R.PrimaryKey.ConstraintFields[0].References <> nil)
+          and (R.PrimaryKey.ConstraintFields[1].References <> nil) then
+        begin
+          FNeedClearObjectCache := True;
+        end;
+      end;
+    end;
 
     Obj.Close;
 
@@ -1219,6 +1269,13 @@ var
   HashKey: String;
   C: TPersistentClass;
 begin
+  if FNeedClearObjectCache then
+  begin
+    FgdcObjectCache.Iterate(nil, Iterate_FreeObjects);
+    FgdcObjectCache.Clear;
+    FNeedClearObjectCache := False;
+  end;
+
   HashKey := AClassName + ASubType;
 
   if not FgdcObjectCache.Find(HashKey, Result) then
@@ -1286,6 +1343,7 @@ begin
           q.ExecQuery;
 
           q.SQL.Text := AnObj.SetAttributes[J].InsertSQL;
+          AddText(q.SQL.Text);
           for K := 0 to Items.Count - 1 do
           begin
             if not (Items[K] is TYAMLMapping) then

@@ -1760,7 +1760,7 @@ begin
             ibsql.Next;
           end;
 
-          if (ibsql.RecordCount > 0) then
+          if not ibsql.EOF then
           begin
             if MessageBox(0, PChar('Р/с ' + FieldByName('account').AsString +
               ' код банка ' + FieldByName('bankcode').AsString +

@@ -8,9 +8,11 @@ uses
 
 type
   TatLogType = (atltInfo, atltWarning, atltError);
+  TatLogTypes = set of TatLogType;
 
   TatLogRec = record
     LogType: TatLogType;
+    Src: Integer;
     Logged: TDateTime;
     Offset: Int64;
   end;
@@ -19,20 +21,29 @@ type
   private
     FCount, FSize: Integer;
     FArray: array of TatLogRec;
+    FFilterCount, FFilterSize: Integer;
+    FFilterArray: array of Integer;
     FStream: TgsStream64;
     FWasError: Boolean;
     FReposition: Boolean;
     FErrorArray: TgdKeyArray;
+    FSources: TStringList;
+    FFilterStr: String;
+    FFilterSrc: String;
+    FFilterTypes: TatLogTypes;
 
     function GetLogRec(Index: Integer): TatLogRec;
     function GetLogText(Index: Integer): String;
     function GetErrorCount: Integer;
+    function GetSources(Index: Integer): String;
+    function FilterRecord(const Index: Integer): Boolean;
 
   public
     constructor Create;
     destructor Destroy; override;
 
-    procedure AddRecord(const S: String; const ALogType: TatLogType = atltInfo);
+    procedure AddRecord(const S: String; const ALogType: TatLogType = atltInfo); overload;
+    procedure AddRecord(const ASrc: String; const S: String; const ALogType: TatLogType = atltInfo); overload;
     procedure Clear;
     function GetRealErrorRecIndex(AListIndex: Integer): Integer;
     procedure SaveToFile(const AFileName: String);
@@ -45,6 +56,10 @@ type
     property WasError: Boolean read FWasError;
     property LogRec[Index: Integer]: TatLogRec read GetLogRec;
     property LogText[Index: Integer]: String read GetLogText;
+    property Sources[Index: Integer]: String read GetSources;
+    property FilterStr: String read FFilterStr;
+    property FilterSrc: String read FFilterSrc;
+    property FilterTypes: TatLogTypes read FFilterTypes;
   end;
 
 implementation
@@ -54,7 +69,7 @@ uses
 
 { TatLog }
 
-procedure TatLog.AddRecord(const S: String; const ALogType: TatLogType);
+procedure TatLog.AddRecord(const ASrc: String; const S: String; const ALogType: TatLogType);
 begin
   if FStream = nil then
     FStream := TgsStream64.Create;
@@ -78,7 +93,28 @@ begin
   FArray[FCount].Logged := Now;
   FArray[FCount].Offset := FStream.Position;
 
+  FArray[FCount].Src := FSources.IndexOf(ASrc);
+  if FArray[FCount].Src = -1 then
+  begin
+    FSources.Add(ASrc);
+    FArray[FCount].Src := FSources.IndexOf(ASrc);
+  end;
+
   FStream.WriteString(S);
+
+  if FilterRecord(FCount) then
+  begin
+    if FFilterCount >= FFilterSize then
+    begin
+      if FFilterSize = 0 then
+        FFilterSize := 64
+      else
+        FFilterSize := FFilterSize * 2;
+      SetLength(FFilterArray, FFilterSize);
+    end;
+    FFilterArray[FFilterCount] := FCount;
+    Inc(FFilterCount);
+  end;
 
   if (ALogType = atltError) or (ALogType = atltWarning) then
   begin
@@ -90,12 +126,21 @@ begin
   Inc(FCount);
 end;
 
+procedure TatLog.AddRecord(const S: String;
+  const ALogType: TatLogType);
+begin
+  AddRecord('', S, ALogType);
+end;
+
 procedure TatLog.Clear;
 begin
   FreeAndNil(FStream);
   SetLength(FArray, 0);
   FSize := 0;
   FCount := 0;
+  SetLength(FFilterArray, 0);
+  FFilterSize := 0;
+  FFilterCount := 0;
   FWasError := False;
   FErrorArray.Clear;
 end;
@@ -103,6 +148,7 @@ end;
 constructor TatLog.Create;
 begin
   FErrorArray := TgdKeyArray.Create;
+  FSources := TStringList.Create;
 end;
 
 destructor TatLog.Destroy;
@@ -110,7 +156,13 @@ begin
   FreeAndNil(FErrorArray);
   FStream.Free;
   SetLength(FArray, 0);
+  FSources.Free;
   inherited;
+end;
+
+function TatLog.FilterRecord(const Index: Integer): Boolean;
+begin
+  Result := True;
 end;
 
 function TatLog.GetErrorCount: Integer;
@@ -137,6 +189,11 @@ begin
     Result := FErrorArray.Keys[AListIndex]
   else
     Result := AListIndex;
+end;
+
+function TatLog.GetSources(Index: Integer): String;
+begin
+  Result := FSources[Index];
 end;
 
 procedure TatLog.SaveToFile(const AFileName: String);

@@ -45,7 +45,7 @@ uses
   gdcConstants, frOLEExl,       frXMLExl,       gdcBaseInterface,
   FR_E_TXT,     FR_E_RTF,       frRtfExp
   {$IFDEF FR4}
-  ,rp_FR4Functions
+  ,rp_FR4Functions //, syQRCode
   {$ENDIF}
   ;
 

@@ -376,10 +376,9 @@ begin
       if SkipField(F.FieldName) then
         continue;
 
-      if Pos('"INV_CARD".', F.Origin) = 1 then
+      if ('"INV_CARD"."FROMCARDKEY"' = F.Origin) or ('"INV_CARD"."TOCARDKEY"' = F.Origin) then
       begin
-        if F.FieldName <> 'GOODKEY' then
-          continue;
+        continue;
       end;
 
       if AgdcObject is TgdcMetaBase then
@@ -1574,7 +1573,7 @@ const
     ';RDB$TRIGGER_BLR;RDB$PROCEDURE_BLR;RDB$VIEW_BLR;RDB$SECURITY_CLASS' +
     ';RDB$PROCEDURE_NAME;RDB$PROCEDURE_ID;RDB$PROCEDURE_INPUTS;RDB$PROCEDURE_OUTPUTS' +
     ';RDB$PROCEDURE_OUTPUTS;RDB$PROCEDURE_SOURCE;RDB$OWNER_NAME;RDB$RUNTIME' +
-    ';RDB$SYSTEM_FLAG;RDB$INDEX_ID;LASTNUMBER;READCOUNT;' +
+    ';RDB$SYSTEM_FLAG;RDB$INDEX_ID;LASTNUMBER;READCOUNT;RDB$FIELD_POSITION;' +
     ';FROMCARDKEY;TOCARDKEY;PRINTDATE;EXCEPTIONNUMBER;RUNONLOGIN;';
 begin
   Result := (StrIPos(AFieldName, PassFieldName) > 0) and
