@@ -11219,7 +11219,7 @@ function TgdcBase.GetObjectName: String;
 begin
   if Active and (not IsEmpty) then
   begin
-    if AnsiCompareText(GetListField(SubType), GetKeyField(SubType)) = 0 then
+    if AnsiSameText(GetListField(SubType), GetKeyField(SubType)) then
       Result := GetDisplayName(SubType) + ', РУИД: ' + RUIDToStr(GetRUID)
     else
       Result := Trim(FieldByName(GetListField(SubType)).AsString);
@@ -17961,6 +17961,7 @@ begin
   FInsertSQL := AnInsertSQL;
   FCaption := ACaption;
   FHasAdditionalFields := AHasAdditionalFields;
+  //AddText('Сформирован запрос множества для ' + FCrossRelationName);
 end;
 
 function TgdcBase.GetSetAttributes(Index: Integer): TgdcSetAttribute;

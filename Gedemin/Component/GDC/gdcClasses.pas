@@ -122,6 +122,7 @@ type
 
     class function GetDocumentClassPart: TgdcDocumentClassPart; virtual;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+    function GetObjectName: String; override;
 
     class function HasLeafs: Boolean; override;
 
@@ -1994,6 +1995,16 @@ begin
     FDocumentTypeKey := -1;
     FBranchKey := -1;
   end;
+end;
+
+function TgdcDocument.GetObjectName: String;
+begin
+  if Active and (not IsEmpty) then
+  begin
+    Result := GetDisplayName(SubType) + ', № ' + FieldByName('number').AsString +
+      ' от ' + FormatDateTime('dd.mm.yyyy', FieldbyName('documentdate').AsDateTime)
+  end else
+    Result := FObjectName;
 end;
 
 { TgdcBaseDocumentType }

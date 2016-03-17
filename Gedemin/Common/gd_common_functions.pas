@@ -8,11 +8,17 @@ uses
 
 function GetCurEXEVersion: String;
 procedure SaveStringToStream(const Str: String; Stream: TStream);
-function ReadStringFromStream(Stream: TStream): string;
-procedure SaveBooleanToStream(Value: Boolean; Stream: TStream);
+function ReadStringFromStream(Stream: TStream): String;
+procedure SaveBooleanToStream(const Value: Boolean; Stream: TStream);
 function ReadBooleanFromStream(Stream: TStream): Boolean;
-procedure SaveIntegerToStream(Value: Integer; Stream: TStream);
+procedure SaveIntegerToStream(const Value: Integer; Stream: TStream);
 function ReadIntegerFromStream(Stream: TStream): Integer;
+procedure SaveCardinalToStream(const Value: Cardinal; Stream: TStream);
+function ReadCardinalFromStream(Stream: TStream): Cardinal;
+procedure SaveDateTimeToStream(const Value: TDateTime; Stream: TStream);
+function ReadDateTimeFromStream(Stream: TStream): TDateTime;
+procedure SaveStreamToStream(Value: TStream; Stream: TStream);
+procedure ReadStreamFromStream(Dest: TStream; Source: TStream);
 // возвращает корректное имя файла (оставляет допустимые символы)
 function CorrectFileName(const FN: String): String;
 procedure ParseDatabaseName(ADatabaseName: String; out AServer: String;
@@ -160,26 +166,24 @@ begin
     Stream.WriteBuffer(Str[1], L);
 end;
 
-function ReadStringFromStream(Stream: TStream): string;
+function ReadStringFromStream(Stream: TStream): String;
 var
   L: Integer;
-  Str: String;
 begin
   Stream.ReadBuffer(L, SizeOf(L));
-  SetLength(str, L);
   if L > 0 then
-    Stream.ReadBuffer(str[1], L)
+  begin
+    SetLength(Result, L);
+    Stream.ReadBuffer(Result[1], L);
+  end else if L < 0 then
+    raise Exception.Create('Invalid stream format')
   else
-    Str := '';
-  Result := Str;
+    Result := '';
 end;
 
-procedure SaveBooleanToStream(Value: Boolean; Stream: TStream);
-var
-  B: Boolean;
+procedure SaveBooleanToStream(const Value: Boolean; Stream: TStream);
 begin
-  B := Value;
-  Stream.WriteBuffer(B, SizeOf(B));
+  Stream.WriteBuffer(Value, SizeOf(Value));
 end;
 
 function ReadBooleanFromStream(Stream: TStream): Boolean;
@@ -187,17 +191,60 @@ begin
   Stream.ReadBuffer(Result, SizeOf(Result));
 end;
 
-procedure SaveIntegerToStream(Value: Integer; Stream: TStream);
-var
-  B: Integer;
+procedure SaveIntegerToStream(const Value: Integer; Stream: TStream);
 begin
-  B := Value;
-  Stream.WriteBuffer(B, SizeOf(B));
+  Stream.WriteBuffer(Value, SizeOf(Value));
 end;
 
 function ReadIntegerFromStream(Stream: TStream): Integer;
 begin
   Stream.ReadBuffer(Result, SizeOf(Result));
+end;
+
+procedure SaveCardinalToStream(const Value: Cardinal; Stream: TStream);
+begin
+  Stream.WriteBuffer(Value, SizeOf(Value));
+end;
+
+function ReadCardinalFromStream(Stream: TStream): Cardinal;
+begin
+  Stream.ReadBuffer(Result, SizeOf(Result));
+end;
+
+procedure SaveDateTimeToStream(const Value: TDateTime; Stream: TStream);
+begin
+  Stream.WriteBuffer(Value, SizeOf(Value));
+end;
+
+function ReadDateTimeFromStream(Stream: TStream): TDateTime;
+begin
+  Stream.ReadBuffer(Result, SizeOf(Result));
+end;
+
+procedure SaveStreamToStream(Value: TStream; Stream: TStream);
+var
+  Size: Integer;
+begin
+  if Value = nil then
+    Size := 0
+  else
+    Size := Value.Size;
+
+  Stream.WriteBuffer(Size, SizeOf(Size));
+
+  if Size > 0 then
+    Stream.CopyFrom(Value, 0);
+end;
+
+procedure ReadStreamFromStream(Dest: TStream; Source: TStream);
+var
+  Size: Integer;
+begin
+  Source.ReadBuffer(Size, SizeOf(Size));
+  if Size > 0 then
+    Dest.CopyFrom(Source, Size)
+  else if Size < 0 then
+    raise Exception.Create('Invalid stream format');
 end;
 
 function TryObjectBinaryToText(var S: String): Boolean;

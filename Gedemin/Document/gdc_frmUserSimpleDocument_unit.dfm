@@ -1,13 +1,13 @@
 inherited gdc_frmUserSimpleDocument: Tgdc_frmUserSimpleDocument
-  Left = 241
-  Top = 120
+  Left = 616
+  Top = 219
   Width = 783
   Height = 540
   Caption = 'gdc_frmUserSimpleDocument'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 483
+    Top = 482
     Width = 767
   end
   inherited TBDockTop: TTBDock
@@ -22,39 +22,39 @@ inherited gdc_frmUserSimpleDocument: Tgdc_frmUserSimpleDocument
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 423
+    Height = 422
   end
   inherited TBDockRight: TTBDock
     Left = 758
-    Height = 423
+    Height = 422
   end
   inherited TBDockBottom: TTBDock
-    Top = 474
+    Top = 473
     Width = 767
   end
   inherited pnlWorkArea: TPanel
     Width = 749
-    Height = 423
+    Height = 422
     inherited spChoose: TSplitter
-      Top = 320
+      Top = 319
       Width = 749
     end
     inherited pnlMain: TPanel
       Width = 749
-      Height = 320
+      Height = 319
       inherited pnlSearchMain: TPanel
-        Height = 320
+        Height = 319
         inherited sbSearchMain: TScrollBox
-          Height = 293
+          Height = 292
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 589
-        Height = 320
+        Height = 319
       end
     end
     inherited pnChoose: TPanel
-      Top = 324
+      Top = 323
       Width = 749
       inherited pnButtonChoose: TPanel
         Left = 644

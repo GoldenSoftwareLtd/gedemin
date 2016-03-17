@@ -428,6 +428,7 @@ ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_companyaccountkey
 SET TERM ^ ;
 
 CREATE OR ALTER TRIGGER gd_aiu_companyaccount FOR gd_companyaccount
+  INACTIVE
   AFTER INSERT OR UPDATE
   POSITION 30000
 AS

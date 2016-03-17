@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -603,7 +603,7 @@ begin
               References.RelationName,
               Relations[I - 1].AliasName,
               FieldName,
-              References.PrimaryKey.ConstraintFields.ByPos(0).FieldName
+              References.PrimaryKey.ConstraintFields[0].FieldName
             ]
           );
 
