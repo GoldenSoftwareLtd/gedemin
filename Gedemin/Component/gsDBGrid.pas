@@ -533,6 +533,7 @@ type
     FTotalType: TgsTotalType;
     FFrozen: Boolean;
     FTotalWidth: Integer;
+    FSerialNumber: Integer;
 
     function GetGrid: TgsCustomDBGrid;
 
@@ -575,6 +576,8 @@ type
     property FilteredCache: TStringList read FFilteredCache write FFilteredCache;
     property Filtered: Boolean read FFiltered write FFiltered; 
     property TotalWidth: Integer read FTotalWidth write FTotalWidth;
+    property SerialNumber: Integer read FSerialNumber write FSerialNumber;
+    
   published
     property Alignment stored IsAlignmentStored;
     property Color stored IsColorStored;
@@ -948,7 +951,9 @@ type
 
     procedure GetValueFromValueList(AColumn: TColumn; var AValue: String); virtual;
 
-    procedure ReadSettings; virtual;
+    procedure ReadSettings;
+    procedure ReadGridSettings;
+    procedure ReadColumnsSetting;
     //
     // Вычисляет кол-во линий
     property LineCount: Integer read GetLineCount;
@@ -3174,6 +3179,8 @@ begin
 
   FFrozen := False;
   FTotalWidth := -1;
+
+  FSerialNumber := -1;
 end;
 
 function TgsColumn.CreateTitle: TColumnTitle;
@@ -10190,6 +10197,127 @@ begin
 end;
 
 procedure TgsCustomDBGrid.ReadSettings;
+begin
+  ReadGridSettings;
+
+  ReadColumnsSetting;
+end;
+
+procedure TgsCustomDBGrid.ReadColumnsSetting;
+var
+  StrValue: String;
+  IntValue: Integer;
+  BoolValue: Boolean;
+  InitialName: String;
+  ObjectName: String;
+  I: Integer;
+begin
+  if Owner = nil then
+    raise Exception.Create('owner is not defined');
+
+  if (Owner is TCreateableForm) and (Self.Name > '') then
+    InitialName := (Owner as TCreateableForm).InitialName
+  else
+    Exit;
+
+  for I := 0 to Columns.Count - 1 do
+  begin
+    if Columns[I].FieldName = '' then
+      raise Exception.Create('owner is not defined');
+
+    ObjectName := InitialName + ',' + Self.Name + ',' + Columns[I].FieldName;
+
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnTitleCaption, StrValue) then
+      Columns[I].Title.Caption := StrValue;
+
+    if Columns is TgsColumns then
+      if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnDisplayFormat, StrValue) then
+        (Columns as TgsColumns)[I].DisplayFormat;
+
+    if gdStyleManager.EvalColumnBoolValue(ObjectName, cColumnVisible, BoolValue) then
+      Columns[I].Visible := BoolValue;
+
+    if gdStyleManager.EvalColumnBoolValue(ObjectName, cColumnReadOnly, BoolValue) then
+      Columns[I].ReadOnly := BoolValue;
+
+    if Columns is TgsColumns then
+      if gdStyleManager.EvalColumnBoolValue(ObjectName, cColumnTotalSum, BoolValue) then
+        if BoolValue then
+          (Columns as TgsColumns)[I].TotalType := ttSum;
+
+    if gdStyleManager.EvalColumnIntValue(ObjectName, cColumnWidth, IntValue) then
+      Columns[I].Width := IntValue;
+
+    // Шрифт заголовка
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnTitleFontName, StrValue) then
+      Columns[I].Title.Font.Name := StrValue;
+
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnTitleFontColor, StrValue) then
+      Columns[I].Title.Font.Color := StringToColor(StrValue);
+
+    if gdStyleManager.EvalColumnIntValue(ObjectName, cColumnTitleFontHeight, IntValue) then
+      Columns[I].Title.Font.Height := IntValue;
+
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnTitleFontPitch, StrValue) then
+      Columns[I].Title.Font.Pitch := StringToFontPitch(StrValue);
+
+    if gdStyleManager.EvalColumnIntValue(ObjectName, cColumnTitleFontSize, IntValue) then
+      Columns[I].Title.Font.Size := IntValue;
+
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnTitleFontStyle, StrValue) then
+      Columns[I].Title.Font.Style := StringToFontStyle(StrValue);
+
+    if gdStyleManager.EvalColumnIntValue(ObjectName, cColumnTitleFontCharSet, IntValue) then
+      Columns[I].Title.Font.Charset := IntValue;
+
+    //Цвет заголовка
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnTitleColor, StrValue) then
+      Columns[I].Title.Color := StringToColor(StrValue);
+
+    //Шрифт колонки
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnFontName, StrValue) then
+      Columns[I].Font.Name := StrValue;
+
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnFontColor, StrValue) then
+      Columns[I].Font.Color := StringToColor(StrValue);
+
+    if gdStyleManager.EvalColumnIntValue(ObjectName, cColumnFontHeight, IntValue) then
+      Columns[I].Font.Height := IntValue;
+
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnFontPitch, StrValue) then
+      Columns[I].Font.Pitch := StringToFontPitch(StrValue);
+
+    if gdStyleManager.EvalColumnIntValue(ObjectName, cColumnFontSize, IntValue) then
+      Columns[I].Font.Size := IntValue;
+
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnFontStyle, StrValue) then
+      Columns[I].Font.Style := StringToFontStyle(StrValue);
+
+    if gdStyleManager.EvalColumnIntValue(ObjectName, cColumnFontCharSet, IntValue) then
+      Columns[I].Font.Charset := IntValue;
+
+    //Цвет колонки
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnColor, StrValue) then
+      Columns[I].Color := StringToColor(StrValue);
+
+    //Выравнивание в заголовке
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnTitleAlignment, StrValue) then
+      Columns[I].Title.Alignment := StringToAlignment(StrValue);
+
+    //Выравнивание в колонке
+    if gdStyleManager.EvalColumnStrValue(ObjectName, cColumnAlignment, StrValue) then
+      Columns[I].Alignment := StringToAlignment(StrValue);
+
+    //Порядковый номер
+    if Columns is TgsColumns then
+      if gdStyleManager.EvalColumnIntValue(ObjectName, cColumnSerialNumber, IntValue) then
+        (Columns as TgsColumns)[I].SerialNumber := IntValue;
+  end;
+
+  // Сделать сортировку
+end;
+
+procedure TgsCustomDBGrid.ReadGridSettings;
 var
   StrValue: String;
   IntValue: Integer;
@@ -10315,6 +10443,25 @@ begin
   if gdStyleManager.EvalGridStrValue(InitialName, Self.Name, cStripeEvenColor, StrValue) then
     StripeEven := StringToColor(StrValue);
 
+  // Расширенное отображение
+  if gdStyleManager.EvalGridBoolValue(InitialName, Self.Name, cExpandsActive, BoolValue) then
+    ExpandsActive := BoolValue;
+
+  // резделитель элементов расширенного отображения
+  if gdStyleManager.EvalGridBoolValue(InitialName, Self.Name, cExpandsSeparate, BoolValue) then
+    ExpandsSeparate := BoolValue;
+
+  // Сложное рисование заглавий
+  if gdStyleManager.EvalGridBoolValue(InitialName, Self.Name, cTitlesExpanding, BoolValue) then
+    TitlesExpanding := BoolValue;
+
+  // Используются ли уловия
+  if gdStyleManager.EvalGridBoolValue(InitialName, Self.Name, cConditionsActive, BoolValue) then
+    ConditionsActive := BoolValue;
+
+  // Режим растягивания колонок
+  if gdStyleManager.EvalGridBoolValue(InitialName, Self.Name, cScaleColumns, BoolValue) then
+    ScaleColumns := BoolValue;
 end;
 
 procedure TgsCustomDBGrid.WMContextMenu(var Message: TWMContextMenu);

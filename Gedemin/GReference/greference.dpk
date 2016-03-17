@@ -164,6 +164,7 @@ contains
   gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas',
   gdcSMTP in '..\Component\GDC\gdcSMTP.pas',
   gdcInvDocumentOptions in '..\Component\GDC\gdcInvDocumentOptions.pas',
-  rf_Control in '..\Component\rf_Control.pas';
+  rf_Control in '..\Component\rf_Control.pas',
+  gdcStyle in '..\Component\GDC\gdcStyle.pas';
 
 end.

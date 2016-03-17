@@ -116,6 +116,7 @@ const
 
   cColumnTitleAlignment     = 1079;
   cColumnAlignment          = 1080;
+  cColumnSerialNumber       = 1081;
 
   {//Default Values
   //Table
@@ -258,7 +259,7 @@ type
       out AnIntValue: Integer): Boolean;
     function GetBoolProp(const AnObjectNane: String;
       AnPropID: Integer; AStyleOwner: TStyleOwner;
-      out AnBoolValue: Boolean): Boolean;
+      out ABoolValue: Boolean): Boolean;
 
     procedure SetStrProp(const AnObjectNane: String;
       AnPropID: Integer; AStyleOwner: TStyleOwner;
@@ -268,19 +269,28 @@ type
       AnIntValue: Integer);
     procedure SetBoolProp(const AnObjectNane: String;
       AnPropID: Integer; AStyleOwner: TStyleOwner;
-      AnBoolValue: Boolean);
+      ABoolValue: Boolean);
 
     procedure Remove(const AnObjectNane: String;
       AnPropID: Integer; AStyleOwner: TStyleOwner);
 
     procedure LoadFromDB;
 
+    // Для грида
     function EvalGridStrValue(const AnFormName: String; const AnGridName: String;
       APropID: Integer; out AStrValue: String): Boolean;
     function EvalGridIntValue(const AnFormName: String; const AnGridName: String;
       APropID: Integer; out AnIntValue: Integer): Boolean;
     function EvalGridBoolValue(const AnFormName: String; const AnGridName: String;
-      APropID: Integer; out AnBoolValue: Boolean): Boolean;
+      APropID: Integer; out ABoolValue: Boolean): Boolean;
+
+    // Для колонок
+    function EvalColumnStrValue(AnObjectName: String;
+      APropID: Integer; out AStrValue: String): Boolean;
+    function EvalColumnIntValue(AnObjectName: String;
+      APropID: Integer; out AnIntValue: Integer): Boolean;
+    function EvalColumnBoolValue(AnObjectName: String;
+      APropID: Integer; out ABoolValue: Boolean): Boolean;
   end;
 
   TgdGridParser = class
@@ -352,6 +362,9 @@ function StringToFontStyle(AFontStyles: String): TFontStyles;
 
 function FontPitchToString(AFontPitch: TFontPitch): String;
 function StringToFontPitch(AFontPitch: String): TFontPitch;
+
+function AlignmentToString(AnAlignment: TAlignment): String;
+function StringToAlignment(AnAlignment: String): TAlignment;
 
 implementation
 
@@ -442,6 +455,28 @@ begin
     raise Exception.Create('invalid font pitch');
 end;
 
+function AlignmentToString(AnAlignment: TAlignment): String;
+begin
+  if AnAlignment = taLeftJustify then
+    Result := 'taLeftJustify'
+  else if AnAlignment = taRightJustify then
+    Result := 'taRightJustify'
+  else
+    Result := 'taCenter';
+end;
+
+function StringToAlignment(AnAlignment: String): TAlignment;
+begin
+  if AnAlignment = 'taLeftJustify' then
+    Result := taLeftJustify
+  else if AnAlignment = 'taRightJustify' then
+    Result := taRightJustify
+  else if AnAlignment = 'taCenter' then
+    Result := taCenter
+  else
+    raise Exception.Create('invalid Alignment');
+end;
+
 { TgdStyleManager }
 
 constructor TgdStyleManager.Create;
@@ -500,7 +535,7 @@ end;
 
 function TgdStyleManager.GetBoolProp(const AnObjectNane: String;
   AnPropID: Integer; AStyleOwner: TStyleOwner;
-  out AnBoolValue: Boolean): Boolean;
+  out ABoolValue: Boolean): Boolean;
 var
   IntValue: Integer;
 begin
@@ -509,9 +544,9 @@ begin
   if Result then
   begin
     if IntValue = 0 then
-      AnBoolValue := False
+      ABoolValue := False
     else if IntValue = 1 then
-      AnBoolValue := True
+      ABoolValue := True
     else
       raise Exception.Create('invalid boolean value');
   end;
@@ -553,11 +588,11 @@ end;
 
 procedure TgdStyleManager.SetBoolProp(const AnObjectNane: String;
   AnPropID: Integer; AStyleOwner: TStyleOwner;
-  AnBoolValue: Boolean);
+  ABoolValue: Boolean);
 var
   IntValue: Integer;
 begin
-  if AnBoolValue then
+  if ABoolValue then
     IntValue := 1
   else
     IntValue := 0;
@@ -855,7 +890,7 @@ begin
 end;
 
 function TgdStyleManager.EvalGridBoolValue(const AnFormName: String; const AnGridName: String;
-  APropID: Integer; out AnBoolValue: Boolean): Boolean;
+  APropID: Integer; out ABoolValue: Boolean): Boolean;
 var
   IntValue: Integer;
 begin
@@ -864,9 +899,115 @@ begin
   if Result then
   begin
     if IntValue = 0 then
-      AnBoolValue := False
+      ABoolValue := False
     else if IntValue = 1 then
-      AnBoolValue := True
+      ABoolValue := True
+    else
+      raise Exception.Create('invalid boolean value');
+  end
+end;
+
+function TgdStyleManager.EvalColumnStrValue(AnObjectName: String;
+  APropID: Integer; out AStrValue: String): Boolean;
+Var
+  ObjectName: String;
+  StyleOwner: TStyleOwner;
+begin
+  // пока по упрощенной программе
+
+  ObjectName := AnObjectName;
+  StyleOwner := soUser;
+  Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
+
+  if not Result then
+  begin
+    StyleOwner := soAllUser;
+    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
+  end;
+
+  if not Result then
+  begin
+    StyleOwner := soTheme;
+    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
+  end;
+
+  if not Result then
+  begin
+    ObjectName := cGloblaObjName;
+    StyleOwner := soUser;
+    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
+  end;
+
+  if not Result then
+  begin
+    StyleOwner := soAllUser;
+    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
+  end;
+
+  if not Result then
+  begin
+    StyleOwner := soTheme;
+    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
+  end;
+end;
+
+function TgdStyleManager.EvalColumnIntValue(AnObjectName: String;
+  APropID: Integer; out AnIntValue: Integer): Boolean;
+Var
+  ObjectName: String;
+  StyleOwner: TStyleOwner;
+begin
+  // пока по упрощенной программе
+
+  ObjectName := AnObjectName;
+  StyleOwner := soUser;
+  Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
+
+  if not Result then
+  begin
+    StyleOwner := soAllUser;
+    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
+  end;
+
+  if not Result then
+  begin
+    StyleOwner := soTheme;
+    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
+  end;
+
+  if not Result then
+  begin
+    ObjectName := cGloblaObjName;
+    StyleOwner := soUser;
+    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
+  end;
+
+  if not Result then
+  begin
+    StyleOwner := soAllUser;
+    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
+  end;
+
+  if not Result then
+  begin
+    StyleOwner := soTheme;
+    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
+  end;
+end;
+
+function TgdStyleManager.EvalColumnBoolValue(AnObjectName: String;
+  APropID: Integer; out ABoolValue: Boolean): Boolean;
+var
+  IntValue: Integer;
+begin
+  Result := EvalColumnIntValue(AnObjectName, APropID, IntValue);
+
+  if Result then
+  begin
+    if IntValue = 0 then
+      ABoolValue := False
+    else if IntValue = 1 then
+      ABoolValue := True
     else
       raise Exception.Create('invalid boolean value');
   end
@@ -1148,6 +1289,8 @@ begin
         Assert(Columns[I].FieldName > '');
         OK := GetObjID(cColumn, AnObjectName + ',' + Columns[I].FieldName);
 
+        SaveIntValue(OK, cColumnSerialNumber, I, AnUserKey);
+
         // Заглавие колонки
         TitleCaption := Columns[I].Title.Caption;
         // Обрезаем
@@ -1184,20 +1327,10 @@ begin
         SaveStrValue(OK, cColumnColor, ColorToString(Columns[I].Color), AnUserKey);
 
         // Выравнивание в заголовке
-        if Columns[I].Title.Alignment = taLeftJustify then
-          SaveStrValue(OK, cColumnTitleAlignment, 'taLeftJustify', AnUserKey)
-        else if Columns[I].Title.Alignment = taRightJustify then
-          SaveStrValue(OK, cColumnTitleAlignment, 'taRightJustify', AnUserKey)
-        else
-          SaveStrValue(OK, cColumnTitleAlignment, 'taCenter', AnUserKey);
+        SaveStrValue(OK, cColumnTitleAlignment, AlignmentToString(Columns[I].Title.Alignment), AnUserKey);
 
         // Выравнивание в колонке
-        if Columns[I].Alignment = taLeftJustify then
-          SaveStrValue(OK, cColumnAlignment, 'taLeftJustify', AnUserKey)
-        else if Columns[I].Alignment = taRightJustify then
-          SaveStrValue(OK, cColumnAlignment, 'taRightJustify', AnUserKey)
-        else
-          SaveStrValue(OK, cColumnAlignment, 'taCenter', AnUserKey)
+        SaveStrValue(OK, cColumnAlignment, AlignmentToString(Columns[I].Alignment), AnUserKey);
       end;
     end;
   finally

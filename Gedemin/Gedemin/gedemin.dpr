@@ -315,6 +315,8 @@ uses
   , gd_AutoTaskThread in '..\Component\gd_AutoTaskThread.pas'
   , gdcSMTP in '..\Component\GDC\gdcSMTP.pas'
   {$IFDEF FR4}, dlgSendReport_unit in '..\Report\dlgSendReport_unit.pas'{$ENDIF}
+  ,gdcStyle in '..\Component\GDC\gdcStyle.pas'
+  ,gdc_frmStyleObject_unit in '..\Attr\gdc_frmStyleObject_unit.pas' {gdc_frmStyleObject}
   ;
 
 {$R Gedemin.TLB}
