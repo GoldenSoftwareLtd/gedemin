@@ -92,6 +92,7 @@ type
     procedure actCancelExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure edNameDblClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   end;
 
 var
@@ -102,7 +103,7 @@ implementation
 {$R *.DFM}
 
 uses
-  AcctUtils, gd_security;
+  AcctUtils, gd_security, gd_common_functions;
 
 procedure Tgd_dlgInitialInfo.actOkExecute(Sender: TObject);
 
@@ -402,6 +403,11 @@ begin
   edPassword.Text := '1';
   edPassword2.Text := '1';
   actOk.Execute;
+end;
+
+procedure Tgd_dlgInitialInfo.FormCreate(Sender: TObject);
+begin
+  ForceForegroundWindow(Self.Handle);
 end;
 
 end.

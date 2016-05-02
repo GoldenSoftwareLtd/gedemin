@@ -354,7 +354,7 @@ type
     function AddReportNode(Parent: TTreeNode; Id: Integer; Name: string):TTreeNode;
     function LoadReportFolderByObject(AParent: TTreeNode; Id: Integer): TTreeNode;
     function CheckCreateLocalReportFolder(Id: Integer; Name: string): Integer;
-    procedure CheckCreateGDCReportFolder(Id: Integer; gdcObject: TgdcBase);
+    procedure CheckCreateGDCReportFolder(const AnID: Integer; AnObj: TgdcBase);
     procedure CheckLoadReportFolder(Node: TTreeNode);
     //Функции работы с Sf
     //Возвращает строку с условие для выборки СФ из базы
@@ -5179,44 +5179,47 @@ begin
   for I := 0 to FPageControl.PageCount - 1 do
   begin
     PTN := TTreeTabSheet(FPageControl.Pages[I]).MacrosRootNode;
-      //Делаем видимым дерево
-//  PTN.TreeView.Show;
     Expand(PTN);
     Result := FindNode(MacrosKey, PTN);
     if Assigned(Result) then
-      Break
+      break
   end;
 end;
 
-procedure TdfPropertyTree.CheckCreateGDCReportFolder(Id: Integer; gdcObject: TgdcBase);
+procedure TdfPropertyTree.CheckCreateGDCReportFolder(const AnID: Integer; AnObj: TgdcBase);
 var
-  SQl: TIBSQL;
+  q: TIBSQL;
+  UGN: String;
 begin
-  SQL := TIBSQL.Create(nil);
+  Assert(AnID > 0);
+  Assert(AnObj <> nil);
+  q := TIBSQL.Create(nil);
   try
-    if gdcObject.Transaction.InTransaction then
-      SQL.Transaction := gdcObject.Transaction
+    UGN := UpperCase(AnObj.ClassName + AnObj.SubType);
+    if AnObj.Transaction.InTransaction then
+      q.Transaction := AnObj.Transaction
     else
-      SQL.Transaction := gdcObject.ReadTransaction;
-    SQL.SQL.Text := 'SELECT r.* FROM rp_reportgroup r WHERE r.Id = :id ';
-    SQL.Params[0].AsInteger := Id;
-    SQL.ExecQuery;
-    if SQL.Eof then
+      q.Transaction := AnObj.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT r.id FROM rp_reportgroup r WHERE r.id = :id OR r.usergroupname = :UGN';
+    q.ParamByName('id').AsInteger := AnID;
+    q.ParamByName('ugn').AsString := UGN;
+    q.ExecQuery;
+    if q.Eof then
     begin
-      Assert(ID > 0);
       gdcReportGroup.Open;
       try
         gdcReportGroup.Insert;
-        gdcReportGroup.FieldByName(fnid).AsInteger := Id;
-        gdcReportGroup.FieldByName(fnName).AsString := gdcObject.GetDisplayName(gdcObject.SubType);
-        gdcReportGroup.FieldByName(fnUserGroupName).AsString := UpperCase(gdcObject.ClassName + gdcObject.SubType);
+        gdcReportGroup.FieldByName(fnid).AsInteger := AnID;
+        gdcReportGroup.FieldByName(fnName).AsString := AnObj.GetDisplayName(AnObj.SubType);
+        gdcReportGroup.FieldByName(fnUserGroupName).AsString := UGN;
         gdcReportGroup.Post;
       finally
         gdcReportGroup.Close;
       end;
     end;
   finally
-    SQL.Free;
+    q.Free;
   end;
 end;
 

@@ -233,6 +233,9 @@ const
   Gedemin_Updater                 = 'gedemin_upd.exe';
   Gedemin_Updater_Ini             = 'gedemin_upd.ini';
 
+  // GDCC
+  Gedemin_Control_Center          = 'gdcc.exe';
+
   //
   DEFAULT_WEB_SERVER_PORT            = 80;
   STORAGE_WEB_SERVER_PORT_VALUE_NAME = 'WebServerPort';

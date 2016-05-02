@@ -765,10 +765,31 @@ INSERT INTO fin_versioninfo
   VALUES (244, '0000.0001.0000.0275', '28.01.2016', 'Trigger to prevent namespace cyclic dependencies.');     
   
 INSERT INTO fin_versioninfo
-  VALUES (245, '0000.0001.0000.0276', '12.02.2016', 'Fixed minor bugs.');
+  VALUES (245, '0000.0001.0000.0276', '12.02.2016', 'Fixed minor bugs.');     
+  
+INSERT INTO fin_versioninfo
+  VALUES (246, '0000.0001.0000.0277', '11.03.2016', 'Fixed minor bugs.');  
 
 INSERT INTO fin_versioninfo
-  VALUES (246, '0000.0001.0000.0277', '23.02.2016', 'Added Style Tables.');
+  VALUES (247, '0000.0001.0000.0278', '21.03.2016', 'Added WEB_RELAY table.');  
+  
+INSERT INTO fin_versioninfo
+  VALUES (248, '0000.0001.0000.0279', '11.04.2016', 'Fixed WEB_RELAY table.');  
+  
+INSERT INTO fin_versioninfo
+  VALUES (249, '0000.0001.0000.0280', '12.04.2016', 'GD_EMPLOYEE table added.');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (250, '0000.0001.0000.0281', '12.04.2016', 'Correction.');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (251, '0000.0001.0000.0282', '13.04.2016', 'Rights for GD_EMPLOYEE.');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (252, '0000.0001.0000.0283', '13.04.2016', 'at_aiu_namespace_link fixed.');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (253, '0000.0001.0000.0284', '13.04.2016', 'at_aiu_namespace_link fixed #2.');    
   
 COMMIT;
 

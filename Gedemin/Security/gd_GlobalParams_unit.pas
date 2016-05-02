@@ -47,9 +47,12 @@ type
     function GetWebServerActive: Boolean;
     function GetWebServerBindings: String;
     function GetWebServerUpdatePath: String;
+    function GetWebServerRunOnlyOn: String;
+
+    function GetGDCCActive: Boolean;
+    function GetGDCCHost: String;
 
     function GetRelayServer: String;
-    function GetRelayAlias: String;
 
     function GetExternalEditor(const ALang: String): String;
     function GetExternalDiff(const ALang: String): String;
@@ -264,14 +267,24 @@ begin
   {$ENDIF}
 end;
 
-function Tgd_GlobalParams.GetRelayAlias: String;
-begin
-  Result := FIniFile.ReadString('WEB SERVER', 'RelayAlias', '');
-end;
-
 function Tgd_GlobalParams.GetRelayServer: String;
 begin
   Result := FIniFile.ReadString('WEB SERVER', 'RelayServer', '');
+end;
+
+function Tgd_GlobalParams.GetWebServerRunOnlyOn: String;
+begin
+  Result := FIniFile.ReadString('WEB SERVER', 'RunOnlyOn', '');
+end;
+
+function Tgd_GlobalParams.GetGDCCHost: String;
+begin
+  Result := FIniFile.ReadString('GDCC', 'Host', '');
+end;
+
+function Tgd_GlobalParams.GetGDCCActive: Boolean;
+begin
+  Result := FIniFile.ReadBool('GDCC', 'Active', True);
 end;
 
 initialization

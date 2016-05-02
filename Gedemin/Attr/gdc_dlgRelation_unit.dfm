@@ -79,9 +79,9 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object lblReference: TLabel
         Left = 6
         Top = 201
-        Width = 218
+        Width = 235
         Height = 13
-        Caption = '—сылка на таблицу (св€зь один к одному):'
+        Caption = '—сылка на таблицу/наледование от таблицы:'
         Visible = False
       end
       object lblBranch: TLabel

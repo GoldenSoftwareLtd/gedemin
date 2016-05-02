@@ -265,6 +265,9 @@ type
     procedure DoBeforePost; override;
     procedure CreateFields; override;
 
+    procedure CustomInsert(Buff: Pointer); override;
+    procedure CustomModify(Buff: Pointer); override;
+
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -2057,13 +2060,9 @@ begin
   ' VALUES (:new_id, :new_headcompany, :new_companytype, :new_fullname, ' +
   '   :new_logo, :new_companyaccountkey, :new_directorkey, :new_chiefaccountantkey)', Buff);
 
-  {TODO: убрать проверку после проведения модифая на всех базах}
-  if Assigned(atDatabase.FindRelationField('GD_COMPANYCODE', 'OKULP')) then
-    CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okulp, okpo, oknh, soato, soou, licence) ' +
-    ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okulp, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence) ', Buff)
-  else
-    CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okpo, oknh, soato, soou, licence) ' +
-    ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence) ', Buff)
+  CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okulp, okpo, oknh, soato, soou, licence) ' +
+    ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okulp, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence) ', Buff);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCOMPANY', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3499,6 +3498,7 @@ begin
   {M}    end;
   {END MACRO}
   Result := inherited GetFromClause(ARefresh) +
+    ' JOIN gd_employee empl ON empl.contactkey = z.id ' +
     ' JOIN gd_contact cp ON cp.id = z.parent and cp.contacttype in(3,4,5) ' +
     ' LEFT JOIN wg_position wpos ON p.wpositionkey = wpos.id ';
   SQLSetup.Ignores.AddAliasName('cp');
@@ -3734,12 +3734,93 @@ begin
   Result := 'Tgdc_dlgBank';
 end;
 
+procedure TgdcEmployee.CustomInsert(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCEMPLOYEE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCEMPLOYEE', KEYCUSTOMINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCEMPLOYEE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCEMPLOYEE',
+  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCEMPLOYEE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+  CustomExecQuery('INSERT INTO gd_employee(contactkey) VALUES (:new_id)', Buff);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEMPLOYEE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCEMPLOYEE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcEmployee.CustomModify(Buff: Pointer);
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCEMPLOYEE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCEMPLOYEE', KEYCUSTOMMODIFY);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCEMPLOYEE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCEMPLOYEE',
+  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCEMPLOYEE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+  CustomExecQuery('UPDATE gd_employee SET contactkey = :new_id WHERE contactkey = :old_id', Buff);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEMPLOYEE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCEMPLOYEE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
+  {M}  end;
+  {END MACRO}
+end;
+
 initialization
   RegisterGdcClass(TgdcBaseContact, 'Адресная книга').GroupID := cst_ContactsGroupID;
   RegisterGdcClass(TgdcFolder,      'Папка');
   RegisterGdcClass(TgdcGroup,       'Группа');
-  RegisterGdcClass(TgdcContact,     'Физическое лицо');
-  RegisterGdcClass(TgdcEmployee,    'Сотрудник предприятия');
+  with RegisterGdcClass(TgdcContact,     'Физическое лицо') as TgdBaseEntry do
+    DistinctRelation := 'GD_PEOPLE';
+  with RegisterGdcClass(TgdcEmployee,    'Сотрудник предприятия') as TgdBaseEntry do
+    DistinctRelation := 'GD_EMPLOYEE';
   RegisterGdcClass(TgdcDepartment,  'Подразделение');
   with RegisterGdcClass(TgdcCompany, 'Организация') as TgdBaseEntry do
     DistinctRelation := 'GD_COMPANY';

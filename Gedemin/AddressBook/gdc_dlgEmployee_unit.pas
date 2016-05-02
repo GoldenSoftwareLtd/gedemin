@@ -204,6 +204,10 @@ begin
             IntToStr(gdcObject.ID);
           q.ExecQuery;
 
+          q.SQL.Text := 'DELETE FROM gd_employee WHERE contactkey = ' +
+            IntToStr(gdcObject.ID);
+          q.ExecQuery;  
+
           if DidActivate and q.Transaction.InTransaction then
             q.Transaction.Commit;
         finally

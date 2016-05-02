@@ -1,6 +1,6 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 406
-  Top = 99
+  Left = 408
+  Top = 100
   Width = 969
   Height = 85
   HelpContext = 76
@@ -730,7 +730,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actSQLProcess: TAction
       Category = 'Actions'
-      Caption = 'Журнал SQL команд...'
+      Caption = 'Системный лог...'
       ImageIndex = 211
       OnExecute = actSQLProcessExecute
     end

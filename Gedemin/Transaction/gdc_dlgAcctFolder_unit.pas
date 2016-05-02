@@ -15,6 +15,7 @@ type
     dbedName: TDBEdit;
     Label2: TLabel;
     gsiblcGroupAccount: TgsIBLookupComboBox;
+    dbchbxDisabled: TDBCheckBox;
   private
   public
   end;
@@ -34,5 +35,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAcctFolder);
-
 end.

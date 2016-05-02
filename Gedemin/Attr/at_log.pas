@@ -21,8 +21,8 @@ type
   private
     FCount, FSize: Integer;
     FArray: array of TatLogRec;
-    FFilterCount, FFilterSize: Integer;
-    FFilterArray: array of Integer;
+    FFilteredCount, FFilteredSize: Integer;
+    FFilteredArray: array of Integer;
     FStream: TgsStream64;
     FWasError: Boolean;
     FReposition: Boolean;
@@ -35,8 +35,12 @@ type
     function GetLogRec(Index: Integer): TatLogRec;
     function GetLogText(Index: Integer): String;
     function GetErrorCount: Integer;
-    function GetSources(Index: Integer): String;
+    function GetSource(Index: Integer): String;
     function FilterRecord(const Index: Integer): Boolean;
+    function GetFilteredLogRec(Index: Integer): TatLogRec;
+    function GetFilteredLogText(Index: Integer): String;
+    procedure GrowArray;
+    procedure GrowFilteredArray;
 
   public
     constructor Create;
@@ -49,6 +53,7 @@ type
     procedure SaveToFile(const AFileName: String);
     procedure SaveToStringList(const AnIncludeSuccess: Boolean; const AnIncludeWarning: Boolean;
       out AWarningCount: Integer; out AnErrorCount: Integer; SL: TStringList);
+    procedure FilterRecords(const AFilterStr, AFilterSrc: String; AFilterTypes: TatLogTypes);
 
     property Count: Integer read FCount;
     property ErrorCount: Integer read GetErrorCount;
@@ -56,16 +61,21 @@ type
     property WasError: Boolean read FWasError;
     property LogRec[Index: Integer]: TatLogRec read GetLogRec;
     property LogText[Index: Integer]: String read GetLogText;
-    property Sources[Index: Integer]: String read GetSources;
+    property Source[Index: Integer]: String read GetSource;
+    property Sources: TStringList read FSources;
+
     property FilterStr: String read FFilterStr;
     property FilterSrc: String read FFilterSrc;
     property FilterTypes: TatLogTypes read FFilterTypes;
+    property FilteredCount: Integer read FFilteredCount;
+    property FilteredLogRec[Index: Integer]: TatLogRec read GetFilteredLogRec;
+    property FilteredLogText[Index: Integer]: String read GetFilteredLogText;
   end;
 
 implementation
 
 uses
-  SysUtils;
+  SysUtils, jclStrings;
 
 { TatLog }
 
@@ -80,50 +90,38 @@ begin
     FReposition := False;
   end;
 
-  if FCount >= FSize then
-  begin
-    if FSize = 0 then
-      FSize := 64
-    else
-      FSize := FSize * 2;
-    SetLength(FArray, FSize);
-  end;
-
+  GrowArray;
   FArray[FCount].LogType := ALogType;
   FArray[FCount].Logged := Now;
   FArray[FCount].Offset := FStream.Position;
 
-  FArray[FCount].Src := FSources.IndexOf(ASrc);
-  if FArray[FCount].Src = -1 then
-  begin
-    FSources.Add(ASrc);
+  if ASrc = '' then
+    FArray[FCount].Src := -1
+  else begin
     FArray[FCount].Src := FSources.IndexOf(ASrc);
+    if FArray[FCount].Src = -1 then
+    begin
+      FSources.Add(ASrc);
+      FArray[FCount].Src := FSources.IndexOf(ASrc);
+    end;
   end;
 
   FStream.WriteString(S);
+  Inc(FCount);
 
-  if FilterRecord(FCount) then
+  if FilterRecord(FCount - 1) then
   begin
-    if FFilterCount >= FFilterSize then
-    begin
-      if FFilterSize = 0 then
-        FFilterSize := 64
-      else
-        FFilterSize := FFilterSize * 2;
-      SetLength(FFilterArray, FFilterSize);
-    end;
-    FFilterArray[FFilterCount] := FCount;
-    Inc(FFilterCount);
+    GrowFilteredArray;
+    FFilteredArray[FFilteredCount] := FCount - 1;
+    Inc(FFilteredCount);
   end;
 
   if (ALogType = atltError) or (ALogType = atltWarning) then
   begin
     if ALogType = atltError then
       FWasError := True;
-    FErrorArray.Add(FCount);
+    FErrorArray.Add(FCount - 1);
   end;
-
-  Inc(FCount);
 end;
 
 procedure TatLog.AddRecord(const S: String;
@@ -138,17 +136,19 @@ begin
   SetLength(FArray, 0);
   FSize := 0;
   FCount := 0;
-  SetLength(FFilterArray, 0);
-  FFilterSize := 0;
-  FFilterCount := 0;
+  SetLength(FFilteredArray, 0);
+  FFilteredSize := 0;
+  FFilteredCount := 0;
   FWasError := False;
   FErrorArray.Clear;
+  FSources.Clear;
 end;
 
 constructor TatLog.Create;
 begin
   FErrorArray := TgdKeyArray.Create;
   FSources := TStringList.Create;
+  FFilterTypes := [atltInfo, atltWarning, atltError];
 end;
 
 destructor TatLog.Destroy;
@@ -162,12 +162,60 @@ end;
 
 function TatLog.FilterRecord(const Index: Integer): Boolean;
 begin
-  Result := True;
+  Assert((Index >= 0) and (Index < FCount));
+
+  Result :=
+    (FArray[Index].LogType in FFilterTypes)
+    and
+    (
+      (FFilterSrc = '')
+      or
+      (FArray[Index].Src = FSources.IndexOf(FFilterSrc))
+    )
+    and
+    (
+      (FFilterStr = '')
+      or
+      (StrIPos(FFilterStr, LogText[Index]) > 0)
+    );
+end;
+
+procedure TatLog.FilterRecords(const AFilterStr, AFilterSrc: String;
+  AFilterTypes: TatLogTypes);
+var
+  I: Integer;
+begin
+  FFilterStr := AFilterStr;
+  FFilterSrc := AFilterSrc;
+  FFilterTypes := AFilterTypes;
+
+  FFilteredCount := 0;
+  for I := 0 to FCount - 1 do
+  begin
+    if FilterRecord(I) then
+    begin
+      GrowFilteredArray;
+      FFilteredArray[FFilteredCount] := I;
+      Inc(FFilteredCount);
+    end;
+  end;
 end;
 
 function TatLog.GetErrorCount: Integer;
 begin
   Result := FErrorArray.Count;
+end;
+
+function TatLog.GetFilteredLogRec(Index: Integer): TatLogRec;
+begin
+  Assert((Index >= 0) and (Index < FFilteredCount));
+  Result := GetLogRec(FFilteredArray[Index]);
+end;
+
+function TatLog.GetFilteredLogText(Index: Integer): String;
+begin
+  Assert((Index >= 0) and (Index < FFilteredCount));
+  Result := GetLogText(FFilteredArray[Index]);
 end;
 
 function TatLog.GetLogRec(Index: Integer): TatLogRec;
@@ -191,43 +239,109 @@ begin
     Result := AListIndex;
 end;
 
-function TatLog.GetSources(Index: Integer): String;
+function TatLog.GetSource(Index: Integer): String;
 begin
   Result := FSources[Index];
 end;
 
+procedure TatLog.GrowArray;
+begin
+  if FCount >= FSize then
+  begin
+    if FSize = 0 then
+      FSize := 64
+    else
+      FSize := FSize * 2;
+    SetLength(FArray, FSize);
+  end;
+end;
+
+procedure TatLog.GrowFilteredArray;
+begin
+  if FFilteredCount >= FFilteredSize then
+  begin
+    if FFilteredSize = 0 then
+      FFilteredSize := 64
+    else
+      FFilteredSize := FFilteredSize * 2;
+    SetLength(FFilteredArray, FFilteredSize);
+  end;
+end;
+
 procedure TatLog.SaveToFile(const AFileName: String);
+
+  function QuoteStr(const S: String): String;
+  begin
+    if S = '' then
+      Result := ''
+    else
+      Result := '"' +
+        StringReplace(
+          StringReplace(
+            StringReplace(S,
+              #13#10#32, #32, [rfReplaceAll]),
+            #13#10, #32, [rfReplaceAll]),
+          '"', '""', [rfReplaceAll]) + '"';
+  end;
+
 var
   F: TextFile;
   S, L: String;
   I: Integer;
 begin
-  AssignFile(F, AFileName);
-  Rewrite(F);
-  try
-    for I := 0 to FCount - 1 do
-    begin
-      with FArray[I] do
+  if AnsiSameText(ExtractFileExt(AFileName), '.CSV') then
+  begin
+    AssignFile(F, AFileName);
+    Rewrite(F);
+    try
+      for I := 0 to FCount - 1 do
       begin
-        case LogType of
-          atltError: S := '[Ошибка] ';
-          atltWarning: S :='[Предупреждение] ';
-        else
-          S := '';
+        with FArray[I] do
+        begin
+          S := FormatDateTime('hh:nn:ss', Logged) + ',';
+
+          case LogType of
+            atltError: S := S + 'Ошибка,';
+            atltWarning: S := S + 'Предупреждение,';
+          else
+            S := S + ',';
+          end;
+
+          Writeln(F, S + QuoteStr(LogText[I]));
         end;
-        S := S + FormatDateTime('hh:nn:ss', Logged);
-
-        L := LogText[I];
-        if Pos(#13, L) > 0 then
-          S := S + #13#10 + L
-        else
-          S := S + '  ' + L;
-
-        Writeln(F, S);
       end;
+    finally
+      CloseFile(F);
     end;
-  finally
-    CloseFile(F);
+  end else
+  begin
+    AssignFile(F, AFileName);
+    Rewrite(F);
+    try
+      for I := 0 to FCount - 1 do
+      begin
+        with FArray[I] do
+        begin
+          case LogType of
+            atltError: S := '[Ошибка] ';
+            atltWarning: S :='[Предупреждение] ';
+          else
+            S := '';
+          end;
+          S := S + FormatDateTime('hh:nn:ss', Logged);
+
+          L := LogText[I];
+          if Pos(#13, L) > 0 then
+            S := S + #13#10 + L
+          else
+            S := S + '  ' + L;
+
+          Writeln(F, S);
+        end;
+      end;
+    finally
+      CloseFile(F);
+    end;
   end;
 end;
 
@@ -266,7 +380,7 @@ begin
         end;
         S := S + FormatDateTime('hh:nn:ss', Logged);
 
-        L := LogText[I];
+        L := Copy(LogText[I], 1, 256);
         if Pos(#13, L) > 0 then
           S := S + #13#10 + L
         else

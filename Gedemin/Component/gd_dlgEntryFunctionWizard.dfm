@@ -29,14 +29,14 @@ object dlgEntryFunctionWizard: TdlgEntryFunctionWizard
     object lblSFName: TLabel
       Left = 8
       Top = 10
-      Width = 160
+      Width = 161
       Height = 13
       Caption = 'Имя скрипт-функции проводки:'
     end
     object lblDocType: TLabel
       Left = 8
       Top = 37
-      Width = 135
+      Width = 137
       Height = 13
       Caption = 'Тип обработки документа:'
     end
@@ -83,14 +83,14 @@ object dlgEntryFunctionWizard: TdlgEntryFunctionWizard
       object lblAccountTypeTitle: TLabel
         Left = 8
         Top = 58
-        Width = 53
+        Width = 54
         Height = 13
         Caption = 'Тип счета:'
       end
       object lblAccountType: TLabel
         Left = 102
         Top = 58
-        Width = 65
+        Width = 67
         Height = 13
         Caption = 'дебетовый'
         Color = clBtnShadow
@@ -105,14 +105,14 @@ object dlgEntryFunctionWizard: TdlgEntryFunctionWizard
       object lblCurrSignTitle: TLabel
         Left = 211
         Top = 58
-        Width = 131
+        Width = 133
         Height = 13
         Caption = 'Валютный признак счета:'
       end
       object lblCurrSign: TLabel
         Left = 355
         Top = 58
-        Width = 102
+        Width = 104
         Height = 13
         Caption = 'мультивалютный'
         Color = clBtnShadow
@@ -155,7 +155,7 @@ object dlgEntryFunctionWizard: TdlgEntryFunctionWizard
         object lblCurrTitle: TLabel
           Left = 6
           Top = 7
-          Width = 41
+          Width = 43
           Height = 13
           Caption = 'Валюта:'
         end

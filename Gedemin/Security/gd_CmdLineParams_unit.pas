@@ -206,6 +206,12 @@ var
   h: THandle;
   ss: array [0..0] of PChar;
   LogType: Integer;
+  {$ELSE}
+    {$IFDEF DEBUG}
+    h: THandle;
+    ss: array [0..0] of PChar;
+    LogType: Integer;
+    {$ENDIF}
   {$ENDIF}
 begin
   Clear;

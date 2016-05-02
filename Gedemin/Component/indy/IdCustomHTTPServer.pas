@@ -319,7 +319,7 @@ uses
 const
   SessionCapacity = 128;
 
-  // Calculate the number of MS between two TimeStamps
+// Calculate the number of MS between two TimeStamps
 function TimeStampInterval(StartStamp, EndStamp: TDateTime): integer;
 var
   days: Integer;

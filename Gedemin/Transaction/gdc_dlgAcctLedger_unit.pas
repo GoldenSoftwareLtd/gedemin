@@ -27,6 +27,8 @@ type
     sbAnalyticGroupListField: TScrollBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure cbShowDebitClick(Sender: TObject);
+    procedure cbShowCreditClick(Sender: TObject);
   private
     { Private declarations }
     FTreeAnalyticLineList: TObjectList;
@@ -35,6 +37,7 @@ type
     procedure SetTreeAnalitic(const Value: string);
     function GetAnaliticListField: string;
     procedure SetAnaliticListField(const Value: string);
+    procedure CheckShowCorrSubAccounts;
   protected
     class function ConfigClassName: string; override;
     procedure UpdateControls; override;
@@ -503,6 +506,25 @@ begin
       S.Free;
     end;
   end;
+end;
+
+procedure TdlgAcctLedgerConfig.CheckShowCorrSubAccounts;
+begin
+  cbShowCorrSubAccounts.Enabled := cbShowDebit.Checked or cbShowCredit.Checked;
+  if not cbShowCorrSubAccounts.Enabled then
+    cbShowCorrSubAccounts.Checked := False;
+end;
+
+procedure TdlgAcctLedgerConfig.cbShowDebitClick(Sender: TObject);
+begin
+  inherited;
+  CheckShowCorrSubAccounts;
+end;
+
+procedure TdlgAcctLedgerConfig.cbShowCreditClick(Sender: TObject);
+begin
+  inherited;
+  CheckShowCorrSubAccounts;
 end;
 
 initialization

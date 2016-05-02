@@ -4319,8 +4319,12 @@ begin
     begin
       Field.Text := StringReplace(
         StringReplace(
-          StringReplace(FEditText, CurrencyString, '', []),
-          ' ', '', [rfReplaceAll]),
+          StringReplace(
+            StringReplace(
+              StringReplace(FEditText, CurrencyString, '', []),
+              ' ', '', [rfReplaceAll]),
+            '''', '', [rfReplaceAll]),
+          '"', '', [rfReplaceAll]),
         ThousandSeparator, '', [rfReplaceAll]);
     end else
       Field.Text := FEditText;

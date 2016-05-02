@@ -84,7 +84,11 @@ uses
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
   Storages, gdcMetadata, at_sql_setup, gsDesktopManager, at_Classes_body,
   at_dlgCompareNSRecords_unit, gdcNamespaceLoader, gd_GlobalParams_unit,
-  gdcClasses_Interface, at_dlgNamespaceDeleteDependencies_unit, at_AddToSetting;
+  gdcClasses_Interface, at_dlgNamespaceDeleteDependencies_unit,
+  {$IFDEF WITH_INDY}
+  gdccClient_unit, at_Log, gdccConst,
+  {$ENDIF}
+  at_AddToSetting;
 
 procedure Register;
 begin
@@ -260,6 +264,8 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
                     if SkipField(R.RelationFields[J].FieldName) then
                       continue;
                     F := q.FieldByName(R.RelationFields[J].FieldName);
+                    if (F.Data <> nil) and (F.Data^.sqlname = 'ID') then
+                      continue;
                     if F.IsNull then
                       AWriter.WriteNullValue(R.RelationFields[J].FieldName)
                     else
@@ -376,7 +382,9 @@ begin
       if SkipField(F.FieldName) then
         continue;
 
-      if ('"INV_CARD"."FROMCARDKEY"' = F.Origin) or ('"INV_CARD"."TOCARDKEY"' = F.Origin) then
+      if ('"INV_CARD"."FROMCARDKEY"' = F.Origin)
+        or ('"INV_CARD"."TOCARDKEY"' = F.Origin)
+        or (Pos('"."ID"', F.Origin) > 0) then
       begin
         continue;
       end;
@@ -1242,7 +1250,7 @@ var
   InstObj: TgdcBase;
   InstClass: TPersistentClass;
   q: TIBSQL;
-  HeadObject: String;
+  HeadObject, SWarn: String;
   Deleted: Boolean;
   Answer: Integer;
   ObjCache: TStringHashMap;
@@ -1381,13 +1389,16 @@ begin
                   end;
                 end else
                 begin
+                  SWarn :=
+                    'В базе данных не найден объект "' + Obj.FieldByName('objectname').AsString + '"'#13#10 +
+                    'RUID: XID = ' +  Obj.FieldByName('xid').AsString + ', DBID = ' + Obj.FieldByName('dbid').AsString + #13#10 +
+                    'Класс: ' + Obj.FieldByName('objectclass').AsString + Obj.FieldByName('subtype').AsString;
+                  {$IFDEF WITH_INDY}
+                  gdccClient.AddLogRecord('ns', SWarn, gdcc_lt_Warning);
+                  {$ENDIF}
                   if Answer = 0 then
                     Answer := MessageBox(0,
-                      PChar(
-                        'В базе данных не найден объект "' + Obj.FieldByName('objectname').AsString + '"'#13#10 +
-                        'RUID: XID = ' +  Obj.FieldByName('xid').AsString + ', DBID = ' + Obj.FieldByName('dbid').AsString + #13#10 +
-                        'Класс: ' + Obj.FieldByName('objectclass').AsString + Obj.FieldByName('subtype').AsString + #13#10#13#10 +
-                        'Удалить запись об объекте из пространства имен?'),
+                      PChar(SWarn + #13#10#13#10 + 'Удалить запись об объекте из пространства имен?'),
                       'Ошибка',
                       MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL);
                   if Answer = IDYES then
@@ -1574,7 +1585,7 @@ const
     ';RDB$PROCEDURE_NAME;RDB$PROCEDURE_ID;RDB$PROCEDURE_INPUTS;RDB$PROCEDURE_OUTPUTS' +
     ';RDB$PROCEDURE_OUTPUTS;RDB$PROCEDURE_SOURCE;RDB$OWNER_NAME;RDB$RUNTIME' +
     ';RDB$SYSTEM_FLAG;RDB$INDEX_ID;LASTNUMBER;READCOUNT;RDB$FIELD_POSITION;' +
-    ';FROMCARDKEY;TOCARDKEY;PRINTDATE;EXCEPTIONNUMBER;RUNONLOGIN;';
+    ';FROMCARDKEY;TOCARDKEY;PRINTDATE;EXCEPTIONNUMBER;RUNONLOGIN;REMAINS;';
 begin
   Result := (StrIPos(AFieldName, PassFieldName) > 0) and
     (StrIPos(';' + AFieldName + ';', PassFieldName) > 0);

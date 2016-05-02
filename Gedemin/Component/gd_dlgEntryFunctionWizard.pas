@@ -608,10 +608,9 @@ const
   cIsNull = 'IsNull';
 
   cWithCondition =
-  '  if %s then'#13#13 +
+  '  If %s Then'#13#13 +
   '    %s'#13#10 +
-  '  end if'#13#10;
-
+  '  End If'#13#10;
 
   cqIntField = '  gdcEntry.gdcQuantity.FieldByName("%s").AsInteger  = gdcBaseManager.GetIDByRUIDString("%s")'#13#10;
   cqVarField = '  gdcEntry.gdcQuantity.FieldByName("%s").AsVariant  = %s'#13#10;
@@ -620,8 +619,8 @@ const
   cqPost     = '  gdcEntry.gdcQuantity.Post'#13#10;
   cqQF       = 'quantity';
   cqVF       = 'valuekey';
-  cqIF       = '  if not %s then'#13#10;
-  cqENDIF    = '  end if'#13#10;
+  cqIF       = '  If Not %s Then'#13#10;
+  cqENDIF    = '  End If'#13#10;
 
   procedure AddText(var ScriptText: String; const MaskStr, FieldName: String; const AdditList: TStrings);
   var

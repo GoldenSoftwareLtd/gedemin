@@ -274,6 +274,10 @@ begin
         if Dep <> -1 then
         begin
           gdcObject.FieldByName('parent').AsInteger := Dep;
+
+          gdcObject.ExecSingleQuery('UPDATE OR INSERT INTO gd_employee (contactkey) ' +
+            'VALUES (' + IntToStr(gdcObject.ID) + ') MATCHING (contactkey)');
+
           ModalResult := mrOk;
         end;  
       end;

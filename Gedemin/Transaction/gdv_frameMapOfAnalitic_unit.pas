@@ -274,7 +274,13 @@ begin
           begin
             CurrKey := (FLookUp[I] as TgsIBLookupComboBox).CurrentKey;
             if CurrKey <> '' then
-              SL.Add(CurrKey);
+            begin
+              if SL.IndexOf(CurrKey) < 0 then
+                SL.Add(CurrKey)
+              else
+                if MessageDlg('Значение ' + lAnaliticName.Caption + ' ' + (FLookUp[I] as TgsIBLookupComboBox).Text + ' дублируется и не будет сохранено. Продолжить?', mtConfirmation, [mbYes, mbNo], 0) = mrNo then
+                  Abort;
+            end;
           end;
 
           Result := SL.CommaText;

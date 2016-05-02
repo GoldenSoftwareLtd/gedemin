@@ -1318,7 +1318,7 @@ uses
   wiz_frSQLCycleEditFrame_unit, wiz_EntryFunctionEditFrame_Unit, wiz_frBalanceOffTrEntry_unit,
   {$ENDIF}
   wiz_Utils_unit, FlatSB, gdcBaseInterface, Commctrl, wiz_dlgEditForm_unit,
-  wiz_frEditFrame_unit, gd_directories_const;
+  wiz_frEditFrame_unit, gd_directories_const, DB;
 
 const
   cRightSpace = 5;
@@ -4119,6 +4119,27 @@ const
   tfCloseCom = '}';
 
   procedure ConvertProcess(var Script: String);
+{$IFDEF GEDEMIN}
+    function GetFieldRepresentation(DI: TDocumentField): String;
+    begin
+       if (DI <> nil) and (DI.RelationField <> nil)
+         and
+         (
+           (not DI.RelationField.IsNullable)
+           or
+           (
+             (DI.RelationField.References = nil)
+             and
+             (DI.RelationField.Field.FieldType in [ftSmallint, ftInteger,
+               ftWord, ftLargeInt, ftFloat, ftCurrency, ftBCD])
+           )
+         ) then
+       begin
+         Result := DI.FieldRepresentation
+       end else
+         Result := 'Value';
+    end;
+{$ENDIF}
   var
     CI, CI1: Integer;
     CBCount, CSDCount, ComCount: Integer;
@@ -4290,12 +4311,7 @@ const
                                      DocumentPart := TDocumentTransactionFunction(MainFunction).DocumentPart;
                                    end;
 
-                                   if (DI <> nil) and (DI.RelationField <> nil) and (not DI.RelationField.IsNullable) then
-                                   begin
-                                     V := DI.FieldRepresentation
-                                   end else
-                                     V := 'Value';
-
+                                   V := GetFieldRepresentation(DI);
 
                                    if DocumentPart = dcpLine then
                                    begin
@@ -4334,11 +4350,8 @@ const
                                      Di := TDocumentTransactionFunction(MainFunction).DocumentLine.Find(FieldName);
                                    end;
 
-                                   if (DI <> nil) and (DI.RelationField <> nil) and (not DI.RelationField.IsNullable) then
-                                   begin
-                                     V := DI.FieldRepresentation;
-                                   end else
-                                     V := 'Value';
+                                   V := GetFieldRepresentation(DI);
+
                                    {$ENDIF}
                                    Script := Copy(Script, 1, CtxFunc.BPos - 1) +
                                      Format('gdcDocument.FieldByName("%s").%s',
@@ -5081,6 +5094,8 @@ begin
       [gdcSRName, GenerateExpression(EntryDate)]));
     S.Add(lS + Format('%s.FieldByName("DELAYED").AsInteger = 1', [gdcSRName]));
     S.Add(lS + Format('%s.FieldByName("transactionkey").AsInteger = TransactionKey',
+      [gdcSRName]));
+    S.Add(lS + Format('%s.FieldByName("trrecordkey").AsInteger = TrRecordKey',
       [gdcSRName]));
 
     S.Add(lS + 'If Assigned(gdcTaxDesignDate) Then');

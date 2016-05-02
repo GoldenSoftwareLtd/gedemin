@@ -437,6 +437,9 @@ uses
 
 {$IFDEF WITH_INDY}
   gd_WebServerControl_unit,
+  gdccClient_unit,
+  gdccConst,
+  gdccGlobal,
 {$ENDIF}
 
 {$IFDEF GEDEMIN_LOCK}
@@ -1946,6 +1949,9 @@ end;
 procedure TfrmGedeminMain.actRecompileStatisticsExecute(Sender: TObject);
 var
   Cr: TCursor;
+  {$IFDEF WITH_INDY}
+  Progress: TgdccProgress;
+  {$ENDIF}
 begin
   with TfrmIBUserList.Create(nil) do
   try
@@ -1960,19 +1966,63 @@ begin
   finally
     Free;
   end;
-
   try
-    Cr := Screen.Cursor;
+    {$IFDEF WITH_INDY}
+    Progress := TgdccProgress.Create;
+    {$ENDIF}
     try
-      Screen.Cursor := crHourGlass;
-      UpdateIndicesStat(gdcBaseManager.Database);
-      RecompileProcedures(gdcBaseManager.Database);
-      RecompileTriggers(gdcBaseManager.Database);
-      ReCreateComputedFields(gdcBaseManager.Database);
-      ReCreateView(gdcBaseManager.Database);
-      AddText('Процесс завершен успешно');
+      Cr := Screen.Cursor;
+      try
+        Screen.Cursor := crHourGlass;
+
+        {$IFDEF WITH_INDY}
+        Progress.StartWork('Обновление', 'Обновление статистики индексов и перекомпиляция объектов', 117, True, False);
+        Progress.StartStep('Обновление статистики индексов', 100);
+        if Progress.Canceled then
+          exit;
+        {$ENDIF}
+        UpdateIndicesStat(gdcBaseManager.Database);
+
+        {$IFDEF WITH_INDY}
+        Progress.StartStep('Перекомпиляция процедур', 5);
+        if Progress.Canceled then
+          exit;
+        {$ENDIF}
+        RecompileProcedures(gdcBaseManager.Database);
+
+        {$IFDEF WITH_INDY}
+        Progress.StartStep('Перекомпиляция триггеров', 10);
+        if Progress.Canceled then
+          exit;
+        {$ENDIF}
+        RecompileTriggers(gdcBaseManager.Database);
+
+        {$IFDEF WITH_INDY}
+        Progress.StartStep('Перекомпиляция полей', 1);
+        if Progress.Canceled then
+          exit;
+        {$ENDIF}
+        ReCreateComputedFields(gdcBaseManager.Database);
+
+        {$IFDEF WITH_INDY}
+        Progress.StartStep('Перекомпиляция представлений', 1);
+        if Progress.Canceled then
+          exit;
+        {$ENDIF}
+        ReCreateView(gdcBaseManager.Database);
+
+        AddText('Процесс завершен успешно');
+
+        {$IFDEF WITH_INDY}
+        Progress.EndWork;
+        {$ENDIF}
+      finally
+        Screen.Cursor := Cr;
+      end;
     finally
-      Screen.Cursor := Cr;
+      {$IFDEF WITH_INDY}
+      Progress.Free;
+      {$ENDIF}
     end;
   except
     on E: Exception do
@@ -2258,11 +2308,15 @@ end;
 
 procedure TfrmGedeminMain.actSQLProcessExecute(Sender: TObject);
 begin
+  {$IFDEF WITH_INDY}
+  gdccClient.SendCommand(gdcc_cmd_UserShowLog);
+  {$ELSE}
   if not Assigned(frmSQLProcess) then
   begin
     frmSQLProcess := TfrmSQLProcess.Create(Owner);
   end;
   frmSQLProcess.Show;
+  {$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actUserGroupsExecute(Sender: TObject);

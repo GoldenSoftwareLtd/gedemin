@@ -93,6 +93,7 @@ inherited dlgAcctLedgerConfig: TdlgAcctLedgerConfig
         Height = 17
         Caption = 'Расшифровка по дебету'
         TabOrder = 5
+        OnClick = cbShowDebitClick
       end
       object cbShowCorrSubAccounts: TCheckBox
         Left = 0
@@ -100,6 +101,7 @@ inherited dlgAcctLedgerConfig: TdlgAcctLedgerConfig
         Width = 313
         Height = 17
         Caption = 'Корреспонденция с субсчетами'
+        Enabled = False
         TabOrder = 7
       end
       object cbShowCredit: TCheckBox
@@ -109,6 +111,7 @@ inherited dlgAcctLedgerConfig: TdlgAcctLedgerConfig
         Height = 17
         Caption = 'Расшифровка по кредиту'
         TabOrder = 6
+        OnClick = cbShowCreditClick
       end
     end
     object tsAdditional: TTabSheet [1]

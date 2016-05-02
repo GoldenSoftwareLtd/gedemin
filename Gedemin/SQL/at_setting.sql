@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -416,7 +416,10 @@ BEGIN
     WITH RECURSIVE tree AS
     (
       SELECT 
-        namespacekey AS initial, namespacekey, useskey
+        namespacekey AS initial, 
+        0 AS dpth,
+        namespacekey, 
+        useskey
       FROM
         at_namespace_link
       WHERE
@@ -426,11 +429,13 @@ BEGIN
      
       SELECT
         IIF(tr.initial <> tt.namespacekey, tr.initial, -1) AS initial,
+        (tr.dpth + 1) AS dpth, 
         tt.namespacekey,
         tt.useskey
       FROM
         at_namespace_link tt JOIN tree tr ON
           tr.useskey = tt.namespacekey AND tr.initial > 0
+          AND tr.dpth < 7
      
     )
     SELECT * FROM tree WHERE initial = -1)) THEN

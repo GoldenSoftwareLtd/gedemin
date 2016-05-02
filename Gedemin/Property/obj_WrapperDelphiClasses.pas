@@ -11,7 +11,7 @@ uses
   IBQuery, IBStoredProc, IBTable, IBUpdateSQL, imglist, Outline, filectrl,
   ColorGrd, toolwin, Gauges, Spin, obj_WrapperIBXClasses, dbgrids, contnrs,
   printers, gdv_frAcctAnalytics_unit, shdocvw, JvDBImage, gsMorph, gsPeriodEdit,
-  gsPanel;
+  gsPanel, gdccGlobal, dbf, dbf_fields;
 
 type
   TPointArray = array of TPoint;
@@ -1705,6 +1705,57 @@ type
     function  Locate(const KeyFields: WideString; KeyValues: OleVariant; const Options: WideString): WordBool; safecall;
     procedure Resync(const Mode: WideString); safecall;
     function Get_RealDataSet: TDataSet; safecall;
+  end;
+
+  TwrpDBFFieldDef = class(TwrpCollectionItem, IgsDBFFieldDef)
+  private
+    function GetDBFFieldDef: TdbfFieldDef;
+  protected
+    function  Get_FieldName: WideString; safecall;
+    procedure Set_FieldName(const Value: WideString); safecall;
+    function  Get_FieldType: TgsFieldType; safecall;
+    procedure Set_FieldType(Value: TgsFieldType); safecall;
+    function  Get_Size: Integer; safecall;
+    procedure Set_Size(Value: Integer); safecall;
+    function  Get_Precision: Integer; safecall;
+    procedure Set_Precision(Value: Integer); safecall;
+    function  Get_Required: WordBool; safecall;
+    procedure Set_Required(Value: WordBool); safecall;
+    function  Get_NativeFieldType: WideString; safecall;
+    procedure Set_NativeFieldType(const Value: WideString); safecall;
+
+  end;
+
+  TwrpDBFFieldDefs = class(TwrpCollection, IgsdbfFieldDefs)
+  private
+    function GetDBFFieldDefs: TDBFFieldDefs;
+  protected
+    function  AddFieldDefs: IgsDBFFieldDef; safecall;
+  public
+    class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;  
+  end;  
+
+  TwrpDBF = class(TwrpDataSet, IgsDBF)
+  private
+    function GetDBF: TDBF;
+  protected
+    function  Get_FilePath: WideString; safecall;
+    procedure Set_FilePath(const Value: WideString); safecall;
+    function  Get_TableName: WideString; safecall;
+    procedure Set_TableName(const Value: WideString); safecall;
+    function  Get_TableLevel: Integer; safecall;
+    procedure Set_TableLevel(Value: Integer); safecall;
+    function  Get_Version: WideString; safecall;
+    procedure Set_Version(const Value: WideString); safecall;
+    function  Get_ReadOnly: WordBool; safecall;
+    procedure Set_ReadOnly(Value: WordBool); safecall;
+    function  Get_DBFFieldDefs: IgsdbfFieldDefs; safecall;
+    function  Get_LanguageID: Shortint; safecall;
+    procedure Set_LanguageID(Value: Shortint); safecall;
+    
+
+    procedure CreateTable; safecall;
+    procedure CreateTableEx(const aDBFFieldDefs: IgsdbfFieldDefs); safecall;
   end;
 
   TwrpIBCustomDataSet = class(TwrpDataSet, IgsIBCustomDataSet)
@@ -4456,6 +4507,18 @@ type
     function Get_Date: TDateTime; safecall;
     function Get_EndDate: TDateTime; safecall;
     procedure AssignPeriod(ADate: TDateTime; AnEndDate: TDateTime); safecall;
+  end;
+
+  TwrpgdccProgress = class(TwrpObject, IgsgdccProgress)
+  private
+    function GetProgress: TgdccProgress;
+
+  protected
+    procedure StartWork(const ACaption, AWorkName: WideString; AStepTotal: Integer; AShow: WordBool;
+      ACanCancel: WordBool); safecall;
+    procedure EndWork(const AMessage: WideString; AHide: WordBool); safecall;
+    procedure StartStep(const AStepName: WideString; AStepWeight: Integer); safecall;
+    function  Get_Canceled: WordBool; safecall;
   end;
 
 implementation
@@ -22832,6 +22895,210 @@ begin
       InterfaceToObject(OutputStream) as TStream);
 end;
 
+{ TwrpgdccProgress }
+
+procedure TwrpgdccProgress.EndWork(const AMessage: WideString;
+  AHide: WordBool);
+begin
+  GetProgress.EndWork(AMessage, AHide);
+end;
+
+function TwrpgdccProgress.Get_Canceled: WordBool;
+begin
+  Result := GetProgress.Canceled;
+end;
+
+function TwrpgdccProgress.GetProgress: TgdccProgress;
+begin
+  Result := GetObject as TgdccProgress
+end;
+
+procedure TwrpgdccProgress.StartStep(const AStepName: WideString;
+  AStepWeight: Integer);
+begin
+  GetProgress.StartStep(AStepName, AStepWeight);
+end;
+
+procedure TwrpgdccProgress.StartWork(const ACaption, AWorkName: WideString;
+  AStepTotal: Integer; AShow: WordBool; ACanCancel: WordBool);
+begin
+  GetProgress.StartWork(ACaption, AWorkName, AStepTotal, AShow, ACanCancel);
+end;
+
+{ TwrpDBF }
+
+function TwrpDBF.Get_FilePath: WideString;
+begin
+  Result := GetDBF.FilePath;
+end;
+
+function TwrpDBF.Get_TableLevel: Integer;
+begin
+  Result := GetDBF.TableLevel;
+end;
+
+function TwrpDBF.Get_TableName: WideString;
+begin
+  Result := GetDBF.TableName;
+end;
+
+function TwrpDBF.Get_Version: WideString;
+begin
+  Result := GetDBF.Version;
+end;
+
+function TwrpDBF.GetDBF: TDBF;
+begin
+  Result := GetObject as TDBF;
+end;
+
+procedure TwrpDBF.Set_FilePath(const Value: WideString);
+begin
+  GetDBF.FilePath := Value;
+end;
+
+procedure TwrpDBF.Set_TableLevel(Value: Integer);
+begin
+  GetDBF.TableLevel := Value;
+end;
+
+procedure TwrpDBF.Set_TableName(const Value: WideString);
+begin
+  GetDBF.TableName := Value;
+end;
+
+procedure TwrpDBF.Set_Version(const Value: WideString);
+begin
+  GetDBF.Version := Value;
+end;
+
+procedure TwrpDBF.CreateTable;
+begin
+  GetDBF.CreateTable;
+end;
+
+function TwrpDBF.Get_ReadOnly: WordBool;
+begin
+  Result := GetDBF.ReadOnly;
+end;
+
+procedure TwrpDBF.Set_ReadOnly(Value: WordBool);
+begin
+  GetDBF.ReadOnly := Value;
+end;
+
+function TwrpDBF.Get_DBFFieldDefs: IgsdbfFieldDefs;
+begin
+  if Assigned(GetDBF.DBFFieldDefs) then
+    Result := GetGdcOLEObject(GetDBF.DBFFieldDefs) as IgsDBFFieldDefs
+  else
+    Result := nil;
+end;
+
+
+function TwrpDBF.Get_LanguageID: Shortint;
+begin
+  Result := GetDBF.LanguageID;
+end;
+
+procedure TwrpDBF.Set_LanguageID(Value: Shortint);
+begin
+  GetDBF.LanguageID := Value;
+end;
+
+procedure TwrpDBF.CreateTableEx(const aDBFFieldDefs: IgsdbfFieldDefs);
+begin
+  GetDBF.CreateTableEx(InterfaceToObject(aDBFFieldDefs) as TdbfFieldDefs);
+end;
+
+{ TwrpDBFFieldDef }
+
+function TwrpDBFFieldDef.Get_FieldName: WideString;
+begin
+  Result := GetDBFFieldDef.FieldName;
+end;
+
+function TwrpDBFFieldDef.Get_FieldType: TgsFieldType;
+begin
+  Result := TgsFieldType(GetDBFFieldDef.FieldType);
+end;
+
+function TwrpDBFFieldDef.Get_Precision: Integer;
+begin
+  Result := GetDBFFieldDef.Precision;
+end;
+
+function TwrpDBFFieldDef.Get_Required: WordBool;
+begin
+  Result := GetDBFFieldDef.Required;
+end;
+
+function TwrpDBFFieldDef.Get_Size: Integer;
+begin
+  Result := GetDBFFieldDef.Size;
+end;
+
+function TwrpDBFFieldDef.GetDBFFieldDef: TdbfFieldDef;
+begin
+  Result := GetObject as TDBFFieldDef;
+end;
+
+procedure TwrpDBFFieldDef.Set_FieldName(const Value: WideString);
+begin
+  GetDBFFieldDef.FieldName := Value;
+end;
+
+procedure TwrpDBFFieldDef.Set_FieldType(Value: TgsFieldType);
+begin
+  GetDBFFieldDef.FieldType := TFieldType(Value);
+end;
+
+procedure TwrpDBFFieldDef.Set_Precision(Value: Integer);
+begin
+  GetDBFFieldDef.Precision := Value;
+end;
+
+procedure TwrpDBFFieldDef.Set_Required(Value: WordBool);
+begin
+  GetDBFFieldDef.Required := Value;
+end;
+
+procedure TwrpDBFFieldDef.Set_Size(Value: Integer);
+begin
+  GetDBFFieldDef.Size := Value;
+end;
+
+function TwrpDBFFieldDef.Get_NativeFieldType: WideString;
+begin
+  Result := GetDBFFieldDef.NativeFieldType;
+end;
+
+procedure TwrpDBFFieldDef.Set_NativeFieldType(const Value: WideString);
+begin
+  if Length(Value) > 0 then
+    GetDBFFieldDef.NativeFieldType := Char(Value[1])
+  else
+    GetDBFFieldDef.NativeFieldType := #0;
+end;
+
+{ TwrpDBFFieldDefs }
+
+function TwrpDBFFieldDefs.AddFieldDefs: IgsDBFFieldDef;
+begin
+  Result := GetGdcOLEObject(GetDBFFieldDefs.AddFieldDef) as IgsDBFFieldDef;
+end;
+
+class function TwrpDBFFieldDefs.CreateObject(const DelphiClass: TClass;
+  const Params: OleVariant): TObject;
+begin
+  Result := TdbfFieldDefs.Create(nil); 
+end;
+
+function TwrpDBFFieldDefs.GetDBFFieldDefs: TDBFFieldDefs;
+begin
+  Result := GetObject as TDBFFieldDefs;
+end;
+
 initialization
 (*  TAutoObjectFactory.Create(ComServer, TwrpObject, CLASS_gs_Object,
     ciMultiInstance, tmApartment);
@@ -23075,6 +23342,11 @@ initialization
   RegisterGdcOLEClass(TLabel, TwrpLabel, ComServer.TypeLib, IID_IgsLabel);
   RegisterGdcOLEClass(TButton, TwrpButton, ComServer.TypeLib, IID_IgsButton);
   RegisterGdcOLEClass(TDataSet, TwrpDataSet, ComServer.TypeLib, IID_IgsDataSet);
+
+  RegisterGdcOLEClass(TDBF, TwrpDBF, ComServer.TypeLib, IID_IgsDBF);
+  RegisterGdcOLEClass(TDBFFieldDef, TwrpDBFFieldDef, ComServer.TypeLib, IID_IgsDBFFieldDef);
+  RegisterGdcOLEClass(TDBFFieldDefs, TwrpDBFFieldDefs, ComServer.TypeLib, IID_IgsDBFFieldDefs);
+
   RegisterGdcOLEClass(TIBCustomDataSet, TwrpIBCustomDataSet, ComServer.TypeLib, IID_IgsIBCustomDataSet);
   RegisterGdcOLEClass(TForm, TwrpForm, ComServer.TypeLib, IID_IgsForm);
   RegisterGdcOLEClass(TForm, TwrpForm, ComServer.TypeLib, IID_IgsForm);
@@ -23096,7 +23368,7 @@ initialization
   RegisterGdcOLEClass(TActionList, TwrpActionList, ComServer.TypeLib, IID_IgsActionList);
   RegisterGdcOLEClass(TMenuItem, TwrpMenuItem, ComServer.TypeLib, IID_IgsMenuItem);
   RegisterGdcOLEClass(TIBTransaction, TwrpIBTransaction, ComServer.TypeLib, IID_IgsIBTransaction);
-  RegisterGdcOLEClass(TDataSet, TwrpDataSet, ComServer.TypeLib, IID_IgsDataSet);
+{  RegisterGdcOLEClass(TDataSet, TwrpDataSet, ComServer.TypeLib, IID_IgsDataSet);}
   RegisterGdcOLEClass(TDataSource, TwrpDataSource, ComServer.TypeLib, IID_IgsDataSource);
   RegisterGdcOLEClass(TStringList, TwrpStringList, ComServer.TypeLib, IID_IgsStringList);
   RegisterGdcOLEClass(TContainedAction, TwrpContainedAction, ComServer.TypeLib, IID_IgsContainedAction);
@@ -23265,4 +23537,5 @@ initialization
   RegisterGdcOLEClass(TfrAcctAnalytics, TwrpfrAcctAnalytics, ComServer.TypeLib, IID_IgsfrAcctAnalytics);
   RegisterGdcOLEClass(TCommonCalendar, TwrpCommonCalendar, ComServer.TypeLib, IID_IgsCommonCalendar);
   RegisterGdcOLEClass(TgsPeriodEdit, TwrpPeriodEdit, ComServer.TypeLib, IID_IgsPeriodEdit);
+  RegisterGdcOLEClass(TgdccProgress, TwrpgdccProgress, ComServer.TypeLib, IID_IgsgdccProgress);
 end.

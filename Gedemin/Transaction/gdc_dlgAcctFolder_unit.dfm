@@ -3,7 +3,7 @@ inherited gdc_dlgAcctFolder: Tgdc_dlgAcctFolder
   Top = 288
   HelpContext = 118
   Caption = 'Раздел плана счетов'
-  ClientHeight = 112
+  ClientHeight = 134
   ClientWidth = 407
   PixelsPerInch = 96
   TextHeight = 13
@@ -30,28 +30,28 @@ inherited gdc_dlgAcctFolder: Tgdc_dlgAcctFolder
   end
   inherited btnAccess: TButton
     Left = 5
-    Top = 85
-    TabOrder = 5
+    Top = 105
+    TabOrder = 6
   end
   inherited btnNew: TButton
     Left = 80
-    Top = 85
-    TabOrder = 6
-  end
-  inherited btnOK: TButton
-    Left = 257
-    Top = 85
-    TabOrder = 3
-  end
-  inherited btnCancel: TButton
-    Left = 332
-    Top = 85
-    TabOrder = 4
+    Top = 105
+    TabOrder = 7
   end
   inherited btnHelp: TButton
     Left = 156
-    Top = 85
-    TabOrder = 7
+    Top = 105
+    TabOrder = 8
+  end
+  inherited btnOK: TButton
+    Left = 257
+    Top = 105
+    TabOrder = 4
+  end
+  inherited btnCancel: TButton
+    Left = 332
+    Top = 105
+    TabOrder = 5
   end
   object dbedAlias: TDBEdit [8]
     Left = 135
@@ -95,12 +95,25 @@ inherited gdc_dlgAcctFolder: Tgdc_dlgAcctFolder
     ShowHint = True
     TabOrder = 2
   end
+  object dbchbxDisabled: TDBCheckBox [11]
+    Left = 7
+    Top = 81
+    Width = 141
+    Height = 17
+    Alignment = taLeftJustify
+    Caption = 'Отключен:'
+    DataField = 'DISABLED'
+    DataSource = dsgdcBase
+    TabOrder = 3
+    ValueChecked = '1'
+    ValueUnchecked = '0'
+  end
   inherited alBase: TActionList
-    Left = 70
-    Top = 75
+    Left = 326
+    Top = 19
   end
   inherited dsgdcBase: TDataSource
-    Left = 40
-    Top = 75
+    Left = 296
+    Top = 19
   end
 end

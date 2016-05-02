@@ -15,6 +15,9 @@ uses
   {$ENDIF}
   Classes,
   Forms,
+  {$IFDEF WITH_INDY}
+  gdccClient_unit,
+  {$ENDIF}
   gd_main_form in 'gd_main_form.pas' {frmGedeminMain},
   dmDataBase_unit in '..\GAdmin\dmDataBase_unit.pas' {dmDatabase: TDataModule},
   dmLogin_unit in '..\GAdmin\dmLogin_unit.pas' {dmLogin: TDataModule},
@@ -305,9 +308,6 @@ uses
   , gdv_frmAcctAccCard_unit in '..\Transaction\gdv_frmAcctAccCard_unit.pas'
   , gdv_frmAcctLedger_unit in '..\Transaction\gdv_frmAcctLedger_unit.pas'
   , gdv_frmAcctAccReview_unit in '..\Transaction\gdv_frmAcctAccReview_unit.pas'
-  {$IFDEF DEBUG}
-  , ExceptionDialog_unit in '..\Component\ExceptionDialog_unit.pas' {ExceptionDialog}
-  {$ENDIF}
   , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring}
   , gd_GlobalParams_unit
   , gdcBlockRule
@@ -315,8 +315,7 @@ uses
   , gd_AutoTaskThread in '..\Component\gd_AutoTaskThread.pas'
   , gdcSMTP in '..\Component\GDC\gdcSMTP.pas'
   {$IFDEF FR4}, dlgSendReport_unit in '..\Report\dlgSendReport_unit.pas'{$ENDIF}
-  ,gdcStyle in '..\Component\GDC\gdcStyle.pas'
-  ,gdc_frmStyleObject_unit in '..\Attr\gdc_frmStyleObject_unit.pas' {gdc_frmStyleObject}
+  , dbf
   ;
 
 {$R Gedemin.TLB}
@@ -687,6 +686,11 @@ begin
             raise;
         end;
 
+        {$IFDEF WITH_INDY}
+        if gd_GlobalParams.GetGDCCActive then
+          gdccClient.Connect;
+        {$ENDIF}
+
         {$IFDEF NOGEDEMIN}
         Application.Title := '';
         {$ELSE}
@@ -723,6 +727,10 @@ begin
         end;
 
         Application.Run;
+
+        {$IFDEF WITH_INDY}
+        gdccClient.Disconnect;
+        {$ENDIF}
       end;
     finally
       {при завершении процесса удалятся операционной системой

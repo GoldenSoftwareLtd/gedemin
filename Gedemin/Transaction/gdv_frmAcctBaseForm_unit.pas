@@ -605,8 +605,8 @@ procedure Tgdv_frmAcctBaseForm.cbAccountsChange(Sender: TObject);
 begin
   if FAccountIDs <> nil then
     FAccountIDs.Clear;
-  AccountDelayTimer.Enabled := False;
-  AccountDelayTimer.Enabled := True;
+{  AccountDelayTimer.Enabled := False;
+  AccountDelayTimer.Enabled := True;}
 end;              
 
 procedure Tgdv_frmAcctBaseForm.UpdateControls;
@@ -1169,12 +1169,12 @@ end;
 
 procedure Tgdv_frmAcctBaseForm.AccountDelayTimerTimer(Sender: TObject);
 begin
-  TTimer(Sender).Enabled := False;
+{  TTimer(Sender).Enabled := False;
   if CheckActiveAccount(frAcctCompany.CompanyKey, False) then
   begin
     FShowMessage := False;
     UpdateControls;
-  end;
+  end;}
 end;
 
 procedure Tgdv_frmAcctBaseForm.actEditInGridUpdate(Sender: TObject);

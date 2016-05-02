@@ -232,6 +232,10 @@ const
     '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
     '  - '#13#10 +
     '    Type   : File'#13#10 +
+    '    Name   : gdcc.exe'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
     '    Name   : ssleay32.dll'#13#10 +
     '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
     '  - '#13#10 +

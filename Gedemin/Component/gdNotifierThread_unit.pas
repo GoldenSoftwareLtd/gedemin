@@ -94,7 +94,11 @@ var
 implementation
 
 uses
-  SysUtils, gd_messages_const;
+  SysUtils,                                                    
+  {$IFDEF WITH_INDY}
+  gdccClient_unit,
+  {$ENDIF}
+  gd_messages_const;
 
 const
   MinShowTime    = 2000;
@@ -121,6 +125,10 @@ begin
   finally
     FQueueCS.Leave;
   end;
+
+  {$IFDEF WITH_INDY}
+  gdccClient.AddLogRecord('notf', AText);
+  {$ENDIF}
   
   PostMsg(WM_GD_UPDATE_NOTIFIER, Result);
 end;

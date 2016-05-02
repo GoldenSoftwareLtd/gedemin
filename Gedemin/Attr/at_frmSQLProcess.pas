@@ -74,7 +74,7 @@ implementation
 uses
   at_dlgLoadPackages_unit, at_Classes, gd_CmdLineParams_unit
   {$IFDEF WITH_INDY}
-    , gd_WebClientControl_unit, gdccClient_unit
+    , gd_WebClientControl_unit, gdccClient_unit, gdccConst
   {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -268,6 +268,10 @@ end;
 
 procedure AddMistake(const T: String; const C: TColor = clRed);
 begin
+  {$IFDEF WITH_INDY}
+  if gdccClient <> nil then
+    gdccClient.AddLogRecord('', T, gdcc_lt_Error, True);
+  {$ELSE}
   if Windows.GetCurrentThreadId <> System.MainThreadID then
     exit;
 
@@ -275,15 +279,15 @@ begin
     TfrmSQLProcess.Create(Application);
 
   frmSQLProcess.AddRecord(T, atltError);
-
-  {$IFDEF WITH_INDY}
-  if gdccClient <> nil then
-    gdccClient.AddRecord(T, atltError);
   {$ENDIF}
 end;
 
 procedure AddWarning(const T: String; const C: TColor = clBlack);
 begin
+  {$IFDEF WITH_INDY}
+  if gdccClient <> nil then
+    gdccClient.AddLogRecord('', T, gdcc_lt_Warning, True);
+  {$ELSE}
   if Windows.GetCurrentThreadId <> System.MainThreadID then
     exit;
 
@@ -291,15 +295,15 @@ begin
     TfrmSQLProcess.Create(Application);
 
   frmSQLProcess.AddRecord(T, atltWarning);
-
-  {$IFDEF WITH_INDY}
-  if gdccClient <> nil then
-    gdccClient.AddRecord(T, atltWarning);
   {$ENDIF}
 end;
 
 procedure AddText(const T: String; const C: TColor = clBlack);
 begin
+  {$IFDEF WITH_INDY}
+  if gdccClient <> nil then
+    gdccClient.AddLogRecord('', T, gdcc_lt_Info, True);
+  {$ELSE}
   if Windows.GetCurrentThreadId <> System.MainThreadID then
     exit;
 
@@ -307,10 +311,6 @@ begin
     TfrmSQLProcess.Create(Application);
 
   frmSQLProcess.AddRecord(T, atltInfo);
-
-  {$IFDEF WITH_INDY}
-  if gdccClient <> nil then
-    gdccClient.AddRecord(T, atltInfo);
   {$ENDIF}
 end;
 

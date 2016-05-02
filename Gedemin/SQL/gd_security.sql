@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus, Ltd
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -738,6 +738,32 @@ CREATE TABLE gd_weblogdata
 SET TERM ^ ;
 
 CREATE OR ALTER TRIGGER gd_bi_weblog FOR gd_weblog
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+CREATE TABLE web_relay
+(
+  id            dintkey, 
+  companyruid		druid,
+  alias  		    dname,
+  
+  CONSTRAINT web_pk_relay PRIMARY KEY (id),
+  CONSTRAINT web_uq_relay UNIQUE (companyruid, alias)
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER web_bi_relay FOR web_relay
   BEFORE INSERT
   POSITION 0
 AS

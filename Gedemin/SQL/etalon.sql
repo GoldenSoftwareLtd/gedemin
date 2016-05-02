@@ -1607,10 +1607,28 @@ INSERT INTO fin_versioninfo
   VALUES (244, '0000.0001.0000.0275', '28.01.2016', 'Trigger to prevent namespace cyclic dependencies.');     
   
 INSERT INTO fin_versioninfo
-  VALUES (245, '0000.0001.0000.0276', '12.02.2016', 'Fixed minor bugs.');
+  VALUES (245, '0000.0001.0000.0276', '12.02.2016', 'Fixed minor bugs.');     
+  
+INSERT INTO fin_versioninfo
+  VALUES (246, '0000.0001.0000.0277', '11.03.2016', 'Fixed minor bugs.');  
 
 INSERT INTO fin_versioninfo
-  VALUES (246, '0000.0001.0000.0277', '23.02.2016', 'Added Style Tables.');
+  VALUES (247, '0000.0001.0000.0278', '21.03.2016', 'Added WEB_RELAY table.');  
+  
+INSERT INTO fin_versioninfo
+  VALUES (248, '0000.0001.0000.0279', '11.04.2016', 'Fixed WEB_RELAY table.');  
+  
+INSERT INTO fin_versioninfo
+  VALUES (249, '0000.0001.0000.0280', '12.04.2016', 'GD_EMPLOYEE table added.');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (250, '0000.0001.0000.0281', '12.04.2016', 'Correction.');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (251, '0000.0001.0000.0282', '13.04.2016', 'Rights for GD_EMPLOYEE.');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (252, '0000.0001.0000.0283', '13.04.2016', 'at_aiu_namespace_link fixed.');    
   
 COMMIT;
 
@@ -1637,7 +1655,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus, Ltd
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -2374,6 +2392,32 @@ CREATE TABLE gd_weblogdata
 SET TERM ^ ;
 
 CREATE OR ALTER TRIGGER gd_bi_weblog FOR gd_weblog
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+CREATE TABLE web_relay
+(
+  id            dintkey, 
+  companyruid		druid,
+  alias  		    dname,
+  
+  CONSTRAINT web_pk_relay PRIMARY KEY (id),
+  CONSTRAINT web_uq_relay UNIQUE (companyruid, alias)
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER web_bi_relay FOR web_relay
   BEFORE INSERT
   POSITION 0
 AS
@@ -3130,6 +3174,17 @@ SET TERM ; ^
 
 COMMIT;
 
+CREATE TABLE gd_employee 
+(
+  contactkey        dintkey,
+  
+  CONSTRAINT gd_pk_employee PRIMARY KEY (contactkey),
+  CONSTRAINT gd_fk_employee_contactkey FOREIGN KEY (contactkey)
+    REFERENCES gd_people (contactkey)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
 CREATE TABLE gd_company
 (
   contactkey        dintkey,     /* Контакт  */
@@ -3284,6 +3339,7 @@ ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_companyaccountkey
 SET TERM ^ ;
 
 CREATE OR ALTER TRIGGER gd_aiu_companyaccount FOR gd_companyaccount
+  INACTIVE
   AFTER INSERT OR UPDATE
   POSITION 30000
 AS
@@ -5308,97 +5364,6 @@ CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
     (sessionid, seqid)
 )
   ON COMMIT DELETE ROWS;
-
-COMMIT;
-
-CREATE TABLE at_theme (
-  id       dintkey,
-  name     dname,
- 
-  CONSTRAINT at_pk_theme PRIMARY KEY (id),
-  CONSTRAINT at_chk_theme CHECK(name > '')  
-);
- 
-CREATE UNIQUE INDEX at_x_theme_name 
-  ON at_theme COMPUTED BY (UPPER(name));
-  
-SET TERM ^ ;
-
-CREATE OR ALTER TRIGGER at_bi_theme FOR at_theme
-  BEFORE INSERT
-  POSITION 0
-AS
-BEGIN
-  IF (NEW.id IS NULL) THEN
-    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-END
-^
-
-SET TERM ; ^
-
-CREATE TABLE at_style_object (
-  id              dintkey,
-  objtype         dinteger_notnull,  -- тип объекта. 0 -- тип данных, 1 -- домен, 2 -- таблица, 3 -- поле таблицы...
-  objname         dtext255 NOT NULL,             
- 
-  CONSTRAINT at_pk_style_object PRIMARY KEY (id),
-  CONSTRAINT at_chk_style_object CHECK(objname > '') 
-);
-
-CREATE UNIQUE INDEX at_x_style_object 
-  ON at_style_object COMPUTED BY (UPPER(objname));
-
-SET TERM ^ ;
-
-CREATE OR ALTER TRIGGER at_bi_style_object FOR at_style_object
-  BEFORE INSERT
-  POSITION 0
-AS
-BEGIN
-  IF (NEW.id IS NULL) THEN
-    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-END
-^
-
-SET TERM ; ^
-
-CREATE TABLE at_style (
-  id              dintkey,
-  objectkey       dintkey,
-  propid          dinteger_notnull,
-  intvalue        dinteger,
-  strvalue        dtext60,
-  userkey         dforeignkey,
-  themekey        dforeignkey,
- 
-  CONSTRAINT at_pk_style PRIMARY KEY (id),
-  CONSTRAINT at_fk_style_uk FOREIGN KEY (userkey)
-    REFERENCES gd_user (id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE,
-  CONSTRAINT at_fk_style_tk FOREIGN KEY (themekey)
-    REFERENCES at_theme (id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE,
-  CONSTRAINT at_fk_style_ok FOREIGN KEY (objectkey)
-    REFERENCES at_style_object (id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE
-);
-
-SET TERM ^ ;
-
-CREATE OR ALTER TRIGGER at_bi_style FOR at_style
-  BEFORE INSERT
-  POSITION 0
-AS
-BEGIN
-  IF (NEW.id IS NULL) THEN
-    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-END
-^
-
-SET TERM ; ^
 
 COMMIT;
 
@@ -16654,7 +16619,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -17069,7 +17034,10 @@ BEGIN
     WITH RECURSIVE tree AS
     (
       SELECT 
-        namespacekey AS initial, namespacekey, useskey
+        namespacekey AS initial, 
+        0 AS dpth,
+        namespacekey, 
+        useskey
       FROM
         at_namespace_link
       WHERE
@@ -17079,11 +17047,13 @@ BEGIN
      
       SELECT
         IIF(tr.initial <> tt.namespacekey, tr.initial, -1) AS initial,
+        (tr.dpth + 1) AS dpth, 
         tt.namespacekey,
         tt.useskey
       FROM
         at_namespace_link tt JOIN tree tr ON
           tr.useskey = tt.namespacekey AND tr.initial > 0
+          AND tr.dpth < 7
      
     )
     SELECT * FROM tree WHERE initial = -1)) THEN
@@ -22469,6 +22439,7 @@ GRANT ALL ON GD_CONTACT TO administrator;
 GRANT ALL ON GD_BANK TO administrator;
 GRANT ALL ON GD_OURCOMPANY TO administrator;
 GRANT ALL ON GD_PEOPLE TO administrator;
+GRANT ALL ON GD_EMPLOYEE TO administrator;
 GRANT ALL ON GD_USERCOMPANY TO administrator;
 GRANT ALL ON FLT_SAVEDFILTER TO administrator;
 GRANT ALL ON FLT_PROCEDUREFILTER TO administrator;

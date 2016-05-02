@@ -10,7 +10,6 @@ uses
 type
   Tgdc_dlgBlockRule = class(Tgdc_dlgTRPC)
     gdcBlockRule: TgdcBlockRule;
-    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -24,17 +23,9 @@ implementation
 
 {$R *.DFM}
 
-
-procedure Tgdc_dlgBlockRule.FormCreate(Sender: TObject);
-begin
-  gdcObject := gdcBlockRule;
-  inherited;
-end;
-
 initialization
   RegisterFrmClass(Tgdc_dlgBlockRule);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgBlockRule);
-
 end.

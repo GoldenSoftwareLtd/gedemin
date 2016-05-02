@@ -58,11 +58,14 @@ type
   private
     FAccountKey: Integer;
     FAccountPart: string;
+    FAccountAlias: string;
     procedure SetAccountKey(const Value: Integer);
     procedure SetAccountPart(const Value: string);
+    procedure SetAccountAlias(const Value: string);
   public
     property AccountKey: Integer read FAccountKey write SetAccountKey;
     property AccountPart: string read FAccountPart write SetAccountPart;
+    property AccountAlias: string read  FAccountAlias write SetAccountAlias;
   end;
 
   TgdvLedgerTotalBlocks = class;
@@ -298,7 +301,7 @@ type
 
     procedure AddLedgerFieldInfo(FieldName, Caption, DisplayFormat: string;
       Visible, Condition: Boolean; AccountKey: Integer; AccountPart: string;
-      DisplayField: string = '');
+      AccountAlias: string; DisplayField: string = '');
 
     class function ConfigClassName: string; override;
     procedure DoLoadConfig(const Config: TBaseAcctConfig); override;
@@ -2422,7 +2425,7 @@ end;
 
 procedure TgdvAcctLedger.AddLedgerFieldInfo(FieldName, Caption,
   DisplayFormat: string; Visible, Condition: Boolean; AccountKey: Integer;
-  AccountPart, DisplayField: string);
+  AccountPart, AccountAlias, DisplayField: string);
 var
   FI: TgdvLedgerFieldInfo;
 begin
@@ -2435,6 +2438,7 @@ begin
     FI.DisplayFormat := DisplayFormat;
     FI.Condition := Condition;
     FI.AccountKey := AccountKey;
+    FI.AccountAlias := AccountAlias;
     FI.AccountPart := AccountPart;
     FI.Total := True;
     if DisplayField > '' then
@@ -2650,6 +2654,11 @@ begin
 end;
 
 { TgdvLedgerFieldInfo }
+
+procedure TgdvLedgerFieldInfo.SetAccountAlias(const Value: string);
+begin
+  FAccountAlias := Value;
+end;
 
 procedure TgdvLedgerFieldInfo.SetAccountKey(const Value: Integer);
 begin
@@ -3021,7 +3030,7 @@ begin
               begin
                 Accounts.Add(FieldName + '=' + Format(cTemplate, [Alias, Alias, FNCUSumInfo.Scale, Dig]));
                 AddLedgerFieldInfo(FieldName, Format(cCaptionCredit, [Strings.Items[I].Caption]),
-                  DisplayFormat(FNCUSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartDebit);
+                  DisplayFormat(FNCUSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption);
               end else
               begin
                 Index := Accounts.IndexOfName(DisplayFieldName);
@@ -3029,7 +3038,7 @@ begin
                 begin
                   Accounts.Add(DisplayFieldName + '=' + Format(cTemplate, [Alias, Alias, FNCUSumInfo.Scale, Dig]));
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionCredit, [Strings.Items[I].Caption]),
-                    DisplayFormat(FNCUSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartDebit);
+                    DisplayFormat(FNCUSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption);
                 end else
                 begin
                   if Accounts.Values[DisplayFieldName] > '' then
@@ -3102,7 +3111,7 @@ begin
               begin
                 Accounts.Add(FieldName + '=' + Dig);
                 AddLedgerFieldInfo(FieldName, Format(cCaptionCredit, [Strings.Items[I].Caption]),
-                  DisplayFormat(FNCUSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartDebit);
+                  DisplayFormat(FNCUSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption);
               end
               else
               begin
@@ -3111,7 +3120,7 @@ begin
                 begin
                   Accounts.Add(DisplayFieldName + '=' + Dig);
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionCredit, [Strings.Items[I].Caption]),
-                    DisplayFormat(FNCUSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartDebit);
+                    DisplayFormat(FNCUSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption);
                 end;
               end;
             end;
@@ -3183,7 +3192,7 @@ begin
                 Accounts.Add(FieldName + '=' + Format(cTemplate, [Alias,Alias, FCurrSumInfo.Scale, Dig]));
                 AddLedgerFieldInfo(FieldName, Format(cCaptionCreditCurr, [Strings.Items[I].Caption]),
                   DisplayFormat(FCurrSumInfo.DecDigits), (FCurrSumInfo.Show) and (not FNcuSumInfo.Show),
-                  True, Strings.Items[I].Account, cAccountPartDebit, Format(cNcuCreditFieldNameTemplate,
+                  True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption, Format(cNcuCreditFieldNameTemplate,
                   [GetKeyAlias(Strings.Items[I].Account)]));
               end else
               begin
@@ -3193,7 +3202,7 @@ begin
                   Accounts.Add(DisplayFieldName + '=' + Format(cTemplate, [Alias, Alias, FCurrSumInfo.Scale, Dig]));
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionCreditCurr, [Strings.Items[I].Caption]),
                     DisplayFormat(FCurrSumInfo.DecDigits), (FCurrSumInfo.Show) and (not FNcuSumInfo.Show),
-                    True, Strings.Items[I].Account, cAccountPartDebit, Format(cNcuCreditFieldNameTemplate,
+                    True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption, Format(cNcuCreditFieldNameTemplate,
                     [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
                 end else
                 begin
@@ -3269,7 +3278,7 @@ begin
                 Accounts.Add(FieldName + '=' + Dig);
                 AddLedgerFieldInfo(FieldName, Format(cCaptionCreditCurr, [Strings.Items[I].Caption]),
                   DisplayFormat(FCurrSumInfo.DecDigits), (FCurrSumInfo.Show) and (not FNcuSumInfo.Show),
-                  True, Strings.Items[I].Account, cAccountPartDebit,
+                  True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption,
                   Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
               end
               else
@@ -3280,7 +3289,7 @@ begin
                   Accounts.Add(DisplayFieldName + '=' + Dig);
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionCreditCurr, [Strings.Items[I].Caption]),
                     DisplayFormat(FCurrSumInfo.DecDigits), (FCurrSumInfo.Show) and (not FNcuSumInfo.Show),
-                    True, Strings.Items[I].Account, cAccountPartDebit,
+                    True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption,
                     Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
                 end;
               end;
@@ -3353,7 +3362,7 @@ begin
                 Accounts.Add(FieldName + '=' + Format(cTemplate, [Alias, Alias, FEQSumInfo.Scale, Dig]));
                 AddLedgerFieldInfo(FieldName, Format(cCaptionCreditEQ, [Strings.Items[I].Caption]),
                   DisplayFormat(FEQSumInfo.DecDigits), (FEQSumInfo.Show) and (not FNcuSumInfo.Show),
-                  True, Strings.Items[I].Account, cAccountPartDebit,
+                  True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption,
                   Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
               end else
               begin
@@ -3363,7 +3372,7 @@ begin
                   Accounts.Add(DisplayFieldName + '=' + Format(cTemplate, [Alias, Alias, FEQSumInfo.Scale, Dig]));
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionCreditEQ, [Strings.Items[I].Caption]),
                     DisplayFormat(FEQSumInfo.DecDigits), (FEQSumInfo.Show) and (not FNcuSumInfo.Show),
-                    True, Strings.Items[I].Account, cAccountPartDebit,
+                    True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption,
                     Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
                 end else
                 begin
@@ -3439,7 +3448,7 @@ begin
                 Accounts.Add(FieldName + '=' + Dig);
                 AddLedgerFieldInfo(FieldName, Format(cCaptionCreditEQ, [Strings.Items[I].Caption]),
                   DisplayFormat(FEQSumInfo.DecDigits), (FEQSumInfo.Show) and (not FNcuSumInfo.Show),
-                  True, Strings.Items[I].Account, cAccountPartDebit,
+                  True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption,
                   Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
               end
               else
@@ -3450,7 +3459,7 @@ begin
                   Accounts.Add(DisplayFieldName + '=' + Dig);
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionCreditEQ, [Strings.Items[I].Caption]),
                     DisplayFormat(FEQSumInfo.DecDigits), (FEQSumInfo.Show) and (not FEQSumInfo.Show),
-                    True, Strings.Items[I].Account, cAccountPartDebit,
+                    True, Strings.Items[I].Account, cAccountPartDebit, Strings.Items[I].Caption,
                     Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
                 end;
               end;
@@ -3634,7 +3643,7 @@ begin
               begin
                 Accounts.Add(FieldName + '=' + Format(cTemplate, [Alias, Alias, FNcuSumInfo.Scale, Dig]));
                 AddLedgerFieldInfo(FieldName, Format(cCaptionDebit, [Strings.Items[I].Caption]),
-                  DisplayFormat(FNcuSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartCredit);
+                  DisplayFormat(FNcuSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption);
               end else
               begin
                 Index := Accounts.IndexOfName(DisplayFieldName);
@@ -3642,7 +3651,7 @@ begin
                 begin
                   Accounts.Add(DisplayFieldName + '=' + Format(cTemplate, [Alias, Alias, FNcuSumInfo.Scale, Dig]));
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionDebit, [Strings.Items[I].Caption]),
-                    DisplayFormat(FNcuSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartCredit);
+                    DisplayFormat(FNcuSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption);
                 end else
                 begin
                   if Accounts.Values[DisplayFieldName] > '' then
@@ -3715,7 +3724,7 @@ begin
               begin
                 Accounts.Add(FieldName + '=' + Dig);
                 AddLedgerFieldInfo(FieldName, Format(cCaptionDebit, [Strings.Items[I].Caption]),
-                  DisplayFormat(FNcuSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartCredit);
+                  DisplayFormat(FNcuSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption);
               end
               else
               begin
@@ -3724,7 +3733,7 @@ begin
                 begin
                   Accounts.Add(DisplayFieldName + '=' + Dig);
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionDebit, [Strings.Items[I].Caption]),
-                    DisplayFormat(FNcuSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartCredit);
+                    DisplayFormat(FNcuSumInfo.DecDigits), True, True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption);
                 end;
               end;
             end;
@@ -3796,7 +3805,7 @@ begin
                 Accounts.Add(FieldName + '=' + Format(cTemplate, [Alias, Alias, FCurrSumInfo.Scale, Dig]));
                 AddLedgerFieldInfo(FieldName, Format(cCaptionDebitCurr, [Strings.Items[I].Caption]),
                   DisplayFormat(FCurrSumInfo.DecDigits), (FCurrSumInfo.Show) and (not FNcuSumInfo.Show),
-                  True, Strings.Items[I].Account, cAccountPartCredit,
+                  True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption,
                   Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
               end else
               begin
@@ -3806,7 +3815,7 @@ begin
                   Accounts.Add(DisplayFieldName + '=' + Format(cTemplate, [Alias, Alias, FCurrSumInfo.Scale, Dig]));
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionDebitCurr, [Strings.Items[I].Caption]),
                     DisplayFormat(FCurrSumInfo.DecDigits), (FCurrSumInfo.Show) and (not FNcuSumInfo.Show),
-                    True, Strings.Items[I].Account, cAccountPartCredit,
+                    True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption,
                     Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
                 end else
                 begin
@@ -3882,7 +3891,7 @@ begin
                 Accounts.Add(FieldName + '=' + Dig);
                 AddLedgerFieldInfo(FieldName, Format(cCaptionDebitCurr, [Strings.Items[I].Caption]),
                   DisplayFormat(FCurrSumInfo.DecDigits), (FCurrSumInfo.Show) and (not FNcuSumInfo.Show),
-                  True, Strings.Items[I].Account, cAccountPartCredit,
+                  True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption,
                   Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
               end
               else
@@ -3893,7 +3902,7 @@ begin
                   Accounts.Add(DisplayFieldName + '=' + Dig);
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionDebitCurr, [Strings.Items[I].Caption]),
                     DisplayFormat(FCurrSumInfo.DecDigits), (FCurrSumInfo.Show) and (not FNcuSumInfo.Show),
-                    True, Strings.Items[I].Account, cAccountPartCredit,
+                    True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption,
                     Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
                 end;
               end;
@@ -3966,7 +3975,7 @@ begin
                 Accounts.Add(FieldName + '=' + Format(cTemplate, [Alias, Alias, FEQSumInfo.Scale, Dig]));
                 AddLedgerFieldInfo(FieldName, Format(cCaptionDebitEQ, [Strings.Items[I].Caption]),
                   DisplayFormat(FEQSumInfo.DecDigits), (FEQSumInfo.Show) and (not FNcuSumInfo.Show),
-                  True, Strings.Items[I].Account, cAccountPartCredit,
+                  True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption,
                   Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
               end else
               begin
@@ -3976,7 +3985,7 @@ begin
                   Accounts.Add(DisplayFieldName + '=' + Format(cTemplate, [Alias, Alias, FEQSumInfo.Scale, Dig]));
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionDebitEQ, [Strings.Items[I].Caption]),
                     DisplayFormat(FEQSumInfo.DecDigits), (FEQSumInfo.Show) and (not FNcuSumInfo.Show),
-                    True, Strings.Items[I].Account, cAccountPartCredit,
+                    True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption,
                     Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
                 end else
                 begin
@@ -4052,7 +4061,7 @@ begin
                 Accounts.Add(FieldName + '=' + Dig);
                 AddLedgerFieldInfo(FieldName, Format(cCaptionDebitEQ, [Strings.Items[I].Caption]),
                   DisplayFormat(FEQSumInfo.DecDigits), (FEQSumInfo.Show) and (not FNcuSumInfo.Show),
-                  True, Strings.Items[I].Account, cAccountPartCredit,
+                  True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption,
                   Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
               end
               else
@@ -4063,7 +4072,7 @@ begin
                   Accounts.Add(DisplayFieldName + '=' + Dig);
                   AddLedgerFieldInfo(DisplayFieldName, Format(cCaptionDebitEQ, [Strings.Items[I].Caption]),
                     DisplayFormat(FEQSumInfo.DecDigits), (FEQSumInfo.Show) and (not FNcuSumInfo.Show),
-                    True, Strings.Items[I].Account, cAccountPartCredit,
+                    True, Strings.Items[I].Account, cAccountPartCredit, Strings.Items[I].Caption,
                     Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
                 end;
               end;

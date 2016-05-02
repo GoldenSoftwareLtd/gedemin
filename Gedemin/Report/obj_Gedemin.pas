@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -44,21 +44,6 @@ type
   public
     constructor Create(const AnID: Integer; const AnName: String);
   end;
-
-{type
-  TgsViewWindow = class(TAutoObject, IgsViewWindow)
-  private
-    FForm: TForm;
-    FDatabase: TIBDatabase;
-    FTransaction: TIBTransaction;
-
-    function GetWindowInterface: IgsViewWindow;
-  protected
-    function  Get_WindowQuery: IgsQueryList; safecall;
-    function  Get_SelectedKey: OleVariant; safecall;
-  public
-    constructor Create(AnForm: TForm; AnDatabase: TIBDatabase; AnTransaction: TIBTransaction);
-  end;}
 
 type
   TgsReportWindow = class(TAutoObject, IgsDlgWindow)
@@ -115,7 +100,6 @@ type
     function  Get_SubSystem: IRecord; safecall;
     function  Get_Database: IgsIBDatabase; safecall;
     function  ActiveWindow: IgsCreateableForm; safecall;
-//    function  WindowByName(const WindowName: WideString): IgsViewWindow; safecall;
     function  ExecuteMacro(const Name: WideString; const ObjectName: WideString; Params: OleVariant): OleVariant; safecall;
     function  ExecuteScript(const FunctionName: WideString; const ObjectName: WideString;
                             Params: OleVariant): OleVariant; safecall;
@@ -147,13 +131,13 @@ type
     function  OemToAnsi(const S: WideString): WideString; safecall;
                                     
     function  GetCodeByParams(const ParamList: WideString): LongWord; safecall;
-                                                                   
+    function  StartPerfCounter(const ASrc: WideString; const AName: WideString): Integer; safecall;
+    procedure StopPerfCounter(AnID: Integer); safecall;
+    procedure AddLogRecord(const ASrc: WideString; const AText: WideString; AType: Integer;
+                           AnObjID: Integer; const AnObjType: WideString; AShowWindow: WordBool); safecall;
   public
     constructor Create(const AnDatabase: TIBDatabase; const AnTransaction: TIBTransaction);
     destructor Destroy; override;
-
-    {property Database: TIBDatabase read FDatabase write FDatabase;
-    property Transaction: TIBTransaction read FTransaction write FTransaction;}
   end;
 
 implementation
@@ -164,9 +148,12 @@ uses
   obj_dlgParamWindow, gdc_frmMemo_unit, at_sql_parser, at_sql_setup,
   obj_WrapperGSClasses, gdcOLEClassList, Storages, mtd_i_Base,
   rp_dlgViewResultEx_unit, scrMacrosGroup,
-{$IFDEF GEDEMIN_LOCK}
+  {$IFDEF WITH_INDY}
+  gdccClient_unit,
+  {$ENDIF}
+  {$IFDEF GEDEMIN_LOCK}
   gd_registration,
-{$ENDIF}
+  {$ENDIF}
   rp_BaseReport_unit, rp_i_ReportBuilder_unit;
 
 { TgsGedemin }
@@ -502,6 +489,36 @@ begin
   end
   else
     raise Exception.Create('Попытка вызова макроса с ID = -1');
+end;
+
+procedure TgsGedemin.AddLogRecord(const ASrc, AText: WideString; AType,
+  AnObjID: Integer; const AnObjType: WideString; AShowWindow: WordBool);
+begin
+  {$IFDEF WITH_INDY}
+  if gdccClient <> nil then
+    gdccClient.AddLogRecord(ASrc, AText, AType, AShowWindow);
+  {$ENDIF}
+end;
+
+function TgsGedemin.StartPerfCounter(const ASrc,
+  AName: WideString): Integer;
+begin
+  {$IFDEF WITH_INDY}
+  if gdccClient <> nil then
+    Result := gdccClient.StartPerfCounter(ASrc, AName)
+  else
+    Result := 0;
+  {$ELSE}
+  Result := 0;
+  {$ENDIF}
+end;
+
+procedure TgsGedemin.StopPerfCounter(AnID: Integer);
+begin
+  {$IFDEF WITH_INDY}
+  if gdccClient <> nil then
+    gdccClient.StopPerfCounter(AnID);
+  {$ENDIF}
 end;
 
 { TgsRecord }

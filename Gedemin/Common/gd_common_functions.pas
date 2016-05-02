@@ -4,7 +4,7 @@ unit gd_common_functions;
 interface
 
 uses
-  Classes;
+  Classes, Windows;
 
 function GetCurEXEVersion: String;
 procedure SaveStringToStream(const Str: String; Stream: TStream);
@@ -13,6 +13,8 @@ procedure SaveBooleanToStream(const Value: Boolean; Stream: TStream);
 function ReadBooleanFromStream(Stream: TStream): Boolean;
 procedure SaveIntegerToStream(const Value: Integer; Stream: TStream);
 function ReadIntegerFromStream(Stream: TStream): Integer;
+procedure SaveInt64ToStream(const Value: Int64; Stream: TStream);
+function ReadInt64FromStream(Stream: TStream): Int64;
 procedure SaveCardinalToStream(const Value: Cardinal; Stream: TStream);
 function ReadCardinalFromStream(Stream: TStream): Cardinal;
 procedure SaveDateTimeToStream(const Value: TDateTime; Stream: TStream);
@@ -33,11 +35,67 @@ function ParseFieldOrigin(const AnOrigin: String; out ARelationName, AFieldName:
 function ExpandMetaVariables(const S: String): String;
 function AddSpaces(const S: String = ''): String;
 function BooleanToString(const B: Boolean): String;
+function ForceForegroundWindow(hwnd: THandle): boolean;
 
 implementation
 
 uses
-  Windows, SysUtils, Forms, jclFileUtils, WinSock;
+  SysUtils, Forms, jclFileUtils, WinSock;
+
+function ForceForegroundWindow(hwnd: THandle): boolean;
+{
+found here:
+http://delphi.newswhat.com/geoxml/forumhistorythread?groupname=borland.public.delphi.rtl.win32&messageid=501_3f8aac4b@newsgroups.borland.com
+}
+const
+  SPI_GETFOREGROUNDLOCKTIMEOUT = $2000;
+  SPI_SETFOREGROUNDLOCKTIMEOUT = $2001;
+var
+  ForegroundThreadID: DWORD;
+  ThisThreadID: DWORD;
+  timeout: DWORD;
+begin
+  if IsIconic(hwnd) then ShowWindow(hwnd, SW_RESTORE);
+  if GetForegroundWindow = hwnd then Result := true
+  else begin
+    // Windows 98/2000 doesn't want to foreground a window when some other
+    // window has keyboard focus
+
+    if ((Win32Platform = VER_PLATFORM_WIN32_NT) and (Win32MajorVersion > 4)) or
+       ((Win32Platform = VER_PLATFORM_WIN32_WINDOWS) and ((Win32MajorVersion > 4) or
+                                                          ((Win32MajorVersion = 4) and (Win32MinorVersion > 0)))) then begin
+      // Code from Karl E. Peterson, www.mvps.org/vb/sample.htm
+      // Converted to Delphi by Ray Lischner
+      // Published in The Delphi Magazine 55, page 16
+
+      Result := false;
+      ForegroundThreadID := GetWindowThreadProcessID(GetForegroundWindow,nil);
+      ThisThreadID := GetWindowThreadPRocessId(hwnd,nil);
+      if AttachThreadInput(ThisThreadID, ForegroundThreadID, true) then
+      begin
+        BringWindowToTop(hwnd); // IE 5.5 related hack
+        SetForegroundWindow(hwnd);
+        AttachThreadInput(ThisThreadID, ForegroundThreadID, false);  // bingo
+        Result := (GetForegroundWindow = hwnd);
+      end;
+      if not Result then begin
+        // Code by Daniel P. Stasinski
+
+        SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, @timeout, 0);
+        SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, TObject(0), SPIF_SENDCHANGE);
+        BringWindowToTop(hwnd); // IE 5.5 related hack
+        SetForegroundWindow(hWnd);
+        SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, TObject(timeout), SPIF_SENDCHANGE);
+      end;
+    end
+    else begin
+      BringWindowToTop(hwnd); // IE 5.5 related hack
+      SetForegroundWindow(hwnd);
+    end;
+
+    Result := (GetForegroundWindow = hwnd);
+  end;
+end; { ForceForegroundWindow }
 
 function BooleanToString(const B: Boolean): String;
 begin
@@ -197,6 +255,16 @@ begin
 end;
 
 function ReadIntegerFromStream(Stream: TStream): Integer;
+begin
+  Stream.ReadBuffer(Result, SizeOf(Result));
+end;
+
+procedure SaveInt64ToStream(const Value: Int64; Stream: TStream);
+begin
+  Stream.WriteBuffer(Value, SizeOf(Value));
+end;
+
+function ReadInt64FromStream(Stream: TStream): Int64;
 begin
   Stream.ReadBuffer(Result, SizeOf(Result));
 end;

@@ -1507,7 +1507,7 @@ function Tgdc_dlgRelation.TestCorrect: Boolean;
     Count := 0;
     if gdcBaseManager.ExecSingleQueryResult('SELECT relationname FROM at_relations WHERE id = :id', RID, R) then
       _Traverse(gdClassList.Get(TgdBaseEntry, 'TgdcBase'), R[0, 0], Count);
-    Result := Count = 1;
+    Result := Count <= 1;
   end;
 
 var

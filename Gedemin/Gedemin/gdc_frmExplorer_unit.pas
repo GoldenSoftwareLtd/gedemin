@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -180,7 +180,7 @@ implementation
 uses
   Storages, gd_ClassList, gdcBaseInterface, gd_directories_const,
   gd_createable_form, dmImages_unit, jclStrings, gsResizerInterface,
-  gdcUser
+  gdcUser, gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -370,6 +370,9 @@ begin
 
   iblkupGroup.Transaction := gdcBaseManager.ReadTransaction;
   iblkupUser.Transaction := gdcBaseManager.ReadTransaction;
+  
+  if not Global_LoadingNamespace then
+    ForceForegroundWindow(Self.Handle);
 end;
 
 procedure Tgdc_frmExplorer.dbtvExplorerDblClick(Sender: TObject);

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -313,6 +313,9 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
+  {$IFDEF WITH_INDY}
+    , gdccClient_unit
+  {$ENDIF}
   ;
 
 constructor TReportScript.Create(AOwner: TComponent);
@@ -427,7 +430,7 @@ begin
 end;
 
 function TReportScript.ExecuteFunction(const AnFunction: TrpCustomFunction;
- var AnParam, AnResult: Variant): Boolean;
+  var AnParam, AnResult: Variant): Boolean;
 type
   TPArr = array[0..2] of Pointer;
 var
@@ -438,6 +441,9 @@ var
   LModuleName: String;
   {$IFDEF GEDEMIN}
   StopFlag: Boolean;
+  {$ENDIF}
+  {$IFDEF WITH_INDY}
+  TstID: Integer;
   {$ENDIF}
 
   function GetVarArray(TheSafeArray: PSafeArray): Variant;
@@ -515,12 +521,16 @@ begin
     Result := False;
     try
       if not Assigned(AnFunction) then
-        Exit;
+        exit;
 
       try
         SetLanguage(AnFunction.Language);
         ClearMethod;
         IsCreate;
+
+        {$IFDEF WITH_INDY}
+        TstID := gdccClient.StartPerfCounter('vbs', AnFunction.Name);
+        {$ENDIF}
 
         // Создаются параметры
         ParamsArray := MakeMakeSafeArray(AnParam);
@@ -600,6 +610,10 @@ begin
 
           Result := True;
         finally
+          {$IFDEF WITH_INDY}
+          gdccClient.StopPerfCounter(TstID);
+          {$ENDIF}
+
           FFunctionKey := 0;
           {$IFDEF GEDEMIN}
           if Assigned(Debugger) then

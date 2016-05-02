@@ -370,6 +370,9 @@ uses
   {$ELSE}
   , IBSQLMonitor
   {$ENDIF}
+  {$IFDEF WITH_INDY}
+  , gdccClient_unit
+  {$ENDIF}
   {$IFDEF DEBUG}
   , Math
   {$ENDIF}
@@ -2166,19 +2169,19 @@ end;
 procedure TIBSQL.ExecQuery;
 var
   fetch_res: ISC_STATUS;
-  {$IFDEF GEDEMIN}
-  OldTime: Cardinal;
+  {$IFDEF WITH_INDY}
+  TstID: Integer;
   {$ENDIF}
 begin
   CheckClosed;
   if not Prepared then
     Prepare;
   CheckValidStatement;
-  {$IFDEF GEDEMIN}
-  OldTime := GetTickCount;
-  {$ENDIF}
   if FSQLType in [SQLSelect, SQLSelectForUpdate, SQLExecProcedure] then
     IBSQL_WaitWindowThread.StartSQL(StatusVector, DBHandle);
+  {$IFDEF WITH_INDY}
+  TstID := gdccClient.StartPerfCounter('ibsql', FSQL.Text);
+  {$ENDIF}
   try
     case FSQLType of
       SQLSelect:
@@ -2252,15 +2255,15 @@ begin
                              FSQLParams.AsXSQLDA), True)
     end;
   finally
+    {$IFDEF WITH_INDY}
+    gdccClient.StopPerfCounter(TstID);
+    {$ENDIF}
     if FSQLType in [SQLSelect, SQLSelectForUpdate, SQLExecProcedure] then
       IBSQL_WaitWindowThread.FinishSQL;
   end;
-  if not (csDesigning in ComponentState) then
-  {$IFDEF GEDEMIN}
-    MonitorHook.SQLExecute(Self, GetTickCount - OldTime);
-  {$ELSE}
-    MonitorHook.SQLExecute(Self);
-  {$ENDIF}
+
+  //if not (csDesigning in ComponentState) then
+  //  MonitorHook.SQLExecute(Self);
 end;
 
 function TIBSQL.GetEOF: Boolean;
@@ -2269,13 +2272,7 @@ begin
 end;
 
 function TIBSQL.FieldByName(FieldName: String): TIBXSQLVAR;
-{var
-  i: Integer;}
 begin
-  {i := GetFieldIndex(FieldName);
-  if (i < 0) then
-    IBError(ibxeFieldNotFound, [FieldName]);
-  result := GetFields(i);}
   Result := FSQLRecord.ByName(FieldName);
   if not Assigned(Result) then
     IBError(ibxeFieldNotFound, [FieldName]);

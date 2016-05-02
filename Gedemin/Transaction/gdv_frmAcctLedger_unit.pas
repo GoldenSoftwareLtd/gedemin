@@ -88,6 +88,8 @@ type
       var Accept: Boolean);
     procedure actSaveGridSettingUpdate(Sender: TObject);
     procedure actClearGridSettingUpdate(Sender: TObject);
+    procedure cbShowCreditClick(Sender: TObject);
+    procedure cbShowDebitClick(Sender: TObject);
     
   private
     FEntryDateIsFirst: Boolean;
@@ -102,6 +104,7 @@ type
     procedure OnAnalyticGroupSelect(Sender: TObject);
 
     procedure UpdateEntryDateIsFirst;
+    procedure CheckShowCorrSubAccount;
   protected
     function GetGdvObject: TgdvAcctBase; override;
     procedure SetParams; override;
@@ -471,8 +474,9 @@ begin
       FI := FFieldInfos.FindInfo(F.FieldName);
       if (FI <> nil) and (FI is TgdvLedgerFieldInfo) then
       begin
-        C.CorrAccounts := GetAlias(TgdvLedgerFieldInfo(FI).AccountKey);
+        C.CorrAccounts := TgdvLedgerFieldInfo(FI).AccountAlias;
         C.AccountPart := TgdvLedgerFieldInfo(FI).AccountPart;
+        C.IncCorrSubAccounts := not cbShowCorrSubAccount.Checked;
       end;
 
       iTmp:= 0;
@@ -1410,6 +1414,13 @@ begin
   Result := ibdsMain;
 end;
 
+procedure Tgdv_frmAcctLedger.CheckShowCorrSubAccount;
+begin
+  cbShowCorrSubAccount.Enabled := cbShowDebit.Checked or cbShowCredit.Checked;
+  if not cbShowCorrSubAccount.Enabled then
+    cbShowCorrSubAccount.Checked := False;
+end;
+
 { Tgdv_ValueList }
 
 function Tgdv_ValueList.Add(Value: string): Tgdv_Value;
@@ -1689,6 +1700,18 @@ end;
 procedure Tgdv_frmAcctLedger.actClearGridSettingUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := iblConfiguratior.CurrentKey > '';
+end;
+
+procedure Tgdv_frmAcctLedger.cbShowCreditClick(Sender: TObject);
+begin
+  inherited;
+  CheckShowCorrSubAccount;
+end;
+
+procedure Tgdv_frmAcctLedger.cbShowDebitClick(Sender: TObject);
+begin
+  inherited;
+  CheckShowCorrSubAccount;
 end;
 
 initialization

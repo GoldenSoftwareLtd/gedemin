@@ -146,19 +146,19 @@ type
     // Вызывается после InputParams только там, где возможно передача OwnerForm
     // Если присвоено удачно или нет OwnerForm, то возвр. True
     function GiveOwnerForm(const AnFunction: TrpCustomFunction;
-       var AnParamResult: Variant; const OwnerFormName: String): Boolean;
+      var AnParamResult: Variant; const OwnerFormName: String): Boolean;
 
     // используется, где необходимо использовать свой обработчик ошибок
     // для текущей скрипт-функции
     procedure ExecuteFunction(const AFunction: TrpCustomFunction;
-     var AParamAndResult: Variant; const AErrorEvent: TNotifyEvent); overload;
+      var AParamAndResult: Variant; const AErrorEvent: TNotifyEvent); overload;
 
     procedure ExecuteFunction(const AFunction: TrpCustomFunction;
-     var AParamAndResult: Variant); overload;
+      var AParamAndResult: Variant); overload;
     procedure ExecuteFunction(const AFunction: TrpCustomFunction;
-     AParams: Variant; out AnResult: Variant); overload;
+      AParams: Variant; out AnResult: Variant); overload;
     procedure ExecuteFunction(const AFunctionKey: Integer;
-     AParams: Variant; out AnResult: Variant); overload;
+      AParams: Variant; out AnResult: Variant); overload;
 
     // Метод служит для выполнения скрипт-функции. При этом входные параметры и результат выполнения передаются разными переменными.
     procedure ExecuteFunctionEx

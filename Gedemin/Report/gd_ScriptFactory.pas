@@ -488,7 +488,7 @@ begin
   // Если FVBReportScript.Error.Number <> 0, значит еще не закончено выполнение
   // СФ с ошибкой => новые скрипты не запускаем
   if FVBReportScript.Error.Number <> 0 then
-    Exit;
+    exit;
 
   // Очищаем список ошибок
   // Очищать его надо перед запускам и после

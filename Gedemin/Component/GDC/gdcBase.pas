@@ -867,16 +867,6 @@ type
     // если нет -- вызывает исключение
     class procedure CheckClass(C: TClass);
 
-    // Устанавливает DataBase и Transaction для FIBSQL
-    //procedure SetIBSQL;
-
-    // выполняет заданный СКЛ запрос
-    // коммит не делает
-    procedure ExecSingleQuery(const S: String); overload;
-    procedure ExecSingleQuery(const S: String; Param: Variant); overload;
-    function ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant): Boolean;
-
     // функция пытается удалить запись. Если ей это удается, то возвращает
     // Истину, если нет, то вызывает окно со списком ссылающихся таблиц
     // из-за которых не удается произвести удаление
@@ -1277,6 +1267,13 @@ type
     // транзакции, когда пользователь зашел в диалоговое окно
     // только посмотрел данные и вышел по Ок
     procedure Post; override;
+
+    // выполняет заданный СКЛ запрос
+    // коммит не делает
+    procedure ExecSingleQuery(const S: String); overload;
+    procedure ExecSingleQuery(const S: String; Param: Variant); overload;
+    function ExecSingleQueryResult(const S: String; Param: Variant;
+      out Res: OleVariant): Boolean;
 
     // функция проверки сабсета на допустимое значение
     // на уровне базового класса мы определяем два

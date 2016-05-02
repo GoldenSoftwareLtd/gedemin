@@ -471,6 +471,9 @@ uses
   gd_directories_const,                 at_sql_metadata,   gd_CmdLineParams_unit,
   IBUtils,           gd_splash,         at_frmIBUserList,  iberrorcodes,
   dmDatabase_unit,   IB,                IBHeader
+  {$IFDEF WITH_INDY}
+    , gdccClient_unit
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -2660,6 +2663,9 @@ begin
     begin
       if Assigned(gdSplash) then
         gdSplash.ShowText(sSynchronizationAtRelations);
+      {$IFDEF WITH_INDY}
+      gdccClient.AddLogRecord('atdatabase', 'EXECUTE PROCEDURE at_p_sync');
+      {$ENDIF}
       ibsql.SQL.Text := 'EXECUTE PROCEDURE at_p_sync';
       try
         for I := 0 to 5 do
@@ -3491,9 +3497,15 @@ begin
       DidActivate := True;
     end;
     try
+      {$IFDEF WITH_INDY}
+      gdccClient.AddLogRecord('atdatabase', 'EXECUTE PROCEDURE at_p_sync_indexes_all');
+      {$ENDIF}
       ibsql.Close;
       ibsql.SQL.Text := 'EXECUTE PROCEDURE at_p_sync_indexes_all';
       ibsql.ExecQuery;
+      {$IFDEF WITH_INDY}
+      gdccClient.AddLogRecord('atdatabase', 'EXECUTE PROCEDURE at_p_sync_triggers_all');
+      {$ENDIF}
       ibsql.Close;
       ibsql.SQL.Text := 'EXECUTE PROCEDURE at_p_sync_triggers_all';
       for I := 0 to 5 do

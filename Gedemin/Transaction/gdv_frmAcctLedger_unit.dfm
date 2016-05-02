@@ -58,6 +58,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
           Checked = True
           State = cbChecked
           TabOrder = 3
+          OnClick = cbShowDebitClick
         end
         object cbShowCredit: TCheckBox [5]
           Left = 8
@@ -68,6 +69,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
           Checked = True
           State = cbChecked
           TabOrder = 4
+          OnClick = cbShowCreditClick
         end
         object cbShowCorrSubAccount: TCheckBox [6]
           Left = 8

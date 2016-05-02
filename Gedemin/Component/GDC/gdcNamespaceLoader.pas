@@ -114,10 +114,9 @@ uses
   IBHeader, Storages, gd_security, at_classes, at_frmSQLProcess,
   at_sql_metadata, gd_common_functions, gdcNamespaceRecCmpController,
   gdcMetadata, gdcFunction, gd_directories_const, mtd_i_Base, evt_i_Base,
-  gd_CmdLineParams_unit, at_dlgNamespaceRemoveList_unit,
-  gd_WebClientControl_unit, gdcContacts,
+  gd_CmdLineParams_unit, at_dlgNamespaceRemoveList_unit, gdcContacts,
   {$IFDEF WITH_INDY}
-  gdccGlobal,
+  gdccConst, gdccGlobal, gdccClient_unit, gd_WebClientControl_unit,
   {$ENDIF}
   gd_AutoTaskThread;
 
@@ -494,6 +493,11 @@ begin
 end;
 
 procedure TgdcNamespaceLoader.Load(AList: TStrings);
+{$IFDEF WITH_INDY}
+const
+  LoadNSWeight    = 3;
+  RecalcMD5weight = 1;
+{$ENDIF}
 var
   I, J, K, T: Integer;
   Parser: TyamlParser;
@@ -531,7 +535,8 @@ begin
   {$ENDIF}
   try
     {$IFDEF WITH_INDY}
-    Progress.StartWork('Загрузка ПИ', 'Загрузка ПИ', AList.Count);
+    Progress.StartWork('Загрузка', 'Загрузка пространств имен в базу данных',
+      AList.Count * (LoadNSWeight + RecalcMD5Weight));
     {$ENDIF}
 
     if UnMethodMacro then
@@ -547,7 +552,12 @@ begin
     for I := 0 to AList.Count - 1 do
     begin
       {$IFDEF WITH_INDY}
-      Progress.StartStep(AList[I]);
+      Progress.StartStep(ExtractFileName(AList[I]), LoadNSWeight);
+      if Progress.Canceled then
+      begin
+        AddWarning('Прервано пользователем');
+        break;
+      end;
       {$ENDIF}
 
       if FLoadedNSList.IndexOf(AList[I]) > -1 then
@@ -645,6 +655,11 @@ begin
 
             for J := 0 to Objects.Count - 1 do
             begin
+              {$IFDEF WITH_INDY}
+              if Progress.Canceled then
+                break;
+              {$ENDIF}
+
               if not (Objects[J] is TYAMLMapping) then
                 raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
               LoadObject(Objects[J] as TYAMLMapping, NSID, NSTimeStamp, False);
@@ -756,6 +771,7 @@ begin
       q.Transaction := FTr;
       q.SQL.Text := 'UPDATE at_namespace SET changed = :changed, md5 = :md5 WHERE id = :id';
 
+      AddText('Начат пересчет контрольных сумм MD5...');
       for T := 0 to FNSList.Count - 1 do
       begin
         HashString := '';
@@ -764,10 +780,20 @@ begin
         FgdcNamespace.Open;
         if not FgdcNamespace.EOF then
         begin
+          {$IFDEF WITH_INDY}
+          AddText('Пересчитывается: ' + FgdcNamespace.ObjectName);
+          Progress.StartStep('Пересчитывается: ' + FgdcNamespace.ObjectName, RecalcMD5Weight);
+          if Progress.Canceled then
+          begin
+            AddWarning('Прервано пользователем');
+            break;
+          end;
+          {$ENDIF}
+
           OldHashString := FgdcNamespace.FieldbyName('MD5').AsString;
           MS := TMemoryStream.Create;
           try
-            FgdcNamespace.SaveNamespaceToStream(MS, HashString);
+            FgdcNamespace.SaveNamespaceToStream(MS, HashString, IDNO);
           finally
             MS.Free;
           end;
@@ -785,23 +811,23 @@ begin
           q.ExecQuery;
         end;
       end;
+      AddText('Окончен пересчет контрольных сумм MD5.');
     finally
       q.Free;
       FTr.Commit;
     end;
-
-    {$IFDEF WITH_INDY}
-    Progress.EndWork('');
-    {$ENDIF}
   finally
     UnMethodMacro := OldUnMethodMacro;
     Global_LoadingNamespace := False;
     {$IFDEF WITH_INDY}
+    Progress.EndWork('');
     Progress.Free;
     {$ENDIF}
   end;
 
   FLoading := False;
+
+  AddText('Закончена загрузка списка ПИ.');
 
   if gdAutoTaskThread <> nil then
   begin
@@ -1658,6 +1684,7 @@ begin
 
   if FRemoveList.Count > 0 then
   begin
+    AddText('Количество объектов для удаления: ' + IntToStr(FRemoveList.Count));
     if (not gd_CmdLineParams.QuietMode) and (gd_CmdLineParams.LoadsettingFileName = '') then
     begin
       with Tat_dlgNamespaceRemoveList.Create(nil) do
@@ -1793,7 +1820,6 @@ procedure TgdcNamespaceLoaderNexus.WMLoadNamespace(var Msg: TMessage);
 var
   L: TgdcNamespaceLoader;
   SL: TStringList;
-  ErrorCount, WarningCount: Integer;
   T: TDateTime;
 begin
   Assert(not FLoading);
@@ -1829,25 +1855,35 @@ begin
   finally
     FLoading := False;
 
-    if (gd_CmdLineParams.SendLogEmail > '') and FileExists(gd_CmdLineParams.LoadSettingFileName)
-      and (frmSQLProcess <> nil) and (frmSQLProcess.Log <> nil)
-      and (gdWebClientControl <> nil) then
+    {$IFDEF WITH_INDY}
+    if (gd_CmdLineParams.SendLogEmail > '')
+      and FileExists(gd_CmdLineParams.LoadSettingFileName)
+      and (gdWebClientControl <> nil)
+      and gdccClient.Connected then
     begin
-      SL := TStringList.Create;
-      try
-        frmSQLProcess.Log.SaveToStringList(False, True, WarningCount, ErrorCount, SL);
-        if SL.Count = 0 then
-          gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
-            'Успешно загружено ПИ ' + ExtractFileName(gd_CmdLineParams.LoadSettingFileName),
-            'Время загрузки: ' + FormatDateTime('hh:nn:ss', Now - T), '', False, False, True)
-        else
-          gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
-            'Ошибки или предупреждения в процессе загрузки ПИ ' + ExtractFileName(gd_CmdLineParams.LoadSettingFileName),
-            SL.Text, '', False, False, True);
-      finally
-        SL.Free;
+      gdccClient.AddLogRecord('ns', 'Request log to send via email...');
+      gdccClient.SendCommand(gdcc_cmd_GetLog, gdcc_lt_Warning or gdcc_lt_Error, gdcc_cmd_LogTransfered);
+      if gdccClient.WaitForCommand(gdcc_cmd_LogTransfered, 4000) then
+      begin
+        SL := TStringList.Create;
+        try
+          SL.CommaText := gdccClient.LogStr;
+          gdccClient.AddLogRecord('ns', 'Log received. ' + IntToStr(SL.Count) + ' lines');
+
+          if SL.Count = 0 then
+            gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
+              'Успешно загружено ПИ ' + ExtractFileName(gd_CmdLineParams.LoadSettingFileName),
+              'Время загрузки: ' + FormatDateTime('hh:nn:ss', Now - T), '', False, False, True)
+          else
+            gdWebClientControl.SendEmail(-1, gd_CmdLineParams.SendLogEmail,
+              'Ошибки или предупреждения в процессе загрузки ПИ ' + ExtractFileName(gd_CmdLineParams.LoadSettingFileName),
+              SL.Text, '', False, False, True);
+        finally
+          SL.Free;
+        end;
       end;
     end;
+    {$ENDIF}
   end;
 
   if FTerminate then

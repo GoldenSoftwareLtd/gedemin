@@ -4586,7 +4586,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := inherited GetNotCopyField + ',DOCUMENTKEY,RECORDKEY'
+  Result := inherited GetNotCopyField + ',DOCUMENTKEY,RECORDKEY,TRRECORDKEY'
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTCOMPLEXRECORD', 'GETNOTCOPYFIELD', KEYGETNOTCOPYFIELD)}
   {M}  finally

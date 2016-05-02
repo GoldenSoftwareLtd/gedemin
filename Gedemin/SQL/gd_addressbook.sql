@@ -274,6 +274,17 @@ SET TERM ; ^
 
 COMMIT;
 
+CREATE TABLE gd_employee 
+(
+  contactkey        dintkey,
+  
+  CONSTRAINT gd_pk_employee PRIMARY KEY (contactkey),
+  CONSTRAINT gd_fk_employee_contactkey FOREIGN KEY (contactkey)
+    REFERENCES gd_people (contactkey)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
 CREATE TABLE gd_company
 (
   contactkey        dintkey,     /* Контакт  */

@@ -508,7 +508,15 @@ begin
       C.CompanyKey:= frAcctCompany.iblCompany.CurrentKeyInt;
       C.AllHoldingCompanies:= frAcctCompany.cbAllCompanies.Checked;
       C.IncCorrSubAccounts:= False;
+
       C.AccountPart:= GetAccountPart(sAcc, sCorrAcc);
+
+      if F.FieldName = 'NCU_DEBIT' then
+        C.AccountPart := 'C'
+      else
+        if F.FieldName = 'NCU_CREDIT' then
+          C.AccountPart := 'D';
+
       C.Accounts:= sAcc;
       C.CorrAccounts:= sCorrAcc;
       C.Analytics:= frAcctAnalytics.Values;
