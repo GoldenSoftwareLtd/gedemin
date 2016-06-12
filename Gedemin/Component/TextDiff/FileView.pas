@@ -252,9 +252,9 @@ begin
     HashList2.capacity := Lines2.Count;
     begin
       for i := 0 to Lines1.Count-1 do
-        HashList1.add(HashLine(Lines1[i],{mnuIgnoreCase.checked}True,{mnuIgnoreBlanks.checked}True));
+        HashList1.add(HashLine(Lines1[i],{mnuIgnoreCase.checked}False,{mnuIgnoreBlanks.checked}False));
       for i := 0 to Lines2.Count-1 do
-        HashList2.add(HashLine(Lines2[i],{mnuIgnoreCase.checked}True,{mnuIgnoreBlanks.checked}True));
+        HashList2.add(HashLine(Lines2[i],{mnuIgnoreCase.checked}False,{mnuIgnoreBlanks.checked}False));
       //CALCULATE THE DIFFS HERE ...
       if not Diff.Execute(PIntArray(HashList1.List),PIntArray(HashList2.List),
         HashList1.count, HashList2.count) then exit;

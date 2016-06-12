@@ -2581,17 +2581,13 @@ end;
 procedure TfrmGedeminProperty.DoFind;
 var
   SearchText: String;
-  P: Integer;
   SM: TSearchMessageItem;
   Add: Integer;
   SQL: TIBSQL;
   LI: TListItem;
   Strings: TStringList;
-  Str: String;
-  L: Integer;
   C: TCursor;
   DateCondition, ModuleCondition: string;
-  Temp: Integer;
 const
   ALPHA = ['A'..'Z', 'a'..'z', '_', '0'..'9'];
 
@@ -2625,12 +2621,11 @@ const
     SM.Column := Column;
   end;
 
-  procedure FillFindList(FindList: TStrings; const ItemType: TItemType);
-  var
-    FI: Integer;
+  procedure FillFindList(FindList: TStrings; const ItemType: TItemType;
+    const AFindInName: Boolean);
 
-    procedure AddItem(Caption: string; FunctionKey: Integer; Module: string;
-      Line, Pos: Integer);
+    procedure AddItem(const Caption: String; const FunctionKey: Integer;
+      const Module: String; const Line, Pos: Integer);
     begin
       LI := AddLI(Caption, nil, Line, Pos);
       TSearchMessageItem(LI.Data).FunctionKey := FunctionKey;
@@ -2638,42 +2633,128 @@ const
       TSearchMessageItem(LI.Data).ItemType := ItemType;
     end;
 
-  begin
-    if SearchOptions.SearchText <> '' then
+    procedure SearchText(const S, SSearch: String; const AWholeWord: Boolean;
+      const ACaseInsensitive: Boolean; const AFindInName: Boolean);
+    var
+      I, B, J, L, F, E, TmpL, TmpP, K: Integer;
+      P: array of Integer;
+      Tmp: String;
     begin
-      FindList.Text := SQL.FieldByName(fnScript).AsString;
-      for FI := 0 to FindList.Count - 1 do
+      L := 0;
+      J := 1;
+      B := 1;
+      F := -1;
+      P := nil;
+      for I := 1 to Length(S) do
       begin
-        if SearchOptions.SearchInDb.Options.CaseSensitive then
-          Str := FindList[FI]
-        else
-          Str := AnsiUpperCase(FindList[FI]);
-
-        P := System.Pos(SearchText, Str);
-        if P > 0 then
+        if (J <= Length(SSearch))
+          and
+          (
+            (
+              ACaseInsensitive
+              and
+              (UpCase(S[I]) = UpCase(SSearch[J]))
+            )
+            or
+            (
+              (not ACaseInsensitive)
+              and
+              (S[I] = SSearch[J])
+            )
+          ) then
         begin
-          if SearchOptions.SearchInDb.Options.WholeWord then
+          if (J = Length(SSearch))
+            and
+            (
+              (not AWholeWord)
+              or
+              (I = Length(S))
+              or
+              (not (S[I + 1] in ['a'..'z', 'A'..'Z', '0'..'9', '_', 'а'..'я', 'А'..'Я', 'ю', 'Ю']))
+            ) then
           begin
-            if ((P <> 1) and (FindList[FI][P - 1] in Alpha)) or
-              ((P + L - 1 <> Length(FindList[FI])) and (FindList[FI][P + L] in Alpha)) then
-              Continue;
-          end;
-          Str := FindList[FI];
-          Temp := P;
-          while Temp <> 0 do
+            F := L;
+            if J = 1 then
+            begin
+              SetLength(P, Length(P) + 1);
+              P[High(P)] := I - B + 1;
+            end;
+            J := 1;
+          end
+          else if (J = 1)
+            and
+            (
+              (not AWholeWord)
+              or
+              (I = 1)
+              or
+              (not (S[I - 1] in ['a'..'z', 'A'..'Z', '0'..'9', '_', 'а'..'я', 'А'..'Я', 'ю', 'Ю']))
+            ) then
           begin
-            System.Insert(#9, Str, Temp + Length(SearchText));
-            System.Insert(#9, Str, Temp);
-            Temp := StrFind(SearchText, Str, Temp + Length(SearchText) + 2);
+            Inc(J);
+            SetLength(P, Length(P) + 1);
+            P[High(P)] := I - B + 1;
+          end else
+            Inc(J);
+        end else
+        begin
+          if (J > 1) and (Length(P) > 0) then
+            SetLength(P, Length(P) - 1);
+          J := 1;
+        end;
+
+        if (I = Length(S))
+          or
+          (
+            (I > 1)
+            and
+            (S[I] = #10)
+            and
+            (S[I - 1] = #13)
+          ) then
+        begin
+          if F = L then
+          begin
+            E := I;
+            while (E > 0) and (S[E] in [#13, #10]) do
+              Dec(E);
+
+            for K := Low(P) to High(P) do
+            begin
+              if AFindInName then
+              begin
+                TmpL := 1;
+                TmpP := 1;
+              end else
+              begin
+                TmpL := L + 1;
+                TmpP := P[K];
+              end;
+              Tmp := System.Copy(S, B, E - B + 1);
+              AddItem(SQL.FieldByName(fnName).AsString + ': ' +
+                System.Copy(Tmp, 1, P[K] - 1) + #9 +
+                System.Copy(Tmp, P[K], Length(SSearch)) + #9 +
+                System.Copy(Tmp, P[K] + Length(SSearch), MAXINT),
+                SQL.FieldByName(fnId).AsInteger, SQL.FieldByName(fnModule).AsString,
+                TmpL, TmpP);
+              Inc(Add);
+            end;
           end;
-          //System.Insert(#9, Str, P + Length(SearchText));
-          //System.Insert(#9, Str, P);
-          AddItem(SQL.FieldByName(fnName).AsString + ': ' + Str,
-            SQL.FieldByName(fnId).AsInteger, SQL.FieldByName(fnModule).AsString,
-            FI + 1, P);
-          Inc(Add);
+          Inc(L);
+          B := I + 1;
+          SetLength(P, 0);
+          J := 1;
         end;
       end;
+    end;
+
+
+  begin
+    if SearchOptions.SearchText > '' then
+    begin
+      SearchText(SQL.FieldByName(fnScript).AsString,
+        SearchOptions.SearchText, SearchOptions.SearchInDb.Options.WholeWord,
+        not SearchOptions.SearchInDb.Options.CaseSensitive, AFindInName);
     end else
     begin
       AddItem(SQL.FieldByName(fnName).AsString + ': изменен ' +
@@ -2697,12 +2778,12 @@ const
     end;
   end;
 
-  procedure OpenCloseSQL(IT: TItemType);
+  procedure OpenCloseSQL(IT: TItemType; const AFindInName: Boolean);
   begin
     SQL.ExecQuery;
     if not SQL.Eof then
       while not SQL.Eof do begin
-        FillFindList(Strings, IT);
+        FillFindList(Strings, IT, AFindInName);
         SQL.Next;
       end;
     SQL.Close;
@@ -2756,7 +2837,6 @@ begin
       end;
 
       Add := 0;
-      L := Length(SearchText);
       SQL := TIBSQL.Create(nil);
       Strings := TStringList.Create;
       try
@@ -2767,7 +2847,7 @@ begin
             SQL.SQL.Text := 'SELECT f.id, f.name, f.script, f.module, f.editiondate FROM gd_function f ';
             AddModuleDateCondition;
             SQL.SQL.Text := SQL.SQL.Text + ' ORDER BY f.name';
-            OpenCloseSQL(itOther);
+            OpenCloseSQL(itOther, False);
           end;
 
           if wInCaption in SearchOptions.SearchInDb.Where then
@@ -2783,7 +2863,7 @@ begin
 
               SQL.SQL.Text := SQL.SQL.Text + ' ORDER BY ml.name';
 
-              OpenCloseSQL(itMacro);
+              OpenCloseSQL(itMacro, True);
             end;
 
             if nwReport in SearchOptions.SearchInDb.InNameWhere then
@@ -2798,7 +2878,7 @@ begin
 
               SQL.SQL.Text := SQL.SQL.Text + ' ORDER BY rl.name';
 
-              OpenCloseSQL(itReport);
+              OpenCloseSQL(itReport, True);
             end;
 
             if nwEvent in SearchOptions.SearchInDb.InNameWhere then
@@ -2812,7 +2892,7 @@ begin
 
               SQL.SQL.Text := SQL.SQL.Text + ' ORDER BY obj.name';
 
-              OpenCloseSQL(itOther);
+              OpenCloseSQL(itOther, True);
             end;
 
             if nwOther in SearchOptions.SearchInDb.InNameWhere then
@@ -2832,7 +2912,7 @@ begin
 
               SQL.SQL.Text := SQL.SQL.Text + ' ORDER BY f.name';
 
-              OpenCloseSQL(itOther);
+              OpenCloseSQL(itOther, True);
             end;
 
           end;

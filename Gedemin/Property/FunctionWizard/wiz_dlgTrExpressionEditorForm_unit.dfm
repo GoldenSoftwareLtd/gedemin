@@ -4,7 +4,7 @@ inherited dlgTrExpressionEditorForm: TdlgTrExpressionEditorForm
   PixelsPerInch = 96
   TextHeight = 13
   inherited TBDock: TTBDock
-    Height = 73
+    Height = 75
     inherited tbtMain: TTBToolbar
       object TBItem1: TTBItem
         Action = actAddField
@@ -15,11 +15,11 @@ inherited dlgTrExpressionEditorForm: TdlgTrExpressionEditorForm
       Top = 48
     end
   end
-  inherited Panel2: TPanel
-    Top = 73
-    Height = 301
-    inherited mExpression: TSynMemo
-      Height = 299
+  inherited pnlExpression: TPanel
+    Top = 75
+    Height = 287
+    inherited mExpression: TMemo
+      Height = 285
     end
   end
   inherited ActionList: TActionList
@@ -30,7 +30,7 @@ inherited dlgTrExpressionEditorForm: TdlgTrExpressionEditorForm
       OnUpdate = actAddFieldUpdate
     end
   end
-  object pmAddField: TPopupMenu [4]
+  object pmAddField: TPopupMenu
     OnPopup = pmAddFieldPopup
     Left = 112
     Top = 128

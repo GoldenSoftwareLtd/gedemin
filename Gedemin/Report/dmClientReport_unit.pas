@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-13 by Golden Software of Belarus
+  Copyright (c) 2001-16 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -151,15 +151,6 @@ type
   private
     NumberConvert: TNumberConvert;
 
-    CacheDBID: Integer;
-    CacheTime: DWORD;
-    CacheID: Integer;
-    CacheName, CacheFullCentName,
-    CacheName_0, CacheName_1,
-    CacheCentName_0, CacheCentName_1: String;
-
-    procedure UpdateCache(const AnID: Integer);
-
     function GetSumCurr(D1, D2, D3: Variant; D4: Boolean = False): Variant;
     function GetSumStr(D1: Variant; D2: Byte = 0): Variant;
     function GetRubSumStr(D: Variant): Variant;
@@ -193,7 +184,7 @@ uses
   {$IFDEF GEDEMIN}
   dmDatabase_unit,
   obj_GedeminApplication,
-  gdcCurr,
+  gd_convert,
   {$ELSE}
   dmTestReport_unit,
   {$ENDIF}
@@ -228,37 +219,10 @@ const
 
 type
   TCrackGdScriptFactory = class(TgdScriptFactory);
-  TNameSelector = (nsName, nsCentName);
 
 {$R *.DFM}
 
 {TdmClientReport}
-
-
-function NameCase(const S: String): String;
-begin
-  if Length(S) > 1 then
-    Result := AnsiUpperCase(Copy(S, 1, 1)) + AnsiLowerCase(Copy(S, 2, 8192))
-  else
-    Result := AnsiLowerCase(S);
-end;
-
-function GetRubbleWord(Value: Double): String;
-var
-  Num: Integer;
-begin
-  Num := Trunc(Abs(Value));
-
-  if (Trunc(Num) mod 100 >= 20) or (Trunc(Num) mod 100 <= 10) then
-    case Trunc(Num) mod 10 of
-      1: Result := 'рубль';
-      2, 3, 4: Result := 'рубля';
-    else
-      Result := 'рублей';
-    end
-  else
-    Result := 'рублей';
-end;
 
 procedure TdmClientReport.DataModuleCreate(Sender: TObject);
 var
@@ -878,133 +842,25 @@ begin
 end;
 
 function TgsFunctionLibrary.GetSumCurr(D1, D2, D3: Variant; D4: Boolean = False): Variant;
-var
-  Num: Integer;
-  Cent: String;
-
-  function GetName(const Name: TNameSelector): String;
-  {$IFDEF GEDEMIN}
-  var
-    gdcCurr: TgdcCurr;
-  {$ENDIF}
-  begin
-    repeat
-      if (Trunc(Num) mod 100 >= 20) or (Trunc(Num) mod 100 <= 10) then
-      begin
-        case Trunc(Num) mod 10 of
-          1:
-             if Name = nsCentName then
-               Result := CacheFullCentName
-             else
-               Result := CacheName;
-          2, 3, 4:
-             if Name = nsCentName then
-               Result := CacheCentName_1
-             else
-               Result := CacheName_1
-        else
-          begin
-           if Name = nsCentName then
-             Result := CacheCentName_0
-           else
-             Result := CacheName_0
-          end;
-        end
-      end else
-      begin
-        if Name = nsCentName then
-          Result := CacheCentName_0
-        else
-          Result := CacheName_0
-      end;
-
-      if Result > '' then
-        break;
-
-      if (Screen.ActiveCustomForm = nil) or (not Screen.ActiveCustomForm.Visible) then
-        break;
-
-      MessageBox(0,
-        PChar('Укажите наименование целых и дробных единиц валюты ' +
-          CacheName + ' в справочнике валют.'),
-        'Внимание',
-        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-
-      {$IFDEF GEDEMIN}
-      gdcCurr := TgdcCurr.Create(nil);
-      try
-        gdcCurr.SubSet := 'ByID';
-        gdcCurr.ParamByName('ID').AsInteger := CacheID;
-        gdcCurr.Open;
-        if gdcCurr.EOF then
-          break;
-        if not gdcCurr.EditDialog then
-          break;
-        CacheDBID := -1;
-        UpdateCache(CacheID);
-      finally
-        gdcCurr.Free;
-      end;
-      {$ELSE}
-      break;
-      {$ENDIF}
-
-    until False;
-  end;
-
 begin
-  UpdateCache(VarAsType(D1, varInteger));
-
-  if CacheID = -1 then
-    Result := ''
-  else begin
-    Num := Trunc(Abs(D2));
-    Result := GetName(nsName);
-    Num := Round(Abs((Double(D2) - Trunc(D2))) * 100);
-    Result := NameCase(GetSumStr(D2)) + ' ' + Result;
-    if (Num <> 0) or D4 then
-    begin
-      if D3 = 1 then
-        Cent := GetSumStr(Num)
-      else
-      begin
-        Cent := IntToStr(Num);
-        if Length(Cent) = 1 then
-          Cent := '0' + Cent;
-      end;
-      Result := Result + ' ' + Cent + ' ' + GetName(nsCentName);
-    end;
-  end;
+  if VarType(D3) = varBoolean then
+    Result := gd_convert.GetSumCurr(D1, D2, D3, D4)
+  else
+    Result := gd_convert.GetSumCurr(D1, D2, D3 <> 0, D4);
 end;
 
 function TgsFunctionLibrary.GetSumStr(D1: Variant; D2: Byte = 0): Variant;
 begin
-  if NumberConvert = nil then
-  begin
-    NumberConvert := TNumberConvert.Create(nil);
-    NumberConvert.Language := lRussian;
-  end;
-
   if VarIsNull(D1) then
     raise Exception.Create('В функцию GetSumStr передано значение NULL.');
 
-    if VarType(D1) = varInteger then
-      if D1 = Integer(D1) then
-        D2 := 0;
-//  try
-    NumberConvert.Value := D1;
-    NumberConvert.Precision := D2;
-    if (D2 > 0)  then
-      NumberConvert.Gender := gFemale
-    else
-      NumberConvert.Gender := gMale;
-    Result := NumberConvert.Numeral;
+  Result := gd_convert.GetSumStr(D1, D2);
 end;
 
 function TgsFunctionLibrary.GetRubSumStr(D: Variant): Variant;
 begin
   try
-    Result := NameCase(GetSumStr(D)) + ' ' + GetRubbleWord(D);
+    Result := gd_convert.GetRubSumStr(D);
   except
     Result := '';
   end;
@@ -1059,16 +915,9 @@ begin
 end;
 
 function TgsFunctionLibrary.GetFullRubSumStr(D: Variant): Variant;
-var
-  N: Integer;
-  F: Double;
 begin
   try
-    Result := GetRubSumStr(D);
-    F := D;
-    N := Round(Abs((F - Trunc(F))) * 100);
-    if N <> 0 then
-      Result := Result + ' ' + GetSumStr(N, 1) + ' ' + GetKopWord(N);
+    Result := gd_convert.GetFullRubSumStr(D);
   except
     Result := '';
   end;
@@ -1176,44 +1025,6 @@ end;
 
 var
   RegKey: HKEY;
-
-procedure TgsFunctionLibrary.UpdateCache(const AnID: Integer);
-var
-  q: TIBSQL;
-begin
-  Assert(Assigned(IBLogin));
-
-  if (AnID <> CacheID)
-    or (CacheDBID <> IBLogin.DBID)
-    or (GetTickCount - CacheTime > 4 * 60 * 1000) then
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text := 'SELECT * FROM gd_curr WHERE id = :ID';
-      q.ParamByName('ID').AsInteger := AnID;
-      q.ExecQuery;
-      if not q.EOF then
-      begin
-        CacheFullCentName := q.FieldByName('FULLCENTNAME').AsString;
-        CacheName := q.FieldByName('name').AsString;
-        CacheCentName_0 := q.FieldByName('centname_0').AsString;
-        CacheCentName_1 := q.FieldByName('centname_1').AsString;
-        CacheName_0 := q.FieldByName('name_0').AsString;
-        CacheName_1 := q.FieldByName('name_1').AsString;
-
-        CacheID := AnID;
-        CacheDBID := IBLogin.DBID;
-        CacheTime := GetTickCount;
-      end else
-      begin
-        CacheID := -1;
-      end;
-    finally
-      q.Free;
-    end;
-  end;
-end;
 
 function TgsFunctionLibrary.GetCaseWord(TheWord: String; TheCase,
   Sex, Name: Word): Variant;

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1995-97 by Golden Software of Belarus
+  Copyright (c) 1995-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -112,10 +112,11 @@ type
     procedure SetVal(AValue: Double);
     procedure SetFPrecision(const Value: Byte);
 
-    //function GetRoundNumber: Integer;
-
   public
     constructor Create(AnOwner: TComponent); override;
+
+    class function GenderOf(const ANominative, AGenitive: String): TGender;
+
     function ConvertToString(Digits: String; UpCase: Boolean;
       Prefix: TPrefix; Postfix: TPostfix): String;
     function ConvertFromString(S: String; Digits: String;
@@ -185,7 +186,7 @@ begin
     Result := ''
   else begin
     FillChar(Result[1], Count, Ch);
-    SetLength(Result, Count); {Result[0] := Char(Count);}
+    SetLength(Result, Count);
   end;
 end;
 
@@ -237,9 +238,27 @@ begin
   FPrecision := 0;
 end;
 
+class function TNumberConvert.GenderOf(const ANominative, AGenitive: String): TGender;
+begin
+  if (ANominative > '') and (AGenitive > '') then
+  begin
+    case ANominative[Length(ANominative)] of
+      'а', 'я', 'А', 'Я': Result := gFemale;
+      'о', 'О', 'ё', 'Ё', 'е', 'Е': Result := gNeuter;
+      'ь', 'Ь':
+        if AGenitive[Length(AGenitive)] in ['я', 'Я'] then
+          Result := gMale
+        else
+          Result := gFemale;
+    else
+      Result := gMale;
+    end;
+  end else
+    Result := gNeuter;
+end;
+
 function TNumberConvert.ConvertToString(Digits: String; UpCase: Boolean;
   Prefix: TPrefix; Postfix: TPostfix): String;
-
 
   function _Div(X, Y: Double): Double;
   begin
@@ -386,7 +405,6 @@ begin
   if Abs(FValue) > MaxRoman then exit;
 
   S := Format('%4d', [Round(Abs(FValue))]);
-//  Str(Abs(FValue) : 4, S);
   for I := 1 to Length(S) do
     if (S[I] <> '0') and (S[I] <> ' ') then
       Result := Result + RomDigs[Ord(S[I]) - Ord('0'), I];
@@ -514,8 +532,7 @@ begin
         else
           Result := StrPas(Int2StrR(S, FValue, Byte(FGender))) + ' ' +
             StrPas(GetWholeWordR(S, FValue, Byte(FGender))) + ' ' +
-            StrPas(GetPrecisionStrR(S, {Round((}FValue{ - Round(Int(FValue)))
-              * GetRoundNumber)}, FPrecision, Byte(FGender)));
+            StrPas(GetPrecisionStrR(S, FValue, FPrecision, Byte(FGender)));
       end;
   end;
 
@@ -585,21 +602,5 @@ begin
     raise Exception.Create('Поддерживается не более четырех знаков после запятой!');
   FPrecision := Value;
 end;
-
-{
-function TNumberConvert.GetRoundNumber: Integer;
-var
-  I: Integer;
-begin
-  if FPrecision = 0 then
-    Result := 0
-  else
-  begin
-    Result := 10;
-    for I := 2 to FPrecision do
-    Result := Result * 10;
-  end;
-end;
-}
 
 end.

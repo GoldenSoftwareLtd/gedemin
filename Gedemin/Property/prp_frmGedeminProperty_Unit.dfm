@@ -13,19 +13,19 @@ inherited frmGedeminProperty: TfrmGedeminProperty
   inherited VLSplitter: TSplitter
     Left = 17
     Top = 78
-    Height = 236
+    Height = 243
   end
   inherited VRSplitter: TSplitter
-    Left = 559
+    Left = 567
     Top = 78
-    Height = 236
+    Height = 243
   end
   inherited HSplitter: TSplitter
-    Top = 323
-    Width = 576
+    Top = 330
+    Width = 584
   end
   inherited tbdTop: TTBDock
-    Width = 576
+    Width = 584
     Height = 78
     BoundLines = [blBottom]
     object tbtMenu: TTBToolbar
@@ -435,36 +435,36 @@ inherited frmGedeminProperty: TfrmGedeminProperty
   inherited LeftDockPanel: TPanel
     Top = 78
     Width = 17
-    Height = 236
+    Height = 243
   end
   inherited RightDockPanel: TPanel
-    Left = 563
+    Left = 571
     Top = 78
     Width = 13
-    Height = 236
+    Height = 243
   end
   inherited BottomDockPanel: TPanel
-    Top = 327
-    Width = 576
+    Top = 334
+    Width = 584
     Height = 17
   end
   inherited tbdLeft: TTBDock
     Left = 21
     Top = 78
-    Height = 236
+    Height = 243
   end
   inherited tbdBottom: TTBDock
-    Top = 314
-    Width = 576
+    Top = 321
+    Width = 584
   end
   inherited tbdRight: TTBDock
-    Left = 550
+    Left = 558
     Top = 78
-    Height = 236
+    Height = 243
   end
   inherited StatusBar: TStatusBar
-    Top = 344
-    Width = 576
+    Top = 351
+    Width = 584
     Panels = <
       item
         Alignment = taCenter

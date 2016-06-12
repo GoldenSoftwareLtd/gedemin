@@ -9,25 +9,25 @@ inherited frWhileEditFrame: TfrWhileEditFrame
       object Label3: TLabel [3]
         Left = 8
         Top = 56
-        Width = 47
+        Width = 46
         Height = 13
         Caption = 'Условие:'
       end
       inherited cbName: TComboBox
-        Width = 329
+        Width = 328
       end
       inherited mDescription: TMemo
         Top = 75
-        Width = 329
+        Width = 328
         TabOrder = 3
       end
       inherited eLocalName: TEdit
-        Width = 329
+        Width = 328
       end
       object beCondition: TBtnEdit
         Left = 95
         Top = 51
-        Width = 330
+        Width = 329
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow

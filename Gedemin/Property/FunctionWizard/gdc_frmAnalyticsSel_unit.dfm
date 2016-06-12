@@ -5,63 +5,63 @@ object frmAnalyticSel: TfrmAnalyticSel
   BorderStyle = bsSingle
   BorderWidth = 5
   Caption = 'Выбор значения аналитики'
-  ClientHeight = 79
-  ClientWidth = 325
+  ClientHeight = 73
+  ClientWidth = 302
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
   PixelsPerInch = 96
-  TextHeight = 14
+  TextHeight = 13
   object pnlAnalyticsSel: TPanel
     Left = 0
     Top = 0
-    Width = 325
-    Height = 47
+    Width = 302
+    Height = 44
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object lAnalyticName: TLabel
       Left = 0
       Top = 6
-      Width = 68
-      Height = 14
+      Width = 67
+      Height = 13
       Caption = 'lAnalyticName'
     end
     object ibcbAnalytics: TgsIBLookupComboBox
-      Left = 103
+      Left = 96
       Top = 2
-      Width = 218
-      Height = 22
+      Width = 202
+      Height = 21
       HelpContext = 1
       Database = dmDatabase.ibdbGAdmin
       Transaction = dmDatabase.ibtrGenUniqueID
       SortOrder = soAsc
       Anchors = [akLeft, akTop, akRight]
-      ItemHeight = 14
+      ItemHeight = 13
       ParentShowHint = False
       ShowHint = True
       TabOrder = 0
     end
     object cbNeedId: TCheckBox
       Left = 2
-      Top = 28
-      Width = 311
-      Height = 18
+      Top = 26
+      Width = 289
+      Height = 17
       Caption = 'Получить ИД аналитики'
       TabOrder = 1
     end
   end
   object pnlButton: TPanel
     Left = 0
-    Top = 47
-    Width = 325
-    Height = 32
+    Top = 44
+    Width = 302
+    Height = 29
     Align = alBottom
     Anchors = []
     BevelOuter = bvNone
@@ -69,16 +69,16 @@ object frmAnalyticSel: TfrmAnalyticSel
     object Bevel1: TBevel
       Left = 0
       Top = 0
-      Width = 325
+      Width = 302
       Height = 3
       Align = alTop
       Shape = bsTopLine
     end
     object btnOk: TButton
-      Left = 158
-      Top = 9
-      Width = 81
-      Height = 22
+      Left = 147
+      Top = 8
+      Width = 75
+      Height = 21
       Action = actOk
       Anchors = [akTop, akRight]
       Default = True
@@ -86,10 +86,10 @@ object frmAnalyticSel: TfrmAnalyticSel
       TabOrder = 0
     end
     object btnCancel: TButton
-      Left = 244
-      Top = 9
-      Width = 81
-      Height = 22
+      Left = 227
+      Top = 8
+      Width = 75
+      Height = 21
       Action = actCancel
       Anchors = [akTop, akRight]
       Cancel = True

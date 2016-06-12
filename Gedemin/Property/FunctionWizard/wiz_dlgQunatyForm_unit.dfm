@@ -10,7 +10,7 @@ object dlgQuantiyForm: TdlgQuantiyForm
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -19,14 +19,14 @@ object dlgQuantiyForm: TdlgQuantiyForm
   object lfactor: TLabel
     Left = 0
     Top = 0
-    Width = 105
+    Width = 103
     Height = 13
     Caption = 'Единица измерения:'
   end
   object Label1: TLabel
     Left = 0
     Top = 24
-    Width = 62
+    Width = 64
     Height = 13
     Caption = 'Количество:'
   end

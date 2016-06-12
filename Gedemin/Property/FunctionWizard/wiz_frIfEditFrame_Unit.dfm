@@ -3,26 +3,31 @@ inherited frIfEditFrame: TfrIfEditFrame
   Height = 194
   Constraints.MaxHeight = 194
   Constraints.MinHeight = 194
+  Font.Name = 'Tahoma'
+  ParentFont = False
   inherited PageControl: TPageControl
     Width = 442
     Height = 194
     inherited tsGeneral: TTabSheet
+      inherited Label1: TLabel
+        Width = 77
+      end
       inherited Label2: TLabel
         Top = 79
       end
       object Label3: TLabel [3]
         Left = 4
         Top = 56
-        Width = 47
+        Width = 46
         Height = 13
         Caption = 'Условие:'
       end
       inherited cbName: TComboBox
-        Width = 332
+        Width = 331
       end
       inherited mDescription: TMemo
         Top = 75
-        Width = 332
+        Width = 331
         TabOrder = 3
       end
       object beCondition: TBtnEdit [6]
@@ -67,7 +72,7 @@ inherited frIfEditFrame: TfrIfEditFrame
         TabOrder = 2
       end
       inherited eLocalName: TEdit
-        Width = 332
+        Width = 331
       end
     end
   end

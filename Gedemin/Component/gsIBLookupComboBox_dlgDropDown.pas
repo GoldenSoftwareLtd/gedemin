@@ -406,7 +406,12 @@ begin
   tv.Items.BeginUpdate;
   try
     tv.FullCollapse;
-    ibdsList.First;
+    //ibdsList.First;
+    if tv.Items.Count > 0 then
+    begin
+      tv.Items[0].Selected := True;
+      tv.Items[0].MakeVisible;
+    end;
   finally
     tv.Items.EndUpdate;
   end;

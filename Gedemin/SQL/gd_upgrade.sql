@@ -8,10 +8,11 @@
 
 ***********************************************************/
 
-CREATE VIEW gd_v_user_generators (generator_name)
-  AS SELECT rdb$generator_name     
+CREATE OR ALTER VIEW gd_v_user_generators (generator_name)
+  AS SELECT rdb$generator_name
      FROM rdb$generators
-     WHERE (rdb$system_flag = 0) OR (rdb$system_flag IS NULL);
+     WHERE (rdb$system_flag = 0) OR (rdb$system_flag IS NULL)
+;
 
 
 /**********************************************************
@@ -23,12 +24,13 @@ CREATE VIEW gd_v_user_generators (generator_name)
 
 ***********************************************************/
 
-CREATE VIEW gd_v_user_triggers (trigger_name)
+CREATE OR ALTER VIEW gd_v_user_triggers (trigger_name)
   AS SELECT rdb$trigger_name 
      FROM rdb$triggers 
      WHERE (rdb$trigger_name NOT IN (SELECT rdb$trigger_name FROM rdb$check_constraints)) 
        AND ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL)) 
-       AND ((rdb$trigger_inactive = 0) OR (rdb$trigger_inactive IS NULL));
+       AND ((rdb$trigger_inactive = 0) OR (rdb$trigger_inactive IS NULL))
+;
 
 /**********************************************************
 
@@ -40,10 +42,11 @@ CREATE VIEW gd_v_user_triggers (trigger_name)
 ***********************************************************/
 
 
-CREATE VIEW gd_v_foreign_keys (constraint_name, index_name, relation_name)
+CREATE OR ALTER VIEW gd_v_foreign_keys (constraint_name, index_name, relation_name)
   AS SELECT rdb$constraint_name, rdb$index_name, rdb$relation_name 
      FROM rdb$relation_constraints 
-     WHERE rdb$constraint_type = 'FOREIGN KEY';
+     WHERE rdb$constraint_type = 'FOREIGN KEY'
+;
 
 
 /**********************************************************
@@ -56,10 +59,11 @@ CREATE VIEW gd_v_foreign_keys (constraint_name, index_name, relation_name)
 ***********************************************************/
 
 
-CREATE VIEW gd_v_primary_keys (constraint_name, index_name, relation_name)
+CREATE OR ALTER VIEW gd_v_primary_keys (constraint_name, index_name, relation_name)
   AS SELECT rdb$constraint_name, rdb$index_name, rdb$relation_name 
      FROM rdb$relation_constraints 
-     WHERE rdb$constraint_type = 'PRIMARY KEY';
+     WHERE rdb$constraint_type = 'PRIMARY KEY'
+;
 
 
 /**********************************************************
@@ -71,11 +75,12 @@ CREATE VIEW gd_v_primary_keys (constraint_name, index_name, relation_name)
 
 ***********************************************************/
 
-CREATE VIEW gd_v_user_indices (index_name)
+CREATE OR ALTER VIEW gd_v_user_indices (index_name)
   AS SELECT rdb$index_name 
      FROM rdb$indices
-     WHERE ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL))       
-       AND (rdb$index_inactive = 0);
+     WHERE ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL))
+       AND (rdb$index_inactive = 0)
+;
 
 
 

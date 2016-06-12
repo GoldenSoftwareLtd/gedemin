@@ -4,16 +4,27 @@ inherited frEntryFunctionEditFrame: TfrEntryFunctionEditFrame
       inherited Label2: TLabel
         Top = 89
       end
-      inherited cbName: TComboBox
-        Width = 329
+      inherited lbParams: TListBox
+        Width = 252
+      end
+      inherited bAddParam: TButton
+        Left = 349
+      end
+      inherited Button3: TButton
+        Left = 349
+      end
+      inherited bUp: TButton
+        Left = 349
+      end
+      inherited bDown: TButton
+        Left = 349
+      end
+      inherited bDeleteParam: TButton
+        Left = 349
       end
       inherited mDescription: TMemo
         Top = 89
-        Width = 329
         Height = 72
-      end
-      inherited eLocalName: TEdit
-        Width = 329
       end
       object cbNoDeleteLastResults: TCheckBox
         Left = 4

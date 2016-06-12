@@ -207,7 +207,6 @@ type
     function  GetVariables(Name: String): OleVariant;
     procedure SetVariables(Name: String; const Value: OleVariant);
     procedure AddVariable(const Name: String);
-
   public
     constructor Create;
     destructor Destroy; override;
@@ -253,9 +252,6 @@ uses
   SysUtils, SyncObjs, gsDesktopManager, Menus
   {$IFDEF DEBUG}
   , gd_debug
-  {$ENDIF}
-  {$IFDEF WITH_INDY}
-  , gdccClient_unit
   {$ENDIF}
   , evt_i_Base, PasswordDialog, gd_security, Storages, gsStorage_CompPath,
   gd_Directories_const, Dialogs, gdc_frmG_unit, gdc_frmExplorer_unit, ComObj,
@@ -1424,29 +1420,11 @@ begin
 end;
 
 procedure TgdVariables.SetVariables(Name: String; const Value: OleVariant);
-{$IFDEF WITH_INDY}
-var
-  S: String;
-{$ENDIF}
 begin
   if VarType(Value) = varDispatch then
     raise Exception.Create('Свойству нельзя присвоить объект.')
-  else begin
+  else
     inherited SetVariables(Name, Value);
-
-    {$IFDEF WITH_INDY}
-    if gdccClient.DebugMode then
-    begin
-      if VarIsNull(Value) then
-        S := 'Null'
-      else if VarIsEmpty(Value) then
-        S := 'Unassigned'
-      else
-        S := Value;
-      gdccClient.AddLogRecord('debug', 'Set form variable ' + Name + ' = ' + S);
-    end;
-    {$ENDIF}
-  end;
 end;
 
 function TCreateableForm.GetVariables(Name: String): OleVariant;

@@ -1,22 +1,20 @@
 inherited frBalanceOffTrEntry: TfrBalanceOffTrEntry
-  Width = 442
   Height = 367
   Constraints.MinHeight = 367
   inherited PageControl: TPageControl
-    Width = 442
     Height = 367
     inherited tsGeneral: TTabSheet
       object lbCompany: TLabel [9]
         Left = 4
         Top = 264
-        Width = 77
+        Width = 75
         Height = 13
         Caption = 'Для компании:'
       end
       object lDate: TLabel [10]
         Left = 4
         Top = 290
-        Width = 80
+        Width = 82
         Height = 13
         Caption = 'Дата проводки:'
       end
@@ -29,34 +27,34 @@ inherited frBalanceOffTrEntry: TfrBalanceOffTrEntry
         WordWrap = True
       end
       inherited cbName: TComboBox
-        Width = 326
+        Width = 325
       end
       inherited mDescription: TMemo
-        Width = 326
+        Width = 325
         TabOrder = 12
       end
       inherited eLocalName: TEdit
-        Width = 326
+        Width = 325
       end
       inherited beAccount: TBtnEdit
-        Width = 325
+        Width = 324
       end
       inherited beSum: TBtnEdit
-        Width = 325
+        Width = 324
       end
       inherited beCurr: TBtnEdit
-        Width = 325
+        Width = 324
       end
       inherited beSumCurr: TBtnEdit
-        Width = 325
+        Width = 324
       end
       inherited beSumEQ: TBtnEdit
-        Width = 325
+        Width = 324
       end
       object beCompany: TBtnEdit
         Left = 95
         Top = 261
-        Width = 327
+        Width = 326
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -98,7 +96,7 @@ inherited frBalanceOffTrEntry: TfrBalanceOffTrEntry
       object beDate: TBtnEdit
         Left = 95
         Top = 285
-        Width = 328
+        Width = 327
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -139,7 +137,7 @@ inherited frBalanceOffTrEntry: TfrBalanceOffTrEntry
       object beEntryDescription: TBtnEdit
         Left = 95
         Top = 309
-        Width = 328
+        Width = 327
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -191,13 +189,8 @@ inherited frBalanceOffTrEntry: TfrBalanceOffTrEntry
     end
     inherited tsQuantity: TTabSheet
       inherited frQuantity: TfrQuantity
-        Width = 428
         Height = 333
-        inherited TBDock1: TTBDock
-          Width = 428
-        end
         inherited lvQuantity: TListView
-          Width = 428
           Height = 305
         end
       end

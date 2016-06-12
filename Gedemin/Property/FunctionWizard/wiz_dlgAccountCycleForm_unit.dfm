@@ -5,6 +5,7 @@ inherited dlgAccountCycleForm: TdlgAccountCycleForm
   Caption = 'Свойства цикла по счету'
   ClientHeight = 429
   ClientWidth = 425
+  Font.Name = 'Tahoma'
   OldCreateOrder = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
@@ -13,11 +14,14 @@ inherited dlgAccountCycleForm: TdlgAccountCycleForm
   inherited Panel1: TPanel
     Top = 399
     Width = 425
-    inherited Button1: TButton
-      Left = 347
-    end
-    inherited Button2: TButton
-      Left = 267
+    inherited pnlRightButtons: TPanel
+      Left = 260
+      inherited Button2: TButton
+        Left = 267
+      end
+      inherited Button1: TButton
+        Left = 347
+      end
     end
   end
   inherited PageControl: TPageControl
@@ -26,6 +30,7 @@ inherited dlgAccountCycleForm: TdlgAccountCycleForm
     inherited tsGeneral: TTabSheet
       inherited Label1: TLabel
         Top = 12
+        Width = 77
       end
       inherited Label2: TLabel
         Top = 297
@@ -33,28 +38,28 @@ inherited dlgAccountCycleForm: TdlgAccountCycleForm
       object Label3: TLabel [2]
         Left = 8
         Top = 55
-        Width = 26
+        Width = 29
         Height = 13
         Caption = 'Счёт:'
       end
       object Label4: TLabel [3]
         Left = 8
         Top = 230
-        Width = 57
+        Width = 59
         Height = 13
         Caption = 'Аналитика:'
       end
       object Label5: TLabel [4]
         Left = 8
         Top = 278
-        Width = 43
+        Width = 42
         Height = 13
         Caption = 'Фильтр:'
       end
       object Label6: TLabel [5]
         Left = 8
         Top = 254
-        Width = 82
+        Width = 85
         Height = 13
         Caption = 'Групировать по:'
       end
@@ -245,14 +250,14 @@ inherited dlgAccountCycleForm: TdlgAccountCycleForm
       object Label10: TLabel
         Left = 8
         Top = 13
-        Width = 85
+        Width = 87
         Height = 13
         Caption = 'Начало периода:'
       end
       object Label11: TLabel
         Left = 8
         Top = 37
-        Width = 79
+        Width = 81
         Height = 13
         Caption = 'Конец периода:'
       end
@@ -348,28 +353,28 @@ inherited dlgAccountCycleForm: TdlgAccountCycleForm
         object lSelect: TLabel
           Left = 8
           Top = 20
-          Width = 44
+          Width = 40
           Height = 13
           Caption = 'SELECT:'
         end
         object lFrom: TLabel
           Left = 8
           Top = 44
-          Width = 34
+          Width = 33
           Height = 13
           Caption = 'FROM:'
         end
         object lWhere: TLabel
           Left = 8
           Top = 68
-          Width = 44
+          Width = 40
           Height = 13
           Caption = 'WHERE:'
         end
         object lOrder: TLabel
           Left = 8
           Top = 92
-          Width = 42
+          Width = 39
           Height = 13
           Caption = 'ORDER:'
         end
@@ -420,7 +425,6 @@ inherited dlgAccountCycleForm: TdlgAccountCycleForm
   object IBDataSet: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
     Transaction = dmDatabase.ibtrGenUniqueID
-    BufferChunks = 100
     SelectSQL.Strings = (
       'SELECT'
       '  id, alias, name'
@@ -429,6 +433,7 @@ inherited dlgAccountCycleForm: TdlgAccountCycleForm
       'WHERE'
       '  ACCOUNTTYPE in ('#39'A'#39', '#39'S'#39')'
       'ORDER BY fullname')
+    ReadTransaction = dmDatabase.ibtrGenUniqueID
     Left = 148
     Top = 280
   end

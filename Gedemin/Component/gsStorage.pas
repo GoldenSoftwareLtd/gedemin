@@ -290,6 +290,7 @@ type
     procedure SetAsString(const Value: String); override;
     function GetAsBoolean: Boolean; override;
     procedure SetAsBoolean(const Value: Boolean); override;
+    function GetAsCurrency: Currency; override;
 
   public
     procedure LoadFromStream(S: TStream); override;
@@ -314,6 +315,7 @@ type
     procedure SetAsCurrency(const Value: Currency); override;
     function GetAsString: String; override;
     procedure SetAsString(const Value: String); override;
+    procedure SetAsInteger(const Value: Integer); override;
 
   public
     procedure LoadFromStream(S: TStream); override;
@@ -3218,6 +3220,11 @@ begin
   end;
 end;
 
+function TgsIntegerValue.GetAsCurrency: Currency;
+begin
+  Result := GetAsInteger;
+end;
+
 { TgsCurrencyValue }
 
 procedure TgsCurrencyValue.Clear;
@@ -3270,6 +3277,11 @@ begin
     FChanged := FChanged or (not StorageLoading);
     FModified := Now;
  end;
+end;
+
+procedure TgsCurrencyValue.SetAsInteger(const Value: Integer);
+begin
+  SetAsCurrency(Value);
 end;
 
 procedure TgsCurrencyValue.SetAsString(const Value: String);

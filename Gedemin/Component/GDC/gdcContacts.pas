@@ -2479,6 +2479,22 @@ begin
   CustomExecQuery('INSERT INTO gd_ourcompany(COMPANYKEY, AVIEW, ACHAG, AFULL) ' +
    ' VALUES (:NEW_ID, :NEW_AVIEW, :NEW_ACHAG, :NEW_AFULL)', Buff);
 
+  if sLoadFromStream in BaseState then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := Transaction;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO gd_usercompany(userkey, companykey) ' +
+        '  VALUES (RDB$GET_CONTEXT(''USER_SESSION'', ''GD_USERKEY''), :ID) ' +
+        '  MATCHING (userkey)';
+      q.ParamByName('id').AsInteger := ID;
+      q.ExecQuery;
+    finally
+      q.Free;
+    end;
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCOURCOMPANY', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

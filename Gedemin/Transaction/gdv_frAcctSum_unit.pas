@@ -349,8 +349,8 @@ end;
 
 procedure TfrAcctSum.gsiblCurrKeyChange(Sender: TObject);
 begin
-  cbCurrdecDigits.Text :=
-    IntToStr(AcctUtils.GetCurrDecDigits((Sender as TgsIBLookupComboBox).Text));
+  //cbCurrdecDigits.Text :=
+  //  IntToStr(AcctUtils.GetCurrDecDigits((Sender as TgsIBLookupComboBox).Text));
 end;
 
 end.

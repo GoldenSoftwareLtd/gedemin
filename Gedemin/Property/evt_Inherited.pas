@@ -221,6 +221,12 @@ var
 begin
   try
     LObj := TObject(AnObject.Get_Self);
+
+    // пока не поддерживаем вызов наследованных обработчиков
+    // для не наследников от TComponent
+    if not (LObj is TComponent) then
+      exit;
+
     LEventObject := FEventControl.EventObjectList.FindAllObject(LObj as TComponent);
     if not Assigned(LEventObject) then
       raise Exception.Create(Format('Класс %s не найден в списке EventControl', [LObj.ClassName]));

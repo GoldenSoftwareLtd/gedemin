@@ -329,7 +329,8 @@ type
 implementation
 
 uses
-  Windows, SysUtils, JclMime, JclUnicode, JclFileUtils, gd_directories_const;
+  Windows, SysUtils, JclMime, JclUnicode, JclFileUtils, gd_directories_const,
+  gd_common_functions;
 
 function ConvertToInteger(const S: AnsiString; out I: Integer): Boolean;
 begin
@@ -927,74 +928,6 @@ end;
 
 procedure TyamlParser.Parse(const AFileName: AnsiString; out ACharReplace: LongBool; const AStopKey: AnsiString = '';
   const ALimitSize: Integer = 0);
-
-  function WideStringToStringEx(const WS: WideString; out CharReplace: LongBool): String;
-  var
-    InputLength,
-    OutputLength: Integer;
-    //SS: TFileStream;
-  begin
-    CharReplace := False;
-    InputLength := Length(WS);
-    OutputLength := WideCharToMultiByte(WIN1251_CODEPAGE, 0, PWideChar(WS), InputLength, nil, 0, nil, nil);
-    SetLength(Result, OutputLength);
-    WideCharToMultiByte(WIN1251_CODEPAGE, 0, PWideChar(WS), InputLength, PChar(Result), OutputLength, nil, @CharReplace);
-    {if CharReplace and (Length(Result) > 0) then
-    begin
-      OutputDebugString(PChar(AFileName));
-      SS := TFileStream.Create(ChangeFileExt(AFileName, '.txt'), fmCreate);
-      try
-        SS.Write(Result[1], Length(Result));
-      finally
-        SS.Free;
-      end;
-    end;}
-  end;
-
-  function DecodeUTF8(const Source: AnsiString): WideString;
-  var
-    Index, SourceLength, ResultLength, FChar, NChar: Cardinal;
-  begin
-    Result := '';
-    Index := 0;
-    SourceLength := Length(Source);
-    SetLength(Result, SourceLength);
-    ResultLength := 0;
-    while Index < SourceLength do
-    begin
-      Inc(Index);
-      FChar := Ord(Source[Index]);
-      if FChar >= $80 then
-      begin
-        Inc(Index);
-        if Index > SourceLength then
-          break;
-        FChar := FChar and $3F;
-        if (FChar and $20) <> 0 then
-        begin
-          FChar := FChar and $1F;
-          NChar := Ord(Source[Index]);
-          if (NChar and $C0) <> $80 then
-            break;
-          FChar := (FChar shl 6) or (NChar and $3F);
-          Inc(Index);
-          if Index > SourceLength then
-            break;
-        end;
-        NChar := Ord(Source[Index]);
-        if (NChar and $C0) <> $80 then
-          break;
-        Inc(ResultLength);
-        Result[ResultLength] := WideChar((FChar shl 6) or (NChar and $3F));
-      end
-      else begin
-       Inc(ResultLength);
-       Result[ResultLength] := WideChar(FChar);
-      end;
-    end;
-    SetLength(Result, ResultLength);
-  end;
-
 var
   FS: TFileStream;
   SS1251, SSUTF8: TStringStream;

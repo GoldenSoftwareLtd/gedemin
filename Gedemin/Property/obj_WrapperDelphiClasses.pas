@@ -787,6 +787,8 @@ type
     function  WriteDate(Buffer: TDateTime): Integer; safecall;
     function  WriteStr(const Buffer: WideString; Count: Integer): Integer; safecall;
     function  WriteBoolean(Buffer: WordBool): Integer; safecall;
+    procedure WriteLn(const Buffer: WideString); safecall;
+    function  ReadLn: WideString; safecall;
   end;
 
   TwrpHandleStream = class(TwrpStream, IgsHandleStream)
@@ -17196,7 +17198,7 @@ end;
 
 function TwrpStream.ReadStr(Count: Integer): WideString;
 var
-  S: String;
+  S: AnsiString;
 begin
   if Count < 1 then
     raise Exception.Create(' оличество символов считывани€ должно быть больше 0.');
@@ -17234,7 +17236,7 @@ end;
 function TwrpStream.WriteStr(const Buffer: WideString;
   Count: Integer): Integer;
 var
-  S: String;
+  S: AnsiString;
 begin
   if Length(Buffer) < Count then
     raise Exception.Create('ƒлина переданной строки меньше количества меньше количества записываемых символов.');
@@ -17245,6 +17247,47 @@ begin
   Result := GetStream.Write(S[1], Count);
 end;
 
+
+function TwrpStream.ReadLn: WideString;
+var
+  S: AnsiString;
+  L, I, Sz: Integer;
+begin
+  Sz := GetStream.Size;
+
+  L := 1024;
+  SetLength(S, L);
+  I := 1;
+
+  while GetStream.Position < Sz do
+  begin
+    GetStream.ReadBuffer(S[I], 1);
+
+    if (I > 1) and (S[I] = #10) and (S[I - 1] = #13) then
+    begin
+      Dec(I, 2);
+      break;
+    end;
+
+    Inc(I);
+
+    if I > L then
+    begin
+      L := L * 2;
+      SetLength(S, L);
+    end;
+  end;
+
+  Result := System.Copy(S, 1, I);
+end;
+
+procedure TwrpStream.WriteLn(const Buffer: WideString);
+var
+  S: AnsiString;
+begin
+  S := Buffer + #13#10;
+  GetStream.WriteBuffer(S[1], Length(S));
+end;
 
 { TwrpBrush }
 

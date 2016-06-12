@@ -85,6 +85,8 @@ type
     FactSelAll: TAction;
     FDragging: boolean;
 
+    FMovement: Boolean;
+
     procedure SetBlockName(const Value: string);
     procedure SetUnWrap(const Value: Boolean);
 
@@ -2161,6 +2163,8 @@ var
 begin
   inherited;
 
+  FMovement := False;
+
   if ssLeft in Shift then
   begin
     if Assigned(SelBlockList) and ([ssLeft, ssCtrl] = Shift) then begin
@@ -2244,13 +2248,14 @@ begin
     begin
       if Assigned(SelBlockList) then
       begin
-        ClearSelBlockList;
+        //ClearSelBlockList;
         CancelDrag;
         SelBlockList.Add(self);
         Repaint;
       end;
       if ClickInButton(X, Y) then
       begin
+        ClearSelBlockList;
         FUnWrap := not FUnWrap;
         AdjustSize;
         Repaint;
@@ -2260,6 +2265,10 @@ begin
         R := GetHeaderRect;
         FMouseDelta.x := R.Left - X;
         FMouseDelta.y := R.Top - Y;
+      end else
+      begin
+        ClearSelBlockList;
+        Repaint;
       end;
     end;
   end else
@@ -2284,6 +2293,9 @@ var
 begin
   if not Assigned(SelBlockList) then Exit;
   inherited;
+
+  FMovement := True;
+
   if [ssLeft] = Shift then
   begin
     if (X - FMousePoint.x <> 0) or (Y - FMousePoint.y <> 0) then
@@ -2309,6 +2321,14 @@ begin
     begin
       CreateNew(X, Y);
       CancelDrag;
+    end;
+
+    if Assigned(SelBlockList) and (not FMovement) then
+    begin
+      ClearSelBlockList;
+      CancelDrag;
+      SelBlockList.Add(self);
+      Repaint;
     end;
   end;
 end;
@@ -3348,13 +3368,15 @@ end;
 
 procedure TVisualBlock.OnSelectAllExecute(Sender: TObject);
 begin
-  if Parent is TVisualBlock then
-    (Parent as TVisualBlock).SelectAll;
+  //if Parent is TVisualBlock then
+  //  (Parent as TVisualBlock).SelectAll;
+  SelectAll;
 end;
 
 procedure TVisualBlock.OnSelectAllUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := (Parent is TVisualBlock) and (Parent.ControlCount > 1);
+  //TAction(Sender).Enabled := (Parent is TVisualBlock) and (Parent.ControlCount > 1);
+  TAction(Sender).Enabled := ControlCount > 1;
 end;
 
 procedure TVisualBlock.OnCutExecute(Sender: TObject);

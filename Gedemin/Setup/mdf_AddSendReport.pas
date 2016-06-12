@@ -1190,41 +1190,6 @@ begin
         FIBSQL.ExecQuery;
 
         FIBSQL.SQL.Text :=
-          'CREATE OR ALTER TRIGGER at_aiu_namespace_link FOR at_namespace_link '#13#10 +
-          '  ACTIVE '#13#10 +
-          '  AFTER INSERT OR UPDATE '#13#10 +
-          '  POSITION 20001 '#13#10 +
-          'AS '#13#10 +
-          'BEGIN '#13#10 +
-          '  IF (EXISTS( '#13#10 +
-          '    WITH RECURSIVE tree AS '#13#10 +
-          '    ( '#13#10 +
-          '      SELECT '#13#10 +
-          '        namespacekey AS initial, namespacekey, useskey '#13#10 +
-          '      FROM '#13#10 +
-          '        at_namespace_link '#13#10 +
-          '      WHERE '#13#10 +
-          '        namespacekey = NEW.namespacekey AND useskey = NEW.useskey '#13#10 +
-          ' '#13#10 +
-          '      UNION ALL '#13#10 +
-          ' '#13#10 +
-          '      SELECT '#13#10 +
-          '        IIF(tr.initial <> tt.namespacekey, tr.initial, -1) AS initial, '#13#10 +
-          '        tt.namespacekey, '#13#10 +
-          '        tt.useskey '#13#10 +
-          '      FROM '#13#10 +
-          '        at_namespace_link tt JOIN tree tr ON '#13#10 +
-          '          tr.useskey = tt.namespacekey AND tr.initial > 0 '#13#10 +
-          ' '#13#10 +
-          '    ) '#13#10 +
-          '    SELECT * FROM tree WHERE initial = -1)) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    EXCEPTION gd_e_exception ''Обнаружена циклическая зависимость ПИ.''; '#13#10 +
-          '  END '#13#10 +
-          'END';
-        FIBSQL.ExecQuery;
-
-        FIBSQL.SQL.Text :=
           'CREATE OR ALTER TRIGGER gd_aiu_companyaccount FOR gd_companyaccount '#13#10 +
           '  INACTIVE '#13#10 +
           '  AFTER INSERT OR UPDATE '#13#10 +

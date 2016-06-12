@@ -1,5 +1,4 @@
 inherited frSelectEditFrame: TfrSelectEditFrame
-  Width = 442
   Constraints.MinHeight = 199
   inherited PageControl: TPageControl
     inherited tsGeneral: TTabSheet
@@ -9,7 +8,7 @@ inherited frSelectEditFrame: TfrSelectEditFrame
       object Label3: TLabel [3]
         Left = 4
         Top = 56
-        Width = 51
+        Width = 50
         Height = 13
         Caption = 'Выбор из:'
       end
@@ -19,7 +18,7 @@ inherited frSelectEditFrame: TfrSelectEditFrame
       object beCondition: TBtnEdit
         Left = 95
         Top = 51
-        Width = 330
+        Width = 329
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow

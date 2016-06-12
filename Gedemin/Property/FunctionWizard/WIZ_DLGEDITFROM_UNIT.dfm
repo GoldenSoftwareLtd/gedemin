@@ -11,7 +11,7 @@ object BlockEditForm: TBlockEditForm
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -77,7 +77,7 @@ object BlockEditForm: TBlockEditForm
       object Label1: TLabel
         Left = 8
         Top = 8
-        Width = 79
+        Width = 77
         Height = 13
         Caption = 'Наименование:'
         WordWrap = True

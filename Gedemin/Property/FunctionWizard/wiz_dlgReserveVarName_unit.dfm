@@ -9,7 +9,7 @@ object dlgReserveVarName: TdlgReserveVarName
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -18,13 +18,13 @@ object dlgReserveVarName: TdlgReserveVarName
   object Label1: TLabel
     Left = 0
     Top = 4
-    Width = 90
+    Width = 86
     Height = 13
     Caption = 'Имя переменной:'
   end
   object Panel1: TPanel
     Left = 0
-    Top = 26
+    Top = 21
     Width = 275
     Height = 21
     Align = alBottom

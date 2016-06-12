@@ -17,14 +17,14 @@ inherited frTrPosEntryEditFrame: TfrTrPosEntryEditFrame
       object lAccount: TLabel [3]
         Left = 4
         Top = 56
-        Width = 26
+        Width = 29
         Height = 13
         Caption = 'Счет:'
       end
       object lblAccountTypeTitle: TLabel [4]
         Left = 4
         Top = 79
-        Width = 53
+        Width = 54
         Height = 13
         Caption = 'Тип счета:'
       end
@@ -38,7 +38,7 @@ inherited frTrPosEntryEditFrame: TfrTrPosEntryEditFrame
       object lblCurrTitle: TLabel [6]
         Left = 4
         Top = 125
-        Width = 41
+        Width = 43
         Height = 13
         Caption = 'Валюта:'
       end
@@ -52,26 +52,26 @@ inherited frTrPosEntryEditFrame: TfrTrPosEntryEditFrame
       object Label3: TLabel [8]
         Left = 4
         Top = 173
-        Width = 70
+        Width = 68
         Height = 13
         Caption = 'Сумма в экв.:'
       end
       inherited cbName: TComboBox
-        Width = 328
+        Width = 327
       end
       inherited mDescription: TMemo
         Top = 192
-        Width = 328
+        Width = 327
         Height = 66
         TabOrder = 9
       end
       inherited eLocalName: TEdit
-        Width = 328
+        Width = 327
       end
       object beAccount: TBtnEdit
         Left = 95
         Top = 51
-        Width = 327
+        Width = 326
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -133,7 +133,7 @@ inherited frTrPosEntryEditFrame: TfrTrPosEntryEditFrame
       object beSum: TBtnEdit
         Left = 95
         Top = 96
-        Width = 327
+        Width = 326
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -174,7 +174,7 @@ inherited frTrPosEntryEditFrame: TfrTrPosEntryEditFrame
       object beCurr: TBtnEdit
         Left = 95
         Top = 120
-        Width = 327
+        Width = 326
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -216,7 +216,7 @@ inherited frTrPosEntryEditFrame: TfrTrPosEntryEditFrame
       object beSumCurr: TBtnEdit
         Left = 95
         Top = 144
-        Width = 327
+        Width = 326
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -257,7 +257,7 @@ inherited frTrPosEntryEditFrame: TfrTrPosEntryEditFrame
       object beSumEQ: TBtnEdit
         Left = 95
         Top = 168
-        Width = 327
+        Width = 326
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -319,14 +319,14 @@ inherited frTrPosEntryEditFrame: TfrTrPosEntryEditFrame
       Caption = 'Количественные показатели'
       ImageIndex = 2
       inline frQuantity: TfrQuantity
-        Width = 429
+        Width = 428
         Height = 254
         Align = alClient
         inherited TBDock1: TTBDock
-          Width = 429
+          Width = 428
         end
         inherited lvQuantity: TListView
-          Width = 429
+          Width = 428
           Height = 226
           OnDblClick = nil
         end

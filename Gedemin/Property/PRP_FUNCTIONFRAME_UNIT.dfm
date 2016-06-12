@@ -1,8 +1,6 @@
 inherited FunctionFrame: TFunctionFrame
-  Height = 317
   OnResize = FrameResize
   inherited PageControl: TSuperPageControl
-    Height = 317
     OnChange = PageControlChange
     OnChanging = PageControlChanging
     inherited tsProperty: TSuperTabSheet
@@ -29,7 +27,7 @@ inherited FunctionFrame: TFunctionFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 262
+        Height = 218
         OnResize = pMainResize
         inherited lbDescription: TLabel
           Top = 80
@@ -126,13 +124,13 @@ inherited FunctionFrame: TFunctionFrame
         object pnlRUIDFunction: TPanel
           Left = 354
           Top = 56
-          Width = 75
+          Width = 77
           Height = 21
           Anchors = [akTop, akRight]
           BevelOuter = bvLowered
           TabOrder = 3
           object btnCopyRUIDFunction: TButton
-            Left = 1
+            Left = 2
             Top = 1
             Width = 73
             Height = 19
@@ -558,14 +556,14 @@ inherited FunctionFrame: TFunctionFrame
         Left = 217
         Top = 0
         Width = 3
-        Height = 294
+        Height = 250
         Cursor = crHSplit
       end
       object pnlDependent: TPanel
         Left = 0
         Top = 0
         Width = 217
-        Height = 294
+        Height = 250
         Align = alLeft
         BevelOuter = bvNone
         TabOrder = 0
@@ -591,7 +589,7 @@ inherited FunctionFrame: TFunctionFrame
           Left = 0
           Top = 17
           Width = 217
-          Height = 277
+          Height = 233
           Align = alClient
           ItemHeight = 13
           PopupMenu = pmDependent
@@ -602,15 +600,15 @@ inherited FunctionFrame: TFunctionFrame
       object pnlDependedFrom: TPanel
         Left = 220
         Top = 0
-        Width = 215
-        Height = 294
+        Width = 223
+        Height = 250
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
         object Panel4: TPanel
           Left = 0
           Top = 0
-          Width = 215
+          Width = 223
           Height = 17
           Align = alTop
           Alignment = taLeftJustify
@@ -628,8 +626,8 @@ inherited FunctionFrame: TFunctionFrame
         object lbDependedFrom: TListBox
           Left = 0
           Top = 17
-          Width = 215
-          Height = 277
+          Width = 223
+          Height = 233
           Align = alClient
           ItemHeight = 13
           PopupMenu = pmDependedFrom

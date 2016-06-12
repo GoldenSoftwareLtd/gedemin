@@ -29,6 +29,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
     Left = 6
     Width = 523
     Height = 388
+    ActivePage = tsReferences
     OnChange = pcMainChange
     OnChanging = pcMainChanging
     inherited tsCommon: TTabSheet

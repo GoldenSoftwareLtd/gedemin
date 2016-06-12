@@ -2,19 +2,25 @@ object frEditFrame: TfrEditFrame
   Left = 0
   Top = 0
   Width = 442
-  Height = 277
+  Height = 273
   HelpContext = 205
   Align = alClient
   AutoSize = True
   Constraints.MaxWidth = 442
   Constraints.MinHeight = 173
   Constraints.MinWidth = 442
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  ParentFont = False
   TabOrder = 0
   object PageControl: TPageControl
     Left = 0
     Top = 0
     Width = 442
-    Height = 277
+    Height = 273
     ActivePage = tsGeneral
     Align = alClient
     Constraints.MinHeight = 173
@@ -26,7 +32,7 @@ object frEditFrame: TfrEditFrame
       object Label1: TLabel
         Left = 4
         Top = 5
-        Width = 79
+        Width = 77
         Height = 13
         Caption = 'Наименование:'
         WordWrap = True

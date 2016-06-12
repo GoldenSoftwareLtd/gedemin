@@ -1145,7 +1145,8 @@ begin
         )
       ) then
     begin
-      AddText('Объект ' + Obj.ObjectName + '(' + Obj.ClassName + ') ' +
+      AddText('Объект ' + AtObjectRecord.ObjectName +
+        '(' + AtObjectRecord.ClassName + AtObjectRecord.ObjectSubType + ') ' +
         'не будет изменен. Дата в файле <=  дате и времени изменения объекта в БД.');
     end;
   end;

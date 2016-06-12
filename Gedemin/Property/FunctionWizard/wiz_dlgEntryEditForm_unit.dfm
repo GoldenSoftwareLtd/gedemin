@@ -5,17 +5,21 @@ inherited dlgEntryEditForm: TdlgEntryEditForm
   Caption = 'Свойства проводки'
   ClientHeight = 373
   ClientWidth = 447
+  Font.Name = 'Tahoma'
   OldCreateOrder = True
   PixelsPerInch = 96
   TextHeight = 13
   inherited Panel1: TPanel
     Top = 343
     Width = 447
-    inherited Button1: TButton
-      Left = 369
-    end
-    inherited Button2: TButton
-      Left = 289
+    inherited pnlRightButtons: TPanel
+      Left = 282
+      inherited Button2: TButton
+        Left = 289
+      end
+      inherited Button1: TButton
+        Left = 369
+      end
     end
   end
   inherited PageControl: TPageControl
@@ -24,6 +28,7 @@ inherited dlgEntryEditForm: TdlgEntryEditForm
     inherited tsGeneral: TTabSheet
       inherited Label1: TLabel
         Top = 12
+        Width = 77
       end
       inherited Label2: TLabel
         Top = 221
@@ -38,42 +43,42 @@ inherited dlgEntryEditForm: TdlgEntryEditForm
       object Label8: TLabel [3]
         Left = 8
         Top = 178
-        Width = 41
+        Width = 43
         Height = 13
         Caption = 'Валюта:'
       end
       object Label7: TLabel [4]
         Left = 8
         Top = 155
-        Width = 37
+        Width = 35
         Height = 13
         Caption = 'Сумма:'
       end
       object Label6: TLabel [5]
         Left = 8
         Top = 131
-        Width = 115
+        Width = 120
         Height = 13
         Caption = 'Аналитика по кредиту:'
       end
       object Label5: TLabel [6]
         Left = 8
         Top = 107
-        Width = 109
+        Width = 114
         Height = 13
         Caption = 'Аналитика по дебету:'
       end
       object Label4: TLabel [7]
         Left = 8
         Top = 82
-        Width = 90
+        Width = 94
         Height = 13
         Caption = 'Кредитовый счет:'
       end
       object Label3: TLabel [8]
         Left = 8
         Top = 58
-        Width = 86
+        Width = 88
         Height = 13
         Caption = 'Дебетовый счет:'
       end
@@ -367,21 +372,21 @@ inherited dlgEntryEditForm: TdlgEntryEditForm
       object Label10: TLabel
         Left = 8
         Top = 13
-        Width = 85
+        Width = 87
         Height = 13
         Caption = 'Начало периода:'
       end
       object Label11: TLabel
         Left = 8
         Top = 37
-        Width = 79
+        Width = 81
         Height = 13
         Caption = 'Конец периода:'
       end
       object Label12: TLabel
         Left = 8
         Top = 61
-        Width = 80
+        Width = 82
         Height = 13
         Caption = 'Дата проводки:'
       end

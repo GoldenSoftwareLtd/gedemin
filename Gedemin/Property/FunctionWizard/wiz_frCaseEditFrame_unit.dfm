@@ -1,5 +1,4 @@
 inherited frCaseEditFrame: TfrCaseEditFrame
-  Width = 442
   Constraints.MinHeight = 199
   inherited PageControl: TPageControl
     inherited tsGeneral: TTabSheet
@@ -9,12 +8,19 @@ inherited frCaseEditFrame: TfrCaseEditFrame
       object Label3: TLabel [3]
         Left = 4
         Top = 56
-        Width = 47
+        Width = 46
         Height = 13
         Caption = 'Условие:'
       end
+      inherited cbName: TComboBox
+        Width = 329
+      end
       inherited mDescription: TMemo
         Top = 75
+        Width = 329
+      end
+      inherited eLocalName: TEdit
+        Width = 329
       end
       object beCondition: TBtnEdit
         Left = 95

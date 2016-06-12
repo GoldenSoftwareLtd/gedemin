@@ -1,21 +1,27 @@
 object SQLCycleParamLine: TSQLCycleParamLine
   Left = 0
   Top = 0
-  Width = 467
+  Width = 443
   Height = 27
   Align = alTop
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  ParentFont = False
   TabOrder = 0
   object lName: TLabel
     Left = 8
     Top = 6
-    Width = 30
+    Width = 29
     Height = 13
     Caption = 'lName'
   end
   object Bevel1: TBevel
     Left = 0
     Top = 24
-    Width = 467
+    Width = 443
     Height = 3
     Align = alBottom
     Shape = bsBottomLine

@@ -635,8 +635,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
                 object Label1: TLabel
                   Left = 8
                   Top = 8
-                  Width = 114
-                  Height = 15
+                  Width = 115
+                  Height = 13
                   Caption = 'Время выполнения'
                   Font.Charset = DEFAULT_CHARSET
                   Font.Color = clWindowText
@@ -675,8 +675,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
                 object Label5: TLabel
                   Left = 8
                   Top = 112
-                  Width = 43
-                  Height = 15
+                  Width = 46
+                  Height = 13
                   Caption = 'Память'
                   Font.Charset = DEFAULT_CHARSET
                   Font.Color = clWindowText
@@ -763,8 +763,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
                 object Label9: TLabel
                   Left = 8
                   Top = 216
-                  Width = 58
-                  Height = 15
+                  Width = 59
+                  Height = 13
                   Caption = 'Операции'
                   Font.Charset = DEFAULT_CHARSET
                   Font.Color = clWindowText

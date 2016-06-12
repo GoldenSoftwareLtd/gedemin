@@ -114,6 +114,9 @@ type
     procedure actBackExecute(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
     procedure actRunUpdate(Sender: TObject);
+    procedure cbAccountsKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure cbAccountsClick(Sender: TObject);
   private
     function GetIncSubAccounts: Boolean;
     procedure SetIncSubAccounts(const Value: Boolean);
@@ -1367,6 +1370,29 @@ begin
   if (iblConfiguratior.CurrentKey > '') and not CompareParams(False) then
   begin
     iblConfiguratior.CurrentKey := '';
+  end;
+end;
+
+procedure Tgdv_frmAcctBaseForm.cbAccountsKeyDown(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+
+  if (Key = VK_RETURN) and CheckActiveAccount(frAcctCompany.CompanyKey, False) then
+  begin
+    FShowMessage := True;
+    UpdateControls;
+  end;
+end;
+
+procedure Tgdv_frmAcctBaseForm.cbAccountsClick(Sender: TObject);
+begin
+  inherited;
+
+  if CheckActiveAccount(frAcctCompany.CompanyKey, False) then
+  begin
+    FShowMessage := True;
+    UpdateControls;
   end;
 end;
 

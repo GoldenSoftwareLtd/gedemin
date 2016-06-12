@@ -2651,12 +2651,17 @@ var
 begin
   if gdClass <> nil then
   begin
-    I := Pos(' ', FListTable) - 1;
-    if I = -1 then I := Length(FListTable);
-    Result := gdClass.GetRestrictCondition(Copy(FListTable, 1, I), FSubType);
-    { TODO : а если в лист тэйбле будет джоин и для таблицы будет алиас? }
-    Result := StringReplace(Result, FgdClass.GetListTableAlias + '.', Copy(FListTable, 1, I) + '.', [rfReplaceAll, rfIgnoreCase]);
-    Result := StripSpaces(Result);
+    if csDesigning in ComponentState then
+    begin
+      I := Pos(' ', FListTable) - 1;
+      if I = -1 then I := Length(FListTable);
+      Result := gdClass.GetRestrictCondition(Copy(FListTable, 1, I), FSubType);
+      { TODO : а если в лист тэйбле будет джоин и для таблицы будет алиас? }
+      Result := StringReplace(Result, FgdClass.GetListTableAlias + '.', Copy(FListTable, 1, I) + '.', [rfReplaceAll, rfIgnoreCase]);
+      Result := StripSpaces(Result);
+    end
+    else
+      Result := '';  
   end else
     Result := '';
 end;

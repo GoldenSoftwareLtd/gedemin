@@ -1264,19 +1264,29 @@ begin
       gdcExplorer.Open;
 
       if gdcExplorer.EOF then
-        gdcExplorer.Insert
-      else
-        gdcExplorer.Edit;
-
-      gdcExplorer.FieldByName('parent').AsInteger := FieldByName('folderkey').AsInteger;
-      gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
-      gdcExplorer.FieldByName('cmd').AsString := RUIDStr;
-      gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;
-
-      if gdcExplorer.State = dsInsert then
+      begin
+        gdcExplorer.Insert;
+        gdcExplorer.FieldByName('parent').AsInteger := FieldByName('folderkey').AsInteger;
+        gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
+        gdcExplorer.FieldByName('cmd').AsString := RUIDStr;
+        gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;
         gdcExplorer.FieldByName('imgindex').AsInteger := cReportImage;
+        gdcExplorer.Post;
+      end
+      else if
+        (gdcExplorer.FieldByName('parent').AsInteger <> FieldByName('folderkey').AsInteger) or
+        (gdcExplorer.FieldByName('name').AsString <> FieldByName('name').AsString) or
+        (gdcExplorer.FieldByName('cmd').AsString <> RUIDStr) or
+        (gdcExplorer.FieldByName('cmdtype').AsInteger <> cst_expl_cmdtype_report) then
+      begin
+        gdcExplorer.Edit;
+        gdcExplorer.FieldByName('parent').AsInteger := FieldByName('folderkey').AsInteger;
+        gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
+        gdcExplorer.FieldByName('cmd').AsString := RUIDStr;
+        gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;
+        gdcExplorer.Post;
+      end;
 
-      gdcExplorer.Post;
     finally
       gdcExplorer.Free;
     end;

@@ -444,7 +444,7 @@ begin
       if (p mod 1000 = 999) then
       begin
         Application.ProcessMessages;
-        if fCancelled then exit;
+        if fCancelled or Application.Terminated then exit;
       end;
       //nb: the Snake order is important here
       for k := p downto delta +1 do
@@ -465,7 +465,7 @@ begin
       if (p mod 1000 = 999) then
       begin
         Application.ProcessMessages;
-        if fCancelled then exit;
+        if fCancelled or Application.Terminated then exit;
       end;
       //nb: the Snake order is important here
       for k := -p to delta -1 do

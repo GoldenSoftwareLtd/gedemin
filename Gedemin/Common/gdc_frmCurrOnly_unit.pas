@@ -41,4 +41,5 @@ initialization
 finalization
   UnRegisterFrmClass(Tgdc_frmCurrOnly);
 end.
+
  

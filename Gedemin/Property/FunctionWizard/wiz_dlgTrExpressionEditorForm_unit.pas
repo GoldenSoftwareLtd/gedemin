@@ -17,6 +17,7 @@ type
     procedure actAddFieldUpdate(Sender: TObject);
     procedure actAddFieldExecute(Sender: TObject);
     procedure pmAddFieldPopup(Sender: TObject);
+    
   private
     FRefFields: TStrings;
     FCurrFields: TStrings;
@@ -30,9 +31,8 @@ type
     function GetDateFields: TStrings;
     function GetOtherFields: TStrings;
     function GetRefFields: TStrings;
-    { Private declarations }
+
   public
-    { Public declarations }
     property RefFields: TStrings read GetRefFields;
     property CurrFields: TStrings read GetCurrFields;
     property DateFields: TStrings read GetDateFields;

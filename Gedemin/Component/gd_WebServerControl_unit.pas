@@ -26,7 +26,7 @@ interface
 uses
   Classes, Windows, Contnrs, SyncObjs, evt_i_Base, gd_FileList_unit, IBDatabase,
   IdURI, IdHTTPServer, IdCustomHTTPServer, IdTCPServer, idThreadSafe, JclStrHashMap,
-  gdMessagedThread, idHTTP, idComponent, IdHTTPHeaderInfo, IdHeaderList;
+  gdMessagedThread, idHTTP, idComponent, IdHTTPHeaderInfo, IdHeaderList, gd_OData;
 
 type
   TgdHiddenServer = class(TgdMessagedThread)
@@ -131,6 +131,7 @@ type
     FRelayServerActive: TidThreadSafeInteger;
     FgdHiddenServer: TgdHiddenServer;
     FTableRelayRows: TgdTableRelayRows;
+    FgdoData: TgdOData;
 
     function GetVarInterface(const AnValue: Variant): OleVariant;
     function GetVarParam(const AnValue: Variant): OleVariant;
@@ -147,6 +148,9 @@ type
     procedure ProcessLoginRequest;
     procedure ProcessLogoffRequest;
     procedure ProcessSendErrorRequest;
+    procedure ProcessODataRoot;
+    procedure ProcessODataMetadata;
+    procedure ProcessODataEntitySet;
     procedure Log(const AnIPAddress: String; const AnOp: String;
       const Names: array of String; const Values: array of String); overload;
     procedure Log(const AnIPAddress: String; const AnOp: String;
@@ -183,6 +187,7 @@ type
       const AToken, AFunctionName: String);
     procedure UnRegisterOnGetEvent(const AComponent: TComponent);
     function GetBindings: String;
+    function GetODataRoot: String;
 
     property Active: Boolean read GetActive write SetActive;
     property InProcess: Boolean read GetInProcess;
@@ -253,18 +258,6 @@ const
   rssResult                  = 2;
   rssData                    = 3;
 
-  OData_Service_Root         =
-    '{' +
-    '  "@odata.context": "http://gs.selfip.biz/OData/Common/$metadata",' +
-    '  "value": [' +
-    '    {' +
-    '      "name": "Constacts",' +
-    '      "kind": "EntitySet",' +
-    '      "url": "Contacts"' +
-    '    }' +
-    '  ]' +
-    '}';
-
 var
   _RelayServersID: Integer;
 
@@ -302,6 +295,7 @@ begin
   FRelayServers.Free;
   FRelayServerActive.Free;
   FTableRelayRows.Free;
+  FgdOData.Free;
 end;
 
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
@@ -434,19 +428,7 @@ var
   RSID: Integer;
   HDR: TRelayServerResponseHeader;
 begin
-  if Pos('/OData', ARequestInfo.Document) = 1 then
-  begin
-
-    if ARequestInfo.Document = '/OData' then
-    begin
-      AResponseInfo.ResponseNo := 200;
-      AResponseInfo.ContentType := 'application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=Windows-1251';
-      AResponseInfo.CustomHeaders.Values['OData-Version'] := '4.0';
-      AResponseInfo.ContentText := OData_Service_Root;
-    end;
-
-  end
-  else if ARequestInfo.Document = '/relay/ready' then
+  if ARequestInfo.Document = '/relay/ready' then
   begin
     CompanyRuid := ARequestInfo.Params.Values['company_ruid'];
 
@@ -620,7 +602,18 @@ begin
   Assert(FHTTPGetHandlerList <> nil);
 
   try
-    if AnsiCompareText(FRequestInfo.Document, '/query') = 0 then
+    if Pos('/OData', FRequestInfo.Document) = 1 then
+    begin
+      if FgdOData = nil then
+        FgdOData := TgdOData.Create;
+
+      if (FRequestInfo.Document = ODataRoot) or (FRequestInfo.Document = ODataRoot + '/') then
+        ProcessODataRoot
+      else if FRequestInfo.Document = ODataRoot + '/$metadata' then
+        ProcessODataMetadata
+      else
+        ProcessODataEntitySet;
+    end else if AnsiCompareText(FRequestInfo.Document, '/query') = 0 then
       ProcessQueryRequest
     else if AnsiCompareText(FRequestInfo.Document, '/get_files_list') = 0 then
       ProcessFilesListRequest
@@ -995,7 +988,7 @@ begin
     for I := 0 to FHTTPServer.Bindings.Count - 1 do
     begin
       Result := Result + (FHTTPServer.Bindings[I] as TidSocketHandle).IP +
-        ':' + IntToStr((FHTTPServer.Bindings[I] as TidSocketHandle).Port) + ';';
+        ':' + IntToStr((FHTTPServer.Bindings[I] as TidSocketHandle).Port) + ',';
     end;
     if Result > '' then
       SetLength(Result, Length(Result) - 1);
@@ -1480,6 +1473,35 @@ procedure TgdWebServerControl.ServerOnCreatePostStream(
   ASender: TIdPeerThread; var VPostStream: TStream);
 begin
   VPostStream := TStringStream.Create('');
+end;
+
+procedure TgdWebServerControl.ProcessODataRoot;
+begin
+  FResponseInfo.ResponseNo := 200;
+  FResponseInfo.ContentType := 'application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=Windows-1251';
+  FResponseInfo.CustomHeaders.Values['OData-Version'] := '4.0';
+  FResponseInfo.ContentText := FgdOData.GetServiceRoot;
+end;
+
+procedure TgdWebServerControl.ProcessODataMetadata;
+begin
+  FResponseInfo.ResponseNo := 200;
+  FResponseInfo.ContentType := 'application/xml;charset=Windows-1251';
+  FResponseInfo.CustomHeaders.Values['OData-Version'] := '4.0';
+  FResponseInfo.ContentText := FgdOData.GetServiceMetadata;
+end;
+
+procedure TgdWebServerControl.ProcessODataEntitySet;
+begin
+  FResponseInfo.ResponseNo := 200;
+  FResponseInfo.ContentType := 'application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=Windows-1251';
+  FResponseInfo.CustomHeaders.Values['OData-Version'] := '4.0';
+  FResponseInfo.ContentText := FgdOData.GetEntitySet(FRequestInfo.Document);
+end;
+
+function TgdWebServerControl.GetODataRoot: String;
+begin
+  Result := 'http://' + gd_GlobalParams.GetWebServerBindings + ODataRoot;
 end;
 
 { TgdWebUserSession }

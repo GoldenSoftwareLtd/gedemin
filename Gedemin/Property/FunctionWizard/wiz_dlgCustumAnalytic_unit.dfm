@@ -10,7 +10,7 @@ object CustomAnalyticForm: TCustomAnalyticForm
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -57,7 +57,7 @@ object CustomAnalyticForm: TCustomAnalyticForm
     object Label1: TLabel
       Left = 2
       Top = -1
-      Width = 81
+      Width = 80
       Height = 13
       Caption = 'Имя аналитики:'
       FocusControl = cbAnalyticValue
@@ -65,7 +65,7 @@ object CustomAnalyticForm: TCustomAnalyticForm
     object Label2: TLabel
       Left = 2
       Top = 39
-      Width = 107
+      Width = 109
       Height = 13
       Caption = 'Значение аналитики:'
     end

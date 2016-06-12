@@ -3,53 +3,58 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
   Height = 418
   Constraints.MaxHeight = 418
   Constraints.MinHeight = 418
+  Font.Name = 'Tahoma'
+  ParentFont = False
   inherited PageControl: TPageControl
     Width = 442
     Height = 418
     inherited tsGeneral: TTabSheet
+      inherited Label1: TLabel
+        Width = 77
+      end
       inherited Label2: TLabel
         Top = 298
       end
       object Label3: TLabel [3]
         Left = 8
         Top = 52
-        Width = 26
+        Width = 29
         Height = 13
         Caption = 'Счёт:'
       end
       object Label4: TLabel [4]
         Left = 8
         Top = 227
-        Width = 57
+        Width = 59
         Height = 13
         Caption = 'Аналитика:'
       end
       object Label6: TLabel [5]
         Left = 8
         Top = 251
-        Width = 82
+        Width = 85
         Height = 13
         Caption = 'Групировать по:'
       end
       object Label5: TLabel [6]
         Left = 8
         Top = 275
-        Width = 43
+        Width = 42
         Height = 13
         Caption = 'Фильтр:'
       end
       inherited cbName: TComboBox
-        Width = 325
+        Width = 324
       end
       inherited mDescription: TMemo
         Top = 294
-        Width = 325
+        Width = 324
         TabOrder = 5
       end
       object beAnal: TBtnEdit [9]
         Left = 95
         Top = 222
-        Width = 323
+        Width = 322
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -90,7 +95,7 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
       object beGroupBy: TBtnEdit [10]
         Left = 95
         Top = 246
-        Width = 323
+        Width = 322
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -131,7 +136,7 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
       object beFilter: TBtnEdit [11]
         Left = 95
         Top = 270
-        Width = 323
+        Width = 322
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -170,7 +175,7 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
         TabOrder = 4
       end
       inherited eLocalName: TEdit
-        Width = 325
+        Width = 324
       end
       object Panel1: TPanel
         Left = 96
@@ -250,21 +255,21 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
       object Label10: TLabel
         Left = 8
         Top = 10
-        Width = 85
+        Width = 87
         Height = 13
         Caption = 'Начало периода:'
       end
       object Label11: TLabel
         Left = 8
         Top = 34
-        Width = 79
+        Width = 81
         Height = 13
         Caption = 'Конец периода:'
       end
       object beBeginDate: TBtnEdit
         Left = 110
         Top = 5
-        Width = 311
+        Width = 310
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -305,7 +310,7 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
       object beEndDate: TBtnEdit
         Left = 110
         Top = 29
-        Width = 311
+        Width = 310
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -353,28 +358,28 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
         object lSelect: TLabel
           Left = 8
           Top = 20
-          Width = 44
+          Width = 40
           Height = 13
           Caption = 'SELECT:'
         end
         object lFrom: TLabel
           Left = 8
           Top = 44
-          Width = 34
+          Width = 33
           Height = 13
           Caption = 'FROM:'
         end
         object lWhere: TLabel
           Left = 8
           Top = 68
-          Width = 44
+          Width = 40
           Height = 13
           Caption = 'WHERE:'
         end
         object lOrder: TLabel
           Left = 8
           Top = 92
-          Width = 42
+          Width = 39
           Height = 13
           Caption = 'ORDER:'
         end

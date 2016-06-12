@@ -13,19 +13,22 @@ inherited dlgUserEditorForm: TdlgUserEditorForm
   PixelsPerInch = 96
   TextHeight = 13
   inherited Panel1: TPanel
-    Top = 458
+    Top = 454
     Width = 646
-    inherited Button1: TButton
-      Left = 569
-    end
-    inherited Button2: TButton
-      Left = 489
-      Default = False
+    inherited pnlRightButtons: TPanel
+      Left = 481
+      inherited Button2: TButton
+        Left = 489
+        Default = False
+      end
+      inherited Button1: TButton
+        Left = 569
+      end
     end
   end
   inherited PageControl: TPageControl
     Width = 646
-    Height = 458
+    Height = 454
     inherited tsGeneral: TTabSheet
       inherited Label1: TLabel
         Top = 12
@@ -36,14 +39,14 @@ inherited dlgUserEditorForm: TdlgUserEditorForm
       object Label3: TLabel [2]
         Left = 8
         Top = 150
-        Width = 39
+        Width = 41
         Height = 13
         Caption = 'Скрипт:'
       end
       object Label4: TLabel [3]
         Left = 8
         Top = 351
-        Width = 102
+        Width = 100
         Height = 26
         Anchors = [akLeft, akBottom]
         Caption = 'Зарезервировнные имена переменных:'
@@ -540,7 +543,6 @@ inherited dlgUserEditorForm: TdlgUserEditorForm
     end
   end
   object SynVBScriptSyn: TSynVBScriptSyn
-    DefaultFilter = 'VBScript Files (*.vbs)|*.vbs'
     Left = 32
     Top = 184
   end
@@ -562,6 +564,7 @@ inherited dlgUserEditorForm: TdlgUserEditorForm
     UseInsertList = True
     EndOfTokenChr = '()[].,=<>-+&"'
     LimitToMatchedText = False
+    TriggerChars = '.'
     ShortCut = 16416
     Editor = seScript
     Left = 32

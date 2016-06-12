@@ -520,35 +520,34 @@ var
 begin
   Assert(AccountIds <> nil, 'Список не инициализирован');
 
-  if AccountIDs.Count = 0 then
-  begin
-    S := TStringList.Create;
-    try
-      S.Text := StringReplace(TComboBox(AccountsComboBox).Text, ',', #13#10, [rfReplaceAll]);
+  AccountIDs.Clear;
 
-      for I := 0 to S.Count - 1 do
+  S := TStringList.Create;
+  try
+    S.Text := StringReplace(TComboBox(AccountsComboBox).Text, ',', #13#10, [rfReplaceAll]);
+
+    for I := 0 to S.Count - 1 do
+    begin
+      Id := GetAccountKeyByAlias(Trim(S[I]));
+      if Id = 0 then
       begin
-        Id := GetAccountKeyByAlias(Trim(S[I]));
-        if Id = 0 then
+        if ShowMessage then
         begin
-          if ShowMessage then
-          begin
-            MessageBox(Application.Handle,
-              PChar(Format(MSG_ACCOUNTINCORRECT, [Trim(S[I])])),
-              PChar(MSG_WARNING),
-              MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-          end;
-          if AccountsComboBox.CanFocus then
-            AccountsComboBox.SetFocus;
-          AccountIDs.Clear;
-          Abort;
-        end else
-          if AccountIDs.IndexOf(Pointer(Id)) = - 1 then
-            AccountIDs.Add(Pointer(Id));
-      end;
-    finally
-      S.Free;
+          MessageBox(Application.Handle,
+            PChar(Format(MSG_ACCOUNTINCORRECT, [Trim(S[I])])),
+            PChar(MSG_WARNING),
+            MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+        end;
+        if AccountsComboBox.CanFocus then
+          AccountsComboBox.SetFocus;
+        AccountIDs.Clear;
+        Abort;
+      end else
+        if AccountIDs.IndexOf(Pointer(Id)) = - 1 then
+          AccountIDs.Add(Pointer(Id));
     end;
+  finally
+    S.Free;
   end;
 end;
 

@@ -14,8 +14,10 @@ type
   Tgdc_attr_dlgView = class(Tgdc_dlgRelation)
     tsView: TTabSheet;
     smViewBody: TSynMemo;
-    btnCreateView: TButton;
     actCreateView: TAction;
+    Panel4: TPanel;
+    Panel5: TPanel;
+    btnCreateView: TButton;
     procedure actCreateViewExecute(Sender: TObject);
     procedure pcRelationChanging(Sender: TObject;
       var AllowChange: Boolean);
@@ -114,7 +116,7 @@ begin
           AnsiUpperCase(smViewBody.Text)) = 0)
       then
         smViewBody.Text := Format(
-         'CREATE VIEW %s '#13#10 +
+         'CREATE OR ALTER VIEW %s '#13#10 +
          'AS '#13#10 +
          '  SELECT '#13#10 +
          '  FROM '#13#10, [gdcObject.FieldByName('relationname').AsString])
@@ -125,7 +127,7 @@ begin
       begin
 
         smViewBody.Text := Format(
-        'CREATE VIEW %s '#13#10 +
+        'CREATE OR ALTER VIEW %s '#13#10 +
         ' ('#13#10, [gdcObject.FieldByName('relationname').AsString]);
 
         S := '';

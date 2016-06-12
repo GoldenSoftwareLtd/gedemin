@@ -5,29 +5,37 @@ inherited dlgVarEditForm: TdlgVarEditForm
   Caption = 'Свойства переменной'
   ClientHeight = 249
   ClientWidth = 446
+  Font.Name = 'Tahoma'
   OldCreateOrder = True
   PixelsPerInch = 96
   TextHeight = 13
   inherited Panel1: TPanel
     Top = 219
     Width = 446
-    inherited Button1: TButton
-      Left = 367
-    end
-    inherited Button2: TButton
-      Left = 287
-    end
+    Font.Name = 'Tahoma'
+    ParentFont = False
     inherited Button4: TButton
       Left = 1
+    end
+    inherited pnlRightButtons: TPanel
+      Left = 281
+      inherited Button2: TButton
+        Left = 287
+      end
+      inherited Button1: TButton
+        Left = 367
+      end
     end
   end
   inherited PageControl: TPageControl
     Width = 446
     Height = 219
+    Font.Name = 'Tahoma'
+    ParentFont = False
     inherited tsGeneral: TTabSheet
       inherited Label1: TLabel
         Top = 12
-        Width = 90
+        Width = 86
         Caption = 'Имя переменной:'
       end
       inherited Label2: TLabel
@@ -44,6 +52,8 @@ inherited dlgVarEditForm: TdlgVarEditForm
         Left = 104
         Width = 327
         Style = csDropDown
+        Font.Name = 'Tahoma'
+        ParentFont = False
         OnClick = cbNameClick
         OnDropDown = cbNameDropDown
       end

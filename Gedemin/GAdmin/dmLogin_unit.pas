@@ -63,10 +63,9 @@ uses
   Registry,                     inst_const,            gdcSetting,
   gdcBaseInterface,             dm_i_ClientReport_unit,gd_GlobalParams_unit,
   prp_PropertySettings,         gd_i_ScriptFactory,    flt_sqlFilterCache,
-  gd_StyleManager,
 
   {$IFDEF WITH_INDY}
-  gd_WebServerControl_unit, gd_WebClientControl_unit,
+  gd_WebServerControl_unit, gd_WebClientControl_unit, gdccClient_unit,
   {$ENDIF}
 
   {$IFDEF LOCALIZATION}
@@ -86,7 +85,21 @@ var
 {$ENDIF}
   MS: TMemoryStream;
   R: OleVariant;
+  {$IFDEF WITH_INDY}
+  S: String;
+  {$ENDIF}
 begin
+  {$IFDEF WITH_INDY}
+  if gdccClient <> nil then
+  begin
+    S :=
+      'CmdLine: ' + GetCommandLine + #13#10 +
+      'Database: ' + IBLogin.DatabaseName + #13#10 +
+      'User: ' + IBLogin.UserName;
+    gdccClient.AddLogRecord('login', S);
+  end;
+  {$ENDIF}
+
   gdcBase.CacheDBID := -1;
 
   if Assigned(gdSplash) then
@@ -100,6 +113,10 @@ begin
     if Assigned(gdSplash) then
       gdSplash.ShowText(sLoadingGlobalStorage);
     GlobalStorage.LoadFromDataBase;
+
+    {$IFDEF WITH_INDY}
+    gdccClient.DebugMode := GlobalStorage.ReadBoolean('Options\PropertySettings\DebugSet', 'UseDebugInfo', False);
+    {$ENDIF}
   end;
   {$IFDEF DEBUG}
     OutputDebugString(PChar('GlobalStorage: ' + FormatDateTime('s.z', Now - T)));
@@ -120,8 +137,6 @@ begin
     gdSplash.ShowText(sLoadingUserDefinedClasses);
 
   gdClassList.LoadUserDefinedClasses;
-
-  gdStyleManager.LoadFromDB;
 
   // ћы отказываемс€ от использовани€ раздельных системных настроек
   // внутри √едымина
@@ -217,16 +232,44 @@ begin
 end;
 
 procedure TdmLogin.boLoginAfterChangeCompany(Sender: TObject);
+var
+  CN: array[0..MAX_COMPUTERNAME_LENGTH] of Char;
+  J: DWORD;
+  Activate: Boolean;
+  SL: TStringList;
 begin
   if not Application.Terminated then
   begin
     CompanyStorage.ObjectKey := IBLogin.CompanyKey;
     if TrayIcon <> nil then TrayIcon.ToolTip := IBLogin.CompanyName;
     {$IFDEF WITH_INDY}
-    if gd_GlobalParams.GetWebServerActive and (gdWebServerControl <> nil) then
-      gdWebServerControl.ActivateServer
-    else if gd_GlobalParams.GetWebClientActive and (gdWebClientControl <> nil) then
-      gdWebClientControl.AfterConnection;
+    if (not Global_LoadingNamespace)
+      and (gd_CmdLineParams <> nil)
+      and (gd_CmdLineParams.LoadSettingFileName = '') then
+    begin
+      if gd_GlobalParams.GetWebServerActive and (gdWebServerControl <> nil) then
+      begin
+        if gd_GlobalParams.GetWebServerRunOnlyOn > '' then
+        begin
+          Activate := False;
+          J := SizeOf(CN);
+          if GetComputerName(@CN, J) then
+          begin
+            SL := TStringList.Create;
+            try
+              SL.CommaText := gd_GlobalParams.GetWebServerRunOnlyOn;
+              Activate := SL.IndexOf(StrPas(CN)) > -1;
+            finally
+              SL.Free;
+            end;
+          end;
+        end else
+          Activate := True;
+        if Activate then
+          gdWebServerControl.ActivateServer;
+      end else if gd_GlobalParams.GetWebClientActive and (gdWebClientControl <> nil) then
+        gdWebClientControl.AfterConnection;
+    end;
     {$ENDIF}
   end;
 end;

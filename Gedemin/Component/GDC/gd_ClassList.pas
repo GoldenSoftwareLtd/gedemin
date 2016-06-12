@@ -35,6 +35,7 @@ uses
   Contnrs,        Classes,   TypInfo,     Forms,            gd_KeyAssoc,
   gdcBase,        gdc_createable_form,    gdcBaseInterface, at_classes,
   gdcClasses_Interface, gdcInvConsts_unit,IBSQL,            IBDatabase,
+  DB,
   {$IFDEF VER130}
   gsStringHashList
   {$ELSE}
@@ -269,6 +270,47 @@ type
 
   TgdClassEntry = class;
 
+  TgdFieldDef = class(TObject)
+  private
+    FRequired: Boolean;
+    FSize: Integer;
+    FOrigin: String;
+    FName: String;
+    FDataType: TFieldType;
+    FInheritedField: Boolean;
+
+    function GetNullable: String;
+    function GetFieldType: String;
+
+  public
+    procedure InitFieldDef(F: TField);
+    procedure ODataBuild(SL: TStringList); virtual;
+
+    property Name: String read FName write FName;
+    property Origin: String read FOrigin write FOrigin;
+    property DataType: TFieldType read FDataType write FDataType;
+    property Required: Boolean read FRequired write FRequired;
+    property Size: Integer read FSize write FSize;
+    property InheritedField: Boolean read FInheritedField write FInheritedField;
+  end;
+
+  TgdRefFieldDef = class(TgdFieldDef)
+  private
+    FRefClassName: String;
+    FRefSubType: String;
+
+  public
+    procedure ODataBuild(SL: TStringList); override;
+
+    property RefClassName: String read FRefClassName write FRefClassName;
+    property RefSubType: String read FRefSubType write FRefSubType;
+  end;
+
+  TgdFieldDefs = class(TObjectList)
+  public
+    function IndexOf(const AName: String): Integer;
+  end;
+
   TgdClassEntryCallback = function(ACE: TgdClassEntry; AData1: Pointer;
     AData2: Pointer): Boolean of object;
   TgdClassEntryCallback2 = function(ACE: TgdClassEntry; AData1: Pointer;
@@ -340,6 +382,7 @@ type
   TgdBaseEntry = class(TgdClassEntry)
   private
     FDistinctRelation: String;
+    FgdFieldDefs: TgdFieldDefs;
 
     function GetGdcClass: CgdcBase;
     function GetDistinctRelation: String; virtual;
@@ -350,6 +393,13 @@ type
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
       const ASubType: TgdcSubType = '';
       const ACaption: String = ''); overload; override;
+    destructor Destroy; override;
+
+    procedure LoadFieldDefs;
+    procedure ODataBuild(SL, SL2: TStringList);
+    function IndexOfFieldDef(const AName: String): Integer;
+    function GetEntitySetName: String;
+    function GetEntitySetUrl: String;
 
     property gdcClass: CgdcBase read GetGdcClass;
     property DistinctRelation: String read GetDistinctRelation write SetDistinctRelation;
@@ -536,12 +586,6 @@ type
     property InitialName: String read GetInitialName;
   end;
 
-  {TgdNewFormEntry = class(TgdFormEntry)
-  end;
-
-  TgdNewSimpleFormEntry = class(TgdNewFormEntry)
-  end;}
-
   TgdInitClassEntry = class(TObject)
   public
     procedure Init(CE: TgdClassEntry); virtual;
@@ -708,7 +752,7 @@ implementation
 uses
   SysUtils, gs_Exception, gd_security, gsStorage, Storages, gdcClasses,
   gd_directories_const, jclStrings, Windows, gd_CmdLineParams_unit,
-  gdcInvDocument_unit, gdcInvPriceList_unit, gd_strings
+  gdcInvDocument_unit, gdcInvPriceList_unit, gd_strings, gd_common_functions
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -4274,6 +4318,235 @@ begin
     Reader.Free;
     SS.Free;
   end;
+end;
+
+destructor TgdBaseEntry.Destroy;
+begin
+  FgdFieldDefs.Free;
+  inherited;
+end;
+
+procedure TgdBaseEntry.LoadFieldDefs;
+var
+  Obj: TgdcBase;
+  RN, FN: String;
+  BERef: TgdBaseEntry;
+  I, NavStart, NavEnd: Integer;
+  FD: TgdFieldDef;
+  RFD: TgdRefFieldDef;
+  RF: TatRelationField;
+begin
+  FgdFieldDefs.Free;
+  FgdFieldDefs := TgdFieldDefs.Create(True);
+
+  if gdcClass.IsAbstractClass and (gdcClass.GetListTable('') = '') then
+    exit;
+
+  NavStart := 0;
+  NavEnd := 0;
+
+  Obj := gdcClass.Create(nil);
+  try
+    Obj.SubType := SubType;
+    Obj.SubSet := 'All';
+    Obj.Open;
+
+    for I := 0 to Obj.Fields.Count - 1 do
+    begin
+      if Obj.Fields[I].DataType = ftInteger then
+      begin
+        ParseFieldOrigin(Obj.Fields[I].Origin, RN, FN);
+        RF := atDatabase.FindRelationField(RN, FN);
+        if (RF <> nil) and (RF.References <> nil) then
+        begin
+          BERef := gdClassList.FindByRelation(RF.References.RelationName);
+
+          if BERef <> nil then
+          begin
+            RFD := TgdRefFieldDef.Create;
+            RFD.InitFieldDef(Obj.Fields[I]);
+            if (Parent is TgdBaseEntry) and (TgdBaseEntry(Parent).IndexOfFieldDef(RFD.Name) > -1) then
+              RFD.InheritedField := True;
+            RFD.RefClassName := BERef.TheClass.ClassName;
+            RFD.RefSubType := BERef.SubType;
+            FgdFieldDefs.Insert(NavEnd, RFD);
+            Inc(NavEnd);
+            continue;
+          end;
+        end;
+      end;
+
+      FD := TgdFieldDef.Create;
+      FD.InitFieldDef(Obj.Fields[I]);
+      if (Parent is TgdBaseEntry) and (TgdBaseEntry(Parent).IndexOfFieldDef(FD.Name) > -1) then
+        FD.InheritedField := True;
+      FgdFieldDefs.Insert(NavStart, FD);
+      Inc(NavStart);
+      Inc(NavEnd);
+    end;
+  finally
+    Obj.Free;
+  end;
+end;
+
+{ TgdFieldDef }
+
+procedure TgdFieldDef.ODataBuild(SL: TStringList);
+begin
+  if not FInheritedField then
+  begin
+    SL.Add(
+      '<Property Name="' + FName + '"' +
+      GetFieldType +
+      GetNullable +
+      '/>');
+  end;    
+end;
+
+function TgdFieldDef.GetFieldType: String;
+var
+  T, S: String;
+begin
+  S := '';
+  case FDataType of
+    ftInteger, ftSmallInt: T := 'Edm.Int32';
+    ftLargeInt: T := 'Edm.Int64';
+    ftString, ftMemo, ftFixedChar, ftWideString:
+    begin
+      T := 'Edm.String';
+      S := ' MaxLength="' + IntToStr(FSize) + '"';
+    end;
+    ftDate: T := 'Edm.Date';
+    ftTime: T := 'Edm.TimeOfDay';
+    ftDateTime: T := 'Edm.DateTimeOffset';
+    ftFloat: T := 'Edm.Double';
+    ftBoolean: T := 'Edm.Boolean';
+    ftBlob: T := 'Edm.Binary';
+    ftBCD:
+    begin
+      T := 'Edm.Decimal';
+      S := ' Scale="4"';
+    end;
+  else
+    raise Exception.Create('Unsupported data type');
+  end;
+
+  Result := ' Type="' + T + '"' + S;
+end;
+
+function TgdFieldDef.GetNullable: String;
+begin
+  if FRequired then
+    Result := ' Nullable="false"'
+  else
+    Result := '';
+end;
+
+procedure TgdFieldDef.InitFieldDef(F: TField);
+begin
+  FRequired := F.Required;
+  FSize := F.Size;
+  FOrigin := F.Origin;
+  FName := F.Name;
+  FDataType := F.DataType;
+end;
+
+procedure TgdBaseEntry.ODataBuild(SL, SL2: TStringList);
+
+  function GetBaseType: String;
+  begin
+    {if Parent is TgdBaseEntry then
+    begin
+      Result := ' BaseType="' + ODataNSDot + Parent.TheClass.ClassName +
+        TgdBaseEntry(Parent).SubType + '"';
+    end else}
+      Result := '';
+  end;
+
+  function GetAbstract: String;
+  begin
+    if gdcClass.IsAbstractClass then
+      Result := ' Abstract="true"'
+    else
+      Result := '';
+  end;
+
+var
+  I: Integer;
+begin
+  if gdcClass.IsAbstractClass and (gdcClass.GetListTable('') = '') then
+    SL.Add('<EntityType Name="' + TheClass.ClassName + SubType + '"' +
+      GetBaseType + GetAbstract + ' />')
+  else begin
+    if FgdFieldDefs = nil then
+      LoadFieldDefs;
+
+    SL.Add('<EntityType Name="' + TheClass.ClassName + SubType + '"' +
+      GetBaseType + GetAbstract + '>');
+    SL.Add('<Key><PropertyRef Name="ID" /></Key>');
+
+    for I := 0 to FgdFieldDefs.Count - 1 do
+      (FgdFieldDefs[I] as TgdFieldDef).ODataBuild(SL);
+
+    SL.Add('</EntityType>');
+
+    SL2.Add('<EntitySet Name="s' + TheClass.ClassName + SubType +
+      '" EntityType="' + ODataNSDot + TheClass.ClassName + SubType + '" />');
+    //SL2.Add('</EntitySet>');  
+  end;
+end;
+
+{ TgdRefFieldDef }
+
+procedure TgdRefFieldDef.ODataBuild(SL: TStringList);
+begin
+  if not FInheritedField then
+  begin
+    SL.Add(
+      '<NavigationProperty Name="' + FName + '"' +
+      ' Type="' + ODataNSDot + FRefClassName + FRefSubType + '"' +
+      GetNullable +
+      '/>');
+  end;
+end;
+
+{ TgdFieldDefs }
+
+function TgdFieldDefs.IndexOf(const AName: String): Integer;
+var
+  I: Integer;
+begin
+  Result := -1;
+  for I := 0 to Count - 1 do
+    if (Items[I] as TgdFieldDef).Name = AName then
+    begin
+      Result := I;
+      break;
+    end;
+end;
+
+function TgdBaseEntry.IndexOfFieldDef(const AName: String): Integer;
+begin
+  if gdcClass.IsAbstractClass and (gdcClass.GetListTable('') = '') then
+    Result := -1
+  else begin
+    if FgdFieldDefs = nil then
+      LoadFieldDefs;
+    Result := FgdFieldDefs.IndexOf(AName);
+  end;
+end;
+
+function TgdBaseEntry.GetEntitySetName: String;
+begin
+  Result := 's' + gdcClass.ClassName + SubType;
+end;
+
+function TgdBaseEntry.GetEntitySetUrl: String;
+begin
+  if SubType > '' then
+    Result := gdcClass.ClassName + '+' + SubType
+  else
+    Result := gdcClass.ClassName;
 end;
 
 initialization

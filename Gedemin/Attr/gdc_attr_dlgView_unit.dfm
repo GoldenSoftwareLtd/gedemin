@@ -1,6 +1,7 @@
 inherited gdc_attr_dlgView: Tgdc_attr_dlgView
   Left = 628
   Top = 305
+  Width = 534
   HelpContext = 80
   Caption = 'Редактирование представления'
   PixelsPerInch = 96
@@ -18,16 +19,17 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
     TabOrder = 5
   end
   inherited btnOK: TButton
-    Left = 371
+    Left = 367
     Top = 474
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 445
+    Left = 441
     Top = 474
     TabOrder = 2
   end
   inherited pcRelation: TPageControl
+    Width = 510
     Height = 470
     TabOrder = 0
     OnChange = pcRelationChange
@@ -51,27 +53,35 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
       end
       inherited dbedRelationName: TDBEdit
         Left = 264
+        Width = 237
       end
       inherited dbedLRelationName: TDBEdit
         Left = 264
+        Width = 237
       end
       inherited dbeShortRelationName: TDBEdit
         Left = 264
+        Width = 237
       end
       inherited dbeRelationDescription: TDBMemo
         Left = 264
+        Width = 237
       end
       inherited ibcmbReference: TgsIBLookupComboBox
         Left = 264
+        Width = 237
       end
       inherited iblcExplorerBranch: TgsIBLookupComboBox
         Left = 264
+        Width = 237
       end
       inherited dbeExtendedFields: TDBEdit
         Left = 264
+        Width = 237
       end
       inherited dbeListField: TDBEdit
         Left = 264
+        Width = 237
       end
       inherited lClass: TEdit
         Left = 264
@@ -87,11 +97,10 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
       object smViewBody: TSynMemo
         Left = 0
         Top = 0
-        Width = 502
-        Height = 404
+        Width = 498
+        Height = 397
         Cursor = crIBeam
-        Align = alTop
-        Anchors = [akLeft, akTop, akRight, akBottom]
+        Align = alClient
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -13
@@ -428,14 +437,32 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
             ShortCut = 24642
           end>
       end
-      object btnCreateView: TButton
-        Left = 502
-        Top = 410
-        Width = 75
-        Height = 21
-        Action = actCreateView
-        Anchors = [akRight, akBottom]
+      object Panel4: TPanel
+        Left = 0
+        Top = 397
+        Width = 498
+        Height = 41
+        Align = alBottom
+        BevelOuter = bvNone
         TabOrder = 1
+        object Panel5: TPanel
+          Left = 392
+          Top = 0
+          Width = 106
+          Height = 41
+          Align = alRight
+          BevelOuter = bvNone
+          TabOrder = 0
+          object btnCreateView: TButton
+            Left = 19
+            Top = 14
+            Width = 75
+            Height = 21
+            Action = actCreateView
+            Anchors = [akRight, akBottom]
+            TabOrder = 0
+          end
+        end
       end
     end
     inherited tsFields: TTabSheet
@@ -445,8 +472,19 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
     end
     inherited tsTrigger: TTabSheet
       inherited Panel1: TPanel
+        Width = 498
         Height = 438
+        inherited Splitter1: TSplitter
+          Width = 498
+        end
+        inherited Panel2: TPanel
+          Width = 498
+          inherited tvTriggers: TTreeView
+            Width = 498
+          end
+        end
         inherited Panel3: TPanel
+          Width = 498
           Height = 321
           inherited smTriggerBody: TSynMemo
             Height = 295

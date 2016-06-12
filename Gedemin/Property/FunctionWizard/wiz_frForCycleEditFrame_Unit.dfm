@@ -1,8 +1,6 @@
 inherited frForCycleEditFrame: TfrForCycleEditFrame
-  Width = 442
   Constraints.MinHeight = 244
   inherited PageControl: TPageControl
-    Width = 442
     inherited tsGeneral: TTabSheet
       inherited Label2: TLabel
         Top = 124
@@ -10,7 +8,7 @@ inherited frForCycleEditFrame: TfrForCycleEditFrame
       object Label3: TLabel [3]
         Left = 4
         Top = 56
-        Width = 16
+        Width = 18
         Height = 13
         Caption = 'От:'
       end
@@ -24,7 +22,7 @@ inherited frForCycleEditFrame: TfrForCycleEditFrame
       object Label5: TLabel [5]
         Left = 4
         Top = 104
-        Width = 23
+        Width = 25
         Height = 13
         Caption = 'Шаг:'
       end
@@ -35,7 +33,7 @@ inherited frForCycleEditFrame: TfrForCycleEditFrame
       object beCondition: TBtnEdit
         Left = 95
         Top = 51
-        Width = 330
+        Width = 329
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -76,7 +74,7 @@ inherited frForCycleEditFrame: TfrForCycleEditFrame
       object beConditionTo: TBtnEdit
         Left = 95
         Top = 75
-        Width = 330
+        Width = 329
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -117,7 +115,7 @@ inherited frForCycleEditFrame: TfrForCycleEditFrame
       object beStep: TBtnEdit
         Left = 95
         Top = 99
-        Width = 330
+        Width = 329
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow

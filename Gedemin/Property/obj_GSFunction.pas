@@ -170,7 +170,7 @@ implementation
 
 uses
   dmDataBase_unit, SysUtils, gdcBaseInterface, gdc_frmTaxDesignTime_unit,
-  gd_security, prp_methods, wiz_Utils_unit, gdcOLEClassList;
+  gd_security, prp_methods, wiz_Utils_unit, gdcOLEClassList, gd_convert;
 
 type
   TAnalyticsSymb = (anlName, anlValue);
@@ -1304,109 +1304,27 @@ begin
 end;
 
 function TobjGSFunction.GetFullRubSumStr(D: OleVariant): OleVariant;
-var
-  N: Integer;
-  F: Double;
 begin
-  try
-    Result := GetRubSumStr(D);
-    F := D;
-    N := Round(Abs((F - Trunc(F))) * 100);
-    if N <> 0 then
-      Result := Result + ' ' + GetSumStr(N, 0) + ' ' + GetKopWord(N);
-  except
-    Result := '';
-  end;
+  Result := gd_convert.GetFullRubSumStr(D);
 end;
 
 function TobjGSFunction.GetRubSumStr(D: OleVariant): OleVariant;
 begin
-  try
-    Result := GetSumStr(D, 0) + ' ' + GetRubbleWord(D);
-  except
-    Result := '';
-  end;
+  Result := gd_convert.GetRubSumStr(D);
 end;
 
 function TobjGSFunction.GetSumCurr(CurrKey: OleVariant; Sum: OleVariant; CentPrecision: OleVariant;
-       ShowCent: WordBool): OleVariant;
-var
-  ibsql: TIBSQL;
-  Num: Integer;
-  Cent: String;
-
-  function GetName(Name: String): String;
-  begin
-    if (Trunc(Num) mod 100 >= 20) or (Trunc(Num) mod 100 <= 10) then
-      case Trunc(Num) mod 10 of
-        1:
-           if Name = 'centname' then
-             Result := ibsql.FieldByName('FULLCENTNAME').AsString
-           else
-             Result := ibsql.FieldByName(Name).AsString;
-        2, 3, 4: Result := ibsql.FieldByName(Name + '_1').AsString;
-      else
-        Result := ibsql.FieldByName(Name + '_0').AsString;
-      end
-    else
-      Result := ibsql.FieldByName(Name + '_0').AsString;
-  end;
-
-  function NameCase(S: String): String;
-  begin
-    Result := AnsiLowerCase(S);
-    if Length(Result) > 1 then
-    begin
-      S := Result[1];
-      S := AnsiUpperCase(S);
-      Result := S + Copy(Result, 2, Length(Result));
-    end;
-  end;
-
+  ShowCent: WordBool): OleVariant;
 begin
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    ibsql.SQL.Text := 'SELECT * FROM gd_curr WHERE id = ' + String(currkey);
-    ibsql.ExecQuery;
-    if ibsql.RecordCount > 0 then
-    begin
-      Num := Trunc(Abs(Sum));
-      Result := GetName('name');
-      Num := Round(Abs((Double(Sum) - Trunc(sum))) * 100);
-      Result := NameCase(GetSumStr(sum, 0)) + ' ' + Result;
-      if (Num <> 0) or ShowCent then
-      begin
-        if CentPrecision = 1 then
-          Cent := GetSumStr(Num, 0)
-        else
-        begin
-          Cent := IntToStr(Num);
-          if Length(Cent) = 1 then
-            Cent := '0' + Cent;
-        end;
-        Result := Result + ' ' + Cent + ' ' + GetName('centname');
-      end;
-    end;
-  finally
-    ibsql.Free;
-  end;
+  if VarType(CentPrecision) = varBoolean then
+    Result := gd_convert.GetSumCurr(CurrKey, Sum, CentPrecision, ShowCent)
+  else
+    Result := gd_convert.GetSumCurr(CurrKey, Sum, CentPrecision <> 0, ShowCent);
 end;
 
 function TobjGSFunction.GetSumStr(D1: OleVariant; D2: ShortInt): OleVariant;
-var
-  fraction: Extended;
 begin
-  try
-    NumberConvert.Value := D1;
-    NumberConvert.Precision := D2;
-    fraction := Frac(D2);
-    if (D2 > 0) and (fraction > 0) then
-      NumberConvert.Gender := gFemale;
-    Result := NumberConvert.Numeral;
-  except
-    Result := '0';
-  end;
+  Result := gd_convert.GetSumStr(D1, D2);
 end;
 
 function TobjGSFunction.GetNumberConvert: TNumberConvert;

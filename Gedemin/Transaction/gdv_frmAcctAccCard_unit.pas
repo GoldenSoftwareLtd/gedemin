@@ -102,7 +102,7 @@ var
 implementation
 
 uses
-  at_classes, gdcAcctEntryRegister, gdcClasses;
+  at_classes, gdcAcctEntryRegister, gdcClasses, gd_resourcestring;
 
 {$R *.DFM}
 
@@ -341,10 +341,6 @@ end;
 procedure Tgdv_frmAcctAccCard.Go_to(NewWindow: Boolean = false);
 var
   F: TCreateableForm;
-const
-  cMsg = 'ѕроводка не найдена в журнале хоз€йственных операций.'#13#10 +
-    '¬озможно к данным применена фильтраци€ или отсутствуют права на просмотр.'#13#10 +
-    'ѕереход на проводку невозможен.';
 begin
   F := gd_createable_form.FindForm(Tgdc_frmTransaction);
 
@@ -358,7 +354,7 @@ begin
         gdcAcctViewEntryRegister.Locate('RECORDKEY', gdvObject.FieldByName('id').AsInteger, []) then
         Show 
       else
-        MessageDlg(cMsg, mtWarning, [mbOK], -1);
+        MessageBox(Handle, PChar(sEntryNotFound), PChar(sAttention), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
     end;
   end else
   begin
@@ -370,7 +366,7 @@ begin
         gdcAcctViewEntryRegister.Locate('RECORDKEY', gdvObject.FieldByName('id').AsInteger, []) then
         Show
       else
-        MessageDlg(cMsg, mtWarning, [mbOK], -1);
+        MessageBox(Handle, PChar(sEntryNotFound), PChar(sAttention), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
     end;
   end;
 end;

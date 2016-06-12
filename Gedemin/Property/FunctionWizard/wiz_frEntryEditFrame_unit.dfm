@@ -3,11 +3,16 @@ inherited frEntryEditFrame: TfrEntryEditFrame
   Height = 360
   Constraints.MaxHeight = 360
   Constraints.MinHeight = 360
+  Font.Name = 'Tahoma'
+  ParentFont = False
   inherited PageControl: TPageControl
     Width = 442
     Height = 360
     MultiLine = True
     inherited tsGeneral: TTabSheet
+      inherited Label1: TLabel
+        Width = 77
+      end
       inherited Label2: TLabel
         Top = 171
       end
@@ -17,28 +22,28 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object Label3: TLabel [3]
         Left = 4
         Top = 56
-        Width = 86
+        Width = 88
         Height = 13
         Caption = 'Дебетовый счет:'
       end
       object Label4: TLabel [4]
         Left = 4
         Top = 80
-        Width = 90
+        Width = 94
         Height = 13
         Caption = 'Кредитовый счет:'
       end
       object Label7: TLabel [5]
         Left = 4
         Top = 104
-        Width = 37
+        Width = 35
         Height = 13
         Caption = 'Сумма:'
       end
       object Label8: TLabel [6]
         Left = 4
         Top = 127
-        Width = 41
+        Width = 43
         Height = 13
         Caption = 'Валюта:'
       end
@@ -51,18 +56,18 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       end
       inherited cbName: TComboBox
         Left = 126
-        Width = 288
+        Width = 287
       end
       inherited mDescription: TMemo
         Left = 126
         Top = 171
-        Width = 288
+        Width = 287
         TabOrder = 6
       end
       object beDebit: TBtnEdit [10]
         Left = 126
         Top = 51
-        Width = 288
+        Width = 287
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -105,7 +110,7 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object beCredit: TBtnEdit [11]
         Left = 126
         Top = 75
-        Width = 288
+        Width = 287
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -148,7 +153,7 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object beSum: TBtnEdit [12]
         Left = 126
         Top = 99
-        Width = 288
+        Width = 287
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -189,7 +194,7 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object beSumCurr: TBtnEdit [13]
         Left = 126
         Top = 147
-        Width = 288
+        Width = 287
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -229,7 +234,7 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       end
       inherited eLocalName: TEdit
         Left = 126
-        Width = 288
+        Width = 287
       end
       object cbSaveEmpty: TCheckBox
         Left = 8
@@ -242,7 +247,7 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object beCurr: TBtnEdit
         Left = 126
         Top = 123
-        Width = 288
+        Width = 287
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -324,21 +329,21 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object Label10: TLabel
         Left = 8
         Top = 10
-        Width = 85
+        Width = 87
         Height = 13
         Caption = 'Начало периода:'
       end
       object Label11: TLabel
         Left = 8
         Top = 34
-        Width = 79
+        Width = 81
         Height = 13
         Caption = 'Конец периода:'
       end
       object Label12: TLabel
         Left = 8
         Top = 58
-        Width = 80
+        Width = 82
         Height = 13
         Caption = 'Дата проводки:'
       end
@@ -353,7 +358,7 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object beBeginDate: TBtnEdit
         Left = 98
         Top = 5
-        Width = 316
+        Width = 315
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -394,7 +399,7 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object beEndDate: TBtnEdit
         Left = 98
         Top = 29
-        Width = 316
+        Width = 315
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -435,7 +440,7 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object beEntryDate: TBtnEdit
         Left = 98
         Top = 53
-        Width = 316
+        Width = 315
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -476,7 +481,7 @@ inherited frEntryEditFrame: TfrEntryEditFrame
       object beEntryDescription: TBtnEdit
         Left = 98
         Top = 77
-        Width = 316
+        Width = 315
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow

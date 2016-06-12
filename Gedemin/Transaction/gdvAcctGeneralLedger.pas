@@ -92,7 +92,7 @@ var
   VKeyAlias: string;
   L_S, Q_S, QS: string;
   AccountIDs: String;
-  CorrSelect, CorrSubSelect, CorrInto: String;
+  CorrSelect, CorrSubSelect, CorrInto, CorrIntoSelect: String;
 
   procedure FillCorrAccountStrings(AAccounts: TStrings; EntryAccounts: TgdvCorrFieldInfoList; EntryPart: String; Currency: String);
   var
@@ -129,30 +129,73 @@ var
   procedure FillQueryWithCorrAccounts(AAccounts: TStrings; EntryPart: String);
   var
     I, J: Integer;
+    Str: String;
   begin
     if FShowCorrSubAccounts then
     begin
       for I := 0 to AAccounts.Count - 1 do
       begin
+        Str := Copy(AAccounts.Names[I], 1, 2);
+
         CorrSelect := CorrSelect + Format(', SUM(m.%0:s) AS %0:s ', [AAccounts.Names[I]]);
         CorrInto := CorrInto + ', :' + AAccounts.Names[I];
+
+        if Str = 'nc' then
+          CorrIntoSelect := CorrIntoSelect + '    ' + AAccounts.Names[I] + ' = CAST(' + AAccounts.Names[I] + ' / %0:d AS NUMERIC(15, %1:d));  '#13#10
+        else if Str = 'cu' then
+          CorrIntoSelect := CorrIntoSelect + '    ' + AAccounts.Names[I] + ' = CAST(' + AAccounts.Names[I] + ' / %2:d AS NUMERIC(15, %3:d));  '#13#10
+        else if Str = 'eq' then
+          CorrIntoSelect := CorrIntoSelect + '    ' + AAccounts.Names[I] + ' = CAST(' + AAccounts.Names[I] + ' / %4:d AS NUMERIC(15, %5:d));  '#13#10;
+
         if EntryPart = 'D' then
-          CorrSubSelect := CorrSubSelect +
-            Format(', IIF(emc.accountkey = %0:s, IIF(emc.issimple = 0, emc.creditncu, e.debitncu), 0) AS %1:s '#13#10,
-            [Accounts.Values[AAccounts.Names[I]], AAccounts.Names[I]])
+        begin
+          if Str = 'nc' then
+            CorrSubSelect := CorrSubSelect +
+              Format(', IIF(emc.accountkey = %0:s, IIF(emc.issimple = 0, emc.creditncu, e.debitncu), 0) AS %1:s '#13#10,
+              [Accounts.Values[AAccounts.Names[I]], AAccounts.Names[I]])
+          else if Str = 'cu' then
+            CorrSubSelect := CorrSubSelect +
+              Format(', IIF(emc.accountkey = %0:s, IIF(emc.issimple = 0, emc.creditcurr, e.debitcurr), 0) AS %1:s '#13#10,
+              [Accounts.Values[AAccounts.Names[I]], AAccounts.Names[I]])
+          else if Str = 'eq' then
+            CorrSubSelect := CorrSubSelect +
+              Format(', IIF(emc.accountkey = %0:s, IIF(emc.issimple = 0, emc.crediteq, e.debiteq), 0) AS %1:s '#13#10,
+              [Accounts.Values[AAccounts.Names[I]], AAccounts.Names[I]]);
+        end
         else
-          CorrSubSelect := CorrSubSelect +
-            Format(', IIF(emc.accountkey = %0:s, IIF(emc.issimple = 0, emc.debitncu, e.creditncu), 0) AS %1:s '#13#10,
-            [Accounts.Values[AAccounts.Names[I]], AAccounts.Names[I]]);
+        begin
+          if Str = 'nc' then
+            CorrSubSelect := CorrSubSelect +
+              Format(', IIF(emc.accountkey = %0:s, IIF(emc.issimple = 0, emc.debitncu, e.creditncu), 0) AS %1:s '#13#10,
+              [Accounts.Values[AAccounts.Names[I]], AAccounts.Names[I]])
+          else if Str = 'cu' then
+            CorrSubSelect := CorrSubSelect +
+              Format(', IIF(emc.accountkey = %0:s, IIF(emc.issimple = 0, emc.debitcurr, e.creditcurr), 0) AS %1:s '#13#10,
+              [Accounts.Values[AAccounts.Names[I]], AAccounts.Names[I]])
+          else if Str = 'eq' then
+            CorrSubSelect := CorrSubSelect +
+              Format(', IIF(emc.accountkey = %0:s, IIF(emc.issimple = 0, emc.debiteq, e.crediteq), 0) AS %1:s '#13#10,
+              [Accounts.Values[AAccounts.Names[I]], AAccounts.Names[I]]);
+        end;
       end;
     end
     else
     begin
       for I := 0 to AAccounts.Count - 1 do
       begin
+        Str := Copy(AAccounts.Strings[I], 1, 2);
+
         CorrSelect := CorrSelect + Format(', SUM(m.%0:s) AS %0:s ', [AAccounts.Strings[I]]);
         CorrInto := CorrInto + ', :' + AAccounts.Strings[I];
         CorrSubSelect := CorrSubSelect + ', IIF(emc.accountkey IN (';
+
+        if Str = 'nc' then
+          CorrIntoSelect := CorrIntoSelect + '    ' + AAccounts.Strings[I] + ' = CAST(' + AAccounts.Strings[I] + ' / %0:d AS NUMERIC(15, %1:d));  '#13#10
+        else if Str = 'cu' then
+          CorrIntoSelect := CorrIntoSelect + '    ' + AAccounts.Strings[I] + ' = CAST(' + AAccounts.Strings[I] + ' / %2:d AS NUMERIC(15, %3:d));  '#13#10
+        else if Str = 'eq' then
+          CorrIntoSelect := CorrIntoSelect + '    ' + AAccounts.Strings[I] + ' = CAST(' + AAccounts.Strings[I] + ' / %4:d AS NUMERIC(15, %5:d));  '#13#10;
+
         for J := 0 to TgdKeyArray(AAccounts.Objects[I]).Count - 1 do
         begin
           CorrSubSelect := CorrSubSelect + IntToStr(TgdKeyArray(AAccounts.Objects[I]).Keys[J]);
@@ -160,9 +203,23 @@ var
             CorrSubSelect := CorrSubSelect + ', ';
         end;
         if EntryPart = 'D' then
-          CorrSubSelect := CorrSubSelect + '), IIF(emc.issimple = 0, emc.creditncu, e.debitncu), 0) AS ' + AAccounts.Strings[I] + #13#10
+        begin
+          if Str = 'nc' then
+            CorrSubSelect := CorrSubSelect + '), IIF(emc.issimple = 0, emc.creditncu, e.debitncu), 0) AS ' + AAccounts.Strings[I] + #13#10
+          else if Str = 'cu' then
+            CorrSubSelect := CorrSubSelect + '), IIF(emc.issimple = 0, emc.creditcurr, e.debitcurr), 0) AS ' + AAccounts.Strings[I] + #13#10
+          else if Str = 'eq' then
+            CorrSubSelect := CorrSubSelect + '), IIF(emc.issimple = 0, emc.crediteq, e.debiteq), 0) AS ' + AAccounts.Strings[I] + #13#10;
+        end
         else
-          CorrSubSelect := CorrSubSelect + '), IIF(emc.issimple = 0, emc.debitncu, e.creditncu), 0) AS ' + AAccounts.Strings[I] + #13#10;
+        begin
+          if Str = 'nc' then
+            CorrSubSelect := CorrSubSelect + '), IIF(emc.issimple = 0, emc.debitncu, e.creditncu), 0) AS ' + AAccounts.Strings[I] + #13#10
+          else if Str = 'cu' then
+            CorrSubSelect := CorrSubSelect + '), IIF(emc.issimple = 0, emc.debitcurr, e.creditcurr), 0) AS ' + AAccounts.Strings[I] + #13#10
+          else if Str = 'eq' then
+            CorrSubSelect := CorrSubSelect + '), IIF(emc.issimple = 0, emc.debiteq, e.crediteq), 0) AS ' + AAccounts.Strings[I] + #13#10;
+        end;
       end;
     end;
   end;
@@ -479,6 +536,7 @@ begin
       '    curr_credit = CAST(:varcurrcredit / %2:d AS NUMERIC(15, %3:d)); '#13#10 +
       '    eq_debit = CAST(:vareqdebit / %4:d AS NUMERIC(15, %5:d)); '#13#10 +
       '    eq_credit = CAST(:vareqcredit / %4:d AS NUMERIC(15, %5:d)); '#13#10 +
+        CorrIntoSelect +
       ' '#13#10 +
       '    ncu_begin_debit = 0;   ncu_begin_credit = 0;   ncu_end_debit = 0;   ncu_end_credit = 0; '#13#10 +
       '    curr_begin_debit = 0;  curr_begin_credit = 0;  curr_end_debit = 0;  curr_end_credit = 0; '#13#10 +

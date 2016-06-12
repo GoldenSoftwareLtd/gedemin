@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -34,7 +34,7 @@ type
   TExpressionEditorForm = class(TForm)
     TBDock: TTBDock;
     tbtMain: TTBToolbar;
-    Panel1: TPanel;
+    pnlButtons: TPanel;
     Button1: TButton;
     Button2: TButton;
     ActionList: TActionList;
@@ -48,7 +48,7 @@ type
     TBItem3: TTBItem;
     TBItem4: TTBItem;
     actAddVar: TAction;
-    Panel2: TPanel;
+    pnlExpression: TPanel;
     TBToolbar1: TTBToolbar;
     Action1: TAction;
     Action2: TAction;

@@ -5706,47 +5706,62 @@ var
 begin
   Result:= nil;
 
-  ASubType := StringReplace(ASubType, '$', '_', [rfReplaceAll]);
+  if (AClass = nil) or (APTN = nil) then
+    exit;
 
-  if not Assigned(AClass) or not Assigned(APTN) then
-    Exit;
+  ASubType := StringReplace(ASubType, '$', '_', [rfReplaceAll]);
 
   try
     Expand(APTN);
-    TN:= APTN.GetFirstChild;
+    TN := APTN.GetFirstChild;
 
-    while Assigned(TN) do
+    while TN <> nil do
     begin
-      TI:= TGDCClassTreeItem(TN.Data);
-      if not Assigned(TI) then begin
-        TN:= APTN.GetNextChild(TN);
-        Continue;
+      if TN.Data = nil then
+      begin
+        TN := APTN.GetNextChild(TN);
+        continue;
       end;
 
-      if not Assigned(TI.TheClass) then begin
+      TI := TGDCClassTreeItem(TN.Data);
+
+      if (TI.ItemType <> tiGDCClass) then
+      begin
+        TN := APTN;
+        APTN := TN.Parent;
         TN:= APTN.GetNextChild(TN);
-        Continue;
+        continue;
       end;
 
-      C:= TI.TheClass.Class_Reference;
-      if not Assigned(C) then begin
+      if TI.TheClass = nil then
+      begin
         TN:= APTN.GetNextChild(TN);
-        Continue;
+        continue;
       end;
 
-      if (C = AClass) and (AnsiUpperCase(TI.SubType) = AnsiUpperCase(ASubType)) then begin
+      C := TI.TheClass.Class_Reference;
+      if C = nil then
+      begin
+        TN:= APTN.GetNextChild(TN);
+        continue;
+      end;
+
+      if (C = AClass) and AnsiSameText(TI.SubType, ASubType) then
+      begin
         Result:= TN;
-        Exit;
-      end else if (TI.ItemType = tiGDCClass) and AClass.InheritsFrom(C) and (TI.SubType = '') then
+        exit;
+      end
+      else if (TI.ItemType = tiGDCClass) and AClass.InheritsFrom(C) {and (TI.SubType = '')} then
       begin
         Result:= FindNodeByClass(AClass, ASubType, TN);
-        Exit;
-      end
-      else
-        TN:= APTN.GetNextChild(TN);
+        exit;
+      end else
+        TN := APTN.GetNextChild(TN);
     end;
 
   except
+    on E: Exception do
+      Application.ShowException(E);
   end;
 end;
 

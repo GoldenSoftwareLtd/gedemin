@@ -94,6 +94,9 @@ COMMIT;
 CREATE DOMAIN dcurrrate AS
   DECIMAL(15, 10)
   NOT NULL;
+  
+CREATE DOMAIN dcurrrate_null AS 
+  DECIMAL(15,10);
 
 COMMIT;
 

@@ -23,6 +23,7 @@ type
   TgdvParamScrolBox = class(TScrollBox)
   protected
     procedure AlignControls(AControl: TControl; var ARect: TRect); override;
+    procedure WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
   end;
 
   TgdvParamPanel = class(TPanel)
@@ -602,6 +603,14 @@ procedure TgdvParamScrolBox.AlignControls(AControl: TControl;
   var ARect: TRect);
 begin
   inherited AlignControls(nil, ARect);
+end;
+
+procedure TgdvParamScrolBox.WMMouseWheel(var Message: TWMMouseWheel);
+begin
+  if Message.WheelDelta > 0 then
+    Self.VertScrollBar.Position := Self.VertScrollBar.Position - 10
+  else
+    Self.VertScrollBar.Position := Self.VertScrollBar.Position + 10;
 end;
 
 end.

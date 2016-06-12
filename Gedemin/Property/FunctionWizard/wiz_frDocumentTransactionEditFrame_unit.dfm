@@ -1,8 +1,6 @@
 inherited frDocumentTransactionEditFrame: TfrDocumentTransactionEditFrame
-  Width = 442
   Constraints.MinHeight = 199
   inherited PageControl: TPageControl
-    Width = 442
     inherited tsGeneral: TTabSheet
       inherited Label2: TLabel
         Top = 79
@@ -10,21 +8,21 @@ inherited frDocumentTransactionEditFrame: TfrDocumentTransactionEditFrame
       object lTransaction: TLabel [3]
         Left = 4
         Top = 49
-        Width = 51
+        Width = 52
         Height = 26
         Caption = 'Типовая операция:'
         WordWrap = True
       end
       inherited cbName: TComboBox
-        Width = 329
+        Width = 328
       end
       inherited mDescription: TMemo
         Top = 75
-        Width = 329
+        Width = 328
         TabOrder = 3
       end
       inherited eLocalName: TEdit
-        Width = 329
+        Width = 328
       end
       object iblTransaction: TgsIBLookupComboBox
         Left = 95

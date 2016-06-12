@@ -3,10 +3,15 @@ inherited frVarEditFrame: TfrVarEditFrame
   Height = 215
   Constraints.MaxHeight = 215
   Constraints.MinHeight = 215
+  Font.Name = 'Tahoma'
+  ParentFont = False
   inherited PageControl: TPageControl
     Width = 442
     Height = 215
     inherited tsGeneral: TTabSheet
+      inherited Label1: TLabel
+        Width = 77
+      end
       inherited Label2: TLabel
         Top = 98
       end
@@ -18,7 +23,6 @@ inherited frVarEditFrame: TfrVarEditFrame
         Caption = 'Выражение: '
       end
       inherited cbName: TComboBox
-        Width = 331
         Style = csDropDown
         Text = ''
         OnClick = cbNameClick
@@ -26,16 +30,12 @@ inherited frVarEditFrame: TfrVarEditFrame
       end
       inherited mDescription: TMemo
         Top = 94
-        Width = 331
         TabOrder = 4
-      end
-      inherited eLocalName: TEdit
-        Width = 331
       end
       object BtnEdit1: TBtnEdit
         Left = 95
         Top = 54
-        Width = 331
+        Width = 330
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crHandPoint
@@ -76,7 +76,7 @@ inherited frVarEditFrame: TfrVarEditFrame
       object CheckBox1: TCheckBox
         Left = 4
         Top = 78
-        Width = 187
+        Width = 186
         Height = 15
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Ссылка на объект'

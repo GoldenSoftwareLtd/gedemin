@@ -5,30 +5,37 @@ inherited dlgIfEditForm: TdlgIfEditForm
   Caption = 'Свойства условия'
   ClientHeight = 228
   ClientWidth = 428
+  Font.Name = 'Tahoma'
   OldCreateOrder = True
   PixelsPerInch = 96
   TextHeight = 13
   inherited Panel1: TPanel
     Top = 198
     Width = 428
-    inherited Button1: TButton
-      Left = 350
-    end
-    inherited Button2: TButton
-      Left = 270
+    inherited pnlRightButtons: TPanel
+      Left = 263
+      inherited Button2: TButton
+        Left = 270
+      end
+      inherited Button1: TButton
+        Left = 350
+      end
     end
   end
   inherited PageControl: TPageControl
     Width = 428
     Height = 198
     inherited tsGeneral: TTabSheet
+      inherited Label1: TLabel
+        Width = 77
+      end
       inherited Label2: TLabel
         Top = 78
       end
       object Label3: TLabel [2]
         Left = 8
         Top = 59
-        Width = 47
+        Width = 46
         Height = 13
         Caption = 'Условие:'
       end

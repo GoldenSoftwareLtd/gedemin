@@ -16528,7 +16528,7 @@ begin
   if FOldValues <> nil then
   begin
     for I := 0 to FOldValues.Count - 1 do
-      if AnsiCompareText((FOldValues[I] as TFieldValue).FieldName, Field.FieldName) = 0 then
+      if AnsiSameText((FOldValues[I] as TFieldValue).FieldName, Field.FieldName) then
       begin
         // если поле редактировали дважды и второй раз восстановили
         // первоначальное значение то считаем, что поле не трогали вообще
@@ -18387,7 +18387,7 @@ begin
   Assert(atDatabase <> nil);
   Assert(ATr <> nil);
   Assert(ATr.InTransaction);
-  Assert(not EOF);
+  Assert(not IsEmpty);
 
   C := GetCurrRecordClass;
   if (C.gdClass = Self.ClassType) and (C.SubType = Self.SubType) then

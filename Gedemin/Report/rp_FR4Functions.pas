@@ -3,23 +3,13 @@ unit rp_FR4Functions;
 interface
 
 uses
-  SysUtils, Classes, Windows, Forms, fs_iinterpreter,
-  NumConv;
+  SysUtils, Classes, Windows, Forms, fs_iinterpreter;
 
 type
   TFR4Functions = class(TfsRTTIModule)
   private
-    NumberConvert: TNumberConvert;
-
     FCompanyCachedKey, FCompanyCachedDBID: Integer;
     FCompanyCachedTime: DWORD;
-
-    FCurrCachedKey, FCurrCachedDBID: Integer;
-    FCurrCachedTime: DWORD;
-
-    CacheName, CacheFullCentName,
-    CacheName_0, CacheName_1,
-    CacheCentName_0, CacheCentName_1: String;
 
     FCompanyName, FCompanyFullName, FCompanyAddress,
     FDirectorName, FChiefAccountantName, FTAXID,
@@ -29,6 +19,7 @@ type
     function CallMethod(Instance: TObject; ClassType: TClass;
       const MethodName: String; var Params: Variant): Variant;
 
+  public
     //Константы
     function GetConstByName(const AName: String): Variant;
     function GetConstByID(const AnID: Integer): Variant;
@@ -36,8 +27,6 @@ type
     function GetConstByIDForDate(const AnID: Integer; const ADate: String): Variant;
 
     //Денежные
-    procedure UpdateCache(const AnID: Integer);
-
     function GetSumCurr(D1, D2, D3: Variant; D4: Boolean = False): String;
     function GetSumStr(D1: Variant; D2: Byte = 0): String;
     function GetSumStr2(D1: Variant; const D2: String; D3: Integer): String;
@@ -69,18 +58,14 @@ type
     function GetNameInitials(AFamilyName, AGivenName, AMiddleName: String;
       const ALeading: Boolean; const ASpace: String): String;
 
-  public
     constructor Create(AScript: TfsScript); override;
   end;
 
 implementation
 
 uses
-  gdcConst, IBSQL, gd_security, gdcBaseInterface, gsMorph
-  {$IFDEF GEDEMIN}
-  , gdcCurr
-  {$ENDIF}
-  ;
+  gdcConst, IBSQL, gd_security, gdcBaseInterface, gsMorph, gd_convert,
+  NumConv;
 
 const
   MonthNames: array[1..12] of String = (
@@ -98,54 +83,7 @@ const
     'декабря'
   );
 
-  CacheFlushInterval = 120 * 60 * 1000; //2 hrs in msec
-
-type
-  TNameSelector = (nsName, nsCentName);
-
 { TFR4Functions }
-
-function NameCase(const S: String): String;
-begin
-  if Length(S) > 1 then
-    Result := AnsiUpperCase(Copy(S, 1, 1)) + AnsiLowerCase(Copy(S, 2, 8192))
-  else
-    Result := AnsiLowerCase(S);
-end;
-
-function GetRubbleWord(Value: Double): String;
-var
-  Num: Integer;
-begin
-  Num := Trunc(Abs(Value));
-
-  if (Trunc(Num) mod 100 >= 20) or (Trunc(Num) mod 100 <= 10) then
-    case Trunc(Num) mod 10 of
-      1: Result := 'рубль';
-      2, 3, 4: Result := 'рубля';
-    else
-      Result := 'рублей';
-    end
-  else
-    Result := 'рублей';
-end;
-
-function GetKopWord(Value: Double): String;
-var
-  Num: Integer;
-begin
-  Num := Trunc(Abs(Value));
-
-  if (Trunc(Num) mod 100 >= 20) or (Trunc(Num) mod 100 <= 10) then
-    case Trunc(Num) mod 10 of
-      1: Result := 'копейка';
-      2, 3, 4: Result := 'копейки';
-    else
-      Result := 'копеек';
-    end
-  else
-    Result := 'копеек';
-end;
 
 function DateToRusStr(ADate: TDateTime): String;
 var
@@ -161,7 +99,7 @@ end;
 
 function TFR4Functions.AdvString: String;
 begin
-  Result := 'Подготовлено в системе Гедымин. Тел.: +375-17-2561759, 2562783. http://gsbelarus.com © 1994-2014 Golden Software of Belarus, Ltd. ';
+  Result := 'Подготовлено в системе Гедымин. Тел.: +375-17-2561759, 2562783. http://gsbelarus.com © 1994-2016 Golden Software of Belarus, Ltd. ';
 end;
 
 function TFR4Functions.CallMethod(Instance: TObject; ClassType: TClass;
@@ -318,17 +256,17 @@ begin
     AddMethod('function GETVALUEBYNAMEFORDATE(AName: String; ADate: String): Variant', CallMethod, 'Golden Software',
       'GETVALUEBYNAMEFORDATE(<Наименование>, <Дата>)/Возвращает значение периодической константы по наименованию на указанную дату');
     AddMethod('function SUMCURRSTR(D1: Integer; D2: Currency, D3: Boolean): String', CallMethod, 'Golden Software',
-      'SUMCURRSTR(<Ключ валюты>, <Сумма>, <Ноль копеек>)/Возвращает сумму валюты прописью. (Флаг указывает, возвращать ли ноль копеек)');
+      'SUMCURRSTR(<ИД валюты>, <Сумма>, <Выводить или нет ноль копеек>)/Возвращает сумму валюты прописью.');
     AddMethod('function SUMCURRSTR2(D1: Integer; D2: Currency, D3: Boolean): String', CallMethod, 'Golden Software',
-      'SUMCURRSTR2(<Ключ валюты>, <Сумма>, <0 копеек>)/Возвращает сумму валюты прописью, а копейки цифрами. (Флаг указывает, возвращать ли ноль копеек)');
+      'SUMCURRSTR2(<ИД валюты>, <Сумма>, <Выводить или нет ноль копеек>)/Возвращает сумму валюты прописью (копейки цифрами).');
     AddMethod('function SUMFULLRUBSTR(D: Currency): String', CallMethod, 'Golden Software',
       'SUMFULLRUBSTR(<Число>)/Возвращает сумму прописью со словом рублей и копейками в нужном падеже');
     AddMethod('function SUMRUBSTR(D: Currency): String', CallMethod, 'Golden Software',
       'SUMRUBSTR(<Число>)/Возвращает сумму прописью со словом рублей в нужном падеже');
     AddMethod('function SUMSTR(D1: Currency; D2: Integer): String', CallMethod, 'Golden Software',
-      'SUMSTR(<Число>, <Количество знаков после запятой>)/Возвращает сумму прописью, количество знаков после запятой не больше трех.');
+      'SUMSTR(<Число>, <Количество десятичных знаков>)/Возвращает число прописью, количество знаков после запятой должно быть не больше трех.');
     AddMethod('function SUMSTR2(D1: Currency; D2: String; D3: Integer): String', CallMethod, 'Golden Software',
-      'SUMSTR2(<Число> , <Существительное для определения рода>/Ед. ч. им. падеж , <Род>/Если второй параметр не задан. 0 - муж, 1 - жен, 2 - ср.') ;
+      'SUMSTR2(<Число> , <Пустая строка. Не используется>, <Род: 0 - мужской, 1 - женский, 2 - средний>)/Число прописью для заданного рода.') ;
     AddMethod('function DATESTR(Date: Variant): String', CallMethod , 'Golden Software',
       'DATESTR(<Дата>)/Возвращает дату (месяц на русском языке)');
     AddMethod('function GETFIOCASE(LastName, FirstName, MiddleName: String; Sex, TheCase: Word): String', CallMethod, 'Golden Software',
@@ -356,7 +294,6 @@ begin
   end;
 
   FCompanyCachedKey := -1;
-  FCurrCachedKey := -1;
 end;
 
 function TFR4Functions.DateStr(D: Variant): String;
@@ -394,16 +331,9 @@ begin
 end;
 
 function TFR4Functions.GetFullRubSumStr(D: Variant): String;
-var
-  N: Integer;
-  F: Double;
 begin
   try
-    Result := GetRubSumStr(D);
-    F := D;
-    N := Round(Abs((F - Trunc(F))) * 100);
-    if N <> 0 then
-      Result := Result + ' ' + GetSumStr(N, 1) + ' ' + GetKopWord(N);
+    Result := gd_convert.GetFullRubSumStr(D);
   except
     Result := '';
   end;
@@ -412,199 +342,45 @@ end;
 function TFR4Functions.GetRubSumStr(D: Variant): String;
 begin
   try
-    Result := NameCase(GetSumStr(D)) + ' ' + GetRubbleWord(D);
+    Result := gd_convert.GetRubSumStr(D);
   except
     Result := '';
   end;
 end;
 
-function TFR4Functions.GetSumCurr(D1, D2, D3: Variant;
-  D4: Boolean): String;
-var
-  Num: Integer;
-  Cent: String;
-
-  function GetName(const Name: TNameSelector): String;
-  {$IFDEF GEDEMIN}
-  var
-    gdcCurr: TgdcCurr;
-  {$ENDIF}
-  begin
-    repeat
-      if (Trunc(Num) mod 100 >= 20) or (Trunc(Num) mod 100 <= 10) then
-      begin
-        case Trunc(Num) mod 10 of
-          1:
-             if Name = nsCentName then
-               Result := CacheFullCentName
-             else
-               Result := CacheName;
-          2, 3, 4:
-             if Name = nsCentName then
-               Result := CacheCentName_1
-             else
-               Result := CacheName_1
-        else
-          begin
-           if Name = nsCentName then
-             Result := CacheCentName_0
-           else
-             Result := CacheName_0
-          end;
-        end
-      end else
-      begin
-        if Name = nsCentName then
-          Result := CacheCentName_0
-        else
-          Result := CacheName_0
-      end;
-
-      if Result > '' then
-        break;
-
-      if (Screen.ActiveCustomForm = nil) or (not Screen.ActiveCustomForm.Visible) then
-        break;
-
-      MessageBox(0,
-        PChar('Укажите наименование целых и дробных единиц валюты ' +
-          CacheName + ' в справочнике валют.'),
-        'Внимание',
-        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-
-      {$IFDEF GEDEMIN}
-      gdcCurr := TgdcCurr.Create(nil);
-      try
-        gdcCurr.SubSet := 'ByID';
-        gdcCurr.ParamByName('ID').AsInteger := FCurrCachedKey;
-        gdcCurr.Open;
-        if gdcCurr.EOF then
-          break;
-        if not gdcCurr.EditDialog then
-          break;
-        FCurrCachedDBID := -1;
-        UpdateCache(FCurrCachedKey);
-      finally
-        gdcCurr.Free;
-      end;
-      {$ELSE}
-      break;
-      {$ENDIF}
-
-    until False;
-  end;
-
+function TFR4Functions.GetSumCurr(D1, D2, D3: Variant; D4: Boolean): String;
 begin
-  UpdateCache(VarAsType(D1, varInteger));
-
-  if FCurrCachedKey = -1 then
-    Result := ''
-  else begin
-    Num := Trunc(Abs(D2));
-    Result := GetName(nsName);
-    Num := Round(Abs((Double(D2) - Trunc(D2))) * 100);
-    Result := NameCase(GetSumStr(D2)) + ' ' + Result;
-    if (Num <> 0) or D4 then
-    begin
-      if D3 = 1 then
-        Cent := GetSumStr(Num)
-      else
-      begin
-        Cent := IntToStr(Num);
-        if Length(Cent) = 1 then
-          Cent := '0' + Cent;
-      end;
-      Result := Result + ' ' + Cent + ' ' + GetName(nsCentName);
-    end;
-  end;
+  if VarType(D3) = varBoolean then
+    Result := gd_convert.GetSumCurr(D1, D2, D3, D4)
+  else
+    Result := gd_convert.GetSumCurr(D1, D2, D3 <> 0, D4);
 end;
 
 function TFR4Functions.GetSumStr(D1: Variant; D2: Byte): String;
 begin
-  if NumberConvert = nil then
-  begin
-    NumberConvert := TNumberConvert.Create(nil);
-    NumberConvert.Language := lRussian;
-  end;
-
   if VarIsNull(D1) then
     raise Exception.Create('В функцию GetSumStr передано значение NULL.');
 
-  NumberConvert.Value := D1;
-  NumberConvert.Precision := D2;
-  if (D2 > 0)  then
-    NumberConvert.Gender := gFemale
-  else
-    NumberConvert.Gender := gMale;
-    Result := NumberConvert.Numeral;
+  Result := gd_convert.GetSumStr(D1, D2);
 end;
 
 function TFR4Functions.GetSumStr2(D1: Variant; const D2: String; D3: Integer): String;
+var
+  GD: TGender;
 begin
   if VarIsNull(D1) then
-    raise Exception.Create('Не указано числовое значение!');
+    raise Exception.Create('В функцию GetSumStr2 передано значение NULL.');
 
-  if (D3 < gdMasculine) or (D3 > gdMedium) then
+  if D3 = gdMasculine then
+    GD := gMale
+  else if D3 = gdFeminine then
+    GD := gFemale
+  else if D3 = gdMedium then
+    GD := gNeuter
+  else
     raise Exception.Create('Неверно указан род числительного!');
 
-  if NumberConvert = nil then
-  begin
-    NumberConvert := TNumberConvert.Create(nil);
-    NumberConvert.Language := lRussian;
-  end;
-
-  NumberConvert.Value := D1;
-
-  if D2 > '' then
-  begin
-    case D2[Length(D2)] of
-      'а', 'я', 'А', 'Я', 'ь', 'Ь': D3 := gdFeminine;
-      'о', 'О', 'ё', 'Ё': D3 := gdMedium;
-    else
-      D3 := gdMasculine;
-    end;
-  end;
-
-  NumberConvert.Gender := TGender(D3);
-
-  Result := NumberConvert.Numeral;
-end;
-
-procedure TFR4Functions.UpdateCache(const AnID: Integer);
-var
-  q: TIBSQL;
-begin
-  Assert(Assigned(IBLogin));
-
-  if (AnID <> FCurrCachedKey)
-    or (FCurrCachedDBID <> IBLogin.DBID)
-    or (GetTickCount - FCurrCachedTime > CacheFlushInterval) then
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text := 'SELECT * FROM gd_curr WHERE id = :ID';
-      q.ParamByName('ID').AsInteger := AnID;
-      q.ExecQuery;
-      if not q.EOF then
-      begin
-        CacheFullCentName := q.FieldByName('FULLCENTNAME').AsString;
-        CacheName := q.FieldByName('name').AsString;
-        CacheCentName_0 := q.FieldByName('centname_0').AsString;
-        CacheCentName_1 := q.FieldByName('centname_1').AsString;
-        CacheName_0 := q.FieldByName('name_0').AsString;
-        CacheName_1 := q.FieldByName('name_1').AsString;
-
-        FCurrCachedKey := AnID;
-      end else
-        FCurrCachedKey := -1;
-        
-      FCurrCachedDBID := IBLogin.DBID;
-      FCurrCachedTime := GetTickCount;
-    finally
-      q.Free;
-    end;
-  end;
+  Result := gd_convert.GetSumStr2(D1, GD);
 end;
 
 procedure TFR4Functions.UpdateCompanyCache;

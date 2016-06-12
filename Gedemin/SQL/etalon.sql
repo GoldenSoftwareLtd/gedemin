@@ -1630,6 +1630,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (252, '0000.0001.0000.0283', '13.04.2016', 'at_aiu_namespace_link fixed.');    
   
+INSERT INTO fin_versioninfo
+  VALUES (253, '0000.0001.0000.0284', '13.04.2016', 'at_aiu_namespace_link fixed #2.');    
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -2607,6 +2610,9 @@ COMMIT;
 CREATE DOMAIN dcurrrate AS
   DECIMAL(15, 10)
   NOT NULL;
+  
+CREATE DOMAIN dcurrrate_null AS 
+  DECIMAL(15,10);
 
 COMMIT;
 
@@ -3394,7 +3400,7 @@ COMMIT;
 
 /* набор контактов, входящих в список контактов */
 
-CREATE VIEW GD_V_CONTACTLIST
+CREATE OR ALTER VIEW GD_V_CONTACTLIST
 (
   ID, CONTACTNAME, CONTACTTYPE,
   GROUPNAME, GROUPID, GROUPLB, GROUPRB, GROUPTYPE
@@ -3408,7 +3414,8 @@ FROM
     JOIN GD_CONTACT P ON (CL.GROUPKEY = P.ID)
 
 GROUP BY
-  P.ID, P.NAME, P.CONTACTTYPE, C.NAME, C.ID, C.LB, C.RB, C.CONTACTTYPE;
+  P.ID, P.NAME, P.CONTACTTYPE, C.NAME, C.ID, C.LB, C.RB, C.CONTACTTYPE
+;
 
 COMMIT;
 
@@ -3573,7 +3580,7 @@ ALTER TABLE gd_holding ADD  CONSTRAINT gd_fk_holding_holdingkey
 
 COMMIT;
 
-CREATE VIEW GD_V_COMPANY(
+CREATE OR ALTER VIEW GD_V_COMPANY(
     ID,
     COMPNAME,
     COMPFULLNAME,
@@ -3617,7 +3624,8 @@ FROM
     LEFT JOIN GD_COMPANYACCOUNT AC ON COMP.COMPANYACCOUNTKEY = AC.ID
     LEFT JOIN GD_BANK BANK ON AC.BANKKEY = BANK.BANKKEY
     LEFT JOIN GD_COMPANYCODE CC ON COMP.CONTACTKEY = CC.COMPANYKEY
-    LEFT JOIN GD_CONTACT BANKC ON BANK.BANKKEY = BANKC.ID;
+    LEFT JOIN GD_CONTACT BANKC ON BANK.BANKKEY = BANKC.ID
+;
 
 COMMIT;
 /*
@@ -3646,7 +3654,7 @@ COMMIT;
 
 /*  Список компаний, по которым ведется учет */
 
-CREATE VIEW GD_V_OURCOMPANY
+CREATE OR ALTER VIEW GD_V_OURCOMPANY
 (
   ID,
   COMPNAME,
@@ -3693,7 +3701,8 @@ FROM
     LEFT JOIN GD_COMPANYACCOUNT AC ON COMP.COMPANYACCOUNTKEY = AC.ID
     LEFT JOIN GD_BANK BANK ON AC.BANKKEY = BANK.BANKKEY
     LEFT JOIN GD_COMPANYCODE CC ON COMP.CONTACTKEY = CC.COMPANYKEY
-    LEFT JOIN GD_CONTACT BANKC ON BANK.BANKKEY = BANKC.ID;
+    LEFT JOIN GD_CONTACT BANKC ON BANK.BANKKEY = BANKC.ID
+;
 
 COMMIT;
 
@@ -7949,10 +7958,11 @@ COMMIT;
 
 ***********************************************************/
 
-CREATE VIEW gd_v_user_generators (generator_name)
-  AS SELECT rdb$generator_name     
+CREATE OR ALTER VIEW gd_v_user_generators (generator_name)
+  AS SELECT rdb$generator_name
      FROM rdb$generators
-     WHERE (rdb$system_flag = 0) OR (rdb$system_flag IS NULL);
+     WHERE (rdb$system_flag = 0) OR (rdb$system_flag IS NULL)
+;
 
 
 /**********************************************************
@@ -7964,12 +7974,13 @@ CREATE VIEW gd_v_user_generators (generator_name)
 
 ***********************************************************/
 
-CREATE VIEW gd_v_user_triggers (trigger_name)
+CREATE OR ALTER VIEW gd_v_user_triggers (trigger_name)
   AS SELECT rdb$trigger_name 
      FROM rdb$triggers 
      WHERE (rdb$trigger_name NOT IN (SELECT rdb$trigger_name FROM rdb$check_constraints)) 
        AND ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL)) 
-       AND ((rdb$trigger_inactive = 0) OR (rdb$trigger_inactive IS NULL));
+       AND ((rdb$trigger_inactive = 0) OR (rdb$trigger_inactive IS NULL))
+;
 
 /**********************************************************
 
@@ -7981,10 +7992,11 @@ CREATE VIEW gd_v_user_triggers (trigger_name)
 ***********************************************************/
 
 
-CREATE VIEW gd_v_foreign_keys (constraint_name, index_name, relation_name)
+CREATE OR ALTER VIEW gd_v_foreign_keys (constraint_name, index_name, relation_name)
   AS SELECT rdb$constraint_name, rdb$index_name, rdb$relation_name 
      FROM rdb$relation_constraints 
-     WHERE rdb$constraint_type = 'FOREIGN KEY';
+     WHERE rdb$constraint_type = 'FOREIGN KEY'
+;
 
 
 /**********************************************************
@@ -7997,10 +8009,11 @@ CREATE VIEW gd_v_foreign_keys (constraint_name, index_name, relation_name)
 ***********************************************************/
 
 
-CREATE VIEW gd_v_primary_keys (constraint_name, index_name, relation_name)
+CREATE OR ALTER VIEW gd_v_primary_keys (constraint_name, index_name, relation_name)
   AS SELECT rdb$constraint_name, rdb$index_name, rdb$relation_name 
      FROM rdb$relation_constraints 
-     WHERE rdb$constraint_type = 'PRIMARY KEY';
+     WHERE rdb$constraint_type = 'PRIMARY KEY'
+;
 
 
 /**********************************************************
@@ -8012,11 +8025,12 @@ CREATE VIEW gd_v_primary_keys (constraint_name, index_name, relation_name)
 
 ***********************************************************/
 
-CREATE VIEW gd_v_user_indices (index_name)
+CREATE OR ALTER VIEW gd_v_user_indices (index_name)
   AS SELECT rdb$index_name 
      FROM rdb$indices
-     WHERE ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL))       
-       AND (rdb$index_inactive = 0);
+     WHERE ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL))
+       AND (rdb$index_inactive = 0)
+;
 
 
 
@@ -17446,7 +17460,7 @@ SET TERM ; ^
 COMMIT;
 /*
 
-  Copyright (c) 2001-2012 by Golden Software of Belarus
+  Copyright (c) 2001-2016 by Golden Software of Belarus
 
 
   Script

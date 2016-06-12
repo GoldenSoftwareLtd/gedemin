@@ -89,6 +89,7 @@ function RelationExist(Table: TmdfTable; Db: TIbdataBase): Boolean;
 function RelationExist2(const ARelationName: String; ATr: TIBTransaction): Boolean;
 procedure CreateRelation(Table: TmdfTable; Db: TIBdatabase);
 procedure DropRelation(Table: TmdfTable; Db: TIBdatabase);
+procedure DropRelation2(const ARelationName: String; ATr: TIBTransaction);
 procedure AlterRelation(Table: TmdfTable; Db: TIBdatabase);
 
 function TriggerExist(Trigger: TmdfTrigger; Db: TIBDataBase): Boolean;
@@ -890,6 +891,23 @@ begin
       Transaction.Commit;
     finally
       Transaction.Free;
+    end;
+  end;
+end;
+
+procedure DropRelation2(const ARelationName: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQL;
+begin
+  if RelationExist2(ARelationName, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text := 'DROP TABLE ' + ARelationName;
+      SQL.ExecQuery;
+    finally
+      SQL.Free;
     end;
   end;
 end;

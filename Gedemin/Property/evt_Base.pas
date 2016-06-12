@@ -6090,8 +6090,6 @@ var
   ibsqlUpdate: TIBSQL;
   ibtrUpdate: TIBTransaction;
 begin
-  Assert(Assigned(EventObject));
-
   if not Assigned(EventObject) then
     exit;
 

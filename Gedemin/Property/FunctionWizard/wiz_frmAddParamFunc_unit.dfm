@@ -3,16 +3,17 @@ inherited wizfrmAddParamsFunc: TwizfrmAddParamsFunc
   Top = 295
   Width = 575
   Height = 206
+  Font.Name = 'Tahoma'
   OldCreateOrder = True
   PixelsPerInch = 96
   TextHeight = 13
   inherited plnButton: TPanel
-    Top = 143
+    Top = 139
     Width = 557
   end
   inherited pnlMain: TPanel
     Width = 557
-    Height = 143
+    Height = 139
     inherited pnlFunction: TPanel
       Width = 555
       inherited lblFunction: TLabel
@@ -21,7 +22,7 @@ inherited wizfrmAddParamsFunc: TwizfrmAddParamsFunc
     end
     inherited sbParams: TScrollBox
       Width = 555
-      Height = 63
+      Height = 59
       inherited pnlParam: TPanel
         Width = 546
         inherited lblParam: TLabel
@@ -34,7 +35,7 @@ inherited wizfrmAddParamsFunc: TwizfrmAddParamsFunc
       end
     end
     inherited pnlDescr: TPanel
-      Top = 80
+      Top = 76
       Width = 555
       Height = 62
       inherited Bevel1: TBevel
@@ -43,7 +44,6 @@ inherited wizfrmAddParamsFunc: TwizfrmAddParamsFunc
       inherited mmDescription: TMemo
         Top = 3
         Width = 555
-        Height = 59
         Align = alBottom
       end
     end

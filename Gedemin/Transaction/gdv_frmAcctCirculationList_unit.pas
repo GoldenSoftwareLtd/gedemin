@@ -442,20 +442,23 @@ procedure Tgdv_frmAcctCirculationList.ibgrMainGetTotal(Sender: TObject;
   const FieldName: String; const AggregatesObsolete: Boolean;
   var DisplayString: String);
 var
-  FormatString: String;
+  FormatString, Str: String;
 begin
-  if not cbSubAccount.Checked or not AggregatesObsolete or
-     (ibgrMain.SelectedRows.Count > 1) then Exit;
+  FormatString := '#,##0';
+  Str := LowerCase(Copy(FieldName, 1, 2));
+  DisplayString := '';
 
-  // Если выбран режим "Включать субсчета в главный", то берем итоговую сумму из датасета с итоговыми суммами
   if Assigned(cdsTotal.FindField(FieldName)) then
   begin
-    FormatString := '#,##0';
-    if frAcctSum.NcuDecDigits > 0 then
-      FormatString := FormatString + '.' + StrFillChar('0', frAcctSum.NcuDecDigits);
-    DisplayString := FormatFloat(FormatString, cdsTotal.FieldByName(FieldName).AsCurrency)
-  end else
-    DisplayString := '';
+    if (Str = 'nc') and (frAcctSum.NcuDecDigits > 0) then
+      FormatString := FormatString + '.' + StrFillChar('0', frAcctSum.NcuDecDigits)
+    else if (Str = 'cu') and (frAcctSum.CurrDecDigits > 0) then
+      FormatString := FormatString + '.' + StrFillChar('0', frAcctSum.CurrDecDigits)
+    else if (Str = 'eq') and (frAcctSum.EQDecDigits > 0) then
+      FormatString := FormatString + '.' + StrFillChar('0', frAcctSum.EQDecDigits);
+
+    DisplayString := FormatFloat(FormatString, cdsTotal.FieldByName(FieldName).AsCurrency);
+  end;
 end;
 
 procedure Tgdv_frmAcctCirculationList.cbSubAccountClick(Sender: TObject);
@@ -504,30 +507,37 @@ var
     end;
   end;
 
+  procedure FieldsToTotal;
+  var
+    I: Integer;
+  begin
+    gdvObject.DisableControls;
+    try
+      // Сложим значения по строкам и занесем в отдельный датасет
+      gdvObject.First;
+      cdsTotal.Edit;
+      // Обнулим данные
+      for i := 0 to cdsTotal.Fields.Count - 1 do
+        cdsTotal.Fields[i].AsCurrency := 0;
+      // Сложим значения по строкам
+      while not gdvObject.Eof do
+      begin
+        for I := 0 to FIELD_COUNT - 1 do
+          cdsTotal.FieldByName(FIELD_ARRAY[I]).AsCurrency :=
+            cdsTotal.FieldByName(FIELD_ARRAY[I]).AsCurrency + gdvObject.FieldByName(FIELD_ARRAY[I]).AsCurrency;
+        gdvObject.Next;
+      end;
+      cdsTotal.Post;
+    finally
+      gdvObject.First;
+     gdvObject.EnableControls;
+    end;
+  end;
+
 begin
   inherited;
 
-  gdvObject.DisableControls;
-  try
-    // Сложим значения по строкам и занесем в отдельный датасет
-    gdvObject.First;
-    cdsTotal.Edit;
-    // Обнулим данные
-    for i := 0 to cdsTotal.Fields.Count - 1 do
-      cdsTotal.Fields[i].AsCurrency := 0;
-    // Сложим значения по строкам
-    while not gdvObject.Eof do
-    begin
-      for I := 0 to FIELD_COUNT - 1 do
-        cdsTotal.FieldByName(FIELD_ARRAY[I]).AsCurrency :=
-          cdsTotal.FieldByName(FIELD_ARRAY[I]).AsCurrency + gdvObject.FieldByName(FIELD_ARRAY[I]).AsCurrency;
-      gdvObject.Next;
-    end;
-    cdsTotal.Post;
-  finally
-    gdvObject.First;
-    gdvObject.EnableControls;
-  end;
+  FieldsToTotal;
 
   if not FMakeEmpty and cbSubAccount.Checked then
   begin
@@ -726,7 +736,7 @@ begin
       finally
         for I := 0 to sl.Count - 1 do
           sl.Objects[I].Free;
-        sl.Free;  
+        sl.Free;
         q.Free;
       end;
       ibgrMain.OnGetTotal := ibgrMainGetTotal;
@@ -757,6 +767,8 @@ begin
       gdvObject.EnableControls;
     end;
   end;
+  if cbOnlyAccounts.Checked then
+    FieldsToTotal;
 end;
 
 procedure Tgdv_frmAcctCirculationList.actGotoLedgerUpdate(Sender: TObject);

@@ -102,7 +102,7 @@ uses
   jclBase, {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version
   {$IFDEF GEDEMIN}, FastMM4{$ENDIF} {$IFDEF WITH_INDY}, gd_FileList_unit, IdGlobal,
   gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF}, gd_GlobalParams_unit,
-  gd_DatabasesList_unit;
+  gd_DatabasesList_unit, dbf_common, gd_getmacaddress, gd_wmi;
 
 type
   TMemoryStatusEx = record
@@ -338,6 +338,7 @@ var
   DriveLetter: Char;
   Tr: TIBTransaction;
   q: TIBSQL;
+  SL: TStringList;
 begin
   FLines.Clear;
   FTitle := '';
@@ -378,6 +379,26 @@ begin
   AddSpaces('ОЗУ свободно', FormatFloat('#,##0', GetGlobalMemoryRecord.ullAvailPhys div 1024 div 1024) + ' Мб');
   AddSpaces('Версия ОС', GetOS);
   AddSpaces('Дата и время', FormatDateTime('dd.mm.yyyy hh:nn:ss', Now));
+
+  SL := TStringList.Create;
+  try
+    Get_EthernetAddresses(SL);
+    for I := 0 to SL.Count - 1 do
+      AddSpaces('MAC ' + IntToStr(I), SL[I]);
+  finally
+    SL.Free;
+  end;
+
+  InitWMI;
+  try
+    AddSpaces('Motherboard s/n', GetWMIString('Win32_BaseBoard','SerialNumber'));
+    AddSpaces('BIOS version', GetWMIString('Win32_BIOS','Version'));
+    AddSpaces('BIOS s/n', GetWMIString('Win32_BIOS','SerialNumber'));
+    AddSpaces('HDD s/n', GetWMIString('Win32_PhysicalMedia','SerialNumber'));
+    AddSpaces('CPU ID', GetWMIString('Win32_Processor','Name'));
+  finally
+    DoneWMI;
+  end;
 
   AddSection('Гедымин');
   AddSpaces('Имя файла', ExtractFileName(Application.EXEName));
@@ -465,6 +486,7 @@ begin
   {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
   {$IFDEF WITH_INDY}AddSpaces(gsIdProductName, gsIdVersion);{$ENDIF}
   {$IFDEF DUNIT_TEST}AddSpaces('DUnit', ReleaseStr);{$ENDIF}
+  AddSpaces('TDBF', IntToStr(TDBF_MAJOR_VERSION) + '.' + IntToStr(TDBF_MINOR_VERSION) + '.' + IntToStr(TDBF_SUB_MINOR_VERSION));
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
   AddComLibrary(MIDAS_GUID1, 'MIDAS.DLL');

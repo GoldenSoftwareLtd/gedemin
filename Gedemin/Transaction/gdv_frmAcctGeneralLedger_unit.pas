@@ -347,7 +347,6 @@ var
   C: TAccCardConfig;
   FI: TgdvFieldInfo;
   Form: TCreateableForm;
-  M, Y: Integer;
 begin
   Form := gd_createable_form.FindForm(Tgdv_frmAcctAccCard);
 
@@ -384,10 +383,7 @@ begin
       begin
         with Tgdv_frmAcctAccCard(Tgdv_frmAcctAccCard.CreateAndAssign(Application)) do
         begin
-          Y := Self.gdvObject.FieldByName('Y').AsInteger;
-          M := Self.gdvObject.FieldByName('M').AsInteger;
-          DateBegin := EncodeDate(Y, M, 1);
-          DateEnd := EncodeDate(Y, M, DaysInMonth(EncodeDate(Y, M, 1)));
+          gsPeriodEdit.Text := Self.gsPeriodEdit.Text;
 
           Show;
           Execute(C);
@@ -396,10 +392,7 @@ begin
       begin
         with Tgdv_frmAcctAccCard(Tgdv_frmAcctAccCard.Create(Application)) do
         begin
-          Y := Self.gdvObject.FieldByName('Y').AsInteger;
-          M := Self.gdvObject.FieldByName('M').AsInteger;
-          DateBegin := EncodeDate(Y, M, 1);
-          DateEnd := EncodeDate(Y, M, DaysInMonth(EncodeDate(Y, M, 1)));
+          gsPeriodEdit.Text := Self.gsPeriodEdit.Text;
 
           Show;
           Execute(C);
@@ -518,7 +511,6 @@ var
   I: Integer;
   C: TAccLedgerConfig;
   S: TStrings;
-  M, Y: Integer;  
   F: TField;
 begin
   F := ibgrMain.SelectedField;
@@ -570,10 +562,7 @@ begin
 
             with Tgdv_frmAcctLedger.CreateAndAssign(Application) as Tgdv_frmAcctLedger do
             begin
-              Y := Self.gdvObject.FieldByName('Y').AsInteger;
-              M := Self.gdvObject.FieldByName('M').AsInteger;
-              DateBegin := EncodeDate(Y, M, 1);
-              DateEnd := EncodeDate(Y, M, DaysInMonth(EncodeDate(Y, M, 1)));
+              gsPeriodEdit.Text := Self.gsPeriodEdit.Text;
 
               Show;
               Execute(C);

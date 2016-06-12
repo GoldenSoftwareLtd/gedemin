@@ -9,7 +9,7 @@ object dlgFunctionParamEditForm: TdlgFunctionParamEditForm
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -62,14 +62,14 @@ object dlgFunctionParamEditForm: TdlgFunctionParamEditForm
     object Label1: TLabel
       Left = 8
       Top = 12
-      Width = 79
+      Width = 77
       Height = 13
       Caption = 'Наименование:'
     end
     object Label2: TLabel
       Left = 8
       Top = 36
-      Width = 90
+      Width = 92
       Height = 13
       Caption = 'Способ передачи:'
     end

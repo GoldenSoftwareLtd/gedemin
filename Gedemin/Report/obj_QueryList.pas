@@ -205,7 +205,6 @@ type
 
     function GetQuery(Index: Integer): TDataSet;
     function GetCount: Integer;
-    function GetIndexQueryByName(const Name: WideString): Integer;
 
   protected
     function  Add(const QueryName: WideString; MemQuery: WordBool): Integer; safecall;
@@ -225,6 +224,7 @@ type
     procedure Abort(const AMessage: WideString; APreserveData: WordBool; ARollback: WordBool); safecall;
     function  Get_Aborted: WordBool; safecall;
     function  Get_AbortMessage: WideString; safecall;
+    function  IndexOf(const AName: WideString): Integer; safecall;
 
   public
     constructor Create(const AnDatabase: TIBDatabase; const AnTransaction: TIBTransaction;
@@ -665,7 +665,7 @@ function TgsQueryList.Add(const QueryName: WideString; MemQuery: WordBool): Inte
 var
   Index: Integer;
 begin
-  Index := GetIndexQueryByName(QueryName);
+  Index := IndexOf(QueryName);
   if Index = - 1 then
   try
     Result := FQueryList.Add(nil);
@@ -724,7 +724,7 @@ var
   I: Integer;
 begin
   Result := nil;
-  I := GetIndexQueryByName(Name);
+  I := IndexOf(Name);
   if I > -1 then
     Result := TgsDataSet(FQueryList.Items[I]);
   if Result = nil then
@@ -792,7 +792,7 @@ var
   I: Integer;
   TempDS: TDataSet;
 begin
-  I := GetIndexQueryByName(MasterTable);
+  I := IndexOf(MasterTable);
   if I > -1 then
   begin
     TempDS := TgsDataSet(FQueryList.Items[I]).DataSet;
@@ -801,7 +801,7 @@ begin
       raise Exception.Create('Specified master field not found.');
   end;
 
-  I := GetIndexQueryByName(DetailTable);
+  I := IndexOf(DetailTable);
   if I > -1 then
   begin
     TempDS := TgsDataSet(FQueryList.Items[I]).DataSet;
@@ -814,19 +814,6 @@ begin
     FTempMasterDetail.AddRecord(MasterTable, MasterField, DetailTable, DetailField);
 
   FMasterDetail.AddRecord(MasterTable, MasterField, DetailTable, DetailField);
-end;
-
-function TgsQueryList.GetIndexQueryByName(const Name: WideString): Integer;
-var
-  I: Integer;
-begin
-  Result := -1;
-  for I := 0 to FQueryList.Count - 1 do
-    if AnsiUpperCase(TgsDataSet(FQueryList.Items[I]).DataSet.Name) = AnsiUpperCase(Name) then
-    begin
-      Result := I;
-      Break;
-    end;
 end;
 
 function TgsQueryList.AddRealQuery(const AnRealQuery: TgsDataSet): Integer;
@@ -848,7 +835,7 @@ end;
 
 procedure TgsQueryList.DeleteByName(const AName: WideString);
 begin
-  Delete(GetIndexQueryByName(AName));
+  Delete(IndexOf(AName));
 end;
 
 procedure TgsQueryList.Commit;
@@ -894,13 +881,13 @@ var
   var
     TempDs: TClientDataSet;
   begin
-    TempDs := (TgsDataSet(FQueryList.Items[GetIndexQueryByName(AnDetailTable)]).DataSet as TClientDataSet);
+    TempDs := (TgsDataSet(FQueryList.Items[IndexOf(AnDetailTable)]).DataSet as TClientDataSet);
     if TempDs.MasterSource = nil then
     begin
       TempDs.MasterSource := TDataSource.Create(nil);
       FDataSourceList.Add(TempDs.MasterSource);
     end;
-    TempDs.MasterSource.DataSet := TgsDataSet(FQueryList.Items[GetIndexQueryByName(AnMasterTable)]).DataSet;
+    TempDs.MasterSource.DataSet := TgsDataSet(FQueryList.Items[IndexOf(AnMasterTable)]).DataSet;
     TempDs.IndexFieldNames := AnDetailField;
     TempDs.MasterFields := AnMasterField;
   end;
@@ -911,7 +898,7 @@ begin
   //заменим TIBQuery на memtable при необходимости
     for J := 0 to FTempMasterDetail.Count - 1 do
     begin
-      I := GetIndexQueryByName(FTempMasterDetail.DetailTable[J]);
+      I := IndexOf(FTempMasterDetail.DetailTable[J]);
       if I > -1 then
       begin
         //1. Создаем MemTable и заполняем его
@@ -976,6 +963,19 @@ end;
 function TgsQueryList.Get_AbortMessage: WideString;
 begin
   Result := FAbortMessage;
+end;
+
+function TgsQueryList.IndexOf(const AName: WideString): Integer;
+var
+  I: Integer;
+begin
+  Result := -1;
+  for I := 0 to FQueryList.Count - 1 do
+    if AnsiSameText(TgsDataSet(FQueryList.Items[I]).DataSet.Name, AName) then
+    begin
+      Result := I;
+      break;
+    end;
 end;
 
 { TgsParam }

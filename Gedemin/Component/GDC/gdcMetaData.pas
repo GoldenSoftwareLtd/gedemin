@@ -319,6 +319,7 @@ type
   public
     class function CreateInsertEditorTrigger(const ARelationName: String): String; override;
     class function CreateUpdateEditorTrigger(const ARelationName: String): String; override;
+    procedure MakePredefinedRelationFields; override;
   end;
 
   TgdcSimpleTable = class(TgdcTable)
@@ -328,7 +329,7 @@ type
   protected
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
     procedure _DoOnNewRecord; override;
-    
+
   public
     procedure MakePredefinedRelationFields; override;
   end;
@@ -3154,17 +3155,17 @@ end;
 procedure TgdcView.ReCreateView;
 var
   FSQL: TSQLProcessList;
-  ViewCreateList: TStringList;
-  I: Integer;
+  //ViewCreateList: TStringList;
+  //I: Integer;
 begin
   Assert(State = dsEdit, 'Объект должен находиться в состоянии редактирования!');
   Assert(atDatabase <> nil, 'Не загружена база атрибутов!');
   Assert(IsUserDefined, 'Вы не можете пересоздать стандартное представление!');
 
-  ViewCreateList := TStringList.Create;
+  //ViewCreateList := TStringList.Create;
   FSQL := TSQLProcessList.Create;
   try
-    if not Database.IsFirebird25Connect then
+    {if not Database.IsFirebird25Connect then
     begin
       DropView(ViewCreateList);
       MetaDataCreate;
@@ -3179,15 +3180,15 @@ begin
       RemoveRelationField;
       AddRelationField;
     end else
-    begin
+    begin}
       FSQL.Add(GetAlterViewTextBySource(FieldByName('view_source').AsString));
       ShowSQLProcess(FSQL);
 
       RemoveRelationField;
       AddRelationField;
-    end;
+    {end;}
   finally
-    ViewCreateList.Free;
+    //ViewCreateList.Free;
     FSQL.Free;
   end;
 end;
@@ -3261,6 +3262,7 @@ function TgdcView.GetViewTextBySource(const Source: String): String;
 var
   i: Integer;
   S: TStringList;
+  Delim: String;
 begin
   if (StrIPos('CREATE OR ALTER VIEW', Source) > 0) or (StrIPos('CREATE VIEW', Source) > 0) then
     Result := Source
@@ -3270,10 +3272,14 @@ begin
       GetFieldsName(Source, S);
       if S.Count = 0 then
         raise EgdcIBError.Create('Ошибка при создании представления: количество полей равно нулю!');
-      Result := Format('CREATE OR ALTER VIEW %s ('#13#10, [FieldByName('relationname').AsString]);
+      Result := Format('CREATE OR ALTER VIEW %s (', [FieldByName('relationname').AsString]);
       for i := 0 to S.Count - 2 do
-        Result := Result + S[i] + ', ' + #13#10;
-      Result := Result + S[S.Count - 1] +  #13#10 + ' )'#13#10 + ' AS ' + Source;
+        Result := Result + S[i] + ',';
+      if (Length(Source) > 0) and (not (Source[1] in [#32, #13, #10, #9])) then
+        Delim := ' '
+      else
+        Delim := '';
+      Result := Result + S[S.Count - 1] + ')AS' + Delim + Source;
     finally
       S.Free;
     end;
@@ -5395,11 +5401,13 @@ function TgdcRelationField.GetObjectName: String;
 begin
   if Active then
   begin
-    if FieldByName('lname').AsString  <> FieldByName('fieldname').AsString then
+    if (FieldByName('lname').AsString > '') and 
+      (FieldByName('lname').AsString  <> FieldByName('fieldname').AsString) then
+    begin
       Result := FieldByName('lname').AsString + ', ' +
         FieldByName('relationname').AsString + '.' +
         FieldByName('fieldname').AsString
-    else
+    end else
       Result :=
         FieldByName('relationname').AsString + '.' +
         FieldByName('fieldname').AsString;
@@ -9759,6 +9767,17 @@ begin
     [ARelationName,
      GetTriggerName(ARelationName, 'BU', 5),
      IntToStr(cstAdminKey), IntToStr(5)]);
+end;
+
+procedure TgdcPrimeTable.MakePredefinedRelationFields;
+begin
+  inherited;
+  if (State = dsInsert) and Assigned(gdcTableField) then
+  begin
+    NewField('EDITIONDATE',
+      'Дата модификации', 'DEDITIONDATE', 'Дата модификации', 'Дата модификации',
+      'L', '20', '1', '0');
+  end;
 end;
 
 { TgdcGenerator }

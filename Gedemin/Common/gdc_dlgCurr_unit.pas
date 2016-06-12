@@ -1,8 +1,7 @@
 
 {++
 
-   Project GDReference
-   Copyright © 2000-2014 by Golden Software of Belarus, Ltd
+   Copyright © 2000-2016 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -30,8 +29,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Db, StdCtrls, Mask, DBCtrls, ExtCtrls, ActnList,
-  IBCustomDataSet, IBUpdateSQL, IBQuery, gd_security, gd_security_OperationConst,
+  Db, StdCtrls, Mask, DBCtrls, ExtCtrls, ActnList, IBCustomDataSet,
   IBDatabase, gdc_dlgG_unit, Menus;
 
 type
@@ -109,5 +107,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgCurr);
-
 end.

@@ -247,6 +247,10 @@ const
 
   cstMetaDataNameLength           = 31;
 
+  ODataNS                         = 'GS.OData';
+  ODataNSDot                      = ODataNS + '.';
+  ODataRoot                       = '/OData';
+
 function IsGedeminSystemID(const AnID: Integer): Boolean;
 function IsGedeminNonSystemID(const AnID: Integer): Boolean;
 

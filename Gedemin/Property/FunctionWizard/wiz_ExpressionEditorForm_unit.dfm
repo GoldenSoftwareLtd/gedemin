@@ -1,6 +1,6 @@
 object ExpressionEditorForm: TExpressionEditorForm
-  Left = 415
-  Top = 266
+  Left = 681
+  Top = 250
   Width = 703
   Height = 440
   BorderWidth = 5
@@ -117,14 +117,14 @@ object ExpressionEditorForm: TExpressionEditorForm
       end
     end
   end
-  object Panel1: TPanel
+  object pnlButtons: TPanel
     Left = 0
-    Top = 363
+    Top = 362
     Width = 677
     Height = 29
     Align = alBottom
     BevelOuter = bvNone
-    TabOrder = 1
+    TabOrder = 2
     object Button1: TButton
       Left = 602
       Top = 7
@@ -145,21 +145,21 @@ object ExpressionEditorForm: TExpressionEditorForm
       TabOrder = 1
     end
   end
-  object Panel2: TPanel
+  object pnlExpression: TPanel
     Left = 0
     Top = 53
     Width = 677
-    Height = 310
+    Height = 309
     Align = alClient
     BevelInner = bvLowered
     BevelOuter = bvNone
     FullRepaint = False
-    TabOrder = 2
+    TabOrder = 0
     object mExpression: TMemo
       Left = 1
       Top = 1
       Width = 675
-      Height = 308
+      Height = 307
       Align = alClient
       BorderStyle = bsNone
       Lines.Strings = (

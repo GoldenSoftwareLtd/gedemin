@@ -207,6 +207,9 @@ uses
   gd_directories_const,       gd_ClassList,               dmImages_unit,
   Storages,                   gsStorage,                  gdcStorage_Types,
   at_frmIBUserList,           IB,                         IBErrorCodes
+  {$IFDEF WITH_INDY}
+    , gdccClient_unit
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -314,6 +317,10 @@ begin
         IBSS.UserName := AUser;
         IBSS.DisplayUser(IBSS.UserName);
         Result := IBSS.UserInfoCount > 0;
+        {$IFDEF WITH_INDY}
+        if gdccClient <> nil then
+          gdccClient.AddLogRecord('security', 'Check IB user using security service.');
+        {$ENDIF}
       finally
         IBSS.Active := False;
       end;
@@ -393,20 +400,31 @@ begin
 end;
 
 procedure TgdcUser.CreateIBUser;
+var
+  T: String;
 begin
   if Active and ((State = dsInsert) or (not EOF)) then
   begin
     try
       if not IBLogin.IsEmbeddedServer then
       begin
-        ExecSingleQuery(
+        T :=
           'CREATE USER ' + FieldByName('ibname').AsString +
-          ' PASSWORD ''' + FieldByName('ibpassword').AsString + '''');
+          ' PASSWORD ''' + FieldByName('ibpassword').AsString + '''';
+        ExecSingleQuery(T);
+        {$IFDEF WITH_INDY}
+        if gdccClient <> nil then
+          gdccClient.AddLogRecord('security', T);
+        {$ENDIF}
       end;
 
-      ExecSingleQuery(
-        'GRANT administrator TO ' + FieldByName('ibname').AsString +
-        ' WITH ADMIN OPTION ');
+      T := 'GRANT administrator TO ' + FieldByName('ibname').AsString +
+        ' WITH ADMIN OPTION ';
+      ExecSingleQuery(T);
+      {$IFDEF WITH_INDY}
+      if gdccClient <> nil then
+        gdccClient.AddLogRecord('security', T);
+      {$ENDIF}
     except
       on E: EIBError do
       begin
@@ -1817,3 +1835,4 @@ finalization
   UnregisterGdcClass(TgdcUser);
   UnregisterGdcClass(TgdcUserGroup);
 end.
+

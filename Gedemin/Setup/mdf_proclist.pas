@@ -49,13 +49,13 @@ uses
   mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument,
   mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
   mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL,
-  mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddStyle;
+  mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddWebRelayTable;
 
 const
   {$IFDEF FULL_MODIFY}
-  cProcCount = 212;
+  cProcCount = 213;
   {$ELSE}
-  cProcCount = 62;
+  cProcCount = 63;
   {$ENDIF}
 
 type
@@ -379,8 +379,9 @@ const
     (ModifyProc: AddGD_WEBLOG; ModifyVersion: '0000.0001.0000.0247'; NeedDBShutdown: True),
     (ModifyProc: AddAutoTaskTables; ModifyVersion: '0000.0001.0000.0250'; NeedDBShutdown: True),
     (ModifyProc: AddSMTPTable; ModifyVersion: '0000.0001.0000.0251'; NeedDBShutdown: True),
-    (ModifyProc: ModifyAutoTaskAndSMTPTable; ModifyVersion: '0000.0001.0000.0275'; NeedDBShutdown: True),
-    (ModifyProc: AddStyleTables; ModifyVersion: '0000.0001.0000.0276'; NeedDBShutdown: True)
+    (ModifyProc: ModifyAutoTaskAndSMTPTable; ModifyVersion: '0000.0001.0000.0276'; NeedDBShutdown: True),
+    (ModifyProc: AddWebRelayTable; ModifyVersion: '0000.0001.0000.0278'; NeedDBShutdown: True),
+    (ModifyProc: AddGDEMPLOYEETable; ModifyVersion: '0000.0001.0000.0283'; NeedDBShutdown: True)
   );
 
 implementation

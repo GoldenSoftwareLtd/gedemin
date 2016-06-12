@@ -9,7 +9,7 @@ object dlgAnaliticSelect: TdlgAnaliticSelect
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -19,8 +19,8 @@ object dlgAnaliticSelect: TdlgAnaliticSelect
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
-    Top = 171
-    Width = 238
+    Top = 178
+    Width = 246
     Height = 26
     Align = alBottom
     BevelOuter = bvNone
@@ -48,8 +48,8 @@ object dlgAnaliticSelect: TdlgAnaliticSelect
   object clbAlalitics: TCheckListBox
     Left = 0
     Top = 0
-    Width = 238
-    Height = 171
+    Width = 246
+    Height = 178
     Align = alClient
     ItemHeight = 13
     Sorted = True

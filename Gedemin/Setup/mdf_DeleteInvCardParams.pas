@@ -209,8 +209,14 @@ begin
         // на FB 3 не пройдет
       end;
 
-      q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype INACTIVE';
-      q.ExecQuery;
+      if TriggerExist2('gd_au_documenttype', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype INACTIVE';
+        try
+          q.ExecQuery;
+        except
+        end;  
+      end;
 
       q.SQL.Text := 'ALTER TRIGGER gd_au_goodgroup_protect INACTIVE';
       q.ExecQuery;
@@ -257,8 +263,14 @@ begin
       if RA > 0 then
         Log('Перемещено типов документов: ' + IntToStr(RA));
 
-      q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype ACTIVE';
-      q.ExecQuery;
+      if TriggerExist2('gd_au_documenttype', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype ACTIVE';
+        try
+          q.ExecQuery;
+        except
+        end;  
+      end;
 
       q.SQL.Text := 'ALTER TRIGGER gd_au_goodgroup_protect ACTIVE';
       q.ExecQuery;

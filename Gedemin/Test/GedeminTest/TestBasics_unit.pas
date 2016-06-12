@@ -18,13 +18,14 @@ type
     procedure TestEncryption;
     procedure TestEncryptionMaxLength;
     procedure TestEncryptionWrongPassword;
+    procedure TestFastReportFunctions;
   end;
 
 implementation
 
 uses
   SysUtils, gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet,
-  gdNotifierThread_unit, gd_encryption;
+  gdNotifierThread_unit, gd_encryption, fs_iinterpreter, rp_FR4Functions;
 
 type
   Tgd_CmdLineParamsCrack = class(Tgd_CmdLineParams)
@@ -354,6 +355,35 @@ begin
   StartExpectingException(Exception);
   DecryptString(EncryptString('str', 'A'), 'B');
   StopExpectingException;
+end;
+
+procedure TBasicsTest.TestFastReportFunctions;
+var
+  Scr: TfsScript;
+  F: TFR4Functions;
+begin
+  Scr := TfsScript.Create(nil);
+  F := TFR4Functions.Create(Scr);
+  try
+    Check(F.GetSumCurr(200010, 0, 1, True) = 'Ноль белорусских рублей ноль копеек');
+    Check(F.GetSumCurr(200010, 0, 0, True) = 'Ноль белорусских рублей 00 копеек');
+
+    Check(F.GetSumCurr(200010, 1.01, 1, True) = 'Один белорусский рубль одна копейка');
+    Check(F.GetSumCurr(200010, 1.01, 0, True) = 'Один белорусский рубль 01 копейка');
+
+    Check(F.GetSumCurr(200010, 2.02, 1, True) = 'Два белорусских рубля две копейки');
+    Check(F.GetSumCurr(200010, 2.02, 0, True) = 'Два белорусских рубля 02 копейки');
+
+    Check(F.GetSumCurr(200010, 9783542912.86, 1, True) = 'Девять миллиардов семьсот восемьдесят три миллиона пятьсот сорок две тысячи девятьсот двенадцать белорусских рублей восемьдесят шесть копеек');
+    Check(F.GetSumCurr(200010, 9783542912.86, 0, True) = 'Девять миллиардов семьсот восемьдесят три миллиона пятьсот сорок две тысячи девятьсот двенадцать белорусских рублей 86 копеек');
+
+    Check(F.GetSumCurr(200010, 26401, 1, False) = 'Двадцать шесть тысяч четыреста один белорусский рубль');
+    Check(F.GetSumCurr(200010, 26401, 0, False) = 'Двадцать шесть тысяч четыреста один белорусский рубль');
+
+  finally
+    F.Free;
+    Scr.Free;
+  end;
 end;
 
 initialization

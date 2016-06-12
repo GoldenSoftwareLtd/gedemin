@@ -7,55 +7,55 @@ inherited gdc_frmCurrOnly: Tgdc_frmCurrOnly
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 341
-    Width = 589
+    Top = 333
+    Width = 581
   end
   inherited TBDockTop: TTBDock
-    Width = 589
+    Width = 581
   end
   inherited TBDockLeft: TTBDock
-    Height = 290
+    Height = 282
   end
   inherited TBDockRight: TTBDock
-    Left = 580
-    Height = 290
+    Left = 572
+    Height = 282
   end
   inherited TBDockBottom: TTBDock
-    Top = 360
-    Width = 589
+    Top = 352
+    Width = 581
   end
   inherited pnlWorkArea: TPanel
-    Width = 571
-    Height = 290
+    Width = 563
+    Height = 282
     inherited spChoose: TSplitter
-      Top = 187
-      Width = 571
+      Top = 179
+      Width = 563
     end
     inherited pnlMain: TPanel
-      Width = 571
-      Height = 187
+      Width = 563
+      Height = 179
       inherited pnlSearchMain: TPanel
-        Height = 187
+        Height = 179
         inherited sbSearchMain: TScrollBox
-          Height = 160
+          Height = 152
         end
       end
       inherited ibgrMain: TgsIBGrid
-        Width = 411
-        Height = 187
+        Width = 403
+        Height = 179
       end
     end
     inherited pnChoose: TPanel
-      Top = 191
-      Width = 571
+      Top = 183
+      Width = 563
       inherited pnButtonChoose: TPanel
-        Left = 466
+        Left = 458
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 466
+        Width = 458
       end
       inherited pnlChooseCaption: TPanel
-        Width = 571
+        Width = 563
       end
     end
   end

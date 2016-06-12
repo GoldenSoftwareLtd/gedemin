@@ -1660,7 +1660,7 @@ procedure TfrmGedeminMain.TBItem5Click(Sender: TObject);
 begin
   ShellExecute(Handle,
     'open',
-    'http://www.gsbelarus.com',
+    'http://gsbelarus.com',
     nil,
     nil,
     SW_SHOW);

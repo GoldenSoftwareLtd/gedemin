@@ -1,6 +1,6 @@
 object gd_dlgAbout: Tgd_dlgAbout
-  Left = 587
-  Top = 203
+  Left = 588
+  Top = 205
   HelpContext = 119
   BorderStyle = bsDialog
   Caption = 'О программе'
@@ -1363,8 +1363,8 @@ object gd_dlgAbout: Tgd_dlgAbout
     Top = 88
   end
   object al: TActionList
-    Left = 468
-    Top = 312
+    Left = 500
+    Top = 256
     object actUpdate: TAction
       Caption = 'Обновить'
       OnExecute = actUpdateExecute

@@ -135,6 +135,10 @@ type
     procedure StopPerfCounter(AnID: Integer); safecall;
     procedure AddLogRecord(const ASrc: WideString; const AText: WideString; AType: Integer;
                            AnObjID: Integer; const AnObjType: WideString; AShowWindow: WordBool); safecall;
+    procedure WIN1251ToUTF8(const AWIN1251Stream: IgsStream; const AUTF8Stream: IgsStream); safecall;
+    procedure UTF8ToWIN1251(const AUTF8Stream: IgsStream; const AWIN1251Stream: IgsStream); safecall;
+    function  ReplaceXMLTags(const S: WideString): WideString; safecall;
+    function  ExpandXMLTags(const S: WideString): WideString; safecall;
   public
     constructor Create(const AnDatabase: TIBDatabase; const AnTransaction: TIBTransaction);
     destructor Destroy; override;
@@ -147,7 +151,8 @@ uses
   IBCustomDataSet, SysUtils, IBTable, rp_ReportClient, rp_report_const,
   obj_dlgParamWindow, gdc_frmMemo_unit, at_sql_parser, at_sql_setup,
   obj_WrapperGSClasses, gdcOLEClassList, Storages, mtd_i_Base,
-  rp_dlgViewResultEx_unit, scrMacrosGroup,
+  rp_dlgViewResultEx_unit, scrMacrosGroup, jclUnicode, gd_directories_const,
+  gd_common_functions,
   {$IFDEF WITH_INDY}
   gdccClient_unit,
   {$ENDIF}
@@ -519,6 +524,82 @@ begin
   if gdccClient <> nil then
     gdccClient.StopPerfCounter(AnID);
   {$ENDIF}
+end;
+
+procedure TgsGedemin.UTF8ToWIN1251(const AUTF8Stream, AWIN1251Stream: IgsStream);
+var
+  S: AnsiString;
+  ACharReplace: LongBool;
+  SSUTF8: TStringStream;
+begin
+  Assert((AWIN1251Stream <> nil) and (AWIN1251Stream.Get_Self <> 0));
+  Assert((AUTF8Stream <> nil) and (AUTF8Stream.Get_Self <> 0));
+
+  SSUTF8 := TStringStream.Create('');
+  try
+    SSUTF8.CopyFrom(TStream(AUTF8Stream.Get_Self), 0);
+    S := WideStringToStringEx(DecodeUTF8(SSUTF8.DataString), ACharReplace);
+  finally
+    SSUTF8.Free;
+  end;
+
+  TStream(AWIN1251Stream.Get_Self).Position := 0;
+  TStream(AWIN1251Stream.Get_Self).Size := Length(S);
+  if S > '' then
+    TStream(AWIN1251Stream.Get_Self).WriteBuffer(S[1], Length(S));
+end;
+
+procedure TgsGedemin.WIN1251ToUTF8(const AWIN1251Stream, AUTF8Stream: IgsStream);
+var
+  S: AnsiString;
+  SSUTF8: TStringStream;
+begin
+  Assert((AWIN1251Stream <> nil) and (AWIN1251Stream.Get_Self <> 0));
+  Assert((AUTF8Stream <> nil) and (AUTF8Stream.Get_Self <> 0));
+
+  if AWin1251Stream.Size > 0 then
+  begin
+    AWin1251Stream.Position := 0;
+    SetLength(S, AWIN1251Stream.Size);
+    TStream(AWin1251Stream.Get_Self).ReadBuffer(S[1], AWIN1251Stream.Size);
+  end else
+    S := '';
+
+  SSUTF8 := TStringStream.Create(WideStringToUTF8(
+    StringToWideStringEx(S, WIN1251_CODEPAGE)));
+  try
+    TStream(AUTF8Stream.Get_Self).CopyFrom(SSUTF8, 0);
+  finally
+    SSUTF8.Free;
+  end;
+end;
+
+function TgsGedemin.ExpandXMLTags(const S: WideString): WideString;
+var
+  T: AnsiString;
+begin
+  T := StringReplace(S, '&amp;', '&', [rfReplaceAll, rfIgnoreCase]);
+  T := StringReplace(T, '&apos;', '''', [rfReplaceAll, rfIgnoreCase]);
+  T := StringReplace(T, '&quot;', '"', [rfReplaceAll, rfIgnoreCase]);
+  T := StringReplace(T, '&lt;', '<', [rfReplaceAll, rfIgnoreCase]);
+  T := StringReplace(T, '&gt;', '>', [rfReplaceAll, rfIgnoreCase]);
+  T := StringReplace(T, '&laquo;', '«', [rfReplaceAll, rfIgnoreCase]);
+  T := StringReplace(T, '&raquo;', '»', [rfReplaceAll, rfIgnoreCase]);
+  Result := T;
+end;
+
+function TgsGedemin.ReplaceXMLTags(const S: WideString): WideString;
+var
+  T: AnsiString;
+begin
+  T := StringReplace(S, '&', '&amp;', [rfReplaceAll]);
+  T := StringReplace(T, '''', '&apos;', [rfReplaceAll]);
+  T := StringReplace(T, '"', '&quot;', [rfReplaceAll]);
+  T := StringReplace(T, '<', '&lt;', [rfReplaceAll]);
+  T := StringReplace(T, '>', '&gt;', [rfReplaceAll]);
+  T := StringReplace(T, '«', '&laquo;', [rfReplaceAll]);
+  T := StringReplace(T, '»', '&raquo;', [rfReplaceAll]);
+  Result := T;
 end;
 
 { TgsRecord }

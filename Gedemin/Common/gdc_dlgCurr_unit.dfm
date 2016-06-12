@@ -1,10 +1,10 @@
 inherited gdc_dlgCurr: Tgdc_dlgCurr
-  Left = 272
-  Top = 188
+  Left = 417
+  Top = 282
   HelpContext = 48
   BorderIcons = [biSystemMenu]
   Caption = '¬алюта'
-  ClientHeight = 334
+  ClientHeight = 337
   ClientWidth = 615
   PixelsPerInch = 96
   TextHeight = 13
@@ -84,10 +84,11 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     Width = 94
     Height = 13
     Caption = 'ƒробна€ единица:'
+    Visible = False
   end
   object Bevel1: TBevel [11]
     Left = -10
-    Top = 300
+    Top = 302
     Width = 635
     Height = 2
     Anchors = [akLeft, akRight, akBottom]
@@ -162,29 +163,29 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     Caption = '2, 3, 4'
   end
   inherited btnAccess: TButton
-    Left = 5
+    Left = 4
     Top = 310
-    TabOrder = 16
+    TabOrder = 20
   end
   inherited btnNew: TButton
-    Left = 85
-    Top = 310
-    TabOrder = 17
-  end
-  inherited btnHelp: TButton
-    Left = 165
+    Left = 77
     Top = 310
     TabOrder = 21
   end
+  inherited btnHelp: TButton
+    Left = 150
+    Top = 310
+    TabOrder = 22
+  end
   inherited btnOK: TButton
-    Left = 455
+    Left = 468
     Top = 310
     TabOrder = 18
   end
   inherited btnCancel: TButton
-    Left = 535
+    Left = 541
     Top = 310
-    TabOrder = 20
+    TabOrder = 19
   end
   object dbeFullName: TDBEdit [26]
     Left = 10
@@ -240,7 +241,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     DataField = 'FULLCENTNAME'
     DataSource = dsgdcBase
     ParentCtl3D = False
-    TabOrder = 5
+    TabOrder = 3
   end
   object dbeShortCentName: TDBEdit [31]
     Left = 485
@@ -251,7 +252,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     DataField = 'SHORTCENTNAME'
     DataSource = dsgdcBase
     ParentCtl3D = False
-    TabOrder = 6
+    TabOrder = 4
   end
   object dbeDecdigits: TDBEdit [32]
     Left = 450
@@ -262,7 +263,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     DataField = 'DECDIGITS'
     DataSource = dsgdcBase
     ParentCtl3D = False
-    TabOrder = 8
+    TabOrder = 5
     OnChange = dbeDecdigitsChange
   end
   object dbeCentbase: TDBEdit [33]
@@ -274,7 +275,8 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     DataField = 'CENTBASE'
     DataSource = dsgdcBase
     ParentCtl3D = False
-    TabOrder = 7
+    TabOrder = 6
+    Visible = False
   end
   object dbrgPlace: TDBRadioGroup [34]
     Left = 315
@@ -314,7 +316,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     Caption = 'ќтключена'
     DataField = 'DISABLED'
     DataSource = dsgdcBase
-    TabOrder = 15
+    TabOrder = 16
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
@@ -326,7 +328,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     Caption = 'Ёквивалент'
     DataField = 'ISEQ'
     DataSource = dsgdcBase
-    TabOrder = 19
+    TabOrder = 15
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
@@ -350,7 +352,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     DataField = 'NAME_0'
     DataSource = dsgdcBase
     ParentCtl3D = False
-    TabOrder = 3
+    TabOrder = 7
   end
   object dbeName_1: TDBEdit [40]
     Left = 95
@@ -361,7 +363,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     DataField = 'NAME_1'
     DataSource = dsgdcBase
     ParentCtl3D = False
-    TabOrder = 4
+    TabOrder = 8
   end
   object dbeCentName_0: TDBEdit [41]
     Left = 405
@@ -398,6 +400,18 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
         ' произведенных изменений в печатных '
       'формах, вы видите старые значени€, -- перезагрузите √едымин.')
     ReadOnly = True
-    TabOrder = 22
+    TabOrder = 17
+  end
+  inherited alBase: TActionList
+    Left = 294
+    Top = 295
+  end
+  inherited dsgdcBase: TDataSource
+    Left = 264
+    Top = 295
+  end
+  inherited pm_dlgG: TPopupMenu
+    Left = 328
+    Top = 296
   end
 end

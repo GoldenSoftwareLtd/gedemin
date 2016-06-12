@@ -36,11 +36,22 @@ function ExpandMetaVariables(const S: String): String;
 function AddSpaces(const S: String = ''): String;
 function BooleanToString(const B: Boolean): String;
 function ForceForegroundWindow(hwnd: THandle): boolean;
+function DecodeUTF8(const Source: AnsiString): WideString;
+function WideStringToStringEx(const WS: WideString; out CharReplace: LongBool): String;
+function NameCase(const S: String): String;
 
 implementation
 
 uses
-  SysUtils, Forms, jclFileUtils, WinSock;
+  SysUtils, Forms, jclFileUtils, WinSock, gd_directories_const;
+
+function NameCase(const S: String): String;
+begin
+  if Length(S) > 1 then
+    Result := AnsiUpperCase(Copy(S, 1, 1)) + AnsiLowerCase(Copy(S, 2, MAXINT))
+  else
+    Result := AnsiLowerCase(S);
+end;
 
 function ForceForegroundWindow(hwnd: THandle): boolean;
 {
@@ -432,6 +443,62 @@ begin
   Result := StringReplace(Result, '[HH]',   FormatDateTime('hh', Now), [rfReplaceAll, rfIgnoreCase]);
   Result := StringReplace(Result, '[NN]',   FormatDateTime('nn', Now), [rfReplaceAll, rfIgnoreCase]);
   Result := StringReplace(Result, '[SS]',   FormatDateTime('ss', Now), [rfReplaceAll, rfIgnoreCase]);
+end;
+
+function WideStringToStringEx(const WS: WideString; out CharReplace: LongBool): String;
+var
+  InputLength,
+  OutputLength: Integer;
+begin
+  CharReplace := False;
+  InputLength := Length(WS);
+  OutputLength := WideCharToMultiByte(WIN1251_CODEPAGE, 0, PWideChar(WS), InputLength, nil, 0, nil, nil);
+  SetLength(Result, OutputLength);
+  WideCharToMultiByte(WIN1251_CODEPAGE, 0, PWideChar(WS), InputLength, PChar(Result), OutputLength, nil, @CharReplace);
+end;
+
+function DecodeUTF8(const Source: AnsiString): WideString;
+var
+  Index, SourceLength, ResultLength, FChar, NChar: Cardinal;
+begin
+  Result := '';
+  Index := 0;
+  SourceLength := Length(Source);
+  SetLength(Result, SourceLength);
+  ResultLength := 0;
+  while Index < SourceLength do
+  begin
+    Inc(Index);
+    FChar := Ord(Source[Index]);
+    if FChar >= $80 then
+    begin
+      Inc(Index);
+      if Index > SourceLength then
+        break;
+      FChar := FChar and $3F;
+      if (FChar and $20) <> 0 then
+      begin
+        FChar := FChar and $1F;
+        NChar := Ord(Source[Index]);
+        if (NChar and $C0) <> $80 then
+          break;
+        FChar := (FChar shl 6) or (NChar and $3F);
+        Inc(Index);
+        if Index > SourceLength then
+          break;
+      end;
+      NChar := Ord(Source[Index]);
+      if (NChar and $C0) <> $80 then
+        break;
+      Inc(ResultLength);
+      Result[ResultLength] := WideChar((FChar shl 6) or (NChar and $3F));
+    end
+    else begin
+     Inc(ResultLength);
+     Result[ResultLength] := WideChar(FChar);
+    end;
+  end;
+  SetLength(Result, ResultLength);
 end;
 
 end.
