@@ -159,8 +159,8 @@ var
   Millions,
   Thousands,
   Others: LongInt;
-  Tmp: Double;
   S: array[0..64] of Char;
+  St: String;
 begin
   if N < 0 then begin
     N := - N;
@@ -168,17 +168,15 @@ begin
   end else
     Dest[0] := #0;
 
-  Trillions := Round(Int(N / 1e+12));
-  Tmp := Trillions;
-  N := N - Tmp * 1e+12;
-  Billions := Round(Int(N / 1000000000));
-  Tmp := Billions;
-  N := N - Tmp * 1000000000;
-  Millions := Round(Int(N / 1000000));
-  N := N - Millions * 1000000;
-  Thousands := Round(Int(N / 1000));
-  N := N - Thousands * 1000;
-  Others := Round(Int(N));
+  St := FormatFloat('000000000000000', Trunc(N));
+
+  Assert(Length(St) = 15);
+
+  Others := StrToInt(Copy(St, Length(St) - 2, 3));
+  Thousands := StrToInt(Copy(St, Length(St) - 5, 3));
+  Millions := StrToInt(Copy(St, Length(St) - 8, 3));
+  Billions := StrToInt(Copy(St, Length(St) - 11, 3));
+  Trillions := StrToInt(Copy(St, Length(St) - 14, 3));
 
   case GetLastDigit(Trillions) of
     1:
@@ -280,7 +278,6 @@ var
   S: array[0..64] of Char;
 begin
   Dest[0] := #0;
-  //FValue := Abs(Round(Int(N)));
 
   FValue := Round(Frac(Abs(N)) * Power(10, Prec) + 0.0000001);
 
@@ -353,7 +350,7 @@ begin
     if Abs(N) > 999 then
       FValue := StrToInt(Copy(FloatToStr(Int(N)), Length(FloatToStr(Int(N))) - 2, 3))
     else
-      FValue := Abs(Round(Int(N)));
+      FValue := Abs(Trunc(N));
     case GetLastDigit(FValue) of
       1:
         if GetTwoLastDigit(FValue) = 11 then
