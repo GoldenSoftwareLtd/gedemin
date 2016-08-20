@@ -212,10 +212,7 @@ begin
       if TriggerExist2('gd_au_documenttype', Tr) then
       begin
         q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype INACTIVE';
-        try
-          q.ExecQuery;
-        except
-        end;  
+        q.ExecQuery;
       end;
 
       q.SQL.Text := 'ALTER TRIGGER gd_au_goodgroup_protect INACTIVE';
@@ -266,10 +263,7 @@ begin
       if TriggerExist2('gd_au_documenttype', Tr) then
       begin
         q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype ACTIVE';
-        try
-          q.ExecQuery;
-        except
-        end;  
+        q.ExecQuery;
       end;
 
       q.SQL.Text := 'ALTER TRIGGER gd_au_goodgroup_protect ACTIVE';

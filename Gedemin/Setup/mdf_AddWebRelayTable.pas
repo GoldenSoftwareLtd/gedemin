@@ -1,12 +1,14 @@
 unit mdf_AddWebRelayTable;
- 
+
 interface
 
 uses
   IBDatabase, gdModify;
- 
+
 procedure AddWebRelayTable(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddGDEmployeeTable(IBDB: TIBDatabase; Log: TModifyLog);
+procedure CorrectSubAccounts(IBDB: TIBDatabase; Log: TModifyLog);
+procedure CorrectClientAddress(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
  
@@ -185,6 +187,15 @@ begin
         q.ExecQuery;
 
         q.SQL.Text :=
+          'UPDATE OR INSERT INTO gd_curr '#13#10 +
+          '  (id, disabled, isNCU, code, name, shortname, sign, place, decdigits, '#13#10 +
+          '     fullcentname, shortcentname, centbase, icon, reserved, ISO, name_0, name_1, centname_0, centname_1) '#13#10 +
+          '  VALUES (200010, 0, 1, ''BYN'', ''Белорусский рубль'', ''руб.'', ''Br'', '#13#10 +
+          '     1, 2, ''копейка'', ''коп.'', 1, NULL, NULL, ''933'', ''белорусских рублей'', ''белорусских рубля'', ''копеек'', ''копейки'') '#13#10 +
+          '  MATCHING (id)';
+        q.ExecQuery;
+
+        q.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo' + #13#10 +
           '  VALUES (249, ''0000.0001.0000.0280'', ''12.04.2016'', ''GD_EMPLOYEE table added.'')' + #13#10 +
           '  MATCHING (id)';
@@ -211,6 +222,137 @@ begin
         q.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo' + #13#10 +
           '  VALUES (253, ''0000.0001.0000.0284'', ''13.04.2016'', ''at_aiu_namespace_link fixed #2.'')' + #13#10 +
+          '  MATCHING (id)';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo' + #13#10 +
+          '  VALUES (254, ''0000.0001.0000.0285'', ''01.07.2016'', ''BYN'')' + #13#10 +
+          '  MATCHING (id)';
+        q.ExecQuery;
+
+        Tr.Commit;
+      finally
+        q.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Tr.Rollback;
+        Log(E.Message);
+      end;
+    end;
+  finally
+    Tr.Free;
+  end;
+end;
+
+procedure CorrectSubAccounts(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+    try
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := Tr;
+
+        {
+        q.SQL.Text :=
+          'EXECUTE BLOCK '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE PID INTEGER; '#13#10 +
+          '  DECLARE VARIABLE AID INTEGER; '#13#10 +
+          '  DECLARE VARIABLE C INTEGER = 10; '#13#10 +
+          'BEGIN '#13#10 +
+          '  WHILE (:C > 0) DO '#13#10 +
+          '  BEGIN '#13#10 +
+          '    FOR '#13#10 +
+          '      SELECT '#13#10 +
+          '        p.id, a.id '#13#10 +
+          '      FROM '#13#10 +
+          '        ac_account p JOIN ac_account a '#13#10 +
+          '          ON a.alias LIKE p.alias || ''._%'' '#13#10 +
+          '            AND NOT a.alias LIKE p.alias || ''.%._%'' '#13#10 +
+          '        JOIN ac_account a_root '#13#10 +
+          '          ON a_root.lb < a.lb AND a_root.rb >= a.rb '#13#10 +
+          '            AND a_root.parent IS NULL '#13#10 +
+          '        JOIN ac_account p_root '#13#10 +
+          '          ON p_root.lb < p.lb AND p_root.rb >= p.rb '#13#10 +
+          '            AND p_root.parent IS NULL '#13#10 +
+          '      WHERE '#13#10 +
+          '        (a.ID <> p.id) '#13#10 +
+          '        AND '#13#10 +
+          '        (a_root.id = p_root.id) '#13#10 +
+          '        AND '#13#10 +
+          '        ( '#13#10 +
+          '          a.parent <> p.id '#13#10 +
+          '          OR '#13#10 +
+          '          a.accounttype <> ''S'' '#13#10 +
+          '         ) '#13#10 +
+          '      INTO :PID, :AID '#13#10 +
+          '    DO BEGIN '#13#10 +
+          '      UPDATE ac_account SET parent = :PID, accounttype = ''S'' '#13#10 +
+          '      WHERE id = :AID; '#13#10 +
+          '       '#13#10 +
+          '      WHEN ANY DO '#13#10 +
+          '      BEGIN '#13#10 +
+          '      END '#13#10 +
+          '    END '#13#10 +
+          '     '#13#10 +
+          '    C = :C - 1; '#13#10 +
+          '  END '#13#10 +
+          'END';
+        q.ExecQuery;
+        }
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo' + #13#10 +
+          '  VALUES (255, ''0000.0001.0000.0286'', ''03.07.2016'', ''Correct sub accounts'')' + #13#10 +
+          '  MATCHING (id)';
+        q.ExecQuery;
+
+        Tr.Commit;
+      finally
+        q.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Tr.Rollback;
+        Log(E.Message);
+      end;
+    end;
+  finally
+    Tr.Free;
+  end;
+end;
+
+procedure CorrectClientAddress(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+    try
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := Tr;
+
+        q.SQL.Text :=
+          'ALTER TABLE GD_JOURNAL ALTER CLIENTADDRESS TYPE dtext40';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo' + #13#10 +
+          '  VALUES (256, ''0000.0001.0000.0287'', ''06.08.2016'', ''Correct client address of GD_JOURNAL'')' + #13#10 +
           '  MATCHING (id)';
         q.ExecQuery;
 

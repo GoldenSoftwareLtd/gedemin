@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -69,30 +69,33 @@ VALUES (150001, 'Administrator', 'Administrator', -1, 'Администратор', 'Админист
 -- gd_curr
 -- 200001..250000
 
-INSERT INTO gd_curr
+UPDATE OR INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
-     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
-  VALUES (200010, 0, 1, 'BYR', 'Белорусский рубль', 'BYR', 'Br',
-     1, 0, '', '', 1, NULL, NULL, 'белорусских рублей', 'белорусских рубля', '', '');
+     fullcentname, shortcentname, centbase, icon, reserved, ISO, name_0, name_1, centname_0, centname_1)
+  VALUES (200010, 0, 1, 'BYN', 'Белорусский рубль', 'руб.', 'Br',
+     1, 2, 'копейка', 'коп.', 1, NULL, NULL, '933', 'белорусских рублей', 'белорусских рубля', 'копеек', 'копейки')
+  MATCHING (id);   
 
-INSERT INTO gd_curr
+UPDATE OR INSERT INTO gd_curr
   (id, disabled, isNCU, isEq, code, name, shortname, sign, place, decdigits,
-     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
+     fullcentname, shortcentname, centbase, icon, reserved, ISO, name_0, name_1, centname_0, centname_1)
   VALUES (200020, 0, 0, 1, 'USD', 'Доллар США', 'USD', '$',
-     0, 2, 'цент', 'ц.', 1, NULL, NULL, 'долларов США', 'доллара США', 'центов', 'цента');
+     0, 2, 'цент', 'ц.', 1, NULL, NULL, '840', 'долларов США', 'доллара США', 'центов', 'цента')
+  MATCHING (id);   
 
-INSERT INTO gd_curr
+UPDATE OR INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
-     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
-  VALUES (200040, 0, 0, 'EUR', 'Евро', 'EUR', 'EUR',
-     1, 2, 'евроцент', 'ц.', 1, NULL, NULL, 'евро', 'евро', 'евроцентов', 'евроцента');
+     fullcentname, shortcentname, centbase, icon, reserved, ISO, name_0, name_1, centname_0, centname_1)
+  VALUES (200040, 0, 0, 'EUR', 'Евро', 'евро', '€',
+     1, 2, 'евроцент', 'ц.', 1, NULL, NULL, '978', 'евро', 'евро', 'евроцентов', 'евроцента')
+  MATCHING (id);   
 
-INSERT INTO gd_curr
+UPDATE OR INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
-     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
-  VALUES (200050, 0, 0, 'RUB', 'Российский рубль', 'RUB', 'р.',
-     1, 2, 'копейка', 'к.', 1, NULL, NULL, 'российских рублей', 'российских рубля', 'копеек', 'копейки');
-
+     fullcentname, shortcentname, centbase, icon, reserved, ISO, name_0, name_1, centname_0, centname_1)
+  VALUES (200050, 0, 0, 'RUB', 'Российский рубль', 'р.', 'RUB',
+     1, 2, 'копейка', 'коп.', 1, NULL, NULL, '643', 'российских рублей', 'российских рубля', 'копеек', 'копейки')
+  MATCHING (id);   
 
 -- ac_account
 -- 300001..399999
@@ -549,7 +552,7 @@ INSERT INTO GD_BANK
     VALUES (
       715000,
       710000,
-      'Банк',
+      'Банк и касса',
       'bank',
       NULL,
       104
@@ -1335,7 +1338,30 @@ INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editork
   VALUES (990010, 'USER - Administrator', 'U', 150001, '01.01.2000', 650002);
 INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editorkey)
   VALUES (990020, 'COMPANY - <Ввести наименование организации>', 'O', 650010, '01.01.2000', 650002);
+  
+SET TERM ^ ;
 
+EXECUTE BLOCK
+AS
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE ID2 INTEGER;
+BEGIN
+  ID = GEN_ID(gd_g_unique, 1);
+  ID2 = GEN_ID(gd_g_unique, 1);
+  
+  INSERT INTO gd_storage_data (id, parent, name, data_type, editiondate, editorkey)
+    VALUES (:ID, 990000, 'Options', 'F', '01.01.2000', 650002);  
+  INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
+    VALUES (:ID, 147072890, 2032709850, '01.01.2000', 650002);  
+    
+  INSERT INTO gd_storage_data (id, parent, name, data_type, int_data, editiondate, editorkey)
+    VALUES (:ID2, :ID, 'dnmn', 'L', 1, '01.01.2000', 650002);  
+  INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
+    VALUES (:ID2, 148919177, 537677461, '01.01.2000', 650002);  
+END  
+^
+
+SET TERM ; ^
 
 -- evt_macrosgroup
 

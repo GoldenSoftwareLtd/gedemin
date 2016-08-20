@@ -289,6 +289,7 @@ type
     procedure FlushSchema;
     function IsFirebirdConnect: Boolean;
     function IsFirebird25Connect: Boolean;
+    function IsFirebird30Connect: Boolean;
 
   published
     property Connected;
@@ -1701,6 +1702,12 @@ begin
   Result := (GetFBVersion <> '') and (ServerMajorVersion = 2) and
     (ServerMinorVersion >= 5) and (ODSMajorVersion = 11) and
     (ODSMinorVersion >= 2);
+end;
+
+function TIBDataBase.IsFirebird30Connect: Boolean;
+begin
+  Result := (GetFBVersion <> '') and (ServerMajorVersion = 3) and
+    (ODSMajorVersion = 12);
 end;
 
 function TIBDatabase.GetODSMinorVersion: Long;

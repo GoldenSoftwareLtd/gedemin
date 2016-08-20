@@ -605,6 +605,9 @@ begin
   InitDatabase(dmLogin.ibtrAttr);
   atDatabase.ProceedLoading(True);
 
+  if not Database.Connected then
+    exit;
+
   ClearHoldingListCache;
 
   if dm_i_ClientReport <> nil then begin
@@ -1658,7 +1661,7 @@ begin
       gdSplash.ShowSplash;
     {$ENDIF}
 
-    Result := DoLogin(NeedReadDBVersion);
+    Result := DoLogin(NeedReadDBVersion) and Database.Connected;
   finally
     FLoginInProgress := False;
   end;
@@ -2253,7 +2256,8 @@ begin
 
       DoAfterSuccessfullConnection;
 
-      Result := (not FAutoOpenCompany) or EnterCompany or OpenCompany;
+      Result := Database.Connected and
+        ((not FAutoOpenCompany) or EnterCompany or OpenCompany);
     end;
 
     if not Result then

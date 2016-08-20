@@ -53,9 +53,9 @@ uses
 
 const
   {$IFDEF FULL_MODIFY}
-  cProcCount = 213;
+  cProcCount = 215;
   {$ELSE}
-  cProcCount = 63;
+  cProcCount = 35;
   {$ENDIF}
 
 type
@@ -316,9 +316,6 @@ const
     (ModifyProc: ChangeIsCheckNumberType; ModifyVersion: '0000.0001.0000.0152'; NeedDBShutdown: True),
     (ModifyProc: DropRGIndex; ModifyVersion: '0000.0001.0000.0153'; NeedDBShutdown: True),
     (ModifyProc: CreateRGIndex; ModifyVersion: '0000.0001.0000.0154'; NeedDBShutdown: True),
-    {$ENDIF}
-
-    
     (ModifyProc: RegenerateLBRBTree2; ModifyVersion: '0000.0001.0000.0155'; NeedDBShutdown: True),
     (ModifyProc: ConvertBNStatementCommentToBlob; ModifyVersion: '0000.0001.0000.0156'; NeedDBShutdown: True),
     (ModifyProc: ConvertDatePeriodComponent; ModifyVersion: '0000.0001.0000.0158'; NeedDBShutdown: True),
@@ -349,6 +346,8 @@ const
     (ModifyProc: ChangeDuplicateAccount2; ModifyVersion: '0000.0001.0000.0191'; NeedDBShutdown: True),
     (ModifyProc: DeletecbAnalyticFromScript; ModifyVersion: '0000.0001.0000.0192'; NeedDBShutdown: True),
     (ModifyProc: AddNSMetadata; ModifyVersion: '0000.0001.0000.0193'; NeedDBShutdown: True),
+    {$ENDIF}
+
     (ModifyProc: Issue2846; ModifyVersion: '0000.0001.0000.0194'; NeedDBShutdown: False),
     (ModifyProc: Issue2688; ModifyVersion: '0000.0001.0000.0195'; NeedDBShutdown: False),
     (ModifyProc: AddUqConstraintToGD_RUID; ModifyVersion: '0000.0001.0000.0196'; NeedDBShutdown: True),
@@ -381,8 +380,16 @@ const
     (ModifyProc: AddSMTPTable; ModifyVersion: '0000.0001.0000.0251'; NeedDBShutdown: True),
     (ModifyProc: ModifyAutoTaskAndSMTPTable; ModifyVersion: '0000.0001.0000.0276'; NeedDBShutdown: True),
     (ModifyProc: AddWebRelayTable; ModifyVersion: '0000.0001.0000.0278'; NeedDBShutdown: True),
-    (ModifyProc: AddGDEMPLOYEETable; ModifyVersion: '0000.0001.0000.0283'; NeedDBShutdown: True)
+    (ModifyProc: AddGDEMPLOYEETable; ModifyVersion: '0000.0001.0000.0284'; NeedDBShutdown: True),
+    (ModifyProc: CorrectSubAccounts; ModifyVersion: '0000.0001.0000.0285'; NeedDBShutdown: False),
+    (ModifyProc: CorrectClientAddress; ModifyVersion: '0000.0001.0000.0286'; NeedDBShutdown: True)
   );
+
+  {
+
+  Помнить что закомментировали!!!!!!!
+
+  }
 
 implementation
 

@@ -1633,6 +1633,15 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (253, '0000.0001.0000.0284', '13.04.2016', 'at_aiu_namespace_link fixed #2.');    
   
+INSERT INTO fin_versioninfo
+  VALUES (254, '0000.0001.0000.0285', '01.07.2016', 'BYN');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (255, '0000.0001.0000.0286', '03.07.2016', 'Correct sub accounts');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (256, '0000.0001.0000.0287', '06.08.2016', 'Correct client address of GD_JOURNAL');    
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -2073,7 +2082,7 @@ CREATE TABLE gd_journal
 (
   id               dintkey,
   contactkey       dforeignkey,
-  clientaddress    CHAR(15),
+  clientaddress    dtext40,
   operationdate    dtimestamp_notnull,
   source           dtext40,
   objectid         dforeignkey,
@@ -6522,14 +6531,6 @@ BEGIN
        INSERT (fieldname, lname, description)
        VALUES (TRIM(src.rdb$field_name), TRIM(src.rdb$field_name), TRIM(src.rdb$field_name)); 
 
-   /* 
-   INSERT INTO AT_FIELDS (fieldname, lname, description)
-   SELECT trim(rdb$field_name), trim(rdb$field_name),
-     trim(rdb$field_name)
-   FROM rdb$fields LEFT JOIN at_fields ON rdb$field_name = fieldname
-     WHERE fieldname IS NULL;
-   */ 
-  
  /* для _снуючых палёў аднав_м _нфармацыю аб тыпе */ 
    FOR 
      SELECT fieldsource, fieldname, relationname 
@@ -6639,8 +6640,8 @@ BEGIN
    BEGIN 
  /* Перечитаем домены. Теперь те домены, которые были проблемными добавятся без ошибок */ 
      INSERT INTO AT_FIELDS (fieldname, lname, description)
-     SELECT g_s_trim(rdb$field_name, ' '), g_s_trim(rdb$field_name, ' '),
-       g_s_trim(rdb$field_name, ' ')
+     SELECT TRIM(rdb$field_name), TRIM(rdb$field_name),
+       TRIM(rdb$field_name)
      FROM rdb$fields LEFT JOIN at_fields ON rdb$field_name = fieldname
        WHERE fieldname IS NULL;
    END 
@@ -6658,7 +6659,7 @@ BEGIN
      WHERE (relationname IS NULL) AND (NOT rdb$relation_name CONTAINING 'RDB$') 
      INTO :RN, :VS 
    DO BEGIN 
-     RN = g_s_trim(RN, ' '); 
+     RN = TRIM(RN); 
      IF (:VS IS NULL) THEN 
        INSERT INTO at_relations (relationname, relationtype, lname, lshortname, description) 
        VALUES (:RN, 'T', :RN, :RN, :RN); 
@@ -6681,9 +6682,9 @@ BEGIN
      INTO 
        :FN, :FS, :RN, :ID, :ID1 
    DO BEGIN 
-     FN = g_s_trim(FN, ' '); 
-     FS = g_s_trim(FS, ' '); 
-     RN = g_s_trim(RN, ' '); 
+     FN = TRIM(FN); 
+     FS = TRIM(FS); 
+     RN = TRIM(RN); 
      INSERT INTO at_relation_fields (fieldname, relationname, fieldsource, lname, description, 
        relationkey, fieldsourcekey, colwidth, visible) 
      VALUES(:FN, :RN, :FS, :FN, :FN, :ID, :ID1, 20, 1); 
@@ -6721,7 +6722,7 @@ BEGIN
   
  /* дадаем новыя выключэннi */ 
    INSERT INTO at_exceptions(exceptionname)
-   SELECT g_s_trim(rdb$exception_name, ' ')
+   SELECT TRIM(rdb$exception_name)
    FROM rdb$exceptions
    LEFT JOIN at_exceptions e ON e.exceptionname=rdb$exception_name
    WHERE e.exceptionname IS NULL;
@@ -6740,7 +6741,7 @@ BEGIN
   
  /* дадаем новыя працэдуры */ 
    INSERT INTO at_procedures(procedurename)
-   SELECT g_s_trim(rdb$procedure_name, ' ')
+   SELECT TRIM(rdb$procedure_name)
    FROM rdb$procedures
    LEFT JOIN at_procedures e ON e.procedurename = rdb$procedure_name
    WHERE e.procedurename IS NULL;
@@ -6760,7 +6761,7 @@ BEGIN
        
  /* добавим новые генераторы */  
    INSERT INTO at_generators(generatorname)
-   SELECT G_S_TRIM(rdb$generator_name, ' ')
+   SELECT TRIM(rdb$generator_name)
    FROM rdb$generators
    LEFT JOIN at_generators t ON t.generatorname=rdb$generator_name
    WHERE t.generatorname IS NULL;
@@ -6778,17 +6779,6 @@ BEGIN
      DELETE FROM AT_CHECK_CONSTRAINTS WHERE CHECKNAME = :EN; 
    END 
        
- /* добавим новые чеки */
- /*
-   INSERT INTO AT_CHECK_CONSTRAINTS(CHECKNAME)
-   SELECT TRIM(C.RDB$CONSTRAINT_NAME)
-   FROM RDB$TRIGGERS T
-   LEFT JOIN RDB$CHECK_CONSTRAINTS C ON C.RDB$TRIGGER_NAME = T.RDB$TRIGGER_NAME
-   LEFT JOIN AT_CHECK_CONSTRAINTS CON ON CON.CHECKNAME = C.RDB$CONSTRAINT_NAME
-   WHERE T.RDB$TRIGGER_SOURCE LIKE 'CHECK%'
-     AND CON.CHECKNAME IS NULL;
- */    
-
    MERGE INTO at_check_constraints cc
    USING
      (
@@ -6853,8 +6843,8 @@ BEGIN
       II = 1;
     IF (UF > 1) THEN
       UF = 1;
-    RN = g_s_trim(RN, ' ');
-    I_N = g_s_trim(I_N, ' ');
+    RN = TRIM(RN);
+    I_N = TRIM(I_N);
     INSERT INTO at_indices(relationname, indexname, relationkey, unique_flag, index_inactive)
     VALUES (:RN, :I_N, :ID, :UF, :II);
   END
@@ -6905,11 +6895,11 @@ BEGIN
         IF ((FL <> FLIST) OR (FL IS NULL)) THEN
           UPDATE at_indices SET fieldslist = :FLIST WHERE indexname = :INDEXNAME;
       END
-      FLIST = g_s_trim(FN, ' ');
+      FLIST = TRIM(FN);
       INDEXNAME = I_N;
     END
     ELSE
-      FLIST = FLIST || ',' || g_s_trim(FN, ' ');
+      FLIST = FLIST || ',' || TRIM(FN);
   END
   IF (INDEXNAME <> ' ') THEN
     BEGIN
@@ -6956,8 +6946,8 @@ BEGIN
      t.triggername IS NULL AND rdb$relation_name = :RELATION_NAME
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
-    RN = G_S_TRIM(RN, ' ');
-    TN = G_S_TRIM(TN, ' ');
+    RN = TRIM(RN);
+    TN = TRIM(TN);
     IF (TI IS NULL) THEN
       TI = 0;
     IF (TI > 1) THEN
@@ -7029,8 +7019,8 @@ BEGIN
       (i.indexname IS NULL) AND (r.id IS NOT NULL)
     INTO :RN, :I_N, :II, :UF, :ID
   DO BEGIN
-    RN = trim(RN);
-    I_N = trim(I_N);
+    RN = TRIM(RN);
+    I_N = TRIM(I_N);
     IF (II <> 0) THEN
       II = 1;
     IF (UF <> 0) THEN
@@ -7079,11 +7069,11 @@ BEGIN
         IF ((FL <> FLIST) OR (FL IS NULL)) THEN
           UPDATE at_indices SET fieldslist = :FLIST WHERE indexname = :INDEXNAME;
       END
-      FLIST = UPPER(trim(FN));
+      FLIST = UPPER(TRIM(FN));
       INDEXNAME = I_N;
     END
     ELSE
-      FLIST = FLIST || ',' || UPPER(trim(FN));
+      FLIST = FLIST || ',' || UPPER(TRIM(FN));
   END
   IF (INDEXNAME <> ' ') THEN
     BEGIN
@@ -7128,8 +7118,8 @@ BEGIN
      (t.triggername IS NULL) and (r.id IS NOT NULL)
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
-    RN = G_S_TRIM(RN, ' ');
-    TN = G_S_TRIM(TN, ' ');
+    RN = TRIM(RN);
+    TN = TRIM(TN);
     IF (TI IS NULL) THEN
       TI = 0;
     IF (TI > 1) THEN
@@ -20903,7 +20893,7 @@ SET TERM ; ^
 
 /*
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -20971,30 +20961,33 @@ VALUES (150001, 'Administrator', 'Administrator', -1, 'Администратор', 'Админист
 -- gd_curr
 -- 200001..250000
 
-INSERT INTO gd_curr
+UPDATE OR INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
-     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
-  VALUES (200010, 0, 1, 'BYR', 'Белорусский рубль', 'BYR', 'Br',
-     1, 0, '', '', 1, NULL, NULL, 'белорусских рублей', 'белорусских рубля', '', '');
+     fullcentname, shortcentname, centbase, icon, reserved, ISO, name_0, name_1, centname_0, centname_1)
+  VALUES (200010, 0, 1, 'BYN', 'Белорусский рубль', 'руб.', 'Br',
+     1, 2, 'копейка', 'коп.', 1, NULL, NULL, '933', 'белорусских рублей', 'белорусских рубля', 'копеек', 'копейки')
+  MATCHING (id);   
 
-INSERT INTO gd_curr
+UPDATE OR INSERT INTO gd_curr
   (id, disabled, isNCU, isEq, code, name, shortname, sign, place, decdigits,
-     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
+     fullcentname, shortcentname, centbase, icon, reserved, ISO, name_0, name_1, centname_0, centname_1)
   VALUES (200020, 0, 0, 1, 'USD', 'Доллар США', 'USD', '$',
-     0, 2, 'цент', 'ц.', 1, NULL, NULL, 'долларов США', 'доллара США', 'центов', 'цента');
+     0, 2, 'цент', 'ц.', 1, NULL, NULL, '840', 'долларов США', 'доллара США', 'центов', 'цента')
+  MATCHING (id);   
 
-INSERT INTO gd_curr
+UPDATE OR INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
-     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
-  VALUES (200040, 0, 0, 'EUR', 'Евро', 'EUR', 'EUR',
-     1, 2, 'евроцент', 'ц.', 1, NULL, NULL, 'евро', 'евро', 'евроцентов', 'евроцента');
+     fullcentname, shortcentname, centbase, icon, reserved, ISO, name_0, name_1, centname_0, centname_1)
+  VALUES (200040, 0, 0, 'EUR', 'Евро', 'евро', '€',
+     1, 2, 'евроцент', 'ц.', 1, NULL, NULL, '978', 'евро', 'евро', 'евроцентов', 'евроцента')
+  MATCHING (id);   
 
-INSERT INTO gd_curr
+UPDATE OR INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
-     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
-  VALUES (200050, 0, 0, 'RUB', 'Российский рубль', 'RUB', 'р.',
-     1, 2, 'копейка', 'к.', 1, NULL, NULL, 'российских рублей', 'российских рубля', 'копеек', 'копейки');
-
+     fullcentname, shortcentname, centbase, icon, reserved, ISO, name_0, name_1, centname_0, centname_1)
+  VALUES (200050, 0, 0, 'RUB', 'Российский рубль', 'р.', 'RUB',
+     1, 2, 'копейка', 'коп.', 1, NULL, NULL, '643', 'российских рублей', 'российских рубля', 'копеек', 'копейки')
+  MATCHING (id);   
 
 -- ac_account
 -- 300001..399999
@@ -21451,7 +21444,7 @@ INSERT INTO GD_BANK
     VALUES (
       715000,
       710000,
-      'Банк',
+      'Банк и касса',
       'bank',
       NULL,
       104
@@ -22237,7 +22230,30 @@ INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editork
   VALUES (990010, 'USER - Administrator', 'U', 150001, '01.01.2000', 650002);
 INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editorkey)
   VALUES (990020, 'COMPANY - <Ввести наименование организации>', 'O', 650010, '01.01.2000', 650002);
+  
+SET TERM ^ ;
 
+EXECUTE BLOCK
+AS
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE ID2 INTEGER;
+BEGIN
+  ID = GEN_ID(gd_g_unique, 1);
+  ID2 = GEN_ID(gd_g_unique, 1);
+  
+  INSERT INTO gd_storage_data (id, parent, name, data_type, editiondate, editorkey)
+    VALUES (:ID, 990000, 'Options', 'F', '01.01.2000', 650002);  
+  INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
+    VALUES (:ID, 147072890, 2032709850, '01.01.2000', 650002);  
+    
+  INSERT INTO gd_storage_data (id, parent, name, data_type, int_data, editiondate, editorkey)
+    VALUES (:ID2, :ID, 'dnmn', 'L', 1, '01.01.2000', 650002);  
+  INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey)
+    VALUES (:ID2, 148919177, 537677461, '01.01.2000', 650002);  
+END  
+^
+
+SET TERM ; ^
 
 -- evt_macrosgroup
 

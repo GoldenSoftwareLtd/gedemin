@@ -48,14 +48,6 @@ BEGIN
        INSERT (fieldname, lname, description)
        VALUES (TRIM(src.rdb$field_name), TRIM(src.rdb$field_name), TRIM(src.rdb$field_name)); 
 
-   /* 
-   INSERT INTO AT_FIELDS (fieldname, lname, description)
-   SELECT trim(rdb$field_name), trim(rdb$field_name),
-     trim(rdb$field_name)
-   FROM rdb$fields LEFT JOIN at_fields ON rdb$field_name = fieldname
-     WHERE fieldname IS NULL;
-   */ 
-  
  /* дл€ _снуючых палЄҐ аднав_м _нфармацыю аб тыпе */ 
    FOR 
      SELECT fieldsource, fieldname, relationname 
@@ -165,8 +157,8 @@ BEGIN
    BEGIN 
  /* ѕеречитаем домены. “еперь те домены, которые были проблемными добав€тс€ без ошибок */ 
      INSERT INTO AT_FIELDS (fieldname, lname, description)
-     SELECT g_s_trim(rdb$field_name, ' '), g_s_trim(rdb$field_name, ' '),
-       g_s_trim(rdb$field_name, ' ')
+     SELECT TRIM(rdb$field_name), TRIM(rdb$field_name),
+       TRIM(rdb$field_name)
      FROM rdb$fields LEFT JOIN at_fields ON rdb$field_name = fieldname
        WHERE fieldname IS NULL;
    END 
@@ -184,7 +176,7 @@ BEGIN
      WHERE (relationname IS NULL) AND (NOT rdb$relation_name CONTAINING 'RDB$') 
      INTO :RN, :VS 
    DO BEGIN 
-     RN = g_s_trim(RN, ' '); 
+     RN = TRIM(RN); 
      IF (:VS IS NULL) THEN 
        INSERT INTO at_relations (relationname, relationtype, lname, lshortname, description) 
        VALUES (:RN, 'T', :RN, :RN, :RN); 
@@ -207,9 +199,9 @@ BEGIN
      INTO 
        :FN, :FS, :RN, :ID, :ID1 
    DO BEGIN 
-     FN = g_s_trim(FN, ' '); 
-     FS = g_s_trim(FS, ' '); 
-     RN = g_s_trim(RN, ' '); 
+     FN = TRIM(FN); 
+     FS = TRIM(FS); 
+     RN = TRIM(RN); 
      INSERT INTO at_relation_fields (fieldname, relationname, fieldsource, lname, description, 
        relationkey, fieldsourcekey, colwidth, visible) 
      VALUES(:FN, :RN, :FS, :FN, :FN, :ID, :ID1, 20, 1); 
@@ -247,7 +239,7 @@ BEGIN
   
  /* дадаем новы€ выключэннi */ 
    INSERT INTO at_exceptions(exceptionname)
-   SELECT g_s_trim(rdb$exception_name, ' ')
+   SELECT TRIM(rdb$exception_name)
    FROM rdb$exceptions
    LEFT JOIN at_exceptions e ON e.exceptionname=rdb$exception_name
    WHERE e.exceptionname IS NULL;
@@ -266,7 +258,7 @@ BEGIN
   
  /* дадаем новы€ працэдуры */ 
    INSERT INTO at_procedures(procedurename)
-   SELECT g_s_trim(rdb$procedure_name, ' ')
+   SELECT TRIM(rdb$procedure_name)
    FROM rdb$procedures
    LEFT JOIN at_procedures e ON e.procedurename = rdb$procedure_name
    WHERE e.procedurename IS NULL;
@@ -286,7 +278,7 @@ BEGIN
        
  /* добавим новые генераторы */  
    INSERT INTO at_generators(generatorname)
-   SELECT G_S_TRIM(rdb$generator_name, ' ')
+   SELECT TRIM(rdb$generator_name)
    FROM rdb$generators
    LEFT JOIN at_generators t ON t.generatorname=rdb$generator_name
    WHERE t.generatorname IS NULL;
@@ -304,17 +296,6 @@ BEGIN
      DELETE FROM AT_CHECK_CONSTRAINTS WHERE CHECKNAME = :EN; 
    END 
        
- /* добавим новые чеки */
- /*
-   INSERT INTO AT_CHECK_CONSTRAINTS(CHECKNAME)
-   SELECT TRIM(C.RDB$CONSTRAINT_NAME)
-   FROM RDB$TRIGGERS T
-   LEFT JOIN RDB$CHECK_CONSTRAINTS C ON C.RDB$TRIGGER_NAME = T.RDB$TRIGGER_NAME
-   LEFT JOIN AT_CHECK_CONSTRAINTS CON ON CON.CHECKNAME = C.RDB$CONSTRAINT_NAME
-   WHERE T.RDB$TRIGGER_SOURCE LIKE 'CHECK%'
-     AND CON.CHECKNAME IS NULL;
- */    
-
    MERGE INTO at_check_constraints cc
    USING
      (
@@ -379,8 +360,8 @@ BEGIN
       II = 1;
     IF (UF > 1) THEN
       UF = 1;
-    RN = g_s_trim(RN, ' ');
-    I_N = g_s_trim(I_N, ' ');
+    RN = TRIM(RN);
+    I_N = TRIM(I_N);
     INSERT INTO at_indices(relationname, indexname, relationkey, unique_flag, index_inactive)
     VALUES (:RN, :I_N, :ID, :UF, :II);
   END
@@ -431,11 +412,11 @@ BEGIN
         IF ((FL <> FLIST) OR (FL IS NULL)) THEN
           UPDATE at_indices SET fieldslist = :FLIST WHERE indexname = :INDEXNAME;
       END
-      FLIST = g_s_trim(FN, ' ');
+      FLIST = TRIM(FN);
       INDEXNAME = I_N;
     END
     ELSE
-      FLIST = FLIST || ',' || g_s_trim(FN, ' ');
+      FLIST = FLIST || ',' || TRIM(FN);
   END
   IF (INDEXNAME <> ' ') THEN
     BEGIN
@@ -482,8 +463,8 @@ BEGIN
      t.triggername IS NULL AND rdb$relation_name = :RELATION_NAME
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
-    RN = G_S_TRIM(RN, ' ');
-    TN = G_S_TRIM(TN, ' ');
+    RN = TRIM(RN);
+    TN = TRIM(TN);
     IF (TI IS NULL) THEN
       TI = 0;
     IF (TI > 1) THEN
@@ -555,8 +536,8 @@ BEGIN
       (i.indexname IS NULL) AND (r.id IS NOT NULL)
     INTO :RN, :I_N, :II, :UF, :ID
   DO BEGIN
-    RN = trim(RN);
-    I_N = trim(I_N);
+    RN = TRIM(RN);
+    I_N = TRIM(I_N);
     IF (II <> 0) THEN
       II = 1;
     IF (UF <> 0) THEN
@@ -605,11 +586,11 @@ BEGIN
         IF ((FL <> FLIST) OR (FL IS NULL)) THEN
           UPDATE at_indices SET fieldslist = :FLIST WHERE indexname = :INDEXNAME;
       END
-      FLIST = UPPER(trim(FN));
+      FLIST = UPPER(TRIM(FN));
       INDEXNAME = I_N;
     END
     ELSE
-      FLIST = FLIST || ',' || UPPER(trim(FN));
+      FLIST = FLIST || ',' || UPPER(TRIM(FN));
   END
   IF (INDEXNAME <> ' ') THEN
     BEGIN
@@ -654,8 +635,8 @@ BEGIN
      (t.triggername IS NULL) and (r.id IS NOT NULL)
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
-    RN = G_S_TRIM(RN, ' ');
-    TN = G_S_TRIM(TN, ' ');
+    RN = TRIM(RN);
+    TN = TRIM(TN);
     IF (TI IS NULL) THEN
       TI = 0;
     IF (TI > 1) THEN

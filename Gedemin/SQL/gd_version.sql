@@ -791,6 +791,15 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (253, '0000.0001.0000.0284', '13.04.2016', 'at_aiu_namespace_link fixed #2.');    
   
+INSERT INTO fin_versioninfo
+  VALUES (254, '0000.0001.0000.0285', '01.07.2016', 'BYN');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (255, '0000.0001.0000.0286', '03.07.2016', 'Correct sub accounts');    
+  
+INSERT INTO fin_versioninfo
+  VALUES (256, '0000.0001.0000.0287', '06.08.2016', 'Correct client address of GD_JOURNAL');    
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

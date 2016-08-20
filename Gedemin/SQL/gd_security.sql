@@ -416,7 +416,7 @@ CREATE TABLE gd_journal
 (
   id               dintkey,
   contactkey       dforeignkey,
-  clientaddress    CHAR(15),
+  clientaddress    dtext40,
   operationdate    dtimestamp_notnull,
   source           dtext40,
   objectid         dforeignkey,
