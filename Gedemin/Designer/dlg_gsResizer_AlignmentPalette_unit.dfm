@@ -10,7 +10,7 @@ object dlg_gsResizer_AlignmentPalette: Tdlg_gsResizer_AlignmentPalette
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   FormStyle = fsStayOnTop
   OldCreateOrder = True

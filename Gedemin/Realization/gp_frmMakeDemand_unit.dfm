@@ -5,7 +5,7 @@ inherited frmMakeDemand: TfrmMakeDemand
   Height = 481
   Caption = '—писок накладных дл€ формировани€ требований'
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13

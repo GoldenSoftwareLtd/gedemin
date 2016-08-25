@@ -12,7 +12,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
     Font.Charset = DEFAULT_CHARSET
     Font.Color = 16724787
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 0
@@ -51,13 +51,13 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
       object lAvail: TLabel
         Left = 4
         Top = 2
-        Width = 52
+        Width = 53
         Height = 13
         Caption = 'Доступно:'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         Transparent = True
@@ -72,7 +72,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         Transparent = True
@@ -88,7 +88,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ItemHeight = 13
         MultiSelect = True
@@ -99,6 +99,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         TabOrder = 0
         OnDblClick = lbAvailDblClick
         OnKeyDown = lbAvailKeyDown
+        OnKeyPress = lbAvailKeyPress
       end
       object bUp: TButton
         Left = 123
@@ -106,11 +107,10 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Width = 40
         Height = 17
         Action = actUp
-        Caption = 'Вверх'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         TabOrder = 5
@@ -124,7 +124,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         TabOrder = 6
@@ -138,7 +138,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         TabOrder = 2
@@ -152,7 +152,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         TabOrder = 1
@@ -166,7 +166,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         TabOrder = 4
@@ -180,7 +180,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         TabOrder = 3
@@ -195,13 +195,14 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ItemHeight = 13
         ParentFont = False
         TabOrder = 7
         OnDblClick = lbSelectedDblClick
         OnKeyDown = lbSelectedKeyDown
+        OnKeyPress = lbSelectedKeyPress
       end
     end
   end

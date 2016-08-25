@@ -618,7 +618,7 @@ inherited FunctionFrame: TFunctionFrame
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clCaptionText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
           TabOrder = 0

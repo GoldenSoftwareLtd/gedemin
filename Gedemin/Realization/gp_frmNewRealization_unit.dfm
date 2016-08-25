@@ -5,7 +5,7 @@ inherited Form1: TForm1
   Height = 480
   Caption = 'Список документов на реализацию'
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   PixelsPerInch = 96
   TextHeight = 13
   inherited Splitter: TSplitter

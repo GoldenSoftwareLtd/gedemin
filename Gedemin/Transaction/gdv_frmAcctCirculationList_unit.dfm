@@ -44,7 +44,6 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
     inherited ibgrMain: TgsIBGrid
       Width = 785
       Height = 559
-      OnGetTotal = ibgrMainGetTotal
     end
   end
   inherited TBDock2: TTBDock
@@ -151,7 +150,6 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
         Visible = False
         inherited ppAnalytics: TgdvParamPanel
           Width = 224
-          Visible = False
         end
       end
       inherited frAcctCompany: TfrAcctCompany
@@ -244,6 +242,9 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
       Caption = 'Карта по счету'
       Hint = 'Карта по счету'
       ImageIndex = 220
+    end
+    inherited actRun: TAction
+      OnUpdate = actRunUpdate
     end
     inherited actGoto: TAction
       Caption = 'Перейти на карту счета'

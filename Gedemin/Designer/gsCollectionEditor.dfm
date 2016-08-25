@@ -9,7 +9,7 @@ object FrmCollectionEditor: TFrmCollectionEditor
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   PopupMenu = popupMain
@@ -22,7 +22,7 @@ object FrmCollectionEditor: TFrmCollectionEditor
   object TlBrActions: TToolBar
     Left = 0
     Top = 0
-    Width = 341
+    Width = 333
     Height = 25
     ButtonWidth = 24
     Caption = 'TlBrActions'
@@ -95,7 +95,7 @@ object FrmCollectionEditor: TFrmCollectionEditor
     Left = 0
     Top = 25
     Width = 119
-    Height = 327
+    Height = 319
     Align = alLeft
     BevelOuter = bvNone
     BorderWidth = 3
@@ -108,12 +108,18 @@ object FrmCollectionEditor: TFrmCollectionEditor
       Align = alTop
       AutoSize = False
       Caption = 'Категории:'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
     end
     object LstBxCategories: TListBox
       Left = 3
       Top = 20
       Width = 113
-      Height = 304
+      Height = 296
       Cursor = crArrow
       Align = alClient
       ItemHeight = 13
@@ -125,8 +131,8 @@ object FrmCollectionEditor: TFrmCollectionEditor
   object pnlActions: TPanel
     Left = 119
     Top = 25
-    Width = 222
-    Height = 327
+    Width = 214
+    Height = 319
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 3
@@ -134,7 +140,7 @@ object FrmCollectionEditor: TFrmCollectionEditor
     object LblActions: TLabel
       Left = 3
       Top = 3
-      Width = 216
+      Width = 208
       Height = 17
       Align = alTop
       AutoSize = False
@@ -143,8 +149,8 @@ object FrmCollectionEditor: TFrmCollectionEditor
     object LstBxActions: TListBox
       Left = 3
       Top = 20
-      Width = 216
-      Height = 304
+      Width = 208
+      Height = 296
       Cursor = crArrow
       Align = alClient
       ItemHeight = 13

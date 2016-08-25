@@ -9,7 +9,7 @@ object gd_modify_main: Tgd_modify_main
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -10
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter

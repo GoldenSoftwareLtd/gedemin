@@ -16,7 +16,7 @@ object frAcctAnalyticLine: TfrAcctAnalyticLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ParentColor = False
     ParentFont = False
@@ -31,7 +31,7 @@ object frAcctAnalyticLine: TfrAcctAnalyticLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     ParentShowHint = False
@@ -50,7 +50,7 @@ object frAcctAnalyticLine: TfrAcctAnalyticLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     MaxLength = 10
     ParentFont = False
@@ -67,7 +67,7 @@ object frAcctAnalyticLine: TfrAcctAnalyticLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     TabOrder = 0

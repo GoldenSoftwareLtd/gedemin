@@ -8,7 +8,7 @@ object TestMemoryLeak: TTestMemoryLeak
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -10
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   PixelsPerInch = 96

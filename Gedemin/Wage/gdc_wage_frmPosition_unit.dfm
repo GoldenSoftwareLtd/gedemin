@@ -4,7 +4,7 @@ inherited gdc_wage_frmPosition: Tgdc_wage_frmPosition
   Width = 696
   Height = 480
   Caption = 'Должности'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 14

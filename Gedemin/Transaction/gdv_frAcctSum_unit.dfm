@@ -18,7 +18,7 @@ object frAcctSum: TfrAcctSum
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clNavy
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 0
@@ -50,7 +50,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -63,7 +63,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -76,7 +76,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         TabOrder = 0
@@ -144,7 +144,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -157,7 +157,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -170,7 +170,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -237,7 +237,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -250,7 +250,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -263,7 +263,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -276,7 +276,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -289,7 +289,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
       end
@@ -303,7 +303,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         State = cbChecked
@@ -362,7 +362,7 @@ object frAcctSum: TfrAcctSum
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         TabOrder = 3

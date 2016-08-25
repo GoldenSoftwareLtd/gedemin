@@ -4,7 +4,7 @@ inherited gdc_frmInvRemainsOption: Tgdc_frmInvRemainsOption
   Width = 696
   Height = 480
   Caption = 'Настройка остатков'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

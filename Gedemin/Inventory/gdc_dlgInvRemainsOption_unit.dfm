@@ -5,7 +5,7 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
   ClientHeight = 306
   ClientWidth = 487
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 14

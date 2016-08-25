@@ -40,7 +40,7 @@ inherited dlgBaseAcctConfig: TdlgBaseAcctConfig
     Top = 0
     Width = 536
     Height = 428
-    ActivePage = tsAnalytics
+    ActivePage = tsGeneral
     Align = alLeft
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0

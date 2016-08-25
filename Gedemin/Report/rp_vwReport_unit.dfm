@@ -9,7 +9,7 @@ object vwReport: TvwReport
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
   Font.Height = -14
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
@@ -59,7 +59,7 @@ object vwReport: TvwReport
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
     Font.Height = -15
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     HideSelection = False
     Images = ImageList1

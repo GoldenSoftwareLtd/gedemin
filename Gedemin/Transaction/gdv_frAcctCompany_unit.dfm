@@ -16,7 +16,7 @@ object frAcctCompany: TfrAcctCompany
     Font.Charset = DEFAULT_CHARSET
     Font.Color = 6513193
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentColor = True
     ParentFont = False
@@ -40,7 +40,7 @@ object frAcctCompany: TfrAcctCompany
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -11
-      Font.Name = 'MS Sans Serif'
+      Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
       Transparent = True
@@ -56,7 +56,7 @@ object frAcctCompany: TfrAcctCompany
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -11
-      Font.Name = 'MS Sans Serif'
+      Font.Name = 'Tahoma'
       Font.Style = []
       ParentColor = False
       ParentFont = False
@@ -77,7 +77,7 @@ object frAcctCompany: TfrAcctCompany
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -11
-      Font.Name = 'MS Sans Serif'
+      Font.Name = 'Tahoma'
       Font.Style = []
       ItemHeight = 13
       ParentFont = False

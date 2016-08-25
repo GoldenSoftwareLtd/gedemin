@@ -4,7 +4,7 @@ inherited gdc_frmSQLStatement: Tgdc_frmSQLStatement
   Width = 870
   Height = 640
   Caption = 'gdc_frmSQLStatement'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

@@ -8,7 +8,7 @@ object tmp_ScanTemplate: Ttmp_ScanTemplate
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -118,7 +118,7 @@ object tmp_ScanTemplate: Ttmp_ScanTemplate
       TitleFont.Charset = DEFAULT_CHARSET
       TitleFont.Color = clWindowText
       TitleFont.Height = -11
-      TitleFont.Name = 'MS Sans Serif'
+      TitleFont.Name = 'Tahoma'
       TitleFont.Style = []
     end
     object cbTables: TComboBox
@@ -142,7 +142,7 @@ object tmp_ScanTemplate: Ttmp_ScanTemplate
       TitleFont.Charset = DEFAULT_CHARSET
       TitleFont.Color = clWindowText
       TitleFont.Height = -11
-      TitleFont.Name = 'MS Sans Serif'
+      TitleFont.Name = 'Tahoma'
       TitleFont.Style = []
     end
   end

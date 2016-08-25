@@ -5,7 +5,7 @@ inherited frmContractSell: TfrmContractSell
   Height = 480
   Caption = 'Договора на поставку ТМЦ'
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar

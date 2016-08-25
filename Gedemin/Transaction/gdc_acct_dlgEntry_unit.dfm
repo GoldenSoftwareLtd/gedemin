@@ -294,6 +294,9 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           ListTable = 'ac_transaction'
           ListField = 'name'
           KeyField = 'ID'
+          Condition = 
+            '(ac_transaction.AUTOTRANSACTION IS NULL OR ac_transaction.AUTOTR' +
+            'ANSACTION = 0)'
           gdClassName = 'TgdcAcctTransaction'
           ItemHeight = 13
           ParentShowHint = False

@@ -5,7 +5,7 @@ inherited gdc_frmJournal: Tgdc_frmJournal
   Height = 540
   HelpContext = 58
   Caption = 'gdc_frmJournal'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar

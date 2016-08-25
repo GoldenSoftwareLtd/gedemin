@@ -20,7 +20,7 @@ object frFieldValuesLine: TfrFieldValuesLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ParentColor = False
     ParentFont = False
@@ -91,7 +91,7 @@ object frFieldValuesLine: TfrFieldValuesLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     Visible = False
@@ -106,7 +106,7 @@ object frFieldValuesLine: TfrFieldValuesLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ItemHeight = 13
     ParentFont = False
@@ -124,7 +124,7 @@ object frFieldValuesLine: TfrFieldValuesLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     MaxLength = 10
     ParentFont = False
@@ -141,7 +141,7 @@ object frFieldValuesLine: TfrFieldValuesLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     TabOrder = 0
@@ -156,7 +156,7 @@ object frFieldValuesLine: TfrFieldValuesLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     TabOrder = 3
@@ -171,7 +171,7 @@ object frFieldValuesLine: TfrFieldValuesLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ItemHeight = 13
     ParentFont = False
@@ -187,7 +187,7 @@ object frFieldValuesLine: TfrFieldValuesLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     TabOrder = 5
@@ -204,7 +204,7 @@ object frFieldValuesLine: TfrFieldValuesLine
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     MaxLength = 10
     ParentFont = False

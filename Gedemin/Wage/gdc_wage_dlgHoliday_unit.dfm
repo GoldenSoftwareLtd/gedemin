@@ -5,7 +5,7 @@ inherited gdc_wage_dlgHoliday: Tgdc_wage_dlgHoliday
   ClientHeight = 149
   ClientWidth = 388
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 14

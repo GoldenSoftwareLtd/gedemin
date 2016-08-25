@@ -5,7 +5,7 @@ inherited gdc_wage_dlgTableCalendar: Tgdc_wage_dlgTableCalendar
   ClientHeight = 342
   ClientWidth = 485
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

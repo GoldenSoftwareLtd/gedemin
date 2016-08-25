@@ -5,7 +5,7 @@ inherited gdc_dlgSQLStatement: Tgdc_dlgSQLStatement
   ClientHeight = 367
   ClientWidth = 471
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   OnCreate = FormCreate
   PixelsPerInch = 96

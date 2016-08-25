@@ -4,7 +4,7 @@ inherited gdc_wage_frmHoliday: Tgdc_wage_frmHoliday
   Width = 696
   Height = 480
   Caption = 'Государственные праздники'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 14

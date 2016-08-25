@@ -5,7 +5,7 @@ inherited gdc_dlgBlockRule: Tgdc_dlgBlockRule
   ClientHeight = 453
   ClientWidth = 920
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

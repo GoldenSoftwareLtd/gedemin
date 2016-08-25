@@ -1,37 +1,39 @@
 inherited gdc_dlgBankStatement: Tgdc_dlgBankStatement
-  Left = 305
-  Top = 280
+  Left = 307
+  Top = 281
   Width = 896
-  Height = 557
+  Height = 575
   Caption = 'Банковская выписка'
   OnClose = FormClose
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 502
+    Top = 508
     TabOrder = 3
   end
   inherited btnNew: TButton
-    Top = 502
+    Left = 82
+    Top = 508
     TabOrder = 4
   end
   inherited btnHelp: TButton
-    Top = 502
+    Left = 156
+    Top = 508
     TabOrder = 5
   end
   inherited btnOK: TButton
-    Left = 733
-    Top = 502
+    Left = 730
+    Top = 508
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 810
-    Top = 502
+    Left = 803
+    Top = 508
     TabOrder = 2
   end
   inherited pnlMain: TPanel
     Width = 880
-    Height = 495
+    Height = 503
     TabOrder = 0
     inherited splMain: TSplitter
       Top = 86
@@ -40,11 +42,11 @@ inherited gdc_dlgBankStatement: Tgdc_dlgBankStatement
     inherited pnlDetail: TPanel
       Top = 90
       Width = 880
-      Height = 405
+      Height = 413
       TabOrder = 1
       inherited ibgrDetail: TgsIBGrid
         Width = 862
-        Height = 370
+        Height = 378
         Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         ColumnEditors = <
           item
@@ -127,14 +129,14 @@ inherited gdc_dlgBankStatement: Tgdc_dlgBankStatement
         Width = 880
       end
       inherited tbdLeft: TTBDock
-        Height = 370
+        Height = 378
       end
       inherited tbdRight: TTBDock
         Left = 871
-        Height = 370
+        Height = 378
       end
       inherited tbdBottom: TTBDock
-        Top = 396
+        Top = 404
         Width = 880
       end
     end

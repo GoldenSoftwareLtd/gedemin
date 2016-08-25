@@ -10,10 +10,10 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   TextHeight = 13
   inherited sLeft: TSplitter
     Left = 273
-    Height = 554
+    Height = 561
   end
   inherited TBDock1: TTBDock
-    Width = 1050
+    Width = 1058
     inherited tbMainToolbar: TTBToolbar
       DockPos = -5
     end
@@ -44,32 +44,32 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   end
   inherited Panel1: TPanel
     Left = 279
-    Width = 762
-    Height = 554
+    Width = 770
+    Height = 561
     TabOrder = 2
     inherited ibgrMain: TgsIBGrid
-      Width = 762
-      Height = 554
+      Width = 770
+      Height = 561
     end
   end
   inherited TBDock2: TTBDock
-    Height = 554
+    Height = 561
   end
   inherited TBDock3: TTBDock
-    Left = 1041
-    Height = 554
+    Left = 1049
+    Height = 561
   end
   inherited TBDock4: TTBDock
-    Top = 584
-    Width = 1050
+    Top = 591
+    Width = 1058
   end
   inherited pLeft: TPanel
     Width = 264
-    Height = 554
+    Height = 561
     TabOrder = 1
     inherited ScrollBox: TScrollBox
       Width = 264
-      Height = 537
+      Height = 544
       inherited Panel5: TPanel
         Top = 184
         Width = 247
@@ -216,7 +216,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentColor = False
           ParentFont = False
@@ -265,7 +265,6 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
             BorderStyle = bsNone
             Color = 16316664
             DragMode = dmAutomatic
-            HideSelection = False
             Indent = 19
             RightClickSelect = True
             SortType = stText
@@ -293,6 +292,9 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   end
   inherited alMain: TActionList
     Top = 48
+    inherited actRun: TAction
+      OnUpdate = actRunUpdate
+    end
     inherited actGoto: TAction
       Caption = 'Перейти на карту счета'
       Hint = 'Перейти на карту счета'

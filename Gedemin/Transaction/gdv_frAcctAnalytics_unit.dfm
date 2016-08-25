@@ -20,7 +20,7 @@ object frAcctAnalytics: TfrAcctAnalytics
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clGreen
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentColor = True
     ParentFont = False

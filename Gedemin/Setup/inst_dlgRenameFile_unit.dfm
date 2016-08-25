@@ -10,7 +10,7 @@ object dlgRenameFile: TdlgRenameFile
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -10
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   HelpFile = 'GedyminGS.chm'
   OldCreateOrder = False
@@ -27,7 +27,7 @@ object dlgRenameFile: TdlgRenameFile
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     WordWrap = True
@@ -95,7 +95,7 @@ object dlgRenameFile: TdlgRenameFile
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     WordWrap = True
@@ -109,7 +109,7 @@ object dlgRenameFile: TdlgRenameFile
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
   end
@@ -122,7 +122,7 @@ object dlgRenameFile: TdlgRenameFile
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
   end
@@ -353,7 +353,7 @@ object dlgRenameFile: TdlgRenameFile
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
   end

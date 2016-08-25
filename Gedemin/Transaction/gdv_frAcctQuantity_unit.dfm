@@ -17,7 +17,7 @@ object frAcctQuantity: TfrAcctQuantity
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clPurple
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentColor = True
     ParentFont = False

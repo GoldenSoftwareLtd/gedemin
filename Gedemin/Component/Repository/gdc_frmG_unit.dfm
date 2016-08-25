@@ -1,5 +1,5 @@
 object gdc_frmG: Tgdc_frmG
-  Left = 269
+  Left = 272
   Top = 154
   Width = 1059
   Height = 784

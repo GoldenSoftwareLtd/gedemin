@@ -8,7 +8,7 @@ object MainTestForm2: TMainTestForm2
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -10
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   OnCreate = FormCreate
@@ -151,7 +151,7 @@ object MainTestForm2: TMainTestForm2
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -12
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     ItemHeight = 13
     ParentFont = False

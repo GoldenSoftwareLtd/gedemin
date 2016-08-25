@@ -771,7 +771,7 @@ object InstallMainFrom: TInstallMainFrom
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clLime
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
         ReadOnly = True

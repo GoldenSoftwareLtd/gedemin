@@ -11,7 +11,7 @@ object dlgOptionsManager: TdlgOptionsManager
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -10
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
@@ -809,7 +809,7 @@ object dlgOptionsManager: TdlgOptionsManager
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     MinFontSize = 0
     MaxFontSize = 0

@@ -5,7 +5,7 @@ inherited gdc_dlgFileFolder: Tgdc_dlgFileFolder
   ClientHeight = 167
   ClientWidth = 393
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

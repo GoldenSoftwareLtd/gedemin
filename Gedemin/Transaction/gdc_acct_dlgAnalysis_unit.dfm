@@ -7,7 +7,7 @@ inherited gdc_acct_dlgAnalysis: Tgdc_acct_dlgAnalysis
   ClientHeight = 140
   ClientWidth = 414
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

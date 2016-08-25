@@ -137,7 +137,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cbAccount: TgsIBLookupComboBox
           Left = 56
           Top = 3
-          Width = 380
+          Width = 397
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -173,7 +173,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cSum: TxDBCalculatorEdit
           Left = 56
           Top = 26
-          Width = 380
+          Width = 397
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 193
@@ -226,7 +226,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cRate: TxCalculatorEdit
           Left = 95
           Top = 95
-          Width = 341
+          Width = 358
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -245,7 +245,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cCurrSum: TxDBCalculatorEdit
           Left = 95
           Top = 118
-          Width = 341
+          Width = 358
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -266,7 +266,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cEQSum: TxDBCalculatorEdit
           Left = 122
           Top = 49
-          Width = 314
+          Width = 331
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           AutoSize = False
@@ -310,7 +310,6 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         inherited ppAnalytics: TgdvParamPanel
           Width = 425
           Color = 16053492
-          Font.Name = 'Tahoma'
           ParentColor = False
           TabStop = False
           HorisontalOffset = 8
@@ -328,7 +327,6 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Height = 33
           Color = 16053492
           Font.Color = 14705703
-          Font.Name = 'Tahoma'
           TabStop = False
           HorisontalOffset = 8
           FillColor = clWhite

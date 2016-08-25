@@ -4,7 +4,7 @@ inherited gdc_frmSQLHistory: Tgdc_frmSQLHistory
   Width = 1030
   Height = 640
   Caption = 'gdc_frmSQLHistory'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13

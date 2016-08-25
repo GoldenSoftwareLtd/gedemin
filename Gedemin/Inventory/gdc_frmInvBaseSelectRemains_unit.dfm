@@ -5,7 +5,7 @@ inherited gdc_frmInvBaseSelectRemains: Tgdc_frmInvBaseSelectRemains
   Height = 540
   Caption = 'gdc_frmInvBaseSelectRemains'
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   OnActivate = FormActivate
   PixelsPerInch = 96

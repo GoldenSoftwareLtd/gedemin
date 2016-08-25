@@ -1,6 +1,6 @@
 inherited gdc_frmSGR: Tgdc_frmSGR
-  Left = 258
-  Top = 218
+  Left = 259
+  Top = 219
   Width = 607
   Height = 448
   Caption = 'gdc_frmSGR'

@@ -5,7 +5,7 @@ inherited gdc_frmTNVD: Tgdc_frmTNVD
   Height = 480
   HelpContext = 45
   Caption = 'Коды ТНВД'
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 14

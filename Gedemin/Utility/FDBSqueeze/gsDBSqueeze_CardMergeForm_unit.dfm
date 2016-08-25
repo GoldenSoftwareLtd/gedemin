@@ -10,7 +10,7 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   PixelsPerInch = 96
@@ -183,7 +183,7 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
     Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goRowSelect]
     ParentFont = False

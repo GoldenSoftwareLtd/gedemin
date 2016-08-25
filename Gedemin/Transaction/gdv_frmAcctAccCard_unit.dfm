@@ -8,10 +8,10 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
   PixelsPerInch = 96
   TextHeight = 13
   inherited sLeft: TSplitter
-    Height = 597
+    Height = 604
   end
   inherited TBDock1: TTBDock
-    Width = 1026
+    Width = 1034
     inherited tbMainToolbar: TTBToolbar
       object TBSeparatorItem5: TTBSeparatorItem [4]
       end
@@ -36,30 +36,30 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
     end
   end
   inherited Panel1: TPanel
-    Width = 756
-    Height = 597
+    Width = 764
+    Height = 604
     TabOrder = 2
     inherited ibgrMain: TgsIBGrid
-      Width = 756
-      Height = 597
+      Width = 764
+      Height = 604
     end
   end
   inherited TBDock2: TTBDock
-    Height = 597
+    Height = 604
   end
   inherited TBDock3: TTBDock
-    Left = 1017
-    Height = 597
+    Left = 1025
+    Height = 604
   end
   inherited TBDock4: TTBDock
-    Top = 627
-    Width = 1026
+    Top = 634
+    Width = 1034
   end
   inherited pLeft: TPanel
-    Height = 597
+    Height = 604
     TabOrder = 1
     inherited ScrollBox: TScrollBox
-      Height = 580
+      Height = 587
       inherited Panel5: TPanel
         Height = 81
         inherited bAccounts: TButton
@@ -117,7 +117,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
         Font.Charset = DEFAULT_CHARSET
         Font.Color = 15692547
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = [fsBold]
         ParentColor = True
         ParentFont = False
@@ -140,7 +140,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
           Transparent = True
@@ -155,7 +155,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ItemHeight = 13
           ParentFont = False
@@ -190,7 +190,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentColor = False
           ParentFont = False
@@ -207,7 +207,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentColor = False
           ParentFont = False
@@ -223,7 +223,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentColor = False
           ParentFont = False
@@ -241,8 +241,8 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
   end
   object Panel3: TPanel [7]
     Left = 0
-    Top = 636
-    Width = 1026
+    Top = 643
+    Width = 1034
     Height = 81
     Align = alBottom
     BevelOuter = bvNone
@@ -251,7 +251,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
     object Bevel2: TBevel
       Left = 0
       Top = 0
-      Width = 1026
+      Width = 1034
       Height = 4
       Align = alTop
       Shape = bsBottomLine
@@ -550,6 +550,9 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
     DataSet = ibdsMain
   end
   inherited alMain: TActionList
+    inherited actRun: TAction
+      OnUpdate = actRunUpdate
+    end
     inherited actGoto: TAction
       Caption = 'ѕерейти в журнал хоз€йственных операций'
       Hint = 'ѕерейти в журнал хоз€йственных операций'

@@ -9,7 +9,7 @@ object frmSQLEditor: TfrmSQLEditor
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
@@ -189,7 +189,7 @@ object frmSQLEditor: TfrmSQLEditor
           TitleFont.Charset = DEFAULT_CHARSET
           TitleFont.Color = clWindowText
           TitleFont.Height = -11
-          TitleFont.Name = 'MS Sans Serif'
+          TitleFont.Name = 'Tahoma'
           TitleFont.Style = []
         end
       end
@@ -225,7 +225,7 @@ object frmSQLEditor: TfrmSQLEditor
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -12
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           GridLines = True
           RowSelect = True
@@ -258,7 +258,7 @@ object frmSQLEditor: TfrmSQLEditor
               Font.Charset = DEFAULT_CHARSET
               Font.Color = clWindowText
               Font.Height = -12
-              Font.Name = 'MS Sans Serif'
+              Font.Name = 'Tahoma'
               Font.Style = [fsBold]
               ParentFont = False
             end
@@ -298,7 +298,7 @@ object frmSQLEditor: TfrmSQLEditor
               Font.Charset = DEFAULT_CHARSET
               Font.Color = clWindowText
               Font.Height = -12
-              Font.Name = 'MS Sans Serif'
+              Font.Name = 'Tahoma'
               Font.Style = [fsBold]
               ParentFont = False
             end
@@ -386,7 +386,7 @@ object frmSQLEditor: TfrmSQLEditor
               Font.Charset = DEFAULT_CHARSET
               Font.Color = clWindowText
               Font.Height = -12
-              Font.Name = 'MS Sans Serif'
+              Font.Name = 'Tahoma'
               Font.Style = [fsBold]
               ParentFont = False
             end
