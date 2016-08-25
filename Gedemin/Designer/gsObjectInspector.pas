@@ -789,7 +789,7 @@ begin
   begin
     Brush.Color := clBtnFace;
     Pen.Color := clBtnShadow;
-    Font.Name := 'MS Sans Serif';
+    Font.Name := 'Tahoma';
     Font.Size := 8;
     if FItemList.PropItem[AIndex].IsDefaultValue then
       Font.Style := []

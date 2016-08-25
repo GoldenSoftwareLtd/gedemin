@@ -634,7 +634,8 @@ begin
       try
         TempQuery.Database := FDatabase;
         TempQuery.Transaction := FTransaction;
-        TempQuery.SQL.Text := 'SELECT * FROM rp_reportlist WHERE id = ' + IntToStr(AnReportKey);
+        TempQuery.SQL.Text := 'SELECT * FROM rp_reportlist WHERE id = :id';
+        TempQuery.ParamByName('id').AsInteger := AnReportKey;
         TempQuery.Open;
         if TempQuery.Eof then
           raise Exception.Create(Format('Запись отчета %d не найдена.', [AnReportKey]));
@@ -696,10 +697,6 @@ begin
   except
     on E: Exception do
       SaveLog(E.Message);
-{    on E: Exception do
-      if (Self is TClientReport) then
-        MessageBox(0, PChar('Произошла ошибка при поиске отчета.'#13#10 + E.Message),
-         'Ошибка', MB_OK or MB_ICONERROR);}
   end;
 end;
 
@@ -708,7 +705,6 @@ function TBaseReport.FindFunctionNow(const AnFunctionKey: Integer;
   const AnReadTemplate: Boolean): Boolean;
 var
   TempQuery: TIBQuery;
-//  ParamKey, MainKey, EventKey: Integer;
 begin
   {$IFDEF DEBUG}
   SaveLog('    FindFunctionNow');

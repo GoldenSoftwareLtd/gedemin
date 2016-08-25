@@ -327,7 +327,12 @@ begin
     FURI.URI := Gedemin_NameServerURL;
     if gdNotifierThread <> nil then
       gdNotifierThread.Add('Опрос сервера: ' + FURI.Host + '...', 0, 2000);
-    gdWebServerURL := FHTTP.Get(Gedemin_NameServerURL);
+    try
+      gdWebServerURL := FHTTP.Get(Gedemin_NameServerURL);
+    except
+      on E: Exception do
+        gdNotifierThread.Add('Ошибка: ' + E.Message);
+    end;
   end;
 
   if gdWebServerURL > '' then

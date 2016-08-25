@@ -232,7 +232,7 @@ begin
           end;
         end else
         begin
-          FormRootID := FE.GroupID;
+          FormRootID := FE.MacrosGroupID;
           IterateForms(FE);
         end;
     end;
@@ -244,6 +244,7 @@ begin
     else
       S := 'AND BIN_AND(r.aview, :InGroup) <> 0 ';
 
+    q.Close;
     q.SQL.Text :=
       'SELECT '#13#10 +
       '  g.id AS groupid, '#13#10 +
@@ -265,7 +266,6 @@ begin
     if S > '' then
       q.ParamByName('InGroup').AsInteger := IBLogin.InGroup;
 
-    q.Close;
     q.ExecQuery;
 
     while not q.EOF do

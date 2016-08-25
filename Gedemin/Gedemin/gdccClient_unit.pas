@@ -204,6 +204,11 @@ begin
               nil,
               PChar(ExtractFilePath(Application.EXEName)),
               SW_SHOW);
+
+            // надо ли тут этот слип не понятно
+            // как-бы даем время запуститься TCP
+            // серверу на стороне GDCC  
+            Sleep(400);
           end;
 
           if LoadCC and (FFileHandle <= 32) then
@@ -240,13 +245,15 @@ begin
     begin
       if FConnectionID.Value <> 0 then
       begin
+        FConnectionID.Value := 0;
         if (FTCPClient <> nil) and FTCPClient.Connected then
         begin
-          TgdccCommand.WriteCommand(FTCPClient, gdcc_cmd_Disconnect, FFileHandle);
-          FTCPClient.Disconnect;
+          try
+            TgdccCommand.WriteCommand(FTCPClient, gdcc_cmd_Disconnect, FFileHandle);
+          finally
+            FTCPClient.Disconnect;
+          end;
         end;
-
-        FConnectionID.Value := 0;
       end;
     end;
 
@@ -256,28 +263,30 @@ begin
       begin
         while FReceivedCommands.Count > 0 do
         begin
-          case (FReceivedCommands[0] as TgdccCommand).Hdr.Command of
-            gdcc_cmd_CancelProgress:
-              ProgressCanceled := True;
+          try
+            case (FReceivedCommands[0] as TgdccCommand).Hdr.Command of
+              gdcc_cmd_CancelProgress:
+                ProgressCanceled := True;
 
-            gdcc_cmd_ServerClosing:
-            begin
-              FreeAndNil(FTCPClient);
-              FConnectionID.Value := 0;
-              SetTimeOut(INFINITE);
+              gdcc_cmd_ServerClosing:
+              begin
+                FConnectionID.Value := 0;
+                FreeAndNil(FTCPClient);
+                SetTimeOut(INFINITE);
+              end;
+
+              gdcc_cmd_LogTransfered:
+              begin
+                if (FReceivedCommands[0] as TgdccCommand).Stream <> nil then
+                  FLogStr.Value := ReadStringFromStream((FReceivedCommands[0] as TgdccCommand).Stream);
+              end;
             end;
 
-            gdcc_cmd_LogTransfered:
-            begin
-              if (FReceivedCommands[0] as TgdccCommand).Stream <> nil then
-                FLogStr.Value := ReadStringFromStream((FReceivedCommands[0] as TgdccCommand).Stream);
-            end;
+            if FWaitingForCommand.Value = (FReceivedCommands[0] as TgdccCommand).Hdr.Command then
+              FWaitedForCommand.Value := (FReceivedCommands[0] as TgdccCommand).Hdr.Command;
+          finally
+            FReceivedCommands.Delete(0);
           end;
-
-          if FWaitingForCommand.Value = (FReceivedCommands[0] as TgdccCommand).Hdr.Command then
-            FWaitedForCommand.Value := (FReceivedCommands[0] as TgdccCommand).Hdr.Command;
-
-          FReceivedCommands.Delete(0);
         end;
       end;
     end;
@@ -302,7 +311,7 @@ begin
         end;
 
         if I <> nil then
-        begin
+        try
           if TgdccCommand.WriteCommand(FTCPClient, I.FCommand, I.FData) then
           begin
             if I.FWaitForCommand <> gdcc_cmd_Unknown then
@@ -316,9 +325,9 @@ begin
             FreeAndNil(FTCPClient);
             PostMsg(WM_GDCC_CONNECT);
           end;
-        end;
-
-        I.Free;
+        finally
+          I.Free;
+        end;  
 
         if FConnectionID.Value <> 0 then
         begin
@@ -393,6 +402,10 @@ begin
     try
       if FSendQueue = nil then
         FSendQueue := TObjectList.Create(True);
+
+      if FSendQueue.Count > 10000 then
+        FSendQueue.Delete(0);
+
       FSendQueue.Add(I);
     finally
       FSendCS.Leave;

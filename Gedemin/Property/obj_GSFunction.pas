@@ -154,7 +154,17 @@ type
     function  GetRubSumStr(D: OleVariant): OleVariant; safecall;
     function  GetFullRubSumStr(D: OleVariant): OleVariant; safecall;
 
+    function  GetNumeral(const AFormat: WideString; AValue: Double; ARounding: Double;
+                         AFracBase: Integer; ACase: Integer; AParts: Integer;
+                         const ANames: WideString): WideString; safecall;
+    function  GetCurrNumeral(ACurrKey: Integer; const AFormat: WideString; AValue: Double;
+                             ARounding: Double; ACase: Integer; AParts: Integer;
+                             const ASubst: WideString; const ADecimalSeparator: WideString;
+                             const AThousandSeparator: WideString): WideString; safecall;
+
     function  GetAccountKeyByAlias(const AnAlias: WideString): Integer; safecall;
+    function  MulDiv(ANumber: Double; ANumerator: Double; ADenominator: Double; 
+                     ARoundMethod: Integer; ADecPlaces: Integer): Double; safecall;
 
     property NumberConvert: TNumberConvert read GetNumberConvert;
 
@@ -2148,6 +2158,30 @@ begin
   Result := Self.GetAccountKey(AnAlias);
 end;
 
+function TobjGSFunction.GetCurrNumeral(ACurrKey: Integer;
+  const AFormat: WideString; AValue, ARounding: Double; ACase,
+  AParts: Integer; const ASubst, ADecimalSeparator,
+  AThousandSeparator: WideString): WideString;
+begin
+  Result := gd_convert.GetCurrNumeral(ACurrKey, AFormat, AValue, ARounding,
+    ACase, AParts, ASubst, ADecimalSeparator, AThousandSeparator);
+end;
+
+function TobjGSFunction.GetNumeral(const AFormat: WideString; AValue,
+  ARounding: Double; AFracBase, ACase, AParts: Integer;
+  const ANames: WideString): WideString;
+begin
+  Result := gd_convert.GetNumeral(AFormat, AValue, ARounding, AFracBase,
+    ACase, AParts, ANames);
+end;
+
+function TobjGSFunction.MulDiv(ANumber, ANumerator, ADenominator: Double;
+  ARoundMethod, ADecPlaces: Integer): Double;
+begin
+  Result := gd_convert.MulDiv(ANumber, ANumerator, ADenominator,
+    ARoundMethod, ADecPlaces);
+end;
+
 { TGsFunctionNotifier }
 
 procedure TGsFunctionNotifier.Notification(AComponent: TComponent;
@@ -2167,10 +2201,7 @@ initialization
   TAutoObjectFactory.Create(ComServer, TobjGSFunction, CLASS_gs_GSFunction,
     ciMultiInstance, tmApartment);
   gsFunction := TobjGSFunction.Create as IDispatch;
-//  gsSetTaxFunction := TgsSetTaxFunction.Create(nil);
 
 finalization
   gsFunction := nil;
-//  gsSetTaxFunction := nil;
-
 end.

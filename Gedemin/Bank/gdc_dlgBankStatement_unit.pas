@@ -209,7 +209,7 @@ begin
   ActivateTransaction(gdcObject.Transaction);
   SetCurrency;
 
-  {Обработка курса для валютный счетов}
+  {Обработка курса для валютных счетов}
   ibsql1 := TIBSQL.Create(nil);
   try
     ibsql1.Transaction := gdcObject.ReadTransaction;
@@ -230,7 +230,7 @@ begin
          (ibsql1.FieldByName('isncu').AsInteger = 0) and
          (gdcObject.State = dsInsert) and gdcObject.FieldByName('rate').IsNull
       then
-        gdcObject.FieldByName('rate').AsCurrency :=
+        gdcObject.FieldByName('rate').AsVariant :=
           gdcCurr.gs_GetCurrRate(gdcObject.FieldByName('documentdate').AsDateTime,
           ibsql1.FieldByName('currkey').AsInteger, gdcObject.ReadTransaction);
 
@@ -255,7 +255,7 @@ procedure Tgdc_dlgBankStatement.SyncField(Field: TField; SyncList: TList);
   {END MACRO}
 
   var
-    ARate: Currency; //Курс из справочника валют
+    ARate: Double; //Курс из справочника валют
     ibsql1: TIBSQL;
     RateWasChanged: Boolean; //Мы изменили курс => пересчитаем позиции
     gdcBSLine: TgdcBase;
@@ -329,7 +329,7 @@ begin
       if gdcObject.FieldByName('rate').IsNull
         or
         (
-          (ARate <> gdcObject.FieldByName('rate').AsCurrency)
+          (ARate <> gdcObject.FieldByName('rate').AsFloat)
           and
           (not gd_CmdLineParams.QuietMode)
           and
@@ -338,14 +338,14 @@ begin
           (MessageBox(0,
             PChar(Format('Введенный курс %g не соответствует курсу справочника %g.'#13#10 +
               'Изменить курс на курс из справочника?',
-              [gdcObject.FieldByName('rate').AsCurrency, ARate])),
+              [gdcObject.FieldByName('rate').AsFloat, ARate])),
             'Внимание',
             MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL or MB_DEFBUTTON2) = IDYES)
         ) then
       begin
         NotDoFieldChange := True;
         try
-          gdcObject.FieldByName('rate').AsCurrency := ARate;
+          gdcObject.FieldByName('rate').AsFloat := ARate;
           RateWasChanged := True;
         finally
           NotDoFieldChange := False;
@@ -355,7 +355,7 @@ begin
       ibsql1.Free;
     end;
 
-    if RateWasChanged and (gdcObject.FieldByName('rate').AsCurrency > 0) then
+    if RateWasChanged and (gdcObject.FieldByName('rate').AsFloat > 0) then
     begin
       //Поищем позицию выписки
 
@@ -377,12 +377,12 @@ begin
         if not gdcBSLine.FieldByName('dsumcurr').IsNull then
           gdcBSLine.FieldByName('dsumncu').AsCurrency :=
             gdcBSLine.FieldByName('dsumcurr').AsCurrency *
-            gdcObject.FieldByName('rate').AsCurrency;
+            gdcObject.FieldByName('rate').AsFloat;
 
         if not gdcBSLine.FieldByName('csumcurr').IsNull then
           gdcBSLine.FieldByName('csumncu').AsCurrency :=
             gdcBSLine.FieldByName('csumcurr').AsCurrency *
-            gdcObject.FieldByName('rate').AsCurrency;
+            gdcObject.FieldByName('rate').AsFloat;
 
         gdcBSLine.Post;
         gdcBSLine.Next;
@@ -443,7 +443,7 @@ begin
   else if (Field.DataSet = gdcDetailObject) and
     ((Field.FieldName = 'DSUMNCU') OR (Field.FieldName = 'DSUMCURR') OR
      (Field.FieldName = 'CSUMNCU') OR (Field.FieldName = 'CSUMCURR')) and
-    (gdcObject.FieldByName('RATE').AsCurrency > 0) and
+    (gdcObject.FieldByName('RATE').AsFloat > 0) and
     (Field.AsCurrency > 0) and
     (not cbDontRecalc.Checked)
   then begin
@@ -451,22 +451,22 @@ begin
     if (Field.FieldName = 'DSUMNCU') and
       (SyncList.IndexOf(gdcDetailObject.FieldByName('dsumcurr')) = -1) then
       gdcDetailObject.FieldByName('dsumcurr').AsCurrency :=
-        Field.AsCurrency / gdcObject.FieldByName('rate').AsCurrency;
+        Field.AsCurrency / gdcObject.FieldByName('rate').AsFloat;
 
     if (Field.FieldName = 'CSUMNCU') and
        (SyncList.IndexOf(gdcDetailObject.FieldByName('csumcurr')) = -1) then
       gdcDetailObject.FieldByName('csumcurr').AsCurrency :=
-        Field.AsCurrency / gdcObject.FieldByName('rate').AsCurrency;
+        Field.AsCurrency / gdcObject.FieldByName('rate').AsFloat;
 
     if (Field.FieldName = 'CSUMCURR') and
       (SyncList.IndexOf(gdcDetailObject.FieldByName('csumncu')) = -1) then
       gdcDetailObject.FieldByName('csumncu').AsCurrency :=
-        Field.AsCurrency * gdcObject.FieldByName('rate').AsCurrency;
+        Field.AsCurrency * gdcObject.FieldByName('rate').AsFloat;
 
     if (Field.FieldName = 'DSUMCURR') and
       (SyncList.IndexOf(gdcDetailObject.FieldByName('dsumncu')) = -1) then
       gdcDetailObject.FieldByName('dsumncu').AsCurrency :=
-        Field.AsCurrency * gdcObject.FieldByName('rate').AsCurrency;
+        Field.AsCurrency * gdcObject.FieldByName('rate').AsFloat;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGBANKSTATEMENT', 'SYNCFIELD', KEYSYNCFIELD)}

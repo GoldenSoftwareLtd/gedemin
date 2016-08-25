@@ -195,6 +195,9 @@ uses
   obj_VarParam, Gedemin_TLB, GDCOleClassList, prp_methods, rp_VBConsts,
   comobj, scr_i_FunctionList, gd_security_operationconst, gdcCustomFunction,
   gd_main_form, MSScriptControl_TLB, prp_frmGedeminProperty_Unit
+  {$IFDEF WITH_INDY}
+    , gdccClient_unit, gdccConst
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -380,11 +383,14 @@ begin
                 ErrScript := LocRS.Error.Description + ': ' + LocRS.Error.Text + #13#10 +
                   'Строка: ' + IntToStr(LocRS.Error.Line) + #13#10;
 
-                MessageBox(0, PChar(String('Ошибка загрузки блока глобальных констант ' +
-                  ibsqlConst.FieldByName('Name').AsString + '.'#13#10 + ErrScript + #13#10 +
-                  'Константы, объявленные в блоке будут не доступны.'#13#10 +
-                  'Обратитесь к администратору.')), 'Ошибка',
-                  MB_Ok or MB_ICONERROR or MB_TOPMOST);
+                {$IFDEF WITH_INDY}
+                if gdccClient <> nil then
+                begin
+                  gdccClient.AddLogRecord('script', 'Ошибка загрузки блока глобальных констант ' +
+                    ibsqlConst.FieldByName('Name').AsString + '.'#13#10 + ErrScript + #13#10 +
+                    'Константы, объявленные в блоке будут не доступны.', gdcc_lt_Warning, True);
+                end;
+                {$ENDIF}
               end;
             finally
               ibsqlConst.Next;

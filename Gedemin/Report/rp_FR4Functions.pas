@@ -162,7 +162,13 @@ begin
   else if MethodName = 'BANKCODE' then
     Result := BankCode
   else if MethodName = 'GETNAMEINITIALS' then
-    Result := GetNameInitials(Params[0], Params[1], Params[2], Params[3], Params[4]);
+    Result := GetNameInitials(Params[0], Params[1], Params[2], Params[3], Params[4])
+  else if MethodName = 'GETNUMERAL' then
+    Result := GetNumeral(Params[0], Params[1], Params[2], Params[3], Params[4], Params[5], Params[6])
+  else if MethodName = 'GETCURRNUMERAL' then
+    Result := GetCurrNumeral(Params[0], Params[1], Params[2], Params[3], Params[4], Params[5], Params[6], Params[7], Params[8])
+  else if MethodName = 'MULDIV' then
+    Result := gd_convert.MulDiv(Params[0], Params[1], Params[2], Params[3], Params[4]);
 end;
 
 function TFR4Functions.ChiefAccountantName: String;
@@ -291,6 +297,15 @@ begin
     AddMethod('function GETNAMEINITIALS(AFamilyName, AGivenName, AMiddleName: String; const ALeading: Boolean; const ASpace: String): String',
       CallMethod, 'Golden Software',
       'GETNAMEINITIALS(<Фамилия или Полное имя>, <Имя>, <Отчество>, <Сначала инициалы>, <Разделитель инициалов>)/Возвращает строку вида "Фамилия И.О."');
+    AddMethod('function GetNumeral(const AFormat: String; AValue: Double; const ARounding: Double; const AFracBase: Integer; const ACase: Integer; const AParts: Integer; const ANames: String): String',
+      CallMethod, 'Golden Software',
+      'GETNUMERAL(<Формат>, <Значение>, <Округление>, <База дробной величины, дес. знаков>, <Регистр>, <Флаги>, <Названия>)/Возвращает числительное.');
+    AddMethod('function GetCurrNumeral(const ACurrKey: Integer; const AFormat: String; AValue: Double; const ARounding: Double; const ACase: Integer; const AParts: Integer; const ASubst: String; const ADecimalSeparator: String; const AThousandSeparator: String): String',
+      CallMethod, 'Golden Software',
+      'GETCURRNUMERAL(<ИД валюты>, <Формат>, <Значение>, <Регистр>, <Флаги>, <Подстановка 0>, <Дес. разделитель>, <Разделитель тысяч>)/Возвращает денежную величину как числительное.');
+    AddMethod('function MulDiv(const Number: Double; const ANumerator: Double; const ADenominator: Double; const ARoundMethod: Integer; const ADecPlaces: Integer): Double',
+      CallMethod, 'Golden Software',
+      'MULDIV(<Число>, <Множитель>, <Делитель>, <Способ округления>, <Десятичные цифры>)/Умножает два числа и делит на третье. Если задано, результат округляется.');
   end;
 
   FCompanyCachedKey := -1;
@@ -557,5 +572,4 @@ end;
 
 initialization
   fsRTTIModules.Add(TFR4Functions);
-
 end.

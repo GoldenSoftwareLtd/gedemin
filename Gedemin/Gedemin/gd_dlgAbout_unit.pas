@@ -102,7 +102,7 @@ uses
   jclBase, {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version
   {$IFDEF GEDEMIN}, FastMM4{$ENDIF} {$IFDEF WITH_INDY}, gd_FileList_unit, IdGlobal,
   gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF}, gd_GlobalParams_unit,
-  gd_DatabasesList_unit, dbf_common, gd_getmacaddress, gd_wmi;
+  gd_DatabasesList_unit, dbf_common, gd_getmacaddress, gd_wmi, StConst;
 
 type
   TMemoryStatusEx = record
@@ -487,6 +487,7 @@ begin
   {$IFDEF WITH_INDY}AddSpaces(gsIdProductName, gsIdVersion);{$ENDIF}
   {$IFDEF DUNIT_TEST}AddSpaces('DUnit', ReleaseStr);{$ENDIF}
   AddSpaces('TDBF', IntToStr(TDBF_MAJOR_VERSION) + '.' + IntToStr(TDBF_MINOR_VERSION) + '.' + IntToStr(TDBF_SUB_MINOR_VERSION));
+  AddSpaces('TurboPower SysTools', StVersionStr);
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
   AddComLibrary(MIDAS_GUID1, 'MIDAS.DLL');
