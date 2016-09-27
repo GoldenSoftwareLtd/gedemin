@@ -485,12 +485,7 @@ begin
             end;
 
             s := CleanReturns(Obj.Memo.Text);
-{$IFDEF Delphi6}
-            CurValIsFloat := TryStrToFloat(s, conv);
-            if CurValIsFloat and (not FAsText) then
-              ArrData^[y + FMatrix.Height * (x - 1)] := conv
-            else
-{$ENDIF}
+
               ArrData^[y + FMatrix.Height * (x - 1)] := s;
             if not Obj.IsText then
             begin

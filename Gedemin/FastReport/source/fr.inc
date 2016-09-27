@@ -63,6 +63,30 @@
   {$WARN SYMBOL_PLATFORM OFF}
 {$ENDIF}
 
+{$IFDEF VER180}      // Delphi 2007
+  {$DEFINE Delphi4}
+  {$DEFINE Delphi5}
+  {$DEFINE Delphi6}
+  {$DEFINE Delphi7}
+  {$DEFINE Delphi9}
+  {$WARN UNSAFE_CODE OFF}
+  {$WARN UNSAFE_TYPE OFF}
+  {$WARN UNSAFE_CAST OFF}
+  {$WARN SYMBOL_PLATFORM OFF}
+{$ENDIF}
+
+{$IFDEF VER185}      // Delphi 2007 net
+  {$DEFINE Delphi4}
+  {$DEFINE Delphi5}
+  {$DEFINE Delphi6}
+  {$DEFINE Delphi7}
+  {$DEFINE Delphi9}
+  {$WARN UNSAFE_CODE OFF}
+  {$WARN UNSAFE_TYPE OFF}
+  {$WARN UNSAFE_CAST OFF}
+  {$WARN SYMBOL_PLATFORM OFF}
+{$ENDIF}
+
 {$IFDEF VER93}       // Borland C++ Builder 1.0
   {$DEFINE Delphi2}
 {$ENDIF}
