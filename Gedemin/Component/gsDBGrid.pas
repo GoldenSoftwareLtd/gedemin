@@ -643,7 +643,7 @@ type
     FMasterAct, FRefreshAct, FFindAct, FFindNextAct, FPanelAct,
     FHideColAct, FGroupAct, FInputCaptionAct, FFrozeColumnAct, FCancelAutoFilterAct,
     FFirst, FLast, FNext, FPrior, FPageUp, FPageDown,
-    FCopyToClipboardAct: TAction;
+    FCopyToClipboardAct, FCopyTotalToClipboardAct: TAction;
 
     FSelectedFont: TFont;                 // Шрифт выделенного текста
     FSelectedColor: TColor;               // Цвет выдлеленного текста
@@ -794,6 +794,7 @@ type
     procedure DoOnFindExecute(Sender: TObject);
     procedure DoOnFindNextExecute(Sender: TObject);
     procedure DoOnCopyToClipboardExecute(Sender: TObject);
+    procedure DoOnCopyTotalToClipboardExecute(Sender: TObject);
 
     procedure DoOnRefresh(Sender: TObject);
     procedure DoOnPanel(Sender: TObject);
@@ -1250,6 +1251,7 @@ type
   TgsListBox = class(TListBox)
   protected
     procedure WMKillFocus(var Message: TWMSetFocus); message WM_KILLFOCUS;
+    procedure WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
   end;
 
 const
@@ -1274,6 +1276,7 @@ const
   MENU_FROZECAPTION = 'Закрепить колонку';
   MENU_CANCELAUTOFILTERCAPTION = 'Отмена автофильтрации';
   MENU_COPYTOCLIPBOARD = 'Скопировать ячейки в буфер';
+  MENU_COPYTOTALTOCLIPBOARD = 'Скопировать итоги в буфер';
 
   MENU_FIRST = 'Первый';
   MENU_LAST = 'Последний';
@@ -3725,6 +3728,7 @@ begin
   FFrozeColumnAct := nil;
   FCancelAutoFilterAct := nil;
   FCopyToClipboardAct := nil;
+  FCopyTotalToClipboardAct := nil;
 
   FSelectedFont := TFont.Create;
   FSelectedFont.Color := clHighlightText;
@@ -4115,6 +4119,7 @@ begin
   FreeAndNil(FFindAct);
   FreeAndNil(FFindNextAct);
   FreeAndNil(FCopyToClipboardAct);
+  FreeAndNil(FCopyTotalToClipboardAct);
 end;
 
 procedure TgsCustomDBGrid.Read(Reader: TReader);
@@ -6923,6 +6928,12 @@ begin
   FCopyToClipboardAct.ImageIndex := 10;
   FCopyToClipboardAct.Hint := MENU_COPYTOCLIPBOARD;
 
+  FCopyTotalToClipboardAct := NewAction;
+  FCopyTotalToClipboardAct.OnExecute := DoOnCopyTotalToClipboardExecute;
+  FCopyTotalToClipboardAct.Caption := MENU_COPYTOTALTOCLIPBOARD;
+  FCopyTotalToClipboardAct.ImageIndex := 10;
+  FCopyTotalToClipboardAct.Hint := MENU_COPYTOTALTOCLIPBOARD;
+
   {$IFDEF GEDEMIN}
   if (GlobalStorage.ReadInteger('Options\Policy',
     GD_POL_EDIT_UI_ID, GD_POL_EDIT_UI_MASK, False) and IBLogin.InGroup) <> 0 then
@@ -7088,6 +7099,14 @@ begin
       MenuItem := AddItem(APopupMenu.Items, '');
       MenuItem.Action := FCopyToClipboardAct;
       Items.Add(MenuItem);
+
+      if FShowTotals and (FCopyTotalToClipboardAct <> nil) then
+      begin
+        // Скопировать итоги в буфер
+        MenuItem := AddItem(APopupMenu.Items, '');
+        MenuItem.Action := FCopyTotalToClipboardAct;
+        Items.Add(MenuItem);
+      end;
 
       // Разделитель
       Items.Add(AddItem(APopupMenu.Items, '-'));
@@ -8364,6 +8383,7 @@ begin
         lv.Height := 200;
       if lv.Height + R.Bottom >= Height - 22 then
         lv.Height := Height - R.Bottom - 22;
+
       lv.Left := R.Left;
       lv.Top := R.Bottom;
       lv.Items.Assign(C.FilteredCache);
@@ -10118,6 +10138,23 @@ begin
     (Owner as TgsCustomDBGrid).FFilteringColumn := nil;
 end;
 
+procedure TgsListBox.WMMouseWheel(var Message: TWMMouseWheel);
+var
+  I: Integer;
+begin
+  if Message.WheelDelta > 0 then
+    I := ItemIndex - 1
+  else
+    I := ItemIndex + 1;
+
+  if I >= Items.Count then
+    I := Items.Count
+  else if I < 0 then
+    I := 0;
+
+  ItemIndex := I;
+end;
+
 procedure TgsCustomDBGrid.SetGroupFieldName(const Value: String);
 begin
   if FGroupFieldName <> Value then
@@ -10209,10 +10246,9 @@ procedure TgsCustomDBGrid.DoOnCopyToClipboardExecute(Sender: TObject);
 var
   I, J, K: Integer;
   Bm, S, Title: String;
-  Data, Data2: THandle;
-  DataPtr, DataPtr2: Pointer;
-  D: DWORD;
   F: Boolean;
+  C: TClipboard;
+  H: THandle;
 begin
   S := '';
   Title := '';
@@ -10258,7 +10294,7 @@ begin
                   begin
                     Title := Title + #9 + DataSource.DataSet.FieldByName(FExpands[K].FieldName).DisplayLabel;
                   end;
-                end;  
+                end;
               end;
             end;
           end;
@@ -10293,37 +10329,75 @@ begin
 
   if S > '' then
   begin
-    with TClipboard.Create do
+    C := TClipboard.Create;
     try
-      Open;
+      C.Open;
       try
-        Data := GlobalAlloc(GMEM_MOVEABLE+GMEM_DDESHARE, Length(S) + 1);
-        Data2 := GlobalAlloc(GMEM_MOVEABLE+GMEM_DDESHARE, SizeOf(DWORD));
-        try
-          DataPtr := GlobalLock(Data);
-          DataPtr2 := GlobalLock(Data2);
-          try
-            { TODO : а как будут обрабатываться другие языки? }
-            D := MAKELONG(MAKEWORD(LANG_RUSSIAN, SUBLANG_NEUTRAL), SORT_DEFAULT);
-            Move(D, DataPtr2^, SizeOf(D));
-            Move(PChar(S)^, DataPtr^, Length(S) + 1);
-            EmptyClipboard;
-            SetClipboardData(CF_LOCALE, Data2);
-            SetClipboardData(CF_TEXT, Data);
-          finally
-            GlobalUnlock(Data);
-            GlobalUnlock(Data2);
-          end;
-        except
-          GlobalFree(Data);
-          GlobalFree(Data2);
-          raise;
-        end;
+        C.AsText := S;
+        H := C.GetAsHandle(CF_TEXT);
+        SetClipboardData(CF_LOCALE, H);
       finally
-        Close;
+        C.Close;
       end;
     finally
-      Free;
+      C.Free;
+    end;
+  end;
+end;
+
+procedure TgsCustomDBGrid.DoOnCopyTotalToClipboardExecute(Sender: TObject);
+var
+  I: Integer;
+  Title, S: String;
+  F: TField;
+  C: TClipboard;
+  H: THandle;
+begin
+  Title := '';
+  S := '';
+
+  if (DataSource <> nil) and (DataSource.DataSet <> nil) then
+  begin
+    with DataSource.DataSet as TIBCustomDataSet do
+    begin
+      if (Aggregates <> nil) and (Aggregates.Count > 0) then
+      begin
+        for I := 0 to Aggregates.Count - 1 do
+        begin
+          if Title <> '' then
+            Title := Title + #9;
+
+          if S <> '' then
+            S := S + #9;
+
+          F := FindField(Aggregates[I].Expression);
+
+          if F = nil then
+            Title := Title + Aggregates[I].GetDisplayName
+          else
+            Title := Title + F.DisplayName;
+
+          S := S + VarToStr(Aggregates[I].Value);
+        end;
+        S := Title + #13#10 + S;
+      end;
+    end;
+  end;
+
+  if S > '' then
+  begin
+    C := TClipboard.Create;
+    try
+      C.Open;
+      try
+        C.AsText := S;
+        H := C.GetAsHandle(CF_TEXT);
+        SetClipboardData(CF_LOCALE, H);
+      finally
+        C.Close;
+      end;
+    finally
+      C.Free;
     end;
   end;
 end;
