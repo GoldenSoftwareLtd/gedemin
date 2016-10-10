@@ -402,38 +402,53 @@ end;
 procedure TgdcUser.CreateIBUser;
 var
   T: String;
+  Tr: TIBTransaction;
 begin
+  Assert(gdcBaseManager <> nil);
+
   if Active and ((State = dsInsert) or (not EOF)) then
   begin
     try
       if not IBLogin.IsEmbeddedServer then
       begin
-        T :=
-          'CREATE USER ' + FieldByName('ibname').AsString +
-          ' PASSWORD ''' + FieldByName('ibpassword').AsString + '''';
-        ExecSingleQuery(T);
-        {$IFDEF WITH_INDY}
-        if gdccClient <> nil then
-          gdccClient.AddLogRecord('security', T);
-        {$ENDIF}
-      end;
+        Tr := TIBTransaction.Create(nil);
+        try
+          Tr.DefaultDatabase := Database;
+          Tr.StartTransaction;
 
-      T := 'GRANT administrator TO ' + FieldByName('ibname').AsString +
-        ' WITH ADMIN OPTION ';
-      ExecSingleQuery(T);
-      {$IFDEF WITH_INDY}
-      if gdccClient <> nil then
-        gdccClient.AddLogRecord('security', T);
-      {$ENDIF}
+          T :=
+            'CREATE USER ' + FieldByName('ibname').AsString +
+            ' PASSWORD ''' + FieldByName('ibpassword').AsString + '''';
+          gdcBaseManager.ExecSingleQuery(T, Tr);
+          {$IFDEF WITH_INDY}
+          if gdccClient <> nil then
+            gdccClient.AddLogRecord('security', T);
+          {$ENDIF}
+
+          Tr.Commit;
+        finally
+          if Tr.InTransaction then
+            Tr.Rollback;
+          Tr.Free;
+        end;
+      end;
     except
       on E: EIBError do
       begin
         // подавляем исключение, если пользователь
         // с таким именем уже существует
-        if E.IBErrorCode <> isc_gsec_err_rec_not_found then
+        if E.IBErrorCode <> isc_gsec_err_add then
           raise;
       end;
     end;
+
+    T := 'GRANT administrator TO ' + FieldByName('ibname').AsString +
+      ' WITH ADMIN OPTION ';
+    ExecSingleQuery(T);
+    {$IFDEF WITH_INDY}
+    if gdccClient <> nil then
+      gdccClient.AddLogRecord('security', T);
+    {$ENDIF}
   end;
 end;
 
@@ -448,6 +463,7 @@ begin
       Tr.DefaultDatabase := Database;
       Tr.StartTransaction;
       try
+        gdcBaseManager.ExecSingleQuery('REVOKE administrator FROM ' + FieldByName('ibname').AsString, Tr);
         gdcBaseManager.ExecSingleQuery('DROP USER ' + FieldByName('ibname').AsString, Tr);
         Tr.Commit;
       except

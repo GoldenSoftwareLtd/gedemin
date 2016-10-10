@@ -79,7 +79,11 @@ uses
   Windows, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace, gdcClasses, gdcStorage,
   gdcEvent, gdcReport, gdcMacros, gdcAcctTransaction, gdcInvDocumentOptions,
   gdcMetaData, gdcDelphiObject, gdcClasses_Interface, gd_KeyAssoc, ContNrs,
-  at_Classes, gd_ClassList, at_AddToSetting;
+  at_Classes, gd_ClassList, at_AddToSetting
+  {$IFDEF WITH_INDY}
+    , gdccClient_unit
+  {$ENDIF}
+  ;
 
 type
   TIterateProc = procedure of object;
@@ -387,13 +391,15 @@ function TgdcNamespaceController.Include: Boolean;
 var
   gdcNamespaceObject: TgdcNamespaceObject;
   HeadObjectKey, HeadObjectPos, NSKey, J, TempPos: Integer;
-  q, qNSList, qFindInChain, qFind, qMove, qDelete, qPos: TIBSQL;
+  q, qNSList, {qFindInChain,} qNSDepChain, qFindAll, qFind, qMove, qDelete, qPos: TIBSQL;
   FirstRUID, LastRUID: TRUID;
   DS: TDataSet;
   ShouldAdd: Boolean;
   CEExist, CENew: TgdClassEntry;
   SLDeffered: TStringList;
   T: TDateTime;
+  NSDepIDs: TgdKeyArray;
+  FoundInChain: Boolean;
 begin
   Assert(FIBTransaction.InTransaction);
 
@@ -524,13 +530,16 @@ begin
       begin
         q := TIBSQL.Create(nil);
         qNSList := TIBSQL.Create(nil);
-        qFindInChain := TIBSQL.Create(nil);
+        //qFindInChain := TIBSQL.Create(nil);
+        qNSDepChain := TIBSQL.Create(nil);
+        qFindAll := TIBSQL.Create(nil);
         qFind := TIBSQL.Create(nil);
         qMove := TIBSQL.Create(nil);
         qDelete := TIBSQL.Create(nil);
         qPos := TIBSQL.Create(nil);
         gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
         SLDeffered := TStringList.Create;
+        NSDepIDs := TgdKeyArray.Create;
         try
           q.Transaction := FIBTransaction;
 
@@ -610,7 +619,7 @@ begin
             '  AND o.namespacekey <> :CurrNS';
           qNSList.ParamByName('CurrNS').AsInteger := FCurrentNSID;
 
-          qFindInChain.Transaction := FIBTransaction;
+          {qFindInChain.Transaction := FIBTransaction;
           qFindInChain.SQL.Text :=
             'WITH RECURSIVE '#13#10 +
             '  CHAIN AS ( '#13#10 +
@@ -631,7 +640,32 @@ begin
             '    ON obj.namespacekey = ch.useskey '#13#10 +
             'WHERE '#13#10 +
             '  obj.xid = :xid AND obj.dbid = :dbid';
-          qFindInChain.ParamByName('NK').AsInteger := FCurrentNSID;
+          qFindInChain.ParamByName('NK').AsInteger := FCurrentNSID;}
+
+          qNSDepChain.Transaction := FIBTransaction;
+          qNSDepChain.SQL.Text :=
+            'WITH RECURSIVE '#13#10 +
+            '  CHAIN AS ( '#13#10 +
+            '    SELECT root.namespacekey, root.useskey, 0 AS depth '#13#10 +
+            '    FROM at_namespace_link root '#13#10 +
+            '    WHERE root.namespacekey = :NK '#13#10 +
+            '     '#13#10 +
+            '    UNION ALL '#13#10 +
+            '     '#13#10 +
+            '    SELECT l.namespacekey, l.useskey, (ch.depth + 1) AS depth '#13#10 +
+            '    FROM at_namespace_link l '#13#10 +
+            '      JOIN chain ch ON l.namespacekey = ch.useskey '#13#10 +
+            '    WHERE ch.depth < 10 '#13#10 +
+            '  ) '#13#10 +
+            'SELECT '#13#10 +
+            '  ch.namespacekey '#13#10 +
+            'FROM '#13#10 +
+            '  chain ch ';
+          qNSDepChain.ParamByName('NK').AsInteger := FCurrentNSID;
+
+          qFindAll.Transaction := FIBTransaction;
+          qFindAll.SQL.Text :=
+            'SELECT namespacekey FROM at_object WHERE xid = :xid AND dbid = :dbid';
 
           qFind.Transaction := FIBTransaction;
           qFind.SQL.Text :=
@@ -653,12 +687,41 @@ begin
             DS.First;
             while not DS.EOF do
             begin
-              qFindInChain.Close;
+              if NSDepIDs.Count = 0 then
+              begin
+                qNSDepChain.ExecQuery;
+                while not qNSDepChain.EOF do
+                begin
+                  NSDepIDs.Add(qNSDepChain.FieldByName('namespacekey').AsInteger, True);
+                  qNSDepChain.Next;
+                end;
+                qNSDepChain.Close;
+              end;
+
+              {$IFDEF WITH_INDY}
+              gdccClient.AddLogRecord('ns', 'Поиск объекта ' + DS.FieldByName('name').AsString +
+                ', RUID=' + DS.FieldByName('xid').AsString + '_' + DS.FieldByName('dbid').AsString +
+                ' в списке ПИ, от которых зависит текущее ПИ.');
+              {$ENDIF}
+
+              FoundInChain := False;
+
+              qFindAll.Close;
+              qFindAll.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
+              qFindAll.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
+              qFindAll.ExecQuery;
+              while (not FoundInChain) and (not qFindAll.EOF)do
+              begin
+                FoundInChain := NSDepIDs.IndexOf(qFindAll.FieldbyName('namespacekey').AsInteger) > -1;
+                qFindAll.Next;
+              end;
+
+              {qFindInChain.Close;
               qFindInChain.ParamByName('xid').AsInteger := DS.FieldByName('xid').AsInteger;
               qFindInChain.ParamByName('dbid').AsInteger := DS.FieldByName('dbid').AsInteger;
-              qFindInChain.ExecQuery;
+              qFindInChain.ExecQuery;}
 
-              if qFindInChain.EOF then
+              if not FoundInChain {FindInChain.EOF} then
               begin
                 NSKey := -1;
 
@@ -773,6 +836,11 @@ begin
 
                     if ShouldAdd then
                     begin
+                      {$IFDEF WITH_INDY}
+                      gdccClient.AddLogRecord('ns', 'Добавляется объект ' + DS.FieldByName('name').AsString +
+                        '. RUID=' + DS.FieldByName('xid').AsString + '_' + DS.FieldByName('dbid').AsString);
+                      {$ENDIF}
+
                       gdcNamespaceObject.Insert;
                       gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
                       gdcNamespaceObject.FieldByName('objectname').AsString := DS.FieldByName('name').AsString;
@@ -862,6 +930,7 @@ begin
                     q.ParamByName('uk').AsInteger := NSKey;
                     try
                       q.ExecQuery;
+                      NSDepIDs.Clear;
                     except
                       MessageBox(0,
                         PChar('Невозможно добавить ПИ (ID = ' + IntToStr(NSKey) + ') в список'#13#10 +
@@ -909,13 +978,16 @@ begin
         finally
           q.Free;
           qNSList.Free;
-          qFindInChain.Free;
+          //qFindInChain.Free;
+          qNSDepChain.Free;
+          qFindAll.Free;
           qFind.Free;
           qMove.Free;
           qDelete.Free;
           qPos.Free;
           gdcNamespaceObject.Free;
           SLDeffered.Free;
+          NSDepIDs.Free;
         end;
       end;
     end;

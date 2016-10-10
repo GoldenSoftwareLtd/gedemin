@@ -7,9 +7,9 @@ object frAcctAnalyticLine: TfrAcctAnalyticLine
   AutoScroll = False
   TabOrder = 0
   object lAnaliticName: TLabel
-    Left = 16
+    Left = 20
     Top = 5
-    Width = 64
+    Width = 63
     Height = 13
     Caption = 'lAnaliticName'
     Color = clBtnFace

@@ -26,7 +26,7 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockMain: TTBDock
     Left = 0
     Top = 0
-    Width = 953
+    Width = 961
     Height = 26
     LimitToOneRow = True
     object tbMainMenu: TTBToolbar
@@ -384,8 +384,8 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object TBDockForms: TTBDock
     Left = 0
-    Top = 26
-    Width = 953
+    Top = 27
+    Width = 961
     Height = 27
     BoundLines = [blTop]
     Color = clWindow
@@ -563,6 +563,7 @@ object frmGedeminMain: TfrmGedeminMain
       Category = 'Forms'
       Caption = 'Закрыть форму'
       Hint = 'Закрыть форму просмотра'
+      ShortCut = 16499
       OnExecute = actCloseFormExecute
       OnUpdate = actCloseFormUpdate
     end
@@ -571,6 +572,7 @@ object frmGedeminMain: TfrmGedeminMain
       Caption = 'Закрыть все'
       Hint = 'Закрыть все формы просмотра'
       ImageIndex = 42
+      ShortCut = 24691
       OnExecute = actCloseAllExecute
       OnUpdate = actCloseAllUpdate
     end
@@ -578,6 +580,7 @@ object frmGedeminMain: TfrmGedeminMain
       Category = 'Forms'
       Caption = 'Свернуть форму'
       Hint = 'Свернуть форму просмотра'
+      ShortCut = 16498
       OnExecute = actHideFormExecute
       OnUpdate = actHideFormUpdate
     end
@@ -585,6 +588,7 @@ object frmGedeminMain: TfrmGedeminMain
       Category = 'Forms'
       Caption = 'Свернуть все'
       Hint = 'Свернуть все формы просмотра'
+      ShortCut = 24690
       OnExecute = actHideAllExecute
       OnUpdate = actHideAllUpdate
     end

@@ -2792,7 +2792,7 @@ procedure TIBCustomDataSet.InternalPrepare;
 
 begin
   if FInternalPrepared then
-    Exit;
+    exit;
   if Trim(FQSelect.SQL.Text) = '' then
     IBError(ibxeEmptySQLStatement, []);
   //!!!

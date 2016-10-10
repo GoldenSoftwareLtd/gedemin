@@ -74,8 +74,8 @@ type
     function CacheObject(const AClassName: String; const ASubtype: String): TgdcBase;
     procedure UpdateUses(ASequence: TYAMLSequence; const ANamespaceKey: TID);
     procedure ProcessMetadata;
-    procedure LoadParam(AParam: TIBXSQLVAR; const AFieldName: String;
-      AMapping: TYAMLMapping; ATr: TIBTransaction);
+    function LoadParam(AParam: TIBXSQLVAR; const AFieldName: String;
+      AMapping: TYAMLMapping; ATr: TIBTransaction): Boolean;
     function GetCandidateID(AnObj: TgdcBase; AFields: TYAMLMapping): TID;
     procedure RemoveObjects;
     procedure ReloginDatabase;
@@ -793,7 +793,7 @@ begin
           OldHashString := FgdcNamespace.FieldbyName('MD5').AsString;
           MS := TMemoryStream.Create;
           try
-            FgdcNamespace.SaveNamespaceToStream(MS, HashString, IDNO);
+            FgdcNamespace.SaveNamespaceToStream(MS, HashString, IDNO, False, False);
           finally
             MS.Free;
           end;
@@ -998,7 +998,8 @@ begin
           raise EgdcNamespaceLoader.Create('Invalid check the same statement.');
         Obj.Edit;
         AddText('Объект найден по потенциальному ключу: ' + Obj.ObjectName +
-          ' (' + Obj.GetDisplayName(Obj.SubType) + ')');
+          ' (' + Obj.GetDisplayName(Obj.SubType) + '), RUID в файле: ' + ObjRUIDString +
+          ', RUID в БД: ' + RUIDToStr(Obj.GetRUID));
         if RUIDID > -1 then
         begin
           gdcBaseManager.DeleteRUIDByID(RUIDID, FTr);
@@ -1033,6 +1034,12 @@ begin
     begin
       with TgdcNamespaceRecCmpController.Create do
       try
+        if Obj is TgdcStoredProc then
+        begin
+          TgdcStoredProc(Obj).PrepareToSaveToStream(True);
+          TgdcStoredProc(Obj).PrepareToSaveToStream(False);
+        end;
+
         if Compare(nil, Obj, AMapping) then
         begin
           PartialOverwrite := InequalFields.Count <> OverwriteFields.Count;
@@ -1145,9 +1152,10 @@ begin
         )
       ) then
     begin
-      AddText('Объект ' + AtObjectRecord.ObjectName +
-        '(' + AtObjectRecord.ClassName + AtObjectRecord.ObjectSubType + ') ' +
-        'не будет изменен. Дата в файле <=  дате и времени изменения объекта в БД.');
+      AddText('Объект "' + AtObjectRecord.ObjectName +
+        '" (' + AtObjectRecord.ObjectClass.ClassName + AtObjectRecord.ObjectSubType + ', ' +
+        ObjRUIDSTring + '), ' +
+        'не будет изменен. Дата в файле <= дате и времени изменения объекта в БД.');
     end;
   end;
 
@@ -1459,6 +1467,16 @@ begin
       q.ParamByName('dbid').AsInteger := NSRUID.DBID;
       q.ExecQuery;
 
+      if q.EOF then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'SELECT n.id FROM at_namespace n ' +
+          'WHERE UPPER(n.name) = :n';
+        q.ParamByName('n').AsString := AnsiUpperCase(NSName);
+        q.ExecQuery;
+      end;
+
       if not q.EOF then
       begin
         NSID := q.FieldByName('id').AsInteger;
@@ -1557,12 +1575,14 @@ begin
     AnIgnoreMissedFields, AUnMethod);
 end;
 
-procedure TgdcNamespaceLoader.LoadParam(AParam: TIBXSQLVAR; const AFieldName: String;
-  AMapping: TYAMLMapping; ATr: TIBTransaction);
+function TgdcNamespaceLoader.LoadParam(AParam: TIBXSQLVAR; const AFieldName: String;
+  AMapping: TYAMLMapping; ATr: TIBTransaction): Boolean;
 var
   V: TYAMLScalar;
   RefRUID, RefName: String;
 begin
+  Result := True;
+
   if (not (AMapping.FindByName(AFieldName) is TYAMLScalar)) or AMapping.ReadNull(AFieldName) then
   begin
     AParam.Clear;
@@ -1579,8 +1599,9 @@ begin
       if AParam.AsInteger = -1 then
       begin
         AParam.Clear;
-        AddText('Не найден объект для параметра ' + AParam.Name + ', ' + V.AsString);
-        AddText('Возможно, следует поменять порядок объектов в ПИ.');
+        AddWarning('Не найден объект для параметра ' + AParam.Name + ', "' + V.AsString + '"');
+        AddWarning('Возможно, следует поменять порядок объектов в ПИ.');
+        Result := False;
       end;
     end else if AParam.AsXSQLVAR.sqlscale = 0 then
       AParam.AsInteger := V.AsInteger
@@ -1621,8 +1642,12 @@ begin
       FqCheckTheSame.Prepare;
 
       for I := 0 to FqCheckTheSame.Params.Count - 1 do
-        LoadParam(FqCheckTheSame.Params[I], FqCheckTheSame.Params[I].Name,
-          AFields, AnObj.Transaction);
+        if not LoadParam(FqCheckTheSame.Params[I], FqCheckTheSame.Params[I].Name,
+          AFields, AnObj.Transaction) then
+        begin
+          AddWarning('Невозможен поиск объекта по потенциальному ключу: ' + CheckStmt);
+          exit;
+        end;
 
       FqCheckTheSame.ExecQuery;
 
@@ -1632,6 +1657,9 @@ begin
 
         for I := 0 to FqCheckTheSame.Params.Count - 1 do
         begin
+          if Pos(FqCheckTheSame.Params[I].Name + ': ', CheckStmt) > 0 then
+            continue;
+
           CheckStmt := CheckStmt + #13#10 + FqCheckTheSame.Params[I].Name + ': ';
           if FqCheckTheSame.Params[I].IsNull then
             CheckStmt := CheckStmt + 'NULL'

@@ -11,7 +11,7 @@ uses
   gdcBase, gdcInvMovement, dmDatabase_unit, ComCtrls, gdv_InvCardConfig_unit,
   gdcInvDocument_unit, gdv_frAcctTreeAnalytic_unit, contnrs,
   gdv_frAcctAnalytics_unit, xCalculatorEdit, frFieldVlues_unit, gd_security,
-  gsPeriodEdit;
+  gsPeriodEdit, gdcAcctConfig;
 
 type
   TgdvInvCardFieldInfoRec = record
@@ -607,7 +607,11 @@ begin
 end;
 
 procedure Tgdv_frmInvCard.actEditInGridExecute(Sender: TObject);
+var
+  I: Integer;
 begin
+  I := ibgrMain.SelectedIndex;
+
   ibgrMain.ReadOnly:= tbiEditInGrid.Checked;
   if tbiEditInGrid.Checked then begin
     ibgrMain.Options := ibgrMain.Options + [dgEditing, dgIndicator];
@@ -615,6 +619,8 @@ begin
     ibgrMain.Options := ibgrMain.Options - [dgEditing, dgIndicator];
   end;
   ibgrMain.SettingsModified := True;
+
+  ibgrMain.SelectedIndex := I;
 end;
 
 procedure Tgdv_frmInvCard.actEditExecute(Sender: TObject);

@@ -11,11 +11,15 @@ inherited dlgTrEntryEditForm: TdlgTrEntryEditForm
   inherited Panel1: TPanel
     Top = 291
     Width = 414
-    inherited Button1: TButton
-      Left = 337
+    inherited Button4: TButton
+      TabOrder = 1
     end
-    inherited Button2: TButton
-      Left = 259
+    inherited pnlRightButtons: TPanel
+      Left = 249
+      TabOrder = 0
+      inherited Button2: TButton
+        Left = 7
+      end
     end
   end
   inherited PageControl: TPageControl
@@ -24,12 +28,12 @@ inherited dlgTrEntryEditForm: TdlgTrEntryEditForm
     OnChanging = PageControlChanging
     inherited tsGeneral: TTabSheet
       inherited Label2: TLabel
-        Top = 171
+        Top = 173
       end
       object lblAccountTypeTitle: TLabel [3]
         Left = 8
-        Top = 76
-        Width = 53
+        Top = 81
+        Width = 54
         Height = 13
         Caption = '“ип счета:'
       end
@@ -43,20 +47,20 @@ inherited dlgTrEntryEditForm: TdlgTrEntryEditForm
       object lAccount: TLabel [5]
         Left = 8
         Top = 57
-        Width = 26
+        Width = 29
         Height = 13
         Caption = '—чет:'
       end
       object lblCurrTitle: TLabel [6]
         Left = 8
         Top = 128
-        Width = 41
+        Width = 43
         Height = 13
         Caption = '¬алюта:'
       end
       object lblCURRSum: TLabel [7]
         Left = 8
-        Top = 152
+        Top = 151
         Width = 86
         Height = 13
         Caption = '—умма в валюте:'
@@ -67,7 +71,7 @@ inherited dlgTrEntryEditForm: TdlgTrEntryEditForm
       inherited mDescription: TMemo
         Top = 171
         Width = 304
-        TabOrder = 7
+        TabOrder = 8
       end
       inherited eLocalName: TEdit
         Width = 304
@@ -169,7 +173,7 @@ inherited dlgTrEntryEditForm: TdlgTrEntryEditForm
         BtnOnClick = beSumBtnOnClick
         Anchors = [akLeft, akTop, akRight]
         Enabled = True
-        TabOrder = 6
+        TabOrder = 7
       end
       object beAccount: TBtnEdit
         Left = 96
@@ -253,7 +257,7 @@ inherited dlgTrEntryEditForm: TdlgTrEntryEditForm
         BtnOnClick = beCurrBtnOnClick
         Anchors = [akLeft, akTop, akRight]
         Enabled = True
-        TabOrder = 8
+        TabOrder = 6
         OnChange = beCurrChange
       end
     end

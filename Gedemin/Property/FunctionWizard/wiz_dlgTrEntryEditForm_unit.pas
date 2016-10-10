@@ -68,6 +68,7 @@ type
     procedure ClickAccount(Sender: TObject);
     procedure ClickAccountCicle(Sender: TObject);
     procedure ClickDocumentAccount(Sender: TObject);
+    procedure ClickExpression(Sender: TObject);
 
     procedure ClickCurrency(Sender: TObject);
     procedure ClickDocumentCurrency(Sender: TObject);
@@ -611,6 +612,11 @@ begin
   MI.Caption := RUS_CURR;
   MI.OnClick := ClickCurrency;
   pmCurr.Items.Add(MI);
+  
+  MI := TMenuItem.Create(pmCurr);
+  MI.Caption := RUS_EXPRESSION;
+  MI.OnClick := ClickExpression;
+  pmCurr.Items.Add(MI);
 
   MI := TMenuItem.Create(pmCurr);
   MI.Caption := '-';
@@ -723,6 +729,13 @@ end;
 procedure TdlgTrEntryEditForm.beCurrChange(Sender: TObject);
 begin
   FCurrKey := 0;
+end;
+
+procedure TdlgTrEntryEditForm.ClickExpression(Sender: TObject);
+begin
+  Assert(FActiveEdit <> nil);
+  Assert(FBlock <> nil);
+  FActiveEdit.Text := FBlock.EditExpression(FActiveEdit.Text, FBlock);
 end;
 
 end.

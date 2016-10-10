@@ -89,6 +89,8 @@ var
 
   ibsql: TIBSQL;
   LB, RB: Integer;
+
+  BalanceCondition, EntryCondition: String;
 begin
   DebitCreditSQL := '';
   FromClause := '';
@@ -97,6 +99,9 @@ begin
   IDSelect := '';
   NameSelect := '';
   SelectClause := '';
+
+  BalanceCondition := Self.GetCondition('bal');
+  EntryCondition := Self.GetCondition('e');
 
   if FCurrSumInfo.Show and (FCurrKey > 0) then
     CurrId := Format('  AND e.currkey = %d'#13#10, [FCurrKey])
@@ -232,6 +237,7 @@ begin
       '           bal.accountkey = :id '#13#10 +
       '           AND bal.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
         IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND bal.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+        IIF(BalanceCondition <> '', ' AND '#13#10 + BalanceCondition, '') +
       ' '#13#10 +
       '         UNION ALL '#13#10 +
       ' '#13#10 +
@@ -260,6 +266,7 @@ begin
           '           AND e.entrydate < :closedate '#13#10) +
       '           AND e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
         IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+        IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '') +
       '       ) main '#13#10 +
       '       INTO '#13#10 +
       '         :saldo, :saldocurr, :saldoeq; '#13#10 +
@@ -321,6 +328,7 @@ begin
       '       AND e.entrydate <= :dateend '#13#10 +
       '       AND e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
         IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+        IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '') +
         Self.InternalMovementClause('e') +
       '         INTO '#13#10 +
       '           :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, eq_credit; '#13#10 +

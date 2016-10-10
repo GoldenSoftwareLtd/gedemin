@@ -34,9 +34,11 @@ type
     procedure actDownExecute(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
     procedure actFindUpdate(Sender: TObject);
+    procedure edFindKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
 
   private
-    PrevSel: TListItem;
+    FFindPos: Integer;
   end;
 
 var
@@ -119,33 +121,69 @@ end;
 
 procedure Tgdc_dlgNamespaceObjectPos.actFindExecute(Sender: TObject);
 var
-  Sel: TListItem;
+  I: Integer;
 begin
-  if lv.Selected <> nil then
-    Sel := lv.Selected
-  else if lv.Items.Count > 0 then
-    Sel := lv.Items[0]
-  else
-    Sel := nil;
-
-  while Sel <> nil do
+  if lv.Items.Count > 0 then
   begin
-    if StrIPos(edFind.Text, Sel.Caption) > 0 then
+    if lv.Selected <> nil then
     begin
-      if Sel <> PrevSel then
+      if lv.Selected.Index = FFindPos then
+        Inc(FFindPos)
+      else
+        FFindPos := lv.Selected.Index;
+
+      if lv.MultiSelect then
       begin
-        PrevSel := Sel;
-        Sel.Selected := True;
-        break;
+        for I := 0 to lv.Items.Count - 1 do
+        begin
+          if lv.Items[I].Selected then
+            lv.Items[I].Selected := False;
+        end;
+      end;
+    end
+    else
+      FFindPos := -1;
+
+    if ((FFindPos + 1) <= (lv.Items.Count - 1)) then
+    begin
+      for I := FFindPos + 1 to lv.Items.Count - 1 do
+      begin
+        if StrIPos(edFind.Text, lv.Items[I].Caption) > 0 then
+        begin
+          lv.SetFocus;
+          lv.Items[I].Selected := True;
+          lv.Items[I].MakeVisible(True);
+          exit;
+        end;
       end;
     end;
-    Sel := lv.GetNextItem(Sel, sdBelow, [isNone, isFocused, isSelected, isActivating]);
+
+    for I := 0 to FFindPos do
+    begin
+      if StrIPos(edFind.Text, lv.Items[I].Caption) > 0 then
+      begin
+        lv.SetFocus;
+        lv.Items[I].Selected := True;
+        lv.Items[I].MakeVisible(True);
+        exit;
+      end;
+    end;
   end;
 end;
 
 procedure Tgdc_dlgNamespaceObjectPos.actFindUpdate(Sender: TObject);
 begin
   actFind.Enabled := (edFind.Text > '') and (lv.Items.Count > 0);
+end;
+
+procedure Tgdc_dlgNamespaceObjectPos.edFindKeyDown(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
+begin
+  if (Shift = [ssCtrl])
+    and (LowerCase(Chr(Key)) = 'a') then
+  begin
+    edFind.SelectAll;
+  end;
 end;
 
 end.

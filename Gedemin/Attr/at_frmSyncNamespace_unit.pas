@@ -558,9 +558,15 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.actClearAllExecute(Sender: TObject);
+var
+  M: Integer;
 begin
-  FNSC.ClearAll;
-  ApplyFilter;
+  M := MessageBox(Self.Handle, 'Снять отметку со всех записей?', 'Внимание!', MB_YESNO or MB_ICONQUESTION);
+  if M = ID_YES then
+  begin
+    FNSC.ClearAll;
+    ApplyFilter;
+  end;
 end;
 
 procedure Tat_frmSyncNamespace.actOnlyCompareExecute(Sender: TObject);

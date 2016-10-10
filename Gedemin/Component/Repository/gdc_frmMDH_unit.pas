@@ -418,7 +418,6 @@ end;
 
 procedure Tgdc_frmMDH.actDetailPropertiesExecute(Sender: TObject);
 begin
-  //gdcDetailObject.EditMultiple(GetDetailBookmarkList, 'Tgdc_dlgObjectProperties');
   gdcDetailObject.EditMultiple2(Get_SelectedKey[1], 'Tgdc_dlgObjectProperties');
 end;
 

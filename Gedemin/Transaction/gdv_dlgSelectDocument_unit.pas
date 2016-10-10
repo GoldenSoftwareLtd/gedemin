@@ -74,7 +74,8 @@ type
 
     procedure ShowLinePanel(V: Boolean);
     function GetSelectedId: Integer;
-    procedure LoadGridSettings(DataSet: TgdcBase; Grid: TgsIbGrid);
+    procedure LoadGridSettings(DataSet: TgdcBase; Grid: TgsIBGrid);
+    procedure SaveGridSettings(DataSet: TgdcBase; Grid: TgsIBGrid);
   public
     procedure SaveSettings; override;
     procedure LoadSettings; override;
@@ -91,11 +92,17 @@ uses gsStorage_CompPath;
 
 procedure TdlgSelectDocument.actOkExecute(Sender: TObject);
 begin
+  SaveGridSettings(FDocument, gDocument);
+  SaveGridSettings(FDocumentLine, gDocumentLine);
+
   ModalResult := mrOk
 end;
 
 procedure TdlgSelectDocument.actCancelExecute(Sender: TObject);
 begin
+  SaveGridSettings(FDocument, gDocument);
+  SaveGridSettings(FDocumentLine, gDocumentLine);
+
   ModalResult := mrCancel;
 end;
 
@@ -122,7 +129,10 @@ procedure TdlgSelectDocument.gdcDocumentTypeAfterScroll(DataSet: TDataSet);
 var
   F: TgdcFullClass;
 begin
-  if Visible  then
+  SaveGridSettings(FDocument, gDocument);
+  SaveGridSettings(FDocumentLine, gDocumentLine);
+
+  if Visible then
   begin
     dsDocument.DataSet := nil;
     dsDocumentLine.DataSet := nil;
@@ -243,48 +253,113 @@ begin
   actEditDocument.Execute;
 end;
 
-procedure TdlgSelectDocument.LoadGridSettings(DataSet: TgdcBase; Grid: TgsIbGrid);
+procedure TdlgSelectDocument.LoadGridSettings(DataSet: TgdcBase; Grid: TgsIBGrid);
 
-  procedure Internal(F: TgsStorageFolder);
+  procedure LoadDefault(F: TgsStorageFolder);
   var
     V: TgsStorageValue;
     S: TStream;
   begin
-    if F <> nil then
+    V := F.ValueByName('GrSet');
+    if Assigned(V) and (V is TgsStringValue) then
     begin
-      V := F.ValueByName('GrSet');
-      if V <> nil then
-      begin
-        if V is TgsStringValue then
+      S := TMemoryStream.Create;
+      try
+        if UserStorage.ReadStream(V.AsString, 'data', S, False) then
         begin
-          S := TMemoryStream.Create;
-          try
-            if UserStorage.ReadStream(V.AsString, 'data', S, False) then
-            begin
-              Grid.LoadFromStream(S);
-              Grid.ResizeColumns;
-            end;
-          finally
-            S.Free;
-          end;
-        end else
-          F.DeleteValue('GrSet');
+          Grid.LoadFromStream(S);
+          Grid.ResizeColumns;
+        end;
+      finally
+        S.Free;
       end;
+    end;
+  end;
+
+  procedure Load(F: TgsStorageFolder);
+  var
+    V: TgsStorageValue;
+    S: TStream;
+  begin
+    V := F.ValueByName('data');
+    if Assigned(V) and (V is TgsStreamValue) then
+    begin
+      S := TMemoryStream.Create;
+      try
+        (V as TgsStreamValue).SaveDataToStream(S);
+        Grid.LoadFromStream(S);
+        Grid.ResizeColumns;
+      finally
+        S.Free;
+      end;
+    end
+    else
+    begin
+      LoadDefault(F);
     end;
   end;
 
 var
   F: TgsStorageFolder;
+  Path: String;
 begin
-  if UserStorage <> nil then
+  if Assigned(UserStorage) and Assigned(DataSet) and Assigned(Grid) then
   begin
-    F := UserStorage.OpenFolder('GDC\' + DataSet.ClassName + DataSet.SubType,
-      False, False);
+    Path := 'GDC\' + DataSet.ClassName + DataSet.SubType;
+    F := UserStorage.OpenFolder(Path, False);
+
+    if Assigned(F) then
+    begin
+      try
+        Load(F);
+      finally
+        UserStorage.CloseFolder(F, False);
+      end;
+    end;
+  end;
+end;
+
+procedure TdlgSelectDocument.SaveGridSettings(DataSet: TgdcBase; Grid: TgsIBGrid);
+var
+  F: TgsStorageFolder;
+  V: TgsStorageValue;
+  S: TStringStream;
+  Path: String;
+begin
+  if Assigned(UserStorage) and Assigned(DataSet) and Assigned(Grid) and (Grid.SettingsModified) then
+  begin
+    Path := 'GDC\' + DataSet.ClassName + DataSet.SubType;
+    S := TStringStream.Create('');
     try
-      Internal(F);
+      Grid.SaveToStream(S);
+
+      F := UserStorage.OpenFolder(Path, True, False);
+      if Assigned(F) then
+      try
+        V := F.ValueByName('data');
+        if V is TgsStreamValue then
+        begin
+          if V.AsString = S.DataString then
+            exit;
+        end;
+      finally
+        UserStorage.CloseFolder(F, False);
+      end;
+
+      F := UserStorage.OpenFolder(Path, True);
+      if Assigned(F) then
+      try
+        if not F.ValueExists('data') then
+          F.WriteStream('data', nil);
+        V := F.ValueByName('data');
+        if V is TgsStreamValue then
+          V.AsString := S.DataString;
+      finally
+        UserStorage.CloseFolder(F);
+      end;
     finally
-      UserStorage.CloseFolder(F, False);
-    end
+      S.Free;
+    end;
   end;
 end;
 

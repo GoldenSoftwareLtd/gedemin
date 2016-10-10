@@ -41,7 +41,8 @@ type
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
     procedure SaveNamespaceToStream(St: TStream; out HashString: String;
-      const AnAnswer: Integer = 0; const ASubstituteEditionDate: Boolean = False);
+      const AnAnswer: Integer = 0; const ASubstituteEditionDate: Boolean = False;
+      const ASyncModifiedField: Boolean = True);
     function SaveNamespaceToFile(const AFileName: String = '';
       const AnIncBuildVersion: Boolean = False;
       const ASubstituteEditionDate: Boolean = False): Boolean;
@@ -1243,7 +1244,8 @@ begin
 end;
 
 procedure TgdcNamespace.SaveNamespaceToStream(St: TStream; out HashString: String;
-  const AnAnswer: Integer = 0; const ASubstituteEditionDate: Boolean = False);
+  const AnAnswer: Integer = 0; const ASubstituteEditionDate: Boolean = False;
+  const ASyncModifiedField: Boolean = True);
 var
   Obj: TgdcNamespaceObject;
   W: TyamlWriter;
@@ -1376,7 +1378,8 @@ begin
                       ASubstituteEditionDate,
                       ObjCache);
 
-                    if (InstObj.FindField('editiondate') <> nil)
+                    if ASyncModifiedField
+                      and (InstObj.FindField('editiondate') <> nil)
                       and (not InstObj.FieldByName('editiondate').IsNull)
                       and (Obj.FieldByName('modified').AsDateTime <> InstObj.FieldByName('editiondate').AsDateTime) then
                     begin
@@ -1584,8 +1587,9 @@ const
     ';RDB$TRIGGER_BLR;RDB$PROCEDURE_BLR;RDB$VIEW_BLR;RDB$SECURITY_CLASS' +
     ';RDB$PROCEDURE_NAME;RDB$PROCEDURE_ID;RDB$PROCEDURE_INPUTS;RDB$PROCEDURE_OUTPUTS' +
     ';RDB$PROCEDURE_OUTPUTS;RDB$PROCEDURE_SOURCE;RDB$OWNER_NAME;RDB$RUNTIME' +
-    ';RDB$SYSTEM_FLAG;RDB$INDEX_ID;LASTNUMBER;READCOUNT;RDB$FIELD_POSITION;' +
-    ';FROMCARDKEY;TOCARDKEY;PRINTDATE;EXCEPTIONNUMBER;RUNONLOGIN;REMAINS;';
+    ';RDB$SYSTEM_FLAG;RDB$INDEX_ID;LASTNUMBER;READCOUNT;RDB$FIELD_POSITION' +
+    ';FROMCARDKEY;TOCARDKEY;PRINTDATE;EXCEPTIONNUMBER;RUNONLOGIN;REMAINS' +
+    ';REFLISTFIELDKEY;REFTABLEKEY;RDB$INDEX_INACTIVE;RDB$UNIQUE_FLAG;';
 begin
   Result := (StrIPos(AFieldName, PassFieldName) > 0) and
     (StrIPos(';' + AFieldName + ';', PassFieldName) > 0);

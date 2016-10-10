@@ -84,7 +84,6 @@ type
     FactPast: TAction;
     FactSelAll: TAction;
     FDragging: boolean;
-
     FMovement: Boolean;
 
     procedure SetBlockName(const Value: string);
@@ -116,7 +115,7 @@ type
     //Подножие блока
     function Fotter: string; virtual;
 
-    function SelectColor: TColor; 
+    function SelectColor: TColor;
     function HeaderColor: TColor; virtual;
     function BodyColor: TColor; virtual;
     function FotterColor: TColor; virtual;
@@ -2248,14 +2247,11 @@ begin
     begin
       if Assigned(SelBlockList) then
       begin
-        //ClearSelBlockList;
         CancelDrag;
-        SelBlockList.Add(self);
         Repaint;
       end;
       if ClickInButton(X, Y) then
       begin
-        ClearSelBlockList;
         FUnWrap := not FUnWrap;
         AdjustSize;
         Repaint;
@@ -2294,12 +2290,22 @@ begin
   if not Assigned(SelBlockList) then Exit;
   inherited;
 
-  FMovement := True;
-
   if [ssLeft] = Shift then
   begin
     if (X - FMousePoint.x <> 0) or (Y - FMousePoint.y <> 0) then
     begin
+      FMovement := True;
+      
+      if SelBlockList.Count > 0 then
+      begin
+        if TVisualBlock(SelBlockList[0]).Parent <> Self.Parent then
+        begin
+          FMovement := False;
+          ClearSelBlockList;
+          Repaint;
+        end;
+      end;
+
       SelBlockList.Sort(SortSelBlockList);
       for i:= 0 to SelBlockList.Count - 1 do
         TVisualBlock(SelBlockList[i]).FDragging:= True;
@@ -2327,9 +2333,17 @@ begin
     begin
       ClearSelBlockList;
       CancelDrag;
-      SelBlockList.Add(self);
+      SelBlockList.Add(Self);
       Repaint;
     end;
+
+    if Focused then begin
+      Invalidate;
+      if Assigned(OnBlockSelect) then
+        OnBlockSelect(Self);
+    end
+    else
+      SetFocus;
   end;
 end;
 
@@ -2344,6 +2358,8 @@ var
   L: Integer;
   TempColor: TColor;
 begin
+  Canvas.Font.Name := 'Tahoma';
+
   if SelBlockList.IndexOf(self) > -1 then
   begin
     TempColor := SelectColor;
@@ -2355,10 +2371,6 @@ begin
     Canvas.Font.Color := clBlack;
   end;
 
-  R := GetClientRect;
-  Canvas.Brush.Color := GetFrameColor;
-  Canvas.FrameRect(R);
-
   //Прорисовка заголовка
   R := GetHeaderRect;
   Canvas.Brush.Color := GetFrameColor;
@@ -2367,24 +2379,22 @@ begin
   Canvas.Brush.Color := TempColor;
   Canvas.FillRect(R);
 
-  //Canvas.Font.Color := clBlack;
   L := 0;
   if HasBody or HasFootter then
   begin
     R := GetButtonRect;
     L := R.Right;
+
+    if FUnWrap then
+      Canvas.TextOut(R.Left + ((R.Right - R.Left - Canvas.TextWidth('-')) div 2),
+        R.Top + ((R.Bottom - R.Top - Canvas.TextHeight('-')) div 2) - 1, '-')
+    else
+      Canvas.TextOut(R.Left + ((R.Right - R.Left - Canvas.TextWidth('+')) div 2),
+        R.Top + ((R.Bottom - R.Top - Canvas.TextHeight('+')) div 2) - 1, '+');
+
     Canvas.Brush.Color := GetFrameColor;
     Canvas.FrameRect(R);
     Canvas.Brush.Color := TempColor;
-
-    InflateRect(R, -2, -2);
-    Canvas.MoveTo(R.Left, R.Top + ((R.Bottom - R.Top) div 2));
-    Canvas.LineTo(R.Right, R.Top + ((R.Bottom - R.Top) div 2));
-    if not FUnWrap then
-    begin
-      Canvas.MoveTo(R.Left + ((R.Right - R.Left) div 2), R.Top);
-      Canvas.LineTo(R.Left + ((R.Right - R.Left) div 2), R.Bottom);
-    end;
   end;
 
   Canvas.Brush.Color := TempColor;
@@ -2394,9 +2404,8 @@ begin
   begin
     if HasBody then
     begin
-      //Прописовка тела
+      //Прорисовка тела
       R := GetBodyRect;
-
       InflateRect(R, -1, 0);
       if not HasFootter then R.Bottom := R.Bottom - 1;
       Canvas.Brush.Color := BodyColor;
@@ -2410,10 +2419,27 @@ begin
       Canvas.Brush.Color := GetFrameColor;
       Canvas.FrameRect(R);
       InflateRect(R, -1, -1);
-      Canvas.Brush.Color := FotterColor;
+      Canvas.Brush.Color := TempColor;
       Canvas.FillRect(R);
       Canvas.TextOut(cTextSpace, R.Top + cTextSpace, Fotter)
     end;
+  end;
+
+  R := GetClientRect;
+  if SelBlockList.IndexOf(self) > -1 then
+  begin
+    R.Left := R.Left + 1;
+    R.Top := R.Top + 1;
+    Canvas.Brush.Style := bsClear;
+    Canvas.Pen.Style := psSolid;
+    Canvas.Pen.Color := GetFrameColor;
+    Canvas.Pen.Width := 4;
+    Canvas.Rectangle(R);
+  end
+  else
+  begin
+    Canvas.Brush.Color := GetFrameColor;
+    Canvas.FrameRect(R);
   end;
 end;
 
@@ -2953,7 +2979,7 @@ end;
 
 procedure TVisualBlock.KeyUp(var Key: Word; Shift: TShiftState);
 begin
-  if (Key = VK_DELETE) then
+  if (Key = VK_DELETE) and (Shift = [ssCtrl]) then
   begin
     Delete;
   end else
@@ -8141,10 +8167,10 @@ var
 begin
   lS := StringOfChar(' ', Paragraph);
 
-  S.Add(lS + Format('do while %s ', [FCondition]));
+  S.Add(lS + Format('Do While %s ', [FCondition]));
   inc(Paragraph, 2);
   inherited;
-  S.Add(lS + 'loop');
+  S.Add(lS + 'Loop');
 end;
 
 procedure TWhileCycleBlock.DoLoadFromStream(Stream: TStream);

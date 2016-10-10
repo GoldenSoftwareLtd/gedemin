@@ -16,8 +16,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   TextHeight = 13
   object splMessages: TSplitter
     Left = 0
-    Top = 369
-    Width = 1115
+    Top = 377
+    Width = 1123
     Height = 2
     Cursor = crVSplit
     Align = alBottom
@@ -26,8 +26,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object sb: TStatusBar
     Left = 0
-    Top = 460
-    Width = 1115
+    Top = 468
+    Width = 1123
     Height = 19
     Panels = <>
     SimplePanel = False
@@ -35,7 +35,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object TBDock: TTBDock
     Left = 0
     Top = 0
-    Width = 1115
+    Width = 1123
     Height = 49
     object TBToolbar: TTBToolbar
       Left = 0
@@ -236,8 +236,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object gr: TgsDBGrid
     Left = 0
     Top = 72
-    Width = 1115
-    Height = 297
+    Width = 1123
+    Height = 305
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -363,7 +363,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object pnlHeader: TPanel
     Left = 0
     Top = 49
-    Width = 1115
+    Width = 1123
     Height = 23
     Align = alTop
     Caption = 'База данных      <<----->>      Файлы на диске'
@@ -372,8 +372,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object mMessages: TRichEdit
     Left = 0
-    Top = 371
-    Width = 1115
+    Top = 379
+    Width = 1123
     Height = 89
     Align = alBottom
     BorderStyle = bsNone
@@ -426,6 +426,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object actSetForLoading: TAction
       Caption = '<< Пометить для загрузки текущее ПИ и все зависимые'
       Hint = 'Пометить для загрузки ПИ с учетом списка зависимости'
+      ShortCut = 8237
       OnExecute = actSetForLoadingExecute
       OnUpdate = actSetForLoadingUpdate
     end
@@ -544,12 +545,14 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object actSetForLoadingOne: TAction
       Caption = '<< Пометить для загрузки только текущее ПИ'
       Hint = 'Пометить для загрузки только текущее ПИ'
+      ShortCut = 45
       OnExecute = actSetForLoadingOneExecute
       OnUpdate = actSetForLoadingOneUpdate
     end
     object actClearAll: TAction
       Caption = 'Снять отметку со всех записей'
       Hint = 'Снять отметку со всех записей'
+      ShortCut = 49217
       OnExecute = actClearAllExecute
       OnUpdate = actClearAllUpdate
     end

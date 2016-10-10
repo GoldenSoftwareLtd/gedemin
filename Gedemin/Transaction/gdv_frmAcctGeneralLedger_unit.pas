@@ -300,6 +300,8 @@ end;
 
 procedure Tgdv_frmGeneralLedger.actRunUpdate(Sender: TObject);
 begin
+  inherited;
+
   TAction(Sender).Enabled := True;
   FMakeEmpty := (FAccountIDs = nil) or (FAccountIDs.Count = 0)
 end;
@@ -559,6 +561,10 @@ begin
               S.Free;
             end;
             C.IncSubAccounts := True;
+
+            C.ShowDebit := Self.cbShowDebit.Checked;
+            C.ShowCredit := Self.cbShowCredit.Checked;
+            C.ShowCorrSubAccounts := Self.cbShowCorrSubAccount.Checked;
 
             with Tgdv_frmAcctLedger.CreateAndAssign(Application) as Tgdv_frmAcctLedger do
             begin

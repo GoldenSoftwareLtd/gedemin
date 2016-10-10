@@ -378,19 +378,7 @@ end;
 
 procedure Tgdc_frmSGR.actEditInGridExecute(Sender: TObject);
 begin
-  if actEditInGrid.Checked then
-  begin
-    if gdcObject.State in dsEditModes then
-      gdcObject.Post;
-
-    ibgrMain.ReadOnly := True;
-    ibgrMain.Options := ibgrMain.Options - [dgEditing, dgIndicator];
-  end else
-  begin
-    ibgrMain.ReadOnly := False;
-    ibgrMain.Options := ibgrMain.Options + [dgEditing, dgIndicator];
-  end;
-  ibgrMain.SettingsModified := True;
+  EditInGridHelper(gdcObject, ibgrMain, actEditInGrid);
 end;
 
 procedure Tgdc_frmSGR.actNewExecute(Sender: TObject);

@@ -10897,13 +10897,6 @@ begin
   {END MACRO}
 end;
 
-{procedure TgdcBase.SetIBSQL;
-begin
-  FIBSQL.Close;
-  FIBSQL.DataBase := DataBase;
-  FIBSQL.Transaction := Transaction;
-end;}
-
 function TgdcBase.GetDetailLinks(Index: Integer): TgdcBase;
 begin
   Result := FDetailLinks[Index] as TgdcBase;

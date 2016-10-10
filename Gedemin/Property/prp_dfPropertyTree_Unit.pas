@@ -5693,9 +5693,12 @@ begin
 
   TN:= FindNodeByClass(AClass, ASubType, PTN);
   if Assigned(TN) then begin
+    TN.TreeView.FullCollapse;
     TN.TreeView.Selected:= TN;
     Expand(TN);
-  end;
+  end
+  else
+    ActiveTree.FullCollapse;
 end;
 
 function TdfPropertyTree.FindNodeByClass(AClass: TClass; ASubType: string; APTN: TTreeNode): TTreeNode;

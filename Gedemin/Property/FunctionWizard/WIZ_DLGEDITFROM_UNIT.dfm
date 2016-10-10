@@ -95,7 +95,7 @@ object BlockEditForm: TBlockEditForm
         Width = 89
         Height = 30
         AutoSize = False
-        Caption = 'Локальное наименование:'
+        Caption = 'Локализованное наименование:'
         WordWrap = True
       end
       object cbName: TComboBox

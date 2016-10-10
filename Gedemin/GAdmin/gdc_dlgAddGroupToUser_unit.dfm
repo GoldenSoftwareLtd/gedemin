@@ -4,22 +4,27 @@ inherited gdc_dlgAddGroupToUser: Tgdc_dlgAddGroupToUser
   HelpContext = 57
   Caption = 'Пользователи группы'
   ClientHeight = 366
-  ClientWidth = 348
+  ClientWidth = 343
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Left = 266
+    Left = 265
     Top = 141
     Enabled = False
     TabOrder = 6
     Visible = False
   end
   inherited btnNew: TButton
-    Left = 266
+    Left = 265
     Top = 173
     Enabled = False
     TabOrder = 7
     Visible = False
+  end
+  inherited btnHelp: TButton
+    Left = 265
+    Top = 77
+    TabOrder = 5
   end
   inherited btnOK: TButton
     Left = 265
@@ -30,11 +35,6 @@ inherited gdc_dlgAddGroupToUser: Tgdc_dlgAddGroupToUser
     Left = 265
     Top = 40
     TabOrder = 4
-  end
-  inherited btnHelp: TButton
-    Left = 266
-    Top = 77
-    TabOrder = 5
   end
   object gbUsers: TGroupBox [5]
     Left = 8
@@ -163,11 +163,13 @@ inherited gdc_dlgAddGroupToUser: Tgdc_dlgAddGroupToUser
     Top = 295
     object actAddUser: TAction
       Caption = 'Добавить'
+      ShortCut = 45
       OnExecute = actAddUserExecute
       OnUpdate = actAddUserUpdate
     end
     object actDeleteUser: TAction
       Caption = 'Исключить'
+      ShortCut = 46
       OnExecute = actDeleteUserExecute
       OnUpdate = actDeleteUserUpdate
     end

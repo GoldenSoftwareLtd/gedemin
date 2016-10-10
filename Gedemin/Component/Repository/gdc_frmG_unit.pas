@@ -718,7 +718,7 @@ begin
   end;
   }
 
-  gdMacrosMenu.ReloadGroup;
+  //gdMacrosMenu.ReloadGroup;
   if Assigned(actDontSaveSettings) then
     actDontSaveSettings.Checked := (GlobalStorage <> nil) and
       GlobalStorage.ValueExists('Options\DNSS', BuildComponentPath(Self), False);

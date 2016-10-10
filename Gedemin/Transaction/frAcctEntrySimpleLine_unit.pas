@@ -52,6 +52,8 @@ type
     FEQ: boolean;
     FDisableCount: Integer;
     FgdcObject: TgdcBase;
+    FCurrDigits: Integer;
+    FNCUDigits: Integer;
 
     procedure SetAccountPart(const Value: string);
 
@@ -66,7 +68,7 @@ type
     procedure DoChange(Sender: TObject);
     procedure SetOffBalance(const Value: Boolean);
     procedure SetMultyCurr(const Value: Boolean);
-    function CurrRate(const CurrKey: Integer): Currency;
+    function CurrRate(const CurrKey: Integer): Double;
     function ControlEnabled: Boolean;
     procedure CalcCurrency(isCurrency: Boolean);
     procedure SetgdcObject(const Value: TgdcBase);
@@ -82,7 +84,7 @@ type
     procedure EnableControls;
     procedure SaveAnalytic;
     procedure LoadAnalytic;
-    procedure SetCurrRate(CurrKey: Integer; Rate: Currency);
+    procedure SetCurrRate(CurrKey: Integer; Rate: Double);
     property AccountPart: string read FAccountPart write SetAccountPart;
     property DataSet: TDataSet read FDataSet write SetDataSet;
     property Id: Integer read GetId;
@@ -94,6 +96,8 @@ type
     property zRate: Currency read GetCRate;
     property Sum: Currency read GetSum;
     property CurrSum: Currency read GetCurrSum;
+    property CurrDigits: Integer read FCurrDigits;
+    property NCUDigits: Integer read FNCUDigits;
   end;
 
 implementation
@@ -101,7 +105,7 @@ implementation
 {$R *.DFM}
 
 uses
-  AcctUtils;
+  AcctUtils, gd_convert;
 
 const
   cMinHeight   = 49;
@@ -283,6 +287,8 @@ begin
 end;
 
 constructor TfrAcctEntrySimpleLine.Create(AOwner: TComponent);
+var
+  q: TIBSQL;
 begin
   Assert(gdcBaseManager <> nil);
 
@@ -301,6 +307,19 @@ begin
   cEQSum.Width := Panel5.Width - cEQSum.Left;
   cRate.Width := Panel5.Width - cRate.Left;
   cCurrSum.Width := Panel5.Width - cCurrSum.Left;
+  FCurrDigits := 2;
+  FNCUDigits := 2;
+  q := TIBSQL.Create(Self);
+  try
+    q.SQL.Text := 'select decdigits from gd_curr where isncu = 1';
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.ExecQuery;
+    if not q.EOF then
+      FNCUDigits := q.FieldByName('decdigits').AsInteger;
+    q.Close;  
+  finally
+    q.Free;
+  end
 end;
 
 procedure TfrAcctEntrySimpleLine.SetDataSet(const Value: TDataSet);
@@ -561,7 +580,7 @@ begin
   FMultyCurr := Value;
 end;
 
-function TfrAcctEntrySimpleLine.CurrRate(const CurrKey: Integer): Currency;
+function TfrAcctEntrySimpleLine.CurrRate(const CurrKey: Integer): Double;
 var
   q: TIBSQL;
 begin
@@ -572,7 +591,7 @@ begin
     q := TIBSQL.Create(nil);
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text := 'SELECT coeff FROM gd_currrate WHERE fromcurr = :fc and ' +
+      q.SQL.Text := 'SELECT r.coeff, c.decdigits FROM gd_currrate r left join gd_curr c ON r.fromcurr = c.id WHERE fromcurr = :fc and ' +
         ' tocurr = :tc and fordate = (SELECT MAX(fordate) FROM gd_currrate WHERE fromcurr = :fc and ' +
         ' tocurr = :tc and fordate <= :de) ';
       q.ParamByName('fc').AsInteger := CurrKey;
@@ -580,7 +599,10 @@ begin
       q.ParamByName('de').AsDateTime := gdcObject.FieldByName('recorddate').AsDateTime;
       q.ExecQuery;
       if not q.EOF then
-        Result := q.FieldByName('coeff').AsCurrency;
+      begin
+        Result := q.FieldByName('coeff').AsVariant;
+        FCurrDigits := q.FieldByName('decdigits').AsInteger;
+      end
     finally
       q.Free;
     end;
@@ -612,7 +634,7 @@ begin
       if (cRate.Value > 0) and not IsCurrency then
       begin
         CheckEditMode;
-        FdataSet.FieldByName(cCurrSum.DataField).AsCurrency := cSum.Value / cRate.Value;
+        FdataSet.FieldByName(cCurrSum.DataField).AsCurrency := MulDiv(cSum.Value, 1, cRate.Value, 1, CurrDigits);
       end else
       if (cRate.Value > 0) then
       begin
@@ -621,7 +643,7 @@ begin
         if not cbRounded.Checked then
           FdataSet.FieldByName(cSum.DataField).AsCurrency := cCurrSum.Value * cRate.Value
         else
-          FdataSet.FieldByName(cSum.DataField).AsCurrency := Round(cCurrSum.Value * cRate.Value + 1/10000);
+          FdataSet.FieldByName(cSum.DataField).AsCurrency := MulDiv(cCurrSum.Value, cRate.Value, 1, 1, NCUDigits);
       end;
     finally
       EnableControls;
@@ -680,7 +702,7 @@ begin
 end;
 
 procedure TfrAcctEntrySimpleLine.SetCurrRate(CurrKey: Integer;
-  Rate: Currency);
+  Rate: Double);
 begin
   if cbCurrency.Visible and (cbCurrency.CurrentKeyInt = CurrKey) and (zRate <> Rate) then
     cRate.Value := Rate;

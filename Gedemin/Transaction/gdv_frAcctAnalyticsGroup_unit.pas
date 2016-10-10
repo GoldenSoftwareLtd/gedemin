@@ -114,10 +114,10 @@ begin
   Result := lbSelected;
 end;
 
-
 procedure TfrAcctAnalyticsGroup.lbSelectedClickCheck(Sender: TObject);
 begin
   SelectedFieldListClear
 end;
+
 
 end.

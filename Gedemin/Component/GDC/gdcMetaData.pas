@@ -5840,11 +5840,7 @@ begin
   {END MACRO}
 
   FieldByName('RDB$PROCEDURE_NAME').AsString := AnsiUpperCase(FieldByName('procedurename').AsString);
-
   SaveStoredProc(True);
-  CustomExecQuery(
-    'UPDATE rdb$procedures SET rdb$description = :new_rdb$description ' +
-    ' WHERE rdb$procedure_name = :new_rdb$procedure_name ', Buff, False);
 
   inherited;
 
@@ -5864,6 +5860,7 @@ procedure TgdcStoredProc.CustomModify(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  S: String;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCSTOREDPROC', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -5886,7 +5883,7 @@ begin
   {M}    end;
   {END MACRO}
   if IsSaveToStream then
-  //ѕри сохранении в поток мы обновл€ем только одно поле - proceduresource
+    //ѕри сохранении в поток мы обновл€ем только одно поле - proceduresource
     inherited
   else
   begin
@@ -5895,9 +5892,14 @@ begin
     then
       SaveStoredProc(False);
 
-    CustomExecQuery(
-      'UPDATE rdb$procedures SET rdb$description = :new_rdb$description ' +
-      ' WHERE rdb$procedure_name = :new_rdb$procedure_name ', Buff);
+    S := 'COMMENT ON PROCEDURE ' + FieldByName('rdb$procedure_name').AsString + ' IS ';
+    if FieldByName('rdb$description').IsNull then
+      S := S + 'NULL'
+    else
+      S := S + '''' + StringReplace(
+        FieldByName('rdb$description').AsString, '''', '''''', [rfReplaceAll]) + '''';
+
+    CustomExecQuery(S, Buff, False);
 
     inherited;
     atDatabase.Fields.RefreshData(Database, Transaction);
@@ -6197,7 +6199,7 @@ begin
     if (sLoadFromStream in BaseState) then
     begin
       // ≈сли процедура создаетс€, или содержит в тексте CREATE OR ALTER, то не надо редактировать текст создани€\обновлени€
-      if isNew or (AnsiPos('CREATE OR ALTER', FieldByName('proceduresource').AsString) > 0) then
+      if IsNew or (AnsiPos('CREATE OR ALTER', FieldByName('proceduresource').AsString) > 0) then
       begin
         //¬ поле proceduresource хранитс€ текст дл€ создани€ процедуры
         FSQL.Add(FieldByName('proceduresource').AsString);
@@ -6281,9 +6283,14 @@ begin
     S := GetProcedureText;
     if FieldByName('proceduresource').AsString <> S then
     begin
-      Edit;
-      FieldByName('proceduresource').AsString := S;
-      Post;
+      if State in [dsEdit, dsInsert] then
+        FieldByName('proceduresource').AsString := S
+      else
+      begin
+        Edit;
+        FieldByName('proceduresource').AsString := S;
+        Post;
+      end;
     end;
   end else
     IsSaveToStream := False;

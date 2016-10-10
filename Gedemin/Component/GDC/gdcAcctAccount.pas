@@ -504,16 +504,16 @@ begin
   if State = dsInactive then
     Result :=
       'SELECT ' +
-      '  a.id ' +
+      '  z.id ' +
       'FROM ' +
       '  ac_account aparent JOIN ac_account aroot ' +
       '    ON aroot.lb < aparent.lb AND aroot.rb >= aparent.rb AND aroot.parent IS NULL ' +
-      '  JOIN ac_account a ' +
-      '    ON a.lb > aroot.lb AND a.rb <= aroot.rb ' +
+      '  JOIN ac_account z ' +
+      '    ON z.lb > aroot.lb AND z.rb <= aroot.rb ' +
       'WHERE ' +
-      '  a.accounttype IN (''A'', ''S'') ' +
+      GetRestrictCondition('', '') +
       '  AND aparent.id = :parent' +
-      '  AND a.alias = :alias'
+      '  AND z.alias = :alias'
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else begin
@@ -524,16 +524,16 @@ begin
 
     Result :=
       'SELECT ' +
-      '  a.id ' +
+      '  z.id ' +
       'FROM ' +
       '  ac_account aparent JOIN ac_account aroot ' +
       '    ON aroot.lb < aparent.lb AND aroot.rb >= aparent.rb AND aroot.parent IS NULL ' +
-      '  JOIN ac_account a ' +
-      '    ON a.lb > aroot.lb AND a.rb <= aroot.rb ' +
+      '  JOIN ac_account z ' +
+      '    ON z.lb > aroot.lb AND z.rb <= aroot.rb ' +
       'WHERE ' +
-      '  a.accounttype IN (''A'', ''S'') ' +
+      GetRestrictCondition('', '') +
       '  AND aparent.id = ' + FieldByName('parent').AsString +
-      '  AND a.alias = ''' + StringReplace(FieldByName('alias').AsString, '''', '''''', [rfReplaceAll]) + ''' ';
+      '  AND z.alias = ''' + StringReplace(FieldByName('alias').AsString, '''', '''''', [rfReplaceAll]) + ''' ';
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTACCOUNT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}

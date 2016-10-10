@@ -6,7 +6,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Mask, xDateEdits, StdCtrls, at_classes, gsIBLookupComboBox, ActnList,
-  Buttons, ExtCtrls, contnrs, gd_KeyAssoc;
+  Buttons, ExtCtrls, contnrs, gd_KeyAssoc, gdcBase;
 
 
 type
@@ -331,7 +331,7 @@ begin
     lAnaliticName.Left:= 2;
   end
   else
-    lAnaliticName.Left:= 16;
+    lAnaliticName.Left:= 20;
   chkNull.Visible:= FNeedNull;
 end;
 
@@ -414,6 +414,9 @@ begin
 end;
 
 function TfrAcctAnalyticLine.CreateLookUp: TgsIBLookupComboBox;
+var
+  C: TPersistentClass;
+  gdcClass: CgdcBase;
 begin
   Result := TgsIBLookupComboBox.Create(Self);
   with Result do
@@ -421,7 +424,7 @@ begin
     Parent := Self;
     ParentFont := False;
     ParentColor := False;
-    Font.Name := 'MS Sans Serif';
+    Font.Name := 'Tahoma';
     Font.Size := 8;
     Font.Color := clWindowText;
     Style := csDropDown;
@@ -430,6 +433,17 @@ begin
     SubType := FField.gdSubType;
     gdClassName := FField.gdClassName;
     ListTable := FField.References.RelationName;
+    if gdClassName <> '' then
+    begin
+      C := GetClass(gdClassName);
+      if Assigned(C) and C.InheritsFrom(TgdcBase) then
+      begin
+        gdcClass := CgdcBase(C);
+        ListTable := gdcClass.GetListTable(SubType);
+        Condition := gdcClass.GetRestrictCondition(ListTable, SubType);
+        Condition := StringReplace(Condition, gdcClass.GetListTableAlias + '.', ListTable + '.', [rfReplaceAll, rfIgnoreCase]);
+      end;
+    end;
 
     if FField.Field.RefListFieldName <> '' then
        ListField := FField.Field.RefListFieldName

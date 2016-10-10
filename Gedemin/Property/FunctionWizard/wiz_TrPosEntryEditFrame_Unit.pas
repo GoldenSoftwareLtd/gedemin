@@ -388,6 +388,11 @@ begin
   pmCurr.Items.Add(MI);
 
   MI := TMenuItem.Create(pmCurr);
+  MI.Caption := RUS_EXPRESSION;
+  MI.OnClick := ClickExpression;
+  pmCurr.Items.Add(MI);
+
+  MI := TMenuItem.Create(pmCurr);
   MI.Caption := '-';
   pmCurr.Items.Add(MI);
 

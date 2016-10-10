@@ -70,6 +70,8 @@ type
 
   TgdcBaseAcctTransactionEntry = class(TgdcBase)
   protected
+    function GetSelectClause: String; override;
+    function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetOrderClause: String; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetCanEdit: Boolean; override;
@@ -404,6 +406,108 @@ begin
     S.Add(' z.transactionkey = :TransactionKey ')
   else if HasSubSet(ByRecord) then
     S.Add(' z.id = :RecordKey ');
+end;
+
+function TgdcBaseAcctTransactionEntry.GetSelectClause: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCBASEACCTTRANSACTIONENTRY', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASEACCTTRANSACTIONENTRY', KEYGETSELECTCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASEACCTTRANSACTIONENTRY') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASEACCTTRANSACTIONENTRY',
+  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASEACCTTRANSACTIONENTRY' then
+  {M}        begin
+  {M}          Result := Inherited GetSelectClause;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+  Result := ' SELECT ' +
+    ' z.*, '  +
+    ' d.name as documentname, '  +
+    ' c.name as accountname, '  +
+    ' f.name as functionname ';
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEACCTTRANSACTIONENTRY', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCBASEACCTTRANSACTIONENTRY', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
+  {M}  end;
+  {END MACRO}
+end;
+
+function TgdcBaseAcctTransactionEntry.GetFromClause(const ARefresh: Boolean = False): String;
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCBASEACCTTRANSACTIONENTRY', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASEACCTTRANSACTIONENTRY', KEYGETFROMCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASEACCTTRANSACTIONENTRY') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASEACCTTRANSACTIONENTRY',
+  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASEACCTTRANSACTIONENTRY' then
+  {M}        begin
+  {M}          Result := Inherited GetFromClause(ARefresh);
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := ' FROM ac_trrecord z LEFT JOIN ac_account c ON z.accountkey = c.id ' +
+            '   LEFT JOIN gd_function f ON z.functionkey = f.id ' +
+            '   LEFT JOIN gd_documenttype d ON z.documenttypekey = d.id ';
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEACCTTRANSACTIONENTRY', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCBASEACCTTRANSACTIONENTRY', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
+  {M}  end;
+  {END MACRO}
 end;
 
 function TgdcBaseAcctTransactionEntry.GetOrderClause: String;

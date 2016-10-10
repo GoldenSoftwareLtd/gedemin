@@ -732,19 +732,7 @@ end;
 
 procedure Tgdc_frmMDVTree.actDetailEditInGridExecute(Sender: TObject);
 begin
-  if actDetailEditInGrid.Checked then
-  begin
-    if gdcDetailObject.State in dsEditModes then
-      gdcDetailObject.Post;
-
-    ibgrDetail.ReadOnly := True;
-    ibgrDetail.Options := ibgrDetail.Options - [dgEditing, dgIndicator];
-  end else
-  begin
-    ibgrDetail.ReadOnly := False;
-    ibgrDetail.Options := ibgrDetail.Options + [dgEditing, dgIndicator];
-  end;
-  ibgrDetail.SettingsModified := True;
+  EditInGridHelper(gdcDetailObject, ibgrDetail, actDetailEditInGrid);
 end;
 
 procedure Tgdc_frmMDVTree.SwitchSubGroups(const F: Boolean);

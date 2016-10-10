@@ -1186,11 +1186,17 @@ begin
 end;
 
 procedure Tgdv_frmAcctBaseForm.actEditInGridExecute(Sender: TObject);
+var
+  I: Integer;
 begin
+  I := ibgrMain.SelectedIndex;
+
   if dgEditing in ibgrMain.Options then
     ibgrMain.Options := ibgrMain.Options - [dgEditing]
   else
     ibgrMain.Options := ibgrMain.Options + [dgEditing];
+
+  ibgrMain.SelectedIndex := I;
 end;
 
 procedure Tgdv_frmAcctBaseForm.ibgrMainDblClick(Sender: TObject);

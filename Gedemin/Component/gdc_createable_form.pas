@@ -7,7 +7,8 @@ uses
   Classes,      gd_createable_form,     gdcBase,
   mtd_i_Base,   gsIBGrid,               evt_i_Base,
   gd_KeyAssoc,  Forms,                  gdcBaseInterface,
-  Messages,     DBGrids,                gsDBGrid;
+  Messages,     DBGrids,                gsDBGrid,
+  ActnList;
 
 type
   TgdcCreateableForm = class;
@@ -111,6 +112,7 @@ type
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     class function FindForm(const AFormClass: CgdcCreateableForm;
       const ASubType: TgdcSubType; const AnInitialName: String = ''): TgdcCreateableForm;
+    class procedure EditInGridHelper(AnObj: TgdcBase; AGrid: TgsIBGrid; AnAction: TCustomAction);
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
@@ -825,6 +827,30 @@ begin
   end;
 
   Result := Pref + Result + Postf;
+end;
+
+class procedure TgdcCreateableForm.EditInGridHelper(AnObj: TgdcBase;
+  AGrid: TgsIBGrid; AnAction: TCustomAction);
+var
+  I: Integer;
+begin
+  I := AGrid.SelectedIndex;
+
+  if AnAction.Checked then
+  begin
+    if AnObj.State in dsEditModes then
+      AnObj.Post;
+
+    AGrid.ReadOnly := True;
+    AGrid.Options := AGrid.Options - [dgEditing, dgIndicator];
+  end else
+  begin
+    AGrid.ReadOnly := False;
+    AGrid.Options := AGrid.Options + [dgEditing, dgIndicator];
+  end;
+  AGrid.SettingsModified := True;
+
+  AGrid.SelectedIndex := I;
 end;
 
 initialization

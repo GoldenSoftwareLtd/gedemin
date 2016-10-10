@@ -1,7 +1,7 @@
 
 {
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
 
   Валюты
 
@@ -57,8 +57,8 @@ type
   end;
 
   // Возвращает курс валюты
-  function gs_GetCurrRate(DocumentDate: TDateTime; CurrKey: Integer;
-    Transaction: TIBTransaction): Currency;
+  function gs_GetCurrRate(const DocumentDate: TDateTime; const CurrKey: Integer;
+    Transaction: TIBTransaction): Double;
   procedure Register;
 
 implementation
@@ -88,36 +88,46 @@ begin
   RegisterComponents('gdc', [TgdcCurrRate]);
 end;
 
-function gs_GetCurrRate(DocumentDate: TDateTime; CurrKey: Integer;
-  Transaction: TIBTransaction): Currency;
+function gs_GetCurrRate(const DocumentDate: TDateTime; const CurrKey: Integer;
+  Transaction: TIBTransaction): Double;
 var
-  ibsql: TIBSQL;
+  q: TIBSQL;
 begin
-  ibsql := TIBSQL.Create(nil);
+  q := TIBSQL.Create(nil);
   try
     if Assigned(Transaction) and Transaction.InTransaction then
-      ibsql.Transaction := Transaction
+      q.Transaction := Transaction
     else
-      ibsql.Transaction := gdcBaseManager.ReadTransaction;
+      q.Transaction := gdcBaseManager.ReadTransaction;
 
-    ibsql.SQL.Text :=
+    q.SQL.Text :=
       'SELECT c.coeff FROM gd_currrate c WHERE ' +
       ' c.fromcurr = :currkey AND c.tocurr = :tocurrkey and ' +
       ' c.fordate = (SELECT MAX(c1.fordate) FROM gd_currrate c1 WHERE ' +
       ' c1.fromcurr = :currkey AND c1.tocurr = :tocurrkey and ' +
       ' c1.fordate <= :curdate) ';
 
-    ibsql.ParamByName('currkey').AsInteger := CurrKey;
-    ibsql.ParamByName('tocurrkey').AsInteger := TgdcCurr.GetNCUCurrKey;
-    ibsql.ParamByName('curdate').AsVariant := DocumentDate;
-    ibsql.ExecQuery;
+    q.ParamByName('currkey').AsInteger := CurrKey;
+    q.ParamByName('tocurrkey').AsInteger := TgdcCurr.GetNCUCurrKey;
+    q.ParamByName('curdate').AsDateTime := DocumentDate;
+    q.ExecQuery;
 
-    if not ibsql.EOF then
-      Result := ibsql.FieldByName('coeff').AsCurrency
-    else
-      Result := 0;
+    if not q.EOF then
+      Result := q.FieldByName('coeff').AsDouble
+    else begin
+      q.Close;
+      q.ParamByName('currkey').AsInteger := TgdcCurr.GetNCUCurrKey;
+      q.ParamByName('tocurrkey').AsInteger := CurrKey;
+      q.ParamByName('curdate').AsDateTime := DocumentDate;
+      q.ExecQuery;
+
+      if not q.EOF then
+        Result := 1 / q.FieldByName('coeff').AsDouble
+      else
+        Result := 0;
+    end;
   finally
-    ibsql.Free;
+    q.Free;
   end;
 end;
 

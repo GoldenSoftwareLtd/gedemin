@@ -66,7 +66,7 @@ type
 
     function DeleteEnable(Sb: TWinControl): Boolean;
     procedure OnLineChange(Sender: TObject);
-    procedure SetCurrRate(W: TWinControl; CurrKey: Integer; Rate: Currency);
+    procedure SetCurrRate(W: TWinControl; CurrKey: Integer; Rate: Double);
 
   protected
     function DlgModified: Boolean; override;
@@ -701,7 +701,7 @@ begin
 end;
 
 
-procedure Tgdc_acct_dlgEntry.SetCurrRate(W: TWinControl; CurrKey: Integer; Rate: Currency);
+procedure Tgdc_acct_dlgEntry.SetCurrRate(W: TWinControl; CurrKey: Integer; Rate: Double);
 var
   I: Integer;
   L: TfrAcctEntrySimpleLine;

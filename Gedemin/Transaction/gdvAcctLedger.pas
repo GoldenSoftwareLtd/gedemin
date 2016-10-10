@@ -1047,10 +1047,12 @@ var
           // «аполн€ем секции SELECT во всех запросах второго уровн€ вложенности в главном запросе
           if MainSubSubSelect01 > '' then MainSubSubSelect01 := MainSubSubSelect01 + ', ';
           MainSubSubSelect01 := MainSubSubSelect01 +
-            'CAST(:datebegin AS DATE) AS entrydate'#13#10;
+            //'CAST(:datebegin AS DATE) AS entrydate'#13#10;
+            'NULL AS entrydate'#13#10;
           if MainSubSubSelect02 > '' then MainSubSubSelect02 := MainSubSubSelect02 + ', ';
           MainSubSubSelect02 := MainSubSubSelect02 +
-            'CAST(:datebegin AS DATE) AS entrydate'#13#10;
+            //'CAST(:datebegin AS DATE) AS entrydate'#13#10;
+            'NULL AS entrydate'#13#10;
           if MainSubSubSelect03 > '' then MainSubSubSelect03 := MainSubSubSelect03 + ', ';
           MainSubSubSelect03 := MainSubSubSelect03 +
             'em.entrydate'#13#10;
@@ -2118,7 +2120,26 @@ begin
             VKeyAlias := Self.GetKeyAlias(FAcctValues.Names[K]);
             ValueAlias := 'v_' + Self.GetKeyAlias(FAcctValues.Names[K]);
             QuantityAlias := 'q_' + Self.GetKeyAlias(FAcctValues.Names[K]);
-            AccWhereQuantity := AccWhereQuantity + 'SUM(' + QuantityAlias + '.quantity) <> 0 OR ';
+            //AccWhereQuantity := AccWhereQuantity + 'SUM(' + QuantityAlias + '.quantity) <> 0 OR ';
+
+            AccWhereQuantity := AccWhereQuantity +
+              Format(
+                '  CAST(IIF(SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
+                '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) > 0 AND '#13#10 +
+                '    NOT (SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
+                '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0))) IS NULL, '#13#10 +
+                '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
+                '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)), 0) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
+                '  CAST(IIF(SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
+                '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) > 0 AND '#13#10 +
+                '    NOT (SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
+                '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0))) IS NULL, '#13#10 +
+                '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
+                '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)), 0) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
+                '  CAST(SUM(IIF((e2.accountpart = ''D'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
+                '  CAST(SUM(IIF((e2.accountpart = ''C'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10,
+                [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
             if not FEntryDateInFields then
             begin
               BC := TgdvSimpleLedgerTotalBlock;
@@ -2318,7 +2339,8 @@ begin
         HavingClause := GetHavingClause;
         if HavingClause > '' then
           HavingClause := HavingClause + ' OR '#13#10 ;
-        HavingClause := HavingClause + AccWhereQuantity + ' SUM(e2.debitncu) <> 0 OR '#13#10 +
+        HavingClause := HavingClause + AccWhereQuantity +
+          '  SUM(e2.debitncu) <> 0 OR '#13#10 +
           '  SUM(e2.creditncu) <> 0 OR '#13#10 +
           '  SUM(e1.debitncu - e1.creditncu) <> 0'#13#10;
           

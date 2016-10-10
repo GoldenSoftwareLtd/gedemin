@@ -3999,7 +3999,8 @@ begin
         F := atDatabase.FindRelationField('INV_CARD', ReadString);
         if not Assigned(F) then
           continue;
-        FFeatures[ftMinus].AddObject(F.FieldName, F);
+        if FFeatures[ftMinus].IndexOf(F.FieldName) = -1 then
+          FFeatures[ftMinus].AddObject(F.FieldName, F);
       end;
       ReadListEnd;
     end;

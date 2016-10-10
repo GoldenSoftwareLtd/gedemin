@@ -7,6 +7,9 @@ uses
   gdv_AvailAnalytics_unit,ActnList, stdctrls, gd_common_functions, IBSQL,
   AcctStrings, gdcBaseInterface, AcctUtils, checklst;
 
+const
+  cChars = ['À'..'ß', 'à'..'ÿ', '¨', '¸', 'A'..'Z', 'a'..'z', '0'..'9'];
+
 type
   TfrAcctBaseAnalyticsGroup = class(TFrame)
     ActionList1: TActionList;
@@ -35,6 +38,8 @@ type
     procedure lbSelectedKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure Action1Execute(Sender: TObject);
+    procedure lbAvailKeyPress(Sender: TObject; var Key: Char);
+    procedure lbSelectedKeyPress(Sender: TObject; var Key: Char);
   private
     FOnSelect: TNotifyEvent;
     FStringListAvail: TStringList;
@@ -319,6 +324,91 @@ begin
     actExclude.Execute;
     Key := 0;
   end else
+    inherited;
+end;
+
+procedure TfrAcctBaseAnalyticsGroup.lbAvailKeyPress(Sender: TObject;
+  var Key: Char);
+var
+  I, J, K: Integer;
+  C: String;
+begin
+  if (Key in cChars) and (ListBoxAvail.Items.Count > 0) then
+  begin
+    C := AnsiUpperCase(Key);
+    I := ListBoxAvail.ItemIndex;
+
+    if ListBoxAvail.MultiSelect then
+    begin
+      for J := 0 to ListBoxAvail.Items.Count - 1 do
+      begin
+        if ListBoxAvail.Selected[J] then
+          ListBoxAvail.Selected[J] := False;
+      end;
+    end;
+
+    J := 0;
+
+    if ((I + 1) <= (ListBoxAvail.Items.Count - 1)) then
+    begin
+      if AnsiUpperCase(Copy(ListBoxAvail.Items.Strings[I], 1, 1)) = C then
+      begin
+        if AnsiUpperCase(Copy(ListBoxAvail.Items.Strings[I + 1], 1, 1)) = C then
+          J := I + 1;
+      end;
+    end;
+
+    for K := J to ListBoxAvail.Items.Count - 1 do
+    begin
+      if AnsiUpperCase(Copy(ListBoxAvail.Items.Strings[K], 1, 1)) = C then
+      begin
+        I := K;
+        break;
+      end;
+    end;
+
+    if ListBoxAvail.MultiSelect then
+      ListBoxAvail.Selected[I] := True
+    else
+      ListBoxAvail.ItemIndex := I;
+  end
+  else
+    inherited;
+end;
+
+procedure TfrAcctBaseAnalyticsGroup.lbSelectedKeyPress(Sender: TObject;
+  var Key: Char);
+var
+  I, J, K: Integer;
+  C: String;
+begin
+  if (Key in cChars) and (ListBoxSelected.Items.Count > 0) then
+  begin
+    C := AnsiUpperCase(Key);
+    I := ListBoxSelected.ItemIndex;
+    J := 0;
+
+    if ((I + 1) <= (ListBoxSelected.Items.Count - 1)) then
+    begin
+      if AnsiUpperCase(Copy(ListBoxSelected.Items.Strings[I], 1, 1)) = C then
+      begin
+        if AnsiUpperCase(Copy(ListBoxSelected.Items.Strings[I + 1], 1, 1)) = C then
+          J := I + 1;
+      end;
+    end;
+
+    for K := J to ListBoxSelected.Items.Count - 1 do
+    begin
+      if AnsiUpperCase(Copy(ListBoxSelected.Items.Strings[K], 1, 1)) = C then
+      begin
+        I := K;
+        break;
+      end;
+    end;
+
+    ListBoxSelected.ItemIndex := I;
+  end
+  else
     inherited;
 end;
 

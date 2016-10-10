@@ -513,19 +513,7 @@ end;
 
 procedure Tgdc_frmMDHGR.actEditInGridExecute(Sender: TObject);
 begin
-  if actEditInGrid.Checked then
-  begin
-    if gdcObject.State in dsEditModes then
-      gdcObject.Post;
-
-    ibgrMain.ReadOnly := True;
-    ibgrMain.Options := ibgrMain.Options - [dgEditing, dgIndicator];
-  end else
-  begin
-    ibgrMain.ReadOnly := False;
-    ibgrMain.Options := ibgrMain.Options + [dgEditing, dgIndicator];
-  end;
-  ibgrMain.SettingsModified := True;
+  EditInGridHelper(gdcObject, ibgrMain, actEditInGrid);
 end;
 
 procedure Tgdc_frmMDHGR.actDetailEditInGridUpdate(Sender: TObject);
@@ -540,19 +528,7 @@ end;
 
 procedure Tgdc_frmMDHGR.actDetailEditInGridExecute(Sender: TObject);
 begin
-  if actDetailEditInGrid.Checked then
-  begin
-    if gdcDetailObject.State in dsEditModes then
-      gdcDetailObject.Post;
-
-    ibgrDetail.ReadOnly := True;
-    ibgrDetail.Options := ibgrDetail.Options - [dgEditing, dgIndicator];
-  end else
-  begin
-    ibgrDetail.ReadOnly := False;
-    ibgrDetail.Options := ibgrDetail.Options + [dgEditing, dgIndicator];
-  end;
-  ibgrDetail.SettingsModified := True;
+  EditInGridHelper(gdcDetailObject, ibgrDetail, actDetailEditInGrid);
 end;
 
 procedure Tgdc_frmMDHGR.actNewExecute(Sender: TObject);

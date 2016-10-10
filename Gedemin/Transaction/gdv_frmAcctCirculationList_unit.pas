@@ -42,8 +42,6 @@ type
     procedure actRunUpdate(Sender: TObject);
     procedure actAnalizeRevolutionUpdate(Sender: TObject);
     procedure actGotoLedgerExecute(Sender: TObject);
-    procedure ibgrMainGetTotal(Sender: TObject; const FieldName: String;
-      const AggregatesObsolete: Boolean; var DisplayString: String);
     procedure cbSubAccountClick(Sender: TObject);
     procedure ibdsMainAfterOpen(DataSet: TDataSet);
     procedure actGotoLedgerUpdate(Sender: TObject);
@@ -204,9 +202,25 @@ begin
     SQL := TIBSQL.Create(nil);
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
+      {
       SQL.SQL.Text := Format(' SELECT a2.id FROM ac_account a1, ac_account a2 WHERE a1.id IN ' +
         '(SELECT accountkey FROM ac_companyaccount WHERE companykey IN (%s)) and ' +
         ' a2.lb >= a1.lb and a2.rb <= a1.rb and a2.ACCOUNTTYPE in (''A'', ''S'')', [IBlogin.HoldingList]);
+      }
+
+      SQL.SQL.Text := Format('WITH list (flb, frb) ' +
+        'AS ( ' +
+        '  SELECT a3.lb, a3.rb ' +
+        '  FROM ac_account a3 ' +
+        '  WHERE name = :sname ' +
+        ') ' +
+        'SELECT a2.id, a2.alias, a2.name ' +
+        'FROM ac_account a1, ac_account a2, list ' +
+        'WHERE a1.id IN ' +
+        '  (SELECT accountkey FROM ac_companyaccount WHERE companykey IN (%s)) and ' +
+        '    a2.lb >= flb and a2.rb <= frb and a2.ACCOUNTTYPE in (''A'', ''S'')', [IBlogin.HoldingList]);
+      SQL.ParamByName('sname').AsString := tvGroup.Selected.Text;
+
       SQL.ExecQuery;
       while not SQl.Eof do
       begin
@@ -217,6 +231,8 @@ begin
     finally
       SQL.Free;
     end;
+
+    //frAcctAnalytics.UpdateAnalyticsList(FAccountIDs);
 
     //Обновляем количественные показатели
     //frAcctQuantity.UpdateQuantityList(FAccountIDs);
@@ -230,14 +246,13 @@ procedure Tgdv_frmAcctCirculationList.tvGroupChange(Sender: TObject;
 begin
   UpdateControls;
   if cbAutoBuildReport.Checked then
-    BuildAcctReport; 
+    BuildAcctReport;
 end;
 
 procedure Tgdv_frmAcctCirculationList.actRunUpdate(Sender: TObject);
 begin
-  // Уберем наследованный обработчик
+  inherited;
 end;
-
 
 procedure Tgdv_frmAcctCirculationList.Go_to(NewWindow: Boolean);
 var
@@ -436,29 +451,6 @@ begin
   else
     MessageDlg('По данному счету нет объектов аналитического учета', mtWarning,
       [mbOk], -1);
-end;
-
-procedure Tgdv_frmAcctCirculationList.ibgrMainGetTotal(Sender: TObject;
-  const FieldName: String; const AggregatesObsolete: Boolean;
-  var DisplayString: String);
-var
-  FormatString, Str: String;
-begin
-  FormatString := '#,##0';
-  Str := LowerCase(Copy(FieldName, 1, 2));
-  DisplayString := '';
-
-  if Assigned(cdsTotal.FindField(FieldName)) then
-  begin
-    if (Str = 'nc') and (frAcctSum.NcuDecDigits > 0) then
-      FormatString := FormatString + '.' + StrFillChar('0', frAcctSum.NcuDecDigits)
-    else if (Str = 'cu') and (frAcctSum.CurrDecDigits > 0) then
-      FormatString := FormatString + '.' + StrFillChar('0', frAcctSum.CurrDecDigits)
-    else if (Str = 'eq') and (frAcctSum.EQDecDigits > 0) then
-      FormatString := FormatString + '.' + StrFillChar('0', frAcctSum.EQDecDigits);
-
-    DisplayString := FormatFloat(FormatString, cdsTotal.FieldByName(FieldName).AsCurrency);
-  end;
 end;
 
 procedure Tgdv_frmAcctCirculationList.cbSubAccountClick(Sender: TObject);
@@ -739,7 +731,6 @@ begin
         sl.Free;
         q.Free;
       end;
-      ibgrMain.OnGetTotal := ibgrMainGetTotal;
 
       if cbOnlyAccounts.Checked then
       begin
