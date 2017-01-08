@@ -859,8 +859,13 @@ begin
 end;
 {--------}
 procedure TStDecimal.AssignFromFloat(aValue : double);
+//var
+//  S: String;
 begin
-  AsString := Format('%38.16f', [aValue]);
+  AsString := FloatToStr(aValue);
+  {if Pos('E', S) > 0 then
+    S := Format('%38.16f', [aValue]);
+  AsString := S;}
 end;
 {--------}
 procedure TStDecimal.AssignFromInt(aValue : integer);
@@ -952,6 +957,8 @@ var
   Ch    : AnsiChar;
   IsNeg : boolean;
   DecPlCount : integer;
+  P, Expn: Integer;
+  T: TStInt128;
 begin
   {Note: this implements the following DFA:
 
@@ -985,8 +992,19 @@ begin
   IsNeg := false;
   State := ScanStart;
 
+  P := Pos('E', aValue);
+  if P = 0 then
+  begin
+    Expn := 0;
+    P := Length(aValue);
+  end else
+  begin
+    Expn := StrToIntDef(Copy(aValue, P + 1, 5), 0);
+    Dec(P);
+  end;
+
   {read through the input string}
-  for i := 1 to length(aValue) do begin
+  for i := 1 to P do begin
 
     {get the current character}
     Ch := aValue[i];
@@ -1087,6 +1105,42 @@ begin
       dec(DecPlCount, 8);
     end;
     Int128TimesInt(FInt, Powerof10[DecPlCount]);
+  end;
+
+  while Expn > 0 do
+  begin
+    if Expn > 8 then
+    begin
+      Int128TimesInt(FInt, Powerof10[8]);
+      Dec(Expn, 8);
+    end else
+    begin
+      Int128TimesInt(FInt, Powerof10[Expn]);
+      Expn := 0;
+    end;
+  end;
+
+  if Expn < 0 then
+  begin
+    Expn := - Expn;
+    T[0] := 1;
+    T[1] := 0;
+    T[2] := 0;
+    T[3] := 0;
+    Inc(Expn, MaxDecPl);
+    while Expn > 0 do
+    begin
+      if Expn > 8 then
+      begin
+        Int128TimesInt(T, Powerof10[8]);
+        Dec(Expn, 8);
+      end else
+      begin
+        Int128TimesInt(T, Powerof10[Expn]);
+        Expn := 0;
+      end;
+    end;
+    Int128Divide(FInt, T);
   end;
 
   {force negative, if required}
