@@ -62,10 +62,120 @@ const                               // Date translation constants
 
   MaxBLObPutLength = 80;
 
+function g_sec_test(var AccessSet, UserRights: Integer): Integer;
+  cdecl; export;
+function g_sec_testall(var AFull, AChag, AView, UserRights: Integer): Integer;
+  cdecl; export;
+function g_b_and(var A, B: Integer): Integer;
+  cdecl; export;
+function g_b_or(var A, B: Integer): Integer;
+  cdecl; export;
+function g_b_xor(var A, B: Integer): Integer;
+  cdecl; export;
+function g_b_shl(var A, B: Integer): Integer;
+  cdecl; export;
+function g_b_shr(var A, B: Integer): Integer;
+  cdecl; export;
+function g_b_not(var A: Integer): Integer;
+  cdecl; export;
+function g_b_andex(var A, B, C, D: Integer): Integer;
+  cdecl; export;
+function g_m_random(var iLong: Integer): Integer;
+  cdecl; export;
+function g_d_encodedate(var Year, Month, Day: SmallInt;
+  var IBDateTime: TIBDateTime): PIBDateTime; cdecl; export;
+function g_d_year(var IBDateTime: TIBDateTime): Word;
+  cdecl; export;
+function g_d_quarter(var IBDateTime: TIBDateTime): Word; cdecl; export;
+function g_d_month(var IBDateTime: TIBDateTime): Word; cdecl; export;
+function g_d_inchours(var IncHours: Integer; var IBDateTime: TIBDateTime): PIBDateTime; cdecl; export;
+function g_d_incmonth(var IncMonthes: Integer; var IBDateTime: TIBDateTime): PIBDateTime; cdecl; export;
+function g_d_getdateparam(var IBDateTime: TIBDateTime;
+  var DateParam: Integer): Integer; cdecl; export;
+function g_d_gettimeparam(var AnIBDateTime: TIBDateTime;
+  var ATimeParam: Integer): Integer; cdecl; export;
+function g_d_getdayofweek(var IBDateTime: TIBDateTime): Integer;
+  cdecl; export;
+function g_d_date2int(var IBDateTime: TIBDateTime): Integer;
+  cdecl; export;
+function g_d_workdaysbetween(var IBDateTimeA: TIBDateTime; var IBDateTimeB: TIBDateTime): Integer;
+  cdecl; export;
+function g_d_date2str(var IBDateTime: TIBDateTime): PAnsiChar;
+  cdecl; export;
+function g_d_date2str_ymd(var IBDateTime: TIBDateTime): PAnsiChar;
+  cdecl; export;
+function g_d_formatdatetime(F: PAnsiChar; var IBDateTime: TIBDateTime): PAnsiChar;
+  cdecl; export;
+function g_s_float2str(var D: Double): PAnsiChar;
+  cdecl; export;
+function g_m_round(var D: Double): Integer;
+  cdecl; export;
+function g_m_roundnn(var D, Digit: Double): Double;
+  cdecl; export;
+function g_m_complround(var D: Double; var Limit: Integer; var LoRound, HiRound: Double): Double;
+  cdecl; export;
+function g_d_monthname(var M: SmallInt): PAnsiChar;
+  cdecl; export;
+function g_s_boolean2str(var B: SmallInt): PAnsiChar;
+  cdecl; export;
+function g_s_ansicomparetext(A, B: PAnsiChar): SmallInt;
+  cdecl; export;
+function g_s_ansiuppercase(CString: PAnsiChar): PAnsiChar;
+  cdecl; export;
+function g_s_comparename(A, B: PAnsiChar): SmallInt;
+  cdecl; export;
+function g_s_ansilowercase(CString: PAnsiChar): PAnsiChar;
+  cdecl; export;
+function g_s_ansipos(A, B: PAnsiChar): SmallInt;
+  cdecl; export;
+function g_s_fuzzymatch(var MaxMatching: Integer; A, B: PAnsiChar): Integer;
+  cdecl; export;
+function g_s_ansiposreg(A, B: PAnsiChar; var R: SmallInt): SmallInt;
+  cdecl; export;
+function g_s_pos(A, B: PAnsiChar): SmallInt;
+  cdecl; export;
+function g_s_copy(A: PAnsiChar; var Index, Count: SmallInt): PAnsiChar;
+  cdecl; export;
+function g_s_trim(A: PAnsiChar; B: PAnsiChar): PAnsiChar;
+  cdecl; export;
+function g_s_ternary(var F: SmallInt; A: PAnsiChar; B: PAnsiChar): PAnsiChar;
+  cdecl; export;
+function g_s_like(A: PAnsiChar; B: PAnsiChar): SmallInt;
+  cdecl; export;
+function g_s_length(A: PAnsiChar): SmallInt;
+  cdecl; export;
+function g_s_delete(A: PAnsiChar; var Index: SmallInt; var Len: SmallInt): PAnsiChar;
+  cdecl; export;
+function g_s_delchar(A: PAnsiChar): Integer;
+  cdecl; export;
+function g_d_serverdate: PIBDateTime;
+  cdecl; export;
+function g_ais_getitemscount(A: PAnsiChar): SmallInt;
+  cdecl; export;
+function g_ais_getitembyindex(A: PAnsiChar; var Index: SmallInt): Integer;
+  cdecl; export;
+function g_ais_inarray(A: PAnsiChar; var I: Integer): SmallInt;
+  cdecl; export;
+procedure g_blob_info(var BLOb: TBLOb; CString: PAnsiChar); cdecl; export;
+function g_blob_size(var BLOb: TBLOb): Integer; cdecl; export;
+function g_blob_search(var BLOb : TBLOb; KeyWord : PAnsiChar) : Integer; cdecl; export;
+procedure g_blob_blobtocstring(var BLOb: TBLOb; CString: PAnsiChar); cdecl; export;
+procedure g_blob_cstringtoblob(CString: PAnsiChar; var BLOb: TBLOb); cdecl; export;
+function g_his_create: Integer;
+  cdecl; export;
+function g_his_exclude(var AnIndex: Integer; var AnElement: Integer): Integer;
+  cdecl; export;
+function g_his_include(var AnIndex: Integer; var AnElement: Integer): Integer;
+  cdecl; export;
+function g_his_has(var AnIndex: Integer; var AnElement: Integer): Integer;
+  cdecl; export;
+function g_his_destroy(var AnIndex: Integer): Integer;
+  cdecl; export;
+
 implementation
 
 uses
-  FindCompare, GsHugeIntSet, syncobjs;
+  FindCompare, gsHugeIntSet, syncobjs;
 
 const
   SmallNumber        = 0.0001;
@@ -1228,71 +1338,6 @@ begin
     csHugeIntSet.Leave;
   end;
 end;
-
-exports
-  g_sec_test,
-  g_sec_testall,
-
-  g_b_and,
-  g_b_or,
-  g_b_xor,
-  g_b_not,
-  g_b_andex,
-  g_b_shl,
-  g_b_shr,
-
-  g_m_random,
-  g_m_round,
-  g_m_roundnn,
-  g_m_complround,
-
-  g_d_encodedate,
-  g_d_inchours,
-  g_d_incmonth,
-
-  g_d_getdateparam,
-  g_d_gettimeparam,
-
-  g_d_getdayofweek,
-  g_d_date2str,
-  g_d_date2str_ymd,
-  g_d_formatdatetime,
-  g_d_serverdate,
-  g_d_monthname,
-  g_d_date2int,
-  g_d_workdaysbetween,
-  g_d_year,
-  g_d_quarter,
-  g_d_month,
-
-  g_s_float2str,
-  g_s_boolean2str,
-  g_s_ansicomparetext,
-  g_s_ansiuppercase,
-  g_s_ansilowercase,
-  g_s_ansipos,
-  g_s_ansiposreg,
-  g_s_pos,
-  g_s_copy,
-  g_s_trim,
-  g_s_like,
-  g_s_ternary,
-  g_s_length,
-  g_s_delete,
-  g_s_comparename,
-  g_s_fuzzymatch,
-  g_s_delchar,
-  (*g_s_blobtocstring,*)
-
-  g_ais_getitemscount,
-  g_ais_getitembyindex,
-  g_ais_inarray,
-
-  g_blob_info,
-  g_blob_size,
-  g_blob_search,
-  g_blob_blobtocstring,
-  g_blob_cstringtoblob;
 
 var
   I: Integer;
