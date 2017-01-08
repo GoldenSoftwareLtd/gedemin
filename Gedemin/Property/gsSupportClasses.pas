@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2001 by Golden Software of Belarus
+  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -33,6 +33,7 @@ type
   private
     FOwnerKey: Integer;
     FStorList: TgdKeyIntAssoc;
+
   public
     constructor Create2(const Owner: TComponent; const StorList: TgdKeyIntAssoc); virtual;
     destructor  Destroy; override;
@@ -43,6 +44,7 @@ type
   TgsRect = class(TgsBaseSupportClass)
   private
     FRect: TRect;
+
   public
     class function GetOriginTypeName: String; override;
 
@@ -56,6 +58,7 @@ type
   TgsPoint = class(TgsBaseSupportClass)
   private
     FPoint: TPoint;
+
   public
     class function GetOriginTypeName: String; override;
 
@@ -69,16 +72,12 @@ implementation
 uses
   sysutils;
 
-{ TgsRect }
-
-{ TgsRect }
-
 { TgsBaseSupportClass }
 
 constructor TgsBaseSupportClass.Create2(const Owner: TComponent;
   const StorList: TgdKeyIntAssoc);
 begin
-  if Owner = nil then raise Exception.Create('Не передан владельц.');
+  if Owner = nil then raise Exception.Create('Не передан владелец.');
   if StorList = nil then raise Exception.Create('Не передан список-хранилище.');
 
   Create(Owner);

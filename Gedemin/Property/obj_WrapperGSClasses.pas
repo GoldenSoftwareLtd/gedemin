@@ -3857,6 +3857,8 @@ type
     function RenameFile(const OldName: WideString; const NewName: WideString; const Path: WideString): WordBool; safecall;
     function CreateDir(const DirName: WideString): WordBool; safecall;
     function DeleteDir(const DirName: WideString): WordBool; safecall;
+    function  GetCurrentDirectory: WideString; safecall;
+    function  SetCurrentDirectory(const RemotePath: WideString): WordBool; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -19034,6 +19036,17 @@ end;
 function TwrpGsComScaner.Get_IntCode: Integer;
 begin
   Result := GetGsComScaner.IntCode;
+end;
+
+function TwrpFTPClient.GetCurrentDirectory: WideString;
+begin
+  Result := GetFTPClient.GetCurrentDirectory;
+end;
+
+function TwrpFTPClient.SetCurrentDirectory(
+  const RemotePath: WideString): WordBool;
+begin
+  Result := GetFTPClient.SetCurrentDirectory(RemotePath);
 end;
 
 { TwrpGdv_frmAcctBaseForm }

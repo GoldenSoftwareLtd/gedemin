@@ -4433,6 +4433,18 @@ type
   TwrpSaveDialog = class(TwrpOpenDialog, IgsSaveDialog)
   end;
 
+  TwrpColorDialog = class(TwrpCommonDialog, IgsColorDialog)
+  private
+    function  GetColorDialog: TColorDialog;
+  protected
+    function  Execute: WordBool; safecall;
+    function  Get_Options: WideString; safecall;
+    procedure Set_Options(const Value: WideString); safecall;
+    procedure Set_CustomColors(const Value: IgsStrings); safecall;
+    function  Get_Color: Integer; safecall;
+    procedure Set_Color(Value: Integer); safecall;
+  end;
+
   TwrpAggregate = class(TwrpCollectionItem, IgsAggregate)
   private
     function  GetAggregate: TAggregate;
@@ -4761,8 +4773,39 @@ begin
     include(Result, CSMENUEVENTS);
 end;
 
+function TColorDialogOptionsToStr(AValue: TColorDialogOptions): String;
+begin
+  Result := ' ';
 
+  if cdFullOpen in AValue then
+    Result := Result + 'cdFullOpen ';
+  if cdPreventFullOpen in AValue then
+    Result := Result + 'cdPreventFullOpen ';
+  if cdShowHelp in AValue then
+    Result := Result + 'cdShowHelp ';
+  if cdSolidColor in AValue then
+    Result := Result + 'cdSolidColor ';
+  if cdAnyColor in AValue then
+    Result := Result + 'cdAnyColor ';
+end;
 
+function StrToTColorDialogOptions(AValue: String): TColorDialogOptions;
+begin
+  Result := [];
+
+  AValue := UpperCase(AValue);
+
+  if Pos('CDFULLOPEN', AValue) > 0 then
+    Include(Result, cdFullOpen);
+  if Pos('CDPREVENTFULLOPEN', AValue) > 0 then
+    Include(Result, cdPreventFullOpen);
+  if Pos('CDSHOWHELP', AValue) > 0 then
+    Include(Result, cdShowHelp);
+  if Pos('CDSOLIDCOLOR', AValue) > 0 then
+    Include(Result, cdSolidColor);
+  if Pos('CDANYCOLOR', AValue) > 0 then
+    Include(Result, cdAnyColor);
+end;
 
 function TOpenOptionsToStr(AValue: TOpenOptions): String;
 begin
@@ -23142,6 +23185,43 @@ begin
   Result := GetObject as TDBFFieldDefs;
 end;
 
+{ TwrpColorDialog }
+
+function TwrpColorDialog.Execute: WordBool;
+begin
+  Result := GetColorDialog.Execute;
+end;
+
+function TwrpColorDialog.Get_Options: WideString;
+begin
+  Result := TColorDialogOptionsToStr(GetColorDialog.Options);
+end;
+
+function TwrpColorDialog.GetColorDialog: TColorDialog;
+begin
+  Result := GetObject as TColorDialog;
+end;
+
+procedure TwrpColorDialog.Set_Options(const Value: WideString);
+begin
+  GetColorDialog.Options := StrToTColorDialogOptions(Value);
+end;
+
+function TwrpColorDialog.Get_Color: Integer;
+begin
+  Result := GetColorDialog.Color;
+end;
+
+procedure TwrpColorDialog.Set_Color(Value: Integer);
+begin
+  GetColorDialog.Color := Value;
+end;
+
+procedure TwrpColorDialog.Set_CustomColors(const Value: IgsStrings);
+begin
+  GetColorDialog.CustomColors.Assign(IgsStringsToTStrings(Value));
+end;
+
 initialization
 (*  TAutoObjectFactory.Create(ComServer, TwrpObject, CLASS_gs_Object,
     ciMultiInstance, tmApartment);
@@ -23504,6 +23584,7 @@ initialization
   RegisterGdcOLEClass(TApplication, TwrpApplication, ComServer.TypeLib, IID_IgsApplication);
   RegisterGdcOLEClass(TOpenDialog, TwrpOpenDialog, ComServer.TypeLib, IID_IgsOpenDialog);
   RegisterGdcOLEClass(TSaveDialog, TwrpSaveDialog, ComServer.TypeLib, IID_IgsSaveDialog);
+  RegisterGdcOLEClass(TColorDialog, TwrpColorDialog, ComServer.TypeLib, IID_IgsColorDialog);
 
   RegisterGdcOLEClass(TFields, TwrpFields, ComServer.TypeLib, IID_IgsFields);
   RegisterGdcOLEClass(TSizeConstraints, TwrpSizeConstraints, ComServer.TypeLib, IID_IgsSizeConstraints);
