@@ -305,6 +305,15 @@ end;
 
 procedure Tgdc_frmTransaction.actDetailEditExecute(Sender: TObject);
 begin
+  if (ibgrDetail.SelectedRows.Count > 1)
+    and (MessageBox(Handle,
+      PChar(
+        'Множественное редактирование записей не поддерживается. '#13#10 +
+        'Будет изменена последняя выделенная запись. Продолжить?'),
+      'Внимание!',
+      MB_YESNO or MB_ICONWARNING or MB_TASKMODAL) = IDNO) then
+    exit;
+
   if gdcAcctViewEntryRegister.FieldByName('documenttypekey').AsInteger <> DefaultDocumentTypeKey then
     EditDocument(False)
   else

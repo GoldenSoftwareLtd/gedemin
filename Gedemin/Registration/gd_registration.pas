@@ -48,7 +48,7 @@ implementation
 uses
   SysUtils, Windows, Classes, jclMath, Registry, inst_const,
   gd_security, gd_CmdLineParams_unit, gd_GlobalParams_unit,
-  IBDatabase, IBSQL
+  IBDatabase, IBSQL, gd_getmacaddress
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -234,6 +234,7 @@ var
   R: TRegistry;
   BIOSDate: AnsiString;
   I: LongWord;
+  //SL: TStringList;
 begin
   SetLength(BIOSDate, MAX_COMPUTERNAME_LENGTH + 1);
   I := Length(BIOSDate);
@@ -260,6 +261,14 @@ begin
   finally
     R.Free;
   end;
+
+  {SL := TStringList.Create;
+  try
+    if Get_EthernetAddresses(SL) > 0 then
+      BIOSDate := BIOSDate + SL[0];
+  finally
+    SL.Free;
+  end;}
 
   Result := LongWord(Crc32_P(@BIOSDate[1], Length(BIOSDate), 0));
 end;

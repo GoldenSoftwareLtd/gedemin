@@ -1,6 +1,6 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Left = 1005
-  Top = 230
+  Left = 1008
+  Top = 233
   Caption = 'Складской документ'
   ClientWidth = 535
   PixelsPerInch = 96

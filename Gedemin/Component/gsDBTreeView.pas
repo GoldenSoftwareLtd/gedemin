@@ -937,7 +937,7 @@ begin
   FImages.GetResource(rtBitmap, 'ALL', 16, [lrDefaultColor], clOlive);
   FActionList.Images := FImages;
 
-  // Пункт Мастер установок
+  // Пункт Найти
   FActFind := NewAction;
   FActFind.OnExecute := DoOnActFind;
   FActFind.ShortCut := TextToShortcut('Ctrl+F');
@@ -945,7 +945,7 @@ begin
   FActFind.ImageIndex := 23;
   FActFind.Hint := MENU_FIND;
 
-  // Пункт Мастер установок
+  // Пункт Найти следующее
   FActFindNext := NewAction;
   FActFindNext.OnExecute := DoOnActFindNext;
   FActFindNext.ShortCut := KeyFindNext;
@@ -953,7 +953,7 @@ begin
   FActFindNext.ImageIndex := 24;
   FActFindNext.Hint := MENU_FINDNEXT;
 
-  // Пункт Обновить данные
+  // Пункт Раскрыть дерево
   FActOpenAll := NewAction;
   FActOpenAll.OnExecute := DoOnOpenAll;
   //FActOpenAll.ShortCut := KeyOpenAll;
@@ -961,15 +961,16 @@ begin
   FActOpenAll.ImageIndex := -1{0};
   FActOpenAll.Hint := MENU_OPENALL;
 
-  // Пункт Найти
+  // Пункт Закрыть дерево
   FActCloseAll := NewAction;
   FActCloseAll.OnExecute := DoOnCloseAll;
   //FActCloseAll.ShortCut := KeyCloseAll;
+  FActCloseAll.ShortCut := ShortCut(Word('Q'), [ssCtrl]);
   FActCloseAll.Caption := MENU_CLOSEALL;
   FActCloseAll.ImageIndex := -1{1};
   FActCloseAll.Hint := MENU_CLOSEALL;
 
-  // Пункт Панель инструментов
+  // Пункт Раскрыть ветвь
   FActOpenNode := NewAction;
   FActOpenNode.OnExecute := DoOnOpenNode;
   //FActOpenNode.ShortCut := KeyOpenNode;
@@ -977,7 +978,7 @@ begin
   FActOpenNode.ImageIndex := -1{3};
   FActOpenNode.Hint := MENU_OPENNODE;
 
-  // Пункт Панель инструментов
+  // Пункт Обновить
   FActRefresh := NewAction;
   FActRefresh.OnExecute := DoOnRefresh;
   FActRefresh.OnUpdate := DoOnRefreshUpdate;

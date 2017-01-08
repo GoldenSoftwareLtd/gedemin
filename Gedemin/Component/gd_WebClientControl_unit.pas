@@ -331,7 +331,7 @@ begin
       gdWebServerURL := FHTTP.Get(Gedemin_NameServerURL);
     except
       on E: Exception do
-        gdNotifierThread.Add('Ошибка: ' + E.Message);
+        gdNotifierThread.Add('Ошибка: ' + E.Message, 0, 2000);
     end;
   end;
 

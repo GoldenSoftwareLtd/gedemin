@@ -1047,12 +1047,12 @@ var
           // «аполн€ем секции SELECT во всех запросах второго уровн€ вложенности в главном запросе
           if MainSubSubSelect01 > '' then MainSubSubSelect01 := MainSubSubSelect01 + ', ';
           MainSubSubSelect01 := MainSubSubSelect01 +
+            'CAST(NULL AS DATE) AS entrydate'#13#10;
             //'CAST(:datebegin AS DATE) AS entrydate'#13#10;
-            'NULL AS entrydate'#13#10;
           if MainSubSubSelect02 > '' then MainSubSubSelect02 := MainSubSubSelect02 + ', ';
           MainSubSubSelect02 := MainSubSubSelect02 +
+            'CAST(NULL AS DATE) AS entrydate'#13#10;
             //'CAST(:datebegin AS DATE) AS entrydate'#13#10;
-            'NULL AS entrydate'#13#10;
           if MainSubSubSelect03 > '' then MainSubSubSelect03 := MainSubSubSelect03 + ', ';
           MainSubSubSelect03 := MainSubSubSelect03 +
             'em.entrydate'#13#10;

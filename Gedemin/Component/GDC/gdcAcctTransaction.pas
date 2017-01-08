@@ -449,7 +449,8 @@ begin
     ' z.*, '  +
     ' d.name as documentname, '  +
     ' c.name as accountname, '  +
-    ' f.name as functionname ';
+    ' f.name as functionname, '  +
+    ' tr.name as transactionname ';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEACCTTRANSACTIONENTRY', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
@@ -500,7 +501,8 @@ begin
 
   Result := ' FROM ac_trrecord z LEFT JOIN ac_account c ON z.accountkey = c.id ' +
             '   LEFT JOIN gd_function f ON z.functionkey = f.id ' +
-            '   LEFT JOIN gd_documenttype d ON z.documenttypekey = d.id ';
+            '   LEFT JOIN gd_documenttype d ON z.documenttypekey = d.id ' +
+            '   LEFT JOIN ac_transaction tr ON z.transactionkey = tr.id ';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEACCTTRANSACTIONENTRY', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally

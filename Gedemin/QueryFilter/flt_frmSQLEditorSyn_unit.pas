@@ -260,6 +260,11 @@ type
     actClassesRefresh: TAction;
     TBItem35: TTBItem;
     TBSeparatorItem19: TTBSeparatorItem;
+    tbRelations: TTBToolbar;
+    TBItem36: TTBItem;
+    Label18: TLabel;
+    edRelationsFilter: TEdit;
+    actRelationsRefresh: TAction;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -342,6 +347,8 @@ type
     procedure actFindNextUpdate(Sender: TObject);
     procedure edClassesFilterChange(Sender: TObject);
     procedure actClassesRefreshExecute(Sender: TObject);
+    procedure edRelationsFilterChange(Sender: TObject);
+    procedure actRelationsRefreshExecute(Sender: TObject);
 
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
@@ -1704,6 +1711,7 @@ var
   q: TIBSQL;
   LI: TListItem;
   FC: TgdcFullClass;
+  S: String;
 {$ENDIF}
 begin
 {$IFDEF GEDEMIN}
@@ -1720,14 +1728,21 @@ begin
     q.ExecQuery;
     while not q.EOF do
     begin
-      LI := lvRelations.Items.Add;
-      LI.Caption := q.FieldByName('RDB$RELATION_NAME').AsTrimString;
-      FC := GetBaseClassForRelation(LI.Caption);
+      FC := GetBaseClassForRelation(q.FieldByName('RDB$RELATION_NAME').AsTrimString);
       if FC.gdClass <> nil then
       begin
-        LI.SubItems.Add(FC.gdClass.ClassName);
-        LI.SubItems.Add(FC.SubType);
-        LI.SubItems.Add(FC.gdClass.GetDisplayName(FC.SubType));
+        S := q.FieldByName('RDB$RELATION_NAME').AsTrimString + '^'
+          + FC.gdClass.ClassName + '^'
+          + FC.SubType + '^'
+          + FC.gdClass.GetDisplayName(FC.SubType);
+        if (edRelationsFilter.Text = '') or (StrIPos(edRelationsFilter.Text, S) > 0) then
+        begin
+          LI := lvRelations.Items.Add;
+          LI.Caption := q.FieldByName('RDB$RELATION_NAME').AsTrimString;
+          LI.SubItems.Add(FC.gdClass.ClassName);
+          LI.SubItems.Add(FC.SubType);
+          LI.SubItems.Add(FC.gdClass.GetDisplayName(FC.SubType));
+        end;
       end;
       q.Next;
     end;
@@ -2671,6 +2686,26 @@ end;
 procedure TfrmSQLEditorSyn.actClassesRefreshExecute(Sender: TObject);
 begin
   FillClassesList;
+end;
+
+procedure TfrmSQLEditorSyn.edRelationsFilterChange(Sender: TObject);
+begin
+  FillRelationsList;
+
+  if edRelationsFilter.Text > '' then
+  begin
+    edRelationsFilter.Color := clInfoBk;
+    lvRelations.Color := clInfoBk;
+  end else
+  begin
+    edRelationsFilter.Color := clWindow;
+    lvRelations.Color := clWindow;
+  end;
+end;
+
+procedure TfrmSQLEditorSyn.actRelationsRefreshExecute(Sender: TObject);
+begin
+  FillRelationsList;
 end;
 
 initialization

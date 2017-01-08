@@ -2112,7 +2112,7 @@ begin
   if HasFootter then
   begin
     Result := Canvas.TextWidth('[-] ' + Fotter);
-    Result := Result  + cTextSpace * 2;
+    Result := Result  + cTextSpace * 3;
   end;  
 end;
 
@@ -2134,7 +2134,7 @@ begin
     Result := GetButtonRect.Right + Canvas.TextWidth(Header);
   end else
     Result := Canvas.TextWidth(Header);
-  Result := Result  + cTextSpace * 2;  
+  Result := Result  + cTextSpace * 3;
 end;
 
 function TVisualBlock.HasFootter: boolean;
@@ -2358,6 +2358,7 @@ var
   L: Integer;
   TempColor: TColor;
 begin
+  AdjustSize;
   Canvas.Font.Name := 'Tahoma';
 
   if SelBlockList.IndexOf(self) > -1 then

@@ -108,7 +108,8 @@ begin
         if D < 0 then D := 0;
       end else
         D := C.Progress.StepDone;
-      lblDone.Caption := IntToStr(P) + '% (' + IntToStr(D) + ' из ' + IntToStr(C.Progress.StepTotal) + ')';
+      //lblDone.Caption := IntToStr(P) + '% (' + IntToStr(D) + ' из ' + IntToStr(C.Progress.StepTotal) + ')';
+      lblDone.Caption := IntToStr(P) + '% (' + FormatFloat('#,##0', D) + ' из ' + FormatFloat('#,##0', C.Progress.StepTotal) + ')';
       if C.Progress.EstimFinish <> 0 then
         lblEstimFinish.Caption := FormatDateTime('hh:nn:ss', C.Progress.EstimFinish)
       else

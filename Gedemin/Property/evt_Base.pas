@@ -52,7 +52,6 @@ type
     function AddFromDataSet(AnDataSet: TDataSet): TrpCustomFunction;
     // Создает файловые потоки для работы с файл-кэшем СФ
     function CreateSFDHandleList: Boolean;
-//    function  CreateSFStream: Boolean;
     // Возвращает СФ из файл-кэша
     function ReadSFFromStream(const AnFunctionKey: Integer): TrpCustomFunction;
     // Удаляет файлы файл-кэша
@@ -217,7 +216,6 @@ type
     FEventList: TEventList;
     FParentList: TEventObjectList;
     FSelfObject: TComponent;
-//    FHasSpecEvent: Boolean;
     FSpecEventCount: Integer;
 
     FObjectRef: TComponent;
@@ -226,7 +224,6 @@ type
     // Индекс текущего родителя по SubType
     FCurrIndexParentObject: integer;
 
-//    procedure SetHasSpecEvent(const Value: Boolean);
     procedure SetSpecEventCount(const Value: Integer);
     procedure SetObjectRef(const Value: TComponent);
   public
@@ -247,8 +244,6 @@ type
     property EventList: TEventList read FEventList write FEventList;
     property ParentList: TEventObjectList read FParentList write FParentList;
     property SelfObject: TComponent read FSelfObject write FSelfObject;
-    //Показывает наличие опред. эвентов
-//    property HasSpecEvent: Boolean read FHasSpecEvent write SetHasSpecEvent;
     property SpecEventCount: Integer read FSpecEventCount write SetSpecEventCount;
     property ObjectRef: TComponent read FObjectRef write SetObjectRef;
 
@@ -259,7 +254,6 @@ type
   end;
 
   TEventObjectList = class(TObjectList)
-//  TEventObjectList = class(TStringList)
   private
     // массив хранящий динамические объекты и их обработчики
     FDinamicEventArray: TgdKeyObjectAssoc;
@@ -278,8 +272,6 @@ type
     function  AddDinamicEventObject(const SourceName: String; Acceptor: TComponent): Boolean; overload;
     procedure RemoveDinamicObject(const AnObject: TObject);
 
-//    procedure LoadFromDatabase(AnDatabase: TIBDatabase;
-//     AnTransaction: TIBTransaction; const AnParent: Variant);
     procedure LoadFromDatabaseOpt(AnDatabase: TIBDatabase;
      AnTransaction: TIBTransaction; const AnParent: Variant);
 
@@ -299,199 +291,207 @@ type
   end;
 
 const
-  cClickEventName       = 'ONCLICK';
+  cClickEventName                       = 'ONCLICK';
+
   // Event from PopupMenu
-  cPopupEventName       = 'ONPOPUP';
-  cCanResizeEventName   = 'ONCANRESIZE';
-  cCreateEventName      = 'ONCREATE';
+  cPopupEventName                       = 'ONPOPUP';
+  cCanResizeEventName                   = 'ONCANRESIZE';
+  cCreateEventName                      = 'ONCREATE';
 
   //DAlex
   // Event for TControl
-  cConstrainedResizeEventName    = 'ONCONSTRAINEDRESIZE';
-  cContextPopupEventName= 'ONCONTEXTPOPUP';
-  cDblClickEventName    = 'ONDBLCLICK';
-  cDragDropEventName    = 'ONDRAGDROP';
-  cDragOverEventName    = 'ONDRAGOVER';
-  cEndDockEventName     = 'ONENDDOCK';
-  cEndDragEventName     = 'ONENDDRAG';
-  cMouseDownEventName   = 'ONMOUSEDOWN';
-  cMouseMoveEventName   = 'ONMOUSEMOVE';
-  cMouseUpEventName     = 'ONMOUSEUP';
-  cResizeEventName      = 'ONRESIZE';
-  cStartDockEventName   = 'ONSTARTDOCK';
-  cStartDragEventName   = 'ONSTARTDRAG';
+  cConstrainedResizeEventName           = 'ONCONSTRAINEDRESIZE';
+  cContextPopupEventName                = 'ONCONTEXTPOPUP';
+  cDblClickEventName                    = 'ONDBLCLICK';
+  cDragDropEventName                    = 'ONDRAGDROP';
+  cDragOverEventName                    = 'ONDRAGOVER';
+  cEndDockEventName                     = 'ONENDDOCK';
+  cEndDragEventName                     = 'ONENDDRAG';
+  cMouseDownEventName                   = 'ONMOUSEDOWN';
+  cMouseMoveEventName                   = 'ONMOUSEMOVE';
+  cMouseUpEventName                     = 'ONMOUSEUP';
+  cResizeEventName                      = 'ONRESIZE';
+  cStartDockEventName                   = 'ONSTARTDOCK';
+  cStartDragEventName                   = 'ONSTARTDRAG';
+
   // Events from TWinControl
-  cDockDropEventName    = 'ONDOCKDROP';
-  cDockOverEventName    = 'ONDOCKOVER';
-  cEnterEventName       = 'ONENTER';
-  cExitEventName        = 'ONEXIT';
-  cGetSiteInfoEventName = 'ONGETSITEINFO';
-  cKeyDownEventName     = 'ONKEYDOWN';
-  cKeyPressEventName    = 'ONKEYPRESS';
-  cKeyUpEventName       = 'ONKEYUP';
-  cMouseWheelEventName  = 'ONMOUSEWHEEL';
-  cMouseWheelDownEventName = 'ONMOUSEWHEELDOWN';
-  cMouseWheelUpEventName= 'ONMOUSEWHEELUP';
-  cUnDockEventName      = 'ONUNDOCK';
+  cDockDropEventName                    = 'ONDOCKDROP';
+  cDockOverEventName                    = 'ONDOCKOVER';
+  cEnterEventName                       = 'ONENTER';
+  cExitEventName                        = 'ONEXIT';
+  cGetSiteInfoEventName                 = 'ONGETSITEINFO';
+  cKeyDownEventName                     = 'ONKEYDOWN';
+  cKeyPressEventName                    = 'ONKEYPRESS';
+  cKeyUpEventName                       = 'ONKEYUP';
+  cMouseWheelEventName                  = 'ONMOUSEWHEEL';
+  cMouseWheelDownEventName              = 'ONMOUSEWHEELDOWN';
+  cMouseWheelUpEventName                = 'ONMOUSEWHEELUP';
+  cUnDockEventName                      = 'ONUNDOCK';
+
   // Events from TCustomForm
-  cActivateEventName    = 'ONACTIVATE';
-  cCloseEventName       = 'ONCLOSE';
-  cCloseNotifyEventName = 'ONCLOSENOTIFY';
-  cCloseQueryEventName  = 'ONCLOSEQUERY';
-  cDeactivateEventName  = 'ONDEACTIVATE';
-  cDestroyEventName     = 'ONDESTROY';
-  cHideEventName        = 'ONHIDE';
-  cPaintEventName       = 'ONPAINT';
-  cShowEventName        = 'ONSHOW';
+  cActivateEventName                    = 'ONACTIVATE';
+  cCloseEventName                       = 'ONCLOSE';
+  cCloseNotifyEventName                 = 'ONCLOSENOTIFY';
+  cCloseQueryEventName                  = 'ONCLOSEQUERY';
+  cDeactivateEventName                  = 'ONDEACTIVATE';
+  cDestroyEventName                     = 'ONDESTROY';
+  cHideEventName                        = 'ONHIDE';
+  cPaintEventName                       = 'ONPAINT';
+  cShowEventName                        = 'ONSHOW';
   // Events from TMenu
-  cChangeEventName      = 'ONCHANGE';
+  cChangeEventName                      = 'ONCHANGE';
   // Events from TTabControl
-//  cChangeTabEventName      = 'ONCHANGETAB';
-  cChangingEventName      = 'ONCHANGING';
+  cChangingEventName                    = 'ONCHANGING';
   // Events from TCustomEdit
-  cChangeEditEventName  = 'ONCHANGEEDIT';
+  cChangeEditEventName                  = 'ONCHANGEEDIT';
   // Evants from TCustomTreeView
-  cChangeTVEventName      = 'ONCHANGETV';
-  cChangingTVEventName      = 'ONCHANGINGTV';
+  cChangeTVEventName                    = 'ONCHANGETV';
+  cChangingTVEventName                  = 'ONCHANGINGTV';
 
   // Events from TCustomListBox
-  cDrawItemEventName    = 'ONDRAWITEM';
-  cMeasureItemEventName = 'ONMEASUREITEM';
+  cDrawItemEventName                    = 'ONDRAWITEM';
+  cMeasureItemEventName                 = 'ONMEASUREITEM';
   // Events from TCheckListBox
-  cClickCheckListBoxEventName = 'ONCLICKCHECKLISTBOX';
+  cClickCheckListBoxEventName           = 'ONCLICKCHECKLISTBOX';
   // Events from TCustomComboBox
-  cDropDownEventName    = 'ONDROPDOWN';
+  cDropDownEventName                    = 'ONDROPDOWN';
   // Events from TScrollBar
-  cScrollEventName      = 'ONSCROLL';
+  cScrollEventName                      = 'ONSCROLL';
   // Events from TCustomActionList
-  cExecuteEventName     = 'ONEXECUTE';
-  cUpdateEventName      = 'ONUPDATE';
+  cExecuteEventName                     = 'ONEXECUTE';
+  cUpdateEventName                      = 'ONUPDATE';
   // Events from TBasicAction
-  cExecuteActionEventName = 'ONEXECUTEACTION';
-  cUpdateActionEventName      = 'ONUPDATEACTION';
+  cExecuteActionEventName               = 'ONEXECUTEACTION';
+  cUpdateActionEventName                = 'ONUPDATEACTION';
   // Events from TTBToolbar
-  cTBPopupEventName     = 'ONTBPOPUP';
-  cMoveEventName        = 'ONMOVE';
-  cRecreatedEventName   = 'ONRECREATED';
-  cRecreatingEventName  = 'ONRECREATING';
-  cDockChangedEventName = 'ONDOCKCHANGED';
-  cDockChangingEventName= 'ONDOCKCHANGING';
-  cDockChangingHiddenEventName   = 'ONDOCKCHANGINGHIDDEN';
-  cVisibleChangedEventName       = 'ONVISIBLECHANGED';
+  cTBPopupEventName                     = 'ONTBPOPUP';
+  cMoveEventName                        = 'ONMOVE';
+  cRecreatedEventName                   = 'ONRECREATED';
+  cRecreatingEventName                  = 'ONRECREATING';
+  cDockChangedEventName                 = 'ONDOCKCHANGED';
+  cDockChangingEventName                = 'ONDOCKCHANGING';
+  cDockChangingHiddenEventName          = 'ONDOCKCHANGINGHIDDEN';
+  cVisibleChangedEventName              = 'ONVISIBLECHANGED';
+  // Events from TDrawGrid
+  cDrawCellEventName                    = 'ONDRAWCELL';
   // Events from TCustomDBGrid
-  cColEnterEventName             = 'ONCOLENTER';
-  cColExitEventName              = 'ONCOLEXIT';
-  cColumnMovedEventName          = 'ONCOLUMNMOVED';
-  cDrawColumnCellEventName       = 'ONDRAWCOLUMNCELL';
-  cDrawDataCellEventName         = 'ONDRAWDATACELL';
-  cEditButtonClickEventName      = 'ONEDITBUTTONCLICK';
-  cCellClickEventName      = 'ONCELLCLICK';
+  cColEnterEventName                    = 'ONCOLENTER';
+  cColExitEventName                     = 'ONCOLEXIT';
+  cColumnMovedEventName                 = 'ONCOLUMNMOVED';
+  cDrawColumnCellEventName              = 'ONDRAWCOLUMNCELL';
+  cDrawDataCellEventName                = 'ONDRAWDATACELL';
+  cEditButtonClickEventName             = 'ONEDITBUTTONCLICK';
+  cCellClickEventName                   = 'ONCELLCLICK';
   // Events from TgsCustomDBGrid
-  cAggregateChangedEventName     = 'ONAGGREGATECHANGED';
-  cClickCheckEventName           = 'ONCLICKCHECK';
-  cClickedCheckEventName         = 'ONCLICKEDCHECK';
+  cAggregateChangedEventName            = 'ONAGGREGATECHANGED';
+  cClickCheckEventName                  = 'ONCLICKCHECK';
+  cClickedCheckEventName                = 'ONCLICKEDCHECK';
   // Events from TDataSet
-  cAfterCancelEventName  = 'AFTERCANCEL';
-  cAfterCloseEventName   = 'AFTERCLOSE';
-  cAfterDeleteEventName  = 'AFTERDELETE';
-  cAfterEditEventName    = 'AFTEREDIT';
-  cAfterInsertEventName  = 'AFTERINSERT';
-  cAfterOpenEventName    = 'AFTEROPEN';
-  cAfterPostEventName    = 'AFTERPOST';
-  cAfterRefreshEventName = 'AFTERREFRESH';
-  cAfterScrollEventName  = 'AFTERSCROLL';
-  cBeforeCancelEventName = 'BEFORECANCEL';
-  cBeforeCloseEventName  = 'BEFORECLOSE';
-  cBeforeDeleteEventName = 'BEFOREDELETE';
-  cBeforeEditEventName   = 'BEFOREEDIT';
-  cBeforeInsertEventName = 'BEFOREINSERT';
-  cBeforeOpenEventName   = 'BEFOREOPEN';
-  cBeforePostEventName   = 'BEFOREPOST';
-  cBeforeScrollEventName = 'BEFORESCROLL';
-  cCalcFieldsEventName   = 'ONCALCFIELDS';
-  cDeleteErrorEventName  = 'ONDELETEERROR';
-  cEditErrorEventName    = 'ONEDITERROR';
-  cFilterRecordEventName = 'ONFILTERRECORD';
-  cNewRecordEventName    = 'ONNEWRECORD';
-  cPostErrorEventName    = 'ONPOSTERROR';
+  cAfterCancelEventName                 = 'AFTERCANCEL';
+  cAfterCloseEventName                  = 'AFTERCLOSE';
+  cAfterDeleteEventName                 = 'AFTERDELETE';
+  cAfterEditEventName                   = 'AFTEREDIT';
+  cAfterInsertEventName                 = 'AFTERINSERT';
+  cAfterOpenEventName                   = 'AFTEROPEN';
+  cAfterPostEventName                   = 'AFTERPOST';
+  cAfterRefreshEventName                = 'AFTERREFRESH';
+  cAfterScrollEventName                 = 'AFTERSCROLL';
+  cBeforeCancelEventName                = 'BEFORECANCEL';
+  cBeforeCloseEventName                 = 'BEFORECLOSE';
+  cBeforeDeleteEventName                = 'BEFOREDELETE';
+  cBeforeEditEventName                  = 'BEFOREEDIT';
+  cBeforeInsertEventName                = 'BEFOREINSERT';
+  cBeforeOpenEventName                  = 'BEFOREOPEN';
+  cBeforePostEventName                  = 'BEFOREPOST';
+  cBeforeScrollEventName                = 'BEFORESCROLL';
+  cCalcFieldsEventName                  = 'ONCALCFIELDS';
+  cDeleteErrorEventName                 = 'ONDELETEERROR';
+  cEditErrorEventName                   = 'ONEDITERROR';
+  cFilterRecordEventName                = 'ONFILTERRECORD';
+  cNewRecordEventName                   = 'ONNEWRECORD';
+  cPostErrorEventName                   = 'ONPOSTERROR';
 
-  cAfterInternalPostRecordEventName = 'AFTERINTERNALPOSTRECORD';
-  cBeforeInternalPostRecordEventName = 'BEFOREINTERNALPOSTRECORD';
-  cAfterInternalDeleteRecordEventName = 'AFTERINTERNALDELETERECORD';
-  cBeforeInternalDeleteRecordEventName = 'BEFOREINTERNALDELETERECORD';
+  cAfterInternalPostRecordEventName     = 'AFTERINTERNALPOSTRECORD';
+  cBeforeInternalPostRecordEventName    = 'BEFOREINTERNALPOSTRECORD';
+  cAfterInternalDeleteRecordEventName   = 'AFTERINTERNALDELETERECORD';
+  cBeforeInternalDeleteRecordEventName  = 'BEFOREINTERNALDELETERECORD';
 
   // Events from TIBCustomDataSet
-  cAfterDatabaseDisconnectEventName = 'AFTERDATABASEDISCONNECT';
-  cAfterTransactionEndEventName     = 'AFTERTRANSACTIONEND';
-  cBeforeDatabaseDisconnectEventName= 'BEFOREDATABASEDISCONNECT';
-  cBeforeTransactionEndEventName    = 'BEFORETRANSACTIONEND';
-  cDatabaseFreeEventName            = 'DATABASEFREE';
-  cUpdateErrorEventName             = 'ONUPDATEERROR';
-  cUpdateRecordEventName            = 'ONUPDATERECORD';
-  cTransactionFreeEventName         = 'TRANSACTIONFREE';
-  cOnCalcAggregatesEventName        = 'ONCALCAGGREGATES';
+  cAfterDatabaseDisconnectEventName     = 'AFTERDATABASEDISCONNECT';
+  cAfterTransactionEndEventName         = 'AFTERTRANSACTIONEND';
+  cBeforeDatabaseDisconnectEventName    = 'BEFOREDATABASEDISCONNECT';
+  cBeforeTransactionEndEventName        = 'BEFORETRANSACTIONEND';
+  cDatabaseFreeEventName                = 'DATABASEFREE';
+  cUpdateErrorEventName                 = 'ONUPDATEERROR';
+  cUpdateRecordEventName                = 'ONUPDATERECORD';
+  cTransactionFreeEventName             = 'TRANSACTIONFREE';
+  cOnCalcAggregatesEventName            = 'ONCALCAGGREGATES';
   // Events from TIBDataSet
-  cDatabaseDisconnectedEventName    = 'DATABASEDISCONNECTED';
-  cDatabaseDisconnectingEventName   = 'DATABASEDISCONNECTING';
+  cDatabaseDisconnectedEventName        = 'DATABASEDISCONNECTED';
+  cDatabaseDisconnectingEventName       = 'DATABASEDISCONNECTING';
 
   // Events from gdcBase
-  cAfterInitSQLEventName     = 'ONAFTERINITSQL';
-  cFilterChangedEventName    = 'ONFILTERCHANGED';
-  cBeforeShowDialogEventName = 'BEFORESHOWDIALOG';
-  cAfterShowDialogEventName  = 'AFTERSHOWDIALOG';
-  cOnGetSelectClauseEventName = 'ONGETSELECTCLAUSE';
-  cOnGetFromClauseEventName   = 'ONGETFROMCLAUSE';
-  cOnGetWhereClauseEventName  = 'ONGETWHERECLAUSE';
-  cOnGetGroupClauseEventName  = 'ONGETGROUPCLAUSE';
-  cOnGetOrderClauseEventName  = 'ONGETORDERCLAUSE';
-
-
+  cAfterInitSQLEventName                = 'ONAFTERINITSQL';
+  cFilterChangedEventName               = 'ONFILTERCHANGED';
+  cBeforeShowDialogEventName            = 'BEFORESHOWDIALOG';
+  cAfterShowDialogEventName             = 'AFTERSHOWDIALOG';
+  cOnGetSelectClauseEventName           = 'ONGETSELECTCLAUSE';
+  cOnGetFromClauseEventName             = 'ONGETFROMCLAUSE';
+  cOnGetWhereClauseEventName            = 'ONGETWHERECLAUSE';
+  cOnGetGroupClauseEventName            = 'ONGETGROUPCLAUSE';
+  cOnGetOrderClauseEventName            = 'ONGETORDERCLAUSE';
 
   // Event from TDataSource
-  cDataChangeEventName       = 'ONDATACHANGE';
-  cStateChangeEventName      = 'ONSTATECHANGE';
-  cUpdateDataEventName       = 'ONUPDATEDATA';
+  cDataChangeEventName                  = 'ONDATACHANGE';
+  cStateChangeEventName                 = 'ONSTATECHANGE';
+  cUpdateDataEventName                  = 'ONUPDATEDATA';
+
   // Events from gsIBLookupComboBox
-  cCreateNewObjectEventName  = 'ONCREATENEWOBJECT';
-  cAfterCreateDialogEventName= 'ONAFTERCREATEDIALOG';
+  cCreateNewObjectEventName             = 'ONCREATENEWOBJECT';
+  cAfterCreateDialogEventName           = 'ONAFTERCREATEDIALOG';
+
   // Events from TgsSQLFilter
-  cConditionChangedEventName = 'ONCONDITIONCHANGED';
-  cFilterChangedSQLFilterEventName    = 'ONFILTERCHANGEDSQLFILTER';
+  cConditionChangedEventName            = 'ONCONDITIONCHANGED';
+  cFilterChangedSQLFilterEventName      = 'ONFILTERCHANGEDSQLFILTER';
+
   // Events from TTimer
-  cTimerEventName            = 'ONTIMER';
+  cTimerEventName                       = 'ONTIMER';
+
   // Events from TOnGetFooter
-  cGetFooterEventName      = 'ONGETFOOTER';
+  cGetFooterEventName                   = 'ONGETFOOTER';
+
   // Events from TOnGetTotal
-  cGetTotalEventName       = 'ONGETTOTAL';
+  cGetTotalEventName                    = 'ONGETTOTAL';
+
   // Events from Tgdc_dlgG
-  cSyncFieldEventName      = 'ONSYNCFIELD';
-  cTestCorrectEventName    = 'ONTESTCORRECT';
-  cSetupRecordEventName    = 'ONSETUPRECORD';
-  cSetupDialogEventName    = 'ONSETUPDIALOG';
+  cSyncFieldEventName                   = 'ONSYNCFIELD';
+  cTestCorrectEventName                 = 'ONTESTCORRECT';
+  cSetupRecordEventName                 = 'ONSETUPRECORD';
+  cSetupDialogEventName                 = 'ONSETUPDIALOG';
 
   // Events from TField
-  cGetTextEventName        = 'ONGETTEXT';
-  cSetTextEventName        = 'ONSETTEXT';
-  cValidateEventName       = 'ONVALIDATE';
+  cGetTextEventName                     = 'ONGETTEXT';
+  cSetTextEventName                     = 'ONSETTEXT';
+  cValidateEventName                    = 'ONVALIDATE';
 
   // Events from TgsModem
-  cModemSendEventName      = 'ONSEND';
-  cModemReceiveEventName   = 'ONRECEIVE';
-  cModemOpenPortEventName  = 'ONOPENPORT';
-  cModemClosePortEventName = 'ONCLOSEPORT';
-  cModemErrorEventName     = 'ONERROR';
+  cModemSendEventName                   = 'ONSEND';
+  cModemReceiveEventName                = 'ONRECEIVE';
+  cModemOpenPortEventName               = 'ONOPENPORT';
+  cModemClosePortEventName              = 'ONCLOSEPORT';
+  cModemErrorEventName                  = 'ONERROR';
 
   // Events from TCreateableForm
-  cSaveSettingsEventName = 'ONSAVESETTINGS';
-  cLoadSettingsAfterCreateEventName = 'ONLOADSETTINGSAFTERCREATE';
+  cSaveSettingsEventName                = 'ONSAVESETTINGS';
+  cLoadSettingsAfterCreateEventName     = 'ONLOADSETTINGSAFTERCREATE';
 
   // TWebBrowser
-  cWebBrowserBeforeNavigate2Name = 'ONBEFORENAVIGATE2';
-  cWebBrowserDocumentCompleteName = 'ONDOCUMENTCOMPLETE';
+  cWebBrowserBeforeNavigate2Name        = 'ONBEFORENAVIGATE2';
+  cWebBrowserDocumentCompleteName       = 'ONDOCUMENTCOMPLETE';
 
   //!DAlex
 
-  cMsgCantFindObject    = 'TEventControl: Не найден объект вызвавший событие!!!';
+  cMsgCantFindObject    = 'TEventControl: Не найден объект, вызвавший событие!';
 
 // Класс для работы с событиями
 // Компонента создаетчся одна на проект
@@ -566,7 +566,6 @@ type
       AnEventObject: TEventObject): boolean;
 
     ////////////////////////////////////////////////////////////////
-
 
     procedure ExecuteNotifyEvent(Sender: TObject;
       const AnEventName: String; GenerateException: Boolean = True);
@@ -655,16 +654,9 @@ type
     function GetPropertyHanlde: THandle;
     procedure DeleteEvent(FormName, ComponentName, EventName: String);
     procedure EventLog;
-//    procedure ReportRefresh;
     procedure RegisterFrmReport(frmReport: TObject);
     procedure UnRegisterFrmReport(frmReport: TObject);
     procedure UpdateReportGroup;
-//    procedure ChangeReport(
-//      const ReportObject: TObject; const ChangeType: TChangeReportType);
-//    procedure DeleteReportGroup(
-//      const ParendID, ID: Integer; const ChangeType: TChangeReportType);
-//    procedure DeleteReport(
-//      const ParentID, ID: Integer; const ChangeType: TChangeReportType);
 
     property PropertyCanChangeCaption: Boolean read GetPropertyCanChangeCaption
       write SetPropertyCanChangeCaption;
@@ -676,7 +668,6 @@ type
     procedure ResetEvents(AnComponent: TComponent);
     procedure SetEvents(AnComponent: TComponent;
      const OnlyComponent: Boolean = False);
-//    procedure OversetEvents(AnComponent: TComponent);
 
     procedure GetParamInInterface(AVarInterface: IDispatch; AParam: OleVariant);
 
@@ -876,6 +867,11 @@ type
     procedure OnDockChangingHidden(Sender: TObject);
     // TNotifyEvent
     procedure OnVisibleChanged(Sender: TObject);
+
+    {!!! Events from TDrawGrid !!!}
+    // TDrawCellEvent
+    procedure OnDrawCell(Sender: TObject; ACol, ARow: Longint;
+      Rect: TRect; State: TGridDrawState);
 
     {!!! Events from TCustomDBGrid !!!}
     // TNotifyEvent
@@ -1613,6 +1609,8 @@ begin
     FKnownEventList.AddObject('OnDockChangingHidden', @AddrNotifyEvent);
     TNotifyEvent(AddrNotifyEvent) := OnVisibleChanged;
     FKnownEventList.AddObject('OnVisibleChanged', @AddrNotifyEvent);
+    TDrawCellEvent(AddrNotifyEvent) := OnDrawCell;
+    FKnownEventList.AddObject('OnDrawCell', @AddrNotifyEvent);
     TNotifyEvent(AddrNotifyEvent) := OnColEnter;
     FKnownEventList.AddObject('OnColEnter', @AddrNotifyEvent);
     TNotifyEvent(AddrNotifyEvent) := OnColExit;
@@ -2413,6 +2411,30 @@ begin
   _EventExecute(Sender, LParams, cCloseQueryEventName);
 
   CanClose := Boolean(GetVarParam(LParams[1]));
+end;
+
+procedure TEventControl.OnDrawCell(Sender: TObject; ACol, ARow: Longint;
+  Rect: TRect; State: TGridDrawState);
+var
+  LParams: Variant;
+  LgsRect: TgsRect;
+  I: Integer;
+begin
+  I := FRectList.IndexOf(Integer(Sender));
+  if I = -1 then
+  begin
+    LgsRect := TgsRect.Create2(Sender as TComponent, FRectList);
+    I := FRectList.Add(Integer(Sender));
+    FRectList.ValuesByIndex[I] := Integer(LgsRect);
+  end else
+    LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
+  LgsRect.Rect := Rect;
+
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    ACol, ARow, GetGdcOLEObject(LgsRect) as IDispatch,
+    TGridDrawStateToStr(State)]);
+
+  _EventExecute(Sender, LParams, cDrawCellEventName);
 end;
 
 procedure TEventControl.OnColEnter(Sender: TObject);
@@ -3765,6 +3787,7 @@ begin
   FEventList.Add(cDockChangingEventName);
   FEventList.Add(cDockChangingHiddenEventName);
   FEventList.Add(cVisibleChangedEventName);
+  FEventList.Add(cDrawCellEventName);
   FEventList.Add(cColEnterEventName);
   FEventList.Add(cColExitEventName);
   FEventList.Add(cColumnMovedEventName);

@@ -105,6 +105,8 @@ const
     //(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
     eiActionEvent = 'TActionEvent';
     //(Action: TBasicAction; var Handled: Boolean);
+    eiDrawCellEvent = 'TDrawCellEvent';
+    //(Sender: TObject; ACol, ARow: Longint; Rect: TRect; State: TGridDrawState);
     eiMovedEvent = 'TMovedEvent';
     //(Sender: TObject; FromIndex, ToIndex: Longint);
     eiDrawColumnCellEvent = 'TDrawColumnCellEvent';

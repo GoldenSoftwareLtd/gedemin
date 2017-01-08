@@ -99,6 +99,8 @@ const
     //(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
     eiActionEvent = 'TActionEvent';
     //(Action: TBasicAction; var Handled: Boolean);
+    eiDrawCellEvent = 'TDrawCellEvent';
+    //(Sender: TObject; ACol, ARow: Longint; Rect: TRect; State: TGridDrawState);
     eiMovedEvent = 'TMovedEvent';
     //(Sender: TObject; FromIndex, ToIndex: Longint);
     eiDrawColumnCellEvent = 'TDrawColumnCellEvent';
@@ -1542,6 +1544,32 @@ begin
           LRect.Bottom := (IDispatch(AParams[1]) as IgsGsRect).Bottom;
           TDrawColumnCellEvent(LNotifyEvent^)(InterfaceToObject(AParams[0]), LRect,
             Integer(AParams[2]), InterfaceToObject(AParams[3]) as TColumn, StrToTGridDrawState(String(AParams[4])));
+        end else
+          raise EIncorrectParams.Create(Format('Для класса %s и события %s не переданы объекты'
+          , [LObj.ClassName, AName]));
+        exit;
+      except
+        raise Exception.Create(Format('Для класса %s и события %s ошибка передачи параметров', [LObj.ClassName, AName]));
+      end;
+    end;
+
+    //'TDrawCellEvent' = procedure(Sender: TObject; ACol, ARow: Longint; Rect: TRect; State: TGridDrawState);
+    if AnsiUpperCase(TempPropList[I]^.PropType^^.Name) = AnsiUpperCase(eiDrawColumnCellEvent) then
+    begin
+      // проверка количества параметров, переданных для события
+      if not (VarArrayHighBound(AParams, 1) = 3) then
+        raise ECountParams.Create(Format('Для класса %s и события %s неверное количество параметров', [LObj.ClassName, AName]));
+      // передаются параметры из EventInherited и вызывается обработчик Delphi
+      try
+        if ((VarType(AParams[0]) = VarDispatch) and (VarType(AParams[1]) = VarDispatch) and (VarType(AParams[3]) = VarDispatch)) and
+          ((IDispatch(AParams[0]) <> nil) and (IDispatch(AParams[1]) <> nil) and (IDispatch(AParams[3]) <> nil)) then
+        begin
+          LRect.Left := (IDispatch(AParams[1]) as IgsGsRect).Left;
+          LRect.Right := (IDispatch(AParams[1]) as IgsGsRect).Right;
+          LRect.Top := (IDispatch(AParams[1]) as IgsGsRect).Top;
+          LRect.Bottom := (IDispatch(AParams[1]) as IgsGsRect).Bottom;
+          TDrawCellEvent(LNotifyEvent^)(InterfaceToObject(AParams[0]), Integer(AParams[1]), Integer(AParams[2]),
+            LRect, StrToTGridDrawState(String(AParams[4])));
         end else
           raise EIncorrectParams.Create(Format('Для класса %s и события %s не переданы объекты'
           , [LObj.ClassName, AName]));

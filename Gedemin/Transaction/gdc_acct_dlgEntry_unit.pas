@@ -48,6 +48,10 @@ type
     pTransaction: TPanel;
     Label1: TLabel;
     iblcTransaction: TgsIBLookupComboBox;
+    TBItem5: TTBItem;
+    actDupDebit: TAction;
+    actDupCredit: TAction;
+    TBItem6: TTBItem;
 
     procedure actNewDebitExecute(Sender: TObject);
     procedure actDeleteDebitExecute(Sender: TObject);
@@ -57,6 +61,10 @@ type
     procedure actDeleteCreditUpdate(Sender: TObject);
     procedure pgcMainChanging(Sender: TObject; var AllowChange: Boolean);
     procedure FormCreate(Sender: TObject);
+    procedure actDupDebitExecute(Sender: TObject);
+    procedure actDupDebitUpdate(Sender: TObject);
+    procedure actDupCreditExecute(Sender: TObject);
+    procedure actDupCreditUpdate(Sender: TObject);
 
   private
     FNumerator: Integer;
@@ -863,6 +871,150 @@ begin
   if pnlHolding.Enabled then
   begin
     iblkCompany.Condition := 'gd_contact.id IN (' + IBLogin.HoldingList + ')';
+  end;
+end;
+
+procedure Tgdc_acct_dlgEntry.actDupDebitExecute(Sender: TObject);
+var
+  EntryLine: TgdcAcctEntryLine;
+  L: TfrAcctEntrySimpleLine;
+  I, Temp: Integer;
+begin
+  for I := 0 to sboxDebit.ControlCount - 1 do
+  begin
+    if sboxDebit.Controls[I] is TfrAcctEntrySimpleLine then
+    begin
+      if TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).IsFocused then
+      begin
+        EntryLine := (gdcObject as TgdcAcctComplexRecord).AppendLine;
+        if EntryLine <> nil then
+        begin
+          Inc(FNumerator);
+          L := TfrAcctEntrySimpleLine.Create(Self);
+          L.Name := Format('frAcctEntrySimpleLine_%d', [FNumerator]);
+
+          if sboxDebit.ControlCount > 0 then
+            Temp := sboxDebit.Controls[sboxDebit.ControlCount - 1].Height + sboxDebit.Controls[sboxDebit.ControlCount - 1].Top
+          else
+            Temp := 0;
+
+          L.Parent := sboxDebit;
+          L.Top := Temp;
+
+          EntryLine.Edit;
+          EntryLine.FieldByName('accountpart').AsString := 'D';
+          L.gdcObject := gdcObject;
+          L.DataSet := EntryLine;
+          L.OnChange := OnLineChange;
+
+          L.cbAccount.Text := TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).cbAccount.Text;
+          L.cSum.SetFocus;
+          L.cSum.Value := TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).cSum.Value;
+          L.cbCurrency.Text := TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).cbCurrency.Text;
+          L.cRate.SetFocus;
+          L.cRate.Value := TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).cRate.Value;
+          L.cCurrSum.SetFocus;
+          L.cCurrSum.Value := TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).cCurrSum.Value;
+          L.cEQSum.SetFocus;
+          L.cEQSum.Value := TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).cEQSum.Value;
+          L.cbRounded.Checked := TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).cbRounded.Checked;
+          L.cbAccount.SetFocus;
+          L.cbCurrency.SetFocus;
+          L.frAcctAnalytics.Values := TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).frAcctAnalytics.Values;
+          L.frQuantity.Values := TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).frQuantity.Values;
+
+          L.cbAccount.SetFocus;
+          UpdateTabOrder(sboxDebit);
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure Tgdc_acct_dlgEntry.actDupDebitUpdate(Sender: TObject);
+var
+  I: Integer;
+begin
+  TAction(Sender).Enabled := False;
+  for I := 0 to sboxDebit.ControlCount - 1 do
+  begin
+    if sboxDebit.Controls[I] is TfrAcctEntrySimpleLine then
+    begin
+      if TfrAcctEntrySimpleLine(sboxDebit.Controls[I]).IsFocused then
+        TAction(Sender).Enabled := True;
+    end;
+  end;
+end;
+
+procedure Tgdc_acct_dlgEntry.actDupCreditExecute(Sender: TObject);
+var
+  EntryLine: TgdcAcctEntryLine;
+  L: TfrAcctEntrySimpleLine;
+  I, Temp: Integer;
+begin
+  for I := 0 to sboxCredit.ControlCount - 1 do
+  begin
+    if sboxCredit.Controls[I] is TfrAcctEntrySimpleLine then
+    begin
+      if TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).IsFocused then
+      begin
+        EntryLine := (gdcObject as TgdcAcctComplexRecord).AppendLine;
+        if EntryLine <> nil then
+        begin
+          Inc(FNumerator);
+          L := TfrAcctEntrySimpleLine.Create(Self);
+          L.Name := Format('frAcctEntrySimpleLine_%d', [FNumerator]);
+
+          if sboxCredit.ControlCount > 0 then
+            Temp := sboxCredit.Controls[sboxCredit.ControlCount - 1].Height + sboxCredit.Controls[sboxCredit.ControlCount - 1].Top
+          else
+            Temp := 0;
+
+          L.Parent := sboxCredit;
+          L.Top := Temp;
+
+          EntryLine.Edit;
+          EntryLine.FieldByName('accountpart').AsString := 'C';
+          L.gdcObject := gdcObject;
+          L.DataSet := EntryLine;
+          L.OnChange := OnLineChange;
+
+          L.cbAccount.Text := TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).cbAccount.Text;
+          L.cSum.SetFocus;
+          L.cSum.Value := TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).cSum.Value;
+          L.cbCurrency.Text := TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).cbCurrency.Text;
+          L.cRate.SetFocus;
+          L.cRate.Value := TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).cRate.Value;
+          L.cCurrSum.SetFocus;
+          L.cCurrSum.Value := TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).cCurrSum.Value;
+          L.cEQSum.SetFocus;
+          L.cEQSum.Value := TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).cEQSum.Value;
+          L.cbRounded.Checked := TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).cbRounded.Checked;
+          L.cbAccount.SetFocus;
+          L.cbCurrency.SetFocus;
+          L.frAcctAnalytics.Values := TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).frAcctAnalytics.Values;
+          L.frQuantity.Values := TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).frQuantity.Values;
+
+          L.cbAccount.SetFocus;
+          UpdateTabOrder(sboxCredit);
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure Tgdc_acct_dlgEntry.actDupCreditUpdate(Sender: TObject);
+var
+  I: Integer;
+begin
+  TAction(Sender).Enabled := False;
+  for I := 0 to sboxCredit.ControlCount - 1 do
+  begin
+    if sboxCredit.Controls[I] is TfrAcctEntrySimpleLine then
+    begin
+      if TfrAcctEntrySimpleLine(sboxCredit.Controls[I]).IsFocused then
+        TAction(Sender).Enabled := True;
+    end;
   end;
 end;
 

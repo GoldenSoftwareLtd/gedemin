@@ -20,6 +20,8 @@ type
     procedure TestEncryptionWrongPassword;
     procedure TestFastReportFunctions;
     procedure TestConvertFunctions;
+    procedure TestMulDiv;
+    procedure TestStDecMath;
   end;
 
 implementation
@@ -27,7 +29,7 @@ implementation
 uses
   SysUtils, gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet,
   gdNotifierThread_unit, gd_encryption, fs_iinterpreter, rp_FR4Functions,
-  gd_convert;
+  gd_convert, StDecMth;
 
 type
   Tgd_CmdLineParamsCrack = class(Tgd_CmdLineParams)
@@ -445,6 +447,30 @@ begin
   Check(GetNumeral('@N', -285.324, 0.001, 3, caseName, 0, 'тонна,тонны,тонн,т,килограмм,килограмма,килограмм,кг,--,.," "') = 'ћинус двести восемьдес€т п€ть целых триста двадцать четыре тыс€чных');
 
   Check(GetSumStr(149.908, 3) = 'сто сорок дев€ть целых дев€тьсот восемь тыс€чных');
+end;
+
+procedure TBasicsTest.TestMulDiv;
+begin
+  CheckEqualsString(FloatToStr(MulDiv(9.45, 100 + 10, 100, 1, 2)), '10.4');
+end;
+
+procedure TBasicsTest.TestStDecMath;
+var
+  N: TStDecimal;
+begin
+  N := TStDecimal.Create;
+  try
+    N.AsString := '45657897E+3';
+    Check(N.AsFloat = 45657897000);
+    N.AsString := '45657897.221E+3';
+    Check(N.AsFloat = 45657897221);
+    N.AsString := '78945657897E-2';
+    Check(N.AsString = '789456578.9700000000000000');
+    N.AsString := '7894565789.7E-1';
+    Check(N.AsString = '789456578.9700000000000000');
+  finally
+    N.Free;
+  end;
 end;
 
 initialization

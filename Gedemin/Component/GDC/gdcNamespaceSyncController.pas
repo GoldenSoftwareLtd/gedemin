@@ -115,7 +115,8 @@ begin
     if (Parser.YAMLStream.Count > 0)
       and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
       and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping)
-      and (((Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping).ReadString('Properties\Name') > '') then
+      and (((Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping).ReadString('Properties\Name') > '') 
+      and (Pos('.', ((Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping).ReadString('Properties\Version')) > 0) then
     begin
       if CharReplace then
         DoLog(lmtWarning, 'Замена символов при конвертации из UTF-8. ' + AFileName);
