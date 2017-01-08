@@ -13,6 +13,7 @@ uses
   IBQuery,
   IBSQL,
   IBScript,
+  IBIntf,
   gdcLBRBTreeMetaData;
 
 var
@@ -20,6 +21,7 @@ var
   SelfTransaction: TIBTransaction;
   SelfDatabase: TIBDatabase;
   ScriptText: TStringList;
+  LibraryFileName: array[0..1024] of Char;
 
   procedure ReadCommandLineParams;
   var
@@ -132,6 +134,9 @@ begin
     _Writeln('makelbrbtree.exe: неверно указан путь к базе данных.');
     Exit;
   end;
+
+  GetModuleFileName(GetIBLibraryHandle, LibraryFileName, SizeOf(LibraryFileName));
+  _Writeln('Client library: ' + LibraryFileName);
 
   if not UpdateLBRBTreeBase(SelfTransaction, False, _Writeln, ScriptText) then
   begin
