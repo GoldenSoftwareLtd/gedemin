@@ -1,43 +1,40 @@
 inherited gdc_dlgPlace: Tgdc_dlgPlace
-  Left = 294
-  Top = 243
+  Left = 856
+  Top = 399
   ActiveControl = DBComboBox1
   BorderWidth = 5
   Caption = 'Адм.-территориальная единица'
-  ClientHeight = 217
+  ClientHeight = 258
   ClientWidth = 367
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 0
-    Top = 196
-    Anchors = [akLeft, akBottom]
+    Top = 237
   end
   inherited btnNew: TButton
     Left = 72
-    Top = 196
-    Anchors = [akLeft, akBottom]
+    Top = 237
+  end
+  inherited btnHelp: TButton
+    Left = 143
+    Top = 237
   end
   inherited btnOK: TButton
     Left = 227
-    Top = 196
+    Top = 237
     Anchors = [akLeft, akBottom]
   end
   inherited btnCancel: TButton
     Left = 299
-    Top = 196
-    Anchors = [akLeft, akBottom]
-  end
-  inherited btnHelp: TButton
-    Left = 143
-    Top = 196
+    Top = 237
     Anchors = [akLeft, akBottom]
   end
   inherited pgcMain: TPageControl
     Left = 0
     Top = 0
     Width = 367
-    Height = 185
+    Height = 232
     Align = alTop
     inherited tbsMain: TTabSheet
       inherited dbtxtID: TDBText
@@ -53,7 +50,7 @@ inherited gdc_dlgPlace: Tgdc_dlgPlace
       end
       object Label3: TLabel
         Left = 8
-        Top = 130
+        Top = 134
         Width = 50
         Height = 13
         Caption = '&Входит в:'
@@ -76,15 +73,26 @@ inherited gdc_dlgPlace: Tgdc_dlgPlace
       end
       object Label5: TLabel
         Left = 8
-        Top = 107
+        Top = 109
         Width = 79
         Height = 13
         Caption = 'Код местности:'
         FocusControl = dbeCode
       end
+      object Label6: TLabel
+        Left = 8
+        Top = 160
+        Width = 68
+        Height = 13
+        Hint = 'Широта -90..+90, Долгота -180..+180'
+        Caption = 'Координаты:'
+        FocusControl = cbMaster
+        ParentShowHint = False
+        ShowHint = True
+      end
       object cbMaster: TgsIBLookupComboBox
         Left = 129
-        Top = 126
+        Top = 129
         Width = 216
         Height = 21
         HelpContext = 1
@@ -138,12 +146,30 @@ inherited gdc_dlgPlace: Tgdc_dlgPlace
       end
       object dbeCode: TDBEdit
         Left = 129
-        Top = 103
+        Top = 104
         Width = 216
         Height = 21
         DataField = 'Code'
         DataSource = dsgdcBase
         TabOrder = 3
+      end
+      object edGEOCoord: TEdit
+        Left = 129
+        Top = 154
+        Width = 216
+        Height = 21
+        Hint = 'Широта -90..+90, Долгота -180..+180'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 5
+      end
+      object btnShowMap: TButton
+        Left = 128
+        Top = 178
+        Width = 121
+        Height = 21
+        Action = actShowMap
+        TabOrder = 6
       end
     end
     inherited tbsAttr: TTabSheet
@@ -156,6 +182,10 @@ inherited gdc_dlgPlace: Tgdc_dlgPlace
   inherited alBase: TActionList
     Left = 295
     Top = 32
+    object actShowMap: TAction
+      Caption = 'Показать на карте'
+      OnExecute = actShowMapExecute
+    end
   end
   inherited dsgdcBase: TDataSource
     Left = 265

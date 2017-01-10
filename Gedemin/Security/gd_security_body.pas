@@ -1201,6 +1201,14 @@ function TboLogin.Login: Boolean;
       q.ExecQuery;
       Tr.Commit;
 
+      if (DB.FBVersion <> '') and (DB.ServerMajorVersion >= 3) and (DB.ODSMajorVersion >= 12) then
+      begin
+        Tr.StartTransaction;
+        q.SQL.Text := 'GRANT ALTER ANY SEQUENCE TO STARTUSER';
+        q.ExecQuery;
+        Tr.Commit;
+      end;
+
       Result := True;
     finally
       q.Free;

@@ -19,12 +19,12 @@ type
     Label9: TLabel;
     gsiblkupAddress: TgsIBLookupComboBox;
     Label4: TLabel;
-    DBEdit2: TDBEdit;
-    DBEdit3: TDBEdit;
-    DBEdit4: TDBEdit;
+    dbedCountry: TDBEdit;
+    dbedDistrict: TDBEdit;
+    dbedCity: TDBEdit;
     Label13: TLabel;
     Label5: TLabel;
-    DBEdit5: TDBEdit;
+    dbedArea: TDBEdit;
     Label6: TLabel;
     Label31: TLabel;
     dbmAddress: TDBMemo;
@@ -41,15 +41,21 @@ type
     Label67: TLabel;
     dbeFax: TDBEdit;
     dbcbDisabled: TDBCheckBox;
+    Label8: TLabel;
+    edGEOCoord: TEdit;
+    btnShowMap: TButton;
+    actShowOnMap: TAction;
     procedure iblkupCompanyChange(Sender: TObject);
     procedure iblkupDepartmentCreateNewObject(Sender: TObject;
       ANewObject: TgdcBase);
+    procedure actShowOnMapExecute(Sender: TObject);
 
   protected
     function NeedVisibleTabSheet(const ARelationName: String): Boolean; override;
 
   public
     procedure SetupRecord; override;
+    function TestCorrect: Boolean; override;
     procedure BeforePost; override;
   end;
 
@@ -61,7 +67,8 @@ implementation
 {$R *.DFM}
 
 uses
-  IBSQL, gd_ClassList, gdcBaseInterface;
+  IBSQL, gd_ClassList, gdcBaseInterface, ShellAPI, gd_common_functions,
+  gd_directories_const;
 
 procedure Tgdc_dlgDepartment.BeforePost;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -69,6 +76,7 @@ procedure Tgdc_dlgDepartment.BeforePost;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  Lat, Lon: Double;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDEPARTMENT', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}  try
@@ -89,6 +97,20 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
+  if Trim(edGEOCoord.Text) = '' then
+  begin
+    gdcObject.FieldbyName('lat').Clear;
+    gdcObject.FieldbyName('lon').Clear;
+  end else
+  begin
+    if GEOString2Coord(edGEOCoord.Text, Lat, Lon) then
+    begin
+      gdcObject.FieldbyName('lat').AsFloat := Lat;
+      gdcObject.FieldbyName('lon').AsFloat := Lon;
+    end else
+      raise Exception.Create('Invalid GEO coordinates');
+  end;
 
   inherited;
 
@@ -201,6 +223,13 @@ begin
   {M}    end;
   {END MACRO}
 
+  if (not gdcObject.FieldByName('lat').IsNull)
+    and (not gdcObject.FieldByName('lon').IsNull) then
+  begin
+    edGEOCoord.Text := GEOCoord2String(gdcObject.FieldByName('lat').AsFloat, gdcObject.FieldByName('lon').AsFloat);
+  end else
+    edGEOCoord.Text := '';
+
   inherited;
 
   q := TIBSQL.Create(nil);
@@ -254,6 +283,79 @@ procedure Tgdc_dlgDepartment.iblkupDepartmentCreateNewObject(
 begin
   if iblkupCompany.CurrentKey > '' then
     ANewObject.FieldByName('parent').AsInteger := iblkupCompany.CurrentKeyInt;
+end;
+
+procedure Tgdc_dlgDepartment.actShowOnMapExecute(Sender: TObject);
+var
+  S: String;
+  Lat, Lon: Double;
+begin
+  if GEOString2Coord(edGEOCoord.Text, Lat, Lon) then
+  begin
+    S := StringReplace(edGEOCoord.Text, ',', '+', []);
+    ShellExecute(Handle,
+      'open',
+      PChar(GoogleGEOSearch + S),
+      nil,
+      nil,
+      SW_SHOW);
+  end else
+    ShellExecute(Handle,
+      'open',
+      GoogleGEOHome,
+      nil,
+      nil,
+      SW_SHOW);
+end;
+
+function Tgdc_dlgDepartment.TestCorrect: Boolean;
+var
+  {@UNFOLD MACRO INH_CRFORM_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  Lat, Lon: Double;
+begin
+  {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGDEPARTMENT', 'TESTCORRECT', KEYTESTCORRECT)}
+  {M}Result := True;
+  {M}try
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}  begin
+  {M}    SetFirstMethodAssoc('TGDC_DLGDEPARTMENT', KEYTESTCORRECT);
+  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYTESTCORRECT]);
+  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGDEPARTMENT') = -1) then
+  {M}    begin
+  {M}      Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGDEPARTMENT',
+  {M}        'TESTCORRECT', KEYTESTCORRECT, Params, LResult) then
+  {M}      begin
+  {M}        if VarType(LResult) = $000B then
+  {M}          Result := LResult;
+  {M}        exit;
+  {M}      end;
+  {M}    end else
+  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGDEPARTMENT' then
+  {M}      begin
+  {M}        Result := inherited TestCorrect;
+  {M}        Exit;
+  {M}      end;
+  {M}  end;
+  {END MACRO}
+
+  Result := (inherited TestCorrect)
+    and (
+      (Trim(edGEOCoord.Text) = '')
+      or
+      GEOString2Coord(edGEOCoord.Text, Lat, Lon)
+    );
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGDEPARTMENT', 'TESTCORRECT', KEYTESTCORRECT)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGDEPARTMENT', 'TESTCORRECT', KEYTESTCORRECT);
+  {M}end;
+  {END MACRO}
 end;
 
 initialization

@@ -23,6 +23,7 @@ type
     FUpdateCurrModified: Boolean;
     FOnLogMessage: TOnLogMessage;
     FFilterOnlyPackages: Boolean;
+    FFilterOnlyFiles: Boolean;
     FFilterText: String;
     FFilterOperation: String;
     Fq: TIBSQL;
@@ -41,7 +42,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Scan(const ACalculateStatus: Boolean; const AClearUnexisted: Boolean; const ASaveDir: Boolean);
+    procedure Scan(const ACalculateStatus: Boolean; const AClearUnexisted: Boolean;const ARecursive: boolean;const ASaveDir: Boolean);
     procedure ApplyFilter;
     procedure BuildTree;
     procedure DeleteFile(const AFileName: String);
@@ -63,6 +64,7 @@ type
     property FilterText: String read FFilterText write FFilterText;
     property FilterOperation: String read FFilterOperation write FFilterOperation;
     property Filtered: Boolean read GetFiltered;
+    property FilterOnlyFiles:Boolean read FFilterOnlyFiles write FFilterOnlyFiles;
   end;
 
 implementation
@@ -219,18 +221,28 @@ begin
       '  LEFT JOIN at_namespace n ON n.id = s.namespacekey ' +
       '  LEFT JOIN at_namespace_file f ON f.filename = s.filename ';
 
-    if FFilterOnlyPackages or (FFilterText > '') or (FFilterOperation > '') then
-    begin
+
+     if FFilterOnlyFiles then
+      FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' WHERE (RIGHT(f.name,1)<> ''\'') ';
+
+     if FFilterOnlyPackages or (FFilterText > '') or (FFilterOperation > '') then
+     begin
+
+     if FFilterOnlyFiles then  FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' AND ('
+     else
       FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
         'WHERE (f.name CONTAINING ''\'') OR (';
 
-      if FFilterOnlyPackages then
+
+      if FFilterOnlyPackages then  begin
         FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
           '((n.id IS NOT NULL AND n.internal = 0) OR (f.name IS NOT NULL AND f.internal = 0))';
+      end;
+
 
       if FFilterText > '' then
       begin
-        if FFilterOnlyPackages then
+        if FFilterOnlyPackages  then
           FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' AND ';
         FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
           '(' +
@@ -682,6 +694,7 @@ end;
 function TgdcNamespaceSyncController.GetFiltered: Boolean;
 begin
   Result := FFilterOnlyPackages
+    or FFilterOnlyFiles
     or (FFilterText > '')
     or (FFilterOperation > '');
 end;
@@ -1053,10 +1066,11 @@ begin
 end;
 
 procedure TgdcNamespaceSyncController.Scan(const ACalculateStatus: Boolean;
-  const AClearUnexisted: Boolean; const ASaveDir: Boolean);
+  const AClearUnexisted: Boolean;const ARecursive: Boolean; const ASaveDir: Boolean);
 var
   SL: TStringList;
   I: Integer;
+  LO : TFileListOptions;
 begin
   Init;
 
@@ -1066,14 +1080,17 @@ begin
     TgdcNamespace.UpdateCurrModified(nil);
   end;
 
+  if ARecursive then LO :=  [flFullNames , flRecursive]
+  else LO :=[flFullNames];
+
   SL := TStringList.Create;
   try
     if AdvBuildFileList(IncludeTrailingBackslash(FDirectory) + '*.yml',
-      faAnyFile, SL, amAny, [flFullNames, flRecursive], '*.*', nil) then
+      faAnyFile, SL, amAny, LO, '*.*', nil) then
     begin
       for I := 0 to SL.Count - 1 do
       try
-        AnalyzeFile(SL[I]);
+         AnalyzeFile(SL[I]);
       except
         on E: Exception do
         begin

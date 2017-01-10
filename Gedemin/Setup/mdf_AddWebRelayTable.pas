@@ -9,6 +9,7 @@ procedure AddWebRelayTable(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddGDEmployeeTable(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CorrectSubAccounts(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CorrectClientAddress(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddGEOCoords(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
  
@@ -353,6 +354,66 @@ begin
         q.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo' + #13#10 +
           '  VALUES (256, ''0000.0001.0000.0287'', ''06.08.2016'', ''Correct client address of GD_JOURNAL'')' + #13#10 +
+          '  MATCHING (id)';
+        q.ExecQuery;
+
+        Tr.Commit;
+      finally
+        q.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Tr.Rollback;
+        Log(E.Message);
+      end;
+    end;
+  finally
+    Tr.Free;
+  end;
+end;
+
+procedure AddGEOCoords(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+    try
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := Tr;
+
+        if not DomainExist2('dlat', Tr) then
+        begin
+          q.SQL.Text :=
+            'CREATE DOMAIN dlat ' +
+            '  AS NUMERIC(10, 8) ' +
+            '  CHECK (VALUE BETWEEN -90.0 AND +90.0)';
+          q.ExecQuery;
+        end;
+
+        if not DomainExist2('dlon', Tr) then
+        begin
+          q.SQL.Text :=
+            'CREATE DOMAIN dlon ' +
+            '  AS NUMERIC(11, 8) ' +
+            '  CHECK (VALUE BETWEEN -180.0 AND +180.0)';
+          q.ExecQuery;
+        end;
+
+        AddField2('GD_PLACE', 'lat', 'dlat', Tr);
+        AddField2('GD_PLACE', 'lon', 'dlon', Tr);
+
+        AddField2('GD_CONTACT', 'lat', 'dlat', Tr);
+        AddField2('GD_CONTACT', 'lon', 'dlon', Tr);
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo' + #13#10 +
+          '  VALUES (257, ''0000.0001.0000.0288'', ''09.01.2017'', ''Add GEO coords'')' + #13#10 +
           '  MATCHING (id)';
         q.ExecQuery;
 

@@ -61,9 +61,40 @@ uses
 
 function Tgdc_dlgBank.TestCorrect: Boolean;
 var
+  {@UNFOLD MACRO INH_CRFORM_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
   Temp: String;
   Res: OleVariant;
 begin
+  {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGBANK', 'TESTCORRECT', KEYTESTCORRECT)}
+  {M}Result := True;
+  {M}try
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}  begin
+  {M}    SetFirstMethodAssoc('TGDC_DLGBANK', KEYTESTCORRECT);
+  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYTESTCORRECT]);
+  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGBANK') = -1) then
+  {M}    begin
+  {M}      Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGBANK',
+  {M}        'TESTCORRECT', KEYTESTCORRECT, Params, LResult) then
+  {M}      begin
+  {M}        if VarType(LResult) = $000B then
+  {M}          Result := LResult;
+  {M}        exit;
+  {M}      end;
+  {M}    end else
+  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGBANK' then
+  {M}      begin
+  {M}        Result := inherited TestCorrect;
+  {M}        Exit;
+  {M}      end;
+  {M}  end;
+  {END MACRO}
+
   Result := inherited TestCorrect;
 
   if Result then
@@ -94,6 +125,13 @@ begin
       end;
     end;
   end;
+  
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGBANK', 'TESTCORRECT', KEYTESTCORRECT)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGBANK', 'TESTCORRECT', KEYTESTCORRECT);
+  {M}end;
+  {END MACRO}
 end;
 
 initialization

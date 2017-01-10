@@ -1,6 +1,6 @@
 inherited gdc_dlgTRPC: Tgdc_dlgTRPC
-  Left = 353
-  Top = 232
+  Left = 355
+  Top = 233
   Caption = 'gdc_dlgTRPC'
   ClientHeight = 306
   ClientWidth = 431

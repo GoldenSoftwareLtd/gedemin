@@ -1,41 +1,39 @@
 inherited gdc_dlgDepartment: Tgdc_dlgDepartment
-  Left = 364
-  Top = 237
+  Left = 859
+  Top = 392
   HelpContext = 36
   Caption = 'Подразделение'
-  ClientHeight = 315
+  ClientHeight = 347
   ClientWidth = 507
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 287
+    Top = 319
   end
   inherited btnNew: TButton
-    Top = 287
+    Top = 319
   end
   inherited btnHelp: TButton
     Left = 150
-    Top = 287
+    Top = 319
   end
   inherited btnOK: TButton
     Left = 362
-    Top = 287
+    Top = 319
   end
   inherited btnCancel: TButton
     Left = 435
-    Top = 287
+    Top = 319
   end
   inherited pgcMain: TPageControl
     Width = 499
-    Height = 275
+    Height = 305
     inherited tbsMain: TTabSheet
       inherited labelID: TLabel
         Left = 6
         Top = 4
-        Width = 83
       end
       inherited dbtxtID: TDBText
         Left = 94
@@ -44,7 +42,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
       object Label1: TLabel
         Left = 6
         Top = 24
-        Width = 79
+        Width = 77
         Height = 13
         Caption = 'Наименование:'
         FocusControl = dbedName
@@ -60,28 +58,28 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
       object Label3: TLabel
         Left = 6
         Top = 106
-        Width = 128
+        Width = 132
         Height = 13
         Caption = 'Входит в подразделение:'
       end
       object Label9: TLabel
         Left = 250
         Top = 24
-        Width = 218
+        Width = 228
         Height = 13
         Caption = 'Страна, область, район, город (нас пункт.):'
       end
       object Label4: TLabel
         Left = 250
         Top = 106
-        Width = 39
+        Width = 41
         Height = 13
         Caption = 'Страна:'
       end
       object Label13: TLabel
         Left = 371
         Top = 146
-        Width = 90
+        Width = 93
         Height = 13
         Caption = 'Город/нас. пункт:'
       end
@@ -102,7 +100,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
       object Label31: TLabel
         Left = 250
         Top = 66
-        Width = 34
+        Width = 35
         Height = 13
         Caption = 'Адрес:'
       end
@@ -116,21 +114,21 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
       object Label7: TLabel
         Left = 371
         Top = 186
-        Width = 22
+        Width = 21
         Height = 13
         Caption = 'П/я:'
       end
       object Label11: TLabel
         Left = 6
         Top = 185
-        Width = 27
+        Width = 28
         Height = 13
         Caption = 'email:'
       end
       object Label17: TLabel
         Left = 124
         Top = 186
-        Width = 31
+        Width = 32
         Height = 13
         Caption = 'http://'
       end
@@ -144,9 +142,19 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
       object Label67: TLabel
         Left = 124
         Top = 146
-        Width = 32
+        Width = 29
         Height = 13
         Caption = 'Факс:'
+      end
+      object Label8: TLabel
+        Left = 8
+        Top = 231
+        Width = 68
+        Height = 13
+        Hint = 'Широта -90..+90, Долгота -180..+180'
+        Caption = 'Координаты:'
+        ParentShowHint = False
+        ShowHint = True
       end
       object dbedName: TDBEdit
         Left = 6
@@ -173,7 +181,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 1
+        TabOrder = 2
         OnChange = iblkupCompanyChange
       end
       object iblkupDepartment: TgsIBLookupComboBox
@@ -194,7 +202,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 2
+        TabOrder = 4
       end
       object gsiblkupAddress: TgsIBLookupComboBox
         Left = 250
@@ -213,9 +221,9 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 7
+        TabOrder = 1
       end
-      object DBEdit2: TDBEdit
+      object dbedCountry: TDBEdit
         Left = 250
         Top = 122
         Width = 114
@@ -225,9 +233,9 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         DataField = 'country'
         DataSource = dsgdcBase
         ReadOnly = True
-        TabOrder = 9
+        TabOrder = 5
       end
-      object DBEdit3: TDBEdit
+      object dbedDistrict: TDBEdit
         Left = 250
         Top = 161
         Width = 114
@@ -237,9 +245,9 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         DataField = 'district'
         DataSource = dsgdcBase
         ReadOnly = True
-        TabOrder = 10
+        TabOrder = 9
       end
-      object DBEdit4: TDBEdit
+      object dbedCity: TDBEdit
         Left = 370
         Top = 161
         Width = 114
@@ -249,9 +257,9 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         DataField = 'city'
         DataSource = dsgdcBase
         ReadOnly = True
-        TabOrder = 11
+        TabOrder = 10
       end
-      object DBEdit5: TDBEdit
+      object dbedArea: TDBEdit
         Left = 370
         Top = 122
         Width = 114
@@ -261,7 +269,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         DataField = 'region'
         DataSource = dsgdcBase
         ReadOnly = True
-        TabOrder = 12
+        TabOrder = 6
       end
       object dbmAddress: TDBMemo
         Left = 250
@@ -271,7 +279,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         DataField = 'ADDRESS'
         DataSource = dsgdcBase
         ScrollBars = ssVertical
-        TabOrder = 8
+        TabOrder = 3
       end
       object dbeZIP: TDBEdit
         Left = 250
@@ -298,7 +306,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         Height = 21
         DataField = 'EMAIL'
         DataSource = dsgdcBase
-        TabOrder = 5
+        TabOrder = 11
       end
       object dbedWWW: TDBEdit
         Left = 126
@@ -307,7 +315,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         Height = 21
         DataField = 'URL'
         DataSource = dsgdcBase
-        TabOrder = 6
+        TabOrder = 12
       end
       object dbePhone: TDBEdit
         Left = 6
@@ -316,7 +324,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         Height = 21
         DataField = 'PHONE'
         DataSource = dsgdcBase
-        TabOrder = 3
+        TabOrder = 7
       end
       object dbeFax: TDBEdit
         Left = 126
@@ -325,31 +333,53 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         Height = 21
         DataField = 'FAX'
         DataSource = dsgdcBase
-        TabOrder = 4
+        TabOrder = 8
       end
       object dbcbDisabled: TDBCheckBox
         Left = 6
-        Top = 228
+        Top = 256
         Width = 172
         Height = 17
         Caption = 'Подразделение не активно'
         DataField = 'DISABLED'
         DataSource = dsgdcBase
-        TabOrder = 15
+        TabOrder = 17
         ValueChecked = '1'
         ValueUnchecked = '0'
+      end
+      object edGEOCoord: TEdit
+        Left = 126
+        Top = 226
+        Width = 238
+        Height = 21
+        Hint = 'Широта -90..+90, Долгота -180..+180'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 15
+      end
+      object btnShowMap: TButton
+        Left = 369
+        Top = 225
+        Width = 114
+        Height = 21
+        Action = actShowOnMap
+        TabOrder = 16
       end
     end
     inherited tbsAttr: TTabSheet
       inherited atcMain: TatContainer
         Width = 491
-        Height = 247
+        Height = 277
       end
     end
   end
   inherited alBase: TActionList
     Left = 430
     Top = 65535
+    object actShowOnMap: TAction
+      Caption = 'Показать на карте'
+      OnExecute = actShowOnMapExecute
+    end
   end
   inherited dsgdcBase: TDataSource
     Left = 336

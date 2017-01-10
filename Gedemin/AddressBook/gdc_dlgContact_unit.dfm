@@ -683,7 +683,7 @@ inherited gdc_dlgContact: Tgdc_dlgContact
         ListField = 'name'
         KeyField = 'ID'
         gdClassName = 'TgdcPlace'
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
@@ -788,7 +788,7 @@ inherited gdc_dlgContact: Tgdc_dlgContact
         KeyField = 'ID'
         SortOrder = soAsc
         gdClassName = 'TgdcWgPosition'
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 4

@@ -800,6 +800,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (256, '0000.0001.0000.0287', '06.08.2016', 'Correct client address of GD_JOURNAL');    
   
+INSERT INTO fin_versioninfo
+  VALUES (257, '0000.0001.0000.0288', '09.01.2017', 'Add GEO coords');    
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

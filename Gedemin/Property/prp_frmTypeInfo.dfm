@@ -1,6 +1,6 @@
 object frmTypeInfo: TfrmTypeInfo
-  Left = 164
-  Top = 190
+  Left = 376
+  Top = 202
   Width = 303
   Height = 439
   Caption = 'Информация о типе'
@@ -16,7 +16,7 @@ object frmTypeInfo: TfrmTypeInfo
   object lblVariable: TLabel
     Left = 8
     Top = 8
-    Width = 67
+    Width = 65
     Height = 13
     Caption = 'Переменная:'
   end
@@ -39,7 +39,6 @@ object frmTypeInfo: TfrmTypeInfo
     Height = 21
     TabStop = False
     Anchors = [akLeft, akTop, akRight]
-    Color = clInactiveCaptionText
     ReadOnly = True
     TabOrder = 1
   end

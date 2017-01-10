@@ -10,7 +10,6 @@ uses
 
 const
   cDefMaxLengthStrValue = 60;
-  cGloblaObjName = 'global';
 
   //ObjTypes
   cGlobal    = 1;
@@ -51,8 +50,8 @@ const
   cTitleColor               = 1024;
 
   cStriped                  = 1025;
-  cStripeEvenColor          = 1026;
-  cStripeOddColor           = 1027;
+  cStripeEven               = 1026;
+  cStripeOdd                = 1027;
 
   //expand
   cExpandFieldName          = 1028;
@@ -116,7 +115,6 @@ const
 
   cColumnTitleAlignment     = 1079;
   cColumnAlignment          = 1080;
-  cColumnSerialNumber       = 1081;
 
   {//Default Values
   //Table
@@ -212,14 +210,6 @@ const
   cDefColumnAlignment          = taLeftJustify;}
 
 type
-  TStyleOwner = (
-    soUser,          //для пользователя
-    soAllUser,       //для всех пользователей
-    soTheme         //для темы
-  );
-
-  TStyleOwners = set of TStyleOwner;
-
   PStyle = ^TStyle;
   TStyle = record
     StrVal: String;
@@ -232,65 +222,20 @@ type
     FStyleList: TStringHashMap;
 
     procedure ClearData;
-    function Iterate_FreeStyle(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
-    function Iterate_Assign(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
-
-    function FindStr(const AnObjName: String; out AStrValue: String): Boolean;
-    function FindInt(const AnObjName: String; out AnIntValue: Integer): Boolean;
-
-    procedure AddStr(const AnObjName: string; const AStrValue: String);
-    procedure AddInt(const AnObjName: string; AnIntValue: Integer);
-
-    procedure _Remove(const AnObjName: string);
-
-    function GetObjName(const AnObjectNane: String; AnPropID: Integer; AStyleOwner: TStyleOwner): String;
+    function Iterate_FreeStyle(AUserData: PUserData; const AStr: string; var AData {$IFNDEF CLR}: PData{$ENDIF}): Boolean;
 
   public
     constructor Create;
     destructor Destroy; override;
 
-    procedure Assign(ASource: TgdStyleManager);
+    function FindStr(const S: String; out AStrValue: String): Boolean;
+    function FindInt(const S: String; out AnIntValue: Integer): Boolean;
 
-    function GetStrProp(const AnObjectNane: String;
-      AnPropID: Integer; AStyleOwner: TStyleOwner;
-      out AStrValue: String): Boolean;
-    function GetIntProp(const AnObjectNane: String;
-      AnPropID: Integer; AStyleOwner: TStyleOwner;
-      out AnIntValue: Integer): Boolean;
-    function GetBoolProp(const AnObjectNane: String;
-      AnPropID: Integer; AStyleOwner: TStyleOwner;
-      out ABoolValue: Boolean): Boolean;
-
-    procedure SetStrProp(const AnObjectNane: String;
-      AnPropID: Integer; AStyleOwner: TStyleOwner;
-      const AStrValue: String);
-    procedure SetIntProp(const AnObjectNane: String;
-      AnPropID: Integer; AStyleOwner: TStyleOwner;
-      AnIntValue: Integer);
-    procedure SetBoolProp(const AnObjectNane: String;
-      AnPropID: Integer; AStyleOwner: TStyleOwner;
-      ABoolValue: Boolean);
-
-    procedure Remove(const AnObjectNane: String;
-      AnPropID: Integer; AStyleOwner: TStyleOwner);
+    procedure AddStr(const S: string; const AStrValue: String);
+    procedure AddInt(const S: string; AnIntValue: Integer);
+    procedure Remove(const S: string);
 
     procedure LoadFromDB;
-
-    // Для грида
-    function EvalGridStrValue(const AnFormName: String; const AnGridName: String;
-      APropID: Integer; out AStrValue: String): Boolean;
-    function EvalGridIntValue(const AnFormName: String; const AnGridName: String;
-      APropID: Integer; out AnIntValue: Integer): Boolean;
-    function EvalGridBoolValue(const AnFormName: String; const AnGridName: String;
-      APropID: Integer; out ABoolValue: Boolean): Boolean;
-
-    // Для колонок
-    function EvalColumnStrValue(AnObjectName: String;
-      APropID: Integer; out AStrValue: String): Boolean;
-    function EvalColumnIntValue(AnObjectName: String;
-      APropID: Integer; out AnIntValue: Integer): Boolean;
-    function EvalColumnBoolValue(AnObjectName: String;
-      APropID: Integer; out ABoolValue: Boolean): Boolean;
   end;
 
   TgdGridParser = class
@@ -333,15 +278,17 @@ type
     procedure ParseGridStream(const AnObjectName: String;
       const AnUserKey: Integer; Stream: TStream);
 
-    function GetDefaultStrValue(APropID: Integer): String;
-    function GetDefaultIntValue(APropID: Integer): Integer;
-    function GetDefaultBollValue(APropID: Integer): Boolean;
+    function GetDefaultStrValue(APropID: Integer; AnUserKey: Integer): String;
+    function GetDefaultIntValue(APropID: Integer; AnUserKey: Integer): Integer;
+    function GetDefaultBollValue(APropID: Integer; AnUserKey: Integer): Boolean;
 
-    procedure DeleteStrValues(APropID: Integer; const AStrValue: String);
-    procedure DeleteIntValues(APropID: Integer; AnIntValue: Integer);
-    procedure DeleteBoolValues(APropID: Integer; ABollValue: Boolean);
+    procedure DeleteStrValues(APropID: Integer; const AStrValue: String; AnUserKey: Integer);
+    procedure DeleteIntValues(APropID: Integer; AnIntValue: Integer; AnUserKey: Integer);
+    procedure DeleteBoolValues(APropID: Integer; ABollValue: Boolean; AnUserKey: Integer);
 
-    procedure _SetDefault(AnObjKey: Integer);
+    function GetUserKeys: String;
+
+    procedure _SetDefault(AnObjKey: Integer; AnUserKey: Integer);
 
     procedure SetDefault;
 
@@ -356,15 +303,6 @@ var
   _gdStyleManager: TgdStyleManager;
 
 function gdStyleManager: TgdStyleManager;
-
-function FontStyleToString(AFontStyles: TFontStyles): String;
-function StringToFontStyle(AFontStyles: String): TFontStyles;
-
-function FontPitchToString(AFontPitch: TFontPitch): String;
-function StringToFontPitch(AFontPitch: String): TFontPitch;
-
-function AlignmentToString(AnAlignment: TAlignment): String;
-function StringToAlignment(AnAlignment: String): TAlignment;
 
 implementation
 
@@ -381,100 +319,6 @@ begin
   if _gdStyleManager = nil then
     _gdStyleManager := TgdStyleManager.Create;
   Result := _gdStyleManager;
-end;
-
-function FontStyleToString(AFontStyles: TFontStyles): String;
-begin
-  Result := '';
-
-  if fsBold in AFontStyles then
-    Result := Result + 'fsBold' + ',';
-  if fsItalic in AFontStyles then
-    Result := Result + 'fsItalic' + ',';
-  if fsUnderline in AFontStyles then
-    Result := Result + 'fsUnderline' + ',';
-  if fsStrikeOut in AFontStyles then
-    Result := Result + 'fsStrikeOut' + ',';
-
-  if Result > '' then
-    SetLength(Result, Length(Result) - 1);
-end;
-
-function StringToFontStyle(AFontStyles: String): TFontStyles;
-var
-  SL: TStringList;
-  I: Integer;
-begin
-  if AFontStyles = '' then
-  begin
-    Result := [];
-    Exit;
-  end;
-
-  SL := TStringList.Create;
-  try
-    SL.CommaText := AFontStyles;
-
-    for I := 0 to SL.Count - 1 do
-    begin
-      if SL[I] = 'fsBold' then
-        Result := Result + [fsBold]
-      else if SL[I] = 'fsItalic' then
-        Result := Result + [fsItalic]
-      else if SL[I] = 'fsUnderline' then
-        Result := Result + [fsUnderline]
-      else if SL[I] = 'fsStrikeOut' then
-        Result := Result + [fsStrikeOut]
-      else
-        raise Exception.Create('invalid font styles');
-    end;
-  finally
-    SL.Free;
-  end;
-end;
-
-function FontPitchToString(AFontPitch: TFontPitch): String;
-begin
-  if AFontPitch = fpDefault then
-    Result := 'fpDefault'
-  else if AFontPitch = fpVariable then
-    Result := 'fpVariable'
-  else
-    Result := 'fpFixed';
-end;
-
-function StringToFontPitch(AFontPitch: String): TFontPitch;
-begin
-  if AFontPitch = 'fpDefault' then
-    Result := fpDefault
-  else if AFontPitch = 'fpVariable' then
-    Result := fpVariable
-  else if AFontPitch = 'fpFixed' then
-    Result := fpFixed
-  else
-    raise Exception.Create('invalid font pitch');
-end;
-
-function AlignmentToString(AnAlignment: TAlignment): String;
-begin
-  if AnAlignment = taLeftJustify then
-    Result := 'taLeftJustify'
-  else if AnAlignment = taRightJustify then
-    Result := 'taRightJustify'
-  else
-    Result := 'taCenter';
-end;
-
-function StringToAlignment(AnAlignment: String): TAlignment;
-begin
-  if AnAlignment = 'taLeftJustify' then
-    Result := taLeftJustify
-  else if AnAlignment = 'taRightJustify' then
-    Result := taRightJustify
-  else if AnAlignment = 'taCenter' then
-    Result := taCenter
-  else
-    raise Exception.Create('invalid Alignment');
 end;
 
 { TgdStyleManager }
@@ -494,126 +338,11 @@ begin
   inherited;
 end;
 
-procedure TgdStyleManager.Assign(ASource: TgdStyleManager);
-begin
-  Assert(ASource <> nil);
-
-  ASource.FStyleList.IterateMethod(nil, Iterate_Assign);
-end;
-
-function TgdStyleManager.Iterate_Assign(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
-var
-  PS: PStyle;
-  NPS: PStyle;
-begin
-  PS := AData;
-
-  New(NPS);
-  // правильно ли отработает копирование строки, ввиду того что она является указателем????
-  NPS^.StrVal := PS^.StrVal;
-  NPS^.IntVal := PS^.IntVal;
-  NPS^.IsInt := PS^.IsInt;
-
-  FStyleList.Add(AStr, NPS);
-
-  Result := True;
-end;
-
-function TgdStyleManager.GetStrProp(const AnObjectNane: String;
-  AnPropID: Integer; AStyleOwner: TStyleOwner;
-  out AStrValue: String): Boolean;
-begin
-  Result := FindStr(GetObjName(AnObjectNane, AnPropID, AStyleOwner), AStrValue);
-end;
-
-function TgdStyleManager.GetIntProp(const AnObjectNane: String;
-  AnPropID: Integer; AStyleOwner: TStyleOwner;
-  out AnIntValue: Integer): Boolean;
-begin
-  Result := FindInt(GetObjName(AnObjectNane, AnPropID, AStyleOwner), AnIntValue);
-end;
-
-function TgdStyleManager.GetBoolProp(const AnObjectNane: String;
-  AnPropID: Integer; AStyleOwner: TStyleOwner;
-  out ABoolValue: Boolean): Boolean;
-var
-  IntValue: Integer;
-begin
-  Result := GetIntProp(AnObjectNane, AnPropID, AStyleOwner, IntValue);
-
-  if Result then
-  begin
-    if IntValue = 0 then
-      ABoolValue := False
-    else if IntValue = 1 then
-      ABoolValue := True
-    else
-      raise Exception.Create('invalid boolean value');
-  end;
-end;
-
-function TgdStyleManager.GetObjName(const AnObjectNane: String; AnPropID: Integer; AStyleOwner: TStyleOwner): String;
-begin
-  if AStyleOwner = soUser then
-    Result := AnObjectNane + ',' + IntToStr(AnPropID) + ',' + IntToStr(IBLogin.UserKey) + ',' + '0'
-  else if AStyleOwner = soAllUser then
-    Result := AnObjectNane + ',' + IntToStr(AnPropID) + ',' + '0' + ',' + '0'
-  //else if soTheme then
-  //  Result := AnObjectNane + ',' + IntToStr(AnPropID) + ',' + '0' + ',' + '0';
-end;
-
-procedure TgdStyleManager.SetStrProp(const AnObjectNane: String;
-  AnPropID: Integer; AStyleOwner: TStyleOwner;
-  const AStrValue: String);
+function TgdStyleManager.FindStr(const S: String; out AStrValue: String): Boolean;
 var
   PS: PStyle;
 begin
-  if FStyleList.Find(GetObjName(AnObjectNane, AnPropID, AStyleOwner), PS) then
-    PS^.StrVal := AStrValue
-  else
-    AddStr(GetObjName(AnObjectNane, AnPropID, AStyleOwner), AStrValue);
-end;
-
-procedure TgdStyleManager.SetIntProp(const AnObjectNane: String;
-  AnPropID: Integer; AStyleOwner: TStyleOwner;
-  AnIntValue: Integer);
-var
-  PS: PStyle;
-begin
-  if FStyleList.Find(GetObjName(AnObjectNane, AnPropID, AStyleOwner), PS) then
-    PS^.IntVal := AnIntValue
-  else
-    AddInt(GetObjName(AnObjectNane, AnPropID, AStyleOwner), AnIntValue);
-end;
-
-procedure TgdStyleManager.SetBoolProp(const AnObjectNane: String;
-  AnPropID: Integer; AStyleOwner: TStyleOwner;
-  ABoolValue: Boolean);
-var
-  IntValue: Integer;
-begin
-  if ABoolValue then
-    IntValue := 1
-  else
-    IntValue := 0;
-
-  SetIntProp(AnObjectNane, AnPropID, AStyleOwner, IntValue);
-end;
-
-procedure TgdStyleManager.Remove(const AnObjectNane: String;
-  AnPropID: Integer; AStyleOwner: TStyleOwner);
-var
-  PS: PStyle;
-begin
-   if FStyleList.Find(GetObjName(AnObjectNane, AnPropID, AStyleOwner), PS) then
-    _Remove(GetObjName(AnObjectNane, AnPropID, AStyleOwner));
-end;
-
-function TgdStyleManager.FindStr(const AnObjName: String; out AStrValue: String): Boolean;
-var
-  PS: PStyle;
-begin
-  Result := FStyleList.Find(AnObjName, PS);
+  Result := FStyleList.Find(S, PS);
 
   if Result then
   begin
@@ -624,11 +353,11 @@ begin
   end;
 end;
 
-function TgdStyleManager.FindInt(const AnObjName: String; out AnIntValue: Integer): Boolean;
+function TgdStyleManager.FindInt(const S: String; out AnIntValue: Integer): Boolean;
 var
   PS: PStyle;
 begin
-  Result := FStyleList.Find(AnObjName, PS);
+  Result := FStyleList.Find(S, PS);
 
   if Result then
   begin
@@ -639,41 +368,41 @@ begin
   end;
 end;
 
-procedure TgdStyleManager.AddStr(const AnObjName: string; const AStrValue: String);
+procedure TgdStyleManager.AddStr(const S: string; const AStrValue: String);
 var
   PS: PStyle;
   P: Pointer;
 begin
-  if FStyleList.Find(AnObjName, P) then
+  if FStyleList.Find(S, P) then
     Assert(False);
 
   New(PS);
   PS^.StrVal := AStrValue;
   PS^.IsInt := False;
 
-  FStyleList.Add(AnObjName, PS);
+  FStyleList.Add(S, PS);
 end;
 
-procedure TgdStyleManager.AddInt(const AnObjName: string; AnIntValue: Integer);
+procedure TgdStyleManager.AddInt(const S: string; AnIntValue: Integer);
 var
   PS: PStyle;
   P: Pointer;
 begin
-  if FStyleList.Find(AnObjName, P) then
+  if FStyleList.Find(S, P) then
     Assert(False);
 
   New(PS);
   PS^.IntVal := AnIntValue;
   PS^.IsInt := True;
 
-  FStyleList.Add(AnObjName, PS);
+  FStyleList.Add(S, PS);
 end;
 
-procedure TgdStyleManager._Remove(const AnObjName: string);
+procedure TgdStyleManager.Remove(const S: string);
 var
   PS: PStyle;
 begin
-  PS := FStyleList.Remove(AnObjName);
+  PS := FStyleList.Remove(S);
   Dispose(PS);
 end;
 
@@ -682,7 +411,7 @@ begin
   FStyleList.IterateMethod(nil, Iterate_FreeStyle);
 end;
 
-function TgdStyleManager.Iterate_FreeStyle(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
+function TgdStyleManager.Iterate_FreeStyle(AUserData: PUserData; const AStr: string; var AData {$IFNDEF CLR}: PData{$ENDIF}): Boolean;
 var
   PS: PStyle;
 begin
@@ -698,6 +427,7 @@ var
   Str: String;
   Int: Integer;
   S: String;
+
 begin
   Assert(gdcBaseManager <> nil);
 
@@ -723,9 +453,13 @@ begin
     while not q.Eof do
     begin
       S := q.FieldByName('objname').AsString + ','
-        + IntToStr(q.FieldByName('propid').AsInteger) + ','
-        + IntToStr(q.FieldByName('userkey').AsInteger) + ','
-        + IntToStr(q.FieldByName('themekey').AsInteger);
+        + IntToStr(q.FieldByName('propid').AsInteger);
+
+      if q.FieldByName('userkey').AsInteger > 0 then
+        S := S + ',' + IntToStr(q.FieldByName('userkey').AsInteger);
+
+      if q.FieldByName('themekey').AsInteger > 0 then
+        S := S + ',' + IntToStr(q.FieldByName('themekey').AsInteger);
 
       if not q.FieldByName('strvalue').IsNull then
       begin
@@ -754,263 +488,6 @@ begin
   finally
     q.Free;
   end;
-end;
-
-function TgdStyleManager.EvalGridStrValue(const AnFormName: String; const AnGridName: String;
-  APropID: Integer; out AStrValue: String): Boolean;
-
-  function Eval(ALevel: Integer; ASubLevel: Integer;
-    const AnFormName: String; const AnGridName: String;
-    APropID: Integer; out AStrValue: String): Boolean;
-  const
-    MaxLevel = 2;
-    MaxSubLevel = 2;
-  var
-    ObjectName: String;
-    StyleOwner: TStyleOwner;
-  begin
-    if ALevel = 0 then
-      ObjectName := AnGridName
-    else if ALevel = 1 then
-      ObjectName := AnFormName + ',' + AnGridName
-    else if ALevel = 2 then
-      ObjectName := cGloblaObjName
-    else
-      raise Exception.Create('');
-
-    if ASubLevel = 0 then
-      StyleOwner := soUser
-    else if ASubLevel = 1 then
-      StyleOwner := soAllUser
-    else if ASubLevel = 2 then
-      StyleOwner := soTheme
-    else
-      raise Exception.Create('');
-
-    if GetStrProp(ObjectName, APropID, StyleOwner, AStrValue) then
-    begin
-      Result := True;
-      Exit;
-    end
-    else
-    begin
-      if ASubLevel < MaxSubLevel then
-      begin
-        Inc(ASubLevel);
-        Result := Eval(ALevel, ASubLevel, AnFormName, AnGridName, APropID, AStrValue);
-      end
-      else
-      begin
-        ASubLevel := 0;
-        if ALevel < MaxLevel then
-        begin
-          Inc(ALevel);
-          Result := Eval(ALevel, ASubLevel, AnFormName, AnGridName, APropID, AStrValue);
-        end
-        else
-        begin
-          Result := False;
-          Exit;
-        end;
-      end;
-    end;
-  end;
-
-begin
-  Assert(AnFormName > '');
-  Assert(AnGridName > '');
-  
-  Result := Eval(0, 0, AnFormName, AnGridName, APropID, AstrValue);
-end;
-
-function TgdStyleManager.EvalGridIntValue(const AnFormName: String; const AnGridName: String;
-  APropID: Integer; out AnIntValue: Integer): Boolean;
-
-  function Eval(ALevel: Integer; ASubLevel: Integer;
-    const AnFormName: String; const AnGridName: String;
-    APropID: Integer; out AnIntValue: Integer): Boolean;
-  const
-    MaxLevel = 2;
-    MaxSubLevel = 2;
-  var
-    ObjectName: String;
-    StyleOwner: TStyleOwner;
-  begin
-    if ALevel = 0 then
-      ObjectName := AnGridName
-    else if ALevel = 1 then
-      ObjectName := AnFormName + ',' + AnGridName
-    else if ALevel = 2 then
-      ObjectName := cGloblaObjName
-    else
-      raise Exception.Create('');
-
-    if ASubLevel = 0 then
-      StyleOwner := soUser
-    else if ASubLevel = 1 then
-      StyleOwner := soAllUser
-    else if ASubLevel = 2 then
-      StyleOwner := soTheme
-    else
-      raise Exception.Create('');
-
-    if GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue) then
-    begin
-      Result := True;
-      Exit;
-    end
-    else
-    begin
-      if ASubLevel < MaxSubLevel then
-      begin
-        Inc(ASubLevel);
-        Result := Eval(ALevel, ASubLevel, AnFormName, AnGridName, APropID, AnIntValue);
-      end
-      else
-      begin
-        ASubLevel := 0;
-        if ALevel < MaxLevel then
-        begin
-          Inc(ALevel);
-          Result := Eval(ALevel, ASubLevel, AnFormName, AnGridName, APropID, AnIntValue);
-        end
-        else
-        begin
-          Result := False;
-          Exit;
-        end;
-      end;
-    end;
-  end;
-begin
-  Assert(AnFormName > '');
-  Assert(AnGridName > '');
-  
-  Result := Eval(0, 0, AnFormName, AnGridName, APropID, AnIntValue);
-end;
-
-function TgdStyleManager.EvalGridBoolValue(const AnFormName: String; const AnGridName: String;
-  APropID: Integer; out ABoolValue: Boolean): Boolean;
-var
-  IntValue: Integer;
-begin
-  Result := EvalGridIntValue(AnFormName, AnGridName, APropID, IntValue);
-
-  if Result then
-  begin
-    if IntValue = 0 then
-      ABoolValue := False
-    else if IntValue = 1 then
-      ABoolValue := True
-    else
-      raise Exception.Create('invalid boolean value');
-  end
-end;
-
-function TgdStyleManager.EvalColumnStrValue(AnObjectName: String;
-  APropID: Integer; out AStrValue: String): Boolean;
-Var
-  ObjectName: String;
-  StyleOwner: TStyleOwner;
-begin
-  // пока по упрощенной программе
-
-  ObjectName := AnObjectName;
-  StyleOwner := soUser;
-  Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
-
-  if not Result then
-  begin
-    StyleOwner := soAllUser;
-    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
-  end;
-
-  if not Result then
-  begin
-    StyleOwner := soTheme;
-    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
-  end;
-
-  if not Result then
-  begin
-    ObjectName := cGloblaObjName;
-    StyleOwner := soUser;
-    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
-  end;
-
-  if not Result then
-  begin
-    StyleOwner := soAllUser;
-    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
-  end;
-
-  if not Result then
-  begin
-    StyleOwner := soTheme;
-    Result := GetStrProp(ObjectName, APropID, StyleOwner, AStrValue);
-  end;
-end;
-
-function TgdStyleManager.EvalColumnIntValue(AnObjectName: String;
-  APropID: Integer; out AnIntValue: Integer): Boolean;
-Var
-  ObjectName: String;
-  StyleOwner: TStyleOwner;
-begin
-  // пока по упрощенной программе
-
-  ObjectName := AnObjectName;
-  StyleOwner := soUser;
-  Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
-
-  if not Result then
-  begin
-    StyleOwner := soAllUser;
-    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
-  end;
-
-  if not Result then
-  begin
-    StyleOwner := soTheme;
-    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
-  end;
-
-  if not Result then
-  begin
-    ObjectName := cGloblaObjName;
-    StyleOwner := soUser;
-    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
-  end;
-
-  if not Result then
-  begin
-    StyleOwner := soAllUser;
-    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
-  end;
-
-  if not Result then
-  begin
-    StyleOwner := soTheme;
-    Result := GetIntProp(ObjectName, APropID, StyleOwner, AnIntValue);
-  end;
-end;
-
-function TgdStyleManager.EvalColumnBoolValue(AnObjectName: String;
-  APropID: Integer; out ABoolValue: Boolean): Boolean;
-var
-  IntValue: Integer;
-begin
-  Result := EvalColumnIntValue(AnObjectName, APropID, IntValue);
-
-  if Result then
-  begin
-    if IntValue = 0 then
-      ABoolValue := False
-    else if IntValue = 1 then
-      ABoolValue := True
-    else
-      raise Exception.Create('invalid boolean value');
-  end
 end;
 
 { TgdGridParser }
@@ -1057,6 +534,8 @@ var
 begin
   Assert(AnObjectKey > 0);
   Assert(APropID > 0);
+  //Assert(AStrValue > '');
+  Assert(AnUserKey > 0);
 
   q := TIBSQL.Create(nil);
   try
@@ -1067,10 +546,7 @@ begin
     q.ParamByName('objectkey').AsInteger := AnObjectKey;
     q.ParamByName('propid').AsInteger := APropID;
     q.ParamByName('strvalue').AsString := AStrValue;
-    if AnUserKey > 0 then
-      q.ParamByName('userkey').AsInteger := AnUserKey
-    else
-      q.ParamByName('userkey').Clear;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
     q.ExecQuery;
   finally
     q.Free;
@@ -1084,6 +560,7 @@ var
 begin
   Assert(AnObjectKey > 0);
   Assert(APropID > 0);
+  Assert(AnUserKey > 0);
 
   q := TIBSQL.Create(nil);
   try
@@ -1094,10 +571,7 @@ begin
     q.ParamByName('objectkey').AsInteger := AnObjectKey;
     q.ParamByName('propid').AsInteger := APropID;
     q.ParamByName('intvalue').AsInteger := AIntValue;
-    if AnUserKey > 0 then
-      q.ParamByName('userkey').AsInteger := AnUserKey
-    else
-      q.ParamByName('userkey').Clear;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
     q.ExecQuery;
   finally
     q.Free;
@@ -1111,6 +585,7 @@ var
 begin
   Assert(AnObjectKey > 0);
   Assert(APropID > 0);
+  Assert(AnUserKey > 0);
 
   if AnBoolValue then
     IntValue := 1
@@ -1289,8 +764,6 @@ begin
         Assert(Columns[I].FieldName > '');
         OK := GetObjID(cColumn, AnObjectName + ',' + Columns[I].FieldName);
 
-        SaveIntValue(OK, cColumnSerialNumber, I, AnUserKey);
-
         // Заглавие колонки
         TitleCaption := Columns[I].Title.Caption;
         // Обрезаем
@@ -1327,10 +800,20 @@ begin
         SaveStrValue(OK, cColumnColor, ColorToString(Columns[I].Color), AnUserKey);
 
         // Выравнивание в заголовке
-        SaveStrValue(OK, cColumnTitleAlignment, AlignmentToString(Columns[I].Title.Alignment), AnUserKey);
+        if Columns[I].Title.Alignment = taLeftJustify then
+          SaveStrValue(OK, cColumnTitleAlignment, 'taLeftJustify', AnUserKey)
+        else if Columns[I].Title.Alignment = taRightJustify then
+          SaveStrValue(OK, cColumnTitleAlignment, 'taRightJustify', AnUserKey)
+        else
+          SaveStrValue(OK, cColumnTitleAlignment, 'taCenter', AnUserKey);
 
         // Выравнивание в колонке
-        SaveStrValue(OK, cColumnAlignment, AlignmentToString(Columns[I].Alignment), AnUserKey);
+        if Columns[I].Alignment = taLeftJustify then
+          SaveStrValue(OK, cColumnAlignment, 'taLeftJustify', AnUserKey)
+        else if Columns[I].Alignment = taRightJustify then
+          SaveStrValue(OK, cColumnAlignment, 'taRightJustify', AnUserKey)
+        else
+          SaveStrValue(OK, cColumnAlignment, 'taCenter', AnUserKey)
       end;
     end;
   finally
@@ -1399,6 +882,8 @@ procedure TgdGridParser.SaveFont(AFont: TFont;
   CurrFontStyle: Integer;
   CurrFontCharSet: Integer;
   AnObjKey: Integer; AnUserKey: Integer);
+var
+  S: String;
 begin
   Assert(AFont <> nil);
   Assert(CurrFontName > 0);
@@ -1417,11 +902,30 @@ begin
 
   SaveIntValue(AnObjKey, CurrFontHeight, AFont.Height, AnUserKey);
 
-  SaveStrValue(AnObjKey, CurrFontPitch, FontPitchToString(AFont.Pitch), AnUserKey);
+  if AFont.Pitch = fpDefault then
+    SaveStrValue(AnObjKey, CurrFontPitch, 'fpDefault', AnUserKey)
+  else if AFont.Pitch = fpFixed then
+    SaveStrValue(AnObjKey, CurrFontPitch, 'fpFixed', AnUserKey)
+  else
+    SaveStrValue(AnObjKey, CurrFontPitch, 'fpVariable', AnUserKey);
 
   SaveIntValue(AnObjKey, CurrFontSize, AFont.Size, AnUserKey);
 
-  SaveStrValue(AnObjKey, CurrFontStyle, FontStyleToString(AFont.Style), AnUserKey);
+  S := '';
+
+  if fsBold in AFont.Style then
+    S := S + 'fsBold' + ',';
+  if fsItalic in AFont.Style then
+    S := S + 'fsItalic' + ',';
+  if fsUnderline in AFont.Style then
+    S := S + 'fsUnderline' + ',';
+  if fsStrikeOut in AFont.Style then
+    S := S + 'fsStrikeOut' + ',';
+
+  if S > '' then
+    SetLength(S, Length(S) - 1);
+
+  SaveStrValue(AnObjKey, CurrFontStyle, S, AnUserKey);
 
   SaveIntValue(AnObjKey, CurrFontCharSet, AFont.CharSet, AnUserKey);
 end;
@@ -1591,10 +1095,10 @@ begin
       SaveBoolValue(ObjectKey, cStriped, Striped, AnUserKey);
 
       StripeOdd := StringToColor(R.ReadString);
-      SaveStrValue(ObjectKey, cStripeOddColor, ColorToString(StripeOdd), AnUserKey);
+      SaveStrValue(ObjectKey, cStripeOdd, ColorToString(StripeOdd), AnUserKey);
 
       StripeEven := StringToColor(R.ReadString);
-      SaveStrValue(ObjectKey, cStripeEvenColor, ColorToString(StripeEven), AnUserKey);
+      SaveStrValue(ObjectKey, cStripeEven, ColorToString(StripeEven), AnUserKey);
 
       if R.ReadValue = vaCollection then
         SaveExpands(R, AnObjectName, AnUserKey);
@@ -1853,11 +1357,12 @@ begin
   SetDefault;
 end;
 
-function TgdGridParser.GetDefaultStrValue(APropID: Integer): String;
+function TgdGridParser.GetDefaultStrValue(APropID: Integer; AnUserKey: Integer): String;
 var
   q: TIBSQL;
 begin
   Assert(APropID > 0);
+  Assert(AnUserKey > 0);
 
   Result := '';
 
@@ -1869,10 +1374,11 @@ begin
       '  count(strvalue) AS c, '#13#10 +
       '  strvalue AS s '#13#10 +
       'FROM at_style '#13#10 +
-      'WHERE propid = :propid '#13#10 +
+      'WHERE propid = :propid AND userkey = :userkey '#13#10 +
       'GROUP BY strvalue '#13#10 +
       'ORDER BY c DESC';
     q.ParamByName('propid').AsInteger := APropID;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
     q.ExecQuery;
     if not q.EoF then
       Result := q.FieldByName('s').AsString
@@ -1883,11 +1389,12 @@ begin
   end;
 end;
 
-function TgdGridParser.GetDefaultIntValue(APropID: Integer): Integer;
+function TgdGridParser.GetDefaultIntValue(APropID: Integer; AnUserKey: Integer): Integer;
 var
   q: TIBSQL;
 begin
   Assert(APropID > 0);
+  Assert(AnUserKey > 0);
 
   Result := 0;
 
@@ -1899,10 +1406,11 @@ begin
       '  count(intvalue) AS c, '#13#10 +
       '  intvalue AS i '#13#10 +
       'FROM at_style '#13#10 +
-      'WHERE propid = :propid '#13#10 +
+      'WHERE propid = :propid AND userkey = :userkey '#13#10 +
       'GROUP BY intvalue '#13#10 +
       'ORDER BY c DESC';
     q.ParamByName('propid').AsInteger := APropID;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
     q.ExecQuery;
     if not q.EoF then
       Result := q.FieldByName('i').AsInteger
@@ -1913,15 +1421,16 @@ begin
   end;
 end;
 
-function TgdGridParser.GetDefaultBollValue(APropID: Integer): Boolean;
+function TgdGridParser.GetDefaultBollValue(APropID: Integer; AnUserKey: Integer): Boolean;
 var
   K: Integer;
 begin
   Assert(APropID > 0);
+  Assert(AnUserKey > 0);
 
   Result := False;
 
-  K := GetDefaultIntValue(APropID);
+  K := GetDefaultIntValue(APropID, AnUserKey);
 
   if K = 0 then
     Result := False
@@ -1931,197 +1440,223 @@ begin
     Assert(False);
 end;
 
-procedure TgdGridParser.DeleteStrValues(APropID: Integer; const AStrValue: String);
+procedure TgdGridParser.DeleteStrValues(APropID: Integer; const AStrValue: String; AnUserKey: Integer);
 var
   q: TIBSQL;
 begin
   Assert(APropID > 0);
+  Assert(AnUserKey > 0);
 
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FTransaction;
     q.SQL.Text :=
-      'DELETE FROM at_style WHERE propid = :propid AND strvalue = :strvalue';
+      'DELETE FROM at_style WHERE propid = :propid AND strvalue = :strvalue AND userkey = :userkey';
     q.ParamByName('propid').AsInteger := APropID;
     q.ParamByName('strvalue').AsString := AStrValue;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
     q.ExecQuery;
   finally
     q.Free
   end;
 end;
 
-procedure TgdGridParser.DeleteIntValues(APropID: Integer; AnIntValue: Integer);
+procedure TgdGridParser.DeleteIntValues(APropID: Integer; AnIntValue: Integer; AnUserKey: Integer);
 var
   q: TIBSQL;
 begin
   Assert(APropID > 0);
+  Assert(AnUserKey > 0);
 
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FTransaction;
     q.SQL.Text :=
-      'DELETE FROM at_style WHERE propid = :propid AND intvalue = :intvalue';
+      'DELETE FROM at_style WHERE propid = :propid AND intvalue = :intvalue AND userkey = :userkey';
     q.ParamByName('propid').AsInteger := APropID;
     q.ParamByName('intvalue').AsInteger := AnIntValue;
+    q.ParamByName('userkey').AsInteger := AnUserKey;
     q.ExecQuery;
   finally
     q.Free
   end;
 end;
 
-procedure TgdGridParser.DeleteBoolValues(APropID: Integer; ABollValue: Boolean);
+procedure TgdGridParser.DeleteBoolValues(APropID: Integer; ABollValue: Boolean; AnUserKey: Integer);
 begin
  if ABollValue then
-   DeleteIntValues(APropID, 1)
+   DeleteIntValues(APropID, 1, AnUserKey)
  else
-   DeleteIntValues(APropID, 0);
+   DeleteIntValues(APropID, 0, AnUserKey);
 end;
 
-procedure TgdGridParser._SetDefault(AnObjKey: Integer);
+function TgdGridParser.GetUserKeys: String;
+var
+  q: TIBSQL;
+begin
+  Result := '';
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTransaction;
+    q.SQL.Text :=
+      'SELECT LIST(userkey) FROM (SELECT userkey FROM at_style GROUP BY userkey)';
+    q.ExecQuery;
+    if not q.EoF then
+      Result := q.FieldByName('list').AsString;
+  finally
+    q.Free
+  end;
+
+  Assert(Result > '');
+end;
+
+procedure TgdGridParser._SetDefault(AnObjKey: Integer; AnUserKey: Integer);
 var
   Str: String;
   Int: Integer;
   Bool: Boolean;
 begin
   Assert(AnObjKey > 0);
+  Assert(AnUserKey > 0);
 
   //cTableFontName
-  Str := GetDefaultStrValue(cTableFontName);
-  DeleteStrValues(cTableFontName, Str);
-  SaveStrValue(AnObjKey, cTableFontName, Str, 0);
+  Str := GetDefaultStrValue(cTableFontName, AnUserKey);
+  DeleteStrValues(cTableFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableFontName, Str, AnUserKey);
 
   //cTableFontColor
-  Str := GetDefaultStrValue(cTableFontColor);
-  DeleteStrValues(cTableFontColor, Str);
-  SaveStrValue(AnObjKey, cTableFontColor, Str, 0);
+  Str := GetDefaultStrValue(cTableFontColor, AnUserKey);
+  DeleteStrValues(cTableFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableFontColor, Str, AnUserKey);
 
   //cTableFontHeight          = 1003;
-  Int := GetDefaultIntValue(cTableFontHeight);
-  DeleteIntValues(cTableFontHeight, Int);
-  SaveIntValue(AnObjKey, cTableFontHeight, Int, 0);
+  Int := GetDefaultIntValue(cTableFontHeight, AnUserKey);
+  DeleteIntValues(cTableFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTableFontHeight, Int, AnUserKey);
 
   //cTableFontPitch           = 1004;
-  Str := GetDefaultStrValue(cTableFontPitch);
-  DeleteStrValues(cTableFontPitch, Str);
-  SaveStrValue(AnObjKey, cTableFontPitch, Str, 0);
+  Str := GetDefaultStrValue(cTableFontPitch, AnUserKey);
+  DeleteStrValues(cTableFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableFontPitch, Str, AnUserKey);
 
   //cTableFontSize            = 1005;
-  Int := GetDefaultIntValue(cTableFontSize);
-  DeleteIntValues(cTableFontSize, Int);
-  SaveIntValue(AnObjKey, cTableFontSize, Int, 0);
+  Int := GetDefaultIntValue(cTableFontSize, AnUserKey);
+  DeleteIntValues(cTableFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTableFontSize, Int, AnUserKey);
 
   //cTableFontStyle           = 1006;
-  Str := GetDefaultStrValue(cTableFontStyle);
-  DeleteStrValues(cTableFontStyle, Str);
-  SaveStrValue(AnObjKey, cTableFontStyle, Str, 0);
+  Str := GetDefaultStrValue(cTableFontStyle, AnUserKey);
+  DeleteStrValues(cTableFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableFontStyle, Str, AnUserKey);
 
   //cTableFontCharSet         = 1007;
-  Int := GetDefaultIntValue(cTableFontCharSet);
-  DeleteIntValues(cTableFontCharSet, Int);
-  SaveIntValue(AnObjKey, cTableFontCharSet, Int, 0);
+  Int := GetDefaultIntValue(cTableFontCharSet, AnUserKey);
+  DeleteIntValues(cTableFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTableFontCharSet, Int, AnUserKey);
 
   //cTableColor               = 1008;
-  Str := GetDefaultStrValue(cTableColor);
-  DeleteStrValues(cTableColor, Str);
-  SaveStrValue(AnObjKey, cTableColor, Str, 0);
+  Str := GetDefaultStrValue(cTableColor, AnUserKey);
+  DeleteStrValues(cTableColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTableColor, Str, AnUserKey);
 
   //Selected
   //cSelectedFontName         = 1009;
-  Str := GetDefaultStrValue(cSelectedFontName);
-  DeleteStrValues(cSelectedFontName, Str);
-  SaveStrValue(AnObjKey, cSelectedFontName, Str, 0);
+  Str := GetDefaultStrValue(cSelectedFontName, AnUserKey);
+  DeleteStrValues(cSelectedFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedFontName, Str, AnUserKey);
 
   //cSelectedFontColor        = 1010;
-  Str := GetDefaultStrValue(cSelectedFontColor);
-  DeleteStrValues(cSelectedFontColor, Str);
-  SaveStrValue(AnObjKey, cSelectedFontColor, Str, 0);
+  Str := GetDefaultStrValue(cSelectedFontColor, AnUserKey);
+  DeleteStrValues(cSelectedFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedFontColor, Str, AnUserKey);
 
   //cSelectedFontHeight       = 1011;
-  Int := GetDefaultIntValue(cSelectedFontHeight);
-  DeleteIntValues(cSelectedFontHeight, Int);
-  SaveIntValue(AnObjKey, cSelectedFontHeight, Int, 0);
+  Int := GetDefaultIntValue(cSelectedFontHeight, AnUserKey);
+  DeleteIntValues(cSelectedFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cSelectedFontHeight, Int, AnUserKey);
 
   //cSelectedFontPitch        = 1012;
-  Str := GetDefaultStrValue(cSelectedFontPitch);
-  DeleteStrValues(cSelectedFontPitch, Str);
-  SaveStrValue(AnObjKey, cSelectedFontPitch, Str, 0);
+  Str := GetDefaultStrValue(cSelectedFontPitch, AnUserKey);
+  DeleteStrValues(cSelectedFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedFontPitch, Str, AnUserKey);
 
 
   //cSelectedFontSize         = 1013;
-  Int := GetDefaultIntValue(cSelectedFontSize);
-  DeleteIntValues(cSelectedFontSize, Int);
-  SaveIntValue(AnObjKey, cSelectedFontSize, Int, 0);
+  Int := GetDefaultIntValue(cSelectedFontSize, AnUserKey);
+  DeleteIntValues(cSelectedFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cSelectedFontSize, Int, AnUserKey);
 
   //cSelectedFontStyle        = 1014;
-  Str := GetDefaultStrValue(cSelectedFontStyle);
-  DeleteStrValues(cSelectedFontStyle, Str);
-  SaveStrValue(AnObjKey, cSelectedFontStyle, Str, 0);
+  Str := GetDefaultStrValue(cSelectedFontStyle, AnUserKey);
+  DeleteStrValues(cSelectedFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedFontStyle, Str, AnUserKey);
 
   //cSelectedFontCharSet      = 1015;
-  Int := GetDefaultIntValue(cSelectedFontCharSet);
-  DeleteIntValues(cSelectedFontCharSet, Int);
-  SaveIntValue(AnObjKey, cSelectedFontCharSet, Int, 0);
+  Int := GetDefaultIntValue(cSelectedFontCharSet, AnUserKey);
+  DeleteIntValues(cSelectedFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cSelectedFontCharSet, Int, AnUserKey);
 
   //cSelectedColor            = 1016;
-  Str := GetDefaultStrValue(cSelectedColor);
-  DeleteStrValues(cSelectedColor, Str);
-  SaveStrValue(AnObjKey, cSelectedColor, Str, 0);
+  Str := GetDefaultStrValue(cSelectedColor, AnUserKey);
+  DeleteStrValues(cSelectedColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cSelectedColor, Str, AnUserKey);
 
   //Title
   //cTitleFontName            = 1017;
-  Str := GetDefaultStrValue(cTitleFontName);
-  DeleteStrValues(cTitleFontName, Str);
-  SaveStrValue(AnObjKey, cTitleFontName, Str, 0);
+  Str := GetDefaultStrValue(cTitleFontName, AnUserKey);
+  DeleteStrValues(cTitleFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleFontName, Str, AnUserKey);
 
   //cTitleFontColor           = 1018;
-  Str := GetDefaultStrValue(cTitleFontColor);
-  DeleteStrValues(cTitleFontColor, Str);
-  SaveStrValue(AnObjKey, cTitleFontColor, Str, 0);
+  Str := GetDefaultStrValue(cTitleFontColor, AnUserKey);
+  DeleteStrValues(cTitleFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleFontColor, Str, AnUserKey);
 
   //cTitleFontHeight          = 1019;
-  Int := GetDefaultIntValue(cTitleFontHeight);
-  DeleteIntValues(cTitleFontHeight, Int);
-  SaveIntValue(AnObjKey, cTitleFontHeight, Int, 0);
+  Int := GetDefaultIntValue(cTitleFontHeight, AnUserKey);
+  DeleteIntValues(cTitleFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTitleFontHeight, Int, AnUserKey);
 
   //cTitleFontPitch           = 1020;
-  Str := GetDefaultStrValue(cTitleFontPitch);
-  DeleteStrValues(cTitleFontPitch, Str);
-  SaveStrValue(AnObjKey, cTitleFontPitch, Str, 0);
+  Str := GetDefaultStrValue(cTitleFontPitch, AnUserKey);
+  DeleteStrValues(cTitleFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleFontPitch, Str, AnUserKey);
 
   //cTitleFontSize            = 1021;
-  Int := GetDefaultIntValue(cTitleFontSize);
-  DeleteIntValues(cTitleFontSize, Int);
-  SaveIntValue(AnObjKey, cTitleFontSize, Int, 0);
+  Int := GetDefaultIntValue(cTitleFontSize, AnUserKey);
+  DeleteIntValues(cTitleFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTitleFontSize, Int, AnUserKey);
 
   //cTitleFontStyle           = 1022;
-  Str := GetDefaultStrValue(cTitleFontStyle);
-  DeleteStrValues(cTitleFontStyle, Str);
-  SaveStrValue(AnObjKey, cTitleFontStyle, Str, 0);
+  Str := GetDefaultStrValue(cTitleFontStyle, AnUserKey);
+  DeleteStrValues(cTitleFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleFontStyle, Str, AnUserKey);
 
   //cTitleFontCharSet         = 1023;
-  Int := GetDefaultIntValue(cTitleFontCharSet);
-  DeleteIntValues(cTitleFontCharSet, Int);
-  SaveIntValue(AnObjKey, cTitleFontCharSet, Int, 0);
+  Int := GetDefaultIntValue(cTitleFontCharSet, AnUserKey);
+  DeleteIntValues(cTitleFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cTitleFontCharSet, Int, AnUserKey);
 
   //cTitleColor               = 1024;
-  Str := GetDefaultStrValue(cTitleColor);
-  DeleteStrValues(cTitleColor, Str);
-  SaveStrValue(AnObjKey, cTitleColor, Str, 0);
+  Str := GetDefaultStrValue(cTitleColor, AnUserKey);
+  DeleteStrValues(cTitleColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cTitleColor, Str, AnUserKey);
 
   //cStriped                  = 1025;
-  Bool := GetDefaultBollValue(cStriped);
-  DeleteBoolValues(cStriped, Bool);
-  SaveBoolValue(AnObjKey, cStriped, Bool, 0);
+  Bool := GetDefaultBollValue(cStriped, AnUserKey);
+  DeleteBoolValues(cStriped, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cStriped, Bool, AnUserKey);
 
   //cStripeEven               = 1026;
-  Str := GetDefaultStrValue(cStripeEvenColor);
-  DeleteStrValues(cStripeEvenColor, Str);
-  SaveStrValue(AnObjKey, cStripeEvenColor, Str, 0);
+  Str := GetDefaultStrValue(cStripeEven, AnUserKey);
+  DeleteStrValues(cStripeEven, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cStripeEven, Str, AnUserKey);
 
   //cStripeOdd                = 1027;
-  Str := GetDefaultStrValue(cStripeOddColor);
-  DeleteStrValues(cStripeOddColor, Str);
-  SaveStrValue(AnObjKey, cStripeOddColor, Str, 0);
+  Str := GetDefaultStrValue(cStripeOdd, AnUserKey);
+  DeleteStrValues(cStripeOdd, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cStripeOdd, Str, AnUserKey);
 
   {//expand
   cExpandFieldName          = 1028;
@@ -2151,163 +1686,175 @@ begin
   cConditionUserCondition   = 1050;}
 
   //cScaleColumns             = 1051;
-  Bool := GetDefaultBollValue(cScaleColumns);
-  DeleteBoolValues(cScaleColumns, Bool);
-  SaveBoolValue(AnObjKey, cScaleColumns, Bool, 0);
+  Bool := GetDefaultBollValue(cScaleColumns, AnUserKey);
+  DeleteBoolValues(cScaleColumns, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cScaleColumns, Bool, AnUserKey);
 
   //cShowTotals               = 1052;
-  Bool := GetDefaultBollValue(cShowTotals);
-  DeleteBoolValues(cShowTotals, Bool);
-  SaveBoolValue(AnObjKey, cShowTotals, Bool, 0);
+  Bool := GetDefaultBollValue(cShowTotals, AnUserKey);
+  DeleteBoolValues(cShowTotals, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cShowTotals, Bool, AnUserKey);
 
   //cShowFooter               = 1053;
-  Bool := GetDefaultBollValue(cShowFooter);
-  DeleteBoolValues(cShowFooter, Bool);
-  SaveBoolValue(AnObjKey, cShowFooter, Bool, 0);
+  Bool := GetDefaultBollValue(cShowFooter, AnUserKey);
+  DeleteBoolValues(cShowFooter, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cShowFooter, Bool, AnUserKey);
 
   //cTitlesExpanding          = 1054;
-  Bool := GetDefaultBollValue(cTitlesExpanding);
-  DeleteBoolValues(cTitlesExpanding, Bool);
-  SaveBoolValue(AnObjKey, cTitlesExpanding, Bool, 0);
+  Bool := GetDefaultBollValue(cTitlesExpanding, AnUserKey);
+  DeleteBoolValues(cTitlesExpanding, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cTitlesExpanding, Bool, AnUserKey);
 
   //cConditionsActive         = 1055;
-  Bool := GetDefaultBollValue(cConditionsActive);
-  DeleteBoolValues(cConditionsActive, Bool);
-  SaveBoolValue(AnObjKey, cConditionsActive, Bool, 0);
+  Bool := GetDefaultBollValue(cConditionsActive, AnUserKey);
+  DeleteBoolValues(cConditionsActive, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cConditionsActive, Bool, AnUserKey);
 
   //cShowRowLines             = 1056;
-  Bool := GetDefaultBollValue(cShowRowLines);
-  DeleteBoolValues(cShowRowLines, Bool);
-  SaveBoolValue(AnObjKey, cShowRowLines, Bool, 0);
+  Bool := GetDefaultBollValue(cShowRowLines, AnUserKey);
+  DeleteBoolValues(cShowRowLines, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cShowRowLines, Bool, AnUserKey);
 
   //cColumnTitleCaption       = 1057;
   Str := '';
-  DeleteStrValues(cColumnTitleCaption, Str);
-  SaveStrValue(AnObjKey, cColumnTitleCaption, Str, 0);
+  DeleteStrValues(cColumnTitleCaption, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleCaption, Str, AnUserKey);
 
   //cColumnDisplayFormat      = 1058;
-  Str := GetDefaultStrValue(cColumnDisplayFormat);
-  DeleteStrValues(cColumnDisplayFormat, Str);
-  SaveStrValue(AnObjKey, cColumnDisplayFormat, Str, 0);
+  Str := GetDefaultStrValue(cColumnDisplayFormat, AnUserKey);
+  DeleteStrValues(cColumnDisplayFormat, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnDisplayFormat, Str, AnUserKey);
 
   //cColumnVisible            = 1059;
-  Bool := GetDefaultBollValue(cColumnVisible);
-  DeleteBoolValues(cColumnVisible, Bool);
-  SaveBoolValue(AnObjKey, cColumnVisible, Bool, 0);
+  Bool := GetDefaultBollValue(cColumnVisible, AnUserKey);
+  DeleteBoolValues(cColumnVisible, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cColumnVisible, Bool, AnUserKey);
 
   //cColumnReadOnly           = 1060;
-  Bool := GetDefaultBollValue(cColumnReadOnly);
-  DeleteBoolValues(cColumnReadOnly, Bool);
-  SaveBoolValue(AnObjKey, cColumnReadOnly, Bool, 0);
+  Bool := GetDefaultBollValue(cColumnReadOnly, AnUserKey);
+  DeleteBoolValues(cColumnReadOnly, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cColumnReadOnly, Bool, AnUserKey);
 
   //cColumnTotalSum           = 1061;
-  Bool := GetDefaultBollValue(cColumnTotalSum);
-  DeleteBoolValues(cColumnTotalSum, Bool);
-  SaveBoolValue(AnObjKey, cColumnTotalSum, Bool, 0);
+  Bool := GetDefaultBollValue(cColumnTotalSum, AnUserKey);
+  DeleteBoolValues(cColumnTotalSum, Bool, AnUserKey);
+  SaveBoolValue(AnObjKey, cColumnTotalSum, Bool, AnUserKey);
 
   //cColumnWidth              = 1062;
-  Int := GetDefaultIntValue(cColumnWidth);
-  DeleteIntValues(cColumnWidth, Int);
-  SaveIntValue(AnObjKey, cColumnWidth, Int, 0);
+  Int := GetDefaultIntValue(cColumnWidth, AnUserKey);
+  DeleteIntValues(cColumnWidth, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnWidth, Int, AnUserKey);
 
   //cColumnTitleFontName      = 1063;
-  Str := GetDefaultStrValue(cColumnTitleFontName);
-  DeleteStrValues(cColumnTitleFontName, Str);
-  SaveStrValue(AnObjKey, cColumnTitleFontName, Str, 0);
+  Str := GetDefaultStrValue(cColumnTitleFontName, AnUserKey);
+  DeleteStrValues(cColumnTitleFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleFontName, Str, AnUserKey);
 
   //cColumnTitleFontColor     = 1064;
-  Str := GetDefaultStrValue(cColumnTitleFontColor);
-  DeleteStrValues(cColumnTitleFontColor, Str);
-  SaveStrValue(AnObjKey, cColumnTitleFontColor, Str, 0);
+  Str := GetDefaultStrValue(cColumnTitleFontColor, AnUserKey);
+  DeleteStrValues(cColumnTitleFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleFontColor, Str, AnUserKey);
 
   //cColumnTitleFontHeight    = 1065;
-  Int := GetDefaultIntValue(cColumnTitleFontHeight);
-  DeleteIntValues(cColumnTitleFontHeight, Int);
-  SaveIntValue(AnObjKey, cColumnTitleFontHeight, Int, 0);
+  Int := GetDefaultIntValue(cColumnTitleFontHeight, AnUserKey);
+  DeleteIntValues(cColumnTitleFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnTitleFontHeight, Int, AnUserKey);
 
   //cColumnTitleFontPitch     = 1066;
-  Str := GetDefaultStrValue(cColumnTitleFontPitch);
-  DeleteStrValues(cColumnTitleFontPitch, Str);
-  SaveStrValue(AnObjKey, cColumnTitleFontPitch, Str, 0);
+  Str := GetDefaultStrValue(cColumnTitleFontPitch, AnUserKey);
+  DeleteStrValues(cColumnTitleFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleFontPitch, Str, AnUserKey);
 
   //cColumnTitleFontSize      = 1067;
-  Int := GetDefaultIntValue(cColumnTitleFontSize);
-  DeleteIntValues(cColumnTitleFontSize, Int);
-  SaveIntValue(AnObjKey, cColumnTitleFontSize, Int, 0);
+  Int := GetDefaultIntValue(cColumnTitleFontSize, AnUserKey);
+  DeleteIntValues(cColumnTitleFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnTitleFontSize, Int, AnUserKey);
 
   //cColumnTitleFontStyle     = 1068;
-  Str := GetDefaultStrValue(cColumnTitleFontStyle);
-  DeleteStrValues(cColumnTitleFontStyle, Str);
-  SaveStrValue(AnObjKey, cColumnTitleFontStyle, Str, 0);
+  Str := GetDefaultStrValue(cColumnTitleFontStyle, AnUserKey);
+  DeleteStrValues(cColumnTitleFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleFontStyle, Str, AnUserKey);
 
   //cColumnTitleFontCharSet   = 1069;
-  Int := GetDefaultIntValue(cColumnTitleFontCharSet);
-  DeleteIntValues(cColumnTitleFontCharSet, Int);
-  SaveIntValue(AnObjKey, cColumnTitleFontCharSet, Int, 0);
+  Int := GetDefaultIntValue(cColumnTitleFontCharSet, AnUserKey);
+  DeleteIntValues(cColumnTitleFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnTitleFontCharSet, Int, AnUserKey);
 
   //cColumnTitleColor         = 1070;
-  Str := GetDefaultStrValue(cColumnTitleColor);
-  DeleteStrValues(cColumnTitleColor, Str);
-  SaveStrValue(AnObjKey, cColumnTitleColor, Str, 0);
+  Str := GetDefaultStrValue(cColumnTitleColor, AnUserKey);
+  DeleteStrValues(cColumnTitleColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleColor, Str, AnUserKey);
 
   //cColumnFontName           = 1071;
-  Str := GetDefaultStrValue(cColumnFontName);
-  DeleteStrValues(cColumnFontName, Str);
-  SaveStrValue(AnObjKey, cColumnFontName, Str, 0);
+  Str := GetDefaultStrValue(cColumnFontName, AnUserKey);
+  DeleteStrValues(cColumnFontName, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnFontName, Str, AnUserKey);
 
   //cColumnFontColor          = 1072;
-  Str := GetDefaultStrValue(cColumnFontColor);
-  DeleteStrValues(cColumnFontColor, Str);
-  SaveStrValue(AnObjKey, cColumnFontColor, Str, 0);
+  Str := GetDefaultStrValue(cColumnFontColor, AnUserKey);
+  DeleteStrValues(cColumnFontColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnFontColor, Str, AnUserKey);
 
   //cColumnFontHeight         = 1073;
-  Int := GetDefaultIntValue(cColumnFontHeight);
-  DeleteIntValues(cColumnFontHeight, Int);
-  SaveIntValue(AnObjKey, cColumnFontHeight, Int, 0);
+  Int := GetDefaultIntValue(cColumnFontHeight, AnUserKey);
+  DeleteIntValues(cColumnFontHeight, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnFontHeight, Int, AnUserKey);
 
   //cColumnFontPitch          = 1074;
-  Str := GetDefaultStrValue(cColumnFontPitch);
-  DeleteStrValues(cColumnFontPitch, Str);
-  SaveStrValue(AnObjKey, cColumnFontPitch, Str, 0);
+  Str := GetDefaultStrValue(cColumnFontPitch, AnUserKey);
+  DeleteStrValues(cColumnFontPitch, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnFontPitch, Str, AnUserKey);
 
   //cColumnFontSize           = 1075;
-  Int := GetDefaultIntValue(cColumnFontSize);
-  DeleteIntValues(cColumnFontSize, Int);
-  SaveIntValue(AnObjKey, cColumnFontSize, Int, 0);
+  Int := GetDefaultIntValue(cColumnFontSize, AnUserKey);
+  DeleteIntValues(cColumnFontSize, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnFontSize, Int, AnUserKey);
 
   //cColumnFontStyle          = 1076;
-  Str := GetDefaultStrValue(cColumnFontStyle);
-  DeleteStrValues(cColumnFontStyle, Str);
-  SaveStrValue(AnObjKey, cColumnFontStyle, Str, 0);
+  Str := GetDefaultStrValue(cColumnFontStyle, AnUserKey);
+  DeleteStrValues(cColumnFontStyle, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnFontStyle, Str, AnUserKey);
 
   //cColumnFontCharSet        = 1077;
-  Int := GetDefaultIntValue(cColumnFontCharSet);
-  DeleteIntValues(cColumnFontCharSet, Int);
-  SaveIntValue(AnObjKey, cColumnFontCharSet, Int, 0);
+  Int := GetDefaultIntValue(cColumnFontCharSet, AnUserKey);
+  DeleteIntValues(cColumnFontCharSet, Int, AnUserKey);
+  SaveIntValue(AnObjKey, cColumnFontCharSet, Int, AnUserKey);
 
   //cColumnColor              = 1078;
-  Str := GetDefaultStrValue(cColumnColor);
-  DeleteStrValues(cColumnColor, Str);
-  SaveStrValue(AnObjKey, cColumnColor, Str, 0);
+  Str := GetDefaultStrValue(cColumnColor, AnUserKey);
+  DeleteStrValues(cColumnColor, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnColor, Str, AnUserKey);
 
   //cColumnTitleAlignment     = 1079;
-  Str := GetDefaultStrValue(cColumnTitleAlignment);
-  DeleteStrValues(cColumnTitleAlignment, Str);
-  SaveStrValue(AnObjKey, cColumnTitleAlignment, Str, 0);
+  Str := GetDefaultStrValue(cColumnTitleAlignment, AnUserKey);
+  DeleteStrValues(cColumnTitleAlignment, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnTitleAlignment, Str, AnUserKey);
 
   //cColumnAlignment          = 1080;
-  Str := GetDefaultStrValue(cColumnAlignment);
-  DeleteStrValues(cColumnAlignment, Str);
-  SaveStrValue(AnObjKey, cColumnAlignment, Str, 0);
+  Str := GetDefaultStrValue(cColumnAlignment, AnUserKey);
+  DeleteStrValues(cColumnAlignment, Str, AnUserKey);
+  SaveStrValue(AnObjKey, cColumnAlignment, Str, AnUserKey);
 end;
 
 procedure TgdGridParser.SetDefault;
 var
+  SL: TStringList;
+  I: Integer;
   ObjKey: Integer;
 begin
-  ObjKey := GetObjID(cGlobal, cGloblaObjName);
+  SL := TStringList.Create;
+  try
+    SL.CommaText := GetUserKeys;
 
-  _SetDefault(ObjKey);
+    ObjKey := GetObjID(cGlobal, 'global');
+
+    for I := 0 to SL.Count - 1 do
+    begin
+      _SetDefault(ObjKey, StrToInt(SL[I]));
+    end;
+  finally
+    SL.Free;
+  end;
 end;
 
 initialization

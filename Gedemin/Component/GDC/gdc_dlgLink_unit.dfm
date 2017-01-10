@@ -1,6 +1,6 @@
 inherited gdc_dlgLink: Tgdc_dlgLink
-  Left = 286
-  Top = 274
+  Left = 288
+  Top = 275
   Caption = 'Прикрепление'
   ClientHeight = 289
   ClientWidth = 432

@@ -39,11 +39,47 @@ function ForceForegroundWindow(hwnd: THandle): boolean;
 function DecodeUTF8(const Source: AnsiString): WideString;
 function WideStringToStringEx(const WS: WideString; out CharReplace: LongBool): String;
 function NameCase(const S: String): String;
+function GEOString2Coord(const S: String; out Lat, Lon: Double): Boolean;
+function GEOCoord2String(const Lat, Lon: Double; const Sep: Char = ','): String;
 
 implementation
 
 uses
   SysUtils, Forms, jclFileUtils, WinSock, gd_directories_const;
+
+function GEOCoord2String(const Lat, Lon: Double; const Sep: Char = ','): String;
+begin
+  Assert((Lat >= -90) and (Lat <= +90) and (Lon >= -180) and (Lon <= +180));
+  Result :=
+    StringReplace(FloatToStr(Lat), DecimalSeparator, '.', []) +
+    Sep +
+    StringReplace(FloatToStr(Lon), DecimalSeparator, '.', []);
+end;
+
+function GEOString2Coord(const S: String; out Lat, Lon: Double): Boolean;
+var
+  P: Integer;
+  LatS, LonS: String;
+begin
+  P := Pos(',', S);
+  if P > 0 then
+  begin
+    LatS := StringReplace(Trim(Copy(S, 1, P - 1)), '.', DecimalSeparator, []);
+    LonS := StringReplace(Trim(Copy(S, P + 1, 256)), '.', DecimalSeparator, []);
+
+    if (LatS > '') and (LonS > '') then
+      try
+        Lat := StrToFloat(LatS);
+        Lon := StrToFloat(LonS);
+        Result := (Lat >= -90) and (Lat <= +90) and (Lon >= -180) and (Lon <= +180);
+      except
+        Result := False;
+      end
+    else
+      Result := False;
+  end else
+    Result := False;
+end;
 
 function NameCase(const S: String): String;
 begin

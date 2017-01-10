@@ -347,6 +347,8 @@ begin
       ParamList.Params[1].Required := True;
       ParamList.Params[1].ResultValue :=
         VarArrayOf([gdcAcctViewEntryRegister.FieldByName('TRANSACTIONKEY').AsInteger]);
+      ParamList.Params[1].SortField := 'NAME';
+      ParamList.Params[1].SortOrder:=1;
 
       ParamList.AddParam('ALL_DOC_ENTRY', '¬се проводки по документу', prmBoolean,
         '—торнировать все проводки по документу текущей проводки');

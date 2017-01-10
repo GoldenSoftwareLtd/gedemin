@@ -53,9 +53,9 @@ uses
 
 const
   {$IFDEF FULL_MODIFY}
-  cProcCount = 215;
+  cProcCount = 216;
   {$ELSE}
-  cProcCount = 35;
+  cProcCount = 36;
   {$ENDIF}
 
 type
@@ -382,7 +382,8 @@ const
     (ModifyProc: AddWebRelayTable; ModifyVersion: '0000.0001.0000.0278'; NeedDBShutdown: True),
     (ModifyProc: AddGDEMPLOYEETable; ModifyVersion: '0000.0001.0000.0284'; NeedDBShutdown: True),
     (ModifyProc: CorrectSubAccounts; ModifyVersion: '0000.0001.0000.0285'; NeedDBShutdown: False),
-    (ModifyProc: CorrectClientAddress; ModifyVersion: '0000.0001.0000.0286'; NeedDBShutdown: True)
+    (ModifyProc: CorrectClientAddress; ModifyVersion: '0000.0001.0000.0286'; NeedDBShutdown: True),
+    (ModifyProc: AddGeoCoords; ModifyVersion: '0000.0001.0000.0287'; NeedDBShutdown: True)
   );
 
   {

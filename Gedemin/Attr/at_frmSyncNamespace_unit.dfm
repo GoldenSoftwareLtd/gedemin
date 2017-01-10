@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 330
-  Top = 271
+  Left = 432
+  Top = 261
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -16,8 +16,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   TextHeight = 13
   object splMessages: TSplitter
     Left = 0
-    Top = 377
-    Width = 1123
+    Top = 369
+    Width = 1115
     Height = 2
     Cursor = crVSplit
     Align = alBottom
@@ -26,8 +26,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object sb: TStatusBar
     Left = 0
-    Top = 468
-    Width = 1123
+    Top = 460
+    Width = 1115
     Height = 19
     Panels = <>
     SimplePanel = False
@@ -35,7 +35,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object TBDock: TTBDock
     Left = 0
     Top = 0
-    Width = 1123
+    Width = 1115
     Height = 49
     object TBToolbar: TTBToolbar
       Left = 0
@@ -68,6 +68,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       end
       object TBControlItem6: TTBControlItem
         Control = chbxExisted
+      end
+      object TBControlItem9: TTBControlItem
+        Control = chbCat
       end
       object TBSeparatorItem4: TTBSeparatorItem
       end
@@ -175,8 +178,11 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBControlItem4: TTBControlItem
         Control = cbPackets
       end
+      object TBControlItem7: TTBControlItem
+        Control = cbOnlyFiles
+      end
       object lSearch: TLabel
-        Left = 555
+        Left = 620
         Top = 4
         Width = 45
         Height = 13
@@ -190,9 +196,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 908
+        Left = 973
         Top = 0
-        Width = 140
+        Width = 130
         Height = 21
         Hint = 'Используйте шаблоны % и _ '
         TabOrder = 1
@@ -231,13 +237,33 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         State = cbChecked
         TabOrder = 4
       end
+      object cbOnlyFiles: TCheckBox
+        Left = 66
+        Top = 28
+        Width = 135
+        Height = 17
+        Action = actFLTOnlyFiles
+        TabOrder = 5
+      end
+      object chbCat: TCheckBox
+        Left = 323
+        Top = 2
+        Width = 65
+        Height = 17
+        Hint = 'Сканировать все подкаталоги'
+        Alignment = taLeftJustify
+        Caption = '  Подкат: '
+        Checked = True
+        State = cbChecked
+        TabOrder = 6
+      end
     end
   end
   object gr: TgsDBGrid
     Left = 0
     Top = 72
-    Width = 1123
-    Height = 305
+    Width = 1115
+    Height = 297
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -363,7 +389,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object pnlHeader: TPanel
     Left = 0
     Top = 49
-    Width = 1123
+    Width = 1115
     Height = 23
     Align = alTop
     Caption = 'База данных      <<----->>      Файлы на диске'
@@ -372,8 +398,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object mMessages: TRichEdit
     Left = 0
-    Top = 379
-    Width = 1123
+    Top = 371
+    Width = 1115
     Height = 89
     Align = alBottom
     BorderStyle = bsNone
@@ -382,13 +408,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     TabOrder = 2
   end
   object ds: TDataSource
-    Left = 600
-    Top = 296
+    Left = 488
+    Top = 160
   end
   object ActionList: TActionList
     Images = dmImages.il16x16
-    Left = 552
-    Top = 242
+    Left = 448
+    Top = 162
     object actChooseDir: TAction
       Caption = 'actChooseDir'
       Hint = 'Открыть папку'
@@ -569,6 +595,11 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       ImageIndex = 225
       OnExecute = actShowChangedExecute
       OnUpdate = actShowChangedUpdate
+    end
+    object actFLTOnlyFiles: TAction
+      Caption = 'Скрыть каталоги'
+      OnExecute = actFLTOnlyFilesExecute
+      OnUpdate = actFLTOnlyFilesUpdate
     end
   end
   object pmSync: TPopupMenu

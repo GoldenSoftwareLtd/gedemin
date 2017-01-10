@@ -1247,9 +1247,9 @@ begin
             ibsqlInsertEntryRecord.ParamByName('DOCUMENTKEY').AsInteger := ReversalDocumentKey;
             ibsqlInsertEntryRecord.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
             TempString := CurrentEntry.FieldByName('DESCRIPTION').AsString +
-              ' Сторнирование проводок документа ' +
+              ' Сторнирование проводок документа № ' +
               CurrentEntry.FieldByName('NUMBER').AsString + ' от ' +
-              CurrentEntry.FieldByName('DOCUMENTDATE').AsString +
+              CurrentEntry.FieldByName('DOCUMENTDATE').AsString  + ' г.'+
               ' (' + CurrentEntry.FieldByName('DOCUMENTKEY').AsString + ')';
             if Length(TempString) <= 180 then
               ibsqlInsertEntryRecord.ParamByName('DESCRIPTION').AsString := TempString

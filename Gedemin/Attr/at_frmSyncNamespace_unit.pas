@@ -116,6 +116,11 @@ type
     N14: TMenuItem;
     N15: TMenuItem;
     N16: TMenuItem;
+    cbOnlyFiles: TCheckBox;
+    TBControlItem7: TTBControlItem;
+    actFLTOnlyFiles: TAction;
+    TBControlItem9: TTBControlItem;
+    chbCat: TCheckBox;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -155,6 +160,8 @@ type
     procedure actClearAllUpdate(Sender: TObject);
     procedure actShowChangedExecute(Sender: TObject);
     procedure actShowChangedUpdate(Sender: TObject);
+    procedure actFLTOnlyFilesExecute(Sender: TObject);
+    procedure actFLTOnlyFilesUpdate(Sender: TObject);
 
   private
     FNSC: TgdcNamespaceSyncController;
@@ -206,7 +213,7 @@ begin
     Screen.Cursor := crHourGlass;
     FNSC.UpdateCurrModified := chbxUpdate.Checked;
     FNSC.Directory := tbedPath.Text;
-    FNSC.Scan(True, chbxExisted.Checked, True);
+    FNSC.Scan(True, chbxExisted.Checked, chbCat.Checked ,True);
     ApplyFilter;
   finally
     Screen.Cursor := OldCursor;
@@ -405,6 +412,8 @@ begin
     sb.SimpleText := 'К данным применен фильтр.';
     if FNSC.FilterOnlyPackages then
       sb.SimpleText := sb.SimpleText + ' Отображаются только пакеты.';
+    if FNSC.FilterOnlyFiles then
+      sb.SimpleText := sb.SimpleText + ' Каталоги скрыты.';
   end else
     sb.SimpleText := '';
 end;
@@ -613,6 +622,18 @@ begin
     UserStorage.SaveComponent(gr, gr.SaveToStream);
 
   inherited;
+end;
+
+procedure Tat_frmSyncNamespace.actFLTOnlyFilesExecute(Sender: TObject);
+begin
+  FNSC.FilterOnlyFiles :=cbOnlyFiles.Checked;
+  ApplyFilter;
+end;
+
+procedure Tat_frmSyncNamespace.actFLTOnlyFilesUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := FNSC.DataSet.Active;
+  edFilter.Enabled := FNSC.DataSet.Active;
 end;
 
 initialization

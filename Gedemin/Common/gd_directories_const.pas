@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2016 by Golden Software of Belarus, Ltd
+  Copyright (c) 2000-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -250,6 +250,9 @@ const
   ODataNS                         = 'GS.OData';
   ODataNSDot                      = ODataNS + '.';
   ODataRoot                       = '/OData';
+
+  GoogleGEOSearch                 = 'http://maps.google.com/maps?z=12&t=m&q=loc:';
+  GoogleGEOHome                   = 'http://maps.google.com';
 
 function IsGedeminSystemID(const AnID: Integer): Boolean;
 function IsGedeminNonSystemID(const AnID: Integer): Boolean;

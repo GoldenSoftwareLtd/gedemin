@@ -1,7 +1,8 @@
 
  {++
+
    Project GEDEMIN
-   Copyright © 2000- 2001 by Golden Software
+   Copyright © 2000- 2017 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -127,6 +128,11 @@ type
     TBItem2: TTBItem;
     actDeletePicture: TAction;
     TBItem3: TTBItem;
+    tsGEO: TTabSheet;
+    Label24: TLabel;
+    edGEOCoord: TEdit;
+    btnShowMap: TButton;
+    actShowOnMap: TAction;
     procedure actAddAccountExecute(Sender: TObject);
     procedure actEditAccountExecute(Sender: TObject);
     procedure actDelAccountExecute(Sender: TObject);
@@ -148,6 +154,7 @@ type
     procedure actDeletePictureExecute(Sender: TObject);
     procedure actSavePictureUpdate(Sender: TObject);
     procedure actDeletePictureUpdate(Sender: TObject);
+    procedure actShowOnMapExecute(Sender: TObject);
 
   protected
     //Указывает необходимо ли отображать страницу
@@ -164,6 +171,7 @@ type
     procedure SetupDialog; override;
 
     function TestCorrect: Boolean; override;
+    procedure BeforePost; override;
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
@@ -182,7 +190,10 @@ uses
   gd_ClassList,
   gdcBaseInterface,
   IBSQL,
-  extdlgs
+  extdlgs,
+  ShellAPI,
+  gd_common_functions,
+  gd_directories_const
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -349,6 +360,13 @@ begin
   gsiblkupChiefAccountant.Params.Clear;
   gsiblkupChiefAccountant.Params.Add('cc_id=' + IntToStr(gdcObject.ID));
 
+  if (not gdcObject.FieldByName('lat').IsNull)
+    and (not gdcObject.FieldByName('lon').IsNull) then
+  begin
+    edGEOCoord.Text := GEOCoord2String(gdcObject.FieldByName('lat').AsFloat, gdcObject.FieldByName('lon').AsFloat);
+  end else
+    edGEOCoord.Text := '';
+
   inherited;
 
   if gdcObject.State = dsInsert then
@@ -513,6 +531,7 @@ var
   q: TIBSQL;
   S: String;
   I, C: Integer;
+  Lat, Lon: Double;
 begin
   {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGCUSTOMCOMPANY', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}Result := True;
@@ -540,7 +559,12 @@ begin
   {M}  end;
   {END MACRO}
 
-  Result := inherited TestCorrect;
+  Result := (inherited TestCorrect)
+    and (
+      (Trim(edGEOCoord.Text) = '')
+      or
+      GEOString2Coord(edGEOCoord.Text, Lat, Lon)
+    );
 
   if Result
     and (not (sMultiple in gdcObject.BaseState))
@@ -797,10 +821,84 @@ begin
   actDeletePicture.Enabled := not dsgdcBase.DataSet.FieldByName('LOGO').IsNull;
 end;
 
+procedure Tgdc_dlgCustomCompany.actShowOnMapExecute(Sender: TObject);
+var
+  S: String;
+  Lat, Lon: Double;
+begin
+  if GEOString2Coord(edGEOCoord.Text, Lat, Lon) then
+  begin
+    S := StringReplace(edGEOCoord.Text, ',', '+', []);
+    ShellExecute(Handle,
+      'open',
+      PChar(GoogleGEOSearch + S),
+      nil,
+      nil,
+      SW_SHOW);
+  end else
+    ShellExecute(Handle,
+      'open',
+      GoogleGEOHome,
+      nil,
+      nil,
+      SW_SHOW);
+end;
+
+procedure Tgdc_dlgCustomCompany.BeforePost;
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  Lat, Lon: Double;
+begin
+  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGCUSTOMCOMPANY', 'BEFOREPOST', KEYBEFOREPOST)}
+  {M}  try
+  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDC_DLGCUSTOMCOMPANY', KEYBEFOREPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYBEFOREPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGCUSTOMCOMPANY') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGCUSTOMCOMPANY',
+  {M}          'BEFOREPOST', KEYBEFOREPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGCUSTOMCOMPANY' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if Trim(edGEOCoord.Text) = '' then
+  begin
+    gdcObject.FieldbyName('lat').Clear;
+    gdcObject.FieldbyName('lon').Clear;
+  end else
+  begin
+    if GEOString2Coord(edGEOCoord.Text, Lat, Lon) then
+    begin
+      gdcObject.FieldbyName('lat').AsFloat := Lat;
+      gdcObject.FieldbyName('lon').AsFloat := Lon;
+    end else
+      raise Exception.Create('Invalid GEO coordinates');
+  end;
+
+  inherited;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGCUSTOMCOMPANY', 'BEFOREPOST', KEYBEFOREPOST)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGCUSTOMCOMPANY', 'BEFOREPOST', KEYBEFOREPOST);
+  {M}end;
+  {END MACRO}
+end;
+
 initialization
   RegisterFrmClass(Tgdc_dlgCustomCompany);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgCustomCompany);
-
 end.

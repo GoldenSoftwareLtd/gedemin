@@ -1,6 +1,6 @@
 inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
-  Left = 443
-  Top = 221
+  Left = 444
+  Top = 223
   HelpContext = 38
   BorderIcons = [biSystemMenu]
   Caption = 'BaseContact'
@@ -776,6 +776,38 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         Height = 301
       end
     end
+    object tsGEO: TTabSheet
+      Caption = 'Расположение'
+      ImageIndex = 4
+      object Label24: TLabel
+        Left = 8
+        Top = 16
+        Width = 68
+        Height = 13
+        Hint = 'Широта -90..+90, Долгота -180..+180'
+        Caption = 'Координаты:'
+        ParentShowHint = False
+        ShowHint = True
+      end
+      object edGEOCoord: TEdit
+        Left = 82
+        Top = 13
+        Width = 205
+        Height = 21
+        Hint = 'Широта -90..+90, Долгота -180..+180'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 0
+      end
+      object btnShowMap: TButton
+        Left = 289
+        Top = 12
+        Width = 121
+        Height = 21
+        Action = actShowOnMap
+        TabOrder = 1
+      end
+    end
   end
   inherited alBase: TActionList
     Left = 159
@@ -828,6 +860,10 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
       ImageIndex = 2
       OnExecute = actDeletePictureExecute
       OnUpdate = actDeletePictureUpdate
+    end
+    object actShowOnMap: TAction
+      Caption = 'Показать на карте'
+      OnExecute = actShowOnMapExecute
     end
   end
   inherited dsgdcBase: TDataSource

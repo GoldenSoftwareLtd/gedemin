@@ -364,5 +364,21 @@ CREATE DOMAIN daccountalias
 
 CREATE DOMAIN dfixlength 
   AS INTEGER CHECK ((VALUE IS NULL) OR (VALUE > 0 AND VALUE <= 20));
+  
+/*
+
+  Географические координаты. В градусах.
+  
+  https://en.wikipedia.org/wiki/Decimal_degrees
+
+*/  
+  
+CREATE DOMAIN dlat
+  AS NUMERIC(10, 8)
+  CHECK (VALUE BETWEEN -90.0 AND +90.0);
+
+CREATE DOMAIN dlon
+  AS NUMERIC(11, 8)
+  CHECK (VALUE BETWEEN -180.0 AND +180.0);
 
 COMMIT;

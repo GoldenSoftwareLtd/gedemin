@@ -40,6 +40,9 @@ CREATE TABLE gd_contact
   pobox         dtext40,
   phone         dtext40,
   fax           dtext40,
+  
+  lat           dlat,
+  lon           dlon,
 
   creatorkey    dforeignkey,
   creationdate  dcreationdate,
