@@ -9,7 +9,8 @@ uses
   ExtCtrls, TB2Item, TB2Dock, TB2Toolbar, gsIBCtrlGrid, gdc_dlgTR_unit,
   IBDatabase, Menus, at_Classes, gsIBLookupComboBox, gdcCustomFunction,
   gdcFunction, AcctStrings, gd_i_ScriptFactory, rp_report_const, gdcConstants,
-  prm_ParamFunctions_unit, gdcBaseInterface, gdcClasses_interface;
+  prm_ParamFunctions_unit, gdcBaseInterface, gdcClasses_interface,
+  xDateEdits;
 
 type
   Tgdc_dlgAcctTrEntry = class(Tgdc_dlgTR)
@@ -41,6 +42,11 @@ type
     iblcTransaction: TgsIBLookupComboBox;
     Label4: TLabel;
     dbcbIsDiasabled: TDBCheckBox;
+    xDTeddbegin: TxDateDBEdit;
+    Label5: TLabel;
+    Label6: TLabel;
+    xDTeddend: TxDateDBEdit;
+    mPeriodHelp: TMemo;
     procedure actWizardExecute(Sender: TObject);
     procedure actWizardUpdate(Sender: TObject);
 

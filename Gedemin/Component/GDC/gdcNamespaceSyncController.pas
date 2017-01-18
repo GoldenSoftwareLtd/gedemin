@@ -1262,6 +1262,7 @@ procedure TgdcNamespaceSyncController.Sync;
 var
   NS: TgdcNamespace;
   SL: TStringList;
+  LoadList: TStringList;
 begin
   with TdlgCheckOperation.Create(nil) do
   try
@@ -1278,8 +1279,14 @@ begin
 
     actSaveObjects.Checked := mSaveList.Lines.Count > 0;
 
-    GetDependentList(mLoadList.Lines);
-    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(mLoadList.Lines.Count);
+    LoadList := TStringList.Create;
+    try
+      GetDependentList(LoadList);
+      mLoadList.Lines.Assign(LoadList);
+      lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(LoadList.Count);
+    finally
+      LoadList.Free;
+    end;
 
     actLoadObjects.Checked := mLoadList.Lines.Count > 0;
 

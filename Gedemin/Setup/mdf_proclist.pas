@@ -49,13 +49,13 @@ uses
   mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument,
   mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
   mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL,
-  mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddWebRelayTable;
+  mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddWebRelayTable, mdf_AddFieldToAC_TRRECORD;
 
 const
   {$IFDEF FULL_MODIFY}
-  cProcCount = 216;
+  cProcCount = 217;
   {$ELSE}
-  cProcCount = 36;
+  cProcCount = 37;
   {$ENDIF}
 
 type
@@ -383,7 +383,8 @@ const
     (ModifyProc: AddGDEMPLOYEETable; ModifyVersion: '0000.0001.0000.0284'; NeedDBShutdown: True),
     (ModifyProc: CorrectSubAccounts; ModifyVersion: '0000.0001.0000.0285'; NeedDBShutdown: False),
     (ModifyProc: CorrectClientAddress; ModifyVersion: '0000.0001.0000.0286'; NeedDBShutdown: True),
-    (ModifyProc: AddGeoCoords; ModifyVersion: '0000.0001.0000.0287'; NeedDBShutdown: True)
+    (ModifyProc: AddGeoCoords; ModifyVersion: '0000.0001.0000.0287'; NeedDBShutdown: True),
+    (ModifyProc: AddFieldPeriodToAC_TRRECORD; ModifyVersion: '0000.0001.0000.0288'; NeedDBShutdown: True)
   );
 
   {

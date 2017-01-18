@@ -291,8 +291,11 @@ CREATE TABLE ac_trrecord (
   reserved         dinteger,
   functionkey      dforeignkey,         /* Ключ функции*/
   documenttypekey  dforeignkey,         /* Тип документа проводки */
-  functiontemplate dblob80,             /*шаблон функции*/
-  documentpart     dtext10              /*тип оброботки документа*/
+  functiontemplate dblob80,             /* Шаблон функции */
+  documentpart     dtext10,             /* Тип обработки документа */
+
+  dbegin           ddate,               /* Дата начала действия типовой проводки */
+  dend             ddate                /* Дата окончания действия типовой проводки */			 
 );
 
 ALTER TABLE ac_trrecord
@@ -315,6 +318,8 @@ ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_ak
   ON UPDATE CASCADE
   ON DELETE SET NULL;
 
+ALTER TABLE ac_trrecord ADD CONSTRAINT ac_chk_trrecord_date
+  CHECK ((dbegin IS NULL) OR (dend IS NULL) OR (dbegin <= dend));
 
 COMMIT;
 

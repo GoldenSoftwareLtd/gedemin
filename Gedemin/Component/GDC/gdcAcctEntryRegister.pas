@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -1356,7 +1356,6 @@ end;
 procedure TgdcAcctEntryRegister.CreateEntry(const EmptyEntry: Boolean = False);
 var
   LParams, LResult: Variant;
-//  CI: TTransactionCacheItem;
   CIs: TTransactionCacheItems;
   Index: Integer;
   I: Integer;
@@ -1392,7 +1391,7 @@ begin
       (Document.MasterSource.DataSet.FieldByName(fnDelayed).AsInteger = 1)
     ) then
   begin
-    Exit;
+    exit;
   end;
 
   {$IFDEF DEBUGMOVE}
@@ -1414,6 +1413,7 @@ begin
     {$ENDIF}
     if not TransactionCache.Find(Document.FieldByName(fnTransactionKey).AsInteger, Index) then
     begin
+
       CIs := TTransactionCacheItems.Create;
       Index := TransactionCache.AddObject(Document.FieldByName(fnTransactionKey).AsInteger,
         CIs);
@@ -1421,15 +1421,18 @@ begin
       if FEntryDocumentSQL = nil then
       begin
         FEntryDocumentSQL := TIBSQL.Create(Self);
-        FEntryDocumentSQL.SQl.Text := 'SELECT r.id, r.functionkey, r.documenttypekey, r.documentpart FROM ac_trrecord r WHERE ' +
-          ' r.transactionkey = :transactionkey and disabled = 0'
-      end;
+        FEntryDocumentSQL.SQl.Text :=
+          'SELECT r.id, r.functionkey, r.documenttypekey, r.documentpart, r.dbegin, r.dend ' +
+          'FROM ac_trrecord r ' +
+          'WHERE r.transactionkey = :transactionkey AND disabled = 0'
+       end;
 
       if FEntryDocumentSQL.Transaction <> Transaction then
         FEntryDocumentSQL.Transaction := Transaction;
 
       FEntryDocumentSQL.ParamByName(fnTransactionKey).AsInteger :=
         Document.FieldByName(fnTransactionKey).AsInteger;
+
       FEntryDocumentSQL.ExecQuery;
       try
         while not FEntryDocumentSQL.Eof do
@@ -1438,11 +1441,15 @@ begin
             CIs.Add(FEntryDocumentSQL.FieldByName(fnId).AsInteger,
               FEntryDocumentSQL.FieldByName(fnFunctionKey).AsInteger,
               FEntryDocumentSQL.FieldByName(fnDocumentTypeKey).AsInteger,
+              FEntryDocumentSQL.FieldByName('dbegin').AsDateTime,
+              FEntryDocumentSQL.FieldByName('dend').AsDateTime,
               dcpLine)
           else
             CIs.Add(FEntryDocumentSQL.FieldByName(fnId).AsInteger,
               FEntryDocumentSQL.FieldByName(fnFunctionKey).AsInteger,
               FEntryDocumentSQL.FieldByName(fnDocumentTypeKey).AsInteger,
+              FEntryDocumentSQL.FieldByName('dbegin').AsDateTime,
+              FEntryDocumentSQL.FieldByName('dend').AsDateTime,
               dcpHeader);
 
           FEntryDocumentSQL.Next;
@@ -1455,35 +1462,50 @@ begin
    OpenTypeEntry := OpenTypeEntry + GetTickCount - T;
   {$ENDIF}
 
-    CIs := TransactionCache.CacheItemsByKey[Document.FieldByName(fnTransactionKey).AsInteger];
+  CIs := TransactionCache.CacheItemsByKey[Document.FieldByName(fnTransactionKey).AsInteger];
 
-    for I := 0 to CIs.Count - 1 do
+  for I := 0 to CIs.Count - 1 do
+  begin
+    if
+      (CIs[i].DocumentPart = Document.GetDocumentClassPart)
+      and
+      (
+        (
+          (CIs[i].DBegin = 0)
+          or
+          (Document.FieldByName(fnDocumentdate).AsDateTime >= CIs[i].DBegin)
+        )
+        and
+        (
+          (CIs[i].DEnd = 0)
+          or
+          (Document.FieldByName(fnDocumentdate).AsDateTime < (CIs[i].DEnd + 1))
+        )
+      ) then
     begin
-      if CIs[i].DocumentPart = Document.GetDocumentClassPart then
+      DE := gdClassList.FindDocByTypeID(Document.DocumentTypeKey, CIs[i].DocumentPart, True);
+      if DE.FindParentByDocumentTypeKey(CIs[i].DocumentTypeKey, CIs[i].DocumentPart) <> nil then
       begin
-        DE := gdClassList.FindDocByTypeID(Document.DocumentTypeKey, CIs[i].DocumentPart, True);
-        if DE.FindParentByDocumentTypeKey(CIs[i].DocumentTypeKey, CIs[i].DocumentPart) <> nil then
+        FTrRecordKey := CIs[i].TrRecordKey;
+        FRecordAdded := False;
+        FunctionKey := CIs[I].FunctionKey;
+        if not EmptyEntry then
         begin
-          FTrRecordKey := CIs[i].TrRecordKey;
-          FRecordAdded := False;
-          FunctionKey := CIs[I].FunctionKey;
-          if not EmptyEntry then
+          if FunctionKey > 0 then
           begin
-            if FunctionKey > 0 then
-            begin
-              {$IFDEF DEBUGMOVE}
-               T := GetTickCount;
-              {$ENDIF}
-              LParams := VarArrayOf([GetGdcOLEObject(Self) as IDispatch, GetGdcOLEObject(Document) as IDispatch]);
-              ScriptFactory.ExecuteFunction(FunctionKey,  LParams, LResult);
-              {$IFDEF DEBUGMOVE}
-               ExecuteFunction := ExecuteFunction + GetTickCount - T;
-              {$ENDIF}
-            end;
+            {$IFDEF DEBUGMOVE}
+            T := GetTickCount;
+            {$ENDIF}
+            LParams := VarArrayOf([GetGdcOLEObject(Self) as IDispatch, GetGdcOLEObject(Document) as IDispatch]);
+            ScriptFactory.ExecuteFunction(FunctionKey,  LParams, LResult);
+            {$IFDEF DEBUGMOVE}
+            ExecuteFunction := ExecuteFunction + GetTickCount - T;
+            {$ENDIF}
           end;
         end;
       end;
     end;
+  end;
   finally
     Close;
   end;

@@ -87,28 +87,10 @@ type
 
 implementation
 
-{ TCustomDocumntInfo }
+uses
+  gd_common_functions;
 
-procedure OriginNames(Origin: String; out TableName: String;
-  out FieldName: String);
-var
-  S: TStrings;
-begin
-  S := TStringList.Create;
-  try
-    TableName := '';
-    FieldName := '';
-    S.Text := StringReplace(StringReplace(Origin, '"', '', [rfReplaceAll]), '.',
-      #13#10, [rfReplaceAll]);
-    if S.Count = 2 then
-    begin
-      TableName := S[0];
-      FieldName := S[1];
-    end;
-  finally
-    S.Free;
-  end;
-end;
+{ TCustomDocumntInfo }
 
 procedure TCustomDocumntInfo.CheckDocument;
 var
@@ -154,7 +136,7 @@ begin
     begin
       if not FDocument.Fields[i].Calculated then
       begin
-        OriginNames(FDocument.Fields[i].Origin, TableName, FieldName);
+        ParseFieldOrigin(FDocument.Fields[i].Origin, TableName, FieldName);
         F := atDataBase.FindRelationField(TableName, FieldName);
         if F <> nil then
         begin
@@ -278,13 +260,14 @@ begin
       12, 13, 35: FFieldRepresentation := 'AsDateTime';
       7, 8, 16:
       begin
-        if FRelationField.Field.SQLSubType = 0 then
-        begin
-          case FRelationField.Field.SQLType of
-            7, 8, 16: FFieldRepresentation := 'AsInteger';
-          end;
-        end else
+        if FRelationField.Field.FieldScale < 0 then
           FFieldRepresentation := 'AsCurrency'
+        else
+          case FRelationField.Field.SQLType of
+            7, 8: FFieldRepresentation := 'AsInteger';
+          else
+            FFieldRepresentation := 'AsCurrency';
+          end;
       end;
       11, 10: FFieldRepresentation := 'AsFloat';
       27, 9: FFieldRepresentation := 'AsCurrency';

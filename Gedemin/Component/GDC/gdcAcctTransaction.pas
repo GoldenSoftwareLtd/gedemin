@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -112,24 +112,25 @@ type
     FFunctionKey: Integer;
     FTrRecordKey: Integer;
     FDocumentTypeKey: Integer;
+    FDBegin: TDateTime;
+    FDEnd: TDateTime;
     FDocumentPart: TgdcDocumentClassPart;
-    procedure SetDocumentPart(const Value: TgdcDocumentClassPart);
-    procedure SetDocumentTypeKey(const Value: Integer);
-    procedure SetFunctionKey(const Value: Integer);
-    procedure SetTrRecordKey(const Value: Integer);
+
   public
-    property TrRecordKey: Integer read FTrRecordKey write SetTrRecordKey;
-    property FunctionKey: Integer read FFunctionKey write SetFunctionKey;
-    property DocumentTypeKey: Integer read FDocumentTypeKey write SetDocumentTypeKey;
-    property DocumentPart: TgdcDocumentClassPart read FDocumentPart write SetDocumentPart;
+    property TrRecordKey: Integer read FTrRecordKey write FTrRecordKey;
+    property FunctionKey: Integer read FFunctionKey write FFunctionKey;
+    property DocumentTypeKey: Integer read FDocumentTypeKey write FDocumentTypeKey;
+    property DBegin: TDateTime read FDBegin write FDBegin;
+    property DEnd: TDateTime read FDEnd write FDEnd;
+    property DocumentPart: TgdcDocumentClassPart read FDocumentPart write FDocumentPart;
   end;
 
   TTransactionCacheItems = class(TObjectList)
   private
     function GetItems(Index: Integer): TTransactionCacheItem;
   public
-    function IndexOf(TrRecord, DocumentTypeKey: Integer; DocumentPart: TgdcDocumentClassPart): Integer;
-    function Add(TrRecordKey, FunctionKey, DocumentTypeKey: Integer; DocumentPart: TgdcDocumentClassPart): Integer;
+    function IndexOf(TrRecord, DocumentTypeKey: Integer; DBegin: TDateTime; DEnd: TDateTime; DocumentPart: TgdcDocumentClassPart): Integer;
+    function Add(TrRecordKey, FunctionKey, DocumentTypeKey: Integer; DBegin: TDateTime; DEnd: TDateTime; DocumentPart: TgdcDocumentClassPart): Integer;
     property Items[Index: Integer]: TTransactionCacheItem read GetItems; default;
   end;
 
@@ -846,34 +847,9 @@ end;
 destructor TTransactionCache.Destroy;
 begin
   if IbLogin <> nil then
-  begin
-    IbLogin.RemoveConnectNotify(Self)
-  end;
+    IbLogin.RemoveConnectNotify(Self);
 
   inherited;
-end;
-
-{ TTransactionCacheItem }
-
-procedure TTransactionCacheItem.SetDocumentPart(
-  const Value: TgdcDocumentClassPart);
-begin
-  FDocumentPart := Value;
-end;
-
-procedure TTransactionCacheItem.SetDocumentTypeKey(const Value: Integer);
-begin
-  FDocumentTypeKey := Value;
-end;
-
-procedure TTransactionCacheItem.SetFunctionKey(const Value: Integer);
-begin
-  FFunctionKey := Value;
-end;
-
-procedure TTransactionCacheItem.SetTrRecordKey(const Value: Integer);
-begin
-  FTrRecordKey := Value;
 end;
 
 { TgdcAcctTransactionEntry }
@@ -951,12 +927,12 @@ end;
 { TTransactionCacheItems }
 
 function TTransactionCacheItems.Add(TrRecordKey, FunctionKey, DocumentTypeKey: Integer;
-  DocumentPart: TgdcDocumentClassPart): Integer;
+   DBegin: TDateTime; DEnd: TDateTime; DocumentPart: TgdcDocumentClassPart): Integer;
 var
   Index: Integer;
   CI: TTransactionCacheItem;
 begin
-  Index := IndexOf(TrRecordKey, DocumentTypeKey, DocumentPart);
+  Index := IndexOf(TrRecordKey, DocumentTypeKey, DBegin, DEnd, DocumentPart);
   if Index = - 1 then
   begin
     CI := TTransactionCacheItem.Create;
@@ -964,6 +940,8 @@ begin
     CI.TrRecordKey := TrRecordKey;
     CI.FunctionKey := FunctionKey;
     CI.DocumentTypeKey := DocumentTypeKey;
+    CI.DBegin := DBegin;
+    CI.DEnd := DEnd;
     CI.DocumentPart := DocumentPart;
   end;
 
@@ -978,6 +956,7 @@ end;
 
 function TTransactionCacheItems.IndexOf(
   TrRecord, DocumentTypeKey: Integer;
+  DBegin: TDateTime; DEnd: TDateTime;
   DocumentPart: TgdcDocumentClassPart): Integer;
 var
   I: Integer;
@@ -987,6 +966,8 @@ begin
   begin
     if (Items[i].TrRecordKey = TrRecord) and
       (Items[i].DocumentTypeKey = DocumentTypeKey) and
+      (Items[i].DBegin = DBegin) and
+      (Items[i].DEnd = DEnd) and
       (Items[i].DocumentPart = DocumentPart) then
     begin
       Result := I;
