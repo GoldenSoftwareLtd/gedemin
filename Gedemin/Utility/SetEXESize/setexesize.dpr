@@ -5,15 +5,16 @@ uses
 
 var
   MS: TMemoryStream;
-  S: Integer;
+  S, EC: Integer;
   B: Byte;
 begin
+  EC := 1;
   S := StrToIntDef(ParamStr(2), 0);
 
   if (ParamCount < 2) or (not FileExists(ParamStr(1)))
     or (S = 0) then
   begin
-    Writeln('Copyright (c) 2015 by Golden Software of Belarus, Ltd');
+    Writeln('Copyright (c) 2015-2017 by Golden Software of Belarus, Ltd');
     Writeln('Usage: setexesize <exe_file_name> <new_size_in_bytes>');
     exit;
   end;
@@ -23,18 +24,31 @@ begin
     try
       MS.LoadFromFile(ParamStr(1));
       MS.Position := MS.Size;
-      RandSeed := S;
-      while MS.Position < S do
+
+      if MS.Size < S then
       begin
-        B := Random(256);
-        MS.WriteBuffer(B, 1);
-      end;
-      MS.SaveToFile(ParamStr(1));
+        RandSeed := S;
+        while MS.Position < S do
+        begin
+          B := Random(256);
+          MS.WriteBuffer(B, 1);
+        end;
+        MS.SaveToFile(ParamStr(1));
+        EC := 0;
+      end
+      else if MS.Size > S then
+        Writeln('Size of the file exceeds specified limit!');
     except
       on E: Exception do
         Writeln(E.Message);
     end;
   finally
     MS.Free;
+  end;
+
+  if EC <> 0 then
+  begin
+    DeleteFile(ParamStr(1));
+    Halt(EC);
   end;
 end.

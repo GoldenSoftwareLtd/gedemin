@@ -5,7 +5,6 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
   Caption = 'Банковский счет'
   ClientHeight = 248
   ClientWidth = 435
-  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
@@ -18,17 +17,16 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
     Top = 82
     TabOrder = 3
   end
+  inherited btnHelp: TButton
+    Left = 358
+    Top = 136
+  end
   inherited btnOK: TButton
     Left = 358
     Top = 8
   end
   inherited btnCancel: TButton
-    Left = 358
     Top = 36
-  end
-  inherited btnHelp: TButton
-    Left = 358
-    Top = 136
   end
   inherited pgcMain: TPageControl
     Width = 341
@@ -56,7 +54,7 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
         Caption = 'Код:'
       end
       object Label4: TLabel
-        Left = 145
+        Left = 177
         Top = 79
         Width = 31
         Height = 13
@@ -150,7 +148,7 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
       object gsibluBankCode: TgsIBLookupComboBox
         Left = 75
         Top = 75
-        Width = 61
+        Width = 94
         Height = 21
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
@@ -172,9 +170,9 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
         TabOrder = 2
       end
       object gsibluMFO: TgsIBLookupComboBox
-        Left = 180
+        Left = 208
         Top = 75
-        Width = 148
+        Width = 120
         Height = 21
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
@@ -257,8 +255,8 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
     Top = 106
   end
   inherited pm_dlgG: TPopupMenu
-    Left = 112
-    Top = 96
+    Left = 120
+    Top = 152
   end
   inherited ibtrCommon: TIBTransaction
     Left = 80

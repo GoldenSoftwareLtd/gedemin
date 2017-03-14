@@ -2,6 +2,9 @@ program gdcc;
 
 uses
   FastMM4,
+  {$IFDEF EXCMAGIC_GEDEMIN}
+  ExcMagic, ExcMagicGUI,
+  {$ENDIF}
   Forms,
   Windows,
   gdccConst,
@@ -25,7 +28,7 @@ begin
     Application.Initialize;
     Application.ShowMainForm := False;
     Application.Title := 'Gedemin Control Center';
-  Application.CreateForm(Tgdcc_frmMain, gdcc_frmMain);
+    Application.CreateForm(Tgdcc_frmMain, gdcc_frmMain);
     Application.Run;
   end;
 end.

@@ -1,6 +1,7 @@
 
  {++
-   Copyright © 2000- by Golden Software
+ 
+   Copyright © 2000-2017 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -60,15 +61,12 @@ implementation
 {$R *.DFM}
 
 uses
-  dmDataBase_unit,
-  gsDesktopManager, gd_ClassList;
-
+  dmDataBase_unit, gsDesktopManager, gd_ClassList;
 
 initialization
   RegisterFrmClass(Tgdc_dlgCompanyAccount);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgCompanyAccount);
-
 end.
 

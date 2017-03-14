@@ -701,7 +701,7 @@ begin
   begin
     SetTimeOut(Round((AT.NextStartTime - Now) * MSecsPerDay));
     SendNotification('Выполнение автозадачи "' + AT.Name + '" назначено на ' +
-      FormatDateTime('hh:nn dd.mm.yyyy', AT.NextStartTime));
+      FormatDateTime('hh:nn:ss dd.mm.yyyy', AT.NextStartTime));
   end;
 end;
 

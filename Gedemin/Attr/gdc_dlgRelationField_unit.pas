@@ -181,7 +181,8 @@ begin
       Result := False;
     end;
 
-    if Length(dbedRelationFieldName.Text) <= Length(UserPrefix) then
+    if (Length(dbedRelationFieldName.Text) <= Length(UserPrefix))
+      and (gdcObject.State = dsInsert) then
     begin
       pcRelationField.ActivePage := tsCommon;
       dbedRelationFieldName.SetFocus;

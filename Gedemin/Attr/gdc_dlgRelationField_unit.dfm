@@ -58,8 +58,8 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       object dbtRelationName: TDBText
         Left = 250
         Top = 39
-        Width = 80
-        Height = 14
+        Width = 82
+        Height = 13
         AutoSize = True
         DataField = 'RELATIONNAME'
         DataSource = dsgdcBase
