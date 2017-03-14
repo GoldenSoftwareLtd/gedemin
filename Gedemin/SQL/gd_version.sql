@@ -806,6 +806,15 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (258, '0000.0001.0000.0289', '15.01.2017', 'Added period fields to AC_TRRECORD');   
   
+INSERT INTO fin_versioninfo
+  VALUES (259, '0000.0001.0000.0290', '19.01.2017', 'Upgrade of GD_CURRRATE table');   
+  
+INSERT INTO fin_versioninfo
+  VALUES (260, '0000.0001.0000.0291', '03.02.2017', 'Upgrade AT_P_SYNC'); 
+
+INSERT INTO fin_versioninfo
+  VALUES (261, '0000.0001.0000.0292', '13.02.2017', 'Added extended analytics to account');     
+  
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

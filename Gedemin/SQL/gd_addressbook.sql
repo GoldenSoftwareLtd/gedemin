@@ -90,7 +90,7 @@ ALTER TABLE gd_contact ADD CONSTRAINT gd_fk_contact_editorkey
 ALTER TABLE gd_contact ADD CONSTRAINT gd_fk_contact_creatorkey
   FOREIGN KEY (creatorkey) REFERENCES gd_contact(id)
   ON UPDATE CASCADE;
-
+  
 CREATE ASC INDEX gd_x_contact_name ON gd_contact (name);
 
 COMMIT;
@@ -321,6 +321,8 @@ ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_chiefacckey
   FOREIGN KEY (chiefaccountantkey) REFERENCES gd_people(contactkey)
   ON UPDATE CASCADE;
 
+ALTER TABLE gd_currrate ADD CONSTRAINT gd_fk3_currrate
+  FOREIGN KEY (regulatorkey) REFERENCES gd_company (contactkey) ON UPDATE CASCADE;      
 
 CREATE TABLE gd_companycode
 (

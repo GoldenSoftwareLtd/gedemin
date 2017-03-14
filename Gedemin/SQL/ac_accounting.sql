@@ -48,7 +48,7 @@ CREATE TABLE ac_account
   name             dtext180,            /* Наименование счета */
   alias            daccountalias,       /* Код счета */
 
-  analyticalfield  dforeignkey,         /* аналитическое поле для активно-пассивных счетов */  
+  analyticalfield  dforeignkey,         /* аналитическое поле для активно-пассивных счетов */
 
   activity         daccountactivity,    /* Активность счета */
 
@@ -141,7 +141,7 @@ BEGIN
         IF (POSITION(:A IN NEW.alias) <> 1) THEN
           EXCEPTION ac_e_invalidaccount 'Номер субсчета должен начинаться с номера вышележащего счета/субсчета. Субсчет: ' || NEW.alias;
       END
-    END  
+    END
   END
 
   IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)
@@ -166,6 +166,40 @@ END
 ^
 
 SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+  Таблица-связка счета с объектами аналитики для развернутого сальдо
+
+*****************************************************/
+
+CREATE TABLE ac_accanalyticsext
+(
+  id          dintkey,
+  accountkey  dintkey,
+  valuekey    dintkey,
+
+  CONSTRAINT ac_pk_ac_accanalyticsext PRIMARY KEY (id)
+ );
+
+COMMIT;
+
+CREATE UNIQUE INDEX ac_idx_accanalyticsext
+  ON ac_accanalyticsext (accountkey, valuekey);
+
+COMMIT;
+
+ALTER TABLE ac_accanalyticsext ADD CONSTRAINT fk_ac_accanalyticsext_account
+  FOREIGN KEY (accountkey) REFERENCES ac_account (id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ac_accanalyticsext ADD CONSTRAINT fk_ac_accanalyticsext_value
+  FOREIGN KEY (valuekey) REFERENCES at_relation_fields(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
 
 COMMIT;
 
@@ -222,7 +256,7 @@ CREATE TABLE ac_transaction
 
   companykey       dforeignkey,         /* Компания, которой принадлежит операция */
                                         /* Но может быть пустым - тогда общая операция*/
-  isinternal       dboolean,            /* Внтуренняя операция */
+  isinternal       dboolean,            /* Внутренняя операция */
 
   afull            dsecurity,           /* Дескрипторы безопасности */
   achag            dsecurity,
@@ -232,7 +266,7 @@ CREATE TABLE ac_transaction
 
   disabled         dboolean DEFAULT 0,
   reserved         dinteger,
-  AUTOTRANSACTION  DBOOLEAN  /*Признак автоматической операции*/
+  autotransaction  dboolean             /*Признак автоматической операции*/
 );
 
 COMMIT;
@@ -295,7 +329,7 @@ CREATE TABLE ac_trrecord (
   documentpart     dtext10,             /* Тип обработки документа */
 
   dbegin           ddate,               /* Дата начала действия типовой проводки */
-  dend             ddate                /* Дата окончания действия типовой проводки */			 
+  dend             ddate                /* Дата окончания действия типовой проводки */
 );
 
 ALTER TABLE ac_trrecord
@@ -456,7 +490,7 @@ ALTER TABLE AC_ENTRY ADD CONSTRAINT AC_FK_ENTRY_MASTERDOCKEY
 
 ALTER TABLE AC_ENTRY ADD CONSTRAINT AC_FK_ENTRY_TRANSACTIONKEY
   FOREIGN KEY (TRANSACTIONKEY) REFERENCES AC_TRANSACTION (ID)
-  ON UPDATE CASCADE;  
+  ON UPDATE CASCADE;
 
 
 COMMIT;
@@ -467,7 +501,7 @@ CREATE INDEX AC_ENTRY_RECKEY_ACPART ON AC_ENTRY (RECORDKEY, ACCOUNTPART);
 COMMIT;
 
 /*
-* В генератор заносится дата последнего рачета сльдо по проводкам 
+* В генератор заносится дата последнего рачета сльдо по проводкам
 * (разница в днях между датой расчета и 17.11.1858)
 */
 CREATE GENERATOR gd_g_entry_balance_date;
@@ -482,15 +516,15 @@ SET GENERATOR GD_G_ENTRY_BALANCE_DATE TO 0;
 
 CREATE TABLE ac_entry_balance (
   id                      dintkey,
-  companykey              dintkey, 
+  companykey              dintkey,
   accountkey              dintkey,
   currkey                 dintkey,
-  
-  debitncu                dcurrency, 
-  debitcurr               dcurrency, 
-  debiteq                 dcurrency, 
-  creditncu               dcurrency, 
-  creditcurr              dcurrency, 
+
+  debitncu                dcurrency,
+  debitcurr               dcurrency,
+  debiteq                 dcurrency,
+  creditncu               dcurrency,
+  creditcurr              dcurrency,
   crediteq                dcurrency
 );
 
@@ -507,23 +541,23 @@ SET TERM ^;
 CREATE OR ALTER TRIGGER ac_bi_entry_balance FOR ac_entry_balance
   ACTIVE
   BEFORE INSERT
-  POSITION 0 
-AS 
-BEGIN 
+  POSITION 0
+AS
+BEGIN
   IF (NEW.ID IS NULL) THEN
-    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); 
-  IF (NEW.debitncu IS NULL) THEN 
-    NEW.debitncu = 0; 
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+  IF (NEW.debitncu IS NULL) THEN
+    NEW.debitncu = 0;
   IF (NEW.debitcurr IS NULL) THEN
-    NEW.debitcurr = 0; 
+    NEW.debitcurr = 0;
   IF (NEW.debiteq IS NULL) THEN
     NEW.debiteq = 0;
-  IF (NEW.creditncu IS NULL) THEN 
-    NEW.creditncu = 0; 
-  IF (NEW.creditcurr IS NULL) THEN 
-    NEW.creditcurr = 0; 
-  IF (NEW.crediteq IS NULL) THEN 
-    NEW.crediteq = 0; 
+  IF (NEW.creditncu IS NULL) THEN
+    NEW.creditncu = 0;
+  IF (NEW.creditcurr IS NULL) THEN
+    NEW.creditcurr = 0;
+  IF (NEW.crediteq IS NULL) THEN
+    NEW.crediteq = 0;
 END
 ^
 SET TERM ;^
@@ -662,14 +696,14 @@ BEGIN
       VALUES
        (OLD.companykey,
         OLD.accountkey,
-        OLD.currkey, 
-        -OLD.debitncu, 
-        -OLD.debitcurr, 
+        OLD.currkey,
+        -OLD.debitncu,
+        -OLD.debitcurr,
         -OLD.debiteq,
-        -OLD.creditncu, 
+        -OLD.creditncu,
         -OLD.creditcurr,
         -OLD.crediteq);
-    END 
+    END
   END
 END
 ^
@@ -945,8 +979,10 @@ BEGIN
   IF (:WasUnlock IS NULL) THEN
     RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
 
-  WHEN ANY DO
-  BEGIN
+
+  WHEN ANY DO
+
+  BEGIN
     RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
     EXCEPTION;
   END
@@ -1028,7 +1064,8 @@ BEGIN
       id = OLD.recordkey;
     IF (:WasUnlock IS NULL) THEN
       RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
-  END
+
+  END
 
   IF (NEW.accountpart <> OLD.accountpart) THEN
   BEGIN
@@ -1153,7 +1190,7 @@ BEGIN
           EXCEPTION gd_e_block;
         END
       END
-    END  
+    END
   END
 END
 ^
@@ -1266,7 +1303,7 @@ AS
 BEGIN
   DEBITSALDO = 0;
   CREDITSALDO = 0;
-  CURRDEBITSALDO = 0; 
+  CURRDEBITSALDO = 0;
   CURRCREDITSALDO = 0;
   EQDEBITSALDO = 0;
   EQCREDITSALDO = 0;
@@ -1283,7 +1320,7 @@ CREATE OR ALTER PROCEDURE AC_ACCOUNTEXSALDO_BAL (
     COMPANYKEY INTEGER,
     ALLHOLDINGCOMPANIES INTEGER,
     CURRKEY INTEGER)
-RETURNS ( 
+RETURNS (
     DEBITSALDO NUMERIC(15, 4),
     CREDITSALDO NUMERIC(15, 4),
     CURRDEBITSALDO NUMERIC(15, 4),
@@ -1291,31 +1328,31 @@ RETURNS (
     EQDEBITSALDO NUMERIC(15, 4),
     EQCREDITSALDO NUMERIC(15, 4))
  AS
-   DECLARE VARIABLE SALDO NUMERIC(15, 4); 
-   DECLARE VARIABLE SALDOCURR NUMERIC(15, 4); 
-   DECLARE VARIABLE SALDOEQ NUMERIC(15, 4); 
-   DECLARE VARIABLE TEMPVAR varchar(60); 
-   DECLARE VARIABLE CLOSEDATE DATE; 
-   DECLARE VARIABLE CK INTEGER; 
+   DECLARE VARIABLE SALDO NUMERIC(15, 4);
+   DECLARE VARIABLE SALDOCURR NUMERIC(15, 4);
+   DECLARE VARIABLE SALDOEQ NUMERIC(15, 4);
+   DECLARE VARIABLE TEMPVAR varchar(60);
+   DECLARE VARIABLE CLOSEDATE DATE;
+   DECLARE VARIABLE CK INTEGER;
    DECLARE VARIABLE SQLStatement VARCHAR(2048);
    DECLARE VARIABLE HoldingList VARCHAR(1024) = '';
    DECLARE VARIABLE CurrCondition_E VARCHAR(1024) = '';
    DECLARE VARIABLE CurrCondition_Bal VARCHAR(1024) = '';
- BEGIN 
-   DEBITSALDO = 0; 
-   CREDITSALDO = 0; 
-   CURRDEBITSALDO = 0; 
-   CURRCREDITSALDO = 0; 
-   EQDEBITSALDO = 0; 
-   EQCREDITSALDO = 0; 
-   CLOSEDATE = CAST((CAST('17.11.1858' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); 
- 
+ BEGIN
+   DEBITSALDO = 0;
+   CREDITSALDO = 0;
+   CURRDEBITSALDO = 0;
+   CURRCREDITSALDO = 0;
+   EQDEBITSALDO = 0;
+   EQCREDITSALDO = 0;
+   CLOSEDATE = CAST((CAST('17.11.1858' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE);
+
    IF (:AllHoldingCompanies = 1) THEN
    BEGIN
      SELECT LIST(h.companykey, ',')
      FROM gd_holding h
      WHERE h.holdingkey = :companykey
-     INTO :HoldingList; 
+     INTO :HoldingList;
      HoldingList = COALESCE(:HoldingList, '');
    END
 
@@ -1326,126 +1363,124 @@ RETURNS (
      CurrCondition_E =   ' AND (e.currkey   = ' || :currkey || ') ';
      CurrCondition_Bal = ' AND (bal.currkey = ' || :currkey || ') ';
    END
- 
-   IF (:dateend >= :CLOSEDATE) THEN 
-   BEGIN 
-     sqlstatement = 
-       'SELECT 
-         main.' || FIELDNAME || ', 
-         SUM(main.debitncu - main.creditncu), 
-         SUM(main.debitcurr - main.creditcurr), 
-         SUM(main.debiteq - main.crediteq), 
-         main.companykey 
-       FROM 
-       ( 
-         SELECT 
-           bal.' || FIELDNAME || ', 
-           bal.debitncu, bal.creditncu, 
-           bal.debitcurr, bal.creditcurr, 
-           bal.debiteq, bal.crediteq, 
-           bal.companykey 
-         FROM 
-           ac_entry_balance bal 
-         WHERE 
-           bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-             AND (bal.companykey IN (' || :HoldingList || '))' 
-            || :CurrCondition_Bal || '
- 
-         UNION ALL 
- 
-         SELECT 
-           e.' || FIELDNAME || ', 
-           e.debitncu, e.creditncu, 
-           e.debitcurr, e.creditcurr, 
-           e.debiteq, e.crediteq, 
-           e.companykey 
-         FROM 
-           ac_entry e 
-         WHERE 
-           e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-           AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || ''' 
-           AND e.entrydate < ''' || CAST(:dateend AS VARCHAR(20)) || ''' 
-           AND (e.companykey IN (' || :HoldingList || '))'
-          || :CurrCondition_E || '
- 
-       ) main 
-       GROUP BY 
-         main.' || FIELDNAME || ', main.companykey'; 
-   END 
-   ELSE 
-   BEGIN 
-     sqlstatement = 
-       'SELECT 
-         main.' || FIELDNAME || ', 
-         SUM(main.debitncu - main.creditncu), 
-         SUM(main.debitcurr - main.creditcurr), 
-         SUM(main.debiteq - main.crediteq), 
-         main.companykey 
-       FROM 
-       ( 
-         SELECT 
-           bal.' || FIELDNAME || ', 
-           bal.debitncu, bal.creditncu, 
-           bal.debitcurr, bal.creditcurr, 
-           bal.debiteq, bal.crediteq, 
-           bal.companykey 
-         FROM 
-           ac_entry_balance bal 
-         WHERE 
-           bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
+
+   IF (:dateend >= :CLOSEDATE) THEN
+   BEGIN
+     sqlstatement =
+       'SELECT
+         SUM(main.debitncu - main.creditncu),
+         SUM(main.debitcurr - main.creditcurr),
+         SUM(main.debiteq - main.crediteq),
+         main.companykey
+       FROM
+       (
+         SELECT
+           bal.' || FIELDNAME || ',
+           bal.debitncu, bal.creditncu,
+           bal.debitcurr, bal.creditcurr,
+           bal.debiteq, bal.crediteq,
+           bal.companykey
+         FROM
+           ac_entry_balance bal
+         WHERE
+           bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
              AND (bal.companykey IN (' || :HoldingList || '))'
             || :CurrCondition_Bal || '
- 
-         UNION ALL 
- 
-         SELECT 
-           e.' || FIELDNAME || ', 
-          - e.debitncu, - e.creditncu, 
-          - e.debitcurr, - e.creditcurr, 
-          - e.debiteq, - e.crediteq, 
-          e.companykey 
-         FROM 
-           ac_entry e 
-         WHERE 
-           e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-           AND e.entrydate >= ''' || CAST(:dateend AS VARCHAR(20)) || ''' 
-           AND e.entrydate < ''' || CAST(:closedate AS VARCHAR(20)) || ''' 
+
+         UNION ALL
+
+         SELECT
+           e.' || FIELDNAME || ',
+           e.debitncu, e.creditncu,
+           e.debitcurr, e.creditcurr,
+           e.debiteq, e.crediteq,
+           e.companykey
+         FROM
+           ac_entry e
+         WHERE
+           e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
+           AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || '''
+           AND e.entrydate < ''' || CAST(:dateend AS VARCHAR(20)) || '''
+           AND (e.companykey IN (' || :HoldingList || '))'
+          || :CurrCondition_E || '
+
+       ) main
+       GROUP BY
+         main.' || FIELDNAME || ', main.companykey';
+   END
+   ELSE
+   BEGIN
+     sqlstatement =
+       'SELECT
+         SUM(main.debitncu - main.creditncu),
+         SUM(main.debitcurr - main.creditcurr),
+         SUM(main.debiteq - main.crediteq),
+         main.companykey
+       FROM
+       (
+         SELECT
+           bal.' || FIELDNAME || ',
+           bal.debitncu, bal.creditncu,
+           bal.debitcurr, bal.creditcurr,
+           bal.debiteq, bal.crediteq,
+           bal.companykey
+         FROM
+           ac_entry_balance bal
+         WHERE
+           bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
+             AND (bal.companykey IN (' || :HoldingList || '))'
+            || :CurrCondition_Bal || '
+
+         UNION ALL
+
+         SELECT
+           e.' || FIELDNAME || ',
+          - e.debitncu, - e.creditncu,
+          - e.debitcurr, - e.creditcurr,
+          - e.debiteq, - e.crediteq,
+          e.companykey
+         FROM
+           ac_entry e
+         WHERE
+           e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
+           AND e.entrydate >= ''' || CAST(:dateend AS VARCHAR(20)) || '''
+           AND e.entrydate < ''' || CAST(:closedate AS VARCHAR(20)) || '''
            AND (e.companykey IN (' || :HoldingList || '))'
            || :CurrCondition_E || '
-        ) main 
-       GROUP BY 
-         main.' || FIELDNAME || ', main.companykey'; 
-   END 
- 
-   FOR 
-     EXECUTE STATEMENT 
-       sqlstatement 
-     INTO 
-       :TEMPVAR, :SALDO, :SALDOCURR, :SALDOEQ, :CK 
-   DO 
-   BEGIN 
-     SALDO = COALESCE(:SALDO, 0); 
-     IF (SALDO > 0) THEN 
-       DEBITSALDO = DEBITSALDO + SALDO; 
-     ELSE 
-       CREDITSALDO = CREDITSALDO - SALDO; 
-     SALDOCURR = COALESCE(:SALDOCURR, 0); 
-     IF (SALDOCURR > 0) THEN 
-       CURRDEBITSALDO = CURRDEBITSALDO + SALDOCURR; 
-     ELSE 
-       CURRCREDITSALDO = CURRCREDITSALDO - SALDOCURR; 
-     SALDOEQ = COALESCE(:SALDOEQ, 0); 
-     IF (SALDOEQ > 0) THEN 
-       EQDEBITSALDO = EQDEBITSALDO + SALDOEQ; 
-     ELSE 
-       EQCREDITSALDO = EQCREDITSALDO - SALDOEQ; 
-   END 
-   SUSPEND; 
+        ) main
+       GROUP BY
+         main.' || FIELDNAME || ', main.companykey';
+   END
+
+   FOR
+     EXECUTE STATEMENT
+       sqlstatement
+     INTO
+       :SALDO, :SALDOCURR, :SALDOEQ, :CK
+   DO
+   BEGIN
+     SALDO = COALESCE(:SALDO, 0);
+     IF (SALDO > 0) THEN
+       DEBITSALDO = DEBITSALDO + SALDO;
+     ELSE
+       CREDITSALDO = CREDITSALDO - SALDO;
+     SALDOCURR = COALESCE(:SALDOCURR, 0);
+     IF (SALDOCURR > 0) THEN
+       CURRDEBITSALDO = CURRDEBITSALDO + SALDOCURR;
+     ELSE
+       CURRCREDITSALDO = CURRCREDITSALDO - SALDOCURR;
+     SALDOEQ = COALESCE(:SALDOEQ, 0);
+     IF (SALDOEQ > 0) THEN
+       EQDEBITSALDO = EQDEBITSALDO + SALDOEQ;
+     ELSE
+       EQCREDITSALDO = EQCREDITSALDO - SALDOEQ;
+   END
+   SUSPEND;
  END
 ^
 
 /* Процедура для создания оборотной ведомости */
-CREATE PROCEDURE AC_CIRCULATIONLIST (
+CREATE OR ALTER PROCEDURE AC_CIRCULATIONLIST (
     datebegin date,
     dateend date,
     companykey integer,
@@ -1486,117 +1521,121 @@ as
   DECLARE VARIABLE LB INTEGER;
   DECLARE VARIABLE RB INTEGER;
 BEGIN
-  /* Procedure Text */
- 
-  SELECT c.lb, c.rb FROM ac_account c                                                                  
-  WHERE c.id = :ACCOUNTKEY 
-  INTO :lb, :rb;                                                                                       
-                                                                                                       
-  FOR                                                                                                  
-    SELECT a.ID, a.ALIAS, a.activity, f.fieldname, a.Name, a.offbalance                                
-    FROM ac_account a LEFT JOIN at_relation_fields f ON a.analyticalfield = f.id
-    WHERE                                                                                              
-      a.accounttype IN ('A', 'S') AND                                                                  
-      a.LB >= :LB AND a.RB <= :RB AND a.alias <> '00'                                                  
-    INTO :id, :ALIAS, :activity, :fieldname, :name, :offbalance                                        
-  DO                                                                                                   
-  BEGIN                                                                                                
-    NCU_BEGIN_DEBIT = 0;                                                                               
-    NCU_BEGIN_CREDIT = 0;                                                                              
-    CURR_BEGIN_DEBIT = 0;                                                                              
-    CURR_BEGIN_CREDIT = 0;                                                                             
-    EQ_BEGIN_DEBIT = 0;                                                                                
-    EQ_BEGIN_CREDIT = 0;  
-                                                                                                       
-    IF ((activity <> 'B') OR (fieldname IS NULL)) THEN                                                 
-    BEGIN  
-      IF ( ALLHOLDINGCOMPANIES = 0) THEN  
-      SELECT                                                                                           
-        SUM(e.DEBITNCU - e.CREDITNCU),                                                                 
-        SUM(e.DEBITCURR - e.CREDITCURR),  
-        SUM(e.DEBITEQ - e.CREDITEQ)                                                                    
-      FROM                                                                                             
-        ac_entry e                                                                                     
-      WHERE  
-        e.accountkey = :id AND e.entrydate < :datebegin AND                                            
-        (e.companykey = :companykey) AND  
-        ((0 = :currkey) OR (e.currkey = :currkey))  
-      INTO :SALDO,                                                                                     
-        :SALDOCURR, :SALDOEQ;                                                                          
-      ELSE  
+  SELECT c.lb, c.rb FROM ac_account c
+  WHERE c.id = :ACCOUNTKEY
+  INTO :lb, :rb;
+
+  FOR
+    SELECT a.ID, a.ALIAS, a.activity, f.fieldname, a.Name, a.offbalance
+    FROM ac_account a
+      LEFT JOIN  
+        (SELECT aa.accountkey, LIST(rf.fieldname, ', ') AS fieldname
+          FROM  ac_accanalyticsext aa
+            JOIN at_relation_fields rf ON aa.valuekey = rf.id
+          GROUP BY aa.accountkey) f
+        ON a.id = f.accountkey
+    WHERE
+      a.accounttype IN ('A', 'S') AND
+      a.LB >= :LB AND a.RB <= :RB AND a.alias <> '00'
+    INTO :id, :ALIAS, :activity, :fieldname, :name, :offbalance
+  DO
+  BEGIN
+    NCU_BEGIN_DEBIT = 0;
+    NCU_BEGIN_CREDIT = 0;
+    CURR_BEGIN_DEBIT = 0;
+    CURR_BEGIN_CREDIT = 0;
+    EQ_BEGIN_DEBIT = 0;
+    EQ_BEGIN_CREDIT = 0;
+
+    IF ((activity <> 'B') OR (fieldname IS NULL)) THEN
+    BEGIN
+      IF ( ALLHOLDINGCOMPANIES = 0) THEN
       SELECT
-        SUM(e.DEBITNCU - e.CREDITNCU),                                                                 
-        SUM(e.DEBITCURR - e.CREDITCURR),                                                               
-        SUM(e.DEBITEQ - e.CREDITEQ)                                                                    
-      FROM                                                                                             
-        ac_entry e                                                                                     
-      WHERE 
-        e.accountkey = :id AND e.entrydate < :datebegin AND                                            
-        (e.companykey = :companykey or e.companykey IN ( 
-          SELECT                                                                                       
-            h.companykey                                                                               
-          FROM                                                                                         
-            gd_holding h                                                                               
-          WHERE                                                                                        
-            h.holdingkey = :companykey)) AND  
-        ((0 = :currkey) OR (e.currkey = :currkey))  
-      INTO :SALDO,                                                                                     
-        :SALDOCURR, :SALDOEQ;                                                                          
-                                                                                                       
-      IF (SALDO IS NULL) THEN                                                                          
-        SALDO = 0;                                                                                     
-                                                                                                       
-      IF (SALDOCURR IS NULL) THEN  
-        SALDOCURR = 0;                                                                                 
-                                                                                                       
-      IF (SALDOEQ IS NULL) THEN                                                                        
-        SALDOEQ = 0;                                                                                   
-                                                                                                       
-                                                                                                       
-      IF (SALDO > 0) THEN                                                                              
+        SUM(e.DEBITNCU - e.CREDITNCU),
+        SUM(e.DEBITCURR - e.CREDITCURR),
+        SUM(e.DEBITEQ - e.CREDITEQ)
+      FROM
+        ac_entry e
+      WHERE
+        e.accountkey = :id AND e.entrydate < :datebegin AND
+        (e.companykey = :companykey) AND
+        ((0 = :currkey) OR (e.currkey = :currkey))
+      INTO :SALDO,
+        :SALDOCURR, :SALDOEQ;
+      ELSE
+      SELECT
+        SUM(e.DEBITNCU - e.CREDITNCU),
+        SUM(e.DEBITCURR - e.CREDITCURR),
+        SUM(e.DEBITEQ - e.CREDITEQ)
+      FROM
+        ac_entry e
+      WHERE
+        e.accountkey = :id AND e.entrydate < :datebegin AND
+        (e.companykey = :companykey or e.companykey IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey)) AND
+        ((0 = :currkey) OR (e.currkey = :currkey))
+      INTO :SALDO,
+        :SALDOCURR, :SALDOEQ;
+
+      IF (SALDO IS NULL) THEN
+        SALDO = 0;
+
+      IF (SALDOCURR IS NULL) THEN
+        SALDOCURR = 0;
+
+      IF (SALDOEQ IS NULL) THEN
+        SALDOEQ = 0;
+
+
+      IF (SALDO > 0) THEN
         NCU_BEGIN_DEBIT = SALDO;
-      ELSE                                                                                             
-        NCU_BEGIN_CREDIT = 0 - SALDO;                                                                  
-                                                                                                       
-      IF (SALDOCURR > 0) THEN                                                                          
-        CURR_BEGIN_DEBIT = SALDOCURR;                                                                  
-      ELSE                                                                                             
-        CURR_BEGIN_CREDIT = 0 - SALDOCURR;                                                             
-                                                                                                       
-      IF (SALDOEQ > 0) THEN                                                                            
-        EQ_BEGIN_DEBIT = SALDOEQ;                                                                      
-      ELSE                                                                                             
-        EQ_BEGIN_CREDIT = 0 - SALDOEQ;                                                                 
-    END                                                                                                
-    ELSE                                                                                               
-    BEGIN                                                                                              
-      SELECT                                                                                           
-        DEBITsaldo,                                                                                    
-        creditsaldo  
-      FROM 
-        AC_ACCOUNTEXSALDO(:datebegin, :ID, :FIELDNAME, :COMPANYKEY,                                    
-          :allholdingcompanies, :INGROUP, :currkey) 
-      INTO                                                                                             
-        :NCU_BEGIN_DEBIT,                                                                              
-        :NCU_BEGIN_CREDIT;                                                                             
-    END  
-                                                                                                       
-    IF (ALLHOLDINGCOMPANIES = 0) THEN  
-    BEGIN 
-      IF (DONTINMOVE = 1) THEN 
+      ELSE
+        NCU_BEGIN_CREDIT = 0 - SALDO;
+
+      IF (SALDOCURR > 0) THEN
+        CURR_BEGIN_DEBIT = SALDOCURR;
+      ELSE
+        CURR_BEGIN_CREDIT = 0 - SALDOCURR;
+
+      IF (SALDOEQ > 0) THEN
+        EQ_BEGIN_DEBIT = SALDOEQ;
+      ELSE
+        EQ_BEGIN_CREDIT = 0 - SALDOEQ;
+    END
+    ELSE
+    BEGIN
+      SELECT
+        DEBITsaldo,
+        creditsaldo
+      FROM
+        AC_ACCOUNTEXSALDO(:datebegin, :ID, :FIELDNAME, :COMPANYKEY,
+          :allholdingcompanies, :INGROUP, :currkey)
+      INTO
+        :NCU_BEGIN_DEBIT,
+        :NCU_BEGIN_CREDIT;
+    END
+
+    IF (ALLHOLDINGCOMPANIES = 0) THEN
+    BEGIN
+      IF (DONTINMOVE = 1) THEN
         SELECT
-          SUM(e.DEBITNCU), 
-          SUM(e.CREDITNCU), 
-          SUM(e.DEBITCURR), 
-          SUM(e.CREDITCURR), 
-          SUM(e.DEBITEQ), 
-          SUM(e.CREDITEQ) 
-        FROM 
-          ac_entry e 
-        WHERE 
-          e.accountkey = :id AND e.entrydate >= :datebegin AND 
-          e.entrydate <= :dateend AND (e.companykey = :companykey) AND 
-          ((0 = :currkey) OR (e.currkey = :currkey)) AND 
+          SUM(e.DEBITNCU),
+          SUM(e.CREDITNCU),
+          SUM(e.DEBITCURR),
+          SUM(e.CREDITCURR),
+          SUM(e.DEBITEQ),
+          SUM(e.CREDITEQ)
+        FROM
+          ac_entry e JOIN ac_transaction tr ON e.transactionkey = tr.id
+        WHERE
+          e.accountkey = :id AND e.entrydate >= :datebegin AND
+          e.entrydate <= :dateend AND (e.companykey = :companykey) AND
+          ((0 = :currkey) OR (e.currkey = :currkey)) AND
           NOT EXISTS( SELECT e_m.id FROM  ac_entry e_m 
               JOIN ac_entry e_cm ON e_cm.recordkey=e_m.recordkey AND 
                e_cm.accountpart <> e_m.accountpart AND 
@@ -1606,144 +1645,147 @@ BEGIN
                 e_m.debitcurr=e_cm.creditcurr OR 
                 e_m.creditcurr=e_cm.debitcurr) 
               WHERE e_m.id=e.id) 
-        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, EQ_CREDIT; 
-      ELSE 
-        SELECT 
-          SUM(e.DEBITNCU), 
-          SUM(e.CREDITNCU), 
-          SUM(e.DEBITCURR), 
-          SUM(e.CREDITCURR), 
-          SUM(e.DEBITEQ), 
+          AND COALESCE(tr.isinternal, 0) = 0
+        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, EQ_CREDIT;
+      ELSE
+        SELECT
+          SUM(e.DEBITNCU),
+          SUM(e.CREDITNCU),
+          SUM(e.DEBITCURR),
+          SUM(e.CREDITCURR),
+          SUM(e.DEBITEQ),
           SUM(e.CREDITEQ)
-        FROM 
-          ac_entry e 
-        WHERE 
-          e.accountkey = :id AND e.entrydate >= :datebegin AND 
-          e.entrydate <= :dateend AND (e.companykey = :companykey) AND 
-          ((0 = :currkey) OR (e.currkey = :currkey)) 
-        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, EQ_CREDIT; 
-    END 
-    ELSE 
-    BEGIN 
-      IF (DONTINMOVE = 1) THEN 
-        SELECT 
-          SUM(e.DEBITNCU), 
-          SUM(e.CREDITNCU), 
-          SUM(e.DEBITCURR), 
-          SUM(e.CREDITCURR), 
-          SUM(e.DEBITEQ), 
-          SUM(e.CREDITEQ) 
-        FROM 
-          ac_entry e 
-        WHERE 
-          e.accountkey = :id AND e.entrydate >= :datebegin AND 
-          e.entrydate <= :dateend AND 
-          (e.companykey = :companykey or e.companykey IN ( 
-          SELECT h.companykey FROM gd_holding h 
-           WHERE h.holdingkey = :companykey)) AND 
-          ((0 = :currkey) OR (e.currkey = :currkey)) AND 
+        FROM
+          ac_entry e
+        WHERE
+          e.accountkey = :id AND e.entrydate >= :datebegin AND
+          e.entrydate <= :dateend AND (e.companykey = :companykey) AND
+          ((0 = :currkey) OR (e.currkey = :currkey))
+        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, EQ_CREDIT;
+    END
+    ELSE
+    BEGIN
+      IF (DONTINMOVE = 1) THEN
+        SELECT
+          SUM(e.DEBITNCU),
+          SUM(e.CREDITNCU),
+          SUM(e.DEBITCURR),
+          SUM(e.CREDITCURR),
+          SUM(e.DEBITEQ),
+          SUM(e.CREDITEQ)
+        FROM
+          ac_entry e JOIN ac_transaction tr ON e.transactionkey = tr.id
+        WHERE
+          e.accountkey = :id AND e.entrydate >= :datebegin AND
+          e.entrydate <= :dateend AND
+          (e.companykey = :companykey or e.companykey IN (
+          SELECT h.companykey FROM gd_holding h
+           WHERE h.holdingkey = :companykey)) AND
+          ((0 = :currkey) OR (e.currkey = :currkey)) AND
           NOT EXISTS( SELECT e_m.id FROM  ac_entry e_m 
               JOIN ac_entry e_cm ON e_cm.recordkey=e_m.recordkey AND 
-               e_cm.accountpart <> e_m.accountpart AND
+               e_cm.accountpart <> e_m.accountpart AND 
                e_cm.accountkey=e_m.accountkey AND 
                (e_m.debitncu=e_cm.creditncu OR 
                 e_m.creditncu=e_cm.debitncu OR 
                 e_m.debitcurr=e_cm.creditcurr OR 
                 e_m.creditcurr=e_cm.debitcurr) 
-              WHERE e_m.id=e.id) 
-        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, :EQ_CREDIT; 
-      ELSE 
-        SELECT 
-          SUM(e.DEBITNCU), 
-          SUM(e.CREDITNCU), 
-          SUM(e.DEBITCURR), 
-          SUM(e.CREDITCURR), 
-          SUM(e.DEBITEQ), 
-          SUM(e.CREDITEQ) 
-        FROM 
-          ac_entry e 
-        WHERE 
-          e.accountkey = :id AND e.entrydate >= :datebegin AND 
-          e.entrydate <= :dateend AND 
-          (e.companykey = :companykey or e.companykey IN ( 
-          SELECT h.companykey FROM gd_holding h 
-           WHERE h.holdingkey = :companykey)) AND 
-          ((0 = :currkey) OR (e.currkey = :currkey)) 
-        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, :EQ_CREDIT; 
-    END 
-                                                                                                             
-    IF (NCU_DEBIT IS NULL) THEN                                                                        
-      NCU_DEBIT = 0;                                                                                   
-
-    IF (NCU_CREDIT IS NULL) THEN                                                                       
-      NCU_CREDIT = 0;                                                                                  
-  
-    IF (CURR_DEBIT IS NULL) THEN                                                                       
-      CURR_DEBIT = 0;                                                                                  
-                                                                                                       
-    IF (CURR_CREDIT IS NULL) THEN                                                                      
-      CURR_CREDIT = 0;                                                                                 
-                                                                                                       
-    IF (EQ_DEBIT IS NULL) THEN  
-      EQ_DEBIT = 0;                                                                                    
-                                                                                                       
-    IF (EQ_CREDIT IS NULL) THEN                                                                        
-      EQ_CREDIT = 0;                                                                                   
-                                                                                                       
-    NCU_END_DEBIT = 0;                                                                                 
-    NCU_END_CREDIT = 0;                                                                                
-    CURR_END_DEBIT = 0;                                                                                
-    CURR_END_CREDIT = 0;                                                                               
-    EQ_END_DEBIT = 0;                                                                                  
-    EQ_END_CREDIT = 0;                                                                                 
-                                                                                                       
-    IF ((ACTIVITY <> 'B') OR (FIELDNAME IS NULL)) THEN                                                 
-    BEGIN                                                                                              
-      SALDO = NCU_BEGIN_DEBIT - NCU_BEGIN_CREDIT + NCU_DEBIT - NCU_CREDIT;                             
-      IF (SALDO > 0) THEN 
-        NCU_END_DEBIT = SALDO;                                                                         
-      ELSE 
-        NCU_END_CREDIT = 0 - SALDO;                                                                    
-
-      SALDOCURR = CURR_BEGIN_DEBIT - CURR_BEGIN_CREDIT + CURR_DEBIT - CURR_CREDIT;                     
-      IF (SALDOCURR > 0) THEN                                                                          
-        CURR_END_DEBIT = SALDOCURR;                                                                    
-      ELSE                                                                                             
-        CURR_END_CREDIT = 0 - SALDOCURR;                                                               
-  
-      SALDOEQ = EQ_BEGIN_DEBIT - EQ_BEGIN_CREDIT + EQ_DEBIT - EQ_CREDIT;                               
-      IF (SALDOEQ > 0) THEN                                                                            
-        EQ_END_DEBIT = SALDOEQ;                                                                        
-      ELSE                                                                                             
-        EQ_END_CREDIT = 0 - SALDOEQ;                                                                   
-    END                                                                                                
-    ELSE  
-    BEGIN  
-      IF ((NCU_BEGIN_DEBIT <> 0) OR (NCU_BEGIN_CREDIT <> 0) OR  
-        (NCU_DEBIT <> 0) OR (NCU_CREDIT <> 0) OR  
-        (CURR_BEGIN_DEBIT <> 0) OR (CURR_BEGIN_CREDIT <> 0) OR  
-        (CURR_DEBIT <> 0) OR (CURR_CREDIT <> 0) OR  
-        (EQ_BEGIN_DEBIT <> 0) OR (EQ_BEGIN_CREDIT <> 0) OR  
-        (EQ_DEBIT <> 0) OR (EQ_CREDIT <> 0)) THEN  
-      BEGIN  
-        SELECT  
-          DEBITsaldo, creditsaldo,  
-          CurrDEBITsaldo, Currcreditsaldo,  
-          EQDEBITsaldo, EQcreditsaldo  
-        FROM AC_ACCOUNTEXSALDO(:DATEEND + 1, :ID, :FIELDNAME, :COMPANYKEY,  
-          :allholdingcompanies, :INGROUP, :currkey)  
-        INTO :NCU_END_DEBIT, :NCU_END_CREDIT, :CURR_END_DEBIT, :CURR_END_CREDIT, :EQ_END_DEBIT, :EQ_END_CREDIT;  
-      END  
+              WHERE e_m.id=e.id)           
+          AND COALESCE(tr.isinternal, 0) = 0
+        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, :EQ_CREDIT;
+      ELSE
+        SELECT
+          SUM(e.DEBITNCU),
+          SUM(e.CREDITNCU),
+          SUM(e.DEBITCURR),
+          SUM(e.CREDITCURR),
+          SUM(e.DEBITEQ),
+          SUM(e.CREDITEQ)
+        FROM
+          ac_entry e
+        WHERE
+          e.accountkey = :id AND e.entrydate >= :datebegin AND
+          e.entrydate <= :dateend AND
+          (e.companykey = :companykey or e.companykey IN (
+          SELECT h.companykey FROM gd_holding h
+           WHERE h.holdingkey = :companykey)) AND
+          ((0 = :currkey) OR (e.currkey = :currkey))
+        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, :EQ_CREDIT;
     END
-    IF ((NCU_BEGIN_DEBIT <> 0) OR (NCU_BEGIN_CREDIT <> 0) OR  
-      (NCU_DEBIT <> 0) OR (NCU_CREDIT <> 0) OR  
-      (CURR_BEGIN_DEBIT <> 0) OR (CURR_BEGIN_CREDIT <> 0) OR  
-      (CURR_DEBIT <> 0) OR (CURR_CREDIT <> 0) OR  
-      (EQ_BEGIN_DEBIT <> 0) OR (EQ_BEGIN_CREDIT <> 0) OR  
-      (EQ_DEBIT <> 0) OR (EQ_CREDIT <> 0)) THEN  
-    SUSPEND;  
-  END  
-END^
+
+    IF (NCU_DEBIT IS NULL) THEN
+      NCU_DEBIT = 0;
+
+    IF (NCU_CREDIT IS NULL) THEN
+      NCU_CREDIT = 0;
+
+    IF (CURR_DEBIT IS NULL) THEN
+      CURR_DEBIT = 0;
+
+    IF (CURR_CREDIT IS NULL) THEN
+      CURR_CREDIT = 0;
+
+    IF (EQ_DEBIT IS NULL) THEN
+      EQ_DEBIT = 0;
+
+    IF (EQ_CREDIT IS NULL) THEN
+      EQ_CREDIT = 0;
+
+    NCU_END_DEBIT = 0;
+    NCU_END_CREDIT = 0;
+    CURR_END_DEBIT = 0;
+    CURR_END_CREDIT = 0;
+    EQ_END_DEBIT = 0;
+    EQ_END_CREDIT = 0;
+
+    IF ((ACTIVITY <> 'B') OR (FIELDNAME IS NULL)) THEN
+    BEGIN
+      SALDO = NCU_BEGIN_DEBIT - NCU_BEGIN_CREDIT + NCU_DEBIT - NCU_CREDIT;
+      IF (SALDO > 0) THEN
+        NCU_END_DEBIT = SALDO;
+      ELSE
+        NCU_END_CREDIT = 0 - SALDO;
+
+      SALDOCURR = CURR_BEGIN_DEBIT - CURR_BEGIN_CREDIT + CURR_DEBIT - CURR_CREDIT;
+      IF (SALDOCURR > 0) THEN
+        CURR_END_DEBIT = SALDOCURR;
+      ELSE
+        CURR_END_CREDIT = 0 - SALDOCURR;
+
+      SALDOEQ = EQ_BEGIN_DEBIT - EQ_BEGIN_CREDIT + EQ_DEBIT - EQ_CREDIT;
+      IF (SALDOEQ > 0) THEN
+        EQ_END_DEBIT = SALDOEQ;
+      ELSE
+        EQ_END_CREDIT = 0 - SALDOEQ;
+    END
+    ELSE
+    BEGIN
+      IF ((NCU_BEGIN_DEBIT <> 0) OR (NCU_BEGIN_CREDIT <> 0) OR
+        (NCU_DEBIT <> 0) OR (NCU_CREDIT <> 0) OR
+        (CURR_BEGIN_DEBIT <> 0) OR (CURR_BEGIN_CREDIT <> 0) OR
+        (CURR_DEBIT <> 0) OR (CURR_CREDIT <> 0) OR
+        (EQ_BEGIN_DEBIT <> 0) OR (EQ_BEGIN_CREDIT <> 0) OR
+        (EQ_DEBIT <> 0) OR (EQ_CREDIT <> 0)) THEN
+      BEGIN
+        SELECT
+          DEBITsaldo, creditsaldo,
+          CurrDEBITsaldo, Currcreditsaldo,
+          EQDEBITsaldo, EQcreditsaldo
+        FROM AC_ACCOUNTEXSALDO(:DATEEND + 1, :ID, :FIELDNAME, :COMPANYKEY,
+          :allholdingcompanies, :INGROUP, :currkey)
+        INTO :NCU_END_DEBIT, :NCU_END_CREDIT, :CURR_END_DEBIT, :CURR_END_CREDIT, :EQ_END_DEBIT, :EQ_END_CREDIT;
+      END
+    END
+    IF ((NCU_BEGIN_DEBIT <> 0) OR (NCU_BEGIN_CREDIT <> 0) OR
+      (NCU_DEBIT <> 0) OR (NCU_CREDIT <> 0) OR
+      (CURR_BEGIN_DEBIT <> 0) OR (CURR_BEGIN_CREDIT <> 0) OR
+      (CURR_DEBIT <> 0) OR (CURR_CREDIT <> 0) OR
+      (EQ_BEGIN_DEBIT <> 0) OR (EQ_BEGIN_CREDIT <> 0) OR
+      (EQ_DEBIT <> 0) OR (EQ_CREDIT <> 0)) THEN
+    SUSPEND;
+  END
+END
+^
 
 /* Процедура для создания оборотной ведомости с помощью расчитанного сальдо */
 CREATE OR ALTER PROCEDURE ac_circulationlist_bal(
@@ -1779,389 +1821,393 @@ RETURNS (
   offbalance INTEGER)
 AS
   DECLARE VARIABLE activity CHAR(1);
-  DECLARE VARIABLE saldo NUMERIC(15, 4); 
-  DECLARE VARIABLE saldocurr NUMERIC(15, 4); 
-  DECLARE VARIABLE saldoeq NUMERIC(15, 4); 
-  DECLARE VARIABLE fieldname VARCHAR(60); 
-  DECLARE VARIABLE lb INTEGER; 
-  DECLARE VARIABLE rb INTEGER; 
-  DECLARE VARIABLE closedate DATE; 
-BEGIN 
-  closedate = CAST((CAST('17.11.1858' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); 
-  
-  SELECT 
-    c.lb, c.rb 
-  FROM 
-    ac_account c 
-  WHERE 
+  DECLARE VARIABLE saldo NUMERIC(15, 4);
+  DECLARE VARIABLE saldocurr NUMERIC(15, 4);
+  DECLARE VARIABLE saldoeq NUMERIC(15, 4);
+  DECLARE VARIABLE fieldname VARCHAR(60);
+  DECLARE VARIABLE lb INTEGER;
+  DECLARE VARIABLE rb INTEGER;
+  DECLARE VARIABLE closedate DATE;
+BEGIN
+  closedate = CAST((CAST('17.11.1858' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE);
+
+  SELECT
+    c.lb, c.rb
+  FROM
+    ac_account c
+  WHERE
     c.id = :accountkey
-  INTO 
-    :lb, :rb; 
-  
-  FOR 
-    SELECT 
-      a.id, a.alias, a.activity, f.fieldname, a.name, a.offbalance 
-    FROM 
-      ac_account a 
-      LEFT JOIN at_relation_fields f ON a.analyticalfield = f.id 
-    WHERE 
-      a.accounttype IN ('A', 'S') 
-      AND a.lb >= :lb AND a.rb <= :rb AND a.alias <> '00' 
-    INTO 
-      :id, :alias, :activity, :fieldname, :name, :offbalance 
-  DO 
-  BEGIN 
-    ncu_begin_debit = 0; 
-    ncu_begin_credit = 0; 
-    curr_begin_debit = 0; 
-    curr_begin_credit = 0; 
-    eq_begin_debit = 0; 
-    eq_begin_credit = 0; 
-  
-    IF ((activity <> 'B') OR (fieldname IS NULL)) THEN 
-    BEGIN 
-      IF (:closedate <= :datebegin) THEN 
-      BEGIN 
-        SELECT 
-          SUM(main.debitncu - main.creditncu), 
+  INTO
+    :lb, :rb;
+
+  FOR
+    SELECT
+      a.id, a.alias, a.activity, f.fieldname, a.name, a.offbalance
+    FROM
+      ac_account a
+      LEFT JOIN  
+        (SELECT aa.accountkey, LIST(rf.fieldname, ', ') AS fieldname
+          FROM  ac_accanalyticsext aa
+            JOIN at_relation_fields rf ON aa.valuekey = rf.id
+          GROUP BY aa.accountkey) f
+        ON a.id = f.accountkey
+    WHERE
+      a.accounttype IN ('A', 'S')
+      AND a.lb >= :lb AND a.rb <= :rb AND a.alias <> '00'
+    INTO
+      :id, :alias, :activity, :fieldname, :name, :offbalance
+  DO
+  BEGIN
+    ncu_begin_debit = 0;
+    ncu_begin_credit = 0;
+    curr_begin_debit = 0;
+    curr_begin_credit = 0;
+    eq_begin_debit = 0;
+    eq_begin_credit = 0;
+
+    IF ((activity <> 'B') OR (fieldname IS NULL)) THEN
+    BEGIN
+      IF (:closedate <= :datebegin) THEN
+      BEGIN
+        SELECT
+          SUM(main.debitncu - main.creditncu),
           SUM(main.debitcurr - main.creditcurr),
-          SUM(main.debiteq - main.crediteq) 
-        FROM 
-        ( 
-          SELECT 
-            bal.debitncu, 
-            bal.creditncu, 
-            bal.debitcurr, 
-            bal.creditcurr, 
-            bal.debiteq, 
-            bal.crediteq 
-          FROM 
-            ac_entry_balance bal 
-          WHERE 
-            bal.accountkey = :id 
-            AND (bal.companykey + 0 = :companykey 
-              OR (:allholdingcompanies = 1 
-                AND bal.companykey + 0 IN ( 
-                  SELECT 
-                    h.companykey 
-                  FROM 
-                    gd_holding h 
-                  WHERE 
-                    h.holdingkey = :companykey))) 
-            AND ((0 = :currkey) OR (bal.currkey = :currkey)) 
-  
-          UNION ALL 
-  
-          SELECT 
-            e.debitncu, 
-            e.creditncu,
-            e.debitcurr, 
-            e.creditcurr, 
-            e.debiteq, 
-            e.crediteq 
-          FROM 
-            ac_entry e 
-          WHERE 
-            e.accountkey = :id 
-            AND e.entrydate >= :closedate 
-            AND e.entrydate < :datebegin 
-            AND (e.companykey + 0 = :companykey 
-              OR (:allholdingcompanies = 1 
-              AND e.companykey + 0 IN ( 
-                SELECT 
-                  h.companykey 
-                FROM 
-                  gd_holding h 
-                WHERE 
-                  h.holdingkey = :companykey))) 
-            AND ((0 = :currkey) OR (e.currkey = :currkey)) 
-        ) main 
-        INTO 
-          :saldo, :saldocurr, :saldoeq; 
-      END 
-      ELSE 
-      BEGIN 
-        SELECT 
-          SUM(main.debitncu - main.creditncu), 
-          SUM(main.debitcurr - main.creditcurr), 
           SUM(main.debiteq - main.crediteq)
-        FROM 
-        ( 
-          SELECT 
-            bal.debitncu, 
-            bal.creditncu, 
-            bal.debitcurr, 
-            bal.creditcurr, 
-            bal.debiteq, 
-            bal.crediteq 
-          FROM 
-            ac_entry_balance bal 
-          WHERE 
-            bal.accountkey = :id 
-            AND (bal.companykey + 0 = :companykey 
-              OR (:allholdingcompanies = 1 
-                AND bal.companykey + 0 IN ( 
-                  SELECT 
-                    h.companykey 
-                  FROM 
-                    gd_holding h 
-                  WHERE 
-                    h.holdingkey = :companykey))) 
-            AND ((0 = :currkey) OR (bal.currkey = :currkey)) 
- 
-          UNION ALL 
- 
-          SELECT 
-            - e.debitncu, 
-            - e.creditncu, 
-            - e.debitcurr,
-            - e.creditcurr, 
-            - e.debiteq, 
-            - e.crediteq 
-          FROM 
-            ac_entry e 
-          WHERE 
-            e.accountkey = :id 
-            AND e.entrydate >= :datebegin 
-            AND e.entrydate < :closedate 
-            AND (e.companykey + 0 = :companykey 
-              OR (:allholdingcompanies = 1 
-              AND e.companykey + 0 IN ( 
-                SELECT 
-                  h.companykey 
-                FROM 
-                  gd_holding h 
-                WHERE 
-                  h.holdingkey = :companykey))) 
-            AND ((0 = :currkey) OR (e.currkey = :currkey)) 
-        ) main 
-        INTO 
-          :saldo, :saldocurr, :saldoeq; 
-      END 
- 
-      IF (saldo IS NULL) THEN 
-        saldo = 0; 
-      IF (saldocurr IS NULL) THEN 
-        saldocurr = 0;  
-      IF (saldoeq IS NULL) THEN 
-        saldoeq = 0;
-  
-      IF (saldo > 0) THEN 
-        ncu_begin_debit = saldo; 
-      ELSE 
-        ncu_begin_credit = 0 - saldo; 
-      IF (saldocurr > 0) THEN 
-        curr_begin_debit = saldocurr; 
-      ELSE 
-        curr_begin_credit = 0 - saldocurr; 
-      IF (saldoeq > 0) THEN 
-        eq_begin_debit = saldoeq; 
-      ELSE 
-         eq_begin_credit = 0 - saldoeq; 
-    END 
-    ELSE 
-    BEGIN 
-      SELECT 
-        debitsaldo, 
-        creditsaldo 
-      FROM 
-        ac_accountexsaldo_bal(:datebegin, :id, :fieldname, :companykey, :allholdingcompanies, :currkey) 
-      INTO 
-        :ncu_begin_debit, 
-        :ncu_begin_credit; 
-    END 
-  
-    IF (allholdingcompanies = 0) THEN 
-    BEGIN 
-      IF (dontinmove = 1) THEN 
-        SELECT
-          SUM(e.debitncu), 
-          SUM(e.creditncu), 
-          SUM(e.debitcurr), 
-          SUM(e.creditcurr), 
-          SUM(e.debiteq), 
-          SUM(e.crediteq) 
-        FROM 
-          ac_entry e 
-        WHERE 
-          e.accountkey = :id 
-          AND e.entrydate >= :datebegin 
-          AND e.entrydate <= :dateend 
-          AND e.companykey + 0 = :companykey 
-          AND ((0 = :currkey) OR (e.currkey = :currkey)) 
-          AND NOT EXISTS ( 
-            SELECT 
-              e_cm.id 
-            FROM 
-              ac_entry e_cm 
-            WHERE 
-              e_cm.recordkey = e.recordkey 
-              AND e_cm.accountpart <> e.accountpart 
-              AND e_cm.accountkey=e.accountkey 
-              AND (e.debitncu=e_cm.creditncu 
-                OR e.creditncu=e_cm.debitncu 
-                OR e.debitcurr=e_cm.creditcurr 
-                OR e.creditcurr=e_cm.debitcurr)) 
-        INTO 
-          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, eq_credit; 
+        FROM
+        (
+          SELECT
+            bal.debitncu,
+            bal.creditncu,
+            bal.debitcurr,
+            bal.creditcurr,
+            bal.debiteq,
+            bal.crediteq
+          FROM
+            ac_entry_balance bal
+          WHERE
+            bal.accountkey = :id
+            AND (bal.companykey + 0 = :companykey
+              OR (:allholdingcompanies = 1
+                AND bal.companykey + 0 IN (
+                  SELECT
+                    h.companykey
+                  FROM
+                    gd_holding h
+                  WHERE
+                    h.holdingkey = :companykey)))
+            AND ((0 = :currkey) OR (bal.currkey = :currkey))
+
+          UNION ALL
+
+          SELECT
+            e.debitncu,
+            e.creditncu,
+            e.debitcurr,
+            e.creditcurr,
+            e.debiteq,
+            e.crediteq
+          FROM
+            ac_entry e
+          WHERE
+            e.accountkey = :id
+            AND e.entrydate >= :closedate
+            AND e.entrydate < :datebegin
+            AND (e.companykey + 0 = :companykey
+              OR (:allholdingcompanies = 1
+              AND e.companykey + 0 IN (
+                SELECT
+                  h.companykey
+                FROM
+                  gd_holding h
+                WHERE
+                  h.holdingkey = :companykey)))
+            AND ((0 = :currkey) OR (e.currkey = :currkey))
+        ) main
+        INTO
+          :saldo, :saldocurr, :saldoeq;
+      END
       ELSE
-        SELECT 
-          SUM(e.debitncu), 
-          SUM(e.creditncu), 
-          SUM(e.debitcurr), 
-          SUM(e.creditcurr), 
-          SUM(e.debiteq), 
-          SUM(e.crediteq) 
-        FROM 
-          ac_entry e 
-        WHERE 
-          e.accountkey = :id 
-          AND e.entrydate >= :datebegin 
-          AND e.entrydate <= :dateend 
-          AND e.companykey + 0 = :companykey 
-          AND ((0 = :currkey) OR (e.currkey = :currkey)) 
-        INTO 
-          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, eq_credit; 
-    END 
-    ELSE 
-    BEGIN 
-      IF (dontinmove = 1) THEN 
-        SELECT 
-          SUM(e.debitncu), 
-          SUM(e.creditncu), 
-          SUM(e.debitcurr), 
-          SUM(e.creditcurr), 
-          SUM(e.debiteq), 
-          SUM(e.crediteq) 
-        FROM 
-          ac_entry e
-        WHERE 
-          e.accountkey = :id 
-          AND e.entrydate >= :datebegin 
-          AND e.entrydate <= :dateend 
-          AND (e.companykey + 0 = :companykey 
-            OR e.companykey + 0 IN ( 
-              SELECT 
-                h.companykey 
-              FROM 
-                gd_holding h 
-              WHERE 
-                h.holdingkey = :companykey)) 
-          AND ((0 = :currkey) OR (e.currkey = :currkey)) 
-          AND NOT EXISTS ( 
-            SELECT 
-              e_cm.id 
-            FROM 
-              ac_entry e_cm 
-            WHERE 
-              e_cm.recordkey = e.recordkey 
-              AND e_cm.accountpart <> e.accountpart 
-              AND e_cm.accountkey=e.accountkey 
-              AND (e.debitncu=e_cm.creditncu 
-                OR e.creditncu=e_cm.debitncu 
-                OR e.debitcurr=e_cm.creditcurr 
-                OR e.creditcurr=e_cm.debitcurr)) 
-        INTO 
-          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, :eq_credit; 
-      ELSE 
+      BEGIN
         SELECT
-          SUM(e.debitncu), 
-          SUM(e.creditncu), 
-          SUM(e.debitcurr), 
-          SUM(e.creditcurr), 
-          SUM(e.debiteq), 
-          SUM(e.crediteq) 
-        FROM 
-          ac_entry e 
-        WHERE 
-          e.accountkey = :id 
-          AND e.entrydate >= :datebegin 
-          AND e.entrydate <= :dateend 
-          AND (e.companykey + 0 = :companykey 
-            OR e.companykey + 0 IN ( 
-              SELECT 
-                h.companykey 
-              FROM 
-                gd_holding h 
-              WHERE 
-                h.holdingkey = :companykey)) 
-          AND ((0 = :currkey) OR (e.currkey = :currkey)) 
-        INTO 
-          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, :eq_credit; 
-    END 
-  
-    IF (ncu_debit IS NULL) THEN 
-      ncu_debit = 0;  
-    IF (ncu_credit IS NULL) THEN 
-      ncu_credit = 0; 
+          SUM(main.debitncu - main.creditncu),
+          SUM(main.debitcurr - main.creditcurr),
+          SUM(main.debiteq - main.crediteq)
+        FROM
+        (
+          SELECT
+            bal.debitncu,
+            bal.creditncu,
+            bal.debitcurr,
+            bal.creditcurr,
+            bal.debiteq,
+            bal.crediteq
+          FROM
+            ac_entry_balance bal
+          WHERE
+            bal.accountkey = :id
+            AND (bal.companykey + 0 = :companykey
+              OR (:allholdingcompanies = 1
+                AND bal.companykey + 0 IN (
+                  SELECT
+                    h.companykey
+                  FROM
+                    gd_holding h
+                  WHERE
+                    h.holdingkey = :companykey)))
+            AND ((0 = :currkey) OR (bal.currkey = :currkey))
+
+          UNION ALL
+
+          SELECT
+            - e.debitncu,
+            - e.creditncu,
+            - e.debitcurr,
+            - e.creditcurr,
+            - e.debiteq,
+            - e.crediteq
+          FROM
+            ac_entry e
+          WHERE
+            e.accountkey = :id
+            AND e.entrydate >= :datebegin
+            AND e.entrydate < :closedate
+            AND (e.companykey + 0 = :companykey
+              OR (:allholdingcompanies = 1
+              AND e.companykey + 0 IN (
+                SELECT
+                  h.companykey
+                FROM
+                  gd_holding h
+                WHERE
+                  h.holdingkey = :companykey)))
+            AND ((0 = :currkey) OR (e.currkey = :currkey))
+        ) main
+        INTO
+          :saldo, :saldocurr, :saldoeq;
+      END
+
+      IF (saldo IS NULL) THEN
+        saldo = 0;
+      IF (saldocurr IS NULL) THEN
+        saldocurr = 0;
+      IF (saldoeq IS NULL) THEN
+        saldoeq = 0;
+
+      IF (saldo > 0) THEN
+        ncu_begin_debit = saldo;
+      ELSE
+        ncu_begin_credit = 0 - saldo;
+      IF (saldocurr > 0) THEN
+        curr_begin_debit = saldocurr;
+      ELSE
+        curr_begin_credit = 0 - saldocurr;
+      IF (saldoeq > 0) THEN
+        eq_begin_debit = saldoeq;
+      ELSE
+         eq_begin_credit = 0 - saldoeq;
+    END
+    ELSE
+    BEGIN
+      SELECT
+        debitsaldo,
+        creditsaldo
+      FROM
+        ac_accountexsaldo_bal(:datebegin, :id, :fieldname, :companykey, :allholdingcompanies, :currkey)
+      INTO
+        :ncu_begin_debit,
+        :ncu_begin_credit;
+    END
+
+    IF (allholdingcompanies = 0) THEN
+    BEGIN
+      IF (dontinmove = 1) THEN
+        SELECT
+          SUM(e.debitncu),
+          SUM(e.creditncu),
+          SUM(e.debitcurr),
+          SUM(e.creditcurr),
+          SUM(e.debiteq),
+          SUM(e.crediteq)
+        FROM
+          ac_entry e
+        WHERE
+          e.accountkey = :id
+          AND e.entrydate >= :datebegin
+          AND e.entrydate <= :dateend
+          AND e.companykey + 0 = :companykey
+          AND ((0 = :currkey) OR (e.currkey = :currkey))
+          AND NOT EXISTS (
+            SELECT
+              e_cm.id
+            FROM
+              ac_entry e_cm
+            WHERE
+              e_cm.recordkey = e.recordkey
+              AND e_cm.accountpart <> e.accountpart
+              AND e_cm.accountkey=e.accountkey
+              AND (e.debitncu=e_cm.creditncu
+                OR e.creditncu=e_cm.debitncu
+                OR e.debitcurr=e_cm.creditcurr
+                OR e.creditcurr=e_cm.debitcurr))
+        INTO
+          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, eq_credit;
+      ELSE
+        SELECT
+          SUM(e.debitncu),
+          SUM(e.creditncu),
+          SUM(e.debitcurr),
+          SUM(e.creditcurr),
+          SUM(e.debiteq),
+          SUM(e.crediteq)
+        FROM
+          ac_entry e
+        WHERE
+          e.accountkey = :id
+          AND e.entrydate >= :datebegin
+          AND e.entrydate <= :dateend
+          AND e.companykey + 0 = :companykey
+          AND ((0 = :currkey) OR (e.currkey = :currkey))
+        INTO
+          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, eq_credit;
+    END
+    ELSE
+    BEGIN
+      IF (dontinmove = 1) THEN
+        SELECT
+          SUM(e.debitncu),
+          SUM(e.creditncu),
+          SUM(e.debitcurr),
+          SUM(e.creditcurr),
+          SUM(e.debiteq),
+          SUM(e.crediteq)
+        FROM
+          ac_entry e
+        WHERE
+          e.accountkey = :id
+          AND e.entrydate >= :datebegin
+          AND e.entrydate <= :dateend
+          AND (e.companykey + 0 = :companykey
+            OR e.companykey + 0 IN (
+              SELECT
+                h.companykey
+              FROM
+                gd_holding h
+              WHERE
+                h.holdingkey = :companykey))
+          AND ((0 = :currkey) OR (e.currkey = :currkey))
+          AND NOT EXISTS (
+            SELECT
+              e_cm.id
+            FROM
+              ac_entry e_cm
+            WHERE
+              e_cm.recordkey = e.recordkey
+              AND e_cm.accountpart <> e.accountpart
+              AND e_cm.accountkey=e.accountkey
+              AND (e.debitncu=e_cm.creditncu
+                OR e.creditncu=e_cm.debitncu
+                OR e.debitcurr=e_cm.creditcurr
+                OR e.creditcurr=e_cm.debitcurr))
+        INTO
+          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, :eq_credit;
+      ELSE
+        SELECT
+          SUM(e.debitncu),
+          SUM(e.creditncu),
+          SUM(e.debitcurr),
+          SUM(e.creditcurr),
+          SUM(e.debiteq),
+          SUM(e.crediteq)
+        FROM
+          ac_entry e
+        WHERE
+          e.accountkey = :id
+          AND e.entrydate >= :datebegin
+          AND e.entrydate <= :dateend
+          AND (e.companykey + 0 = :companykey
+            OR e.companykey + 0 IN (
+              SELECT
+                h.companykey
+              FROM
+                gd_holding h
+              WHERE
+                h.holdingkey = :companykey))
+          AND ((0 = :currkey) OR (e.currkey = :currkey))
+        INTO
+          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, :eq_credit;
+    END
+
+    IF (ncu_debit IS NULL) THEN
+      ncu_debit = 0;
+    IF (ncu_credit IS NULL) THEN
+      ncu_credit = 0;
     IF (curr_debit IS NULL) THEN
-      curr_debit = 0; 
-    IF (curr_credit IS NULL) THEN 
-      curr_credit = 0; 
-    IF (eq_debit IS NULL) THEN 
-      eq_debit = 0; 
-    IF (eq_credit IS NULL) THEN 
-      eq_credit = 0; 
-  
-    ncu_end_debit = 0; 
-    ncu_end_credit = 0; 
-    curr_end_debit = 0; 
-    curr_end_credit = 0; 
-    eq_end_debit = 0; 
-    eq_end_credit = 0; 
-  
-    IF ((activity <> 'B') OR (fieldname IS NULL)) THEN 
-    BEGIN 
-      saldo = ncu_begin_debit - ncu_begin_credit + ncu_debit - ncu_credit; 
-      IF (saldo > 0) THEN 
-        ncu_end_debit = saldo; 
-      ELSE 
-        ncu_end_credit = 0 - saldo; 
-  
-      saldocurr = curr_begin_debit - curr_begin_credit + curr_debit - curr_credit; 
-      IF (saldocurr > 0) THEN 
-        curr_end_debit = saldocurr; 
-      ELSE 
-        curr_end_credit = 0 - saldocurr; 
-  
+      curr_debit = 0;
+    IF (curr_credit IS NULL) THEN
+      curr_credit = 0;
+    IF (eq_debit IS NULL) THEN
+      eq_debit = 0;
+    IF (eq_credit IS NULL) THEN
+      eq_credit = 0;
+
+    ncu_end_debit = 0;
+    ncu_end_credit = 0;
+    curr_end_debit = 0;
+    curr_end_credit = 0;
+    eq_end_debit = 0;
+    eq_end_credit = 0;
+
+    IF ((activity <> 'B') OR (fieldname IS NULL)) THEN
+    BEGIN
+      saldo = ncu_begin_debit - ncu_begin_credit + ncu_debit - ncu_credit;
+      IF (saldo > 0) THEN
+        ncu_end_debit = saldo;
+      ELSE
+        ncu_end_credit = 0 - saldo;
+
+      saldocurr = curr_begin_debit - curr_begin_credit + curr_debit - curr_credit;
+      IF (saldocurr > 0) THEN
+        curr_end_debit = saldocurr;
+      ELSE
+        curr_end_credit = 0 - saldocurr;
+
       saldoeq = eq_begin_debit - eq_begin_credit + eq_debit - eq_credit;
-      IF (saldoeq > 0) THEN 
-        eq_end_debit = saldoeq; 
-      ELSE 
-        eq_end_credit = 0 - saldoeq; 
-    END 
-    ELSE 
-    BEGIN 
-      IF ((ncu_begin_debit <> 0) OR (ncu_begin_credit <> 0) OR 
-        (ncu_debit <> 0) OR (ncu_credit <> 0) OR 
-        (curr_begin_debit <> 0) OR (curr_begin_credit <> 0) OR 
-        (curr_debit <> 0) OR (curr_credit <> 0) OR 
-        (eq_begin_debit <> 0) OR (eq_begin_credit <> 0) OR 
-        (eq_debit <> 0) OR (eq_credit <> 0)) THEN 
-      BEGIN 
-        SELECT 
-          debitsaldo, creditsaldo, 
-          currdebitsaldo, currcreditsaldo, 
-          eqdebitsaldo, eqcreditsaldo 
-        FROM 
-          ac_accountexsaldo_bal(:dateend + 1, :id, :fieldname, :companykey, :allholdingcompanies, :currkey) 
-        INTO 
-          :ncu_end_debit, :ncu_end_credit, :curr_end_debit, :curr_end_credit, :eq_end_debit, :eq_end_credit; 
-      END 
-    END 
-    IF ((ncu_begin_debit <> 0) OR (ncu_begin_credit <> 0) OR 
-      (ncu_debit <> 0) OR (ncu_credit <> 0) OR 
-      (curr_begin_debit <> 0) OR (curr_begin_credit <> 0) OR 
-      (curr_debit <> 0) OR (curr_credit <> 0) OR 
-      (eq_begin_debit <> 0) OR (eq_begin_credit <> 0) OR 
+      IF (saldoeq > 0) THEN
+        eq_end_debit = saldoeq;
+      ELSE
+        eq_end_credit = 0 - saldoeq;
+    END
+    ELSE
+    BEGIN
+      IF ((ncu_begin_debit <> 0) OR (ncu_begin_credit <> 0) OR
+        (ncu_debit <> 0) OR (ncu_credit <> 0) OR
+        (curr_begin_debit <> 0) OR (curr_begin_credit <> 0) OR
+        (curr_debit <> 0) OR (curr_credit <> 0) OR
+        (eq_begin_debit <> 0) OR (eq_begin_credit <> 0) OR
+        (eq_debit <> 0) OR (eq_credit <> 0)) THEN
+      BEGIN
+        SELECT
+          debitsaldo, creditsaldo,
+          currdebitsaldo, currcreditsaldo,
+          eqdebitsaldo, eqcreditsaldo
+        FROM
+          ac_accountexsaldo_bal(:dateend + 1, :id, :fieldname, :companykey, :allholdingcompanies, :currkey)
+        INTO
+          :ncu_end_debit, :ncu_end_credit, :curr_end_debit, :curr_end_credit, :eq_end_debit, :eq_end_credit;
+      END
+    END
+    IF ((ncu_begin_debit <> 0) OR (ncu_begin_credit <> 0) OR
+      (ncu_debit <> 0) OR (ncu_credit <> 0) OR
+      (curr_begin_debit <> 0) OR (curr_begin_credit <> 0) OR
+      (curr_debit <> 0) OR (curr_credit <> 0) OR
+      (eq_begin_debit <> 0) OR (eq_begin_credit <> 0) OR
       (eq_debit <> 0) OR (eq_credit <> 0)) THEN
-      SUSPEND; 
-  END 
+      SUSPEND;
+  END
 END
 ^
 
 COMMIT ^
-
 
 CREATE PROCEDURE AC_GETSIMPLEENTRY (
     ENTRYKEY INTEGER,
@@ -2176,7 +2222,7 @@ RETURNS (
     CREDITEQ NUMERIC(15,4))
 AS
 BEGIN
-  ID = :ENTRYKEY; 
+  ID = :ENTRYKEY;
   SELECT
     SUM(iif(corr_e.issimple = 0, corr_e.creditncu, e.debitncu)),
     SUM(iif(corr_e.issimple = 0, corr_e.debitncu, e.creditncu)),
@@ -2316,6 +2362,7 @@ ALTER TABLE AC_ACCT_CONFIG ADD CONSTRAINT FK_AC_ACCT_CONFIG_FOLDER
 
 COMMIT;
 
+
 /****************************************************
 
   Таблица связка счета с ед.измерения
@@ -2350,16 +2397,18 @@ COMMIT;
 
 /****************************************************
 
-  Таблица количестенных показателей проводки
+  Таблица количественных показателей проводки
 
 *****************************************************/
 
 CREATE TABLE ac_quantity
 (
-  id          dintkey  PRIMARY KEY,
+  id          dintkey,
   entrykey    dmasterkey,
   valuekey    dintkey,
-  quantity    dcurrency
+  quantity    dcurrency,
+  
+  CONSTRAINT ac_pk_quantity PRIMARY KEY (id) 
  );
 
 COMMIT;
@@ -2451,298 +2500,298 @@ declare variable saldoendcurr dcurrency;
 declare variable saldobegineq dcurrency;
 declare variable saldoendeq dcurrency;
 declare variable c integer;
-BEGIN 
-  IF (:SQLHANDLE = 0) THEN 
-  BEGIN 
+BEGIN
+  IF (:SQLHANDLE = 0) THEN
+  BEGIN
     SELECT
-      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
-      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
-      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
-    FROM 
-      ac_entry e1 
-    WHERE 
-      (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e1.companykey  + 0 IN ( 
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      ((0 = :currkey) OR (e1.currkey = :currkey)) AND 
-      e1.entrydate < :abeginentrydate 
-    INTO :saldobegin, 
-         :saldobegincurr, 
-         :saldobegineq; 
- 
-    IF (saldobegin IS NULL) THEN 
-      saldobegin = 0; 
-    IF (saldobegincurr IS NULL) THEN 
-      saldobegincurr = 0; 
-    IF (saldobegineq IS NULL) THEN 
-      saldobegineq = 0; 
- 
-    C = 0; 
+      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0),
+      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0),
+      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0)
+    FROM
+      ac_entry e1
+    WHERE
+      (e1.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e1.companykey  + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      ((0 = :currkey) OR (e1.currkey = :currkey)) AND
+      e1.entrydate < :abeginentrydate
+    INTO :saldobegin,
+         :saldobegincurr,
+         :saldobegineq;
+
+    IF (saldobegin IS NULL) THEN
+      saldobegin = 0;
+    IF (saldobegincurr IS NULL) THEN
+      saldobegincurr = 0;
+    IF (saldobegineq IS NULL) THEN
+      saldobegineq = 0;
+
+    C = 0;
     FORCESHOW = 0;
-    FOR 
-      SELECT 
-        e.entrydate, 
-        SUM(e.debitncu - e.creditncu), 
-        SUM(e.debitcurr - e.creditcurr), 
-        SUM(e.debiteq - e.crediteq) 
-      FROM 
-        ac_entry e 
-      WHERE 
-        (e.companykey + 0 = :companykey OR 
-        (:ALLHOLDINGCOMPANIES = 1 AND 
-        e.companykey + 0 IN ( 
-          SELECT 
-            h.companykey 
-          FROM 
-            gd_holding h 
-          WHERE 
-            h.holdingkey = :companykey))) AND 
-        ((0 = :currkey) OR (e.currkey = :currkey)) AND 
-         e.entrydate <= :aendentrydate AND 
-        e.entrydate >= :abeginentrydate 
- 
-      GROUP BY e.entrydate 
-      INTO :ENTRYDATE, 
-           :O, 
-           :OCURR, 
-           :OEQ 
-    DO 
-    BEGIN 
-      DEBITNCUBEGIN = 0;
-      CREDITNCUBEGIN = 0; 
-      DEBITNCUEND = 0; 
-      CREDITNCUEND = 0; 
-      DEBITCURRBEGIN = 0; 
-      CREDITCURRBEGIN = 0; 
-      DEBITCURREND = 0; 
-      CREDITCURREND = 0; 
-      DEBITEQBEGIN = 0; 
-      CREDITEQBEGIN = 0; 
-      DEBITEQEND = 0; 
-      CREDITEQEND = 0; 
-      SALDOEND = :SALDOBEGIN + :O; 
-      if (SALDOBEGIN > 0) then 
-        DEBITNCUBEGIN = :SALDOBEGIN; 
-      else 
-        CREDITNCUBEGIN =  - :SALDOBEGIN; 
-      if (SALDOEND > 0) then 
-        DEBITNCUEND = :SALDOEND; 
-      else 
-        CREDITNCUEND =  - :SALDOEND; 
-      SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
-      if (SALDOBEGINCURR > 0) then 
-        DEBITCURRBEGIN = :SALDOBEGINCURR; 
-      else 
-        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-      if (SALDOENDCURR > 0) then 
-        DEBITCURREND = :SALDOENDCURR; 
-      else 
-        CREDITCURREND =  - :SALDOENDCURR; 
-      SALDOENDEQ = :SALDOBEGINEQ + :OEQ;
-      if (SALDOBEGINEQ > 0) then 
-        DEBITEQBEGIN = :SALDOBEGINEQ; 
-      else 
-        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-      if (SALDOENDEQ > 0) then 
-        DEBITEQEND = :SALDOENDEQ; 
-      else 
-        CREDITEQEND =  - :SALDOENDEQ; 
-      SUSPEND; 
-      SALDOBEGIN = :SALDOEND; 
-      SALDOBEGINCURR = :SALDOENDCURR; 
-      C = C + 1; 
-    END 
-    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-    IF (C = 0) THEN 
-    BEGIN 
-      ENTRYDATE = :abeginentrydate; 
-      IF (SALDOBEGIN > 0) THEN 
-      BEGIN 
-        DEBITNCUBEGIN = :SALDOBEGIN; 
-        DEBITNCUEND = :SALDOBEGIN; 
-      END ELSE 
-      BEGIN 
-        CREDITNCUBEGIN =  - :SALDOBEGIN; 
-        CREDITNCUEND =  - :SALDOBEGIN; 
-      END 
-   
-      IF (SALDOBEGINCURR > 0) THEN 
-      BEGIN 
-        DEBITCURRBEGIN = :SALDOBEGINCURR;
-        DEBITCURREND = :SALDOBEGINCURR; 
-      END ELSE 
-      BEGIN 
-        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-        CREDITCURREND =  - :SALDOBEGINCURR; 
-      END 
- 
-      IF (SALDOBEGINEQ > 0) THEN 
-      BEGIN 
-        DEBITEQBEGIN = :SALDOBEGINEQ; 
-        DEBITEQEND = :SALDOBEGINEQ; 
-      END ELSE 
-      BEGIN 
-        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-        CREDITEQEND =  - :SALDOBEGINEQ; 
-      END 
-   
-      FORCESHOW = 1; 
-      SUSPEND; 
-    END 
-  END 
-  ELSE 
-  BEGIN 
-    SELECT 
-      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
-      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
-      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
-    FROM 
-      ac_ledger_accounts a JOIN 
-      ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate
-      AND a.sqlhandle = :sqlhandle  
-    WHERE 
-      (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e1.companykey  + 0 IN ( 
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      ((0 = :currkey) OR (e1.currkey = :currkey)) 
-    INTO :saldobegin, 
-         :saldobegincurr, 
-         :saldobegineq; 
- 
-    IF (saldobegin IS NULL) THEN 
-      saldobegin = 0; 
-    IF (saldobegincurr IS NULL) THEN 
-      saldobegincurr = 0; 
-    IF (saldobegineq IS NULL) THEN 
-      saldobegineq = 0; 
- 
-    C = 0; 
-    FORCESHOW = 0; 
-    FOR 
-      SELECT 
-        e.entrydate, 
-        SUM(e.debitncu - e.creditncu), 
+    FOR
+      SELECT
+        e.entrydate,
+        SUM(e.debitncu - e.creditncu),
         SUM(e.debitcurr - e.creditcurr),
-        SUM(e.debiteq - e.crediteq) 
-      FROM 
-        ac_ledger_accounts a 
-        JOIN ac_entry e ON a.accountkey = e.accountkey AND 
-            e.entrydate <= :aendentrydate AND 
-            e.entrydate >= :abeginentrydate 
-            AND a.sqlhandle = :sqlhandle  
-      WHERE 
-        (e.companykey + 0 = :companykey OR 
-        (:ALLHOLDINGCOMPANIES = 1 AND 
-        e.companykey + 0 IN ( 
-          SELECT 
-            h.companykey 
-          FROM 
-            gd_holding h 
-          WHERE 
-            h.holdingkey = :companykey))) AND 
-        ((0 = :currkey) OR (e.currkey = :currkey)) 
-      GROUP BY e.entrydate 
-      INTO :ENTRYDATE, 
-           :O, 
-           :OCURR, 
-           :OEQ 
-    DO 
-    BEGIN 
-      DEBITNCUBEGIN = 0; 
-      CREDITNCUBEGIN = 0; 
-      DEBITNCUEND = 0; 
-      CREDITNCUEND = 0; 
+        SUM(e.debiteq - e.crediteq)
+      FROM
+        ac_entry e
+      WHERE
+        (e.companykey + 0 = :companykey OR
+        (:ALLHOLDINGCOMPANIES = 1 AND
+        e.companykey + 0 IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey))) AND
+        ((0 = :currkey) OR (e.currkey = :currkey)) AND
+         e.entrydate <= :aendentrydate AND
+        e.entrydate >= :abeginentrydate
+
+      GROUP BY e.entrydate
+      INTO :ENTRYDATE,
+           :O,
+           :OCURR,
+           :OEQ
+    DO
+    BEGIN
+      DEBITNCUBEGIN = 0;
+      CREDITNCUBEGIN = 0;
+      DEBITNCUEND = 0;
+      CREDITNCUEND = 0;
       DEBITCURRBEGIN = 0;
-      CREDITCURRBEGIN = 0; 
-      DEBITCURREND = 0; 
-      CREDITCURREND = 0; 
-      DEBITEQBEGIN = 0; 
-      CREDITEQBEGIN = 0; 
-      DEBITEQEND = 0; 
-      CREDITEQEND = 0; 
-      SALDOEND = :SALDOBEGIN + :O; 
-      if (SALDOBEGIN > 0) then 
-        DEBITNCUBEGIN = :SALDOBEGIN; 
-      else 
-        CREDITNCUBEGIN =  - :SALDOBEGIN; 
-      if (SALDOEND > 0) then 
-        DEBITNCUEND = :SALDOEND; 
-      else 
-        CREDITNCUEND =  - :SALDOEND; 
-      SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
-      if (SALDOBEGINCURR > 0) then 
-        DEBITCURRBEGIN = :SALDOBEGINCURR; 
-      else 
-        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-      if (SALDOENDCURR > 0) then 
-        DEBITCURREND = :SALDOENDCURR; 
-      else 
-        CREDITCURREND =  - :SALDOENDCURR; 
-      SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
-      if (SALDOBEGINEQ > 0) then 
-        DEBITEQBEGIN = :SALDOBEGINEQ; 
-      else 
+      CREDITCURRBEGIN = 0;
+      DEBITCURREND = 0;
+      CREDITCURREND = 0;
+      DEBITEQBEGIN = 0;
+      CREDITEQBEGIN = 0;
+      DEBITEQEND = 0;
+      CREDITEQEND = 0;
+      SALDOEND = :SALDOBEGIN + :O;
+      if (SALDOBEGIN > 0) then
+        DEBITNCUBEGIN = :SALDOBEGIN;
+      else
+        CREDITNCUBEGIN =  - :SALDOBEGIN;
+      if (SALDOEND > 0) then
+        DEBITNCUEND = :SALDOEND;
+      else
+        CREDITNCUEND =  - :SALDOEND;
+      SALDOENDCURR = :SALDOBEGINCURR + :OCURR;
+      if (SALDOBEGINCURR > 0) then
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
+      else
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+      if (SALDOENDCURR > 0) then
+        DEBITCURREND = :SALDOENDCURR;
+      else
+        CREDITCURREND =  - :SALDOENDCURR;
+      SALDOENDEQ = :SALDOBEGINEQ + :OEQ;
+      if (SALDOBEGINEQ > 0) then
+        DEBITEQBEGIN = :SALDOBEGINEQ;
+      else
         CREDITEQBEGIN =  - :SALDOBEGINEQ;
-      if (SALDOENDEQ > 0) then 
-        DEBITEQEND = :SALDOENDEQ; 
-      else 
-        CREDITEQEND =  - :SALDOENDEQ; 
-      SUSPEND; 
-      SALDOBEGIN = :SALDOEND; 
-      SALDOBEGINCURR = :SALDOENDCURR; 
-      SALDOBEGINEQ = :SALDOENDEQ; 
-      C = C + 1; 
-    END 
-    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-    IF (C = 0) THEN 
-    BEGIN 
-      ENTRYDATE = :abeginentrydate; 
-      IF (SALDOBEGIN > 0) THEN 
-      BEGIN 
-        DEBITNCUBEGIN = :SALDOBEGIN; 
-        DEBITNCUEND = :SALDOBEGIN; 
-      END ELSE 
-      BEGIN 
-        CREDITNCUBEGIN =  - :SALDOBEGIN; 
-        CREDITNCUEND =  - :SALDOBEGIN; 
-      END 
- 
-      IF (SALDOBEGINCURR > 0) THEN 
-      BEGIN 
-        DEBITCURRBEGIN = :SALDOBEGINCURR; 
-        DEBITCURREND = :SALDOBEGINCURR; 
-      END ELSE 
+      if (SALDOENDEQ > 0) then
+        DEBITEQEND = :SALDOENDEQ;
+      else
+        CREDITEQEND =  - :SALDOENDEQ;
+      SUSPEND;
+      SALDOBEGIN = :SALDOEND;
+      SALDOBEGINCURR = :SALDOENDCURR;
+      C = C + 1;
+    END
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+    IF (C = 0) THEN
+    BEGIN
+      ENTRYDATE = :abeginentrydate;
+      IF (SALDOBEGIN > 0) THEN
       BEGIN
-        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-        CREDITCURREND =  - :SALDOBEGINCURR; 
-      END 
- 
-      IF (SALDOBEGINEQ > 0) THEN 
-      BEGIN 
-        DEBITEQBEGIN = :SALDOBEGINEQ; 
-        DEBITEQEND = :SALDOBEGINEQ; 
-      END ELSE 
-      BEGIN 
-        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-        CREDITEQEND =  - :SALDOBEGINEQ; 
-      END 
- 
-      FORCESHOW = 1; 
-      SUSPEND; 
-    END 
-  END 
+        DEBITNCUBEGIN = :SALDOBEGIN;
+        DEBITNCUEND = :SALDOBEGIN;
+      END ELSE
+      BEGIN
+        CREDITNCUBEGIN =  - :SALDOBEGIN;
+        CREDITNCUEND =  - :SALDOBEGIN;
+      END
+
+      IF (SALDOBEGINCURR > 0) THEN
+      BEGIN
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
+        DEBITCURREND = :SALDOBEGINCURR;
+      END ELSE
+      BEGIN
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+        CREDITCURREND =  - :SALDOBEGINCURR;
+      END
+
+      IF (SALDOBEGINEQ > 0) THEN
+      BEGIN
+        DEBITEQBEGIN = :SALDOBEGINEQ;
+        DEBITEQEND = :SALDOBEGINEQ;
+      END ELSE
+      BEGIN
+        CREDITEQBEGIN =  - :SALDOBEGINEQ;
+        CREDITEQEND =  - :SALDOBEGINEQ;
+      END
+
+      FORCESHOW = 1;
+      SUSPEND;
+    END
+  END
+  ELSE
+  BEGIN
+    SELECT
+      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0),
+      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0),
+      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0)
+    FROM
+      ac_ledger_accounts a JOIN
+      ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate
+      AND a.sqlhandle = :sqlhandle
+    WHERE
+      (e1.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e1.companykey  + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      ((0 = :currkey) OR (e1.currkey = :currkey))
+    INTO :saldobegin,
+         :saldobegincurr,
+         :saldobegineq;
+
+    IF (saldobegin IS NULL) THEN
+      saldobegin = 0;
+    IF (saldobegincurr IS NULL) THEN
+      saldobegincurr = 0;
+    IF (saldobegineq IS NULL) THEN
+      saldobegineq = 0;
+
+    C = 0;
+    FORCESHOW = 0;
+    FOR
+      SELECT
+        e.entrydate,
+        SUM(e.debitncu - e.creditncu),
+        SUM(e.debitcurr - e.creditcurr),
+        SUM(e.debiteq - e.crediteq)
+      FROM
+        ac_ledger_accounts a
+        JOIN ac_entry e ON a.accountkey = e.accountkey AND
+            e.entrydate <= :aendentrydate AND
+            e.entrydate >= :abeginentrydate
+            AND a.sqlhandle = :sqlhandle
+      WHERE
+        (e.companykey + 0 = :companykey OR
+        (:ALLHOLDINGCOMPANIES = 1 AND
+        e.companykey + 0 IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey))) AND
+        ((0 = :currkey) OR (e.currkey = :currkey))
+      GROUP BY e.entrydate
+      INTO :ENTRYDATE,
+           :O,
+           :OCURR,
+           :OEQ
+    DO
+    BEGIN
+      DEBITNCUBEGIN = 0;
+      CREDITNCUBEGIN = 0;
+      DEBITNCUEND = 0;
+      CREDITNCUEND = 0;
+      DEBITCURRBEGIN = 0;
+      CREDITCURRBEGIN = 0;
+      DEBITCURREND = 0;
+      CREDITCURREND = 0;
+      DEBITEQBEGIN = 0;
+      CREDITEQBEGIN = 0;
+      DEBITEQEND = 0;
+      CREDITEQEND = 0;
+      SALDOEND = :SALDOBEGIN + :O;
+      if (SALDOBEGIN > 0) then
+        DEBITNCUBEGIN = :SALDOBEGIN;
+      else
+        CREDITNCUBEGIN =  - :SALDOBEGIN;
+      if (SALDOEND > 0) then
+        DEBITNCUEND = :SALDOEND;
+      else
+        CREDITNCUEND =  - :SALDOEND;
+      SALDOENDCURR = :SALDOBEGINCURR + :OCURR;
+      if (SALDOBEGINCURR > 0) then
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
+      else
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+      if (SALDOENDCURR > 0) then
+        DEBITCURREND = :SALDOENDCURR;
+      else
+        CREDITCURREND =  - :SALDOENDCURR;
+      SALDOENDEQ = :SALDOBEGINEQ + :OEQ;
+      if (SALDOBEGINEQ > 0) then
+        DEBITEQBEGIN = :SALDOBEGINEQ;
+      else
+        CREDITEQBEGIN =  - :SALDOBEGINEQ;
+      if (SALDOENDEQ > 0) then
+        DEBITEQEND = :SALDOENDEQ;
+      else
+        CREDITEQEND =  - :SALDOENDEQ;
+      SUSPEND;
+      SALDOBEGIN = :SALDOEND;
+      SALDOBEGINCURR = :SALDOENDCURR;
+      SALDOBEGINEQ = :SALDOENDEQ;
+      C = C + 1;
+    END
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+    IF (C = 0) THEN
+    BEGIN
+      ENTRYDATE = :abeginentrydate;
+      IF (SALDOBEGIN > 0) THEN
+      BEGIN
+        DEBITNCUBEGIN = :SALDOBEGIN;
+        DEBITNCUEND = :SALDOBEGIN;
+      END ELSE
+      BEGIN
+        CREDITNCUBEGIN =  - :SALDOBEGIN;
+        CREDITNCUEND =  - :SALDOBEGIN;
+      END
+
+      IF (SALDOBEGINCURR > 0) THEN
+      BEGIN
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
+        DEBITCURREND = :SALDOBEGINCURR;
+      END ELSE
+      BEGIN
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+        CREDITCURREND =  - :SALDOBEGINCURR;
+      END
+
+      IF (SALDOBEGINEQ > 0) THEN
+      BEGIN
+        DEBITEQBEGIN = :SALDOBEGINEQ;
+        DEBITEQEND = :SALDOBEGINEQ;
+      END ELSE
+      BEGIN
+        CREDITEQBEGIN =  - :SALDOBEGINEQ;
+        CREDITEQEND =  - :SALDOBEGINEQ;
+      END
+
+      FORCESHOW = 1;
+      SUSPEND;
+    END
+  END
 END^
 
 COMMIT ^
@@ -2782,298 +2831,298 @@ declare variable oeq dcurrency;
 declare variable saldobegineq dcurrency;
 declare variable saldoendeq dcurrency;
 declare variable c integer;
-BEGIN 
-  IF (:SQLHANDLE = 0) THEN 
+BEGIN
+  IF (:SQLHANDLE = 0) THEN
   BEGIN
-    SELECT 
-      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
-      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
-      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
-    FROM 
-      ac_entry e1 
-    WHERE 
-      (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e1.companykey + 0 IN ( 
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      ((0 = :currkey) OR (e1.currkey = :currkey)) AND 
-      e1.entrydate < :abeginentrydate 
-    INTO :saldobegin, 
-         :saldobegincurr, 
-         :saldobegineq; 
-    if (saldobegin IS NULL) then 
-      saldobegin = 0; 
-    if (saldobegincurr IS NULL) then 
-      saldobegincurr = 0; 
-    if (saldobegineq IS NULL) then 
-      saldobegineq = 0; 
- 
-    C = 0; 
+    SELECT
+      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0),
+      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0),
+      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0)
+    FROM
+      ac_entry e1
+    WHERE
+      (e1.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e1.companykey + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      ((0 = :currkey) OR (e1.currkey = :currkey)) AND
+      e1.entrydate < :abeginentrydate
+    INTO :saldobegin,
+         :saldobegincurr,
+         :saldobegineq;
+    if (saldobegin IS NULL) then
+      saldobegin = 0;
+    if (saldobegincurr IS NULL) then
+      saldobegincurr = 0;
+    if (saldobegineq IS NULL) then
+      saldobegineq = 0;
+
+    C = 0;
     FORCESHOW = 0;
-    FOR 
-      SELECT 
-        SUM(e.debitncu - e.creditncu), 
-        SUM(e.debitcurr - e.creditcurr), 
-        SUM(e.debiteq - e.crediteq), 
-        g_d_getdateparam(e.entrydate, :param) 
-      FROM 
-        ac_entry e 
-      WHERE 
-        (e.companykey + 0 = :companykey OR 
-        (:ALLHOLDINGCOMPANIES = 1 AND 
-        e.companykey + 0 IN ( 
-          SELECT 
-            h.companykey 
-          FROM 
-            gd_holding h 
-          WHERE 
-            h.holdingkey = :companykey))) AND 
-        ((0 = :currkey) OR (e.currkey = :currkey)) AND 
-          e.entrydate <= :aendentrydate AND 
-          e.entrydate >= :abeginentrydate 
-      group by 4 
-      INTO :O, 
-           :OCURR, 
-           :OEQ, 
-           :dateparam 
-    DO 
-    BEGIN 
-      DEBITNCUBEGIN = 0; 
-      CREDITNCUBEGIN = 0;
-      DEBITNCUEND = 0; 
-      CREDITNCUEND = 0; 
-      DEBITCURRBEGIN = 0; 
-      CREDITCURRBEGIN = 0; 
-      DEBITCURREND = 0; 
-      CREDITCURREND = 0; 
-      DEBITEQBEGIN = 0; 
-      CREDITEQBEGIN = 0; 
-      DEBITEQEND = 0; 
-      CREDITEQEND = 0; 
-      SALDOEND = :SALDOBEGIN + :O; 
-      if (SALDOBEGIN > 0) then 
-        DEBITNCUBEGIN = :SALDOBEGIN; 
-      else 
-        CREDITNCUBEGIN =  - :SALDOBEGIN; 
-      if (SALDOEND > 0) then 
-        DEBITNCUEND = :SALDOEND; 
-      else 
-        CREDITNCUEND =  - :SALDOEND; 
-      SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
-      if (SALDOBEGINCURR > 0) then 
-        DEBITCURRBEGIN = :SALDOBEGINCURR; 
-      else 
-        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-      if (SALDOENDCURR > 0) then 
-        DEBITCURREND = :SALDOENDCURR; 
-      else 
-        CREDITCURREND =  - :SALDOENDCURR; 
-      SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
-      if (SALDOBEGINEQ > 0) then
-        DEBITEQBEGIN = :SALDOBEGINEQ; 
-      else 
-        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-      if (SALDOENDEQ > 0) then 
-        DEBITEQEND = :SALDOENDEQ; 
-      else 
-        CREDITEQEND =  - :SALDOENDEQ; 
-      SUSPEND; 
-      SALDOBEGIN = :SALDOEND; 
-      SALDOBEGINCURR = :SALDOENDCURR; 
-      SALDOBEGINEQ = :SALDOENDEQ; 
-      C = C + 1; 
-    END 
-    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-    IF (C = 0) THEN 
-    BEGIN 
-      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
-      IF (SALDOBEGIN > 0) THEN 
-      BEGIN 
-        DEBITNCUBEGIN = :SALDOBEGIN; 
-        DEBITNCUEND = :SALDOBEGIN; 
-      END ELSE 
-      BEGIN 
-        CREDITNCUBEGIN =  - :SALDOBEGIN; 
-        CREDITNCUEND =  - :SALDOBEGIN; 
-      END 
-     
-      IF (SALDOBEGINCURR > 0) THEN 
-      BEGIN 
-        DEBITCURRBEGIN = :SALDOBEGINCURR;
-        DEBITCURREND = :SALDOBEGINCURR; 
-      END ELSE 
-      BEGIN 
-        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-        CREDITCURREND =  - :SALDOBEGINCURR; 
-      END 
- 
-      IF (SALDOBEGINEQ > 0) THEN 
-      BEGIN 
-        DEBITEQBEGIN = :SALDOBEGINEQ; 
-        DEBITEQEND = :SALDOBEGINEQ; 
-      END ELSE 
-      BEGIN 
-        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-        CREDITEQEND =  - :SALDOBEGINEQ; 
-      END 
- 
-      FORCESHOW = 1; 
-      SUSPEND; 
-    END 
-  END 
-  ELSE 
-  BEGIN 
-    SELECT 
-      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
-      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
-      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
-    FROM 
-      ac_ledger_accounts a 
-      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate
-      AND a.sqlhandle = :sqlhandle  
-    WHERE 
-      (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e1.companykey + 0 IN ( 
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      ((0 = :currkey) OR (e1.currkey = :currkey)) 
-    INTO :saldobegin, 
-         :saldobegincurr, 
-         :saldobegineq; 
-    if (saldobegin IS NULL) then 
-      saldobegin = 0; 
-    if (saldobegincurr IS NULL) then 
-      saldobegincurr = 0; 
-    if (saldobegineq IS NULL) then 
-      saldobegineq = 0; 
- 
-    C = 0; 
-    FORCESHOW = 0; 
-    FOR 
-      SELECT 
-        SUM(e.debitncu - e.creditncu), 
-        SUM(e.debitcurr - e.creditcurr), 
-        SUM(e.debiteq - e.crediteq), 
+    FOR
+      SELECT
+        SUM(e.debitncu - e.creditncu),
+        SUM(e.debitcurr - e.creditcurr),
+        SUM(e.debiteq - e.crediteq),
         g_d_getdateparam(e.entrydate, :param)
-      FROM 
-        ac_ledger_accounts a 
-        JOIN ac_entry e ON a.accountkey = e.accountkey AND 
-             e.entrydate <= :aendentrydate AND 
-             e.entrydate >= :abeginentrydate 
-      AND a.sqlhandle = :sqlhandle  
-      WHERE 
-        (e.companykey + 0 = :companykey OR 
-        (:ALLHOLDINGCOMPANIES = 1 AND 
-        e.companykey + 0 IN ( 
-          SELECT 
-            h.companykey 
-          FROM 
-            gd_holding h 
-          WHERE 
-            h.holdingkey = :companykey))) AND 
-        ((0 = :currkey) OR (e.currkey = :currkey)) 
-      group by 4 
-      INTO :O, 
-           :OCURR, 
-           :OEQ, 
-           :dateparam 
-    DO 
-    BEGIN 
-      DEBITNCUBEGIN = 0; 
-      CREDITNCUBEGIN = 0; 
-      DEBITNCUEND = 0; 
-      CREDITNCUEND = 0; 
-      DEBITCURRBEGIN = 0; 
+      FROM
+        ac_entry e
+      WHERE
+        (e.companykey + 0 = :companykey OR
+        (:ALLHOLDINGCOMPANIES = 1 AND
+        e.companykey + 0 IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey))) AND
+        ((0 = :currkey) OR (e.currkey = :currkey)) AND
+          e.entrydate <= :aendentrydate AND
+          e.entrydate >= :abeginentrydate
+      group by 4
+      INTO :O,
+           :OCURR,
+           :OEQ,
+           :dateparam
+    DO
+    BEGIN
+      DEBITNCUBEGIN = 0;
+      CREDITNCUBEGIN = 0;
+      DEBITNCUEND = 0;
+      CREDITNCUEND = 0;
+      DEBITCURRBEGIN = 0;
       CREDITCURRBEGIN = 0;
-      DEBITCURREND = 0; 
-      CREDITCURREND = 0; 
-      DEBITEQBEGIN = 0; 
-      CREDITEQBEGIN = 0; 
-      DEBITEQEND = 0; 
-      CREDITEQEND = 0; 
-      SALDOEND = :SALDOBEGIN + :O; 
-      if (SALDOBEGIN > 0) then 
-        DEBITNCUBEGIN = :SALDOBEGIN; 
-      else 
-        CREDITNCUBEGIN =  - :SALDOBEGIN; 
-      if (SALDOEND > 0) then 
-        DEBITNCUEND = :SALDOEND; 
-      else 
-        CREDITNCUEND =  - :SALDOEND; 
-      SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
-      if (SALDOBEGINCURR > 0) then 
-        DEBITCURRBEGIN = :SALDOBEGINCURR; 
-      else 
-        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-      if (SALDOENDCURR > 0) then 
-        DEBITCURREND = :SALDOENDCURR; 
-      else 
-        CREDITCURREND =  - :SALDOENDCURR; 
-      SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
-      if (SALDOBEGINEQ > 0) then 
-        DEBITEQBEGIN = :SALDOBEGINEQ; 
-      else 
-        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-      if (SALDOENDEQ > 0) then
-        DEBITEQEND = :SALDOENDEQ; 
-      else 
-        CREDITEQEND =  - :SALDOENDEQ; 
-      SUSPEND; 
-      SALDOBEGIN = :SALDOEND; 
-      SALDOBEGINCURR = :SALDOENDCURR; 
-      SALDOBEGINEQ = :SALDOENDEQ; 
-      C = C + 1; 
-    END 
-    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-    IF (C = 0) THEN 
-    BEGIN 
-      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
-      IF (SALDOBEGIN > 0) THEN 
-      BEGIN 
-        DEBITNCUBEGIN = :SALDOBEGIN; 
-        DEBITNCUEND = :SALDOBEGIN; 
-      END ELSE 
-      BEGIN 
-        CREDITNCUBEGIN =  - :SALDOBEGIN; 
-        CREDITNCUEND =  - :SALDOBEGIN; 
-      END 
- 
-      IF (SALDOBEGINCURR > 0) THEN 
-      BEGIN 
-        DEBITCURRBEGIN = :SALDOBEGINCURR; 
-        DEBITCURREND = :SALDOBEGINCURR; 
-      END ELSE 
-      BEGIN 
+      DEBITCURREND = 0;
+      CREDITCURREND = 0;
+      DEBITEQBEGIN = 0;
+      CREDITEQBEGIN = 0;
+      DEBITEQEND = 0;
+      CREDITEQEND = 0;
+      SALDOEND = :SALDOBEGIN + :O;
+      if (SALDOBEGIN > 0) then
+        DEBITNCUBEGIN = :SALDOBEGIN;
+      else
+        CREDITNCUBEGIN =  - :SALDOBEGIN;
+      if (SALDOEND > 0) then
+        DEBITNCUEND = :SALDOEND;
+      else
+        CREDITNCUEND =  - :SALDOEND;
+      SALDOENDCURR = :SALDOBEGINCURR + :OCURR;
+      if (SALDOBEGINCURR > 0) then
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
+      else
         CREDITCURRBEGIN =  - :SALDOBEGINCURR;
-        CREDITCURREND =  - :SALDOBEGINCURR; 
-      END 
- 
-      IF (SALDOBEGINEQ > 0) THEN 
-      BEGIN 
-        DEBITEQBEGIN = :SALDOBEGINEQ; 
-        DEBITEQEND = :SALDOBEGINEQ; 
-      END ELSE 
-      BEGIN 
-        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-        CREDITEQEND =  - :SALDOBEGINEQ; 
-      END 
- 
-      FORCESHOW = 1; 
- 
-      SUSPEND; 
-    END 
-   
-  END 
+      if (SALDOENDCURR > 0) then
+        DEBITCURREND = :SALDOENDCURR;
+      else
+        CREDITCURREND =  - :SALDOENDCURR;
+      SALDOENDEQ = :SALDOBEGINEQ + :OEQ;
+      if (SALDOBEGINEQ > 0) then
+        DEBITEQBEGIN = :SALDOBEGINEQ;
+      else
+        CREDITEQBEGIN =  - :SALDOBEGINEQ;
+      if (SALDOENDEQ > 0) then
+        DEBITEQEND = :SALDOENDEQ;
+      else
+        CREDITEQEND =  - :SALDOENDEQ;
+      SUSPEND;
+      SALDOBEGIN = :SALDOEND;
+      SALDOBEGINCURR = :SALDOENDCURR;
+      SALDOBEGINEQ = :SALDOENDEQ;
+      C = C + 1;
+    END
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+    IF (C = 0) THEN
+    BEGIN
+      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param);
+      IF (SALDOBEGIN > 0) THEN
+      BEGIN
+        DEBITNCUBEGIN = :SALDOBEGIN;
+        DEBITNCUEND = :SALDOBEGIN;
+      END ELSE
+      BEGIN
+        CREDITNCUBEGIN =  - :SALDOBEGIN;
+        CREDITNCUEND =  - :SALDOBEGIN;
+      END
+
+      IF (SALDOBEGINCURR > 0) THEN
+      BEGIN
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
+        DEBITCURREND = :SALDOBEGINCURR;
+      END ELSE
+      BEGIN
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+        CREDITCURREND =  - :SALDOBEGINCURR;
+      END
+
+      IF (SALDOBEGINEQ > 0) THEN
+      BEGIN
+        DEBITEQBEGIN = :SALDOBEGINEQ;
+        DEBITEQEND = :SALDOBEGINEQ;
+      END ELSE
+      BEGIN
+        CREDITEQBEGIN =  - :SALDOBEGINEQ;
+        CREDITEQEND =  - :SALDOBEGINEQ;
+      END
+
+      FORCESHOW = 1;
+      SUSPEND;
+    END
+  END
+  ELSE
+  BEGIN
+    SELECT
+      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0),
+      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0),
+      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0)
+    FROM
+      ac_ledger_accounts a
+      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate
+      AND a.sqlhandle = :sqlhandle
+    WHERE
+      (e1.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e1.companykey + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      ((0 = :currkey) OR (e1.currkey = :currkey))
+    INTO :saldobegin,
+         :saldobegincurr,
+         :saldobegineq;
+    if (saldobegin IS NULL) then
+      saldobegin = 0;
+    if (saldobegincurr IS NULL) then
+      saldobegincurr = 0;
+    if (saldobegineq IS NULL) then
+      saldobegineq = 0;
+
+    C = 0;
+    FORCESHOW = 0;
+    FOR
+      SELECT
+        SUM(e.debitncu - e.creditncu),
+        SUM(e.debitcurr - e.creditcurr),
+        SUM(e.debiteq - e.crediteq),
+        g_d_getdateparam(e.entrydate, :param)
+      FROM
+        ac_ledger_accounts a
+        JOIN ac_entry e ON a.accountkey = e.accountkey AND
+             e.entrydate <= :aendentrydate AND
+             e.entrydate >= :abeginentrydate
+      AND a.sqlhandle = :sqlhandle
+      WHERE
+        (e.companykey + 0 = :companykey OR
+        (:ALLHOLDINGCOMPANIES = 1 AND
+        e.companykey + 0 IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey))) AND
+        ((0 = :currkey) OR (e.currkey = :currkey))
+      group by 4
+      INTO :O,
+           :OCURR,
+           :OEQ,
+           :dateparam
+    DO
+    BEGIN
+      DEBITNCUBEGIN = 0;
+      CREDITNCUBEGIN = 0;
+      DEBITNCUEND = 0;
+      CREDITNCUEND = 0;
+      DEBITCURRBEGIN = 0;
+      CREDITCURRBEGIN = 0;
+      DEBITCURREND = 0;
+      CREDITCURREND = 0;
+      DEBITEQBEGIN = 0;
+      CREDITEQBEGIN = 0;
+      DEBITEQEND = 0;
+      CREDITEQEND = 0;
+      SALDOEND = :SALDOBEGIN + :O;
+      if (SALDOBEGIN > 0) then
+        DEBITNCUBEGIN = :SALDOBEGIN;
+      else
+        CREDITNCUBEGIN =  - :SALDOBEGIN;
+      if (SALDOEND > 0) then
+        DEBITNCUEND = :SALDOEND;
+      else
+        CREDITNCUEND =  - :SALDOEND;
+      SALDOENDCURR = :SALDOBEGINCURR + :OCURR;
+      if (SALDOBEGINCURR > 0) then
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
+      else
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+      if (SALDOENDCURR > 0) then
+        DEBITCURREND = :SALDOENDCURR;
+      else
+        CREDITCURREND =  - :SALDOENDCURR;
+      SALDOENDEQ = :SALDOBEGINEQ + :OEQ;
+      if (SALDOBEGINEQ > 0) then
+        DEBITEQBEGIN = :SALDOBEGINEQ;
+      else
+        CREDITEQBEGIN =  - :SALDOBEGINEQ;
+      if (SALDOENDEQ > 0) then
+        DEBITEQEND = :SALDOENDEQ;
+      else
+        CREDITEQEND =  - :SALDOENDEQ;
+      SUSPEND;
+      SALDOBEGIN = :SALDOEND;
+      SALDOBEGINCURR = :SALDOENDCURR;
+      SALDOBEGINEQ = :SALDOENDEQ;
+      C = C + 1;
+    END
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+    IF (C = 0) THEN
+    BEGIN
+      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param);
+      IF (SALDOBEGIN > 0) THEN
+      BEGIN
+        DEBITNCUBEGIN = :SALDOBEGIN;
+        DEBITNCUEND = :SALDOBEGIN;
+      END ELSE
+      BEGIN
+        CREDITNCUBEGIN =  - :SALDOBEGIN;
+        CREDITNCUEND =  - :SALDOBEGIN;
+      END
+
+      IF (SALDOBEGINCURR > 0) THEN
+      BEGIN
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
+        DEBITCURREND = :SALDOBEGINCURR;
+      END ELSE
+      BEGIN
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+        CREDITCURREND =  - :SALDOBEGINCURR;
+      END
+
+      IF (SALDOBEGINEQ > 0) THEN
+      BEGIN
+        DEBITEQBEGIN = :SALDOBEGINEQ;
+        DEBITEQEND = :SALDOBEGINEQ;
+      END ELSE
+      BEGIN
+        CREDITEQBEGIN =  - :SALDOBEGINEQ;
+        CREDITEQEND =  - :SALDOBEGINEQ;
+      END
+
+      FORCESHOW = 1;
+
+      SUSPEND;
+    END
+
+  END
 END^
 
 COMMIT^
@@ -3100,207 +3149,207 @@ declare variable o numeric(15,4);
 declare variable saldobegin numeric(15,4);
 declare variable saldoend numeric(15,4);
 declare variable c integer;
-BEGIN 
-  IF (:sqlhandle = 0) THEN 
-  BEGIN 
-    SELECT 
-      IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
-        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0, 
-        SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
-        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0) 
-    FROM 
-      ac_entry e1 
-      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
-    WHERE 
-      (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e1.companykey + 0 IN (
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      q.valuekey = :valuekey AND 
-      ((0 = :currkey) OR (e1.currkey = :currkey)) AND 
-      e1.entrydate < :abeginentrydate  
-    INTO :saldobegin; 
-    if (saldobegin IS NULL) then 
-      saldobegin = 0; 
- 
-    C = 0; 
-    FOR 
-      SELECT 
-        e.entrydate, 
-        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
-          SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
-      FROM 
-        ac_entry e 
-        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND 
-          q.valuekey = :valuekey 
-      WHERE 
-        (e.companykey + 0 = :companykey OR 
-        (:ALLHOLDINGCOMPANIES = 1 AND 
-        e.companykey + 0 IN ( 
-          SELECT 
-            h.companykey 
-          FROM
-            gd_holding h 
-          WHERE 
-            h.holdingkey = :companykey))) AND 
-        ((0 = :currkey) OR (e.currkey = :currkey)) AND 
-          e.entrydate <= :aendentrydate AND 
-          e.entrydate >= :abeginentrydate 
-      GROUP BY e.entrydate 
-      INTO :ENTRYDATE, 
-           :O 
-    DO 
-    BEGIN 
-      IF (O IS NULL) THEN O = 0; 
-      DEBITBEGIN = 0; 
-      CREDITBEGIN = 0; 
-      DEBITEND = 0; 
-      CREDITEND = 0; 
-      DEBIT = 0; 
-      CREDIT = 0; 
-      IF (O > 0) THEN 
-        DEBIT = :O; 
-      ELSE 
-        CREDIT = - :O; 
-   
-      SALDOEND = :SALDOBEGIN + :O; 
-      if (SALDOBEGIN > 0) then 
-        DEBITBEGIN = :SALDOBEGIN; 
-      else 
-        CREDITBEGIN =  - :SALDOBEGIN; 
-      if (SALDOEND > 0) then 
-        DEBITEND = :SALDOEND;
-      else 
-        CREDITEND =  - :SALDOEND; 
-      SUSPEND; 
-      SALDOBEGIN = :SALDOEND; 
-      C = C + 1; 
-    END 
-
-    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-    IF (C = 0) THEN 
-    BEGIN 
-      ENTRYDATE = :abeginentrydate; 
-      IF (SALDOBEGIN > 0) THEN 
-      BEGIN 
-        DEBITBEGIN = :SALDOBEGIN; 
-        DEBITEND = :SALDOBEGIN; 
-      END ELSE 
-      BEGIN 
-        CREDITBEGIN =  - :SALDOBEGIN; 
-        CREDITEND =  - :SALDOBEGIN; 
-      END 
-      SUSPEND; 
-    END 
- 
-  END 
-  ELSE 
-  BEGIN 
- 
-    SELECT 
-      IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
+BEGIN
+  IF (:sqlhandle = 0) THEN
+  BEGIN
+    SELECT
+      IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
         SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0,
-        SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
-        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0) 
-    FROM 
-      ac_ledger_accounts a 
-      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND 
-        e1.entrydate < :abeginentrydate 
-      AND a.sqlhandle = :sqlhandle  
-      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
-    WHERE 
-      (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e1.companykey + 0 IN ( 
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      q.valuekey = :valuekey AND 
-      ((0 = :currkey) OR (e1.currkey = :currkey)) 
-    INTO :saldobegin; 
-    if (saldobegin IS NULL) then 
-      saldobegin = 0; 
-   
-    C = 0; 
-    FOR 
-      SELECT 
-        e.entrydate, 
-        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0)
+    FROM
+      ac_entry e1
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id
+    WHERE
+      (e1.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e1.companykey + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      q.valuekey = :valuekey AND
+      ((0 = :currkey) OR (e1.currkey = :currkey)) AND
+      e1.entrydate < :abeginentrydate
+    INTO :saldobegin;
+    if (saldobegin IS NULL) then
+      saldobegin = 0;
+
+    C = 0;
+    FOR
+      SELECT
+        e.entrydate,
+        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) -
           SUM(IIF(e.accountpart = 'C', q.quantity, 0))
-      FROM 
-        ac_ledger_accounts a 
-        JOIN ac_entry e ON a.accountkey = e.accountkey AND 
-          e.entrydate <= :aendentrydate AND 
-          e.entrydate >= :abeginentrydate 
-          AND a.sqlhandle = :sqlhandle  
-        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND 
-          q.valuekey = :valuekey 
-      WHERE 
-        (e.companykey + 0 = :companykey OR 
-        (:ALLHOLDINGCOMPANIES = 1 AND 
-        e.companykey + 0 IN ( 
-          SELECT 
-            h.companykey 
-          FROM 
-            gd_holding h 
-          WHERE 
-            h.holdingkey = :companykey))) AND 
-        ((0 = :currkey) OR (e.currkey = :currkey)) 
-      GROUP BY e.entrydate 
-      INTO :ENTRYDATE, 
-           :O 
-    DO 
-    BEGIN 
-      IF (O IS NULL) THEN O = 0; 
-      DEBITBEGIN = 0; 
-      CREDITBEGIN = 0; 
-      DEBITEND = 0; 
-      CREDITEND = 0; 
+      FROM
+        ac_entry e
+        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND
+          q.valuekey = :valuekey
+      WHERE
+        (e.companykey + 0 = :companykey OR
+        (:ALLHOLDINGCOMPANIES = 1 AND
+        e.companykey + 0 IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey))) AND
+        ((0 = :currkey) OR (e.currkey = :currkey)) AND
+          e.entrydate <= :aendentrydate AND
+          e.entrydate >= :abeginentrydate
+      GROUP BY e.entrydate
+      INTO :ENTRYDATE,
+           :O
+    DO
+    BEGIN
+      IF (O IS NULL) THEN O = 0;
+      DEBITBEGIN = 0;
+      CREDITBEGIN = 0;
+      DEBITEND = 0;
+      CREDITEND = 0;
       DEBIT = 0;
-      CREDIT = 0; 
-      IF (O > 0) THEN 
-        DEBIT = :O; 
-      ELSE 
-        CREDIT = - :O; 
-   
-      SALDOEND = :SALDOBEGIN + :O; 
-      if (SALDOBEGIN > 0) then 
-        DEBITBEGIN = :SALDOBEGIN; 
-      else 
-        CREDITBEGIN =  - :SALDOBEGIN; 
-      if (SALDOEND > 0) then 
-        DEBITEND = :SALDOEND; 
-      else 
-        CREDITEND =  - :SALDOEND; 
-      SUSPEND; 
-      SALDOBEGIN = :SALDOEND; 
-      C = C + 1; 
-    END 
-    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-    IF (C = 0) THEN 
-    BEGIN 
-      ENTRYDATE = :abeginentrydate; 
-      IF (SALDOBEGIN > 0) THEN 
-      BEGIN 
-        DEBITBEGIN = :SALDOBEGIN; 
-        DEBITEND = :SALDOBEGIN; 
-      END ELSE 
-      BEGIN 
+      CREDIT = 0;
+      IF (O > 0) THEN
+        DEBIT = :O;
+      ELSE
+        CREDIT = - :O;
+
+      SALDOEND = :SALDOBEGIN + :O;
+      if (SALDOBEGIN > 0) then
+        DEBITBEGIN = :SALDOBEGIN;
+      else
         CREDITBEGIN =  - :SALDOBEGIN;
-        CREDITEND =  - :SALDOBEGIN; 
-      END 
-      SUSPEND; 
-    END 
- 
-  END 
+      if (SALDOEND > 0) then
+        DEBITEND = :SALDOEND;
+      else
+        CREDITEND =  - :SALDOEND;
+      SUSPEND;
+      SALDOBEGIN = :SALDOEND;
+      C = C + 1;
+    END
+
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+    IF (C = 0) THEN
+    BEGIN
+      ENTRYDATE = :abeginentrydate;
+      IF (SALDOBEGIN > 0) THEN
+      BEGIN
+        DEBITBEGIN = :SALDOBEGIN;
+        DEBITEND = :SALDOBEGIN;
+      END ELSE
+      BEGIN
+        CREDITBEGIN =  - :SALDOBEGIN;
+        CREDITEND =  - :SALDOBEGIN;
+      END
+      SUSPEND;
+    END
+
+  END
+  ELSE
+  BEGIN
+
+    SELECT
+      IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0,
+        SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0)
+    FROM
+      ac_ledger_accounts a
+      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND
+        e1.entrydate < :abeginentrydate
+      AND a.sqlhandle = :sqlhandle
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id
+    WHERE
+      (e1.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e1.companykey + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      q.valuekey = :valuekey AND
+      ((0 = :currkey) OR (e1.currkey = :currkey))
+    INTO :saldobegin;
+    if (saldobegin IS NULL) then
+      saldobegin = 0;
+
+    C = 0;
+    FOR
+      SELECT
+        e.entrydate,
+        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) -
+          SUM(IIF(e.accountpart = 'C', q.quantity, 0))
+      FROM
+        ac_ledger_accounts a
+        JOIN ac_entry e ON a.accountkey = e.accountkey AND
+          e.entrydate <= :aendentrydate AND
+          e.entrydate >= :abeginentrydate
+          AND a.sqlhandle = :sqlhandle
+        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND
+          q.valuekey = :valuekey
+      WHERE
+        (e.companykey + 0 = :companykey OR
+        (:ALLHOLDINGCOMPANIES = 1 AND
+        e.companykey + 0 IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey))) AND
+        ((0 = :currkey) OR (e.currkey = :currkey))
+      GROUP BY e.entrydate
+      INTO :ENTRYDATE,
+           :O
+    DO
+    BEGIN
+      IF (O IS NULL) THEN O = 0;
+      DEBITBEGIN = 0;
+      CREDITBEGIN = 0;
+      DEBITEND = 0;
+      CREDITEND = 0;
+      DEBIT = 0;
+      CREDIT = 0;
+      IF (O > 0) THEN
+        DEBIT = :O;
+      ELSE
+        CREDIT = - :O;
+
+      SALDOEND = :SALDOBEGIN + :O;
+      if (SALDOBEGIN > 0) then
+        DEBITBEGIN = :SALDOBEGIN;
+      else
+        CREDITBEGIN =  - :SALDOBEGIN;
+      if (SALDOEND > 0) then
+        DEBITEND = :SALDOEND;
+      else
+        CREDITEND =  - :SALDOEND;
+      SUSPEND;
+      SALDOBEGIN = :SALDOEND;
+      C = C + 1;
+    END
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+    IF (C = 0) THEN
+    BEGIN
+      ENTRYDATE = :abeginentrydate;
+      IF (SALDOBEGIN > 0) THEN
+      BEGIN
+        DEBITBEGIN = :SALDOBEGIN;
+        DEBITEND = :SALDOBEGIN;
+      END ELSE
+      BEGIN
+        CREDITBEGIN =  - :SALDOBEGIN;
+        CREDITEND =  - :SALDOBEGIN;
+      END
+      SUSPEND;
+    END
+
+  END
 END^
 
 
@@ -3371,203 +3420,203 @@ declare variable o numeric(15,4);
 declare variable saldobegin numeric(15,4);
 declare variable saldoend numeric(15,4);
 declare variable c integer;
-BEGIN 
-  IF (:sqlhandle = 0) THEN 
-  BEGIN 
-    SALDOBEGIN = 0; 
-    SELECT 
-      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
-        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) 
-    FROM 
-      ac_entry e1 
-      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
-    WHERE 
-      e1.entrydate < :abeginentrydate AND 
-      (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND
-      e1.companykey + 0 IN ( 
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      q.valuekey = :valuekey AND 
-      ((0 = :currkey) OR (e1.currkey = :currkey)) 
-    INTO :saldobegin; 
- 
-    if (SALDOBEGIN IS NULL) THEN 
-      SALDOBEGIN = 0; 
-   
-    C = 0; 
-    FOR 
-      SELECT 
-        g_d_getdateparam(e.entrydate, :param), 
-        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
-          SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
-      FROM 
-        ac_entry e 
-        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey 
-      WHERE 
-        e.entrydate <= :aendentrydate AND 
-        e.entrydate >= :abeginentrydate AND 
-        (e.companykey + 0 = :companykey OR 
-        (:ALLHOLDINGCOMPANIES = 1 AND 
-        e.companykey + 0 IN ( 
-          SELECT
-            h.companykey 
-          FROM 
-            gd_holding h 
-          WHERE 
-            h.holdingkey = :companykey))) AND 
-        ((0 = :currkey) OR (e.currkey = :currkey)) 
-      GROUP BY 1 
-      INTO :dateparam, 
-           :O 
-    DO 
-    BEGIN 
-      IF (O IS NULL) THEN O = 0; 
-      DEBITBEGIN = 0; 
-      CREDITBEGIN = 0; 
-      DEBITEND = 0; 
-      CREDITEND = 0; 
-      DEBIT = 0; 
-      CREDIT = 0; 
-      IF (O > 0) THEN 
-        DEBIT = :O; 
-      ELSE 
-        CREDIT = - :O; 
- 
-      SALDOEND = :SALDOBEGIN + :O; 
-      if (SALDOBEGIN > 0) then 
-        DEBITBEGIN = :SALDOBEGIN; 
-      else 
-        CREDITBEGIN =  - :SALDOBEGIN; 
-      if (SALDOEND > 0) then 
-        DEBITEND = :SALDOEND;
-      else 
-        CREDITEND =  - :SALDOEND; 
-      SUSPEND; 
-      SALDOBEGIN = :SALDOEND; 
-      C = C + 1; 
-    END 
-    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-    IF (C = 0) THEN 
-    BEGIN 
-      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
-      IF (SALDOBEGIN > 0) THEN 
-      BEGIN 
-        DEBITBEGIN = :SALDOBEGIN; 
-        DEBITEND = :SALDOBEGIN; 
-      END ELSE 
-      BEGIN 
-        CREDITBEGIN =  - :SALDOBEGIN; 
-        CREDITEND =  - :SALDOBEGIN; 
-      END 
-      SUSPEND; 
-    END 
-  END 
-  ELSE 
-  BEGIN 
- 
-    SALDOBEGIN = 0; 
-    SELECT 
-      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
-        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) 
+BEGIN
+  IF (:sqlhandle = 0) THEN
+  BEGIN
+    SALDOBEGIN = 0;
+    SELECT
+      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0))
     FROM
-      ac_ledger_accounts a 
-      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND 
-        e1.entrydate < :abeginentrydate 
-        AND a.sqlhandle = :sqlhandle  
-      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
-    WHERE 
-      (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e1.companykey + 0 IN ( 
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      q.valuekey = :valuekey AND 
-      ((0 = :currkey) OR (e1.currkey = :currkey)) 
-    INTO :saldobegin; 
-   
-    if (SALDOBEGIN IS NULL) THEN 
-      SALDOBEGIN = 0; 
-   
-    C = 0; 
-    FOR 
-      SELECT 
-        g_d_getdateparam(e.entrydate, :param), 
-        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
-          SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
-      FROM 
-        ac_ledger_accounts a
-        JOIN ac_entry e ON a.accountkey = e.accountkey AND 
-          e.entrydate <= :aendentrydate AND 
-          e.entrydate >= :abeginentrydate 
-          AND a.sqlhandle = :sqlhandle  
-        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey 
-      WHERE 
-        (e.companykey + 0 = :companykey OR 
-        (:ALLHOLDINGCOMPANIES = 1 AND 
-        e.companykey + 0 IN ( 
-          SELECT 
-            h.companykey 
-          FROM 
-            gd_holding h 
-          WHERE 
-            h.holdingkey = :companykey))) AND 
-        ((0 = :currkey) OR (e.currkey = :currkey)) 
-      GROUP BY 1 
-      INTO :dateparam, 
-           :O 
-    DO 
-    BEGIN 
-      IF (O IS NULL) THEN O = 0; 
-      DEBITBEGIN = 0; 
-      CREDITBEGIN = 0; 
-      DEBITEND = 0; 
-      CREDITEND = 0; 
-      DEBIT = 0; 
-      CREDIT = 0; 
-      IF (O > 0) THEN 
+      ac_entry e1
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id
+    WHERE
+      e1.entrydate < :abeginentrydate AND
+      (e1.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e1.companykey + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      q.valuekey = :valuekey AND
+      ((0 = :currkey) OR (e1.currkey = :currkey))
+    INTO :saldobegin;
+
+    if (SALDOBEGIN IS NULL) THEN
+      SALDOBEGIN = 0;
+
+    C = 0;
+    FOR
+      SELECT
+        g_d_getdateparam(e.entrydate, :param),
+        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) -
+          SUM(IIF(e.accountpart = 'C', q.quantity, 0))
+      FROM
+        ac_entry e
+        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey
+      WHERE
+        e.entrydate <= :aendentrydate AND
+        e.entrydate >= :abeginentrydate AND
+        (e.companykey + 0 = :companykey OR
+        (:ALLHOLDINGCOMPANIES = 1 AND
+        e.companykey + 0 IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey))) AND
+        ((0 = :currkey) OR (e.currkey = :currkey))
+      GROUP BY 1
+      INTO :dateparam,
+           :O
+    DO
+    BEGIN
+      IF (O IS NULL) THEN O = 0;
+      DEBITBEGIN = 0;
+      CREDITBEGIN = 0;
+      DEBITEND = 0;
+      CREDITEND = 0;
+      DEBIT = 0;
+      CREDIT = 0;
+      IF (O > 0) THEN
         DEBIT = :O;
-      ELSE 
-        CREDIT = - :O; 
-   
-      SALDOEND = :SALDOBEGIN + :O; 
-      if (SALDOBEGIN > 0) then 
-        DEBITBEGIN = :SALDOBEGIN; 
-      else 
-        CREDITBEGIN =  - :SALDOBEGIN; 
-      if (SALDOEND > 0) then 
-        DEBITEND = :SALDOEND; 
-      else 
-        CREDITEND =  - :SALDOEND; 
-      SUSPEND; 
-      SALDOBEGIN = :SALDOEND; 
-      C = C + 1; 
-    END 
-    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-    IF (C = 0) THEN 
-    BEGIN 
-      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
-      IF (SALDOBEGIN > 0) THEN 
-      BEGIN 
-        DEBITBEGIN = :SALDOBEGIN; 
-        DEBITEND = :SALDOBEGIN; 
-      END ELSE 
-      BEGIN 
-        CREDITBEGIN =  - :SALDOBEGIN; 
-        CREDITEND =  - :SALDOBEGIN; 
-      END 
+      ELSE
+        CREDIT = - :O;
+
+      SALDOEND = :SALDOBEGIN + :O;
+      if (SALDOBEGIN > 0) then
+        DEBITBEGIN = :SALDOBEGIN;
+      else
+        CREDITBEGIN =  - :SALDOBEGIN;
+      if (SALDOEND > 0) then
+        DEBITEND = :SALDOEND;
+      else
+        CREDITEND =  - :SALDOEND;
       SUSPEND;
-    END 
- 
-  END 
+      SALDOBEGIN = :SALDOEND;
+      C = C + 1;
+    END
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+    IF (C = 0) THEN
+    BEGIN
+      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param);
+      IF (SALDOBEGIN > 0) THEN
+      BEGIN
+        DEBITBEGIN = :SALDOBEGIN;
+        DEBITEND = :SALDOBEGIN;
+      END ELSE
+      BEGIN
+        CREDITBEGIN =  - :SALDOBEGIN;
+        CREDITEND =  - :SALDOBEGIN;
+      END
+      SUSPEND;
+    END
+  END
+  ELSE
+  BEGIN
+
+    SALDOBEGIN = 0;
+    SELECT
+      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0))
+    FROM
+      ac_ledger_accounts a
+      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND
+        e1.entrydate < :abeginentrydate
+        AND a.sqlhandle = :sqlhandle
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id
+    WHERE
+      (e1.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e1.companykey + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      q.valuekey = :valuekey AND
+      ((0 = :currkey) OR (e1.currkey = :currkey))
+    INTO :saldobegin;
+
+    if (SALDOBEGIN IS NULL) THEN
+      SALDOBEGIN = 0;
+
+    C = 0;
+    FOR
+      SELECT
+        g_d_getdateparam(e.entrydate, :param),
+        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) -
+          SUM(IIF(e.accountpart = 'C', q.quantity, 0))
+      FROM
+        ac_ledger_accounts a
+        JOIN ac_entry e ON a.accountkey = e.accountkey AND
+          e.entrydate <= :aendentrydate AND
+          e.entrydate >= :abeginentrydate
+          AND a.sqlhandle = :sqlhandle
+        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey
+      WHERE
+        (e.companykey + 0 = :companykey OR
+        (:ALLHOLDINGCOMPANIES = 1 AND
+        e.companykey + 0 IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey))) AND
+        ((0 = :currkey) OR (e.currkey = :currkey))
+      GROUP BY 1
+      INTO :dateparam,
+           :O
+    DO
+    BEGIN
+      IF (O IS NULL) THEN O = 0;
+      DEBITBEGIN = 0;
+      CREDITBEGIN = 0;
+      DEBITEND = 0;
+      CREDITEND = 0;
+      DEBIT = 0;
+      CREDIT = 0;
+      IF (O > 0) THEN
+        DEBIT = :O;
+      ELSE
+        CREDIT = - :O;
+
+      SALDOEND = :SALDOBEGIN + :O;
+      if (SALDOBEGIN > 0) then
+        DEBITBEGIN = :SALDOBEGIN;
+      else
+        CREDITBEGIN =  - :SALDOBEGIN;
+      if (SALDOEND > 0) then
+        DEBITEND = :SALDOEND;
+      else
+        CREDITEND =  - :SALDOEND;
+      SUSPEND;
+      SALDOBEGIN = :SALDOEND;
+      C = C + 1;
+    END
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+    IF (C = 0) THEN
+    BEGIN
+      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param);
+      IF (SALDOBEGIN > 0) THEN
+      BEGIN
+        DEBITBEGIN = :SALDOBEGIN;
+        DEBITEND = :SALDOBEGIN;
+      END ELSE
+      BEGIN
+        CREDITBEGIN =  - :SALDOBEGIN;
+        CREDITEND =  - :SALDOBEGIN;
+      END
+      SUSPEND;
+    END
+
+  END
 END^
 
 CREATE PROCEDURE AC_Q_G_L (
@@ -3593,119 +3642,119 @@ declare variable o numeric(15,4);
 declare variable saldobegin numeric(15,4);
 declare variable saldoend numeric(15,4);
 declare variable c integer;
-begin 
+begin
   SELECT
-    IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
-      SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0, 
-      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
-      SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0) 
-  FROM 
-      ac_entry e1 
-      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
-  WHERE 
-    e1.entrydate < :datebegin AND 
-    e1.accountkey IN ( 
-      SELECT 
-        a.accountkey 
-      FROM 
-        ac_ledger_accounts a 
-      WHERE 
-        a.sqlhandle = :sqlhandle) AND 
-    (e1.companykey = :companykey OR 
-    (:ALLHOLDINGCOMPANIES = 1 AND 
-    e1.companykey IN ( 
-      SELECT 
-        h.companykey 
-      FROM 
-        gd_holding h 
-      WHERE 
-        h.holdingkey = :companykey))) AND 
-    q.valuekey = :valuekey AND 
-    ((0 = :currkey) OR (e1.currkey = :currkey)) 
-  INTO :saldobegin; 
-  if (saldobegin IS NULL) then 
+    IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
+      SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0,
+      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
+      SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0)
+  FROM
+      ac_entry e1
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id
+  WHERE
+    e1.entrydate < :datebegin AND
+    e1.accountkey IN (
+      SELECT
+        a.accountkey
+      FROM
+        ac_ledger_accounts a
+      WHERE
+        a.sqlhandle = :sqlhandle) AND
+    (e1.companykey = :companykey OR
+    (:ALLHOLDINGCOMPANIES = 1 AND
+    e1.companykey IN (
+      SELECT
+        h.companykey
+      FROM
+        gd_holding h
+      WHERE
+        h.holdingkey = :companykey))) AND
+    q.valuekey = :valuekey AND
+    ((0 = :currkey) OR (e1.currkey = :currkey))
+  INTO :saldobegin;
+  if (saldobegin IS NULL) then
     saldobegin = 0;
- 
-  C = 0; 
-  FOR 
-    SELECT 
-      EXTRACT(MONTH FROM e.entrydate), 
-      EXTRACT(YEAR FROM e.entrydate), 
-      SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
-        SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
-    FROM 
-      ac_entry e 
-      LEFT JOIN ac_quantity q ON q.entrykey = e.id AND 
-        q.valuekey = :valuekey 
-    WHERE 
-      e.entrydate <= :dateend AND 
-      e.entrydate >= :datebegin AND 
-      e.accountkey IN ( 
-        SELECT 
-          a.accountkey 
-        FROM 
-          ac_ledger_accounts a 
-        WHERE 
-          a.sqlhandle = :sqlhandle 
-      ) AND 
-      (e.companykey = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e.companykey IN ( 
-        SELECT 
-          h.companykey 
-        FROM 
+
+  C = 0;
+  FOR
+    SELECT
+      EXTRACT(MONTH FROM e.entrydate),
+      EXTRACT(YEAR FROM e.entrydate),
+      SUM(IIF(e.accountpart = 'D', q.quantity, 0)) -
+        SUM(IIF(e.accountpart = 'C', q.quantity, 0))
+    FROM
+      ac_entry e
+      LEFT JOIN ac_quantity q ON q.entrykey = e.id AND
+        q.valuekey = :valuekey
+    WHERE
+      e.entrydate <= :dateend AND
+      e.entrydate >= :datebegin AND
+      e.accountkey IN (
+        SELECT
+          a.accountkey
+        FROM
+          ac_ledger_accounts a
+        WHERE
+          a.sqlhandle = :sqlhandle
+      ) AND
+      (e.companykey = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e.companykey IN (
+        SELECT
+          h.companykey
+        FROM
           gd_holding h
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      ((0 = :currkey) OR (e.currkey = :currkey)) 
-    GROUP BY 1, 2 
-    ORDER BY 2, 1 
-    INTO :M, :Y, :O 
-  DO 
-  BEGIN 
-    IF (O IS NULL) THEN O = 0; 
-    DEBITBEGIN = 0; 
-    CREDITBEGIN = 0; 
-    DEBITEND = 0; 
-    CREDITEND = 0; 
-    DEBIT = 0; 
-    CREDIT = 0; 
-    IF (O > 0) THEN 
-      DEBIT = :O; 
-    ELSE 
-      CREDIT = - :O; 
- 
-    SALDOEND = :SALDOBEGIN + :O; 
-    if (SALDOBEGIN > 0) then 
-      DEBITBEGIN = :SALDOBEGIN; 
-    else 
-      CREDITBEGIN =  - :SALDOBEGIN; 
-    if (SALDOEND > 0) then 
-      DEBITEND = :SALDOEND; 
-    else 
-      CREDITEND =  - :SALDOEND; 
+        WHERE
+          h.holdingkey = :companykey))) AND
+      ((0 = :currkey) OR (e.currkey = :currkey))
+    GROUP BY 1, 2
+    ORDER BY 2, 1
+    INTO :M, :Y, :O
+  DO
+  BEGIN
+    IF (O IS NULL) THEN O = 0;
+    DEBITBEGIN = 0;
+    CREDITBEGIN = 0;
+    DEBITEND = 0;
+    CREDITEND = 0;
+    DEBIT = 0;
+    CREDIT = 0;
+    IF (O > 0) THEN
+      DEBIT = :O;
+    ELSE
+      CREDIT = - :O;
+
+    SALDOEND = :SALDOBEGIN + :O;
+    if (SALDOBEGIN > 0) then
+      DEBITBEGIN = :SALDOBEGIN;
+    else
+      CREDITBEGIN =  - :SALDOBEGIN;
+    if (SALDOEND > 0) then
+      DEBITEND = :SALDOEND;
+    else
+      CREDITEND =  - :SALDOEND;
     SALDOBEGIN = :SALDOEND;
-    C = C + 1; 
-    SUSPEND; 
-  END 
-  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-  IF (C = 0) THEN 
-  BEGIN 
-    M = EXTRACT(MONTH FROM :datebegin); 
-    Y = EXTRACT(YEAR FROM :datebegin); 
-    IF (SALDOBEGIN > 0) THEN 
-    BEGIN 
-      DEBITBEGIN = :SALDOBEGIN; 
-      DEBITEND = :SALDOBEGIN; 
-    END ELSE 
-    BEGIN 
-      CREDITBEGIN =  - :SALDOBEGIN; 
-      CREDITEND =  - :SALDOBEGIN; 
-    END 
-    DEBIT = 0; 
-    CREDIT = 0; 
-    SUSPEND; 
-  END 
+    C = C + 1;
+    SUSPEND;
+  END
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+  IF (C = 0) THEN
+  BEGIN
+    M = EXTRACT(MONTH FROM :datebegin);
+    Y = EXTRACT(YEAR FROM :datebegin);
+    IF (SALDOBEGIN > 0) THEN
+    BEGIN
+      DEBITBEGIN = :SALDOBEGIN;
+      DEBITEND = :SALDOBEGIN;
+    END ELSE
+    BEGIN
+      CREDITBEGIN =  - :SALDOBEGIN;
+      CREDITEND =  - :SALDOBEGIN;
+    END
+    DEBIT = 0;
+    CREDIT = 0;
+    SUSPEND;
+  END
 END^
 
 CREATE PROCEDURE AC_G_L_S (
@@ -3761,288 +3810,288 @@ declare variable c integer;
 declare variable accountkey integer;
 declare variable d date;
 declare variable dayinmonth integer;
-BEGIN 
-  saldobegindebit = 0; 
-  saldobegincredit = 0; 
-  saldobegindebitcurr = 0; 
-  saldobegincreditcurr = 0; 
- 
-  IF (ANALYTICFIELD = '') THEN 
-  BEGIN 
-    SELECT 
-      IIF((NOT SUM(e1.debitncu - e1.creditncu) IS NULL) AND 
-        (SUM(e1.debitncu - e1.creditncu) > 0), SUM(e1.debitncu - e1.creditncu),  0), 
-      IIF((NOT SUM(e1.creditncu - e1.debitncu) IS NULL) AND 
-        (SUM(e1.creditncu - e1.debitncu) > 0), SUM(e1.creditncu - e1.debitncu),  0), 
-      IIF((NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL) AND
-        (SUM(e1.debitcurr - e1.creditcurr) > 0), SUM(e1.debitcurr - e1.creditcurr),  0), 
-      IIF((NOT SUM(e1.creditcurr - e1.debitcurr) IS NULL) AND 
-        (SUM(e1.creditcurr - e1.debitcurr) > 0), SUM(e1.creditcurr - e1.debitcurr),  0), 
-      IIF((NOT SUM(e1.debiteq - e1.crediteq) IS NULL) AND 
-        (SUM(e1.debiteq - e1.crediteq) > 0), SUM(e1.debiteq - e1.crediteq),  0), 
-      IIF((NOT SUM(e1.crediteq - e1.debiteq) IS NULL) AND 
-        (SUM(e1.crediteq - e1.debiteq) > 0), SUM(e1.crediteq - e1.debiteq),  0) 
-    FROM 
-      ac_ledger_accounts a 
-      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate 
-        AND a.sqlhandle = :sqlhandle 
-    WHERE 
-      (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e1.companykey + 0 IN ( 
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      ((0 = :currkey) OR (e1.currkey = :currkey)) 
-    INTO :saldobegindebit, 
-         :saldobegincredit, 
-         :saldobegindebitcurr, 
-         :saldobegincreditcurr, 
-         :saldobegindebiteq, 
-         :saldobegincrediteq; 
-  END ELSE 
-  BEGIN
-    FOR 
-      SELECT 
-        la.accountkey 
-      FROM 
-        ac_ledger_accounts la 
-      WHERE 
-        la.sqlhandle = :sqlhandle 
-      INTO :accountkey 
-    DO 
-    BEGIN 
-      SELECT 
-        a.DEBITSALDO, 
-        a.CREDITSALDO, 
-        a.CURRDEBITSALDO, 
-        a.CURRCREDITSALDO, 
-        a.EQDEBITSALDO, 
-        a.EQCREDITSALDO 
-      FROM 
-        ac_accountexsaldo(:abeginentrydate, :accountkey, :analyticfield, :companykey, 
-          :allholdingcompanies, -1, :currkey) a 
-      INTO :sd, 
-           :sc, 
-           :sdc, 
-           :scc, 
-           :sdeq, 
-           :sceq; 
- 
-      IF (sd IS NULL) then SD = 0; 
-      IF (sc IS NULL) then SC = 0; 
-      IF (sdc IS NULL) then SDC = 0;
-      IF (scc IS NULL) then SCC = 0; 
- 
-      saldobegindebit = :saldobegindebit + :sd; 
-      saldobegincredit = :saldobegincredit + :sc; 
-      saldobegindebitcurr = :saldobegindebitcurr + :sdc; 
-      saldobegincreditcurr = :saldobegincreditcurr + :scc; 
-      saldobegindebiteq = :saldobegindebiteq + :sdeq; 
-      saldobegincrediteq = :saldobegincrediteq + :sceq; 
-    END 
-  END 
- 
-  C = 0; 
-  FORCESHOW = 0; 
-  FOR 
-    SELECT 
-      SUM(e.debitncu - e.creditncu), 
-      SUM(e.debitcurr - e.creditcurr), 
-      SUM(e.debiteq - e.crediteq), 
-      EXTRACT(MONTH FROM e.entrydate), 
-      EXTRACT(YEAR FROM e.entrydate) 
-    FROM 
-      ac_ledger_accounts a 
-      JOIN ac_entry e ON a.accountkey = e.accountkey AND 
-           e.entrydate <= :aendentrydate AND 
-           e.entrydate >= :abeginentrydate 
-    AND a.sqlhandle = :sqlhandle  
-    WHERE 
-      (e.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
-      e.companykey + 0 IN (
-        SELECT 
-          h.companykey 
-        FROM 
-          gd_holding h 
-        WHERE 
-          h.holdingkey = :companykey))) AND 
-      ((0 = :currkey) OR (e.currkey = :currkey)) 
-    group by 4, 5 
-    ORDER BY 5, 4 
-    INTO :O, :OCURR, :OEQ, :M, :Y 
-  DO 
-  BEGIN 
-    begindate = CAST(:Y || '-' || :M || '-' || 1 as DATE); 
-    IF (begindate < :abeginentrydate) THEN 
-    BEGIN 
-      begindate = :abeginentrydate; 
-    END 
- 
-    DAYINMONTH = EXTRACT(DAY FROM g_d_incmonth(1, CAST(:Y || '-' || :M || '-' || 1 as DATE)) - 1); 
- 
-    D = CAST(:Y || '-' || :M || '-' || :dayinmonth as DATE); 
- 
-    IF (D > :aendentrydate) THEN 
-    BEGIN 
-      D = :aendentrydate; 
-    END 
-    ENDDATE = D; 
-    DEBITNCUBEGIN = 0; 
-    CREDITNCUBEGIN = 0; 
-    DEBITNCUEND = 0;
-    CREDITNCUEND = 0; 
-    DEBITCURRBEGIN = 0; 
-    CREDITCURRBEGIN = 0; 
-    DEBITCURREND = 0; 
-    CREDITCURREND = 0; 
-    DEBITEQBEGIN = 0; 
-    CREDITEQBEGIN = 0; 
-    DEBITEQEND = 0; 
-    CREDITEQEND = 0; 
-    IF (analyticfield = '') THEN 
-    BEGIN 
-      IF (:saldobegindebit - :saldobegincredit + :o > 0) THEN 
-      BEGIN 
-        SALDOENDDEBIT = :saldobegindebit - :saldobegincredit + :o; 
-        SALDOENDCREDIT = 0; 
-      END ELSE 
-      BEGIN 
-        SALDOENDDEBIT = 0; 
-        SALDOENDCREDIT =  - (:saldobegindebit - :saldobegincredit + :o); 
-      END 
- 
-      IF (:saldobegindebitcurr - :saldobegincreditcurr + :ocurr > 0) THEN 
-      BEGIN 
-        SALDOENDDEBITCURR = :saldobegindebitCURR - :saldobegincreditCURR + :ocurr; 
-        SALDOENDCREDITCURR = 0; 
-      END ELSE 
-      BEGIN 
-        SALDOENDDEBITCURR = 0; 
-        SALDOENDCREDITCURR =  - (:saldobegindebitcurr - :saldobegincreditcurr + :ocurr); 
-      END
- 
-      IF (:saldobegindebiteq - :saldobegincrediteq + :oeq > 0) THEN 
-      BEGIN 
-        SALDOENDDEBITEQ = :saldobegindebiteq - :saldobegincrediteq + :oeq; 
-        SALDOENDCREDITEQ = 0; 
-      END ELSE 
-      BEGIN 
-        SALDOENDDEBITEQ = 0; 
-        SALDOENDCREDITEQ =  - (:saldobegindebiteq - :saldobegincrediteq + :oeq); 
-      END 
-    END ELSE 
-    BEGIN 
-      saldoenddebit = 0; 
-      saldoendcredit = 0; 
-      saldoenddebitcurr = 0; 
-      saldoendcreditcurr = 0; 
-      saldoenddebiteq = 0; 
-      saldoendcrediteq = 0; 
- 
-      FOR 
-        SELECT 
-          la.accountkey 
-        FROM 
-          ac_ledger_accounts la 
-        WHERE 
-          la.sqlhandle = :sqlhandle 
-        INTO :accountkey 
-      DO 
-      BEGIN 
+BEGIN
+  saldobegindebit = 0;
+  saldobegincredit = 0;
+  saldobegindebitcurr = 0;
+  saldobegincreditcurr = 0;
 
-        SELECT 
-          a.DEBITSALDO, 
-          a.CREDITSALDO, 
-          a.CURRDEBITSALDO, 
-          a.CURRCREDITSALDO, 
-          a.EQDEBITSALDO, 
-          a.EQCREDITSALDO 
-        FROM 
-          ac_accountexsaldo(:d + 1, :accountkey, :analyticfield, :companykey, 
-            :allholdingcompanies, -1, :currkey) a 
-        INTO :sd, 
-             :sc, 
-             :sdc, 
-             :scc, 
-             :sdeq, 
-             :sceq; 
- 
-        IF (sd IS NULL) then SD = 0; 
-        IF (sc IS NULL) then SC = 0; 
-        IF (sdc IS NULL) then SDC = 0; 
-        IF (scc IS NULL) then SCC = 0; 
-        IF (sdeq IS NULL) then SDEQ = 0; 
-        IF (sceq IS NULL) then SCEQ = 0; 
- 
-        saldoenddebit = :saldoenddebit + :sd; 
-        saldoendcredit = :saldoendcredit + :sc; 
-        saldoenddebitcurr = :saldoenddebitcurr + :sdc; 
-        saldoendcreditcurr = :saldoendcreditcurr + :scc; 
-        saldoenddebiteq = :saldoenddebiteq + :sdeq; 
+  IF (ANALYTICFIELD = '') THEN
+  BEGIN
+    SELECT
+      IIF((NOT SUM(e1.debitncu - e1.creditncu) IS NULL) AND
+        (SUM(e1.debitncu - e1.creditncu) > 0), SUM(e1.debitncu - e1.creditncu),  0),
+      IIF((NOT SUM(e1.creditncu - e1.debitncu) IS NULL) AND
+        (SUM(e1.creditncu - e1.debitncu) > 0), SUM(e1.creditncu - e1.debitncu),  0),
+      IIF((NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL) AND
+        (SUM(e1.debitcurr - e1.creditcurr) > 0), SUM(e1.debitcurr - e1.creditcurr),  0),
+      IIF((NOT SUM(e1.creditcurr - e1.debitcurr) IS NULL) AND
+        (SUM(e1.creditcurr - e1.debitcurr) > 0), SUM(e1.creditcurr - e1.debitcurr),  0),
+      IIF((NOT SUM(e1.debiteq - e1.crediteq) IS NULL) AND
+        (SUM(e1.debiteq - e1.crediteq) > 0), SUM(e1.debiteq - e1.crediteq),  0),
+      IIF((NOT SUM(e1.crediteq - e1.debiteq) IS NULL) AND
+        (SUM(e1.crediteq - e1.debiteq) > 0), SUM(e1.crediteq - e1.debiteq),  0)
+    FROM
+      ac_ledger_accounts a
+      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate
+        AND a.sqlhandle = :sqlhandle
+    WHERE
+      (e1.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e1.companykey + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      ((0 = :currkey) OR (e1.currkey = :currkey))
+    INTO :saldobegindebit,
+         :saldobegincredit,
+         :saldobegindebitcurr,
+         :saldobegincreditcurr,
+         :saldobegindebiteq,
+         :saldobegincrediteq;
+  END ELSE
+  BEGIN
+    FOR
+      SELECT
+        la.accountkey
+      FROM
+        ac_ledger_accounts la
+      WHERE
+        la.sqlhandle = :sqlhandle
+      INTO :accountkey
+    DO
+    BEGIN
+      SELECT
+        a.DEBITSALDO,
+        a.CREDITSALDO,
+        a.CURRDEBITSALDO,
+        a.CURRCREDITSALDO,
+        a.EQDEBITSALDO,
+        a.EQCREDITSALDO
+      FROM
+        ac_accountexsaldo(:abeginentrydate, :accountkey, :analyticfield, :companykey,
+          :allholdingcompanies, -1, :currkey) a
+      INTO :sd,
+           :sc,
+           :sdc,
+           :scc,
+           :sdeq,
+           :sceq;
+
+      IF (sd IS NULL) then SD = 0;
+      IF (sc IS NULL) then SC = 0;
+      IF (sdc IS NULL) then SDC = 0;
+      IF (scc IS NULL) then SCC = 0;
+
+      saldobegindebit = :saldobegindebit + :sd;
+      saldobegincredit = :saldobegincredit + :sc;
+      saldobegindebitcurr = :saldobegindebitcurr + :sdc;
+      saldobegincreditcurr = :saldobegincreditcurr + :scc;
+      saldobegindebiteq = :saldobegindebiteq + :sdeq;
+      saldobegincrediteq = :saldobegincrediteq + :sceq;
+    END
+  END
+
+  C = 0;
+  FORCESHOW = 0;
+  FOR
+    SELECT
+      SUM(e.debitncu - e.creditncu),
+      SUM(e.debitcurr - e.creditcurr),
+      SUM(e.debiteq - e.crediteq),
+      EXTRACT(MONTH FROM e.entrydate),
+      EXTRACT(YEAR FROM e.entrydate)
+    FROM
+      ac_ledger_accounts a
+      JOIN ac_entry e ON a.accountkey = e.accountkey AND
+           e.entrydate <= :aendentrydate AND
+           e.entrydate >= :abeginentrydate
+    AND a.sqlhandle = :sqlhandle
+    WHERE
+      (e.companykey + 0 = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      e.companykey + 0 IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      ((0 = :currkey) OR (e.currkey = :currkey))
+    group by 4, 5
+    ORDER BY 5, 4
+    INTO :O, :OCURR, :OEQ, :M, :Y
+  DO
+  BEGIN
+    begindate = CAST(:Y || '-' || :M || '-' || 1 as DATE);
+    IF (begindate < :abeginentrydate) THEN
+    BEGIN
+      begindate = :abeginentrydate;
+    END
+
+    DAYINMONTH = EXTRACT(DAY FROM g_d_incmonth(1, CAST(:Y || '-' || :M || '-' || 1 as DATE)) - 1);
+
+    D = CAST(:Y || '-' || :M || '-' || :dayinmonth as DATE);
+
+    IF (D > :aendentrydate) THEN
+    BEGIN
+      D = :aendentrydate;
+    END
+    ENDDATE = D;
+    DEBITNCUBEGIN = 0;
+    CREDITNCUBEGIN = 0;
+    DEBITNCUEND = 0;
+    CREDITNCUEND = 0;
+    DEBITCURRBEGIN = 0;
+    CREDITCURRBEGIN = 0;
+    DEBITCURREND = 0;
+    CREDITCURREND = 0;
+    DEBITEQBEGIN = 0;
+    CREDITEQBEGIN = 0;
+    DEBITEQEND = 0;
+    CREDITEQEND = 0;
+    IF (analyticfield = '') THEN
+    BEGIN
+      IF (:saldobegindebit - :saldobegincredit + :o > 0) THEN
+      BEGIN
+        SALDOENDDEBIT = :saldobegindebit - :saldobegincredit + :o;
+        SALDOENDCREDIT = 0;
+      END ELSE
+      BEGIN
+        SALDOENDDEBIT = 0;
+        SALDOENDCREDIT =  - (:saldobegindebit - :saldobegincredit + :o);
+      END
+
+      IF (:saldobegindebitcurr - :saldobegincreditcurr + :ocurr > 0) THEN
+      BEGIN
+        SALDOENDDEBITCURR = :saldobegindebitCURR - :saldobegincreditCURR + :ocurr;
+        SALDOENDCREDITCURR = 0;
+      END ELSE
+      BEGIN
+        SALDOENDDEBITCURR = 0;
+        SALDOENDCREDITCURR =  - (:saldobegindebitcurr - :saldobegincreditcurr + :ocurr);
+      END
+
+      IF (:saldobegindebiteq - :saldobegincrediteq + :oeq > 0) THEN
+      BEGIN
+        SALDOENDDEBITEQ = :saldobegindebiteq - :saldobegincrediteq + :oeq;
+        SALDOENDCREDITEQ = 0;
+      END ELSE
+      BEGIN
+        SALDOENDDEBITEQ = 0;
+        SALDOENDCREDITEQ =  - (:saldobegindebiteq - :saldobegincrediteq + :oeq);
+      END
+    END ELSE
+    BEGIN
+      saldoenddebit = 0;
+      saldoendcredit = 0;
+      saldoenddebitcurr = 0;
+      saldoendcreditcurr = 0;
+      saldoenddebiteq = 0;
+      saldoendcrediteq = 0;
+
+      FOR
+        SELECT
+          la.accountkey
+        FROM
+          ac_ledger_accounts la
+        WHERE
+          la.sqlhandle = :sqlhandle
+        INTO :accountkey
+      DO
+      BEGIN
+
+        SELECT
+          a.DEBITSALDO,
+          a.CREDITSALDO,
+          a.CURRDEBITSALDO,
+          a.CURRCREDITSALDO,
+          a.EQDEBITSALDO,
+          a.EQCREDITSALDO
+        FROM
+          ac_accountexsaldo(:d + 1, :accountkey, :analyticfield, :companykey,
+            :allholdingcompanies, -1, :currkey) a
+        INTO :sd,
+             :sc,
+             :sdc,
+             :scc,
+             :sdeq,
+             :sceq;
+
+        IF (sd IS NULL) then SD = 0;
+        IF (sc IS NULL) then SC = 0;
+        IF (sdc IS NULL) then SDC = 0;
+        IF (scc IS NULL) then SCC = 0;
+        IF (sdeq IS NULL) then SDEQ = 0;
+        IF (sceq IS NULL) then SCEQ = 0;
+
+        saldoenddebit = :saldoenddebit + :sd;
+        saldoendcredit = :saldoendcredit + :sc;
+        saldoenddebitcurr = :saldoenddebitcurr + :sdc;
+        saldoendcreditcurr = :saldoendcreditcurr + :scc;
+        saldoenddebiteq = :saldoenddebiteq + :sdeq;
         saldoendcrediteq = :saldoendcrediteq + :sceq;
-      END 
-    END 
- 
-    DEBITNCUBEGIN = :SALDOBEGINDEBIT; 
-    CREDITNCUBEGIN =  :SALDOBEGINCREDIT; 
-    DEBITNCUEND = :SALDOENDDEBIT; 
-    CREDITNCUEND =  :SALDOENDCREDIT; 
- 
-    DEBITCURRBEGIN = :SALDOBEGINDEBITCURR; 
-    CREDITCURRBEGIN =  :SALDOBEGINCREDITCURR; 
-    DEBITCURREND = :SALDOENDDEBITCURR; 
-    CREDITCURREND =  :SALDOENDCREDITCURR; 
- 
-    DEBITEQBEGIN = :SALDOBEGINDEBITEQ; 
-    CREDITEQBEGIN =  :SALDOBEGINCREDITEQ; 
-    DEBITEQEND = :SALDOENDDEBITEQ; 
-    CREDITEQEND =  :SALDOENDCREDITEQ; 
- 
-    SUSPEND; 
- 
-    SALDOBEGINDEBIT = :SALDOENDDEBIT; 
-    SALDOBEGINCREDIT = :SALDOENDCREDIT; 
- 
-    SALDOBEGINDEBITCURR = :SALDOENDDEBITCURR; 
-    SALDOBEGINCREDITCURR = :SALDOENDCREDITCURR; 
- 
-    SALDOBEGINDEBITEQ = :SALDOENDDEBITEQ; 
-    SALDOBEGINCREDITEQ = :SALDOENDCREDITEQ; 
- 
+      END
+    END
+
+    DEBITNCUBEGIN = :SALDOBEGINDEBIT;
+    CREDITNCUBEGIN =  :SALDOBEGINCREDIT;
+    DEBITNCUEND = :SALDOENDDEBIT;
+    CREDITNCUEND =  :SALDOENDCREDIT;
+
+    DEBITCURRBEGIN = :SALDOBEGINDEBITCURR;
+    CREDITCURRBEGIN =  :SALDOBEGINCREDITCURR;
+    DEBITCURREND = :SALDOENDDEBITCURR;
+    CREDITCURREND =  :SALDOENDCREDITCURR;
+
+    DEBITEQBEGIN = :SALDOBEGINDEBITEQ;
+    CREDITEQBEGIN =  :SALDOBEGINCREDITEQ;
+    DEBITEQEND = :SALDOENDDEBITEQ;
+    CREDITEQEND =  :SALDOENDCREDITEQ;
+
+    SUSPEND;
+
+    SALDOBEGINDEBIT = :SALDOENDDEBIT;
+    SALDOBEGINCREDIT = :SALDOENDCREDIT;
+
+    SALDOBEGINDEBITCURR = :SALDOENDDEBITCURR;
+    SALDOBEGINCREDITCURR = :SALDOENDCREDITCURR;
+
+    SALDOBEGINDEBITEQ = :SALDOENDDEBITEQ;
+    SALDOBEGINCREDITEQ = :SALDOENDCREDITEQ;
+
     C = C + 1;
-  END 
-  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-  IF (C = 0) THEN 
-  BEGIN 
-    M = EXTRACT(MONTH FROM :abeginentrydate); 
-    Y = EXTRACT(YEAR FROM :abeginentrydate); 
-    DEBITNCUBEGIN = :SALDOBEGINDEBIT; 
-    CREDITNCUBEGIN =  :SALDOBEGINCREDIT; 
-    DEBITNCUEND = :SALDOBEGINDEBIT; 
-    CREDITNCUEND =  :SALDOBEGINCREDIT; 
- 
-    DEBITCURRBEGIN = :SALDOBEGINDEBITCURR; 
-    CREDITCURRBEGIN =  :SALDOBEGINCREDITCURR; 
-    DEBITCURREND = :SALDOBEGINDEBITCURR; 
-    CREDITCURREND =  :SALDOBEGINCREDITCURR; 
- 
-    DEBITEQBEGIN = :SALDOBEGINDEBITEQ; 
-    CREDITEQBEGIN =  :SALDOBEGINCREDITEQ; 
-    DEBITEQEND = :SALDOBEGINDEBITEQ; 
-    CREDITEQEND =  :SALDOBEGINCREDITEQ; 
- 
-    BEGINDATE = :abeginentrydate; 
-    ENDDATE = :abeginentrydate; 
- 
-    FORCESHOW = 1; 
- 
-    SUSPEND; 
-  END 
+  END
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+  IF (C = 0) THEN
+  BEGIN
+    M = EXTRACT(MONTH FROM :abeginentrydate);
+    Y = EXTRACT(YEAR FROM :abeginentrydate);
+    DEBITNCUBEGIN = :SALDOBEGINDEBIT;
+    CREDITNCUBEGIN =  :SALDOBEGINCREDIT;
+    DEBITNCUEND = :SALDOBEGINDEBIT;
+    CREDITNCUEND =  :SALDOBEGINCREDIT;
+
+    DEBITCURRBEGIN = :SALDOBEGINDEBITCURR;
+    CREDITCURRBEGIN =  :SALDOBEGINCREDITCURR;
+    DEBITCURREND = :SALDOBEGINDEBITCURR;
+    CREDITCURREND =  :SALDOBEGINCREDITCURR;
+
+    DEBITEQBEGIN = :SALDOBEGINDEBITEQ;
+    CREDITEQBEGIN =  :SALDOBEGINCREDITEQ;
+    DEBITEQEND = :SALDOBEGINDEBITEQ;
+    CREDITEQEND =  :SALDOBEGINCREDITEQ;
+
+    BEGINDATE = :abeginentrydate;
+    ENDDATE = :abeginentrydate;
+
+    FORCESHOW = 1;
+
+    SUSPEND;
+  END
 END^
 
 CREATE PROCEDURE AC_E_L_S (
@@ -4075,115 +4124,115 @@ declare variable oeq dcurrency;
 declare variable saldoendcurr dcurrency;
 declare variable saldoendeq dcurrency;
 declare variable c integer;
-BEGIN 
-  IF (saldobegin IS NULL) THEN 
-    saldobegin = 0; 
-  IF (saldobegincurr IS NULL) THEN 
-    saldobegincurr = 0; 
-  IF (saldobegineq IS NULL) THEN 
-    saldobegineq = 0; 
-  C = 0; 
-  FORCESHOW = 0; 
-  FOR 
-    SELECT 
-      e.entrydate, 
-      SUM(e.debitncu - e.creditncu), 
-      SUM(e.debitcurr - e.creditcurr), 
-      SUM(e.debiteq - e.crediteq) 
-    FROM 
-      ac_ledger_entries le 
-      LEFT JOIN ac_entry e ON le.entrykey = e.id 
-    WHERE 
-      le.sqlhandle = :sqlhandle AND 
-      ((0 = :currkey) OR (e.currkey = :currkey)) 
-    group by e.entrydate 
-    INTO :ENTRYDATE, 
-         :O, 
-         :OCURR, 
-         :OEQ 
-  DO 
-  BEGIN 
-    DEBITNCUBEGIN = 0; 
+BEGIN
+  IF (saldobegin IS NULL) THEN
+    saldobegin = 0;
+  IF (saldobegincurr IS NULL) THEN
+    saldobegincurr = 0;
+  IF (saldobegineq IS NULL) THEN
+    saldobegineq = 0;
+  C = 0;
+  FORCESHOW = 0;
+  FOR
+    SELECT
+      e.entrydate,
+      SUM(e.debitncu - e.creditncu),
+      SUM(e.debitcurr - e.creditcurr),
+      SUM(e.debiteq - e.crediteq)
+    FROM
+      ac_ledger_entries le
+      LEFT JOIN ac_entry e ON le.entrykey = e.id
+    WHERE
+      le.sqlhandle = :sqlhandle AND
+      ((0 = :currkey) OR (e.currkey = :currkey))
+    group by e.entrydate
+    INTO :ENTRYDATE,
+         :O,
+         :OCURR,
+         :OEQ
+  DO
+  BEGIN
+    DEBITNCUBEGIN = 0;
     CREDITNCUBEGIN = 0;
-    DEBITNCUEND = 0; 
-    CREDITNCUEND = 0; 
-    DEBITCURRBEGIN = 0; 
-    CREDITCURRBEGIN = 0; 
-    DEBITCURREND = 0; 
-    CREDITCURREND = 0; 
-    DEBITEQBEGIN = 0; 
-    CREDITEQBEGIN = 0; 
-    DEBITEQEND = 0; 
-    CREDITEQEND = 0; 
-    SALDOEND = :SALDOBEGIN + :O; 
-    if (SALDOBEGIN > 0) then 
-      DEBITNCUBEGIN = :SALDOBEGIN; 
-    else 
-      CREDITNCUBEGIN =  - :SALDOBEGIN; 
-    if (SALDOEND > 0) then 
-      DEBITNCUEND = :SALDOEND; 
-    else 
-      CREDITNCUEND =  - :SALDOEND; 
-    SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
-    if (SALDOBEGINCURR > 0) then 
-      DEBITCURRBEGIN = :SALDOBEGINCURR; 
-    else 
-      CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-    if (SALDOENDCURR > 0) then 
-      DEBITCURREND = :SALDOENDCURR; 
-    else 
-      CREDITCURREND =  - :SALDOENDCURR; 
-    SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
-    if (SALDOBEGINEQ > 0) then
-      DEBITEQBEGIN = :SALDOBEGINEQ; 
-    else 
-      CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-    if (SALDOENDEQ > 0) then 
-      DEBITEQEND = :SALDOENDEQ; 
-    else 
-      CREDITEQEND =  - :SALDOENDEQ; 
-    SUSPEND; 
-    SALDOBEGIN = :SALDOEND; 
-    SALDOBEGINCURR = :SALDOENDCURR; 
-    SALDOBEGINEQ = :SALDOENDEQ; 
-    C = C + 1; 
-  END 
-  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-  IF (C = 0) THEN 
-  BEGIN 
-    ENTRYDATE = :abeginentrydate; 
-    IF (SALDOBEGIN > 0) THEN 
-    BEGIN 
-      DEBITNCUBEGIN = :SALDOBEGIN; 
-      DEBITNCUEND = :SALDOBEGIN; 
-    END ELSE 
-    BEGIN 
-      CREDITNCUBEGIN =  - :SALDOBEGIN; 
-      CREDITNCUEND =  - :SALDOBEGIN; 
-    END 
- 
-    IF (SALDOBEGINCURR > 0) THEN 
-    BEGIN 
+    DEBITNCUEND = 0;
+    CREDITNCUEND = 0;
+    DEBITCURRBEGIN = 0;
+    CREDITCURRBEGIN = 0;
+    DEBITCURREND = 0;
+    CREDITCURREND = 0;
+    DEBITEQBEGIN = 0;
+    CREDITEQBEGIN = 0;
+    DEBITEQEND = 0;
+    CREDITEQEND = 0;
+    SALDOEND = :SALDOBEGIN + :O;
+    if (SALDOBEGIN > 0) then
+      DEBITNCUBEGIN = :SALDOBEGIN;
+    else
+      CREDITNCUBEGIN =  - :SALDOBEGIN;
+    if (SALDOEND > 0) then
+      DEBITNCUEND = :SALDOEND;
+    else
+      CREDITNCUEND =  - :SALDOEND;
+    SALDOENDCURR = :SALDOBEGINCURR + :OCURR;
+    if (SALDOBEGINCURR > 0) then
       DEBITCURRBEGIN = :SALDOBEGINCURR;
-      DEBITCURREND = :SALDOBEGINCURR; 
-    END ELSE 
-    BEGIN 
-      CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-      CREDITCURREND =  - :SALDOBEGINCURR; 
-    END 
- 
-    IF (SALDOBEGINEQ > 0) THEN 
-    BEGIN 
-      DEBITEQBEGIN = :SALDOBEGINEQ; 
-      DEBITEQEND = :SALDOBEGINEQ; 
-    END ELSE 
-    BEGIN 
-      CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-      CREDITEQEND =  - :SALDOBEGINEQ; 
-    END 
- 
-    FORCESHOW = 1; 
-    SUSPEND; 
+    else
+      CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+    if (SALDOENDCURR > 0) then
+      DEBITCURREND = :SALDOENDCURR;
+    else
+      CREDITCURREND =  - :SALDOENDCURR;
+    SALDOENDEQ = :SALDOBEGINEQ + :OEQ;
+    if (SALDOBEGINEQ > 0) then
+      DEBITEQBEGIN = :SALDOBEGINEQ;
+    else
+      CREDITEQBEGIN =  - :SALDOBEGINEQ;
+    if (SALDOENDEQ > 0) then
+      DEBITEQEND = :SALDOENDEQ;
+    else
+      CREDITEQEND =  - :SALDOENDEQ;
+    SUSPEND;
+    SALDOBEGIN = :SALDOEND;
+    SALDOBEGINCURR = :SALDOENDCURR;
+    SALDOBEGINEQ = :SALDOENDEQ;
+    C = C + 1;
+  END
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+  IF (C = 0) THEN
+  BEGIN
+    ENTRYDATE = :abeginentrydate;
+    IF (SALDOBEGIN > 0) THEN
+    BEGIN
+      DEBITNCUBEGIN = :SALDOBEGIN;
+      DEBITNCUEND = :SALDOBEGIN;
+    END ELSE
+    BEGIN
+      CREDITNCUBEGIN =  - :SALDOBEGIN;
+      CREDITNCUEND =  - :SALDOBEGIN;
+    END
+
+    IF (SALDOBEGINCURR > 0) THEN
+    BEGIN
+      DEBITCURRBEGIN = :SALDOBEGINCURR;
+      DEBITCURREND = :SALDOBEGINCURR;
+    END ELSE
+    BEGIN
+      CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+      CREDITCURREND =  - :SALDOBEGINCURR;
+    END
+
+    IF (SALDOBEGINEQ > 0) THEN
+    BEGIN
+      DEBITEQBEGIN = :SALDOBEGINEQ;
+      DEBITEQEND = :SALDOBEGINEQ;
+    END ELSE
+    BEGIN
+      CREDITEQBEGIN =  - :SALDOBEGINEQ;
+      CREDITEQEND =  - :SALDOBEGINEQ;
+    END
+
+    FORCESHOW = 1;
+    SUSPEND;
   END
 END^
 
@@ -4218,116 +4267,116 @@ declare variable saldoendcurr dcurrency;
 declare variable oeq dcurrency;
 declare variable saldoendeq dcurrency;
 declare variable c integer;
-BEGIN 
-  IF (saldobegin IS NULL) THEN 
-    saldobegin = 0; 
-  IF (saldobegincurr IS NULL) THEN 
-    saldobegincurr = 0; 
-  IF (saldobegineq IS NULL) THEN 
+BEGIN
+  IF (saldobegin IS NULL) THEN
+    saldobegin = 0;
+  IF (saldobegincurr IS NULL) THEN
+    saldobegincurr = 0;
+  IF (saldobegineq IS NULL) THEN
     saldobegineq = 0;
-  C = 0; 
-  FORCESHOW = 0; 
-  FOR 
-    SELECT 
-      SUM(e.debitncu - e.creditncu), 
-      SUM(e.debitcurr - e.creditcurr), 
-      SUM(e.debiteq - e.crediteq), 
-      g_d_getdateparam(e.entrydate, :param) 
-    FROM 
-      ac_ledger_entries le 
-      LEFT JOIN ac_entry e ON le.entrykey = e.id 
-    WHERE 
-      le.sqlhandle = :sqlhandle AND 
-      ((0 = :currkey) OR (e.currkey = :currkey)) 
-    group by 4 
-    INTO :O, 
-         :OCURR, 
-         :OEQ, 
-         :dateparam 
-  DO 
-  BEGIN 
-    DEBITNCUBEGIN = 0; 
-    CREDITNCUBEGIN = 0; 
-    DEBITNCUEND = 0; 
-    CREDITNCUEND = 0; 
-    DEBITCURRBEGIN = 0; 
-    CREDITCURRBEGIN = 0; 
-    DEBITCURREND = 0; 
-    CREDITCURREND = 0; 
+  C = 0;
+  FORCESHOW = 0;
+  FOR
+    SELECT
+      SUM(e.debitncu - e.creditncu),
+      SUM(e.debitcurr - e.creditcurr),
+      SUM(e.debiteq - e.crediteq),
+      g_d_getdateparam(e.entrydate, :param)
+    FROM
+      ac_ledger_entries le
+      LEFT JOIN ac_entry e ON le.entrykey = e.id
+    WHERE
+      le.sqlhandle = :sqlhandle AND
+      ((0 = :currkey) OR (e.currkey = :currkey))
+    group by 4
+    INTO :O,
+         :OCURR,
+         :OEQ,
+         :dateparam
+  DO
+  BEGIN
+    DEBITNCUBEGIN = 0;
+    CREDITNCUBEGIN = 0;
+    DEBITNCUEND = 0;
+    CREDITNCUEND = 0;
+    DEBITCURRBEGIN = 0;
+    CREDITCURRBEGIN = 0;
+    DEBITCURREND = 0;
+    CREDITCURREND = 0;
     DEBITEQBEGIN = 0;
-    CREDITEQBEGIN = 0; 
-    DEBITEQEND = 0; 
-    CREDITEQEND = 0; 
-    SALDOEND = :SALDOBEGIN + :O; 
-    if (SALDOBEGIN > 0) then 
-      DEBITNCUBEGIN = :SALDOBEGIN; 
-    else 
-      CREDITNCUBEGIN =  - :SALDOBEGIN; 
-    if (SALDOEND > 0) then 
-      DEBITNCUEND = :SALDOEND; 
-    else 
-      CREDITNCUEND =  - :SALDOEND; 
-    SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
-    if (SALDOBEGINCURR > 0) then 
-      DEBITCURRBEGIN = :SALDOBEGINCURR; 
-    else 
-      CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-    if (SALDOENDCURR > 0) then 
-      DEBITCURREND = :SALDOENDCURR; 
-    else 
-      CREDITCURREND =  - :SALDOENDCURR; 
-    SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
-    if (SALDOBEGINEQ > 0) then 
-      DEBITEQBEGIN = :SALDOBEGINEQ; 
-    else 
-      CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-    if (SALDOENDEQ > 0) then 
-      DEBITEQEND = :SALDOENDEQ; 
-    else 
+    CREDITEQBEGIN = 0;
+    DEBITEQEND = 0;
+    CREDITEQEND = 0;
+    SALDOEND = :SALDOBEGIN + :O;
+    if (SALDOBEGIN > 0) then
+      DEBITNCUBEGIN = :SALDOBEGIN;
+    else
+      CREDITNCUBEGIN =  - :SALDOBEGIN;
+    if (SALDOEND > 0) then
+      DEBITNCUEND = :SALDOEND;
+    else
+      CREDITNCUEND =  - :SALDOEND;
+    SALDOENDCURR = :SALDOBEGINCURR + :OCURR;
+    if (SALDOBEGINCURR > 0) then
+      DEBITCURRBEGIN = :SALDOBEGINCURR;
+    else
+      CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+    if (SALDOENDCURR > 0) then
+      DEBITCURREND = :SALDOENDCURR;
+    else
+      CREDITCURREND =  - :SALDOENDCURR;
+    SALDOENDEQ = :SALDOBEGINEQ + :OEQ;
+    if (SALDOBEGINEQ > 0) then
+      DEBITEQBEGIN = :SALDOBEGINEQ;
+    else
+      CREDITEQBEGIN =  - :SALDOBEGINEQ;
+    if (SALDOENDEQ > 0) then
+      DEBITEQEND = :SALDOENDEQ;
+    else
       CREDITEQEND =  - :SALDOENDEQ;
-    SUSPEND; 
-    SALDOBEGIN = :SALDOEND; 
-    SALDOBEGINCURR = :SALDOENDCURR; 
-    SALDOBEGINEQ = :SALDOENDEQ; 
-    C = C + 1; 
-  END 
-  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-  IF (C = 0) THEN 
-  BEGIN 
-    DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
-    IF (SALDOBEGIN > 0) THEN 
-    BEGIN 
-      DEBITNCUBEGIN = :SALDOBEGIN; 
-      DEBITNCUEND = :SALDOBEGIN; 
-    END ELSE 
-    BEGIN 
-      CREDITNCUBEGIN =  - :SALDOBEGIN; 
-      CREDITNCUEND =  - :SALDOBEGIN; 
-    END 
- 
-    IF (SALDOBEGINCURR > 0) THEN 
-    BEGIN 
-      DEBITCURRBEGIN = :SALDOBEGINCURR; 
-      DEBITCURREND = :SALDOBEGINCURR; 
-    END ELSE 
-    BEGIN 
-      CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
-      CREDITCURREND =  - :SALDOBEGINCURR; 
-    END 
+    SUSPEND;
+    SALDOBEGIN = :SALDOEND;
+    SALDOBEGINCURR = :SALDOENDCURR;
+    SALDOBEGINEQ = :SALDOENDEQ;
+    C = C + 1;
+  END
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+  IF (C = 0) THEN
+  BEGIN
+    DATEPARAM = g_d_getdateparam(:abeginentrydate, :param);
+    IF (SALDOBEGIN > 0) THEN
+    BEGIN
+      DEBITNCUBEGIN = :SALDOBEGIN;
+      DEBITNCUEND = :SALDOBEGIN;
+    END ELSE
+    BEGIN
+      CREDITNCUBEGIN =  - :SALDOBEGIN;
+      CREDITNCUEND =  - :SALDOBEGIN;
+    END
 
-    IF (SALDOBEGINEQ > 0) THEN 
-    BEGIN 
-      DEBITEQBEGIN = :SALDOBEGINEQ; 
-      DEBITEQEND = :SALDOBEGINEQ; 
-    END ELSE 
-    BEGIN 
-      CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-      CREDITEQEND =  - :SALDOBEGINEQ; 
-    END 
- 
-    FORCESHOW = 1; 
-    SUSPEND; 
-  END 
+    IF (SALDOBEGINCURR > 0) THEN
+    BEGIN
+      DEBITCURRBEGIN = :SALDOBEGINCURR;
+      DEBITCURREND = :SALDOBEGINCURR;
+    END ELSE
+    BEGIN
+      CREDITCURRBEGIN =  - :SALDOBEGINCURR;
+      CREDITCURREND =  - :SALDOBEGINCURR;
+    END
+
+    IF (SALDOBEGINEQ > 0) THEN
+    BEGIN
+      DEBITEQBEGIN = :SALDOBEGINEQ;
+      DEBITEQEND = :SALDOBEGINEQ;
+    END ELSE
+    BEGIN
+      CREDITEQBEGIN =  - :SALDOBEGINEQ;
+      CREDITEQEND =  - :SALDOBEGINEQ;
+    END
+
+    FORCESHOW = 1;
+    SUSPEND;
+  END
 END^
 
 CREATE PROCEDURE AC_E_Q_S (
@@ -4348,68 +4397,68 @@ as
 declare variable o numeric(15,4);
 declare variable saldoend numeric(15,4);
 declare variable c integer;
-BEGIN 
-  C = 0; 
-  if (saldobegin IS NULL) then 
-    saldobegin = 0; 
- 
-  FOR 
-    SELECT 
-      e.entrydate, 
-      SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
-        SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
-    FROM 
-      ac_ledger_entries le 
-      LEFT JOIN ac_entry e ON le.entrykey = e.id 
-      LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey 
-    WHERE 
-      le.sqlhandle = :SQLHANDLE AND 
-      ((0 = :currkey) OR (e.currkey = :currkey)) 
-    GROUP BY e.entrydate 
-    INTO :ENTRYDATE, 
-         :O 
-  DO 
-  BEGIN 
-    IF (O IS NULL) THEN O = 0; 
-    DEBITBEGIN = 0; 
-    CREDITBEGIN = 0; 
-    DEBITEND = 0; 
+BEGIN
+  C = 0;
+  if (saldobegin IS NULL) then
+    saldobegin = 0;
+
+  FOR
+    SELECT
+      e.entrydate,
+      SUM(IIF(e.accountpart = 'D', q.quantity, 0)) -
+        SUM(IIF(e.accountpart = 'C', q.quantity, 0))
+    FROM
+      ac_ledger_entries le
+      LEFT JOIN ac_entry e ON le.entrykey = e.id
+      LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey
+    WHERE
+      le.sqlhandle = :SQLHANDLE AND
+      ((0 = :currkey) OR (e.currkey = :currkey))
+    GROUP BY e.entrydate
+    INTO :ENTRYDATE,
+         :O
+  DO
+  BEGIN
+    IF (O IS NULL) THEN O = 0;
+    DEBITBEGIN = 0;
+    CREDITBEGIN = 0;
+    DEBITEND = 0;
     CREDITEND = 0;
-    DEBIT = 0; 
-    CREDIT = 0; 
-    IF (O > 0) THEN 
-      DEBIT = :O; 
-    ELSE 
-      CREDIT = - :O; 
- 
-    SALDOEND = :SALDOBEGIN + :O; 
-    if (SALDOBEGIN > 0) then 
-      DEBITBEGIN = :SALDOBEGIN; 
-    else 
-      CREDITBEGIN =  - :SALDOBEGIN; 
-    if (SALDOEND > 0) then 
-      DEBITEND = :SALDOEND; 
-    else 
-      CREDITEND =  - :SALDOEND; 
-    SUSPEND; 
-    SALDOBEGIN = :SALDOEND; 
-    C = C + 1; 
-  END 
-  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-  IF (C = 0) THEN 
-  BEGIN 
-    ENTRYDATE = :abeginentrydate; 
-    IF (SALDOBEGIN > 0) THEN 
-    BEGIN 
-      DEBITBEGIN = :SALDOBEGIN; 
-      DEBITEND = :SALDOBEGIN; 
-    END ELSE 
+    DEBIT = 0;
+    CREDIT = 0;
+    IF (O > 0) THEN
+      DEBIT = :O;
+    ELSE
+      CREDIT = - :O;
+
+    SALDOEND = :SALDOBEGIN + :O;
+    if (SALDOBEGIN > 0) then
+      DEBITBEGIN = :SALDOBEGIN;
+    else
+      CREDITBEGIN =  - :SALDOBEGIN;
+    if (SALDOEND > 0) then
+      DEBITEND = :SALDOEND;
+    else
+      CREDITEND =  - :SALDOEND;
+    SUSPEND;
+    SALDOBEGIN = :SALDOEND;
+    C = C + 1;
+  END
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+  IF (C = 0) THEN
+  BEGIN
+    ENTRYDATE = :abeginentrydate;
+    IF (SALDOBEGIN > 0) THEN
     BEGIN
-      CREDITBEGIN =  - :SALDOBEGIN; 
-      CREDITEND =  - :SALDOBEGIN; 
-    END 
-    SUSPEND; 
-  END 
+      DEBITBEGIN = :SALDOBEGIN;
+      DEBITEND = :SALDOBEGIN;
+    END ELSE
+    BEGIN
+      CREDITBEGIN =  - :SALDOBEGIN;
+      CREDITEND =  - :SALDOBEGIN;
+    END
+    SUSPEND;
+  END
 END^
 
 CREATE PROCEDURE AC_E_Q_S1 (
@@ -4431,68 +4480,68 @@ as
 declare variable o numeric(15,4);
 declare variable saldoend numeric(15,4);
 declare variable c integer;
-BEGIN 
-  C = 0; 
-  if (SALDOBEGIN IS NULL) THEN 
+BEGIN
+  C = 0;
+  if (SALDOBEGIN IS NULL) THEN
     SALDOBEGIN = 0;
- 
-  FOR 
-    SELECT 
-      g_d_getdateparam(e.entrydate, :param), 
-      SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
-        SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
-    FROM 
-      ac_ledger_entries le 
-      LEFT JOIN ac_entry e ON le.entrykey = e.id 
-      LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey 
-    WHERE 
-      le.sqlhandle = :SQLHANDLE AND 
-      ((0 = :currkey) OR (e.currkey = :currkey)) 
-    GROUP BY 1 
-    INTO :dateparam, 
-         :O 
-  DO 
-  BEGIN 
-    IF (O IS NULL) THEN O = 0; 
-    DEBITBEGIN = 0; 
-    CREDITBEGIN = 0; 
-    DEBITEND = 0; 
-    CREDITEND = 0; 
-    DEBIT = 0; 
-    CREDIT = 0; 
-    IF (O > 0) THEN 
-      DEBIT = :O; 
-    ELSE 
-      CREDIT = - :O; 
 
-    SALDOEND = :SALDOBEGIN + :O; 
-    if (SALDOBEGIN > 0) then 
-      DEBITBEGIN = :SALDOBEGIN; 
-    else 
-      CREDITBEGIN =  - :SALDOBEGIN; 
-    if (SALDOEND > 0) then 
-      DEBITEND = :SALDOEND; 
-    else 
-      CREDITEND =  - :SALDOEND; 
-    SUSPEND; 
-    SALDOBEGIN = :SALDOEND; 
-    C = C + 1; 
-  END 
-  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
-  IF (C = 0) THEN 
-  BEGIN 
-    DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
-    IF (SALDOBEGIN > 0) THEN 
-    BEGIN 
-      DEBITBEGIN = :SALDOBEGIN; 
-      DEBITEND = :SALDOBEGIN; 
-    END ELSE 
-    BEGIN 
-      CREDITBEGIN =  - :SALDOBEGIN; 
-      CREDITEND =  - :SALDOBEGIN; 
-    END 
-    SUSPEND; 
-  END 
+  FOR
+    SELECT
+      g_d_getdateparam(e.entrydate, :param),
+      SUM(IIF(e.accountpart = 'D', q.quantity, 0)) -
+        SUM(IIF(e.accountpart = 'C', q.quantity, 0))
+    FROM
+      ac_ledger_entries le
+      LEFT JOIN ac_entry e ON le.entrykey = e.id
+      LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey
+    WHERE
+      le.sqlhandle = :SQLHANDLE AND
+      ((0 = :currkey) OR (e.currkey = :currkey))
+    GROUP BY 1
+    INTO :dateparam,
+         :O
+  DO
+  BEGIN
+    IF (O IS NULL) THEN O = 0;
+    DEBITBEGIN = 0;
+    CREDITBEGIN = 0;
+    DEBITEND = 0;
+    CREDITEND = 0;
+    DEBIT = 0;
+    CREDIT = 0;
+    IF (O > 0) THEN
+      DEBIT = :O;
+    ELSE
+      CREDIT = - :O;
+
+    SALDOEND = :SALDOBEGIN + :O;
+    if (SALDOBEGIN > 0) then
+      DEBITBEGIN = :SALDOBEGIN;
+    else
+      CREDITBEGIN =  - :SALDOBEGIN;
+    if (SALDOEND > 0) then
+      DEBITEND = :SALDOEND;
+    else
+      CREDITEND =  - :SALDOEND;
+    SUSPEND;
+    SALDOBEGIN = :SALDOEND;
+    C = C + 1;
+  END
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+  IF (C = 0) THEN
+  BEGIN
+    DATEPARAM = g_d_getdateparam(:abeginentrydate, :param);
+    IF (SALDOBEGIN > 0) THEN
+    BEGIN
+      DEBITBEGIN = :SALDOBEGIN;
+      DEBITEND = :SALDOBEGIN;
+    END ELSE
+    BEGIN
+      CREDITBEGIN =  - :SALDOBEGIN;
+      CREDITEND =  - :SALDOBEGIN;
+    END
+    SUSPEND;
+  END
 END^
 
 SET TERM ; ^

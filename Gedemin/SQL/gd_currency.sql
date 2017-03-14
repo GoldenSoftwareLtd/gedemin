@@ -1,6 +1,6 @@
 
 /****************************************************/
-/**   Справочник валют                             **/
+/**   ‘правочник валют                             **/
 /****************************************************/
 
 CREATE TABLE gd_curr
@@ -88,15 +88,23 @@ SET TERM ; ^
 COMMIT;
 
 /****************************************************/
-/**   Справочник курсов валют                      **/
+/**   ‘правочник курсов валют                      **/
 /****************************************************/
 
 CREATE DOMAIN dcurrrate AS
   DECIMAL(15, 10)
+  CHECK(VALUE >= 0)
   NOT NULL;
   
 CREATE DOMAIN dcurrrate_null AS 
-  DECIMAL(15,10);
+  DECIMAL(15, 10)
+  CHECK(VALUE >= 0);
+  
+CREATE DOMAIN dcurrrate_amount AS
+  SMALLINT
+  DEFAULT 1
+  CHECK (VALUE > 0)
+  NOT NULL;
 
 COMMIT;
 
@@ -105,8 +113,11 @@ CREATE TABLE gd_currrate
   id             dintkey,
   fromcurr       dintkey,
   tocurr         dintkey,
-  fordate        ddate NOT NULL,
+  fordate        dtimestamp_notnull,
+  regulatorkey   dforeignkey,
   coeff          dcurrrate,
+  amount         dcurrrate_amount,
+  val            dcurrrate, /*  value = amount * coeff  */
   editiondate    deditiondate
 );
 
@@ -114,8 +125,8 @@ COMMIT;
 
 SET TERM ^ ;
 
-
-CREATE TRIGGER gd_bi_currrate FOR gd_currrate ACTIVE
+CREATE OR ALTER TRIGGER gd_bi_currrate FOR gd_currrate 
+  ACTIVE
   BEFORE INSERT
   POSITION 0
 AS
@@ -125,13 +136,28 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER gd_biu_currrate FOR gd_currrate 
+  ACTIVE
+  BEFORE INSERT OR UPDATE
+  POSITION 32000
+AS
+BEGIN
+  IF (NEW.amount IS NULL) THEN
+    NEW.amount = 1;
+  IF (NEW.val IS NULL) THEN
+    NEW.val = NEW.amount * NEW.coeff;
+  ELSE  
+    NEW.coeff = NEW.val / NEW.amount; 
+END
+^
+
 SET TERM ; ^
 
 ALTER TABLE gd_currrate ADD CONSTRAINT gd_pk_currrate
   PRIMARY KEY (id);
 
 ALTER TABLE gd_currrate ADD CONSTRAINT gd_uk_currrate
-  UNIQUE (fromcurr, tocurr, fordate);
+  UNIQUE (fromcurr, tocurr, fordate, regulatorkey);
 
 ALTER TABLE gd_currrate ADD CONSTRAINT gd_fk1_currrate
   FOREIGN KEY (fromcurr) REFERENCES gd_curr (id) ON UPDATE CASCADE;

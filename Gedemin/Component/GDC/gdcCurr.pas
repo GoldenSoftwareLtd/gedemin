@@ -29,9 +29,6 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
-    class function GetNCUCurrKey: TID;
-    class function GetEqCurrKey: TID;
-
     function CheckTheSameStatement: String; override;
   end;
 
@@ -57,8 +54,11 @@ type
   end;
 
   // Возвращает курс валюты
+  {
   function gs_GetCurrRate(const DocumentDate: TDateTime; const CurrKey: Integer;
     Transaction: TIBTransaction): Double;
+  }
+
   procedure Register;
 
 implementation
@@ -88,6 +88,7 @@ begin
   RegisterComponents('gdc', [TgdcCurrRate]);
 end;
 
+{
 function gs_GetCurrRate(const DocumentDate: TDateTime; const CurrKey: Integer;
   Transaction: TIBTransaction): Double;
 var
@@ -130,6 +131,7 @@ begin
     q.Free;
   end;
 end;
+}
 
 { TgdcCurr ------------------------------------------------}
 
@@ -423,7 +425,7 @@ begin
     Result := Format('SELECT id FROM gd_currrate WHERE fromcurr = %d AND '+
       ' tocurr = %d AND fordate = ''%s'' ' ,
       [FieldByName('fromcurr').AsInteger, FieldByName('tocurr').AsInteger,
-       FormatDateTime('dd.mm.yyyy', FieldByName('fordate').AsDateTime)]);
+       FormatDateTime('dd.mm.yyyy hh:nn:ss', FieldByName('fordate').AsDateTime)]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRRATE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
@@ -459,9 +461,17 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+  
   inherited;
-  FieldByName('FromName').ReadOnly := True;
-  FieldByName('ToName').ReadOnly := True;
+
+  FieldByName('fromname').ReadOnly := True;
+  FieldByName('toname').ReadOnly := True;
+
+  // trigger will sync fields
+  FieldByName('amount').Required := False;
+  FieldByName('val').Required := False;
+  FieldByName('coeff').Required := False;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRRATE', 'CREATEFIELDS', KEYCREATEFIELDS)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -486,32 +496,6 @@ class function TgdcCurr.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgCurr';
-end;
-
-class function TgdcCurr.GetEqCurrKey: TID;
-var
-  q: TIBSQL;
-begin
-  Assert(gdcBaseManager <> nil);
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT id FROM gd_curr WHERE iseq <> 0';
-    q.ExecQuery;
-
-    if q.EOF then
-      Result := -1
-    else
-      Result := q.FieldByName('id').AsInteger;
-  finally
-    q.Free;
-  end;
-end;
-
-class function TgdcCurr.GetNCUCurrKey: TID;
-begin
-  Result := AcctUtils.GetNCUKey;
 end;
 
 initialization

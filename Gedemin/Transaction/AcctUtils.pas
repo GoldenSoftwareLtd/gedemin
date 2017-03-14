@@ -25,6 +25,7 @@ function GetNCUKey: Integer;
 function GetNCUDecDigits: Integer;
 function GetCurrDecDigits(const ACurrCode: String): Integer;
 procedure ResetNCUCache;
+function GetEqKey: Integer;
 
 function DisplayFormat(DecDig: Integer): string;
 //заполняет список полей аналитик
@@ -64,6 +65,10 @@ procedure SetSaldoValue(AValue: Currency; ADebit, ACredit: TEdit; ADecDigits: In
 
 function CheckActiveAccount(CompanyKey: Integer; AShowMessage: Boolean = True): Boolean;
 function GetGeneralAnalyticField(const AnAccountID: Integer): String;
+
+function GetCurrRate(ForDate: TDateTime; ValidDays: Integer; RegulatorKey: OleVariant;
+  FromCurrKey: OleVariant; ToCurrKey: OleVariant; CrossCurrKey: OleVariant; Amount: Currency;
+  ForceCross: WordBool; UseInverted: WordBool; RaiseException: WordBool): Double;
 
 const
   cInputParam = '/*INPUT PARAM*/';
@@ -151,6 +156,27 @@ begin
     end;
   end;
   Result := FNCUKey;
+end;
+
+function GetEqKey: Integer;
+var
+  q: TIBSQL;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT id FROM gd_curr WHERE iseq <> 0';
+    q.ExecQuery;
+
+    if q.EOF then
+      Result := -1
+    else
+      Result := q.FieldByName('id').AsInteger;
+  finally
+    q.Free;
+  end;
 end;
 
 function GetNCUDecDigits: Integer;
@@ -395,10 +421,12 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT rf.fieldname FROM ac_account a ' +
-      '  JOIN at_relation_fields rf ON rf.id = a.analyticalfield ' +
-      'WHERE ' +
-      '  a.id = :id';
+      'SELECT LIST(rf.fieldname, '', '') fieldname ' +
+      'FROM  ac_accanalyticsext aa ' +
+      '  JOIN at_relation_fields rf ON aa.valuekey = rf.id ' +
+      'WHERE aa.accountkey = :id ' +
+      'GROUP BY aa.accountkey  ';
+
     q.ParamByName('id').AsInteger := AnAccountID;
     q.ExecQuery;
     if not q.Eof then
@@ -822,6 +850,152 @@ begin
       ACredit.Text:= FormatFloat(DisplayFormat(ADecDigits), -AValue);
       ACredit.Color:= clWhite;
     end;
+end;
+
+function GetCurrRate(ForDate: TDateTime; ValidDays: Integer; RegulatorKey: OleVariant;
+  FromCurrKey: OleVariant; ToCurrKey: OleVariant; CrossCurrKey: OleVariant; Amount: Currency;
+  ForceCross: WordBool; UseInverted: WordBool; RaiseException: WordBool): Double;
+
+  procedure AdjustKey(var K: OleVariant);
+  var
+    q: TIBSQL;
+  begin
+    if VarIsEmpty(K) or VarIsNull(K) then
+      K := -1
+    else if (VarType(K) = varOleStr) or (VarType(K) = varString) then
+    begin
+      if CheckRUID(K) then
+        K := gdcBaseManager.GetIDByRUIDString(K)
+      else if K = 'NCU' then
+        K := GetNCUKey
+      else begin
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := gdcBaseManager.ReadTransaction;
+          q.SQL.Text :=
+            'SELECT * FROM gd_curr WHERE code = :c';
+          q.ParamByName('c').AsString := K;
+          q.ExecQuery;
+
+          if q.EOF then
+            K := -1
+          else begin
+            K := q.FieldByName('id').AsInteger;
+
+            q.Next;
+            if not q.EOF then
+              raise Exception.Create('More than one currency have code ' + q.ParamByName('c').AsString);
+          end;
+        finally
+          q.Free;
+        end;
+      end;
+    end else if not (VarType(K) = varInteger) then
+      K := -1;
+  end;
+
+  function CalcRate(q: TIBSQL; const FC, TC: Integer; const V: Double;
+    const CanInvert: Boolean; var Output: Double): Boolean;
+  begin
+    Result := False;
+    try
+      q.ParamByName('fc').AsInteger := FC;
+      q.ParamByName('tc').AsInteger := TC;
+      q.ExecQuery;
+
+      if q.EOF then
+      begin
+        if CanInvert then
+        begin
+          q.Close;
+          q.ParamByName('fc').AsInteger := TC;
+          q.ParamByName('tc').AsInteger := FC;
+          q.ExecQuery;
+
+          if not q.EOF then
+          begin
+            Output := q.FieldByName('amount').AsInteger * V / q.FieldByName('val').AsDouble;
+            Result := True;
+          end;
+        end;
+      end else
+      begin
+        Output := q.FieldByName('val').AsDouble * V / q.FieldByName('amount').AsInteger;
+        Result := True;
+      end;
+    finally
+      q.Close;
+    end;
+  end;
+
+var
+  q: TIBSQL;
+begin
+  try
+    AdjustKey(FromCurrKey);
+    AdjustKey(ToCurrKey);
+    AdjustKey(CrossCurrKey);
+
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+        'SELECT FIRST 1 amount, val ' +
+        'FROM gd_currrate ' +
+        'WHERE fromcurr = :fc ' +
+        '  AND tocurr = :tc ';
+
+      if ValidDays = -1 then
+        q.SQL.Add('  AND fordate <= :fd ')
+      else if ValidDays = 0 then
+        q.SQL.Add('  AND fordate = :fd ')
+      else
+        q.SQL.Add('  AND fordate <= :fd AND DATEDIFF(DAY FROM fordate TO CAST(:fd AS TIMESTAMP)) <= :vd ');
+
+      if RegulatorKey = -1 then
+        q.SQL.Add('ORDER BY fordate DESC, regulatorkey NULLS FIRST')
+      else begin
+        q.SQL.Add('AND regulatorkey = :rk ORDER BY fordate DESC');
+        q.ParamByName('rk').AsInteger := RegulatorKey;
+      end;
+
+      q.ParamByName('fd').AsDateTime := ForDate;
+
+      if ValidDays > 0 then
+        q.ParamByName('vd').AsInteger := ValidDays;
+
+      if not
+        (
+          (
+            (
+              (not ForceCross)
+              or
+              (CrossCurrKey = -1)
+            )
+            and
+            CalcRate(q, FromCurrKey, ToCurrKey, Amount, UseInverted, Result)
+          )
+          or
+          (
+            (CrossCurrKey <> -1)
+            and
+            CalcRate(q, FromCurrKey, CrossCurrKey, Amount, UseInverted, Result)
+            and
+            CalcRate(q, CrossCurrKey, ToCurrKey, Result, UseInverted, Result)
+          )
+        ) then
+      begin
+        raise Exception.Create('No currency rate found');
+      end;  
+    finally
+      q.Free;
+    end;
+  except
+    if RaiseException then
+      raise
+    else
+      Result := 0;
+  end;
 end;
 
 initialization

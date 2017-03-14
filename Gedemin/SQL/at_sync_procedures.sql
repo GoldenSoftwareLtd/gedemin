@@ -25,10 +25,6 @@ AS
   DECLARE VARIABLE WASERROR SMALLINT;
   DECLARE VARIABLE GN VARCHAR(64);
 BEGIN 
- /* пакольк_ каскады не выкарыстоўваюцца мус_м */ 
- /* п_льнавацца пэўнага парадку                */ 
-  
- /* выдал_м не _снуючыя ўжо пал_ табл_цаў      */ 
    FOR 
      SELECT fieldname, relationname 
      FROM at_relation_fields LEFT JOIN rdb$relation_fields 
@@ -40,7 +36,6 @@ BEGIN
      DELETE FROM at_relation_fields WHERE fieldname=:FN AND relationname=:RN; 
    END 
   
- /* дададз_м новыя дамены */ 
    MERGE INTO at_fields trgt
      USING rdb$fields src
      ON trgt.fieldname = src.rdb$field_name
@@ -48,7 +43,6 @@ BEGIN
        INSERT (fieldname, lname, description)
        VALUES (TRIM(src.rdb$field_name), TRIM(src.rdb$field_name), TRIM(src.rdb$field_name)); 
 
- /* для _снуючых палёў аднав_м _нфармацыю аб тыпе */ 
    FOR 
      SELECT fieldsource, fieldname, relationname 
      FROM at_relation_fields 
@@ -64,20 +58,14 @@ BEGIN
      WHERE fieldname = :FN AND relationname = :RN; 
    END 
   
- /* выдал_м з табл_цы даменаў не _снуючыя дамены */ 
    DELETE FROM at_fields f WHERE
    NOT EXISTS (SELECT rdb$field_name FROM rdb$fields
      WHERE rdb$field_name = f.fieldname);
 
   
- /*Теперь будем аккуратно проверять на несуществующие уже таблицы и существующие 
- домены, которые ссылаются на эти таблицы. Такая ситуация может возникнуть из-за 
- ошибки при создании мета-данных*/ 
-  
    WASERROR = 0; 
   
    FOR 
- /*Выберем все поля и удалим*/ 
      SELECT rf.id 
      FROM at_relations r 
      LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
@@ -91,7 +79,6 @@ BEGIN
    END 
   
    FOR 
- /*Выберем все домены и удалим*/ 
      SELECT f.id 
      FROM at_relations r 
      LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
@@ -104,7 +91,6 @@ BEGIN
    END 
   
    FOR 
- /*Выберем все поля и удалим*/ 
      SELECT rf.id 
      FROM at_relations r 
      LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
@@ -118,7 +104,6 @@ BEGIN
    END 
   
    FOR 
- /*Выберем все домены и удалим*/ 
      SELECT f.id 
      FROM at_relations r 
      LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
@@ -131,7 +116,6 @@ BEGIN
    END 
   
    FOR 
-/*выберем все документы, у которых шапка ссылается на несуществующие таблицы и удалим*/ 
      SELECT dt.id 
      FROM at_relations r 
      LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
@@ -143,7 +127,6 @@ BEGIN
    END 
  
    FOR 
-/*выберем все документы, у которых позиция ссылается на несуществующие таблицы и удалим*/ 
      SELECT dt.id 
      FROM at_relations r 
      LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
@@ -155,7 +138,6 @@ BEGIN
    END 
    IF (WASERROR = 1) THEN 
    BEGIN 
- /* Перечитаем домены. Теперь те домены, которые были проблемными добавятся без ошибок */ 
      INSERT INTO AT_FIELDS (fieldname, lname, description)
      SELECT TRIM(rdb$field_name), TRIM(rdb$field_name),
        TRIM(rdb$field_name)
@@ -163,13 +145,10 @@ BEGIN
        WHERE fieldname IS NULL;
    END 
   
- /* выдал_м табл_цы, як_х ужо няма */ 
    DELETE FROM at_relations r WHERE
    NOT EXISTS (SELECT rdb$relation_name FROM rdb$relations
      WHERE rdb$relation_name = r.relationname );
   
- /* дададз_м новыя табл_цы */ 
- /* акрамя с_стэмных  */ 
    FOR 
      SELECT rdb$relation_name, rdb$view_source 
      FROM rdb$relations LEFT JOIN at_relations ON relationname=rdb$relation_name 
@@ -185,7 +164,6 @@ BEGIN
        VALUES (:RN, 'V', :RN, :RN, :RN); 
      END 
   
- /* дадаем новыя пал_ */ 
    FOR 
      SELECT 
        rr.rdb$field_name, rr.rdb$field_source, rr.rdb$relation_name, r.id, f.id 
@@ -207,7 +185,6 @@ BEGIN
      VALUES(:FN, :RN, :FS, :FN, :FN, :ID, :ID1, 20, 1); 
    END 
   
- /* обновим информацию о правиле удаления для полей ссылок */ 
    FOR 
      SELECT rf.rdb$delete_rule, f.id 
      FROM rdb$relation_constraints rc 
@@ -225,7 +202,6 @@ BEGIN
      UPDATE at_relation_fields SET deleterule = :DELRULE WHERE id = :ID; 
    END 
   
- /* выдал_м не _снуючыя ўжо выключэннi */ 
    FOR 
      SELECT exceptionname 
      FROM at_exceptions LEFT JOIN rdb$exceptions 
@@ -237,14 +213,12 @@ BEGIN
      DELETE FROM at_exceptions WHERE exceptionname=:EN; 
    END 
   
- /* дадаем новыя выключэннi */ 
    INSERT INTO at_exceptions(exceptionname)
    SELECT TRIM(rdb$exception_name)
    FROM rdb$exceptions
    LEFT JOIN at_exceptions e ON e.exceptionname=rdb$exception_name
    WHERE e.exceptionname IS NULL;
 
- /* выдал_м не _снуючыя ўжо працэдуры */ 
    FOR 
      SELECT procedurename 
      FROM at_procedures LEFT JOIN rdb$procedures 
@@ -256,14 +230,12 @@ BEGIN
      DELETE FROM at_procedures WHERE procedurename=:EN; 
    END 
   
- /* дадаем новыя працэдуры */ 
    INSERT INTO at_procedures(procedurename)
    SELECT TRIM(rdb$procedure_name)
    FROM rdb$procedures
    LEFT JOIN at_procedures e ON e.procedurename = rdb$procedure_name
    WHERE e.procedurename IS NULL;
        
- /* удалим не существующие уже генераторы */ 
    GN = NULL; 
    FOR  
      SELECT generatorname 
@@ -276,14 +248,12 @@ BEGIN
      DELETE FROM at_generators WHERE generatorname=:GN;  
    END 
        
- /* добавим новые генераторы */  
    INSERT INTO at_generators(generatorname)
    SELECT TRIM(rdb$generator_name)
    FROM rdb$generators
    LEFT JOIN at_generators t ON t.generatorname=rdb$generator_name
    WHERE t.generatorname IS NULL;
        
- /* удалим не существующие уже чеки */ 
    EN = NULL; 
    FOR 
      SELECT T.CHECKNAME 

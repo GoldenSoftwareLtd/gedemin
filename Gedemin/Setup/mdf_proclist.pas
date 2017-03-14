@@ -49,13 +49,18 @@ uses
   mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument,
   mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
   mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL,
-  mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddWebRelayTable, mdf_AddFieldToAC_TRRECORD;
+  mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddWebRelayTable, mdf_AddFieldToAC_TRRECORD,
+  mdf_AccAnalyticsExtSupport;
 
 const
-  {$IFDEF FULL_MODIFY}
-  cProcCount = 217;
+  {$IFDEF GEDEMIN_LOCK}
+  cProcCount = 1;
   {$ELSE}
-  cProcCount = 37;
+    {$IFDEF FULL_MODIFY}
+    cProcCount = 220;
+    {$ELSE}
+    cProcCount = 40;
+    {$ENDIF}
   {$ENDIF}
 
 type
@@ -98,6 +103,7 @@ type
 
 const
   cProcList: TProcList = (
+    {$IFNDEF GEDEMIN_LOCK}
     {$IFDEF FULL_MODIFY}
     (ModifyProc: CreateUniqueFunctionName; ModifyVersion: '0000.0001.0000.0034'; NeedDBShutdown: True),
     // Добавление поля branchkey в таблицу at_relations
@@ -347,7 +353,6 @@ const
     (ModifyProc: DeletecbAnalyticFromScript; ModifyVersion: '0000.0001.0000.0192'; NeedDBShutdown: True),
     (ModifyProc: AddNSMetadata; ModifyVersion: '0000.0001.0000.0193'; NeedDBShutdown: True),
     {$ENDIF}
-
     (ModifyProc: Issue2846; ModifyVersion: '0000.0001.0000.0194'; NeedDBShutdown: False),
     (ModifyProc: Issue2688; ModifyVersion: '0000.0001.0000.0195'; NeedDBShutdown: False),
     (ModifyProc: AddUqConstraintToGD_RUID; ModifyVersion: '0000.0001.0000.0196'; NeedDBShutdown: True),
@@ -384,7 +389,11 @@ const
     (ModifyProc: CorrectSubAccounts; ModifyVersion: '0000.0001.0000.0285'; NeedDBShutdown: False),
     (ModifyProc: CorrectClientAddress; ModifyVersion: '0000.0001.0000.0286'; NeedDBShutdown: True),
     (ModifyProc: AddGeoCoords; ModifyVersion: '0000.0001.0000.0287'; NeedDBShutdown: True),
-    (ModifyProc: AddFieldPeriodToAC_TRRECORD; ModifyVersion: '0000.0001.0000.0288'; NeedDBShutdown: True)
+    (ModifyProc: AddFieldPeriodToAC_TRRECORD; ModifyVersion: '0000.0001.0000.0288'; NeedDBShutdown: True),
+    (ModifyProc: AddFieldsToGD_CURRRATE; ModifyVersion: '0000.0001.0000.0289'; NeedDBShutdown: True),
+    (ModifyProc: UpgradeAT_P_SYNC; ModifyVersion: '0000.0001.0000.0290'; NeedDBShutdown: False),
+    {$ENDIF}
+    (ModifyProc: AddAccAnalyticsExt; ModifyVersion: '0000.0001.0000.0291'; NeedDBShutdown: True)
   );
 
   {
