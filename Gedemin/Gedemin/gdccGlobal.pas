@@ -60,7 +60,9 @@ type
     function GetElapsed: TDateTime;
     function GetEstimFinish: TDateTime;
     function GetEstimLeft: TDateTime;
+    function GetWorkStarted: Boolean;
     procedure SendCommand(const ACommand: Integer);
+    procedure CheckWorkStarted;
 
   public
     procedure Assign(ASource: TgdccProgress);
@@ -84,6 +86,7 @@ type
     property EstimLeft: TDateTime read GetEstimLeft;
     property EstimFinish: TDateTime read GetEstimFinish;
     property Canceled: Boolean read FCanceled;
+    property WorkStarted: Boolean read GetWorkStarted;
     property Done: Boolean read FDone;
     property HideOnFinish: Boolean read FHideOnFinish;
     property FinishMessage: String read FFinishMessage;
@@ -157,9 +160,16 @@ begin
   FFinishMessage := ASource.FFinishMessage;
 end;
 
+procedure TgdccProgress.CheckWorkStarted;
+begin
+  if not WorkStarted then
+    raise Exception.Create('Progress work was not started properly');
+end;
+
 procedure TgdccProgress.EndWork(const AMessage: String;
   const AHide: Boolean);
 begin
+  CheckWorkStarted;
   FDone := True;
   FFinished := Now;
   FStepDone := FStepTotal;
@@ -202,6 +212,11 @@ begin
       Result :=
         ((Now - FStarted) / FStepDone) * (FStepTotal - FStepDone);
   end;
+end;
+
+function TgdccProgress.GetWorkStarted: Boolean;
+begin
+  Result := (FStarted > 0) and (FStepTotal > 0);
 end;
 
 procedure TgdccProgress.LoadFromStream(S: TStream);
@@ -261,6 +276,7 @@ end;
 procedure TgdccProgress.StartStep(const AStepName: String;
   const AStepWeight: Integer);
 begin
+  CheckWorkStarted;
   if FStepWeight > 0 then
   begin
     Inc(FStepDone, FStepWeight);

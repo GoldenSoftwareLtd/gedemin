@@ -223,20 +223,27 @@ begin
           FTCPClient.ReadTimeOut := 2000;
         end;
 
-        FTCPClient.Connect;
-
-        St := TMemoryStream.Create;
         try
-          SaveStringToStream(FTCPClient.LocalName, St);
-          if TgdccCommand.WriteCommand(FTCPClient, gdcc_cmd_Connect, St)
-            and (TgdccCommand.ReadCommand(FTCPClient, Ver) = gdcc_cmd_AckConnect)
-            and (Ver = gdccVersion) then
-          begin
-            FConnectionID.Value := 1;
-            SetTimeOut(2000);
+          FTCPClient.Connect;
+        except
+          FreeAndNil(FTCPClient);
+        end;
+
+        if FTCPClient <> nil then
+        begin
+          St := TMemoryStream.Create;
+          try
+            SaveStringToStream(FTCPClient.LocalName, St);
+            if TgdccCommand.WriteCommand(FTCPClient, gdcc_cmd_Connect, St)
+              and (TgdccCommand.ReadCommand(FTCPClient, Ver) = gdcc_cmd_AckConnect)
+              and (Ver = gdccVersion) then
+            begin
+              FConnectionID.Value := 1;
+              SetTimeOut(2000);
+            end;
+          finally
+            St.Free;
           end;
-        finally
-          St.Free;
         end;
       end;
     end;
