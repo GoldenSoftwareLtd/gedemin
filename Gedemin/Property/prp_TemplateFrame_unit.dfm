@@ -1,12 +1,7 @@
 inherited TemplateFrame: TTemplateFrame
-  Width = 585
-  Height = 333
   inherited PageControl: TSuperPageControl
-    Width = 585
-    Height = 333
     inherited tsProperty: TSuperTabSheet
       inherited TBDock1: TTBDock
-        Width = 581
         Height = 28
         object TBToolbar1: TTBToolbar
           Left = 0
@@ -32,12 +27,16 @@ inherited TemplateFrame: TTemplateFrame
           object TBItem1: TTBItem
             Action = actProperty
           end
+          object TBSeparatorItem2: TTBSeparatorItem
+          end
+          object TBItem5: TTBItem
+            Action = actAddToSetting
+          end
         end
       end
       inherited pMain: TPanel
         Top = 28
-        Width = 581
-        Height = 278
+        Height = 211
         OnResize = pMainResize
         inherited lbName: TLabel
           Caption = 'Наименование шаблона:'

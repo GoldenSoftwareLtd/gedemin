@@ -55,11 +55,15 @@ type
     procedure DoOnFilterChanged(Sender: TObject); override;
 
   public
+    destructor Destroy; override;
+
     procedure LoadSettings; override;
     procedure SaveSettings; override;
 
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     class function CreateAndAssignWithID(AnOwner: TComponent; AnID: Integer; AnEntrySelect: TEntrySelect): TForm;
+
+    class procedure GoToEntries(AForm: TCustomForm; AnObj: TgdcBase);
   end;
 
 var
@@ -69,7 +73,7 @@ implementation
 
 uses
   gd_ClassList, Storages, gsStorage_CompPath, gdv_frmAcctBaseForm_unit, gdcClasses,
-  flt_ScriptInterface, prm_ParamFunctions_unit;
+  flt_ScriptInterface, prm_ParamFunctions_unit, gd_resourcestring, gdcBaseInterface;
 
 const
   DefaultColor = clBtnFace;
@@ -124,7 +128,7 @@ begin
   gdcObject := gdcAcctTransaction;
   gdcAcctViewEntryRegister.MasterSource := dsMain;
 
-  gdcDetailObject := gdcAcctViewEntryRegister; 
+  gdcDetailObject := gdcAcctViewEntryRegister;
   gdcAcctQuantity.Open;
 
   ibgrDetail.GroupFieldName := 'RECORDKEY';
@@ -256,7 +260,6 @@ end;
 procedure Tgdc_frmTransaction.actBackUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := AcctFormList.Count > 0;
-
 end;
 
 procedure Tgdc_frmTransaction.actBackExecute(Sender: TObject);
@@ -323,8 +326,9 @@ end;
 procedure Tgdc_frmTransaction.actDetailEditLineUpdate(Sender: TObject);
 begin
   actDetailEditLine.Enabled :=
-     (gdcAcctViewEntryRegister.FieldByName('documenttypekey').AsInteger <> DefaultDocumentTypeKey) and
-      (gdcAcctViewEntryRegister.FieldByName('id').AsInteger > 0)
+      (gdcAcctViewEntryRegister.FieldByName('documenttypekey').AsInteger <> DefaultDocumentTypeKey) and
+      (gdcAcctViewEntryRegister.FieldByName('id').AsInteger > 0) and
+      (not cbGroupByDocument.Checked);
 end;
 
 procedure Tgdc_frmTransaction.actDoReversalEntryExecute(Sender: TObject);
@@ -414,12 +418,48 @@ begin
   actShowAllEntries.Enabled := gdcAcctViewEntryRegister.EntrySelect <> esAll;
 end;
 
+destructor Tgdc_frmTransaction.Destroy;
+begin
+  if gdc_frmTransaction = Self then
+    gdc_frmTransaction := nil;
+  inherited;
+end;
+
+class procedure Tgdc_frmTransaction.GoToEntries(AForm: TCustomForm; AnObj: TgdcBase);
+var
+  Old_Global_DisableQueryFilter: Boolean;
+begin
+  Assert(AnObj <> nil);
+  Assert(AForm <> nil);
+
+  if AnObj.FieldByName('transactionkey').AsInteger > 0 then
+  begin
+    Old_Global_DisableQueryFilter := Global_DisableQueryFilter;
+    Global_DisableQueryFilter := True;
+    try
+      with Tgdc_frmTransaction.CreateAndAssignWithID(Application, AnObj.ID, esDocumentKey) as Tgdc_frmTransaction do
+      begin
+        cbGroupByDocument.Checked := False;
+        if tvGroup.GoToID(AnObj.FieldByName('transactionkey').AsInteger) and
+          gdcAcctViewEntryRegister.Active and
+          gdcAcctViewEntryRegister.Locate('DOCUMENTKEY', AnObj.ID, []) then
+        begin
+          Show;
+        end else
+          MessageBox(AForm.Handle, PChar(sEntryNotFound), PChar(sAttention),
+            MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+      end;
+    finally
+      Global_DisableQueryFilter := Old_Global_DisableQueryFilter;
+    end;
+  end else
+    MessageBox(AForm.Handle, 'ѕо данной позиции не установлена операци€.', PChar(sAttention),
+      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+end;
+
 initialization
   RegisterFrmClass(Tgdc_frmTransaction);
 
-
-
 finalization
   UnRegisterFrmClass(Tgdc_frmTransaction);
-
 end.

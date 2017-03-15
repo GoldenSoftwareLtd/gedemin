@@ -25,8 +25,6 @@ type
     actSelectedAnalytics: TAction;
     actSelectedValues: TAction;
     DBMemo1: TDBMemo;
-    lbRelation: TLabel;
-    gsibRelationFields: TgsIBLookupComboBox;
     bbAnalyze: TBitBtn;
     actAnalyze: TAction;
     actValues: TAction;
@@ -35,16 +33,26 @@ type
     bbValues: TBitBtn;
     Label2: TLabel;
     gsiblcGroupAccount: TgsIBLookupComboBox;
+    bbAnalyzeExt: TBitBtn;
+    sbAnalyzeExt: TScrollBox;
+    actAnalyzeExt: TAction;
+    actSelectedAnalyticsExt: TAction;
     procedure actAnalyzeExecute(Sender: TObject);
     procedure actValuesExecute(Sender: TObject);
     procedure actNewUpdate(Sender: TObject);
+    procedure actAnalyzeExtExecute(Sender: TObject);
 
   private
     //Список ключей ед.измерения текущего счета с чек-боксом
     FValuesArray: TgdKeyObjectAssoc;
 
+    // Список ключей аналитик для разв. сальдо текущего счета с чек-боксом
+    FAnalyzeExtArray: TgdKeyObjectAssoc;
+
     procedure SetupValues;
     procedure SetupAnalyze;
+    procedure SetupAnalyzeExt;
+    procedure CheckAnalyzeExt;
     procedure HideLabels;
 
   protected
@@ -66,9 +74,8 @@ implementation
 
 {$R *.DFM}
 
-
 uses
-  gd_ClassList, at_classes, gdcMetaData, gdcGood;
+  gd_ClassList, at_classes, gdcMetaData, gdcGood, gdcBaseInterface;
 
 const 
   All = 'Все';
@@ -76,22 +83,26 @@ const
 
 type
   TValueCheckBox = class(TCheckBox);
+  TAnalyzeExtCheckBox = class(TCheckBox);
 
 constructor Tgdc_dlgAcctBaseAccount.Create(AnOwner: TComponent);
 begin
   inherited;
   FValuesArray := TgdKeyObjectAssoc.Create;
+  FAnalyzeExtArray := TgdKeyObjectAssoc.Create;
 
   if not (csDesigning in ComponentState) then
   begin
     actSelectedAnalytics.Caption := OnlySelected;
     actSelectedValues.Caption := OnlySelected;
+    actSelectedAnalyticsExt.Caption := OnlySelected;
   end;
 end;
 
 destructor Tgdc_dlgAcctBaseAccount.Destroy;
 begin
   FValuesArray.Free;
+  FAnalyzeExtArray.Free;
   inherited;        
 end;
 
@@ -164,7 +175,8 @@ end;
 
 procedure Tgdc_dlgAcctBaseAccount.Post;
 var
-  ibsql: TIBSQL;
+  q: TIBSQL;
+  Tr: TIBTransaction;
   I: Integer;
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}
@@ -194,38 +206,54 @@ begin
 
   inherited;
 
-  ibsql := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
   try
-    ibsql.Transaction := TIBTransaction.Create(ibsql);
-    ibsql.Transaction.DefaultDatabase :=  gdcObject.Transaction.DefaultDatabase;
-    ibsql.Transaction.StartTransaction;
-    try
-      ibsql.SQL.Text :=
-        'DELETE FROM ac_accvalue WHERE accountkey = :accountkey ';
-      ibsql.ParamByName('accountkey').AsInteger := gdcObject.ID;
-      ibsql.ExecQuery;
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
 
-      ibsql.Close;
+    q.Transaction := Tr;
 
-      ibsql.SQL.Text :=
-        'INSERT INTO ac_accvalue (id, accountkey, valuekey) VALUES (:id, :accountkey, :valuekey)';
-      for I := 0 to sbValues.ComponentCount - 1 do
-        if (sbValues.Components[I] is TValueCheckBox) and
-          (TValueCheckBox(sbValues.Components[I]).Checked )
-        then
+    q.SQL.Text :=
+      'DELETE FROM ac_accvalue WHERE accountkey = :accountkey ';
+    q.ParamByName('accountkey').AsInteger := gdcObject.ID;
+    q.ExecQuery;
+
+    q.SQL.Text :=
+      'INSERT INTO ac_accvalue (id, accountkey, valuekey) VALUES (:id, :accountkey, :valuekey)';
+    for I := 0 to sbValues.ComponentCount - 1 do
+      if (sbValues.Components[I] is TValueCheckBox) and TValueCheckBox(sbValues.Components[I]).Checked then
+      begin
+        q.ParamByName('id').AsInteger := gdcObject.GetNextID;
+        q.ParamByName('accountkey').AsInteger := gdcObject.ID;
+        q.ParamByName('valuekey').AsInteger := sbValues.Components[I].Tag;
+        q.ExecQuery;
+      end;
+
+    q.SQL.Text :=
+      'DELETE FROM ac_accanalyticsext WHERE accountkey = :accountkey ';
+    q.ParamByName('accountkey').AsInteger := gdcObject.ID;
+    q.ExecQuery;
+
+    if dbrgTypeAccount.Value = 'B' then
+    begin
+      q.SQL.Text :=
+        'INSERT INTO ac_accanalyticsext (id, accountkey, valuekey) VALUES (:id, :accountkey, :valuekey)';
+
+      for I := 0 to sbAnalyzeExt.ComponentCount - 1 do
+        if (sbAnalyzeExt.Components[I] is TAnalyzeExtCheckBox) and TAnalyzeExtCheckBox(sbAnalyzeExt.Components[I]).Checked then
         begin
-          ibsql.ParamByName('id').AsInteger := gdcObject.GetNextID;
-          ibsql.ParamByName('accountkey').AsInteger := gdcObject.ID;
-          ibsql.ParamByName('valuekey').AsInteger := sbValues.Components[I].Tag;
-          ibsql.ExecQuery;
-          ibsql.Close;
+          q.ParamByName('id').AsInteger := gdcObject.GetNextID;
+          q.ParamByName('accountkey').AsInteger := gdcObject.ID;
+          q.ParamByName('valuekey').AsInteger := sbAnalyzeExt.Components[I].Tag;
+          q.ExecQuery;
         end;
-
-    finally
-      ibsql.Transaction.Commit;
     end;
+
+    Tr.Commit;
   finally
-    ibsql.Free;
+    q.Free;
+    Tr.Free;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGACCTBASEACCOUNT', 'POST', KEYPOST)}
@@ -264,12 +292,11 @@ begin
   {END MACRO}
 
   inherited;
+
   HideLabels;
   SetupValues;
   SetupAnalyze;
-
-  lbRelation.Visible := gdcObject.FieldByName('activity').AsString = 'B';
-  gsibRelationFields.Visible := lbRelation.Visible;
+  SetupAnalyzeExt;
 
   tbsAttr.TabVisible := False;
 
@@ -304,11 +331,10 @@ begin
     end;
 
     ibsql.Close;
-
     ibsql.SQL.Text := 'SELECT v.name, v.id FROM ac_accvalue a JOIN gd_value v ON a.valuekey = v.id WHERE a.accountkey = ' + IntToStr(gdcObject.ID) + ' ORDER BY name ASC';
     ibsql.ExecQuery;
     if ibsql.Eof then
-      Exit;
+      exit;
 
     CurrTop := 5;
     while not ibsql.Eof do
@@ -327,13 +353,10 @@ begin
       end;
       ibsql.Next;
     end;
-
   finally
     ibsql.Free;
   end;
 end;
-
-
 
 procedure Tgdc_dlgAcctBaseAccount.HideLabels;
 begin
@@ -345,21 +368,20 @@ var
   CurrTop: Integer;
   gdcRelationFields: TgdcRelationField;
 begin
-
   while sbAnalyze.ComponentCount > 0 do
     sbAnalyze.Components[0].Free;
 
   CurrTop := 5;
-  gdcRelationFields := TgdcRelationField.Create(Self);
+  gdcRelationFields := TgdcRelationField.Create(nil);
   try
-    gdcRelationFields.ExtraConditions.Text := ' z.fieldname like ''USR$%'' and z.relationname = ''AC_ACCOUNT''';
+    gdcRelationFields.ExtraConditions.Text := ' z.fieldname LIKE ''USR$%'' AND z.relationname = ''AC_ACCOUNT''';
     gdcRelationFields.Open;
     if not gdcRelationFields.EOF then
-      gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), true);
+      gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), True);
     while not gdcRelationFields.EOF do
     begin
-
-      if gdcObject.FieldByName(gdcRelationFields.FieldByName('fieldname').AsString).AsInteger = 1 then
+      if (gdcObject.FindField(gdcRelationFields.FieldByName('fieldname').AsString) <> nil) and
+        (gdcObject.FieldByName(gdcRelationFields.FieldByName('fieldname').AsString).AsInteger = 1) then
       begin
         CB := TDBCheckBox.Create(sbAnalyze);
         CB.Left := 5;
@@ -379,7 +401,6 @@ begin
   finally
     gdcRelationFields.Free;
   end;
-
 end;
 
 procedure Tgdc_dlgAcctBaseAccount.actAnalyzeExecute(Sender: TObject);
@@ -399,6 +420,7 @@ begin
     for i := 0 to atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields.Count - 1 do
       if atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].IsUserDefined and
         (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].Field.FieldName = 'DBOOLEAN') and
+        (gdcObject.FindField(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName) <> nil) and
         (gdcObject.FieldByName(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName).AsInteger = 1) then
         gdcRelationFields.SelectedID.Add(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].ID);
 
@@ -410,8 +432,11 @@ begin
 
       for i := 0 to atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields.Count - 1 do
         if atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].IsUserDefined and
-          (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].Field.FieldName = 'DBOOLEAN') then
+          (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].Field.FieldName = 'DBOOLEAN') and
+          (gdcObject.FindField(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName) <> nil) then
+        begin
           gdcObject.FieldByName(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName).AsInteger := 0;
+        end;
 
       gdcRelationFields.Close;
       gdcRelationFields.SubSet := 'OnlySelected';
@@ -426,19 +451,22 @@ begin
 
       while not gdcRelationFields.EOF do
       begin
-        gdcObject.FieldByName(gdcRelationFields.FieldByName('FieldName').AsString).AsInteger := 1;
-        CB := TDBCheckBox.Create(sbAnalyze);
-        CB.Left := 5;
-        CB.Top := CurrTop;
-        CB.DataSource := dsgdcBase;
-        CB.DataField := gdcRelationFields.FieldByName('FieldName').AsString;
-        CB.ValueChecked := '1';
-        CB.Width := sbAnalyze.Width - 10;
-        CB.ValueUnChecked := '0';
-        CB.Caption := gdcRelationFields.FieldByName('LName').AsString;
-        CB.ReadOnly := True;
-        sbAnalyze.InsertControl(CB);
-        CurrTop := CurrTop + CB.Height + 2;
+        if gdcObject.FindField(gdcRelationFields.FieldByName('FieldName').AsString) <> nil then
+        begin
+          gdcObject.FieldByName(gdcRelationFields.FieldByName('FieldName').AsString).AsInteger := 1;
+          CB := TDBCheckBox.Create(sbAnalyze);
+          CB.Left := 5;
+          CB.Top := CurrTop;
+          CB.DataSource := dsgdcBase;
+          CB.DataField := gdcRelationFields.FieldByName('FieldName').AsString;
+          CB.ValueChecked := '1';
+          CB.Width := sbAnalyze.Width - 10;
+          CB.ValueUnChecked := '0';
+          CB.Caption := gdcRelationFields.FieldByName('LName').AsString;
+          CB.ReadOnly := True;
+          sbAnalyze.InsertControl(CB);
+          CurrTop := CurrTop + CB.Height + 2;
+        end;
 
         gdcRelationFields.Next;
       end;
@@ -447,6 +475,8 @@ begin
   finally
     gdcRelationFields.Free;
   end;
+
+  CheckAnalyzeExt;
 end;
 
 procedure Tgdc_dlgAcctBaseAccount.actValuesExecute(Sender: TObject);
@@ -455,8 +485,6 @@ var
   A: OleVariant;
   CB: TCheckBox;
   I, CurrTop: Integer;
-
-
 begin
   inherited;
   gdcValue := TgdcValue.Create(Self);
@@ -469,19 +497,17 @@ begin
       then
         gdcValue.SelectedID.Add(sbValues.Components[I].Tag);
 
-
     if gdcValue.ChooseItems(A) then
     begin
 
       if not (gdcObject.State in [dsEdit, dsInsert]) then
         gdcObject.Edit;
 
-      gdcObject.FieldByName('id').AsInteger := gdcObject.FieldByName('id').AsInteger;   
+      gdcObject.FieldByName('id').AsInteger := gdcObject.FieldByName('id').AsInteger;
 
       FValuesArray.Clear;
       while sbValues.ComponentCount > 0 do
         sbValues.Components[0].Free;
-
 
       gdcValue.Close;
       gdcValue.SubSet := 'OnlySelected';
@@ -504,9 +530,7 @@ begin
         CB.Checked := True;
         gdcValue.Next;
       end;
-
     end;
-
   finally
     gdcValue.Free;
   end;
@@ -518,9 +542,174 @@ begin
   
   if (gdcObject <> nil) and (not gdcObject.EOF) then
   begin
-    lbRelation.Visible := dbrgTypeAccount.Value = 'B';
-    gsibRelationFields.Visible := lbRelation.Visible;
+    CheckAnalyzeExt;
   end;
+end;
+
+procedure Tgdc_dlgAcctBaseAccount.actAnalyzeExtExecute(Sender: TObject);
+var
+  gdcRelationFields: TgdcRelationField;
+  i: Integer;
+  A: OleVariant;
+  CB: TCheckBox;
+  CurrTop: Integer;
+  strAnalyze, strAnalyzeID, strExtraConditions: string;
+begin
+  inherited;
+  strAnalyze := '';
+  strAnalyzeID := ';';
+  gdcRelationFields := TgdcRelationField.Create(Self);
+  try
+    gdcRelationFields.Open;
+
+    for I := 0 to sbAnalyzeExt.ComponentCount - 1 do
+      if (sbAnalyzeExt.Components[I] is TAnalyzeExtCheckBox) and
+        (TAnalyzeExtCheckBox(sbAnalyzeExt.Components[I]).Checked ) then
+        begin
+          gdcRelationFields.SelectedID.Add(sbAnalyzeExt.Components[I].Tag);
+          strAnalyzeID := strAnalyzeID + inttostr(sbAnalyzeExt.Components[I].Tag) + ';';
+        end;
+        
+  // формируем строку с выбранными по счету аналитиками
+    for i := 0 to atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields.Count - 1 do
+      if (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].IsUserDefined and
+        (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].Field.FieldName = 'DBOOLEAN')) and
+        ((gdcObject.FieldByName(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName).AsInteger = 1) or
+        (AnsiPos(';' + inttostr(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].ID) + ';', strAnalyzeID) <> 0)) then
+        begin
+          if strAnalyze <> '' then
+            strAnalyze := strAnalyze + ', ';
+          strAnalyze := strAnalyze + '''' + atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName + '''';
+        end;
+
+    if strAnalyze = '' then
+    begin
+      MessageDlg('По данному счету нет объектов аналитического учета', mtWarning,
+        [mbOk], -1);
+      Exit;
+    end;
+
+    strExtraConditions := 'z.relationname = ''AC_ACCOUNT'' and z.fieldname like ''USR$%'' and z.fieldsource = ''DBOOLEAN''';
+    strExtraConditions := strExtraConditions +
+      ' and z.fieldname in (' + strAnalyze + ')';
+
+    if gdcRelationFields.ChooseItems(A, '', '', strExtraConditions) then
+    begin
+
+    if not (gdcObject.State in [dsEdit, dsInsert]) then
+        gdcObject.Edit;
+
+      gdcObject.FieldByName('id').AsInteger := gdcObject.FieldByName('id').AsInteger;
+
+      FAnalyzeExtArray.Clear;
+      while sbAnalyzeExt.ComponentCount > 0 do
+        sbAnalyzeExt.Components[0].Free;
+
+      gdcRelationFields.Close;
+      gdcRelationFields.SubSet := 'OnlySelected';
+      gdcRelationFields.Open;
+      if not gdcRelationFields.EOF then
+        gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), True);
+      gdcRelationFields.First;
+
+      CurrTop := 5;
+      while not gdcRelationFields.EOF do
+      begin
+        CB := TAnalyzeExtCheckBox.Create(sbAnalyzeExt);
+        CB.Left := 5;
+        CB.Top := CurrTop;
+        CB.Tag := gdcRelationFields.FieldByName('id').AsInteger;
+        CB.Caption := gdcRelationFields.FieldByName('lname').AsString;
+        sbAnalyzeExt.InsertControl(CB);
+        CurrTop := CurrTop + CB.Height + 2;
+        FAnalyzeExtArray.AddObject(gdcRelationFields.FieldByName('id').AsInteger, CB);
+        CB.Checked := True;
+        gdcRelationFields.Next;
+      end;
+    end;
+
+  finally
+    gdcRelationFields.Free;
+  end;
+
+  CheckAnalyzeExt;
+end;
+
+procedure Tgdc_dlgAcctBaseAccount.SetupAnalyzeExt;
+var
+  ibsql: TIBSQL;
+  CB: TCheckBox;
+  CurrTop: Integer;
+begin
+  FAnalyzeExtArray.Clear;
+  while sbAnalyzeExt.ComponentCount > 0 do
+    sbAnalyzeExt.Components[0].Free;
+
+  ibsql := TIBSQL.Create(nil);
+  try
+    ibsql.Transaction := gdcObject.ReadTransaction;
+    ibsql.SQL.Text :=
+      'SELECT * FROM ac_accanalyticsext WHERE accountkey = ' + IntToStr(gdcObject.ID);
+    ibsql.ExecQuery;
+    while not ibsql.Eof do
+    begin
+      FAnalyzeExtArray.AddObject(ibsql.FieldByName('valuekey').AsInteger, nil);
+      ibsql.Next;
+    end;
+
+    ibsql.Close;
+
+    ibsql.SQL.Text := 'SELECT r.lname, r.id FROM ac_accanalyticsext a JOIN at_relation_fields r ON a.valuekey = r.id WHERE a.accountkey = ' + IntToStr(gdcObject.ID) + ' ORDER BY lname ASC';
+    ibsql.ExecQuery;
+    if ibsql.Eof then
+      exit;
+
+    CurrTop := 5;
+    while not ibsql.Eof do
+    begin
+      CB := TAnalyzeExtCheckBox.Create(sbAnalyzeExt);
+      CB.Left := 5;
+      CB.Top := CurrTop;
+      CB.Tag := ibsql.FieldByName('id').AsInteger;
+      CB.Caption := ibsql.FieldByName('lname').AsString;
+      sbAnalyzeExt.InsertControl(CB);
+      CurrTop := CurrTop + CB.Height + 2;
+      if FAnalyzeExtArray.IndexOf(ibsql.FieldByName('id').AsInteger) > -1 then
+      begin
+        CB.Checked := True;
+        FAnalyzeExtArray.ObjectByKey[ibsql.FieldByName('id').AsInteger] := CB;
+      end;
+      ibsql.Next;
+    end;
+  finally
+    ibsql.Free;
+  end;
+
+  CheckAnalyzeExt;
+end;
+
+procedure Tgdc_dlgAcctBaseAccount.CheckAnalyzeExt;
+var   i, j: Integer;
+      Find : boolean;
+begin
+  bbAnalyzeExt.Enabled := dbrgTypeAccount.Value = 'B';
+
+  //проверяем присутствует ли аналитика для разверн. сальдо в списке аналитики по счету
+
+  for I := 0 to sbAnalyzeExt.ComponentCount - 1 do
+    if (sbAnalyzeExt.Components[I] is TAnalyzeExtCheckBox) then
+      begin
+        Find := false;
+        (sbAnalyzeExt.Components[I] as TAnalyzeExtCheckBox).Enabled := bbAnalyzeExt.Enabled;
+        for J := 0 to sbAnalyze.ComponentCount - 1 do
+          if (sbAnalyze.Components[J] is TDBCheckBox) then
+            if (sbAnalyzeExt.Components[I] as TAnalyzeExtCheckBox).Caption = (sbAnalyze.Components[J] as TDBCheckBox).Caption then
+              Find := true;
+        if not Find then
+          (sbAnalyzeExt.Components[I] as TAnalyzeExtCheckBox).Font.Color := clRed
+        else
+          (sbAnalyzeExt.Components[I] as TAnalyzeExtCheckBox).Font.Color := clWindowText;
+      end;
 end;
 
 initialization

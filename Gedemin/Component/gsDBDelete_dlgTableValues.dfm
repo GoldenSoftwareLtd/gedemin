@@ -1,6 +1,6 @@
 object dlgTableValues: TdlgTableValues
-  Left = 272
-  Top = 246
+  Left = 198
+  Top = 236
   Width = 574
   Height = 375
   BorderIcons = [biSystemMenu, biMaximize]
@@ -20,50 +20,54 @@ object dlgTableValues: TdlgTableValues
     Left = 0
     Top = 0
     Width = 558
-    Height = 47
+    Height = 63
     Align = alTop
     BevelOuter = bvNone
+    BorderWidth = 4
     TabOrder = 0
-    object Label1: TLabel
-      Left = 5
-      Top = 2
-      Width = 554
-      Height = 26
-      Caption = 
-        'В базе данных существуют записи, которые содержат ссылки на удал' +
-        'яемую запись. Для удаления записи, прежде, необходимо удалить ил' +
-        'и изменить записи, которые на нее ссылаются.'
-      WordWrap = True
-    end
-    object Label2: TLabel
-      Left = 5
-      Top = 31
-      Width = 320
-      Height = 13
-      Caption = 'Перечень записей, содержащих ссылки на удаляемую запись:'
+    object Memo1: TMemo
+      Left = 4
+      Top = 4
+      Width = 550
+      Height = 55
+      TabStop = False
+      Align = alClient
+      BorderStyle = bsNone
+      Color = clBtnFace
+      Lines.Strings = (
+        
+          'Ниже приведен список записей, которые ссылаются на удаляемый объ' +
+          'ект'
+        'и препятствуют его удалению.'
+        ''
+        'Их надо удалить или отредактировать:'
+        ' ')
+      ReadOnly = True
+      TabOrder = 0
     end
   end
   object Panel2: TPanel
     Left = 0
-    Top = 47
+    Top = 63
     Width = 558
-    Height = 290
+    Height = 273
     Align = alClient
     BevelOuter = bvNone
+    BorderWidth = 4
     Caption = 'Panel1'
     TabOrder = 1
     object Splitter1: TSplitter
-      Left = 146
-      Top = 0
-      Width = 3
-      Height = 290
+      Left = 150
+      Top = 4
+      Width = 4
+      Height = 265
       Cursor = crHSplit
     end
     object Panel4: TPanel
-      Left = 0
-      Top = 0
+      Left = 4
+      Top = 4
       Width = 146
-      Height = 290
+      Height = 265
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 0
@@ -71,7 +75,7 @@ object dlgTableValues: TdlgTableValues
         Left = 0
         Top = 0
         Width = 146
-        Height = 290
+        Height = 265
         Align = alClient
         Columns = <
           item
@@ -86,26 +90,19 @@ object dlgTableValues: TdlgTableValues
       end
     end
     object Panel5: TPanel
-      Left = 149
-      Top = 0
-      Width = 409
-      Height = 290
+      Left = 154
+      Top = 4
+      Width = 400
+      Height = 265
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
-      object lblEof: TLabel
-        Left = 72
-        Top = 5
-        Width = 32
-        Height = 13
-        Caption = '<Eof>'
-      end
       object dbgValue: TgsIBGrid
         Left = 0
-        Top = 24
-        Width = 417
-        Height = 277
-        Anchors = [akLeft, akTop, akRight, akBottom]
+        Top = 26
+        Width = 400
+        Height = 239
+        Align = alClient
         Ctl3D = True
         DataSource = dsValue
         Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
@@ -126,21 +123,33 @@ object dlgTableValues: TdlgTableValues
         Aliases = <>
         ShowTotals = False
       end
-      object tbDelete: TTBToolbar
-        Left = 2
+      object TBDock1: TTBDock
+        Left = 0
         Top = 0
-        Width = 46
-        Height = 22
-        Caption = 'tbDelete'
-        Images = dmImages.il16x16
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 1
-        object tbiEdit: TTBItem
-          Action = actEdit
+        Width = 400
+        Height = 26
+        object lblEof: TLabel
+          Left = 72
+          Top = 6
+          Width = 32
+          Height = 13
+          Caption = '<Eof>'
         end
-        object tbiDelete: TTBItem
-          Action = actDelete
+        object tbDelete: TTBToolbar
+          Left = 0
+          Top = 0
+          Caption = 'tbDelete'
+          DockMode = dmCannotFloatOrChangeDocks
+          Images = dmImages.il16x16
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 0
+          object tbiEdit: TTBItem
+            Action = actEdit
+          end
+          object tbiDelete: TTBItem
+            Action = actDelete
+          end
         end
       end
     end

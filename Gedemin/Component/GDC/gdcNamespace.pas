@@ -55,6 +55,7 @@ type
     function GetOrderClause: String; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
     procedure DoBeforeDelete; override;
+    procedure EditMultipleSort(var BL: OleVariant); override;
 
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -87,7 +88,7 @@ uses
   at_dlgCompareNSRecords_unit, gdcNamespaceLoader, gd_GlobalParams_unit,
   gdcClasses_Interface, at_dlgNamespaceDeleteDependencies_unit,
   {$IFDEF WITH_INDY}
-  gdccClient_unit, at_Log, gdccConst,
+  gdccClient_unit, at_Log, gdccConst, gdccGlobal,
   {$ENDIF}
   at_AddToSetting;
 
@@ -657,7 +658,12 @@ var
   Tr: TIBTransaction;
   qList, q: TIBSQL;
   C: TPersistentClass;
-  RN: String;
+  RN, S: String;
+  SL: TStringList;
+  Cnt: Integer;
+  {$IFDEF WITH_INDY}
+  Progress: TgdccProgress;
+  {$ENDIF}
 begin
   Assert(gdcBaseManager <> nil);
 
@@ -666,9 +672,16 @@ begin
   else
     Tr := ATr;
 
+  {$IFDEF WITH_INDY}
+  Progress := TgdccProgress.Create;
+  {$ENDIF}
   qList := TIBSQL.Create(nil);
   q := TIBSQL.Create(nil);
+  SL := TStringList.Create;
   try
+    SL.Sorted := True;
+    SL.Duplicates := dupError;
+
     if ATr = nil then
     begin
       Tr.DefaultDatabase := gdcBaseManager.Database;
@@ -677,15 +690,29 @@ begin
 
     q.Transaction := Tr;
 
-    qList.Transaction := Tr;
-    qList.SQL.Text :=
+    S :=
       'SELECT DISTINCT o.objectclass, o.subtype ' +
       'FROM at_object o ';
     if ANamespaceKey > -1 then
-    begin
-      qList.SQL.Text := qList.SQL.Text + 'WHERE o.namespacekey = :nk';
+      S := S + 'WHERE o.namespacekey = :nk';
+
+    qList.Transaction := Tr;
+    qList.SQL.Text := 'SELECT COUNT(*) FROM (' + S + ')';
+    if ANamespaceKey > -1 then
       qList.ParamByName('nk').AsInteger := ANamespaceKey;
-    end;
+    qList.ExecQuery;
+
+    Cnt := qList.Fields[0].AsInteger;
+
+    {$IFDEF WITH_INDY}
+    if Cnt > 0 then
+      Progress.StartWork('Обновление', 'Обновляются даты изменения объектов', Cnt + 1);
+    {$ENDIF}
+
+    qList.Close;
+    qList.SQL.Text := S;
+    if ANamespaceKey > -1 then
+      qList.ParamByName('nk').AsInteger := ANamespaceKey;
     qList.ExecQuery;
 
     while not qList.EOF do
@@ -695,31 +722,62 @@ begin
         and (tiEditionDate in CgdcBase(C).GetTableInfos(qList.FieldByName('subtype').AsString)) then
       begin
         RN := UpperCase(CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString));
-        q.SQL.Text :=
-          'merge into at_object o '#13#10 +
-          '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
-          '    from ' + RN + ' d join gd_ruid r '#13#10 +
-          '    on r.id = d.id '#13#10 +
-          '  union all '#13#10 +
-          '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
-          '    from ' + RN + ' d '#13#10 +
-          '    where d.id < 147000000) de '#13#10 +
-          '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
-          '    and o.objectclass = :OC and o.subtype IS NOT DISTINCT FROM :ST'#13#10 +
-          '    and ((o.curr_modified IS NULL) '#13#10 +
-          '      or (o.curr_modified IS DISTINCT FROM de.editiondate))'#13#10 +
-          'when matched then '#13#10 +
-          '  update set o.curr_modified = de.editiondate';
-        q.ParamByName('OC').AsString := qList.FieldByName('objectclass').AsString;
-        if qList.FieldByName('subtype').IsNull then
-          q.ParamByName('ST').Clear
-        else
-          q.ParamByName('ST').AsString := qList.FieldByName('subtype').AsString;
-        q.ExecQuery;
+
+        {$IFDEF WITH_INDY}
+        if Progress.WorkStarted then
+        begin
+          Progress.StartStep(RN);
+          if Progress.Canceled then
+          begin
+            if Assigned(gdccClient) then
+              gdccClient.AddLogRecord('ns_sync', 'Прервано пользователем', gdcc_lt_Warning);
+            break;
+          end;
+        end;  
+        {$ENDIF}
+
+        if SL.IndexOf(RN) = -1 then
+        begin
+          SL.Add(RN);
+
+          {$IFDEF WITH_INDY}
+          if Assigned(gdccClient) then
+            gdccClient.AddLogRecord('ns_sync', 'Обновляется дата изменения объектов из таблицы ' + RN + '...');
+          {$ENDIF}
+          q.SQL.Text :=
+            'merge into at_object o '#13#10 +
+            '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
+            '    from ' + RN + ' d join gd_ruid r '#13#10 +
+            '    on r.id = d.id '#13#10 +
+            '  union all '#13#10 +
+            '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
+            '    from ' + RN + ' d '#13#10 +
+            '    where d.id < 147000000) de '#13#10 +
+            '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
+            '    and o.objectclass = :OC and o.subtype IS NOT DISTINCT FROM :ST'#13#10 +
+            '    and ((o.curr_modified IS NULL) '#13#10 +
+            '      or (o.curr_modified IS DISTINCT FROM de.editiondate))'#13#10 +
+            'when matched then '#13#10 +
+            '  update set o.curr_modified = de.editiondate';
+          q.ParamByName('OC').AsString := qList.FieldByName('objectclass').AsString;
+          if qList.FieldByName('subtype').IsNull then
+            q.ParamByName('ST').Clear
+          else
+            q.ParamByName('ST').AsString := qList.FieldByName('subtype').AsString;
+          q.ExecQuery;
+        end;
       end;
 
       qList.Next;
     end;
+
+    {$IFDEF WITH_INDY}
+    if Progress.WorkStarted then
+      Progress.StartStep('Удаляются из ПИ объекты с отсутствующими РУИД-ами');
+
+    if Assigned(gdccClient) then
+      gdccClient.AddLogRecord('ns_sync', 'Удаляются из ПИ объекты с отсутствующими РУИД-ами...');
+    {$ENDIF}
 
     q.SQL.Text := 'DELETE FROM at_object WHERE xid >= 147000000 ';
     if ANamespaceKey > -1 then
@@ -737,6 +795,7 @@ begin
       q.SQL.Text := q.SQL.Text + ')';
     q.ExecQuery;
   finally
+    SL.Free;
     q.Free;
     qList.Free;
 
@@ -746,6 +805,12 @@ begin
         Tr.Commit;
       Tr.Free;
     end;
+
+    {$IFDEF WITH_INDY}
+    if Progress.WorkStarted then
+      Progress.EndWork;
+    Progress.Free;
+    {$ENDIF}
   end;
 end;
 
@@ -1775,6 +1840,45 @@ begin
     end;
   finally
     Obj.Free;
+  end;
+end;
+
+procedure TgdcNamespaceObject.EditMultipleSort(var BL: OleVariant);
+var
+  q: TIBSQL;
+  S: String;
+  I: Integer;
+begin
+  S := '';
+  for I := VarArrayLowBound(BL, 1) to VarArrayHighBound(BL, 1) do
+  begin
+    if S = '' then
+      S := BL[I]
+    else
+      S := S + ',' + VarAsType(BL[I], varString);
+  end;
+
+  if S = '' then
+    raise Exception.Create('Empty bookmark list');
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ReadTransaction;
+    q.SQL.Text := 'SELECT id FROM at_object WHERE id IN(' + S + ') ORDER BY objectpos';
+    q.ExecQuery;
+    I := VarArrayLowBound(BL, 1) - 1;
+    while I < VarArrayHighBound(BL, 1) do
+    begin
+      if q.EOF then
+        break;
+      Inc(I);
+      BL[I] := q.FieldByName('id').AsInteger;
+      q.Next;
+    end;
+    if (I < VarArrayHighBound(BL, 1)) or (not q.EOF) then
+      raise Exception.Create('Invalid bookmarks count');
+  finally
+    q.Free;
   end;
 end;
 

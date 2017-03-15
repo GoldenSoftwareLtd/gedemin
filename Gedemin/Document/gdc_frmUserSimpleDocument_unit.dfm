@@ -1,6 +1,5 @@
 inherited gdc_frmUserSimpleDocument: Tgdc_frmUserSimpleDocument
   Left = 616
-  Top = 219
   Width = 783
   Height = 540
   Caption = 'gdc_frmUserSimpleDocument'

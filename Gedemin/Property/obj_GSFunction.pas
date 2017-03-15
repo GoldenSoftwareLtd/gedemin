@@ -4,7 +4,7 @@ interface
 
 uses
   ComObj, Gedemin_TLB, Comserv, Controls, gdcTaxFunction, Classes, IBSQL,
-  NumConv, at_classes, gdcConstants, AcctStrings, AcctUtils, IBDataBase;
+  NumConv, at_classes, gdcConstants, AcctStrings, AcctUtils, IBDataBase, dialogs;
 
 type
   TBalanceType = (gsDebit, gsCredit);
@@ -30,7 +30,8 @@ type
     FCalcBalanceDate: TDate;
     procedure FillCalcBalanceDate;
 
-    function GetWithAnDefault(AccountID: Integer): String;
+    //function GetWithAnDefault(AccountID: Integer): String;
+    function GetWithAnDefaultSql(AccountID: Integer; const TableAlias: String = ''): String;
     function  GetBalance(const Account: WideString;
       const OnDate: TDateTime; const Analytics: WideString;
       const BalType: TBalanceType): Currency; safecall;
@@ -770,7 +771,8 @@ function TobjGSFunction.GetBalance(const Account: WideString;
   const OnDate: TDateTime; const Analytics: WideString;
   const BalType: TBalanceType): Currency;
 var
-  AnalyticsReady, MainAnalName: String;
+  AnalyticsReady: String;
+  MainAnalNameB, MainAnalNameE, MainAnalNameZ: String;
   Id: Integer;
   AnalyticsReadyB, AnalyticsReadyE: String;
 begin
@@ -780,9 +782,17 @@ begin
   Id := GetAccountKey(Account);
 
   if Analytics = '' then
-    MainAnalName := GetWithAnDefault(id)
+  begin
+    MainAnalNameB := GetWithAnDefaultSql(id, 'b');
+    MainAnalNameE := GetWithAnDefaultSql(id, 'e');
+    MainAnalNameZ := GetWithAnDefaultSql(id, 'z');
+  end
   else
-    MainAnalName := '';
+  begin
+    MainAnalNameB := '';
+    MainAnalNameE := '';
+    MainAnalNameZ := '';
+  end;
 
   FillCalcBalanceDate;
   if FCalcBalanceDate > 0 then
@@ -803,7 +813,7 @@ begin
       '  SELECT ' +
       '    b.debitncu, ' +
       '    b.creditncu ' +
-        IIF(MainAnalName <> '', ', b.' + MainAnalName, '') +
+        IIF(MainAnalNameB <> '', ', ' + MainAnalNameB, '') +
       '  FROM ' +
       '    ac_account a ' +
       '    JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
@@ -811,13 +821,13 @@ begin
       '  WHERE ' +
       '    a.id = :accountkey ' +
       '    AND ' + GetCompCondition('b.companykey') +
-        IIF(MainAnalName = '', AnalyticsReadyB, '') +
+        IIF(MainAnalNameB = '', AnalyticsReadyB, '') +
       '  UNION ALL ' +
       '  SELECT ' +
         IIF(FCalcBalanceDate > OnDate,
           ' - e.debitncu, - e.creditncu ',
           ' e.debitncu, e.creditncu ') +
-        IIF(MainAnalName <> '', ', e.' + MainAnalName, '') +
+        IIF(MainAnalNameE <> '', ', ' + MainAnalNameE, '') +
       '  FROM ' +
       '    ac_account a ' +
       '    JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
@@ -828,17 +838,18 @@ begin
         IIF(FCalcBalanceDate > OnDate,
           ' AND (e.entrydate > :ondate AND e.entrydate < :balancedate) ',
           ' AND (e.entrydate <= :ondate AND e.entrydate >= :balancedate) ') +
-        IIF(MainAnalName = '', AnalyticsReadyE, '') +
+        IIF(MainAnalNameB = '', AnalyticsReadyE, '') +
       ') z ' +
-        IIF(MainAnalName <> '', 'GROUP BY z.' + MainAnalName, '');
+        IIF(MainAnalNameZ <> '', 'GROUP BY ' + MainAnalNameZ, '');
     FIBSQL.ParamByName('ondate').AsDate := OnDate;
     FIBSQL.ParamByName('balancedate').AsDate := FCalcBalanceDate;
     FIBSQL.ParamByName('accountkey').AsInteger := Id;
     FIBSQL.ExecQuery;
 
+    
     if FIBSQL.RecordCount > 0 then
     begin
-      if MainAnalName <> '' then
+      if MainAnalNameB <> '' then
       begin
         while not FIBSQL.Eof do
         begin
@@ -859,7 +870,7 @@ begin
   end
   else
 
-    if MainAnalName = '' then
+    if MainAnalNameB = '' then
     begin
       with FIBSQL do
       begin
@@ -901,7 +912,7 @@ begin
           '  a.id = :accountkey AND ' +
           GetCompCondition('z.companykey') + ' AND ' +
           '  z.entrydate <= :ondate ' +
-          'GROUP BY z.' + MainAnalName;
+          'GROUP BY ' + MainAnalNameZ;
 
         ParamByName('ondate').AsDate := OnDate;
         ParamByName('accountkey').AsInteger := Id;
@@ -1221,7 +1232,8 @@ function TobjGSFunction.GetQuantBalance(ValueKey: Integer;
   const Account: WideString; const OnDate: TDateTime;
   const Analytics: WideString; const BalType: TBalanceType): Currency;
 var
-  AnalyticsReady, MainAnalName: String;
+  AnalyticsReady: String;
+  MainAnalNameZ: String;
   Id: Integer;
   QuantSaldo: Currency;
 begin
@@ -1231,10 +1243,11 @@ begin
   Id := GetAccountKey(Account);
 
   if Analytics = '' then
-    MainAnalName := GetWithAnDefault(id)
+    MainAnalNameZ := GetWithAnDefaultSql(id, 'z')
   else
-    MainAnalName := '';
-  if MainAnalName = '' then
+    MainAnalNameZ := '';
+
+  if MainAnalNameZ = '' then
   begin
     with FIBSQL do
     begin
@@ -1279,7 +1292,7 @@ begin
         '  a.id = :accountkey AND ' +
         GetCompCondition('z.companykey') + ' and ' +
         '  z.entrydate <= :ondate ' +
-        ' GROUP BY z.' + MainAnalName;
+        ' GROUP BY ' + MainAnalNameZ;
 
       ParamByName('valuekey').AsInteger := ValueKey;
       ParamByName('ondate').AsDate := OnDate;
@@ -1347,7 +1360,8 @@ function TobjGSFunction.GetCurrBalance(const Account: WideString;
   const OnDate: TDateTime; const Analytics: WideString;
   const BalType: TBalanceType; const CurrKey: Integer): Currency;
 var
-  AnalyticsReady, MainAnalName: String;
+  AnalyticsReady: String;
+  MainAnalNameB, MainAnalNameE, MainAnalNameZ: String;
   Id: Integer;
   AnalyticsReadyB, AnalyticsReadyE: String;
 begin
@@ -1357,9 +1371,18 @@ begin
   Id := GetAccountKey(Account);
 
   if Trim(Analytics) = '' then
-    MainAnalName := GetWithAnDefault(id)
+  begin
+    MainAnalNameB := GetWithAnDefaultSql(id, 'b');
+    MainAnalNameE := GetWithAnDefaultSql(id, 'e');
+    MainAnalNameZ := GetWithAnDefaultSql(id, 'z');
+  end
   else
-    MainAnalName := '';
+  begin
+    MainAnalNameB := '';
+    MainAnalNameE := '';
+    MainAnalNameZ := '';
+  end;
+
 
   FillCalcBalanceDate;
   if FCalcBalanceDate > 0 then
@@ -1381,7 +1404,7 @@ begin
         '  SELECT ' +
         '    b.debitcurr, ' +
         '    b.creditcurr ' +
-          IIF(MainAnalName <> '', ', b.' + MainAnalName, '') +
+          IIF(MainAnalNameB <> '', ', ' + MainAnalNameB, '') +
         '  FROM ' +
         '    ac_account a ' +
         '    JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
@@ -1390,13 +1413,13 @@ begin
         '    a.id = :accountkey ' +
         '    AND b.currkey = :currkey ' +
         '    AND ' + GetCompCondition('b.companykey') +
-          IIF(MainAnalName = '', AnalyticsReadyB, '') +
+          IIF(MainAnalNameB = '', AnalyticsReadyB, '') +
         '  UNION ALL ' +
         '  SELECT ' +
           IIF(FCalcBalanceDate > OnDate,
           ' - e.debitcurr, - e.creditcurr ',
           ' e.debitcurr, e.creditcurr ') +
-          IIF(MainAnalName <> '', ', e.' + MainAnalName, '') +
+          IIF(MainAnalNameE <> '', ', ' + MainAnalNameE, '') +
         '  FROM ' +
         '    ac_account a ' +
         '    JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
@@ -1408,9 +1431,9 @@ begin
           IIF(FCalcBalanceDate > OnDate,
           ' AND (e.entrydate > :ondate AND e.entrydate < :balancedate) ',
           ' AND (e.entrydate <= :ondate AND e.entrydate >= :balancedate) ') +
-          IIF(MainAnalName = '', AnalyticsReadyE, '') +
+          IIF(MainAnalNameE = '', AnalyticsReadyE, '') +
         ') z ' +
-          IIF(MainAnalName <> '', 'GROUP BY z.' + MainAnalName, '');
+          IIF(MainAnalNameZ <> '', 'GROUP BY ' + MainAnalNameZ, '');
       ParamByName('ondate').AsDate := OnDate;
       ParamByName('balancedate').AsDate := FCalcBalanceDate;
       ParamByName('accountkey').AsInteger := Id;
@@ -1419,7 +1442,7 @@ begin
 
       if RecordCount > 0 then
       begin
-        if MainAnalName <> '' then
+        if MainAnalNameB <> '' then
         begin
           while not Eof do
           begin
@@ -1441,7 +1464,7 @@ begin
   end
   else
 
-    if MainAnalName = '' then
+    if MainAnalNameB = '' then
     begin
       with FIBSQL do
       begin
@@ -1484,7 +1507,7 @@ begin
           '  a.id = :accountkey AND ' +
           GetCompCondition('z.companykey') + ' and ' +
           '  z.entrydate <= :ondate AND z.currkey = :currkey ' +
-          ' GROUP BY z.' + MainAnalName;
+          ' GROUP BY ' + MainAnalNameZ;
 
         ParamByName('ondate').AsDate := OnDate;
         ParamByName('accountkey').AsInteger := Id;
@@ -1512,7 +1535,8 @@ function  TobjGSFunction.GetEqBalance(const Account: WideString;
       const OnDate: TDateTime; const Analytics: WideString;
       const BalType: TBalanceType): Currency; safecall;
 var
-  AnalyticsReady, MainAnalName: String;
+  AnalyticsReady: String;
+  MainAnalNameB, MainAnalNameE, MainAnalNameZ: string;
   Id: Integer;
   AnalyticsReadyB, AnalyticsReadyE: String; 
 begin
@@ -1522,9 +1546,17 @@ begin
   Id := GetAccountKey(Account);
 
   if Analytics = '' then
-    MainAnalName := GetWithAnDefault(id)
+  begin
+    MainAnalNameB := GetWithAnDefaultSql(id, 'b');
+    MainAnalNameE := GetWithAnDefaultSql(id, 'e');
+    MainAnalNameZ := GetWithAnDefaultSql(id, 'z');
+  end
   else
-    MainAnalName := '';
+  begin
+    MainAnalNameB := '';
+    MainAnalNameE := '';
+    MainAnalNameZ := '';
+  end;
 
   FillCalcBalanceDate;
   if FCalcBalanceDate > 0 then
@@ -1546,7 +1578,7 @@ begin
         '  SELECT ' +
         '    b.debiteq, ' +
         '    b.crediteq ' +
-          IIF(MainAnalName <> '', ', b.' + MainAnalName, '') +
+          IIF(MainAnalNameB <> '', ', ' + MainAnalNameB, '') +
         '  FROM ' +
         '    ac_account a ' +
         '    JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
@@ -1554,13 +1586,13 @@ begin
         '  WHERE ' +
         '    a.id = :accountkey ' +
         '    AND ' + GetCompCondition('b.companykey') +
-          IIF(MainAnalName = '', AnalyticsReadyB, '') +
+          IIF(MainAnalNameB = '', AnalyticsReadyB, '') +
         '  UNION ALL ' +
         '  SELECT ' +
           IIF(FCalcBalanceDate > OnDate,
           ' - e.debiteq, - e.crediteq ',
           ' e.debiteq, e.crediteq ') +
-          IIF(MainAnalName <> '', ', e.' + MainAnalName, '') +
+          IIF(MainAnalNameE <> '', ', ' + MainAnalNameE, '') +
         '  FROM ' +
         '    ac_account a ' +
         '    JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
@@ -1571,9 +1603,9 @@ begin
           IIF(FCalcBalanceDate > OnDate,
           ' AND (e.entrydate > :ondate AND e.entrydate < :balancedate) ',
           ' AND (e.entrydate <= :ondate AND e.entrydate >= :balancedate) ') +
-          IIF(MainAnalName = '', AnalyticsReadyE, '') +
+          IIF(MainAnalNameE = '', AnalyticsReadyE, '') +
         ') z ' +
-          IIF(MainAnalName <> '', 'GROUP BY z.' + MainAnalName, '');
+          IIF(MainAnalNameZ <> '', 'GROUP BY ' + MainAnalNameZ, '');
       ParamByName('ondate').AsDate := OnDate;
       ParamByName('balancedate').AsDate := FCalcBalanceDate;
       ParamByName('accountkey').AsInteger := Id;
@@ -1581,7 +1613,7 @@ begin
 
       if RecordCount > 0 then
       begin
-        if MainAnalName <> '' then
+        if MainAnalNameB <> '' then
         begin
           while not Eof do
           begin
@@ -1603,7 +1635,7 @@ begin
   end
   else
 
-    if MainAnalName = '' then
+    if MainAnalNameB = '' then
     begin
       with FIBSQL do
       begin
@@ -1646,7 +1678,7 @@ begin
           '  a.id = :accountkey AND ' +
           GetCompCondition('z.companykey') + ' AND ' +
           '  z.entrydate <= :ondate ' +
-          'GROUP BY z.' + MainAnalName;
+          'GROUP BY ' + MainAnalNameZ;
 
         ParamByName('ondate').AsDate := OnDate;
         ParamByName('accountkey').AsInteger := Id;
@@ -1807,15 +1839,15 @@ begin
     raise Exception.Create(Format(MSG_ACCOUNTINCORRECT, [Account]));
 end;
 
-function TobjGSFunction.GetWithAnDefault(AccountID: Integer): String;
+{function TobjGSFunction.GetWithAnDefault(AccountID: Integer): String;
 begin
   FIBSQL.Close;
 
   FIBSQL.SQL.Text :=
-    'SELECT rf.fieldname FROM ac_account a ' +
-    '  JOIN at_relation_fields rf ON rf.id = a.analyticalfield ' +
+    'SELECT rf.fieldname FROM ac_accanalyticsext aa ' +
+    '  JOIN at_relation_fields rf ON rf.id = aa.valuekey ' +
     'WHERE ' +
-    '  a.id = :id';
+    '  aa.accountkey = :id';
 
   FIBSQL.ParamByName(fnId).AsInteger := AccountId;
   FIBSQL.ExecQuery;
@@ -1825,6 +1857,37 @@ begin
       Result := ''
     else
       Result := FIBSQL.FieldByName(fnfieldName).AsString;
+  finally
+    FIBSQL.Close;
+  end;
+end;}
+
+function TobjGSFunction.GetWithAnDefaultSql(AccountID: Integer;
+  const TableAlias: String): String;
+begin
+  FIBSQL.Close;
+
+  FIBSQL.SQL.Text :=
+    'SELECT rf.fieldname FROM ac_accanalyticsext aa ' +
+    '  JOIN at_relation_fields rf ON rf.id = aa.valuekey ' +
+    'WHERE ' +
+    '  aa.accountkey = :id';
+
+  FIBSQL.ParamByName(fnId).AsInteger := AccountId;
+  FIBSQL.ExecQuery;
+
+  try
+    if FIBSQL.RecordCount = 0 then
+      Result := ''
+    else
+    begin
+      while not FIBSQL.Eof do
+      begin
+        Result := Result + TableAlias + '.' + FIBSQL.FieldByName(fnfieldName).AsString + ' ,';
+        FIBSQL.next;
+      end;
+      Result := Copy(Result,0, Length(Result)-2);
+    end;
   finally
     FIBSQL.Close;
   end;
@@ -2181,6 +2244,7 @@ begin
   Result := gd_convert.MulDiv(ANumber, ANumerator, ADenominator,
     ARoundMethod, ADecPlaces);
 end;
+
 
 { TGsFunctionNotifier }
 

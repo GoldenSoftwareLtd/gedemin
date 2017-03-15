@@ -256,7 +256,8 @@ begin
     end;
   end;
 
-  tbiCompanyFilter.Click;
+  if tbiCompanyFilter.Visible then
+    tbiCompanyFilter.Click;
 end;
 
 procedure Tdlg_ChooseSet.ibgrMainClickedCheck(Sender: TObject;

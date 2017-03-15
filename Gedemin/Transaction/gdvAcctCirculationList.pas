@@ -130,9 +130,6 @@ begin
 
   if FUseEntryBalance then
   begin
-    {L_S := Format('AC_CIRCULATIONLIST_BAL(:begindate, :enddate, %d, %d, %d, :currkey, %d)',
-      [FCompanyKey, Integer(FAllHolding), FAccounts[0], Integer(not FIncludeInternalMovement)]);}
-
     LB := 0;
     RB := 0;
     ibsql := TIBSQL.Create(nil);
@@ -199,7 +196,11 @@ begin
       '       a.id, a.alias, a.activity, f.fieldname, a.name, a.offbalance '#13#10 +
       '     FROM '#13#10 +
       '       ac_account a '#13#10 +
-      '       LEFT JOIN at_relation_fields f ON a.analyticalfield = f.id '#13#10 +
+      '     LEFT JOIN   (SELECT aa.accountkey, LIST(rf.fieldname, '', '') fieldname '#13#10 +
+      '                 FROM  ac_accanalyticsext aa '#13#10 +
+      '                 JOIN at_relation_fields rf ON aa.valuekey = rf.id '#13#10 +
+      '                 GROUP BY aa.accountkey) f '#13#10 +
+      '     ON a.id = f.accountkey '#13#10 +
       '     WHERE '#13#10 +
       '       a.accounttype IN (''A'', ''S'') '#13#10 +
       '       AND a.lb >= ' + IntToStr(LB) + ' AND a.rb <= ' + IntToStr(RB) + ' AND a.alias <> ''00'' '#13#10 +

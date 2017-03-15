@@ -404,7 +404,7 @@ begin
       begin
         SL := TStringList.Create;
         try
-          for I := 0 to VarArrayHighBound(V, 1) do 
+          for I := 0 to VarArrayHighBound(V, 1) do
             SL.Add(IntToStr(V[I]));
           IDs := SL.CommaText;
         finally
@@ -438,7 +438,8 @@ var
   s: string;
 begin
   FIds := Value;
-  s:= Value + ',';
+  s := Value + ',';
+  s := StringReplace(s, ' ', '', [rfReplaceAll]);
   cmbValue.Visible:= not (Pos(',', Value) > 0);
   lbValue.Visible:= Pos(',', Value) > 0;
   if Pos(',', Value) > 0 then begin
@@ -455,7 +456,7 @@ begin
         ibsql.ParamByName('id').AsInteger:= StrToInt(Copy(s, 1, Pos(',', s) - 1));
         ibsql.ExecQuery;
         lbValue.Items.Add(ibsql.FieldByName('name').AsString);
-        System.Delete(s, 1, Pos(',', s) + 1);
+        System.Delete(s, 1, Pos(',', s));
       end;
       if lbValue.Items.Count > 2 then begin
         lbValue.Height:= lbValue.ItemHeight * 3 + 4;

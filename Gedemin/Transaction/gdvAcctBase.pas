@@ -1139,7 +1139,7 @@ begin
     Scale := 1;
   end;
   FCurrKey := -1;
-  FNCUCurrKey := TgdcCurr.GetNCUCurrKey;
+  FNCUCurrKey := AcctUtils.GetNCUKey;
 end;
 
 procedure TgdvAcctBase.DoAfterBuildReport;

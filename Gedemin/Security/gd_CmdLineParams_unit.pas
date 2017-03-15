@@ -43,6 +43,7 @@ type
     FConvertDocOptions: Boolean;
     FRun: String;
     FExit: Boolean;
+    FReloading: Boolean;
 
     function StripQuotes(const S: String): String;
     function CompareAnyString(const S: String; const S2: array of String): Boolean; overload;
@@ -91,6 +92,7 @@ type
     property ConvertDocOptions: Boolean read FConvertDocOptions;
     property Run: String read FRun;
     property _Exit: Boolean read FExit;
+    property Reloading: Boolean read FReloading;
   end;
 
 var
@@ -272,6 +274,11 @@ begin
       if CompareAnyString(SL[I], ['RD']) then
       begin
         FClearDBID := True;
+      end else
+
+      if CompareAnyString(SL[I], ['RELOAD']) then
+      begin
+        FReloading := True;
       end else
 
       if CompareAnyString(SL[I], ['UNMETHOD']) then

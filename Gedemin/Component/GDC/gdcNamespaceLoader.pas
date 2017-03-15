@@ -768,6 +768,13 @@ begin
     FTr.StartTransaction;
     q := TIBSQL.Create(nil);
     try
+      if gdcBaseManager.HasDelayedRUIDChanges then
+      begin
+        AddText('Начата замена RUID в текстах скрипт-функций...');
+        gdcBaseManager.ProcessDelayedRUIDChanges(FTr);
+        AddText('Окончена замена RUID в текстах скрипт-функций');
+      end;  
+
       q.Transaction := FTr;
       q.SQL.Text := 'UPDATE at_namespace SET changed = :changed, md5 = :md5 WHERE id = :id';
 
@@ -1259,7 +1266,7 @@ begin
       or (FqFindRUID.FieldByName('dbid').AsInteger <> ADBID) then
     begin
       gdcBaseManager.ChangeRUID(FqFindRUID.FieldByName('xid').AsInteger,
-        FqFindRUID.FieldByName('dbid').AsInteger, AXID, ADBID, FTr);
+        FqFindRUID.FieldByName('dbid').AsInteger, AXID, ADBID, FTr, False);
 
       AddWarning('Изменился РУИД объекта ' +
         RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger, FqFindRUID.FieldByName('dbid').AsInteger) +

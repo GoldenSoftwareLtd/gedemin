@@ -1902,15 +1902,19 @@ begin
         '     END '#13#10 +
           IIF(FEntryDateIsFirst,
             ' varncubegin = varncuend; varcurrbegin = varcurrend; vareqbegin = vareqend;'#13#10, '') +
-        ' IF ((ncu_debit <> 0) OR (ncu_credit <> 0) OR (cast((varncubegin / %0:d) AS NUMERIC(15, %1:d)) <> 0)' +
-          IIF(FCurrSumInfo.Show, ' OR (curr_debit <> 0) OR (curr_credit <> 0) OR (cast((varcurrbegin / %2:d) AS NUMERIC(15, %3:d))  <> 0)', '') +
-          IIF(FEQSumInfo.Show, ' OR (eq_debit <> 0) OR (eq_credit <> 0) OR (cast((vareqbegin / %4:d) AS NUMERIC(15, %5:d))  <> 0)', '') + #13#10;
+        ' IF (' +
+            IIF(FNcuSumInfo.Show or (not FCurrSumInfo.Show and not FEQSumInfo.Show), ' (ncu_debit <> 0) OR (ncu_credit <> 0) OR (cast((varncubegin / %0:d) AS NUMERIC(15, %1:d)) <> 0)' + IIF(FCurrSumInfo.Show or FEQSumInfo.Show, ' OR ', ''), '') +
+            IIF(FCurrSumInfo.Show, ' (curr_debit <> 0) OR (curr_credit <> 0) OR (cast((varcurrbegin / %2:d) AS NUMERIC(15, %3:d))  <> 0)' + IIF(FEQSumInfo.Show, ' OR ', ''), '') +
+            IIF(FEQSumInfo.Show, ' (eq_debit <> 0) OR (eq_credit <> 0) OR (cast((vareqbegin / %4:d) AS NUMERIC(15, %5:d))  <> 0)', '') + #13#10;
 
       // ƒобавл€ем проверку на неравенство нулю расширенного отображени€ дебета и кредита
-      for I := 0 to FNcuDebitAliases.Count - 1 do
-        DebitCreditSQL := DebitCreditSQL + ' OR (' + FNcuDebitAliases.Strings[I] + ' <> 0) ';
-      for I := 0 to FNcuCreditAliases.Count - 1 do
-        DebitCreditSQL := DebitCreditSQL + ' OR (' + FNcuCreditAliases.Strings[I] + ' <> 0) ';
+      if FNcuSumInfo.Show or (not FCurrSumInfo.Show and not FEQSumInfo.Show) then
+      begin
+        for I := 0 to FNcuDebitAliases.Count - 1 do
+          DebitCreditSQL := DebitCreditSQL + ' OR (' + FNcuDebitAliases.Strings[I] + ' <> 0) ';
+        for I := 0 to FNcuCreditAliases.Count - 1 do
+          DebitCreditSQL := DebitCreditSQL + ' OR (' + FNcuCreditAliases.Strings[I] + ' <> 0) ';
+      end;
       // ƒобавл€ем проверку на неравенство нулю расширенного отображени€ дебета и кредита дл€ валюты
       if FCurrSumInfo.Show then
       begin

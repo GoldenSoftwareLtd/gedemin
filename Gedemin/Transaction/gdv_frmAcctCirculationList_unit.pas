@@ -39,7 +39,6 @@ type
     cbOnlyAccounts: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure tvGroupChange(Sender: TObject; Node: TTreeNode);
-    procedure actRunUpdate(Sender: TObject);
     procedure actAnalizeRevolutionUpdate(Sender: TObject);
     procedure actGotoLedgerExecute(Sender: TObject);
     procedure cbSubAccountClick(Sender: TObject);
@@ -249,11 +248,6 @@ begin
     BuildAcctReport;
 end;
 
-procedure Tgdv_frmAcctCirculationList.actRunUpdate(Sender: TObject);
-begin
-  inherited;
-end;
-
 procedure Tgdv_frmAcctCirculationList.Go_to(NewWindow: Boolean);
 var
   F: TField;
@@ -388,69 +382,82 @@ procedure Tgdv_frmAcctCirculationList.actGotoLedgerExecute(
   Sender: TObject);
 var
   ibsql: TIBSQL;
-  AnalizeField: String;
   I: Integer;
   C: TAccLedgerConfig;
-  S: TStrings;
+  S, AnalizeFields: TStrings;
 begin
-  AnalizeField := '';
-  ibsql := TIBSQL.Create(nil);
+  AnalizeFields := TStringList.Create;
   try
-    ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    ibsql.SQL.Text := 'SELECT * FROM ac_account a LEFT JOIN at_relation_fields atr ' +
-      ' ON a.analyticalfield = atr.id WHERE a.id = :id';
-    ibsql.ParamByName('id').AsInteger := gdvObject.FieldByName('id').AsInteger;
-    ibsql.ExecQuery;
-    if ibsql.FieldByName('analyticalfield').AsInteger > 0 then
-      AnalizeField := ibsql.FieldByName('fieldname').AsString
-    else
-    begin
-      for I:= 0 to ibsql.Current.Count - 1 do
-        if ((Pos(UserPrefix, ibsql.Fields[i].Name) = 1) and (ibsql.Fields[i].AsInteger = 1)) then
-        begin
-          AnalizeField := ibsql.Fields[i].Name;
-          Break;
-        end;
-    end;
-  finally
-    ibsql.Free;
-  end;
-
-  if AnalizeField <> '' then
-  begin
-    C := TAccLedgerConfig.Create;
+    ibsql := TIBSQL.Create(nil);
     try
-      DoSaveConfig(C);
-      C.Accounts := gdvObject.FieldByName('alias').AsString;
-      S := TStringList.Create;
-      try
-        S.Text := AnalizeField;
-        SaveIntegerToStream(S.Count, C.AnalyticsGroup);
-        for I := 0 to S.Count - 1 do
-        begin
-          SaveStringToStream(S[I], C.AnalyticsGroup);
-          SaveBooleanToStream(True, C.AnalyticsGroup);
-        end;
-      finally
-        S.Free;
-      end;
-      C.IncSubAccounts := False;
+      ibsql.Transaction := gdcBaseManager.ReadTransaction;
+      ibsql.SQL.Text := 'SELECT * FROM ac_accanalyticsext aa JOIN at_relation_fields rf ' +
+        ' ON aa.valuekey = rf.id and aa.accountkey = :id';
+      ibsql.ParamByName('id').AsInteger := gdvObject.FieldByName('id').AsInteger;
+      ibsql.ExecQuery;
 
-      with Tgdv_frmAcctLedger.CreateAndAssign(Application) as Tgdv_frmAcctLedger do
+      while not ibsql.eof do
       begin
-        DateBegin := Self.DateBegin;
-        DateEnd := Self.DateEnd;
+        AnalizeFields.Add(ibsql.FieldByName('fieldname').AsString);
+        ibsql.Next;
+      end;
+      ibsql.Close;
 
-        Show;
-        Execute(C);
+      if AnalizeFields.Count = 0 then
+      begin
+
+        ibsql.SQL.Text := 'SELECT * FROM ac_account a WHERE a.id = :id';
+        ibsql.ParamByName('id').AsInteger := gdvObject.FieldByName('id').AsInteger;
+        ibsql.ExecQuery;
+        for I:= 0 to ibsql.Current.Count - 1 do
+          if ((Pos(UserPrefix, ibsql.Fields[i].Name) = 1) and (ibsql.Fields[i].AsInteger = 1)) then
+          begin
+            AnalizeFields.Add(ibsql.Fields[i].Name);
+            Break;
+          end;
       end;
     finally
-      C.Free;
+      ibsql.Free;
     end;
-  end
-  else
-    MessageDlg('По данному счету нет объектов аналитического учета', mtWarning,
-      [mbOk], -1);
+
+    if AnalizeFields.Count > 0  then
+    begin
+      C := TAccLedgerConfig.Create;
+      try
+        DoSaveConfig(C);
+        C.Accounts := gdvObject.FieldByName('alias').AsString;
+        S := TStringList.Create;
+        try
+          S.Assign(AnalizeFields);
+          SaveIntegerToStream(S.Count, C.AnalyticsGroup);
+          for I := 0 to S.Count - 1 do
+          begin
+            SaveStringToStream(S[I], C.AnalyticsGroup);
+            SaveBooleanToStream(True, C.AnalyticsGroup);
+          end;
+        finally
+          S.Free;
+        end;
+        C.IncSubAccounts := False;
+
+        with Tgdv_frmAcctLedger.CreateAndAssign(Application) as Tgdv_frmAcctLedger do
+        begin
+          DateBegin := Self.DateBegin;
+          DateEnd := Self.DateEnd;
+
+          Show;
+          Execute(C);
+        end;
+      finally
+        C.Free;
+      end;
+    end
+    else
+      MessageDlg('По данному счету нет объектов аналитического учета', mtWarning,
+        [mbOk], -1);
+  finally
+    AnalizeFields.Free;
+  end;
 end;
 
 procedure Tgdv_frmAcctCirculationList.cbSubAccountClick(Sender: TObject);

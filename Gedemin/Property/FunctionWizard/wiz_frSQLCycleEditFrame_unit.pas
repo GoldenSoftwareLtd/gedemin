@@ -160,6 +160,7 @@ begin
             L.Parent := sbParams;
             L.ParamName := SQL.Params[I].Name;
             L.Block := FBlock;
+            L.Top := (I + 1) * L.Height;
 
             Index := V.IndexOfName(SQL.Params[I].Name);
             if Index > - 1 then

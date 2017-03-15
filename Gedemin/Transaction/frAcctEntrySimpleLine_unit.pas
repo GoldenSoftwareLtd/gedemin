@@ -335,7 +335,6 @@ begin
     end;
     if cCurrSum.Value > 0 then
       cRate.Value := CurrRate(cbCurrency.CurrentKeyInt) ;
-
   finally
     EnableControls;
   end;
@@ -580,33 +579,40 @@ begin
   FMultyCurr := Value;
 end;
 
+
 function TfrAcctEntrySimpleLine.CurrRate(const CurrKey: Integer): Double;
 var
   q: TIBSQL;
 begin
-  Result := 0;
   if (CurrKey > -1) and (GetNCUKey <> CurrKey) and (gdcObject <> nil)
-    {and (not gdcObject.EOF)} and (gdcBaseManager <> nil) then
+    and (gdcBaseManager <> nil) then
   begin
+    Result := AcctUtils.GetCurrRate(gdcObject.FieldByName('recorddate').AsDateTime,
+      -1,
+      -1,
+      CurrKey,
+      'NCU',
+      -1,
+      1,
+      False,
+      False,
+      False);
+
     q := TIBSQL.Create(nil);
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text := 'SELECT r.coeff, c.decdigits FROM gd_currrate r left join gd_curr c ON r.fromcurr = c.id WHERE fromcurr = :fc and ' +
-        ' tocurr = :tc and fordate = (SELECT MAX(fordate) FROM gd_currrate WHERE fromcurr = :fc and ' +
-        ' tocurr = :tc and fordate <= :de) ';
+      q.SQL.Text := 'SELECT c.decdigits FROM gd_curr c WHERE c.id = :fc';
       q.ParamByName('fc').AsInteger := CurrKey;
-      q.ParamByName('tc').AsInteger := GetNCUKey;
-      q.ParamByName('de').AsDateTime := gdcObject.FieldByName('recorddate').AsDateTime;
       q.ExecQuery;
       if not q.EOF then
-      begin
-        Result := q.FieldByName('coeff').AsVariant;
-        FCurrDigits := q.FieldByName('decdigits').AsInteger;
-      end
+        FCurrDigits := q.FieldByName('decdigits').AsInteger
+      else
+        FCurrDigits := 0;
     finally
       q.Free;
     end;
-  end;
+  end else
+    Result := 0;
 end;
 
 procedure TfrAcctEntrySimpleLine.DisableControls;

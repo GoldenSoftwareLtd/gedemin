@@ -179,7 +179,7 @@ begin
 
   inherited;
 
-  PrepareConfigPanel; 
+  PrepareConfigPanel;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDV_FRMG', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
@@ -321,15 +321,18 @@ begin
   gdcObject.Close;
   gdcObject.ExtraConditions.Clear;
 
-  sDocs:= '';
-  if DocsD <> '' then
-    sDocs:= ' credit > 0 AND doct.id' + DocsD;
-  if DocsC <> '' then begin
-    if sDocs <> '' then
-      sDocs:= ' ((' + sDocs + ') or (debit > 0 AND doct.id' + DocsC + '))'
+  if DocsC <> '' then
+  begin
+    sDocs := ' (m.credit > 0 AND doct.id' + DocsC + ') ';
+    if DocsD <> '' then
+      sDocs := ' (' + sDocs + ' OR (m.debit > 0 AND doct.id' + DocsD + ')) '
     else
-      sDocs:= ' debit > 0 AND doct.id' + DocsC;
-  end;
+      sDocs := ' (' + sDocs + ' OR (m.debit > 0)) '
+  end 
+  else if DocsD <> '' then
+    sDocs := ' ((m.debit > 0 AND doct.id' + DocsD +  ') OR (m.credit > 0)) '
+  else
+    sDocs:= '';
 
   gdcObject.ExtraConditions.Add(sDocs);
   if GoodV <> '' then
@@ -411,8 +414,8 @@ begin
     frCardValues.Values:= CardValues;
     frGoodValues.Values:= GoodValues;
 
-    if GridSettings.Size > 0 then
-      ibgrMain.LoadFromStream(GridSettings);
+{    if GridSettings.Size > 0 then
+      ibgrMain.LoadFromStream(GridSettings); }
   end;
   SetCollumnsVisible;
 end;

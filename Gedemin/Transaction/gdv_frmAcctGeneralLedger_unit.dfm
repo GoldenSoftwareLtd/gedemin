@@ -1,8 +1,8 @@
 inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
-  Left = 250
-  Top = 188
+  Left = 438
+  Top = 164
   Width = 1066
-  Height = 631
+  Height = 795
   HelpContext = 351
   Caption = 'Главная книга'
   DefaultMonitor = dmDesktop
@@ -10,10 +10,10 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   TextHeight = 13
   inherited sLeft: TSplitter
     Left = 273
-    Height = 561
+    Height = 717
   end
   inherited TBDock1: TTBDock
-    Width = 1058
+    Width = 1050
     inherited tbMainToolbar: TTBToolbar
       DockPos = -5
     end
@@ -44,35 +44,35 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   end
   inherited Panel1: TPanel
     Left = 279
-    Width = 770
-    Height = 561
+    Width = 762
+    Height = 717
     TabOrder = 2
     inherited ibgrMain: TgsIBGrid
-      Width = 770
-      Height = 561
+      Width = 762
+      Height = 717
     end
   end
   inherited TBDock2: TTBDock
-    Height = 561
+    Height = 717
   end
   inherited TBDock3: TTBDock
-    Left = 1049
-    Height = 561
+    Left = 1041
+    Height = 717
   end
   inherited TBDock4: TTBDock
-    Top = 591
-    Width = 1058
+    Top = 747
+    Width = 1050
   end
   inherited pLeft: TPanel
     Width = 264
-    Height = 561
+    Height = 717
     TabOrder = 1
     inherited ScrollBox: TScrollBox
       Width = 264
-      Height = 544
+      Height = 700
       inherited Panel5: TPanel
         Top = 184
-        Width = 247
+        Width = 264
         Height = 93
         TabOrder = 1
         inherited Label17: TLabel
@@ -80,6 +80,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
           Visible = False
         end
         inherited bAccounts: TButton
+          Left = 236
           Top = 132
           TabOrder = 5
           Visible = False
@@ -133,7 +134,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
         end
         inherited cbAccounts: TComboBox
           Top = 132
-          Width = 175
+          Width = 192
           TabOrder = 3
           Visible = False
         end
@@ -151,56 +152,56 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       end
       inherited frAcctQuantity: TfrAcctQuantity
         Top = 318
-        Width = 247
+        Width = 264
         TabOrder = 4
         inherited ppMain: TgdvParamPanel
-          Width = 247
+          Width = 264
         end
       end
       inherited frAcctSum: TfrAcctSum
         Top = 359
-        Width = 247
+        Width = 264
         TabOrder = 6
         inherited ppMain: TgdvParamPanel
-          Width = 247
+          Width = 264
           inherited pnlEQ: TPanel
-            Width = 235
+            Width = 252
           end
           inherited pnlQuantity: TPanel
-            Width = 235
+            Width = 252
           end
           inherited pnlTop: TPanel
-            Width = 235
+            Width = 252
           end
         end
       end
       inherited frAcctAnalytics: TfrAcctAnalytics
         Top = 277
-        Width = 247
+        Width = 264
         TabOrder = 2
         Visible = False
         inherited ppAnalytics: TgdvParamPanel
-          Width = 247
+          Width = 264
         end
       end
       inherited frAcctCompany: TfrAcctCompany
         Top = 580
-        Width = 247
+        Width = 264
         TabOrder = 3
         inherited ppMain: TgdvParamPanel
-          Width = 247
+          Width = 264
           inherited cbAllCompanies: TCheckBox
-            Width = 211
+            Width = 228
           end
           inherited iblCompany: TgsIBLookupComboBox
-            Width = 161
+            Width = 178
             OnChange = frAcctCompanyiblCompanyChange
           end
         end
       end
       inherited ppAppear: TgdvParamPanel
         Top = 640
-        Width = 247
+        Width = 264
         Height = 38
         inherited cbExtendedFields: TCheckBox
           Top = 37
@@ -211,7 +212,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
           Top = 20
           Width = 195
           Height = 17
-          Caption = 'Расширенное сальдо'
+          Caption = 'Разворачивать сальдо'
           Color = 16316664
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -226,7 +227,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       object pCardOfAccount: TPanel
         Left = 0
         Top = 0
-        Width = 247
+        Width = 264
         Height = 184
         Align = alTop
         BevelOuter = bvNone
@@ -243,7 +244,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
         object ptvGroup: TPanel
           Left = 3
           Top = 16
-          Width = 241
+          Width = 258
           Height = 165
           Align = alBottom
           Anchors = [akLeft, akTop, akRight, akBottom]
@@ -253,7 +254,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
           object tvGroup: TgsDBTreeView
             Left = 1
             Top = 1
-            Width = 239
+            Width = 256
             Height = 163
             DataSource = dsAcctChart
             KeyField = 'ID'

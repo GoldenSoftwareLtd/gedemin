@@ -1,7 +1,7 @@
 
  {++
 
-   Copyright © 2000 by Golden Software
+   Copyright © 2000-2017 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -21,6 +21,7 @@
      1.01   10.04.2002 Julia
 
  --}
+
 unit gsDBDelete_dlgTableValues;
 
 interface
@@ -58,21 +59,21 @@ type
   TdlgTableValues = class(TForm)
     Panel1: TPanel;
     Panel2: TPanel;
-    Label1: TLabel;
-    Label2: TLabel;
     Panel4: TPanel;
     Panel5: TPanel;
     Splitter1: TSplitter;
     lvTables: TListView;
     dbgValue: TgsIBGrid;
     dsValue: TDataSource;
-    tbDelete: TTBToolbar;
     alDelete: TActionList;
     actEdit: TAction;
     actDelete: TAction;
+    TBDock1: TTBDock;
+    tbDelete: TTBToolbar;
     tbiEdit: TTBItem;
     tbiDelete: TTBItem;
     lblEof: TLabel;
+    Memo1: TMemo;
     procedure lvTablesChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
     procedure FormActivate(Sender: TObject);
@@ -142,19 +143,6 @@ begin
   ChangeObject;
 end;
 
-{procedure TdlgTableValues.ChangeTable;
-begin
-  if Key = '' then Exit;
-  qryValue.Close;
-  if lvTables.Selected <> nil then
-  begin
-    qryValue.SQL.Text := 'SELECT * FROM ' + lvTables.Selected.SubItems[1] + ' ' +
-      ' WHERE ' + lvTables.Selected.SubItems[0] + ' = ' + Key;
-    qryValue.Open;
-    LocalizeDataSet(qryValue);
-  end;
-end;}
-
 constructor TdlgTableValues.Create(AnOwner: TComponent);
 begin
   inherited;
@@ -167,7 +155,6 @@ begin
   gdcDynamic.Free;
   inherited;
 end;
-
 
 procedure TdlgTableValues.AddNewObject(ADisplayName: String;
   AnObject: TgdcFullClass; AnID: TStrings; NotEof: Boolean);

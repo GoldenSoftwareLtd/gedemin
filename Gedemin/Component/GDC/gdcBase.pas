@@ -401,6 +401,7 @@ type
     FNextIDSQL: TIBSQL;
     FIBSQL: TIBSQL;
     FIDCurrent, FIDLimit: Integer;
+    FChangedRUIDs: TStringList;
 
     // на каждый класс одна строка из пяти элементов в массиве
     // первый -- указатель на класс
@@ -486,10 +487,12 @@ type
     procedure ExecSingleQuery(const S: String; const Transaction: TIBTransaction = nil); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant; const Transaction: TIBTransaction = nil); overload;
     function ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant; const Transaction: TIBTransaction = nil): Boolean; 
+      out Res: OleVariant; const Transaction: TIBTransaction = nil): Boolean;
 
     procedure ChangeRUID(const AnOldXID, AnOldDBID, ANewXID, ANewDBID: TID;
-      ATr: TIBTRansaction);
+      ATr: TIBTRansaction; const AForceUpdateFunc: Boolean);
+    procedure ProcessDelayedRUIDChanges(ATr: TIBTransaction);
+    function HasDelayedRUIDChanges: Boolean;
 
     property ReadTransaction: TIBTransaction read GetReadTransaction;
 
@@ -1197,6 +1200,8 @@ type
     function GetCompoundMasterTable: String; virtual;
 
     procedure FindInheritedSubType(var FC: TgdcFullClass);
+
+    procedure EditMultipleSort(var BL: OleVariant); virtual;
 
   public
     FReadUserFromStream: Boolean;
@@ -2222,6 +2227,18 @@ type
     FullClass: TgdcFullClass;
     ID: TID;
     RefID: TID;
+  end;
+
+  TRUIDHelper = class(TObject)
+  public
+    FFuncID: Integer;
+    FFunction: String;
+    FChanged: Boolean;
+    FArray: array of Integer;
+    FCount: Integer;
+
+    procedure Parse(const AFuncID: Integer; const AFunction: String);
+    procedure Replace(const AnOld, ANew: TRUID);
   end;
 
 procedure ClearCacheList;
@@ -4685,6 +4702,7 @@ function TgdcBase.CreateDialogForm: TCreateableForm;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCBASE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
   {M}  try
@@ -4722,7 +4740,10 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := TgdFormEntry(gdClassList.Get(TgdFormEntry, GetDialogFormClassName(SubType), SubType)).frmClass.CreateSubType(FParentForm, SubType);
+  CE := gdClassList.Find(GetDialogFormClassName(SubType), SubType);
+  if not (CE is TgdFormEntry) then
+    CE := gdClassList.Get(TgdFormEntry, 'TGDC_DLGOBJECTPROPERTIES', '');
+  Result := (CE as TgdFormEntry).frmClass.CreateSubType(FParentForm, CE.SubType);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -9094,6 +9115,11 @@ begin
     Result := ClassInheritsFrom(AClassName, ASubType);
 end;
 
+procedure TgdcBase.EditMultipleSort(var BL: OleVariant);
+begin
+  //
+end;
+
 { TgdcDataLink }
 
 procedure TgdcDataLink.ActiveChanged;
@@ -9348,6 +9374,7 @@ begin
   FreeAndNil(FIBBase);
   FNextIDSQL.Free;
   ClearSecDescArr;
+  FChangedRUIDs.Free;
   inherited;
 end;
 
@@ -12737,10 +12764,10 @@ begin
 end;
 
 procedure TgdcBaseManager.ChangeRUID(const AnOldXID, AnOldDBID, ANewXID,
-  ANewDBID: TID; ATr: TIBTRansaction);
+  ANewDBID: TID; ATr: TIBTRansaction; const AForceUpdateFunc: Boolean);
 var
   OldRUIDString, NewRUIDString: String;
-  OldRUIDParam, NewRUIDParam: String;
+  //OldRUIDParam, NewRUIDParam: String;
   SName: String;
   q: TIBSQL;
 begin
@@ -12750,8 +12777,17 @@ begin
   OldRUIDString := RUIDToStr(AnOldXID, AnOldDBID);
   NewRUIDString := RUIDToStr(ANewXID, ANewDBID);
 
-  OldRUIDParam := IntToStr(AnOldXID) + ', ' + IntToStr(AnOldDBID);
-  NewRUIDParam := IntToStr(ANewXID) + ', ' + IntToStr(ANewDBID);
+  if FChangedRUIDs = nil then
+  begin
+    FChangedRUIDs := TStringList.Create;
+    FChangedRUIDs.Sorted := True;
+    FChangedRUIDs.Duplicates := dupIgnore;
+  end;
+
+  FChangedRUIDs.Add(OldRUIDString + '=' + NewRUIDString);
+
+  //OldRUIDParam := IntToStr(AnOldXID) + ', ' + IntToStr(AnOldDBID);
+  //NewRUIDParam := IntToStr(ANewXID) + ', ' + IntToStr(ANewDBID);
 
   SName := 'S' + OldRUIDString;
   ATr.SetSavePoint(SName);
@@ -12778,6 +12814,7 @@ begin
       q.ParamByName('new').AsString := NewRUIDString;
       q.ExecQuery;
 
+      {
       q.SQL.Text :=
         'UPDATE gd_function SET script = REPLACE(script, :old, :new), ' +
         '  editiondate = CURRENT_TIMESTAMP(0) ' +
@@ -12793,6 +12830,7 @@ begin
       q.ParamByName('old').AsString := StringReplace(OldRUIDParam, ' ', '', []);
       q.ParamByName('new').AsString := StringReplace(NewRUIDParam, ' ', '', []);
       q.ExecQuery;
+      }
 
       q.SQL.Text :=
         'UPDATE gd_documenttype SET ruid = :new, ' +
@@ -12854,6 +12892,9 @@ begin
       q.Free;
     end;
 
+    if AForceUpdateFunc then
+      ProcessDelayedRUIDChanges(ATr);
+
     ATr.ReleaseSavePoint(SName);
   except
     ATr.RollBackToSavePoint(SName);
@@ -12862,6 +12903,78 @@ begin
 
   RemoveRUIDFromCache(AnOldXID, AnOldDBID);
   RemoveRUIDFromCache(ANewXID, ANewDBID);
+end;
+
+procedure TgdcBaseManager.ProcessDelayedRUIDChanges(ATr: TIBTransaction);
+var
+  q: TIBSQL;
+  OL: TObjectList;
+  R: TRUIDHelper;
+  I, J, P: Integer;
+  ROld, RNew: TRUID;
+  SName: String;
+begin
+  Assert(ATr <> nil);
+  Assert(ATr.InTransaction);
+
+  if FChangedRUIDs <> nil then
+  begin
+    SName := 'DelayedRUIDChanges';
+    ATr.SetSavePoint(SName);
+    try
+      q := TIBSQL.Create(nil);
+      OL := TObjectList.Create(True);
+      try
+        q.Transaction := ATr;
+        q.SQL.Text :=
+          'SELECT id, script FROM gd_function';
+        q.ExecQuery;
+        while not q.EOF do
+        begin
+          R := TRUIDHelper.Create;
+          OL.Add(R);
+          R.Parse(q.FieldByName('id').AsInteger, q.FieldByName('script').AsString);
+          q.Next;
+        end;
+
+        for I := 0 to FChangedRUIDs.Count - 1 do
+        begin
+          P := Pos('=', FChangedRUIDs[I]);
+          ROld := StrToRUID(Copy(FChangedRUIDs[I], 1, P - 1));
+          RNew := StrToRUID(Copy(FChangedRUIDs[I], P + 1, 256));
+          for J := 0 to OL.Count - 1 do
+            (OL[J] as TRUIDHelper).Replace(ROld, RNew);
+        end;
+
+        q.Close;
+        q.SQL.Text := 'UPDATE gd_function SET script = :s, editiondate = CURRENT_TIMESTAMP(0) WHERE id = :id';
+        for J := 0 to OL.Count - 1 do
+          if (OL[J] as TRUIDHelper).FChanged then
+          begin
+            q.ParamByName('id').AsInteger := (OL[J] as TRUIDHelper).FFuncID;
+            q.ParamByName('s').AsString := (OL[J] as TRUIDHelper).FFunction;
+            q.ExecQuery;
+          end;
+
+        q.Close;
+      finally
+        OL.Free;
+        q.Free;
+      end;
+
+      ATr.ReleaseSavePoint(SName);
+    except
+      ATr.RollBackToSavePoint(SName);
+      raise;
+    end;
+
+    FreeAndNil(FChangedRUIDs);
+  end;
+end;
+
+function TgdcBaseManager.HasDelayedRUIDChanges: Boolean;
+begin
+  Result := (FChangedRUIDs <> nil) and (FChangedRUIDs.Count > 0);
 end;
 
 { TgdcObjectSet }
@@ -17630,6 +17743,8 @@ begin
           DisableControls;
           ErrCount := 0;
           try
+            EditMultipleSort(BL);
+
             for I := VarArrayLowBound(BL, 1) to VarArrayHighBound(BL, 1) do
             begin
               if (BL[I] = Bm) {or not BookmarkValid(Pointer(BL[I]))} then
@@ -17651,7 +17766,6 @@ begin
                 try
                   for K := 0 to SLChanged.Count - 1 do
                   begin
-                    { TODO : механизм надо переделывать }
                     if FindField(SLChanged.Names[K]) <> nil then
                     begin
                       if SLChanged.Objects[K] <> nil then
@@ -18546,6 +18660,65 @@ class function TgdcBase.GetDistinctTable(const ASubType: TgdcSubType): String;
 begin
   Result := (gdClassList.Get(TgdBaseEntry, Self.ClassName,
     ASubType) as TgdBaseEntry).DistinctRelation;
+end;
+
+{ TRUIDHelper }
+
+procedure TRUIDHelper.Parse(const AFuncID: Integer;
+  const AFunction: String);
+var
+  B, E: Integer;
+begin
+  FFuncID := AFuncID;
+  FFunction := AFunction;
+  FChanged := False;
+  FCount := 0;
+  SetLength(FArray, 16);
+
+  B := 1;
+  while B <= Length(FFunction) do
+  begin
+    if FFunction[B] in ['0'..'9'] then
+    begin
+      E := B + 1;
+      while (E <= Length(FFunction)) and (FFunction[E] in ['0'..'9']) do
+        Inc(E);
+      FArray[FCount] := StrToIntDef(System.Copy(FFunction, B, E - B), -1);
+      if FArray[FCount] > -1 then
+      begin
+        Inc(FCount);
+        if FCount > High(FArray) then
+          SetLength(FArray, Length(FArray) * 2);
+      end;
+      B := E + 1;
+    end else
+      Inc(B);
+  end;
+end;
+
+procedure TRUIDHelper.Replace(const AnOld, ANew: TRUID);
+var
+  I: Integer;
+  OldRUIDString, NewRUIDString: String;
+begin
+  for I := 0 to FCount - 2 do
+  begin
+    if (FArray[I] = AnOld.XID) and (FArray[I + 1] = AnOld.DBID) then
+    begin
+      OldRUIDString := RUIDToStr(AnOld);
+      NewRUIDString := RUIDToStr(ANew);
+
+      FFunction := StringReplace(FFunction, OldRUIDString, NewRUIDString, [rfReplaceAll]);
+      FFunction := StringReplace(FFunction, StringReplace(OldRUIDString, '_', ',', []),
+        StringReplace(NewRUIDString, '_', ',', []), [rfReplaceAll]);
+      FFunction := StringReplace(FFunction, StringReplace(OldRUIDString, '_', ', ', []),
+        StringReplace(NewRUIDString, '_', ', ', []), [rfReplaceAll]);
+
+      FChanged := True;
+
+      break;
+    end;
+  end;
 end;
 
 initialization

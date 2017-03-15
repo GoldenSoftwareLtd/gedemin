@@ -24,7 +24,7 @@ inherited ReportFrame: TReportFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 211
+        Height = 210
         OnResize = pMainResize
         inherited lbName: TLabel
           Width = 116
@@ -200,13 +200,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 1
       inline MainFunctionFrame: TReportFunctionFrame
         Top = 9
-        Height = 234
+        Height = 233
         PopupMenu = MainFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 234
+          Height = 233
           inherited tsProperty: TSuperTabSheet
             inherited pMain: TPanel
-              Height = 179
+              Height = 178
               inherited dbeName: TprpDBComboBox
                 Width = 359
                 OnChange = MainFunctionFramedbeNameChange
@@ -269,13 +269,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 2
       inline ParamFunctionFrame: TReportFunctionFrame
         Top = 9
-        Height = 234
+        Height = 233
         PopupMenu = ParamFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 234
+          Height = 233
           inherited tsProperty: TSuperTabSheet
             inherited pMain: TPanel
-              Height = 179
+              Height = 178
               inherited dbeName: TprpDBComboBox
                 Width = 359
                 OnNewRecord = ParamFunctionFramedbeNameNewRecord
@@ -329,13 +329,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 3
       inline EventFunctionFrame: TReportFunctionFrame
         Top = 9
-        Height = 234
+        Height = 233
         PopupMenu = EventFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 234
+          Height = 233
           inherited tsProperty: TSuperTabSheet
             inherited pMain: TPanel
-              Height = 179
+              Height = 178
               inherited dbeName: TprpDBComboBox
                 Width = 359
                 OnNewRecord = EventFunctionFramedbeNameNewRecord
@@ -390,13 +390,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 4
       inline TemplateFrame: TTemplateFrame
         Top = 9
-        Height = 234
+        Height = 233
         PopupMenu = TemplateFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 234
+          Height = 233
           inherited tsProperty: TSuperTabSheet
             inherited pMain: TPanel
-              Height = 179
+              Height = 178
               inherited dbeName: TprpDBComboBox
                 Width = 503
                 OnChange = nil

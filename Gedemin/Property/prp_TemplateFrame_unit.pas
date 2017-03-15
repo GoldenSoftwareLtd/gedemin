@@ -36,6 +36,8 @@ type
     pnlRUIDTemplate: TPanel;
     btnCopyRUIDTemplate: TButton;
     mHint: TMemo;
+    TBSeparatorItem2: TTBSeparatorItem;
+    TBItem5: TTBItem;
     procedure actEditTemplateUpdate(Sender: TObject);
     procedure dblcbTypeCloseUp(Sender: TObject);
     procedure dblcbTypeDropDown(Sender: TObject);

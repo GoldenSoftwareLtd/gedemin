@@ -125,10 +125,11 @@ inherited gdc_dlgAcctTransaction: Tgdc_dlgAcctTransaction
     ListTable = 'ac_transaction'
     ListField = 'name'
     KeyField = 'ID'
+    SortOrder = soAsc
     Condition = 
-      '(ac_transaction.AUTOTRANSACTION IS NULL OR ac_transaction.AUTOTR' +
-      'ANSACTION = 0)'
+      '(COALESCE(ac_transaction.autotransaction, 0) = 0)'
     gdClassName = 'TgdcAcctTransaction'
+    ViewType = vtTree
     ItemHeight = 13
     ParentShowHint = False
     ShowHint = True

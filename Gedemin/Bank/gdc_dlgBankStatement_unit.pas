@@ -62,7 +62,7 @@ implementation
 {$R *.DFM}
 
 uses
-  Storages,  gd_ClassList, gdcCurr, Gedemin_TLB, gsStorage_CompPath,
+  Storages,  gd_ClassList, gdcCurr, Gedemin_TLB, gsStorage_CompPath, AcctUtils,
   gd_CmdLineParams_unit, gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -231,9 +231,16 @@ begin
          (gdcObject.State = dsInsert) and gdcObject.FieldByName('rate').IsNull
       then
         gdcObject.FieldByName('rate').AsVariant :=
-          gdcCurr.gs_GetCurrRate(gdcObject.FieldByName('documentdate').AsDateTime,
-          ibsql1.FieldByName('currkey').AsInteger, gdcObject.ReadTransaction);
-
+          AcctUtils.GetCurrRate(gdcObject.FieldByName('documentdate').AsDateTime,
+            -1,
+            -1,
+            ibsql1.FieldByName('currkey').AsInteger,
+            'NCU',
+            -1,
+            1,
+            False,
+            True,
+            False);
     end;
   finally
     ibsql1.Free;
@@ -323,8 +330,16 @@ begin
       xdbcRate.Enabled := True;
 
       {Курс из справочника}
-      ARate := gdcCurr.gs_GetCurrRate(gdcObject.FieldByName('documentdate').AsDateTime,
-        ibsql1.FieldByName('currkey').AsInteger, gdcObject.ReadTransaction);
+      ARate := AcctUtils.GetCurrRate(gdcObject.FieldByName('documentdate').AsDateTime,
+        -1,
+        -1,
+        ibsql1.FieldByName('currkey').AsInteger,
+        'NCU',
+        -1,
+        1,
+        False,
+        True,
+        False);
 
       if gdcObject.FieldByName('rate').IsNull
         or

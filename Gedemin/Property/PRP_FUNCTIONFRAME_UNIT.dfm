@@ -27,7 +27,7 @@ inherited FunctionFrame: TFunctionFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 218
+        Height = 210
         OnResize = pMainResize
         inherited lbDescription: TLabel
           Top = 80
@@ -556,14 +556,14 @@ inherited FunctionFrame: TFunctionFrame
         Left = 217
         Top = 0
         Width = 3
-        Height = 250
+        Height = 242
         Cursor = crHSplit
       end
       object pnlDependent: TPanel
         Left = 0
         Top = 0
         Width = 217
-        Height = 250
+        Height = 242
         Align = alLeft
         BevelOuter = bvNone
         TabOrder = 0
@@ -589,7 +589,7 @@ inherited FunctionFrame: TFunctionFrame
           Left = 0
           Top = 17
           Width = 217
-          Height = 233
+          Height = 225
           Align = alClient
           ItemHeight = 13
           PopupMenu = pmDependent
@@ -600,15 +600,15 @@ inherited FunctionFrame: TFunctionFrame
       object pnlDependedFrom: TPanel
         Left = 220
         Top = 0
-        Width = 223
-        Height = 250
+        Width = 215
+        Height = 242
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
         object Panel4: TPanel
           Left = 0
           Top = 0
-          Width = 223
+          Width = 215
           Height = 17
           Align = alTop
           Alignment = taLeftJustify
@@ -626,8 +626,8 @@ inherited FunctionFrame: TFunctionFrame
         object lbDependedFrom: TListBox
           Left = 0
           Top = 17
-          Width = 223
-          Height = 233
+          Width = 215
+          Height = 225
           Align = alClient
           ItemHeight = 13
           PopupMenu = pmDependedFrom

@@ -28,8 +28,8 @@ end;
 begin
   if (ParamCount = 0) or (ParamStr(1) = '/?') or (ParamStr(1) = '-?') then
   begin
-    Writeln('Gedemin Updater, v2.9');
-    Writeln('Copyright (c) 2015 by Golden Software of Belarus, Ltd');
+    Writeln('Gedemin Updater, v2.10');
+    Writeln('Copyright (c) 2015-2017 by Golden Software of Belarus, Ltd');
     exit;
   end;
 
@@ -158,7 +158,7 @@ begin
     StartupInfo.cb := SizeOf(TStartupInfo);
     CreateProcess(PChar(GedName),
       PChar('"' + GedName + '" /user "' + ParamStr(4) + '" /password "' +
-        ParamStr(5) + '" /sn "' + ParamStr(6) + '" /ns'),
+        ParamStr(5) + '" /sn "' + ParamStr(6) + '" /ns /reload'),
       nil, nil, False, NORMAL_PRIORITY_CLASS, nil, nil,
       StartupInfo, ProcessInfo);
   end;

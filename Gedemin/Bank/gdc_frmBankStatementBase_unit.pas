@@ -164,23 +164,7 @@ end;
 
 procedure Tgdc_frmBankStatementBase.actGotoEntryExecute(Sender: TObject);
 begin
-  if Self.gdcDetailObject.FieldByName('transactionkey').AsInteger > 0 then
-  begin
-    with Tgdc_frmTransaction.CreateAndAssignWithID(Application, Self.gdcDetailObject.ID, esDocumentKey) as Tgdc_frmTransaction do
-    begin
-      cbGroupByDocument.Checked := False;
-      if tvGroup.GoToID(Self.gdcDetailObject.FieldByName('transactionkey').AsInteger) and
-        gdcAcctViewEntryRegister.Active and
-        gdcAcctViewEntryRegister.Locate('DOCUMENTKEY', Self.gdcDetailObject.ID, []) then
-      begin
-        Show;
-      end else
-        MessageBox(Handle, PChar(sEntryNotFound), PChar(sAttention),
-          MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-    end;
-  end else
-    MessageBox(HANDLE, 'По данной позиции не установлена операция.', 'Внимание',
-      mb_OK or mb_IconInformation);
+  Tgdc_frmTransaction.GoToEntries(Self, gdcDetailObject);
 end;
 
 procedure Tgdc_frmBankStatementBase.actCreateEntryUpdate(Sender: TObject);

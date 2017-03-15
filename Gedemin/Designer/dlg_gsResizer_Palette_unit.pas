@@ -126,7 +126,7 @@ uses
   IBTable, IBUpdateSQL, extdlgs, IBSQLMonitor, Storages, contnrs, gdcBase,
   gsDBTreeView, dlg_gsResizer_Components_unit, at_Container, gsScaner, gsComScaner, ColorComboBox, gd_MacrosMenu, gd_ReportMenu,
   flt_QueryFilterGDC, BtnEdit, gd_AttrComboBox, SynEdit, SynMemo, SynHighlighterVBScript,
-  SynHighlighterSQL, shdocvw, xCalc, gsComponentEmulator, JvDBImage, gsPeriodEdit, gsPanel
+  SynHighlighterSQL, shdocvw, xCalc, gsComponentEmulator, JvDBImage, gsPeriodEdit, gsPanel, FileView
 {$IFDEF MODEM}
   , gsModem
 {$ENDIF}
@@ -659,7 +659,7 @@ initialization
          TScrollbox, TShape, TSpinButton, TSpinEdit, TTabControl, TtbBackground, TtbDock,
          TtbGroupItem, TtbItemContainer, TtbToolbar, TtbToolWindow, TToolbar, TTrackbar,
          TUpDown, TxCalculatorEdit, TxDateEdit, TxFoCal, TgdReportMenu, TgdMacrosMenu, TQueryFilterGDC,
-         TWebBrowser, TgsPeriodEdit, TgsPanel]);
+         TWebBrowser, TgsPeriodEdit, TgsPanel, TFilesFrame]);
   RegisterNewClasses('Системные', [TActionList, THeaderControl, THotKey, TImageList, TOutLine, TTimer, TgsScanerHook, TgsComScaner]);
   RegisterNewClasses('БД компоненты', [TdbCheckbox, TdbCombobox, TdbEdit, TdbImage, TJvDBImage,
     TdbListbox, TdbMemo, TdbNavigator, TdbRadioGroup, TdbRichedit, TdbText, TgsdbGrid, TgsdbReduction,

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -218,12 +218,12 @@ type
 
     FActionList: TActionList;
 
-    //FParamItemIndex: Integer;
     FRecordCount: Integer;      // Количество записей в запросе
 
-    FIsFirstOpen: Boolean;      // Флаг первого открытия. Все настройки делаются в момент первого открытия
-    FIsSQLChanging: Boolean;      // ??? Проверить необходимость данного параметра
-    FIsLastSave: Boolean;       // Флаг был ли сохранен последний фильтр
+    FIsFirstOpen: Boolean;             // Флаг первого открытия. Все настройки делаются в момент первого открытия
+    FIsSQLChanging: Boolean;           // ??? Проверить необходимость данного параметра
+    FIsLastSave: Boolean;              // Флаг был ли сохранен последний фильтр
+    FQueryFilterWasDisabled: Boolean;
 
     FLastQueriedParams: Variant;
 
@@ -843,6 +843,7 @@ begin
     FIsFirstOpen := False;
     FIsCompKey := False;
     FIsLastSave := False;
+    FQueryFilterWasDisabled := False; 
     FOwnerName := GetOwnerName;// Наименование создателя
     FActionList := TActionList.Create(Self);
     FActionList.Name := 'al' + Self.Name;
@@ -1202,7 +1203,7 @@ end;
 
 procedure TgsQueryFilter.SaveLastFilter;
 begin
-  if (not FIsFirstOpen) or FIsLastSave then
+  if (not FIsFirstOpen) or FIsLastSave or FQueryFilterWasDisabled then
     exit;
 
   ExtractComponentKey;
@@ -1227,6 +1228,13 @@ begin
   {$IFDEF GEDEMIN}
   if Global_LoadingNamespace then
     exit;
+
+  if Global_DisableQueryFilter then
+  begin
+    FQueryFilterWasDisabled := True;
+    exit;
+  end else
+    FQueryFilterWasDisabled := False;
   {$ENDIF}
 
   // Ключ компонента

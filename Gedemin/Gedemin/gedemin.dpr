@@ -355,6 +355,7 @@ function ShouldProceedLoading: Boolean;
 begin
   Result := gd_CmdLineParams.Embedding or
     gd_CmdLineParams.QuietMode or
+    gd_CmdLineParams.Reloading or
     (MessageBox(
       0,
       'Программный продукт GEDEMIN.EXE уже загружен в память!' + #13#10#13#10 +

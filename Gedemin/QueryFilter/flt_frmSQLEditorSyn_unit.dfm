@@ -21,16 +21,16 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 955
-    Height = 495
+    Width = 947
+    Height = 487
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pcMain: TSuperPageControl
       Left = 9
       Top = 26
-      Width = 937
-      Height = 460
+      Width = 929
+      Height = 452
       BorderStyle = bsNone
       TabsVisible = True
       ActivePage = tsQuery
@@ -44,8 +44,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Caption = 'Редактирование'
         object splQuery: TSplitter
           Left = 0
-          Top = 364
-          Width = 931
+          Top = 356
+          Width = 923
           Height = 5
           Cursor = crVSplit
           Align = alBottom
@@ -53,8 +53,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object seQuery: TSynEdit
           Left = 0
           Top = 0
-          Width = 931
-          Height = 364
+          Width = 923
+          Height = 356
           Cursor = crIBeam
           Align = alClient
           Font.Charset = DEFAULT_CHARSET
@@ -403,8 +403,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         end
         object mmPlan: TMemo
           Left = 0
-          Top = 369
-          Width = 931
+          Top = 361
+          Width = 923
           Height = 62
           Align = alBottom
           Font.Charset = DEFAULT_CHARSET
@@ -425,7 +425,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlNavigator: TPanel
           Left = 0
           Top = 0
-          Width = 931
+          Width = 923
           Height = 26
           Align = alTop
           BevelOuter = bvNone
@@ -481,8 +481,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object dbgResult: TgsDBGrid
           Left = 0
           Top = 26
-          Width = 931
-          Height = 405
+          Width = 923
+          Height = 397
           HelpContext = 3
           Align = alClient
           DataSource = dsResult
@@ -504,8 +504,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object tvResult: TgsDBTreeView
           Left = 0
           Top = 26
-          Width = 931
-          Height = 405
+          Width = 923
+          Height = 397
           KeyField = 'ID'
           ParentField = 'PARENT'
           DisplayField = 'NAME'
@@ -523,8 +523,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlRecord: TPanel
           Left = 0
           Top = 26
-          Width = 931
-          Height = 405
+          Width = 923
+          Height = 397
           Align = alClient
           BevelInner = bvLowered
           BevelOuter = bvNone
@@ -570,8 +570,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object tsStatisticExtra: TSuperPageControl
           Left = 0
           Top = 26
-          Width = 931
-          Height = 405
+          Width = 923
+          Height = 397
           BorderStyle = bsNone
           TabsVisible = True
           ActivePage = tsGraphStatistic
@@ -868,7 +868,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object TBDock5: TTBDock
           Left = 0
           Top = 0
-          Width = 931
+          Width = 923
           Height = 26
           object tbStatistic: TTBToolbar
             Left = 0
@@ -1034,8 +1034,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object chlbTransactionParams: TCheckListBox
           Left = 0
           Top = 54
-          Width = 931
-          Height = 377
+          Width = 923
+          Height = 369
           Align = alClient
           ItemHeight = 13
           Sorted = True
@@ -1681,7 +1681,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object TBDock1: TTBDock
       Left = 0
       Top = 0
-      Width = 955
+      Width = 947
       Height = 26
       object TBToolbar1: TTBToolbar
         Left = 0
@@ -1820,28 +1820,28 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Left = 0
       Top = 26
       Width = 9
-      Height = 460
+      Height = 452
       Position = dpLeft
     end
     object TBDock3: TTBDock
-      Left = 946
+      Left = 938
       Top = 26
       Width = 9
-      Height = 460
+      Height = 452
       Position = dpRight
     end
     object TBDock4: TTBDock
       Left = 0
-      Top = 486
-      Width = 955
+      Top = 478
+      Width = 947
       Height = 9
       Position = dpBottom
     end
   end
   object pModal: TPanel
     Left = 0
-    Top = 495
-    Width = 955
+    Top = 487
+    Width = 947
     Height = 30
     Align = alBottom
     BevelOuter = bvNone

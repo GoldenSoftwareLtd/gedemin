@@ -1,6 +1,6 @@
 inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
-  Left = 649
-  Top = 460
+  Left = 396
+  Top = 118
   BorderIcons = [biSystemMenu]
   BorderWidth = 5
   Caption = 'Счет'
@@ -54,13 +54,6 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         Width = 109
         Height = 13
         Caption = 'Наименование счета:'
-      end
-      object lbRelation: TLabel
-        Left = 8
-        Top = 177
-        Width = 193
-        Height = 13
-        Caption = 'Аналитика для развернутого сальдо:'
       end
       object Label2: TLabel
         Left = 8
@@ -153,62 +146,42 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         Caption = 'Запись отключена'
         DataField = 'DISABLED'
         DataSource = dsgdcBase
-        TabOrder = 9
+        TabOrder = 10
         ValueChecked = '1'
         ValueUnchecked = '0'
       end
-      object gsibRelationFields: TgsIBLookupComboBox
-        Left = 203
-        Top = 173
-        Width = 262
-        Height = 21
-        HelpContext = 1
-        Database = dmDatabase.ibdbGAdmin
-        Transaction = ibtrCommon
-        DataSource = dsgdcBase
-        DataField = 'analyticalfield'
-        ListTable = 'AT_RELATION_FIELDS'
-        ListField = 'LNAME'
-        KeyField = 'ID'
-        SortOrder = soAsc
-        Condition = 'RELATIONNAME = '#39'AC_ACCOUNT'#39' AND FIELDNAME LIKE '#39'USR$%'#39
-        ItemHeight = 13
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 4
-      end
       object bbAnalyze: TBitBtn
         Left = 7
-        Top = 200
-        Width = 224
+        Top = 175
+        Width = 165
         Height = 25
         Action = actAnalyze
         Caption = 'Аналитика'
-        TabOrder = 5
+        TabOrder = 4
       end
       object sbAnalyze: TScrollBox
         Left = 7
-        Top = 224
-        Width = 225
-        Height = 152
-        TabOrder = 6
+        Top = 199
+        Width = 165
+        Height = 180
+        TabOrder = 5
       end
       object sbValues: TScrollBox
-        Left = 239
-        Top = 224
-        Width = 225
-        Height = 152
+        Left = 344
+        Top = 199
+        Width = 120
+        Height = 180
         Enabled = False
-        TabOrder = 8
+        TabOrder = 9
       end
       object bbValues: TBitBtn
-        Left = 239
-        Top = 200
-        Width = 224
+        Left = 344
+        Top = 175
+        Width = 120
         Height = 25
         Action = actValues
         Caption = 'Ед.изм.'
-        TabOrder = 7
+        TabOrder = 8
       end
       object gsiblcGroupAccount: TgsIBLookupComboBox
         Left = 120
@@ -223,11 +196,29 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         ListTable = 'AC_ACCOUNT'
         ListField = 'ALIAS'
         KeyField = 'ID'
+        Condition = 'AC_ACCOUNT.accounttype = '#39'F'#39
         gdClassName = 'TgdcAcctFolder'
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
+      end
+      object bbAnalyzeExt: TBitBtn
+        Left = 176
+        Top = 175
+        Width = 165
+        Height = 25
+        Action = actAnalyzeExt
+        Caption = 'Аналитика для разв. сальдо'
+        TabOrder = 6
+      end
+      object sbAnalyzeExt: TScrollBox
+        Left = 176
+        Top = 199
+        Width = 165
+        Height = 180
+        Enabled = False
+        TabOrder = 7
       end
     end
     object TabSheet1: TTabSheet [1]
@@ -269,9 +260,24 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
       Caption = 'Ед.изм.'
       OnExecute = actValuesExecute
     end
+    object actAnalyzeExt: TAction
+      Caption = 'Аналитика для разв. сальдо'
+      OnExecute = actAnalyzeExtExecute
+    end
+    object actSelectedAnalyticsExt: TAction
+      Caption = 'Только отмеченные'
+    end
   end
   inherited dsgdcBase: TDataSource
     Left = 345
     Top = 10
+  end
+  inherited pm_dlgG: TPopupMenu
+    Left = 360
+    Top = 136
+  end
+  inherited ibtrCommon: TIBTransaction
+    Left = 392
+    Top = 136
   end
 end

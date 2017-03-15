@@ -458,7 +458,7 @@ uses
   prp_frmGedeminProperty_Unit, prp_Filter, prp_PropertySettings,
   TypInfo, IBSQL, gdcConstants, mtd_i_Base, rp_report_const, gd_security,
   gd_security_operationconst, prp_MessageConst, prp_BaseFrame_unit,
-  gdcBaseInterface, dlgClassInfo_unit,
+  gdcBaseInterface, dlgClassInfo_unit, Contnrs, at_AddToSetting,
 //  {$IFDEF GEDEMIN}
   prp_EventFrame_unit, prp_MethodFrame_unit,
 //  {$ENDIF}
@@ -5224,28 +5224,92 @@ begin
 end;
 
 procedure TdfPropertyTree.actAddToSettingExecute(Sender: TObject);
-var
-  TN: TTreeNode;
-begin
-  TN := SelectedNode;
-  if TN <> nil then
+  procedure AddToOL(TreeNode: TTreeNode; var OL: TObjectList);
+  var Obj: TgdcBase;
+      AClassName: String;
+      R: boolean;
   begin
-    if TCustomTreeItem(TN.Data).ItemType in [tiMacros, tiReport, tiVBClass, tiConst,
-      tiMethod, tiEvent, tiSF, tiGlobalObject, tiPrologSF] then
+    R := true;
+    AClassName := '';
+    if (TCustomTreeItem(TreeNode.Data).ItemType in [tiMacros, tiReport, tiVBClass, tiConst,
+          tiMethod, tiEvent, tiSF, tiGlobalObject, tiPrologSF]) and (TCustomTreeItem(TreeNode.Data).Id > 0) then
     begin
-      if Assigned(TCustomTreeItem(TN.Data).EditorFrame) then
-        TBaseFrame(TCustomTreeItem(TN.Data).EditorFrame).AddTosetting
-      else
+      case TCustomTreeItem(TreeNode.Data).ItemType of
+        tiVBClass, tiConst, tiGlobalObject, tiSF, tiPrologSF  : AClassName := 'TgdcFunction';
+        tiMacros                                              : AClassName := 'TgdcMacros';
+        tiReport                                              : AClassName := 'TgdcReport';
+        tiEvent, tiMethod                                     : AClassName := 'TgdcEvent';
+      end;
+      try
+        Obj := CgdcBase(GetClass(AClassName)).CreateWithID(nil, gdcBaseManager.Database,
+          gdcBaseManager.ReadTransaction, TCustomTreeItem(TreeNode.Data).Id, '');
+      except
+        R:= false;
+      end;
+      if R then begin
+        Obj.Open;
+        OL.Add(Obj);
+      end;
+    end;
+  end;
+
+  procedure TreeNodeWolk(TreeNode: TTreeNode; var OL: TObjectList);
+  var
+    i: integer;
+    exp: boolean;
+  begin
+    if TreeNode.Count = 0 then
+      AddToOL(TreeNode, OL)
+    else
+    begin
+      for i:=0 to TreeNode.Count-1 do
       begin
-        TfrmGedeminProperty(DockForm).ShowFrame(TCustomTreeItem(TN.Data), False);
-        if TCustomTreeItem(TN.Data).EditorFrame <> nil then
+        if TreeNode[i].HasChildren then
         begin
-          TBaseFrame(TCustomTreeItem(TN.Data).EditorFrame).AddTosetting;
-          TCustomTreeItem(TN.Data).EditorFrame.Free;
+          if  TCustomTreeItem(TreeNode[i].Data).ID >0 then
+          begin
+            exp := TreeNode[i].Expanded;
+            if not exp then
+              TreeNode[i].Expand(False);
+            TreeNodeWolk(TreeNode[i], OL);
+            if not exp then
+              TreeNode[i].Collapse(false);
+          end;
+        end
+        else begin
+          AddToOL(TreeNode[i], OL);
         end;
       end;
     end;
   end;
+var
+  TN: TTreeNode;
+  gdcObjectList: TObjectList;
+  exp: boolean;
+  C: TCursor;
+begin
+  TN := SelectedNode;
+  gdcObjectList := TObjectList.Create(true);
+  C := Screen.Cursor;
+  Screen.Cursor := crHourGlass;
+  try
+    if TN <> nil then
+    begin
+      exp := TN.Expanded;
+      if not exp then
+        TN.Expand(false);
+      TreeNodeWolk(TN, gdcObjectList);
+
+      if not exp then
+        TN.Collapse(false);
+
+      if gdcObjectList.Count >0 then
+        at_AddToSetting.AddToSetting(False,'', '', TgdcBase(gdcObjectList[0]), nil, gdcObjectList);
+     end;
+    finally
+      gdcObjectList.Free;
+      Screen.Cursor := C;
+    end;
 end;
 
 procedure TdfPropertyTree.actAddToSettingUpdate(Sender: TObject);
@@ -5255,7 +5319,7 @@ begin
   TN := SelectedNode;
   TAction(Sender).Enabled := (TN <> nil) and (TCustomTreeItem(TN.Data).ItemType
     in [tiMacros, tiReport, tiVBClass, tiConst, tiMethod, tiEvent, tiSF,
-    tiGlobalObject, tiPrologSF]) and (TCustomTreeItem(TN.Data).Id > 0);
+    tiGlobalObject, tiPrologSF, tiGDCClass, tiMacrosFolder]) and (TCustomTreeItem(TN.Data).Id > 0);
 end;
 
 procedure TdfPropertyTree.actRenameItemUpdate(Sender: TObject);

@@ -2629,11 +2629,11 @@ begin
       ibtrEditor.StartTransaction;
 
     gdcBaseManager.ChangeRUID(OldRUID.XID, OldRUID.DBID,
-      NewRUID.XID, NewRUID.DBID, ibtrEditor);
+      NewRUID.XID, NewRUID.DBID, ibtrEditor, True);
 
     S := 'Произведена замена РУИД ' + sOldRUID + ' -> ' + sNewRUID;
 
-    mmPlan.Lines.Text := S + #13#10 + 'Подтвердите транзакцию для сохранения изменений.';
+    mmPlan.Lines.Text := S + #13#10 + 'Подтвердите транзакцию для сохранения изменений и перезагрузите платформу.';
     AddLogRecord(S, True);
   end;
 {$ENDIF}  

@@ -30,9 +30,6 @@ inherited ReportFunctionFrame: TReportFunctionFrame
         inherited dbtOwner: TDBEdit
           Width = 286
         end
-        inherited dbeLocalName: TDBEdit
-          Width = 285
-        end
         inherited pnlRUIDFunction: TPanel
           Left = 355
         end
@@ -40,32 +37,32 @@ inherited ReportFunctionFrame: TReportFunctionFrame
     end
     inherited tsDependencies: TSuperTabSheet
       inherited Splitter1: TSplitter
-        Height = 133
+        Height = 121
       end
       object Splitter2: TSplitter [1]
         Left = 0
-        Top = 133
-        Width = 443
+        Top = 121
+        Width = 435
         Height = 3
         Cursor = crVSplit
         Align = alBottom
       end
       inherited pnlDependent: TPanel
-        Height = 133
+        Height = 121
         inherited lbDependent: TListBox
-          Height = 116
+          Height = 104
         end
       end
       inherited pnlDependedFrom: TPanel
-        Height = 133
+        Height = 121
         inherited lbDependedFrom: TListBox
-          Height = 116
+          Height = 104
         end
       end
       object pnlReport: TPanel
         Left = 0
-        Top = 136
-        Width = 443
+        Top = 124
+        Width = 435
         Height = 118
         Align = alBottom
         BevelOuter = bvNone
@@ -73,7 +70,7 @@ inherited ReportFunctionFrame: TReportFunctionFrame
         object Panel1: TPanel
           Left = 0
           Top = 0
-          Width = 443
+          Width = 435
           Height = 25
           Align = alTop
           Alignment = taLeftJustify
@@ -91,7 +88,7 @@ inherited ReportFunctionFrame: TReportFunctionFrame
         object lbReport: TListBox
           Left = 0
           Top = 25
-          Width = 443
+          Width = 435
           Height = 93
           Align = alClient
           ItemHeight = 13

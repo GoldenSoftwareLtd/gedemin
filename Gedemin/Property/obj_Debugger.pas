@@ -3818,8 +3818,11 @@ begin
     Include(FParserStates, psNoChangeVarName);
     Inc(FRun);
     TrimSpace;
-    ExprListProc;
-    TrimSpace;
+    if FScript[FRun] <> ')' then // возможно закрывающая ковычка
+    begin
+      ExprListProc;
+      TrimSpace;
+    end;
     Inc(FRun); //закрывающаяся ковычка
     TrimSpace;
     if FScript[FRun] = ',' then

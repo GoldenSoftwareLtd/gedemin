@@ -73,7 +73,7 @@ uses
   SysUtils, Controls, jclFileUtils, gdcBaseInterface, gdcBase,
   gdcNamespace, gdcNamespaceLoader, gd_GlobalParams_unit, yaml_parser,
   gd_common_functions, at_dlgCheckOperation_unit, at_frmSQLProcess,
-  flt_frmSQLEditorSyn_unit, gd_security;
+  flt_frmSQLEditorSyn_unit, gd_security, gdccClient_unit, gdccConst;
 
 { TgdcNamespaceSyncController }
 
@@ -588,6 +588,13 @@ procedure TgdcNamespaceSyncController.DoLog(const AMessageType: TLogMessageType;
 begin
   if Assigned(FOnLogMessage) then
     FOnLogMessage(AMessageType, AMessage);
+
+  if Assigned(gdccClient) then
+    case AMessageType of
+      lmtInfo: gdccClient.AddLogRecord('ns_sync', AMessage, gdcc_lt_Info);
+      lmtWarning: gdccClient.AddLogRecord('ns_sync', AMessage, gdcc_lt_Warning);
+      lmtError: gdccClient.AddLogRecord('ns_sync', AMessage, gdcc_lt_Error);
+    end;
 end;
 
 procedure TgdcNamespaceSyncController.EditNamespace(const ANSK: Integer);

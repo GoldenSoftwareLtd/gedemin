@@ -1064,7 +1064,7 @@ begin
     finally
       FPeekBuffer := nil;
     end;
-  end;
+  end; 
 end;
 
 procedure TgdcAcctBaseEntryRegister.DoBeforePost;
@@ -1203,7 +1203,7 @@ begin
         CurrentEntry.Transaction := Transaction;
         // Если было выбрано сторнирование всех проводок по документу, то ограничиваем по документу
         //  иначе по ключу шапки проводки
-        if AllDocEntry then
+        if (AllDocEntry) and (self.FindField('DOCUMENTKEY') <> nil) then
           CurrentEntry.ExtraConditions.Text := 'R.DOCUMENTKEY = ' + Self.FieldByName('DOCUMENTKEY').AsString
         else
           CurrentEntry.ExtraConditions.Text := 'R.RECORDKEY = ' + Self.FieldByName('RECORDKEY').AsString;
@@ -2046,7 +2046,6 @@ begin
           FieldByName('trrecordkey').AsInteger := gdcAcctComplexRecord.FieldByName('trrecordkey').AsInteger;
           FieldByName('transactionkey').AsInteger := gdcAcctComplexRecord.FieldByName('transactionkey').AsInteger;
           FieldByName('recorddate').AsDateTime := gdcAcctComplexRecord.FieldByName('recorddate').AsDateTime;
-          FieldByName('documentkey').AsInteger := gdcAcctComplexRecord.FieldByName('documentkey').AsInteger;
           FieldByName('masterdockey').AsInteger := gdcAcctComplexRecord.FieldByName('masterdockey').AsInteger;
           FieldByName('companykey').AsInteger := gdcAcctComplexRecord.FieldByName('companykey').AsInteger;
           FieldByName('afull').AsInteger := gdcAcctComplexRecord.FieldByName('afull').AsInteger;
@@ -2061,6 +2060,10 @@ begin
           FieldByName('number').AsString := gdcAcctComplexRecord.FieldByName('number').AsString;
           FieldByName('documenttypekey').AsInteger := gdcAcctComplexRecord.FieldByName('documenttypekey').AsInteger;
           FieldByName('documentdate').AsDateTime := gdcAcctComplexRecord.FieldByName('recorddate').AsDateTime;
+
+          if FindField('documentkey') <> nil then
+            FieldByName('documentkey').AsInteger := gdcAcctComplexRecord.FieldByName('documentkey').AsInteger;
+
           for j:= 0 to gdcAcctComplexRecord.EntryLines[i].FieldCount - 1 do
             if (Pos(UserPrefix, gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName) > 0) and
                (FindField(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName) <> nil)
@@ -2068,6 +2071,7 @@ begin
               FieldByName(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName).AsVariant :=
                 gdcAcctComplexRecord.EntryLines[i].Fields[j].AsVariant;
           Post;
+          Resync([]);
         except
           Cancel;
           raise;
@@ -2283,21 +2287,16 @@ begin
       gdcAcctComplexRecord.SubSet := 'ByID';
       gdcAcctComplexRecord.ID := FieldByName('recordkey').AsInteger;
       gdcAcctComplexRecord.TransactionKey := FieldByName('transactionkey').AsInteger;
+
       gdcAcctComplexRecord.Open;
       Result := gdcAcctComplexRecord.EditDialog(ADlgClassName);
       if Result then
       begin
         FDataTransfer := True;
         try
-          while not Bof and (FieldByName('recordkey').AsInteger = gdcAcctComplexRecord.FieldByName('id').AsInteger) do
-          begin
-            Prior;
-          end;
-
-          while not Eof and (FieldByName('recordkey').AsInteger = gdcAcctComplexRecord.FieldByName('id').AsInteger) do
-          begin
-            Delete;
-          end;
+          // т.к. используется InternalDeleteRecord(который удаляет все записи по recordkey), достаточно удалить 1 запись
+          Locate('recordkey',gdcAcctComplexRecord.FieldByName('id').AsInteger,[]);
+          Delete;
 
           DataTransfer(gdcAcctComplexRecord);
         finally
@@ -2554,7 +2553,8 @@ begin
   else
     Result :=
       ' SELECT ' +
-      ' z.trrecordkey as recordkey, '  +
+//     ' z.trrecordkey as recordkey, '  +
+      'MAX(r.recordkey) as recordkey, ' +
       ' r.accountkey, '  +
       ' c.alias, ' +
       ' c.name, ' +

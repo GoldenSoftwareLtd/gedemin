@@ -1291,7 +1291,10 @@ begin
       gdcExplorer.Free;
     end;
   end else
-    DeleteCommand;
+  begin
+    if not (sLoadFromStream in BaseState) then
+      DeleteCommand;
+  end;
 end;
 
 procedure TgdcReport.DeleteCommand;

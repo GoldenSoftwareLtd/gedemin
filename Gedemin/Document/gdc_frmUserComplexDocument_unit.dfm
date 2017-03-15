@@ -7,7 +7,7 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 483
+    Top = 482
     Width = 767
   end
   inherited TBDockTop: TTBDock
@@ -22,24 +22,24 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 423
+    Height = 422
   end
   inherited TBDockRight: TTBDock
     Left = 758
-    Height = 423
+    Height = 422
   end
   inherited TBDockBottom: TTBDock
-    Top = 474
+    Top = 473
     Width = 767
   end
   inherited pnlWorkArea: TPanel
     Width = 749
-    Height = 423
+    Height = 422
     inherited sMasterDetail: TSplitter
       Width = 749
     end
     inherited spChoose: TSplitter
-      Top = 318
+      Top = 317
       Width = 749
     end
     inherited pnlMain: TPanel
@@ -49,7 +49,7 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
       end
     end
     inherited pnChoose: TPanel
-      Top = 324
+      Top = 323
       Width = 749
       inherited pnButtonChoose: TPanel
         Left = 644
@@ -63,7 +63,7 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
     end
     inherited pnlDetail: TPanel
       Width = 749
-      Height = 145
+      Height = 144
       inherited TBDockDetail: TTBDock
         Width = 749
         inherited tbDetailToolbar: TTBToolbar
@@ -76,14 +76,14 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
         end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 119
+        Height = 118
         inherited sbSearchDetail: TScrollBox
-          Height = 92
+          Height = 91
         end
       end
       inherited ibgrDetail: TgsIBGrid
         Width = 589
-        Height = 119
+        Height = 118
       end
     end
   end

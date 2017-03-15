@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -551,7 +551,6 @@ procedure TgdcAcctAccount.DoBeforePost;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-    ibsql: TIBSQL;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCACCTACCOUNT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -574,23 +573,6 @@ begin
   {END MACRO}
 
   inherited;
-
-  if FieldByName('activity').AsString <> 'B' then
-    FieldByName('analyticalfield').Clear
-  else
-    if FieldByName('analyticalfield').AsInteger > 0 then
-    begin
-      ibsql := TIBSQL.Create(nil);
-      try
-        ibsql.Transaction := ReadTransaction;
-        ibsql.SQL.Text := 'SELECT fieldname FROM at_relation_fields WHERE id = :id';
-        ibsql.ParamByName('id').AsInteger := FieldByName('analyticalfield').AsInteger;
-        ibsql.ExecQuery;
-        FieldByName(ibsql.FieldByName('fieldname').AsString).AsInteger := 1;
-      finally
-        ibsql.Free;
-      end;
-    end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTACCOUNT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
@@ -696,8 +678,6 @@ begin
   inherited;
   S.Add(GetRestrictCondition('', ''));
 end;
-
-
 
 initialization
   RegisterGdcClass(TgdcAcctBase,       'Бухгалтерский план счетов');

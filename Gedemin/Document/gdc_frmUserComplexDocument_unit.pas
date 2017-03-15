@@ -107,46 +107,13 @@ end;
 
 procedure Tgdc_frmUserComplexDocument.actGotoEntryExecute(Sender: TObject);
 begin
-  if Self.gdcDetailObject.FieldByName('transactionkey').AsInteger > 0 then
-  begin
-    with Tgdc_frmTransaction.CreateAndAssignWithID(Application, Self.gdcDetailObject.ID, esDocumentKey) as Tgdc_frmTransaction do
-    begin
-      cbGroupByDocument.Checked := False; 
-      if tvGroup.GoToID(Self.gdcDetailObject.FieldByName('transactionkey').AsInteger) and
-        gdcAcctViewEntryRegister.Active and
-        gdcAcctViewEntryRegister.Locate('DOCUMENTKEY', Self.gdcDetailObject.ID, []) then
-      begin
-        Show;
-      end else
-        MessageBox(Handle, PChar(sEntryNotFound), PChar(sAttention), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
-    end;
-  end else
-  begin
-    MessageBox(HANDLE, 'По данной позиции не установлена операция.', 'Внимание',
-      mb_OK or mb_IconInformation);
-  end;
+  Tgdc_frmTransaction.GoToEntries(Self, gdcDetailObject);
 end;
 
 procedure Tgdc_frmUserComplexDocument.actMainGotoEntryExecute(
   Sender: TObject);
 begin
-  if Self.gdcObject.FieldByName('transactionkey').AsInteger > 0 then
-  begin
-    with Tgdc_frmTransaction.CreateAndAssignWithID(Application, Self.gdcObject.ID, esDocumentKey) as Tgdc_frmTransaction do
-    begin
-      cbGroupByDocument.Checked := False;
-      if tvGroup.GoToID(Self.gdcObject.FieldByName('transactionkey').AsInteger) and
-        gdcAcctViewEntryRegister.Active and
-        gdcAcctViewEntryRegister.Locate('DOCUMENTKEY', Self.gdcObject.ID, []) then
-        Show
-      else
-        MessageBox(Handle, PChar(sEntryNotFound), PChar(sAttention), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
-    end;
-  end else
-  begin
-    MessageBox(HANDLE, 'По данной позиции не установлена операция.', 'Внимание',
-      mb_OK or mb_IconInformation);
-  end;
+  Tgdc_frmTransaction.GoToEntries(Self, gdcObject);
 end;
 
 procedure Tgdc_frmUserComplexDocument.actCreateEntryUpdate(

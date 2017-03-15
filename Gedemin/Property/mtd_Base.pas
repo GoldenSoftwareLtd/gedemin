@@ -348,7 +348,7 @@ uses
   IBSQL, gd_SetDatabase, gdcOLEClassList,
   rp_ReportScriptControl, gd_i_ScriptFactory, gd_ClassList, prp_dlgScriptError_unit,
   Controls, gs_Exception, gdc_createable_form, Windows, {prp_dlgViewProperty_unit,}
-  gd_Security, forms;
+  gd_Security, Forms, obj_i_Debugger;
 
 var
   LocalSubTypeList: TStrings;
@@ -1011,6 +1011,9 @@ begin
   Result := False;
 
   if (csDesigning in ComponentState) then
+    exit;
+
+  if Assigned(Debugger) and Debugger.IsPaused then
     exit;
 
   LFunction := nil;

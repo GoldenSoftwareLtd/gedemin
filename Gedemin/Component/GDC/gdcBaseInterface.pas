@@ -102,7 +102,9 @@ type
     procedure IDCacheFlush;
 
     procedure ChangeRUID(const AnOldXID, AnOldDBID, ANewXID, ANewDBID: TID;
-      ATr: TIBTransaction);
+      ATr: TIBTransaction; const AForceUpdateFunc: Boolean);
+    procedure ProcessDelayedRUIDChanges(ATr: TIBTransaction);
+    function HasDelayedRUIDChanges: Boolean;
   end;
 
   IgdcBase = interface
@@ -152,6 +154,7 @@ const
 var
   gdcBaseManager: IgdcBaseManager;
   Global_LoadingNamespace: Boolean;
+  Global_DisableQueryFilter: Boolean;
 
 implementation
 
@@ -211,6 +214,7 @@ end;
 
 initialization
   Global_LoadingNamespace := False;
+  Global_DisableQueryFilter := False;
 
 finalization
   //  
