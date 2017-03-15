@@ -4533,6 +4533,7 @@ type
     procedure EndWork(const AMessage: WideString; AHide: WordBool); safecall;
     procedure StartStep(const AStepName: WideString; AStepWeight: Integer); safecall;
     function  Get_Canceled: WordBool; safecall;
+    function  Get_WorkStarted: WordBool; safecall;
   end;
 
 implementation
@@ -22992,6 +22993,11 @@ end;
 function TwrpgdccProgress.Get_Canceled: WordBool;
 begin
   Result := GetProgress.Canceled;
+end;
+
+function TwrpgdccProgress.Get_WorkStarted: WordBool;
+begin
+  Result := GetProgress.WorkStarted;
 end;
 
 function TwrpgdccProgress.GetProgress: TgdccProgress;

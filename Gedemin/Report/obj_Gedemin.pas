@@ -139,6 +139,9 @@ type
     procedure UTF8ToWIN1251(const AUTF8Stream: IgsStream; const AWIN1251Stream: IgsStream); safecall;
     function  ReplaceXMLTags(const S: WideString): WideString; safecall;
     function  ExpandXMLTags(const S: WideString): WideString; safecall;
+    function GetCurrRate(ForDate: TDateTime; ValidDays: Integer; RegulatorKey: OleVariant; FromCurrKey: OleVariant;
+                             ToCurrKey: OleVariant; CrossCurrKey: OleVariant; Amount: Currency;
+                             ForceCross: WordBool; UseInverted: WordBool; RaiseException: WordBool): Double; safecall;
   public
     constructor Create(const AnDatabase: TIBDatabase; const AnTransaction: TIBTransaction);
     destructor Destroy; override;
@@ -152,7 +155,7 @@ uses
   obj_dlgParamWindow, gdc_frmMemo_unit, at_sql_parser, at_sql_setup,
   obj_WrapperGSClasses, gdcOLEClassList, Storages, mtd_i_Base,
   rp_dlgViewResultEx_unit, scrMacrosGroup, jclUnicode, gd_directories_const,
-  gd_common_functions,
+  gd_common_functions, AcctUtils,
   {$IFDEF WITH_INDY}
   gdccClient_unit,
   {$ENDIF}
@@ -306,8 +309,6 @@ begin
     raise Exception.Create('Calling form must be TCreateableForm');
 
   Result := GetGdcOLEObject(LocComp) as IgsCreateableForm;
-//  Result := TgsViewWindow.Create(LocComp as TForm, FDatabase, FTransaction);
-//  Result :=  GetGdcOLEObject(LocComp) as IgsCreateableForm;
 end;
 
 function TgsGedemin.WindowExists(const WindowName: WideString): WordBool;
@@ -600,6 +601,14 @@ begin
   T := StringReplace(T, '«', '&laquo;', [rfReplaceAll]);
   T := StringReplace(T, '»', '&raquo;', [rfReplaceAll]);
   Result := T;
+end;
+
+function TgsGedemin.GetCurrRate(ForDate: TDateTime; ValidDays: Integer; RegulatorKey,
+  FromCurrKey, ToCurrKey, CrossCurrKey: OleVariant; Amount: Currency;
+  ForceCross, UseInverted, RaiseException: WordBool): Double;
+begin
+  Result := AcctUtils.GetCurrRate(ForDate, ValidDays, RegulatorKey, FromCurrKey,
+    ToCurrKey, CrossCurrKey, Amount, ForceCross, UseInverted, RaiseException);
 end;
 
 { TgsRecord }

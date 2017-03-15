@@ -548,7 +548,7 @@ begin
             if Debugger.IsPaused then
             begin
               Result := True;
-              Exit;
+              exit;
             end;
 
             Debugger.PrepareScript(AnFunction);

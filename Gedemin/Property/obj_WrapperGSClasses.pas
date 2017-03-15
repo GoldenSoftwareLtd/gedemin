@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2002-2015 by Golden Software of Belarus                           
+  Copyright (c) 2002-2015 by Golden Software of Belarus
 
   Module
 
@@ -37,7 +37,7 @@ uses
   gdcUser, gdcGood, gdcInvDocument_unit, gdcInvConsts_unit, gdc_dlgTR_unit, gdc_dlgHGR_unit,
   gdcBaseBank, gdcStatement, gdcAttrUserdefined, gdcBugBase,
   gdcCurr, gdcInvPriceList_unit, gdcJournal, gdc_createable_form,
-  gdcTableCalendar, TB2ToolWindow, TB2Item, IBServices, gdc_dlgG_unit, gdc_frmSGR_unit, 
+  gdcTableCalendar, TB2ToolWindow, TB2Item, IBServices, gdc_dlgG_unit, gdc_frmSGR_unit,
   gd_ScrException, gdcAcctEntryRegister,  gdc_frmG_unit, gdc_frmMDH_unit, gdc_frmMD2H_unit,
   gdv_frmG_unit, obj_WrapperIBXClasses, flt_sqlfilter_condition_type,  at_classes,
   gsTransaction, tr_Type_unit, at_Container, NumConv,  gsScaner, gsDBTreeView,
@@ -50,7 +50,7 @@ uses
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
   gdvAcctGeneralLedger, gdvAcctCirculationList, gdv_frmAcctBaseForm_unit,
-  prm_ParamFunctions_unit, gd_main_form, gsFTPClient, gsTRPOS_TLVClient, gsPLClient
+  prm_ParamFunctions_unit, gd_main_form, gsFTPClient, gsTRPOS_TLVClient, gsPLClient, FileView
   {$IFDEF WITH_INDY}
   , gd_WebServerControl_unit, gd_WebClientControl_unit
   {$ENDIF}
@@ -874,6 +874,8 @@ type
     procedure Set_GlyphChecked(const Value: IgsBitmap); safecall;
     function  Get_GlyphUnChecked: IgsBitmap; safecall;
     procedure Set_GlyphUnChecked(const Value: IgsBitmap); safecall;
+    function  Get_FirstColumn: WordBool; safecall;
+    procedure Set_FirstColumn(Value: WordBool); safecall;
   end;
 
   TwrpLookup = class(TwrpPersistent, IgsLookup)
@@ -3820,7 +3822,7 @@ type
                          const BodyText: WideString; const FileName: WideString;
                          WipeFile: WordBool; WIpeDirectory: WordBool; Sync: WordBool;
                          WndHandle: Integer; ThreadID: Integer): Integer; safecall;
-    function  SendEMail3(SMTPKey: Integer; const Recipients: WideString; const Subject: WideString; 
+    function  SendEMail3(SMTPKey: Integer; const Recipients: WideString; const Subject: WideString;
                          const BodyText: WideString; ReportKey: Integer;
                          const ExportType: WideString; Sync: WordBool; WndHandle: Integer;
                          ThreadID: Integer): Integer; safecall;
@@ -3883,7 +3885,7 @@ type
       ACurrCode: Integer; APreAUT: WordBool; const AParam: IgsTRPOSParamData); safecall;
     procedure Cash(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord; ACurrCode: Integer; 
       const AParam: IgsTRPOSParamData); safecall;
-    procedure Replenishment(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord; 
+    procedure Replenishment(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord;
       ACurrCode: Integer; const AParam: IgsTRPOSParamData); safecall;
     procedure Cancel(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord; 
       ACurrCode: Integer; const AParam: IgsTRPOSParamData); safecall;
@@ -4020,14 +4022,14 @@ type
     function LoadScriptByName(const AScriptName: WideString): WordBool; safecall;
     function Get_Debug: WordBool; safecall;
     procedure Set_Debug(Value: WordBool); safecall;
-    procedure SavePredicatesToFile(const APredicateName: WideString; const ATermv: IgsPLTermv; 
+    procedure SavePredicatesToFile(const APredicateName: WideString; const ATermv: IgsPLTermv;
       const AFileName: WideString); safecall;
   end;
 
   TwrpPLQuery = class(TwrpObject, IgsPLQuery)
   private
     function GetPLQuery: TgsPLQuery;
-  protected  
+  protected
     procedure NextSolution; safecall;
     procedure OpenQuery; safecall;
     procedure Close; safecall;
@@ -4039,6 +4041,24 @@ type
     procedure Cut; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
+  end;
+
+  TwrpFilesFrame = class(TwrpFrame, IgsFilesFrame)
+  private
+    function GetFilesFrame: TFilesFrame;
+  protected
+    function  Get_ChangeCount: integer; safecall;
+    procedure Setup; safecall;
+    procedure Cleanup; safecall;
+    procedure DisplayDiffs; safecall;
+    procedure NextClick; safecall;
+    procedure PrevClick; safecall;
+    procedure FindClick(const OwnerForm: IgsCustomForm); safecall;
+    procedure FindNextClick(const OwnerForm: IgsCustomForm); safecall;
+    procedure ReplaceClick(const OwnerForm: IgsCustomForm); safecall;
+    procedure Compare(const S1: WideString; const S2: WideString); safecall;
+    function  Get_ShowDiffsOnly: WordBool; safecall;
+    procedure Set_ShowDiffsOnly(Value: WordBool); safecall;
   end;
 
 implementation
@@ -11252,6 +11272,16 @@ end;
 procedure TwrpGridCheckBox.Set_Visible(Value: WordBool);
 begin
   GetGridCheckBox.Visible := Value;
+end;
+
+function TwrpGridCheckBox.Get_FirstColumn: WordBool;
+begin
+  Result := GetGridCheckBox.FirstColumn;
+end;
+
+procedure TwrpGridCheckBox.Set_FirstColumn(Value: WordBool);
+begin
+  GetGridCheckBox.FirstColumn := Value;
 end;
 
 { TwrpColumnExpand }
@@ -19331,6 +19361,73 @@ begin
   Result := TgsPLQuery.Create;
 end;
 
+{ TwrpFilesFrame }
+
+procedure TwrpFilesFrame.Cleanup;
+begin
+  GetFilesFrame.Cleanup;
+end;
+
+procedure TwrpFilesFrame.Compare(const S1, S2: Widestring);
+begin
+  GetFilesFrame.Compare(S1, S2);
+end;
+
+procedure TwrpFilesFrame.DisplayDiffs;
+begin
+  GetFilesFrame.DisplayDiffs;
+end;
+
+function TwrpFilesFrame.Get_ShowDiffsOnly: WordBool;
+begin
+ Result := GetFilesFrame.ShowDiffsOnly;
+end;
+
+function TwrpFilesFrame.GetFilesFrame: TFilesFrame;
+begin
+  Result := GetObject as TFilesFrame;
+end;
+
+procedure TwrpFilesFrame.NextClick;
+begin
+ GetFilesFrame.NextClick;
+end;
+
+procedure TwrpFilesFrame.PrevClick;
+begin
+ GetFilesFrame.PrevClick;
+end;
+
+procedure TwrpFilesFrame.Set_ShowDiffsOnly(Value: WordBool);
+begin
+  GetFilesFrame.ShowDiffsOnly := Value;
+end;
+
+procedure TwrpFilesFrame.Setup;
+begin
+ GetFilesFrame.Setup;
+end;
+
+function TwrpFilesFrame.Get_ChangeCount: integer;
+begin
+  Result := GetFilesFrame.ChangeCount;
+end;
+
+procedure TwrpFilesFrame.FindClick(const OwnerForm: IgsCustomForm);
+begin
+  GetFilesFrame.FindClick(InterfaceToObject(OwnerForm) as TCustomForm);
+end;
+
+procedure TwrpFilesFrame.FindNextClick(const OwnerForm: IgsCustomForm);
+begin
+  GetFilesFrame.FindNextClick(InterfaceToObject(OwnerForm) as TCustomForm);
+end;
+
+procedure TwrpFilesFrame.ReplaceClick(const OwnerForm: IgsCustomForm);
+begin
+  GetFilesFrame.ReplaceClick(InterfaceToObject(OwnerForm) as TCustomForm);
+end;
+
 { TwrpGdWebClientControl }
 
 {$IFDEF WITH_INDY}
@@ -19648,5 +19745,6 @@ initialization
   RegisterGdcOLEClass(TgsPLTermv, TwrpPLTermv, ComServer.TypeLib, IID_IgsPLTermv);
   RegisterGdcOLEClass(TgsPLClient, TwrpPLClient, ComServer.TypeLib, IID_IgsPLClient);
   RegisterGdcOLEClass(TgsPLQuery, TwrpPLQuery, ComServer.TypeLib, IID_IgsPLQuery);
+  RegisterGdcOLEClass(TFilesFrame, TwrpFilesFrame, ComServer.TypeLib, IID_IgsFilesFrame);
 
 end.
