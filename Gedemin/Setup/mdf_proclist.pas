@@ -54,7 +54,7 @@ uses
 
 const
   {$IFDEF GEDEMIN_LOCK}
-  cProcCount = 1;
+  cProcCount = 10;
   {$ELSE}
     {$IFDEF FULL_MODIFY}
     cProcCount = 220;
@@ -383,6 +383,7 @@ const
     (ModifyProc: AddGD_WEBLOG; ModifyVersion: '0000.0001.0000.0247'; NeedDBShutdown: True),
     (ModifyProc: AddAutoTaskTables; ModifyVersion: '0000.0001.0000.0250'; NeedDBShutdown: True),
     (ModifyProc: AddSMTPTable; ModifyVersion: '0000.0001.0000.0251'; NeedDBShutdown: True),
+    {$ENDIF}
     (ModifyProc: ModifyAutoTaskAndSMTPTable; ModifyVersion: '0000.0001.0000.0276'; NeedDBShutdown: True),
     (ModifyProc: AddWebRelayTable; ModifyVersion: '0000.0001.0000.0278'; NeedDBShutdown: True),
     (ModifyProc: AddGDEMPLOYEETable; ModifyVersion: '0000.0001.0000.0284'; NeedDBShutdown: True),
@@ -392,7 +393,6 @@ const
     (ModifyProc: AddFieldPeriodToAC_TRRECORD; ModifyVersion: '0000.0001.0000.0288'; NeedDBShutdown: True),
     (ModifyProc: AddFieldsToGD_CURRRATE; ModifyVersion: '0000.0001.0000.0289'; NeedDBShutdown: True),
     (ModifyProc: UpgradeAT_P_SYNC; ModifyVersion: '0000.0001.0000.0290'; NeedDBShutdown: False),
-    {$ENDIF}
     (ModifyProc: AddAccAnalyticsExt; ModifyVersion: '0000.0001.0000.0291'; NeedDBShutdown: True)
   );
 

@@ -4,7 +4,7 @@ unit gdcNamespaceController;
 interface
 
 uses
-  Classes, DB, IBDatabase, IBCustomDataSet, gdcBase, DBGrids, ContNrs;
+  Classes, DB, IBDatabase, IBCustomDataSet, gdcBase, DBGrids;
 
 type
   TNamespaceOp = (nopNone, nopAdd, nopDel, nopMove, nopPickOut, nopChangeProp, nopUpdate);
@@ -16,7 +16,6 @@ type
     FibdsLink: TIBDataSet;
     FgdcObject: TgdcBase;
     FBL: TBookmarkList;
-    FgdcObjectList: TObjectList;
     FPrevNSID: Integer;
     FCurrentNSID: Integer;
     FAlwaysOverwrite: Boolean;
@@ -48,7 +47,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function Setup(AnObject: TgdcBase; ABL: TBookmarkList; AnObjectList: TObjectList = nil): Boolean;
+    function Setup(AnObject: TgdcBase; ABL: TBookmarkList): Boolean;
     function Include: Boolean;
     function SetupDS(const ATab: Integer): TDataSet;
     procedure AddSubObject;
@@ -79,7 +78,7 @@ implementation
 uses
   Windows, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace, gdcClasses, gdcStorage,
   gdcEvent, gdcReport, gdcMacros, gdcAcctTransaction, gdcInvDocumentOptions,
-  gdcMetaData, gdcDelphiObject, gdcClasses_Interface, gd_KeyAssoc,
+  gdcMetaData, gdcDelphiObject, gdcClasses_Interface, gd_KeyAssoc, ContNrs,
   at_Classes, gd_ClassList, at_AddToSetting
   {$IFDEF WITH_INDY}
     , gdccClient_unit
@@ -320,218 +319,116 @@ function TgdcNamespaceController.Include: Boolean;
   procedure IterateBL(AnIterateProc: TIterateProc; const AReadPos: Boolean;
     var AFirstRUID, ALastRUID: TRUID);
   var
-    I, J, First, Last: Integer;
+    I, First, Last: Integer;
     Bm: String;
     q: TIBSQL;
     SL: TStringList;
-    SQLText1, SQLText2: string;
   begin
-    if (((FBL = nil) or (FBL.Count = 0))
-      and ((FgdcObjectList = nil) or (FgdcObjectList.Count = 0))) then
+    if (FBL = nil) then
     begin
       AFirstRUID := FgdcObject.GetRUID;
       ALastRUID := AFirstRUID;
       AnIterateProc;
-    end
-    else
+    end else
     begin
-      SQLText1 := 'SELECT IIF(o.xid < 147000000, o.xid, r.id) AS id ' +
-        'FROM at_object o LEFT JOIN gd_ruid r ' +
-        '  ON o.xid = r.xid AND o.dbid = r.dbid ' +
-        'WHERE ' +
-        '  ((o.xid >= 147000000 AND COALESCE(r.id, -1) IN (%s)) ' +
-        '    OR (o.xid < 147000000 AND o.xid IN (%s))) ' +
-        '  AND o.namespacekey = :nsk ' +
-        'ORDER BY o.objectpos';
-
-      SQLText2 := 'SELECT objectpos FROM at_object ' +
-        'WHERE namespacekey = :nsk ' +
-        '  AND xid = :xid AND dbid = :dbid';
-
-      if (FBL <> nil) then
-      begin
-        Bm := FgdcObject.Bookmark;
-        FgdcObject.DisableControls;
-        try
-          if FBL.Count = 1 then
-          begin
-            FgdcObject.Bookmark := FBL[0];
-            AnIterateProc;
-          end
-          else if FBL.Count > 1 then
-          begin
-            q := TIBSQL.Create(nil);
-            SL := TStringList.Create;
-            try
-              for I := 0 to FBL.Count - 1 do
-              begin
-                FgdcObject.Bookmark := FBL[I];
-                if SL.IndexOf(FgdcObject.FieldByName('id').AsString) = -1 then
-                  SL.Add(FgdcObject.FieldByName('id').AsString);
-              end;
-
-              q.Transaction := FIBTransaction;
-              q.SQL.Text := Format(SQLText1, [SL.Commatext, SL.CommaText]);
-
-              q.ParamByName('nsk').AsInteger := FPrevNSID;
-              q.ExecQuery;
-              while not q.EOF do
-              begin
-                if FgdcObject.Locate('id', q.FieldByName('id').AsInteger, []) then
-                begin
-                  AnIterateProc;
-                  SL.Delete(SL.IndexOf(q.FieldByName('id').AsString));
-                end;
-                q.Next;
-              end;
-
-              for I := 0 to SL.Count - 1 do
-              begin
-                if FgdcObject.Locate('id', SL[I], []) then
-                  AnIterateProc;
-              end;
-            finally
-              SL.Free;
-              q.Free;
-            end;
-          end;
-
-          if AReadPos then
-          begin
-            q := TIBSQL.Create(nil);
-            try
-              First := High(Integer);
-              Last := Low(Integer);
-
-              q.Transaction := FIBTransaction;
-              q.SQL.Text := SQLText2;
-
-              for I := 0 to FBL.Count - 1 do
-              begin
-                FgdcObject.Bookmark := FBL[I];
-
-                q.Close;
-                q.ParamByName('nsk').AsInteger := FCurrentNSID;
-                q.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
-                q.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
-                q.ExecQuery;
-
-                if q.EOF then
-                  raise Exception.Create('Internal error');
-
-                if q.FieldByName('objectpos').AsInteger <= First then
-                begin
-                  First := q.FieldByName('objectpos').AsInteger;
-                  AFirstRUID := FgdcObject.GetRUID;
-                end;
-
-                if q.FieldByName('objectpos').AsInteger >= Last then
-                begin
-                  Last := q.FieldByName('objectpos').AsInteger;
-                  ALastRUID := FgdcObject.GetRUID;
-                end;
-              end;
-            finally
-              q.Free;
-            end;
-          end;
-        finally
-          FgdcObject.Bookmark := Bm;
-          FgdcObject.EnableControls;
-        end;
-      end
-      else
-      begin
-        if (FgdcObjectList <> nil) then
+      Bm := FgdcObject.Bookmark;
+      FgdcObject.DisableControls;
+      try
+        if FBL.Count = 1 then
         begin
-          if FgdcObjectList.Count = 1 then
-          begin
-            FgdcObject := TgdcBase(FgdcObjectList[0]);
-            AnIterateProc;
-          end
-          else if FgdcObjectList.Count > 1 then
-          begin
-            q := TIBSQL.Create(nil);
-            SL := TStringList.Create;
-            try
-              for I := 0 to FgdcObjectList.Count - 1 do
-              begin
-                FgdcObject := TgdcBase(FgdcObjectList[I]);
-                if SL.IndexOf(FgdcObject.FieldByName('id').AsString) = -1 then
-                  SL.Add(FgdcObject.FieldByName('id').AsString);
-              end;
-
-              q.Transaction := FIBTransaction;
-              q.SQL.Text := Format(SQLText1, [SL.Commatext, SL.CommaText]);
-              q.ParamByName('nsk').AsInteger := FPrevNSID;
-              q.ExecQuery;
-              while not q.EOF do
-              begin
-                for I :=0 to FgdcObjectList.Count - 1 do
-                  if TgdcBase(FgdcObjectList[I]).ID = q.FieldByName('id').AsInteger then
-                  begin
-                    FgdcObject := TgdcBase(FgdcObjectList[I]);
-                    AnIterateProc;
-                    SL.Delete(SL.IndexOf(q.FieldByName('id').AsString));
-                  end;
-                q.Next;
-              end;
-
-              for I := 0 to SL.Count - 1 do
-              begin
-                for J :=0 to FgdcObjectList.Count - 1 do
-                  if TgdcBase(FgdcObjectList[J]).ID = strtoint(SL[I]) then
-                  begin
-                    FgdcObject := TgdcBase(FgdcObjectList[J]);
-                    AnIterateProc;
-                  end;
-              end;
-            finally
-              SL.Free;
-              q.Free;
+          FgdcObject.Bookmark := FBL[0];
+          AnIterateProc;
+        end
+        else if FBL.Count > 1 then
+        begin
+          q := TIBSQL.Create(nil);
+          SL := TStringList.Create;
+          try
+            for I := 0 to FBL.Count - 1 do
+            begin
+              FgdcObject.Bookmark := FBL[I];
+              if SL.IndexOf(FgdcObject.FieldByName('id').AsString) = -1 then
+                SL.Add(FgdcObject.FieldByName('id').AsString);
             end;
-          end;
 
-          if AReadPos then
-          begin
-            q := TIBSQL.Create(nil);
-            try
-              First := High(Integer);
-              Last := Low(Integer);
-
-              q.Transaction := FIBTransaction;
-              q.SQL.Text := SQLText2;
-
-              for I :=0 to FgdcObjectList.Count - 1 do
+            q.Transaction := FIBTransaction;
+            q.SQL.Text :=
+              'SELECT IIF(o.xid < 147000000, o.xid, r.id) AS id ' +
+              'FROM at_object o LEFT JOIN gd_ruid r ' +
+              '  ON o.xid = r.xid AND o.dbid = r.dbid ' +
+              'WHERE ' +
+              '  ((o.xid >= 147000000 AND COALESCE(r.id, -1) IN (' + SL.CommaText + ')) ' +
+              '    OR (o.xid < 147000000 AND o.xid IN (' + SL.CommaText + '))) ' +
+              '  AND o.namespacekey = :nsk ' +
+              'ORDER BY o.objectpos';
+            q.ParamByName('nsk').AsInteger := FPrevNSID;
+            q.ExecQuery;
+            while not q.EOF do
+            begin
+              if FgdcObject.Locate('id', q.FieldByName('id').AsInteger, []) then
               begin
-                FgdcObject := TgdcBase(FgdcObjectList[I]);
-
-                q.Close;
-                q.ParamByName('nsk').AsInteger := FCurrentNSID;
-                q.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
-                q.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
-                q.ExecQuery;
-
-                if q.EOF then
-                  raise Exception.Create('Internal error');
-
-                if q.FieldByName('objectpos').AsInteger <= First then
-                begin
-                  First := q.FieldByName('objectpos').AsInteger;
-                  AFirstRUID := FgdcObject.GetRUID;
-                end;
-
-                if q.FieldByName('objectpos').AsInteger >= Last then
-                begin
-                  Last := q.FieldByName('objectpos').AsInteger;
-                  ALastRUID := FgdcObject.GetRUID;
-                end;
+                AnIterateProc;
+                SL.Delete(SL.IndexOf(q.FieldByName('id').AsString));
               end;
-            finally
-              q.Free;
+              q.Next;
             end;
+
+            for I := 0 to SL.Count - 1 do
+            begin
+              if FgdcObject.Locate('id', SL[I], []) then
+                AnIterateProc;
+            end;
+          finally
+            SL.Free;
+            q.Free;
           end;
         end;
+
+        if AReadPos then
+        begin
+          q := TIBSQL.Create(nil);
+          try
+            First := High(Integer);
+            Last := Low(Integer);
+
+            q.Transaction := FIBTransaction;
+            q.SQL.Text :=
+              'SELECT objectpos FROM at_object ' +
+              'WHERE namespacekey = :nsk ' +
+              '  AND xid = :xid AND dbid = :dbid';
+
+            for I := 0 to FBL.Count - 1 do
+            begin
+              FgdcObject.Bookmark := FBL[I];
+
+              q.Close;
+              q.ParamByName('nsk').AsInteger := FCurrentNSID;
+              q.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+              q.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+              q.ExecQuery;
+
+              if q.EOF then
+                raise Exception.Create('Internal error');
+
+              if q.FieldByName('objectpos').AsInteger <= First then
+              begin
+                First := q.FieldByName('objectpos').AsInteger;
+                AFirstRUID := FgdcObject.GetRUID;
+              end;
+
+              if q.FieldByName('objectpos').AsInteger >= Last then
+              begin
+                Last := q.FieldByName('objectpos').AsInteger;
+                ALastRUID := FgdcObject.GetRUID;
+              end;
+            end;
+          finally
+            q.Free;
+          end;
+        end;
+      finally
+        FgdcObject.Bookmark := Bm;
+        FgdcObject.EnableControls;
       end;
     end;
   end;
@@ -1212,7 +1109,7 @@ begin
   end;
 end;
 
-function TgdcNamespaceController.Setup(AnObject: TgdcBase; ABL: TBookmarkList; AnObjectList: TObjectList = nil): Boolean;
+function TgdcNamespaceController.Setup(AnObject: TgdcBase; ABL: TBookmarkList): Boolean;
 var
   Count: Integer;
 
@@ -1742,8 +1639,6 @@ begin
 
   FgdcObject := AnObject;
   FBL := ABL;
-  if (AnObjectList <> nil) and (AnObjectList.Count > 0) then
-    FgdcObjectList := AnObjectList;
 
   if FBL <> nil then
   begin
@@ -1761,9 +1656,7 @@ begin
   FTabs.Clear;
   FTabs.AddObject('Зависит от', Pointer(FSessionID));
 
-  if (FgdcObject.State in [dsEdit, dsInsert])
-      or (((FBL = nil) or (FBL.Count = 0))
-      and ((FgdcObjectList = nil) or (FgdcObjectList.Count = 0))) then
+  if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) or (FBL.Count = 0) then
   begin
     IDs := IntToStr(FgdcObject.ID);
     FMultipleObjects := 1;
@@ -1772,45 +1665,24 @@ begin
   begin
     IDs := '';
     FMultipleObjects := 0;
-    if ((FBL <> nil) and (FBL.Count > 0)) then
-    begin
-      FgdcObject.DisableControls;
-      try
-        Bm := FgdcObject.Bookmark;
-        for I := 0 to FBL.Count - 1 do
-        begin
-          FgdcObject.Bookmark := FBL[I];
-          if IDs > '' then
-          begin
-            IDs := IDs + ',' + IntToStr(FgdcObject.ID);
-          end else
-            IDs := IntToStr(FgdcObject.ID);
-          Inc(FMultipleObjects);
-          ProcessObject;
-        end;
-        FgdcObject.Bookmark := Bm;
-      finally
-        FgdcObject.EnableControls;
-      end;
-    end
-    else
-      if ((FgdcObjectList <> nil) and (FgdcObjectList.Count > 0)) then
+    FgdcObject.DisableControls;
+    try
+      Bm := FgdcObject.Bookmark;
+      for I := 0 to FBL.Count - 1 do
       begin
-        try
-          for I := 0 to FgdcObjectList.Count - 1 do
-          begin
-            FgdcObject := TgdcBase(FgdcObjectList[I]);
-            if IDs > '' then
-            begin
-              IDs := IDs + ',' + IntToStr(FgdcObject.ID);
-            end else
-              IDs := IntToStr(FgdcObject.ID);
-            Inc(FMultipleObjects);
-            ProcessObject;
-          end;
-        finally
-        end;
+        FgdcObject.Bookmark := FBL[I];
+        if IDs > '' then
+        begin
+          IDs := IDs + ',' + IntToStr(FgdcObject.ID);
+        end else
+          IDs := IntToStr(FgdcObject.ID);
+        Inc(FMultipleObjects);
+        ProcessObject;
       end;
+      FgdcObject.Bookmark := Bm;
+    finally
+      FgdcObject.EnableControls;
+    end;
   end;
 
   q := TIBSQL.Create(nil);

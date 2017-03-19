@@ -1,6 +1,7 @@
 inherited SFFrame: TSFFrame
   HelpContext = 326
   inherited PageControl: TSuperPageControl
+    ActivePage = tsScript
     inherited tsProperty: TSuperTabSheet
       object Label1: TLabel [0]
         Left = 8
@@ -17,6 +18,11 @@ inherited SFFrame: TSFFrame
         Anchors = [akLeft, akTop, akRight]
         DataField = 'MODULE'
         DataSource = DataSource
+      end
+    end
+    inherited tsScript: TSuperTabSheet
+      inherited gsFunctionSynEdit: TgsFunctionSynEdit
+        Height = 238
       end
     end
   end

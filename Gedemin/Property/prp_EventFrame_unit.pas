@@ -35,6 +35,8 @@ type
     procedure actDeleteFunctionUpdate(Sender: TObject);
     procedure actDeleteFunctionExecute(Sender: TObject);
     procedure dbeNameDropDown(Sender: TObject);
+    procedure actAddToSettingExecute(Sender: TObject);
+    procedure actAddToSettingUpdate(Sender: TObject);
   private
     function GetEventTreeItem: TEventTreeItem;
     procedure SetEventTreeItem(const Value: TEventTreeItem);
@@ -91,7 +93,8 @@ implementation
 uses
   gdcConstants, evt_i_Base, evt_Base, rp_report_const, prp_dfPropertyTree_Unit,
   IBSQL, dlg_gsResizer_ObjectInspector_unit, gd_i_ScriptFactory, mtd_i_Base,
-  prp_MessageConst, gd_Createable_Form, IBDatabase, IB, obj_i_Debugger, prp_i_VBProposal
+  prp_MessageConst, gd_Createable_Form, IBDatabase, IB, obj_i_Debugger,
+  prp_i_VBProposal, at_AddToSetting
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -891,9 +894,25 @@ begin
   inherited;
 end;
 
+procedure TEventFrame.actAddToSettingExecute(Sender: TObject);
+begin
+  if PageControl.ActivePage = tsScript then
+    at_AddToSetting.AddToSetting(False, '', '', gdcFunction, nil)
+  else
+    inherited;
+end;
+
+procedure TEventFrame.actAddToSettingUpdate(Sender: TObject);
+begin
+  if PageControl.ActivePage = tsScript then
+    actAddToSetting.Enabled := (gdcFunction <> nil)
+      and (not gdcFunction.IsEmpty)
+  else
+    inherited;
+end;
+
 initialization
   RegisterClass(TEventFrame);
 finalization
   UnRegisterClass(TEventFrame);
-
 end.

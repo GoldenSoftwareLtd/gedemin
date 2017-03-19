@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -504,9 +504,9 @@ type
     procedure DoBeforeInsert; override;
     procedure DoBeforePost; override;
     procedure CustomInsert(Buff: Pointer); override;
+    function GetIsDerivedObject: Boolean; override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -5423,13 +5423,6 @@ end;
 
 { TgdcTableField }
 
-constructor TgdcTableField.Create(AnOwner: TComponent);
-begin
-  inherited;
-  FFieldList := TStringList.Create;
-  FFieldList.Sorted := True;
-end;
-
 procedure TgdcTableField._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -5485,14 +5478,13 @@ begin
       Result := False;
     end else
 
-    if CachedUpdates then
+    if CachedUpdates and (FFieldList <> nil) then
     begin
-      if FFieldList.IndexOf(AnsiUpperCase(FieldByName('fieldname').AsString) + '=' +
-        AnsiUpperCase(FieldByName('relationname').AsString)) > -1
+      if FFieldList.IndexOf(FieldByName('fieldname').AsString + '=' +
+        FieldByName('relationname').AsString) > -1
       then
         Result := False;
     end;
-
   end;
 end;
 
@@ -5528,7 +5520,12 @@ begin
   inherited;
   if CachedUpdates then
   begin
-    FFieldList.Clear;
+    if FFieldList <> nil then
+      FFieldList.Clear
+    else begin
+      FFieldList := TStringList.Create;
+      FFieldList.Sorted := True;
+    end;  
     DisableControls;
     BM := BookMark;
 
@@ -5618,6 +5615,12 @@ begin
   begin
     inherited;
   end;
+end;
+
+function TgdcTableField.GetIsDerivedObject: Boolean;
+begin
+  Result := (StrIPos('USR$', FieldByName('relationname').AsString) = 1)
+    and (StrIPos('USR$', FieldByName('fieldname').AsString) <> 1);
 end;
 
 { TgdcViewField }

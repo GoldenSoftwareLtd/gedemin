@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2016 by Golden Software of Belarus
+  Copyright (c) 2001-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -387,7 +387,7 @@ type
     procedure InsertCodeTemplate;
 
     class function GetNameById(Id: Integer): string; override;
-    class function GetFunctionIdEx(Id: Integer): integer; override;
+    class function GetFunctionIdEx(Id: Integer): Integer; override;
 
     property FunctionParams: TgsParamList read FFunctionParams;
     property CurrentFunctionName: String read FCurrentFunctionName write SetCurrentFunctionName;
@@ -399,7 +399,7 @@ var
 implementation
 
 uses
-  gdcConstants, rp_frmParamLineSE_unit, scr_i_FunctionList,
+  gdcConstants, rp_frmParamLineSE_unit, scr_i_FunctionList, 
   rp_BaseReport_unit, gd_i_ScriptFactory, syn_ManagerInterface_unit,
   prp_Messages, prp_i_VBProposal, prp_MessageConst, gd_ScriptFactory,
   prp_frmGedeminProperty_Unit, IBSQL, IBDatabase, mtd_i_Base, Clipbrd,
@@ -1970,9 +1970,9 @@ begin
   Result := 'Функция ';
 end;
 
-class function TFunctionFrame.GetFunctionIdEx(Id: Integer): integer;
+class function TFunctionFrame.GetFunctionIdEx(ID: Integer): Integer;
 begin
-  Result := id;
+  Result := ID;
 end;
 
 procedure TFunctionFrame.InsertCodeTemplate;

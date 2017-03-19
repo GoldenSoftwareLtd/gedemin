@@ -1,6 +1,7 @@
 inherited FunctionFrame: TFunctionFrame
   OnResize = FrameResize
   inherited PageControl: TSuperPageControl
+    ActivePage = tsScript
     OnChange = PageControlChange
     OnChanging = PageControlChanging
     inherited tsProperty: TSuperTabSheet
@@ -149,7 +150,7 @@ inherited FunctionFrame: TFunctionFrame
         Left = 0
         Top = 0
         Width = 431
-        Height = 239
+        Height = 238
         Cursor = crIBeam
         HelpContext = 318
         gdcFunction = gdcFunction

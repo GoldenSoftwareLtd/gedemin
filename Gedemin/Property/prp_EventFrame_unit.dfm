@@ -1,6 +1,7 @@
 inherited EventFrame: TEventFrame
   HelpContext = 321
   inherited PageControl: TSuperPageControl
+    ActivePage = tsProperty
     inherited tsProperty: TSuperTabSheet
       inherited TBDock1: TTBDock
         inherited TBToolbar1: TTBToolbar

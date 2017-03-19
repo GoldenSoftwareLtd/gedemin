@@ -1,17 +1,18 @@
 inherited MacrosFrame: TMacrosFrame
-  Width = 533
-  Height = 343
+  Width = 531
+  Height = 399
   HelpContext = 323
   inherited PageControl: TSuperPageControl
-    Width = 533
-    Height = 343
+    Width = 531
+    Height = 399
+    ActivePage = tsProperty
     inherited tsProperty: TSuperTabSheet
       inherited TBDock1: TTBDock
-        Width = 529
+        Width = 527
       end
       inherited pMain: TPanel
-        Width = 529
-        Height = 288
+        Width = 527
+        Height = 344
         inherited lbName: TLabel
           Top = 58
         end
@@ -60,7 +61,7 @@ inherited MacrosFrame: TMacrosFrame
         object dbcbMacrosName: TDBComboBox [10]
           Left = 144
           Top = 8
-          Width = 375
+          Width = 471
           Height = 21
           Style = csSimple
           Anchors = [akLeft, akTop, akRight]
@@ -73,7 +74,7 @@ inherited MacrosFrame: TMacrosFrame
         object hkMacros: THotKey [11]
           Left = 144
           Top = 32
-          Width = 375
+          Width = 471
           Height = 19
           Hint = 'Назначение клавиш для бастрого вызова макросов'
           Anchors = [akLeft, akTop, akRight]
@@ -87,32 +88,32 @@ inherited MacrosFrame: TMacrosFrame
         end
         inherited dbeName: TprpDBComboBox
           Top = 54
-          Width = 375
+          Width = 471
           TabOrder = 2
         end
         inherited dbmDescription: TDBMemo
           Top = 153
-          Width = 375
+          Width = 471
           Height = 68
           TabOrder = 8
         end
         inherited dbcbLang: TDBComboBox
           Top = 224
-          Width = 375
+          Width = 471
           TabOrder = 9
         end
         inherited dbtOwner: TDBEdit
           Top = 78
-          Width = 375
+          Width = 471
           TabOrder = 3
         end
         inherited dbeLocalName: TDBEdit
           Top = 248
-          Width = 375
+          Width = 471
           TabOrder = 10
         end
         inherited pnlRUIDFunction: TPanel
-          Left = 419
+          Left = 515
           Top = 128
           TabOrder = 7
         end
@@ -140,7 +141,7 @@ inherited MacrosFrame: TMacrosFrame
           TabOrder = 4
         end
         object pnlRUIDMacros: TPanel
-          Left = 419
+          Left = 515
           Top = 104
           Width = 77
           Height = 21
@@ -161,8 +162,8 @@ inherited MacrosFrame: TMacrosFrame
     end
     inherited tsScript: TSuperTabSheet
       inherited gsFunctionSynEdit: TgsFunctionSynEdit
-        Width = 430
-        Height = 353
+        Width = 527
+        Height = 372
       end
     end
     inherited tsParams: TSuperTabSheet
@@ -176,23 +177,23 @@ inherited MacrosFrame: TMacrosFrame
     end
     inherited tsDependencies: TSuperTabSheet
       inherited Splitter1: TSplitter
-        Height = 320
+        Height = 376
       end
       inherited pnlDependent: TPanel
-        Height = 320
+        Height = 376
         inherited lbDependent: TListBox
-          Height = 303
+          Height = 359
         end
       end
       inherited pnlDependedFrom: TPanel
-        Width = 313
-        Height = 320
+        Width = 311
+        Height = 376
         inherited Panel4: TPanel
-          Width = 313
+          Width = 311
         end
         inherited lbDependedFrom: TListBox
-          Width = 313
-          Height = 303
+          Width = 311
+          Height = 359
         end
       end
     end

@@ -4,10 +4,10 @@ unit at_AddToSetting;
 interface
 
 uses
-  DBGrids, gdcBase, ContNrs;
+  DBGrids, gdcBase;
 
 procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
-  AgdcObject: TgdcBase; BL: TBookmarkList; AgdcObjectList: TObjectList = nil);
+  AgdcObject: TgdcBase; BL: TBookmarkList);
 
 implementation
 
@@ -16,7 +16,7 @@ uses
   at_dlgToNamespace_unit, gdcNamespace, gdcNamespaceController;
 
 procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
-  AgdcObject: TgdcBase; BL: TBookmarkList; AgdcObjectList: TObjectList = nil);
+  AgdcObject: TgdcBase; BL: TBookmarkList);
 var
   OldCursor: TCursor;
   FgdcNamespaceController: TgdcNamespaceController;
@@ -35,7 +35,7 @@ begin
       OldCursor := Screen.Cursor;
       try
         Screen.Cursor := crHourGlass;
-        R := FgdcNamespaceController.Setup(AgdcObject, BL, AgdcObjectList);
+        R := FgdcNamespaceController.Setup(AgdcObject, BL);
       finally
         Screen.Cursor := OldCursor;
       end;

@@ -1,7 +1,12 @@
 inherited TemplateFrame: TTemplateFrame
+  Width = 608
+  Height = 384
   inherited PageControl: TSuperPageControl
+    Width = 608
+    Height = 384
     inherited tsProperty: TSuperTabSheet
       inherited TBDock1: TTBDock
+        Width = 604
         Height = 28
         object TBToolbar1: TTBToolbar
           Left = 0
@@ -36,7 +41,8 @@ inherited TemplateFrame: TTemplateFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 211
+        Width = 604
+        Height = 329
         OnResize = pMainResize
         inherited lbName: TLabel
           Caption = 'Наименование шаблона:'
@@ -59,7 +65,7 @@ inherited TemplateFrame: TTemplateFrame
           Caption = 'RUID шаблона:'
         end
         inherited dbeName: TprpDBComboBox
-          Width = 430
+          Width = 603
           Style = csDropDown
           DropDownCount = 16
           OnExit = dbeNameExit
@@ -67,7 +73,7 @@ inherited TemplateFrame: TTemplateFrame
         end
         inherited dbmDescription: TDBMemo
           Top = 56
-          Width = 430
+          Width = 603
           DataField = 'DESCRIPTION'
           ParentFont = False
           TabOrder = 3
@@ -75,7 +81,7 @@ inherited TemplateFrame: TTemplateFrame
         object dblcbType: TDBLookupComboBox
           Left = 144
           Top = 128
-          Width = 430
+          Width = 603
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           DataField = 'TEMPLATETYPE'
@@ -97,7 +103,7 @@ inherited TemplateFrame: TTemplateFrame
           TabOrder = 1
         end
         object pnlRUIDTemplate: TPanel
-          Left = 499
+          Left = 672
           Top = 32
           Width = 75
           Height = 21
@@ -114,20 +120,25 @@ inherited TemplateFrame: TTemplateFrame
             OnClick = btnCopyRUIDTemplateClick
           end
         end
-        object mHint: TMemo
-          Left = 144
-          Top = 152
-          Width = 430
-          Height = 76
-          TabStop = False
-          Anchors = [akLeft, akTop, akRight]
-          Color = clInfoBk
+        object Memo1: TMemo
+          Left = 143
+          Top = 154
+          Width = 306
+          Height = 81
+          BorderStyle = bsNone
+          Color = clBtnFace
+          Font.Charset = RUSSIAN_CHARSET
+          Font.Color = clHighlight
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Lines.Strings = (
             'Всегда указывайте префикс (пространство имен) при '
             'именовании шаблона.'
             ''
             'Например, "Склад.Торговля.Оборотная ведомость", '
             'а не "Оборотная ведомость".')
+          ParentFont = False
           ReadOnly = True
           TabOrder = 5
         end

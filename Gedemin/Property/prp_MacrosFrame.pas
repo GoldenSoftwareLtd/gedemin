@@ -33,6 +33,8 @@ type
     procedure btnCopyRUIDFunctionClick(Sender: TObject);
     procedure pMainResize(Sender: TObject);
     procedure btnCopyRUIDMacrosClick(Sender: TObject);
+    procedure actAddToSettingExecute(Sender: TObject);
+    procedure actAddToSettingUpdate(Sender: TObject);
   private
     { Private declarations }
     FShortCut: TShortCut;
@@ -81,7 +83,7 @@ implementation
 
 uses
   rp_report_const, gdcConstants, prp_MessageConst, evt_i_Base, gd_SetDatabase,
-  prp_dfPropertyTree_Unit
+  prp_dfPropertyTree_Unit, at_AddToSetting
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -419,6 +421,23 @@ begin
   edtRUIDMacros.Width:= pMain.ClientWidth - edtRUIDMacros.Left - 87;
   pnlRUIDMacros.Left:= edtRUIDMacros.Left + edtRUIDMacros.Width + 2;
   pnlRUIDMacros.Width:= 75;
+end;
+
+procedure TMacrosFrame.actAddToSettingExecute(Sender: TObject);
+begin
+  if PageControl.ActivePage = tsScript then
+    at_AddToSetting.AddToSetting(False, '', '', gdcFunction, nil)
+  else
+    inherited;
+end;
+
+procedure TMacrosFrame.actAddToSettingUpdate(Sender: TObject);
+begin
+  if PageControl.ActivePage = tsScript then
+    actAddToSetting.Enabled := (gdcFunction <> nil)
+      and (not gdcFunction.IsEmpty)
+  else
+    inherited;
 end;
 
 initialization

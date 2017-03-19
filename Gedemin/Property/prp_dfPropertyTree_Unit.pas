@@ -458,7 +458,7 @@ uses
   prp_frmGedeminProperty_Unit, prp_Filter, prp_PropertySettings,
   TypInfo, IBSQL, gdcConstants, mtd_i_Base, rp_report_const, gd_security,
   gd_security_operationconst, prp_MessageConst, prp_BaseFrame_unit,
-  gdcBaseInterface, dlgClassInfo_unit, Contnrs, at_AddToSetting,
+  gdcBaseInterface, dlgClassInfo_unit, at_AddToSetting,
 //  {$IFDEF GEDEMIN}
   prp_EventFrame_unit, prp_MethodFrame_unit,
 //  {$ENDIF}
@@ -892,16 +892,14 @@ begin
 
   NodeType := TCustomTreeItem(Node.Data).ItemType;
   if ((NodeType = tiEvent) and
-    (TEventTreeItem(Node.Data).EventItem.FunctionKey > 0)) {or
-    ((NodeType in [tiReportFunction, tiReportTemplate]) and
-    (TscrCustomItem(Node.Data).Id > 0)) } or
+    (TEventTreeItem(Node.Data).EventItem.FunctionKey > 0)) or
     ((NodeType = tiMethod) and (TMethodTreeItem(Node.Data).TheMethod.FunctionKey > 0)) then
   begin
     Sender.Canvas.Font.Style := [fsBold];
     if (cdsSelected in State) and not (cdsFocused in State) then
     begin
       Sender.Canvas.Font.Color := clWindowText;
-      Sender.Canvas.Brush.Color := clInactiveCaptionText;
+      //Sender.Canvas.Brush.Color := clInactiveCaptionText;
     end;
   end else if NodeType = tiObject then
   begin
@@ -5224,92 +5222,68 @@ begin
 end;
 
 procedure TdfPropertyTree.actAddToSettingExecute(Sender: TObject);
-  procedure AddToOL(TreeNode: TTreeNode; var OL: TObjectList);
-  var Obj: TgdcBase;
-      AClassName: String;
-      R: boolean;
-  begin
-    R := true;
-    AClassName := '';
-    if (TCustomTreeItem(TreeNode.Data).ItemType in [tiMacros, tiReport, tiVBClass, tiConst,
-          tiMethod, tiEvent, tiSF, tiGlobalObject, tiPrologSF]) and (TCustomTreeItem(TreeNode.Data).Id > 0) then
-    begin
-      case TCustomTreeItem(TreeNode.Data).ItemType of
-        tiVBClass, tiConst, tiGlobalObject, tiSF, tiPrologSF  : AClassName := 'TgdcFunction';
-        tiMacros                                              : AClassName := 'TgdcMacros';
-        tiReport                                              : AClassName := 'TgdcReport';
-        tiEvent, tiMethod                                     : AClassName := 'TgdcEvent';
-      end;
-      try
-        Obj := CgdcBase(GetClass(AClassName)).CreateWithID(nil, gdcBaseManager.Database,
-          gdcBaseManager.ReadTransaction, TCustomTreeItem(TreeNode.Data).Id, '');
-      except
-        R:= false;
-      end;
-      if R then begin
-        Obj.Open;
-        OL.Add(Obj);
-      end;
-    end;
-  end;
-
-  procedure TreeNodeWolk(TreeNode: TTreeNode; var OL: TObjectList);
-  var
-    i: integer;
-    exp: boolean;
-  begin
-    if TreeNode.Count = 0 then
-      AddToOL(TreeNode, OL)
-    else
-    begin
-      for i:=0 to TreeNode.Count-1 do
-      begin
-        if TreeNode[i].HasChildren then
-        begin
-          if  TCustomTreeItem(TreeNode[i].Data).ID >0 then
-          begin
-            exp := TreeNode[i].Expanded;
-            if not exp then
-              TreeNode[i].Expand(False);
-            TreeNodeWolk(TreeNode[i], OL);
-            if not exp then
-              TreeNode[i].Collapse(false);
-          end;
-        end
-        else begin
-          AddToOL(TreeNode[i], OL);
-        end;
-      end;
-    end;
-  end;
 var
   TN: TTreeNode;
-  gdcObjectList: TObjectList;
-  exp: boolean;
-  C: TCursor;
+  Obj: TgdcBase;
 begin
   TN := SelectedNode;
-  gdcObjectList := TObjectList.Create(true);
-  C := Screen.Cursor;
-  Screen.Cursor := crHourGlass;
-  try
-    if TN <> nil then
+  if TN <> nil then
+  begin
+    if TCustomTreeItem(TN.Data).ItemType in [tiMacros, tiReport, tiVBClass, tiConst,
+      tiMethod, tiEvent, tiSF, tiGlobalObject, tiPrologSF] then
     begin
-      exp := TN.Expanded;
-      if not exp then
-        TN.Expand(false);
-      TreeNodeWolk(TN, gdcObjectList);
-
-      if not exp then
-        TN.Collapse(false);
-
-      if gdcObjectList.Count >0 then
-        at_AddToSetting.AddToSetting(False,'', '', TgdcBase(gdcObjectList[0]), nil, gdcObjectList);
-     end;
-    finally
-      gdcObjectList.Free;
-      Screen.Cursor := C;
+      if Assigned(TCustomTreeItem(TN.Data).EditorFrame) then
+        TBaseFrame(TCustomTreeItem(TN.Data).EditorFrame).AddTosetting
+      else
+      begin
+        TfrmGedeminProperty(DockForm).ShowFrame(TCustomTreeItem(TN.Data), False);
+        if TCustomTreeItem(TN.Data).EditorFrame <> nil then
+        begin
+          TBaseFrame(TCustomTreeItem(TN.Data).EditorFrame).AddTosetting;
+          TCustomTreeItem(TN.Data).EditorFrame.Free;
+        end;
+      end;
+    end
+    else if TCustomTreeItem(TN.Data).ItemType = tiMacrosFolder then
+    begin
+      Obj := TgdcMacrosGroup.Create(nil);
+      try
+        Obj.SubSet := 'ByID';
+        Obj.ID := TCustomTreeItem(TN.Data).ID;
+        Obj.Open;
+        if not Obj.EOF then
+          at_AddToSetting.AddToSetting(False, '', '', Obj, nil);
+      finally
+        Obj.Free;
+      end;
+    end
+    else if TCustomTreeItem(TN.Data).ItemType = tiReportFolder then
+    begin
+      Obj := TgdcReportGroup.Create(nil);
+      try
+        Obj.SubSet := 'ByID';
+        Obj.ID := TCustomTreeItem(TN.Data).ID;
+        Obj.Open;
+        if not Obj.EOF then
+          at_AddToSetting.AddToSetting(False, '', '', Obj, nil);
+      finally
+        Obj.Free;
+      end;
+    end
+    else if TCustomTreeItem(TN.Data).ItemType = tiGDCClass then
+    begin
+      Obj := TgdcDelphiObject.Create(nil);
+      try
+        Obj.SubSet := 'ByID';
+        Obj.ID := TCustomTreeItem(TN.Data).ID;
+        Obj.Open;
+        if not Obj.EOF then
+          at_AddToSetting.AddToSetting(False, '', '', Obj, nil);
+      finally
+        Obj.Free;
+      end;
     end;
+  end;
 end;
 
 procedure TdfPropertyTree.actAddToSettingUpdate(Sender: TObject);
@@ -5317,9 +5291,12 @@ var
   TN: TTreeNode;
 begin
   TN := SelectedNode;
-  TAction(Sender).Enabled := (TN <> nil) and (TCustomTreeItem(TN.Data).ItemType
-    in [tiMacros, tiReport, tiVBClass, tiConst, tiMethod, tiEvent, tiSF,
-    tiGlobalObject, tiPrologSF, tiGDCClass, tiMacrosFolder]) and (TCustomTreeItem(TN.Data).Id > 0);
+  TAction(Sender).Enabled := (TN <> nil)
+    and (TCustomTreeItem(TN.Data).ItemType
+      in [tiMacros, tiMacrosFolder, tiReport, tiReportFolder,
+      tiVBClass, tiConst, tiGDCClass, tiMethod, tiEvent, tiSF,
+      tiGlobalObject, tiPrologSF])
+    and (TCustomTreeItem(TN.Data).Id > 0);
 end;
 
 procedure TdfPropertyTree.actRenameItemUpdate(Sender: TObject);
@@ -5339,12 +5316,6 @@ end;
 procedure TdfPropertyTree.AlignControls(AControl: TControl;
   var Rect: TRect);
 begin
-{  if pCaption.Visible then
-  begin
-    pCaption.Top := 0;
-    TBDock1.Top := pCaption.Height;
-  end;}
-
   inherited;
 end;
 
@@ -5382,11 +5353,6 @@ var
   EditorFrame: TFrame;
   FrameFound: Boolean;
 begin
-//  CancelCopy;
-//  FCopyNode := SelectedNode;
-//  TfrmGedeminProperty(DockForm).ShowFrame(TCustomTreeItem(FCopyNode.Data), False);
-//  FCut := False;
-
   Node := SelectedNode;
   if Node = nil then
     Exit;
@@ -5435,10 +5401,6 @@ begin
   if SelectedNode <>  nil then
     Dest := TCustomTreeItem(SelectedNode.Data);
 
-{  TAction(Sender).Enabled := (FCopyNode <> nil) and (Dest <> nil) and
-    (TCustomTreeItem(FCopyNode.Data).EditorFrame <> nil) and
-    ((not FCut and dfClipboard.CanMakePasteObject(Dest)));
-    }
   TAction(Sender).Enabled := (Dest <> nil) and (not FCut) and
     dfClipboard.CanMakePasteObject(Dest);
 end;
@@ -5470,48 +5432,6 @@ begin
       raise;
     end;
   end;
-
-
- { Dest := TCustomTreeItem(SelectedNode.Data);
-  if FCut then
-  begin
-    TreeItem := TBaseFrame(TCustomTreeItem(FCopyNode.Data).EditorFrame).Move(Dest);
-    if SelectedNode.TreeView <> FCopyNode.TreeView then
-    begin
-      if (SelectedNode.HasChildren and (SelectedNode.Count <> 0)) or
-        (not SelectedNode.HasChildren) then
-      begin
-        Node := TTreeView(SelectedNode.TreeView).Items.AddChild(SelectedNode, TreeItem.Name);
-        Node.Data := TreeItem;
-        TreeItem.Node := Node;
-        TBaseFrame(TCustomTreeItem(Node.Data).EditorFrame).Node := Node;
-      end;
-      Node := FCopyNode;
-      CancelCopy;
-      Node.Data := nil;
-      Node.Destroy;
-    end else
-    begin
-      if (SelectedNode.HasChildren and (SelectedNode.Count <> 0)) or
-        (not SelectedNode.HasChildren) then
-        FCopyNode.MoveTo(SelectedNode, naAddChild);
-      CancelCopy;
-      FCopyNode := nil;
-    end;
-  end else
-  begin
-//    TreeItem := TBaseFrame(TCustomTreeItem(FCopyNode.Data).EditorFrame).CopyObject(Dest);
-    if (SelectedNode.HasChildren and (SelectedNode.Count <> 0)) or
-      (not SelectedNode.HasChildren) then
-    begin
-      Node := TTreeView(SelectedNode.TreeView).Items.AddChild(SelectedNode, TreeItem.Name);
-      Node.Data := TreeItem;
-      TreeItem.Node := Node;
-    end;
-    CancelCopy;
-    FCopyNode := nil;
-  end;
-  }
 end;
 
 procedure TdfPropertyTree.actEditExecute(Sender: TObject);
@@ -5604,7 +5524,7 @@ var
 begin
   Result := nil;
   Node := ANode;
-  Assert(Node <> nil, 'sdfsd');
+  Assert(Node <> nil, 'Node is nil');
 
   C := Screen.Cursor;
   Screen.Cursor := crHourGlass;
@@ -5818,7 +5738,7 @@ begin
         Result:= TN;
         exit;
       end
-      else if (TI.ItemType = tiGDCClass) and AClass.InheritsFrom(C) {and (TI.SubType = '')} then
+      else if (TI.ItemType = tiGDCClass) and AClass.InheritsFrom(C) then
       begin
         Result:= FindNodeByClass(AClass, ASubType, TN);
         exit;
