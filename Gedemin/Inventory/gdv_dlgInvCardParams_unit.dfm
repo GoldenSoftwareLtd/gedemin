@@ -1,9 +1,10 @@
 object gdv_dlgInvCardParams: Tgdv_dlgInvCardParams
   Left = 375
-  Top = 247
-  Width = 516
-  Height = 436
+  Top = 18
+  BorderStyle = bsSingle
   Caption = 'Ввод значений параметров карточки ТМЦ'
+  ClientHeight = 410
+  ClientWidth = 512
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,19 +16,40 @@ object gdv_dlgInvCardParams: Tgdv_dlgInvCardParams
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
+  object btnOK: TButton
+    Left = 366
+    Top = 386
+    Width = 68
+    Height = 21
+    Action = actOk
+    Anchors = [akLeft, akBottom]
+    Default = True
+    TabOrder = 0
+  end
+  object btnCancel: TButton
+    Left = 438
+    Top = 386
+    Width = 68
+    Height = 21
+    Action = actCancel
+    Anchors = [akLeft, akBottom]
+    Cancel = True
+    TabOrder = 1
+  end
   object Panel1: TPanel
     Left = 0
     Top = 0
     Width = 508
     Height = 377
     BevelOuter = bvNone
-    TabOrder = 0
+    TabOrder = 2
     object pnlDate: TPanel
       Left = 0
       Top = 57
       Width = 508
       Height = 30
       Align = alTop
+      Anchors = [akLeft, akRight]
       BevelOuter = bvNone
       TabOrder = 0
       object Bevel1: TBevel
@@ -49,7 +71,7 @@ object gdv_dlgInvCardParams: Tgdv_dlgInvCardParams
       object Label8: TLabel
         Left = 8
         Top = 8
-        Width = 41
+        Width = 42
         Height = 13
         Caption = 'Период:'
       end
@@ -61,14 +83,69 @@ object gdv_dlgInvCardParams: Tgdv_dlgInvCardParams
         TabOrder = 0
       end
     end
+    inline frMainValues: TfrFieldValues
+      Width = 508
+      Height = 57
+      Align = alTop
+      TabOrder = 1
+      OnResize = frMainValuesResize
+      inherited ppMain: TgdvParamPanel
+        Width = 508
+      end
+      inherited sbMain: TgdvParamScrolBox
+        Width = 508
+        Height = 27
+        BorderStyle = bsNone
+        Color = clBtnFace
+      end
+      inherited pmCondition: TPopupMenu
+        Top = 32
+      end
+    end
+    inline frDebitDocsValues: TfrFieldValues
+      Top = 87
+      Width = 508
+      Height = 48
+      Align = alTop
+      TabOrder = 2
+      OnResize = frDebitDocsValuesResize
+      inherited ppMain: TgdvParamPanel
+        Width = 508
+        Caption = 'Документы прихода'
+      end
+      inherited sbMain: TgdvParamScrolBox
+        Width = 508
+        Height = 18
+        BorderStyle = bsNone
+        Color = clBtnFace
+      end
+    end
+    inline frCreditDocsValues: TfrFieldValues
+      Top = 135
+      Width = 508
+      Height = 48
+      Align = alTop
+      TabOrder = 3
+      OnResize = frCreditDocsValuesResize
+      inherited ppMain: TgdvParamPanel
+        Width = 508
+        Caption = 'Документы расхода'
+      end
+      inherited sbMain: TgdvParamScrolBox
+        Width = 508
+        Height = 18
+        BorderStyle = bsNone
+        Color = clBtnFace
+      end
+    end
     object pcValues: TPageControl
       Left = 0
       Top = 183
       Width = 508
       Height = 194
       ActivePage = tsCardValues
-      Align = alClient
-      TabOrder = 1
+      Align = alBottom
+      TabOrder = 4
       object tsCardValues: TTabSheet
         Caption = 'Карточки'
         inline frCardValues: TfrFieldValues
@@ -101,78 +178,6 @@ object gdv_dlgInvCardParams: Tgdv_dlgInvCardParams
         end
       end
     end
-    inline frMainValues: TfrFieldValues
-      Width = 508
-      Height = 57
-      Align = alTop
-      TabOrder = 2
-      inherited ppMain: TgdvParamPanel
-        Width = 508
-      end
-      inherited sbMain: TgdvParamScrolBox
-        Width = 508
-        Height = 27
-        BorderStyle = bsNone
-        Color = clBtnFace
-      end
-      inherited pmCondition: TPopupMenu
-        Top = 32
-      end
-    end
-    inline frDebitDocsValues: TfrFieldValues
-      Top = 87
-      Width = 508
-      Height = 48
-      Align = alTop
-      TabOrder = 3
-      inherited ppMain: TgdvParamPanel
-        Width = 508
-        Caption = 'Документы прихода'
-      end
-      inherited sbMain: TgdvParamScrolBox
-        Width = 508
-        Height = 18
-        BorderStyle = bsNone
-        Color = clBtnFace
-      end
-    end
-    inline frCreditDocsValues: TfrFieldValues
-      Top = 135
-      Width = 508
-      Height = 48
-      Align = alTop
-      TabOrder = 4
-      inherited ppMain: TgdvParamPanel
-        Width = 508
-        Caption = 'Документы расхода'
-      end
-      inherited sbMain: TgdvParamScrolBox
-        Width = 508
-        Height = 18
-        BorderStyle = bsNone
-        Color = clBtnFace
-      end
-    end
-  end
-  object btnOK: TButton
-    Left = 366
-    Top = 385
-    Width = 68
-    Height = 21
-    Action = actOk
-    Anchors = [akLeft, akBottom]
-    Default = True
-    TabOrder = 1
-  end
-  object btnCancel: TButton
-    Left = 438
-    Top = 385
-    Width = 68
-    Height = 21
-    Action = actCancel
-    Anchors = [akLeft, akBottom]
-    Cancel = True
-    TabOrder = 2
   end
   object ActionList1: TActionList
     Left = 304

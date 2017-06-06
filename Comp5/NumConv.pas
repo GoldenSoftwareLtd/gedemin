@@ -115,7 +115,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class function GenderOf(const ANominative, AGenitive: String): TGender;
+    class function GenderOf(ANominative, AGenitive: String): TGender;
 
     function ConvertToString(Digits: String; UpCase: Boolean;
       Prefix: TPrefix; Postfix: TPostfix): String;
@@ -238,8 +238,14 @@ begin
   FPrecision := 0;
 end;
 
-class function TNumberConvert.GenderOf(const ANominative, AGenitive: String): TGender;
+class function TNumberConvert.GenderOf(ANominative, AGenitive: String): TGender;
 begin
+  if Pos(' ', ANominative) > 0 then
+    ANominative := Copy(ANominative, 1, Pos(' ', ANominative) - 1);
+
+  if Pos(' ', AGenitive) > 0 then
+    AGenitive := Copy(AGenitive, 1, Pos(' ', AGenitive) - 1);
+
   if (ANominative > '') and (AGenitive > '') then
   begin
     case ANominative[Length(ANominative)] of

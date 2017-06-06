@@ -1,14 +1,13 @@
 inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
-  Left = 185
-  Top = 126
+  Left = 403
+  Top = 186
   Caption = 'Настройка остатков'
   ClientHeight = 306
   ClientWidth = 487
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
-  TextHeight = 14
+  TextHeight = 13
   inherited btnAccess: TButton
     Top = 281
   end
@@ -39,22 +38,29 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
       object Label1: TLabel
         Left = 8
         Top = 13
-        Width = 76
-        Height = 14
+        Width = 73
+        Height = 13
         Caption = 'Наименование'
       end
       object Label2: TLabel
         Left = 8
         Top = 39
-        Width = 122
-        Height = 14
+        Width = 119
+        Height = 13
         Caption = 'Ветка в исследователе'
+      end
+      object lblRestrictBy: TLabel
+        Left = 7
+        Top = 92
+        Width = 165
+        Height = 13
+        Caption = 'Ограничить отбор по реквизиту'
       end
       object dbedName: TDBEdit
         Left = 136
         Top = 9
         Width = 241
-        Height = 22
+        Height = 21
         DataField = 'NAME'
         DataSource = dsgdcBase
         TabOrder = 0
@@ -63,7 +69,7 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         Left = 136
         Top = 35
         Width = 241
-        Height = 22
+        Height = 21
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
         Transaction = ibtrCommon
@@ -72,7 +78,7 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         ListTable = 'GD_COMMAND'
         ListField = 'NAME'
         KeyField = 'ID'
-        ItemHeight = 14
+        ItemHeight = 13
         TabOrder = 1
       end
       object DBCheckBox1: TDBCheckBox
@@ -87,6 +93,14 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         ValueChecked = '1'
         ValueUnchecked = '0'
       end
+      object luRestrictBy: TComboBox
+        Left = 176
+        Top = 88
+        Width = 294
+        Height = 21
+        ItemHeight = 13
+        TabOrder = 3
+      end
     end
     object tsViewFeatures: TTabSheet
       Caption = 'Отображаемые признаки'
@@ -95,8 +109,8 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         Left = 0
         Top = 0
         Width = 479
-        Height = 238
-        ActivePage = tsViewGood
+        Height = 239
+        ActivePage = tsViewCard
         Align = alClient
         TabOrder = 0
         object tsViewCard: TTabSheet
@@ -251,7 +265,7 @@ inherited gdc_dlgInvRemainsOption: Tgdc_dlgInvRemainsOption
         Left = 0
         Top = 0
         Width = 479
-        Height = 238
+        Height = 239
         ActivePage = TabSheet2
         Align = alClient
         TabOrder = 0

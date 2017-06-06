@@ -64,6 +64,7 @@ type
     isHolding: Boolean;
     isFirst: Boolean;
     isModify: Boolean;
+    isOurCompany: Boolean;
 
   protected
     procedure DoDestroy; override;
@@ -188,9 +189,10 @@ begin
     else
       gdcInvRemains.SetSubDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
   end;
-  
+
   gdcInvRemains.RemainsDate := deDateRemains.Date;
-  if CheckHolding then
+  if (CheckHolding and (gdcInvRemains.IsUseCompanyKey and (not isOurCompany))) or
+     (CheckHolding and (not gdcInvRemains.IsUseCompanyKey)) then
     gdcObject.AddSubSet(cst_Holding)
   else
     gdcObject.RemoveSubSet(cst_Holding);  
@@ -233,13 +235,14 @@ begin
   end;
 
   gdcInvRemains.RemainsDate := deDateRemains.Date;
-  if CheckHolding then
+  if (CheckHolding and (gdcInvRemains.IsUseCompanyKey and (not isOurCompany))) or
+     (CheckHolding and (not gdcInvRemains.IsUseCompanyKey)) then
     gdcObject.AddSubSet(cst_Holding)
   else
     gdcObject.RemoveSubSet(cst_Holding);
   if not Assigned(gdcInvRemains.MasterSource) and not gdcInvRemains.HasSubSet('All') then
     gdcInvRemains.MasterSource := dsDetail;
-      
+
   gdcInvRemains.Open;
   ibgrDetail.Visible := True;
 end;
@@ -466,6 +469,7 @@ begin
          gdcInvRemains.Close;
          gdcInvRemains.GoodSumFeatures.Clear;
          while not gdcTableField.EOF do
+
          begin
            gdcInvRemains.GoodSumFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
            gdcTableField.Next;
@@ -499,12 +503,21 @@ begin
       ibsql.Transaction := gdcInvRemains.ReadTransaction;
       ibsql.ExecQuery;
       isHolding := ibsql.FieldByName('holdingkey').AsInteger > 0;
+      ibsql.Close;
+
+      ibsql.SQL.Text := 'SELECT companykey FROM gd_ourcompany WHERE companykey = ' +
+        gsiblcCompany.CurrentKey;
+      ibsql.Transaction := gdcInvRemains.ReadTransaction;
+      ibsql.ExecQuery;
+      isOurCompany := ibsql.FieldByName('companykey').AsInteger > 0;
     finally
       ibsql.Free;
     end;
   end
-  else
+  else begin
     IsHolding := False;
+    isOurCompany := False;
+  end;
 end;
 
 procedure Tgdc_frmInvViewRemains.cbAllRemainsClick(Sender: TObject);

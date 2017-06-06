@@ -580,7 +580,7 @@ implementation
 uses
   gsDBGrid_dlgMaster, DsgnIntf, mask, extctrls, jclSysUtils, gd_security,
   gsDBReduction, gsDBTreeView, dlgPictureDialog_unit, buttons, gdc_frmG_unit,
-  gdcTree, gdcClasses, gdcBaseInterface, gdc_frmMDH_unit
+  gdcTree, gdcClasses, gdcBaseInterface, gdc_frmMDH_unit, gdv_dlgSelectDocument_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1455,6 +1455,7 @@ procedure TgsIBGridInplaceEdit.KeyDown(var Key: Word; Shift: TShiftState);
 var
   V: Integer;
   MasterField: TField;
+  F: TdlgSelectDocument;
 begin
   if (EditStyle = cesEllipsis) and (Key = VK_RETURN) and (Shift = [ssCtrl]) then
   begin
@@ -1541,20 +1542,46 @@ begin
 
       inherited;
 
-      if (Shift = [ssCtrl]) and (Key = Ord('R'))  then
+      if Shift = [ssCtrl] then
       begin
-
-        V := (Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName).AsVariant;
-        if FCurrentEditor.Reduce(V) then
+        IF Key = Ord('R') then
         begin
-          if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
-          (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
+          V := (Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName).AsVariant;
+          if FCurrentEditor.Reduce(V) then
+          begin
+            if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
+            (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
 
-          (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsVariant := V;
-          FCurrentEditor.RefreshDataSet;
+            (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsVariant := V;
+            FCurrentEditor.RefreshDataSet;
 
-          if FCurrentEditor.LookupDataSource.DataSet.Locate(FCurrentEditor.FLookup.LookupKeyField, V, []) then
-            Text := FCurrentEditor.LookupDataSource.DataSet.FieldByName(FCurrentEditor.FLookup.LookupListField).AsString;
+            if FCurrentEditor.LookupDataSource.DataSet.Locate(FCurrentEditor.FLookup.LookupKeyField, V, []) then
+              Text := FCurrentEditor.LookupDataSource.DataSet.FieldByName(FCurrentEditor.FLookup.LookupListField).AsString;
+          end;
+        end
+        else
+        IF (Key = Ord('D'))
+          and (GetClass(FCurrentEditor.FLookup.gdClassName) <> nil)
+          and (GetClass(FCurrentEditor.FLookup.gdClassName).InheritsFrom(TgdcDocument)) then
+        begin
+
+          F := TdlgSelectDocument.Create(nil);
+          try
+            F.ShowModal;
+            if F.SelectedId > - 1 then
+            begin
+              if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
+              (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
+
+              (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsVariant := F.SelectedId;
+              FCurrentEditor.RefreshDataSet;
+
+              if FCurrentEditor.LookupDataSource.DataSet.Locate(FCurrentEditor.FLookup.LookupKeyField, F.SelectedId, []) then
+                Text := FCurrentEditor.LookupDataSource.DataSet.FieldByName(FCurrentEditor.FLookup.LookupListField).AsString;
+            end;
+          finally
+            F.Free;
+          end;
         end;
       end
       else
@@ -4695,9 +4722,9 @@ begin
   end;
   if Key in [VK_F2, VK_F3, VK_F7, VK_F4, VK_F5, {VK_F6,} VK_F8, VK_TAB] then
   begin
-    if Key in [VK_F2, VK_F3, VK_F7] then
+    if Key in [VK_F2, VK_F3, VK_F4, VK_F7] then
       FEditor.CloseUp(False);
-    if Key in [VK_F4, VK_F5{, VK_F6}, VK_F8, VK_TAB] then
+    if Key in [VK_F5{, VK_F6}, VK_F8, VK_TAB] then
       FEditor.CloseUp(True);
     SendMessage(FEditor.Handle, WM_KEYDOWN, Key, 0);
   end
@@ -5070,6 +5097,7 @@ begin
 end;
 
 procedure TLookup.SetLookupTable(const Value: String);
+var FC: TgdcFullClass;
 begin
   Assert(atDatabase <> nil);
 
@@ -5077,6 +5105,14 @@ begin
   begin
     FLookupTable := Trim(Value);
     FEditor.FLookupPrepared := False;
+
+    if FgdClassName = '' then
+    begin
+      FC := GetBaseClassForRelation(FLookupTable);
+      FEditor.FgdClass := FC.gdClass;
+      if FEditor.FgdClass <> nil then
+        gdClassName := FEditor.FgdClass.ClassName;
+    end;
   end
 end;
 
@@ -5716,6 +5752,7 @@ begin
   Key := Ord('R');
   KeyDown(Key, KeysToShiftState(MK_CONTROL));
 end;
+
 
 initialization
 

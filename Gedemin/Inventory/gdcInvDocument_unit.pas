@@ -161,6 +161,7 @@ type
   private
     FSourceFeatures, FDestFeatures, FMinusFeatures: TgdcInvFeatures; // Массив настроек признаков
     FDirection: TgdcInvMovementDirection; // Направление движения (FIFO, LIFO)
+    FRestrictRemainsBy: string; // ограничить отбор остатков ТМЦ по реквизиту
 
     FMovement: TgdcInvMovement; // Объект работы с движением ТМЦ
 
@@ -248,6 +249,7 @@ type
 
     property Sources: TgdcInvReferenceSources read FSources;
     property Direction: TgdcInvMovementDirection read FDirection;
+    property RestrictRemainsBy: string read FRestrictRemainsBy;
 
     property SourceFeatures: TgdcInvFeatures read FSourceFeatures;
     property DestFeatures: TgdcInvFeatures read FDestFeatures;
@@ -2898,6 +2900,9 @@ begin
 
     FSources := AnIDE.GetSources;
     FDirection := AnIDE.GetDirection;
+
+    if AnIDE.GetFeaturesCount(ftRestrRemainsBy) > 0 then
+      FRestrictRemainsBy := AnIDE.GetFeature(ftRestrRemainsBy, 0);
 
     if not (irsRemainsRef in FSources) then
     begin

@@ -275,17 +275,18 @@ begin
   end else if gdcObject.FieldByName('classname').AsString > '' then
   begin
     PC := GetClass(gdcObject.FieldByName('classname').AsString);
-    if PC <> nil then
-    begin
-      if PC.InheritsFrom(TgdcBase) then
-        rbClass.Checked := True
-      else if PC.InheritsFrom(TCustomForm) or (StrIPos(USERFORM_PREFIX,
+    if (PC <> nil) and PC.InheritsFrom(TgdcBase) then
+      rbClass.Checked := True
+    else if ((PC <> nil) and PC.InheritsFrom(TCustomForm)) or (StrIPos(USERFORM_PREFIX,
         gdcObject.FieldByName('classname').AsString) = 1) then
-      begin
-        rbForm.Checked := True;
-        edFormClass.Text := gdcObject.FieldByName('classname').AsString;
-      end;
-    end;
+    begin
+      rbForm.Checked := True;
+      edFormClass.Text := gdcObject.FieldByName('classname').AsString;
+    end else
+      MessageBox(Handle,
+        PChar('Неверное имя класса: ' + gdcObject.FieldByName('classname').AsString),
+        'Внимание',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
   end else
   begin
     rbFolder.Checked := True;

@@ -225,9 +225,9 @@ begin
   {END MACRO}
 
   Result:= True;
-  if not ((frMainValues.Lines[frMainValues.IndexOf('GOODKEY')].Value = '') or
-          (TfrFieldValuesLineConfig(frMainValues.Lines[frMainValues.IndexOf('GOODKEY')]).chkInputParam.Checked)) and
-         (frGoodValues.Condition = '') then begin
+  if  ((frMainValues.Lines[frMainValues.IndexOf('GOODKEY')].IsEmpty) and
+        (not TfrFieldValuesLineConfig(frMainValues.Lines[frMainValues.IndexOf('GOODKEY')]).chkInputParam.Checked)) and
+        (frGoodValues.Condition = '') then begin
     Result:= False;
     raise Exception.Create('Необходимо выбрать ТМЦ или задать признаки товара!');
   end;

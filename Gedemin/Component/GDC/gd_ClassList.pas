@@ -486,7 +486,8 @@ type
   TgdInvDocumentEntryFeature = (
     ftSource,
     ftDest,
-    ftMinus
+    ftMinus,
+    ftRestrRemainsBy
   );
 
   TgdInvDocumentEntryMovement = (
@@ -722,7 +723,8 @@ const
    InvDocumentFeaturesNames: array[TgdInvDocumentEntryFeature] of String = (
      'SF',
      'DF',
-     'MF'
+     'MF',
+     'RF'
    );
 
   InvDocumentEntryFlagFirst = efControlRemains;
@@ -3269,6 +3271,7 @@ begin
   FFeatures[ftSource].Assign((CE as TgdInvDocumentEntry).FFeatures[ftSource]);
   FFeatures[ftDest].Assign((CE as TgdInvDocumentEntry).FFeatures[ftDest]);
   FFeatures[ftMinus].Assign((CE as TgdInvDocumentEntry).FFeatures[ftMinus]);
+  FFeatures[ftRestrRemainsBy].Assign((CE as TgdInvDocumentEntry).FFeatures[ftRestrRemainsBy]);
   FFlags := (CE as TgdInvDocumentEntry).FFlags;
 end;
 
@@ -3531,6 +3534,7 @@ begin
   FFeatures[ftSource] := TStringList.Create;
   FFeatures[ftDest] := TStringList.Create;
   FFeatures[ftMinus] := TStringList.Create;
+  FFeatures[ftRestrRemainsBy] := TStringList.Create;
 end;
 
 destructor TgdInvDocumentEntry.Destroy;
@@ -3540,6 +3544,7 @@ begin
   FFeatures[ftSource].Free;
   FFeatures[ftDest].Free;
   FFeatures[ftMinus].Free;
+  FFeatures[ftRestrRemainsBy].Free;  
   inherited;
 end;
 
@@ -3735,6 +3740,7 @@ begin
   FFeatures[ftSource].Clear;
   FFeatures[ftDest].Clear;
   FFeatures[ftMinus].Clear;
+  FFeatures[ftRestrRemainsBy].Clear;
   FillChar(FFlags, SizeOf(FFlags), 0);
 
   inherited;
@@ -3810,6 +3816,8 @@ begin
       LoadFeatures(R, ftDest)
     else if OptName = InvDocumentFeaturesNames[ftMinus] then
       LoadFeatures(R, ftMinus)
+    else if OptName = InvDocumentFeaturesNames[ftRestrRemainsBy] then
+      LoadFeatures(R, ftRestrRemainsBy)
     else
     begin
       for N := InvDocumentEntryFlagFirst to InvDocumentEntryFlagLast do
@@ -4037,6 +4045,7 @@ begin
       SetFlag(efWithoutSearchRemains, ReadBoolean)
     else
       SetFlag(efWithoutSearchRemains, False);
+
   finally
     Free;
     SS.Free;

@@ -1,5 +1,5 @@
 object gdc_frmG: Tgdc_frmG
-  Left = 272
+  Left = 265
   Top = 154
   Width = 1059
   Height = 784
@@ -26,7 +26,7 @@ object gdc_frmG: Tgdc_frmG
   TextHeight = 13
   object sbMain: TStatusBar
     Left = 0
-    Top = 726
+    Top = 727
     Width = 1043
     Height = 19
     Font.Charset = RUSSIAN_CHARSET
@@ -311,19 +311,19 @@ object gdc_frmG: Tgdc_frmG
     Left = 0
     Top = 51
     Width = 9
-    Height = 666
+    Height = 667
     Position = dpLeft
   end
   object TBDockRight: TTBDock
     Left = 1034
     Top = 51
     Width = 9
-    Height = 666
+    Height = 667
     Position = dpRight
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 717
+    Top = 718
     Width = 1043
     Height = 9
     Position = dpBottom
@@ -332,13 +332,13 @@ object gdc_frmG: Tgdc_frmG
     Left = 9
     Top = 51
     Width = 1025
-    Height = 666
+    Height = 667
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 5
     object spChoose: TSplitter
       Left = 0
-      Top = 563
+      Top = 564
       Width = 1025
       Height = 4
       Cursor = crVSplit
@@ -349,7 +349,7 @@ object gdc_frmG: Tgdc_frmG
       Left = 0
       Top = 0
       Width = 1025
-      Height = 563
+      Height = 564
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -359,7 +359,7 @@ object gdc_frmG: Tgdc_frmG
         Left = 0
         Top = 0
         Width = 160
-        Height = 563
+        Height = 564
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -371,13 +371,15 @@ object gdc_frmG: Tgdc_frmG
           Left = 0
           Top = 27
           Width = 160
-          Height = 536
+          Height = 537
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
           Align = alClient
           BorderStyle = bsNone
           TabOrder = 0
+          OnExit = actAddToSelectedExecute
+          OnMouseWheel = sbSearchMainMouseWheel
         end
         object pnlSearchMainButton: TPanel
           Left = 0
@@ -390,9 +392,9 @@ object gdc_frmG: Tgdc_frmG
           TabOrder = 1
           object btnSearchMain: TButton
             Left = 12
-            Top = 5
+            Top = 4
             Width = 64
-            Height = 18
+            Height = 19
             Action = actSearchMain
             Default = True
             TabOrder = 1
@@ -419,7 +421,7 @@ object gdc_frmG: Tgdc_frmG
     end
     object pnChoose: TPanel
       Left = 0
-      Top = 567
+      Top = 568
       Width = 1025
       Height = 99
       Align = alBottom
@@ -854,5 +856,13 @@ object gdc_frmG: Tgdc_frmG
   object dsChoose: TDataSource
     Left = 153
     Top = 306
+  end
+  object pmFind: TPopupMenu
+    Left = 17
+    Top = 78
+    object miRemoveFromSearch: TMenuItem
+      Caption = 'Удалить из поиска'
+      OnClick = miRemoveFromSearchClick
+    end
   end
 end

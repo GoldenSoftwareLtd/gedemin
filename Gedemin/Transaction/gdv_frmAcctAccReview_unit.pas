@@ -358,9 +358,17 @@ begin
         F.Visible := fvHidden;
         F.Total := True;
 
-        F.DisplayFields.Add(Format(AccReviewQuantityFieldList[J].DisplayFieldName, [cNCUPrefix]));
-        F.DisplayFields.Add(Format(AccReviewQuantityFieldList[J].DisplayFieldName, [cCURRPrefix]));
-        F.DisplayFields.Add(Format(AccReviewQuantityFieldList[J].DisplayFieldName, [cEQPrefix]));
+        if (not frAcctSum.InNcu) and  (not frAcctSum.InCurr) and (not frAcctSum.InEQ) then begin
+          if I = 0 then
+            F.Visible := fvVisible
+          else
+            F.DisplayFields.Add(Format(AccReviewQuantityFieldList[J].FieldName, ['0']));
+        end
+        else begin
+          F.DisplayFields.Add(Format(AccReviewQuantityFieldList[J].DisplayFieldName, [cNCUPrefix]));
+          F.DisplayFields.Add(Format(AccReviewQuantityFieldList[J].DisplayFieldName, [cCURRPrefix]));
+          F.DisplayFields.Add(Format(AccReviewQuantityFieldList[J].DisplayFieldName, [cEQPrefix]));
+        end;
         F.DisplayFormat := '';
       end;
     end;

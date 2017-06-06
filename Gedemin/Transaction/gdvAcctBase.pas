@@ -252,6 +252,8 @@ const
   baNCU_Credit_Index = 1;
   baCurr_Debit_Index = 6;
   baCurr_Credit_Index = 7;
+  baQ_Debit_Index = 0;
+  baQ_Credit_Index = 1;
 
   cNCUPrefix = 'NCU';
   cCURRPrefix = 'CURR';
@@ -910,7 +912,7 @@ begin
     FCurrSumInfo.DecDigits := DecDigits;
   if Scale > 0 then
     FCurrSumInfo.Scale := Scale;
-  FCurrKey := CurrKey;  
+  FCurrKey := CurrKey;
 end;
 
 procedure TgdvAcctBase.ShowInEQ(Show: Boolean; DecDigits: Integer = -1; Scale: Integer = 0);

@@ -1,6 +1,6 @@
 object dlg_EditNewForm: Tdlg_EditNewForm
-  Left = 281
-  Top = 172
+  Left = 739
+  Top = 382
   Width = 344
   Height = 402
   HelpContext = 103
@@ -17,7 +17,7 @@ object dlg_EditNewForm: Tdlg_EditNewForm
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
-  object Panel1: TPanel
+  object pnlButtons: TPanel
     Left = 235
     Top = 0
     Width = 93
@@ -97,15 +97,39 @@ object dlg_EditNewForm: Tdlg_EditNewForm
     TabOrder = 0
     object lbForms: TListBox
       Left = 4
-      Top = 4
+      Top = 31
       Width = 227
-      Height = 355
+      Height = 328
       Align = alClient
       ItemHeight = 13
       PopupMenu = PopupMenu1
       Sorted = True
-      TabOrder = 0
+      TabOrder = 1
       OnDblClick = actEditFormExecute
+    end
+    object pnlFilter: TPanel
+      Left = 4
+      Top = 4
+      Width = 227
+      Height = 27
+      Align = alTop
+      BevelOuter = bvNone
+      TabOrder = 0
+      object Label1: TLabel
+        Left = 3
+        Top = 5
+        Width = 42
+        Height = 13
+        Caption = 'Фильтр:'
+      end
+      object edFilter: TEdit
+        Left = 50
+        Top = 3
+        Width = 177
+        Height = 21
+        TabOrder = 0
+        OnChange = edFilterChange
+      end
     end
   end
   object alEditForm: TActionList

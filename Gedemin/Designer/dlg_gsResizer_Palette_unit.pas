@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2002-2015 by Golden Software of Belarus, Ltd
+  Copyright (c) 2002-2017 by Golden Software of Belarus, Ltd
 
   Module
     dlg_gsResizer_Palette_unit
@@ -120,13 +120,15 @@ implementation
 
 uses
   gsResizer, stdctrls, dbctrls, gsIBLookupComboBox, gsIBGrid, xDateEdits,
-  gd_ClassList, Outline, checklst, grids, filectrl, mask, ColorGrd, Gauges, Spin,
-  xCalculatorEdit,  TB2ToolWindow, gsDbGrid, dbclient, db, IBDataBase, IBDatabaseInfo,
-  IBCustomDataSet, IBEvents, IBExtract, IBQuery, IBSQL, IBStoredProc, gsdbReduction,
-  IBTable, IBUpdateSQL, extdlgs, IBSQLMonitor, Storages, contnrs, gdcBase,
-  gsDBTreeView, dlg_gsResizer_Components_unit, at_Container, gsScaner, gsComScaner, ColorComboBox, gd_MacrosMenu, gd_ReportMenu,
-  flt_QueryFilterGDC, BtnEdit, gd_AttrComboBox, SynEdit, SynMemo, SynHighlighterVBScript,
-  SynHighlighterSQL, shdocvw, xCalc, gsComponentEmulator, JvDBImage, gsPeriodEdit, gsPanel, FileView
+  gd_ClassList, Outline, checklst, grids, filectrl, mask, ColorGrd, Gauges,
+  Spin, xCalculatorEdit,  TB2ToolWindow, gsDbGrid, dbclient, db, IBDataBase,
+  IBDatabaseInfo, IBCustomDataSet, IBEvents, IBExtract, IBQuery, IBSQL,
+  IBStoredProc, gsdbReduction, IBTable, IBUpdateSQL, extdlgs, IBSQLMonitor,
+  Storages, contnrs, gdcBase, gsDBTreeView, dlg_gsResizer_Components_unit,
+  at_Container, gsScaner, gsComScaner, ColorComboBox, gd_MacrosMenu,
+  gd_ReportMenu, flt_QueryFilterGDC, BtnEdit, gd_AttrComboBox, SynEdit, SynMemo,
+  SynHighlighterVBScript, SynHighlighterSQL, shdocvw, xCalc, gsComponentEmulator,
+  JvDBImage, gsPeriodEdit, gsPanel, FileView, gsRAChart
 {$IFDEF MODEM}
   , gsModem
 {$ENDIF}
@@ -659,14 +661,14 @@ initialization
          TScrollbox, TShape, TSpinButton, TSpinEdit, TTabControl, TtbBackground, TtbDock,
          TtbGroupItem, TtbItemContainer, TtbToolbar, TtbToolWindow, TToolbar, TTrackbar,
          TUpDown, TxCalculatorEdit, TxDateEdit, TxFoCal, TgdReportMenu, TgdMacrosMenu, TQueryFilterGDC,
-         TWebBrowser, TgsPeriodEdit, TgsPanel, TFilesFrame]);
+         TWebBrowser, TgsPeriodEdit, TgsPanel, TFilesFrame, TgsRAChart]);
   RegisterNewClasses('Системные', [TActionList, THeaderControl, THotKey, TImageList, TOutLine, TTimer, TgsScanerHook, TgsComScaner]);
   RegisterNewClasses('БД компоненты', [TdbCheckbox, TdbCombobox, TdbEdit, TdbImage, TJvDBImage,
     TdbListbox, TdbMemo, TdbNavigator, TdbRadioGroup, TdbRichedit, TdbText, TgsdbGrid, TgsdbReduction,
     TgsdbReductionWizard, TgsibGrid, TxdbCalculatorEdit, TgsIBLookupCombobox, TgsDBTreeView,
     TxDateDBEdit, TAtContainer, TgsComboBoxAttrSet, TDBLookupComboBox ]);
   RegisterNewClasses('БД доступ', [TClientDataSet, TDataSource]);
-  RegisterNewClasses('Interbase', [{TibClientDataset,} TibDatabase, TibDatabaseInfo, TibDataset, {TibDatasource,} TibEvents, TibExtract, TibQuery, {TibScript,} TibSQL, TibSqlMonitor, TibStoredProc, TibTable, TibTransaction, TibUpdateSql]);
+  RegisterNewClasses('Firebird', [{TibClientDataset,} TibDatabase, TibDatabaseInfo, TibDataset, {TibDatasource,} TibEvents, TibExtract, TibQuery, {TibScript,} TibSQL, TibSqlMonitor, TibStoredProc, TibTable, TibTransaction, TibUpdateSql]);
   RegisterNewClasses('Диалоги', [TFindDialog, TFontDialog, TOpenDialog, TOpenPictureDialog, TPrintDialog, TPrinterSetupDialog, TReplaceDialog, TSaveDialog, TSavePictureDialog, TColorDialog]);
   RegisterNewClasses('SynEdit', [TSynEdit, TSynMemo, TSynVBScriptSyn, TSynSQLSyn]);
 {$IFDEF MODEM}

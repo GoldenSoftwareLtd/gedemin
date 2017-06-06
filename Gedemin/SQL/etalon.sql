@@ -1671,7 +1671,10 @@ INSERT INTO fin_versioninfo
   VALUES (260, '0000.0001.0000.0291', '03.02.2017', 'Upgrade AT_P_SYNC'); 
 
 INSERT INTO fin_versioninfo
-  VALUES (261, '0000.0001.0000.0292', '13.02.2017', 'Added extended analytics to account');     
+  VALUES (261, '0000.0001.0000.0292', '13.02.2017', 'Added extended analytics to account');
+
+INSERT INTO fin_versioninfo
+  VALUES (262, '0000.0001.0000.0293', '31.03.2017', 'Added restrict remains field to INV_BALANCEOPTION');      
   
 COMMIT;
 
@@ -3231,7 +3234,7 @@ BEGIN
                       REPLACE(
                         REPLACE(
                           REPLACE(
-                            NEW.personalnumber,
+                            NEW.passportnumber,
                             'Х', 'X'),
                           'Т', 'T'),
                         'С', 'C'),
@@ -15689,7 +15692,8 @@ CREATE TABLE inv_balanceoption(
   GOODSUMFIELDS           DBLOBTEXT80,
   branchkey               dforeignkey,               /* Ветка в исследователе */                                 
   usecompanykey           dboolean,
-  ruid                    DRUID
+  ruid                    DRUID,
+  restrictremainsby       DTEXT32
 );
 
 COMMIT;

@@ -399,7 +399,7 @@ var
 implementation
 
 uses
-  gdcConstants, rp_frmParamLineSE_unit, scr_i_FunctionList, 
+  gdcConstants, rp_frmParamLineSE_unit, scr_i_FunctionList,
   rp_BaseReport_unit, gd_i_ScriptFactory, syn_ManagerInterface_unit,
   prp_Messages, prp_i_VBProposal, prp_MessageConst, gd_ScriptFactory,
   prp_frmGedeminProperty_Unit, IBSQL, IBDatabase, mtd_i_Base, Clipbrd,
@@ -407,6 +407,9 @@ uses
   prp_dfPropertyTree_Unit, gd_security_operationconst, prp_PropertySettings,
   prp_dlgInputLineNumber_unit, prp_dlgBreakPointProperty_unit, wiz_Main_Unit,
   gdcClasses_interface, prp_FunctionHistoryFrame_unit, gd_ExternalEditor
+  {$IFDEF WITH_INDY}
+    , gdccClient_unit, gdccConst
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1399,6 +1402,7 @@ var
   E: TCodeExplorerParser;
   S: TStrings;
   Index: Integer;
+  Msg: String;
 begin
   if Modify then
     Post;
@@ -1454,10 +1458,18 @@ begin
         TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(SQL.Fields[0].AsInteger);
       end else
       begin
-        MessageBox(Application.Handle,
-          PChar(Format('Функция %s не найдена.', [CurrentWord])),
-          'Внимание',
-          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        Msg := 'Функция ' + CurrentWord + ' не найдена.';
+        {$IFDEF WITH_INDY}
+        if Global_LoadingNamespace then
+        begin
+          if gdccClient <> nil then
+          begin
+            gdccClient.AddLogRecord('ns', Msg, gdcc_lt_Warning, True);
+          end;
+        end else
+        {$ENDIF}
+          MessageBox(Application.Handle, PChar(Msg), 'Внимание',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
       end;
     end;
   finally

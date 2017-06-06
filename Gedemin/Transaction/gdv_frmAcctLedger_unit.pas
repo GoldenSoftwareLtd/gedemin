@@ -163,7 +163,7 @@ end;
 
 procedure Tgdv_frmAcctLedger.DoBeforeBuildReport;
 var
-  I, Index: Integer;
+  I, J, Index: Integer;
   FieldName: string;
 begin
   inherited;
@@ -190,8 +190,18 @@ begin
         end;
       end;
     end;
-  end;
 
+    for I := 0 to BaseAcctQuantityFieldCount - 1 do
+    begin
+      if not (I in [baQ_Debit_Index, baQ_Credit_Index]) then
+      begin
+        FieldName := BaseAcctQuantityFieldList[I].FieldName;
+        for J := 0 to FFieldInfos.Count - 1 do
+          if Format(FieldName, ['']) = Copy(FFieldInfos.Items[J].FieldName, 0, 6) then
+            FFieldInfos[J].Total := False;
+      end;
+    end;
+  end;
 end;
 
 procedure Tgdv_frmAcctLedger.LoadSettings;

@@ -431,10 +431,6 @@ inherited ReportFrame: TReportFrame
                   OnClick = nil
                 end
               end
-              inherited mHint: TMemo
-                Width = 656
-                Lines.Strings = ()
-              end
             end
           end
         end

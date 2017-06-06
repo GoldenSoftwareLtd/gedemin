@@ -2636,7 +2636,7 @@ const
     procedure SearchText(const S, SSearch: String; const AWholeWord: Boolean;
       const ACaseInsensitive: Boolean; const AFindInName: Boolean);
     var
-      I, B, J, L, F, E, TmpL, TmpP, K: Integer;
+      I, B, J, L, F, E, TmpL, TmpP, K, MaxP: Integer;
       P: array of Integer;
       Tmp: String;
     begin
@@ -2645,6 +2645,7 @@ const
       B := 1;
       F := -1;
       P := nil;
+      MaxP := -1;
       for I := 1 to Length(S) do
       begin
         if (J <= Length(SSearch))
@@ -2680,6 +2681,7 @@ const
               P[High(P)] := I - B + 1;
             end;
             J := 1;
+            MaxP := High(P);
           end
           else if (J = 1)
             and
@@ -2698,7 +2700,7 @@ const
             Inc(J);
         end else
         begin
-          if (J > 1) and (Length(P) > 0) then
+          if (J > 1) and (Length(P) > 0) and (MaxP <> High(P)) then
             SetLength(P, Length(P) - 1);
           J := 1;
         end;
@@ -2744,6 +2746,7 @@ const
           B := I + 1;
           SetLength(P, 0);
           J := 1;
+          MaxP := -1;
         end;
       end;
     end;

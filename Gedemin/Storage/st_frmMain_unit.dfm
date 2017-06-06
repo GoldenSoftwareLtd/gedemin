@@ -1,6 +1,6 @@
 object st_frmMain: Tst_frmMain
-  Left = 279
-  Top = 260
+  Left = 544
+  Top = 335
   Width = 696
   Height = 480
   HelpContext = 108
@@ -21,7 +21,7 @@ object st_frmMain: Tst_frmMain
   TextHeight = 13
   object sb: TStatusBar
     Left = 0
-    Top = 423
+    Top = 422
     Width = 680
     Height = 19
     Panels = <>
@@ -184,13 +184,13 @@ object st_frmMain: Tst_frmMain
     Left = 0
     Top = 51
     Width = 680
-    Height = 372
+    Height = 371
     Align = alClient
     BevelOuter = bvLowered
     TabOrder = 2
     object splSearch: TSplitter
       Left = 1
-      Top = 336
+      Top = 335
       Width = 678
       Height = 8
       Cursor = crVSplit
@@ -202,7 +202,7 @@ object st_frmMain: Tst_frmMain
       Left = 1
       Top = 1
       Width = 678
-      Height = 335
+      Height = 334
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
@@ -210,7 +210,7 @@ object st_frmMain: Tst_frmMain
         Left = 98
         Top = 0
         Width = 8
-        Height = 335
+        Height = 334
         Cursor = crHSplit
         Beveled = True
       end
@@ -218,7 +218,7 @@ object st_frmMain: Tst_frmMain
         Left = 9
         Top = 0
         Width = 89
-        Height = 335
+        Height = 334
         Align = alLeft
         BorderStyle = bsNone
         HideSelection = False
@@ -237,7 +237,7 @@ object st_frmMain: Tst_frmMain
         Left = 106
         Top = 0
         Width = 563
-        Height = 335
+        Height = 334
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
@@ -245,7 +245,7 @@ object st_frmMain: Tst_frmMain
           Left = 0
           Top = 0
           Width = 563
-          Height = 335
+          Height = 334
           Align = alClient
           BorderStyle = bsNone
           Columns = <
@@ -281,20 +281,20 @@ object st_frmMain: Tst_frmMain
         Left = 669
         Top = 0
         Width = 9
-        Height = 335
+        Height = 334
         Position = dpRight
       end
       object TBDock2: TTBDock
         Left = 0
         Top = 0
         Width = 9
-        Height = 335
+        Height = 334
         Position = dpLeft
       end
     end
     object pnSearch: TPanel
       Left = 1
-      Top = 344
+      Top = 343
       Width = 678
       Height = 27
       Align = alBottom

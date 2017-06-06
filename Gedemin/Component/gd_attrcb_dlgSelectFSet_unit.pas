@@ -1,7 +1,8 @@
 
  {++
+
    Project ADDRESSBOOK
-   Copyright © 2000-2011 by Golden Software
+   Copyright © 2000-2017 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -90,6 +91,8 @@ type
     procedure actFromAllExecute(Sender: TObject);
     procedure actFromAllUpdate(Sender: TObject);
     procedure FormActivate(Sender: TObject);
+    procedure edNameEnter(Sender: TObject);
+    procedure edNameExit(Sender: TObject);
 
   private
     FIsTree: Boolean;
@@ -121,7 +124,7 @@ var
 implementation
 
 uses
-  at_Classes;
+  at_Classes, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -195,7 +198,6 @@ begin
     ibsqlTarget.SQL.Text := 'SELECT gg1.*, 0 isinclude FROM ' + FTableName + ' gg1'
   else
     ibsqlTarget.SQL.Text := 'SELECT gg2.' + FPrimaryName +
-//     ', SUM(gg2.lb - gg1.lb) isinclude,' +
      ', 1 isinclude, gg2.lb, gg2.parent, gg2.rb, gg2.' +
      FFieldName + ' FROM ' + FTableName + ' gg1, ' + FTableName + ' gg2 ';
 
@@ -454,23 +456,13 @@ begin
   ShowTargetList(FValueList);
   Result := False;
 
-  //ShowAttrSet;
   if ShowModal = mrOk then
   begin
-    // Составляем результат
-    {SetList.Clear;
-    Result := True;
-    if SetList <> nil then
-      for I := 0 to lvTarget.Items.Count - 1 do
-        if lvTarget.Items[I].Checked then
-          SetList.AddObject(lvTarget.Items[I].Caption, Pointer(lvTarget.Items[I].Data));
-    }
     Result := True;
     SetList.Assign(FValueList);
   end;
 end;
 
-//Очисчаем поля поиска
 procedure TdlgSelectFSet.btnAllClick(Sender: TObject);
 begin
   ShowAttrSet;
@@ -479,9 +471,13 @@ end;
 
 procedure TdlgSelectFSet.FormCreate(Sender: TObject);
 begin
+  Assert(gdcBaseManager <> nil);
   cbCondition.ItemIndex := 1;
   FParentList := TList.Create;
   FValueList := TStringList.Create;
+  ibsqlTarget.Transaction := gdcBaseManager.ReadTransaction;
+  ibsqlTree.Transaction := gdcBaseManager.ReadTransaction;
+  ibqryFind.Transaction := gdcBaseManager.ReadTransaction;
 end;
 
 procedure TdlgSelectFSet.actFindExecute(Sender: TObject);
@@ -733,6 +729,16 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TdlgSelectFSet.edNameEnter(Sender: TObject);
+begin
+  btnOk.Default := False;
+end;
+
+procedure TdlgSelectFSet.edNameExit(Sender: TObject);
+begin
+  btnOk.Default := True;
 end;
 
 end.

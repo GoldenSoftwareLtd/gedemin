@@ -23,29 +23,52 @@ type
     procedure actClassesExecute(Sender: TObject);
 
   public
-    procedure FillrgObjects(OL: TObjectList);
+    procedure FillrgObjects(CE: TgdClassEntry);
   end;
 
 var
   gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant;
 
 implementation
-  
+
 {$R *.DFM}
 
-procedure Tgdc_dlgQueryDescendant.FillrgObjects(OL: TObjectList);
-var
-  I: Integer;
-  CE: TgdBaseEntry;
-begin
-  for I := 0 to OL.Count - 1 do
-  begin
-    CE := OL[I] as TgdBaseEntry;
-    rgObjects.Items.AddObject(CE.gdcClass.GetDisplayName(CE.SubType), CE);
+procedure Tgdc_dlgQueryDescendant.FillrgObjects(CE: TgdClassEntry);
 
-    if (Height < rgObjects.Items.Count * 24 + 30) and (Height < 540) then
-      Height := rgObjects.Items.Count * 24 + 30;
+  procedure Iterate(CE: TgdClassEntry; ALevel: Integer);
+  var
+    I: Integer;
+    List: TStringList;
+  begin
+    if CE.Hidden then
+      exit;
+
+    if not (CE as TgdBaseEntry).gdcClass.IsAbstractClass then
+    begin
+      rgObjects.Items.AddObject(StringOfChar(' ', ALevel) + CE.Caption, CE);
+      Inc(ALevel, 4);
+    end;
+
+    if CE.Count > 0 then
+    begin
+      List := TStringList.Create;
+      try
+        for I := 0 to CE.Count - 1 do
+          List.AddObject(CE.Children[I].Caption, CE.Children[I]);
+        List.Sorted := true;
+        for I := 0 to List.Count - 1 do
+          Iterate(List.Objects[i] as TgdClassEntry, ALevel);
+      finally
+        List.Free;
+      end;
+    end;
   end;
+begin
+  Iterate(CE, 0);
+
+  if (Height < rgObjects.Items.Count * 24 + 30) and (Height < 540) then
+    Height := rgObjects.Items.Count * 24 + 30;
+
 end;
 
 procedure Tgdc_dlgQueryDescendant.acOkExecute(Sender: TObject);
@@ -67,6 +90,7 @@ procedure Tgdc_dlgQueryDescendant.actClassesExecute(Sender: TObject);
 var
   I: Integer;
   CE: TgdBaseEntry;
+  str: string;
 begin
   actClasses.Checked := not actClasses.Checked;
 
@@ -74,9 +98,14 @@ begin
   begin
     CE := rgObjects.Items.Objects[I] as TgdBaseEntry;
     if actClasses.Checked then
-      rgObjects.Items[I] := CE.TheClass.ClassName + CE.SubType
-    else
-      rgObjects.Items[I] := CE.Caption;
+    begin
+      str := StringReplace(rgObjects.Items[I], CE.Caption, '', []);
+      rgObjects.Items[I] := str + CE.TheClass.ClassName + CE.SubType
+    end
+    else begin
+      str := StringReplace(rgObjects.Items[I], CE.TheClass.ClassName + CE.SubType, '', []);
+      rgObjects.Items[I] := str + CE.Caption;
+    end;
   end;
 end;
 

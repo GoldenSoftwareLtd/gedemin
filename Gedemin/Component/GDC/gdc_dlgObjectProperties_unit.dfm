@@ -1,6 +1,6 @@
 inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
-  Left = 622
-  Top = 235
+  Left = 381
+  Top = 94
   Caption = 'Свойства объекта'
   ClientHeight = 559
   ClientWidth = 657
@@ -665,6 +665,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Style = []
         ParentFont = False
         TabOrder = 0
+        OnMouseWheel = sbFieldsMouseWheel
       end
     end
     object tsFields: TTabSheet
@@ -682,6 +683,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Style = []
         ParentFont = False
         TabOrder = 0
+        OnMouseWheel = sbFields2MouseWheel
       end
     end
     object tsLinks: TTabSheet

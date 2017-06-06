@@ -9,7 +9,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 438
+    Top = 439
     Width = 716
   end
   inherited TBDockTop: TTBDock
@@ -74,19 +74,19 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 378
+    Height = 379
   end
   inherited TBDockRight: TTBDock
     Left = 707
-    Height = 378
+    Height = 379
   end
   inherited TBDockBottom: TTBDock
-    Top = 429
+    Top = 430
     Width = 716
   end
   inherited pnlWorkArea: TPanel
     Width = 698
-    Height = 378
+    Height = 379
     TabOrder = 0
     object sMasterDetail: TSplitter [0]
       Left = 0
@@ -98,7 +98,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       MinSize = 20
     end
     inherited spChoose: TSplitter
-      Top = 273
+      Top = 274
       Width = 698
       Height = 6
     end
@@ -116,7 +116,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       end
     end
     inherited pnChoose: TPanel
-      Top = 279
+      Top = 280
       Width = 698
       TabOrder = 2
       inherited pnButtonChoose: TPanel
@@ -133,7 +133,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       Left = 0
       Top = 173
       Width = 698
-      Height = 100
+      Height = 101
       Align = alClient
       BevelOuter = bvLowered
       Constraints.MinHeight = 100
@@ -221,7 +221,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
         Left = 1
         Top = 27
         Width = 160
-        Height = 72
+        Height = 73
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -233,13 +233,14 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Left = 0
           Top = 27
           Width = 160
-          Height = 45
+          Height = 46
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
           Align = alClient
           BorderStyle = bsNone
           TabOrder = 0
+          OnMouseWheel = sbSearchDetailMouseWheel
         end
         object pnlSearchDetailButton: TPanel
           Left = 0
@@ -521,11 +522,11 @@ inherited gdc_frmMDH: Tgdc_frmMDH
   inherited gdMacrosMenu: TgdMacrosMenu
     Top = 95
   end
-  object dsDetail: TDataSource
+  object dsDetail: TDataSource [11]
     Left = 408
     Top = 300
   end
-  object pmDetail: TPopupMenu
+  object pmDetail: TPopupMenu [12]
     Left = 464
     Top = 304
     object nDetailNew: TMenuItem

@@ -9,7 +9,7 @@ uses
 
 type
   Tdlg_EditNewForm = class(TCreateableForm, IConnectChangeNotify)
-    Panel1: TPanel;
+    pnlButtons: TPanel;
     Button1: TButton;
     Button2: TButton;
     Button3: TButton;
@@ -36,6 +36,9 @@ type
     N6: TMenuItem;
     N7: TMenuItem;
     N8: TMenuItem;
+    pnlFilter: TPanel;
+    edFilter: TEdit;
+    Label1: TLabel;
     procedure actExitExecute(Sender: TObject);
     procedure actEditFormUpdate(Sender: TObject);
     procedure actDeleteFormExecute(Sender: TObject);
@@ -48,6 +51,7 @@ type
     procedure actRefreshUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actHelpExecute(Sender: TObject);
+    procedure edFilterChange(Sender: TObject);
 
   private
     FgdcClass: TgdcBase;
@@ -63,6 +67,7 @@ type
 
   public
     constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
 
     procedure Prepare;
@@ -77,7 +82,7 @@ implementation
 
 uses
   Storages, gd_directories_const, gsStorage, dlg_NewForm_Wzrd_unit,
-  gsResizerInterface, dlgEditDfm_unit;
+  gsResizerInterface, dlgEditDfm_unit, jclStrings;
 
 var
   FNewForm: TgdcCreateableForm;
@@ -88,15 +93,28 @@ var
   I: Integer;
 begin
   if not Assigned(GlobalStorage) then
-    Exit;
+    exit;
   lbForms.Items.Clear;
   F := GlobalStorage.OpenFolder(st_ds_NewFormPath);
   try
     if Assigned(F) then
       for I := 0 to F.FoldersCount - 1 do
-        lbForms.Items.Add(F.Folders[I].Name);
+      begin
+        if (Trim(edFilter.Text) = '') or (StrIPos(edFilter.Text, F.Folders[I].Name) > 0) then
+          lbForms.Items.Add(F.Folders[I].Name);
+      end;
   finally
     GlobalStorage.CloseFolder(F);
+  end;
+
+  if Trim(edFilter.Text) > '' then
+  begin
+    lbForms.Color := clInfoBk;
+    edFilter.Color := clInfoBk;
+  end else
+  begin
+    lbForms.Color := clWindow;
+    edFilter.Color := clWindow;
   end;
 end;
 
@@ -122,10 +140,11 @@ var
 begin
   if not (MessageDlg('Вы хотите удалить форму?',
     mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
-    Exit;
+    exit;
 
   if not Assigned(GlobalStorage) then
-    Exit;
+    exit;
+
   F := GlobalStorage.OpenFolder(st_ds_NewFormPath);
   try
     F.DeleteFolder(lbForms.Items[lbForms.ItemIndex]);
@@ -146,6 +165,7 @@ begin
     Free;
   end;
   I := lbForms.ItemIndex;
+  edFilter.Text := '';
   LoadForms;
   if (I >= 0) and (I < lbForms.Items.Count) then
     lbForms.ItemIndex := I;
@@ -180,21 +200,21 @@ begin
       end;
       if Assigned(FNewForm) then
       begin
-        if MessageDlg('Данная форма сейчас открыта. ' + #10#13 +
-           'Если вы хотите закрыть ее и перейти в режим редактирования' + #10#13 +
-           'нажмите - да иначе нажмите - нет.', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+        if MessageDlg(
+           'Данная форма сейчас открыта. ' + #10#13 +
+           'Закрыть её и перейти в режим редактирования?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
           FreeAndNil(FNewForm)
         else
         begin
           FNewForm := nil;
-          Exit;
+          exit;
         end;
       end;
 
       if IntType in [st_ds_SimplyForm, st_ds_GDCForm] then
       begin
         P := GetClass(FormClass);
-        if P<> nil then
+        if P <> nil then
         begin
           case IntType of
             st_ds_SimplyForm:// 1;
@@ -393,6 +413,18 @@ end;
 procedure Tdlg_EditNewForm.actHelpExecute(Sender: TObject);
 begin
   Application.HelpContext(HelpContext);
+end;
+
+procedure Tdlg_EditNewForm.edFilterChange(Sender: TObject);
+begin
+  LoadForms;
+end;
+
+destructor Tdlg_EditNewForm.Destroy;
+begin
+  if dlg_EditNewForm = Self then
+    dlg_EditNewForm := nil;
+  inherited;
 end;
 
 end.

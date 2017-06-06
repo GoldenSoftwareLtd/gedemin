@@ -181,16 +181,16 @@ begin
       ValueAlias := 'v_' + CurrentKeyAlias;
       QuantityAlias := 'q_' + CurrentKeyAlias;
       if FDoGroup then
-        ValueSelect := ValueSelect + ','#13#10 +
+        ValueSelect := ValueSelect + ''#13#10 +
           Format('  MAX(%0:s.name) AS QUANTITY_NAME_%1:s,'#13#10 +
             '  CAST(SUM(IIF(e.accountpart = ''D'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0)) / %3:d AS NUMERIC(15, %4:d)) AS Q_D_%1:s,'#13#10 +
-            '  CAST(SUM(IIF(e.accountpart = ''C'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0)) / %3:d AS NUMERIC(15, %4:d)) AS Q_C_%1:s'#13#10,
+            '  CAST(SUM(IIF(e.accountpart = ''C'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0)) / %3:d AS NUMERIC(15, %4:d)) AS Q_C_%1:s,'#13#10,
             [ValueAlias, CurrentKeyAlias, QuantityAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits])
       else
-        ValueSelect := ValueSelect + ','#13#10 +
+        ValueSelect := ValueSelect + ''#13#10 +
           Format('  %0:s.name AS QUANTITY_NAME_%1:s,'#13#10 +
             '  CAST(IIF(e.accountpart = ''D'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0) / %3:d AS NUMERIC(15, %4:d)) AS Q_D_%1:s,'#13#10 +
-            '  CAST(IIF(e.accountpart = ''C'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0) / %3:d AS NUMERIC(15, %4:d)) AS Q_C_%1:s'#13#10,
+            '  CAST(IIF(e.accountpart = ''C'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0) / %3:d AS NUMERIC(15, %4:d)) AS Q_C_%1:s,'#13#10,
             [ValueAlias, CurrentKeyAlias, QuantityAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
 
       ValueJoin := ValueJoin + #13#10 +
@@ -351,6 +351,7 @@ begin
       '  CAST(IIF(e1.issimple = 0, e1.debitcurr, e.creditcurr) / %2:d AS NUMERIC(15, %3:d)) AS CURR_CREDIT,')  + #13#10 +
     '  CAST(IIF(e1.issimple = 0, e1.crediteq, e.debiteq) / %4:d AS NUMERIC(15, %5:d)) AS EQ_DEBIT,'#13#10 +
     '  CAST(IIF(e1.issimple = 0, e1.debiteq, e.crediteq) / %4:d AS NUMERIC(15, %5:d)) AS EQ_CREDIT,'#13#10 +
+    ValueSelect + #13#10 +
     '  a.alias, '#13#10 +
     '  corr_a.alias AS corralias,'#13#10 + ASelect + ACorrSelect +
     '  curr.ShortName as CurrencyName,'#13#10 +
@@ -360,7 +361,6 @@ begin
     '  e.documentkey, '#13#10 +
     '  e.transactionkey, '#13#10 +
     '  tr.description as trrecordname ' +
-    ValueSelect + #13#10 +
     ' FROM ac_entry e  '#13#10 +
     '  LEFT JOIN gd_document doc ON e.documentkey = doc.id '#13#10 +
     '  LEFT JOIN gd_documenttype doct ON doc.documenttypekey = doct.id '#13#10 +
@@ -418,6 +418,7 @@ begin
       '  CAST(SUM(IIF(e1.issimple = 0, e1.debitcurr, e.creditcurr)) / %2:d AS NUMERIC(15, %3:d)) AS CURR_CREDIT,')  + #13#10 +
     '  CAST(SUM(IIF(e1.issimple = 0, e1.crediteq, e.debiteq)) / %4:d AS NUMERIC(15, %5:d)) AS EQ_DEBIT,'#13#10 +
     '  CAST(SUM(IIF(e1.issimple = 0, e1.debiteq, e.crediteq)) / %4:d AS NUMERIC(15, %5:d)) AS EQ_CREDIT,'#13#10 +
+    ValueSelect + #13#10 +
     '  a.alias, '#13#10 +
     '  corr_a.alias AS corralias,'#13#10 + ASelect + ACorrSelect +
     '  curr.ShortName as CurrencyName,'#13#10 +
@@ -430,7 +431,6 @@ begin
       [FNcuSumInfo.Scale, FNcuSumInfo.DecDigits,
       FCurrSumInfo.Scale, FCurrSumInfo.DecDigits,
       FEQSumInfo.Scale, FEQSumInfo.DecDigits]) +
-    ValueSelect + #13#10 +
     ' FROM ac_entry e  '#13#10 +
     '  LEFT JOIN gd_document doc ON e.masterdockey = doc.id '#13#10 +
     '  LEFT JOIN gd_documenttype doct ON doc.documenttypekey = doct.id '#13#10 +

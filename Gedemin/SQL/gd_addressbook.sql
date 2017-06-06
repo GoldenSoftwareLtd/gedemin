@@ -257,7 +257,7 @@ BEGIN
                       REPLACE(
                         REPLACE(
                           REPLACE(
-                            NEW.personalnumber,
+                            NEW.passportnumber,
                             'Õ', 'X'),
                           'Ò', 'T'),
                         'Ñ', 'C'),

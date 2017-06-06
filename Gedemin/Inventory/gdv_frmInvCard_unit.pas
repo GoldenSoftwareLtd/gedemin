@@ -832,6 +832,16 @@ begin
         frCardValues.NeedClearValues:= False;
         frCardValues.Values:= frm.frCardValues.Values;
       end;
+      if frm.frDebitDocsValues.Visible
+        and (frm.frDebitDocsValues.LinesCount > 0) then begin
+        frDebitDocs.NeedClearValues:= False;
+        frDebitDocs.Values:= frm.frDebitDocsValues.Values;
+      end; 
+      if frm.frCreditDocsValues.Visible
+        and (frm.frCreditDocsValues.LinesCount > 0) then begin
+        frCreditDocs.NeedClearValues:= False;
+        frCreditDocs.Values:= frm.frCreditDocsValues.Values;
+      end;
       if not chkAllInterval.Checked then
         gsPeriodEdit.AssignPeriod(frm.gsPeriodEdit.Text);
       ppCardFields.Unwraped:= False;

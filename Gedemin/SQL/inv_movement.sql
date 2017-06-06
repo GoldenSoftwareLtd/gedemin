@@ -234,7 +234,8 @@ CREATE TABLE inv_balanceoption(
   GOODSUMFIELDS           DBLOBTEXT80,
   branchkey               dforeignkey,               /* Ветка в исследователе */                                 
   usecompanykey           dboolean,
-  ruid                    DRUID
+  ruid                    DRUID,
+  restrictremainsby       DTEXT32
 );
 
 COMMIT;

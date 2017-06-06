@@ -334,7 +334,7 @@ begin
         Inc(J);
       end;
     end;
-  end;  
+  end;
 end;
 
 procedure Tgdv_frmAcctBaseForm.FormDestroy(Sender: TObject);
@@ -375,7 +375,7 @@ end;
 
 procedure Tgdv_frmAcctBaseForm.DoBeforeBuildReport;
 var
-  I, J: Integer;                    
+  I, J: Integer;
   F: TgdvFieldInfo;
 begin
   // Объект, который будет содержать информацию о полях отчета
@@ -438,7 +438,7 @@ begin
     FAccountIDs := TList.Create;
 
   // Перенесем строку выбранных счетов в список, опционально с субсчетами
-  SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts);  
+  SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts);
 
   // Получим список выбранных количественных показателей из панели формы
   frAcctQuantity.ValueList(FValueList, FAccountIDs, Self.DateBegin, Self.DateEnd, IncSubAccounts);
@@ -457,18 +457,26 @@ begin
         F.Visible := fvHidden;
         F.Total := True;
 
-        F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].DisplayFieldName, [cNCUPrefix]));
-        F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].DisplayFieldName, [cCURRPrefix]));
-        F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].DisplayFieldName, [cEQPrefix]));
+        if (not frAcctSum.InNcu) and  (not frAcctSum.InCurr) and (not frAcctSum.InEQ) then begin
+          if I = 0 then
+            F.Visible := fvVisible
+          else
+            F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].FieldName, ['0']));
+        end
+        else begin
+          F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].DisplayFieldName, [cNCUPrefix]));
+          F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].DisplayFieldName, [cCURRPrefix]));
+          F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].DisplayFieldName, [cEQPrefix]));
+        end;
         F.DisplayFormat := DisplayFormat(frAcctSum.QuantityDecDigits);
       end;
     end;
   end;
 
   ibgrMain.Columns.BeginUpdate;
-  gdvObject.FieldInfos := FFieldInfos;  
+  gdvObject.FieldInfos := FFieldInfos;
 
-  FSortColumns := True;  
+  FSortColumns := True;
 end;
 
 procedure Tgdv_frmAcctBaseForm.DoBuildReport;

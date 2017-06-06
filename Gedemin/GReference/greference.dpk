@@ -164,6 +164,8 @@ contains
   gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas',
   gdcSMTP in '..\Component\GDC\gdcSMTP.pas',
   gdcInvDocumentOptions in '..\Component\GDC\gdcInvDocumentOptions.pas',
+  gsRAChart in '..\Component\gsRAChart.pas',
+  gsThemeManager in '..\Component\gsThemeManager.pas',
   rf_Control in '..\Component\rf_Control.pas';
 
 end.

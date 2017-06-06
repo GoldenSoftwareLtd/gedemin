@@ -12,34 +12,40 @@ uses
 
 type
   Tgdv_dlgInvCardParams = class(TgdcCreateableForm)
-    Panel1: TPanel;
-    pnlDate: TPanel;
-    Bevel1: TBevel;
-    pcValues: TPageControl;
-    tsCardValues: TTabSheet;
-    tsGoodValues: TTabSheet;
     btnOK: TButton;
     btnCancel: TButton;
     ActionList1: TActionList;
     actOk: TAction;
     actCancel: TAction;
     actPrepare: TAction;
-    frMainValues: TfrFieldValues;
-    frCardValues: TfrFieldValues;
-    frGoodValues: TfrFieldValues;
+    Panel1: TPanel;
+    pnlDate: TPanel;
+    Bevel1: TBevel;
     Bevel2: TBevel;
     Label8: TLabel;
+    gsPeriodEdit: TgsPeriodEdit;
+    frMainValues: TfrFieldValues;
     frDebitDocsValues: TfrFieldValues;
     frCreditDocsValues: TfrFieldValues;
-    gsPeriodEdit: TgsPeriodEdit;
+    pcValues: TPageControl;
+    tsCardValues: TTabSheet;
+    frCardValues: TfrFieldValues;
+    tsGoodValues: TTabSheet;
+    frGoodValues: TfrFieldValues;
     procedure FormCreate(Sender: TObject);
     procedure actPrepareExecute(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
+    procedure frMainValuesResize(Sender: TObject);
+    procedure frDebitDocsValuesResize(Sender: TObject);
+    procedure frCreditDocsValuesResize(Sender: TObject);
   private
     function Validate: boolean;
   public
     procedure PrepareDialog;
+    procedure UpdateFormHeight;
+
+    procedure SaveSettings; override;
   end;
 
 var
@@ -48,6 +54,8 @@ var
 implementation
 
 {$R *.DFM}
+
+uses Storages, gsStorage_CompPath;
 
 procedure Tgdv_dlgInvCardParams.FormCreate(Sender: TObject);
 begin
@@ -125,10 +133,23 @@ begin
     tsGoodValues.TabVisible:= frGoodValues.LinesCount > 0;
 
     pcValues.Visible:= tsGoodValues.TabVisible or tsCardValues.TabVisible;
+
+    if Assigned(UserStorage) then
+    begin
+      frMainValues.Values := UserStorage.ReadString(BuildComponentPath(frMainValues), 'MainValues', '');
+      gsPeriodEdit.AssignPeriod(UserStorage.ReadString(BuildComponentPath(gsPeriodEdit), 'Period', ''));
+      frDebitDocsValues.Values := UserStorage.ReadString(BuildComponentPath(frDebitDocsValues), 'DebitDocsValues', '');
+      frCreditDocsValues.Values := UserStorage.ReadString(BuildComponentPath(frCreditDocsValues), 'CreditDocsValues', '');
+      frCardValues.Values := UserStorage.ReadString(BuildComponentPath(frCardValues), 'CardValues', '');
+      frGoodValues.Values := UserStorage.ReadString(BuildComponentPath(frGoodValues), 'GoodValues', '');
+    end;  
+
   finally
     S.Free;
     FieldList.Free;
   end;
+
+  UpdateFormHeight;
 end;
 
 procedure Tgdv_dlgInvCardParams.actPrepareExecute(Sender: TObject);
@@ -184,6 +205,46 @@ begin
   finally
     S.Free;
   end;
+end;
+
+procedure Tgdv_dlgInvCardParams.UpdateFormHeight;
+var H: integer;
+begin
+    H := 0;
+    H := H + ord(frMainValues.Visible) * frMainValues.Height;
+    H := H + ord(pnlDate.Visible) * pnlDate.Height;
+    H := H + ord(frDebitDocsValues.Visible) * frDebitDocsValues.Height;
+    H := H + ord(frCreditDocsValues.Visible) * frCreditDocsValues.Height;
+    H := H + ord(pcValues.Visible) * pcValues.Height;
+
+    Panel1.Height := H;
+    self.Height := H + 70;
+end;
+
+procedure Tgdv_dlgInvCardParams.frMainValuesResize(Sender: TObject);
+begin
+  UpdateFormHeight;
+end;
+
+procedure Tgdv_dlgInvCardParams.frDebitDocsValuesResize(Sender: TObject);
+begin
+  UpdateFormHeight;
+end;
+
+procedure Tgdv_dlgInvCardParams.frCreditDocsValuesResize(Sender: TObject);
+begin
+  UpdateFormHeight;
+end;
+
+procedure Tgdv_dlgInvCardParams.SaveSettings;
+begin
+  inherited;
+  UserStorage.WriteString(BuildComponentPath(frMainValues), 'MainValues', frMainValues.Values);
+  UserStorage.WriteString(BuildComponentPath(gsPeriodEdit), 'Period', gsPeriodEdit.Text);
+  UserStorage.WriteString(BuildComponentPath(frDebitDocsValues), 'DebitDocsValues', frDebitDocsValues.Values);
+  UserStorage.WriteString(BuildComponentPath(frCreditDocsValues), 'CreditDocsValues', frCreditDocsValues.Values);
+  UserStorage.WriteString(BuildComponentPath(frCardValues), 'CardValues', frCardValues.Values);
+  UserStorage.WriteString(BuildComponentPath(frGoodValues), 'GoodValues', frGoodValues.Values);
 end;
 
 initialization

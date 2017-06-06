@@ -175,6 +175,8 @@ type
     tbiDontSaveSettings: TTBItem;
     tbi_mm_New: TTBItem;
     tbiNew: TTBItem;
+    pmFind: TPopupMenu;
+    miRemoveFromSearch: TMenuItem;
 
     procedure actFilterExecute(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
@@ -253,6 +255,9 @@ type
     procedure FormHide(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure tbiNewPopup(Sender: TTBCustomItem; FromLink: Boolean);
+    procedure sbSearchMainMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure miRemoveFromSearchClick(Sender: TObject);
 
   private
     FFieldOrigin: TStringList;
@@ -295,6 +300,8 @@ type
       SB: TPanel;
       var FO: TStringList; PreservedConditions: String;
       const AFuzzy: Boolean = False);
+
+    procedure RemoveFromSearchHist(EC: TCustomEdit; FO: TStringList);
 
     procedure SetGdcObject(const Value: TgdcBase); override;
 
@@ -1013,7 +1020,7 @@ begin
     end;
 
     pnlSearchMain.Visible := False;
-  end;  
+  end;
 end;
 
 procedure Tgdc_frmG.SetupSearchPanel(Obj: TgdcBase;
@@ -1098,10 +1105,14 @@ begin
                (E as TxDateEdit).Kind := kTime
               else
                (E as TxDateEdit).Kind := kDateTime;
+              if not ShowAllFields and Flag then
+                (E as TxDateEdit).PopupMenu := pmFind;
             end
             else
             begin
               E := TEdit.Create(PN);
+              if not ShowAllFields and Flag then
+                (E as TEdit).PopupMenu := pmFind;
             end;
 
             E.Parent := SB;
@@ -1221,7 +1232,7 @@ begin
         begin
 
           S := FO.Names[SB.Components[I].Tag];
-          Crc32 := Integer(Crc32_P(@S[1], Length(S), 0));
+          Crc32 := Integer(Crc32_P(@S[1], Length(S), 0)); 
           J := KIA.IndexOf(Crc32);
 
           if TCustomEdit(SB.Components[I]).Text = '' then
@@ -2091,6 +2102,7 @@ procedure Tgdc_frmG.FillPopupNew(AnObject: TgdcBase; ATBCustomItem: TTBCustomIte
   var
     TBI: TTBItem;
     I: Integer;
+    List: TStringList;
   begin
     if CE.Hidden then
       exit;
@@ -2106,8 +2118,19 @@ procedure Tgdc_frmG.FillPopupNew(AnObject: TgdcBase; ATBCustomItem: TTBCustomIte
       Inc(ALevel, 4);
     end;
 
-    for I := 0 to CE.Count - 1 do
-      Iterate(CE.Children[I], ALevel);
+    if CE.Count > 0 then
+    begin
+      List := TStringList.Create;
+      try
+        List.Sorted := True;
+        for I := 0 to CE.Count - 1 do
+          List.AddObject(CE.Children[I].Caption, CE.Children[I]);
+        for I := 0 to List.Count - 1 do
+          Iterate(List.Objects[i] as TgdClassEntry, ALevel);
+      finally
+        List.Free;
+      end;
+    end;
   end;
 
 var
@@ -2131,6 +2154,100 @@ procedure Tgdc_frmG.tbiNewPopup(Sender: TTBCustomItem;
 begin
   if gdcObject <> nil then
     FillPopupNew(gdcObject, Sender, DoOnDescendantClick);
+end;
+
+procedure Tgdc_frmG.sbSearchMainMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  if WheelDelta < 0 then WheelDelta := -10 else WheelDelta := 10;
+  sbSearchMain.VertScrollBar.Position := sbSearchMain.VertScrollBar.Position - WheelDelta;
+end;
+
+procedure Tgdc_frmG.RemoveFromSearchHist(EC: TCustomEdit; FO: TStringList);
+var
+  Crc32, J: integer;
+  S: String;
+  KIA: TgdKeyIntAssoc;
+  St: TMemoryStream;
+begin
+  KIA := TgdKeyIntAssoc.Create;
+  try
+    St := TMemoryStream.Create;
+    try
+      UserStorage.ReadStream('Options\Search', 'Rcnt', St, False);
+      KIA.LoadFromStream(St);
+    finally
+      St.Free;
+    end;
+
+    S := FO.Names[EC.Tag];
+    Crc32 := Integer(Crc32_P(@S[1], Length(S), 0));
+    J := KIA.IndexOf(Crc32);
+    if J >= 0 then
+      KIA.Delete(J);
+
+  finally
+    St := TMemoryStream.Create;
+    try
+      KIA.SaveToStream(St);
+      if St.Size > 0 then
+        UserStorage.WriteStream('Options\Search', 'Rcnt', St);
+    finally
+      St.Free;
+    end;
+
+    KIA.Free;
+  end;
+
+end;
+
+procedure Tgdc_frmG.miRemoveFromSearchClick(Sender: TObject);
+var EC: TCustomEdit;
+    pmSender: TPopupMenu;
+    I: integer;
+    FO_Old: TStringList;
+    Last: boolean;
+begin
+  FO_Old := TStringList.Create;
+  try
+    pmSender := (Sender as TMenuItem).Parent.Owner as TPopupMenu;
+    EC := pmSender.PopupComponent as TCustomEdit;
+
+    for I := sbSearchMain.ControlCount - 1 downto 0 do
+    begin
+      if (sbSearchMain.Controls[I] is TCustomEdit)
+        and  (TCustomEdit(sbSearchMain.Controls[I]).Text <> '') then
+          FO_Old.Add(FFieldOrigin.Names[sbSearchMain.Controls[I].Tag]+'='+TCustomEdit(sbSearchMain.Controls[I]).Text);
+    end;
+    RemoveFromSearchHist(EC, FFieldOrigin);
+    Last := FFieldOrigin.Count = 1;
+
+    gdcObject.ExtraConditions.Text := FMainPreservedConditions;
+    FreeAndNil(FFieldOrigin);
+
+    for I := sbSearchMain.ControlCount - 1 downto 0 do
+    begin
+      sbSearchMain.Controls[I].Free;
+    end;
+
+    SetupSearchPanel(gdcObject,
+      pnlSearchMain,
+      sbSearchMain,
+      nil{sSearchDetail},
+      FFieldOrigin,
+      FMainPreservedConditions);
+
+    if not Last then
+      for I := sbSearchMain.ControlCount - 1 downto 0 do
+      begin
+        if (sbSearchMain.Controls[I] is TCustomEdit) then
+          TCustomEdit(sbSearchMain.Controls[I]).Text := FO_Old.Values[FFieldOrigin.Names[sbSearchMain.Controls[I].Tag]];
+      end;
+
+  finally
+    FO_Old.Free;
+  end;
 end;
 
 procedure Tgdc_frmG.actDistributeSettingsExecute(Sender: TObject);

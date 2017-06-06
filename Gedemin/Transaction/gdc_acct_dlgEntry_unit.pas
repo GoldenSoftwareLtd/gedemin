@@ -65,6 +65,10 @@ type
     procedure actDupDebitUpdate(Sender: TObject);
     procedure actDupCreditExecute(Sender: TObject);
     procedure actDupCreditUpdate(Sender: TObject);
+    procedure sboxDebitMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure sboxCreditMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 
   private
     FNumerator: Integer;
@@ -1016,6 +1020,24 @@ begin
         TAction(Sender).Enabled := True;
     end;
   end;
+end;
+
+procedure Tgdc_acct_dlgEntry.sboxDebitMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  inherited;
+  if WheelDelta < 0 then WheelDelta := -10 else WheelDelta := 10;
+  sboxDebit.VertScrollBar.Position := sboxDebit.VertScrollBar.Position - WheelDelta;
+end;
+
+procedure Tgdc_acct_dlgEntry.sboxCreditMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  inherited;
+  if WheelDelta < 0 then WheelDelta := -10 else WheelDelta := 10;
+  sboxCredit.VertScrollBar.Position := sboxCredit.VertScrollBar.Position - WheelDelta;
 end;
 
 initialization

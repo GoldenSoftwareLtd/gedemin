@@ -898,8 +898,8 @@ begin
     Sender.Canvas.Font.Style := [fsBold];
     if (cdsSelected in State) and not (cdsFocused in State) then
     begin
-      Sender.Canvas.Font.Color := clWindowText;
-      //Sender.Canvas.Brush.Color := clInactiveCaptionText;
+      Sender.Canvas.Font.Color := clInactiveCaptionText;
+      Sender.Canvas.Brush.Color := clInactiveCaption;
     end;
   end else if NodeType = tiObject then
   begin

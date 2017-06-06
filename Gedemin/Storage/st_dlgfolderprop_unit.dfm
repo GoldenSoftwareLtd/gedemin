@@ -1,6 +1,6 @@
 object st_dlgfolderprop: Tst_dlgfolderprop
-  Left = 417
-  Top = 238
+  Left = 419
+  Top = 239
   BorderStyle = bsDialog
   Caption = 'Папка'
   ClientHeight = 188
@@ -25,14 +25,14 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   object Label1: TLabel
     Left = 8
     Top = 20
-    Width = 79
+    Width = 77
     Height = 13
     Caption = 'Наименование:'
   end
   object Label2: TLabel
     Left = 8
     Top = 48
-    Width = 69
+    Width = 66
     Height = 13
     Caption = 'Размещение:'
   end
@@ -53,14 +53,14 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   object Label6: TLabel
     Left = 8
     Top = 89
-    Width = 68
+    Width = 67
     Height = 13
     Caption = 'Переменных:'
   end
   object Label7: TLabel
     Left = 8
     Top = 110
-    Width = 82
+    Width = 81
     Height = 13
     Caption = 'Размер данных:'
   end
@@ -81,7 +81,7 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   object lName: TLabel
     Left = 104
     Top = 20
-    Width = 79
+    Width = 77
     Height = 13
     Caption = 'Наименование:'
   end
@@ -95,28 +95,28 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   object lValues: TLabel
     Left = 104
     Top = 89
-    Width = 68
+    Width = 67
     Height = 13
     Caption = 'Переменных:'
   end
   object lSize: TLabel
     Left = 104
     Top = 110
-    Width = 42
+    Width = 39
     Height = 13
     Caption = 'Размер:'
   end
   object Label3: TLabel
     Left = 8
     Top = 130
-    Width = 55
+    Width = 52
     Height = 13
     Caption = 'Изменено:'
   end
   object lModified: TLabel
     Left = 104
     Top = 130
-    Width = 52
+    Width = 48
     Height = 13
     Caption = 'Изменено'
   end

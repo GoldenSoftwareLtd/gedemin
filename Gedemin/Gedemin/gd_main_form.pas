@@ -1378,7 +1378,7 @@ begin
     Form := Sender as TForm;
 
     I := GetFormToggleItemIndex(Form);
-    // Если текущей форме не соответствует никакая кнопка, то добавим ее
+    // Если текущей форме не соответствует ни какая кнопка, то добавим ее
     if GetFormToggleItemIndex(Form) = -1 then
     begin
       AddFormToggleItem(Form);

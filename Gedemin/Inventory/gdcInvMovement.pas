@@ -371,6 +371,7 @@ type
     FSumFeatures: TStringList;
     FGoodViewFeatures: TStringList;
     FGoodSumFeatures: TStringList;
+    FRestrictRemainsBy: String;
 
     FCurrentRemains: Boolean;
     FRemainsSQLType: TInvRemainsSQLType;
@@ -448,6 +449,8 @@ type
     property IsMinusRemains: Boolean read FIsMinusRemains write FIsMinusRemains;
     property IsUseCompanyKey: Boolean read FIsUseCompanyKey write FIsUseCompanyKey;
     property UseSelectFromSelect: Boolean read FUseSelectFromSelect;
+// Ограничить отбор остатков по реквизиту
+    property RestrictRemainsBy: String read FRestrictRemainsBy write FRestrictRemainsBy;
   published
     property OnAfterInitSQL;
   end;
@@ -586,6 +589,7 @@ type
     FViewFeatures: TgdcInvFeatures;
     FGoodViewFeatures: TgdcInvFeatures;
     FGoodSumFeatures: TgdcInvFeatures;
+    FRestrictRemainsBy: String;
 
     procedure UpdateExplorerCommandData(
       MainBranchName, CMD, CommandName, DocumentID, ClassName: String;
@@ -615,6 +619,7 @@ type
     property ViewFeatures: TgdcInvFeatures read FViewFeatures;
     property GoodViewFeatures: TgdcInvFeatures read FGoodViewFeatures;
     property GoodSumFeatures: TgdcInvFeatures read FGoodSumFeatures;
+    property RestrictRemainsBy: String read FRestrictRemainsBy;
   end;
 
   TgdcInvCardConfig = class(TgdcBaseAcctConfig)
@@ -4977,6 +4982,8 @@ begin
 
         isUseCompanyKey := ibsql.FieldByName('usecompanykey').AsInteger = 1;
 
+        RestrictRemainsBy := ibsql.FieldByName('restrictremainsby').AsString;
+
       end;
     finally
       ibsql.Free;
@@ -5222,17 +5229,26 @@ var
   var
     i : Integer;
   begin
-    Result := ' SELECT M.CARDKEY, M.CONTACTKEY, '#13#10 +
-      '   M.BALANCE '#13#10 +
-      ' FROM '#13#10 +
-      '   INV_BALANCE M ';
-    if HasSubSet(cst_ByGoodKey) then
+    if ((FRestrictRemainsBy <> '') and (atDatabase.FindRelationField('INV_CARD', FRestrictRemainsBy) <> nil)) then
     begin
-      if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or
-        (CurrentRemains and (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil))
-      then
-        Result := Result + #13#10 +
-          ' JOIN INV_CARD C ON C.ID = M.CARDKEY ';
+      Result := ' SELECT M.CARDKEY, M.CONTACTKEY, '#13#10 +
+        '   M.BALANCE '#13#10 +
+        ' FROM '#13#10 +
+        '   INV_CARD C '#13#10 +
+        ' LEFT JOIN INV_BALANCE M '#13#10 +
+        '   ON C.ID = M.CARDKEY ';
+    end
+    else begin
+      Result := ' SELECT M.CARDKEY, M.CONTACTKEY, '#13#10 +
+        '   M.BALANCE '#13#10 +
+        ' FROM '#13#10 +
+        '   INV_BALANCE M ';
+      if HasSubSet(cst_ByGoodKey) then
+        if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or
+          (CurrentRemains and (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil))
+        then
+          Result := Result + #13#10 +
+            ' JOIN INV_CARD C ON C.ID = M.CARDKEY ';
     end;
 
     if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
@@ -5249,7 +5265,7 @@ var
           else
             Result := Result + ' JOIN (SELECT CON.ID FROM GD_CONTACT CON ' +
               ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ) H ON H.ID = M.CONTACTKEY ';
+              ' JOIN gd_holding h ON (CON1.id = h.companykey AND h.holdingkey = :holdingkey) OR (CON1.ID  = :holdingkey)) H ON H.ID = M.CONTACTKEY ';
 
           if not IBLogin.IsUserAdmin then
             Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
@@ -5265,7 +5281,7 @@ var
           else
             Result := Result + ' JOIN (SELECT CON.ID FROM GD_CONTACT CON ' +
               ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ) H ON H.ID = M.CONTACTKEY ';
+              ' JOIN gd_holding h ON (CON1.id = h.companykey AND h.holdingkey = :holdingkey) OR (CON1.ID  = :holdingkey)) H ON H.ID = M.CONTACTKEY ';
 
           if not IBLogin.IsUserAdmin then
             Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
@@ -5294,6 +5310,10 @@ var
         Result := Result +  '  M.BALANCE <> 0 '
       else
         Result := Result +  '  (1 = 1) ';
+
+    if ((FRestrictRemainsBy <> '') and (atDatabase.FindRelationField('INV_CARD', FRestrictRemainsBy) <> nil)) then
+      Result := Result + #13#10 +
+        ' and C.' + FRestrictRemainsBy + ' > 0 ';
 
     if HasSubSet(cst_ByGoodKey) then
     begin
@@ -5331,24 +5351,32 @@ var
           then
             Result := Result + ' AND M.CONTACTKEY = :DepartmentKey ';
       end;
-
   end;
 
   function MakeInvMovementPart: String;
   var
     i : Integer;
   begin
-    Result := ' SELECT M.CARDKEY, M.CONTACTKEY, '#13#10 +
+    if ((FRestrictRemainsBy <> '') and (atDatabase.FindRelationField('INV_CARD', FRestrictRemainsBy) <> nil)) then
+    begin
+      Result := ' SELECT M.CARDKEY, M.CONTACTKEY, '#13#10 +
       '   SUM(M.CREDIT - M.DEBIT) AS BALANCE '#13#10 +
       ' FROM '#13#10 +
-      '   INV_MOVEMENT M ';
-    if HasSubSet(cst_ByGoodKey) then
-    begin
-      if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or
-        (CurrentRemains and (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil))
-      then
-        Result := Result + #13#10 +
-          ' JOIN INV_CARD C ON C.ID = M.CARDKEY ';
+        '   INV_CARD C '#13#10 +
+        ' LEFT JOIN INV_MOVEMENT M '#13#10 +
+        '   ON C.ID = M.CARDKEY ';
+    end
+    else begin
+      Result := ' SELECT M.CARDKEY, M.CONTACTKEY, '#13#10 +
+        '   SUM(M.CREDIT - M.DEBIT) AS BALANCE '#13#10 +
+        ' FROM '#13#10 +
+        '   INV_MOVEMENT M ';
+      if HasSubSet(cst_ByGoodKey) then
+        if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or
+          (CurrentRemains and (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil))
+        then
+          Result := Result + #13#10 +
+            ' JOIN INV_CARD C ON C.ID = M.CARDKEY ';
     end;
 
     if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
@@ -5365,7 +5393,7 @@ var
           else
             Result := Result + ' JOIN (SELECT CON.ID FROM GD_CONTACT CON ' +
               ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ) H ON H.ID = M.CONTACTKEY ';
+              ' JOIN gd_holding h ON (CON1.id = h.companykey AND h.holdingkey = :holdingkey) OR (CON1.ID  = :holdingkey)) H ON H.ID = M.CONTACTKEY ';
 
           if not IBLogin.IsUserAdmin then
             Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
@@ -5381,7 +5409,7 @@ var
           else
             Result := Result + ' JOIN (SELECT CON.ID FROM GD_CONTACT CON ' +
               ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ) H ON H.ID = M.CONTACTKEY ';
+              ' JOIN gd_holding h ON (CON1.id = h.companykey AND h.holdingkey = :holdingkey) OR (CON1.ID  = :holdingkey)) H ON H.ID = M.CONTACTKEY ';
 
           if not IBLogin.IsUserAdmin then
             Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
@@ -5404,6 +5432,10 @@ var
 
     Result := Result + #13#10 + ' WHERE M.DISABLED = 0 '#13#10 +
       ' AND M.MOVEMENTDATE > :REMAINSDATE ';
+
+    if ((FRestrictRemainsBy <> '') and (atDatabase.FindRelationField('INV_CARD', FRestrictRemainsBy) <> nil)) then
+      Result := Result + #13#10 +
+        ' and C.' + FRestrictRemainsBy + ' > 0 ';
 
     if HasSubSet(cst_ByGoodKey) then
     begin
@@ -5637,7 +5669,7 @@ begin
             Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB and CON.contacttype = 2'
           else
             Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
+              ' JOIN gd_holding h ON (CON1.id = h.companykey AND h.holdingkey = :holdingkey) OR (CON1.ID  = :holdingkey) ';
 
           if not IBLogin.IsUserAdmin then
             Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
@@ -5652,7 +5684,7 @@ begin
             Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB '
           else
             Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
+              ' JOIN gd_holding h ON (CON1.id = h.companykey AND h.holdingkey = :holdingkey) OR (CON1.ID  = :holdingkey) ';
 
           if not IBLogin.IsUserAdmin then
             Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
@@ -6501,6 +6533,8 @@ begin
   FgdcDocumentLine := InvMovement.gdcDocumentLine;
 
   FEndMonthRemains := InvMovement.EndMonthRemains;
+
+  FRestrictRemainsBy := (InvMovement.gdcDocumentLine as TgdcInvDocumentLine).RestrictRemainsBy;
 
   with InvPosition do
   begin
@@ -7989,6 +8023,7 @@ procedure TgdcInvRemainsOption.ReadOptions;
 var
   Stream: TStream;
 begin
+  FRestrictRemainsBy := FieldByName('restrictremainsby').AsString;
   Stream := TStringStream.Create(FieldByName('viewfields').AsString);
   try
     with TReader.Create(Stream, 1024) do
@@ -8191,6 +8226,7 @@ var
   Stream: TStringStream;
   i: Integer;
 begin
+  FieldByName('restrictremainsby').AsString := FRestrictRemainsBy;
   Stream := TStringStream.Create('');
   try
     with TWriter.Create(Stream, 1024) do

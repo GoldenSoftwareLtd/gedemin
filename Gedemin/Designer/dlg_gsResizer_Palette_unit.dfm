@@ -23,14 +23,14 @@ object dlg_gsResizer_Palette: Tdlg_gsResizer_Palette
     Left = 0
     Top = 0
     Width = 94
-    Height = 58
+    Height = 61
     Align = alLeft
     TabOrder = 0
     object tbButons: TTBToolbar
       Left = 1
       Top = 1
       Width = 92
-      Height = 56
+      Height = 59
       Align = alClient
       AutoResize = False
       Caption = 'tbButons'

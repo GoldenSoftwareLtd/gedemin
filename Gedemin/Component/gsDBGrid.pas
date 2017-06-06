@@ -4480,9 +4480,6 @@ begin
       //////////////////////////////////////////////
       // Используется режим расширенного отображения
 
-      // Возвращает высоту строчки
-      DefRowHeight := GetDefaultTitleRowHeight;
-
       Canvas.Brush.Color := DrawColumn.Title.Color;
       Canvas.Font := DrawColumn.Title.Font;
 
@@ -4492,6 +4489,10 @@ begin
       if FTitlesExpanding and ExpandExists(DrawColumn) then
       begin
         ExpandsList := TList.Create;
+
+        // Возвращает высоту строчки
+        DefRowHeight := GetDefaultTitleRowHeight;
+
         try
           GetCaptionFields(DrawColumn, ExpandsList);
 
@@ -6632,7 +6633,7 @@ var
   CurrField: TField;
   Lines: array of Integer;
   I: Integer;
-  temp, H: Integer;
+  temp, H, DefRowHeight: Integer;
   TR: TRect;
 begin
   Result := 1;
@@ -6662,33 +6663,28 @@ begin
       if Lines[CurrField.Index] > Result then
         Result := Lines[CurrField.Index];
     end;
-  end else
+  end;
+
+  if FTitlesExpanding and (Result = 1) then
   begin
-    if FTitlesExpanding then
+    for I := 0 to Columns.Count - 1 do
     begin
-      for I := 0 to Columns.Count - 1 do
+      if Columns[I].Visible then
       begin
-        if Columns[I].Visible then
-        begin
-          TR := Rect(0, 0, Columns[I].Width - 4, 0);
-          if not HandleAllocated then
-          begin
-            DrawBitmap.Canvas.Font := TitleFont;
-            DrawText(DrawBitmap.Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
-              DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
-          end else
-          begin
-            Canvas.Font := TitleFont;
-            DrawText(Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
-              DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
-          end;
-          H := TR.Bottom - TR.Top;
-          temp := H div GetDefaultTitleRowHeight;
-          if H mod GetDefaultTitleRowHeight <> 0 then
-            temp := temp + 1;
-          if temp > Result then
-            Result := temp;
-        end;
+        TR := Rect(0, 0, Columns[I].Width - 4, 0);
+
+        // При HandleAllocated DrawText(Canvas.Handle.. в некоторых случаях возвращает 0.
+        // Поэтому используем DrawText(DrawBitmap.Canvas
+        DrawBitmap.Canvas.Font := TitleFont;
+        DrawText(DrawBitmap.Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
+          DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
+        H := TR.Bottom - TR.Top;
+        DefRowHeight := GetDefaultTitleRowHeight;
+        temp := H div DefRowHeight;
+        if H mod DefRowHeight <> 0 then
+          temp := temp + 1;
+        if temp > Result then
+          Result := temp;
       end;
     end;
   end;
@@ -7706,34 +7702,22 @@ end;
 
 function TgsCustomDBGrid.GetDefaultRowHeight: Integer;
 begin
-  if not HandleAllocated then
-  begin
-    DrawBitmap.Canvas.Font := Font;
-    Result := DrawBitmap.Canvas.TextHeight('Wg') + 3;
-    if dgRowLines in Options then
-      Inc(Result, GridLineWidth);
-  end else begin
-    Canvas.Font := Font;
-    Result := Canvas.TextHeight('Wg') + 3;
-    if dgRowLines in Options then
-      Inc(Result, GridLineWidth);
-  end;
+  // При HandleAllocated Canvas.TextHeight в некоторых случаях возвращает 0.
+  // Поэтому используем DrawBitmap.Canvas
+  DrawBitmap.Canvas.Font := Font;
+  Result := DrawBitmap.Canvas.TextHeight('Wg') + 3;
+  if dgRowLines in Options then
+    Inc(Result, GridLineWidth);
 end;
 
 function TgsCustomDBGrid.GetDefaultTitleRowHeight: Integer;
 begin
-  if not HandleAllocated then
-  begin
-    DrawBitmap.Canvas.Font := Font;
-    Result := DrawBitmap.Canvas.TextHeight('Wg') + 3;
-    if dgRowLines in Options then
-      Inc(Result, GridLineWidth);
-  end else begin
-    Canvas.Font := TitleFont;
-    Result := Canvas.TextHeight('Wg') + 3;
-    if dgRowLines in Options then
-      Inc(Result, GridLineWidth);
-  end;
+  // При HandleAllocated Canvas.TextHeight в некоторых случаях возвращает 0.
+  // Поэтому используем DrawBitmap.Canvas
+  DrawBitmap.Canvas.Font := TitleFont;
+  Result := DrawBitmap.Canvas.TextHeight('Wg') + 3;
+  if dgRowLines in Options then
+    Inc(Result, GridLineWidth);
 end;
 
 {
@@ -9341,7 +9325,6 @@ var
 begin
   if FInDrawTotals then
     exit;
-
   FInDrawTotals := True;
   try
     // малюем страку "агулам"

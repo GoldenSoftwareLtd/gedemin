@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2002-2015 by Golden Software of Belarus
+  Copyright (c) 2002-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -28,7 +28,7 @@ interface
 uses
   ComObj, ActiveX, AxCtrls, Classes, Gedemin_TLB, grids, dbgrids, gsStorage,
   gsIBGrid, gsDBGrid, gsIBLookupComboBox, mask, xDateEdits, flt_sqlFilter,
-  TB2Dock, TB2Toolbar, StdVcl, Controls, StdCtrls, DB, Forms,
+  TB2Dock, TB2Toolbar, StdVcl, Controls, StdCtrls, DB, Forms, gsRAChart,
   IBCustomDataSet, gdcBase, menus, Graphics, extctrls, ActnList, obj_WrapperDelphiClasses,
   Dialogs, gd_ClassList, IBDataBase, sysutils, gd_createable_form, gdcBaseInterface,
   gd_KeyAssoc, gdcInvMovement, gsDBReduction, xCalculatorEdit, gdcTree, gdcClasses,
@@ -4059,6 +4059,52 @@ type
     procedure Compare(const S1: WideString; const S2: WideString); safecall;
     function  Get_ShowDiffsOnly: WordBool; safecall;
     procedure Set_ShowDiffsOnly(Value: WordBool); safecall;
+  end;
+
+  TwrpGSRAChart = class(TwrpCustomControl, IgsRAChart)
+  private
+    function GetRAChart: TgsRAChart;
+  protected
+    function  Get_MinValue: OleVariant; safecall;
+    procedure Set_MinValue(Value: OleVariant); safecall;
+    function  Get_MaxValue: OleVariant; safecall;
+    procedure Set_MaxValue(Value: OleVariant); safecall;
+    function  Get_Value: OleVariant; safecall;
+    procedure Set_Value(Value: OleVariant); safecall;
+    function  Get_ResourceID: Integer; safecall;
+    procedure Set_ResourceID(Value: Integer); safecall;
+    function  Get_FirstVisibleValue: OleVariant; safecall;
+    procedure Set_FirstVisibleValue(Value: OleVariant); safecall;
+    function  AddRowHead(const ACaption: WideString; AWidth: Integer): Integer; safecall;
+    function  AddRowTail(const ACaption: WideString; AWidth: Integer): Integer; safecall;
+    function  AddResource(AnID: Integer; const AName: WideString; const ASubItems: WideString): Integer; safecall;
+    function  AddSubResource(AnID: Integer; AParentID: Integer; const AName: WideString;
+                             const ASubItems: WideString): Integer; safecall;
+    function  AddInterval(AnID: Integer; AResourceID: Integer; AStartValue: OleVariant;
+                          AnEndValue: OleVariant; AData: OleVariant; const AComment: WideString;
+                          AColor: Integer; AFontColor: Integer; ABorderKind: Integer): Integer; safecall;
+    function  Get_IntervalID: Integer; safecall;
+    function  Get_DragValue: OleVariant; safecall;
+    function  Get_DragResourceID: Integer; safecall;
+    function  Get_DragIntervalID: Integer; safecall;
+    procedure ClearResources; safecall;
+    procedure DeleteResource(AnID: Integer); safecall;
+    procedure ClearIntervals(AResourceID: Integer); safecall;
+    procedure DeleteInterval(AResourceID: Integer; AnID: Integer); safecall;
+    function  Get_SelectedCount: Integer; safecall;
+    procedure GetSelected(Idx: Integer; out AValue: OleVariant; out AResourceID: OleVariant); safecall;
+    procedure ClearSelected; safecall;
+    function  Get_RowHeight: Integer; safecall;
+    procedure Set_RowHeight(Value: Integer); safecall;
+    function  Get_CellWidth: Integer; safecall;
+    procedure Set_CellWidth(Value: Integer); safecall;
+    function  FindIntervalID(AResourceID: Integer; AValue: OleVariant): Integer; safecall;
+    procedure GetIntervalData(AResourceID: Integer; AnIntervalID: Integer; 
+                              out AStartValue: OleVariant; out AnEndValue: OleVariant; 
+                              out AData: OleVariant; out AComment: OleVariant); safecall;
+    function  Get_ScaleKind: Integer; safecall;
+    procedure Set_ScaleKind(Value: Integer); safecall;
+    procedure ScrollTo(AResourceID: Integer; AValue: OleVariant); safecall;
   end;
 
 implementation
@@ -19497,6 +19543,210 @@ begin
   Result := GetGDCCreateableForm.SubType;
 end;
 
+{ TwrpGSRAChart }
+
+function TwrpGSRAChart.Get_MaxValue: OleVariant;
+begin
+  Result := GetRAChart.MaxValue;
+end;
+
+function TwrpGSRAChart.Get_MinValue: OleVariant;
+begin
+  Result := GetRAChart.MinValue;
+end;
+
+function TwrpGSRAChart.GetRAChart: TgsRAChart;
+begin
+  Result := GetObject as TgsRAChart;
+end;
+
+procedure TwrpGSRAChart.Set_MaxValue(Value: OleVariant);
+begin
+  GetRAChart.MaxValue := Value;
+end;
+
+procedure TwrpGSRAChart.Set_MinValue(Value: OleVariant);
+begin
+  GetRAChart.MinValue := Value;
+end;
+
+function TwrpGSRAChart.Get_FirstVisibleValue: OleVariant;
+begin
+  Result := GetRAChart.FirstVisibleValue;
+end;
+
+function TwrpGSRAChart.Get_ResourceID: Integer;
+begin
+  Result := GetRAChart.ResourceID;
+end;
+
+function TwrpGSRAChart.Get_Value: OleVariant;
+begin
+  Result := GetRAChart.Value;
+end;
+
+procedure TwrpGSRAChart.Set_FirstVisibleValue(Value: OleVariant);
+begin
+  GetRAChart.FirstVisibleValue := Value;
+end;
+
+procedure TwrpGSRAChart.Set_ResourceID(Value: Integer);
+begin
+  GetRAChart.ResourceID := Value;
+end;
+
+procedure TwrpGSRAChart.Set_Value(Value: OleVariant);
+begin
+  GetRAChart.Value := Value;
+end;
+
+function TwrpGSRAChart.AddResource(AnID: Integer; const AName,
+  ASubItems: WideString): Integer;
+begin
+  Result := GetRAChart.AddResource(AnID, AName, ASubItems);
+end;
+
+function TwrpGSRAChart.AddRowHead(const ACaption: WideString;
+  AWidth: Integer): Integer;
+begin
+  Result := GetRAChart.AddRowHead(ACaption, AWidth);
+end;
+
+function TwrpGSRAChart.AddRowTail(const ACaption: WideString;
+  AWidth: Integer): Integer;
+begin
+  Result := GetRAChart.AddRowTail(ACaption, AWidth);
+end;
+
+function TwrpGSRAChart.AddSubResource(AnID, AParentID: Integer;
+  const AName, ASubItems: WideString): Integer;
+begin
+  Result := GetRAChart.AddSubResource(AnID, AParentID, AName, ASubItems);
+end;
+
+function TwrpGSRAChart.AddInterval(AnID: Integer; AResourceID: Integer; AStartValue: OleVariant;
+                          AnEndValue: OleVariant; AData: OleVariant; const AComment: WideString;
+                          AColor: Integer; AFontColor: Integer; ABorderKind: Integer): Integer;
+begin
+  Result := GetRAChart.AddInterval(AnID, AResourceID, AStartValue,
+    AnEndValue, AData, AComment, AColor, AFontColor, ABorderKind);
+end;
+
+function TwrpGSRAChart.Get_IntervalID: Integer;
+begin
+  Result := GetRAChart.IntervalID;
+end;
+
+function TwrpGSRAChart.Get_DragResourceID: Integer;
+begin
+  Result := GetRAChart.DragResourceID;
+end;
+
+function TwrpGSRAChart.Get_DragValue: OleVariant;
+begin
+  Result := GetRAChart.DragValue;
+end;
+
+procedure TwrpGSRAChart.ClearIntervals(AResourceID: Integer);
+begin
+  GetRAChart.ClearIntervals(AResourceID);
+end;
+
+procedure TwrpGSRAChart.ClearResources;
+begin
+  GetRAChart.ClearResources;
+end;
+
+procedure TwrpGSRAChart.DeleteInterval(AResourceID, AnID: Integer);
+begin
+  GetRAChart.DeleteInterval(AResourceID, AnID);
+end;
+
+procedure TwrpGSRAChart.DeleteResource(AnID: Integer);
+begin
+   GetRAChart.DeleteResource(AnID);
+end;
+
+function TwrpGSRAChart.Get_SelectedCount: Integer;
+begin
+  Result := GetRAChart.SelectedCount;
+end;
+
+procedure TwrpGSRAChart.GetSelected(Idx: Integer; out AValue: OleVariant;
+  out AResourceID: OleVariant);
+var
+  V: Variant;
+  R: Integer;
+begin
+  GetRAChart.GetSelected(Idx, V, R);
+  AValue := V;
+  AResourceID := R;
+end;
+
+procedure TwrpGSRAChart.ClearSelected;
+begin
+  GetRAChart.ClearSelected;
+end;
+
+function TwrpGSRAChart.Get_CellWidth: Integer;
+begin
+  Result := GetRAChart.CellWidth;
+end;
+
+function TwrpGSRAChart.Get_RowHeight: Integer;
+begin
+  Result := GetRAChart.RowHeight;
+end;
+
+procedure TwrpGSRAChart.Set_CellWidth(Value: Integer);
+begin
+  GetRAChart.CellWidth := Value;
+end;
+
+procedure TwrpGSRAChart.Set_RowHeight(Value: Integer);
+begin
+  GetRAChart.RowHeight := Value;
+end;
+
+function TwrpGSRAChart.FindIntervalID(AResourceID: Integer;
+  AValue: OleVariant): Integer;
+begin
+  Result := GetRAChart.FindIntervalID(AResourceID, AValue);
+end;
+
+procedure TwrpGSRAChart.GetIntervalData(AResourceID, AnIntervalID: Integer;
+  out AStartValue, AnEndValue, AData, AComment: OleVariant);
+var
+  SV, EV, D: Variant;
+  C: String;
+begin
+  GetRAChart.GetIntervalData(AResourceID, AnIntervalID, SV, EV, D, C);
+  AStartValue := SV;
+  AnEndValue := EV;
+  AData := D;
+  AComment := C;
+end;
+
+function TwrpGSRAChart.Get_DragIntervalID: Integer;
+begin
+  Result := GetRAChart.DragIntervalID;
+end;
+
+function TwrpGSRAChart.Get_ScaleKind: Integer;
+begin
+  Result := GetRAChart.ScaleKind;
+end;
+
+procedure TwrpGSRAChart.Set_ScaleKind(Value: Integer);
+begin
+  GetRAChart.ScaleKind := Value;
+end;
+
+procedure TwrpGSRAChart.ScrollTo(AResourceID: Integer; AValue: OleVariant);
+begin
+  GetRAChart.ScrollTo(AResourceID, AValue);
+end;
+
 initialization
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
   RegisterGdcOLEClass(TgsIBLookupComboBox, TwrpIBLookupComboBoxX, ComServer.TypeLib, IID_IgsIBLookupComboBoxX);
@@ -19746,5 +19996,5 @@ initialization
   RegisterGdcOLEClass(TgsPLClient, TwrpPLClient, ComServer.TypeLib, IID_IgsPLClient);
   RegisterGdcOLEClass(TgsPLQuery, TwrpPLQuery, ComServer.TypeLib, IID_IgsPLQuery);
   RegisterGdcOLEClass(TFilesFrame, TwrpFilesFrame, ComServer.TypeLib, IID_IgsFilesFrame);
-
+  RegisterGdcOLEClass(TgsRAChart, TwrpGSRAChart, ComServer.TypeLib, IID_IgsRAChart);
 end.

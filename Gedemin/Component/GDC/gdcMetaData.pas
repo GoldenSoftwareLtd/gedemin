@@ -132,6 +132,7 @@ type
 
     function GetDialogDefaultsFields: String; override;
     function GetAutoObjectsNames(SL: TStrings): Boolean; virtual;
+    procedure GetProperties(ASL: TStrings); override;
 
     property IsUserDefined: Boolean read GetIsUserDefined;
     property IsFirebirdObject: Boolean read GetIsFirebirdObject;
@@ -821,7 +822,7 @@ uses
   at_sql_setup, gd_directories_const,
   gdc_attr_dlgGenerator_unit, gdc_attr_frmGenerator_unit,
   gdc_attr_frmCheckConstraint_unit, gdc_attr_dlgCheckConstraint_unit,
-  gdcLBRBTreeMetaData
+  gdcLBRBTreeMetaData, gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -6888,6 +6889,28 @@ function TgdcMetaBase.GetIsUserDefined: Boolean;
 begin
   Result := (not IsFirebirdObject)
     and (StrIPos(UserPrefix, FirebirdObjectName) = 1);
+end;
+
+procedure TgdcMetaBase.GetProperties(ASL: TStrings);
+begin
+  inherited;
+
+  if IsUserDefined then
+    ASL.Add(AddSpaces('User defined') + 'Yes')
+  else
+    ASL.Add(AddSpaces('User defined') + 'No');
+
+  if IsFirebirdObject then
+    ASL.Add(AddSpaces('Firebird object') + 'Yes')
+  else
+    ASL.Add(AddSpaces('Firebird object') + 'No');
+
+  if IsDerivedObject then
+    ASL.Add(AddSpaces('Derived object') + 'Yes')
+  else
+    ASL.Add(AddSpaces('Derived object') + 'No');
+
+  ASL.Add(AddSpaces('Fb object name') + FirebirdObjectName);
 end;
 
 function TgdcMetaBase.GetRelationName: String;

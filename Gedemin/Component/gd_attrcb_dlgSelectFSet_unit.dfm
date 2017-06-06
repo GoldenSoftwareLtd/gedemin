@@ -1,6 +1,6 @@
 object dlgSelectFSet: TdlgSelectFSet
-  Left = 404
-  Top = 152
+  Left = 565
+  Top = 356
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Выбор множества'
@@ -56,6 +56,8 @@ object dlgSelectFSet: TdlgSelectFSet
       Width = 518
       Height = 21
       TabOrder = 0
+      OnEnter = edNameEnter
+      OnExit = edNameExit
       OnKeyDown = edNameKeyDown
     end
     object cbCondition: TComboBox
@@ -229,7 +231,6 @@ object dlgSelectFSet: TdlgSelectFSet
     end
   end
   object ibqryFind: TIBQuery
-    Database = dmDatabase.ibdbGAdmin
     SQL.Strings = (
       'SELECT '
       '  * '
@@ -247,7 +248,6 @@ object dlgSelectFSet: TdlgSelectFSet
       end>
   end
   object ibsqlTree: TIBSQL
-    Database = dmDatabase.ibdbGAdmin
     SQL.Strings = (
       'SELECT'
       '  1'
@@ -270,7 +270,6 @@ object dlgSelectFSet: TdlgSelectFSet
     Top = 192
   end
   object ibsqlTarget: TIBSQL
-    Database = dmDatabase.ibdbGAdmin
     Left = 426
     Top = 160
   end

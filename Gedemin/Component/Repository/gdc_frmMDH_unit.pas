@@ -144,6 +144,9 @@ type
     procedure pnlSearchDetailEnter(Sender: TObject);
     procedure pnlSearchDetailExit(Sender: TObject);
     procedure tbiDetailNewPopup(Sender: TTBCustomItem; FromLink: Boolean);
+    procedure sbSearchDetailMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure miRemoveFromSearchClick(Sender: TObject);
 
   private
     FgdcDetailObject: TgdcBase;
@@ -1167,12 +1170,14 @@ procedure Tgdc_frmMDH.pnlSearchDetailEnter(Sender: TObject);
 begin
   inherited;
   btnOkChoose.Default := False;
+  btnSearchMain.Default := False;
 end;
 
 procedure Tgdc_frmMDH.pnlSearchDetailExit(Sender: TObject);
 begin
   inherited;
   btnOkChoose.Default := True;
+  btnSearchMain.Default := True;
 end;
 
 procedure Tgdc_frmMDH.DoShowAllFields(Sender: TObject);
@@ -1265,6 +1270,69 @@ begin
   {M}    ClearMacrosStack('TGDC_FRMMDH', 'SETUP', KEYSETUP);
   {M}end;
   {END MACRO}
+end;
+
+procedure Tgdc_frmMDH.sbSearchDetailMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  inherited;
+  if WheelDelta < 0 then WheelDelta := -10 else WheelDelta := 10;
+  sbSearchDetail.VertScrollBar.Position := sbSearchDetail.VertScrollBar.Position - WheelDelta;
+end;
+
+procedure Tgdc_frmMDH.miRemoveFromSearchClick(Sender: TObject);
+var EC: TCustomEdit;
+    pmSender: TPopupMenu;
+    I: integer;
+    FOD_Old: TStringList;
+    Last: boolean;
+begin
+  pmSender := (Sender as TMenuItem).Parent.Owner as TPopupMenu;
+  EC := pmSender.PopupComponent as TCustomEdit;
+
+ if TWinControl(EC).Parent = sbSearchDetail then
+  begin
+    if pnlSearchDetail.Visible then
+    begin
+      FOD_Old := TStringList.Create;
+      try
+        for I := sbSearchDetail.ControlCount - 1 downto 0 do
+        begin
+          if (sbSearchDetail.Controls[I] is TCustomEdit)
+            and  (TCustomEdit(sbSearchDetail.Controls[I]).Text <> '') then
+              FOD_Old.Add(FFieldOriginDetail.Names[sbSearchDetail.Controls[I].Tag]+'='+TCustomEdit(sbSearchDetail.Controls[I]).Text);
+        end;
+        RemoveFromSearchHist(EC, FFieldOriginDetail);
+        Last := FFieldOriginDetail.Count = 1;
+
+        gdcDetailObject.ExtraConditions.Text := FDetailPreservedConditions;
+        FreeAndNil(FFieldOriginDetail);
+        for I := sbSearchDetail.ControlCount - 1 downto 0 do
+        begin
+          sbSearchDetail.Controls[I].Free;
+        end;
+
+        SetupSearchPanel(gdcDetailObject,
+          pnlSearchDetail,
+          sbSearchDetail,
+          nil{sSearchDetail},
+          FFieldOriginDetail,
+          FDetailPreservedConditions);
+
+        if not Last then
+          for I := sbSearchDetail.ControlCount - 1 downto 0 do
+          begin
+            if (sbSearchDetail.Controls[I] is TCustomEdit) then
+              TCustomEdit(sbSearchDetail.Controls[I]).Text := FOD_Old.Values[FFieldOriginDetail.Names[sbSearchDetail.Controls[I].Tag]];
+          end;
+       finally
+        FOD_Old.Free;
+       end;
+    end;
+  end else
+    inherited;
+
 end;
 
 initialization

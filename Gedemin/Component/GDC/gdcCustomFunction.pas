@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2012 by Golden Software of Belarus
+  Copyright (c) 2001-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -125,7 +125,11 @@ implementation
 uses
   gd_security_operationconst, Windows, sysutils, gd_ClassList, gd_security,
   prp_frmGedeminProperty_Unit, prp_MessageConst, gd_ScriptCompiler, gdcConstants,
-  forms, scr_i_FunctionList, rp_BaseReport_unit, IBQuery, IBIntf;
+  forms, scr_i_FunctionList, rp_BaseReport_unit, IBQuery, IBIntf
+  {$IFDEF WITH_INDY}
+    , gdccClient_unit, gdccConst
+  {$ENDIF}
+  ;
 
 type
   TAddType = (atAddInfo, atChangeInfo, atIgnore);
@@ -232,7 +236,7 @@ const
   LengthInc = Length(IncludePrefix);
   LimitChar = [' ', ',', ';', #13, #10];
 var
-  TempStr: String;
+  TempStr, Msg: String;
   I, J, StartIndex: Integer;
   ibsqlWork: TIBSQL;
   ObjectId: Integer;
@@ -334,8 +338,18 @@ begin
         end;
         if ObjectId = 0 then
         begin
-          Application.MessageBox(PChar('Функция "' + Trim(SL.Strings[I]) +
-            '" не найдена.'), 'Внимание', MB_OK or MB_ICONWARNING or MB_TOPMOST or MB_TASKMODAL);
+          Msg := 'Функция "' + Trim(SL.Strings[I]) + '" не найдена.';
+          {$IFDEF WITH_INDY}
+          if Global_LoadingNamespace then
+          begin
+            if gdccClient <> nil then
+            begin
+              gdccClient.AddLogRecord('ns', Msg, gdcc_lt_Warning, True);
+            end;
+          end else
+          {$ENDIF}
+            MessageBox(Application.Handle, PChar(Msg), 'Внимание',
+              MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
 
           SL.Delete(I);
           Dec(I);

@@ -105,6 +105,10 @@ type
     procedure actGoToMethodsParentUpdate(Sender: TObject);
     procedure actDeleteFromNamespaceUpdate(Sender: TObject);
     procedure actDeleteFromNamespaceExecute(Sender: TObject);
+    procedure sbFieldsMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure sbFields2MouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 
   private
     function GetCurrentSecField(const ATI: TgdcTableInfos = []): TField;
@@ -987,6 +991,24 @@ procedure Tgdc_dlgObjectProperties.actDeleteFromNamespaceExecute(
   Sender: TObject);
 begin
   ibdsNS.Delete;
+end;
+
+procedure Tgdc_dlgObjectProperties.sbFieldsMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  inherited;
+  if WheelDelta < 0 then WheelDelta := -10 else WheelDelta := 10;
+  sbFields.VertScrollBar.Position := sbFields.VertScrollBar.Position - WheelDelta;
+end;
+
+procedure Tgdc_dlgObjectProperties.sbFields2MouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  inherited;
+  if WheelDelta < 0 then WheelDelta := -10 else WheelDelta := 10;
+  sbFields2.VertScrollBar.Position := sbFields2.VertScrollBar.Position - WheelDelta;
 end;
 
 initialization

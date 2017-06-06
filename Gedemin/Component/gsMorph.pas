@@ -702,8 +702,10 @@ begin
         Text := Text + Numeral(PartText, TheCase) + ' '
       else if (str2 = 'ая') or (str2 = 'яя') then
         Text := Text + SetCase(PartText, TheCase, gdFeminine, nmOwn) + ' '
-      else if (str2 = 'ый') or (str2 = 'ий') then
+      else if (str2 = 'ый') or (str2 = 'ий') or (str2 = 'ой') then
         Text := Text + SetCase(PartText, TheCase, gdMasculine, nmOwn) + ' '
+      else if (str2 = 'ое') or (str2 = 'ее') then
+        Text := Text + SetCase(PartText, TheCase, gdMedium, nmOwn) + ' '
       //Если наименование, то находим, копируем и выходим
       else if (str1 = 'а') or (str1 = 'я') or (str1 in sogl) then //женский род
       begin

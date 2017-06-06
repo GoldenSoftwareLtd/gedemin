@@ -107,6 +107,8 @@ type
     cbEndMonthRemains: TCheckBox;
     cbWithoutSearchRemains: TCheckBox;
     lblNotification: TLabel;
+    lblRestrictBy: TLabel;
+    luRestrictBy: TComboBox;
 
     procedure actAddFeatureExecute(Sender: TObject);
     procedure actRemoveFeatureExecute(Sender: TObject);
@@ -746,6 +748,8 @@ begin
   cbLiveTimeRemains.Visible := cbRemains.Checked;
   cbMinusRemains.Visible := cbRemains.Checked;
   cbWithoutSearchRemains.Visible := not cbControlRemains.Checked and (cbTemplate.ItemIndex = 1);
+  lblRestrictBy.Visible := cbRemains.Checked;
+  luRestrictBy.Visible := cbRemains.Checked;
 end;
 
 constructor Tgdc_dlgSetupInvDocument.Create(AOwner: TComponent);
@@ -826,6 +830,7 @@ var
   q: TIBSQL;
   V: TgdcMCOPredefined;
   IDE: TgdInvDocumentEntry;
+  RestrictRemainsBy: string;
 
   procedure UpdateComboBox(CB: TComboBox; const FieldName: String);
   begin
@@ -970,6 +975,19 @@ begin
     cbReference.Checked := irsGoodRef in IDE.GetSources;
     cbRemains.Checked := irsRemainsRef in IDE.GetSources;
 //  cbFromMacro.Checked := irsMacro in Sources;
+
+    // Ограничение отбора остатков по признаку
+    if IDE.GetFeaturesCount(ftRestrRemainsBy) > 0 then
+      RestrictRemainsBy := IDE.GetFeature(ftRestrRemainsBy, 0);
+    if RestrictRemainsBy > '' then
+    begin
+      for I := 0 to luRestrictBy.Items.Count - 1 do
+        if Pos('(' + RestrictRemainsBy + ')', luRestrictBy.Items[I]) > 0 then
+        begin
+          luRestrictBy.ItemIndex := I;
+          break;
+        end;
+    end;
 
     // Настройка FIFO, LIFO
     rgMovementDirection.ItemIndex := Integer(IDE.GetDirection);
@@ -1783,6 +1801,7 @@ begin
       WriteBoolean(cbWithoutSearchRemains.Checked)
     else
       WriteBoolean(False);
+
   finally
     Movement.Free;
     Free;
@@ -1972,6 +1991,7 @@ procedure Tgdc_dlgSetupInvDocument.SetupDialog;
   I: Integer;
   Item: TListItem;
   Relation: TatRelation;
+  ibsql: TIBSQL;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSETUPINVDOCUMENT', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -1997,12 +2017,40 @@ begin
 
   // Страница признаков
   lvFeatures.Items.Clear;
+  luRestrictBy.Items.Clear;
 
   Relation := atDatabase.Relations.ByRelationName('INV_CARD');
   Assert(Relation <> nil);
 
+    ibsql := TIBSQL.Create(nil);
+  try
+    ibsql.Transaction := Document.Transaction;
+    ibsql.SQL.Text := 'SELECT ind.RDB$INDEX_NAME ' +
+      'FROM RDB$INDICES ind ' +
+      'JOIN RDB$INDEX_SEGMENTS inds ON ind.RDB$INDEX_NAME = inds.RDB$INDEX_NAME ' +
+      'WHERE ind.RDB$RELATION_NAME = :RELATION_NAME ' +
+      'and inds.RDB$FIELD_NAME = :FIELD_NAME ';
+
+    for I := 0 to Relation.RelationFields.Count - 1 do
+    begin
+      ibsql.ParamByName('RELATION_NAME').Value := 'INV_CARD';
+      ibsql.ParamByName('FIELD_NAME').Value := Relation.RelationFields[I].FieldName;
+      ibsql.ExecQuery;
+      if (Relation.RelationFields[I].Field.FieldType in [ftSmallint, ftInteger, ftWord, ftFloat, ftCurrency, ftBCD, ftLargeint])
+        and (ibsql.RecordCount > 0) then
+        luRestrictBy.Items.Add(Relation.RelationFields[I].LShortName +
+          '('+Relation.RelationFields[I].FieldName+')');
+
+      ibsql.Close;
+     end;
+
+  finally
+    ibsql.free;
+  end;
+
   for I := 0 to Relation.RelationFields.Count - 1 do
   begin
+
     if not Relation.RelationFields[I].IsUserDefined then
       continue;
 
@@ -2233,6 +2281,8 @@ var
   DE: TgdDocumentEntry;
   IE: TgdInvDocumentEntry;
   V: TgdcMCOPredefined;
+  RestrictRemainsBy: TStringList;
+  S, F: integer;
 begin
   inherited;
 
@@ -2327,6 +2377,19 @@ begin
     // Настройка справочников
     Document.UpdateFlag(efSrcGoodRef, cbReference.Checked);
     Document.UpdateFlag(efSrcRemainsRef, cbRemains.Checked);
+
+    RestrictRemainsBy := TStringList.Create();
+    try
+      if luRestrictBy.ItemIndex <> -1 then
+      begin
+        S := LastCharPos('(', luRestrictBy.Items[luRestrictBy.ItemIndex]);
+        F := LastCharPos(')', luRestrictBy.Items[luRestrictBy.ItemIndex]);
+        RestrictRemainsBy.Add(Copy(luRestrictBy.Items[luRestrictBy.ItemIndex], S + 1, F - S - 1));
+      end;
+      Document.UpdateFeatures(ftRestrRemainsBy, RestrictRemainsBy);
+    finally
+      RestrictRemainsBy.Free;
+    end;
 
     if IE.GetDirection <> TgdcInvMovementDirection(rgMovementDirection.ItemIndex) then
     begin

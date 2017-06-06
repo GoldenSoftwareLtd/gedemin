@@ -2060,6 +2060,7 @@ begin
           FieldByName('number').AsString := gdcAcctComplexRecord.FieldByName('number').AsString;
           FieldByName('documenttypekey').AsInteger := gdcAcctComplexRecord.FieldByName('documenttypekey').AsInteger;
           FieldByName('documentdate').AsDateTime := gdcAcctComplexRecord.FieldByName('recorddate').AsDateTime;
+          FieldByName('description').AsString := gdcAcctComplexRecord.FieldByName('description').AsString;
 
           if FindField('documentkey') <> nil then
             FieldByName('documentkey').AsInteger := gdcAcctComplexRecord.FieldByName('documentkey').AsInteger;
@@ -2071,6 +2072,7 @@ begin
               FieldByName(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName).AsVariant :=
                 gdcAcctComplexRecord.EntryLines[i].Fields[j].AsVariant;
           Post;
+          UpdateCursorPos;
           Resync([]);
         except
           Cancel;

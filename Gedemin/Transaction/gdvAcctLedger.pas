@@ -667,6 +667,7 @@ var
   Accounts, TempVariables: TStringList;
   DebitCreditSQL: String;
   SelectClause, FromClause, FromClause1, GroupClause, GroupClause1, OrderClause: String;
+  SelectClause1, SelectClause2, SelectClause3, SelectClause4: String;
   IDSelect, NameSelect, WhereClause, QuantityGroup: String;
   Alias, Name: String;
   CurrId, HavingCount, HavingClause: String;
@@ -1031,7 +1032,7 @@ var
               ':' + Alias + ', ' +
               ':' + Name + ', ' +
               ':' + SortName + #13#10;
-          end; 
+          end;
 
           if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
           MainSubSelect := MainSubSelect +
@@ -1402,7 +1403,7 @@ begin
 
     TempVariables := TStringList.Create;
     try
-      N := FAcctGroupBy.Count;        // Кол-во выбранных группировочных аналитик      
+      N := FAcctGroupBy.Count;        // Кол-во выбранных группировочных аналитик
       for I := 0 to FAcctGroupBy.Count - 1 do
       begin
         F := FAcctGroupBy[I].Field;
@@ -1715,7 +1716,7 @@ begin
             ' e1.entrydate >= :closedate AND e1.entrydate < :datebegin '#13#10) +
         '     WHERE '#13#10 +
           IIF(AccountIDs <> '', ' e.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' e.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') + 
+          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' e.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
           IIF(FEntryBalanceDate > FDateBegin,
             ' e.entrydate >= :datebegin AND '#13#10,
             ' e.entrydate >= :closedate AND '#13#10) +
@@ -1780,7 +1781,7 @@ begin
             ' WHERE '#13#10 +
               IIF(AccountIDs <> '', ' em.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
             '   em.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-              IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + IntToStr(FCurrKey), '') + 
+              IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + IntToStr(FCurrKey), '') +
             '   AND em.entrydate >= :datebegin '#13#10 +
             '   AND em.entrydate <= :dateend '#13#10 +
               IIF(FIncludeInternalMovement, '', Self.InternalMovementClause('em') + #13#10) +
@@ -1934,7 +1935,7 @@ begin
           DebitCreditSQL := DebitCreditSQL + ' OR (' + FEQCreditAliases.Strings[I] + ' <> 0) ';
       end;
 
-      DebitCreditSQL := DebitCreditSQL + 
+      DebitCreditSQL := DebitCreditSQL +
         ') THEN '#13#10 +
         '     BEGIN '#13#10 +
         '       wasmovement = 1; '#13#10 +
@@ -2015,6 +2016,10 @@ begin
       IDSelect := '';
       NameSelect := '';
       WhereClause := '';
+      SelectClause1 := '';
+      SelectClause2 := '';
+      SelectClause3 := '';
+      SelectClause4 := '';
 
       AnalyticFilter := Self.GetCondition('e');
       if AnalyticFilter > '' then
@@ -2101,7 +2106,7 @@ begin
               end;
             end;
           end;
-        end;  
+        end;
         //****
         Alias := Format('c%d', [I]);
         Name := Format('NAME%d', [I]);
@@ -2124,27 +2129,9 @@ begin
             VKeyAlias := Self.GetKeyAlias(FAcctValues.Names[K]);
             ValueAlias := 'v_' + Self.GetKeyAlias(FAcctValues.Names[K]);
             QuantityAlias := 'q_' + Self.GetKeyAlias(FAcctValues.Names[K]);
-            //AccWhereQuantity := AccWhereQuantity + 'SUM(' + QuantityAlias + '.quantity) <> 0 OR ';
+        //    AccWhereQuantity := AccWhereQuantity + 'SUM(' + QuantityAlias + '.quantity) <> 0 OR ';
 
-            AccWhereQuantity := AccWhereQuantity +
-              Format(
-                '  CAST(IIF(SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
-                '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) > 0 AND '#13#10 +
-                '    NOT (SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
-                '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0))) IS NULL, '#13#10 +
-                '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
-                '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)), 0) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
-                '  CAST(IIF(SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
-                '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) > 0 AND '#13#10 +
-                '    NOT (SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
-                '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0))) IS NULL, '#13#10 +
-                '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
-                '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)), 0) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
-                '  CAST(SUM(IIF((e2.accountpart = ''D'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
-                '  CAST(SUM(IIF((e2.accountpart = ''C'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10,
-                [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
-
-            if not FEntryDateInFields then
+           if not FEntryDateInFields then
             begin
               BC := TgdvSimpleLedgerTotalBlock;
             end
@@ -2164,13 +2151,13 @@ begin
             FQuantityTotalBlock.Credit.FieldName := Format(BaseAcctQuantityFieldList[1].FieldName, [VKeyAlias]);
             FQuantityTotalBlock.EndDebit.FieldName := Format(BaseAcctQuantityFieldList[4].FieldName, [VKeyAlias]);
             FQuantityTotalBlock.EndCredit.FieldName := Format(BaseAcctQuantityFieldList[5].FieldName, [VKeyAlias]);
-            GetDebitQuantitySelectClause;
-            GetCreditQuantitySelectClause;
+           // GetDebitQuantitySelectClause;
+          //  GetCreditQuantitySelectClause;
             FQuantityTotalBlock := nil;
 
             if not FEntryDateIsFirst then
             begin
-              SelectClause := SelectClause + ','#13#10 +
+              SelectClause1 := SelectClause1 + ','#13#10 +
                 Format(
                   '  CAST(IIF(SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
                   '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) > 0 AND '#13#10 +
@@ -2183,9 +2170,21 @@ begin
                   '    NOT (SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
                   '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0))) IS NULL, '#13#10 +
                   '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
-                  '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)), 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_C_%1:s,'#13#10 +
-                  '  CAST(SUM(IIF((e2.accountpart = ''D'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_D_%1:s,'#13#10 +
-                  '  CAST(SUM(IIF((e2.accountpart = ''C'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_C_%1:s,'#13#10 +
+                  '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)), 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_C_%1:s',
+                  [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
+              SelectClause2 := SelectClause2 + ','#13#10 +
+                Format(
+                  '  CAST(SUM(IIF((e2.accountpart = ''D'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_D_%1:s',
+                  [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
+              SelectClause3 := SelectClause3 + ','#13#10 +
+                Format(
+                  '  CAST(SUM(IIF((e2.accountpart = ''C'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_C_%1:s',
+                  [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
+              SelectClause4 := SelectClause4 + ','#13#10 +
+                Format(
                   '  CAST(IIF(SUM(IIF(e.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
                   '    SUM(IIF(e.accountpart = ''C'', %0:s.quantity, 0)) > 0 AND '#13#10 +
                   '    NOT (SUM(IIF(e.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
@@ -2199,6 +2198,28 @@ begin
                   '    SUM(IIF(e.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
                   '    SUM(IIF(e.accountpart = ''D'', %0:s.quantity, 0)), 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_E_C_%1:s',
                   [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
+              if AccWhereQuantity <> '' then
+                AccWhereQuantity := AccWhereQuantity + ' OR '#13#10;
+
+              AccWhereQuantity := AccWhereQuantity +
+                Format(
+                  '  CAST(IIF(SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
+                  '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) > 0 AND '#13#10 +
+                  '    NOT (SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
+                  '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0))) IS NULL, '#13#10 +
+                  '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) - '#13#10 +
+                  '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)), 0) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
+                  '  CAST(IIF(SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
+                  '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)) > 0 AND '#13#10 +
+                  '    NOT (SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
+                  '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0))) IS NULL, '#13#10 +
+                  '    SUM(IIF(e1.accountpart = ''C'', %0:s.quantity, 0)) - '#13#10 +
+                  '    SUM(IIF(e1.accountpart = ''D'', %0:s.quantity, 0)), 0) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
+                  '  CAST(SUM(IIF((e2.accountpart = ''D'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
+                  '  CAST(SUM(IIF((e2.accountpart = ''C'') AND NOT %0:s.quantity IS NULL, %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 ',
+                  [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
               if I = 0 then
               begin
                 FromClause := FromClause + #13#10 +
@@ -2208,22 +2229,46 @@ begin
             end
             else
             begin
+              SelectClause1 := SelectClause1 + ','#13#10 +
+                Format(
+                  '  CAST(IIF(NOT %0:s.debitbegin IS NULL, %0:s.debitbegin, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_D_%1:s,'#13#10 +
+                  '  CAST(IIF(NOT %0:s.creditbegin IS NULL, %0:s.creditbegin, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_C_%1:s',
+                  [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
+              SelectClause2 := SelectClause2 + ','#13#10 +
+                Format(
+                  '  CAST(SUM(IIF((e2.accountpart = ''D'') AND NOT %0:s_f.quantity IS NULL, %0:s_f.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_D_%1:s',
+                  [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
+              SelectClause3 := SelectClause3 + ','#13#10 +
+                Format(
+                  '  CAST(SUM(IIF((e2.accountpart = ''C'') AND NOT %0:s_f.quantity IS NULL, %0:s_f.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_C_%1:s',
+                  [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
+              SelectClause4 := SelectClause4 + ','#13#10 +
+                Format(
+                  '  CAST(IIF(NOT %0:s.debitend IS NULL, %0:s.debitend, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_E_D_%1:s,'#13#10 +
+                  '  CAST(IIF(NOT %0:s.creditend IS NULL, %0:s.creditend, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_E_C_%1:s',
+                  [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
+              if QuantityGroup > '' then
+                QuantityGroup := QuantityGroup + ','#13#10;
+              QuantityGroup := QuantityGroup + Format('%s.debitbegin, %s.creditbegin, %s.debitend, %s.creditend',
+                [QuantityAlias, QuantityAlias, QuantityAlias, QuantityAlias, QuantityAlias, QuantityAlias]);
+
+              if AccWhereQuantity <> '' then
+                AccWhereQuantity := AccWhereQuantity + ' OR '#13#10;
+
+              AccWhereQuantity := AccWhereQuantity +
+                Format(
+                  '  CAST(SUM(IIF(NOT %0:s.debitbegin IS NULL, %0:s.debitbegin, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
+                  '  CAST(SUM(IIF(NOT %0:s.creditbegin IS NULL, %0:s.creditbegin, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
+                  '  CAST(SUM(IIF((e2.accountpart = ''D'') AND NOT %0:s_f.quantity IS NULL, %0:s_f.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 OR '#13#10 +
+                  '  CAST(SUM(IIF((e2.accountpart = ''C'') AND NOT %0:s_f.quantity IS NULL, %0:s_f.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) <> 0 ',
+                  [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
+
               if FAcctGroupBy[0].FieldName = ENTRYDATE then
               begin
-                SelectClause := SelectClause + ','#13#10 +
-                  Format(
-                    '  CAST(IIF(NOT %0:s.debitbegin IS NULL, %0:s.debitbegin, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_D_%1:s,'#13#10 +
-                    '  CAST(IIF(NOT %0:s.creditbegin IS NULL, %0:s.creditbegin, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_C_%1:s,'#13#10 +
-                    '  CAST(SUM(IIF((e2.accountpart = ''D'') AND NOT %0:s_f.quantity IS NULL, %0:s_f.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_D_%1:s,'#13#10 +
-                    '  CAST(SUM(IIF((e2.accountpart = ''C'') AND NOT %0:s_f.quantity IS NULL, %0:s_f.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_C_%1:s,'#13#10 +
-                    '  CAST(IIF(NOT %0:s.debitend IS NULL, %0:s.debitend, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_E_D_%1:s,'#13#10 +
-                    '  CAST(IIF(NOT %0:s.creditend IS NULL, %0:s.creditend, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_E_C_%1:s',
-                    [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
-                if QuantityGroup > '' then
-                  QuantityGroup := QuantityGroup + ','#13#10;
-                QuantityGroup := QuantityGroup + Format('%s.debitbegin, %s.creditbegin, %s.debitend, %s.creditend',
-                  [QuantityAlias, QuantityAlias, QuantityAlias, QuantityAlias, QuantityAlias, QuantityAlias]);
-
                 if I = 0 then
                 begin
                   if FAcctConditions.Count = 0 then
@@ -2241,21 +2286,6 @@ begin
               end
               else
               begin
-                SelectClause := SelectClause + ','#13#10 +
-                  Format(
-                    '  CAST(IIF(NOT %0:s.debitbegin IS NULL, %0:s.debitbegin, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_D_%1:s,'#13#10 +
-                    '  CAST(IIF(NOT %0:s.creditbegin IS NULL, %0:s.creditbegin, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_C_%1:s,'#13#10 +
-                    '  CAST(SUM(IIF((e2.accountpart = ''D'') AND NOT %0:s_f.quantity IS NULL, %0:s_f.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_D_%1:s,'#13#10 +
-                    '  CAST(SUM(IIF((e2.accountpart = ''C'') AND NOT %0:s_f.quantity IS NULL, %0:s_f.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_C_%1:s,'#13#10 +
-                    '  CAST(IIF(NOT %0:s.debitend IS NULL, %0:s.debitend, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_E_D_%1:s,'#13#10 +
-                    '  CAST(IIF(NOT %0:s.creditend IS NULL, %0:s.creditend, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_E_C_%1:s',
-                    [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
-
-                if QuantityGroup > '' then
-                  QuantityGroup := QuantityGroup + ','#13#10;
-                QuantityGroup := QuantityGroup + Format('%s.debitbegin, %s.creditbegin, %s.debitend, %s.creditend',
-                  [QuantityAlias, QuantityAlias, QuantityAlias, QuantityAlias, QuantityAlias, QuantityAlias]);
-
                 if I = 0 then
                 begin
                   if FAcctConditions.Count = 0 then
@@ -2274,7 +2304,8 @@ begin
               end;
             end;
           end;
-          SelectClause := SelectClause +  GetDebitQuantitySelectClause + GetCreditQuantitySelectClause;
+          SelectClause := SelectClause1 +  GetDebitQuantitySelectClause + SelectClause2 +
+             GetCreditQuantitySelectClause + SelectClause3 + SelectClause4;
           if I = 0 then
             FromClause := FromClause  + #13#10 + GetQuantityJoinClause;
         end;
@@ -2287,14 +2318,15 @@ begin
 
       if not FEntryDateIsFirst  then
       begin
-        NcuBegin :=
-          Format('  CAST(IIF(SUM(e1.debitncu - e1.creditncu) > 0, SUM(e1.debitncu - e1.creditncu) / %0:d, 0) AS %1:s) AS NCU_BEGIN_DEBIT, '#13#10 +
-          '  CAST(IIF(SUM(e1.creditncu - e1.debitncu) > 0, SUM(e1.creditncu - e1.debitncu) / %0:d, 0) AS %1:s) AS NCU_BEGIN_CREDIT, '#13#10,
-          [FNcuSumInfo.Scale, NcuDecDig]);
-        NcuEnd :=
-          Format('  CAST(IIF(SUM(e.debitncu - e.creditncu) > 0, SUM(e.debitncu - e.creditncu) / %0:d, 0) AS %1:s) AS NCU_END_DEBIT, '#13#10 +
-          '  CAST(IIF(SUM(e.creditncu - e.debitncu) > 0, SUM(e.creditncu - e.debitncu) / %0:d, 0) AS %1:s) AS NCU_END_CREDIT, '#13#10,
-          [FNcuSumInfo.Scale, NcuDecDig]);
+          NcuBegin :=
+            Format('  CAST(IIF(SUM(e1.debitncu - e1.creditncu) > 0, SUM(e1.debitncu - e1.creditncu) / %0:d, 0) AS %1:s) AS NCU_BEGIN_DEBIT, '#13#10 +
+            '  CAST(IIF(SUM(e1.creditncu - e1.debitncu) > 0, SUM(e1.creditncu - e1.debitncu) / %0:d, 0) AS %1:s) AS NCU_BEGIN_CREDIT, '#13#10,
+            [FNcuSumInfo.Scale, NcuDecDig]);
+          NcuEnd :=
+            Format('  CAST(IIF(SUM(e.debitncu - e.creditncu) > 0, SUM(e.debitncu - e.creditncu) / %0:d, 0) AS %1:s) AS NCU_END_DEBIT, '#13#10 +
+            '  CAST(IIF(SUM(e.creditncu - e.debitncu) > 0, SUM(e.creditncu - e.debitncu) / %0:d, 0) AS %1:s) AS NCU_END_CREDIT, '#13#10,
+            [FNcuSumInfo.Scale, NcuDecDig]);
+
 
         if FCurrSumInfo.Show then
         begin
@@ -2343,11 +2375,17 @@ begin
         HavingClause := GetHavingClause;
         if HavingClause > '' then
           HavingClause := HavingClause + ' OR '#13#10 ;
-        HavingClause := HavingClause + AccWhereQuantity +
+        HavingClause := HavingClause + AccWhereQuantity;
+
+        if (FAcctValues.Count = 0) or
+            ((FAcctValues.Count > 0) and FNcuSumInfo.Show) then
+        begin
+          HavingClause := HavingClause + ' OR '#13#10 +
           '  SUM(e2.debitncu) <> 0 OR '#13#10 +
           '  SUM(e2.creditncu) <> 0 OR '#13#10 +
           '  SUM(e1.debitncu - e1.creditncu) <> 0'#13#10;
-          
+        end;
+
         if FCurrSumInfo.Show then
         begin
           HavingClause := HavingClause + ' OR '#13#10 +
@@ -2389,6 +2427,8 @@ begin
           if GroupClause > '' then
             GroupClause1 := GroupClause1 + ', '#13#10;
           GroupClause1 := GroupClause1 + GroupClause;
+
+          HavingClause := 'HAVING ' + AccWhereQuantity;
 
           if FAcctGroupBy[0].FieldName = ENTRYDATE then
           begin
@@ -2434,6 +2474,7 @@ begin
               CurrId, InternalMovementClause , GroupClause1]) +
               HavingCount + DebitCreditSQL;
           end;
+        DebitCreditSQL := DebitCreditSQL + #13#10 + HavingClause;
       end;
       DebitCreditSQL := DebitCreditSQL + #13#10'ORDER BY ' + OrderClause;
     finally
@@ -2441,12 +2482,12 @@ begin
     end;
   end;
   Self.SelectSQL.Text := DebitCreditSQL;
-end;                                             
+end;
 
 function TgdvAcctLedger.LargeSQLErrorMessage: String;
 begin
   Result := 'Указано большое количество аналитик для '#13#10 +
-    'группировки либо количественных показателей.'#13#10'Построение отчета не возможно.'; 
+    'группировки либо количественных показателей.'#13#10'Построение отчета не возможно.';
 end;
 
 procedure TgdvAcctLedger.AddLedgerFieldInfo(FieldName, Caption,
@@ -2481,7 +2522,6 @@ var
   FieldName: String;
 begin
   inherited;
-
   if not FUseEntryBalance then
   begin
     if FEntryDateIsFirst then
@@ -2513,7 +2553,8 @@ begin
         end;
       end;
     end;
-  end;  
+  end;
+
 end;
 
 procedure TgdvAcctLedger.SaldoBeginSQL(const SQL: TIBSQL);
@@ -3551,11 +3592,11 @@ begin
               Id := IntToStr(Strings.Items[I].Account);
               for K := 0 to FAcctValues.Count - 1 do
               begin
-                FieldName := Format('Q_C_%s_%s', [GetKeyAlias(Id), GetKeyAlias(FAcctValues.Names[K])]);
+                FieldName := Format('Q_C_%s_%s', [GetKeyAlias(ID), GetKeyAlias(FAcctValues.Names[K])]);
                 DisplayFieldName := Format('Q_C_%s_%s',
                   [GetKeyAlias(Strings.Items[I].DisplayAccount), GetKeyAlias(FAcctValues.Names[K])]);
 
-                QuantityAlias := Format('q_%s_%s_C', [GetKeyAlias(Id), GetKeyAlias(FAcctValues.Names[K])]);
+                QuantityAlias := Format('q_%s_%s_C', [GetKeyAlias(ID), GetKeyAlias(FAcctValues.Names[K])]);
                 if FShowCorrSubAccounts then
                 begin
                   Accounts.Add(FieldName + '=' + Format(cTemplate,
@@ -3567,10 +3608,18 @@ begin
                     FI.FieldName := FieldName;
                     FI.Caption := Format(cQuantity, [Strings.Items[I].Caption, FAcctValues.Values[FAcctValues.Names[K]]]);
                     FI.DisplayFormat := '';
-                    FI.DisplayFields.Add(Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
-                    FI.DisplayFields.Add(Format(cCurrCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
+                    if (not FNcuSumInfo.Show) and  (not FCurrSumInfo.Show) and (not FEQSumInfo.Show) then begin
+                      IF K = 0 then
+                        FI.Visible := fvVisible
+                      else
+                        FI.DisplayFields.Add(Format('Q_C_%s_%s', [GetKeyAlias(Strings.Items[I].DisplayAccount), '0']));
+                    end
+                    else begin
+                      FI.DisplayFields.Add(Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
+                      FI.DisplayFields.Add(Format(cCurrCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
+                    end;
                     FI.Total := True;
-                  end;  
+                  end;
                 end else
                 begin
                   Index := Accounts.IndexOfName(DisplayFieldName);
@@ -3585,10 +3634,18 @@ begin
                       FI.FieldName := DisplayFieldName;
                       FI.Caption := Format(cQuantity, [Strings.Items[I].Caption, FAcctValues.Values[FAcctValues.Names[K]]]);
                       FI.DisplayFormat := '';
-                      FI.DisplayFields.Add(Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
-                      FI.DisplayFields.Add(Format(cCurrCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
+                      if (not FNcuSumInfo.Show) and  (not FCurrSumInfo.Show) and (not FEQSumInfo.Show) then begin
+                        IF K = 0 then
+                          FI.Visible := fvVisible
+                        else
+                          FI.DisplayFields.Add(Format('Q_C_%s_%s', [GetKeyAlias(Strings.Items[I].DisplayAccount), '0']));
+                      end
+                      else begin
+                        FI.DisplayFields.Add(Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
+                        FI.DisplayFields.Add(Format(cCurrCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
+                      end;
                       FI.Total := True;
-                    end;  
+                    end;
                   end else
                   begin
                     if Accounts.Values[DisplayFieldName] > '' then
@@ -4180,10 +4237,18 @@ begin
                     FI.FieldName := FieldName;
                     FI.Caption := Format(cQuantity, [Strings.Items[I].Caption, FAcctValues.Values[FAcctValues.Names[K]]]);
                     FI.DisplayFormat := '';
-                    FI.DisplayFields.Add(Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
-                    FI.DisplayFields.Add(Format(cCurrDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
+                    if (not FNcuSumInfo.Show) and  (not FCurrSumInfo.Show) and (not FEQSumInfo.Show) then begin
+                      IF K = 0 then
+                        FI.Visible := fvVisible
+                      else
+                        FI.DisplayFields.Add(Format('Q_D_%s_%s', [GetKeyAlias(Strings.Items[I].DisplayAccount), '0']));
+                    end
+                    else begin
+                      FI.DisplayFields.Add(Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
+                      FI.DisplayFields.Add(Format(cCurrDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]));
+                    end;
                     FI.Total := True;
-                  end;  
+                  end;
                 end else
                 begin
                   Index := Accounts.IndexOfName(DisplayFieldName);
@@ -4198,8 +4263,16 @@ begin
                       FI.FieldName := DisplayFieldName;
                       FI.Caption := Format(cQuantity, [Strings.Items[I].Caption, FAcctValues.Values[FAcctValues.Names[K]]]);
                       FI.DisplayFormat := '';
-                      FI.DisplayFields.Add(Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
-                      FI.DisplayFields.Add(Format(cCurrDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
+                      if (not FNcuSumInfo.Show) and  (not FCurrSumInfo.Show) and (not FEQSumInfo.Show) then begin
+                        IF K = 0 then
+                          FI.Visible := fvVisible
+                        else
+                          FI.DisplayFields.Add(Format('Q_D_%s_%s', [GetKeyAlias(Strings.Items[I].DisplayAccount), '0']));
+                      end
+                      else begin
+                        FI.DisplayFields.Add(Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
+                        FI.DisplayFields.Add(Format(cCurrDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]));
+                      end;
                       FI.Total := True;
                     end;
                   end else

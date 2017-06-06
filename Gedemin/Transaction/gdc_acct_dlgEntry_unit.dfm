@@ -33,7 +33,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
   inherited pgcMain: TPageControl
     Left = 0
     Top = 25
-    Width = 731
+    Width = 723
     Height = 414
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -52,7 +52,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 723
+        Width = 715
         Height = 54
         Align = alTop
         BevelOuter = bvNone
@@ -118,7 +118,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
       object Panel2: TPanel
         Left = 0
         Top = 87
-        Width = 723
+        Width = 715
         Height = 299
         Align = alClient
         BevelOuter = bvNone
@@ -200,12 +200,13 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
             Color = 15329769
             ParentColor = False
             TabOrder = 2
+            OnMouseWheel = sboxDebitMouseWheel
           end
         end
         object Panel6: TPanel
           Left = 359
           Top = 0
-          Width = 364
+          Width = 356
           Height = 299
           Align = alClient
           BevelOuter = bvNone
@@ -214,7 +215,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           object Panel7: TPanel
             Left = 0
             Top = 0
-            Width = 364
+            Width = 356
             Height = 21
             Align = alTop
             Alignment = taLeftJustify
@@ -234,7 +235,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           object TBDock2: TTBDock
             Left = 0
             Top = 21
-            Width = 364
+            Width = 356
             Height = 26
             object tbCredit: TTBToolbar
               Left = 0
@@ -260,7 +261,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           object sboxCredit: TgdvParamScrolBox
             Left = 0
             Top = 47
-            Width = 364
+            Width = 356
             Height = 252
             HorzScrollBar.Style = ssFlat
             HorzScrollBar.Visible = False
@@ -270,13 +271,14 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
             Color = 15329769
             ParentColor = False
             TabOrder = 2
+            OnMouseWheel = sboxCreditMouseWheel
           end
         end
       end
       object pTransaction: TPanel
         Left = 0
         Top = 54
-        Width = 723
+        Width = 715
         Height = 33
         Align = alTop
         BevelOuter = bvNone
@@ -321,7 +323,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
   object pnlHolding: TPanel [6]
     Left = 0
     Top = 0
-    Width = 731
+    Width = 723
     Height = 25
     Align = alTop
     BevelOuter = bvNone

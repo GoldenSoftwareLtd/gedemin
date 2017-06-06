@@ -1,34 +1,35 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Left = 1008
-  Top = 233
+  Left = 525
+  Top = 124
   Caption = 'Складской документ'
+  ClientHeight = 450
   ClientWidth = 535
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 6
-    Top = 396
+    Top = 423
   end
   inherited btnNew: TButton
     Left = 78
-    Top = 396
+    Top = 423
   end
   inherited btnHelp: TButton
     Left = 150
-    Top = 396
+    Top = 423
   end
   inherited btnOK: TButton
     Left = 389
-    Top = 396
+    Top = 423
   end
   inherited btnCancel: TButton
     Left = 461
-    Top = 396
+    Top = 423
   end
   inherited pcMain: TPageControl
     Left = 6
     Width = 523
-    Height = 388
+    Height = 415
     ActivePage = tsReferences
     OnChange = pcMainChange
     OnChanging = pcMainChanging
@@ -67,7 +68,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object lblNotification: TLabel [11]
         Left = 8
-        Top = 344
+        Top = 368
         Width = 459
         Height = 13
         Caption = 
@@ -174,9 +175,9 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       ImageIndex = 3
       object lvFeatures: TListView
         Left = 7
-        Top = 7
+        Top = 8
         Width = 224
-        Height = 252
+        Height = 280
         Columns = <
           item
             AutoSize = True
@@ -192,9 +193,9 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object lvUsedFeatures: TListView
         Left = 283
-        Top = 7
+        Top = 8
         Width = 224
-        Height = 252
+        Height = 280
         Columns = <
           item
             AutoSize = True
@@ -242,7 +243,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object rgFeatures: TRadioGroup
         Left = 7
-        Top = 264
+        Top = 291
         Width = 500
         Height = 53
         ItemIndex = 0
@@ -254,7 +255,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object cbIsChangeCardValue: TCheckBox
         Left = 8
-        Top = 323
+        Top = 350
         Width = 329
         Height = 17
         Caption = 'Разрешить изменять признаки существующей карточки'
@@ -262,7 +263,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object cbIsAppendCardValue: TCheckBox
         Left = 8
-        Top = 341
+        Top = 368
         Width = 337
         Height = 17
         Caption = 'Разрешить добавлять признаки существующей карточки'
@@ -289,7 +290,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object lblDebitSubFrom: TLabel
         Left = 7
-        Top = 257
+        Top = 268
         Width = 83
         Height = 13
         Caption = 'Поле в таблице:'
@@ -304,7 +305,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object lblSubDebitValue: TLabel
         Left = 7
-        Top = 284
+        Top = 295
         Width = 90
         Height = 13
         Caption = 'Список значений:'
@@ -317,7 +318,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
@@ -325,7 +326,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Left = 140
         Top = 100
         Width = 297
-        Height = 77
+        Height = 90
         Columns = <
           item
             Caption = 'Наименование'
@@ -375,25 +376,25 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
       object luDebitSubFrom: TComboBox
         Left = 140
-        Top = 253
+        Top = 264
         Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end
       object lvSubDebitMovementValues: TListView
         Left = 140
-        Top = 280
+        Top = 291
         Width = 297
-        Height = 77
+        Height = 90
         Columns = <
           item
             Caption = 'Наименование'
@@ -408,7 +409,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object btnAddSubDebitValue: TButton
         Left = 444
-        Top = 281
+        Top = 292
         Width = 64
         Height = 21
         Action = actAddSubDebitContact
@@ -416,7 +417,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object btnDeleteSubDebitValue: TButton
         Left = 444
-        Top = 304
+        Top = 315
         Width = 64
         Height = 21
         Action = actDeleteSubDebitContact
@@ -424,7 +425,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object rgDebitSubFrom: TRadioGroup
         Left = 6
-        Top = 209
+        Top = 220
         Width = 501
         Height = 38
         Caption = ' Ограничение по приходу из: '
@@ -438,7 +439,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object cbUseIncomeSub: TCheckBox
         Left = 6
-        Top = 188
+        Top = 199
         Width = 225
         Height = 17
         Caption = 'Использовать ограничение по приходу:'
@@ -466,7 +467,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object lblCreditSubFrom: TLabel
         Left = 7
-        Top = 257
+        Top = 268
         Width = 83
         Height = 13
         Caption = 'Поле в таблице:'
@@ -481,7 +482,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object lblSubCreditValue: TLabel
         Left = 7
-        Top = 284
+        Top = 295
         Width = 90
         Height = 13
         Caption = 'Список значений:'
@@ -494,7 +495,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
@@ -502,7 +503,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Left = 140
         Top = 100
         Width = 297
-        Height = 77
+        Height = 90
         Columns = <
           item
             Caption = 'Наименование'
@@ -552,25 +553,25 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
       object luCreditSubFrom: TComboBox
         Left = 140
-        Top = 253
+        Top = 264
         Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end
       object lvSubCreditMovementValues: TListView
         Left = 140
-        Top = 280
+        Top = 291
         Width = 297
-        Height = 77
+        Height = 90
         Columns = <
           item
             Caption = 'Наименование'
@@ -585,7 +586,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object btnAddSubCreditValue: TButton
         Left = 444
-        Top = 281
+        Top = 292
         Width = 64
         Height = 21
         Action = actAddSubCreditContact
@@ -593,7 +594,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object btnDeleteSubCreditValue: TButton
         Left = 444
-        Top = 304
+        Top = 315
         Width = 64
         Height = 21
         Action = actDeleteSubCreditContact
@@ -601,7 +602,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object rgCreditSubFrom: TRadioGroup
         Left = 6
-        Top = 209
+        Top = 220
         Width = 501
         Height = 38
         Caption = ' Ограничение по расходу из: '
@@ -615,7 +616,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object cbUseOutlaySub: TCheckBox
         Left = 6
-        Top = 188
+        Top = 199
         Width = 225
         Height = 17
         Caption = 'Использовать ограничение по расходу:'
@@ -626,9 +627,16 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
     object tsReferences: TTabSheet [4]
       Caption = 'Справочники'
       ImageIndex = 6
+      object lblRestrictBy: TLabel
+        Left = 24
+        Top = 46
+        Width = 215
+        Height = 13
+        Caption = 'Ограничить отбор остатков по реквизиту'
+      end
       object rgMovementDirection: TRadioGroup
         Left = 7
-        Top = 44
+        Top = 67
         Width = 501
         Height = 38
         Caption = ' Остатки определять по методу  '
@@ -638,7 +646,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
           'FIFO'
           'LIFO'
           'По каждому ТМЦ')
-        TabOrder = 2
+        TabOrder = 3
       end
       object cbRemains: TCheckBox
         Left = 7
@@ -659,42 +667,42 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object cbControlRemains: TCheckBox
         Left = 7
-        Top = 87
+        Top = 108
         Width = 201
         Height = 17
         Caption = 'Осуществлять контроль остатков'
-        TabOrder = 3
+        TabOrder = 4
         OnClick = cbRemainsClick
       end
       object cbLiveTimeRemains: TCheckBox
         Left = 7
-        Top = 107
+        Top = 128
         Width = 242
         Height = 17
         Caption = 'Контроль только на текущие остатки'
-        TabOrder = 5
+        TabOrder = 6
         OnClick = cbRemainsClick
       end
       object cbDelayedDocument: TCheckBox
         Left = 7
-        Top = 127
+        Top = 148
         Width = 210
         Height = 17
         Caption = 'Документ может быть отложенным'
-        TabOrder = 6
+        TabOrder = 7
       end
       object cbMinusRemains: TCheckBox
         Left = 276
-        Top = 87
+        Top = 108
         Width = 209
         Height = 17
         Caption = 'Выбор из отрицательных остатков'
-        TabOrder = 4
+        TabOrder = 5
         OnClick = cbMinusRemainsClick
       end
       object gbMinusFeatures: TGroupBox
         Left = 7
-        Top = 167
+        Top = 188
         Width = 501
         Height = 193
         Hint = 
@@ -703,7 +711,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Caption = ' Признаки для выбора из отрицательных остатков '
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 9
+        TabOrder = 10
         Visible = False
         object lvMinusFeatures: TListView
           Left = 7
@@ -776,36 +784,44 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object cbIsUseCompanyKey: TCheckBox
         Left = 276
-        Top = 127
+        Top = 148
         Width = 206
         Height = 17
         Caption = 'Ограничение на рабочую компанию'
-        TabOrder = 7
+        TabOrder = 8
       end
       object cbSaveRestWindowOption: TCheckBox
         Left = 7
-        Top = 147
+        Top = 168
         Width = 273
         Height = 17
         Caption = 'Сохранять настройки окна остатков'
-        TabOrder = 8
+        TabOrder = 9
       end
       object cbEndMonthRemains: TCheckBox
         Left = 276
-        Top = 107
+        Top = 128
         Width = 229
         Height = 17
         Caption = 'Контроль остатков на конец месяца'
-        TabOrder = 10
+        TabOrder = 11
       end
       object cbWithoutSearchRemains: TCheckBox
         Left = 276
-        Top = 146
+        Top = 167
         Width = 221
         Height = 17
         Caption = 'Движение без поиска остатков'
-        TabOrder = 11
+        TabOrder = 12
         Visible = False
+      end
+      object luRestrictBy: TComboBox
+        Left = 256
+        Top = 42
+        Width = 252
+        Height = 21
+        ItemHeight = 13
+        TabOrder = 2
       end
     end
   end

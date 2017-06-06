@@ -9023,8 +9023,8 @@ begin
   Assert(ASL <> nil);
 
   ASL.Add(AddSpaces('Наименование') + ObjectName);
-  ASL.Add(AddSpaces('Идентификатор') + IntToStr(ID));
-  ASL.Add(AddSpaces('RUID') + RUIDToStr(GetRUID));
+  ASL.Add(AddSpaces('Идентификатор') + IntToStr(ID));    
+  ASL.Add(AddSpaces('RUID') + gdcBaseManager.GetRUIDStringByID(ID));
   ASL.Add(AddSpaces('Метка типа') + GetDisplayName(SubType));
   ASL.Add(AddSpaces('Тип текущей записи') + GetCurrRecordClass.gdClass.ClassName + ' ' +
     GetCurrRecordClass.SubType);
@@ -10774,6 +10774,7 @@ end;
 function TgdcBase.QueryDescendant: TgdcFullClass;
 var
   OL: TObjectList;
+  CE: TgdClassEntry;
 begin
   Result.gdClass := nil;
   Result.SubType := '';
@@ -10796,7 +10797,8 @@ begin
 
     with Tgdc_dlgQueryDescendant.Create(ParentForm) do
     try
-      FillrgObjects(OL);
+      CE := gdClassList.Get(TgdBaseEntry, CgdcBase(Self.ClassType).ClassName, SubType);
+      FillrgObjects(CE);
 
       if (ShowModal = mrOk) and (rgObjects.ItemIndex > -1) then
       begin

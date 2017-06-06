@@ -64,6 +64,8 @@ type
     actAddAllGoodSumFeatures: TAction;
     actDelAllGoodSumFeatures: TAction;
     DBCheckBox1: TDBCheckBox;
+    lblRestrictBy: TLabel;
+    luRestrictBy: TComboBox;
     procedure actAddViewFeaturesExecute(Sender: TObject);
     procedure actDelViewFeaturesExecute(Sender: TObject);
     procedure actAddAllViewFeaturesExecute(Sender: TObject);
@@ -118,9 +120,26 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, IBHeader;
+  gd_ClassList, IBHeader, gdcBaseInterface, IBSQL;
 
 { Tgdc_dlgInvRemainsOption }
+
+{Находит последнее вхождение символа в строку. Необходимо для поиска "(" и ")",
+т.к. эти символы могут быть использованы в локализованном наименовании поля}  
+function LastCharPos(const Ch: Char; const S: String): Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := Length(S) downto 1 do
+  begin
+    if Ch = S[I] then
+    begin
+      Result := I;
+      break;
+    end;
+  end;
+end;
 
 procedure Tgdc_dlgInvRemainsOption.AddFeature(UsedFeatures,
   Features: TListView);
@@ -222,6 +241,8 @@ var
   I: Integer;
   Item: TListItem;
   Relation: TatRelation;
+  RestrictBy: string;
+  ibsql: TIBSQL;
 begin
   { TODO : Ограничить поля для суммирования }
   pcMain.ActivePage := tsCommon;
@@ -234,10 +255,36 @@ begin
   lvSumFeatures.Items.Clear;
   lvGoodFeatures.Items.Clear;
   lvGoodSumFeatures.Items.Clear;
-
+  luRestrictBy.Items.Clear;
 
   Relation := atDatabase.Relations.ByRelationName('INV_CARD');
   Assert(Relation <> nil);
+
+  ibsql := TIBSQL.Create(nil);
+  try
+    ibsql.Transaction := gdcBaseManager.ReadTransaction;
+    ibsql.SQL.Text := 'SELECT ind.RDB$INDEX_NAME ' +
+      'FROM RDB$INDICES ind ' +
+      'JOIN RDB$INDEX_SEGMENTS inds ON ind.RDB$INDEX_NAME = inds.RDB$INDEX_NAME ' +
+      'WHERE ind.RDB$RELATION_NAME = :RELATION_NAME ' +
+      'and inds.RDB$FIELD_NAME = :FIELD_NAME ';
+
+    for I := 0 to Relation.RelationFields.Count - 1 do
+    begin
+      ibsql.ParamByName('RELATION_NAME').Value := 'INV_CARD';
+      ibsql.ParamByName('FIELD_NAME').Value := Relation.RelationFields[I].FieldName;
+      ibsql.ExecQuery;
+      if (Relation.RelationFields[I].Field.FieldType in [ftSmallint, ftInteger, ftWord, ftFloat, ftCurrency, ftBCD, ftLargeint])
+        and (ibsql.RecordCount > 0) then
+        luRestrictBy.Items.Add(Relation.RelationFields[I].LShortName +
+          '('+Relation.RelationFields[I].FieldName+')');
+
+      ibsql.Close;
+     end;
+
+  finally
+    ibsql.free;
+  end;
 
   for I := 0 to Relation.RelationFields.Count - 1 do
   begin
@@ -297,6 +344,17 @@ begin
   lvUsedGoodFeatures.Items.Clear;
   lvUsedGoodSumFeatures.Items.Clear;
 
+  RestrictBy := dsgdcBase.DataSet.FieldByName('restrictremainsby').AsString;
+
+  if RestrictBy > '' then
+  begin
+    for I := 0 to luRestrictBy.Items.Count - 1 do
+      if Pos('(' + RestrictBy + ')', luRestrictBy.Items[I]) > 0 then
+      begin
+        luRestrictBy.ItemIndex := I;
+        break;
+      end;
+  end;
 end;
 
 procedure Tgdc_dlgInvRemainsOption.ReadOptions;
@@ -745,7 +803,17 @@ procedure Tgdc_dlgInvRemainsOption.WriteOptions;
 var
   Stream: TStringStream;
   i: Integer;
+  S, F: Integer;
 begin
+ if luRestrictBy.ItemIndex <> -1 then
+    begin
+      S := LastCharPos('(', luRestrictBy.Items[luRestrictBy.ItemIndex]);
+      F := LastCharPos(')', luRestrictBy.Items[luRestrictBy.ItemIndex]);
+      dsgdcBase.DataSet.FieldByName('restrictremainsby').AsString := Copy(luRestrictBy.Items[luRestrictBy.ItemIndex], S + 1, F - S - 1);
+    end
+ else
+  dsgdcBase.DataSet.FieldByName('restrictremainsby').AsString := '';
+
   Stream := TStringStream.Create('');
   try
     with TWriter.Create(Stream, 1024) do

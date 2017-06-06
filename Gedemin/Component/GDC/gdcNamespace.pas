@@ -749,9 +749,11 @@ begin
             '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
             '    from ' + RN + ' d join gd_ruid r '#13#10 +
             '    on r.id = d.id '#13#10 +
+            '    join at_object ato on ato.xid = r.xid and ato.dbid = r.dbid '#13#10 +
             '  union all '#13#10 +
             '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
             '    from ' + RN + ' d '#13#10 +
+            '    join at_object ato on ato.xid = d.id and ato.dbid = 17 '#13#10 +
             '    where d.id < 147000000) de '#13#10 +
             '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
             '    and o.objectclass = :OC and o.subtype IS NOT DISTINCT FROM :ST'#13#10 +
