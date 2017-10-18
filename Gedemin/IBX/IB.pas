@@ -345,7 +345,7 @@ uses
   , gd_localization
   {$ENDIF}
   {$IFDEF GEDEMIN}
-  , IBSQL, IBDataBase, IBErrorCodes, gd_security, IBSQLMonitor_Gedemin
+  , IBSQL, IBDataBase, IBErrorCodes, gd_security, IBSQLMonitor_Gedemin, at_frmSQLProcess
   {$ELSE}
   , IBSQLMonitor
   {$ENDIF};
@@ -539,16 +539,39 @@ resourcestring
 
 {Ћокализует эксепшены из базы, использу€ таблицу at_exceptions}
 function LocalizeException(const msg: String): String;
-const
-  cst_word_exception = 'exception';
-
+{const
+  cst_word_exception = 'exception';}
 var
-  ibsql: TIBSQL;
+  {ibsql: TIBSQL;
   Tr: TIBTransaction;
   sqlcode: String;
-  i: Integer;
+  i: Integer;}
+  SL: TStringList;
 begin
-{exception 53'#D#A'Exception body}
+  {$IFDEF GEDEMIN}
+  AddMistake(msg, 'firebird');
+
+  SL := TStringList.Create;
+  try
+    SL.Text := msg;
+    if SL.Count >= 4 then
+    begin
+      SL.Delete(0);  // exception #
+      SL.Delete(0);  // exception name
+      if StrIPos('At trigger', SL[SL.Count - 1]) = 1 then
+        SL.Delete(SL.Count - 1);
+      Result := SL.Text;
+    end else
+      Result := msg;
+  finally
+    SL.Free;
+  end;
+  {$ELSE}
+  Result := msg;
+  {$ENDIF}
+
+  {exception 53'#D#A'Exception body}
+  (*
   Result := msg;
 
   if Assigned(IBLogin) and Assigned(IBLogin.Database) and IBLogin.Database.Connected then
@@ -612,7 +635,8 @@ begin
         end;
       end;
     end;
-  end;  
+  end;
+  *)
 end;
 
 function LocalizeCheckException(const msg: String): String;

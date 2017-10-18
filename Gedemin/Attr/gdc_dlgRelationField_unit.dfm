@@ -1,6 +1,6 @@
 inherited gdc_dlgRelationField: Tgdc_dlgRelationField
-  Left = 764
-  Top = 338
+  Left = 1433
+  Top = 566
   HelpContext = 86
   Caption = 'Поле таблицы'
   ClientHeight = 435
@@ -270,7 +270,6 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
               DataField = 'COMPUTED_VALUE'
               DataSource = dsgdcBase
               TabOrder = 0
-              OnChange = dbmComputedChange
             end
           end
         end

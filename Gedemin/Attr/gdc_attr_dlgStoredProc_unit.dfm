@@ -1,6 +1,6 @@
 inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
-  Left = 521
-  Top = 253
+  Left = 909
+  Top = 270
   Width = 611
   Height = 478
   HelpContext = 78
@@ -62,7 +62,6 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
       Align = alClient
       TabOrder = 0
       OnChange = pcStoredProcChange
-      OnChanging = pcStoredProcChanging
       object tsNameSP: TTabSheet
         Caption = 'Наименование'
         object Label1: TLabel
@@ -89,9 +88,6 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
           DataSource = dsgdcBase
           MaxLength = 31
           TabOrder = 0
-          OnEnter = dbedProcedureNameEnter
-          OnKeyDown = dbedProcedureNameKeyDown
-          OnKeyPress = dbedProcedureNameKeyPress
         end
         object dbmDescription: TDBMemo
           Left = 153
@@ -125,13 +121,6 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
             object tbiReplace: TTBItem
               Action = actReplace
             end
-            object TBSeparatorItem1: TTBSeparatorItem
-            end
-            object TBItem1: TTBItem
-              Action = actPrepare
-              ImageIndex = 15
-              Images = dmImages.imglActions
-            end
           end
         end
         object smProcedureBody: TSynMemo
@@ -149,6 +138,8 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
           ParentColor = False
           ParentFont = False
           TabOrder = 1
+          OnEnter = smProcedureBodyEnter
+          OnExit = smProcedureBodyExit
           Gutter.DigitCount = 2
           Gutter.Font.Charset = DEFAULT_CHARSET
           Gutter.Font.Color = clWindowText
@@ -480,6 +471,7 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
               Command = ecMatchBracket
               ShortCut = 24642
             end>
+          WantTabs = True
           OnChange = smProcedureBodyChange
           OnSpecialLineColors = smProcedureBodySpecialLineColors
         end
@@ -509,11 +501,6 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
       ImageIndex = 24
       ShortCut = 114
       OnExecute = actSearchNextExecute
-    end
-    object actPrepare: TAction
-      Category = 'SQL'
-      Caption = 'Подготовить'
-      OnExecute = actPrepareExecute
     end
   end
   object SynSQLSyn: TSynSQLSyn

@@ -1,6 +1,6 @@
 inherited gdc_dlgGenerator: Tgdc_dlgGenerator
-  Left = 401
-  Top = 242
+  Left = 764
+  Top = 364
   Caption = 'Генератор'
   ClientHeight = 96
   ClientWidth = 385
@@ -21,14 +21,17 @@ inherited gdc_dlgGenerator: Tgdc_dlgGenerator
     Caption = 'Значение:'
   end
   inherited btnAccess: TButton
+    Left = 8
     Top = 65
     TabOrder = 4
   end
   inherited btnNew: TButton
+    Left = 80
     Top = 65
     TabOrder = 5
   end
   inherited btnHelp: TButton
+    Left = 152
     Top = 65
     TabOrder = 6
   end
@@ -57,6 +60,7 @@ inherited gdc_dlgGenerator: Tgdc_dlgGenerator
     Width = 163
     Height = 21
     Enabled = False
+    ReadOnly = True
     TabOrder = 1
     Text = 'edGeneratorValue'
   end

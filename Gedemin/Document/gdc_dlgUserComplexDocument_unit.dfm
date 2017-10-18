@@ -1,6 +1,6 @@
 inherited gdc_dlgUserComplexDocument: Tgdc_dlgUserComplexDocument
-  Left = 363
-  Top = 190
+  Left = 364
+  Top = 191
   Width = 644
   Height = 482
   Caption = 'gdc_dlgUserComplexDocument'

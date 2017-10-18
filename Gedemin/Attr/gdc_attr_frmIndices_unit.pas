@@ -54,11 +54,7 @@ end;
 
 procedure Tgdc_frmIndices.actSyncExecute(Sender: TObject);
 begin
-  {$IFNDEF DUNIT_TEST}
-  if MessageBox(Handle, 'Синхронизировать с базой данных?', 'Загрузка индексов',
-    MB_YESNO) = IDYES then
-    (gdcDetailObject as TgdcIndex).SyncAllIndices;
-  {$ENDIF}
+  (gdcDetailObject as TgdcIndex).SyncAllIndices;
 end;
 
 initialization

@@ -308,10 +308,10 @@ var
   var
     Tr: TIBTransaction;
     q, q2: TIBSQL;
-    C: TPersistentClass;
     O: TgdcBase;
     I: Integer;
     RelationName: String;
+    CE: TgdClassEntry;
   begin
     Tr := TIBTransaction.Create(nil);
     q := TIBSQL.Create(nil);
@@ -344,10 +344,10 @@ var
         q2.Close;
       end;
 
-      C := GetClass(q.FieldByName('classname').AsString);
-      if (C <> nil) and C.InheritsFrom(TgdcBase) then
+      CE := gdClassList.Find(q.FieldByName('classname').AsString, q.FieldByName('subtype').AsString);
+      if CE is TgdBaseEntry then
       begin
-        O := CgdcBase(C).CreateSubType(nil, q.FieldByName('subtype').AsString, 'ByID');
+        O := TgdBaseEntry(CE).gdcClass.CreateSubType(nil, CE.SubType, 'ByID');
         try
           try
             O.Open;

@@ -44,7 +44,7 @@ function TgdcNamespaceRecCmpController.Compare(AnOwner: TComponent; AnObj: TgdcB
   AMapping: TYAMLMapping): Boolean;
 var
   I: Integer;
-  FN, RUIDString, ObjName: String;
+  FN, RUIDString, ObjName, TempS: String;
   S: TYAMLScalar;
 begin
   Assert(AnObj <> nil);
@@ -84,6 +84,14 @@ begin
       begin
         if S.AsString <> FObj.Fields[I].AsString then
           FInequalFields.Add(FN);
+      end
+      else if (FObj.Fields[I] is TNumericField) and (S is TyamlString) then
+      begin
+        TempS := S.AsString;
+        if DecimalSeparator <> '.' then
+          TempS := StringReplace(TempS, '.', DecimalSeparator, []);
+        if TempS <> FObj.Fields[I].Value then
+          FInequalFields.Add(FN);
       end else
       begin
         if S.AsVariant <> FObj.Fields[I].Value then
@@ -108,7 +116,7 @@ begin
       FgdcNamespaceRecCmpController := Self;
       FillGrid(sgMain, not chbxShowOnlyDiff.Checked);
       mObject.Lines.Text := StringReplace(mObject.Lines.Text, '%s',
-        AnObj.ObjectName, []);
+        '"' + AnObj.ObjectName + '" (' + AnObj.ClassName + AnObj.SubType + ')', []);
       Result := ShowModal = mrOk;
     finally
       Free;

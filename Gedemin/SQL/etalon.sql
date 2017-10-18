@@ -1675,6 +1675,21 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (262, '0000.0001.0000.0293', '31.03.2017', 'Added restrict remains field to INV_BALANCEOPTION');      
+
+INSERT INTO fin_versioninfo
+  VALUES (263, '0000.0001.0000.0294', '15.06.2017', 'Preparing for IBAN and BIC');      
+  
+INSERT INTO fin_versioninfo
+  VALUES (264, '0000.0001.0000.0295', '18.06.2017', 'Preparing for IBAN and BIC #2');      
+  
+INSERT INTO fin_versioninfo
+  VALUES (265, '0000.0001.0000.0296', '04.07.2017', 'Preparing for IBAN and BIC #3');      
+  
+INSERT INTO fin_versioninfo
+  VALUES (266, '0000.0001.0000.0297', '13.07.2017', 'Preparing for IBAN and BIC #4'); 
+     
+INSERT INTO fin_versioninfo
+  VALUES (267, '0000.0001.0000.0298', '02.08.2017', 'Add support database triggers'); 
   
 COMMIT;
 
@@ -3330,7 +3345,10 @@ CREATE TABLE gd_bank
   bankcode    dtext20 NOT NULL,
   bankbranch  dtext20,
   bankMFO     dtext20,
-  SWIFT       dtext20
+  SWIFT       dtext20,
+  
+  oldbankcode dtext20,
+  oldbankMFO  dtext20
 );
 
 COMMIT;
@@ -3343,8 +3361,54 @@ ALTER TABLE gd_bank ADD CONSTRAINT gd_fk_bank_bankkey
   ON UPDATE CASCADE
   ON DELETE CASCADE;
 
-CREATE UNIQUE INDEX gd_x_bank_bankcode
-  ON gd_bank (bankcode, bankbranch);
+CREATE INDEX gd_x_bank_bankcode
+  ON gd_bank (bankcode);
+  
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_biu_bank FOR gd_bank
+  ACTIVE
+  BEFORE INSERT OR UPDATE
+  POSITION 32000
+AS
+  DECLARE VARIABLE d_name VARCHAR(60);
+  DECLARE VARIABLE d_id INTEGER;
+BEGIN
+  IF (INSERTING OR NEW.bankcode <> OLD.bankcode) THEN
+  BEGIN
+    NEW.bankMFO = NEW.bankcode;
+    NEW.SWIFT = NEW.bankcode;    
+  END ELSE
+  BEGIN
+    IF (NEW.bankMFO IS NOT NULL AND NEW.bankMFO IS DISTINCT FROM OLD.bankMFO) THEN
+    BEGIN
+      NEW.bankcode = NEW.bankMFO;
+      NEW.SWIFT = NEW.bankMFO;
+    END ELSE
+    BEGIN
+      IF (NEW.SWIFT IS NOT NULL AND NEW.SWIFT IS DISTINCT FROM OLD.SWIFT) THEN
+      BEGIN
+        NEW.bankcode = NEW.SWIFT;
+        NEW.bankMFO = NEW.SWIFT;
+      END
+    END
+  END    
+
+  /* IF (NOT (NEW.bankcode SIMILAR TO '[A-Z]{6}([A-Z0-9]{2}|[A-Z0-9]{5})')) THEN
+    EXCEPTION gd_e_exception 'Неверный формат BIC "' || NEW.bankcode || '"'; */
+    
+  FOR
+    SELECT c.id, c.name 
+    FROM gd_contact c JOIN gd_bank b ON b.bankkey = c.id    
+    WHERE b.bankkey <> NEW.bankkey AND b.bankcode = NEW.bankcode
+      AND b.bankbranch IS NOT DISTINCT FROM NEW.bankbranch
+    INTO :d_id, :d_name
+  DO     
+    EXCEPTION gd_e_exception 'Дублируется BIC у банка "' || :d_name || '", ИД=' || :d_id;
+END
+^  
+
+SET TERM ; ^
 
 COMMIT;
 
@@ -3389,6 +3453,10 @@ CREATE TABLE gd_companyaccount
   disabled       dboolean DEFAULT 0,
 
   accounttype    dtext20,            /* для совместимости с предыдущей версией    */
+  
+  oldaccount     dbankaccount,
+  iban           dbankaccount,
+  
   editiondate    deditiondate
 );
 
@@ -3420,32 +3488,55 @@ ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_companyaccountkey
   
 SET TERM ^ ;
 
-CREATE OR ALTER TRIGGER gd_aiu_companyaccount FOR gd_companyaccount
-  INACTIVE
-  AFTER INSERT OR UPDATE
+CREATE OR ALTER TRIGGER gd_biu_companyaccount FOR gd_companyaccount
+  ACTIVE
+  BEFORE INSERT OR UPDATE
   POSITION 30000
 AS
+  DECLARE VARIABLE hc INTEGER = NULL;
+  DECLARE VARIABLE c_id INTEGER = NULL;
+  DECLARE VARIABLE c_name dtext180 = NULL;
 BEGIN
-  IF (EXISTS(
+  IF (INSERTING OR NEW.account <> OLD.account) THEN
+  BEGIN    
+    /* IF (NOT (NEW.account SIMILAR TO '[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{4}[A-Z0-9]{16}')) THEN
+      EXCEPTION gd_e_exception 'Неверный формат IBAN "' || NEW.account || '"'; */
+      
+    NEW.iban = NEW.account;
+
     SELECT
-      b.bankcode, b.bankbranch, a.account, COUNT(*)
+      co.headcompany
     FROM
-      gd_companyaccount a JOIN gd_bank b 
-        ON b.bankkey = a.bankkey
+      gd_company co
     WHERE
-      a.account = NEW.account
-    GROUP BY
-      b.bankcode, b.bankbranch, a.account
-    HAVING
-      COUNT(*) > 1)) THEN
-  BEGIN      
-    EXCEPTION gd_e_exception 'Дублируется номер банковского счета!'; 
-  END
+      co.contactkey = NEW.companykey
+    INTO
+      :hc;    
+      
+    FOR      
+      SELECT
+        co.contactkey, co.fullname
+      FROM 
+        gd_company co JOIN gd_companyaccount acc ON acc.companykey = co.contactkey
+      WHERE
+        acc.account = NEW.account
+        AND
+        acc.id <> NEW.id
+        AND
+        (
+          (:hc IS NULL)
+          OR
+          (co.headcompany IS DISTINCT FROM :hc)
+        )
+      INTO :c_id, :c_name
+    DO      
+      EXCEPTION gd_e_exception 'Дублируется IBAN у организации "' || :c_name || '", ИД=' || :c_id;           
+  END    
 END
-^
+^  
 
 SET TERM ; ^
-  
+
 COMMIT;
 
 CREATE TABLE gd_contactlist
@@ -3899,6 +3990,15 @@ END
 ^
 
 SET TERM ; ^
+
+CREATE TABLE gd_available_id (
+  id_from       dintkey,
+  id_to         dintkey,
+  
+  CONSTRAINT gd_pk_available_id PRIMARY KEY (id_from, id_to)
+);
+
+COMMIT;
 
 CREATE DOMAIN drelationtype
   AS CHAR(1)
@@ -4893,11 +4993,9 @@ CREATE TABLE at_triggers(
   triggername         dtriggername            /* наименование триггера */
                       NOT NULL,
 
-  relationname        dtablename              /* наименование таблицы */
-                      NOT NULL,
+  relationname        VARCHAR(31),            /* наименование таблицы */
 
-  relationkey         dmasterkey              /* идентификатор таблицы */
-                      NOT NULL,
+  relationkey         DINTEGER,               /* идентификатор таблицы */
 
   trigger_inactive    dboolean DEFAULT 0,     /* 0-активный индекс, 1-неактивный*/
   editiondate         deditiondate,           /* Дата последнего редактирования */
@@ -6948,7 +7046,7 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE AT_P_SYNC_TRIGGERS (
+CREATE OR ALTER PROCEDURE AT_P_SYNC_TRIGGERS (
     RELATION_NAME VARCHAR (31))
 AS
   DECLARE VARIABLE RN VARCHAR(31);
@@ -7152,7 +7250,9 @@ BEGIN
       ON t.triggername=rdb$trigger_name
     LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
     WHERE
-     (t.triggername IS NULL) and (r.id IS NOT NULL)
+     (t.triggername IS NULL) 
+     and (((r.id IS NOT NULL) and (rdb$trigger_type <=114)) 
+       or (rdb$trigger_type >=8192)) 
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
     RN = TRIM(RN);
@@ -21382,7 +21482,7 @@ INSERT INTO GD_COMPANY
 INSERT INTO GD_BANK
   (BANKKEY,BANKCODE)
   VALUES
-  (650015,'<Ввести код банка>');
+  (650015,'AAAAAA00000');
 
 
 -- gd_command
@@ -22233,6 +22333,11 @@ VALUES
 INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
 VALUES
+  (741116,740400,'Триггеры БД','gdcDBTrigger',0,NULL,253,NULL,'TgdcDBTrigger',NULL,1,1,1,0,NULL);
+
+  INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
   (741117,740400,'Триггеры','gdcTrigger',0,NULL,253,NULL,'TgdcTrigger',NULL,1,1,1,0,NULL);
 
 INSERT INTO gd_command
@@ -22383,7 +22488,7 @@ INSERT INTO gd_compacctype (id, name)
 INSERT INTO GD_COMPANYACCOUNT
   (ID, COMPANYKEY, BANKKEY, ACCOUNT, ACCOUNTTYPEKEY, CURRKEY)
   VALUES
-  (650100, 650010, 650015, '<Ввести счет>', 1799900, 200010);
+  (650100, 650010, 650015, 'AA00000000000000000000000000', 1799900, 200010);
 
 UPDATE GD_COMPANY
   SET COMPANYACCOUNTKEY = 650100

@@ -18,7 +18,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     Left = 0
     Top = 0
     Width = 712
-    Height = 456
+    Height = 455
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -30,7 +30,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     end
     object pnlBottom: TPanel
       Left = 0
-      Top = 425
+      Top = 424
       Width = 712
       Height = 31
       Align = alBottom
@@ -68,7 +68,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       Left = 0
       Top = 102
       Width = 712
-      Height = 323
+      Height = 322
       Align = alClient
       BevelInner = bvLowered
       BevelOuter = bvNone
@@ -79,7 +79,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         Left = 5
         Top = 32
         Width = 702
-        Height = 286
+        Height = 285
         Align = alClient
         BorderStyle = bsNone
         Color = clBtnFace
@@ -168,9 +168,8 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         BorderStyle = bsNone
         Lines.Strings = (
           
-            'Объект "%s" был изменен и в базе данных, и в файле. Выберите дал' +
-            'ьнейшее действие.'
-          ' ')
+            'Объект %s был изменен и в базе данных, и в файле. Выберите дальн' +
+            'ейшее действие.')
         ParentColor = True
         ReadOnly = True
         TabOrder = 0

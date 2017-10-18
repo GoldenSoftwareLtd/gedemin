@@ -831,7 +831,7 @@ begin
   lblErrorMsg.Caption := ErrorMsg;
   btnClose.Enabled := True;
 
-  at_frmSQLProcess.AddMistake(#13#10'Критическая ошибка! Выполнение прервано!'#13#10 + ErrorMsg, clRed);
+  at_frmSQLProcess.AddMistake(#13#10'Критическая ошибка! Выполнение прервано!'#13#10 + ErrorMsg);
 end;
 
 procedure Tgdc_frmStreamSaver.LoadDialogSettings;

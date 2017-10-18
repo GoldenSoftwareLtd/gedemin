@@ -1,6 +1,6 @@
 object frmSQLProcess: TfrmSQLProcess
-  Left = 441
-  Top = 208
+  Left = 445
+  Top = 212
   Width = 585
   Height = 398
   HelpContext = 25
@@ -20,7 +20,7 @@ object frmSQLProcess: TfrmSQLProcess
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 577
+    Width = 569
     Height = 33
     Align = alTop
     BevelOuter = bvNone
@@ -55,8 +55,8 @@ object frmSQLProcess: TfrmSQLProcess
   end
   object stbSQLProcess: TStatusBar
     Left = 0
-    Top = 348
-    Width = 577
+    Top = 340
+    Width = 569
     Height = 19
     Panels = <
       item
@@ -69,8 +69,8 @@ object frmSQLProcess: TfrmSQLProcess
   end
   object pb: TProgressBar
     Left = 0
-    Top = 332
-    Width = 577
+    Top = 324
+    Width = 569
     Height = 16
     Align = alBottom
     Min = 0
@@ -79,8 +79,8 @@ object frmSQLProcess: TfrmSQLProcess
   end
   object Panel1: TPanel
     Left = 0
-    Top = 330
-    Width = 577
+    Top = 322
+    Width = 569
     Height = 2
     Align = alBottom
     BevelOuter = bvNone
@@ -89,8 +89,8 @@ object frmSQLProcess: TfrmSQLProcess
   object lv: TListView
     Left = 0
     Top = 33
-    Width = 577
-    Height = 297
+    Width = 569
+    Height = 289
     Align = alClient
     Columns = <
       item

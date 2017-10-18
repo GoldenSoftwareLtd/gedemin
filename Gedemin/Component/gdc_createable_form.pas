@@ -121,6 +121,8 @@ type
     procedure SaveGrid(AGrid: TgsCustomDBGrid);
     procedure LoadGrid(AGrid: TgsCustomDBGrid);
 
+    procedure EnableActionsByCategory(const ACategory: String);
+
     property SubType: String read FSubType;
     property gdcObject: TgdcBase read FgdcObject write SetGdcObject;
   end;
@@ -851,6 +853,28 @@ begin
   AGrid.SettingsModified := True;
 
   AGrid.SelectedIndex := I;
+end;
+
+procedure TgdcCreateableForm.EnableActionsByCategory(const ACategory: String);
+var
+  I, J: Integer;
+  AL: TActionList;
+begin
+  for I := 0 to ComponentCount - 1 do
+  begin
+    if Components[I] is TActionList then
+    begin
+      AL := Components[I] as TActionList;
+      for J := 0 to AL.ActionCount - 1 do
+      begin
+        if AL[J].Category > '' then
+        begin
+          if AL[J] is TCustomAction then
+            (AL[J] as TCustomAction).Enabled := AL[J].Category = ACategory;
+        end;
+      end;
+    end;
+  end;
 end;
 
 initialization

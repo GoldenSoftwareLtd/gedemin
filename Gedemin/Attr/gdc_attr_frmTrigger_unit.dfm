@@ -1,11 +1,13 @@
 inherited gdc_frmTrigger: Tgdc_frmTrigger
   Left = 341
   Top = 115
-  Height = 495
   HelpContext = 87
   Caption = 'Триггеры'
   PixelsPerInch = 96
   TextHeight = 13
+  inherited sbMain: TStatusBar
+    Top = 437
+  end
   inherited TBDockTop: TTBDock
     inherited tbMainCustom: TTBToolbar
       Images = dmImages.ilToolBarSmall
@@ -13,6 +15,15 @@ inherited gdc_frmTrigger: Tgdc_frmTrigger
         Action = actSync
       end
     end
+  end
+  inherited TBDockLeft: TTBDock
+    Height = 377
+  end
+  inherited TBDockRight: TTBDock
+    Height = 377
+  end
+  inherited TBDockBottom: TTBDock
+    Top = 428
   end
   inherited alMain: TActionList
     inherited actMacros: TAction

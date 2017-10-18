@@ -347,7 +347,10 @@ implementation
 uses
   IBSQL, gd_SetDatabase, gdcOLEClassList,
   rp_ReportScriptControl, gd_i_ScriptFactory, gd_ClassList, prp_dlgScriptError_unit,
-  Controls, gs_Exception, gdc_createable_form, Windows, {prp_dlgViewProperty_unit,}
+  Controls, gs_Exception, gdc_createable_form, Windows,
+  {$IFDEF WITH_INDY}
+  gdccClient_unit,
+  {$ENDIF}
   gd_Security, Forms, obj_i_Debugger;
 
 var
@@ -991,6 +994,9 @@ var
   LCurrentFullClass, LFullChildName: TgdcFullClassName;
   LClassType: TmtdClassType;
   CE: TgdClassEntry;
+  {$IFDEF WITH_INDY}
+  TstID: Integer;
+  {$ENDIF}
 const
   LMsgMethodUserError =
                   'Метод %s для класса %s вызвал ошибку.'#13#10 +
@@ -1200,6 +1206,13 @@ begin
         LFunction := glbFunctionList.FindFunction(LMethodItem.FunctionKey);
       if Assigned(LFunction) then
       try
+        {$IFDEF WITH_INDY}
+        if AgdcBase is TgdcBase then
+          TstID := gdccClient.StartPerfCounter('vbs', AgdcBase.ClassName + ' ' + TgdcBase(AgdcBase).SubType + '.' + LFunction.Name)
+        else
+          TstID := -1;  
+        {$ENDIF}
+
         {$IFDEF DEBUG}
         if UseLog then
           Log.LogLn(DateTimeToStr(Now) + ': Запущен метод ' + LFunction.Name +
@@ -1214,6 +1227,12 @@ begin
           raise;
         end;
         {$ENDIF}
+
+        {$IFDEF WITH_INDY}
+        if AgdcBase <> nil then
+          gdccClient.StopPerfCounter(TstID);
+        {$ENDIF}
+
         Result := True;
       finally
         glbFunctionList.ReleaseFunction(LFunction);

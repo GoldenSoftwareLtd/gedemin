@@ -1,44 +1,44 @@
 inherited gdc_dlgTrigger: Tgdc_dlgTrigger
-  Left = 425
-  Top = 199
-  Width = 435
-  Height = 424
+  Left = 941
+  Top = 257
+  Width = 503
+  Height = 471
   HelpContext = 87
   BorderStyle = bsSizeable
   Caption = 'Редактирование триггера'
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Left = 2
-    Top = 363
+    Left = 3
+    Top = 403
     Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
-    Left = 73
-    Top = 363
+    Left = 74
+    Top = 403
     Anchors = [akLeft, akBottom]
     Enabled = False
   end
   inherited btnHelp: TButton
-    Left = 145
-    Top = 363
+    Left = 146
+    Top = 403
     Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
-    Left = 277
-    Top = 363
+    Left = 342
+    Top = 403
     Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
-    Left = 349
-    Top = 363
+    Left = 414
+    Top = 403
     Anchors = [akRight, akBottom]
   end
   object pnHead: TPanel [5]
     Left = 0
     Top = 0
-    Width = 419
-    Height = 65
+    Width = 487
+    Height = 56
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 5
@@ -57,7 +57,7 @@ inherited gdc_dlgTrigger: Tgdc_dlgTrigger
       Caption = 'Тип:'
     end
     object Label3: TLabel
-      Left = 297
+      Left = 376
       Top = 13
       Width = 46
       Height = 13
@@ -66,7 +66,7 @@ inherited gdc_dlgTrigger: Tgdc_dlgTrigger
     object dbeName: TDBEdit
       Left = 112
       Top = 8
-      Width = 169
+      Width = 249
       Height = 21
       CharCase = ecUpperCase
       DataField = 'triggername'
@@ -76,11 +76,12 @@ inherited gdc_dlgTrigger: Tgdc_dlgTrigger
     object cmbType: TComboBox
       Left = 112
       Top = 32
-      Width = 169
+      Width = 249
       Height = 21
       Style = csDropDownList
+      DropDownCount = 16
       ItemHeight = 13
-      TabOrder = 1
+      TabOrder = 2
       OnChange = cmbTypeChange
       Items.Strings = (
         'Before Insert'
@@ -99,41 +100,43 @@ inherited gdc_dlgTrigger: Tgdc_dlgTrigger
         'After Insert Or Update Or Delete')
     end
     object dbcActive: TDBCheckBox
-      Left = 329
-      Top = 34
+      Left = 374
+      Top = 35
       Width = 75
       Height = 17
-      Caption = 'Активный'
+      Alignment = taLeftJustify
+      Caption = 'Активный:'
       DataField = 'trigger_inactive'
       DataSource = dsgdcBase
-      TabOrder = 2
+      TabOrder = 3
       ValueChecked = '0'
       ValueUnchecked = '1'
     end
     object dbePos: TDBEdit
-      Left = 352
+      Left = 436
       Top = 9
       Width = 47
       Height = 21
       DataField = 'rdb$trigger_sequence'
       DataSource = dsgdcBase
-      TabOrder = 3
+      TabOrder = 1
     end
   end
   object pnText: TPanel [6]
     Left = 0
-    Top = 65
-    Width = 419
-    Height = 296
+    Top = 56
+    Width = 487
+    Height = 343
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
+    BorderWidth = 4
     TabOrder = 6
     object smTriggerBody: TSynMemo
-      Left = 0
-      Top = 0
-      Width = 419
-      Height = 296
+      Left = 4
+      Top = 4
+      Width = 479
+      Height = 335
       Cursor = crIBeam
       Align = alClient
       Font.Charset = DEFAULT_CHARSET

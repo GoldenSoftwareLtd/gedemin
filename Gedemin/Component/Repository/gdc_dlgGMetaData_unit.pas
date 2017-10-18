@@ -8,12 +8,13 @@ uses
 
 type
   Tgdc_dlgGMetaData = class(Tgdc_dlgG)
-    procedure actNewExecute(Sender: TObject);
+
   protected
     FErrorLine: Integer;
     procedure ExtractErrorLine(const S: String);
     procedure InvalidateForm; virtual;
     procedure ClearError;
+    
   public
     constructor Create(AnOwner: TComponent); override;
   end;
@@ -22,21 +23,11 @@ var
   gdc_dlgGMetaData: Tgdc_dlgGMetaData;
 
 implementation
+
 uses
   gd_ClassList, at_frmSQLProcess, jclStrings;
 
 {$R *.DFM}
-
-procedure Tgdc_dlgGMetaData.actNewExecute(Sender: TObject);
-begin
-  inherited;
-
-  if Assigned(frmSQLProcess) and frmSQLProcess.Visible then
-  begin
-    frmSQLProcess.Hide;
-    frmSQLProcess.ShowModal;
-  end;
-end;
 
 procedure Tgdc_dlgGMetaData.ExtractErrorLine(const S: String);
 const
@@ -75,7 +66,6 @@ end;
 constructor Tgdc_dlgGMetaData.Create(AnOwner: TComponent);
 begin
   inherited;
-
   FErrorLine := -1;
 end;
 
@@ -84,5 +74,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgGMetaData);
-
 end.

@@ -37,16 +37,14 @@ type
   Tgdc_dlgCompanyAccount = class(Tgdc_dlgTRPC)
     Label1: TLabel;
     Label3: TLabel;
-    Label4: TLabel;
     Label5: TLabel;
-    Label6: TLabel;
+    Label6: TLabel;                                                   
     Label10: TLabel;
     Bevel1: TBevel;
     gsibluBank: TgsIBLookupComboBox;
     dbeAccount: TDBEdit;
     gsibluCurr: TgsIBLookupComboBox;
     gsibluBankCode: TgsIBLookupComboBox;
-    gsibluMFO: TgsIBLookupComboBox;
     gsibluAccountType: TgsIBLookupComboBox;
     dbcbDisabled: TDBCheckBox;
     gsibluCompany: TgsIBLookupComboBox;

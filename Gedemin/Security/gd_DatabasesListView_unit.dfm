@@ -129,7 +129,6 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       ParentShowHint = False
       ProcessShortCuts = True
       ShowHint = True
-      ShrinkMode = tbsmWrap
       TabOrder = 0
       object tbiCreate: TTBItem
         Action = actCreate

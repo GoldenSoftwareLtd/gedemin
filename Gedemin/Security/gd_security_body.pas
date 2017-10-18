@@ -1746,6 +1746,7 @@ begin
 
       if CloseConnection then
       begin
+        atDatabase.SaveToCacheFile;
         FSilentLogin := False;
         Result := True;
         gdClassList.RemoveAllSubTypes;

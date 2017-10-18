@@ -1,6 +1,5 @@
 inherited gdc_dlgHGR: Tgdc_dlgHGR
-  Left = 525
-  Top = 340
+  Left = 526
   Width = 600
   Height = 417
   BorderStyle = bsSizeable

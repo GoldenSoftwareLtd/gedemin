@@ -1,6 +1,6 @@
 object gdcc_frmProgress: Tgdcc_frmProgress
-  Left = 558
-  Top = 347
+  Left = 560
+  Top = 349
   BorderIcons = []
   BorderStyle = bsDialog
   Caption = 'gdcc_frmProgress'

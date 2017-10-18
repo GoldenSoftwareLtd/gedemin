@@ -581,8 +581,10 @@ type
 
     procedure ProceedLoading(Force: Boolean = False); virtual; abstract;
     procedure ForceLoadFromDatabase; virtual; abstract;
+    procedure SaveToCacheFile; virtual; abstract;
 
-    function FindRelationField(const ARelationName, ARelationFieldName: String): TatRelationField; virtual; abstract;
+    function FindRelationField(const ARelationName, ARelationFieldName: String): TatRelationField; overload; virtual; abstract;
+    function FindRelationField(const AnID: Integer): TatRelationField; overload; virtual; abstract;
 
     procedure NotifyMultiConnectionTransaction; virtual; abstract;
     procedure CancelMultiConnectionTransaction(const All: Boolean = False); virtual; abstract;

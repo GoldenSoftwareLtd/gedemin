@@ -61,7 +61,13 @@ type
   TgdcTablePersistence = (
     tpRegular,
     tpGTTConnection,
-    tpGTTTransaction);  
+    tpGTTTransaction);
+
+  TgdcMetadataScript = (
+    mdsNone,
+    mdsCreate,
+    mdsAlter,
+    mdsDrop);
 
 const
   gdcUserTablesBranchKey = 710000;
@@ -90,20 +96,23 @@ type
 
   CgdcMetaBase = class of TgdcMetaBase;
   TgdcMetaBase = class(TgdcBase)
-  private
-    FPostedID: Integer;
-
   protected
     //Изменяется при создании мета-данных
     //Указывает, нужно ли подключение в однопользовательском режиме
-    NeedSingleUser: Boolean;
+    FNeedSingleUser: Boolean;
+    FSkipMetadata: Boolean;
+    FMetaDataScript: TgdcMetadataScript;
+    FDeletedID: Integer;
 
     function GetIsUserDefined: Boolean; virtual;
     function GetIsFirebirdObject: Boolean; virtual;
     function GetIsDerivedObject: Boolean; virtual;
     function GetFirebirdObjectName: String; virtual;
+    function GetFirebirdObjectNameField: String; virtual;
+    function GetObjectName: String; override;
 
-    procedure ShowSQLProcess(S: TSQLProcessList);
+    procedure ShowSQLProcess(S: TSQLProcessList); overload;
+    procedure ShowSQLProcess(const S: String); overload;
 
     procedure SaveToStreamDependencies(Stream: TStream;
       ObjectSet: TgdcObjectSet; ADependent_Name: String;
@@ -113,26 +122,45 @@ type
     //считывают права доступа
     //добавлены, чтобы можно было определять права доступа к каждой записи
     //по умолчанию считывают права доступа к классу
-    function GetCanCreate: Boolean; override;
     function GetCanDelete: Boolean; override;
     function GetCanEdit: Boolean; override;
+    function GetCanAddToNS: Boolean; override;
 
     function GetRelationName: String; virtual;
 
-    procedure DoAfterTransactionEnd(Sender: TObject); override;
+    procedure DoBeforePost; override;
     procedure DoAfterPost; override;
+    procedure DoAfterDelete; override;
+    procedure DoBeforeInsert; override;
+    procedure DoBeforeEdit; override;
+    procedure GetWhereClauseConditions(S: TStrings); override;
+
+    procedure CustomDelete(Buff: Pointer); override;
+    procedure CustomInsert(Buff: Pointer); override;
+    procedure CustomModify(Buff: Pointer); override;
+
+    procedure GetMetadataScript(S: TSQLProcessList; const AMetadata: TgdcMetadataScript); virtual;
+    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); virtual;
+    procedure SyncRDBObjects; virtual;
+    procedure CheckDependencies; virtual;
+    procedure DropDependencies; virtual;
+    procedure MakePredefinedObjects; virtual;
 
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class function CommitRequired: Boolean; override;
     class function GetSubSetList: String; override;
     class function IsAbstractClass: Boolean; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
+    class function Class_TestUserRights(const SS: TgdcTableInfos;
+      const ST: String): Boolean; override;
 
     function GetDialogDefaultsFields: String; override;
     function GetAutoObjectsNames(SL: TStrings): Boolean; virtual;
     procedure GetProperties(ASL: TStrings); override;
+    function CheckObjectName(const ARaiseException: Boolean = True;
+      const AFocusControl: Boolean = True; const AFieldName: String = ''): Boolean; virtual;
+    function CheckTheSameStatement: String; override;
 
     property IsUserDefined: Boolean read GetIsUserDefined;
     property IsFirebirdObject: Boolean read GetIsFirebirdObject;
@@ -147,26 +175,20 @@ type
   CgdcTable = class of TgdcTable;
 
   TgdcField = class(TgdcMetaBase)
-  private
-    procedure MetaDataCreate;
-    procedure Drop;
-
   protected
-    function GetObjectName: String; override;
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
 
     procedure _DoOnNewRecord; override;
     procedure DoBeforePost; override;
 
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomInsert(Buff: Pointer); override;
     procedure GetWhereClauseConditions(S: TStrings); override;
-    function GetFirebirdObjectName: String; override;
+    function GetFirebirdObjectNameField: String; override;
+    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
@@ -174,7 +196,6 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
-    function CheckTheSameStatement: String; override;
     function GetDomainText(const WithCharSet: Boolean = True; const OnlyDataType: Boolean = False): String;
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
@@ -184,96 +205,65 @@ type
 
   TgdcRelation = class(TgdcMetaBase)
   protected
-    FTableType: TgdcTableType;
-
-    function GetObjectName: String; override;
-    function CreateGrantSQL: String;
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); virtual; abstract;
-    procedure MetaDataCreate;
-
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
+    procedure CheckDependencies; override;
+    procedure DropDependencies; override;
+    function GetFirebirdObjectNameField: String; override;
 
     function GetIsDerivedObject: Boolean; override;
 
-    procedure _DoOnNewRecord; override;
     procedure DoBeforePost; override;
     procedure CreateFields; override;
 
     function GetTableType: TgdcTableType; virtual; abstract;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
-    function GetFirebirdObjectName: String; override;
+    function GetCanView: Boolean; override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetListFieldExtended(const ASubType: TgdcSubType): String; override;
-
     class function GetSubSetList: String; override;
-
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+    class function IsAbstractClass: Boolean; override;
 
-    function CheckTheSameStatement: String; override;
     function GetCurrRecordClass: TgdcFullClass; override;
-
-    property TableType: TgdcTableType read GetTableType;
+    function CheckObjectName(const ARaiseException: Boolean = True;
+      const AFocusControl: Boolean = True; const AFieldName: String = ''): Boolean; override;
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
 
-    //Проверяет корректноть наменаявия таблицы. Наименование берется из текущей записи
-    procedure TestRelationName;
-
-    class function IsAbstractClass: Boolean; override;
+    property TableType: TgdcTableType read GetTableType;
   end;
 
   TgdcBaseTable = class(TgdcRelation)
   private
     FOnCustomTable: TgdcOnCustomTable;
-    FgdcTableField: TgdcTableField;
-    FAdditionCreateField: TStringList;
-    FNeedPredefinedFields: Boolean;
-
-    function GetgdcTableField: TgdcTableField;
 
   protected
-    procedure DropTable; virtual;
-    procedure DropCrossTable;
     function CreateInsertTrigger: String;
     function CreateEditorForeignKey: String;
-
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure MakePredefinedObjects; override;
     procedure _DoOnNewRecord; override;
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomInsert(Buff: Pointer); override;
-
     function GetTableType: TgdcTableType; override;
-
     procedure NewField(FieldName, LName, FieldSource, Description,
       LShortName, Alignment, ColWidth, ReadOnly, Visible: String);
-
     procedure GetWhereClauseConditions(S: TStrings); override;
+    //Функция возвращяет поля через запятую, которые входят в праймари кей
 
   public
-    constructor Create(AnOwner: TComponent); override;
-    destructor Destroy; override;
-
-    procedure MakePredefinedRelationFields; virtual;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    //Функция возвращяет поля через запятую, которые входят в праймари кей
-    class function GetPrimaryFieldName: String; virtual;
     class function CreateInsertEditorTrigger(const ARelationName: String): String; virtual;
     class function CreateUpdateEditorTrigger(const ARelationName: String): String; virtual;
-
-    property gdcTableField: TgdcTableField read GetgdcTableField;
-    property AdditionCreateField: TStringList read FAdditionCreateField write FAdditionCreateField;
+    class function GetPrimaryFieldName: String; virtual;
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
@@ -286,17 +276,13 @@ type
 
   //используется для работы с кросс-таблицами при загрузке их из потока
   TgdcUnknownTable = class(TgdcBaseTable)
-  private
-    function CreateUnknownTable: String;
-    function GetSimulateFieldName: String;
-
   protected
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
     procedure CustomInsert(Buff: Pointer); override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure MakePredefinedObjects; override;
 
   public
-    procedure MakePredefinedRelationFields; override;
-
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
@@ -304,183 +290,101 @@ type
 
   TgdcTable = class(TgdcBaseTable)
   protected
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
+    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
   end;
 
   TgdcPrimeTable = class(TgdcTable)
-  private
-    function CreatePrimeTable: String;
-
   protected
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-    procedure _DoOnNewRecord; override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure MakePredefinedObjects; override;
 
   public
     class function CreateInsertEditorTrigger(const ARelationName: String): String; override;
     class function CreateUpdateEditorTrigger(const ARelationName: String): String; override;
-    procedure MakePredefinedRelationFields; override;
   end;
 
   TgdcSimpleTable = class(TgdcTable)
-  private
-    function CreateSimpleTable: String;
-
   protected
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-    procedure _DoOnNewRecord; override;
-
-  public
-    procedure MakePredefinedRelationFields; override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure MakePredefinedObjects; override;
   end;
 
   TgdcTableToTable = class(TgdcTable)
   private
     FIDDomain: String;
 
-    function CreateSimpleTable: String; virtual;
-    function CreateNewDomain: String;
-    function CreateForeignKey: String; virtual;
-
   protected
-    procedure DropTable; override;
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-    procedure CustomInsert(Buff: Pointer); override;
-
-    procedure _DoOnNewRecord; override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
+    procedure MakePredefinedObjects; override;
 
   public
     function GetReferenceName: String;
-
-    property ReferenceName: String read GetReferenceName;// write SetReferenceName;
   end;
 
   TgdcInheritedTable = class(TgdcTableToTable)
   public
     class function GetPrimaryFieldName: String; override;
-
-    procedure MakePredefinedRelationFields; override;
   end;
 
   TgdcTreeTable = class(TgdcTable)
-  private
-    function CreateTreeTable: String;
-
   protected
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-    procedure _DoOnNewRecord; override;
-
-  public
-     procedure MakePredefinedRelationFields; override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure MakePredefinedObjects; override;
   end;
 
   TgdcLBRBTreeTable = class(TgdcTable)
-  private
-    function CreateIntervalTreeTable: String;
-
   protected
-    procedure DropTable; override;
-
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-    procedure _DoOnNewRecord; override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure MakePredefinedObjects; override;
+    procedure CheckDependencies; override;
+    procedure DropDependencies; override;
 
   public
-    procedure MakePredefinedRelationFields; override;
     function GetAutoObjectsNames(SL: TStrings): Boolean; override;
   end;
 
   TgdcView = class(TgdcRelation)
-  private
-    function CreateView: String;
-    procedure DropView(ViewCreateList: TStringList);
-    procedure AddRelationField;
-    procedure RemoveRelationField;
-
   protected
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure MakePredefinedObjects; override;
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
-
     procedure _DoOnNewRecord; override;
-
-    procedure CustomDelete(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-    procedure CustomInsert(Buff: Pointer); override;
-
     function GetTableType: TgdcTableType; override;
-
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    procedure ReCreateView;
 
     function GetViewTextBySource(const Source: String): String;
     function GetAlterViewTextBySource(const Source: String): String;
   end;
 
-
   TgdcRelationField = class(TgdcMetaBase)
-  private
-    FCrossRelationID: String;
-    FChangeComputed: Boolean;
-
-    function NextCrossRelationName: String;
-
-    function CreateFieldSQL: String;
-    function CreateFieldConstraintSQL: String;
-    function CreateDropFieldConstraintSQL: String;
-    function CreateDefaultSQL(DefaultValue: String): String;
-
-    function CreateCrossRelationSQL: String;
-    function CreateCrossRelationTriggerSQL: String;
-    function CreateCrossRelationGrantSQL: String;
-
-    procedure CreateInvCardTrigger(ResultList: TSQLProcessList;
-      const IsDrop: Boolean = False);
-
-    procedure AlterAcEntryBalanceAndRecreateTrigger(ResultList: TSQLProcessList; const IsDrop: Boolean = False);
-
-    function CreateAccCirculationList(const IsDrop: Boolean = False): String;
-
-    function CreateDropFieldSQL: String;
-    function CreateDropCrossTableSQL: String;
-    function CreateDropTriggerSQL: String;
-
-    procedure DropField;
-    procedure AddField;
-    procedure UpdateField;
-
   protected
     function GetObjectName: String; override;
+    function GetFirebirdObjectNameField: String; override;
 
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetOrderClause: String; override;
 
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
-
     procedure _DoOnNewRecord; override;
     procedure DoBeforePost; override;
-    procedure DoBeforeEdit; override;
     procedure CreateFields; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function GetCanEdit: Boolean; override;
-    function GetFirebirdObjectName: String; override;
-
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetSubSetList: String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -491,67 +395,55 @@ type
 
     function CheckTheSameStatement: String; override;
     function GetCurrRecordClass: TgdcFullClass; override;
-
-    property ChangeComputed: Boolean read FChangeComputed write FChangeComputed;
   end;
 
   TgdcTableField = class(TgdcRelationField)
   private
-    //используется для проверки на корректность наименования при CachedUpdates
-    FFieldList: TStringList;
+    function CreateCrossRelationSQL: String;
+    function CreateCrossRelationTriggerSQL: String;
+
+    procedure CreateInvCardTrigger(ResultList: TSQLProcessList;
+      const IsDrop: Boolean = False);
+    procedure AlterAcEntryBalanceAndRecreateTrigger(ResultList: TSQLProcessList; const IsDrop: Boolean = False);
+    function CreateAccCirculationList(const IsDrop: Boolean = False): String;
 
   protected
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
+    procedure MakePredefinedObjects; override;
+    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
+    procedure SyncRDBObjects; override;
     procedure _DoOnNewRecord; override;
-    procedure DoBeforeInsert; override;
-    procedure DoBeforePost; override;
     procedure CustomInsert(Buff: Pointer); override;
     function GetIsDerivedObject: Boolean; override;
 
   public
-    destructor Destroy; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
-    function CheckFieldName: Boolean;
+    function CheckObjectName(const ARaiseException: Boolean = True;
+      const AFocusControl: Boolean = True; const AFieldName: String = ''): Boolean; override;
   end;
-
 
   TgdcViewField = class(TgdcRelationField)
   protected
-    procedure CustomDelete(Buff: Pointer); override;
     procedure _DoOnNewRecord; override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcStoredProc = class(TgdcMetaBase)
   private
-    IsSaveToStream: Boolean;
-
-    procedure SaveStoredProc(const isNew: Boolean);
-    procedure DropStoredProc;
-
     function GetParamsText: String;
 
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
-
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    procedure _DoOnNewRecord; override;
-    procedure DoBeforePost; override;
-    function GetFirebirdObjectName: String; override;
-
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -561,7 +453,6 @@ type
     // Список полей, которые не надо сохранять в поток.
     class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
 
-    function CheckTheSameStatement: String; override;
     function GetProcedureText: String;
 
     procedure PrepareToSaveToStream(BeforeSave: Boolean);
@@ -571,61 +462,28 @@ type
   end;
 
   TgdcException = class(TgdcMetaBase)
-  private
-    procedure MetaDataCreate;
-    procedure MetaDataAlter;
-    procedure Drop;
-
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
-
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-
-    procedure DoBeforePost; override;
-    function GetFirebirdObjectName: String; override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    function CheckTheSameStatement: String; override;
   end;
 
   TgdcIndex = class(TgdcMetaBase)
-  private
-    //Флаг для синхронизации с базой
-    IsSync: Boolean;
-    FChangeActive: Boolean;
-
-    //используется для проверки на корректность наименования при CachedUpdates
-    FIndexList: TStringList;
-
-    procedure MetaDataCreate;
-    procedure MetaDataAlter;
-    procedure Drop;
-
   protected
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetSelectClause: String; override;
 
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-
-    procedure DoBeforeOpen; override;
     procedure DoAfterOpen; override;
     procedure _DoOnNewRecord; override;
-    procedure DoBeforeEdit; override;
-    procedure DoBeforeInsert; override;
-    procedure DoBeforePost; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
@@ -635,110 +493,89 @@ type
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
 
     function GetIsFirebirdObject: Boolean; override;
-    function GetFirebirdObjectName: String; override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-    destructor Destroy; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-
     class function GetSubSetList: String; override;
 
-    function CheckTheSameStatement: String; override;
-
+    function CheckObjectName(const ARaiseException: Boolean = True;
+      const AFocusControl: Boolean = True; const AFieldName: String = ''): Boolean; override;
     procedure SyncIndices(const ARelationName: String; const NeedRefresh: Boolean = True);
     procedure SyncAllIndices(const NeedRefresh: Boolean = True);
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
-
-    function CheckIndexName: Boolean;
-
-    property ChangeActive: Boolean read FChangeActive write FChangeActive;
   end;
 
-  TgdcTrigger = class(TgdcMetaBase)
-  private
-    //Флаг для синхронизации с базой
-    IsSync: Boolean;
-    FChangeName: Boolean;
-
-    procedure MetaDataAlter;
-    procedure Drop;
-
+  TgdcBaseTrigger = class(TgdcMetaBase)
   protected
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetSelectClause: String; override;
-
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-
-    procedure DoBeforeEdit; override;
-    procedure DoBeforeOpen; override;
     procedure DoBeforePost; override;
-    procedure _DoOnNewRecord; override;
-
     procedure GetWhereClauseConditions(S: TStrings); override;
-    function GetFirebirdObjectName: String; override;
+    function GetCanEdit: Boolean; override;
     function GetIsDerivedObject: Boolean; override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-
-    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetSubSetList: String; override;
     // Список полей, которые не надо сохранять в поток.
     class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
+    class procedure EnumTriggerTypes(S: TStrings); virtual;
 
-    function CheckTheSameStatement: String; override;
-
-    procedure SyncTriggers(const ARelationName: String; const NeedRefresh: Boolean = True);
     procedure SyncAllTriggers(const NeedRefresh: Boolean = True);
-
-    function CalcPosition(RelationName: String; TriggerType: Integer): Integer;
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
+
+    function ComposeTriggerName: String; virtual;
+  end;
+
+  TgdcTrigger = class(TgdcBaseTrigger)
+  protected
+    procedure _DoOnNewRecord; override;
+
+  public
+    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetSubSetList: String; override;
+    class procedure EnumTriggerTypes(S: TStrings); override;
+
+    procedure SyncTriggers(const ARelationName: String; const NeedRefresh: Boolean = True);
+
+    function CalcPosition(RelationName: String; TriggerType: Integer): Integer;
+    function ComposeTriggerName: String; override;
+  end;
+
+  TgdcDBTrigger = class(TgdcBaseTrigger)
+  protected
+    procedure _DoOnNewRecord; override;
+
+  public
+    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetSubSetList: String; override;
+    class procedure EnumTriggerTypes(S: TStrings); override;
   end;
 
   TgdcCheckConstraint = class(TgdcMetaBase)
-  private
-    FChangeName: Boolean;
-
-    procedure MetaDataCreate;
-    procedure MetaDataAlter;
-    procedure Drop;
-
   protected
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetSelectClause: String; override;
 
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-
     procedure _DoOnNewRecord; override;
-    procedure DoBeforeEdit; override;
-    procedure DoBeforePost; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
-    function GetFirebirdObjectName: String; override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -747,47 +584,24 @@ type
 
     class function GetSubSetList: String; override;
 
-    function CheckTheSameStatement: String; override;
-
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
-
-    function CheckName: Boolean;
   end;
 
-
   TgdcGenerator = class(TgdcMetaBase)
-  private
-    FChangeName: Boolean;
-
-    procedure MetaDataCreate;
-    procedure MetaDataAlter;
-    procedure Drop;
-
   protected
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetSelectClause: String; override;
-
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-
-    procedure DoBeforeEdit; override;
-    procedure DoBeforePost; override;
-
-    procedure GetWhereClauseConditions(S: TStrings); override;
-    function GetFirebirdObjectName: String; override;
+    procedure GetMetadataScript(S: TSQLProcessList;
+      const AMetadata: TgdcMetadataScript); override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
-    function CheckTheSameStatement: String; override;
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
@@ -795,12 +609,13 @@ type
 
   EgdcIBError = class(Exception);
 
-  procedure Register;
+procedure Register;
 
-  function GetKeyFieldName(const ARelationName: String): String;
-  function GetTableTypeByName(const ARelationName: String): TgdcTableType;
-  function GetDefValueInQuotes(const DefaultValue: String): String;
-  function GetSimulateFieldNameByRel(RelName: String): String;
+function GetKeyFieldName(const ARelationName: String): String;
+function GetTableTypeByName(const ARelationName: String): TgdcTableType;
+function GetDefValueInQuotes(const DefaultValue: String): String;
+function GetSimulateFieldNameByRel(RelName: String): String;
+function GetObjectNameByRelName(const ARelName, APrefix: String): String;
 
 //Возвращает значение по-умолчанию в зависимости от переданного параметра
 function GetDefaultExpression(const ADefaultExpression: String): Variant;
@@ -811,18 +626,18 @@ const
 implementation
 
 uses
-  gdc_frmField_unit, gdc_frmRelation_unit, gdc_frmTable_unit, gdc_attr_frmRelationField_unit,
-  gdc_dlgField_unit, gdc_dlgRelation_unit, gdc_dlgRelationField_unit,
-  at_frmSQLProcess, at_frmIBUserList, gd_security, gdc_attr_dlgView_unit,
-  gdc_attr_frmStoredProc_unit, gdc_attr_dlgStoredProc_unit,
-  gd_ClassList, IBHeader, Graphics, dmDatabase_unit, at_sql_parser,
-  jclStrings, gdc_attr_dlgException_unit, gdc_frmException_unit,
-  gdc_attr_dlgIndices_unit, gdc_attr_dlgTrigger_unit,
-  gdc_attr_frmTrigger_unit, gdc_attr_frmIndices_unit, Dialogs, ib,
-  at_sql_setup, gd_directories_const,
-  gdc_attr_dlgGenerator_unit, gdc_attr_frmGenerator_unit,
+  gdc_frmField_unit, gdc_frmRelation_unit, gdc_frmTable_unit,
+  gdc_attr_frmRelationField_unit, gdc_dlgField_unit, gdc_dlgRelation_unit,
+  gdc_dlgRelationField_unit, at_frmSQLProcess, at_frmIBUserList,
+  gd_security, gdc_attr_dlgView_unit, gdc_attr_frmStoredProc_unit,
+  gdc_attr_dlgStoredProc_unit, gd_ClassList, IBHeader, Graphics,
+  dmDatabase_unit, at_sql_parser, jclStrings, gdc_attr_dlgException_unit,
+  gdc_frmException_unit, gdc_attr_dlgIndices_unit, gdc_attr_dlgTrigger_unit,
+  gdc_attr_frmTrigger_unit, gdc_attr_frmDBTrigger_unit,
+  gdc_attr_frmIndices_unit, Dialogs, ib, at_sql_setup, gd_directories_const,
+  gdcTriggerhelper, gdc_attr_dlgGenerator_unit, gdc_attr_frmGenerator_unit,
   gdc_attr_frmCheckConstraint_unit, gdc_attr_dlgCheckConstraint_unit,
-  gdcLBRBTreeMetaData, gd_common_functions
+  gdcLBRBTreeMetaData, gd_common_functions, gd_messages_const
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -866,7 +681,7 @@ begin
     [
       TgdcField, TgdcRelation, TgdcTable,
       TgdcView, TgdcRelationField, TgdcTableField, TgdcViewField, TgdcStoredProc,
-      TgdcException, TgdcIndex, TgdcTrigger, TgdcPrimeTable, TgdcGenerator, TgdcCheckConstraint
+      TgdcException, TgdcIndex, TgdcTrigger, TgdcDBTrigger, TgdcPrimeTable, TgdcGenerator, TgdcCheckConstraint
     ]
   );
 end;
@@ -920,6 +735,22 @@ begin
 
   if Length(Result) > cstMetaDataNameLength then
     Result := gdcBaseManager.AdjustMetaName(Result);
+end;
+
+function GetObjectNameByRelName(const ARelName, APrefix: String): String;
+var
+  S: String;
+  I: Integer;
+begin
+  S := ARelName;
+  if Pos(UserPrefix, S) = 1 then
+    S := System.Copy(S, Length(UserPrefix) + 1, 256);
+  I := Pos('_', S);
+  if I = 0 then
+    Result := gdcBaseManager.AdjustMetaName(UserPrefix + APrefix + S)
+  else
+    Result := gdcBaseManager.AdjustMetaName(UserPrefix +
+       System.Copy(S, 1, I - 1) + APrefix + System.Copy(S, I + 1, 256));
 end;
 
 // Уникальный идентификатор для Interbase-овских имен
@@ -984,109 +815,6 @@ end;
 
 { TgdcField }
 
-constructor TgdcField.Create(AnOwner: TComponent);
-begin
-  inherited;
-  CustomProcess := [cpInsert, cpModify, cpDelete];
-end;
-
-procedure TgdcField.CustomDelete(Buff: Pointer);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  DelFieldName: String;
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFIELD', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFIELD',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленный домен!');
-
-  DelFieldName := FieldByName('fieldname').AsString;
-  Drop;
-
-  if Assigned(atDatabase) then
-    atDatabase.IncrementGarbageCount;
-
-  inherited;
-
-  if Assigned(atDatabase)
-    and Assigned(atDatabase.Fields.ByFieldName(DelFieldName))
-    and (not atDatabase.InMultiConnection) then
-  begin
-    atDatabase.Fields.Delete(atDatabase.Fields.IndexOf(atDatabase.Fields.ByFieldName(DelFieldName)));
-  end;  
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcField.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCFIELD', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFIELD', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFIELD',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if IsUserDefined then
-    MetaDataCreate;
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELD', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFIELD', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcField._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -1127,19 +855,6 @@ begin
   {M}      ClearMacrosStack2('TGDCFIELD', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
   {M}  end;
   {END MACRO}
-end;
-
-procedure TgdcField.Drop;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    FSQL.Add(Format('DROP DOMAIN %s', [FieldByName('fieldname').AsString]));
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-  end;
 end;
 
 function TgdcField.GetFromClause(const ARefresh: Boolean = False): String;
@@ -1297,13 +1012,10 @@ end;
 procedure TgdcField.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  if HasSubSet('OnlyAttribute') then
-    S.Add('z.fieldname LIKE ''USR$%''');
   if HasSubSet('ByFieldName') then
-    S.Add('z.fieldname = :fieldname  ')
-  else
-    if not HasSubSet('ByID') then
-      S.Add('NOT (z.fieldname LIKE ''RDB$%'') ');
+    S.Add('z.fieldname = :fieldname')
+  else if not HasSubSet('ByID') then
+    S.Add('NOT (z.fieldname LIKE ''RDB$%'')');
 end;
 
 function TgdcField.GetDomainText(const WithCharSet: Boolean = True; const OnlyDataType: Boolean = False): String;
@@ -1343,7 +1055,7 @@ function TgdcField.GetDomainText(const WithCharSet: Boolean = True; const OnlyDa
           Result := 'CHAR'
         else
           Result := 'VARCHAR';
-          
+
         // проверяем длину поля (http://tracker.firebirdsql.org/browse/CORE-2228)
         if dsDomain.FieldByName('fcharlength').AsInteger > 0 then
           Result := Format('%s(%s)', [Result, dsDomain.FieldByName('fcharlength').AsString])
@@ -1575,76 +1287,6 @@ begin
     raise EgdcIBError.Create('Неопределен тип домена');
 end;
 
-procedure TgdcField.MetaDataCreate;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    FSQL.Add(Format ('CREATE DOMAIN %s AS %s',
-      [FieldByName('fieldname').AsString,
-      GetDomainText]));
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
-  end;
-end;
-
-function TgdcField.CheckTheSameStatement: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCFIELD', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFIELD', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFIELD',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFIELD' then
-  {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if State = dsInactive then
-    Result := 'SELECT id FROM at_fields WHERE UPPER(fieldname)=UPPER(:fieldname)'
-  else if ID < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT id FROM at_fields WHERE UPPER(fieldname)=UPPER(''%s'') ',
-      [FieldByName('fieldname').AsString]);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELD', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFIELD', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcField.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + 'ByFieldName;';
@@ -1663,10 +1305,8 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  ibsql: TIBSQL;
+  q: TIBSQL;
   DidActivate: Boolean;
-  S: String;
-  I: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCFIELD', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -1690,31 +1330,11 @@ begin
 
   inherited;
 
-  if (Trim(StringReplace(FieldByName('fieldname').AsString, 'USR$', '', [rfIgnoreCase])) = '') then
-    raise Exception.Create('Введите наименование домена!');
-
- //  Имя индекса должно содержать только
- //  английские символы
-  S := Trim(AnsiUpperCase(FieldByName('fieldname').AsString));
-   for I := 1 to Length(S) do
-     if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
-     begin
-       FieldByName('fieldname').FocusControl;
-       raise Exception.Create('Название домена должно быть на английском языке!');
-     end;
-
-  FieldByName('defsource').AsString := Trim(FieldByName('defsource').AsString);
   if not (sMultiple in BaseState) then
   begin
-    if FieldByName('lname').AsString = '' then
-      FieldByName('lname').AsString := Trim(FieldByName('fieldname').AsString);
-
-    if FieldByName('description').AsString = '' then
-      FieldByName('description').AsString := Trim(FieldByName('lname').AsString);
-
-    ibsql := TIBSQL.Create(nil);
+    q := TIBSQL.Create(nil);
     try
-      ibsql.Transaction := Transaction;
+      q.Transaction := Transaction;
       DidActivate := False;
       try
         DidActivate := ActivateTransaction;
@@ -1723,94 +1343,94 @@ begin
         if (FieldByName('reftable').AsString > '') and
           (FieldByName('reftablekey').IsNull) then
         begin
-          ibsql.Close;
-          ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE relationname = :RN';
-          ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('reftable').AsString));
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-            FieldByName('reftablekey').AsInteger := ibsql.FieldByName('id').AsInteger;
+          q.Close;
+          q.SQL.Text := 'SELECT id FROM at_relations WHERE relationname = :RN';
+          q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('reftable').AsString));
+          q.ExecQuery;
+          if not q.EOF then
+            FieldByName('reftablekey').AsInteger := q.FieldByName('id').AsInteger;
         end;
 
         if (Trim(FieldByName('reftable').AsString) = '') and
           (FieldByName('reftablekey').AsInteger > 0) then
         begin
-          ibsql.Close;
-          ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE id = :id';
-          ibsql.ParamByName('id').AsInteger := FieldByName('reftablekey').AsInteger;
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-            FieldByName('reftable').AsString := ibsql.FieldByName('relationname').AsString;
+          q.Close;
+          q.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
+          q.ParamByName('id').AsInteger := FieldByName('reftablekey').AsInteger;
+          q.ExecQuery;
+          if not q.EOF then
+            FieldByName('reftable').AsString := q.FieldByName('relationname').AsString;
         end;
 
         //Установим значения для полей-ссылок
         if (FieldByName('reflistfield').AsString > '') and
           (FieldByName('reflistfieldkey').IsNull) then
         begin
-          ibsql.Close;
-          ibsql.SQL.Text := 'SELECT * FROM at_relation_fields WHERE relationname = :RN AND fieldname = :FN';
-          ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('reftable').AsString));
-          ibsql.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('reflistfield').AsString));
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-            FieldByName('reflistfieldkey').AsInteger := ibsql.FieldByName('id').AsInteger;
+          q.Close;
+          q.SQL.Text := 'SELECT id FROM at_relation_fields WHERE relationname = :RN AND fieldname = :FN';
+          q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('reftable').AsString));
+          q.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('reflistfield').AsString));
+          q.ExecQuery;
+          if not q.EOF then
+            FieldByName('reflistfieldkey').AsInteger := q.FieldByName('id').AsInteger;
         end;
 
         if (Trim(FieldByName('reflistfield').AsString) = '') and
           (FieldByName('reflistfieldkey').AsInteger > 0) then
         begin
-          ibsql.Close;
-          ibsql.SQL.Text := 'SELECT * FROM at_relation_fields WHERE id = :id';
-          ibsql.ParamByName('id').AsInteger := FieldByName('reflistfieldkey').AsInteger;
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-            FieldByName('reflistfield').AsString := ibsql.FieldByName('fieldname').AsString;
+          q.Close;
+          q.SQL.Text := 'SELECT fieldname FROM at_relation_fields WHERE id = :id';
+          q.ParamByName('id').AsInteger := FieldByName('reflistfieldkey').AsInteger;
+          q.ExecQuery;
+          if not q.EOF then
+            FieldByName('reflistfield').AsString := q.FieldByName('fieldname').AsString;
         end;
 
         //Установим значения для таблиц-множеств
         if (FieldByName('settable').AsString > '') and
           (FieldByName('settablekey').IsNull) then
         begin
-          ibsql.Close;
-          ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE relationname = :RN';
-          ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('settable').AsString));
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-            FieldByName('settablekey').AsInteger := ibsql.FieldByName('id').AsInteger;
+          q.Close;
+          q.SQL.Text := 'SELECT id FROM at_relations WHERE relationname = :RN';
+          q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('settable').AsString));
+          q.ExecQuery;
+          if not q.EOF then
+            FieldByName('settablekey').AsInteger := q.FieldByName('id').AsInteger;
         end;
 
         if (Trim(FieldByName('settable').AsString) = '') and
           (FieldByName('settablekey').AsInteger > 0) then
         begin
-          ibsql.Close;
-          ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE id = :id';
-          ibsql.ParamByName('id').AsInteger := FieldByName('settablekey').AsInteger;
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-            FieldByName('settable').AsString := ibsql.FieldByName('relationname').AsString;
+          q.Close;
+          q.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
+          q.ParamByName('id').AsInteger := FieldByName('settablekey').AsInteger;
+          q.ExecQuery;
+          if not q.EOF then
+            FieldByName('settable').AsString := q.FieldByName('relationname').AsString;
         end;
 
         //Установим значения для полей-множеств
         if (FieldByName('setlistfield').AsString > '') and
           (FieldByName('setlistfieldkey').IsNull) then
         begin
-          ibsql.Close;
-          ibsql.SQL.Text := 'SELECT * FROM at_relation_fields WHERE relationname = :RN AND fieldname = :FN';
-          ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('settable').AsString));
-          ibsql.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('setlistfield').AsString));
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-            FieldByName('setlistfieldkey').AsInteger := ibsql.FieldByName('id').AsInteger;
+          q.Close;
+          q.SQL.Text := 'SELECT id FROM at_relation_fields WHERE relationname = :RN AND fieldname = :FN';
+          q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('settable').AsString));
+          q.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('setlistfield').AsString));
+          q.ExecQuery;
+          if not q.EOF then
+            FieldByName('setlistfieldkey').AsInteger := q.FieldByName('id').AsInteger;
         end;
 
         if (Trim(FieldByName('setlistfield').AsString) = '') and
           (FieldByName('setlistfieldkey').AsInteger > 0) then
         begin
-          ibsql.Close;
-          ibsql.SQL.Text := 'SELECT * FROM at_relation_fields WHERE id = :id';
-          ibsql.ParamByName('id').AsInteger := FieldByName('setlistfieldkey').AsInteger;
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-            FieldByName('setlistfield').AsString := ibsql.FieldByName('fieldname').AsString;
+          q.Close;
+          q.SQL.Text := 'SELECT fieldname FROM at_relation_fields WHERE id = :id';
+          q.ParamByName('id').AsInteger := FieldByName('setlistfieldkey').AsInteger;
+          q.ExecQuery;
+          if not q.EOF then
+            FieldByName('setlistfield').AsString := q.FieldByName('fieldname').AsString;
         end;
 
         if DidActivate and Transaction.InTransaction then
@@ -1821,7 +1441,7 @@ begin
         raise;
       end;
     finally
-      ibsql.Free;
+      q.Free;
     end;
   end;
 
@@ -1854,68 +1474,29 @@ begin
   Result := 'Tgdc_dlgField';
 end;
 
-function TgdcField.GetFirebirdObjectName: String;
+function TgdcField.GetFirebirdObjectNameField: String;
 begin
-  Result := FieldByName('fieldname').AsString;
+  Result := 'fieldname';
 end;
 
-function TgdcField.GetObjectName: String;
+procedure TgdcField.SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript);
 begin
-  if Active then
-  begin
-    if FieldByName('lname').AsString <> FieldByName('fieldname').AsString then
-      Result := FieldByName('lname').AsString + ', ' +
-        FieldByName('fieldname').AsString
-    else
-      Result := FieldByName('fieldname').AsString;
-  end else
-    Result := inherited GetObjectName;    
+  inherited;
+
+  if (AMetadata = mdsDrop) and (atDatabase.Fields.ByID(AnID) <> nil) then
+    atDatabase.Fields.Delete(atDatabase.Fields.IndexOf(atDatabase.Fields.ByID(AnID)));
+end;
+
+procedure TgdcField.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+begin
+  case AMetadata of
+    mdsCreate: S.Add('CREATE DOMAIN ' + FirebirdObjectName + ' AS ' + GetDomainText);
+    mdsDrop: S.Add('DROP DOMAIN ' + FirebirdObjectName);
+  end;
 end;
 
 { TgdcRelation }
-
-constructor TgdcRelation.Create(AnOwner: TComponent);
-begin
-  inherited;
-  CustomProcess := [cpInsert, cpDelete, cpModify];
-end;
-
-procedure TgdcRelation._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCRELATION', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATION', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATION',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATION' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-  FieldByName('relationname').AsString := '';
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATION', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
-end;
 
 function TgdcRelation.GetCurrRecordClass: TgdcFullClass;
 var
@@ -1977,8 +1558,6 @@ end;
 procedure TgdcRelation.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  if HasSubSet('OnlyAttribute') then
-    S.Add('z.relationname LIKE ''USR$%''');
   if HasSubSet('ByRelationName') then
     S.Add(' z.relationname = :relationname ');
 end;
@@ -1988,168 +1567,9 @@ begin
   Result := inherited GetSubSetList + 'ByRelationName;';
 end;
 
-function TgdcRelation.CreateGrantSQL: String;
-begin
-  Result := Format
-  (
-    'GRANT ALL ON %s TO administrator',
-    [FieldByName('relationname').AsString]
-  );
-end;
-
-procedure TgdcRelation.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATION', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATION',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATION' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if IsUserDefined then
-    MetaDataCreate;
-
-  inherited;
-
-  atDatabase.Relations.RefreshData(Database, Transaction, True);
-  Clear_atSQLSetupCache;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcRelation.MetaDataCreate;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    CreateRelationSQL(FSQL);
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
-  end;
-end;
-
-function TgdcRelation.CheckTheSameStatement: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCRELATION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATION', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATION',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATION' then
-  {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if State = dsInactive then
-    Result := 'SELECT id FROM at_relations WHERE UPPER(relationname)=UPPER(:relationname)'
-  else if ID < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT id FROM at_relations WHERE UPPER(relationname)=UPPER(''%s'') ',
-      [FieldByName('relationname').AsString]);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcRelation.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATION', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATION',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATION' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcRelation.DoBeforePost;
 var
-  ibsql: TIBSQL;
+  q: TIBSQL;
   S: String;
   L: Integer;
   V: Variant;
@@ -2178,9 +1598,6 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  TestRelationName;
-
-  inherited;
 
   if not (sMultiple in BaseState) then
   begin
@@ -2211,19 +1628,19 @@ begin
 
   if (sLoadFromStream in BaseState) then
   begin
-    ibsql := TIBSQL.Create(nil);
+    q := TIBSQL.Create(nil);
     try
       if Transaction.InTransaction then
-        ibsql.Transaction := Transaction
+        q.Transaction := Transaction
       else
-        ibsql.Transaction := ReadTransaction;
+        q.Transaction := ReadTransaction;
 
-      ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE UPPER(lname) = :lname and id <> :id';
-      ibsql.ParamByName('lname').AsString := AnsiUpperCase(FieldByName('lname').AsString);
-      ibsql.ParamByName('id').AsInteger := ID;
-      ibsql.ExecQuery;
+      q.SQL.Text := 'SELECT * FROM at_relations WHERE UPPER(lname) = :lname and id <> :id';
+      q.ParamByName('lname').AsString := AnsiUpperCase(FieldByName('lname').AsString);
+      q.ParamByName('id').AsInteger := ID;
+      q.ExecQuery;
 
-      if ibsql.RecordCount > 0 then
+      if not q.EOF then
       begin
         S := FieldByName('lname').AsString + FieldByName(GetKeyField(SubType)).AsString;
         L := Length(S);
@@ -2236,13 +1653,13 @@ begin
         FieldByName('lname').AsString := S;
       end;
 
-      ibsql.Close;
-      ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE UPPER(lshortname) = :lshortname and id <> :id';
-      ibsql.ParamByName('lshortname').AsString := AnsiUpperCase(FieldByName('lshortname').AsString);
-      ibsql.ParamByName('id').AsInteger := ID;
-      ibsql.ExecQuery;
+      q.Close;
+      q.SQL.Text := 'SELECT * FROM at_relations WHERE UPPER(lshortname) = :lshortname and id <> :id';
+      q.ParamByName('lshortname').AsString := AnsiUpperCase(FieldByName('lshortname').AsString);
+      q.ParamByName('id').AsInteger := ID;
+      q.ExecQuery;
 
-      if ibsql.RecordCount > 0 then
+      if not q.EOF then
       begin
         S := FieldByName('lshortname').AsString + FieldByName(GetKeyField(SubType)).AsString;
         L := Length(S);
@@ -2255,9 +1672,11 @@ begin
         FieldByName('lshortname').AsString := S;
       end;
     finally
-      ibsql.Free;
+      q.Free;
     end;
   end;
+
+  inherited;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
@@ -2297,112 +1716,6 @@ begin
     end;
   end;
   inherited;
-end;
-
-procedure TgdcRelation.CustomDelete(Buff: Pointer);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  DelRelName: String;
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCRELATION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATION', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATION',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATION' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  DelRelName := FieldByName('relationname').AsString;
-
-  inherited;
-
-  Clear_atSQLSetupCache;
-
-  if Assigned(atDatabase) and Assigned(atDatabase.Relations.ByRelationName(DelRelName)) and
-    not (atDatabase.InMultiConnection) then
-  begin
-    atDatabase.Relations.Remove(atDatabase.Relations.ByRelationName(DelRelName));
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATION', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcRelation.TestRelationName;
-var
-  S: String;
-  I: Integer;
-  Tbl: TatRelation;
-begin
-  if (State = dsInsert) and (not (sLoadFromStream in BaseState)) then
-  begin
-    with FieldByName('relationname') do
-    try
-      //  Имя индекса должно содержать только
-      //  английские символы
-      S := Trim(AnsiUpperCase(AsString));
-      if S = '' then
-      begin
-        FieldByName('relationname').FocusControl;
-        raise Exception.Create('Введите наименование таблицы/представления!');
-      end;
-
-      for I := 1 to Length(S) do
-        if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
-        begin
-          FieldByName('relationname').FocusControl;
-          raise Exception.Create('Название должно быть на английском языке!');
-        end;
-
-      //
-      //  Если префикс таблицы пользователя не установлен -
-      //  устанавлияем его самостоятельно
-
-      if (StrIPos(UserPrefix, FieldByName('relationname').AsString) <> 1) then
-        FieldByName('relationname').AsString := UserPrefix + FieldByName('relationname').AsString;
-
-      if (TableType <> ttUnknow) then
-      begin
-        if StrIPos('USR$CROSS', AsString) = 1 then
-          raise Exception.Create('Название пользовательской таблицы/представления не может начинаться с USR$CROSS!');
-
-        if (AsString[Length(FieldByName('relationname').AsString)] in ['0'..'9', '_']) then
-          raise Exception.Create('Название пользовательской таблицы/представления не может заканчиваться на _ или цифру!');
-      end;
-
-      Tbl := atDatabase.Relations.ByRelationName(AsString);
-      //таблица с таким наименованием уже существует
-      if Assigned(Tbl) and (Tbl.ID <> ID) then
-      begin
-        FieldByName('relationname').FocusControl;
-        raise EgdcIBError.Create('Наименование таблицы/представления дублируется с уже существующим!')
-      end;
-    except
-      FocusControl;
-      raise;
-    end;
-  end;  
 end;
 
 procedure TgdcRelation.CreateFields;
@@ -2463,35 +1776,163 @@ begin
   Result := StrIPos('USR$CROSS', FieldByName('relationname').AsString) = 1;
 end;
 
-function TgdcRelation.GetFirebirdObjectName: String;
+function TgdcRelation.GetCanView: Boolean;
 begin
-  Result := FieldByName('relationname').AsString;
+  if (not IsEmpty) and IsFirebirdObject then
+    Result := False
+  else
+    Result := inherited GetCanView;
 end;
 
-function TgdcRelation.GetObjectName: String;
+function TgdcRelation.CheckObjectName(const ARaiseException,
+  AFocusControl: Boolean; const AFieldName: String): Boolean;
+var
+  FN, S: String;
 begin
-  if Active then
+  Result := inherited CheckObjectName(ARaiseException, AFocusControl, AFieldName);
+
+  if Result and (State = dsInsert) and (not (sLoadFromStream in BaseState))
+    and (TableType <> ttUnknow) then
   begin
-    if FieldByName('lname').AsString <> FieldByName('relationname').AsString then
-      Result := FieldByName('lname').AsString + ', ' +
-        FieldByName('relationname').AsString
+    if AFieldName = '' then
+      FN := GetFirebirdObjectNameField
     else
-      Result := FieldByName('relationname').AsString;
-  end else
-    Result := inherited GetObjectName;    
+      FN := AFieldName;
+
+    S := FieldByName(FN).AsString;
+
+    if StrIPos('USR$CROSS', S) = 1 then
+    begin
+      if AFocusControl then
+        FieldByName(FN).FocusControl;
+      if ARaiseException then
+        raise Exception.Create('Наименование таблицы/представления не может начинаться с USR$CROSS')
+      else begin
+        Result := False;
+        exit;
+      end;
+    end;
+
+    if (S[Length(S)] in ['0'..'9', '_']) then
+    begin
+      if AFocusControl then
+        FieldByName(FN).FocusControl;
+      if ARaiseException then
+        raise Exception.Create('Наименование таблицы/представления не может заканчиваться на _ или цифру')
+      else begin
+        Result := False;
+        exit;
+      end;
+    end;
+  end;
 end;
 
-{ TgdcTable }
+procedure TgdcRelation.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+begin
+  case AMetadata of
+    mdsCreate: S.Add('GRANT ALL ON ' + FieldByName('relationname').AsString + ' TO administrator');
+  end;
+end;
 
-constructor TGDCBASETABLE.Create(AnOwner: TComponent);
+procedure TgdcRelation.SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript);
+var
+  R: TatRelation;
+begin
+  inherited;
+  if AMetadata = mdsDrop then
+  begin
+    R := atDatabase.Relations.ByID(AnID);
+    if R <> nil then
+    begin
+      gdClassList.RemoveSubType(R.RelationName);
+      atDatabase.Relations.Delete(atDatabase.Relations.IndexOf(R));
+    end;
+  end else
+    atDatabase.Relations.RefreshData(Database, Transaction, True);
+  Clear_atSQLSetupCache;
+end;
+
+function TgdcRelation.GetFirebirdObjectNameField: String;
+begin
+  Result := 'relationname';
+end;
+
+procedure TgdcRelation.DropDependencies;
+var
+  q: TIBSQL;
+  gdcTrigger: TgdcBaseTrigger;
+  gdcRelField: TgdcRelationField;
 begin
   inherited;
 
-  FTableType := ttUnknow;
-  FOnCustomTable := nil;
-  FAdditionCreateField := TStringList.Create;
-  FNeedPredefinedFields := False;
+  q := CreateReadIBSQL;
+  try
+    gdcTrigger := TgdcBaseTrigger.Create(nil);
+    try
+      gdcTrigger.Transaction := Transaction;
+      gdcTrigger.SubSet := 'ByRelation;OnlyAttribute';
+      gdcTrigger.ParamByName('relationkey').AsInteger := ID;
+      gdcTrigger.Open;
+      while not gdcTrigger.EOF do
+        gdcTrigger.Delete;
+    finally
+      gdcTrigger.Free;
+    end;
+
+    gdcRelField := TgdcRelationField.CreateSubType(nil, '', 'ByID');
+    try
+      gdcRelField.Transaction := Transaction;
+
+      q.SQL.Text :=
+        'SELECT id, crosstablekey, crosstable FROM at_relation_fields ' +
+        'WHERE relationkey = :relationkey AND crosstablekey IS NOT NULL ';
+      q.ParamByName('relationkey').AsInteger := ID;
+      q.ExecQuery;
+
+      while not q.Eof do
+      begin
+        gdcRelField.ID := q.FieldByName('id').AsInteger;
+        gdcRelField.Open;
+        if not gdcRelField.EOF then
+          gdcRelField.Delete;
+        gdcRelField.Close;
+
+        q.Next;
+      end;
+    finally
+      gdcRelField.Free;
+    end;
+  finally
+    q.Free;
+  end;
 end;
+
+procedure TgdcRelation.CheckDependencies;
+var
+  q: TIBSQL;
+begin
+  inherited;
+
+  q := CreateReadIBSQL;
+  try
+    q.SQL.Text :=
+      'SELECT * FROM rdb$dependencies ' +
+      'WHERE rdb$depended_on_name = :depname ' +
+      '  AND (rdb$dependent_type = 1 OR rdb$dependent_type = 5) ';
+    q.ParamByName('depname').AsString := FieldByName('relationname').AsString;
+    q.ExecQuery;
+    if not q.EOF then
+    begin
+      raise EgdcIBError.Create('Нельзя удалить таблицу (представление) т.к. ' +
+        'она используется в процедурах или представлениях!');
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
+{ TgdcTable }
 
 function TGDCBASETABLE.CreateInsertTrigger: String;
 begin
@@ -2513,92 +1954,57 @@ end;
 procedure TgdcBaseTable.NewField(FieldName,
   LName, FieldSource, Description, LShortName, Alignment, ColWidth,
   ReadOnly, Visible: String);
-begin
-  Assert(Assigned(gdcTableField), 'Не задан объект работы с полем');
-
-  with gdcTableField do
-  begin
-    Insert;
-    FieldByName('fieldname').AsString := FieldName;
-    FieldByName('lname').AsString := LName;
-    FieldByName('fieldsource').AsString := FieldSource;
-    FieldByName('description').AsString := Description;
-    FieldByName('lshortname').AsString := LShortName;
-    FieldByName('alignment').AsString := Alignment;
-    FieldByName('colwidth').AsString := ColWidth;
-    FieldByName('readonly').AsString := ReadOnly;
-    FieldByName('visible').AsString := Visible;
-    FieldByName('afull').AsString := '-1';
-    FieldByName('achag').AsString := '-1';
-    FieldByName('aview').AsString := '-1';
-    Post;
-  end;
-end;
-
-procedure TGDCBASETABLE.CustomDelete(Buff: Pointer);
 var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  DelRelName: String;
+  q: TIBSQL;
+  FSK: Integer;
   DidActivate: Boolean;
 begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCBASETABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBASETABLE', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASETABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASETABLE',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASETABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
+  Assert(Transaction <> nil);
 
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленную таблицу');
-
-  DelRelName := FieldByName('relationname').AsString;
-  DidActivate := False;
+  q := TIBSQL.Create(nil);
   try
     DidActivate := ActivateTransaction;
+    q.Transaction := Transaction;
 
-    DropTable;
-    CustomExecQuery(
-        'DELETE FROM at_relations WHERE id = :ID', Buff);
-    Clear_atSQLSetupCache;
+    q.SQL.Text := 'SELECT id FROM at_fields WHERE fieldname = :fn';
+    q.ParamByName('fn').AsString := FieldSource;
+    q.ExecQuery;
 
-    if Assigned(atDatabase) and Assigned(atDatabase.Relations.ByRelationName(DelRelName)) and
-      not (atDatabase.InMultiConnection) then
-    begin
-      atDatabase.Relations.Remove(atDatabase.Relations.ByRelationName(DelRelName));
-    end;
+    if q.EOF then
+      raise EgdcIBError.Create('Invalid field source')
+    else
+      FSK := q.Fields[0].AsInteger;
+    q.Close;
 
-    if DidActivate and Transaction.InTransaction then
+    q.SQL.Text :=
+      'INSERT INTO at_relation_fields ' +
+      '  (relationname, relationkey, fieldname, lname, fieldsource, fieldsourcekey, description, ' +
+      '   lshortname, alignment, colwidth, readonly, visible, afull, achag, aview) ' +
+      'VALUES ' +
+      '  (:relationname, :relationkey, :fieldname, :lname, :fieldsource, :fieldsourcekey, :description, ' +
+      '   :lshortname, :alignment, :colwidth, :readonly, :visible, :afull, :achag, :aview) ';
+    q.ParamByName('relationname').AsString := FieldByName('relationname').AsString;
+    q.ParamByName('relationkey').AsInteger := ID;
+    q.ParamByName('fieldname').AsString := FieldName;
+    q.ParamByName('lname').AsString := LName;
+    q.ParamByName('fieldsource').AsString := FieldSource;
+    q.ParamByName('fieldsourcekey').AsInteger := FSK;
+    q.ParamByName('description').AsString := Description;
+    q.ParamByName('lshortname').AsString := LShortName;
+    q.ParamByName('alignment').AsString := Alignment;
+    q.ParamByName('colwidth').AsString := ColWidth;
+    q.ParamByName('readonly').AsString := ReadOnly;
+    q.ParamByName('visible').AsString := Visible;
+    q.ParamByName('afull').AsString := '-1';
+    q.ParamByName('achag').AsString := '-1';
+    q.ParamByName('aview').AsString := '-1';
+    q.ExecQuery;
+
+    if DidActivate then
       Transaction.Commit;
-  except
-    if DidActivate and Transaction.InTransaction then
-      Transaction.Rollback;
-    raise;
+  finally
+    q.Free;
   end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBASETABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TGDCBASETABLE._DoOnNewRecord;
@@ -2608,8 +2014,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  gdcTF: TgdcTableField;
-  MS: TDataSource;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  try
@@ -2630,25 +2034,11 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   FieldByName('relationtype').AsString := 'T';
 
-  if sLoadFromStream in BaseState then
-  begin
-    gdcTF := GetgdcTableField;
-    if not Assigned(gdcTF) then
-    begin
-      gdcTF := TgdcTableField.CreateSubType(Self, '', 'ByRelation');
-      MS := TDataSource.Create(Self);
-      MS.DataSet := Self;
-      gdcTF.MasterField := 'id';
-      gdcTF.DetailField := 'relationkey';
-      gdcTF.MasterSource := MS;
-      gdcTF.Open;
-    end;
-    FNeedPredefinedFields := True;
-  end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2657,70 +2047,20 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcBaseTable.DropTable;
-var
-  ibsql: TIBSQL;
-  FSQL: TSQLProcessList;
-begin
-  ibsql := CreateReadIBSQL;
-  FSQL := TSQLProcessList.Create;
-  try
-    ibsql.SQL.Text :=
-      'SELECT * FROM rdb$dependencies ' +
-      'WHERE rdb$depended_on_name = :depname ' +
-      '  AND (rdb$dependent_type = 1 OR rdb$dependent_type = 5) ';
-    ibsql.ParamByName('depname').AsString := FieldByName('relationname').AsString;
-    ibsql.ExecQuery;
-    if not ibsql.EOF then
-      raise EgdcIBError.Create('Нельзя удалить таблицу т.к. она используется в процедурах или представлениях!');
-
-    ibsql.Close;
-    ibsql.SQL.Text :=
-      'SELECT * FROM rdb$triggers ' +
-      'WHERE rdb$relation_name = :relname AND rdb$system_flag = 0';
-    ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
-    ibsql.ExecQuery;
-
-    while not ibsql.EOF do
-    begin
-      FSQL.Add('DROP TRIGGER ' + ibsql.FieldByName('rdb$trigger_name').AsTrimString, False);
-      ibsql.Next;
-    end;
-    ibsql.Close;
-
-    DropCrossTable;
-
-    FSQL.Add('DROP TABLE ' + FieldByName('relationname').AsString);
-    FSQL.Add(Format('DELETE FROM GD_COMMAND WHERE UPPER(subtype) = UPPER(''%s'')',
-      [FieldByName('relationname').AsString]));
-
-    ShowSQLProcess(FSQL);
-  finally
-    ibsql.Free;
-    FSQL.Free;
-  end;
-end;
-
-function TGDCBASETABLE.GetgdcTableField: TgdcTableField;
-var
-  i: Integer;
-begin
-  FgdcTableField := nil;
-  for i:= 0 to DetailLinksCount - 1 do
-    if (DetailLinks[i] is TgdcTableField) and ((DetailLinks[i] as TgdcTableField).CachedUpdates or (sLoadFromStream in BaseState))
-    then
-    begin
-      FgdcTableField := DetailLinks[i] as TgdcTableField;
-      Break;
-    end;
-  Result := FgdcTableField;
-end;
-
 function TGDCBASETABLE.GetTableType: TgdcTableType;
 begin
   if not (State in [dsInsert]) then
-    FTableType := GetTableTypeByName(FieldByName('relationname').AsString);
-  Result := FTableType;
+    Result := GetTableTypeByName(FieldByName('relationname').AsString)
+  else if Self.ClassType = TgdcSimpleTable then
+    Result := ttSimpleTable
+  else if Self.ClassType = TgdcTreeTable then
+    Result := ttTree
+  else if Self.ClassType = TgdcLBRBTreeTable then
+    Result := ttIntervalTree
+  else if Self.ClassType = TgdcPrimeTable then
+    result := ttPrimeTable
+  else
+    Result := ttUnknow;
 end;
 
 procedure TGDCBASETABLE.GetWhereClauseConditions(S: TStrings);
@@ -2729,48 +2069,13 @@ begin
   S.Add(' z.relationtype = ''T'' ');
 end;
 
-procedure TGDCBASETABLE.MakePredefinedRelationFields;
-begin
-  TestRelationName;
-
-  if (sLoadFromStream in BaseState) and (not IsUserDefined) then
-    exit;
-
-  //Только для пользовательских таблиц!!!!!
-  if (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) <> 1)
-  then
-    FieldByName('relationname').AsString := UserPrefix +
-        FieldByName('relationname').AsString;
-
-  if (State = dsInsert) and Assigned(gdcTableField) then
-  begin
-    NewField('ID',
-      'Идентификатор', 'DINTKEY', 'Идентификатор', 'Идентификатор',
-      'L', '10', '1', '0');
-  end;
-end;
-
-destructor TGDCBASETABLE.Destroy;
-begin
-  FreeAndNil(FAdditionCreateField);
-  inherited;
-
-end;
-
 class function TGDCBASETABLE.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmTable';
 end;
 
-{ TgdcTable }
-
 { TgdcView }
-
-constructor TgdcView.Create(AnOwner: TComponent);
-begin
-  inherited;
-end;
 
 function TgdcView.GetSelectClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -2871,235 +2176,6 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcView.CustomDelete(Buff: Pointer);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  DelRelName: String;
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCVIEW', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCVIEW', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCVIEW') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCVIEW',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCVIEW' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленное представление');
-
-  DelRelName := FieldByName('relationname').AsString;
-  DropView(nil);
-  CustomExecQuery(' DELETE FROM at_relations WHERE id = :OLD_ID ', Buff);
-  Clear_atSQLSetupCache;
-
-  if Assigned(atDatabase)
-    and Assigned(atDatabase.Relations.ByRelationName(DelRelName))
-    and (not atDatabase.InMultiConnection) then
-  begin
-    atDatabase.Relations.Remove(atDatabase.Relations.ByRelationName(DelRelName));
-  end;
-    
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCVIEW', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCVIEW', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcView.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCVIEW', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCVIEW', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCVIEW') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCVIEW',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCVIEW' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-  AddRelationField;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCVIEW', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCVIEW', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcView.AddRelationField;
-var
-  ibsql: TIBSQL;
-  gdcViewField: TgdcRelationField;
-  I: Integer;
-  DidActivate, ObjCreated: Boolean;
-begin
-  gdcViewField := nil;
-  ObjCreated := False;
-  DidActivate := False;
-
-  for I := 0 to DetailLinksCount - 1 do
-    if (DetailLinks[I] is TgdcRelationField) then
-    begin
-      gdcViewField := DetailLinks[I] as TgdcRelationField;
-      Break;
-    end;
-
-  ibsql := TIBSQL.Create(nil);
-  try
-    DidActivate := ActivateTransaction;
-
-    if not Assigned(gdcViewField) then
-    begin
-      ObjCreated := True;
-      gdcViewField := TgdcViewField.Create(nil);
-      gdcViewField.Transaction := Self.Transaction;
-      gdcViewField.ReadTransaction := Self.ReadTransaction;
-      gdcViewField.Open;
-    end;
-
-    ibsql.Transaction := Transaction;
-    ibsql.SQL.Text :=
-      'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = :relname';
-    ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
-    ibsql.ExecQuery;
-
-    while not ibsql.EOF do
-    begin
-      gdcViewField.Insert;
-      try
-        gdcViewField.FieldByName('relationkey').AsInteger := ID;
-        gdcViewField.FieldByName('relationname').AsString := ibsql.FieldByName('rdb$relation_name').AsTrimString;
-        gdcViewField.FieldByName('fieldname').AsString := ibsql.FieldByName('rdb$field_name').AsTrimString;
-        gdcViewField.FieldByName('fieldsource').AsString := ibsql.FieldByName('rdb$field_source').AsTrimString;
-        gdcViewField.FieldByName('lname').AsString := ibsql.FieldByName('rdb$field_name').AsTrimString;
-        gdcViewField.FieldByName('lshortname').AsString := ibsql.FieldByName('rdb$field_name').AsTrimString;
-        gdcViewField.Post;
-      except
-        gdcViewField.Cancel;
-        raise;
-      end;
-      ibsql.Next;
-    end;
-  finally
-    ibsql.Free;
-    if ObjCreated then
-      gdcViewField.Free;
-    if DidActivate and Transaction.InTransaction then
-      Transaction.Commit;
-  end;
-end;
-
-function TgdcView.CreateView: String;
-begin
-  Result := GetViewTextBySource(FieldByName('view_source').AsString);
-end;
-
-procedure TgdcView.DropView(ViewCreateList: TStringList);
-var
-  FSQL: TSQLProcessList;
-  ibsql: TIBSQL;
-  DidActivate: Boolean;
-  gdcView: TgdcView;
-begin
-  NeedSingleUser := True;
-  FSQL := TSQLProcessList.Create;
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := Transaction;
-    DidActivate := False;
-    try
-      if Assigned(ViewCreateList) then
-      begin
-        ibsql.Close;
-        ibsql.SQl.Text := 'SELECT r.* FROM rdb$view_relations rdb' +
-          ' LEFT JOIN at_relations r ON r.relationname = rdb.rdb$view_name ' +
-          ' WHERE rdb.rdb$relation_name = :rn ';
-        ibsql.ParamByName('rn').AsString := FieldByName('relationname').AsString;
-        ibsql.ExecQuery;
-        if ibsql.RecordCount > 0 then
-        begin
-          gdcView := TgdcView.CreateSubType(nil, '', 'ByID');
-          try
-            gdcView.Transaction := Transaction;
-            while not ibsql.Eof do
-            begin
-              gdcView.Close;
-              gdcView.ID := ibsql.FieldByName('id').AsInteger;
-              gdcView.Open;
-              if (gdcView.RecordCount > 0) and (gdcView.IsUserDefined) then
-              begin
-                if (ViewCreateList.IndexOfName(IntToStr(gdcView.ID)) = -1)
-                  and (ID <> gdcView.ID) then
-                begin
-                  ViewCreateList.Add(IntToStr(gdcView.ID) + '=' +
-                    gdcView.GetViewTextBySource(gdcView.FieldByName('view_source').AsString));
-                  gdcView.DropView(ViewCreateList);
-                end;
-              end;
-              ibsql.Next;
-            end;
-          finally
-            gdcView.Free;
-          end;
-        end;
-      end;
-
-      FSQL.Add('DROP VIEW ' + FieldByName('relationname').AsString);
-      FSQL.Add(Format('DELETE FROM GD_COMMAND WHERE classname = ''TgdcAttrUserDefined'' AND ' +
-        ' UPPER(SubType) = UPPER(''%s'')', [FieldByName('relationname').AsString]));
-
-      ShowSQLProcess(FSQL);
-
-      if DidActivate and Transaction.InTransaction then
-        Transaction.Commit;
-    except
-      if DidActivate and Transaction.InTransaction then
-        Transaction.Rollback;
-      raise;
-    end;
-  finally
-    FSQL.Free;
-    ibsql.Free;
-  end;
-end;
-
 procedure TgdcView._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -3138,13 +2214,7 @@ end;
 
 function TgdcView.GetTableType: TgdcTableType;
 begin
-  Result := FTableType;
-end;
-
-procedure TgdcView.CreateRelationSQL(Scripts: TSQLProcessList);
-begin
-  Scripts.Add(CreateView);
-  Scripts.Add(CreateGrantSQL);
+  Result := ttUnknow;
 end;
 
 class function TgdcView.GetViewFormClassName(
@@ -3152,71 +2222,6 @@ class function TgdcView.GetViewFormClassName(
 begin
   Result := 'Tgdc_frmRelation';
 end;
-
-procedure TgdcView.ReCreateView;
-var
-  FSQL: TSQLProcessList;
-  //ViewCreateList: TStringList;
-  //I: Integer;
-begin
-  Assert(State = dsEdit, 'Объект должен находиться в состоянии редактирования!');
-  Assert(atDatabase <> nil, 'Не загружена база атрибутов!');
-  Assert(IsUserDefined, 'Вы не можете пересоздать стандартное представление!');
-
-  //ViewCreateList := TStringList.Create;
-  FSQL := TSQLProcessList.Create;
-  try
-    {if not Database.IsFirebird25Connect then
-    begin
-      DropView(ViewCreateList);
-      MetaDataCreate;
-      for I := 0 to ViewCreateList.Count - 1 do
-        FSQL.Add(ViewCreateList.Values[ViewCreateList.Names[I]], False);
-
-      if ViewCreateList.Count > 0 then
-        atDatabase.NotifyMultiConnectionTransaction;
-
-      ShowSQLProcess(FSQL);
-
-      RemoveRelationField;
-      AddRelationField;
-    end else
-    begin}
-      FSQL.Add(GetAlterViewTextBySource(FieldByName('view_source').AsString));
-      ShowSQLProcess(FSQL);
-
-      RemoveRelationField;
-      AddRelationField;
-    {end;}
-  finally
-    //ViewCreateList.Free;
-    FSQL.Free;
-  end;
-end;
-
-procedure TgdcView.RemoveRelationField;
-var
-  gdcViewField: TgdcRelationField;
-  I: Integer;
-begin
-  NeedSingleUser := True;
-
-  ExecSingleQuery(
-    Format('DELETE FROM at_relation_fields WHERE relationkey = %d', [ID]));
-
-  gdcViewField := nil;
-
-  for I := 0 to DetailLinksCount - 1 do
-    if (DetailLinks[i] is TgdcRelationField) then
-    begin
-      gdcViewField := DetailLinks[i] as TgdcRelationField;
-      Break;
-    end;
-
-  if Assigned(gdcViewField) then
-    gdcViewField.CloseOpen;
-end;
-
 
 procedure TgdcView.CustomModify(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -3246,10 +2251,10 @@ begin
   {M}    end;
   {END MACRO}
 
-  if (sLoadFromStream in BaseState) and IsUserDefined then
-    ReCreateView;
-
   inherited;
+
+  if IsUserDefined then
+    MakePredefinedObjects;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCVIEW', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -3263,7 +2268,6 @@ function TgdcView.GetViewTextBySource(const Source: String): String;
 var
   i: Integer;
   S: TStringList;
-  Delim: String;
 begin
   if (StrIPos('CREATE OR ALTER VIEW', Source) > 0) or (StrIPos('CREATE VIEW', Source) > 0) then
     Result := Source
@@ -3273,14 +2277,19 @@ begin
       GetFieldsName(Source, S);
       if S.Count = 0 then
         raise EgdcIBError.Create('Ошибка при создании представления: количество полей равно нулю!');
-      Result := Format('CREATE OR ALTER VIEW %s (', [FieldByName('relationname').AsString]);
-      for i := 0 to S.Count - 2 do
-        Result := Result + S[i] + ',';
-      if (Length(Source) > 0) and (not (Source[1] in [#32, #13, #10, #9])) then
-        Delim := ' '
-      else
-        Delim := '';
-      Result := Result + S[S.Count - 1] + ')AS' + Delim + Source;
+      Result := 'CREATE OR ALTER VIEW ' + FieldByName('relationname').AsString + #13#10;
+      if S[0] <> '*' then
+      begin
+        Result := Result + '  ('#13#10;
+        for i := 0 to S.Count - 1 do
+        begin
+          Result := Result + '    ' + S[i];
+          if i < S.Count - 1 then
+            Result := Result + ','#13#10;
+        end;
+        Result := Result + '  )'#13#10;
+      end;
+      Result := Result + 'AS'#13#10 + Source;
     finally
       S.Free;
     end;
@@ -3301,524 +2310,80 @@ begin
   Result := 'Tgdc_attr_dlgView';
 end;
 
-{ TgdcRelationField }
-
-procedure TgdcRelationField.AddField;
-var
-  FQuery: TSQLProcessList;
-  ibsql: TIBSQL;
-  S: String;
-  //Указывает устанавливать ли нам значение по умолчанию
-  IsSetDefault: Boolean;
-  DefValue: String;
-  DidActivate: Boolean;
-  NeedMultiConnection: Boolean;
-  CrossTableKey: Integer;
-  FDefaultvalue: String;
-  L: Integer;
-  FFieldType: Integer;
-  R: OleVariant;
+procedure TgdcView.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
 begin
-  { Добавление поля }
+  case AMetadata of
+    mdsCreate:
+      S.Add(GetViewTextBySource(FieldByName('view_source').AsString));
 
-  FQuery := TSQLProcessList.Create;
-  ibsql := TIBSQL.Create(nil);
-  IsSetDefault := False;
-  DefValue := '';
-  NeedMultiConnection := False;
-
-  try
-    DidActivate := False;
-    try
-      DidActivate := ActivateTransaction;
-      ibsql.Transaction := Transaction;
-
-      if FieldByName('computed_value').IsNull and (FieldByName('refrelationname').AsString > '') then
-      begin
-        FQuery.Add(CreateFieldSQL);
-        FQuery.Add(CreateFieldConstraintSQL);
-
-        NeedMultiConnection := True;
-      end else
-      begin
-        if FieldByName('computed_value').IsNull and
-           (FieldByName('refcrossrelation').AsString <> '') then
-        begin
-
-          FQuery.Add(CreateFieldSQL);
-          FQuery.Add(CreateCrossRelationSQL);
-          FQuery.Add(CreateCrossRelationTriggerSQL);
-          FQuery.Add(CreateCrossRelationGrantSQL);
-
-          NeedMultiConnection := True;
-        end
-        else
-          FQuery.Add(CreateFieldSQL);
-      end;    
-
-      CreateInvCardTrigger(FQuery);
-      // Добавить поле в таблицу AC_ENTRY_BALANCE и пересоздать триггер синхронизации ее данных и данных AC_ENTRY
-      AlterAcEntryBalanceAndRecreateTrigger(FQuery);
-
-      S := CreateAccCirculationList;
-      if S > '' then
-        FQuery.Add(S);
-
-      //Установка значения по умолчанию
-      if (FieldByName('nullflag').AsInteger = 1) and FieldByName('computed_value').IsNull
-        or (not FieldByName('defsource').IsNull) then
-      begin
-        FFieldType := GetFieldType(FieldByName('fieldsourcekey').AsInteger);
-        if (FFieldType in [blr_Text, blr_varying,
-          blr_Text2, blr_varying2, blr_cstring, blr_cstring2]) then
-        begin
-          FDefaultValue := Trim(FieldByName('defsource').AsString);
-          if Pos('DEFAULT', FDefaultValue) = 1 then
-            FDefaultValue := Trim(System.Copy(FDefaultValue, 8, 1024));
-          L := Length(FDefaultValue);
-          if (L > 0) and (FDefaultValue[1] = '''') then
-            FDefaultValue := System.Copy(FDefaultValue, 2, L - 2);
-
-          if (System.Length(FDefaultValue) > FieldByName('stringlength').AsInteger)
-          then
-            raise EgdcIBError.Create(Format('Длина значения по умолчанию превышает допустимую (%s символа(ов))!',
-              [FieldByName('stringlength').AsString]));
-        end;
-
-        //если это не загрузка из потока,
-        //таблица не пустая и
-        //пользователь хочет установить значение по умолчанию,
-        //выводим диалог для ввода занчения по умолчанию
-        if (not (sLoadFromStream in BaseState)) then
-        begin
-          gdcBaseManager.ExecSingleQueryResult(
-            'SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN',
-             FieldByName('relationname').AsString, R);
-
-          if not VarIsEmpty(R) then
-            gdcBaseManager.ExecSingleQueryResult(
-              'SELECT FIRST 1 * FROM ' + FieldByName('relationname').AsString,
-              '', R);
-
-          if not VarIsEmpty(R) and
-            (MessageBox(0,
-              PChar('Хотите ли установить значение для поля ' +
-              FieldByName('fieldname').AsString + '?'),
-              'Установка значения по умолчанию',
-              MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES) then
-          begin
-            DefValue := FieldByName('defsource').AsString;
-            repeat
-              if not InputQuery('Значение по умолчанию', 'Введите значение для поля ' +
-                FieldByName('fieldname').AsString, DefValue)
-              then
-              begin
-                DefValue := '';
-                Break;
-              end;
-              DefValue := Trim(DefValue);
-              if (FFieldType in [blr_Text, blr_varying,
-                 blr_Text2, blr_varying2, blr_cstring, blr_cstring2]) and
-               (Length(DefValue) > FieldByName('stringlength').AsInteger)
-              then
-                MessageBox(ParentHandle, PChar(Format('Длина значения по умолчанию превышает допустимую (%s символа(ов))!',
-                  [FieldByName('stringlength').AsString])), 'Внимание!',
-                  MB_OK or MB_ICONERROR or MB_TASKMODAL);
-            until (not(FFieldType in [blr_Text, blr_varying,
-               blr_Text2, blr_varying2, blr_cstring, blr_cstring2])) or
-               (Length(DefValue) <= FieldByName('stringlength').AsInteger);
-
-            if DefValue > '' then
-              IsSetDefault := True;
-          end
-        end else
-        begin
-          IsSetDefault := True;
-          DefValue := Trim(FieldByName('defsource').AsString);
-        end;
-      end;
-
-      if FieldByName('crosstable').AsString > '' then
-      begin
-        atDatabase.NotifyMultiConnectionTransaction;
-        CrossTableKey := gdcBaseManager.GetNextID;
-        FQuery.Add(Format(
-          'INSERT INTO at_relations (id, relationname, relationtype, lname, ' +
-          'lshortname, description, afull, achag, aview) VALUES' +
-          '(%1:s, ''%0:s'', ''T'', ''%0:s'', ''%0:s'', ''%0:s'', -1, -1, -1)',
-          [FieldByName('crosstable').AsString, IntToStr(CrossTableKey)]
-        ));
-        FQuery.Add(Format('UPDATE at_relation_fields SET crosstablekey = %s' +
-          ' WHERE id = %s', [IntToStr(CrossTableKey), FieldByName('id').AsString]));
-      end;
-
-      if (FieldByName('nullflag').AsInteger = 1) and
-        IsSetDefault or NeedMultiConnection then
-      begin
-        if ((FieldByName('nullflag').AsInteger = 1) and
-          (FieldByName('computed_value').IsNull) or
-          (not FieldByName('defsource').IsNull))
-          and (DefValue > '') then
-        begin
-          FQuery.Add(CreateDefaultSQL(DefValue));
-        end;
-        atDatabase.NotifyMultiConnectionTransaction;
-      end;
-
-      if (sLoadFromStream in BaseState) and Self.IsUserDefined
-        and (not FieldByName('rdb$field_position').IsNull) then
-      begin
-        FQuery.Add(Format('ALTER TABLE %2:s ALTER COLUMN %1:s POSITION %0:d ',
-          [FieldByName('rdb$field_position').AsInteger + 1,
-           FieldByName('fieldname').AsString,
-           FieldByName('relationname').AsString]));
-      end;
-
-      ShowSQLProcess(FQuery);
-
-      if (not atDatabase.InMultiConnection) and (not FieldByName('computed_value').IsNull) then
-      begin
-        ibsql.Close;
-        ibsql.SQL.Text := Format(
-          ' SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = ''%s'' AND ' +
-          ' rdb$field_name = ''%s'' ', [FieldByName('relationname').AsString,
-          FieldByName('fieldname').AsString]);
-        ibsql.ExecQuery;
-        FieldByName('fieldsource').AsString := ibsql.FieldByName('rdb$field_source').AsString;
-        ibsql.Close;
-
-        FieldByName('fieldsourcekey').AsInteger := gdcBaseManager.GetNextID;
-        ibsql.SQL.Text := Format(
-          ' INSERT INTO at_fields (id, fieldname, lname) VALUES (%d, ''%s'', ''%s'') ',
-          [FieldByName('fieldsourcekey').AsInteger,
-           FieldByName('fieldsource').AsString, FieldByName('fieldsource').AsString]);
-        ibsql.ExecQuery;
-      end;
-
-      if DidActivate and Transaction.InTransaction then
-        Transaction.Commit;
-
-    except
-      if DidActivate and Transaction.InTransaction then
-        Transaction.Rollback;
-      raise;
+    mdsAlter:
+    begin
+      S.Add(GetAlterViewTextBySource(FieldByName('view_source').AsString));
+      S.Add('DELETE FROM at_relation_fields WHERE relationkey = ' + IntToStr(ID));
     end;
 
-  finally
-    FQuery.Free;
-    ibsql.Free;
-    NeedSingleUser := False;
+    mdsDrop:
+    begin
+      S.Add('DROP VIEW ' + FieldByName('relationname').AsString);
+      S.Add('DELETE FROM GD_COMMAND WHERE classname = ''TgdcAttrUserDefined'' AND ' +
+        ' UPPER(SubType) = ''' + UpperCase(FieldByName('relationname').AsString) + '''');
+    end;
   end;
+
+  inherited;
 end;
 
-procedure TgdcRelationField.DropField;
+procedure TgdcView.MakePredefinedObjects;
 var
-  FQuery: TSQLProcessList;
-  ibsql: TIBSQL;
-  S: String;
-  NeedMultiConnection: Boolean;
-begin
-  FQuery := TSQLProcessList.Create;
-  ibsql := CreateReadIBSQL;
-  try
-    NeedMultiConnection := False;
-
-    if FieldByName('refrelationname').AsString <> '' then
-      FQuery.Add(CreateDropFieldConstraintSQL)
-
-    else if FieldByName('crosstable').AsString <> '' then
-    begin
-      FQuery.Add(CreateDropTriggerSQL, False);
-      FQuery.Add(CreateDropCrossTableSQL, False);
-      NeedMultiConnection := True;
-    end;
-
-    if AnsiCompareText(FieldByName('relationname').AsString, 'INV_CARD') = 0 then
-    begin
-      CreateInvCardTrigger(FQuery, True);
-      NeedMultiConnection := True;
-    end;
-
-    if AnsiCompareText(Trim(FieldByName('relationname').AsString), 'AC_ENTRY') = 0 then
-    begin
-      S := CreateAccCirculationList(True);
-      if S <> '' then
-        FQuery.Add(S);
-      // Пересоздать триггер синхронизации ее данных и данных AC_ENTRY, удалить поле из AC_ENTRY_BALANCE
-      AlterAcEntryBalanceAndRecreateTrigger(FQuery, True);
-      NeedMultiConnection := True;
-    end;
-
-    FQuery.Add(CreateDropFieldSQL, False);
-
-    if (FieldByName('deleterule').AsString > '') or NeedMultiConnection then
-      atDatabase.NotifyMultiConnectionTransaction;
-    ShowSQLProcess(FQuery);
-
-  finally
-    ibsql.Free;
-    FQuery.Free;
-  end;
-end;
-
-procedure TgdcRelationField.UpdateField;
-var
-  FQuery: TSQLProcessList;
   q: TIBSQL;
-  S: String;
-begin
-  FQuery := TSQLProcessList.Create;
-  try
-    { Изменение поля }
-    if FChangeComputed
-      or ((sLoadFromStream in BaseState) and Self.IsUserDefined
-        and (FieldByName('computed_value').AsString > '')) then
-    begin
-      if not Database.IsFirebird25Connect then
-      begin
-        q := TIBSQL.Create(nil);
-        try
-          q.Transaction := ReadTransaction;
-          q.SQL.Text :=
-            'SELECT f.rdb$computed_source ' +
-            'FROM rdb$relation_fields r JOIN rdb$fields f ' +
-            '  ON r.rdb$field_source = f.rdb$field_name ' +
-            'WHERE r.rdb$relation_name = :RN AND r.rdb$field_name = :FN ';
-          q.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('fieldname').AsString));
-          q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('relationname').AsString));
-          q.ExecQuery;
-
-          if AnsiCompareText(Trim(FieldByName('computed_value').AsString),
-            Trim(q.Fields[0].AsString)) <> 0 then
-          begin
-            DropField;
-            AddField;
-          end;
-        finally
-          q.Free;
-        end;
-      end
-      else
-      begin
-        S := Trim(FieldByName('computed_value').AsString);
-        while (Length(S) > 0) and (S[1] = '(') and (S[Length(S)] = ')') do
-          S := System.Copy(S, 2, Length(S) - 2);
-        FQuery.Add(Format
-        (
-          'ALTER TABLE %s ALTER %s COMPUTED BY (%s)',
-          [FieldByName('relationname').AsString, FieldByName('fieldname').AsString,
-          S]
-        ));
-      end;
-    end;
-
-    if (sLoadFromStream in BaseState) and Self.IsUserDefined
-      and (not FieldByName('rdb$field_position').IsNull) then
-    begin
-      FQuery.Add(Format('ALTER TABLE %2:s ALTER COLUMN %1:s POSITION %0:d ',
-        [FieldByName('rdb$field_position').AsInteger + 1,
-         FieldByName('fieldname').AsString,
-         FieldByName('relationname').AsString]));
-    end;
-
-    ShowSQLProcess(FQuery);
-  finally
-    FQuery.Free;
-  end;
-end;
-
-constructor TgdcRelationField.Create(AnOwner: TComponent);
+  gdcViewField: TgdcRelationField;
+  DidActivate: Boolean;
 begin
   inherited;
-  CustomProcess := [cpInsert, cpModify, cpDelete];
-end;
 
-procedure TgdcRelationField.CustomDelete(Buff: Pointer);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  DelFieldName: String;
-  DelFieldRelName: String;
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCRELATIONFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATIONFIELD', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATIONFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATIONFIELD',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATIONFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
+  DidActivate := False;
+  gdcViewField := TgdcViewField.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    DidActivate := ActivateTransaction;
 
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленное поле!');
+    gdcViewField.Transaction := Self.Transaction;
+    gdcViewField.ReadTransaction := Self.ReadTransaction;
+    gdcViewField.Open;
 
-  DelFieldName := FieldByName('fieldname').AsString;
-  DelFieldRelName := FieldByName('relationname').AsString;
+    q.Transaction := Transaction;
+    q.SQL.Text :=
+      'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = :relname';
+    q.ParamByName('relname').AsString := FieldByName('relationname').AsString;
+    q.ExecQuery;
 
-  DropField;
-
-  CustomExecQuery(
-    ' DELETE FROM at_relation_fields ' +
-    ' WHERE ID = :OLD_ID ',
-    Buff
-  );
-
-  Clear_atSQLSetupCache;
-
-  if Assigned(atDatabase)
-    and Assigned(atDatabase.FindRelationField(DelFieldRelName, DelFieldName))
-    and (not atDatabase.InMultiConnection) then
-  begin
-    atDatabase.Relations.ByRelationName(DelFieldRelName).RelationFields.Delete(
-      atDatabase.Relations.ByRelationName(DelFieldRelName).RelationFields.IndexOf(
-        atDatabase.FindRelationField(DelFieldRelName, DelFieldName)));
+    while not q.EOF do
+    begin
+      gdcViewField.Insert;
+      try
+        gdcViewField.FieldByName('relationkey').AsInteger := ID;
+        gdcViewField.FieldByName('relationname').AsString := q.FieldByName('rdb$relation_name').AsTrimString;
+        gdcViewField.FieldByName('fieldname').AsString := q.FieldByName('rdb$field_name').AsTrimString;
+        gdcViewField.FieldByName('fieldsource').AsString := q.FieldByName('rdb$field_source').AsTrimString;
+        gdcViewField.FieldByName('lname').AsString := q.FieldByName('rdb$field_name').AsTrimString;
+        gdcViewField.FieldByName('lshortname').AsString := q.FieldByName('rdb$field_name').AsTrimString;
+        gdcViewField.Post;
+      except
+        gdcViewField.Cancel;
+        raise;
+      end;
+      q.Next;
+    end;
+  finally
+    q.Free;
+    gdcViewField.Free;
+    if DidActivate and Transaction.InTransaction then
+      Transaction.Commit;
   end;
-        
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATIONFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
 end;
 
-procedure TgdcRelationField.CustomInsert(Buff: Pointer);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  R: TatRelation;
-  F: TatRelationField;
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCRELATIONFIELD', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATIONFIELD', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATIONFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATIONFIELD',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATIONFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if IsUserDefined and (FieldByName('relationtype').AsString = 'T') then
-    AddField;
-
-//Т.к. для вычисляемого поля создается системный домен,
-// мы не всегда можем сразу добавить это поле в нашу таблицу
-
-  if (FieldByName('computed_value').IsNull or (not atDatabase.InMultiConnection))
-    and (not FieldByName('fieldsourcekey').IsNull) then
-  begin
-    inherited;
-
-    R := atDatabase.Relations.ByID(FieldByName('relationkey').AsInteger);
-    if Assigned(R) then
-    begin
-      F := atDataBase.FindRelationField(FieldByName('relationname').AsString,
-        FieldByName('fieldname').AsString);
-      if not Assigned(F) then
-        F := R.RelationFields.AddRelationField(FieldByName('fieldname').AsString);
-      F.RefreshData(Database, Transaction);
-      R.RefreshConstraints(Database, Transaction);
-    end;
-  end else
-    atDatabase.NotifyMultiConnectionTransaction;
-
-  Clear_atSQLSetupCache;
-  
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATIONFIELD', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcRelationField.CustomModify(Buff: Pointer);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  R: TatRelation;
-  F: TatRelationField;
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCRELATIONFIELD', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATIONFIELD', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATIONFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATIONFIELD',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATIONFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  UpdateField;
-
-  if (not FieldByName('fieldsourcekey').IsNull) then
-  begin
-    inherited;
-
-    R := atDatabase.Relations.ByID(FieldByName('relationkey').AsInteger);
-    if Assigned(R) then
-    begin
-      F := atDataBase.FindRelationField(FieldByName('relationname').AsString,
-        FieldByName('fieldname').AsString);
-      if not Assigned(F) then
-        F := R.RelationFields.AddRelationField(FieldByName('fieldname').AsString);
-      F.RefreshData(Database, Transaction);
-      R.RefreshConstraints(Database, Transaction);
-    end;
-  end
-  else if IsUserDefined and (FieldByName('relationtype').AsString = 'T') then
-    atDatabase.NotifyMultiConnectionTransaction;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATIONFIELD', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
+{ TgdcRelationField }
 
 procedure TgdcRelationField._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -3846,10 +2411,8 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  
-  inherited;
 
-  FChangeComputed := False;
+  inherited;
 
   with FgdcDataLink do
     if Active and (DataSet is TgdcRelation) then
@@ -3977,7 +2540,7 @@ begin
     '  rdbf.rdb$computed_source as computed_value, rdbf.rdb$null_flag as sourcenullflag, ' +
     '  rf.rdb$null_flag as nullflag, ' +
     '  rf.rdb$field_position ';
-    
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3989,8 +2552,6 @@ end;
 procedure TgdcRelationField.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  if HasSubSet('OnlyAttribute') then
-    S.Add('z.fieldname LIKE ''USR$%''');
   if HasSubSet('ByRelation') then
     S.Add('z.relationkey = :relationkey ');
   if HasSubSet('ByFieldName') then
@@ -3999,29 +2560,18 @@ begin
     S.Add('z.relationname = :relationname ');
 end;
 
-function TgdcRelationField.CreateCrossRelationGrantSQL: String;
-begin
-  Result := Format
-  (
-    ' GRANT ALL ON %s TO administrator ',
-    [FieldByName('crosstable').AsString]
-  );
-end;
-
-function TgdcRelationField.CreateCrossRelationSQL: String;
+function TgdcTableField.CreateCrossRelationSQL: String;
 var
   S1, S2: String;
 begin
-  NeedSingleUser := True;
-
   S1 := FieldByName('relationname').AsString;
   S2 := FieldByName('refcrossrelation').AsString;
 
-  if AnsiPos('USR$', S1) <> 1 then
-    S1 := 'USR$' + S1;
+  if StrIPos(UserPrefix, S1) <> 1 then
+    S1 := UserPrefix + S1;
 
-  if AnsiPos('USR$', S2) <> 1 then
-    S2 := 'USR$' + S2;
+  if StrIPos(UserPrefix, S2) <> 1 then
+    S2 := UserPrefix + S2;
 
   if S1 = S2 then
     S2 := S2 + '_r';
@@ -4046,290 +2596,76 @@ begin
       gdcBaseManager.AdjustMetaName(FieldByName('crosstable').AsString + '_FK_2')
     ]
   );
-
 end;
 
-function TgdcRelationField.CreateCrossRelationTriggerSQL: String;
+function TgdcTableField.CreateCrossRelationTriggerSQL: String;
 var
   S1, S2: String;
-  ibsql: TIBSQL;
-  DidActivate: Boolean;
   TriggerPos: String;
 begin
+  if FieldByName('stringlength').AsInteger < 1 then
+  begin
+    Result := '';
+    exit;
+  end;
+
   S1 := FieldByName('relationname').AsString;
   S2 := FieldByName('refcrossrelation').AsString;
 
-  if AnsiPos('USR$', S1) <> 1 then
-    S1 := 'USR$' + S1;
+  if StrIPos(UserPrefix, S1) <> 1 then
+    S1 := UserPrefix + S1;
 
-  if AnsiPos('USR$', S2) <> 1 then
-    S2 := 'USR$' + S2;
+  if StrIPos(UserPrefix, S2) <> 1 then
+    S2 := UserPrefix + S2;
 
   if S1 = S2 then
     S2 := S2 + '_r';
 
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := Transaction;
-    DidActivate := False;
-    try
-      DidActivate := ActivateTransaction;
-
-      ibsql.SQL.Text := 'SELECT rdb$field_type FROM rdb$fields WHERE rdb$field_name = ''' +
-        FieldByName('fieldsource').AsString + '''';
-      ibsql.ExecQuery;
-      if ibsql.RecordCount = 0 then
-        raise EgdcIBError.Create('Домен ' + FieldByName('fieldsource').AsString +
-          ' не найден! Попробуйте перезагрузиться! ');
-
-      if (ibsql.FieldByName('rdb$field_type').AsInteger in [blr_Text, blr_varying])
-      then
-      begin
-        TriggerPos := System.Copy(FieldByName('crosstable').AsString, Length(CrossTablePrefix) + 1,
-          AnsiPos('_', FieldByName('crosstable').AsString) - (1 + Length(CrossTablePrefix)));
-        Result := Format
-        (
-          'CREATE OR ALTER TRIGGER %11:s FOR %0:s' + #13#10 +
-          '  BEFORE UPDATE ' + #13#10 +
-          '  POSITION %1:s ' + #13#10 +
-          'AS ' + #13#10 +
-          '  DECLARE VARIABLE attr VARCHAR(8192); ' + #13#10 +
-          '  DECLARE VARIABLE text VARCHAR(8192) = ''''; ' + #13#10 +
-          'BEGIN '+ #13#10 +
-          '  FOR '+ #13#10 +
-          '    SELECT L.%10:s ' + #13#10 +
-          '      FROM ' + #13#10 +
-          '        %2:s C JOIN %3:s L ON C.%5:s = L.%6:s ' + #13#10 +
-          '      WHERE C.%4:s = NEW.%9:s AND L.%10:s > '''' ' + #13#10 +
-          '      INTO :attr ' + #13#10 +
-          '  DO ' + #13#10 +
-          '  BEGIN ' + #13#10 +
-          '    IF (CHARACTER_LENGTH(:text) > %7:s) THEN ' + #13#10 +
-          '      LEAVE; ' + #13#10 +
-          '    text = :text || SUBSTRING(:attr FROM 1 FOR 254) || '' ''; ' + #13#10 +
-          '  END ' + #13#10 +
-          '  NEW.%8:s = TRIM(SUBSTRING(:text FROM 1 FOR %7:s)); ' + #13#10 +
-          'END',
-          [
-            FieldByName('relationname').AsString{0},
-            //System.Copy(FCrossRelationID, 1, AnsiPos('_', FCrossRelationID) - 1){1},
-            TriggerPos,
-            FieldByName('crosstable').AsString{2},
-            FieldByName('refcrossrelation').AsString{3},
-            gdcBaseManager.AdjustMetaName(S1 + 'key'){4},
-            gdcBaseManager.AdjustMetaName(S2 + 'key'){5},
-            GetKeyFieldName(FieldByName('refcrossrelation').AsString){6},
-            //Если пустая строка, то вернет ноль
-            IntToStr(FieldByName('stringlength').AsInteger){7},
-            FieldByName('fieldname').AsString{8},
-            GetKeyFieldName(FieldByName('relationname').AsString){9},
-            FieldByName('setlistfield').AsString {10},
-            gdcBaseManager.AdjustMetaName('usr$bi_' + FieldByName('crosstable').AsString)
-          ]
-        );
-
-      end;
-
-      if DidActivate and Transaction.InTransaction then
-        Transaction.Commit;
-    except
-      if DidActivate and Transaction.InTransaction then
-        Transaction.Rollback;
-
-      raise;
-    end;
-  finally
-    ibsql.Free;
-  end;
-end;
-
-function TgdcRelationField.CreateDefaultSQL(DefaultValue: String): String;
-begin
-  Result := Format(
-    'UPDATE %s SET %s = %s',
-    [FieldByName('relationname').AsString, FieldByName('fieldname').AsString,
-    GetDefValueInQuotes(DefaultValue)]
-    );
-end;
-
-function TgdcRelationField.CreateDropFieldConstraintSQL: String;
-var
-  Relation: TatRelation;
-  RelationField: TatRelationField;
-begin
-  Relation := atDatabase.Relations.ByRelationName(FieldByName('relationname').AsString);
-  RelationField := Relation.RelationFields.ByFieldName(FieldByName('fieldname').AsString);
-  if Assigned(RelationField.ForeignKey) then
-    Result := Format
-    (
-      'ALTER TABLE %s DROP CONSTRAINT %s',
-      [
-        FieldByName('relationname').AsString,
-        RelationField.ForeignKey.ConstraintName
-      ]
-    )
-  else
-    Result := '';
-end;
-
-function TgdcRelationField.CreateDropCrossTableSQL: String;
-begin
+  TriggerPos := System.Copy(FieldByName('crosstable').AsString, Length(CrossTablePrefix) + 1,
+    AnsiPos('_', FieldByName('crosstable').AsString) - (1 + Length(CrossTablePrefix)));
   Result := Format
   (
-    'DROP TABLE %s',
-    [FieldByName('crosstable').AsString]
-  );
-
-end;
-
-function TgdcRelationField.CreateDropFieldSQL: String;
-begin
-  Result := Format
-  (
-    'ALTER TABLE %s DROP %s',
+    'CREATE OR ALTER TRIGGER %11:s FOR %0:s' + #13#10 +
+    '  BEFORE UPDATE ' + #13#10 +
+    '  POSITION %1:s ' + #13#10 +
+    'AS ' + #13#10 +
+    '  DECLARE VARIABLE attr VARCHAR(8192); ' + #13#10 +
+    '  DECLARE VARIABLE text VARCHAR(8192) = ''''; ' + #13#10 +
+    'BEGIN '+ #13#10 +
+    '  FOR '+ #13#10 +
+    '    SELECT L.%10:s ' + #13#10 +
+    '      FROM ' + #13#10 +
+    '        %2:s C JOIN %3:s L ON C.%5:s = L.%6:s ' + #13#10 +
+    '      WHERE C.%4:s = NEW.%9:s AND L.%10:s > '''' ' + #13#10 +
+    '      INTO :attr ' + #13#10 +
+    '  DO ' + #13#10 +
+    '  BEGIN ' + #13#10 +
+    '    IF (CHARACTER_LENGTH(:text) > %7:s) THEN ' + #13#10 +
+    '      LEAVE; ' + #13#10 +
+    '    text = :text || SUBSTRING(:attr FROM 1 FOR 254) || '' ''; ' + #13#10 +
+    '  END ' + #13#10 +
+    '  NEW.%8:s = TRIM(SUBSTRING(:text FROM 1 FOR %7:s)); ' + #13#10 +
+    'END',
     [
-      FieldByName('relationname').AsString,
-      FieldByName('fieldname').AsString
+      FieldByName('relationname').AsString{0},
+      //System.Copy(FCrossRelationID, 1, AnsiPos('_', FCrossRelationID) - 1){1},
+      TriggerPos,
+      FieldByName('crosstable').AsString{2},
+      FieldByName('refcrossrelation').AsString{3},
+      gdcBaseManager.AdjustMetaName(S1 + 'key'){4},
+      gdcBaseManager.AdjustMetaName(S2 + 'key'){5},
+      GetKeyFieldName(FieldByName('refcrossrelation').AsString){6},
+      //Если пустая строка, то вернет ноль
+      IntToStr(FieldByName('stringlength').AsInteger){7},
+      FieldByName('fieldname').AsString{8},
+      GetKeyFieldName(FieldByName('relationname').AsString){9},
+      FieldByName('setlistfield').AsString {10},
+      gdcBaseManager.AdjustMetaName('usr$bi_' + FieldByName('crosstable').AsString)
     ]
   );
-
 end;
 
-function TgdcRelationField.CreateDropTriggerSQL: String;
-var
-  ibsql: TIBSQL;
-begin
-  Result := '';
-  ibsql := TIBSQL.Create(nil);
-  if Transaction.Active then
-    ibsql.Transaction := Transaction
-  else
-    ibsql.Transaction := gdcBaseManager.ReadTransaction;
-
-  try
-    ibsql.SQL.Text := Format('SELECT * FROM rdb$triggers ' +
-      ' WHERE (rdb$trigger_name = ''%0:s'')',
-      [UpperCase(gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('crosstable').AsString))]);
-    ibsql.ExecQuery;
-
-    if ibsql.RecordCount > 0 then
-    Result := Format
-    (
-      'DROP TRIGGER %s',
-      [gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('crosstable').AsString)]
-    );
-  finally
-    ibsql.Free
-  end;
-end;
-
-function TgdcRelationField.CreateFieldConstraintSQL: String;
-var
-  NextConstraintName: String;
-  TableNameWithoutPrefix: String;
-  DeleteRule: String;
-begin
-  NeedSingleUser := True;
-
-  if Pos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) = 1 then
-    TableNameWithoutPrefix := System.Copy(FieldByName('relationname').AsString, Length(UserPrefix) + 1,
-      Length(FieldByName('relationname').AsString))
-  else
-    TableNameWithoutPrefix := FieldByName('relationname').AsString;
-
-  NextConstraintName := gdcBaseManager.AdjustMetaName(Format(UserPrefix + 'FK_%s_%s',
-    [TableNameWithoutPrefix, FieldByName('fieldname').AsString]));
-
-  Result := Format
-  (
-    ' ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON UPDATE CASCADE ',
-    [
-      FieldByName('relationname').AsString,
-      NextConstraintName,
-      FieldByName('fieldname').AsString,
-      FieldByName('RefRelationName').AsString,
-      GetKeyFieldName(FieldByName('RefRelationName').AsString)
-    ]
-  );
-
-  DeleteRule := UpperCase(Trim(FieldByName('deleterule').AsString));
-
-  if (DeleteRule = 'CASCADE') or (DeleteRule = 'SET DEFAULT') or (DeleteRule = 'SET NULL') then
-    Result := Result + ' ON DELETE ' + DeleteRule;
-end;
-
-function TgdcRelationField.CreateFieldSQL: String;
-var
-  ibsql: TIBSQL;
-  DidActivate: Boolean;
-  S: String;
-begin
-  ibsql := TIBSQL.Create(nil);
-  try
-    DidActivate := False;
-    try
-      DidActivate := ActivateTransaction;
-      ibsql.Transaction := Transaction;
-
-      if FieldByName('computed_value').IsNull then
-      begin
-
-        //Т.к. данные у нас могут добавляться с переподключением
-        //используем наши таблицы атрибтов
-        ibsql.SQL.Text := 'SELECT * FROM at_fields WHERE fieldname = :fn';
-        ibsql.ParamByName('fn').AsString := FieldByName('fieldsource').AsString;
-        ibsql.ExecQuery;
-
-        if ibsql.RecordCount = 0 then
-          raise EgdcIBError.Create('Тип ' + FieldByName('fieldsource').AsString +
-            ' не найден! ');
-
-        Result := Format
-        (
-          'ALTER TABLE %s ADD %s %s',
-          [FieldByName('relationname').AsString, FieldByName('fieldname').AsString,
-          FieldByName('fieldsource').AsString]
-        );
-
-        if not FieldByName('defsource').IsNull then
-        begin
-          if AnsiPos('DEFAULT', AnsiUpperCase(Trim(FieldByName('defsource').AsString))) = 0 then
-            Result := Result + ' DEFAULT ' +  GetDefValueInQuotes(FieldByName('defsource').AsString)
-          else
-            Result := Result + ' ' + FieldByName('defsource').AsString ;
-        end;
-
-        if FieldByName('nullflag').AsInteger = 1 then
-        begin
-          Result := Result + ' NOT NULL';
-        end;
-      end
-      else
-        if not FieldByName('computed_value').IsNull then
-        begin
-          S := Trim(FieldByName('computed_value').AsString);
-          while (Length(S) > 0) and (S[1] = '(') and (S[Length(S)] = ')') do
-            S := System.Copy(S, 2, Length(S) - 2);
-          Result := Format
-          (
-            'ALTER TABLE %s ADD %s COMPUTED BY (%s)',
-            [FieldByName('relationname').AsString, FieldByName('fieldname').AsString,
-            S]
-          );
-        end else
-          raise EgdcIBError.Create('Нет выражения для вычисляемого поля');
-    except
-      if DidActivate and Transaction.InTransaction then
-        Transaction.Rollback;
-      raise;
-    end;
-
-  finally
-    ibsql.Free;
-  end;
-end;
-
-procedure TgdcRelationField.CreateInvCardTrigger(ResultList: TSQLProcessList;
+procedure TgdcTableField.CreateInvCardTrigger(ResultList: TSQLProcessList;
   const IsDrop: Boolean = False);
 var
   ibsql: TIBSQL;
@@ -4343,7 +2679,7 @@ var
   HasAdded: Boolean;
 begin
   HasAdded := False;
-  if ANSICompareText(FieldByName('relationname').AsString, 'INV_CARD') = 0 then
+  if AnsiSameText(FieldByName('relationname').AsString, 'INV_CARD') then
   begin
     ibsqlR := TIBSQL.Create(nil);
     ibsql := TIBSQL.Create(nil);
@@ -4518,7 +2854,7 @@ begin
   end;
 end;
 
-procedure TgdcRelationField.AlterAcEntryBalanceAndRecreateTrigger(ResultList: TSQLProcessList;
+procedure TgdcTableField.AlterAcEntryBalanceAndRecreateTrigger(ResultList: TSQLProcessList;
   const IsDrop: Boolean = False);
 var
   ibsqlR: TIBSQL;
@@ -4551,7 +2887,7 @@ begin
           // Добавим поле в ac_entry_balance
           AcEntryBalanceStr := Format('ALTER TABLE ac_entry_balance ADD %s %s',
             [FieldByName('fieldname').AsString, gdcField.GetDomainText(False, True)]);
-          ResultList.Add(AcEntryBalanceStr);  
+          ResultList.Add(AcEntryBalanceStr);
         finally
           FreeAndNil(gdcField);
         end;
@@ -4696,15 +3032,6 @@ begin
   end;
 end;
 
-function TgdcRelationField.NextCrossRelationName: String;
-begin
-  Assert(IBLogin <> nil);
-
-  FCrossRelationID := GetUniqueID(Database, ReadTransaction) + '_' +
-    IntToStr(IBLogin.DBID);
-  Result := 'USR$CROSS' + FCrossRelationID;
-end;
-
 function GetKeyFieldName(const ARelationName: String): String;
 var
   Keys: TatPrimaryKey;
@@ -4738,39 +3065,24 @@ end;
 //в обратном случае, если кавычка встречается внутри текста, то она удваивается
 function GetDefValueInQuotes(const DefaultValue: String): String;
 var
-  I: Integer;
-  DefSt: String;
   L: Tcst_def_KeyWords;
 begin
-  if StrIPos('DEFAULT', Trim(DefaultValue)) = 1 then
-    DefSt := Trim(Copy(Trim(DefaultValue), 8, 32000))
-  else
-    DefSt := DefaultValue;
+  Result := Trim(DefaultValue);
+
+  if StrIPos('DEFAULT', Result) = 1 then
+    Result := Trim(System.Copy(Result, 8, 32000));
 
   for L := Low(cst_def_KeyWords) to High(cst_def_KeyWords) do
   begin
-    if AnsiCompareText(DefSt, cst_def_KeyWords[L]) = 0 then
-    begin
-      Result := DefSt;
-      Exit;
-    end;
+    if AnsiSameText(Result, cst_def_KeyWords[L]) then
+      exit;
   end;
 
-  if (DefSt[1] = '''') and (DefSt[Length(DefSt)] = '''') then
+  if StrToIntDef(Result, 0) <> StrToIntDef(Result, -1) then
   begin
-    Result := DefSt;
-  end else
-  begin
-    Result := '';
-    for I := 1 to Length(DefSt) do
-    begin
-      if DefSt[I] = '''' then
-        Result := Result + '''';
-      Result := Result + DefSt[I];
-    end;
-    Result := '''' + Result + '''';
-  end;
-
+    if not ((Result > '') and (Result[1] = '''') and (Result[Length(Result)] = '''')) then
+      Result := '''' + StringReplace(Result, '''', '''''', [rfReplaceAll]) + '''';
+  end;    
 end;
 
 function GetTableTypeByName(const ARelationName: String): TgdcTableType;
@@ -4879,7 +3191,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  ibsql: TIBSQL;
+  q: TIBSQL;
   Field: TgdcField;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCRELATIONFIELD', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
@@ -4914,7 +3226,7 @@ begin
 
   if not (sMultiple in BaseState) then
   begin
-    ibsql := CreateReadIBSQL;
+    q := CreateReadIBSQL;
     try
       if not FieldByName('computed_value').IsNull then
       begin
@@ -4925,12 +3237,12 @@ begin
       if FieldByName('fieldsourcekey').IsNull and
         (FieldByName('fieldsource').AsString > '') then
       begin
-        ibsql.Close;
-        ibsql.SQL.Text := 'SELECT id FROM at_fields WHERE fieldname = :fieldname';
-        ibsql.ParamByName('fieldname').AsString := FieldByName('fieldsource').AsString;
-        ibsql.ExecQuery;
-        if not ibsql.EOF then
-          FieldByName('fieldsourcekey').AsInteger := ibsql.FieldByName('id').AsInteger
+        q.Close;
+        q.SQL.Text := 'SELECT id FROM at_fields WHERE fieldname = :fieldname';
+        q.ParamByName('fieldname').AsString := FieldByName('fieldsource').AsString;
+        q.ExecQuery;
+        if not q.EOF then
+          FieldByName('fieldsourcekey').AsInteger := q.FieldByName('id').AsInteger
         else if StrIPos('RDB$', FieldByName('fieldsource').AsString) = 1 then
         begin
           Field := TgdcField.Create(nil);
@@ -4953,23 +3265,23 @@ begin
       if (FieldByName('relationname').AsString > '') and
         FieldByName('relationkey').IsNull then
       begin
-        ibsql.Close;
-        ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE relationname = :RN';
-        ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('relationname').AsString));
-        ibsql.ExecQuery;
-        if not ibsql.EOF then
-          FieldByName('relationkey').AsInteger := ibsql.FieldByName('id').AsInteger;
+        q.Close;
+        q.SQL.Text := 'SELECT * FROM at_relations WHERE relationname = :RN';
+        q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('relationname').AsString));
+        q.ExecQuery;
+        if not q.EOF then
+          FieldByName('relationkey').AsInteger := q.FieldByName('id').AsInteger;
       end;
 
       if (Trim(FieldByName('relationname').AsString) = '') and
         (FieldByName('relationkey').AsInteger > -1) then
       begin
-        ibsql.Close;
-        ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE id = :id';
-        ibsql.ParamByName('id').AsInteger := FieldByName('relationkey').AsInteger;
-        ibsql.ExecQuery;
-        if not ibsql.EOF then
-          FieldByName('relationname').AsString := ibsql.FieldByName('relationname').AsString;
+        q.Close;
+        q.SQL.Text := 'SELECT * FROM at_relations WHERE id = :id';
+        q.ParamByName('id').AsInteger := FieldByName('relationkey').AsInteger;
+        q.ExecQuery;
+        if not q.EOF then
+          FieldByName('relationname').AsString := q.FieldByName('relationname').AsString;
       end;
 
       if  not (sLoadFromStream in BaseState) then
@@ -5059,17 +3371,18 @@ begin
         if (State = dsEdit) and (FieldByName('crosstable').AsString > '')
           and FieldByName('crosstablekey').IsNull then
         begin
-          ibsql.Close;
-          ibsql.SQL.Text := 'SELECT id FROM at_relations WHERE relationname = :relationname';
-          ibsql.ParamByName('relationname').AsString := FieldByName('crosstable').AsString;
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-            FieldByName('crosstablekey').AsString := ibsql.FieldByName('id').AsString;
+          q.Close;
+          q.SQL.Text := 'SELECT id FROM at_relations WHERE relationname = :relationname';
+          q.ParamByName('relationname').AsString := FieldByName('crosstable').AsString;
+          q.ExecQuery;
+          if not q.EOF then
+            FieldByName('crosstablekey').AsString := q.FieldByName('id').AsString;
         end;
 
         if (FieldByName('refcrossrelation').AsString > '') and (State = dsInsert) then
         begin
-          FieldByName('crosstable').AsString := NextCrossRelationName;
+          FieldByName('crosstable').AsString :=
+            'USR$CROSS' + GetUniqueID(Database, ReadTransaction) + '_' + IntToStr(IBLogin.DBID);
           FieldByName('crossfieldkey').AsString := FieldByName('setlistfieldkey').AsString;
           FieldByName('crossfield').AsString := FieldByName('setlistfield').AsString;
         end;
@@ -5082,7 +3395,7 @@ begin
             FieldByName('lshortname').Size);
       end;
     finally
-      ibsql.Free;
+      q.Free;
     end;
   end;
 
@@ -5152,44 +3465,6 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcRelationField.DoBeforeEdit;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCRELATIONFIELD', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATIONFIELD', KEYDOBEFOREEDIT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREEDIT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATIONFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATIONFIELD',
-  {M}          'DOBEFOREEDIT', KEYDOBEFOREEDIT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATIONFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-  FChangeComputed := False;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATIONFIELD', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcRelationField.GetListFieldExtended(
   const ASubType: TgdcSubType): String;
 begin
@@ -5234,7 +3509,7 @@ begin
   {M}    end;
   {END MACRO}
   if HasSubSet('ByRelation') then
-    Result := ' ORDER BY rdb$field_position '
+    Result := ' ORDER BY rf.rdb$field_position '
   else
     Result := inherited GetOrderClause;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
@@ -5261,7 +3536,7 @@ begin
   FindInheritedSubType(Result);
 end;
 
-function TgdcRelationField.CreateAccCirculationList(const IsDrop: Boolean = False): String;
+function TgdcTableField.CreateAccCirculationList(const IsDrop: Boolean = False): String;
 var
   ibsqlR: TIBSQL;
   DidActivate: Boolean;
@@ -5379,30 +3654,17 @@ begin
   end;
 end;
 
-function TgdcRelationField.GetCanEdit: Boolean;
-begin
-  if State = dsInsert then
-    Result := True
-  else
-    Result := TestUserRights([tiAChag]);
-end;
-
 class function TgdcRelationField.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgRelationField';
 end;
 
-function TgdcRelationField.GetFirebirdObjectName: String;
-begin
-  Result := FieldByName('fieldname').AsString;
-end;
-
 function TgdcRelationField.GetObjectName: String;
 begin
   if Active then
   begin
-    if (FieldByName('lname').AsString > '') and 
+    if (FieldByName('lname').AsString > '') and
       (FieldByName('lname').AsString  <> FieldByName('fieldname').AsString) then
     begin
       Result := FieldByName('lname').AsString + ', ' +
@@ -5420,6 +3682,330 @@ class function TgdcRelationField.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_attr_frmRelationField';
+end;
+
+function TgdcRelationField.GetFirebirdObjectNameField: String;
+begin
+  Result := 'fieldname';
+end;
+
+procedure TgdcTableField.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+var
+  DefClause, NullClause, CompClause: String;
+  NextConstraintName: String;
+  TableNameWithoutPrefix: String;
+  DeleteRule: String;
+  RF: TatRelationField;
+  TN: String;
+  Res: OleVariant;
+begin
+  inherited;
+
+  case AMetadata of
+
+    mdsCreate:
+    begin
+      if FieldByName('computed_value').IsNull then
+      begin
+        if FieldByName('defsource').IsNull then
+          DefClause := ''
+        else
+          DefClause := 'DEFAULT ' + GetDefValueInQuotes(FieldByName('defsource').AsString);
+
+        if FieldByName('nullflag').AsInteger <> 0 then
+          NullClause := 'NOT NULL'
+        else
+          NullClause := '';
+
+        S.Add(Format
+          (
+            'ALTER TABLE %s ADD %s %s %s %s',
+            [FieldByName('relationname').AsString, FieldByName('fieldname').AsString,
+            FieldByName('fieldsource').AsString, DefClause, NullClause]
+          )
+        );
+
+        if FieldByName('refrelationname').AsString > '' then
+        begin
+          if StrIPos(UserPrefix, FieldByName('relationname').AsString) = 1 then
+            TableNameWithoutPrefix := System.Copy(FieldByName('relationname').AsString, Length(UserPrefix) + 1, 1024)
+          else
+            TableNameWithoutPrefix := FieldByName('relationname').AsString;
+
+          NextConstraintName := gdcBaseManager.AdjustMetaName(Format(UserPrefix + 'FK_%s_%s',
+            [TableNameWithoutPrefix, FieldByName('fieldname').AsString]));
+
+          DeleteRule := UpperCase(Trim(FieldByName('deleterule').AsString));
+
+          if (DeleteRule = 'CASCADE') or (DeleteRule = 'SET DEFAULT') or (DeleteRule = 'SET NULL') then
+            DeleteRule := 'ON DELETE ' + DeleteRule
+          else
+            DeleteRule := '';
+
+          S.Add(Format
+            (
+              ' ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON UPDATE CASCADE %s',
+              [
+                FieldByName('relationname').AsString,
+                NextConstraintName,
+                FieldByName('fieldname').AsString,
+                FieldByName('RefRelationName').AsString,
+                GetKeyFieldName(FieldByName('RefRelationName').AsString),
+                DeleteRule
+              ]
+            ));
+        end else
+        if FieldByName('refcrossrelation').AsString > '' then
+        begin
+          S.Add(CreateCrossRelationSQL);
+          S.Add(CreateCrossRelationTriggerSQL);
+          S.Add('GRANT ALL ON ' + FieldByName('crosstable').AsString + ' TO administrator ');
+        end;
+
+        CreateInvCardTrigger(S);
+
+        // Добавить поле в таблицу AC_ENTRY_BALANCE и пересоздать триггер синхронизации ее данных и данных AC_ENTRY
+        AlterAcEntryBalanceAndRecreateTrigger(S);
+
+        S.Add(CreateAccCirculationList);
+      end else
+      begin
+        CompClause := Trim(FieldByName('computed_value').AsString);
+        while (Length(CompClause) > 0) and (CompClause[1] = '(') and (CompClause[Length(CompClause)] = ')') do
+          CompClause := System.Copy(CompClause, 2, Length(CompClause) - 2);
+        S.Add(Format
+        (
+          'ALTER TABLE %s ADD %s COMPUTED BY (%s)',
+          [FieldByName('relationname').AsString, FieldByName('fieldname').AsString,
+          CompClause]
+        ));
+      end;
+
+      if (sLoadFromStream in BaseState) and Self.IsUserDefined
+        and (not FieldByName('rdb$field_position').IsNull) then
+      begin
+        S.Add(Format('ALTER TABLE %2:s ALTER COLUMN %1:s POSITION %0:d ',
+          [FieldByName('rdb$field_position').AsInteger + 1,
+           FieldByName('fieldname').AsString,
+           FieldByName('relationname').AsString]));
+      end;
+    end;
+
+    mdsDrop:
+    begin
+      if FieldByName('refrelationname').AsString <> '' then
+      begin
+        RF := atDatabase.FindRelationField(FieldByName('relationname').AsString,
+          FieldByName('fieldname').AsString);
+        if (RF <> nil) and (RF.ForeignKey <> nil) then
+          S.Add(Format
+          (
+            'ALTER TABLE %s DROP CONSTRAINT %s',
+            [
+              RF.Relation.RelationName,
+              RF.ForeignKey.ConstraintName
+            ]
+          ));
+      end
+      else if FieldByName('crosstable').AsString <> '' then
+      begin
+        TN := UpperCase(gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('crosstable').AsString));
+
+        if ExecSingleQueryResult('SELECT rdb$trigger_name FROM rdb$triggers WHERE rdb$trigger_name = ''' + TN + '''', 0, Res) then
+          S.Add('DROP TRIGGER ' + TN);
+
+        S.Add('DROP TABLE ' + FieldByName('crosstable').AsString);
+      end;
+
+      if AnsiSameText(FieldByName('relationname').AsString, 'INV_CARD') then
+        CreateInvCardTrigger(S, True);
+
+      if AnsiSameText(FieldByName('relationname').AsString, 'AC_ENTRY') then
+      begin
+        S.Add(CreateAccCirculationList(True));
+        // Пересоздать триггер синхронизации ее данных и данных AC_ENTRY, удалить поле из AC_ENTRY_BALANCE
+        AlterAcEntryBalanceAndRecreateTrigger(S, True);
+      end;
+
+      S.Add('ALTER TABLE ' + FieldByName('relationname').AsString + ' DROP ' + FieldByName('fieldname').AsString);
+    end;
+
+    mdsAlter:
+    begin
+      if not FieldByName('computed_value').IsNull then
+      begin
+        CompClause := Trim(FieldByName('computed_value').AsString);
+        while (Length(CompClause) > 0) and (CompClause[1] = '(') and (CompClause[Length(CompClause)] = ')') do
+          CompClause := System.Copy(CompClause, 2, Length(CompClause) - 2);
+        S.Add(Format
+        (
+          'ALTER TABLE %s ALTER %s COMPUTED BY (%s)',
+          [FieldByName('relationname').AsString, FieldByName('fieldname').AsString,
+          CompClause]
+        ));
+      end;
+
+      if (sLoadFromStream in BaseState) and (not FieldByName('rdb$field_position').IsNull) then
+      begin
+        S.Add(Format('ALTER TABLE %2:s ALTER COLUMN %1:s POSITION %0:d ',
+          [FieldByName('rdb$field_position').AsInteger + 1,
+           FieldByName('fieldname').AsString,
+           FieldByName('relationname').AsString]));
+      end;
+    end;
+  end;
+end;
+
+procedure TgdcTableField.MakePredefinedObjects;
+var
+  IsSetDefault: Boolean;
+  FDefaultValue: String;
+  L: Integer;
+  FFieldType: Integer;
+  R: OleVariant;
+begin
+  inherited;
+
+  IsSetDefault := False;
+
+  //Установка значения по умолчанию
+  if (FieldByName('nullflag').AsInteger <> 0) or (not FieldByName('defsource').IsNull) then
+  begin
+    if FieldByName('defsource').IsNull then
+      FDefaultValue := ''
+    else begin
+      FDefaultValue := Trim(FieldByName('defsource').AsString);
+      if Pos('DEFAULT', FDefaultValue) = 1 then
+        FDefaultValue := Trim(System.Copy(FDefaultValue, 8, 1024));
+      L := System.Length(FDefaultValue);
+      if (L > 0) and (FDefaultValue[1] = '''') then
+        FDefaultValue := System.Copy(FDefaultValue, 2, L - 2);
+    end;
+
+    FFieldType := GetFieldType(FieldByName('fieldsourcekey').AsInteger);
+
+    if (FFieldType in [blr_Text, blr_varying,
+      blr_Text2, blr_varying2, blr_cstring, blr_cstring2]) then
+    begin
+      if System.Length(FDefaultValue) > FieldByName('stringlength').AsInteger then
+        raise EgdcIBError.Create(Format('Длина значения по умолчанию превышает размер поля (%s)!',
+          [FieldByName('stringlength').AsString]));
+    end;
+
+    //если это не загрузка из потока,
+    //таблица не пустая и
+    //пользователь хочет установить значение по умолчанию,
+    //выводим диалог для ввода занчения по умолчанию
+    if (not (sLoadFromStream in BaseState)) and (([sView, sDialog] * BaseState) <> []) then
+    begin
+      if
+        gdcBaseManager.ExecSingleQueryResult(
+          'SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN',
+           FieldByName('relationname').AsString, R)
+        and
+        gdcBaseManager.ExecSingleQueryResult(
+          'SELECT FIRST 1 * FROM ' + FieldByName('relationname').AsString,
+          '', R)
+        and
+        (MessageBox(0,
+          PChar('Установить значение поля ' +
+          FieldByName('fieldname').AsString +
+          ' для существующих записей?'),
+          'Установка значения',
+          MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES) then
+      begin
+        if InputQuery('Значение', 'Введите значение для поля ' +
+          FieldByName('fieldname').AsString, FDefaultValue) then
+        begin
+          FDefaultValue := Trim(FDefaultValue);
+          if FFieldType in [blr_Text, blr_varying, blr_Text2, blr_varying2, blr_cstring, blr_cstring2] then
+            FDefaultValue := System.Copy(FDefaultValue, 1, FieldByName('stringlength').AsInteger);
+          IsSetDefault := True;
+        end;
+      end
+    end else
+      IsSetDefault := not FieldByName('defsource').IsNull;
+  end;
+
+  if IsSetDefault then
+    ExecSingleQuery(Format(
+      'UPDATE %s SET %s = %s WHERE %s IS NULL',
+      [FieldByName('relationname').AsString, FieldByName('fieldname').AsString,
+        GetDefValueInQuotes(FDefaultValue), FieldByName('fieldname').AsString]
+    ));
+end;
+
+procedure TgdcTableField.SyncAtDatabase(const AnID: Integer;
+  const AMetadata: TgdcMetadataScript);
+var
+  R: TatRelation;
+  F: TatRelationField;
+begin
+  inherited;
+
+  case AMetadata of
+
+    mdsCreate, mdsAlter:
+    begin
+      R := atDatabase.Relations.ByID(FieldByName('relationkey').AsInteger);
+      if R <> nil then
+      begin
+        F := R.RelationFields.ByFieldName(FieldByName('fieldname').AsString);
+        if not Assigned(F) then
+          F := R.RelationFields.AddRelationField(FieldByName('fieldname').AsString);
+        F.RefreshData(Database, Transaction);
+        R.RefreshConstraints(Database, Transaction);
+      end;
+    end;
+
+    mdsDrop:
+    begin
+      F := atDatabase.FindRelationField(AnID);
+
+      if F <> nil then
+        F.Relation.RelationFields.Delete(F.Relation.RelationFields.IndexOf(F));
+    end;
+  end;
+
+  Clear_atSQLSetupCache;
+end;
+
+procedure TgdcTableField.SyncRDBObjects;
+var
+  Res: OleVariant;
+begin
+  inherited;
+
+  if (FieldByName('crosstable').AsString > '') and
+    FieldByName('crosstablekey').IsNull then
+  begin
+    FieldByName('crosstablekey').AsInteger := gdcBaseManager.GetNextID;
+    ExecSingleQuery(Format(
+      'INSERT INTO at_relations (id, relationname, relationtype, lname, ' +
+      'lshortname, description, afull, achag, aview) VALUES' +
+      '(%1:d, ''%0:s'', ''T'', ''%0:s'', ''%0:s'', ''%0:s'', -1, -1, -1)',
+      [FieldByName('crosstable').AsString, FieldByName('crosstablekey').AsInteger]
+    ));
+  end;
+
+  if FieldByName('fieldsourcekey').IsNull and FieldByName('fieldsource').IsNull then
+  begin
+    if ExecSingleQueryResult(Format(
+      'SELECT rdb$field_source ' +
+      'FROM rdb$relation_fields ' +
+      'WHERE rdb$relation_name = ''%s'' AND rdb$field_name = ''%s'' ',
+        [FieldByName('relationname').AsString, FieldByName('fieldname').AsString]), 0, Res) then
+    begin
+      FieldByName('fieldsource').AsString := Res[0, 0];
+    end;
+
+    FieldByName('fieldsourcekey').AsInteger := gdcBaseManager.GetNextID;
+    ExecSingleQuery(Format(
+      'INSERT INTO at_fields (id, fieldname, lname) VALUES (%d, ''%s'', ''%s'') ',
+      [FieldByName('fieldsourcekey').AsInteger,
+       FieldByName('fieldsource').AsString, FieldByName('fieldsource').AsString]));
+  end;
 end;
 
 { TgdcTableField }
@@ -5466,148 +4052,6 @@ begin
   Result := 'Tgdc_frmTable';
 end;
 
-function TgdcTableField.CheckFieldName: Boolean;
-begin
-  Result := True;
-
-  if Assigned(atDatabase) then
-  begin
-    if Assigned(atDatabase.FindRelationField(FieldByName('relationname').AsString,
-      FieldByName('fieldname').AsString))
-    then
-    begin
-      Result := False;
-    end else
-
-    if CachedUpdates and (FFieldList <> nil) then
-    begin
-      if FFieldList.IndexOf(FieldByName('fieldname').AsString + '=' +
-        FieldByName('relationname').AsString) > -1
-      then
-        Result := False;
-    end;
-  end;
-end;
-
-procedure TgdcTableField.DoBeforeInsert;
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  BM: TBookmarkStr;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTABLEFIELD', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLEFIELD', KEYDOBEFOREINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLEFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLEFIELD',
-  {M}          'DOBEFOREINSERT', KEYDOBEFOREINSERT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLEFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-  if CachedUpdates then
-  begin
-    if FFieldList <> nil then
-      FFieldList.Clear
-    else begin
-      FFieldList := TStringList.Create;
-      FFieldList.Sorted := True;
-    end;  
-    DisableControls;
-    BM := BookMark;
-
-    First;
-    while not EOF do
-    begin
-      FFieldList.Add(AnsiUpperCase(FieldByName('fieldname').AsString) + '=' +
-        AnsiUpperCase(FieldByName('relationname').AsString));
-      Next;
-    end;
-
-    BookMark := BM;
-    EnableControls;
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLEFIELD', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLEFIELD', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-destructor TgdcTableField.Destroy;
-begin
-  FFieldList.Free;
-  inherited;
-end;
-
-procedure TgdcTableField.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTABLEFIELD', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLEFIELD', KEYDOBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLEFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLEFIELD',
-  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLEFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  //Проверим на дублирование наименования поля
-  if (State = dsInsert) and (not CheckFieldName) then
-  begin
-    FieldByName('fieldname').FocusControl;
-    raise EgdcIBError.Create('Название поля дублируется с уже существующим!');
-  end;
-
-  //Если мы добавили невычисляемое поле и при этом не указали тип
-  if (State = dsInsert) and FieldByName('computed_value').IsNull and
-    FieldByName('fieldsourcekey').IsNull and FieldByName('fieldsource').IsNull then
-  begin
-    FieldByName('fieldsourcekey').FocusControl;
-    raise EgdcIBError.Create('Выберите тип поля!');
-  end;
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLEFIELD', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLEFIELD', 'DOBEFOREPOST', KEYDOBEFOREPOST);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcTableField.CustomInsert(Buff: Pointer);
 begin
   //не загружаем поля cross таблиц из потока(для старых настроек)
@@ -5624,49 +4068,44 @@ begin
     and (StrIPos('USR$', FieldByName('fieldname').AsString) <> 1);
 end;
 
+function TgdcTableField.CheckObjectName(const ARaiseException,
+  AFocusControl: Boolean; const AFieldName: String): Boolean;
+begin
+  Result := inherited CheckObjectName(ARaiseException, AFocusControl, AFieldName);
+
+  if not Result then
+    exit;
+
+  //Проверим на дублирование наименования поля
+  if (State = dsInsert) and (atDatabase.FindRelationField(FieldbyName('relationname').AsString,
+    FieldByName('fieldname').AsString) <> nil) then
+  begin
+    if AFocusControl then
+      FieldByName('fieldname').FocusControl;
+    if ARaiseException then
+      raise EgdcIBError.Create('Название поля дублируется с уже существующим!')
+    else begin
+      Result := False;
+      exit;
+    end;
+  end;
+
+  //Если мы добавили невычисляемое поле и при этом не указали тип
+  if (State = dsInsert) and FieldByName('computed_value').IsNull and
+    FieldByName('fieldsourcekey').IsNull and FieldByName('fieldsource').IsNull then
+  begin
+    if AFocusControl then
+      FieldByName('fieldsourcekey').FocusControl;
+    if ARaiseException then
+      raise EgdcIBError.Create('Выберите тип поля!')
+    else begin
+      Result := False;
+      exit;
+    end;
+  end;
+end;
+
 { TgdcViewField }
-
-constructor TgdcViewField.Create(AnOwner: TComponent);
-begin
-  inherited;
-  CustomProcess := [cpInsert, cpModify, cpDelete];
-end;
-
-procedure TgdcViewField.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCVIEWFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCVIEWFIELD', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCVIEWFIELD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCVIEWFIELD',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCVIEWFIELD' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCVIEWFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCVIEWFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
 
 class function TgdcViewField.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
@@ -5712,270 +4151,23 @@ end;
 
 { TgdcStoredProc }
 
-function TgdcStoredProc.CheckTheSameStatement: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCSTOREDPROC', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSTOREDPROC', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTOREDPROC') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTOREDPROC',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTOREDPROC' then
-  {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if State = dsInactive then
-    Result := 'SELECT id FROM at_procedures WHERE UPPER(procedurename) = UPPER(:procedurename)'
-  else if ID < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT id FROM at_procedures WHERE UPPER(procedurename) = UPPER(''%s'')',
-      [FieldByName('procedurename').AsString]);
-       
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTOREDPROC', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSTOREDPROC', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
-  {M}  end;
-  {END MACRO}
-end;
-
-constructor TgdcStoredProc.Create(AnOwner: TComponent);
-begin
-  inherited Create(AnOwner);
-
-  CustomProcess := [cpInsert, cpModify, cpDelete];
-end;
-
-procedure TgdcStoredProc.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCSTOREDPROC', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSTOREDPROC', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTOREDPROC') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTOREDPROC',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTOREDPROC' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленную процедуру!');
-
-  DropStoredProc;
-  inherited;
-  
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTOREDPROC', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSTOREDPROC', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcStoredProc.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCSTOREDPROC', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSTOREDPROC', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTOREDPROC') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTOREDPROC',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTOREDPROC' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  FieldByName('RDB$PROCEDURE_NAME').AsString := AnsiUpperCase(FieldByName('procedurename').AsString);
-  SaveStoredProc(True);
-
-  inherited;
-
-  atDatabase.Fields.RefreshData(Database, Transaction);
-  atDatabase.Relations.RefreshData(Database, Transaction, True);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTOREDPROC', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSTOREDPROC', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcStoredProc.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  S: String;
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCSTOREDPROC', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSTOREDPROC', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTOREDPROC') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTOREDPROC',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTOREDPROC' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  if IsSaveToStream then
-    //При сохранении в поток мы обновляем только одно поле - proceduresource
-    inherited
-  else
-  begin
-    if (Pos('ALTER PROCEDURE', AnsiUpperCase(FieldByName('rdb$procedure_source').AsString)) > 0)
-      or (sLoadFromStream in BaseState)
-    then
-      SaveStoredProc(False);
-
-    S := 'COMMENT ON PROCEDURE ' + FieldByName('rdb$procedure_name').AsString + ' IS ';
-    if FieldByName('rdb$description').IsNull then
-      S := S + 'NULL'
-    else
-      S := S + '''' + StringReplace(
-        FieldByName('rdb$description').AsString, '''', '''''', [rfReplaceAll]) + '''';
-
-    CustomExecQuery(S, Buff, False);
-
-    inherited;
-    atDatabase.Fields.RefreshData(Database, Transaction);
-    atDatabase.Relations.RefreshData(Database, Transaction, True);
-  end;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTOREDPROC', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSTOREDPROC', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcStoredProc.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCSTOREDPROC', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSTOREDPROC', KEYDOBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTOREDPROC') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTOREDPROC',
-  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTOREDPROC' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if (not (sLoadFromStream in BaseState) and (Trim(FieldByName('rdb$procedure_source').AsString) = ''))
-     or ((sLoadFromStream in BaseState) and (Trim(FieldByName('proceduresource').AsString) = '')) then
-    raise Exception.Create('Тело процедуры пустое!');
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTOREDPROC', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSTOREDPROC', 'DOBEFOREPOST', KEYDOBEFOREPOST);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcStoredProc.DropStoredProc;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    FSQL.Add('DROP PROCEDURE ' + FieldByName('procedurename').AsString);
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-  end;
-end;
-
 function TgdcStoredProc.GetProcedureText: String;
 begin
-  Result := Format('CREATE OR ALTER PROCEDURE %0:s ' + GetParamsText + ' AS'#13#10'%1:s',
-    [FieldByName('procedurename').AsString,
-     FieldByName('rdb$procedure_source').AsString]);
+  if (State = dsInsert) and (FieldByName('rdb$procedure_source').AsString = '') then
+    Result :=
+      'CREATE OR ALTER PROCEDURE ' + FieldByName('procedurename').AsString + #13#10 +
+      '  (I INTEGER, D DATE, ...) '#13#10 +
+      '  RETURNS'#13#10 +
+      '  (N NUMERIC(15, 2), S VARCHAR(60), ...)'#13#10 +
+      'AS'#13#10 +
+      '  DECLARE VARIABLE V INTEGER = 0;'#13#10 +
+      'BEGIN'#13#10 +
+      '  --SUSPEND;'#13#10 +
+      'END'
+  else
+    Result := Format('CREATE OR ALTER PROCEDURE %0:s ' + GetParamsText + ' AS'#13#10'%1:s',
+      [FieldByName('procedurename').AsString,
+       FieldByName('rdb$procedure_source').AsString]);
 end;
 
 function TgdcStoredProc.GetFromClause(const ARefresh: Boolean = False): String;
@@ -6037,13 +4229,13 @@ end;
 
 function TgdcStoredProc.GetParamsText: String;
 var
-  ibsql: TIBSQl;
+  q: TIBSQl;
   S1, S2: String;
   gdcField: TgdcField;
   ProcedureName: String;
 begin
   Result := '';
-  ibsql := CreateReadIBSQL;
+  q := CreateReadIBSQL;
   gdcField := TgdcField.Create(nil);
   try
     gdcField.Transaction := Transaction;
@@ -6054,33 +4246,33 @@ begin
     //  поэтому обращаемся к параметрам оригинальной процедуры
     if (sCopy in BaseState) and (CopiedObjectKey > -1) then
     begin
-      ibsql.SQL.Text :=
+      q.SQL.Text :=
         'SELECT procedurename FROM at_procedures WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := CopiedObjectKey;
-      ibsql.ExecQuery;
-      if ibsql.RecordCount > 0 then
-        ProcedureName := ibsql.FieldByName('procedurename').AsString;
+      q.ParamByName('id').AsInteger := CopiedObjectKey;
+      q.ExecQuery;
+      if not q.EOF then
+        ProcedureName := q.FieldByName('procedurename').AsString;
     end;
 
-    ibsql.Close;
-    ibsql.SQL.Text := 'SELECT * FROM rdb$procedure_parameters pr ' +
+    q.Close;
+    q.SQL.Text := 'SELECT * FROM rdb$procedure_parameters pr ' +
                       'WHERE pr.rdb$procedure_name = :pn AND pr.rdb$parameter_type = :pt ' +
                       'ORDER BY pr.rdb$parameter_number ASC ';
-    ibsql.ParamByName('pn').AsString := ProcedureName;
-    ibsql.ParamByName('pt').AsInteger := 0;
-    ibsql.ExecQuery;
+    q.ParamByName('pn').AsString := ProcedureName;
+    q.ParamByName('pt').AsInteger := 0;
+    q.ExecQuery;
 
     S1 := '';
-    while not ibsql.EOF do
+    while not q.EOF do
     begin
-      gdcField.ParamByName('fieldname').AsString := ibsql.FieldByName('rdb$field_source').AsString;
+      gdcField.ParamByName('fieldname').AsString := q.FieldByName('rdb$field_source').AsString;
       gdcField.Open;
       if S1 = '' then
         S1 := '('#13#10;
-      S1 := S1 + '    ' + Trim(ibsql.FieldByName('rdb$parameter_name').AsString) + ' ' +
+      S1 := S1 + '    ' + Trim(q.FieldByName('rdb$parameter_name').AsString) + ' ' +
          gdcField.GetDomainText(False, True);
-      ibsql.Next;
-      if not ibsql.EOF then
+      q.Next;
+      if not q.EOF then
         S1 := S1 + ','#13#10
       else
         S1 := S1 + ')';
@@ -6089,21 +4281,21 @@ begin
 
     S1 := S1 + #13#10;
 
-    ibsql.Close;
-    ibsql.ParamByName('pt').AsInteger := 1;
+    q.Close;
+    q.ParamByName('pt').AsInteger := 1;
 
-    ibsql.ExecQuery;
+    q.ExecQuery;
     S2 := '';
-    while not ibsql.EOF do
+    while not q.EOF do
     begin
-      gdcField.ParamByName('fieldname').AsString := ibsql.FieldByName('rdb$field_source').AsString;
+      gdcField.ParamByName('fieldname').AsString := q.FieldByName('rdb$field_source').AsString;
       gdcField.Open;
       if S2 = '' then
         S2 := 'RETURNS ( '#13#10;
-      S2 := S2 + '    ' + Trim(ibsql.FieldByName('rdb$parameter_name').AsString) + ' ' + gdcField.GetDomainText(False, True);
+      S2 := S2 + '    ' + Trim(q.FieldByName('rdb$parameter_name').AsString) + ' ' + gdcField.GetDomainText(False, True);
       gdcField.Close;
-      ibsql.Next;
-      if not ibsql.EOF then
+      q.Next;
+      if not q.EOF then
         S2 := S2 + ','#13#10
       else
         S2 := S2 + ')'#13#10;
@@ -6111,7 +4303,7 @@ begin
 
     Result := S1 + S2;
   finally
-    ibsql.Free;
+    q.Free;
     gdcField.Free;
   end;
 end;
@@ -6187,94 +4379,8 @@ end;
 procedure TgdcStoredProc.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  if HasSubSet('OnlyAttribute') then
-    S.Add('z.procedurename LIKE ''USR$%''');
   if HasSubSet('ByProcName') then
     S.Add('z.procedurename = :procedurename');
-end;
-
-procedure TgdcStoredProc.SaveStoredProc(const isNew: Boolean);
-var
-  FSQL: TSQLProcessList;
-  S: String;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    if (sLoadFromStream in BaseState) then
-    begin
-      // Если процедура создается, или содержит в тексте CREATE OR ALTER, то не надо редактировать текст создания\обновления
-      if IsNew or (AnsiPos('CREATE OR ALTER', FieldByName('proceduresource').AsString) > 0) then
-      begin
-        //В поле proceduresource хранится текст для создания процедуры
-        FSQL.Add(FieldByName('proceduresource').AsString);
-      end
-      else
-      begin
-        //  ... иначе заменим Create на Alter
-        FSQL.Add('ALTER ' +  System.Copy(Trim(FieldByName('proceduresource').AsString), Length('CREATE') + 1,
-          Length(FieldByName('proceduresource').AsString) - Length('CREATE')));
-      end;
-    end
-    else if sCopy in BaseState then
-    begin
-      FSQL.Add(GetProcedureText);
-    end
-    else
-      FSQL.Add(FieldByName('rdb$procedure_source').AsString);
-
-    if isNew then
-      FSQL.Add(Format('GRANT EXECUTE ON PROCEDURE %s TO administrator',
-        [FieldByName('procedurename').AsString]));
-
-    S := 'COMMENT ON PROCEDURE ' + FieldByName('procedurename').AsString + ' IS ';
-    if FieldByName('rdb$description').IsNull then
-      FSQL.Add(S + 'NULL')
-    else
-      FSQL.Add(S + '''' + StringReplace(
-        FieldByName('rdb$description').AsString, '''', '''''', [rfReplaceAll]) + '''');
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
-  end;
-end;
-
-procedure TgdcStoredProc._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCSTOREDPROC', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSTOREDPROC', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTOREDPROC') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTOREDPROC',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTOREDPROC' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  FieldByName('rdb$procedure_source').AsString :=
-    #13#10'BEGIN '#13#10 + (*'  SUSPEND;'*)#13#10 + 'END;';
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTOREDPROC', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSTOREDPROC', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcStoredProc.PrepareToSaveToStream(BeforeSave: Boolean);
@@ -6283,7 +4389,7 @@ var
 begin
   if BeforeSave then
   begin
-    IsSaveToStream := True;
+    FSkipMetadata := True;
     S := GetProcedureText;
     if FieldByName('proceduresource').AsString <> S then
     begin
@@ -6297,7 +4403,7 @@ begin
       end;
     end;
   end else
-    IsSaveToStream := False;
+    FSkipMetadata := False;
 end;
 
 procedure TgdcStoredProc._SaveToStream(Stream: TStream;
@@ -6313,7 +4419,7 @@ begin
     SaveToStreamDependencies(Stream, ObjectSet,
       FieldByName('procedurename').AsString, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
 
-  IsSaveToStream := True;
+  FSkipMetadata := True;
   try
     S := GetProcedureText;
     if FieldByName('proceduresource').AsString <> S then
@@ -6321,10 +4427,10 @@ begin
       Edit;
       FieldByName('proceduresource').AsString := S;
       Post;
-    end;  
+    end;
     inherited;
   finally
-    IsSaveToStream := False;
+    FSkipMetadata := False;
   end;
 end;
 
@@ -6343,330 +4449,173 @@ begin
   Result := 'Tgdc_attr_dlgStoredProc';
 end;
 
-function TgdcStoredProc.GetFirebirdObjectName: String;
+procedure TgdcStoredProc.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+var
+  C: String;
 begin
-  Result := FieldByName('procedurename').AsString;
+  case AMetadata of
+    mdsCreate, mdsAlter:
+    begin
+      if (sLoadFromStream in BaseState) then
+        S.Add(StringReplace(FieldByName('proceduresource').AsString,
+          'CREATE PROCEDURE', 'CREATE OR ALTER PROCEDURE', []))
+      else if sCopy in BaseState then
+        S.Add(GetProcedureText)
+      else
+        S.Add(FieldByName('rdb$procedure_source').AsString);
+
+      S.Add('GRANT EXECUTE ON PROCEDURE ' + FieldByName('procedurename').AsString + ' TO administrator');
+
+      C := 'COMMENT ON PROCEDURE ' + FieldByName('procedurename').AsString + ' IS ';
+      if FieldByName('rdb$description').IsNull then
+        S.Add(C + 'NULL')
+      else
+        S.Add(C + '''' +
+          StringReplace(FieldByName('rdb$description').AsString, '''', '''''',
+          [rfReplaceAll]) + '''');
+    end;
+
+    mdsDrop: S.Add('DROP PROCEDURE ' + FieldByName('procedurename').AsString);
+  end;
 end;
 
 { TgdcSimpleTable }
 
-procedure TgdcSimpleTable.CreateRelationSQL(Scripts: TSQLProcessList);
+procedure TgdcSimpleTable.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
 begin
-  Scripts.Add(CreateSimpleTable);
-  Scripts.Add(CreateEditorForeignKey);
-  Scripts.Add(CreateInsertTrigger);
-  Scripts.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
-  Scripts.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
-  Scripts.Add(CreateGrantSQL);
-end;
-
-function TgdcSimpleTable.CreateSimpleTable: String;
-begin
-  Result := Format
-  (
-    'CREATE TABLE %0:s (id dintkey, disabled ddisabled, editiondate deditiondate, ' +
-    'editorkey dintkey, PRIMARY KEY (id))',
-    [FieldByName('relationname').AsString]
-  );
-end;
-
-procedure TgdcSimpleTable.MakePredefinedRelationFields;
-begin
-  inherited;
-  if (State = dsInsert) and Assigned(gdcTableField) then
+  if AMetadata = mdsCreate then
   begin
-    NewField('DISABLED',
-      'Не активно', 'DDISABLED', 'Не активно', 'Не активно',
-      'L', '10', '1', '0');
-    NewField('EDITIONDATE',
-      'Дата модификации', 'DEDITIONDATE', 'Дата модификации', 'Дата модификации',
-      'L', '20', '1', '0');
-    NewField('EDITORKEY',
-      'Кто модифицировал', 'DINTKEY', 'Кто модифицировал', 'Кто модифицировал',
-      'L', '20', '1', '0');
+    S.Add(
+      'CREATE TABLE '+ FieldByName('relationname').AsString +
+      '(id dintkey, disabled ddisabled, editiondate deditiondate, ' +
+      'editorkey dintkey, PRIMARY KEY (id))'
+    );
+    S.Add(CreateEditorForeignKey);
+    S.Add(CreateInsertTrigger);
+    S.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
+    S.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
   end;
+
+  inherited;
 end;
 
-procedure TgdcSimpleTable._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+procedure TgdcSimpleTable.MakePredefinedObjects;
 begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCSIMPLETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSIMPLETABLE', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSIMPLETABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSIMPLETABLE',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSIMPLETABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
   inherited;
-  FTableType := ttSimpleTable;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSIMPLETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSIMPLETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
+  NewField('DISABLED',
+    'Не активно', 'DDISABLED', 'Не активно', 'Не активно',
+    'L', '10', '1', '0');
+  NewField('EDITIONDATE',
+    'Дата модификации', 'DEDITIONDATE', 'Дата модификации', 'Дата модификации',
+    'L', '20', '1', '0');
+  NewField('EDITORKEY',
+    'Кто модифицировал', 'DINTKEY', 'Кто модифицировал', 'Кто модифицировал',
+    'L', '20', '1', '0');
 end;
 
 { TgdcTreeTable }
 
-procedure TgdcTreeTable.CreateRelationSQL(Scripts: TSQLProcessList);
+procedure TgdcTreeTable.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
 begin
-  Scripts.Add(CreateTreeTable);
-  Scripts.Add(CreateEditorForeignKey);
-  Scripts.Add(CreateInsertTrigger);
-  Scripts.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
-  Scripts.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
-  Scripts.Add(CreateGrantSQL);
-end;
-
-function TgdcTreeTable.CreateTreeTable: String;
-begin
-  NeedSingleUser := True;
-
-  Result := Format
-  (
-    'CREATE TABLE %0:s ( id dintkey, parent dparent, disabled ddisabled,' +
-    'editiondate deditiondate, ' +
-    'editorkey dintkey, ' +
-    'PRIMARY KEY (id), ' +
-    'FOREIGN KEY (parent) REFERENCES %0:s (id) ' +
-    'ON DELETE CASCADE ON UPDATE CASCADE )',
-    [FieldByName('relationname').AsString]
-  );
-end;
-
-procedure TgdcTreeTable.MakePredefinedRelationFields;
-begin
-  inherited;
-
-  if (State = dsInsert) and Assigned(gdcTableField) then
+  if AMetadata = mdsCreate then
   begin
-    NewField('PARENT',
-      'Родитель', 'DPARENT', 'Родитель', 'Родитель',
-      'L', '10', '1', '0');
-    NewField('DISABLED',
-      'Не активно', 'DDISABLED', 'Не активно', 'Не активно',
-      'L', '10', '1', '0');
-    NewField('EDITIONDATE',
-      'Дата модификации', 'DEDITIONDATE', 'Дата модификации', 'Дата модификации',
-      'L', '20', '1', '0');
-    NewField('EDITORKEY',
-      'Кто модифицировал', 'DINTKEY', 'Кто модифицировал', 'Кто модифицировал',
-      'L', '20', '1', '0');
+    S.Add
+    (
+      'CREATE TABLE ' + FieldByName('relationname').AsString +
+      '( id dintkey, parent dparent, disabled ddisabled,' +
+      'editiondate deditiondate, ' +
+      'editorkey dintkey, ' +
+      'PRIMARY KEY (id), ' +
+      'FOREIGN KEY (parent) REFERENCES ' + FieldByName('relationname').AsString +
+      ' (id) ON DELETE CASCADE ON UPDATE CASCADE )'
+    );
+    S.Add(CreateEditorForeignKey);
+    S.Add(CreateInsertTrigger);
+    S.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
+    S.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
   end;
+
+  inherited;
 end;
 
-procedure TgdcTreeTable._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+procedure TgdcTreeTable.MakePredefinedObjects;
 begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTREETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTREETABLE', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTREETABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTREETABLE',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTREETABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
   inherited;
-  FTableType := ttTree;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTREETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTREETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
+  NewField('PARENT',
+    'Родитель', 'DPARENT', 'Родитель', 'Родитель',
+    'L', '10', '1', '0');
+  NewField('DISABLED',
+    'Не активно', 'DDISABLED', 'Не активно', 'Не активно',
+    'L', '10', '1', '0');
+  NewField('EDITIONDATE',
+    'Дата модификации', 'DEDITIONDATE', 'Дата модификации', 'Дата модификации',
+    'L', '20', '1', '0');
+  NewField('EDITORKEY',
+    'Кто модифицировал', 'DINTKEY', 'Кто модифицировал', 'Кто модифицировал',
+    'L', '20', '1', '0');
 end;
 
 { TgdcLBRBTreeTable }
 
-procedure TgdcLBRBTreeTable.MakePredefinedRelationFields;
-begin
-  inherited;
-  if (State = dsInsert) and Assigned(gdcTableField) then
-  begin
-    NewField('PARENT',
-      'Родитель', 'DPARENT', 'Родитель', 'Родитель',
-      'L', '10', '1', '0');
-    NewField('LB',
-      'Левая граница', 'DLB', 'Левая граница', 'Левая граница',
-      'L', '10', '1', '0');
-    NewField('RB',
-      'Правая граница', 'DRB', 'Правая граница', 'Правая граница',
-      'L', '10', '1', '0');
-    NewField('DISABLED',
-      'Не активно', 'DDISABLED', 'Не активно', 'Не активно',
-      'L', '10', '1', '0');
-    NewField('EDITIONDATE',
-      'Дата модификации', 'DEDITIONDATE', 'Дата модификации', 'Дата модификации',
-      'L', '20', '1', '0');
-    NewField('EDITORKEY',
-      'Кто модифицировал', 'DINTKEY', 'Кто модифицировал', 'Кто модифицировал',
-      'L', '20', '1', '0');
-  end;
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalTreeTable: String;
-begin
-  NeedSingleUser := True;
-
-  Result := Format
-  (
-    'CREATE TABLE %0:s (id dintkey, parent dparent, lb dlb, rb drb, disabled ddisabled,' +
-    'editiondate deditiondate, ' +
-    'editorkey dintkey, ' +
-    'PRIMARY KEY (id), ' +
-    'FOREIGN KEY (parent) ' +
-    'REFERENCES %0:s (id) ON DELETE CASCADE ON UPDATE CASCADE/*, CHECK(lb <= rb) */ )',
-    [FieldByName('relationname').AsString]
-  );
-end;
-
-procedure TgdcLBRBTreeTable.CreateRelationSQL(Scripts: TSQLProcessList);
+procedure TgdcLBRBTreeTable.CheckDependencies;
 var
-  N: String;
-  SL: TStringList;
-  I: Integer;
-begin
-  Scripts.Add(CreateIntervalTreeTable);
-  Scripts.Add(CreateGrantSQL);
-  Scripts.Add(CreateEditorForeignKey);
-
-  Scripts.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
-  Scripts.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
-
-  N := FieldByName('relationname').AsString;
-  if StrIPos(UserPrefix, N) = 1 then
-    System.Delete(N, 1, Length(UserPrefix));
-  if StrIPos('_', N) = 1 then
-    System.Delete(N, 1, 1);
-
-  SL := TStringList.Create;
-  try
-    CreateLBRBTreeMetaDataScript(SL, UserPrefix, N, FieldByName('relationname').AsString);
-    for I := 0 to SL.Count - 1 do
-    begin
-      Scripts.Add(SL[I]);
-    end;
-  finally
-    SL.Free;
-  end;
-
-  //будем требовать переподключения, чтобы синхронизировались процедуры
-  atDatabase.NotifyMultiConnectionTransaction;
-end;
-
-procedure TgdcLBRBTreeTable._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCLBRBTREETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCLBRBTREETABLE', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCLBRBTREETABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCLBRBTREETABLE',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCLBRBTREETABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  FTableType := ttIntervalTree;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCLBRBTREETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCLBRBTREETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcLBRBTreeTable.DropTable;
-var
-  ibsql: TIBSQL;
-  FSQL: TSQLProcessList;
   Names: TLBRBTreeMetaNames;
 begin
   // Проверяем, есть ли для нашей таблицы зависимые хранимые процедуры или представления,
   // кроме стандартных частей интервального дерева.
-  if GetLBRBTreeDependentNames(FieldByName('relationname').AsString, ReadTransaction, Names) > 3 then  // 3 SP 
+  if GetLBRBTreeDependentNames(FieldByName('relationname').AsString, ReadTransaction, Names) > 3 then  // 3 SP
     raise EgdcIBError.Create('Нельзя удалить таблицу т.к. она используется в процедурах или представлениях');
+end;
 
-  ibsql := CreateReadIBSQL;
-  FSQL := TSQLProcessList.Create;
+procedure TgdcLBRBTreeTable.DropDependencies;
+var
+  gdcProc: TgdcStoredProc;
+  gdcException: TgdcException;
+  Names: TLBRBTreeMetaNames;
+begin
+  inherited;
+
+  GetLBRBTreeDependentNames(FieldByName('relationname').AsString, ReadTransaction, Names);
+
+  gdcProc := TgdcStoredProc.Create(nil);
   try
-    ibsql.SQL.Text :=
-      'SELECT * FROM rdb$triggers WHERE rdb$relation_name = :relname AND rdb$system_flag = 0';
-    ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
-    ibsql.ExecQuery;
-    while not ibsql.EOF do
-    begin
-      FSQL.Add('DROP TRIGGER ' + ibsql.FieldByName('rdb$trigger_name').AsTrimString, False);
-      ibsql.Next;
-    end;
+    gdcProc.Transaction := Transaction;
+    gdcProc.SubSet := 'ByProcName';
 
-    if Names.RestrName > '' then
-      FSQL.Add('DROP PROCEDURE ' + Names.RestrName, False);
-    if Names.ExLimName > '' then
-      FSQL.Add('DROP PROCEDURE ' + Names.ExLimName, False);
-    if Names.ChldCtName > '' then
-      FSQL.Add('DROP PROCEDURE ' + Names.ChldCtName, False);
-    if Names.ExceptName > '' then
-      FSQL.Add('DROP EXCEPTION ' + Names.ExceptName, False);
+    gdcProc.ParamByName('procedurename').AsString := Names.RestrName;
+    gdcProc.Open;
+    if not gdcProc.EOF then
+      gdcProc.Delete;
+    gdcProc.Close;
 
-    DropCrossTable;
+    gdcProc.ParamByName('procedurename').AsString := Names.ExLimName;
+    gdcProc.Open;
+    if not gdcProc.EOF then
+      gdcProc.Delete;
+    gdcProc.Close;
 
-    FSQL.Add('DROP TABLE ' + FieldByName('relationname').AsString);
-
-    FSQL.Add(Format(
-      'DELETE FROM GD_COMMAND WHERE UPPER(SubType) = UPPER(''%s'')',
-      [FieldByName('relationname').AsString]));
-
-    ShowSQLProcess(FSQL);
+    gdcProc.ParamByName('procedurename').AsString := Names.ChldCtName;
+    gdcProc.Open;
+    if not gdcProc.EOF then
+      gdcProc.Delete;
   finally
-    ibsql.Free;
-    FSQL.Free;
+    gdcProc.Free;
+  end;
+
+  gdcException := TgdcException.Create(nil);
+  try
+    gdcException.Transaction := Transaction;
+    gdcException.SubSet := 'ByObjectName';
+    gdcException.ParamByName('objectname').AsString := Names.ExceptName;
+    gdcException.Open;
+    if not gdcException.EOF then
+      gdcException.Delete;
+    gdcException.Close;
+  finally
+    gdcException.Free;
   end;
 end;
 
@@ -6691,18 +4640,418 @@ begin
   Result := True;
 end;
 
+procedure TgdcLBRBTreeTable.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+var
+  N: String;
+  SL: TStringList;
+  I: Integer;
+begin
+  if AMetadata = mdsCreate then
+  begin
+    S.Add
+    (
+      'CREATE TABLE ' + FieldByName('relationname').AsString +
+      '(id dintkey, parent dparent, lb dlb, rb drb, disabled ddisabled,' +
+      'editiondate deditiondate, ' +
+      'editorkey dintkey, ' +
+      'PRIMARY KEY (id), ' +
+      'FOREIGN KEY (parent) ' +
+      'REFERENCES ' + FieldByName('relationname').AsString +
+      ' (id) ON DELETE CASCADE ON UPDATE CASCADE)'
+    );
+    S.Add(CreateEditorForeignKey);
+
+    S.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
+    S.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
+
+    N := FieldByName('relationname').AsString;
+    if StrIPos(UserPrefix, N) = 1 then
+      System.Delete(N, 1, Length(UserPrefix));
+    if StrIPos('_', N) = 1 then
+      System.Delete(N, 1, 1);
+
+    SL := TStringList.Create;
+    try
+      CreateLBRBTreeMetaDataScript(SL, UserPrefix, N, FieldByName('relationname').AsString);
+      for I := 0 to SL.Count - 1 do
+      begin
+        S.Add(SL[I]);
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+
+  inherited;
+end;
+
+procedure TgdcLBRBTreeTable.MakePredefinedObjects;
+begin
+  inherited;
+  NewField('PARENT',
+    'Родитель', 'DPARENT', 'Родитель', 'Родитель',
+    'L', '10', '1', '0');
+  NewField('LB',
+    'Левая граница', 'DLB', 'Левая граница', 'Левая граница',
+    'L', '10', '1', '0');
+  NewField('RB',
+    'Правая граница', 'DRB', 'Правая граница', 'Правая граница',
+    'L', '10', '1', '0');
+  NewField('DISABLED',
+    'Не активно', 'DDISABLED', 'Не активно', 'Не активно',
+    'L', '10', '1', '0');
+  NewField('EDITIONDATE',
+    'Дата модификации', 'DEDITIONDATE', 'Дата модификации', 'Дата модификации',
+    'L', '20', '1', '0');
+  NewField('EDITORKEY',
+    'Кто модифицировал', 'DINTKEY', 'Кто модифицировал', 'Кто модифицировал',
+    'L', '20', '1', '0');
+end;
+
 { TgdcMetaBase }
 
-class function TgdcMetaBase.CommitRequired: Boolean;
+procedure TgdcMetaBase.DropDependencies;
 begin
+  //
+end;
+
+function TgdcMetaBase.CheckObjectName(const ARaiseException: Boolean = True;
+  const AFocusControl: Boolean = True; const AFieldName: String = ''): Boolean;
+var
+  S, FN: String;
+  I: Integer;
+  F: TField;
+  Res: OleVariant;
+begin
+  if AFieldName = '' then
+    FN := GetFirebirdObjectNameField
+  else
+    FN := AFieldName;
+
+  S := FieldByName(FN).AsString;
+
+  if (State = dsInsert) and (StrIPos(UserPrefix, S) <> 1) then
+  begin
+    S := gdcBaseManager.AdjustMetaName(UserPrefix + S);
+    FieldByName(FN).AsString := S;
+  end;
+
+  if Trim(StringReplace(S, UserPrefix, '', [rfReplaceAll, rfIgnoreCase])) = '' then
+  begin
+    if AFocusControl then
+      FieldByName(FN).FocusControl;
+    if ARaiseException then
+      raise Exception.Create('Введите название!')
+    else begin
+      Result := False;
+      exit;
+    end;
+  end;
+
+  if S[1] in ['0'..'9'] then
+  begin
+    if AFocusControl then
+      FieldByName(FN).FocusControl;
+    if ARaiseException then
+      raise Exception.Create('Название не может начинаться с цифры!')
+    else begin
+      Result := False;
+      exit;
+    end;
+  end;
+
+  for I := 1 to Length(S) do
+  begin
+    if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
+    begin
+      if AFocusControl then
+        FieldByName(FN).FocusControl;
+      if ARaiseException then
+        raise Exception.Create('Название может состоять из латинских букв, цифр, знака подчеркивания и $')
+      else begin
+        Result := False;
+        exit;
+      end;
+    end;
+  end;
+
+  if (State = dsInsert) and (not (Self is TgdcRelationField)) then
+  begin
+    if ExecSingleQueryResult(
+      'SELECT ' + GetKeyField(SubType) +
+      ' FROM ' + GetListTable(SubType) +
+      ' WHERE UPPER(' + GetFirebirdObjectNameField + ') = ''' + UpperCase(S) + '''', 0, Res) then
+    begin
+      if AFocusControl then
+        FieldByName(FN).FocusControl;
+      if ARaiseException then
+        raise Exception.Create('В базе данных найден объект с названием: ' + S)
+      else begin
+        Result := False;
+        exit;
+      end;
+    end;
+  end;
+
+  if State = dsInsert then
+  begin
+    F := FindField('lname');
+    if (F <> nil) and (F.AsString = '') then
+      F.AsString := System.Copy(S, 1, F.Size);
+
+    F := FindField('lshortname');
+    if (F <> nil) and (F.AsString = '') then
+      F.AsString := System.Copy(S, 1, F.Size);
+
+    F := FindField('description');
+    if (F <> nil) and (F.AsString = '') then
+      F.AsString := System.Copy(S, 1, F.Size);
+  end;
+
   Result := True;
+end;
+
+function TgdcMetaBase.CheckTheSameStatement: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCMETABASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYCHECKTHESAMESTATEMENT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Result := Inherited CheckTheSameStatement;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if State = dsInactive then
+    Result :=
+      'SELECT ' + GetKeyField(SubType) + ' FROM ' + GetListTable(SubType) +
+      '  WHERE UPPER(' + GetFirebirdObjectNameField + ') = UPPER(:' + GetFirebirdObjectNameField + ')'
+  else if ID < cstUserIDStart then
+    Result := inherited CheckTheSameStatement
+  else
+    Result :=
+      'SELECT ' + GetKeyField(SubType) + ' FROM ' + GetListTable(SubType) +
+      '  WHERE UPPER(' + GetFirebirdObjectNameField + ') = UPPER(''' +
+        FirebirdObjectName + ''')';
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
+  {M}  end;
+  {END MACRO}
+end;
+
+class function TgdcMetaBase.Class_TestUserRights(const SS: TgdcTableInfos;
+  const ST: String): Boolean;
+begin
+  Assert(IBLogin <> nil);
+
+  if (not IBLogin.IsIBUserAdmin) and ((tiAChag in SS) or (tiAFull in SS)) then
+    Result := False
+  else
+    Result := inherited Class_TestUserRights(SS, ST);
 end;
 
 constructor TgdcMetaBase.Create(AnOwner: TComponent);
 begin
   inherited;
-  NeedSingleUser := False;
-  FPostedID := -1;
+  CustomProcess := [cpInsert, cpModify, cpDelete];
+end;
+
+procedure TgdcMetaBase.CustomDelete(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  FSQL: TSQLProcessList;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCMETABASE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYCUSTOMDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if IsUserDefined then
+  begin
+    CheckDependencies;
+
+    FNeedSingleUser := True;
+    DropDependencies;
+
+    FSQL := TSQLProcessList.Create;
+    try
+      FMetaDataScript := mdsDrop;
+      GetMetadataScript(FSQL, FMetaDataScript);
+      ShowSQLProcess(FSQL);
+    finally
+      FSQL.Free;
+    end;
+  end else
+    FMetaDataScript := mdsNone;
+
+  FDeletedID := ID;
+
+  inherited;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcMetaBase.CustomInsert(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  FSQL: TSQLProcessList;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCMETABASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYCUSTOMINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if IsUserDefined then
+  begin
+    FSQL := TSQLProcessList.Create;
+    try
+      FMetaDataScript := mdsCreate;
+      GetMetadataScript(FSQL, FMetaDataScript);
+      ShowSQLProcess(FSQL);
+    finally
+      FSQL.Free;
+    end;
+
+    if not atDatabase.InMulticonnection then
+      SyncRDBObjects;
+  end else
+    FMetadataScript := mdsNone;
+
+  inherited;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcMetaBase.CustomModify(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  FSQL: TSQLProcessList;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCMETABASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYCUSTOMMODIFY);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if IsUserDefined and (not FSkipMetadata) then
+  begin
+    FNeedSingleUser := True;
+    FSQL := TSQLProcessList.Create;
+    try
+      FMetaDataScript := mdsAlter;
+      GetMetadataScript(FSQL, FMetaDataScript);
+      ShowSQLProcess(FSQL);
+    finally
+      FSQL.Free;
+    end;
+  end else
+    FMetaDataScript := mdsNone;
+
+  inherited;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
+  {M}  end;
+  {END MACRO}
 end;
 
 procedure TgdcMetaBase.DoAfterPost;
@@ -6738,10 +5087,17 @@ begin
 
   inherited;
 
-  if Transaction.InTransaction then
-    FPostedID := ID
-  else
-    FPostedID := -1;  
+  if FMetadataScript <> mdsNone then
+  begin
+    if Transaction.InTransaction then
+      Transaction.CommitRetaining;
+
+    if (FMetaDataScript = mdsCreate) and IsUserDefined then
+      MakePredefinedObjects;
+
+    if Assigned(atDatabase) and (not atDatabase.InMultiConnection) then
+      SyncAtDatabase(ID, FMetadataScript);
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  finally
@@ -6751,25 +5107,25 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcMetaBase.DoAfterTransactionEnd(Sender: TObject);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
+procedure TgdcMetaBase.DoBeforeEdit;
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
 begin
-  {@UNFOLD MACRO INH_ORIG_SENDER('TGDCMETABASE', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND)}
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCMETABASE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
   {M}  try
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYDOAFTERTRANSACTIONEND);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERTRANSACTIONEND]);
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYDOBEFOREEDIT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREEDIT]);
   {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
   {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(Sender)]);
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
   {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
-  {M}          'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND, Params, LResult) then
-  {M}          exit;
+  {M}          'DOBEFOREEDIT', KEYDOBEFOREEDIT, Params, LResult) then exit;
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
   {M}        begin
@@ -6779,18 +5135,104 @@ begin
   {M}    end;
   {END MACRO}
 
+  if FDataTransfer then
+    exit;
+
   inherited;
 
-  if (FPostedID > 0) and (FPostedID = ID) then
-  begin
-    FPostedID := -1;
-    InternalRefreshRow;
-  end;
+  FieldByName(GetFirebirdObjectNameField).ReadOnly := True;
 
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND)}
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCMETABASE', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND);
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcMetaBase.DoBeforeInsert;
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCMETABASE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYDOBEFOREINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'DOBEFOREINSERT', KEYDOBEFOREINSERT, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FDataTransfer then
+    exit;
+
+  inherited;
+
+  FieldByName(GetFirebirdObjectNameField).ReadOnly := False;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcMetaBase.DoBeforePost;
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCMETABASE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYDOBEFOREPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FDataTransfer then
+    exit;
+
+  if (not (sLoadFromStream in BaseState)) and (not IsFirebirdObject) and (not IsDerivedObject) then
+    CheckObjectName;
+
+  inherited;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
 end;
@@ -6800,22 +5242,28 @@ begin
   Result := False;
 end;
 
-function TgdcMetaBase.GetCanCreate: Boolean;
+function TgdcMetaBase.GetCanAddToNS: Boolean;
 begin
-  Assert(IBLogin <> nil);
-  Result := inherited GetCanCreate and IBLogin.IsIBUserAdmin;
+  if IsDerivedObject then
+    Result := False
+  else
+    Result := inherited GetCanAddToNS;  
 end;
 
 function TgdcMetaBase.GetCanDelete: Boolean;
 begin
-  Assert(IBLogin <> nil);
-  Result := (inherited GetCanDelete) and IBLogin.IsIBUserAdmin and IsUserDefined;
+  if IsUserDefined then
+    Result := inherited GetCanDelete
+  else
+    Result := False;
 end;
 
 function TgdcMetaBase.GetCanEdit: Boolean;
 begin
-  Assert(IBLogin <> nil);
-  Result := (inherited GetCanEdit) and IBLogin.IsIBUserAdmin;
+  if IsFirebirdObject or IsDerivedObject then
+    Result := False
+  else
+    Result := inherited GetCanEdit;
 end;
 
 function TgdcMetaBase.GetDialogDefaultsFields: String;
@@ -6868,7 +5316,12 @@ end;
 
 function TgdcMetaBase.GetFirebirdObjectName: String;
 begin
-  Result := '';
+  Result := FieldByName(GetFirebirdObjectNameField).AsString;
+end;
+
+function TgdcMetaBase.GetFirebirdObjectNameField: String;
+begin
+  Result := GetListField(SubType);
 end;
 
 function TgdcMetaBase.GetIsDerivedObject: Boolean;
@@ -6881,14 +5334,36 @@ var
   F: TField;
 begin
   F := FindField('RDB$SYSTEM_FLAG');
-  Result := ((F is TIntegerField) and (F.AsInteger = 1))
-    or (StrIPos('RDB$', FirebirdObjectName) = 1);
+  Result := ((F is TIntegerField) and (F.AsInteger <> 0))
+    or (StrIPos('RDB$', FirebirdObjectName) = 1)
+    or (StrIPos('MON$', FirebirdObjectName) = 1);
 end;
 
 function TgdcMetaBase.GetIsUserDefined: Boolean;
 begin
   Result := (not IsFirebirdObject)
     and (StrIPos(UserPrefix, FirebirdObjectName) = 1);
+end;
+
+procedure TgdcMetaBase.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+begin
+  //
+end;
+
+function TgdcMetaBase.GetObjectName: String;
+var
+  F: TField;
+begin
+  if Active then
+  begin
+    F := FindField('lname');
+    if (F <> nil) and (F.AsString <> FirebirdObjectName) then
+      Result := F.AsString + ', ' + FirebirdObjectName
+    else
+      Result := FirebirdObjectName;
+  end else
+    Result := inherited GetObjectName;
 end;
 
 procedure TgdcMetaBase.GetProperties(ASL: TStrings);
@@ -6926,7 +5401,16 @@ end;
 
 class function TgdcMetaBase.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + 'OnlyAttribute;';
+  Result := inherited GetSubSetList + 'OnlyAttribute;ByObjectName;';
+end;
+
+procedure TgdcMetaBase.GetWhereClauseConditions(S: TStrings);
+begin
+  inherited;
+  if HasSubSet('OnlyAttribute') then
+    S.Add('z.' + GetFirebirdObjectNameField + ' LIKE ''USR$%''');
+  if HasSubSet('ByObjectName') then
+    S.Add('z.' + GetFirebirdObjectNameField + '=:objectname');
 end;
 
 class function TgdcMetaBase.IsAbstractClass: Boolean;
@@ -7041,16 +5525,19 @@ end;
 procedure TgdcMetaBase.ShowSQLProcess(S: TSQLProcessList);
 var
   TransactionKey: Integer;
-  ibsql: TIBSQL;
+  q: TIBSQL;
   DidActivate: Boolean;
   I: Integer;
 begin
   Assert(Assigned(atDatabase));
 
+  if S.Count = 0 then
+    exit;
+
   DidActivate := False;
-  ibsql := TIBSQL.Create(nil);
+  q := TIBSQL.Create(nil);
   try
-    ibsql.Transaction := Transaction;
+    q.Transaction := Transaction;
     DidActivate := ActivateTransaction;
 
     try
@@ -7058,12 +5545,11 @@ begin
       begin
         TransactionKey := GetNextID;
 
-        ibsql.SQL.Text :=
+        q.SQL.Text :=
           'INSERT INTO at_transaction (trkey, numorder, script, successfull) ' +
           'VALUES (:trkey, :numorder, :script, :successfull)';
 
-        if S.Count > 0 then
-          AddText('Сохранение команд для отложенного выполнения:');
+        AddText('Сохранение команд для отложенного выполнения:');
 
         //  Осуществляем сохранение всех скриптов, которые должны быть
         //  запущены после переподключения
@@ -7073,20 +5559,19 @@ begin
           begin
             AddText(S[I]);
 
-            ibsql.ParamByName('trkey').AsInteger := TransactionKey;
-            ibsql.ParamByName('numorder').AsInteger := i + 1;
-            ibsql.ParamByName('script').AsString := S[I];
-            ibsql.ParamByName('successfull').AsInteger := S.Successful[I];
-            ibsql.ExecQuery;
-            ibsql.Close;
+            q.ParamByName('trkey').AsInteger := TransactionKey;
+            q.ParamByName('numorder').AsInteger := i + 1;
+            q.ParamByName('script').AsString := S[I];
+            q.ParamByName('successfull').AsInteger := S.Successful[I];
+            q.ExecQuery;
+            q.Close;
           end;
         end;
 
-        if S.Count > 0 then
-          AddText('Окончено сохранение команд для отложенного выполнения.');
+        AddText('Окончено сохранение команд для отложенного выполнения.');
       end else
       begin
-        if NeedSingleUser then
+        if FNeedSingleUser then
         begin
           with TfrmIBUserList.Create(nil) do
           try
@@ -7097,13 +5582,13 @@ begin
           finally
             Free;
           end;
-        end;  
+        end;
 
         for I := 0 to S.Count - 1 do
         begin
           if Trim(S[I]) > '' then
           begin
-            AddText(S[I]);
+            AddText(S[I], 'sql');
             Transaction.ExecSQLImmediate(S[I]);
           end;
         end;
@@ -7121,288 +5606,101 @@ begin
     if atDatabase.InMultiConnection and (not (sLoadFromStream in BaseState)) then
       AddText('Для выполнения операции необходимо переподключение к базе данных!');
   finally
-    ibsql.Free;
+    q.Free;
     if DidActivate and Transaction.InTransaction then
        Transaction.Commit;
   end;
 end;
 
-{ TgdcException }
-
-function TgdcException.CheckTheSameStatement: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCEXCEPTION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCEXCEPTION', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCEXCEPTION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCEXCEPTION',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCEXCEPTION' then
-  {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if State = dsInactive then
-    Result := 'SELECT id FROM at_exceptions WHERE UPPER(exceptionname) = UPPER(:exceptionname)'
-  else if ID < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT id FROM at_exceptions WHERE UPPER(exceptionname) = UPPER(''%s'')',
-      [FieldByName('exceptionname').AsString]);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCEXCEPTION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
-  {M}  end;
-  {END MACRO}
-end;
-
-constructor TgdcException.Create(AnOwner: TComponent);
-begin
-  inherited;
-  CustomProcess := [cpInsert, cpModify, cpDelete];
-end;
-
-procedure TgdcException.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCEXCEPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCEXCEPTION', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCEXCEPTION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCEXCEPTION',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCEXCEPTION' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленное исключение');
-
-  Drop;
-  inherited;
-  
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCEXCEPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcException.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCEXCEPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCEXCEPTION', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCEXCEPTION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCEXCEPTION',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCEXCEPTION' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if IsUserDefined then
-    MetaDataCreate;
-    
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCEXCEPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcException.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCEXCEPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCEXCEPTION', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCEXCEPTION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCEXCEPTION',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCEXCEPTION' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  MetaDataAlter;
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCEXCEPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcException.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-var
-  S: String;
-  I: Integer;
-
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCEXCEPTION', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCEXCEPTION', KEYDOBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCEXCEPTION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCEXCEPTION',
-  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCEXCEPTION' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-  if not (sMultiple in BaseState) then
-  begin
-    if FieldByName('lmessage').AsString = '' then
-      FieldByName('lmessage').AsString := Trim(FieldByName('exceptionmessage').AsString);
-  end;
-
-  if (Trim(FieldByName('exceptionname').AsString) = '') then
-  begin
-    FieldByName('exceptionname').FocusControl;
-    raise Exception.Create('Введите наименование!');
-  end;
- //  Имя поля должно содержать только
- //  английские символы
-  S := Trim(AnsiUpperCase(FieldByName('exceptionname').AsString));
-   for I := 1 to Length(S) do
-     if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
-     begin
-       FieldByName('exceptionname').FocusControl;
-       raise Exception.Create('Название должно быть на английском языке!');
-     end;
- //  Имя поля должно содержать только
- //  английские символы
-  S := Trim(AnsiUpperCase(FieldByName('exceptionmessage').AsString));
-   for I := 1 to Length(S) do
-     if (S[I] in ['А'..'Я']) then
-     begin
-       FieldByName('exceptionmessage').FocusControl;
-       raise Exception.Create('Сообщение должно быть на английском языке!');
-     end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCEXCEPTION', 'DOBEFOREPOST', KEYDOBEFOREPOST);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcException.Drop;
+procedure TgdcMetaBase.ShowSQLProcess(const S: String);
 var
   FSQL: TSQLProcessList;
 begin
   FSQL := TSQLProcessList.Create;
   try
-    FSQL.Add(Format('DROP EXCEPTION %s', [FieldByName('exceptionname').AsString]));
+    FSQL.Add(S);
     ShowSQLProcess(FSQL);
   finally
     FSQL.Free;
   end;
 end;
 
+procedure TgdcMetaBase.SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript);
+begin
+
+end;
+
+procedure TgdcMetaBase.MakePredefinedObjects;
+begin
+  //
+end;
+
+procedure TgdcMetaBase.CheckDependencies;
+begin
+  //
+end;
+
+procedure TgdcMetaBase.SyncRDBObjects;
+begin
+  //
+end;
+
+procedure TgdcMetaBase.DoAfterDelete;
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCMETABASE', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYDOAFTERDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'DOAFTERDELETE', KEYDOAFTERDELETE, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FDataTransfer then
+    exit;
+
+  inherited;
+
+  if FMetadataScript <> mdsNone then
+  begin
+    if Transaction.InTransaction then
+      Transaction.CommitRetaining;
+
+    if Assigned(atDatabase) and (not atDatabase.InMultiConnection) and (FDeletedID > 0) then
+      SyncAtDatabase(FDeletedID, mdsDrop);
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'DOAFTERDELETE', KEYDOAFTERDELETE);
+  {M}  end;
+  {END MACRO}
+end;
+
+{ TgdcException }
+
 class function TgdcException.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgException';
-end;
-
-function TgdcException.GetFirebirdObjectName: String;
-begin
-  Result := FieldByName('exceptionname').AsString;
 end;
 
 function TgdcException.GetFromClause(const ARefresh: Boolean = False): String;
@@ -7442,8 +5740,11 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := ' FROM at_exceptions z LEFT JOIN rdb$exceptions e ' +
-    ' ON e.rdb$exception_name = z.exceptionname '
+
+  Result :=
+    'FROM at_exceptions z ' +
+    '  LEFT JOIN rdb$exceptions e ON e.rdb$exception_name = z.exceptionname ';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7460,6 +5761,18 @@ end;
 class function TgdcException.GetListTable(const ASubType: TgdcSubType): String;
 begin
   Result := 'at_exceptions';
+end;
+
+procedure TgdcException.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+begin
+  case AMetadata of
+    mdsCreate: S.Add('CREATE EXCEPTION ' + FirebirdObjectName + ' ''' +
+       FieldByName('exceptionmessage').AsString + '''');
+    mdsAlter: S.Add('ALTER EXCEPTION ' + FirebirdObjectName + ' ''' +
+       FieldByName('exceptionmessage').AsString + '''');
+    mdsDrop: S.Add('DROP EXCEPTION ' + FirebirdObjectName);
+  end;
 end;
 
 function TgdcException.GetSelectClause: String;
@@ -7499,9 +5812,14 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := 'SELECT z.*, e.rdb$exception_number as exceptionnumber,' +
-    ' e.rdb$message as exceptionmessage, '+
-    ' e.rdb$description as description, e.rdb$system_flag as system_flag ';
+
+  Result :=
+    'SELECT z.*, ' +
+    '  e.rdb$exception_number as exceptionnumber,' +
+    '  e.rdb$message as exceptionmessage, '+
+    '  e.rdb$description as description, ' +
+    '  e.rdb$system_flag as system_flag ';
+    
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7516,184 +5834,7 @@ begin
   Result := 'Tgdc_frmException';
 end;
 
-procedure TgdcException.MetaDataAlter;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    FSQL.Add(Format('ALTER EXCEPTION %s ''%s''',
-      [ FieldByName('exceptionname').AsString,
-        FieldByName('exceptionmessage').AsString]));
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-  end;
-end;
-
-procedure TgdcException.MetaDataCreate;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    FSQL.Add(Format('CREATE EXCEPTION %s ''%s''',
-      [FieldByName('exceptionname').AsString,
-       FieldByName('exceptionmessage').AsString]));
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
-  end;
-
-end;
-
 { TgdcIndex }
-
-constructor TgdcIndex.Create(AnOwner: TComponent);
-begin
-  inherited;
-  CustomProcess := [cpInsert, cpModify, cpDelete];
-  FIndexList := TStringList.Create;
-  FIndexList.Sorted := True;
-end;
-
-procedure TgdcIndex.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINDEX', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINDEX', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINDEX') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINDEX',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINDEX' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленный индекс!');
-
-  Drop;
-  inherited;
-  
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINDEX', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcIndex.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINDEX', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINDEX', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINDEX') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINDEX',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINDEX' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if IsUserDefined then
-    MetaDataCreate;
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINDEX', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcIndex.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINDEX', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINDEX', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINDEX') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINDEX',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINDEX' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  MetaDataAlter;
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINDEX', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcIndex.Drop;
-var
-  FSQL: TSQLProcessList;
-begin
-  Assert(atDatabase <> nil);
-  FSQL := TSQLProcessList.Create;
-  try
-    FSQL.Add('DROP INDEX ' + FieldByName('indexname').AsString);
-    atDatabase.NotifyMultiConnectionTransaction;
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-  end;
-end;
 
 class function TgdcIndex.GetListField(
   const ASubType: TgdcSubType): String;
@@ -7707,68 +5848,6 @@ begin
   Result := 'at_indices';
 end;
 
-procedure TgdcIndex.MetaDataAlter;
-var
-  FSQL: TSQLProcessList;
-  subtext: String;
-begin
-  if FieldByName('changedata').AsInteger = 1 then
-  begin
-    try
-      Drop;
-    except
-    end;
-    MetaDataCreate;
-  end;
-
-  if FieldByName('changeactive').AsInteger = 1 then
-  begin
-    FSQL := TSQLProcessList.Create;
-    try
-      if FieldByName('index_inactive').AsInteger > 0 then
-        subtext := 'INACTIVE'
-      else
-        subtext := 'ACTIVE';
-
-      FSQL.Add(Format('ALTER INDEX %s %s',
-        [FieldByName('indexname').AsString, subtext]));
-
-      ShowSQLProcess(FSQL);
-    finally
-      FSQL.Free;
-    end;
-  end;
-end;
-
-procedure TgdcIndex.MetaDataCreate;
-var
-  FSQL: TSQLProcessList;
-  subtext: String;
-  sorder: String;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    if FieldByName('unique_flag').AsInteger > 0 then
-      subtext := 'UNIQUE'
-    else
-      subtext := '';
-
-    if FieldByName('rdb$index_type').AsInteger > 0 then
-      sorder := 'DESCENDING'
-    else
-      sorder := '';
-
-    FSQL.Add(Format('CREATE %s %s INDEX %s ON %s (%s)',
-      [subtext, sorder, FieldByName('indexname').AsString,
-      FieldByName('relationname').AsString, FieldByName('fieldslist').AsString]));
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
-  end;
-end;
-
 class function TgdcIndex.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + 'ByRelation;';
@@ -7777,8 +5856,6 @@ end;
 procedure TgdcIndex.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  if HasSubSet('OnlyAttribute') then
-    S.Add('z.indexname LIKE ''USR$%''');
   if HasSubSet('ByRelation') then
     S.Add('z.relationkey = :relationkey');
 end;
@@ -7904,6 +5981,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   FieldByName('rdb$index_type').AsInteger := 0;
@@ -7914,8 +5992,9 @@ begin
    if Active and (DataSet is TgdcRelation) then
      FieldByName('relationname').AsString := DataSet.FieldByName('relationname').AsString;
 
-  FieldByName('indexname').AsString := UserPrefix + '_X_' + FieldByName('relationname').AsString +
-     GetUniqueID(Database, ReadTransaction);
+  FieldByName('indexname').AsString :=
+    GetObjectNameByRelName(FieldByName('relationname').AsString, '_X_');
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7964,90 +6043,10 @@ end;
 
 procedure TgdcIndex.SyncIndices(const ARelationName: String; const NeedRefresh: Boolean = True);
 begin
-  if (IsSync) or (not Active) then
-  begin
-    ExecSingleQuery(Format('EXECUTE PROCEDURE at_p_sync_indexes(''%s'')',
-      [AnsiUpperCase(TRIM(ARelationName))]));
-    if Active and NeedRefresh then
-      CloseOpen;
-    IsSync := False;
-  end;
-end;
-
-procedure TgdcIndex.DoBeforeOpen;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINDEX', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINDEX', KEYDOBEFOREOPEN);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREOPEN]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINDEX') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINDEX',
-  {M}          'DOBEFOREOPEN', KEYDOBEFOREOPEN, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINDEX' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  //После создания индексы нуждаются в синхронизации
-  //Это сделано из-за того, что
-  //1) версия БД не изменяется при изменении индексов
-  //2) синхронизация сразу всех индексов достаточно продолжительная
-  IsSync := True;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINDEX', 'DOBEFOREOPEN', KEYDOBEFOREOPEN);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcIndex.DoBeforeEdit;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINDEX', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINDEX', KEYDOBEFOREEDIT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREEDIT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINDEX') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINDEX',
-  {M}          'DOBEFOREEDIT', KEYDOBEFOREEDIT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINDEX' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  FChangeActive := False;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINDEX', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
-  {M}  end;
-  {END MACRO}
+  ExecSingleQuery(Format('EXECUTE PROCEDURE at_p_sync_indexes(''%s'')',
+    [AnsiUpperCase(TRIM(ARelationName))]));
+  if Active and NeedRefresh then
+    CloseOpen;
 end;
 
 class function TgdcIndex.GetViewFormClassName(
@@ -8090,60 +6089,6 @@ begin
   ExecSingleQuery('EXECUTE PROCEDURE at_p_sync_indexes_all');
   if NeedRefresh and Active then
     CloseOpen;
-end;
-
-function TgdcIndex.CheckTheSameStatement: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCINDEX', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINDEX', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINDEX') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINDEX',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINDEX' then
-  {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if State = dsInactive then
-    Result := 'SELECT id FROM at_indices WHERE UPPER(indexname)=UPPER(:indexname)'
-  else if ID < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT id FROM at_indices WHERE UPPER(indexname)=UPPER(''%s'')',
-      [FieldByName('indexname').AsString]);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINDEX', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcIndex.SaveToStreamDependencies(Stream: TStream;
@@ -8199,152 +6144,6 @@ begin
   end;
 end;
 
-destructor TgdcIndex.Destroy;
-begin
-  FIndexList.Free;
-  inherited;
-end;
-
-procedure TgdcIndex.DoBeforeInsert;
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  BM: TBookmarkStr;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINDEX', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINDEX', KEYDOBEFOREINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINDEX') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINDEX',
-  {M}          'DOBEFOREINSERT', KEYDOBEFOREINSERT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINDEX' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-  if CachedUpdates then
-  begin
-    FIndexList.Clear;
-    DisableControls;
-    BM := BookMark;
-
-    First;
-    while not EOF do
-    begin
-      FIndexList.Add(AnsiUpperCase(FieldByName('indexname').AsString));
-      Next;
-    end;
-
-    BookMark := BM;
-    EnableControls;
-  end;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINDEX', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TgdcIndex.CheckIndexName: Boolean;
-var
-  ibsql: TIBSQL;
-begin
-  Result := True;
-
-  ibsql := CreateReadIBSQL;
-  try
-    ibsql.SQL.Text := 'SELECT * FROM rdb$indices WHERE rdb$index_name = :indexname';
-    ibsql.ParamByName('indexname').AsString := FieldByName('indexname').AsString;
-    ibsql.ExecQuery;
-
-    if not ibsql.EOF then
-      Result := False
-    else
-      if CachedUpdates then
-      begin
-        if FIndexList.IndexOf(AnsiUpperCase(FieldByName('indexname').AsString)) > -1 then
-          Result := False;
-      end;
-  finally
-    ibsql.Free;
-  end;
-end;
-
-procedure TgdcIndex.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-var
-  S: String;
-  I: Integer;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINDEX', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINDEX', KEYDOBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINDEX') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINDEX',
-  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINDEX' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-  if (Trim(FieldByName('indexname').AsString) = '') then
-  begin
-    FieldByName('indexname').FocusControl;
-    raise Exception.Create('Введите наименование!');
-  end;
-    
- //  Имя индекса должно содержать только
- //  английские символы
-  S := Trim(AnsiUpperCase(FieldByName('indexname').AsString));
-   for I := 1 to Length(S) do
-     if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
-     begin
-       FieldByName('indexname').FocusControl;
-       raise Exception.Create('Название должно быть на английском языке!');
-     end;
-
-  if (Trim(FieldByName('fieldslist').AsString) = '') then
-  begin
-    FieldByName('fieldslist').FocusControl;
-    raise Exception.Create('Укажите список полей, по которым создается индекс!');
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINDEX', 'DOBEFOREPOST', KEYDOBEFOREPOST);
-  {M}  end;
-  {END MACRO}
-end;
-
 function TgdcIndex.GetIsFirebirdObject: Boolean;
 begin
   Result := (inherited GetIsFirebirdObject)
@@ -8357,224 +6156,226 @@ begin
   Result := 'Tgdc_dlgIndices';
 end;
 
-function TgdcIndex.GetFirebirdObjectName: String;
-begin
-  Result := FieldByName('indexname').AsString;
-end;
-
-{ TgdcTrigger }
-
-constructor TgdcTrigger.Create(AnOwner: TComponent);
-begin
-  inherited;
-  CustomProcess := [cpInsert, cpModify, cpDelete];
-end;
-
-procedure TgdcTrigger.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTRIGGER', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTRIGGER', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTRIGGER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTRIGGER',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTRIGGER' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленный триггер!');
-  Drop;
-  inherited;
-  
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTRIGGER', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTrigger.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTRIGGER', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTRIGGER', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTRIGGER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTRIGGER',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTRIGGER' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  if IsUserDefined then
-    MetaDataAlter;
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTRIGGER', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTrigger.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTRIGGER', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTRIGGER', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTRIGGER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTRIGGER',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTRIGGER' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  MetaDataAlter;
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTRIGGER', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTrigger.DoBeforeOpen;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTRIGGER', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTRIGGER', KEYDOBEFOREOPEN);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREOPEN]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTRIGGER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTRIGGER',
-  {M}          'DOBEFOREOPEN', KEYDOBEFOREOPEN, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTRIGGER' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  //После открытия триггеры нуждаются в синхронизации
-  IsSync := True;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTRIGGER', 'DOBEFOREOPEN', KEYDOBEFOREOPEN);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTrigger.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+function TgdcIndex.CheckObjectName(const ARaiseException,
+  AFocusControl: Boolean; const AFieldName: String): Boolean;
 var
-  S: String;
-  I: Integer;
-  
+  Res: OleVariant;
 begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTRIGGER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTRIGGER', KEYDOBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTRIGGER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTRIGGER',
-  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTRIGGER' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
+  Result := inherited CheckObjectName(ARaiseException, AFocusControl, AFieldName);
 
-  inherited;
+  if not Result then
+    exit;
 
-  if (Trim(FieldByName('triggername').AsString) = '') then
+  if Trim(FieldByName('fieldslist').AsString) = '' then
   begin
-    FieldByName('triggername').FocusControl;
-    raise Exception.Create('Введите наименование!');
+    if AFocusControl then
+      FieldByName('fieldslist').FocusControl;
+
+    if ARaiseException then
+      raise Exception.Create('Укажите список полей, по которым создается индекс!')
+    else begin
+      Result := False;
+      exit;
+    end;
   end;
 
-  //  Имя индекса должно содержать только
-  //  английские символы
-  S := Trim(AnsiUpperCase(FieldByName('triggername').AsString));
-   for I := 1 to Length(S) do
-     if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
-     begin
-       FieldByName('triggername').FocusControl;
-       raise Exception.Create('Название должно быть на английском языке!');
-     end;
+  if ExecSingleQueryResult('SELECT rdb$index_name FROM rdb$indices WHERE rdb$index_name = :indexname',
+    FieldByName('indexname').AsString, Res) then
+  begin
+    if AFocusControl then
+      FieldByName('indexname').FocusControl;
+
+    if ARaiseException then
+      raise Exception.Create('Индекс с таким именем уже существует!')
+    else begin
+      Result := False;
+      exit;
+    end;
+  end;
+end;
+
+procedure TgdcIndex.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+
+  procedure CreateIndex;
+  var
+    Uq, Ordr: String;
+  begin
+    if FieldByName('unique_flag').AsInteger <> 0 then
+      Uq := 'UNIQUE'
+    else
+      Uq := '';
+
+    if FieldByName('rdb$index_type').AsInteger <> 0 then
+      Ordr := 'DESCENDING'
+    else
+      Ordr := '';
+
+    S.Add(Format('CREATE %s %s INDEX %s ON %s (%s)',
+      [Uq, Ordr, FieldByName('indexname').AsString,
+      FieldByName('relationname').AsString, FieldByName('fieldslist').AsString]));
+  end;
+
+  procedure DropIndex;
+  begin
+    S.Add('DROP INDEX ' + FieldByName('indexname').AsString);
+  end;
+
+begin
+  inherited;
+
+  case AMetadata of
+    mdsCreate: CreateIndex;
+    mdsDrop: DropIndex;
+
+    mdsAlter:
+    begin
+      if FieldByName('changedata').AsInteger <> 0 then
+      begin
+        DropIndex;
+        CreateIndex;
+      end
+      else if FieldByName('changeactive').AsInteger <> 0 then
+      begin
+        if FieldByName('index_inactive').AsInteger <> 0 then
+          S.Add('ALTER INDEX ' + FieldByName('indexname').AsString + ' INACTIVE')
+        else
+          S.Add('ALTER INDEX ' + FieldByName('indexname').AsString + ' ACTIVE')
+      end;
+    end;
+  end;
+end;
+
+{ TgdcBaseTrigger }
+
+function TgdcBaseTrigger.GetFromClause(const ARefresh: Boolean = False): String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCBASETRIGGER', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASETRIGGER', KEYGETFROMCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASETRIGGER') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASETRIGGER',
+  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASETRIGGER' then
+  {M}        begin
+  {M}          Result := Inherited GetFromClause(ARefresh);
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+  Result := ' FROM at_triggers z LEFT JOIN rdb$triggers t ON z.triggername = t.rdb$trigger_name '
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETRIGGER', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCBASETRIGGER', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
+  {M}  end;
+  {END MACRO}
+end;
+
+function TgdcBaseTrigger.GetSelectClause: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCBASETRIGGER', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASETRIGGER', KEYGETSELECTCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASETRIGGER') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASETRIGGER',
+  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASETRIGGER' then
+  {M}        begin
+  {M}          Result := Inherited GetSelectClause;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+  Result :=
+    'SELECT z.*, t.rdb$trigger_name, t.rdb$trigger_sequence, t.rdb$trigger_type, ' +
+    ' t.rdb$trigger_source, t.rdb$trigger_blr, t.rdb$description, t.rdb$system_flag, ' +
+    ' t.rdb$flags, t.rdb$trigger_inactive ';
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETRIGGER', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCBASETRIGGER', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcBaseTrigger.DoBeforePost;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASETRIGGER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASETRIGGER', KEYDOBEFOREPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASETRIGGER') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASETRIGGER',
+  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASETRIGGER' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
 
   if not (sMultiple in BaseState) then
   begin
-    if FieldByName('relationname').AsString = '' then
+    if (FieldByName('rdb$trigger_type').asinteger <= 114) and
+       (FieldByName('relationname').AsString = '') then
       FieldByName('relationname').AsString :=
         AnsiUpperCase(Trim(atDataBase.Relations.ByID(FieldByName('relationkey').AsInteger).RelationName));
 
@@ -8582,13 +6383,154 @@ begin
       FieldByName('rdb$trigger_name').AsString := Trim(FieldByName('triggername').AsString);
   end;
 
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETRIGGER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTRIGGER', 'DOBEFOREPOST', KEYDOBEFOREPOST);
+  {M}      ClearMacrosStack2('TGDCBASETRIGGER', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
 end;
+
+procedure TgdcBaseTrigger.GetWhereClauseConditions(S: TStrings);
+begin
+  inherited;
+  if HasSubSet('ByRelation') then
+    S.Add(' z.relationkey = :relationkey ');
+  if HasSubSet('ByTriggerName') then
+    S.Add(' z.triggername = :triggername ');
+  if HasSubSet('ByDBTriggers') then
+    S.Add(' t.rdb$trigger_type >= 8192 ');
+end;
+
+function TgdcBaseTrigger.GetIsDerivedObject: Boolean;
+begin
+  Result :=
+    (
+      FirebirdObjectName > ''
+    )
+    and
+    (
+      (StrIPos('USR$BI_USR$CROSS', FirebirdObjectName) = 1)
+      or
+      (GetTriggerName(FieldByName('relationname').AsString, 'BI', 5) = FirebirdObjectName)
+      or
+      (GetTriggerName(FieldByName('relationname').AsString, 'BU', 5) = FirebirdObjectName)
+      or
+      (gdcBaseManager.AdjustMetaName('usr$bi_' + FieldByName('relationname').AsString) =
+         FirebirdObjectName)
+    );
+end;
+
+class function TgdcBaseTrigger.GetListField(const ASubType: TgdcSubType): String;
+begin
+  Result := 'triggername';
+end;
+
+class function TgdcBaseTrigger.GetListTable(const ASubType: TgdcSubType): String;
+begin
+  Result := 'at_triggers';
+end;
+
+class function TgdcBaseTrigger.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgTrigger';
+end;
+
+class function TgdcBaseTrigger.GetNotStreamSavedField(const IsReplicationMode: Boolean): String;
+begin
+  Result := inherited GetNotStreamSavedField(IsReplicationMode);
+  if Result > '' then
+    Result := Result + ',';
+  Result := Result + 'RDB$TRIGGER_BLR';
+end;
+
+procedure TgdcBaseTrigger.SyncAllTriggers(const NeedRefresh: Boolean = True);
+begin
+  ExecSingleQuery('EXECUTE PROCEDURE at_p_sync_triggers_all');
+  if NeedRefresh and Active then
+    CloseOpen;
+end;
+
+procedure TgdcBaseTrigger._SaveToStream(Stream: TStream;
+  ObjectSet: TgdcObjectSet;
+  PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
+  WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True);
+var
+  I: Integer;
+begin
+  //Мы не будем сохранять триггер USR$_BU_INV_CARD в поток,
+  //т.к. он генерируется автоматически при изменении структуры таблицы inv_card
+  if (AnsiCompareText('USR$_BU_INV_CARD', Trim(FieldByName('triggername').AsString)) = 0) then
+    Exit;
+  for I := 1 to MaxInvCardTrigger do
+    if (AnsiCompareText(Format('USR$%d_BU_INV_CARD', [I]), Trim(FieldByName('triggername').AsString)) = 0) then
+      Exit;
+  //В поток сохраняем только триггеры-атрибуты
+  if IsUserDefined then
+  begin
+    SaveToStreamDependencies(Stream, ObjectSet,
+      FieldByName('triggername').AsString, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+    inherited;
+  end;
+end;
+
+class procedure TgdcBaseTrigger.EnumTriggerTypes(S: TStrings);
+begin
+  //
+end;
+
+function TgdcBaseTrigger.ComposeTriggerName: String;
+begin
+  Result := '';
+end;
+
+procedure TgdcBaseTrigger.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+var
+  ActiveText, SubText: String;
+begin
+  inherited;
+
+  case AMetadata of
+    mdsDrop: S.Add('DROP TRIGGER ' + FieldByName('rdb$trigger_name').AsString);
+
+    mdsCreate, mdsAlter:
+    begin
+      //Если было изменено имя триггера, то удалим триггер со старым именем
+      if not AnsiSameText(Trim(FieldByName('triggername').AsString), Trim(FieldByName('rdb$trigger_name').AsString)) then
+        S.Add('DROP TRIGGER ' + FieldByName('rdb$trigger_name').AsString);
+
+      // Создание\изменение триггера
+      if FieldByName('trigger_inactive').AsInteger <> 0 then
+        ActiveText := 'INACTIVE'
+      else
+        ActiveText := 'ACTIVE';
+
+      SubText := gdcTriggerHelper.GetTypeName(FieldByName('rdb$trigger_type').AsInteger);
+
+      if FieldByName('rdb$trigger_type').AsInteger <= 114 then
+        S.Add(Format('CREATE OR ALTER TRIGGER %s FOR %s %s %s POSITION %s ' +
+          ' %s ', [FieldByName('triggername').AsString, FieldByName('relationname').AsString,
+          ActiveText, SubText, FieldByName('rdb$trigger_sequence').AsString,
+          FieldByName('rdb$trigger_source').AsString]))
+      else
+        S.Add(Format('CREATE OR ALTER TRIGGER %s %s %s %s',
+          [FieldByName('triggername').AsString, ActiveText, SubText,
+          FieldByName('rdb$trigger_source').AsString]));
+    end;
+  end;
+end;
+
+function TgdcBaseTrigger.GetCanEdit: Boolean;
+begin
+  if not IsUserDefined then
+    Result := False
+  else
+    Result := inherited GetCanEdit;  
+end;
+
+{ TgdcTrigger }
 
 procedure TgdcTrigger._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -8633,206 +6575,18 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcTrigger.Drop;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    FSQL.Add(Format('DROP TRIGGER %s', [FieldByName('rdb$trigger_name').AsString]));
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-  end;
-end;
-
-function TgdcTrigger.GetFromClause(const ARefresh: Boolean = False): String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCTRIGGER', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTRIGGER', KEYGETFROMCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTRIGGER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTRIGGER',
-  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTRIGGER' then
-  {M}        begin
-  {M}          Result := Inherited GetFromClause(ARefresh);
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := ' FROM at_triggers z LEFT JOIN rdb$triggers t ON z.triggername = t.rdb$trigger_name '
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTRIGGER', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
-  {M}  end;
-  {END MACRO}
-end;
-
-class function TgdcTrigger.GetListField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'triggername';
-end;
-
-class function TgdcTrigger.GetListTable(const ASubType: TgdcSubType): String;
-begin
-  Result := 'at_triggers';
-end;
-
-function TgdcTrigger.GetSelectClause: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCTRIGGER', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTRIGGER', KEYGETSELECTCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTRIGGER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTRIGGER',
-  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTRIGGER' then
-  {M}        begin
-  {M}          Result := Inherited GetSelectClause;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result :=
-    'SELECT z.*, t.rdb$trigger_name, t.rdb$trigger_sequence, t.rdb$trigger_type, ' +
-    ' t.rdb$trigger_source, t.rdb$trigger_blr, t.rdb$description, t.rdb$system_flag, ' +
-    ' t.rdb$flags ';
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTRIGGER', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
-  {M}  end;
-  {END MACRO}
-end;
 
 class function TgdcTrigger.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + 'ByRelation;ByTriggerName;';
 end;
 
-procedure TgdcTrigger.GetWhereClauseConditions(S: TStrings);
-begin
-  inherited;
-  if HasSubSet('OnlyAttribute') then
-    S.Add('z.triggername LIKE ''USR$%''');
-  if HasSubSet('ByRelation') then
-    S.Add(' z.relationkey = :relationkey ');
-  if HasSubSet('ByTriggerName') then
-    S.Add(' z.triggername = :triggername ');
-
-end;
-
-procedure TgdcTrigger.MetaDataAlter;
-var
-  FSQL: TSQLProcessList;
-  subtext: String;
-  activetext: string;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    //Если было изменено имя триггера, то удалим триггер со старым именем
-    if Trim(FieldByName('triggername').AsString) <> Trim(FieldByName('rdb$trigger_name').AsString) then
-      Drop;
-
-    // Создание\изменение триггера
-    if FieldByName('trigger_inactive').AsInteger > 0 then
-      activetext := 'INACTIVE'
-    else
-      activetext := 'ACTIVE';
-
-    case FieldByName('rdb$trigger_type').AsInteger of
-      1: subtext := 'BEFORE INSERT';
-      2: subtext := 'AFTER INSERT';
-      3: subtext := 'BEFORE UPDATE';
-      4: subtext := 'AFTER UPDATE';
-      5: subtext := 'BEFORE DELETE';
-      6: subtext := 'AFTER DELETE';
-      17: subtext := 'BEFORE INSERT OR UPDATE';
-      18: subtext := 'AFTER INSERT OR UPDATE';
-      25: subtext := 'BEFORE INSERT OR DELETE';
-      26: subtext := 'AFTER INSERT OR DELETE';
-      27: subtext := 'BEFORE UPDATE OR DELETE';
-      28: subtext := 'AFTER UPDATE OR DELETE';
-      113: subtext := 'BEFORE INSERT OR UPDATE OR DELETE';
-      114: subtext := 'AFTER INSERT OR UPDATE OR DELETE';
-    else
-      subtext := '';
-    end;
-
-    if subtext > '' then
-    begin
-      FSQL.Add(Format('CREATE OR ALTER TRIGGER %s FOR %s %s %s POSITION %s ' +
-        ' %s ', [FieldByName('triggername').AsString, FieldByName('relationname').AsString,
-         activetext, subtext, FieldByName('rdb$trigger_sequence').AsString,
-         FieldByName('rdb$trigger_source').AsString]));
-      ShowSQLProcess(FSQL);
-    end
-    else
-      AddMistake('Для триггера ' + FieldByName('triggername').AsString +
-        ' неверно указано значение поля rdb$trigger_type.', clRed);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
-  end;
-end;
-
 procedure TgdcTrigger.SyncTriggers(const ARelationName: String; const NeedRefresh: Boolean = True);
 begin
-  if (IsSync) or (not Active) then
-  begin
-    ExecSingleQuery(Format('EXECUTE PROCEDURE at_p_sync_triggers(''%s'')',
-      [AnsiUpperCase(TRIM(ARelationName))]));
-    if Active and NeedRefresh then
-      CloseOpen;
-    IsSync := False;
-  end;
+  ExecSingleQuery(Format('EXECUTE PROCEDURE at_p_sync_triggers(''%s'')',
+    [AnsiUpperCase(TRIM(ARelationName))]));
+  if Active and NeedRefresh then
+    CloseOpen;
 end;
 
 function TgdcTrigger.CalcPosition(RelationName: String; TriggerType: Integer): Integer;
@@ -8864,349 +6618,80 @@ begin
   end;
 end;
 
-procedure TgdcTrigger.DoBeforeEdit;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTRIGGER', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTRIGGER', KEYDOBEFOREEDIT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREEDIT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTRIGGER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTRIGGER',
-  {M}          'DOBEFOREEDIT', KEYDOBEFOREEDIT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTRIGGER' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  FChangeName := False;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTRIGGER', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcTrigger.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmTrigger';
 end;
 
-procedure TgdcTrigger.SyncAllTriggers(const NeedRefresh: Boolean = True);
+class procedure TgdcTrigger.EnumTriggerTypes(S: TStrings);
 begin
-  ExecSingleQuery('EXECUTE PROCEDURE at_p_sync_triggers_all');
-  if NeedRefresh and Active then
-    CloseOpen;
+  gdcTriggerHelper.EnumTableTriggerTypes(S);
 end;
 
-procedure TgdcTrigger._SaveToStream(Stream: TStream;
-  ObjectSet: TgdcObjectSet;
-  PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
-  WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True);
-var
-  I: Integer;
+function TgdcTrigger.ComposeTriggerName: String;
 begin
-  //Мы не будем сохранять триггер USR$_BU_INV_CARD в поток,
-  //т.к. он генерируется автоматически при изменении структуры таблицы inv_card
-  if (AnsiCompareText('USR$_BU_INV_CARD', Trim(FieldByName('triggername').AsString)) = 0) then
-    Exit;
-  for I := 1 to MaxInvCardTrigger do
-    if (AnsiCompareText(Format('USR$%d_BU_INV_CARD', [I]), Trim(FieldByName('triggername').AsString)) = 0) then
-      Exit;
-  //В поток сохраняем только триггеры-атрибуты
-  if IsUserDefined then
-  begin
-    SaveToStreamDependencies(Stream, ObjectSet,
-      FieldByName('triggername').AsString, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
-    inherited;
-  end;
+
 end;
 
-function TgdcTrigger.CheckTheSameStatement: String;
+{ TgdcDBTrigger }
+
+procedure TgdcDBTrigger._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
 begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCTRIGGER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCDBTRIGGER', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  try
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTRIGGER', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTRIGGER') = -1) then
+  {M}      SetFirstMethodAssoc('TGDCDBTRIGGER', KEY_DOONNEWRECORD);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDBTRIGGER') = -1) then
   {M}      begin
   {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTRIGGER',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDBTRIGGER',
+  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
   {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTRIGGER' then
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDBTRIGGER' then
   {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
+  {M}          Inherited;
   {M}          Exit;
   {M}        end;
   {M}    end;
   {END MACRO}
+  inherited;
+  FieldByName('trigger_inactive').AsInteger := 0;
+  FieldByName('rdb$trigger_source').AsString := 'AS' + #13#10 + 'BEGIN' + #13#10 +
+    '/*Тело триггера*/' + #13#10 + 'END';
 
-  if State = dsInactive then
-    Result := 'SELECT id FROM at_triggers WHERE UPPER(triggername)=UPPER(:triggername)'
-  else if ID < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT id FROM at_triggers WHERE UPPER(triggername)=UPPER(''%s'')',
-      [FieldByName('triggername').AsString]);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDBTRIGGER', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTRIGGER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
+  {M}      ClearMacrosStack2('TGDCDBTRIGGER', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
   {M}  end;
   {END MACRO}
 end;
 
-class function TgdcTrigger.GetNotStreamSavedField(const IsReplicationMode: Boolean): String;
+class function TgdcDBTrigger.GetSubSetList: String;
 begin
-  Result := inherited GetNotStreamSavedField(IsReplicationMode);
-  if Result > '' then
-    Result := Result + ',';
-  Result := Result + 'RDB$TRIGGER_BLR';
+  Result := inherited GetSubSetList + 'ByDBTriggers;';
 end;
 
-class function TgdcTrigger.GetDialogFormClassName(
+class function TgdcDBTrigger.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'Tgdc_dlgTrigger';
+  Result := 'Tgdc_frmDBTrigger';
 end;
 
-function TgdcTrigger.GetFirebirdObjectName: String;
+class procedure TgdcDBTrigger.EnumTriggerTypes(S: TStrings);
 begin
-  Result := FieldByName('triggername').AsString;
-end;
-
-function TgdcTrigger.GetIsDerivedObject: Boolean;
-begin
-  Result :=
-    (
-      FirebirdObjectName > ''
-    )
-    and
-    (
-      (StrIPos('USR$BI_USR$CROSS', FirebirdObjectName) = 1)
-      or
-      (GetTriggerName(FieldByName('relationname').AsString, 'BI', 5) = FirebirdObjectName)
-      or
-      (GetTriggerName(FieldByName('relationname').AsString, 'BU', 5) = FirebirdObjectName)
-      or
-      (gdcBaseManager.AdjustMetaName('usr$bi_' + FieldByName('relationname').AsString) =
-         FirebirdObjectName)
-    );
+  gdcTriggerHelper.EnumDBTriggerTypes(S);
 end;
 
 { TgdcTableToTable }
-
-procedure TgdcTableToTable.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLETOTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLETOTABLE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLETOTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLETOTABLE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLETOTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Assert(atDatabase <> nil);
-
-  inherited;
-
-  //синхронизируем информацию о новом домене
-  if (FIDDomain > '') and (atDatabase.Relations.ByRelationName(GetReferenceName) <> nil) then
-  begin
-    CustomExecQuery(Format('INSERT INTO at_fields (' +
-      ' fieldname, ' +
-      ' lname, ' +
-      ' description, ' +
-      ' reftable, ' +
-      ' reflistfield, ' +
-      ' reftablekey, ' +
-      ' reflistfieldkey) ' +
-      ' VALUES ('+
-      ' ''%0:s'', ''%0:s'', ''Ссылка на таблицу %1:s'',' +
-      ' ''%1:s'', ''%2:s'', %3:d, %4:d )',
-      [FIDDomain, GetReferenceName,
-       atDatabase.Relations.ByRelationName(GetReferenceName).ListField.FieldName,
-       atDatabase.Relations.ByRelationName(GetReferenceName).ID,
-       atDatabase.Relations.ByRelationName(GetReferenceName).ListField.ID
-      ]), Buff);
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLETOTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLETOTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TgdcTableToTable.CreateNewDomain: String;
-begin
-  if FIDDomain = '' then
-    FIDDomain := gdcBaseManager.AdjustMetaName(
-      FieldByName('relationname').AsString + '_DPK');
-
-  Result := Format('CREATE DOMAIN %s AS INTEGER NOT NULL',
-    [FIDDomain]);
-end;
-
-procedure TgdcTableToTable.CreateRelationSQL(Scripts: TSQLProcessList);
-begin
-  Scripts.Add(CreateNewDomain);
-  Scripts.Add(CreateSimpleTable);
-  Scripts.Add(CreateForeignKey);
-  Scripts.Add(CreateGrantSQL);
-end;
-
-function TgdcTableToTable.CreateSimpleTable: String;
-begin
-  Result := Format
-  (
-    'CREATE TABLE %s (%s %s, CONSTRAINT %s PRIMARY KEY (%s))',
-    [
-      FieldByName('relationname').AsString,
-      GetPrimaryFieldName,
-      FIDDomain,
-      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK'),
-      GetPrimaryFieldName
-    ]
-  );
-end;
-
-function TgdcTableToTable.CreateForeignKey: String;
-begin
- Result := Format
-  (
-    'ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON UPDATE CASCADE ON DELETE CASCADE',
-    [
-      FieldByName('relationname').AsString,
-      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_FK'),
-      GetPrimaryFieldName,
-      GetReferenceName,
-      GetKeyFieldName(GetReferenceName)
-    ]
-  );
-end;
-
-procedure TgdcTableToTable._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTABLETOTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLETOTABLE', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLETOTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLETOTABLE',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLETOTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-  FIDDomain := '';
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLETOTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLETOTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTableToTable.DropTable;
-var
-  FSQL: TSQLProcessList;
-  KeyField: TatRelationField;
-  KeyDomain: TatField;
-begin
-  Assert(atDatabase <> nil);
-
-  FSQL := TSQLProcessList.Create;
-  try
-    KeyField := atDatabase.FindRelationField(FieldByName('relationname').AsString,
-      GetKeyFieldName(FieldByName('relationname').AsString));
-
-    if KeyField = nil then
-      raise EgdcIBError.Create('При удалении таблицы произошла ошибка. Требуется переподключение');
-
-    KeyDomain := KeyField.Field;
-    if (KeyDomain = nil) or (KeyDomain.RefTable = nil) then
-       raise EgdcIBError.Create('При удалении таблицы произошла ошибка. Требуется переподключение');
-
-    inherited;
-
-    if KeyDomain.IsUserDefined then
-      FSQL.Add('DROP DOMAIN ' + KeyDomain.FieldName);
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-  end;
-end;
 
 function TgdcTableToTable.GetReferenceName: String;
 var
@@ -9234,26 +6719,105 @@ begin
   end;
 end;
 
+procedure TgdcTableToTable.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+var
+  KeyField: TatRelationField;
+  KeyDomain: TatField;
+begin
+  if AMetadata = mdsCreate then
+  begin
+    FIDDomain := gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_DPK');
+    S.Add('CREATE DOMAIN ' + FIDDomain + ' AS INTEGER NOT NULL');
+
+    S.Add(Format
+      (
+        'CREATE TABLE %s (%s %s, CONSTRAINT %s PRIMARY KEY (%s))',
+        [
+          FieldByName('relationname').AsString,
+          GetPrimaryFieldName,
+          FIDDomain,
+          gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK'),
+          GetPrimaryFieldName
+        ]
+      )
+    );
+    S.Add(Format
+      (
+        'ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON UPDATE CASCADE ON DELETE CASCADE',
+        [
+          FieldByName('relationname').AsString,
+          gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_FK'),
+          GetPrimaryFieldName,
+          GetReferenceName,
+          GetKeyFieldName(GetReferenceName)
+        ]
+      )
+    );
+  end;
+
+  inherited;
+
+  if AMetadata = mdsDrop then
+  begin
+    KeyField := atDatabase.FindRelationField(FieldByName('relationname').AsString,
+      GetKeyFieldName(FieldByName('relationname').AsString));
+
+    if KeyField <> nil then
+    begin
+      KeyDomain := KeyField.Field;
+
+      if (KeyDomain <> nil) and KeyDomain.IsUserDefined then
+      begin
+        S.Add('DROP DOMAIN ' + KeyDomain.FieldName);
+        FIDDomain := KeyDomain.FieldName;
+      end;
+    end;
+  end;
+end;
+
+procedure TgdcTableToTable.SyncAtDatabase(const AnID: Integer;
+  const AMetadata: TgdcMetadataScript);
+begin
+  inherited;
+
+  if AMetadata = mdsDrop then
+  begin
+    if atDatabase.Fields.ByFieldName(FIDDomain) <> nil then
+      atDatabase.Fields.Delete(atDatabase.Fields.IndexOf(atDatabase.Fields.ByFieldName(FIDDomain)));
+  end;
+end;
+
+procedure TgdcTableToTable.MakePredefinedObjects;
+begin
+  inherited;
+
+  if (FIDDomain > '') and (atDatabase.Relations.ByRelationName(GetReferenceName) <> nil) then
+  begin
+    ExecSingleQuery(Format('INSERT INTO at_fields (' +
+      ' fieldname, ' +
+      ' lname, ' +
+      ' description, ' +
+      ' reftable, ' +
+      ' reflistfield, ' +
+      ' reftablekey, ' +
+      ' reflistfieldkey) ' +
+      ' VALUES ('+
+      ' ''%0:s'', ''%0:s'', ''Ссылка на таблицу %1:s'',' +
+      ' ''%1:s'', ''%2:s'', %3:d, %4:d )',
+      [FIDDomain, GetReferenceName,
+       atDatabase.Relations.ByRelationName(GetReferenceName).ListField.FieldName,
+       atDatabase.Relations.ByRelationName(GetReferenceName).ID,
+       atDatabase.Relations.ByRelationName(GetReferenceName).ListField.ID
+      ]));
+  end;
+end;
+
 { TgdcInheritedTable }
 
 class function TgdcInheritedTable.GetPrimaryFieldName: String;
 begin
   Result := 'INHERITEDKEY';
-end;
-
-procedure TgdcInheritedTable.MakePredefinedRelationFields;
-begin
-  TestRelationName;
-
-  if (sLoadFromStream in BaseState) and (not IsUserDefined) then
-    exit;
-
-  if (State = dsInsert) and Assigned(gdcTableField) then
-  begin
-    NewField('INHERITEDKEY',
-      'Идентификатор', 'DINTKEY', 'Идентификатор', 'Идентификатор',
-      'L', '10', '1', '0');
-  end;
 end;
 
 { TgdcBaseTable }
@@ -9287,12 +6851,10 @@ begin
     end;
   end;
   inherited;
-
 end;
 
 function TgdcBaseTable.CreateEditorForeignKey: String;
 begin
-  NeedSingleUser := True;
   Result :=  Format('ALTER TABLE %s ADD CONSTRAINT %s ' +
     ' FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey) ' +
     ' ON UPDATE CASCADE',
@@ -9334,27 +6896,52 @@ begin
      IntToStr(cstAdminKey), IntToStr(5)]);
 end;
 
-procedure TgdcBaseTable.CustomInsert(Buff: Pointer);
+procedure TgdcBaseTable.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+begin
+  inherited;
+
+  case AMetadata of
+    mdsDrop:
+    begin
+      S.Add('DROP TABLE ' + FieldByName('relationname').AsString);
+      S.Add('DELETE FROM GD_COMMAND WHERE UPPER(subtype) = ''' + UpperCase(FieldByName('relationname').AsString) + '''');
+    end;
+  end;
+end;
+
+procedure TgdcBaseTable.MakePredefinedObjects;
+begin
+  inherited;
+
+  NewField(GetPrimaryFieldName,
+    'Идентификатор', 'DINTKEY', 'Идентификатор', 'Идентификатор',
+    'L', '10', '1', '0');
+end;
+
+{ TgdcUnknownTable }
+
+procedure TgdcUnknownTable.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
 begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCBASETABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUNKNOWNTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBASETABLE', KEYCUSTOMINSERT);
+  {M}      SetFirstMethodAssoc('TGDCUNKNOWNTABLE', KEYCUSTOMINSERT);
   {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASETABLE') = -1) then
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUNKNOWNTABLE') = -1) then
   {M}      begin
   {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASETABLE',
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUNKNOWNTABLE',
   {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
   {M}          exit;
   {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASETABLE' then
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUNKNOWNTABLE' then
   {M}        begin
   {M}          Inherited;
   {M}          Exit;
@@ -9362,94 +6949,18 @@ begin
   {M}    end;
   {END MACRO}
 
-  inherited;
-  if FNeedPredefinedFields then
-  begin
-    MakePredefinedRelationFields;
-    FNeedPredefinedFields := False;
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBASETABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcBaseTable.DropCrossTable;
-var
-  ibsql: TIBSQL;
-  gdcRelField: TgdcRelationField;
-  DidActivate: Boolean;
-begin
-  ibsql := TIBSQL.Create(nil);
-  gdcRelField := TgdcRelationField.CreateSubType(nil, '', 'ByID');
-  try
-    ibsql.Transaction := Transaction;
-    gdcRelField.Transaction := Transaction;
-    DidActivate := False;
-    try
-      DidActivate := ActivateTransaction;
-
-      ibsql.SQL.Text :=
-        'SELECT id, crosstablekey, crosstable FROM at_relation_fields ' +
-        'WHERE relationkey = :relationkey AND crosstablekey IS NOT NULL ';
-      ibsql.ParamByName('relationkey').AsInteger := ID;
-      ibsql.ExecQuery;
-
-      while not ibsql.Eof do
-      begin
-        gdcRelField.Close;
-        gdcRelField.ID := ibsql.FieldByName('id').AsInteger;
-        gdcRelField.Open;
-        if not gdcRelField.EOF then
-          gdcRelField.Delete;
-
-        ibsql.Next;
-      end;
-
-      if DidActivate and Transaction.InTransaction then
-        Transaction.Commit;
-    except
-      if DidActivate and Transaction.InTransaction then
-        Transaction.Rollback;
-      raise;
-    end;
-  finally
-    ibsql.Free;
-    gdcRelField.Free;
-  end;
-end;
-
-{ TgdcUnknownTable }
-
-procedure TgdcUnknownTable.CreateRelationSQL(Scripts: TSQLProcessList);
-begin
-  if sLoadFromStream in BaseState then
-  begin
-    Scripts.Add(CreateUnknownTable);
-    Scripts.Add(CreateGrantSQL);
-  end;
-end;
-
-procedure TgdcUnknownTable.CustomInsert(Buff: Pointer);
-begin
   if (not (sLoadFromStream in BaseState)) or
     (StrIPos(CrossTablePrefix, FieldByName('relationname').AsString) <> 1) then
   begin
     inherited;
   end;
-end;
 
-function TgdcUnknownTable.CreateUnknownTable: String;
-begin
-  Result := Format
-  (
-    'CREATE TABLE %0:s (%1:s dintkey)',
-    [FieldByName('relationname').AsString,
-     GetSimulateFieldName]
-  );
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUNKNOWNTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCUNKNOWNTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
 end;
 
 function GetSimulateFieldNameByRel(RelName: String): String;
@@ -9462,17 +6973,6 @@ begin
   else
     Result := '';
   Result := gdcBaseManager.AdjustMetaName(Result);
-end;
-
-
-function TgdcUnknownTable.GetSimulateFieldName: String;
-begin
-  Result := GetSimulateFieldNameByRel(FieldByName('relationname').AsString);
-end;
-
-procedure TgdcUnknownTable.MakePredefinedRelationFields;
-begin
-//не имеет предустановленных полей
 end;
 
 procedure TgdcUnknownTable._SaveToStream(Stream: TStream;
@@ -9516,15 +7016,44 @@ begin
   end;
 end;
 
+procedure TgdcUnknownTable.MakePredefinedObjects;
+begin
+  //inherited;
+end;
+
+procedure TgdcUnknownTable.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+begin
+  if sLoadFromStream in BaseState then
+  begin
+    if AMetadata = mdsCreate then
+    begin
+      if sLoadFromStream in BaseState then
+      begin
+        S.Add
+        (
+          'CREATE TABLE ' + FieldByName('relationname').AsString +
+          '(' + GetSimulateFieldNameByRel(FieldByName('relationname').AsString) + ' dintkey)'
+        );
+      end;
+    end;
+
+    inherited;
+  end;  
+end;
+
 { TSQLProcessList }
 
 procedure TSQLProcessList.Add(const Script: String; const Successful: Boolean = True);
 begin
-  FScriptList.Add(Script);
-  if Successful then
-    FSuccessfulList.Add('1')
-  else
-    FSuccessfulList.Add('0');
+  if Script > '' then
+  begin
+    FScriptList.Add(Script);
+    if Successful then
+      FSuccessfulList.Add('1')
+    else
+      FSuccessfulList.Add('0');
+  end;
 end;
 
 procedure TSQLProcessList.Clear;
@@ -9573,204 +7102,44 @@ var
 
 { TgdcTable }
 
-procedure TgdcTable.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+procedure TgdcTable.SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript);
+var
   Prnt: TgdClassEntry;
   CE: TgdClassEntry;
 begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
   inherited;
 
-  Prnt := nil;
+  case AMetadata of
+    mdsCreate:
+    begin
+      Prnt := nil;
 
-  if Self is TgdcLBRBTreeTable then
-    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree')
-  else if Self is TgdcTreeTable then
-    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree')
-  else if Self is TgdcInheritedTable then
-    Prnt := gdClassList.FindByRelation((Self as TgdcInheritedTable).GetReferenceName)
-  else if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
-    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined');
+      if Self is TgdcLBRBTreeTable then
+        Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree')
+      else if Self is TgdcTreeTable then
+        Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree')
+      else if Self is TgdcInheritedTable then
+        Prnt := gdClassList.FindByRelation((Self as TgdcInheritedTable).GetReferenceName)
+      else if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
+        Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined');
 
-  if Prnt = nil then
-    raise EgdcException.CreateObj('Unknown metadata class.', Self);
+      if Prnt = nil then
+        raise EgdcException.CreateObj('Unknown metadata class.', Self);
 
-  CE := gdClassList.Add(Prnt.TheClass, FieldByName('relationname').AsString,
-    Prnt.SubType, CgdClassEntry(TgdAttrUserDefinedEntry), FieldByName('lname').AsString);
+      CE := gdClassList.Add(Prnt.TheClass, FieldByName('relationname').AsString,
+        Prnt.SubType, CgdClassEntry(TgdAttrUserDefinedEntry), FieldByName('lname').AsString);
 
-  if CE <> nil then
-    (CE as TgdBaseEntry).DistinctRelation := UpperCase(FieldByName('relationname').AsString);
+      if CE <> nil then
+        (CE as TgdBaseEntry).DistinctRelation := UpperCase(FieldByName('relationname').AsString);
+    end;
 
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTable.CustomDelete(Buff: Pointer);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  gdClassList.RemoveSubType(FieldByName('relationname').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTable.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if FieldChanged('lname') then
-    gdClassList.LoadRelation(FieldByName('relationname').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
+    mdsAlter:
+      if FieldChanged('lname') then
+        gdClassList.LoadRelation(FieldByName('relationname').AsString);
+  end;
 end;
 
 { TgdcPrimeTable }
-
-procedure TgdcPrimeTable._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCPRIMETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCPRIMETABLE', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCPRIMETABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCPRIMETABLE',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCPRIMETABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  FTableType := ttPrimeTable;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCPRIMETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCPRIMETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TgdcPrimeTable.CreatePrimeTable: String;
-begin
-  Result := Format
-  (
-    'CREATE TABLE %0:s (id dintkey, editiondate deditiondate, PRIMARY KEY (id))',
-    [FieldByName('relationname').AsString]
-  );
-
-end;
-
-procedure TgdcPrimeTable.CreateRelationSQL(Scripts: TSQLProcessList);
-begin
-  Scripts.Add(CreatePrimeTable);
-  Scripts.Add(CreateInsertTrigger);
-  Scripts.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
-  Scripts.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
-  Scripts.Add(CreateGrantSQL);
-end;
 
 class function TgdcPrimeTable.CreateInsertEditorTrigger(const ARelationName: String): String;
 begin
@@ -9802,216 +7171,33 @@ begin
      IntToStr(cstAdminKey), IntToStr(5)]);
 end;
 
-procedure TgdcPrimeTable.MakePredefinedRelationFields;
+procedure TgdcPrimeTable.MakePredefinedObjects;
 begin
   inherited;
-  if (State = dsInsert) and Assigned(gdcTableField) then
+  NewField('EDITIONDATE',
+    'Дата модификации', 'DEDITIONDATE', 'Дата модификации', 'Дата модификации',
+    'L', '20', '1', '0');
+end;
+
+procedure TgdcPrimeTable.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
+begin
+  if AMetadata = mdsCreate then
   begin
-    NewField('EDITIONDATE',
-      'Дата модификации', 'DEDITIONDATE', 'Дата модификации', 'Дата модификации',
-      'L', '20', '1', '0');
+    S.Add
+    (
+      'CREATE TABLE ' + FieldByName('relationname').AsString +
+      '(id dintkey, editiondate deditiondate, PRIMARY KEY (id))'
+    );
+    S.Add(CreateInsertTrigger);
+    S.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
+    S.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
   end;
+
+  inherited;
 end;
 
 { TgdcGenerator }
-
-constructor TgdcGenerator.Create(AnOwner: TComponent);
-begin
-  inherited;
-  CustomProcess := [cpInsert, cpModify, cpDelete];
-end;
-
-procedure TgdcGenerator.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCGENERATOR', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCGENERATOR', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCGENERATOR') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCGENERATOR',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCGENERATOR' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить стандартный генератор!');
-
-  Drop;
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCGENERATOR', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcGenerator.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCGENERATOR', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCGENERATOR', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCGENERATOR') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCGENERATOR',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCGENERATOR' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  if IsUserDefined then
-    MetaDataCreate;
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCGENERATOR', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcGenerator.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCGENERATOR', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCGENERATOR', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCGENERATOR') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCGENERATOR',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCGENERATOR' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  MetaDataAlter;
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCGENERATOR', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcGenerator.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-var
-  S: String;
-  I: Integer;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCGENERATOR', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCGENERATOR', KEYDOBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCGENERATOR') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCGENERATOR',
-  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCGENERATOR' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if (Trim(FieldByName('generatorname').AsString) = '') then
-  begin
-    FieldByName('generatorname').FocusControl;
-    raise Exception.Create('Введите наименование генератора!');
-  end;
-
- //  Имя генератора должно содержать только
- //  английские символы
-  S := Trim(AnsiUpperCase(FieldByName('generatorname').AsString));
-   for I := 1 to Length(S) do
-     if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
-     begin
-       FieldByName('generatorname').FocusControl;
-       raise Exception.Create('Название генератора должно быть на английском языке!');
-     end;
-
-  if not (sMultiple in BaseState) then
-  begin
-    if FieldByName('rdb$generator_name').AsString = '' then
-      FieldByName('rdb$generator_name').AsString := Trim(FieldByName('generatorname').AsString);
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCGENERATOR', 'DOBEFOREPOST', KEYDOBEFOREPOST);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcGenerator.Drop;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    FSQL.Add(Format('DROP GENERATOR %s',
-      [FieldByName('generatorname').AsString]));
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-  end;
-end;
 
 function TgdcGenerator.GetFromClause(const ARefresh: Boolean = False): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -10050,7 +7236,11 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := ' FROM at_generators z LEFT JOIN rdb$generators t ON z.generatorname = t.rdb$generator_name '
+
+  Result :=
+    'FROM at_generators z ' +
+    '  LEFT JOIN rdb$generators t ON z.generatorname = t.rdb$generator_name ';
+    
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -10061,12 +7251,12 @@ end;
 
 class function TgdcGenerator.GetListField(const ASubType: TgdcSubType): String;
 begin
-  Result := 'generatorname';
+  Result := 'GENERATORNAME';
 end;
 
 class function TgdcGenerator.GetListTable(const ASubType: TgdcSubType): String;
 begin
-  Result := 'at_generators';
+  Result := 'AT_GENERATORS';
 end;
 
 function TgdcGenerator.GetSelectClause: String;
@@ -10106,87 +7296,14 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   Result :=
     'SELECT z.*, t.* ';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCGENERATOR', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcGenerator.GetWhereClauseConditions(S: TStrings);
-begin
-  inherited;
-  if HasSubSet('OnlyAttribute') then
-    S.Add('COALESCE(T.RDB$SYSTEM_FLAG, 0) = 0');
-end;
-
-procedure TgdcGenerator.MetaDataAlter;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    if Trim(FieldByName('generatorname').AsString) <>
-       Trim(FieldByName('rdb$generator_name').AsString) then
-    begin
-    //Если было изменено имя генератора, пересоздаем?
-      Drop;
-      MetaDataCreate;
-    end;
-  finally
-    FSQL.Free;
-  end;
-end;
-
-procedure TgdcGenerator.MetaDataCreate;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    FSQL.Add(Format('CREATE GENERATOR %s ',[AnsiUpperCase(FieldByName('generatorname').AsString)]));
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
-  end;
-end;
-
-procedure TgdcGenerator.DoBeforeEdit;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCGENERATOR', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCGENERATOR', KEYDOBEFOREEDIT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREEDIT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCGENERATOR') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCGENERATOR',
-  {M}          'DOBEFOREEDIT', KEYDOBEFOREEDIT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCGENERATOR' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  FChangeName := False;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCGENERATOR', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
   {M}  end;
   {END MACRO}
 end;
@@ -10211,69 +7328,19 @@ begin
   end;
 end;
 
-function TgdcGenerator.CheckTheSameStatement: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCGENERATOR', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCGENERATOR', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCGENERATOR') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCGENERATOR',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCGENERATOR' then
-  {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if State = dsInactive then
-    Result := 'SELECT id FROM at_generators WHERE UPPER(generatorname)=UPPER(:generatorname)'
-  else if ID < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT id FROM at_generators WHERE UPPER(generatorname)=UPPER(''%s'')',
-      [FieldByName('generatorname').AsString]);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCGENERATOR', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcGenerator.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgGenerator';
 end;
 
-function TgdcGenerator.GetFirebirdObjectName: String;
+procedure TgdcGenerator.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
 begin
-  Result := FieldByName('generatorname').AsString;
+  case AMetadata of
+    mdsCreate: S.Add('CREATE GENERATOR ' + FirebirdObjectName);
+    mdsDrop: S.Add('DROP GENERATOR ' + FirebirdObjectName);
+  end;
 end;
 
 { TgdcCheckConstraint }
@@ -10290,302 +7357,6 @@ begin
     SaveToStreamDependencies(Stream, ObjectSet,
       FirebirdObjectName, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
     inherited;
-  end;
-end;
-
-function TgdcCheckConstraint.CheckTheSameStatement: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCCHECKCONSTRAINT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKCONSTRAINT', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKCONSTRAINT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKCONSTRAINT',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKCONSTRAINT' then
-  {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if State = dsInactive then
-    Result := 'SELECT id FROM at_check_constraints WHERE UPPER(checkname)=UPPER(:checkname)'
-  else if ID < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT id FROM at_check_constraints WHERE UPPER(checkname)=UPPER(''%s'')',
-      [FieldByName('checkname').AsString]);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKCONSTRAINT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKCONSTRAINT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
-  {M}  end;
-  {END MACRO}
-end;
-
-constructor TgdcCheckConstraint.Create(AnOwner: TComponent);
-begin
-  inherited;
-  CustomProcess := [cpInsert, cpModify, cpDelete];
-end;
-
-procedure TgdcCheckConstraint.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCCHECKCONSTRAINT', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKCONSTRAINT', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKCONSTRAINT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKCONSTRAINT',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKCONSTRAINT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if not IsUserDefined then
-    raise EgdcIBError.Create('Вы не можете удалить стандартное ограничение!');
-
-  Drop;
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKCONSTRAINT', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKCONSTRAINT', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcCheckConstraint.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCCHECKCONSTRAINT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKCONSTRAINT', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKCONSTRAINT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKCONSTRAINT',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKCONSTRAINT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  if IsUserDefined then
-    MetaDataCreate;
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKCONSTRAINT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKCONSTRAINT', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcCheckConstraint.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCCHECKCONSTRAINT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKCONSTRAINT', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKCONSTRAINT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKCONSTRAINT',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKCONSTRAINT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  MetaDataAlter;
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKCONSTRAINT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKCONSTRAINT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcCheckConstraint.DoBeforeEdit;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCCHECKCONSTRAINT', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKCONSTRAINT', KEYDOBEFOREEDIT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREEDIT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKCONSTRAINT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKCONSTRAINT',
-  {M}          'DOBEFOREEDIT', KEYDOBEFOREEDIT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKCONSTRAINT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  FChangeName := False;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKCONSTRAINT', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKCONSTRAINT', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcCheckConstraint.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-var
-  S: String;
-  I: Integer;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCCHECKCONSTRAINT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKCONSTRAINT', KEYDOBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKCONSTRAINT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKCONSTRAINT',
-  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKCONSTRAINT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if (Trim(FieldByName('checkname').AsString) = '') then
-  begin
-    FieldByName('checkname').FocusControl;
-    raise Exception.Create('Введите наименование ограничения!');
-  end;
-
- //  Имя генератора должно содержать только
- //  английские символы
-  S := Trim(AnsiUpperCase(FieldByName('checkname').AsString));
-   for I := 1 to Length(S) do
-     if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
-     begin
-       FieldByName('checkname').FocusControl;
-       raise Exception.Create('Название ограничения должно быть на английском языке!');
-     end;
-
-  if (Trim(FieldByName('RDB$TRIGGER_SOURCE').AsString) = '') then
-  begin
-    FieldByName('RDB$TRIGGER_SOURCE').FocusControl;
-    raise Exception.Create('Укажите условие ограничения!');
-  end;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKCONSTRAINT', 'DOBEFOREPOST', KEYDOBEFOREPOST);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcCheckConstraint.Drop;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    if Assigned(FgdcDataLink) then
-      with FgdcDataLink do
-        if Active and (DataSet is TgdcRelation) then
-          FSQL.Add(Format('ALTER TABLE %s DROP CONSTRAINT %s',
-          [DataSet.FieldByName('relationname').AsString, FieldByName('checkname').AsString]))
-    else
-      FSQL.Add(Format('ALTER TABLE %s DROP CONSTRAINT %s',
-        [Trim(FieldByName('RDB$RELATION_NAME').AsString), FieldByName('checkname').AsString]));
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
   end;
 end;
 
@@ -10713,59 +7484,8 @@ procedure TgdcCheckConstraint.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
   S.Add('T.RDB$TRIGGER_TYPE = 1');
-  if HasSubSet('OnlyAttribute') then
-    S.Add('z.checkname LIKE ''USR$%''');
   if HasSubSet('ByRelation') then
     S.Add('r.id = :relationkey');
-end;
-
-procedure TgdcCheckConstraint.MetaDataAlter;
-begin
-  Drop;
-  MetaDataCreate;
-end;
-
-procedure TgdcCheckConstraint.MetaDataCreate;
-var
-  FSQL: TSQLProcessList;
-begin
-  FSQL := TSQLProcessList.Create;
-  try
-    if Assigned(FgdcDataLink) then
-      with FgdcDataLink do
-        if Active and (DataSet is TgdcRelation) then
-          FSQL.Add(Format('ALTER TABLE %s ADD CONSTRAINT %s %s',
-           [DataSet.FieldByName('relationname').AsString,
-            FieldByName('checkname').AsString, FieldByName('RDB$TRIGGER_SOURCE').AsString]))
-    else
-      FSQL.Add(Format('ALTER TABLE %s ADD CONSTRAINT %s %s',
-       [Trim(FieldByName('RDB$RELATION_NAME').AsString),
-        FieldByName('checkname').AsString, FieldByName('RDB$TRIGGER_SOURCE').AsString]));
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
-  end;
-end;
-
-function TgdcCheckConstraint.CheckName: Boolean;
-var
-  ibsql: TIBSQL;
-begin
-  Result := True;
-
-  ibsql := CreateReadIBSQL;
-  try
-    ibsql.SQL.Text := 'SELECT * FROM RDB$CHECK_CONSTRAINTS WHERE RDB$CONSTRAINT_NAME = :checkname';
-    ibsql.ParamByName('checkname').AsString := FieldByName('checkname').AsString;
-    ibsql.ExecQuery;
-
-    if not ibsql.EOF then
-      Result := False;
-  finally
-    ibsql.Free;
-  end;
 end;
 
 procedure TgdcCheckConstraint._DoOnNewRecord;
@@ -10798,8 +7518,8 @@ begin
 
   with FgdcDataLink do
    if Active and (DataSet is TgdcRelation) then
-     FieldByName('checkname').AsString := UserPrefix + 'CHECK_' + DataSet.FieldByName('relationname').AsString +
-       GetUniqueID(Database, ReadTransaction);
+     FieldByName('checkname').AsString := gdcBaseManager.AdjustMetaName(
+       GetObjectNameByRelName(DataSet.FieldByName('relationname').AsString, '_CHK_'));
   FieldByName('RDB$TRIGGER_SOURCE').AsString := 'CHECK ()';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
@@ -10822,9 +7542,33 @@ begin
   Result := 'Tgdc_dlgRelation';
 end;
 
-function TgdcCheckConstraint.GetFirebirdObjectName: String;
+procedure TgdcCheckConstraint.GetMetadataScript(S: TSQLProcessList;
+  const AMetadata: TgdcMetadataScript);
 begin
-  Result := FieldByName('checkname').AsString;
+  case AMetadata of
+    mdsCreate:
+    begin
+      if Assigned(FgdcDataLink) then
+        with FgdcDataLink do
+          if Active and (DataSet is TgdcRelation) then
+            S.Add(Format('ALTER TABLE %s ADD CONSTRAINT %s %s',
+             [DataSet.FieldByName('relationname').AsString,
+              FieldByName('checkname').AsString, FieldByName('RDB$TRIGGER_SOURCE').AsString]))
+      else
+        S.Add(Format('ALTER TABLE %s ADD CONSTRAINT %s %s',
+         [Trim(FieldByName('RDB$RELATION_NAME').AsString),
+          FieldByName('checkname').AsString, FieldByName('RDB$TRIGGER_SOURCE').AsString]));
+    end;
+
+    mdsDrop: S.Add(Format('ALTER TABLE %s DROP CONSTRAINT %s',
+      [FieldByName('RDB$RELATION_NAME').AsString, FieldByName('checkname').AsString]));
+
+    mdsAlter:
+    begin
+      GetMetaDataScript(S, mdsDrop);
+      GetMetaDataScript(S, mdsCreate);
+    end;
+  end;
 end;
 
 initialization
@@ -10848,6 +7592,7 @@ initialization
   RegisterGdcClass(TgdcException, 'Исключение');
   RegisterGdcClass(TgdcIndex, 'Индекс');
   RegisterGdcClass(TgdcTrigger, 'Триггер');
+  RegisterGdcClass(TgdcDBTrigger, 'Триггер БД');
   RegisterGdcClass(TgdcGenerator, 'Генератор');
   RegisterGdcClass(TgdcCheckConstraint, 'Ограничение');
 
@@ -10878,6 +7623,7 @@ finalization
   UnregisterGdcClass(TgdcException);
   UnregisterGdcClass(TgdcIndex);
   UnregisterGdcClass(TgdcTrigger);
+  UnregisterGdcClass(TgdcDBTrigger);
   UnregisterGdcClass(TgdcGenerator);
   UnregisterGdcClass(TgdcCheckConstraint);
 end.

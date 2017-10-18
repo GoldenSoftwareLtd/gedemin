@@ -2,7 +2,7 @@ inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
   Left = 574
   Top = 155
   Width = 764
-  Height = 495
+  Height = 496
   Caption = 'gdc_frmBankStatementBase'
   PixelsPerInch = 96
   TextHeight = 13
@@ -111,7 +111,7 @@ inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
           EditMask = '!99\.99\.9999;1;_'
           MaxLength = 10
           TabOrder = 0
-          Text = '17.05.2016'
+          Text = '07.07.2017'
         end
       end
     end

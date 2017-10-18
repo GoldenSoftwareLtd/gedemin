@@ -1,32 +1,33 @@
 inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
-  Left = 410
-  Top = 206
+  Left = 414
+  Top = 210
   BorderIcons = [biSystemMenu]
   Caption = 'Банковский счет'
-  ClientHeight = 248
-  ClientWidth = 435
+  ClientHeight = 246
+  ClientWidth = 429
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Left = 358
-    Top = 109
+    Left = 352
+    Top = 114
     TabOrder = 4
   end
   inherited btnNew: TButton
-    Left = 358
-    Top = 82
+    Left = 352
+    Top = 89
     TabOrder = 3
   end
   inherited btnHelp: TButton
-    Left = 358
-    Top = 136
+    Left = 352
+    Top = 139
   end
   inherited btnOK: TButton
-    Left = 358
-    Top = 8
+    Left = 352
+    Top = 26
   end
   inherited btnCancel: TButton
-    Top = 36
+    Left = 352
+    Top = 52
   end
   inherited pgcMain: TPageControl
     Width = 341
@@ -49,23 +50,16 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
       object Label3: TLabel
         Left = 5
         Top = 79
-        Width = 24
+        Width = 21
         Height = 13
-        Caption = 'Код:'
-      end
-      object Label4: TLabel
-        Left = 177
-        Top = 79
-        Width = 31
-        Height = 13
-        Caption = 'МФО: '
+        Caption = 'BIC:'
       end
       object Label5: TLabel
         Left = 5
         Top = 52
-        Width = 29
+        Width = 28
         Height = 13
-        Caption = 'Счет:'
+        Caption = 'IBAN:'
       end
       object Label6: TLabel
         Left = 5
@@ -83,7 +77,7 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
       end
       object Bevel1: TBevel
         Left = 4
-        Top = 182
+        Top = 181
         Width = 322
         Height = 2
         Anchors = [akTop, akRight]
@@ -115,7 +109,7 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 3
       end
       object dbeAccount: TDBEdit
         Left = 75
@@ -143,12 +137,12 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 6
+        TabOrder = 5
       end
       object gsibluBankCode: TgsIBLookupComboBox
         Left = 75
         Top = 75
-        Width = 94
+        Width = 253
         Height = 21
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
@@ -169,29 +163,6 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
         ShowHint = True
         TabOrder = 2
       end
-      object gsibluMFO: TgsIBLookupComboBox
-        Left = 208
-        Top = 75
-        Width = 120
-        Height = 21
-        HelpContext = 1
-        Database = dmDatabase.ibdbGAdmin
-        Transaction = ibtrCommon
-        DataSource = dsgdcBase
-        DataField = 'BANKKEY'
-        Fields = 'bankcode'
-        ListTable = 
-          'gd_bank join gd_contact c ON c.id=bankkey AND ((c.disabled IS NU' +
-          'LL) OR (c.disabled = 0))'
-        ListField = 'bankmfo'
-        KeyField = 'bankkey'
-        SortOrder = soAsc
-        gdClassName = 'TgdcBank'
-        ItemHeight = 13
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 3
-      end
       object gsibluAccountType: TgsIBLookupComboBox
         Left = 75
         Top = 127
@@ -209,17 +180,17 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 4
       end
       object dbcbDisabled: TDBCheckBox
         Left = 75
-        Top = 187
+        Top = 186
         Width = 97
         Height = 17
         Caption = 'Не активный'
         DataField = 'DISABLED'
         DataSource = dsgdcBase
-        TabOrder = 7
+        TabOrder = 6
         ValueChecked = '1'
         ValueUnchecked = '0'
       end
@@ -247,19 +218,19 @@ inherited gdc_dlgCompanyAccount: Tgdc_dlgCompanyAccount
     end
   end
   inherited alBase: TActionList
-    Left = 86
-    Top = 66
+    Left = 206
+    Top = 10
   end
   inherited dsgdcBase: TDataSource
-    Left = 48
-    Top = 106
+    Left = 264
+    Top = 242
   end
   inherited pm_dlgG: TPopupMenu
     Left = 120
     Top = 152
   end
   inherited ibtrCommon: TIBTransaction
-    Left = 80
-    Top = 120
+    Left = 224
+    Top = 248
   end
 end

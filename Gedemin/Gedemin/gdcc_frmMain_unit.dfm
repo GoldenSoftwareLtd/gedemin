@@ -1,6 +1,6 @@
 object gdcc_frmMain: Tgdcc_frmMain
-  Left = 581
-  Top = 260
+  Left = 582
+  Top = 261
   Width = 873
   Height = 507
   Caption = 'Gedemin Control Center'
@@ -169,6 +169,8 @@ object gdcc_frmMain: Tgdcc_frmMain
             DockPos = 8
             DockRow = 2
             FullSize = True
+            Images = il
+            Options = [tboShowHint, tboToolbarStyle]
             TabOrder = 0
             object TBControlItem1: TTBControlItem
               Control = Label1
@@ -204,6 +206,12 @@ object gdcc_frmMain: Tgdcc_frmMain
             end
             object TBItem3: TTBItem
               Action = actSetLogFilter
+              DisplayMode = nbdmImageAndText
+            end
+            object TBSeparatorItem12: TTBSeparatorItem
+            end
+            object TBItem12: TTBItem
+              Action = actClearLogData
             end
             object Label1: TLabel
               Left = 0
@@ -399,6 +407,11 @@ object gdcc_frmMain: Tgdcc_frmMain
             object TBItem10: TTBItem
               Action = actSetProfilerFilter
             end
+            object TBSeparatorItem13: TTBSeparatorItem
+            end
+            object TBItem13: TTBItem
+              Action = actClearProfilerData
+            end
             object Label3: TLabel
               Left = 0
               Top = 4
@@ -550,6 +563,7 @@ object gdcc_frmMain: Tgdcc_frmMain
     end
   end
   object al: TActionList
+    Images = il
     Left = 224
     Top = 232
     object actShowOrHide: TAction
@@ -568,7 +582,7 @@ object gdcc_frmMain: Tgdcc_frmMain
       OnUpdate = actSetLogFilterUpdate
     end
     object actClearLogFilter: TAction
-      Caption = 'Очистить'
+      Caption = 'Сбросить'
       OnExecute = actClearLogFilterExecute
       OnUpdate = actClearLogFilterUpdate
     end
@@ -594,18 +608,29 @@ object gdcc_frmMain: Tgdcc_frmMain
     end
     object actSetProfilerFilter: TAction
       Caption = 'Обновить'
+      Hint = 'Применить фильтр'
       ShortCut = 116
       OnExecute = actSetProfilerFilterExecute
       OnUpdate = actSetProfilerFilterUpdate
     end
     object actClearProfilerFilter: TAction
-      Caption = 'Очистить'
+      Caption = 'Сбросить'
+      Hint = 'Сбросить настройки фильтра в исходное состояние'
       OnExecute = actClearProfilerFilterExecute
       OnUpdate = actClearProfilerFilterUpdate
     end
     object actAbout: TAction
       Caption = 'О программе'
       OnExecute = actAboutExecute
+    end
+    object actClearProfilerData: TAction
+      Caption = 'Очистить'
+      Hint = 'Очистить данные профайлера'
+      OnExecute = actClearProfilerDataExecute
+    end
+    object actClearLogData: TAction
+      Caption = 'Очистить'
+      Hint = 'Очистить лог'
     end
   end
   object il: TImageList

@@ -2262,8 +2262,8 @@ begin
       IBSQL_WaitWindowThread.FinishSQL;
   end;
 
-  //if not (csDesigning in ComponentState) then
-  //  MonitorHook.SQLExecute(Self);
+  if not (csDesigning in ComponentState) then
+    MonitorHook.SQLExecute(Self);
 end;
 
 function TIBSQL.GetEOF: Boolean;

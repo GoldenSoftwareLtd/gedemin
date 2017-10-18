@@ -9,7 +9,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 439
+    Top = 438
     Width = 716
   end
   inherited TBDockTop: TTBDock
@@ -74,19 +74,19 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 379
+    Height = 378
   end
   inherited TBDockRight: TTBDock
     Left = 707
-    Height = 379
+    Height = 378
   end
   inherited TBDockBottom: TTBDock
-    Top = 430
+    Top = 429
     Width = 716
   end
   inherited pnlWorkArea: TPanel
     Width = 698
-    Height = 379
+    Height = 378
     TabOrder = 0
     object sMasterDetail: TSplitter [0]
       Left = 0
@@ -98,7 +98,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       MinSize = 20
     end
     inherited spChoose: TSplitter
-      Top = 274
+      Top = 273
       Width = 698
       Height = 6
     end
@@ -116,7 +116,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       end
     end
     inherited pnChoose: TPanel
-      Top = 280
+      Top = 279
       Width = 698
       TabOrder = 2
       inherited pnButtonChoose: TPanel
@@ -133,7 +133,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       Left = 0
       Top = 173
       Width = 698
-      Height = 101
+      Height = 100
       Align = alClient
       BevelOuter = bvLowered
       Constraints.MinHeight = 100
@@ -221,7 +221,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
         Left = 1
         Top = 27
         Width = 160
-        Height = 73
+        Height = 72
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -233,7 +233,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Left = 0
           Top = 27
           Width = 160
-          Height = 46
+          Height = 45
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -252,7 +252,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           ParentColor = True
           TabOrder = 1
           object btnSearchDetail: TButton
-            Left = 12
+            Left = 4
             Top = 4
             Width = 64
             Height = 19
@@ -261,7 +261,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
             TabOrder = 1
           end
           object btnSearchDetailClose: TButton
-            Left = 83
+            Left = 76
             Top = 4
             Width = 64
             Height = 19

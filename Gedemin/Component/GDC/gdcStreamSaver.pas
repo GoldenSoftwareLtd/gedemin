@@ -1180,8 +1180,7 @@ begin
       begin
         with AObj do
           AddText(Format('Сохранение: %s %s (%s)', [GetDisplayName(SubType),
-            FieldByName(GetListField(SubType)).AsString, FieldByName(GetKeyField(SubType)).AsString]),
-            clBlue);
+            FieldByName(GetListField(SubType)).AsString, FieldByName(GetKeyField(SubType)).AsString]));
       end
       else
       begin
@@ -1194,7 +1193,7 @@ begin
         with AObj do
           AddText(Format('Сохранение: %s %s (%s) с данными множества %s', [GetDisplayName(SubType),
             FieldByName(GetListField(SubType)).AsString, FieldByName(GetKeyField(SubType)).AsString,
-            LocName]), clBlue);
+            LocName]));
       end;
 
     RUID := AObj.GetRUID;
@@ -1667,7 +1666,7 @@ begin
 
   if AObject.RecordCount = 0 then
   begin
-    AddMistake(AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID), clRed);
+    AddMistake(AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID));
     // Если работает репликатор, то не будем прерывать сохранение настройки
     if SilentMode then
       Exit
@@ -2529,7 +2528,7 @@ begin
           TargetDS.Post;
           LoadedRecordState := lsModified;
           if StreamLoggingType = slAll then
-            AddText('Объект обновлен данными из потока!', clBlack);
+            AddText('Объект обновлен данными из потока!');
         except
           {on E: EIBError do
           begin
@@ -2542,7 +2541,7 @@ begin
               //=> Пытаемся добавить новую запись.
               TargetDS.Cancel;
 
-              AddText('РУИД некорректен. Попытка найти объект по уникальному ключу.', clBlack);
+              AddText('РУИД некорректен. Попытка найти объект по уникальному ключу.');
               gdcBaseManager.DeleteRUIDByXID(SourceDS.FieldByName(XID_FIELD).AsInteger,
                 SourceDS.FieldByName(DBID_FIELD).AsInteger, TargetDS.Transaction);
               InsertRecord(SourceDS, TargetDS);
@@ -2563,7 +2562,7 @@ begin
 
           {if StreamLoggingType = slAll then
           begin
-            AddText('Объект добавлен из потока!', clBlack);
+            AddText('Объект добавлен из потока!');
             Space;
           end;}
         end;
@@ -2604,7 +2603,7 @@ begin
           MessageBox(TargetDS.ParentHandle, PChar(ErrorSt), 'Ошибка', MB_OK or MB_ICONHAND);
 
         //AddMistake(ErrorSt, clRed);
-        AddMistake(E.Message, clRed);
+        AddMistake(E.Message);
         if Assigned(frmStreamSaver) then
           frmStreamSaver.AddWarning(ErrorSt + NEW_LINE + E.Message);
 
@@ -2704,7 +2703,7 @@ begin
   if not Assigned(CDS.FindField(AObj.GetListField(AObj.SubType))) then
   begin
     AddText(Format('Объект %s (XID = %d, DBID = %d)',
-      [AObj.GetDisplayName(AObj.SubType), StreamXID, StreamDBID]), clBlue);
+      [AObj.GetDisplayName(AObj.SubType), StreamXID, StreamDBID]));
 
     AddWarning('Структура загружаемого объекта не соответствует структуре уже существующего объекта в базе. ' + NEW_LINE +
       ' Поле ' + AObj.GetListField(AObj.SubType) + ' не найдено в потоке данных!', clRed);
@@ -2722,7 +2721,7 @@ begin
     if StreamLoggingType = slAll then
       AddText(Format('Объект %s "%s" (XID = %d, DBID = %d)',
         [AObj.GetDisplayName(AObj.SubType), CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString,
-         StreamXID, StreamDBID]), clBlue);
+         StreamXID, StreamDBID]));
   end;
 
   //Проверим, есть ли у нас такой РУИД
@@ -2766,7 +2765,7 @@ begin
     else
     begin
       if StreamLoggingType = slAll then
-        AddText('Объект найден по РУИДу', clBlue);
+        AddText('Объект найден по РУИДу');
 
       // Проверяем, необходимо ли нам удалить найденную запись, перед считыванием ее аналога из потока
       if AObj.NeedDeleteTheSame(AObj.SubType)
@@ -2829,7 +2828,7 @@ begin
           else
           begin
             if StreamLoggingType = slAll then
-              AddText('Объект найден в RPL_RECORD', clBlack);
+              AddText('Объект найден в RPL_RECORD');
 
             //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
             AddToIDMapping(StreamID, AObj.ID, lsNotLoaded);
@@ -3082,7 +3081,7 @@ begin
                 LocName := SourceDS.FieldByName(SET_TABLE_FIELD).AsString;
 
               if StreamLoggingType = slAll then
-                AddText('Считывание данных множества ' + LocName, clBlue);
+                AddText('Считывание данных множества ' + LocName);
               FIBSQL.ExecQuery;
             end;
           end;  
@@ -3454,7 +3453,7 @@ begin
         FIBSQL.ExecQuery;
 
         if StreamLoggingType = slAll then
-          AddText('Добавлена запись в RPL_DATABASE (ID = ' + BaseID + ', NAME = ''' + BaseName + ''')', clBlue);
+          AddText('Добавлена запись в RPL_DATABASE (ID = ' + BaseID + ', NAME = ''' + BaseName + ''')');
       end;
     end;
   end;
@@ -3467,7 +3466,7 @@ begin
     FDataObject.OurBaseKey := FDataObject.TargetBaseKey;
 
     if StreamLoggingType = slAll then
-      AddText('Базе присвоен ID в таблице RPL_DATABASE (ID = ' + IntToStr(FDataObject.OurBaseKey) + ')', clBlue);
+      AddText('Базе присвоен ID в таблице RPL_DATABASE (ID = ' + IntToStr(FDataObject.OurBaseKey) + ')');
   end;
 end;
 
@@ -3665,7 +3664,7 @@ var
     if Assigned(AValue) then
     begin
       if StreamLoggingType = slAll then
-        AddText(Format('Сохранение параметра %s ветки хранилища %s', [AValueName, ABranchName]), clBlue);
+        AddText(Format('Сохранение параметра %s ветки хранилища %s', [AValueName, ABranchName]));
       FDataObject.StorageItemList.AddObject(ABranchName + '\' + AValueName, AValue);
     end
     else
@@ -3681,7 +3680,7 @@ var
     if Assigned(AFolder) then
     begin
       if StreamLoggingType = slAll then
-        AddText('Сохранение ветки хранилища ' + ABranchName, clBlue);
+        AddText('Сохранение ветки хранилища ' + ABranchName);
 
       FDataObject.StorageItemList.AddObject(ABranchName + '\', AFolder);
 
@@ -4497,19 +4496,19 @@ begin
         begin
           NewFolder.AddValueFromStream(cstValue, S);
           if StreamLoggingType = slAll then
-            AddText('Загрузка параметра "' + cstValue + '" ветки хранилища "' + StorageName + Path + '"', clBlue);
+            AddText('Загрузка параметра "' + cstValue + '" ветки хранилища "' + StorageName + Path + '"');
         end else
         begin
           NewFolder.LoadFromStream(S);
           if StreamLoggingType = slAll then
-            AddText('Загрузка ветки хранилища "' + StorageName + Path + '"', clBlue);
+            AddText('Загрузка ветки хранилища "' + StorageName + Path + '"');
         end;
         LStorage.CloseFolder(NewFolder, False);
         //LStorage.IsModified := True;
       end
       else
       begin
-        AddMistake(Format('Ошибка при считывании данных хранилища! Путь %s не найден.', [Path]), clRed);
+        AddMistake(Format('Ошибка при считывании данных хранилища! Путь %s не найден.', [Path]));
         raise Exception.Create(Format('Ошибка при считывании данных хранилища! Путь %s не найден.', [Path]));
       end
     end
@@ -4716,7 +4715,7 @@ begin
             // Пропускаем класс, если он не найден
             if C = nil then
             begin
-              AddMistake('При загрузке из потока встречен несуществующий класс: ' + LoadClassName, clRed);
+              AddMistake('При загрузке из потока встречен несуществующий класс: ' + LoadClassName);
               if (AMissingClassList.IndexOf(LoadClassName) = -1)
                  and (not SilentMode)
                  and (MessageBox(0, PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
@@ -6101,7 +6100,7 @@ begin
   end;
 
   if StreamLoggingType in [slSimple, slAll] then
-    AddText('Закончилось сохранение данных в поток.', clBlack);
+    AddText('Закончилось сохранение данных в поток.');
 end;
 
 
@@ -6115,7 +6114,7 @@ begin
 
   try
     if StreamLoggingType in [slSimple, slAll] then
-      AddText('Началась загрузка данных из потока.', clBlack);
+      AddText('Началась загрузка данных из потока.');
 
     if Assigned(frmStreamSaver) then
       frmStreamSaver.SetProcessCaptionText('Чтение файла...');
@@ -6146,7 +6145,7 @@ begin
       else
       begin
         AddMistake('Загружаемый поток предназначен для другой базы данных. ID нашей базы = '
-          + IntToStr(FDataObject.OurBaseKey) + '. ID целевой базы потока = ' + IntToStr(FDataObject.TargetBaseKey) + '.', clRed);
+          + IntToStr(FDataObject.OurBaseKey) + '. ID целевой базы потока = ' + IntToStr(FDataObject.TargetBaseKey) + '.');
 
         if Assigned(frmStreamSaver) then
           frmStreamSaver.AddMistake('Загружаемый поток предназначен для другой базы данных' + #13#10 +
@@ -6202,7 +6201,7 @@ begin
     except
       on E: EgdcNoTable do
       begin
-        AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]), clRed);
+        AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]));
         if Assigned(frmStreamSaver) then
           frmStreamSaver.AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]));
       end;
@@ -6220,13 +6219,13 @@ begin
       frmStreamSaver.Done;
 
     if StreamLoggingType in [slSimple, slAll] then
-      AddText('Закончилась загрузка данных из потока.', clBlack);
+      AddText('Закончилась загрузка данных из потока.');
   except
     on E: Exception do
     begin
       if FTransaction.InTransaction then
         FTransaction.Rollback;
-      AddMistake(E.Message, clRed);
+      AddMistake(E.Message);
       if Assigned(frmStreamSaver) then
         frmStreamSaver.AddMistake(E.Message);
       raise;
@@ -6301,7 +6300,7 @@ begin
         begin
           // Если работает репликатор, то не будем прерывать сохранение настройки
           AddMistake(Format('Не удалось получить идентификатор позиции настройки (XID = %0:d, DBID = %1:d)',
-            [ibsqlPos.FieldByName('xid').AsInteger, ibsqlPos.FieldByName('dbid').AsInteger]), clRed);
+            [ibsqlPos.FieldByName('xid').AsInteger, ibsqlPos.FieldByName('dbid').AsInteger]));
           if not SilentMode then
           begin
             raise Exception.Create('Не удалось получить идентификатор позиции настройки.'#13#10 +
@@ -6553,7 +6552,7 @@ begin
             begin
               if FTransaction.InTransaction then
                 FTransaction.Rollback;
-              AddMistake(E.Message, clRed);
+              AddMistake(E.Message);
               if Assigned(frmStreamSaver) then
                 frmStreamSaver.AddMistake(E.Message);
               raise;
@@ -6590,7 +6589,7 @@ begin
     except
       on E: EgdcNoTable do
       begin
-        AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]), clRed);
+        AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]));
         if Assigned(frmStreamSaver) then
           frmStreamSaver.AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]));
       end;
@@ -6608,7 +6607,7 @@ begin
     begin
       if FTransaction.InTransaction then
         FTransaction.Rollback;
-      AddMistake(E.Message, clRed);
+      AddMistake(E.Message);
       if Assigned(frmStreamSaver) then
         frmStreamSaver.AddMistake(E.Message);
       raise;
@@ -6624,7 +6623,7 @@ begin
   if S.Size > 0 then
   begin
     if StreamLoggingType in [slSimple, slAll] then
-      AddText('Начата загрузка хранилища', clBlack);
+      AddText('Начата загрузка хранилища');
 
     if GetStreamType(S) = sttXML then
       StreamWriterReader := TgdcStreamXMLWriterReader.Create
@@ -6644,7 +6643,7 @@ begin
       UserStorage.SaveToDatabase;
 
     if StreamLoggingType in [slSimple, slAll] then
-      AddText('Закончена загрузка хранилища', clBlack);
+      AddText('Закончена загрузка хранилища');
   end;
 end;
 
@@ -6665,7 +6664,7 @@ begin
     Assert(ASettingKey > -1);
 
     if StreamLoggingType in [slSimple, slAll] then
-      AddText('Начато сохранение хранилища', clBlack);
+      AddText('Начато сохранение хранилища');
 
     ibsqlPos := TIBSQL.Create(nil);
     try
@@ -6757,7 +6756,7 @@ begin
 
                 if StreamLoggingType = slAll then
                   AddText('Сохранение параметра ' + ibsqlPos.FieldByName('valuename').AsString +
-                    ' ветки хранилища ' + BranchName, clBlue);
+                    ' ветки хранилища ' + BranchName);
               end else
                 raise EgdcIBError.Create(' Параметр ' +
                   ibsqlPos.FieldByName('valuename').AsString +
@@ -6770,7 +6769,7 @@ begin
               NewFolder.SaveToStream(S);
 
               if StreamLoggingType = slAll then
-                AddText('Сохранение ветки хранилища ' + BranchName, clBlue);
+                AddText('Сохранение ветки хранилища ' + BranchName);
             end;
             LStorage.CloseFolder(NewFolder);
           end else
@@ -6788,7 +6787,7 @@ begin
     end;
 
     if StreamLoggingType in [slSimple, slAll] then
-      AddText('Закончено сохранение хранилища', clBlack);
+      AddText('Закончено сохранение хранилища');
   except
     if FTransaction.InTransaction then
       FTransaction.Rollback;
@@ -6924,7 +6923,7 @@ begin
       try
         TargetBase.ID := ABasekey;
         if TargetBase.ID > 0 then
-          AddText(Format('Подготовка к инкрементному сохранению на базу "%0:s"', [TargetBase.Name]), clBlack)
+          AddText(Format('Подготовка к инкрементному сохранению на базу "%0:s"', [TargetBase.Name]))
         else
           raise EgsUnknownDatabaseKey.Create(GetGsException(Self, 'Передан неверный ключ целевой базы данных (' + IntToStr(ABasekey) + ')'));
       finally

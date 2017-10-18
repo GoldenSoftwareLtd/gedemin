@@ -1,6 +1,6 @@
 object dlg_DataBaseCompare: Tdlg_DataBaseCompare
-  Left = 1351
-  Top = 90
+  Left = 928
+  Top = 152
   Width = 987
   Height = 666
   Caption = 'Сравнение таблиц'
@@ -19,8 +19,8 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 979
-    Height = 639
+    Width = 971
+    Height = 627
     Align = alClient
     BevelOuter = bvNone
     Caption = 'Сравнение таблиц'
@@ -28,8 +28,8 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
     object pcMain: TSuperPageControl
       Left = 0
       Top = 0
-      Width = 979
-      Height = 620
+      Width = 971
+      Height = 608
       BorderStyle = bsNone
       TabsVisible = True
       ActivePage = tsTriggers
@@ -57,42 +57,42 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
           object lblRelationNameLeft: TLabel
             Left = 8
             Top = 24
-            Width = 219
+            Width = 217
             Height = 13
             Caption = 'Название таблицы (на английском языке):'
           end
           object lblLNameLeft: TLabel
             Left = 8
             Top = 58
-            Width = 186
+            Width = 185
             Height = 13
             Caption = 'Локализованное название таблицы:'
           end
           object lblShotNameLeft: TLabel
             Left = 8
             Top = 88
-            Width = 142
+            Width = 144
             Height = 13
             Caption = 'Краткое название таблицы:'
           end
           object lblDescriptionLeft: TLabel
             Left = 8
             Top = 120
-            Width = 99
+            Width = 100
             Height = 13
             Caption = 'Описание таблицы:'
           end
           object lblListFieldLeft: TLabel
             Left = 8
             Top = 226
-            Width = 205
+            Width = 206
             Height = 13
             Caption = 'Поле для отображения (на английском):'
           end
           object lblExtendedFieldLeft: TLabel
             Left = 8
             Top = 256
-            Width = 217
+            Width = 215
             Height = 26
             Caption = 
               'Поля для расширенного отображения  (на английском через запятую)' +
@@ -165,42 +165,42 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
           object lblRelationNameRight: TLabel
             Left = 81
             Top = 24
-            Width = 219
+            Width = 217
             Height = 13
             Caption = 'Название таблицы (на английском языке):'
           end
           object lblLNameRight: TLabel
             Left = 81
             Top = 58
-            Width = 186
+            Width = 185
             Height = 13
             Caption = 'Локализованное название таблицы:'
           end
           object lblShotNameRight: TLabel
             Left = 81
             Top = 88
-            Width = 142
+            Width = 144
             Height = 13
             Caption = 'Краткое название таблицы:'
           end
           object lblDescriptionRight: TLabel
             Left = 81
             Top = 120
-            Width = 99
+            Width = 100
             Height = 13
             Caption = 'Описание таблицы:'
           end
           object lblListFieldRight: TLabel
             Left = 81
             Top = 226
-            Width = 205
+            Width = 206
             Height = 13
             Caption = 'Поле для отображения (на английском):'
           end
           object lblExtendedFieldRight: TLabel
             Left = 81
             Top = 256
-            Width = 217
+            Width = 215
             Height = 26
             Caption = 
               'Поля для расширенного отображения  (на английском через запятую)' +
@@ -343,15 +343,15 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
         object pnTriggerMain: TPanel
           Left = 0
           Top = 0
-          Width = 979
-          Height = 597
+          Width = 971
+          Height = 585
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
           object Splitter3: TSplitter
             Left = 0
             Top = 131
-            Width = 979
+            Width = 971
             Height = 4
             Cursor = crVSplit
             Align = alTop
@@ -359,7 +359,7 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
           object pnTriggerTop: TPanel
             Left = 0
             Top = 0
-            Width = 979
+            Width = 971
             Height = 131
             Align = alTop
             BevelOuter = bvNone
@@ -404,7 +404,7 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
             object pnTriggerRight: TPanel
               Left = 453
               Top = 0
-              Width = 526
+              Width = 518
               Height = 131
               Align = alClient
               BevelOuter = bvNone
@@ -412,7 +412,7 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
               object tvTriggerRight: TTreeView
                 Left = 0
                 Top = 0
-                Width = 526
+                Width = 518
                 Height = 131
                 Align = alClient
                 Images = dmImages.ilToolBarSmall
@@ -435,8 +435,8 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
           object pnTriggerBottom: TPanel
             Left = 0
             Top = 135
-            Width = 979
-            Height = 462
+            Width = 971
+            Height = 450
             Align = alClient
             BevelOuter = bvNone
             TabOrder = 1
@@ -595,8 +595,8 @@ object dlg_DataBaseCompare: Tdlg_DataBaseCompare
     end
     object sbDBCompare: TStatusBar
       Left = 0
-      Top = 620
-      Width = 979
+      Top = 608
+      Width = 971
       Height = 19
       Panels = <
         item

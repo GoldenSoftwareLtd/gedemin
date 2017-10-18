@@ -66,8 +66,8 @@ type
     function GetFieldLength(sql : TIBSQL) : Integer;
     function CreateIBSQL : TIBSQL;
     //
-    function TriggerPrefix(TrgType: Integer): TIBETriggerPrefix;
-    function TriggerSuffixes(TrgType: Integer): TIBETriggerSuffixes;
+    //function TriggerPrefix(TrgType: Integer): TIBETriggerPrefix;
+    //function TriggerSuffixes(TrgType: Integer): TIBETriggerSuffixes;
     //
   protected
     function ExtractDDL(Flag : Boolean; TableName : String) : Boolean;
@@ -105,7 +105,7 @@ type
       ExtractTypes : TExtractTypes = []);
     property DatabaseInfo : TIBDatabaseInfo read FDatabaseInfo;
     property Items : TStrings read FMetaData;
-    function TriggerTypeAsString(TrgType: Integer): String;
+    //function TriggerTypeAsString(TrgType: Integer): String;
   published
     { Published declarations }
     property Database : TIBDatabase read GetDatabase write SetDatabase;
@@ -170,6 +170,7 @@ const
     'TRANSACTION_DESCRIPTION',	   {do not localize}
     'EXTERNAL_FILE_DESCRIPTION');	 {do not localize}
 
+  (*
   TriggerTypes : Array[0..6] of String = (
     '',       {do not localize}
     'BEFORE INSERT', {do not localize}
@@ -178,6 +179,7 @@ const
     'AFTER UPDATE',				 {do not localize}
     'BEFORE DELETE',			   {do not localize}
     'AFTER DELETE');			  {do not localize}
+  *)  
 
   IntegralSubtypes : Array[0..2] of String = (
     'UNKNOWN',   {do not localize}
@@ -228,6 +230,9 @@ const
   obj_sql_role = 13;
 
 implementation
+
+uses
+  gdcTriggerHelper;
 
 const
   NEWLINE = #13#10;  {do not localize}
@@ -1133,7 +1138,8 @@ begin
 	        [FormatIdentifierValue(FDatabase.SQLDialect, TriggerName),
            FormatIdentifierValue(FDatabase.SQLDialect, RelationName),
            NEWLINE, InActive,
-           TriggerTypeAsString(qryTriggers.FieldByName('RDB$TRIGGER_TYPE').AsInteger), {do not localize}
+           gdcTriggerHelper.GetTypeName(qryTriggers.FieldByName('RDB$TRIGGER_TYPE').AsInteger),
+           //TriggerTypeAsString(qryTriggers.FieldByName('RDB$TRIGGER_TYPE').AsInteger), {do not localize}
            qryTriggers.FieldByName('RDB$TRIGGER_SEQUENCE').AsInteger])); {do not localize}
       if not qryTriggers.FieldByName('RDB$TRIGGER_SOURCE').IsNull then   {do not localize}
         SList.Text := SList.Text +
@@ -3202,87 +3208,89 @@ begin
     Result.Transaction := FTransaction;
 end;
 
-function TIBExtract.TriggerPrefix(TrgType: Integer): TIBETriggerPrefix;
+{function TIBExtract.TriggerPrefix(TrgType: Integer): TIBETriggerPrefix;
 begin
-  if ((TrgType + 1) and 1) > 0 then 
-    Result := tpAfter 
-  else 
+  if ((TrgType + 1) and 1) > 0 then
+    Result := tpAfter
+  else
     Result := tpBefore;
 end;
 
 function TIBExtract.TriggerSuffixes(TrgType: Integer): TIBETriggerSuffixes;
-var 
-  iTT : integer; 
-  TempRes : TIBETriggerSuffixes; 
+var
+  iTT : integer;
+  TempRes : TIBETriggerSuffixes;
 
-  procedure CheckSlot; 
-  begin 
-    case (iTT and 3) of 
-      1 : TempRes := TempRes + [tsInsert]; 
-      2 : TempRes := TempRes + [tsUpdate]; 
-      3 : TempRes := TempRes + [tsDelete]; 
-    end; 
+  procedure CheckSlot;
+  begin
+    case (iTT and 3) of
+      1 : TempRes := TempRes + [tsInsert];
+      2 : TempRes := TempRes + [tsUpdate];
+      3 : TempRes := TempRes + [tsDelete];
+    end;
   end;
 
-begin 
-  Result := []; 
-  TempRes := Result; 
-  iTT := (TrgType + 1) shr 1; 
-  CheckSlot; 
-  iTT := iTT shr 2; 
-  CheckSlot; 
-  iTT := iTT shr 2; 
-  CheckSlot; 
+begin
+  Result := [];
+  TempRes := Result;
+  iTT := (TrgType + 1) shr 1;
+  CheckSlot;
+  iTT := iTT shr 2;
+  CheckSlot;
+  iTT := iTT shr 2;
+  CheckSlot;
   Result := TempRes;
-end;
+end;}
 
+{
 function TIBExtract.TriggerTypeAsString(TrgType: Integer): String;
-var 
+var
   Pref: TIBETriggerPrefix;
   Suff: TIBETriggerSuffixes;
   s: String;
   i: integer;
 
   procedure AddAction(const AAction: String);
-  begin 
-    if s = '' then 
-      s := s + AAction 
-    else 
-      s := s + ' OR ' + AAction; 
-  end; 
+  begin
+    if s = '' then
+      s := s + AAction
+    else
+      s := s + ' OR ' + AAction;
+  end;
 
-begin 
-  Result := ''; 
+begin
+  Result := '';
   s := '';
 
-  // FB 2.1 database event triggers 
-  if (TrgType >= 8192) and (TrgType <= 8196) then 
-  begin 
-    i := TrgType - 8190; 
-    case i of 
-      2 : Result := 'ON CONNECT'; 
-      3 : Result := 'ON DISCONNECT'; 
-      4 : Result := 'ON TRANSACTION START'; 
-      5 : Result := 'ON TRANSACTION COMMIT'; 
-      6 : Result := 'ON TRANSACTION ROLLBACK'; 
-    end; 
-    Exit; 
-  end; 
+  // FB 2.1 database event triggers
+  if (TrgType >= 8192) and (TrgType <= 8196) then
+  begin
+    i := TrgType - 8190;
+    case i of
+      2 : Result := 'ON CONNECT';
+      3 : Result := 'ON DISCONNECT';
+      4 : Result := 'ON TRANSACTION START';
+      5 : Result := 'ON TRANSACTION COMMIT';
+      6 : Result := 'ON TRANSACTION ROLLBACK';
+    end;
+    Exit;
+  end;
 
   Pref := TriggerPrefix(TrgType);
   Suff := TriggerSuffixes(TrgType);
-  if tsInsert in Suff then 
-    AddAction('INSERT'); 
-  if tsUpdate in Suff then 
-    AddAction('UPDATE'); 
-  if tsDelete in Suff then 
-    AddAction('DELETE'); 
-  if Pref = tpBefore then 
-    s := 'BEFORE ' + s 
-  else 
-    s := 'AFTER ' + s; 
+  if tsInsert in Suff then
+    AddAction('INSERT');
+  if tsUpdate in Suff then
+    AddAction('UPDATE');
+  if tsDelete in Suff then
+    AddAction('DELETE');
+  if Pref = tpBefore then
+    s := 'BEFORE ' + s
+  else
+    s := 'AFTER ' + s;
   Result := s;
 end;
+}
 
 end.
 

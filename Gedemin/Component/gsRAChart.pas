@@ -4,11 +4,12 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, ContNrs,
-  StdCtrls, ExtCtrls;
+  StdCtrls, ExtCtrls, ImgList;
 
 const
   DefHeaderColor = clBtnFace;
   DefFrameColor  = clDkGray;
+  DefCursorColor = $FF9900;
 
   scSeconds      = $0001;
   scMinutes      = $0002;
@@ -17,6 +18,11 @@ const
   scMonthes      = $0010;
   scQuarters     = $0020;
   scYears        = $0040;
+
+  cNoOrder       = 0;
+  cOrderByName   = 1;
+  cOrderByValue  = 2;
+  cOrderByTotal  = 3;
 
   DefScaleKind   = scDays + scMonthes;
 
@@ -48,6 +54,7 @@ type
     function GetTotals(Index: Integer): Double;
     function GetTotalsCount: Integer;
     procedure SetOwner(const Value: TraResources);
+    procedure SetTotalsCount(const Value: Integer);
 
   public
     constructor Create;
@@ -63,7 +70,7 @@ type
     property Parent: TraResource read FParent write FParent;
     property SubItems: TStringList read FSubItems;
     property Totals[Index: Integer]: Double read GetTotals;
-    property TotalsCount: Integer read GetTotalsCount;
+    property TotalsCount: Integer read GetTotalsCount write SetTotalsCount;
     property Owner: TraResources read FOwner write SetOwner;
   end;
 
@@ -74,10 +81,16 @@ type
   public
     destructor Destroy; override;
 
+    procedure Clear; override;
+
     function AddResource(const AnID: Integer; AParent: TraResource; const AName, ASubItems: String): Integer;
     function AddSubResources(R: TraResource): Integer;
     function RemoveSubResources(R: TraResource): Integer;
     function FindByID(const AnID: Integer): TraResource;
+    procedure OrderByTotal(const Idx: Integer; const Asc: Boolean = True);
+    procedure OrderByValue(const V: TraValue; const Asc: Boolean = True);
+    procedure CalcColTotals(RootResource: TraResource; const D: TraValue;
+      var ColTotals: array of Double; const ResetTotals: Boolean);
 
     property Chart: TgsRAChart read FChart write FChart;
   end;
@@ -91,10 +104,15 @@ type
     FBorderKind: Integer;
     FFontColor: TColor;
     FColor: TColor;
+    FImageIndex: Integer;
+    FOwner: TraIntervals;
 
     procedure SetID(const Value: Integer);
 
   public
+    constructor Create;
+    destructor Destroy; override;
+
     property StartValue: TraValue read FStartValue write FStartValue;
     property EndValue: TraValue read FEndValue write FEndValue;
     property ID: Integer read FID write SetID;
@@ -103,6 +121,8 @@ type
     property Color: TColor read FColor write FColor;
     property FontColor: TColor read FFontColor write FFontColor;
     property BorderKind: Integer read FBorderKind write FBorderKind;
+    property ImageIndex: Integer read FImageIndex write FImageIndex;
+    property Owner: TraIntervals read FOwner write FOwner;
   end;
 
   TraIntervals = class(TObjectList)
@@ -112,7 +132,8 @@ type
   public
     function AddInterval(const AnID: Integer; const AStartValue, AnEndValue: TraValue;
       const AData: Variant; const AComment: String;
-      const AColor, AFontColor: TColor; const ABorderKind: Integer): Integer;
+      const AColor, AFontColor: TColor; const ABorderKind: Integer;
+      const AnImageIndex: Integer): Integer;
     function FindByValue(const AValue: TraValue): TraInterval;
     function FindByStartValue(const AStartValue: TraValue; out Index: Integer): Boolean;
     function FindByID(const AnID: Integer): TraInterval;
@@ -139,9 +160,9 @@ type
     FRowTailColumnsCapt: array of String;
     FRowTailColumnsWidth: array of Integer;
     FRowTailColumnsCount: Integer;
+    FTotals: array of Double;
     FHeaderFont: TFont;
-    FHeaderColor: TColor;
-    FFrameColor: TColor;
+    FHeaderColor, FFrameColor, FCursorColor: TColor;
     FSelected: array of TraPoint;
     FTipWnd: THandle;
     FTipBuffer: array[0..1024] of AnsiChar;
@@ -155,6 +176,11 @@ type
     FKeyboardSelectionStartPoint: TraPoint;
     FDragIntervalID: Integer;
     FScaleKind: Integer;
+    FOrderedBy: Integer;
+    FAscOrder: Boolean;
+    FOrderedByTotal: Integer;
+    FOrderedByValue: TraValue;
+    FImages: TCustomImageList;
 
     function GetRowHeadColumnsCapt(Index: Integer): String;
     function GetRowHeadColumnsWidth(Index: Integer): Integer;
@@ -200,6 +226,7 @@ type
     function FracValue(const A, B: TraValue): Double;
     function DecValue(const AValue: TraValue; const ADecrement: Integer = 1): TraValue;
     function AdjustValue(const AValue: TraValue): TraValue;
+    procedure SetImages(const Value: TCustomImageList);
 
   protected
     procedure CreateParams(var Params: TCreateParams); override;
@@ -225,6 +252,8 @@ type
     function GetGroupsCount: Integer;
     function GetGroupNumber(const AValue: TraValue; const AGroup: Integer): Integer;
     function GetCellDecoration(const AValue: TraValue): TColor;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    procedure UpdateTotals(const OldData, NewData: Variant);
 
     procedure WMPaint(var Message: TWMPaint);
       message WM_PAINT;
@@ -265,7 +294,8 @@ type
     function AddSubResource(const AnID, AParentID: Integer; const AName, ASubItems: String): Integer;
     function AddInterval(const AnID, AResourceID: Integer; const AStartValue, AnEndValue: TraValue;
       const AValue: Variant; const AComment: String;
-      const AColor, AFontColor: TColor; const ABorderKind: Integer): Integer;
+      const AColor, AFontColor: TColor; const ABorderKind: Integer;
+      const AnImageIndex: Integer = -1): Integer;
     procedure ClearResources;
     procedure DeleteResource(const AnID: Integer);
     procedure ClearIntervals(const AResourceID: Integer);
@@ -276,7 +306,8 @@ type
     procedure GetIntervalData(const AResourceID: Integer; const AnIntervalID: Integer;
       out AStartValue: TraValue; out AnEndValue: TraValue; out AData: Variant;
       out AComment: String);
-    procedure ScrollTo(const AResourceID: Integer; const AValue: TraValue);  
+    procedure ScrollTo(const AResourceID: Integer; const AValue: TraValue);
+    procedure OrderByTotal(const Idx: Integer; const Asc: Boolean = True);
 
     property Resources: TraResources read FResources;
     property RowHeadColumnsCapt[Index: Integer]: String read GetRowHeadColumnsCapt
@@ -302,6 +333,10 @@ type
     property RowHeight: Integer read FRowHeight write SetRowHeight;
     property CellWidth: Integer read FCellWidth write SetCellWidth;
     property ScaleKind: Integer read FScaleKind write SetScaleKind;
+    property OrderedBy: Integer read FOrderedBy;
+    property OrderedByTotal: Integer read FOrderedbyTotal;
+    property OrderedByValue: TraValue read FOrderedByValue;
+    property AscOrder: Boolean read FAscOrder;
 
   published
     property Align;
@@ -313,6 +348,7 @@ type
     property OnDragDrop;
     property OnDragOver;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
+    property Images: TCustomImageList read FImages write SetImages;
   end;
 
 procedure Register;
@@ -339,16 +375,49 @@ begin
   Result.Y := Y;
 end;
 
+function Quarter(const M: Integer): Integer;
+begin
+  Result := (M - 1) div 3 + 1;
+end;
+
+function Quarter2(const DT: TDateTime): Integer;
+var
+  Y, M, D: Word;
+begin
+  DecodeDate(DT, Y, M, D);
+  Result := (M - 1) div 3 + 1;
+end;
+
+function Year(const DT: TDateTime): Integer;
+var
+  Y, M, D: Word;
+begin
+  DecodeDate(DT, Y, M, D);
+  Result := Y;
+end;
+
 function TgsRAChart.IncValue(const AValue: TraValue;
   const AnIncrement: Integer = 1): TraValue;
 var
   DT: TDateTime;
 begin
+  DT := AValue;
+
   if (scDays and FScaleKind) <> 0 then
-    Result := AValue + AnIncrement
-  else begin
-    DT := AValue;
+  begin
+    DT := DT + AnIncrement;
+    Result := DT;
+  end
+  else if (scMonthes and FScaleKind) <> 0 then
+  begin
     Result := IncMonth(DT, AnIncrement);
+  end
+  else if (scQuarters and FScaleKind) <> 0 then
+  begin
+    Result := IncMonth(DT, AnIncrement * 3);
+  end else
+  begin
+    Result := IncMonth(DT, AnIncrement * 12);
   end;
 end;
 
@@ -357,14 +426,27 @@ var
   DT1, DT2: TDateTime;
   Y1, Y2, M1, M2, D1, D2: Word;
 begin
+  DT1 := A;
+  DT2 := B;
+
   if (scDays and FScaleKind) <> 0 then
-    Result := Trunc(A) - Trunc(B)
-  else begin
-    DT1 := A;
-    DT2 := B;
+    Result := Trunc(DT1) - Trunc(DT2)
+  else if (scMonthes and FScaleKind) <> 0 then
+  begin
     DecodeDate(DT1, Y1, M1, D1);
     DecodeDate(DT2, Y2, M2, D2);
     Result := (Y1 - Y2) * 12 + M1 - M2;
+  end
+  else if (scQuarters and FScaleKind) <> 0 then
+  begin
+    DecodeDate(DT1, Y1, M1, D1);
+    DecodeDate(DT2, Y2, M2, D2);
+    Result := (Y1 - Y2) * 4 + Quarter(M1) - Quarter(M2);
+  end else
+  begin
+    DecodeDate(DT1, Y1, M1, D1);
+    DecodeDate(DT2, Y2, M2, D2);
+    Result := Y1 - Y2;
   end;
 end;
 
@@ -373,11 +455,13 @@ var
   DT1, DT2, CM, NM: TDateTime;
   Y1, Y2, M1, M2, D1, D2: Word;
 begin
+  DT1 := A;
+  DT2 := B;
+
   if (scDays and FScaleKind) <> 0 then
-    Result := Double(A) - Double(B)
-  else begin
-    DT1 := A;
-    DT2 := B;
+    Result := DT1 - DT2
+  else if (scMonthes and FScaleKind) <> 0 then
+  begin
     DecodeDate(DT1, Y1, M1, D1);
     DecodeDate(DT2, Y2, M2, D2);
 
@@ -385,7 +469,28 @@ begin
     NM := IncMonth(CM, 1);
 
     Result := (Y1 - Y2) * 12 + M1 - M2 +
-      (B - CM) / (NM - CM);
+      (DT2 - CM) / (NM - CM);
+  end
+  else if (scQuarters and FScaleKind) <> 0 then
+  begin
+    DecodeDate(DT1, Y1, M1, D1);
+    DecodeDate(DT2, Y2, M2, D2);
+
+    CM := EncodeDate(Y2, (Quarter(M2) - 1) * 3 + 1, 1);
+    NM := IncMonth(CM, 3);
+
+    Result := (Y1 - Y2) * 4 + Quarter(M1) - Quarter(M2) +
+      (DT2 - CM) / (NM - CM);
+  end else
+  begin
+    DecodeDate(DT1, Y1, M1, D1);
+    DecodeDate(DT2, Y2, M2, D2);
+
+    CM := EncodeDate(Y2, 1, 1);
+    NM := IncMonth(CM, 12);
+
+    Result := (Y1 - Y2) +
+      (DT2 - CM) / (NM - CM);
   end;
 end;
 
@@ -410,18 +515,31 @@ function TgsRAChart.DecValue(const AValue: TraValue;
 var
   DT: TDateTime;
 begin
+  DT := AValue;
+
   if (scDays and FScaleKind) <> 0 then
-    Result := AValue - ADecrement
-  else begin
-    DT := AValue;
+  begin
+    DT := DT - ADecrement;
+    Result := DT;
+  end
+  else if (scMonthes and FScaleKind) <> 0 then
+  begin
     Result := IncMonth(DT, - ADecrement);
+  end
+  else if (scQuarters and FScaleKind) <> 0 then
+  begin
+    Result := IncMonth(DT, - ADecrement * 3);
+  end else
+  begin
+    Result := IncMonth(DT, - ADecrement * 12);
   end;
 end;
 
 function TgsRAChart.AddInterval(const AnID, AResourceID: Integer;
   const AStartValue, AnEndValue: TraValue; const AValue: Variant;
   const AComment: String; const AColor, AFontColor: TColor;
-  const ABorderKind: Integer): Integer;
+  const ABorderKind: Integer;
+  const AnImageIndex: Integer = -1): Integer;
 var
   R: TraResource;
 begin
@@ -431,9 +549,7 @@ begin
     raise Exception.Create('Invalid resource ID');
 
   Result := R.Intervals.AddInterval(AnID, AStartValue, AnEndValue, AValue,
-    AComment, AColor, AFontColor, ABorderKind);
-
-  R.UpdateTotals(Null, AValue);  
+    AComment, AColor, AFontColor, ABorderKind, AnImageIndex);
 end;
 
 function TgsRAChart.AddResource(const AnID: Integer; const AName,
@@ -543,6 +659,7 @@ begin
   FHeaderFont := TFont.Create;
   FHeaderColor := DefHeaderColor;
   FFrameColor := DefFrameColor;
+  FCursorColor := DefCursorColor;
 
   TabStop := True;
   DoubleBuffered := True;
@@ -641,36 +758,53 @@ begin
     FSubResources.Chart := (FOwner as TraResources).Chart;
 end;
 
+procedure TraResource.SetTotalsCount(const Value: Integer);
+begin
+  SetLength(FTotals, Value);
+end;
+
 procedure TraResource.UpdateTotals(const OldData, NewData: Variant);
 var
   I: Integer;
 begin
   if (not VarIsNull(OldData)) and (not VarIsEmpty(OldData)) and VarIsArray(OldData) then
   begin
-    if High(FTotals) <> (VarArrayHighBound(OldData, 1) - VarArrayLowBound(OldData, 1) - 1) then
-      raise Exception.Create('Invalid data array size');
-
     for I := Low(FTotals) to High(FTotals) do
     begin
-      if VarType(OldData[VarArrayLowBound(OldData, 1) + 1 + I]) in [varInteger, varDouble] then
+      if VarType(OldData[VarArrayLowBound(OldData, 1) + 1 + I]) in [varInteger, varDouble, varCurrency] then
         FTotals[I] := FTotals[I] - OldData[VarArrayLowBound(OldData, 1) + 1 + I];
     end;
   end;
 
   if (not VarIsNull(NewData)) and (not VarIsEmpty(NewData)) and VarIsArray(NewData) then
   begin
-    if High(FTotals) < Low(FTotals) then
-      SetLength(FTotals, VarArrayHighBound(NewData, 1) - VarArrayLowBound(NewData, 1));
-
     for I := Low(FTotals) to High(FTotals) do
     begin
-      if VarType(NewData[VarArrayLowBound(NewData, 1) + 1 + I]) in [varInteger, varDouble] then
+      if VarType(NewData[VarArrayLowBound(NewData, 1) + 1 + I]) in [varInteger, varDouble, varCurrency] then
         FTotals[I] := FTotals[I] + NewData[VarArrayLowBound(NewData, 1) + 1 + I];
     end;
   end;
+
+  if FParent <> nil then
+    FParent.UpdateTotals(OldData, NewData)
+  else if (FOwner <> nil) and (FOwner.FChart <> nil) then
+    FOwner.FChart.UpdateTotals(OldData, NewData);
 end;
 
 { TraInterval }
+
+constructor TraInterval.Create;
+begin
+  inherited;
+  FImageIndex := -1;
+end;
+
+destructor TraInterval.Destroy;
+begin
+  if (FOwner <> nil) and (FOwner.Resource <> nil) then
+    FOwner.Resource.UpdateTotals(FData, Null);
+  inherited;
+end;
 
 procedure TraInterval.SetID(const Value: Integer);
 begin
@@ -686,6 +820,8 @@ function TraResources.AddResource(const AnID: Integer; AParent: TraResource;
 var
   R: TraResource;
 begin
+  Assert(FChart is TgsRAChart);
+
   if FindByID(AnID) <> nil then
     raise Exception.Create('Duplicate ID');
 
@@ -698,7 +834,8 @@ begin
     if ASubItems > '' then
       R.SubItems.CommaText := ASubItems
     else
-      R.SubItems.Clear;  
+      R.SubItems.Clear;
+    R.TotalsCount := FChart.RowTailColumnsCount;
     Result := Add(R);
   except
     R.Free;
@@ -724,16 +861,53 @@ begin
   Result := R.SubResources.Count;
 end;
 
-destructor TraResources.Destroy;
+procedure TraResources.CalcColTotals(RootResource: TraResource; const D: TraValue;
+  var ColTotals: array of Double; const ResetTotals: Boolean);
 var
-  I: Integer;
+  I, J: Integer;
+  Interval: TraInterval;
+  R: TraResource;
 begin
-  for I := Count - 1 downto 0 do
-  begin
-    if (Items[I] as TraResource).Parent <> nil then
-      Extract(Items[I]);
-  end;
+  if ResetTotals then
+    for J := 0 to High(ColTotals) do
+      ColTotals[J] := 0;
 
+  for I := 0 to Count - 1 do
+  begin
+    R := Items[I] as TraResource;
+
+    if R.Parent = RootResource then
+    begin
+      Interval := R.Intervals.FindByValue(D);
+      if (Interval <> nil) and (Interval.StartValue >= D)
+        and (Interval.StartValue < FChart.IncValue(D)) then
+      begin
+        for J := 0 to High(ColTotals) do
+        begin
+          if VarType(Interval.Data) in [varDouble, varInteger, varCurrency] then
+          begin
+            ColTotals[J] := ColToTals[J] + Interval.Data;
+            break;
+          end;
+
+          if (VarType(Interval.Data) and varArray) = 0 then
+            break;
+
+          if J + 1 > VarArrayHighBound(Interval.Data, 1) then
+            break;
+
+          ColTotals[J] := ColTotals[J] + Interval.Data[J + 1];
+        end;
+      end;
+    end;  
+
+    R.SubResources.CalcColTotals(R, D, ColTotals, False);
+  end;
+end;
+
+destructor TraResources.Destroy;
+begin
+  Clear;
   inherited;
 end;
 
@@ -872,7 +1046,11 @@ begin
     begin
       AResource := FResources[R] as TraResource;
 
-      ExactValue := FFirstVisibleValue + (X - FRowHeaderWidth) / FCellWidth;
+      ExactValue := IncValue(FFirstVisibleValue, (X - FRowHeaderWidth) div FCellWidth);
+
+      ExactValue := ExactValue +
+        (((X - FRowHeaderWidth) mod FCellWidth) / FCellWidth) *
+        (IncValue(ExactValue) - ExactValue);
 
       for I := 0 to AResource.Intervals.Count - 1 do
       begin
@@ -908,8 +1086,18 @@ begin
     0:
       if (scDays and FScaleKind) <> 0 then
         Result := FormatDateTime('dd', AValue)
-      else
-        Result := FormatDateTime('mmmm', AValue);
+      else if (scMonthes and FScaleKind) <> 0 then
+        Result := FormatDateTime('mmmm', AValue)
+      else if (scQuarters and FScaleKind) <> 0 then
+      begin
+        case Quarter2(AValue) of
+          1: Result := 'I';
+          2: Result := 'II';
+          3: Result := 'III';
+          4: Result := 'IV';
+        end;
+      end else
+        Result := FormatDateTime('yyyy', AValue);
     1:
       if (scDays and FScaleKind) <> 0 then
         Result := FormatDateTime('mmmm yyyy', AValue)
@@ -950,7 +1138,7 @@ begin
     else
       Result := Trunc(AValue);
     end
-  else
+  else if (scMonthes and FScaleKind) <> 0 then
     case AGroup of
       1:
       begin
@@ -961,11 +1149,32 @@ begin
       DecodeDate(AValue, Y, M, D);
       Result := Y * 12 + M;
     end
+  else if (scQuarters and FScaleKind) <> 0 then
+    case AGroup of
+      1:
+      begin
+        DecodeDate(AValue, Y, M, D);
+        Result := Y;
+      end;
+    else
+      DecodeDate(AValue, Y, M, D);
+      Result := Y * 4 + Quarter(M);
+    end
+  else
+    case AGroup of
+      1: raise Exception.Create('Unsupported group number');
+    else
+      DecodeDate(AValue, Y, M, D);
+      Result := Y;
+    end
 end;
 
 function TgsRAChart.GetGroupsCount: Integer;
 begin
-  Result := 2;
+  if scYears = FScaleKind then
+    Result := 1
+  else
+    Result := 2;
 end;
 
 function TgsRAChart.GetRowHeadColumnsCapt(Index: Integer): String;
@@ -1017,8 +1226,31 @@ begin
   end;
 
   case Key of
-    VK_LEFT: ChangeCursorPos(DecValue(FCursor.X), FCursor.Y);
-    VK_RIGHT: ChangeCursorPos(IncValue(FCursor.X), FCursor.Y);
+    VK_LEFT:
+    begin
+      if ssCtrl in Shift then
+      begin
+        if (FResources.Count > FCursor.Y)
+          and ((FResources[FCursor.Y] as TraResource).Intervals.Count > 0) then
+        begin
+          ChangeCursorPos(((FResources[FCursor.Y] as TraResource).Intervals[0] as TraInterval).StartValue, FCursor.Y);
+        end
+      end else
+        ChangeCursorPos(DecValue(FCursor.X), FCursor.Y);
+    end;
+    VK_RIGHT:
+    begin
+      if ssCtrl in Shift then
+      begin
+        if (FResources.Count > FCursor.Y)
+          and ((FResources[FCursor.Y] as TraResource).Intervals.Count > 0) then
+        begin
+          ChangeCursorPos(((FResources[FCursor.Y] as TraResource).Intervals[
+            (FResources[FCursor.Y] as TraResource).Intervals.Count - 1] as TraInterval).StartValue, FCursor.Y);
+        end    
+      end else
+        ChangeCursorPos(IncValue(FCursor.X), FCursor.Y);
+    end;
     VK_DOWN: ChangeCursorPos(FCursor.X, FCursor.Y + 1);
     VK_UP: ChangeCursorPos(FCursor.X, FCursor.Y - 1);
     VK_HOME:
@@ -1166,7 +1398,7 @@ procedure TgsRAChart.MouseDown(Button: TMouseButton; Shift: TShiftState; X,
 var
   OldCursor: TraPoint;
   C: TraValue;
-  R, K: Integer;
+  R, K, I, B: Integer;
   Resource, ResourceNext: TraResource;
   Interval: TraInterval;
 begin
@@ -1254,6 +1486,29 @@ begin
           Invalidate;
           DoChange;
         end;
+      end;
+    end;
+  end
+  else if (ssLeft in Shift)
+    and
+    (
+      (X > ClientWidth - FRowTailWidth)
+      and (X < ClientWidth)
+      and (Y < FHeaderHeight)
+      and (Y > 0)
+    ) then
+  begin
+    B := ClientWidth;
+    for I := High(FRowTailColumnsWidth) downto 0 do
+    begin
+      Dec(B, FRowTailColumnsWidth[I]);
+      if X > B then
+      begin
+        if FOrderedByTotal <> I then
+          OrderByTotal(I, FAscOrder)
+        else
+          OrderByTotal(I, not FAscOrder);
+        break;
       end;
     end;
   end;
@@ -1361,7 +1616,7 @@ const
 var
   R, RSave, IntervalRect, VisibleRect, CellRect, TextRect, TotalRect: TRect;
   VisibleRgn, CellRgn: HRGN;
-  I, J, Rw, Indent: Integer;
+  I, J, Rw, Indent, M, W: Integer;
   D: TraValue;
   Sz: TSize;
   S, DataS, TotalS: String;
@@ -1384,7 +1639,7 @@ begin
 
   FRowHeaderWidth := FRowHeaderWidth +
     (ClientWidth - FRowHeaderWidth - FRowTailWidth - 1) mod FCellWidth + 1;
-  FHeaderHeight := FHeaderRowHeight * 2;
+  FHeaderHeight := FHeaderRowHeight * GetGroupsCount;
   FFooterHeight := FInitialFooterHeight +
     ((ClientHeight - FHeaderHeight - FInitialFooterHeight - 1) mod FRowHeight) - 1;
 
@@ -1410,44 +1665,53 @@ begin
 
   RSave := R;
 
-  R.Left := R.Right;
+  R.Left := RSave.Right;
   R.Bottom := 0 + FHeaderRowHeight;
   D := FFirstVisibleValue;
-  while R.Right <= ClientWidth - FRowTailWidth do
+
+  if GetGroupsCount = 2 then
   begin
-    while GetGroupNumber(D, 1) = GetGroupNumber(DecValue(D), 1) do
+    while R.Right <= ClientWidth - FRowTailWidth do
     begin
+      while GetGroupNumber(D, 1) = GetGroupNumber(DecValue(D), 1) do
+      begin
+        R.Right := R.Right + FCellWidth;
+        D := IncValue(D);
+      end;
+
+      if R.Right > ClientWidth - FRowTailWidth then
+        R.Right := ClientWidth - FRowTailWidth;
+
+      S := GetColumnCaption(DecValue(D), 1);
+      Sz := Canvas.TextExtent(S);
+      if Sz.CX >= R.Right - R.Left then
+        S := '';
+      Canvas.TextRect(R, R.Left + (R.Right - R.Left - Sz.CX) div 2,
+        R.Top + (FHeaderRowHeight - Sz.CY) div 2, S);
+      Canvas.PolyLine([Point(R.Right - 1, R.Top), Point(R.Right - 1, R.Bottom)]);
+
+      R.Left := R.Right;
       R.Right := R.Right + FCellWidth;
       D := IncValue(D);
     end;
 
-    if R.Right > ClientWidth - FRowTailWidth then
-      R.Right := ClientWidth - FRowTailWidth;
+    Canvas.PolyLine([Point(RSave.Right, R.Bottom - 1), Point(R.Right - 1, R.Bottom - 1)]);
 
-    S := GetColumnCaption(DecValue(D), 1);
-    Sz := Canvas.TextExtent(S);
-    if Sz.CX >= R.Right - R.Left then
-      S := '';
-    Canvas.TextRect(R, R.Left + (R.Right - R.Left - Sz.CX) div 2,
-      R.Top + (FHeaderRowHeight - Sz.CY) div 2, S);
-    Canvas.PolyLine([Point(R.Right - 1, R.Top), Point(R.Right - 1, R.Bottom)]);
-
-    R.Left := R.Right;
-    R.Right := R.Right + FCellWidth;
-    D := IncValue(D);
+    R := RSave;
+    R.Top := 0 + FHeaderRowHeight;
+    D := FFirstVisibleValue;
   end;
-
-  Canvas.PolyLine([Point(RSave.Right, R.Bottom - 1), Point(R.Right - 1, R.Bottom - 1)]);
-
-  R := RSave;
-  R.Top := 0 + FHeaderRowHeight;
-  D := FFirstVisibleValue;
+    
   while R.Right <= ClientWidth - FRowTailWidth - FCellWidth do
   begin
     R.Left := R.Right;
     R.Right := R.Left + FCellWidth;
     S := GetColumnCaption(D, 0);
     Sz := Canvas.TextExtent(S);
+    if D = FCursor.X then
+      Canvas.Brush.Color := TgsThemeManager.MixColors(FHeaderColor, FCursorColor)
+    else
+      Canvas.Brush.Color := FHeaderColor;
     Canvas.TextRect(R, R.Left + (FCellWidth - Sz.CX) div 2,
       R.Top + (FHeaderRowHeight - Sz.CY) div 2, S);
     Canvas.PolyLine([Point(R.Right - 1, R.Top), Point(R.Right - 1, R.Bottom)]);
@@ -1456,6 +1720,8 @@ begin
 
   FLastVisibleValue := DecValue(D);
   FLastVisibleValueSet := True;
+
+  Canvas.Brush.Color := FHeaderColor;
 
   R.Top := 0;
   for I := 0 to FRowTailColumnsCount - 1 do
@@ -1467,6 +1733,16 @@ begin
       R.Top + (FHeaderHeight - Sz.CY) div 2, FRowTailColumnsCapt[I]);
     if I <> FRowTailColumnsCount - 1 then
       Canvas.PolyLine([Point(R.Right - 1, R.Top), Point(R.Right - 1, R.Bottom)]);
+
+    if (FOrderedBy = cOrderByTotal) and (FOrderedByTotal = I) then
+    begin
+      W := R.Right - R.Left;
+      M := R.Left + W div 2;
+      if FAscOrder then
+        Canvas.PolyLine([Point(M - 4, R.Top + 1), Point(M, R.Top + 5), Point(M + 5, R.Top)])
+      else
+        Canvas.PolyLine([Point(M - 4, R.Top + 5), Point(M, R.Top + 1), Point(M + 5, R.Top + 6)])
+    end;
   end;
 
   Canvas.PolyLine([Point(0, 0 + FHeaderHeight),
@@ -1488,7 +1764,7 @@ begin
 
   while R.Bottom < ClientHeight - FFooterHeight do
   begin
-    if Rw < FResources.Count then
+    if (Rw >= 0) and (Rw < FResources.Count) then
     begin
       Rs := FResources[Rw] as TraResource;
       if (Rw + 1) < FResources.Count then
@@ -1539,6 +1815,10 @@ begin
         S := '';
       end;
       Sz := Canvas.TextExtent(S);
+      if Rw = FCursor.Y then
+        Canvas.Brush.Color := TgsThemeManager.MixColors(FHeaderColor, FCursorColor)
+      else
+        Canvas.Brush.Color := FHeaderColor;
       Canvas.TextRect(R, R.Left + FLeftGap + Indent,
         R.Top + (FRowHeight - Sz.CY) div 2, S);
 
@@ -1562,7 +1842,17 @@ begin
       R.Right := R.Left + FCellWidth;
 
       Canvas.Brush.Color := GetCellColor(D, Rw);
-      Canvas.FillRect(R);
+
+      if (Rs <> nil) and (Rs.SubResources.Count > 0) then
+      begin
+        Rs.SubResources.CalcColTotals(Rs, D, ColTotals, True);
+        S := FormatFloat('#,###', ColTotals[0]);
+        Sz := Canvas.TextExtent(S);
+        Canvas.TextRect(R, R.Left + (R.Right - R.Left - Sz.CX) div 2,
+          R.Top + (FRowHeight - Sz.CY) div 2, S);
+      end else
+        Canvas.FillRect(R);
+
       Canvas.PolyLine([Point(R.Right - 1, R.Top), Point(R.Right - 1, R.Bottom)]);
 
       D := IncValue(D);
@@ -1729,6 +2019,26 @@ begin
               DataS := FormatFloat('#,###', V)
             else
               DataS := V;
+
+            if (FImages <> nil) and (Interval.ImageIndex < FImages.Count) then
+            begin
+              if DataS > '' then
+              begin
+                FImages.Draw(Canvas, TextRect.Left,
+                  TextRect.Top + (TextRect.Bottom - TextRect.Top - FImages.Height) div 2,
+                  Interval.ImageIndex, True);
+                TextRect.Left := TextRect.Left + FImages.Width + FLeftGap;
+                if TextRect.Left > TextRect.Right then
+                  TextRect.Left := TextRect.Right;
+              end else
+              begin
+                FImages.Draw(Canvas,
+                  TextRect.Left + (TextRect.Right - TextRect.Left - FImages.Width) div 2,
+                  TextRect.Top + (TextRect.Bottom - TextRect.Top - FImages.Height) div 2,
+                  Interval.ImageIndex, True);
+              end;
+            end;
+
             Sz := Canvas.TextExtent(DataS);
             if (Sz.CX < TextRect.Right - TextRect.Left)
               and (Sz.CY < TextRect.Bottom - TextRect.Top) then
@@ -1752,7 +2062,6 @@ begin
       end;
     end;
 
-    Canvas.Brush.Color := FHeaderColor;
     Canvas.Font.Color := clBlack;
 
     for I := 0 to FRowTailColumnsCount - 1 do
@@ -1764,6 +2073,10 @@ begin
       else
         TotalS := '';
       Sz := Canvas.TextExtent(TotalS);
+      if Rw = FCursor.Y then
+        Canvas.Brush.Color := TgsThemeManager.MixColors(FHeaderColor, FCursorColor)
+      else
+        Canvas.Brush.Color := FHeaderColor;
       Canvas.TextRect(R, R.Right - Sz.CX - FRightGap,
         R.Top + (FRowHeight - Sz.CY) div 2, TotalS);
       if I <> FRowTailColumnsCount - 1 then
@@ -1797,7 +2110,22 @@ begin
     R.Left := 0;
     R.Right := FRowHeaderWidth - 1;
 
-    Canvas.FillRect(R);
+    TotalRect := Rect(R.Left, R.Top, R.Right, R.Top);
+
+    for J := 0 to Min(High(FRowTailColumnsCapt), MaxColTotals - 1) do
+    begin
+      TotalRect.Top := TotalRect.Bottom;
+      TotalRect.Bottom := TotalRect.Bottom + FHeaderRowHeight;
+      TotalS := FRowTailColumnsCapt[J];
+      Sz := Canvas.TextExtent(TotalS);
+      Canvas.TextRect(TotalRect, TotalRect.Right - Sz.CX - FRightGap,
+        TotalRect.Top + FTopGap, TotalS);
+    end;
+
+    TotalRect.Top := TotalRect.Bottom;
+    TotalRect.Bottom := R.Bottom;
+    Canvas.FillRect(TotalRect);
+
     Canvas.PolyLine([Point(R.Right, R.Top), Point(R.Right, R.Bottom)]);
 
     D := FFirstVisibleValue;
@@ -1807,34 +2135,13 @@ begin
       R.Left := R.Right;
       R.Right := R.Right + FCellWidth;
 
-      for J := 0 to MaxColTotals - 1 do
-        ColTotals[J] := 0;
-
-      for I := 0 to FResources.Count - 1 do
-      begin
-        Interval :=(FResources[I] as TraResource).Intervals.FindByValue(D);
-        if Interval <> nil then
-        begin
-          for J := 0 to MaxColTotals - 1 do
-          begin
-            if VarType(Interval.Data) in [varDouble, varInteger, varCurrency] then
-            begin
-              ColTotals[J] := ColToTals[J] + Interval.Data;
-              break;
-            end;
-
-            if (VarType(Interval.Data) and varArray) = 0 then
-              break;
-
-            if J + 1 > VarArrayHighBound(Interval.Data, 1) then
-              break;
-
-            ColTotals[J] := ColTotals[J] + Interval.Data[J + 1];
-          end;
-        end;
-      end;
-
+      FResources.CalcColTotals(nil, D, ColTotals, True);
       TotalRect := Rect(R.Left, R.Top, R.Right, R.Top);
+
+      if D = FCursor.X then
+        Canvas.Brush.Color := TgsThemeManager.MixColors(RGB(162, 209, 156), FCursorColor)
+      else
+        Canvas.Brush.Color := RGB(162, 209, 156);
 
       for J := 0 to MaxColTotals - 1 do
       begin
@@ -1854,9 +2161,24 @@ begin
       D := IncValue(D);
     end;
 
+    Canvas.Brush.Color := RGB(162, 209, 156);
     R.Left := R.Right;
     R.Right := ClientWidth;
-    Canvas.FillRect(R);
+    TotalRect := Rect(R.Left, R.Top, R.Right, R.Top);
+
+    for J := 0 to MaxColTotals - 1 do
+    begin
+      TotalRect.Top := TotalRect.Bottom;
+      TotalRect.Bottom := TotalRect.Bottom + FHeaderRowHeight;
+      TotalS := FormatFloat('#,###', FTotals[J]);
+      Sz := Canvas.TextExtent(TotalS);
+      Canvas.TextRect(TotalRect, TotalRect.Right - Sz.CX - FRightGap,
+        TotalRect.Top + FTopGap, TotalS);
+    end;
+
+    TotalRect.Top := TotalRect.Bottom;
+    TotalRect.Bottom := R.Bottom;
+    Canvas.FillRect(TotalRect);
   end;
 
   SI.cbSize := SizeOf(SI);
@@ -1965,6 +2287,7 @@ begin
   FRowTailColumnsCount := Value;
   SetLength(FRowTailColumnsCapt, Value);
   SetLength(FRowTailColumnsWidth, Value);
+  SetLength(FTotals, Value);
   FInitialFooterHeight := FHeaderRowHeight * Value;
 end;
 
@@ -2184,23 +2507,167 @@ begin
   inherited;
 end;
 
+procedure TraResources.OrderByTotal(const Idx: Integer; const Asc: Boolean = True);
+
+  procedure QuickSort(L, R: Integer);
+  var
+    I, J, P: Integer;
+  begin
+    repeat
+      I := L;
+      J := R;
+      P := (L + R) shr 1;
+      repeat
+        if Asc then
+        begin
+          while (Items[I] as TraResource).Totals[Idx] > (Items[P] as TraResource).Totals[Idx] do
+            Inc(I);
+          while (Items[J] as TraResource).Totals[Idx] < (Items[P] as TraResource).Totals[Idx] do
+            Dec(J);
+        end else
+        begin
+          while (Items[I] as TraResource).Totals[Idx] < (Items[P] as TraResource).Totals[Idx] do
+            Inc(I);
+          while (Items[J] as TraResource).Totals[Idx] > (Items[P] as TraResource).Totals[Idx] do
+            Dec(J);
+        end;
+        if I <= J then
+        begin
+          if I <> J then
+            Exchange(I, J);
+          if P = I then
+            P := J
+          else if P = J then
+            P := I;
+          Inc(I);
+          Dec(J);
+        end;
+      until I > J;
+      if L < J then
+        QuickSort(L, J);
+      L := I;
+    until I >= R;
+  end;
+
+var
+  I: Integer;
+begin
+  if Count > 0 then
+  begin
+    for I := 0 to Count - 1 do
+      (Items[I] as TraResource).SubResources.OrderByTotal(Idx, Asc);
+
+    QuickSort(0, Count - 1);
+  end;  
+end;
+
+procedure TraResources.Clear;
+var
+  I: Integer;
+begin
+  for I := Count - 1 downto 0 do
+  begin
+    if (Items[I] as TraResource).Owner <> Self then
+      Extract(Items[I]);
+  end;
+  
+  inherited;
+end;
+
+procedure TraResources.OrderByValue(const V: TraValue; const Asc: Boolean);
+
+{
+  procedure QuickSort(L, R: Integer);
+  var
+    I, J, P: Integer;
+    II, IJ, IP: TraInterval;
+  begin
+    repeat
+      I := L;
+      J := R;
+      P := (L + R) shr 1;
+      repeat
+        II := (Items[I] as TraResource).Intervals.FindByValue(V);
+
+        if Asc then
+        begin
+          while (Items[I] as TraResource).Totals[Idx] > (Items[P] as TraResource).Totals[Idx] do
+            Inc(I);
+          while (Items[J] as TraResource).Totals[Idx] < (Items[P] as TraResource).Totals[Idx] do
+            Dec(J);
+        end else
+        begin
+          while (Items[I] as TraResource).Totals[Idx] < (Items[P] as TraResource).Totals[Idx] do
+            Inc(I);
+          while (Items[J] as TraResource).Totals[Idx] > (Items[P] as TraResource).Totals[Idx] do
+            Dec(J);
+        end;
+        if I <= J then
+        begin
+          if I <> J then
+            Exchange(I, J);
+          if P = I then
+            P := J
+          else if P = J then
+            P := I;
+          Inc(I);
+          Dec(J);
+        end;
+      until I > J;
+      if L < J then
+        QuickSort(L, J);
+      L := I;
+    until I >= R;
+  end;
+
+var
+  I: Integer;
+  }
+begin
+{
+  if Count > 0 then
+  begin
+    for I := 0 to Count - 1 do
+      (Items[I] as TraResource).SubResources.OrderByValue(V, Asc);
+
+    QuickSort(0, Count - 1);
+  end;
+  }
+end;
+
 { TraIntervals }
 
 function TraIntervals.AddInterval(const AnID: Integer;
   const AStartValue, AnEndValue: TraValue; const AData: Variant;
   const AComment: String;
-  const AColor, AFontColor: TColor; const ABorderKind: Integer): Integer;
+  const AColor, AFontColor: TColor; const ABorderKind: Integer;
+  const AnImageIndex: Integer): Integer;
 var
   Interval: TraInterval;
+  SV1, Sv2, EV1, EV2: String;
 begin
+  Assert(FResource is TraResource);
+
   if FindByID(AnID) <> nil then
     raise Exception.Create('Duplicate ID');
 
   if AStartValue > AnEndValue then
     raise Exception.Create('Invalid interval boundaries');
 
-  if FindOverlap(AStartValue, AnEndValue, nil) <> nil then
-    raise Exception.Create('Interval overlaps');
+  Interval := FindOverlap(AStartValue, AnEndValue, nil);
+  if Interval <> nil then
+  begin
+    if VarType(AStartValue) = varDate then
+    begin
+      SV1 := AStartValue;
+      EV1 := AnEndValue;
+      SV2 := Interval.StartValue;
+      EV2 := Interval.EndValue;
+      raise Exception.Create('Interval overlaps: ' + SV1 + '-' + EV1 +
+        ', ' + SV2 + '-' + EV2);
+    end else
+      raise Exception.Create('Interval overlaps');
+  end;
 
   if FindByStartValue(AStartValue, Result) then
     raise Exception.Create('Interval with specified start value already exists');
@@ -2214,8 +2681,12 @@ begin
   Interval.BorderKind := ABorderKind;
   Interval.StartValue := AStartValue;
   Interval.EndValue := AnEndValue;
+  Interval.ImageIndex := AnImageIndex;
+  Interval.Owner := Self;
 
   Insert(Result, Interval);
+
+  FResource.UpdateTotals(Null, AData);
 end;
 
 function TraIntervals.FindByID(const AnID: Integer): TraInterval;
@@ -2466,6 +2937,7 @@ procedure TgsRAChart.ClearResources;
 begin
   FResources.Clear;
   FCursor.Y := 0;
+  FOrderedBy := cNoOrder;
   Invalidate;
 end;
 
@@ -2482,7 +2954,6 @@ begin
     if Interval = nil then
       raise Exception.Create('Invalid interval ID')
     else begin
-      Res.UpdateTotals(Interval.Data, Null);
       Res.Intervals.Remove(Interval);
       Invalidate;
     end;
@@ -2506,8 +2977,35 @@ end;
 
 function TgsRAChart.GetCellDecoration(const AValue: TraValue): TColor;
 begin
-  if ((scDays and FScaleKind) <> 0)
-    and ((DayOfWeek(AValue) = 1) or (DayOfWeek(AValue) = 7)) then
+  if
+    (
+      ((scDays and FScaleKind) <> 0)
+      and
+      (
+        (DayOfWeek(AValue) = 1)
+        or (DayOfWeek(AValue) = 7)
+      )
+    )
+    {or
+    (
+      ((scDays and FScaleKind) = 0)
+      and
+      (
+        ((scMonthes and FScaleKind) <> 0)
+        or
+        ((scQuarters and FScaleKind) <> 0)
+      )
+      and
+      (
+        Odd(Quarter2(AValue))
+      )
+    )
+    or
+    (
+      (scYears = FScaleKind)
+      and
+      Odd(Year(AValue))
+    )} then
   begin
     Result := RGB(255, 200, 200);
   end else
@@ -2630,7 +3128,7 @@ begin
       if FindSelected(C, R) then
         Result := RGB(33, 255, 169)
       else
-        Result := RGB(40, 255, 44);
+        Result := FCursorColor;
     end else
     begin
       if FindSelected(C, R) then
@@ -2639,8 +3137,8 @@ begin
         Result := GetCellDecoration(C);
     end;
 
-    if not Focused then
-      Result := TgsThemeManager.MixColors(Result, clSilver);
+    {if not Focused then
+      Result := TgsThemeManager.MixColors(Result, clSilver);}
   end;
 end;
 
@@ -2662,7 +3160,7 @@ begin
   Res := FResources.FindByID(AResourceID);
   if Res <> nil then
   begin
-    Interval := Res.FIntervals.FindByID(AnIntervalID);
+    Interval := Res.Intervals.FindByID(AnIntervalID);
     if Interval <> nil then
     begin
       AStartValue := Interval.StartValue;
@@ -2700,10 +3198,20 @@ begin
   begin
     Dbl := Floor(AValue);
     Result := Dbl;
-  end else
+  end
+  else if (scMonthes and FScaleKind) <> 0 then
   begin
     DecodeDate(AValue, Y, M, D);
     Result := EncodeDate(Y, M, 1);
+  end
+  else if (scQuarters and FScaleKind) <> 0 then
+  begin
+    DecodeDate(AValue, Y, M, D);
+    Result := EncodeDate(Y, (Quarter(M) - 1) * 3 + 1, 1);
+  end
+  else begin
+    DecodeDate(AValue, Y, M, D);
+    Result := EncodeDate(Y, 1, 1);
   end;
 end;
 
@@ -2740,6 +3248,91 @@ begin
     Dec(FFirstVisibleRow, FFirstVisibleRow - FCursor.Y);
 
   Invalidate;
+end;
+
+procedure TgsRAChart.OrderByTotal(const Idx: Integer; const Asc: Boolean);
+var
+  SaveResource: TraResource;
+  I: Integer;
+  Resource: TraResource;
+  OL: TObjectList;
+begin
+  if (FResources.Count > 0) and (FCursor.Y < FResources.Count)
+    and (FCursor.Y > -1) then
+  begin
+    SaveResource := FResources[FCursor.Y] as TraResource;
+  end else
+    SaveResource := nil;
+
+  OL := TObjectList.Create(False);
+  try
+    for I := FResources.Count - 2 downto 0 do
+    begin
+      Resource := FResources[I] as TraResource;
+
+      if (Resource.SubResources.Count > 0)
+        and ((FResources[I + 1] as TraResource).Parent = Resource) then
+      begin
+        OL.Add(Resource);
+        FResources.RemoveSubResources(Resource);
+      end;
+    end;
+
+    FResources.OrderByTotal(Idx, Asc);
+
+    for I := OL.Count - 1 downto 0 do
+      FResources.AddSubResources(OL[I] as TraResource); 
+  finally
+    OL.Free;
+  end;
+
+  FOrderedBy := cOrderByTotal;
+  FOrderedByTotal := Idx;
+  FAscOrder := Asc;
+  FCursor.Y := FResources.IndexOf(SaveResource);
+  Invalidate;
+end;
+
+procedure TgsRAChart.SetImages(const Value: TCustomImageList);
+begin
+  if FImages <> Value then
+  begin
+    FImages := Value;
+    if FImages <> nil then
+      FImages.FreeNotification(Self);
+  end;
+end;
+
+procedure TgsRAChart.Notification(AComponent: TComponent;
+  Operation: TOperation);
+begin
+  inherited;
+
+  if (Operation = opRemove) and (AComponent = FImages) then
+    FImages := nil;
+end;
+
+procedure TgsRAChart.UpdateTotals(const OldData, NewData: Variant);
+var
+  I: Integer;
+begin
+  if (not VarIsNull(OldData)) and (not VarIsEmpty(OldData)) and VarIsArray(OldData) then
+  begin
+    for I := Low(FTotals) to High(FTotals) do
+    begin
+      if VarType(OldData[VarArrayLowBound(OldData, 1) + 1 + I]) in [varInteger, varDouble, varCurrency] then
+        FTotals[I] := FTotals[I] - OldData[VarArrayLowBound(OldData, 1) + 1 + I];
+    end;
+  end;
+
+  if (not VarIsNull(NewData)) and (not VarIsEmpty(NewData)) and VarIsArray(NewData) then
+  begin
+    for I := Low(FTotals) to High(FTotals) do
+    begin
+      if VarType(NewData[VarArrayLowBound(NewData, 1) + 1 + I]) in [varInteger, varDouble, varCurrency] then
+        FTotals[I] := FTotals[I] + NewData[VarArrayLowBound(NewData, 1) + 1 + I];
+    end;
+  end;
 end;
 
 end.

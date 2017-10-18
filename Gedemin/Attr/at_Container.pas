@@ -1460,8 +1460,8 @@ begin
     KeyField := FRelationField.ReferencesField.FieldName;
     if FRelationField.gdClassName > '' then
     begin
-      SubType := FRelationField.gdSubType;
       gdClassName := FRelationField.gdClassName;
+      SubType := FRelationField.gdSubType;
     end;
 
     if not FRelationField.Relation.HasSecurityDescriptors then

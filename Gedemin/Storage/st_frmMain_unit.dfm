@@ -1,6 +1,6 @@
 object st_frmMain: Tst_frmMain
-  Left = 544
-  Top = 335
+  Left = 281
+  Top = 262
   Width = 696
   Height = 480
   HelpContext = 108

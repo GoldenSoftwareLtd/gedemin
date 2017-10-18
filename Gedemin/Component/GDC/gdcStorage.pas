@@ -218,7 +218,7 @@ begin
             qPos.ParamByName('ON').AsString := AdjustName(F);
             qPos.ParamByName('OC').AsString := CgdcStorageFolder.ClassName;
             gdcBaseManager.GetRUIDByID(F.ID, XID, DBID);
-            AddText('Конвертация в БО ветви ' + S, clBlack);
+            AddText('Конвертация в БО ветви ' + S);
           end else
           begin
             V := F.ValueByName(q.FieldByName('valuename').AsString);
@@ -244,7 +244,7 @@ begin
             qPos.ParamByName('ON').AsString := AdjustName(V);
             qPos.ParamByName('OC').AsString := CgdcStorageValue.ClassName;
             gdcBaseManager.GetRUIDByID(V.ID, XID, DBID);
-            AddText('Конвертация в БО значения ' + S + '\' + V.Name, clBlack);
+            AddText('Конвертация в БО значения ' + S + '\' + V.Name);
           end;
 
           qPos.ParamByName('SK').AsInteger := ASettingKey;

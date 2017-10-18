@@ -177,6 +177,8 @@ type
     tbiNew: TTBItem;
     pmFind: TPopupMenu;
     miRemoveFromSearch: TMenuItem;
+    actAddToSelectedFromClipboard: TAction;
+    actAddToSelectedFromClipboard1: TMenuItem;
 
     procedure actFilterExecute(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
@@ -258,6 +260,7 @@ type
     procedure sbSearchMainMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure miRemoveFromSearchClick(Sender: TObject);
+    procedure actAddToSelectedFromClipboardExecute(Sender: TObject);
 
   private
     FFieldOrigin: TStringList;
@@ -293,7 +296,8 @@ type
       SP: TSplitter;
       var FO: TStringList;
       out PreservedConditions: String;
-      const ShowAllFields: Boolean = False);
+      const ShowAllFields: Boolean = False;
+      ShowVisibleFields: Boolean = False);
 
     //
     procedure SearchExecute(Obj: TgdcBase;
@@ -328,6 +332,7 @@ type
 
     //
     procedure DoShowAllFields(Sender: TObject); virtual;
+    procedure DoShowVisibleFields(Sender: TObject); virtual;
 
     procedure FillPopupNew(AnObject: TgdcBase; ATBCustomItem: TTBCustomItem;
       AnEvent: TNotifyEvent);
@@ -379,7 +384,7 @@ uses
   at_AddToSetting, Storages, gsStorage_CompPath,
   gdcUser, gsStorage, prp_methods, gsDBTreeView,
   gsDesktopManager, IBSQL, jclSelected, gdHelp_Interface,
-  Contnrs
+  Contnrs, ClipBrd
 
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -1029,24 +1034,41 @@ procedure Tgdc_frmG.SetupSearchPanel(Obj: TgdcBase;
   SP: TSplitter;
   var FO: TStringList;
   out PreservedConditions: String;
-  const ShowAllFields: Boolean = False);
+  const ShowAllFields: Boolean = False;
+  ShowVisibleFields: Boolean = False);
 const
   RowHeight = 36;
 var
-  W, I, J, Pass: Integer;
+  W, I, J, K, Pass: Integer;
   L: TLabel;
   E: TCustomEdit;
   F: TWinControl;
   SL: TStringList;
   S: String;
   KIA: TgdKeyIntAssoc;
-  Flag: Boolean;
+  Flag, Find: Boolean;
   St: TMemoryStream;
-  Btn: TButton;
+  Btn, BtnVF: TButton;
   Fld: TField;
+  Grid: TgsIBGrid;
 begin
   F := nil;
   Flag := False;
+
+  Grid := nil;
+  if ShowVisibleFields then
+  begin
+    for I := 0 to (PN.Owner).ComponentCount - 1 do
+    if ((PN.Owner).Components[I] is TgsIBGrid) and Assigned(((PN.Owner).Components[I] as TgsIBGrid).DataSource)
+      and (((PN.Owner).Components[I] as TgsIBGrid).DataSource.DataSet = Obj)
+    then
+    begin
+      Grid := (PN.Owner).Components[I] as TgsIBGrid;
+      Break;
+    end;
+    if not Assigned(Grid) then
+      ShowVisibleFields := False;
+  end;
 
   PreservedConditions := Obj.ExtraConditions.Text;
 
@@ -1090,8 +1112,24 @@ begin
               if not ShowAllFields then
               begin
                 S := SL.Values[SL.Names[I]];
-                if KIA.IndexOf(Integer(Crc32_P(@S[1], Length(S), 0))) = -1 then
-                  continue;
+                if not ShowVisibleFields then begin
+                  if KIA.IndexOf(Integer(Crc32_P(@S[1], Length(S), 0))) = -1 then
+                    continue
+                end
+                else begin
+                  Find := false;
+                  for k := 0 to Grid.Columns.Count-1 do
+                  begin
+                    if Grid.Columns[k].Visible and
+                        (Grid.Columns[k].FieldName = SL.Names[I]) then
+                    begin
+                      Find := true;
+                      break;
+                    end;
+                  end;
+                  if not Find then
+                    continue;
+                end;
               end;
               Flag := True;
             end;
@@ -1105,13 +1143,13 @@ begin
                (E as TxDateEdit).Kind := kTime
               else
                (E as TxDateEdit).Kind := kDateTime;
-              if not ShowAllFields and Flag then
+              if (not ShowAllFields) and (not ShowVisibleFields) and Flag then
                 (E as TxDateEdit).PopupMenu := pmFind;
             end
             else
             begin
               E := TEdit.Create(PN);
-              if not ShowAllFields and Flag then
+              if (not ShowAllFields) and (not ShowVisibleFields) and Flag then
                 (E as TEdit).PopupMenu := pmFind;
             end;
 
@@ -1168,13 +1206,23 @@ begin
         Btn.Caption := 'Все поля';
         Btn.OnClick := DoShowAllFields;
       end;
+
+      BtnVF := TButton.Create(PN);
+      BtnVF.Parent := SB;
+      BtnVF.Top := J * RowHeight + 8 + 4;
+      BtnVF.Left := 76;
+      BtnVF.Width := 64;
+      BtnVF.Height := 18;
+      BtnVF.Visible := True;
+      BtnVF.Caption := 'Видимые';
+      BtnVF.OnClick := DoShowVisibleFields;
     finally
       SL.Free;
       KIA.Free;
     end;
   end;
 
-  if ShowAllFields then
+  if ShowAllFields or ShowVisibleFields then
   begin
     if SP <> nil then
       SP.Visible := True;
@@ -2065,6 +2113,31 @@ begin
   end;
 end;
 
+procedure Tgdc_frmG.DoShowVisibleFields(Sender: TObject);
+var
+  I: Integer;
+begin
+  if pnlSearchMain.Visible then
+  begin
+    gdcObject.ExtraConditions.Text := FMainPreservedConditions;
+    FreeAndNil(FFieldOrigin);
+
+    for I := sbSearchMain.ControlCount - 1 downto 0 do
+    begin
+      sbSearchMain.Controls[I].Free;
+    end;
+
+    SetupSearchPanel(gdcObject,
+      pnlSearchMain,
+      sbSearchMain,
+      nil{sSearchMain},
+      FFieldOrigin,
+      FMainPreservedConditions,
+      False,
+      True);
+  end;
+end;
+
 procedure Tgdc_frmG.actDontSaveSettingsUpdate(Sender: TObject);
 begin
   actDontSaveSettings.Enabled := (IBLogin <> nil) and IBLogin.IsIBUserAdmin;
@@ -2247,6 +2320,37 @@ begin
 
   finally
     FO_Old.Free;
+  end;
+end;
+
+
+procedure Tgdc_frmG.actAddToSelectedFromClipboardExecute(Sender: TObject);
+var StrClp, s: string;
+    Id, P, err: integer;
+begin
+  StrClp := '';
+  try
+    StrClp := Clipboard.AsText;
+    if StrClp <> '' then
+    begin
+      while Length(StrClp) > 0 do
+      begin
+        P := Pos(',', StrClp);
+        if P <> 0 then
+        begin
+          s := copy(StrClp, 0, P - 1);
+          StrClp := copy(StrClp,P + 1,Length(StrClp) - P );
+        end
+        else begin
+          s := StrClp;
+          StrClp := '';
+        end;
+        Val(s, Id, err);
+        if err = 0 then
+          gdcObject.AddToSelectedID(ID);
+      end;
+    end;
+  finally
   end;
 end;
 

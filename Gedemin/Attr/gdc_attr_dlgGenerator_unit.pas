@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgGMetaData_unit, Menus, Db, ActnList, StdCtrls, Mask, DBCtrls,
-  xCalculatorEdit, IBSQL, gdcBaseInterface;
+  IBSQL, gdcBaseInterface;
 
 type
   Tgdc_dlgGenerator = class(Tgdc_dlgGMetaData)
@@ -13,8 +13,6 @@ type
     lblGeneratorName: TLabel;
     lblGeneratorValue: TLabel;
     edGeneratorValue: TEdit;
-  protected
-    procedure BeforePost; override;
 
   public
     procedure SetupRecord; override;
@@ -25,51 +23,10 @@ var
 
 implementation
 
-uses at_classes, gd_ClassList;
+uses
+  gd_ClassList;
 
 {$R *.DFM}
-
-procedure Tgdc_dlgGenerator.BeforePost;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGGENERATOR', 'BEFOREPOST', KEYBEFOREPOST)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGGENERATOR', KEYBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGGENERATOR') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGGENERATOR',
-  {M}          'BEFOREPOST', KEYBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGGENERATOR' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  //  добавляем USR$ префикс;
-  with gdcObject do
-    if (State = dsInsert) and
-      (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('generatorname').AsString)) <> 1)
-    then
-      FieldByName('generatorname').AsString :=
-        UserPrefix + FieldByName('generatorname').AsString;
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGGENERATOR', 'BEFOREPOST', KEYBEFOREPOST)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGGENERATOR', 'BEFOREPOST', KEYBEFOREPOST);
-  {M}end;
-  {END MACRO}
-end;
 
 procedure Tgdc_dlgGenerator.SetupRecord;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -78,7 +35,7 @@ procedure Tgdc_dlgGenerator.SetupRecord;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
 var
-  IBSQL: TIBSQL;
+  q: TIBSQL;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGGENERATOR', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -99,27 +56,25 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  inherited;
-  
-  if gdcObject.State = dsEdit then
-    dbeGeneratorName.Enabled := False;
 
-  if dbeGeneratorName.Text > '' then
+  inherited;
+
+  if (gdcObject.State = dsEdit) and (dbeGeneratorName.Text > '') then
   begin
-    IBSQL := TIBSQL.Create(nil);
+    q := TIBSQL.Create(nil);
     try
-      IBSQL.Transaction := gdcBaseManager.ReadTransaction;
-      IBSQL.SQL.Text := 'SELECT GEN_ID(' + dbeGeneratorName.Text + ', 0) AS GenValue FROM RDB$DATABASE';
-      IBSQL.ExecQuery;
-      if not IBSQL.EOF then
-        edGeneratorValue.Text := IBSQL.Fields[0].AsString
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT GEN_ID(' + dbeGeneratorName.Text + ', 0) AS GenValue FROM RDB$DATABASE';
+      q.ExecQuery;
+      if not q.EOF then
+        edGeneratorValue.Text := q.Fields[0].AsString
       else
-        edGeneratorValue.Text := '0';
+        edGeneratorValue.Text := '';
     finally
-      IBSQL.Free;
+      q.Free;
     end;
   end else
-    edGeneratorValue.Text := '0';
+    edGeneratorValue.Text := '';
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGGENERATOR', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -134,5 +89,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgGenerator);
-
 end.

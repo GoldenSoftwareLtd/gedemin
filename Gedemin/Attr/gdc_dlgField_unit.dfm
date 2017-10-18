@@ -1,6 +1,6 @@
 inherited gdc_dlgField: Tgdc_dlgField
-  Left = 465
-  Top = 166
+  Left = 836
+  Top = 217
   HelpContext = 82
   ActiveControl = dbedTypeName
   BorderIcons = [biSystemMenu]
@@ -68,7 +68,7 @@ inherited gdc_dlgField: Tgdc_dlgField
         end
         object Label2: TLabel
           Left = 12
-          Top = 184
+          Top = 162
           Width = 202
           Height = 13
           Caption = 'Описание типа (предназначения типа):'
@@ -80,9 +80,9 @@ inherited gdc_dlgField: Tgdc_dlgField
           Height = 17
           AutoSize = False
           Caption = '  Общие сведения'
-          Color = clBlack
+          Color = clActiveCaption
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindow
+          Font.Color = clCaptionText
           Font.Height = -11
           Font.Name = 'Tahoma'
           Font.Style = [fsBold]
@@ -133,9 +133,9 @@ inherited gdc_dlgField: Tgdc_dlgField
           Height = 17
           AutoSize = False
           Caption = '  Тип данных'
-          Color = clBlack
+          Color = clActiveCaption
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindow
+          Font.Color = clCaptionText
           Font.Height = -11
           Font.Name = 'Tahoma'
           Font.Style = [fsBold]
@@ -150,9 +150,9 @@ inherited gdc_dlgField: Tgdc_dlgField
           Height = 17
           AutoSize = False
           Caption = '  Контроль содержимого поля'
-          Color = clBlack
+          Color = clActiveCaption
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindow
+          Font.Color = clCaptionText
           Font.Height = -11
           Font.Name = 'Tahoma'
           Font.Style = [fsBold]
@@ -180,7 +180,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Width = 529
           Height = 17
           AutoSize = False
-          Color = clBlack
+          Color = clActiveCaption
           Font.Charset = RUSSIAN_CHARSET
           Font.Color = clWindow
           Font.Height = -11
@@ -194,7 +194,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Top = 31
           Width = 534
           Height = 183
-          ActivePage = tsString
+          ActivePage = tsSet
           HotTrack = True
           MultiLine = True
           RaggedRight = True
@@ -210,14 +210,14 @@ inherited gdc_dlgField: Tgdc_dlgField
               Width = 526
               Height = 152
               Align = alClient
-              BevelInner = bvLowered
+              BevelOuter = bvNone
               TabOrder = 0
               object Label1: TLabel
                 Left = 200
                 Top = 16
-                Width = 74
+                Width = 158
                 Height = 13
-                Caption = 'Длина строки:'
+                Caption = 'Длина строки (от 1 до 32 000):'
               end
               object rgString: TRadioGroup
                 Left = 12
@@ -231,7 +231,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 TabOrder = 0
               end
               object edStringLength: TEdit
-                Left = 280
+                Left = 368
                 Top = 13
                 Width = 61
                 Height = 21
@@ -249,7 +249,7 @@ inherited gdc_dlgField: Tgdc_dlgField
               Width = 526
               Height = 152
               Align = alClient
-              BevelInner = bvLowered
+              BevelOuter = bvNone
               TabOrder = 0
               object rgNumeric: TRadioGroup
                 Left = 12
@@ -275,16 +275,16 @@ inherited gdc_dlgField: Tgdc_dlgField
                 object lblPrecision: TLabel
                   Left = 17
                   Top = 21
-                  Width = 99
+                  Width = 132
                   Height = 13
-                  Caption = 'Кол-во цифр всего:'
+                  Caption = 'Кол-во цифр всего (1-18):'
                 end
                 object lblScale: TLabel
                   Left = 17
                   Top = 47
-                  Width = 149
+                  Width = 158
                   Height = 13
-                  Caption = 'Количество цифр для дроби:'
+                  Caption = 'Количество десятичных цифр:'
                 end
                 object edPrecision: TEdit
                   Left = 182
@@ -314,7 +314,7 @@ inherited gdc_dlgField: Tgdc_dlgField
               Width = 526
               Height = 152
               Align = alClient
-              BevelInner = bvLowered
+              BevelOuter = bvNone
               TabOrder = 0
               object rgData: TRadioGroup
                 Left = 12
@@ -339,7 +339,7 @@ inherited gdc_dlgField: Tgdc_dlgField
               Width = 526
               Height = 152
               Align = alClient
-              BevelInner = bvLowered
+              BevelOuter = bvNone
               TabOrder = 0
               object lblSubType: TLabel
                 Left = 198
@@ -408,7 +408,7 @@ inherited gdc_dlgField: Tgdc_dlgField
               Width = 526
               Height = 152
               Align = alClient
-              BevelInner = bvLowered
+              BevelOuter = bvNone
               TabOrder = 0
               object Label3: TLabel
                 Left = 12
@@ -511,7 +511,7 @@ inherited gdc_dlgField: Tgdc_dlgField
               Width = 526
               Height = 152
               Align = alClient
-              BevelInner = bvLowered
+              BevelOuter = bvNone
               TabOrder = 0
               object Label16: TLabel
                 Left = 12
@@ -575,7 +575,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 KeyField = 'id'
                 SortOrder = soAsc
                 gdClassName = 'TgdcTable'
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 0
@@ -598,7 +598,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Condition = 'RELATIONKEY = -1'
                 gdClassName = 'TgdcTableField'
                 OnCreateNewObject = luSetListFieldCreateNewObject
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 1
@@ -640,28 +640,28 @@ inherited gdc_dlgField: Tgdc_dlgField
               Width = 526
               Height = 152
               Align = alClient
-              BevelInner = bvLowered
+              BevelOuter = bvNone
               TabOrder = 0
               object Label6: TLabel
                 Left = 8
                 Top = 8
-                Width = 86
+                Width = 90
                 Height = 13
-                Caption = 'Список значений'
+                Caption = 'Список значений:'
               end
               object lValNum: TLabel
                 Left = 286
                 Top = 22
-                Width = 48
+                Width = 212
                 Height = 13
-                Caption = 'Значение'
+                Caption = 'Значение (символ латинского алфавита):'
               end
               object Label11: TLabel
                 Left = 286
                 Top = 62
-                Width = 73
+                Width = 77
                 Height = 13
-                Caption = 'Наименование'
+                Caption = 'Наименование:'
               end
               object lvNumeration: TListView
                 Left = 8
@@ -701,7 +701,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Left = 286
                 Top = 105
                 Width = 75
-                Height = 25
+                Height = 21
                 Action = acAddNumeration
                 TabOrder = 3
               end
@@ -709,7 +709,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Left = 366
                 Top = 105
                 Width = 75
-                Height = 25
+                Height = 21
                 Action = acDeleteNumeration
                 TabOrder = 4
               end
@@ -717,7 +717,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Left = 446
                 Top = 105
                 Width = 75
-                Height = 25
+                Height = 21
                 Action = actReplaceNum
                 TabOrder = 5
               end
@@ -725,7 +725,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           end
         end
         object cbAlwaysNotNull: TCheckBox
-          Left = 15
+          Left = 14
           Top = 306
           Width = 256
           Height = 17
@@ -773,9 +773,9 @@ inherited gdc_dlgField: Tgdc_dlgField
           Height = 17
           Alignment = taLeftJustify
           Caption = ' Символьная кодировка языка'
-          Color = clBlack
+          Color = clActiveCaption
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindow
+          Font.Color = clCaptionText
           Font.Height = -11
           Font.Name = 'Tahoma'
           Font.Style = [fsBold]
@@ -815,9 +815,9 @@ inherited gdc_dlgField: Tgdc_dlgField
           Height = 17
           AutoSize = False
           Caption = '  Визуальные настройки'
-          Color = clBlack
+          Color = clActiveCaption
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindow
+          Font.Color = clCaptionText
           Font.Height = -11
           Font.Name = 'Tahoma'
           Font.Style = [fsBold]

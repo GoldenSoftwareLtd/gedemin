@@ -152,6 +152,7 @@ begin
           'END ';
         ExecQuery;
 
+        (*
         SQL.Text :=
           'ALTER PROCEDURE AT_P_SYNC_TRIGGERS_ALL '#13#10 +
           'AS '#13#10 +
@@ -215,6 +216,7 @@ begin
           ' '#13#10 +
           'END ';
         ExecQuery;
+        *)
 
         SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +

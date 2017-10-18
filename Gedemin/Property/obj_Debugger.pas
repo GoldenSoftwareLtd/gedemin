@@ -433,6 +433,9 @@ uses
   ComServ, gd_security, prp_PropertySettings,
   prp_DOCKFORM_unit, prp_MessageConst,
   prp_frmClassesInspector_unit, JclStrings, controls
+  {$IFDEF WITH_INDY}
+    , gdccClient_unit
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1035,6 +1038,11 @@ begin
     LRuntimeRec.FunctionKey := FunctionKey;
     LRuntimeRec.RuntimeTicks := GetTickCount;
     LRuntimeRec.BeginTime := Now;
+    {$IFDEF WITH_INDY}
+    LRuntimeRec.PerfCounter := gdccClient.StartPerfCounter('vbs', FunctionName);
+    {$ELSE}
+    LRuntimeRec.PerfCounter := -1;
+    {$ENDIF}
     FRuntimeList.Add(LRuntimeRec);
   except
     {$IFDEF DEBUG}
@@ -1051,6 +1059,10 @@ begin
   begin
     LRuntimeRec := FRuntimeList.LastRec;
     LRuntimeRec.RuntimeTicks := GetTickCount - FRuntimeList.LastRec.RuntimeTicks;
+    {$IFDEF WITH_INDY}
+    gdccClient.StopPerfCounter(LRuntimeRec.PerfCounter);
+    LRuntimeRec.PerfCounter := -1;
+    {$ENDIF}
     FResultRuntimeList.Add(LRuntimeRec);
     if Assigned(FOnEndScript) then
       FOnEndScript(Self, LRuntimeRec);

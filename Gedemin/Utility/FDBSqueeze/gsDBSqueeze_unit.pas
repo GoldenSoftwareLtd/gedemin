@@ -12,7 +12,7 @@ const
   PROIZVOLNYE_TRRECORD_KEY = 807100;     // AC_TRRECORD.id WHERE transactionkey = PROIZVOLNYE_TRANSACTION_KEY
   OSTATKY_ACCOUNT_KEY = 300003;          // AC_ACCOUNT.id WHERE fullname = 00 ќстатки
   HOZOPERATION_DOCTYPE_KEY = 806001;     // gd_documenttype.id WHERE name = ’оз€йственна€ операци€
-  MAX_PROGRESS_STEP = 12500;                     
+  MAX_PROGRESS_STEP = 12500;
   PROGRESS_STEP = MAX_PROGRESS_STEP div 100;
   INCLUDE_HIS_PROGRESS_STEP = PROGRESS_STEP*16;
   INV_CARD_UPDATE_FEATURES_LIST = '''USR$INV_ADDLINEKEY'', ''USR$INV_MOVEDOCKEY'', ''USR$INV_BILLLINEKEY'', ''USR$INV_PRMETALKEY'', ''USR$WC_STARTUPDOCKEY'', ''USR$WC_CONSERVREVDOCKEY'', ''USR$WC_CONSERVATIONDOCKEY''';
@@ -1680,17 +1680,21 @@ begin
       '   c.rdb$relation_name, ' +                                              #13#10 +
       '   c.rdb$constraint_name, ' +                                            #13#10 +
       '   c.rdb$constraint_type, ' +                                            #13#10 +
-      '   i.List_Fields ' +                                                     #13#10 +
+      '   LIST(i.Field_Name) ' +                                                #13#10 +
       ' FROM ' +                                                                #13#10 +
       '   rdb$relation_constraints c ' +                                        #13#10 +
-      '   JOIN (SELECT inx.rdb$index_name, ' +                                  #13#10 +
-      '     LIST(TRIM(inx.rdb$field_name)) AS List_Fields ' +                   #13#10 +
+      '   JOIN ( ' +                                                            #13#10 +
+      '     SELECT ' +                                                          #13#10 +
+      '       inx.rdb$index_name, ' +                                           #13#10 +
+      '       TRIM(inx.rdb$field_name) AS Field_Name ' +                        #13#10 +
       '     FROM rdb$index_segments inx ' +                                     #13#10 +
-      '     GROUP BY inx.rdb$index_name ' +                                     #13#10 +
+      '     ORDER BY inx.rdb$field_position ASC ' +                             #13#10 +
       '   ) i ON c.rdb$index_name = i.rdb$index_name ' +                        #13#10 +
       ' WHERE ' +                                                               #13#10 +
       '   (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'')  ' + #13#10 +
-      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ';
+      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                      #13#10 +
+      'GROUP BY ' +                                                             #13#10 +
+      '  1, 2, 3 ';
     ExecSqlLogEvent(q, 'SaveMetadata');
 
     // »мена таблиц и их пол€ PK, которыe подход€т дл€ обработки
@@ -1718,28 +1722,40 @@ begin
       '  constraint_name, relation_name, ref_relation_name, ' +                 #13#10 +
       '  update_rule, delete_rule, list_fields, list_ref_fields) ' +            #13#10 +
       'SELECT ' +                                                               #13#10 +
-      '  c.rdb$constraint_name         AS Constraint_Name, ' +                  #13#10 +
-      '  c.rdb$relation_name           AS Relation_Name, ' +                    #13#10 +
-      '  c2.rdb$relation_name          AS Ref_Relation_Name, ' +                #13#10 +
-      '  refc.rdb$update_rule          AS Update_Rule, ' +                      #13#10 +
-      '  refc.rdb$delete_rule          AS Delete_Rule, ' +                      #13#10 +
-      '  LIST(iseg.rdb$field_name)     AS Fields, ' +                           #13#10 +
-      '  LIST(ref_iseg.rdb$field_name) AS Ref_Fields ' +                        #13#10 +
-      'FROM ' +                                                                 #13#10 +
-      '  rdb$relation_constraints c ' +                                         #13#10 +
-      '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +
-      '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +              #13#10 +
-      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                                   #13#10 +
-      '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +               #13#10 +
-      '  JOIN RDB$INDEX_SEGMENTS iseg ' +                                       #13#10 +
-      '    ON iseg.rdb$index_name = c.rdb$index_name ' +                        #13#10 +
-      '  JOIN RDB$INDEX_SEGMENTS ref_iseg ' +                                   #13#10 +
-      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +                   #13#10 +
-      'WHERE ' +                                                                #13#10 +
-      '  c.rdb$constraint_type = ''FOREIGN KEY''  ' +                           #13#10 +
-      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                       #13#10 +
-      'GROUP BY ' +                                                             #13#10 +
-      '  1, 2, 3, 4, 5';
+      '  c.rdb$constraint_name         AS Constraint_Name, ' +                  #13#10 +                                                  
+      '  c.rdb$relation_name           AS Relation_Name, ' +                    #13#10 +                                                
+      '  c2.rdb$relation_name          AS Ref_Relation_Name, ' +                #13#10 +                                                    
+      '  refc.rdb$update_rule          AS Update_Rule, ' +                      #13#10 +                                              
+      '  refc.rdb$delete_rule          AS Delete_Rule, ' +                      #13#10 +                                              
+      '  LIST(iseg.Field_Name)         AS Fields, ' +                           #13#10 +                                          
+      '  LIST(ref_iseg.Field_Name)     AS Ref_Fields ' +                        #13#10 +                                            
+      'FROM ' +                                                                 #13#10 +    
+      '  rdb$relation_constraints c ' +                                         #13#10 +                            
+      '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +                              
+      '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +              #13#10 +                                                      
+      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                                   #13#10 +                                  
+      '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +               #13#10 +                                                      
+      '  JOIN ( ' +                                                             #13#10 +        
+      '    SELECT ' +                                                           #13#10 +          
+      '      i.rdb$index_name          AS Index_Name, ' +                       #13#10 +                                              
+      '      i.rdb$field_name          AS Field_Name, ' +                       #13#10 +                                              
+      '      i.rdb$field_position ' +                                           #13#10 +                          
+      '    FROM RDB$INDEX_SEGMENTS i ' +                                        #13#10 +                            
+      '    ORDER BY i.rdb$field_position ASC ' +                                #13#10 +                                    
+      '  ) iseg ON iseg.Index_Name = c.rdb$index_name ' +                       #13#10 +                                              
+      '  JOIN ( ' +                                                             #13#10 +        
+      '    SELECT ' +                                                           #13#10 +          
+      '      ref_i.rdb$index_name      AS Index_Name, ' +                       #13#10 +
+      '      ref_i.rdb$field_name      AS Field_Name, ' +                       #13#10 +
+      '      ref_i.rdb$field_position ' +                                       #13#10 +                              
+      '    FROM RDB$INDEX_SEGMENTS ref_i ' +                                    #13#10 +
+      '    ORDER BY ref_i.rdb$field_position ASC ' +                            #13#10 +                                        
+      '  ) ref_iseg ON ref_iseg.Index_Name = c2.rdb$index_name ' +              #13#10 +
+      'WHERE ' +                                                                #13#10 +    
+      '  c.rdb$constraint_type = ''FOREIGN KEY'' ' +                            #13#10 +                                      
+      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                       #13#10 +                                            
+      'GROUP BY ' +                                                             #13#10 +        
+      '  1, 2, 3, 4, 5 ';
     ExecSqlLogEvent(q, 'SaveMetadata');
 
     Tr.Commit;
@@ -3739,18 +3755,30 @@ begin
       '  TRIM(c2.rdb$relation_name         ) AS RefRelationName, ' +            #13#10 +
       '  TRIM(refc.rdb$update_rule         ) AS UpdateRule, ' +                 #13#10 +
       '  TRIM(refc.rdb$delete_rule         ) AS DeleteRule, ' +                 #13#10 +
-      '  TRIM(LIST(iseg.rdb$field_name)    ) AS Fields, ' +                     #13#10 +
-      '  TRIM(LIST(ref_iseg.rdb$field_name)) AS RefFields ' +                   #13#10 +
+      '  TRIM(LIST(iseg.Field_Name)        ) AS Fields, ' +                     #13#10 +
+      '  TRIM(LIST(ref_iseg.Field_Name)    ) AS RefFields ' +                   #13#10 +
       'FROM ' +                                                                 #13#10 +
       '  rdb$relation_constraints c ' +                                         #13#10 +
       '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +
       '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +              #13#10 +
       '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                                   #13#10 +
       '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +               #13#10 +
-      '  JOIN RDB$INDEX_SEGMENTS iseg ' +                                       #13#10 +
-      '    ON iseg.rdb$index_name = c.rdb$index_name ' +                        #13#10 +
-      '  JOIN RDB$INDEX_SEGMENTS ref_iseg ' +                                   #13#10 +
-      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +                   #13#10 +
+      '  JOIN ( ' +                                                             #13#10 +        
+      '    SELECT ' +                                                           #13#10 +          
+      '      i.rdb$index_name          AS Index_Name, ' +                       #13#10 +                                              
+      '      i.rdb$field_name          AS Field_Name, ' +                       #13#10 +                                              
+      '      i.rdb$field_position ' +                                           #13#10 +                          
+      '    FROM RDB$INDEX_SEGMENTS i ' +                                        #13#10 +                            
+      '    ORDER BY i.rdb$field_position ASC ' +                                #13#10 +                                    
+      '  ) iseg ON iseg.Index_Name = c.rdb$index_name ' +                       #13#10 +                                              
+      '  JOIN ( ' +                                                             #13#10 +        
+      '    SELECT ' +                                                           #13#10 +          
+      '      ref_i.rdb$index_name      AS Index_Name, ' +                       #13#10 +                                              
+      '      ref_i.rdb$field_name      AS Field_Name, ' +                       #13#10 +                                              
+      '      ref_i.rdb$field_position ' +                                       #13#10 +                              
+      '    FROM RDB$INDEX_SEGMENTS ref_i ' +                                    #13#10 +                                
+      '    ORDER BY ref_i.rdb$field_position ASC ' +                            #13#10 +                                        
+      '  ) ref_iseg ON ref_iseg.Index_Name = c2.rdb$index_name ' +              #13#10 +             
       'WHERE ' +                                                                #13#10 +
       '  c.rdb$relation_name =''INV_CARD'' ' +                                  #13#10 +
       '  AND c.rdb$constraint_type = ''FOREIGN KEY''  ' +                       #13#10 +
@@ -3786,23 +3814,25 @@ begin
 
     // удаление Uniques
     q2.SQL.Text :=
-      'SELECT ' +                                                  #13#10 +
-      '   c.rdb$constraint_name, ' +                               #13#10 +
-      '   c.rdb$constraint_type, ' +                               #13#10 +
-      '   i.ListFields ' +                                         #13#10 +
-      ' FROM ' +                                                   #13#10 +
-      '   rdb$relation_constraints c ' +                           #13#10 +
-      '   JOIN ( ' +                                               #13#10 +
-      '     SELECT ' +                                             #13#10 +
-      '       inx.rdb$index_name, ' +                              #13#10 +
-      '       LIST(TRIM(inx.rdb$field_name)) AS ListFields ' +     #13#10 +
-      '     FROM rdb$index_segments inx ' +                        #13#10 +
-      '     GROUP BY inx.rdb$index_name ' +                        #13#10 +
-      '   ) i ON c.rdb$index_name = i.rdb$index_name ' +           #13#10 +
-      ' WHERE ' +                                                  #13#10 +
-      '   c.rdb$relation_name = ''INV_CARD'' ' +                   #13#10 +
-      '   AND c.rdb$constraint_type = ''UNIQUE''  ' +              #13#10 +
-      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ';
+      'SELECT ' +                                                               #13#10 +
+      '   c.rdb$constraint_name, ' +                                            #13#10 +
+      '   c.rdb$constraint_type, ' +                                            #13#10 +
+      '   LIST(i.Field_Name) AS ListFields ' +                                  #13#10 +
+      ' FROM ' +                                                                #13#10 +
+      '   rdb$relation_constraints c ' +                                        #13#10 +
+      '   JOIN ( ' +                                                            #13#10 +
+      '     SELECT ' +                                                          #13#10 +
+      '       inx.rdb$index_name, ' +                                           #13#10 +
+      '       TRIM(inx.rdb$field_name) AS Field_Name ' +                        #13#10 +
+      '     FROM rdb$index_segments inx ' +                                     #13#10 +
+      '     ORDER BY inx.rdb$field_position ASC ' +                             #13#10 +
+      '   ) i ON c.rdb$index_name = i.rdb$index_name ' +                        #13#10 +
+      ' WHERE ' +                                                               #13#10 +
+      '   c.rdb$relation_name = ''INV_CARD'' ' +                                #13#10 +
+      '   AND c.rdb$constraint_type = ''UNIQUE''  ' +                           #13#10 +
+      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                      #13#10 +
+      'GROUP BY ' +                                                             #13#10 +
+      '  1, 2 ';
     if not FDoStopProcessing then
       ExecSqlLogEvent(q2, 'UpdateInvCard');
 
@@ -4158,23 +4188,29 @@ begin
     // сохранение запросов дл€ переприв€зки 
 
     q2.SQL.Text :=
-      'SELECT ' +                                                  #13#10 +
-      '  TRIM(c.rdb$relation_name)           AS relation_name, ' + #13#10 +
-      '  LIST(TRIM(iseg.rdb$field_name))     AS fk_fields ' +      #13#10 +
-      'FROM ' +                                                    #13#10 +
-      '  rdb$relation_constraints c  ' +                           #13#10 +
-      '  JOIN RDB$REF_CONSTRAINTS refc ' +                         #13#10 +
-      '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' + #13#10 +
-      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                      #13#10 +
-      '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +  #13#10 +
-      '  JOIN RDB$INDEX_SEGMENTS iseg ' +                          #13#10 +
-      '    ON iseg.rdb$index_name = c.rdb$index_name ' +           #13#10 +
-      'WHERE ' +                                                   #13#10 +
-      '  c2.rdb$relation_name = ''INV_CARD'' ' +                   #13#10 +
-      '  AND c.rdb$relation_name <> ''INV_BALANCE'' '  +           #13#10 +
-      '  AND c.rdb$constraint_type = ''FOREIGN KEY'' ' +           #13#10 +
-      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +          #13#10 +
-      'GROUP BY ' +                                                #13#10 +
+      'SELECT ' +                                                               #13#10 +
+      '  TRIM(c.rdb$relation_name)           AS relation_name, ' +              #13#10 +
+      '  LIST(TRIM(iseg.Field_Name))         AS fk_fields ' +                   #13#10 +
+      'FROM ' +                                                                 #13#10 +
+      '  rdb$relation_constraints c  ' +                                        #13#10 +
+      '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +
+      '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +              #13#10 +
+      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                                   #13#10 +
+      '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +               #13#10 +
+      '  JOIN ( ' +                                                             #13#10 +
+      '    SELECT ' +                                                           #13#10 +
+      '      i.rdb$index_name                AS Index_Name, ' +                 #13#10 +
+      '      i.rdb$field_name                AS Field_Name, ' +                 #13#10 +
+      '      i.rdb$field_position ' +                                           #13#10 +
+      '    FROM RDB$INDEX_SEGMENTS i ' +                                        #13#10 +
+      '    ORDER BY i.rdb$field_position ASC ' +                                #13#10 +
+      '  ) iseg ON iseg.Index_Name = c.rdb$index_name ' +                       #13#10 +
+      'WHERE ' +                                                                #13#10 +
+      '  c2.rdb$relation_name = ''INV_CARD'' ' +                                #13#10 +
+      '  AND c.rdb$relation_name <> ''INV_BALANCE'' '  +                        #13#10 +
+      '  AND c.rdb$constraint_type = ''FOREIGN KEY'' ' +                        #13#10 +
+      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                       #13#10 +
+      'GROUP BY ' +                                                             #13#10 +
       '  c.rdb$relation_name, c2.rdb$relation_name ';
     ExecSqlLogEvent(q2, 'MergeCards');
 
@@ -4272,18 +4308,30 @@ begin
       '  TRIM(c2.rdb$relation_name         ) AS RefRelationName, ' +            #13#10 +
       '  TRIM(refc.rdb$update_rule         ) AS UpdateRule, ' +                 #13#10 +
       '  TRIM(refc.rdb$delete_rule         ) AS DeleteRule, ' +                 #13#10 +
-      '  TRIM(LIST(iseg.rdb$field_name)    ) AS Fields, ' +                     #13#10 +
-      '  TRIM(LIST(ref_iseg.rdb$field_name)) AS RefFields ' +                   #13#10 +
+      '  TRIM(LIST(iseg.Field_Name)        ) AS Fields, ' +                     #13#10 +
+      '  TRIM(LIST(ref_iseg.Field_Name)    ) AS RefFields ' +                   #13#10 +
       'FROM ' +                                                                 #13#10 +
       '  rdb$relation_constraints c ' +                                         #13#10 +
       '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +
       '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +              #13#10 +
       '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                                   #13#10 +
       '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +               #13#10 +
-      '  JOIN RDB$INDEX_SEGMENTS iseg ' +                                       #13#10 +
-      '    ON iseg.rdb$index_name = c.rdb$index_name ' +                        #13#10 +
-      '  JOIN RDB$INDEX_SEGMENTS ref_iseg ' +                                   #13#10 +
-      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +                   #13#10 +
+      '  JOIN ( ' +                                                             #13#10 +
+      '    SELECT ' +                                                           #13#10 +
+      '      i.rdb$index_name                AS Index_Name, ' +                 #13#10 +
+      '      i.rdb$field_name                AS Field_Name, ' +                 #13#10 +
+      '      i.rdb$field_position ' +                                           #13#10 +
+      '    FROM RDB$INDEX_SEGMENTS i ' +                                        #13#10 +
+      '    ORDER BY i.rdb$field_position ASC ' +                                #13#10 +
+      '  ) iseg ON iseg.Index_Name = c.rdb$index_name ' +                       #13#10 +
+      '  JOIN ( ' +                                                             #13#10 +
+      '    SELECT ' +                                                           #13#10 +
+      '      ref_i.rdb$index_name            AS Index_Name, ' +                 #13#10 +
+      '      ref_i.rdb$field_name            AS Field_Name, ' +                 #13#10 +
+      '      ref_i.rdb$field_position ' +                                       #13#10 +
+      '    FROM RDB$INDEX_SEGMENTS ref_i ' +                                    #13#10 +
+      '    ORDER BY ref_i.rdb$field_position ASC ' +                            #13#10 +
+      '  ) ref_iseg ON ref_iseg.Index_Name = c2.rdb$index_name ' +              #13#10 +
       'WHERE ' +                                                                #13#10 +
       '  c.rdb$relation_name IN(''INV_CARD'',''INV_MOVEMENT'') ' +              #13#10 +
       '  AND c2.rdb$relation_name <> ''INV_CARD'' ' +                           #13#10 +
@@ -4323,24 +4371,26 @@ begin
     // удаление Uniques
 
     q2.SQL.Text :=
-      'SELECT ' +                                                  #13#10 +
-      '   c.rdb$constraint_name, ' +                               #13#10 +
-      '   TRIM(c.rdb$relation_name) AS RelationName, ' +           #13#10 +
-      '   c.rdb$constraint_type, ' +                               #13#10 +
-      '   i.ListFields ' +                                         #13#10 +
-      ' FROM ' +                                                   #13#10 +
-      '   rdb$relation_constraints c ' +                           #13#10 +
-      '   JOIN ( ' +                                               #13#10 +
-      '     SELECT ' +                                             #13#10 +
-      '       inx.rdb$index_name, ' +                              #13#10 +
-      '       LIST(TRIM(inx.rdb$field_name)) AS ListFields ' +     #13#10 +
-      '     FROM rdb$index_segments inx ' +                        #13#10 +
-      '     GROUP BY inx.rdb$index_name ' +                        #13#10 +
-      '   ) i ON c.rdb$index_name = i.rdb$index_name ' +           #13#10 +
-      ' WHERE ' +                                                  #13#10 +
-      '   c.rdb$relation_name IN(''INV_CARD'',''INV_MOVEMENT'') ' +#13#10 +
-      '   AND c.rdb$constraint_type = ''UNIQUE''  ' +              #13#10 +
-      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ';
+      'SELECT ' +                                                               #13#10 +
+      '   c.rdb$constraint_name, ' +                                            #13#10 +
+      '   TRIM(c.rdb$relation_name)   AS RelationName, ' +                      #13#10 +
+      '   c.rdb$constraint_type, ' +                                            #13#10 +
+      '   LIST(i.Field_Name)          AS ListFields ' +                         #13#10 +
+      ' FROM ' +                                                                #13#10 +
+      '   rdb$relation_constraints c ' +                                        #13#10 +
+      '   JOIN ( ' +                                                            #13#10 +
+      '     SELECT ' +                                                          #13#10 +
+      '       inx.rdb$index_name, ' +                                           #13#10 +
+      '       TRIM(inx.rdb$field_name) AS Field_Name ' +                        #13#10 +
+      '     FROM rdb$index_segments inx ' +                                     #13#10 +
+      '     ORDER BY inx.rdb$field_position ASC ' +                             #13#10 +
+      '   ) i ON c.rdb$index_name = i.rdb$index_name ' +                        #13#10 +
+      ' WHERE ' +                                                               #13#10 +
+      '   c.rdb$relation_name IN(''INV_CARD'',''INV_MOVEMENT'') ' +             #13#10 +
+      '   AND c.rdb$constraint_type = ''UNIQUE''  ' +                           #13#10 +
+      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                      #13#10 +
+      'GROUP BY ' +                                                             #13#10 +
+      '  1, 2, 3 ';
     if not FDoStopProcessing then
       ExecSqlLogEvent(q2, 'MergeCards');
 
@@ -4417,18 +4467,30 @@ begin
       '  TRIM(c2.rdb$relation_name         ) AS RefRelationName, ' +            #13#10 +
       '  TRIM(refc.rdb$update_rule         ) AS UpdateRule, ' +                 #13#10 +
       '  TRIM(refc.rdb$delete_rule         ) AS DeleteRule, ' +                 #13#10 +
-      '  TRIM(LIST(iseg.rdb$field_name)    ) AS Fields, ' +                     #13#10 +
-      '  TRIM(LIST(ref_iseg.rdb$field_name)) AS RefFields ' +                   #13#10 +
+      '  TRIM(LIST(iseg.Field_Name)        ) AS Fields, ' +                     #13#10 +
+      '  TRIM(LIST(ref_iseg.Field_Name)    ) AS RefFields ' +                   #13#10 +
       'FROM ' +                                                                 #13#10 +
       '  rdb$relation_constraints c ' +                                         #13#10 +
       '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +
       '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +              #13#10 +
       '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                                   #13#10 +
       '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +               #13#10 +
-      '  JOIN RDB$INDEX_SEGMENTS iseg ' +                                       #13#10 +
-      '    ON iseg.rdb$index_name = c.rdb$index_name ' +                        #13#10 +
-      '  JOIN RDB$INDEX_SEGMENTS ref_iseg ' +                                   #13#10 +
-      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +                   #13#10 +
+      '  JOIN ( ' +                                                             #13#10 +
+      '    SELECT ' +                                                           #13#10 +
+      '      i.rdb$index_name          AS Index_Name, ' +                       #13#10 +
+      '      i.rdb$field_name          AS Field_Name, ' +                       #13#10 +
+      '      i.rdb$field_position ' +                                           #13#10 +
+      '    FROM RDB$INDEX_SEGMENTS i ' +                                        #13#10 +
+      '    ORDER BY i.rdb$field_position ASC ' +                                #13#10 +
+      '  ) iseg ON iseg.Index_Name = c.rdb$index_name ' +                       #13#10 +
+      '  JOIN ( ' +                                                             #13#10 +
+      '    SELECT ' +                                                           #13#10 +
+      '      ref_i.rdb$index_name      AS Index_Name, ' +                       #13#10 +
+      '      ref_i.rdb$field_name      AS Field_Name, ' +                       #13#10 +
+      '      ref_i.rdb$field_position ' +                                       #13#10 +
+      '    FROM RDB$INDEX_SEGMENTS ref_i ' +                                    #13#10 +
+      '    ORDER BY ref_i.rdb$field_position ASC ' +                            #13#10 +
+      '  ) ref_iseg ON ref_iseg.Index_Name = c2.rdb$index_name ' +              #13#10 +
       'WHERE ' +                                                                #13#10 +
       '  c.rdb$relation_name = ''INV_CARD'' ' +                                 #13#10 +
       '  AND c2.rdb$relation_name = ''INV_CARD'' ' +                            #13#10 +

@@ -1,6 +1,6 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 409
-  Top = 101
+  Left = 471
+  Top = 142
   Width = 969
   Height = 85
   HelpContext = 76
@@ -148,6 +148,9 @@ object frmGedeminMain: TfrmGedeminMain
           end
           object tbiTables: TTBItem
             Action = actTables
+          end
+          object TBItem30: TTBItem
+            Action = actDBTriggers
           end
         end
         object tbiDocumentType: TTBItem
@@ -784,6 +787,12 @@ object frmGedeminMain: TfrmGedeminMain
       Caption = 'Перезагрузка платформы'
       OnExecute = actReloadExecute
       OnUpdate = actExitUpdate
+    end
+    object actDBTriggers: TAction
+      Category = 'Service'
+      Caption = 'Триггеры БД'
+      ImageIndex = 0
+      OnExecute = actDBTriggersExecute
     end
   end
   object IBTransaction: TIBTransaction

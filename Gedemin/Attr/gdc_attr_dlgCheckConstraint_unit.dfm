@@ -31,37 +31,37 @@ inherited gdc_dlgCheckConstraint: Tgdc_dlgCheckConstraint
     Left = 8
     Top = 110
     Anchors = [akLeft, akBottom]
-    TabOrder = 4
+    TabOrder = 5
   end
   inherited btnNew: TButton
     Left = 80
     Top = 110
     Anchors = [akLeft, akBottom]
-    TabOrder = 5
+    TabOrder = 6
+  end
+  inherited btnHelp: TButton
+    Left = 152
+    Top = 110
+    Anchors = [akLeft, akBottom]
+    TabOrder = 7
   end
   inherited btnOK: TButton
     Left = 327
     Top = 110
     Anchors = [akRight, akBottom]
-    TabOrder = 2
+    TabOrder = 3
   end
   inherited btnCancel: TButton
     Left = 399
     Top = 110
     Height = 22
     Anchors = [akRight, akBottom]
-    TabOrder = 3
-  end
-  inherited btnHelp: TButton
-    Left = 152
-    Top = 110
-    Anchors = [akLeft, akBottom]
-    TabOrder = 6
+    TabOrder = 4
   end
   object dbeCheckName: TDBEdit [8]
     Left = 176
     Top = 9
-    Width = 129
+    Width = 290
     Height = 21
     DataField = 'checkname'
     DataSource = dsgdcBase
@@ -83,6 +83,6 @@ inherited gdc_dlgCheckConstraint: Tgdc_dlgCheckConstraint
     Height = 21
     DataField = 'MSG'
     DataSource = dsgdcBase
-    TabOrder = 7
+    TabOrder = 2
   end
 end

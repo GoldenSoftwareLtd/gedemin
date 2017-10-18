@@ -398,7 +398,7 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE AT_P_SYNC_TRIGGERS (
+CREATE OR ALTER PROCEDURE AT_P_SYNC_TRIGGERS (
     RELATION_NAME VARCHAR (31))
 AS
   DECLARE VARIABLE RN VARCHAR(31);
@@ -602,7 +602,9 @@ BEGIN
       ON t.triggername=rdb$trigger_name
     LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
     WHERE
-     (t.triggername IS NULL) and (r.id IS NOT NULL)
+     (t.triggername IS NULL) 
+     and (((r.id IS NOT NULL) and (rdb$trigger_type <=114)) 
+       or (rdb$trigger_type >=8192)) 
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
     RN = TRIM(RN);

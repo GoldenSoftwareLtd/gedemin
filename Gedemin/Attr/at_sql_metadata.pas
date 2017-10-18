@@ -156,7 +156,7 @@ begin
       FreeAndNil(frmIBUserList);
 
       if TransferToModal then
-        AddText('Начато изменение мета-данных.', clBlack);
+        AddText('Начато изменение мета-данных.');
 
       try
         ibsql.Transaction := FTransaction;
@@ -174,7 +174,7 @@ begin
           //  Вносим sql-скрипт
           try
             if OldScript = '' then
-              AddText(FOperations[0], clBlack);
+              AddText(FOperations[0]);
 
             ibsql.SQL.Text := FOperations[0];
 
@@ -226,7 +226,7 @@ begin
                 if FSuccessful[0] = '0' then
                 begin
                   AddMistake('Ошибка при выполнении скрипта: '#13#10 + E.Message +
-                  #13#10 + 'Скрипт будет удален!', clRed);
+                  #13#10 + 'Скрипт будет удален!');
                   CurrTransaction := FTransactions[0];
                   try
                     Self.FTransaction.Rollback;
@@ -237,7 +237,7 @@ begin
                       [FTransactions[0], FOrders[0]]);
                     ibsql.ExecQuery;
                     Self.FTransaction.Commit;
-                    AddMistake('Скрипт удален!', clRed);
+                    AddMistake('Скрипт удален!');
                   except
                   end;
                   Delete(0);
@@ -245,8 +245,8 @@ begin
                 begin
                   //Если выполнение скрипта обязательно,
                   //то выдаем запрос на удаление всех скриптов на этой транзакции
-                  AddMistake('Ошибка! Попробуйте перезагрузиться или обратитесь к администратору!', clRed);
-                  AddMistake(E.Message, clRed);
+                  AddMistake('Ошибка! Попробуйте перезагрузиться или обратитесь к администратору!');
+                  AddMistake(E.Message);
                   CurrTransaction := FTransactions[0];
 
                   if MessageBox(0, PChar('При выполнении скрипта '#13#10 +
@@ -266,7 +266,7 @@ begin
                       [FTransactions[0]]);
                     ibsql.ExecQuery;
                     Self.FTransaction.Commit;
-                    AddMistake('Скрипт удален!', clRed);
+                    AddMistake('Скрипт удален!');
                   except
                   end;
 
@@ -293,7 +293,7 @@ begin
           FTransaction.Rollback;
         if TransferToModal then
         begin
-          AddText('Закончено изменение мета-данных.', clBlack);
+          AddText('Закончено изменение мета-данных.');
           {$IFNDEF DUNIT_TEST}
           if Assigned(frmSQLProcess) then
           begin

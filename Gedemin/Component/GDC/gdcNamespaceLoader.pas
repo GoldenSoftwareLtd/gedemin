@@ -565,6 +565,7 @@ begin
 
       FPrevPosted := nil;
       FNeedRelogin := False;
+      //FNeedSyncTriggers := False;
       FMetadataCounter := 0;
       FlushStorages;
 
@@ -1569,6 +1570,7 @@ begin
     atDatabase.ForceLoadFromDatabase;
 
   FMetadataCounter := 0;
+  //FNeedSyncTriggers := True;
   FNeedRelogin := True;
 end;
 
@@ -1769,8 +1771,12 @@ end;
 
 procedure TgdcNamespaceLoader.ReloginDatabase;
 begin
-  AddText('Синхронизация триггеров и индексов...');
-  atDatabase.SyncIndicesAndTriggers(FTr);
+  {if FNeedSyncTriggers then
+  begin
+    AddText('Синхронизация триггеров и индексов...');
+    atDatabase.SyncIndicesAndTriggers(FTr);
+    FNeedSyncTriggers := False;
+  end;}
   AddText('Переподключение к базе данных...');
   IBLogin.Relogin;
   FNeedRelogin := False;

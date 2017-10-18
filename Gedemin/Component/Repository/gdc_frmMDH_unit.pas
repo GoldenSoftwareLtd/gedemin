@@ -176,6 +176,7 @@ type
     procedure DoCreate; override;
     function Get_SelectedKey: OleVariant; override; safecall;
     procedure DoShowAllFields(Sender: TObject); override;
+    procedure DoShowVisibleFields(Sender: TObject); override;
 
   public
     destructor Destroy; override;
@@ -1204,6 +1205,37 @@ begin
         nil{sSearchDetail},
         FFieldOriginDetail,
         FDetailPreservedConditions,
+        True);
+    end;
+  end else
+    inherited;
+end;
+
+procedure Tgdc_frmMDH.DoShowVisibleFields(Sender: TObject);
+var
+  I: Integer;
+begin
+  Assert(Sender is TWinControl);
+
+  if TWinControl(Sender).Parent = sbSearchDetail then
+  begin
+    if pnlSearchDetail.Visible then
+    begin
+      gdcDetailObject.ExtraConditions.Text := FDetailPreservedConditions;
+      FreeAndNil(FFieldOriginDetail);
+
+      for I := sbSearchDetail.ControlCount - 1 downto 0 do
+      begin
+        sbSearchDetail.Controls[I].Free;
+      end;
+
+      SetupSearchPanel(gdcDetailObject,
+        pnlSearchDetail,
+        sbSearchDetail,
+        nil{sSearchDetail},
+        FFieldOriginDetail,
+        FDetailPreservedConditions,
+        False,
         True);
     end;
   end else

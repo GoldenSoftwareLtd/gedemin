@@ -1,43 +1,35 @@
 inherited gdc_attr_dlgView: Tgdc_attr_dlgView
-  Left = 628
-  Top = 305
-  Width = 534
+  Left = 901
+  Top = 378
+  Width = 541
   HelpContext = 80
   Caption = 'Редактирование представления'
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Top = 474
-    TabOrder = 3
   end
   inherited btnNew: TButton
     Top = 474
-    TabOrder = 4
   end
   inherited btnHelp: TButton
     Top = 474
-    TabOrder = 5
   end
   inherited btnOK: TButton
-    Left = 367
     Top = 474
-    TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 441
+    Left = 448
     Top = 474
-    TabOrder = 2
   end
   inherited pcRelation: TPageControl
-    Width = 510
+    Width = 517
     Height = 470
-    TabOrder = 0
-    OnChange = pcRelationChange
     inherited tsCommon: TTabSheet
       Caption = 'Представление'
       inherited lblTableName: TLabel
-        Width = 251
-        Caption = 'Название представления (на английском языке):'
+        Width = 133
+        Caption = 'Название представления:'
       end
       inherited lblLName: TLabel
         Width = 219
@@ -51,43 +43,30 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
         Width = 134
         Caption = 'Описание представления:'
       end
-      inherited dbedRelationName: TDBEdit
-        Left = 264
-        Width = 237
+      inherited lblBranch: TLabel
+        Visible = False
       end
-      inherited dbedLRelationName: TDBEdit
-        Left = 264
-        Width = 237
+      inherited Label5: TLabel
+        Visible = False
       end
-      inherited dbeShortRelationName: TDBEdit
-        Left = 264
-        Width = 237
-      end
-      inherited dbeRelationDescription: TDBMemo
-        Left = 264
-        Width = 237
-      end
-      inherited ibcmbReference: TgsIBLookupComboBox
-        Left = 264
-        Width = 237
+      inherited Label6: TLabel
+        Visible = False
       end
       inherited iblcExplorerBranch: TgsIBLookupComboBox
-        Left = 264
-        Width = 237
-      end
-      inherited dbeExtendedFields: TDBEdit
-        Left = 264
-        Width = 237
-      end
-      inherited dbeListField: TDBEdit
-        Left = 264
-        Width = 237
+        Visible = False
       end
       inherited lClass: TEdit
-        Left = 264
+        Visible = False
       end
       inherited lSubType: TEdit
-        Left = 264
+        Visible = False
+      end
+      inherited Panel8: TPanel
+        Top = 394
+        Width = 509
+        inherited lblWarn: TLabel
+          Width = 501
+        end
       end
     end
     object tsView: TTabSheet [1]
@@ -97,8 +76,8 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
       object smViewBody: TSynMemo
         Left = 0
         Top = 0
-        Width = 498
-        Height = 397
+        Width = 505
+        Height = 438
         Cursor = crIBeam
         Align = alClient
         Font.Charset = DEFAULT_CHARSET
@@ -436,58 +415,43 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
             Command = ecMatchBracket
             ShortCut = 24642
           end>
-      end
-      object Panel4: TPanel
-        Left = 0
-        Top = 397
-        Width = 498
-        Height = 41
-        Align = alBottom
-        BevelOuter = bvNone
-        TabOrder = 1
-        object Panel5: TPanel
-          Left = 392
-          Top = 0
-          Width = 106
-          Height = 41
-          Align = alRight
-          BevelOuter = bvNone
-          TabOrder = 0
-          object btnCreateView: TButton
-            Left = 19
-            Top = 14
-            Width = 75
-            Height = 21
-            Action = actCreateView
-            Anchors = [akRight, akBottom]
-            TabOrder = 0
-          end
-        end
+        WantTabs = True
       end
     end
     inherited tsFields: TTabSheet
-      inherited ibgrRelationFields: TgsIBGrid
+      inherited ibgrTableField: TgsIBGrid
+        Width = 505
         Height = 412
       end
+      inherited TBDock1: TTBDock
+        Width = 505
+      end
     end
-    inherited tsTrigger: TTabSheet
+    inherited tsTriggers: TTabSheet
       inherited Panel1: TPanel
-        Width = 498
+        Width = 505
         Height = 438
-        inherited Splitter1: TSplitter
-          Width = 498
+        inherited splTrigger: TSplitter
+          Width = 505
         end
         inherited Panel2: TPanel
-          Width = 498
-          inherited tvTriggers: TTreeView
-            Width = 498
+          Width = 505
+          inherited ibgrTrigger: TgsIBGrid
+            Width = 505
+          end
+          inherited TBDock2: TTBDock
+            Width = 505
           end
         end
         inherited Panel3: TPanel
-          Width = 498
-          Height = 321
-          inherited smTriggerBody: TSynMemo
-            Height = 295
+          Width = 505
+          Height = 294
+          inherited dbseTriggerBody: TDBSynEdit
+            Width = 505
+            Height = 267
+          end
+          inherited Panel6: TPanel
+            Width = 505
           end
         end
       end
@@ -496,12 +460,25 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
       TabVisible = False
     end
     inherited tsConstraints: TTabSheet
-      inherited ibgrConstraints: TgsIBGrid
-        Height = 412
+      inherited ibgrCheckConstraint: TgsIBGrid
+        Width = 505
+        Height = 311
+      end
+      inherited TBDock4: TTBDock
+        Width = 505
+      end
+      inherited dbseConstraint: TDBSynEdit
+        Top = 342
+        Width = 505
+      end
+      inherited Panel7: TPanel
+        Top = 337
+        Width = 505
       end
     end
     inherited tsScript: TTabSheet
       inherited smScriptText: TSynMemo
+        Width = 505
         Height = 438
       end
     end
@@ -516,8 +493,6 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
     object actCreateView: TAction
       Caption = 'Создать'
       ImageIndex = 34
-      OnExecute = actCreateViewExecute
-      OnUpdate = actCreateViewUpdate
     end
   end
 end

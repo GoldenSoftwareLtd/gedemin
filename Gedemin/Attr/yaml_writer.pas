@@ -379,9 +379,9 @@ procedure TyamlWriter.WriteBCD(const Value: AnsiString);
 begin
   Assert(Value > '');
   if DecimalSeparator <> '.' then
-    WriteText(StringReplace(Value, DecimalSeparator, '.', []), qDoubleQuoted)
+    WriteBuffer(StringReplace(Value, DecimalSeparator, '.', []))
   else
-    WriteText(Value, qDoubleQuoted);
+    WriteBuffer(Value);
 end;
 
 procedure TyamlWriter.WriteLargeInt(const I: Int64);

@@ -65,8 +65,8 @@ var
 
 function TranslateText(const T: String): String;
 
-procedure AddText(const T: String; const C: TColor = clBlack);
-procedure AddMistake(const T: String; const C: TColor = clRed);
+procedure AddText(const T: String; const ASource: String = ''; const C: TColor = clBlack);
+procedure AddMistake(const T: String; const ASource: String = ''; const C: TColor = clRed);
 procedure AddWarning(const T: String; const C: TColor = clBlack);
 
 implementation
@@ -266,11 +266,11 @@ begin
 
 end;
 
-procedure AddMistake(const T: String; const C: TColor = clRed);
+procedure AddMistake(const T: String; const ASource: String = ''; const C: TColor = clRed);
 begin
   {$IFDEF WITH_INDY}
   if gdccClient <> nil then
-    gdccClient.AddLogRecord('', T, gdcc_lt_Error, True);
+    gdccClient.AddLogRecord(ASource, T, gdcc_lt_Error, True);
   {$ELSE}
   if Windows.GetCurrentThreadId <> System.MainThreadID then
     exit;
@@ -298,11 +298,11 @@ begin
   {$ENDIF}
 end;
 
-procedure AddText(const T: String; const C: TColor = clBlack);
+procedure AddText(const T: String; const ASource: String = ''; const C: TColor = clBlack);
 begin
   {$IFDEF WITH_INDY}
   if gdccClient <> nil then
-    gdccClient.AddLogRecord('', T, gdcc_lt_Info, True);
+    gdccClient.AddLogRecord(ASource, T, gdcc_lt_Info, True);
   {$ELSE}
   if Windows.GetCurrentThreadId <> System.MainThreadID then
     exit;

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2016 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001 - 2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -89,7 +89,6 @@ type
     cbNotNull: TCheckBox;
 
     procedure luFieldTypeChange(Sender: TObject);
-    procedure dbmComputedChange(Sender: TObject);
     procedure dbedRelationFieldNameEnter(Sender: TObject);
     procedure dbedRelationFieldNameKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
@@ -324,13 +323,6 @@ begin
   end;
 end;
 
-procedure Tgdc_dlgRelationField.dbmComputedChange(Sender: TObject);
-begin
-  inherited;
-  if gdcObject.State = dsEdit then
-    (gdcObject as TgdcRelationField).ChangeComputed := True;
-end;
-
 procedure Tgdc_dlgRelationField.BeforePost;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
   {M}VAR
@@ -513,8 +505,6 @@ begin
     lblFormat.Enabled := True;
     dbedFormat.Enabled := True;
   end;
-
-  (gdcObject as TgdcRelationField).ChangeComputed := False;
 
   lbClasses.Items.CommaText := gdcObject.FieldByName('objects').AsString;
 

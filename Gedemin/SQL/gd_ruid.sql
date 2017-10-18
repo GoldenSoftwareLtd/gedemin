@@ -88,3 +88,12 @@ END
 ^
 
 SET TERM ; ^
+
+CREATE TABLE gd_available_id (
+  id_from       dintkey,
+  id_to         dintkey,
+  
+  CONSTRAINT gd_pk_available_id PRIMARY KEY (id_from, id_to)
+);
+
+COMMIT;

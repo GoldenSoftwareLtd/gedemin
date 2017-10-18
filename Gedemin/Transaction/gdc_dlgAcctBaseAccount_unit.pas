@@ -367,6 +367,7 @@ var
   CB: TDBCheckBox;
   CurrTop: Integer;
   gdcRelationFields: TgdcRelationField;
+  F: TField;
 begin
   while sbAnalyze.ComponentCount > 0 do
     sbAnalyze.Components[0].Free;
@@ -380,8 +381,8 @@ begin
       gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), True);
     while not gdcRelationFields.EOF do
     begin
-      if (gdcObject.FindField(gdcRelationFields.FieldByName('fieldname').AsString) <> nil) and
-        (gdcObject.FieldByName(gdcRelationFields.FieldByName('fieldname').AsString).AsInteger = 1) then
+      F := gdcObject.FindField(gdcRelationFields.FieldByName('fieldname').AsString);
+      if (F <> nil) and (F is TNumericField) and (F.AsInteger = 1) then
       begin
         CB := TDBCheckBox.Create(sbAnalyze);
         CB.Left := 5;

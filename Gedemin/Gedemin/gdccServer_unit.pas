@@ -73,6 +73,7 @@ type
     function GetLast(out SP: TgdccProfilerObject): Boolean;
     function GetByIndex(const AnIndex: Integer; out SP: TgdccProfilerObject): Boolean;
     procedure SaveToFile(const AFileName: String);
+    procedure Clear;
 
     property Count: Integer read GetCount;
 
@@ -976,6 +977,12 @@ function TgdccProfiler.GetProfilerRec(Index: Integer): TgdccProfilerObject;
 begin
   Assert((Index >= 0) and (Index < FObjects.Count));
   Result := FObjects[Index] as TgdccProfilerObject;
+end;
+
+procedure TgdccProfiler.Clear;
+begin
+  FHash.Clear;
+  FObjects.Clear;
 end;
 
 { TgdccProfilerObject }

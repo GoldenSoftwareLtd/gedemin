@@ -230,8 +230,12 @@ begin
                 S := SafeDateTimeToStr(Params[K].AsDateTime);
               SQL_SHORT, SQL_LONG, SQL_INT64, SQL_DOUBLE, SQL_FLOAT, SQL_D_FLOAT:
                 S := SafeFloatToStr(Params[K].AsDouble);
+              SQL_BLOB:
+                S := '<BLOB>';
+              SQL_ARRAY:
+                S := '<ARRAY>';
             else
-              S := '"' + ConvertSysChars(Params[K].AsString) + '"';
+              S := '"' + ConvertSysChars(System.Copy(Params[K].AsString, 1, 256)) + '"';
             end;
           end else
             S := '<NULL>';

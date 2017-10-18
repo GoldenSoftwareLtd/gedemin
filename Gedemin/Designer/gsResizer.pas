@@ -496,6 +496,9 @@ uses
   gdc_createable_form, gd_security, gd_createable_form, evt_i_Base, Clipbrd,
   TB2Item, imglist, gsPropertyEditor, prp_frmGedeminProperty_Unit, evt_Base,
   gdcDelphiObject, gdcConstants, gd_ClassList, gdcBaseInterface
+  {$IFDEF WITH_INDY}
+  , gdccClient_unit
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -3652,7 +3655,14 @@ procedure TgsResizeManager.CheckPosition(AnOwner: TComponent;
   Stream: TStream; const Attr: Boolean; ReplaceSubType: Boolean = False);
 var
   Reader: TDesignReader;
+  {$IFDEF WITH_INDY}
+  TstID: Integer;
+  {$ENDIF}
 begin
+  {$IFDEF WITH_INDY}
+  Assert(FEditForm <> nil);
+  TstID := gdccClient.StartPerfCounter('resizer', 'Process components of ' + FEditForm.ClassName + ' ' + FFormSubType);
+  {$ENDIF}
   Reader := TDesignReader.Create(Stream, 4096);
   try
     Reader.Designer := Self;
@@ -3660,6 +3670,9 @@ begin
     Reader.ProcessComponents(AnOwner, FFormSubType, ReplaceSubType);
   finally
     Reader.Free;
+    {$IFDEF WITH_INDY}
+    gdccClient.StopPerfCounter(TstID);
+    {$ENDIF}
   end;
 end;
 

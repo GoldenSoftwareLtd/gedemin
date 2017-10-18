@@ -93,7 +93,7 @@ type
 implementation
 
 uses
-  Controls, Forms, IBSQL, gdcMetaData, flt_sql_parser;
+  Controls, Forms, IBSQL, flt_sql_parser;
 
 { TgsNSObjects }
 
@@ -372,12 +372,7 @@ begin
   Assert(AnObject <> nil);
   Assert(not AnObject.IsEmpty);
 
-  if (ANSObjects.FindObject(AnObject.ID) = nil) and
-    (
-      (not (AnObject is TgdcMetaBase))
-      or
-      (not TgdcMetaBase(AnObject).IsDerivedObject)
-    ) then
+  if (ANSObjects.FindObject(AnObject.ID) = nil) and AnObject.CanAddToNS then
   begin
     NSObj := TgsNSObject.Create(ANSObjects);
     Result := FList.Add(NSObj);

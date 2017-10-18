@@ -50,16 +50,16 @@ uses
   mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
   mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL,
   mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddWebRelayTable, mdf_AddFieldToAC_TRRECORD,
-  mdf_AccAnalyticsExtSupport, mdf_AddRestrFieldToInv_BalanceOption;
+  mdf_AccAnalyticsExtSupport, mdf_AddRestrFieldToInv_BalanceOption, mdf_AddSupportDatabaseTriggers;
 
 const
   {$IFDEF GEDEMIN_LOCK}
   cProcCount = 10;
   {$ELSE}
     {$IFDEF FULL_MODIFY}
-    cProcCount = 221;
+    cProcCount = 223;
     {$ELSE}
-    cProcCount = 41;
+    cProcCount = 43;
     {$ENDIF}
   {$ENDIF}
 
@@ -384,8 +384,8 @@ const
     (ModifyProc: AddAutoTaskTables; ModifyVersion: '0000.0001.0000.0250'; NeedDBShutdown: True),
     (ModifyProc: AddSMTPTable; ModifyVersion: '0000.0001.0000.0251'; NeedDBShutdown: True),
     (ModifyProc: ModifyAutoTaskAndSMTPTable; ModifyVersion: '0000.0001.0000.0276'; NeedDBShutdown: True),
-    {$ENDIF}
     (ModifyProc: AddWebRelayTable; ModifyVersion: '0000.0001.0000.0278'; NeedDBShutdown: True),
+    {$ENDIF}
     (ModifyProc: AddGDEMPLOYEETable; ModifyVersion: '0000.0001.0000.0284'; NeedDBShutdown: True),
     (ModifyProc: CorrectSubAccounts; ModifyVersion: '0000.0001.0000.0285'; NeedDBShutdown: False),
     (ModifyProc: CorrectClientAddress; ModifyVersion: '0000.0001.0000.0286'; NeedDBShutdown: True),
@@ -394,7 +394,9 @@ const
     (ModifyProc: AddFieldsToGD_CURRRATE; ModifyVersion: '0000.0001.0000.0289'; NeedDBShutdown: True),
     (ModifyProc: UpgradeAT_P_SYNC; ModifyVersion: '0000.0001.0000.0290'; NeedDBShutdown: False),
     (ModifyProc: AddAccAnalyticsExt; ModifyVersion: '0000.0001.0000.0291'; NeedDBShutdown: True),
-    (ModifyProc: AddRestrFieldToInv_BalanceOption; ModifyVersion: '0000.0001.0000.0292'; NeedDBShutdown: True)
+    (ModifyProc: AddRestrFieldToInv_BalanceOption; ModifyVersion: '0000.0001.0000.0292'; NeedDBShutdown: True),
+    (ModifyProc: AddIBAN; ModifyVersion: '0000.0001.0000.0296'; NeedDBShutdown: True),
+    (ModifyProc: AddSupportDatabaseTriggers; ModifyVersion: '0000.0001.0000.0297'; NeedDBShutdown: True)
   );
 
   {

@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gsRAChart, ExtCtrls, StdCtrls, ActnList, Menus, gsPeriodEdit, xSpin;
+  gsRAChart, ExtCtrls, StdCtrls, ActnList, Menus, gsPeriodEdit, xSpin,
+  ImgList;
 
 type
   TForm1 = class(TForm)
@@ -27,6 +28,7 @@ type
     lblDragDrop: TLabel;
     rbDays: TRadioButton;
     rbMonthes: TRadioButton;
+    ImageList1: TImageList;
     procedure FormCreate(Sender: TObject);
     procedure rachartChange(Sender: TObject);
     procedure rachartClick(Sender: TObject);
@@ -87,11 +89,11 @@ begin
   V[4] := V2;
   
   rachart.AddInterval(100000, 2, EncodeDate(2017, 4, 25), EncodeDate(2017, 4, 30) + EncodeTime(2, 0, 0, 0),
-    V, 'Комментарий', clTeal, clWhite, 0);
+    V, 'Комментарий', clTeal, clWhite, 0, 0);
   rachart.AddInterval(100005, 2, EncodeDate(2017, 4, 30) + 0.2, EncodeDate(2017, 5, 7),
     'Бронирование 100005', 'Комментарий', clRed, clWhite, 33);
   rachart.AddInterval(100001, 5, EncodeDate(2017, 5, 1), EncodeDate(2017, 5, 2),
-    'Бронирование 100001', 'Комментарий'#13#10'в'#13#10'три строки', clPurple, clWhite, 0);
+    '', 'Комментарий'#13#10'в'#13#10'три строки', clPurple, clWhite, 0, 0);
   rachart.AddInterval(100002, 5, EncodeDate(2017, 5, 4), EncodeDate(2017, 5, 4) + 0.2,
     'Бронирование 100002', 'Комментарий'#13#10'в'#13#10'три строки', clPurple, clWhite, 33);
   rachart.AddInterval(100003, 7, EncodeDate(2017, 5, 3) + EncodeTime(5, 30, 30, 0),

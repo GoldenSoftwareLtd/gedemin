@@ -1,8 +1,8 @@
 object gdc_frmG: Tgdc_frmG
-  Left = 265
-  Top = 154
+  Left = 218
+  Top = 121
   Width = 1059
-  Height = 784
+  Height = 695
   HelpContext = 116
   Caption = 'gdc_frmG'
   Color = clBtnFace
@@ -26,7 +26,7 @@ object gdc_frmG: Tgdc_frmG
   TextHeight = 13
   object sbMain: TStatusBar
     Left = 0
-    Top = 727
+    Top = 638
     Width = 1043
     Height = 19
     Font.Charset = RUSSIAN_CHARSET
@@ -311,19 +311,19 @@ object gdc_frmG: Tgdc_frmG
     Left = 0
     Top = 51
     Width = 9
-    Height = 667
+    Height = 578
     Position = dpLeft
   end
   object TBDockRight: TTBDock
     Left = 1034
     Top = 51
     Width = 9
-    Height = 667
+    Height = 578
     Position = dpRight
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 718
+    Top = 629
     Width = 1043
     Height = 9
     Position = dpBottom
@@ -332,13 +332,13 @@ object gdc_frmG: Tgdc_frmG
     Left = 9
     Top = 51
     Width = 1025
-    Height = 667
+    Height = 578
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 5
     object spChoose: TSplitter
       Left = 0
-      Top = 564
+      Top = 475
       Width = 1025
       Height = 4
       Cursor = crVSplit
@@ -349,7 +349,7 @@ object gdc_frmG: Tgdc_frmG
       Left = 0
       Top = 0
       Width = 1025
-      Height = 564
+      Height = 475
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -359,7 +359,7 @@ object gdc_frmG: Tgdc_frmG
         Left = 0
         Top = 0
         Width = 160
-        Height = 564
+        Height = 475
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -371,7 +371,7 @@ object gdc_frmG: Tgdc_frmG
           Left = 0
           Top = 27
           Width = 160
-          Height = 537
+          Height = 448
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -391,7 +391,7 @@ object gdc_frmG: Tgdc_frmG
           ParentColor = True
           TabOrder = 1
           object btnSearchMain: TButton
-            Left = 12
+            Left = 4
             Top = 4
             Width = 64
             Height = 19
@@ -400,7 +400,7 @@ object gdc_frmG: Tgdc_frmG
             TabOrder = 1
           end
           object btnSearchMainClose: TButton
-            Left = 83
+            Left = 76
             Top = 4
             Width = 64
             Height = 19
@@ -421,7 +421,7 @@ object gdc_frmG: Tgdc_frmG
     end
     object pnChoose: TPanel
       Left = 0
-      Top = 568
+      Top = 479
       Width = 1025
       Height = 99
       Align = alBottom
@@ -686,7 +686,7 @@ object gdc_frmG: Tgdc_frmG
     end
     object actAddToSelected: TAction
       Category = 'Commands'
-      Caption = 'Добавить в отмеченные'
+      Caption = 'Добавить выделенные в отмеченные'
       Hint = 'Добавить в отмеченные'
       ImageIndex = 5
       OnExecute = actAddToSelectedExecute
@@ -786,6 +786,13 @@ object gdc_frmG: Tgdc_frmG
       OnExecute = actDontSaveSettingsExecute
       OnUpdate = actDontSaveSettingsUpdate
     end
+    object actAddToSelectedFromClipboard: TAction
+      Category = 'Commands'
+      Caption = 'Добавить из буфера в отмеченные'
+      Hint = 'Добавить из буфера в отмеченные'
+      ImageIndex = 5
+      OnExecute = actAddToSelectedFromClipboardExecute
+    end
   end
   object pmMain: TPopupMenu
     Left = 124
@@ -834,6 +841,9 @@ object gdc_frmG: Tgdc_frmG
     end
     object actAddToSelected1: TMenuItem
       Action = actAddToSelected
+    end
+    object actAddToSelectedFromClipboard1: TMenuItem
+      Action = actAddToSelectedFromClipboard
     end
     object actRemoveFromSelected1: TMenuItem
       Action = actRemoveFromSelected

@@ -64,13 +64,13 @@ const
 type
   // расчетный счет организации
   TgdcAccount = class(TgdcBase)
-  private
-    FIgnoryQuestion: Boolean;
+  {private
+    FIgnoryQuestion: Boolean;}
 
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
-    procedure DoBeforePost; override;
+    //procedure DoBeforePost; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetReductionCondition: String; override;
 
@@ -97,12 +97,12 @@ type
     //Возвращяет истина, если проверка прошла успешно
     //(либо счет не дублируется, либо пользователь все равно
     //хочет его сохранить)
-    function CheckDouble(AnAccount, ABankCode: String): Boolean;
+    //function CheckDouble(AnAccount, ABankCode: String): Boolean;
 
     //
-    function CheckAccount(const Code, Account: String): Boolean;
+    //function CheckAccount(const Code, Account: String): Boolean;
 
-    property IgnoryQuestion: Boolean read FIgnoryQuestion write FIgnoryQuestion;
+    //property IgnoryQuestion: Boolean read FIgnoryQuestion write FIgnoryQuestion;
   end;
 
   TgdcBaseContact = class;
@@ -476,6 +476,7 @@ begin
     '  z.disabled, ' +
     '  z.currkey, ' +
     '  z.account, ' +
+    '  z.iban, ' +
     '  z.accounttypekey, ' +
     '  z.payername, ' +
     '  z.editiondate, ' +
@@ -505,6 +506,7 @@ begin
   Result := inherited GetSubSetList + 'ByAccount;ByCompany;';
 end;
 
+(*
 procedure TgdcAccount.DoBeforePost;
 var
   q: TIBSQL;
@@ -545,29 +547,28 @@ begin
       else
         q.Transaction := ReadTransaction;
 
-      q.Close;
       q.SQL.Text := 'SELECT bankcode, bankmfo, swift FROM gd_bank WHERE bankkey = :id';
       q.ParamByName('id').AsString := FieldByName('bankkey').AsString;
       q.ExecQuery;
 
-      if q.RecordCount > 0 then
+      if not q.EOF then
       begin
         FieldByName('bankcode').AsString := q.FieldByName('bankcode').AsString;
         FieldByName('bankmfo').AsString := q.FieldByName('bankmfo').AsString;
         FieldByName('swift').AsString := q.FieldByName('swift').AsString;
       end;
 
-      if (not (sLoadFromStream in BaseState))
+      {if (not (sLoadFromStream in BaseState))
         and (not IgnoryQuestion)
         and
           (not
             (
               CheckAccount(FieldByName('bankcode').AsString, FieldByName('account').AsString)
-              {and
-              CheckDouble(FieldByName('account').AsString, FieldByName('bankcode').AsString)}
+              and
+              CheckDouble(FieldByName('account').AsString, FieldByName('bankcode').AsString)
             )
           ) then
-        raise Exception.Create('Измените расчетный счет!');
+        raise Exception.Create('Измените расчетный счет!');}
     finally
       q.Free;
     end;
@@ -580,15 +581,17 @@ begin
   {M}  end;
   {END MACRO}
 end;
+*)
 
+{
 function TgdcAccount.CheckDouble(AnAccount, ABankCode: String): Boolean;
-{var
+var
   q: TIBSQL;
   qBank: TIBSQL;
-  DidActivate: Boolean;}
+  DidActivate: Boolean;
 begin
   Result := True;
-{
+
   if (sLoadFromStream in BaseState) then Exit;
 
   q := CreateReadIBSQL(DidActivate);
@@ -625,10 +628,11 @@ begin
 
     q.Free;
     qBank.Free;
-  end;}
+  end;
 end;
+}
 
-
+{
 function TgdcAccount.CheckAccount(const Code, Account: String): Boolean;
 const
   Control: array[1..16] of Byte =
@@ -637,6 +641,8 @@ var
   CheckString: String[16];
   I, Base: Byte;
 begin
+  Result := True;
+
   if (sLoadFromStream in BaseState)
     or (not (Owner is TCustomForm)) then
   begin
@@ -680,7 +686,7 @@ begin
       MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = idYes;
   end;
 end;
-
+}
 
 function TgdcAccount.GetDialogDefaultsFields: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -744,7 +750,7 @@ var
 begin
   if (State in dsEditModes) and CachedUpdates then
   begin
-    if AnsiCompareText(Field.FieldName, 'bankkey') = 0 then
+    if AnsiSameText(Field.FieldName, 'bankkey') then
     begin
       if Field.AsString = '' then
         FieldByName('bankname').Clear
@@ -789,7 +795,7 @@ end;
 constructor TgdcAccount.Create(AnOwner: TComponent);
 begin
   inherited;
-  FIgnoryQuestion := False;
+  //FIgnoryQuestion := False;
 end;
 
 class function TgdcAccount.GetViewFormClassName(
@@ -839,7 +845,7 @@ begin
       ibsql.SQL.Text := 'SELECT * FROM gd_company WHERE contactkey = :ck';
       ibsql.ParamByName('ck').AsInteger := FieldByName('companykey').AsInteger;
       ibsql.ExecQuery;
-      if (ibsql.RecordCount > 0) and ibsql.FieldByName('companyaccountkey').IsNull then
+      if (not ibsql.EOF) and ibsql.FieldByName('companyaccountkey').IsNull then
       begin
         ibsql.Close;
         ibsql.SQL.Text := 'UPDATE gd_company SET companyaccountkey = :cak ' +
@@ -901,15 +907,12 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result := 'SELECT acc.id FROM gd_companyaccount acc ' +
-      ' WHERE acc.companykey = :companykey AND acc.bankkey = :bankkey AND acc.account = :account '
+    Result := 'SELECT acc.id FROM gd_companyaccount acc WHERE acc.account = :account '
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT acc.id FROM gd_companyaccount acc ' +
-      ' WHERE acc.companykey = %d AND acc.bankkey = %d AND acc.account = ''%s'' ',
-      [FieldByName('companykey').AsInteger, FieldByName('bankkey').AsInteger,
-       StringReplace(FieldByName('account').AsString, '''', '''''', [rfReplaceAll])]);
+    Result := Format('SELECT acc.id FROM gd_companyaccount acc WHERE acc.account = ''%s'' ',
+      [StringReplace(FieldByName('account').AsString, '''', '''''', [rfReplaceAll])]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCOUNT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
@@ -3314,17 +3317,14 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result := 'SELECT b.bankkey FROM gd_bank b WHERE b.bankcode = :bankcode ' +
-      '  AND b.bankbranch IS NOT DISTINCT FROM :bankbranch '
+    Result := 'SELECT b.bankkey FROM gd_bank b WHERE b.bankcode = :bankcode '
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
     Result := Format(
-      'SELECT b.bankkey FROM gd_bank b WHERE b.bankcode = ''%s'' ' +
-      '  AND COALESCE(b.bankbranch, '''') = ''%s'' ',
+      'SELECT b.bankkey FROM gd_bank b WHERE b.bankcode = ''%s'' ',
       [
-        StringReplace(FieldByName('bankcode').AsString, '''', '''''', [rfReplaceAll]),
-        StringReplace(FieldByName('bankbranch').AsString, '''', '''''', [rfReplaceAll])
+        StringReplace(FieldByName('bankcode').AsString, '''', '''''', [rfReplaceAll])
       ]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANK', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}

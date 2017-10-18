@@ -35,6 +35,7 @@ type
     FunctionKey: Integer;
     RuntimeTicks: LongWord;
     BeginTime:  TDateTime;
+    PerfCounter: Integer;
   end;
 
   TEndScriptEvent = procedure (Sender: TObject; RuntimeRec: TRuntimeRec) of object;

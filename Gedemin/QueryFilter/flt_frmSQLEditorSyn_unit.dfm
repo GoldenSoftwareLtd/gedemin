@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 427
-  Top = 221
+  Left = 609
+  Top = 271
   Width = 963
   Height = 556
   HelpContext = 121
@@ -546,7 +546,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Caption = 'История'
         object Splitter2: TSplitter
           Left = 0
-          Top = 421
+          Top = 420
           Width = 923
           Height = 3
           Cursor = crVSplit
@@ -556,7 +556,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 0
           Width = 923
-          Height = 421
+          Height = 420
           Align = alClient
           TabOrder = 0
           OnResize = pnlTestResize
@@ -946,10 +946,21 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 0
           Width = 923
-          Height = 424
+          Height = 423
           Align = alClient
           TabOrder = 0
           OnResize = pnlTraceResize
+          object chbxTrace: TCheckBox
+            Left = 14
+            Top = 12
+            Width = 537
+            Height = 17
+            Caption = 
+              'Включить трассировку SQL команд (лог команд находится в центре у' +
+              'правления GDCC) '
+            TabOrder = 0
+            OnClick = chbxTraceClick
+          end
         end
       end
       object tsLog: TSuperTabSheet

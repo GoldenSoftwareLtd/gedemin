@@ -193,7 +193,7 @@ end;
 
 procedure TdlgCompareNSRecords.pnlGridResize(Sender: TObject);
 begin
-  sgMain.ColWidths[1] := Trunc((sgMain.Width - GetSystemMetrics(SM_CYHSCROLL)) / 2.8);
+  sgMain.ColWidths[1] := Trunc((sgMain.Width - GetSystemMetrics(SM_CYHSCROLL)) / 3);
   sgMain.ColWidths[2] := sgMain.ColWidths[1];
   sgMain.ColWidths[0] := Trunc(sgMain.Width - sgMain.ColWidths[1] * 2 - GetSystemMetrics(SM_CYHSCROLL) * 1.5);
 end;

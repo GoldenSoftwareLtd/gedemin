@@ -1,6 +1,6 @@
 object st_dlgfolderprop: Tst_dlgfolderprop
-  Left = 419
-  Top = 239
+  Left = 420
+  Top = 241
   BorderStyle = bsDialog
   Caption = 'Папка'
   ClientHeight = 188

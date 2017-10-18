@@ -265,6 +265,7 @@ type
     Label18: TLabel;
     edRelationsFilter: TEdit;
     actRelationsRefresh: TAction;
+    chbxTrace: TCheckBox;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -349,6 +350,7 @@ type
     procedure actClassesRefreshExecute(Sender: TObject);
     procedure edRelationsFilterChange(Sender: TObject);
     procedure actRelationsRefreshExecute(Sender: TObject);
+    procedure chbxTraceClick(Sender: TObject);
 
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
@@ -384,7 +386,7 @@ type
     procedure AddSQLHistory(const AnExecute: Boolean);
     procedure UseSQLHistory(AForm: Tgdc_frmSQLHistory);
     procedure OnHistoryDblClick(Sender: TObject);
-    procedure OnTraceLogDblClick(Sender: TObject);
+    //procedure OnTraceLogDblClick(Sender: TObject);
     procedure ExtractErrorLine(const S: String);
     procedure ClearError;
     function GetTransactionParams: String;
@@ -424,7 +426,7 @@ uses
   gdcBaseInterface, flt_sql_parser, flt_sqlFilter, at_sql_setup,
   {$ENDIF}
   gd_directories_const, Clipbrd, gd_security, gd_ExternalEditor,
-  gd_common_functions
+  gd_common_functions, IBSQLMonitor_Gedemin
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1046,6 +1048,7 @@ begin
 
   frmSQLHistory.Show;
 
+  (*
   frmSQLTrace := Tgdc_frmSQLHistory.Create(Self);
   frmSQLTrace.ShowSpeedButton := False;
   frmSQLTrace.Parent := pnlTrace;
@@ -1074,6 +1077,7 @@ begin
   frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('exec_count')).Visible := False;
 
   frmSQLTrace.Show;
+  *)
   {$ENDIF}
 
   dbgResult.Visible := True;
@@ -1761,12 +1765,13 @@ begin
   {$ENDIF}
 end;
 
-procedure TfrmSQLEditorSyn.OnTraceLogDblClick(Sender: TObject);
-begin
-  {$IFDEF GEDEMIN}
-  UseSQLHistory(frmSQLTrace);
-  {$ENDIF}
-end;
+//procedure TfrmSQLEditorSyn.OnTraceLogDblClick(Sender: TObject);
+//begin
+//  {$IFDEF GEDEMIN}
+//  if frmSQLTrace <> nil then
+//    UseSQLHistory(frmSQLTrace);
+//  {$ENDIF}
+//end;
 
 procedure TfrmSQLEditorSyn.actEditBusinessObjectExecute(Sender: TObject);
 {$IFDEF GEDEMIN}
@@ -2102,6 +2107,8 @@ begin
   end
   else if pcMain.ActivePage = tsTransaction then
     FillTransactionsList
+  else if pcMain.ActivePage = tsTrace then
+    chbxTrace.Checked := MonitorHook.Enabled
   else if (pcMain.ActivePage = tsResult) and (not tsResult.TabVisible) then
     pcMain.ActivePage := tsQuery;
 end;
@@ -2706,6 +2713,11 @@ end;
 procedure TfrmSQLEditorSyn.actRelationsRefreshExecute(Sender: TObject);
 begin
   FillRelationsList;
+end;
+
+procedure TfrmSQLEditorSyn.chbxTraceClick(Sender: TObject);
+begin
+  MonitorHook.Enabled := chbxTrace.Checked;
 end;
 
 initialization

@@ -180,6 +180,8 @@ type
     TBSeparatorItem17: TTBSeparatorItem;
     actReload: TAction;
     tbiReload: TTBItem;
+    actDBTriggers: TAction;
+    TBItem30: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -298,6 +300,9 @@ type
     procedure actDatabasesListExecute(Sender: TObject);
     procedure actDatabasesListUpdate(Sender: TObject);
     procedure actReloadExecute(Sender: TObject);
+    //procedure actPrepareIBANExecute(Sender: TObject);
+    //procedure actPrepareIBANUpdate(Sender: TObject);
+    procedure actDBTriggersExecute(Sender: TObject);
 
   private
     FCanClose: Boolean;
@@ -751,7 +756,9 @@ end;
 procedure TfrmGedeminMain.actExitUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled :=
-    (not Assigned(Screen.ActiveForm)) or ([fsModal] * Screen.ActiveForm.FormState = []);
+    (not Assigned(Screen.ActiveForm)) or ([fsModal] * Screen.ActiveForm.FormState = [])
+    and (not ((FormAssigned(gd_frmBackup) and gd_frmBackup.ServiceActive) or
+      (FormAssigned(gd_frmRestore) and gd_frmRestore.ServiceActive)));
 end;
 
 procedure TfrmGedeminMain.DoAfterChangeCompany;
@@ -2511,7 +2518,7 @@ end;
 
 procedure TfrmGedeminMain.WMRelogin(var Msg: TMessage);
 begin
-  if IBLogin <> nil then IBLogin.Relogin;
+  actReconnect.Execute;
 end;
 
 procedure TfrmGedeminMain.WMUpdateNotification(var Msg: TMessage);
@@ -2563,6 +2570,61 @@ begin
   finally
     Free;
   end;
+end;
+
+(*
+procedure TfrmGedeminMain.actPrepareIBANExecute(Sender: TObject);
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBLogin.Database;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    q.SQL.Text := 'UPDATE gd_bank SET oldbankcode = bankcode WHERE oldbankcode IS NULL';
+    q.ExecQuery;
+    q.SQL.Text := 'UPDATE gd_bank SET oldbankMFO = bankMFO WHERE oldbankMFO IS NULL';
+    q.ExecQuery;
+    q.SQL.Text := 'UPDATE gd_bank SET bankcode = SWIFT, bankMFO = SWIFT WHERE SWIFT SIMILAR TO ''[A-Z]{6}([A-Z0-9]{2}|[A-Z0-9]{5})'' ' +
+      'AND (NOT bankcode SIMILAR TO ''[A-Z]{6}([A-Z0-9]{2}|[A-Z0-9]{5})'')';
+    q.ExecQuery;
+
+    q.SQL.Text := 'UPDATE gd_companyaccount SET oldaccount = account WHERE oldaccount IS NULL';
+    q.ExecQuery;
+    q.SQL.Text := 'UPDATE gd_companyaccount SET account = iban WHERE iban SIMILAR TO ''[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{4}[A-Z0-9]{16}'' ' +
+      'AND NOT (account SIMILAR TO ''[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{4}[A-Z0-9]{16}'')';
+    q.ExecQuery;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+
+  MessageBox(Handle,
+    'Справочники банков и счетов успешно переведены на IBAN. Обновите gedemin.exe с сайта компании gsbelarus.com',
+    'Внимание',
+    MB_OK or MB_ICONINFORMATION);
+end;
+
+procedure TfrmGedeminMain.actPrepareIBANUpdate(Sender: TObject);
+begin
+  actPrepareIBAN.Enabled := (Date >= EncodeDate(2017, 07, 04))
+    and (IBLogin <> nil)
+    and (IBLogin.Database <> nil)
+    and (IBLogin.Database.Connected)
+    and (IBLogin.IsIBUserAdmin);
+end;
+*)
+
+procedure TfrmGedeminMain.actDBTriggersExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcDBTrigger', '', False);
 end;
 
 end.

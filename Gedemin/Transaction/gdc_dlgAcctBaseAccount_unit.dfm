@@ -1,6 +1,6 @@
 inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
-  Left = 396
-  Top = 118
+  Left = 397
+  Top = 119
   BorderIcons = [biSystemMenu]
   BorderWidth = 5
   Caption = '—чет'

@@ -92,6 +92,12 @@ type
     actClearProfilerFilter: TAction;
     TBItem11: TTBItem;
     actAbout: TAction;
+    actClearProfilerData: TAction;
+    TBSeparatorItem12: TTBSeparatorItem;
+    TBItem12: TTBItem;
+    actClearLogData: TAction;
+    TBItem13: TTBItem;
+    TBSeparatorItem13: TTBSeparatorItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure actShowOrHideUpdate(Sender: TObject);
@@ -128,6 +134,7 @@ type
     procedure actSetProfilerFilterUpdate(Sender: TObject);
     procedure actAboutExecute(Sender: TObject);
     procedure gsTrayIconClick(Sender: TObject);
+    procedure actClearProfilerDataExecute(Sender: TObject);
 
   private
     FCurrentID: Integer;
@@ -318,7 +325,9 @@ begin
         finally
           lvLog.Items.EndUpdate;
         end;
-      end;
+        actSetLogFilter.ImageIndex := -1;
+      end else
+        actSetLogFilter.ImageIndex := 1;
 
       UpdateLogSB;
     end;
@@ -333,6 +342,8 @@ begin
 
     gdcc_nShow:
     begin
+      pc.ActivePage := tsLog;
+      actClearLogFilter.Execute;
       WindowState := wsNormal;
       Show;
     end;
@@ -490,10 +501,12 @@ begin
   end;
   if lvLog.Items.Count > 0 then
   begin
-    lvLog.Items[0].Selected := True;
+    lvLog.Items[lvLog.Items.Count - 1].Selected := True;
+    lvLog.Items[lvLog.Items.Count - 1].MakeVisible(False);
   end;
-  lvLog.Invalidate;  
+  lvLog.Invalidate;
   UpdateLogSB;
+  actSetLogFilter.ImageIndex := -1;
 end;
 
 procedure Tgdcc_frmMain.actSetLogFilterUpdate(Sender: TObject);
@@ -857,6 +870,20 @@ procedure Tgdcc_frmMain.WMQueryEndSession(var Message: TMessage);
 begin
   FCanClose := True;
   inherited;
+end;
+
+procedure Tgdcc_frmMain.actClearProfilerDataExecute(Sender: TObject);
+var
+  C: TgdccConnection;
+begin
+  if gdccServer.Connections.FindAndLock(FCurrentID, C) then
+  try
+    C.Profiler.Clear;
+  finally
+    gdccServer.Connections.Unlock;
+  end;
+
+  actSetProfilerFilter.Execute;
 end;
 
 end.

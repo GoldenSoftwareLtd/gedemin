@@ -1,6 +1,6 @@
 inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
-  Left = 444
-  Top = 223
+  Left = 449
+  Top = 227
   HelpContext = 38
   BorderIcons = [biSystemMenu]
   Caption = 'BaseContact'

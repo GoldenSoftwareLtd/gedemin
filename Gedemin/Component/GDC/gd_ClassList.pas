@@ -406,6 +406,8 @@ type
   end;
 
   TgdAttrUserDefinedEntry = class(TgdBaseEntry)
+  public
+    class function CheckSubType(const ASubType: TgdcSubType): Boolean; override;
   end;
 
   TgdDocumentEntry = class(TgdBaseEntry)
@@ -434,6 +436,7 @@ type
     procedure LoadDEOption(qOpt: TIBSQL); virtual;
 
   public
+    class function CheckSubType(const ASubType: TgdcSubType): Boolean; override;
     procedure Assign(CE: TgdClassEntry); override;
     function FindParentByDocumentTypeKey(const ADocumentTypeKey: Integer;
       const APart: TgdcDocumentClassPart): TgdDocumentEntry;
@@ -754,7 +757,8 @@ implementation
 uses
   SysUtils, gs_Exception, gd_security, gsStorage, Storages, gdcClasses,
   gd_directories_const, jclStrings, Windows, gd_CmdLineParams_unit,
-  gdcInvDocument_unit, gdcInvPriceList_unit, gd_strings, gd_common_functions
+  gdcInvDocument_unit, gdcInvPriceList_unit, gd_strings, gd_common_functions,
+  at_frmSQLProcess
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -1504,7 +1508,7 @@ begin
   FSubType := ASubType;
   FChildren := nil;
   FClassMethods := TgdClassMethods.Create(TComponentClass(FClass));
-  if not CheckSubType(FSubType) then
+  if (FSubType > '') and (not CheckSubType(FSubType)) then
     raise Exception.Create('Invalid subtype string.');
 end;
 
@@ -3241,6 +3245,12 @@ begin
   end;
 end;
 
+class function TgdDocumentEntry.CheckSubType(
+  const ASubType: TgdcSubType): Boolean;
+begin
+  Result := CheckRUID(ASubType);
+end;
+
 { TgdInitClassEntry }
 
 procedure TgdInitClassEntry.Init(CE: TgdClassEntry);
@@ -3419,7 +3429,9 @@ var
     F: TatRelationField;
     OptID: Integer;
     J: Integer;
+    UserWarn: Boolean;
   begin
+    UserWarn := False;
     for J := 0 to FFeatures[AFeature].Count - 1 do
     begin
       F := atDatabase.FindRelationField('INV_CARD', FFeatures[AFeature][J]);
@@ -3434,7 +3446,30 @@ var
         q.ParamByName('relationfieldkey').AsInteger := F.ID;
         q.ParamByName('contactkey').Clear;
         q.ParamByName('editiondate').AsDateTime := EditionDate;
-        q.ExecQuery;
+
+        try
+          q.ExecQuery;
+        except
+          on E: Exception do
+          begin
+            if not UserWarn then
+            begin
+              MessageBox(0,
+                PChar(
+                  'Произошла ошибка:'#13#10 +
+                  E.Message + #13#10#13#10 +
+                  'Конвертация будет продолжена. По окончании вы можете'#13#10 +
+                  'устранить проблему, очистить таблицу GD_DOCUMENTTYPE_OPTION'#13#10 +
+                  'и повторно запустить процесс.'#13#10 +
+                  'Подробная информация в логе.'
+                ),
+                'Ошибка',
+                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+              UserWarn := True;
+            end;
+            AddMistake(E.Message);
+          end;
+        end;
 
         AddNSObject(InvDocumentFeaturesNames[AFeature], OptID, F.ID);
       end;
@@ -3495,7 +3530,7 @@ begin
     q.Close;
     q.SQL.Text :=
       'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey, editiondate) ' +
-      ' VALUES (:id, :dtkey, :option_name, :bool_value, :relationfieldkey, :contactkey, :editiondate)';
+      '  VALUES (:id, :dtkey, :option_name, :bool_value, :relationfieldkey, :contactkey, :editiondate) ';
 
     ConvertInvMovementContactOption(GetMovementContactOption(emDebit), 'DM');
     ConvertInvMovementContactOption(GetMovementContactOption(emCredit), 'CM');
@@ -3928,7 +3963,7 @@ begin
     while not EndOfList do
     begin
       F := atDatabase.FindRelationField('INV_CARD', ReadString);
-      if F <> nil then
+      if (F <> nil) and (FFeatures[ftSource].IndexOf(F.FieldName) = -1) then
         FFeatures[ftSource].AddObject(F.FieldName, F);
     end;
     ReadListEnd;
@@ -3938,7 +3973,7 @@ begin
     while not EndOfList do
     begin
       F := atDatabase.FindRelationField('INV_CARD', ReadString);
-      if F <> nil then
+      if (F <> nil) and (FFeatures[ftDest].IndexOf(F.FieldName) = -1) then
         FFeatures[ftDest].AddObject(F.FieldName, F);
     end;
     ReadListEnd;
@@ -4005,9 +4040,7 @@ begin
       while not EndOfList do
       begin
         F := atDatabase.FindRelationField('INV_CARD', ReadString);
-        if not Assigned(F) then
-          continue;
-        if FFeatures[ftMinus].IndexOf(F.FieldName) = -1 then
+        if (F <> nil) and (FFeatures[ftMinus].IndexOf(F.FieldName) = -1) then
           FFeatures[ftMinus].AddObject(F.FieldName, F);
       end;
       ReadListEnd;
@@ -4557,6 +4590,15 @@ begin
     Result := gdcClass.ClassName + '+' + SubType
   else
     Result := gdcClass.ClassName;
+end;
+
+{ TgdAttrUserDefinedEntry }
+
+class function TgdAttrUserDefinedEntry.CheckSubType(
+  const ASubType: TgdcSubType): Boolean;
+begin
+  Result := (StrIPos('USR$', ASubType) = 1)
+    and (Length(ASubType) <= cstMetaDataNameLength);
 end;
 
 initialization

@@ -1583,7 +1583,6 @@ type
     procedure GetWhereClauseConditions(const S: IgsStrings); safecall;
     procedure DoOnNewRecord_; safecall;
     function  CommitRequired: WordBool; safecall;
-//    function  Get_ExtraCondition: IgsStrings; safecall;
     function  GetNotCopyField: WideString; safecall;
     function  Get_DetailLinks(Index: Integer): IgsGDCBase; safecall;
     function  ChooseItems(const Cl: WideString; const KeyArray: IgsGDKeyArray; DoProcess: WordBool;
@@ -2178,8 +2177,8 @@ type
   end;
 
   TwrpGdcRelationField = class(TwrpGdcMetaBase, IgsGdcRelationField)
-  private
-    function  GetGdcRelationField: TGdcRelationField;
+  {private
+    function  GetGdcRelationField: TGdcRelationField;}
   protected
     function  Get_ChangeComputed: WordBool; safecall;
     procedure Set_ChangeComputed(Value: WordBool); safecall;
@@ -2847,8 +2846,8 @@ type
   end;
 
   TwrpGDCAccount = class(TwrpGDCBase, IgsGDCAccount)
-  private
-    function GetGDCAccount: TgdcAccount;
+  {private
+    function GetGDCAccount: TgdcAccount;}
   protected
     function  Get_IgnoryQuestion: WordBool; safecall;
     procedure Set_IgnoryQuestion(Value: WordBool); safecall;
@@ -4082,7 +4081,7 @@ type
                              const ASubItems: WideString): Integer; safecall;
     function  AddInterval(AnID: Integer; AResourceID: Integer; AStartValue: OleVariant;
                           AnEndValue: OleVariant; AData: OleVariant; const AComment: WideString;
-                          AColor: Integer; AFontColor: Integer; ABorderKind: Integer): Integer; safecall;
+                          AColor: Integer; AFontColor: Integer; ABorderKind: Integer; AnImageIndex: Integer): Integer; safecall;
     function  Get_IntervalID: Integer; safecall;
     function  Get_DragValue: OleVariant; safecall;
     function  Get_DragResourceID: Integer; safecall;
@@ -4105,6 +4104,7 @@ type
     function  Get_ScaleKind: Integer; safecall;
     procedure Set_ScaleKind(Value: Integer); safecall;
     procedure ScrollTo(AResourceID: Integer; AValue: OleVariant); safecall;
+    procedure OrderByTotal(Idx: Integer; Asc: WordBool); safecall;
   end;
 
 implementation
@@ -6895,13 +6895,8 @@ end;
 
 function TwrpGDCBase.CommitRequired: WordBool;
 begin
-  Result := GetGDCBase.CommitRequired;
+  Result := False;
 end;
-
-{function TwrpGDCBase.Get_ExtraCondition: IgsStrings;
-begin
-  Result := TStringsToIgsStrings(GetGDCBase.ExtraConditions);
-end;}
 
 function TwrpGDCBase.GetNotCopyField: WideString;
 begin
@@ -11048,29 +11043,29 @@ end;
 
 function TwrpGDCAccount.Get_IgnoryQuestion: WordBool;
 begin
- Result := GetGDCAccount.IgnoryQuestion;
+ Result := False; //GetGDCAccount.IgnoryQuestion;
 end;
 
-function TwrpGDCAccount.GetGDCAccount: TgdcAccount;
+{function TwrpGDCAccount.GetGDCAccount: TgdcAccount;
 begin
   Result := GetObject as TgdcAccount;
-end;
+end;}
 
 procedure TwrpGDCAccount.Set_IgnoryQuestion(Value: WordBool);
 begin
-  GetGDCAccount.IgnoryQuestion := Value;
+  //GetGDCAccount.IgnoryQuestion := Value;
 end;
 
 function TwrpGDCAccount.CheckAccount(const Code,
   Account: WideString): WordBool;
 begin
-  Result := GetGDCAccount.CheckAccount(Code, Account);
+  Result := True; //GetGDCAccount.CheckAccount(Code, Account);
 end;
 
 function TwrpGDCAccount.CheckDouble(const AnAccount,
   ABankCode: WideString): WordBool;
 begin
-  Result := GetGDCAccount.CheckDouble(AnAccount, ABankCode);
+  Result := True; //GetGDCAccount.CheckDouble(AnAccount, ABankCode);
 end;
 
 { TwrpGdc_frmG }
@@ -13207,12 +13202,12 @@ end;
 
 function TwrpGdcBaseTable.Get_AdditionCreateField: IgsStringList;
 begin
-  Result := GetGdcOLEObject(GetGdcBaseTable.AdditionCreateField ) as IgsStringList;
+  Result := nil; //GetGdcOLEObject(GetGdcBaseTable.AdditionCreateField ) as IgsStringList;
 end;
 
 function TwrpGdcBaseTable.Get_gdcTableField: IgsGdcTableField;
 begin
-  Result := GetGdcOLEObject(GetGdcBaseTable.gdcTableField ) as IgsGdcTableField;
+  Result := nil;
 end;
 
 function TwrpGdcBaseTable.GetGdcBaseTable: TGdcBaseTable;
@@ -13227,26 +13222,26 @@ end;
 
 procedure TwrpGdcBaseTable.MakePredefinedRelationFields;
 begin
-  GetGdcBaseTable.MakePredefinedRelationFields;
+  //GetGdcBaseTable.MakePredefinedObjects;
 end;
 
 procedure TwrpGdcBaseTable.Set_AdditionCreateField(
   const Value: IgsStringList);
 begin
-  GetGdcBaseTable.AdditionCreateField := InterfaceToObject(Value) as TStringList;
+  //GetGdcBaseTable.AdditionCreateField := InterfaceToObject(Value) as TStringList;
 end;
 
 { TwrpGdcRelationField }
 
 function TwrpGdcRelationField.Get_ChangeComputed: WordBool;
 begin
-  Result := GetGdcRelationField.ChangeComputed;
+  Result := False; //GetGdcRelationField.ChangeComputed;
 end;
 
-function TwrpGdcRelationField.GetGdcRelationField: TGdcRelationField;
+{function TwrpGdcRelationField.GetGdcRelationField: TGdcRelationField;
 begin
   Result := GetObject as TGdcRelationField;
-end;
+end;}
 
 function TwrpGdcRelationField.ReadObjectState(const AFieldId,
   AClassName: WideString): Integer;
@@ -13257,7 +13252,7 @@ end;
 
 procedure TwrpGdcRelationField.Set_ChangeComputed(Value: WordBool);
 begin
-  GetGdcRelationField.ChangeComputed := Value;
+  //GetGdcRelationField.ChangeComputed := Value;
 end;
 
 { TwrpAtRelation }
@@ -19626,10 +19621,12 @@ end;
 
 function TwrpGSRAChart.AddInterval(AnID: Integer; AResourceID: Integer; AStartValue: OleVariant;
                           AnEndValue: OleVariant; AData: OleVariant; const AComment: WideString;
-                          AColor: Integer; AFontColor: Integer; ABorderKind: Integer): Integer;
+                          AColor: Integer; AFontColor: Integer; ABorderKind: Integer;
+                          AnImageIndex: Integer): Integer;
 begin
   Result := GetRAChart.AddInterval(AnID, AResourceID, AStartValue,
-    AnEndValue, AData, AComment, AColor, AFontColor, ABorderKind);
+    AnEndValue, AData, AComment, AColor, AFontColor, ABorderKind,
+    AnImageIndex);
 end;
 
 function TwrpGSRAChart.Get_IntervalID: Integer;
@@ -19745,6 +19742,11 @@ end;
 procedure TwrpGSRAChart.ScrollTo(AResourceID: Integer; AValue: OleVariant);
 begin
   GetRAChart.ScrollTo(AResourceID, AValue);
+end;
+
+procedure TwrpGSRAChart.OrderByTotal(Idx: Integer; Asc: WordBool);
+begin
+  GetRAChart.OrderByTotal(Idx, Asc);
 end;
 
 initialization

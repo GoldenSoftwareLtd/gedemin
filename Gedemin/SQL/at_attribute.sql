@@ -992,11 +992,9 @@ CREATE TABLE at_triggers(
   triggername         dtriggername            /* наименование триггера */
                       NOT NULL,
 
-  relationname        dtablename              /* наименование таблицы */
-                      NOT NULL,
+  relationname        VARCHAR(31),            /* наименование таблицы */
 
-  relationkey         dmasterkey              /* идентификатор таблицы */
-                      NOT NULL,
+  relationkey         DINTEGER,               /* идентификатор таблицы */
 
   trigger_inactive    dboolean DEFAULT 0,     /* 0-активный индекс, 1-неактивный*/
   editiondate         deditiondate,           /* Дата последнего редактирования */

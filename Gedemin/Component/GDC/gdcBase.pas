@@ -1174,6 +1174,7 @@ type
     function GetCanEdit: Boolean; virtual;
     function GetCanPrint: Boolean; virtual;
     function GetCanView: Boolean; virtual;
+    function GetCanAddToNS: Boolean; virtual;
 
     function GetCanModify: Boolean; override;
 
@@ -1633,13 +1634,6 @@ type
     //   All;ByID;ByName;OnlySelected;
     class function GetSubSetList: String; virtual;
 
-    // некоторые бизнес объекты требуют обязательного комита для
-    // полного сохранения данных. Например, в объектах представляющих
-    // метаданные реальное создание/изменение метаданных в базе
-    // происходит по комиту. При загрузке таких объектов из потока
-    // после поста каждой записи обязательно надо сделать комит.
-    class function CommitRequired: Boolean; virtual;
-
     // функция возвращает картинку класса для отображения,
     // например, в дереве
     class procedure GetClassImage(const ASizeX, ASizeY: Integer; AGraphic: TGraphic); virtual;
@@ -1820,6 +1814,7 @@ type
     property CanDelete: Boolean read GetCanDelete;
     property CanPrint: Boolean read GetCanPrint;
     property CanChangeRights: Boolean read GetCanChangeRights;
+    property CanAddToNS: Boolean read GetCanAddToNS;
 
     //
     //property QSelect;
@@ -2257,19 +2252,18 @@ begin
   if not (Key in ValidCharsForNames) and (Ord(Key) <> 8) then begin
     Beep;
     Result:= Chr(0);
-  end
-  else
+  end else
     Result:= Key;
 end;
 
 procedure CheckClipboardForName;
 var
-  ss: string;
-  i: integer;
+  ss: String;
+  i: Integer;
 begin
   if Clipboard.HasFormat(CF_TEXT) then begin
-    ss:= Clipboard.AsText;
-    for i:= Length(ss) downto 1 do
+    ss := Clipboard.AsText;
+    for i := Length(ss) downto 1 do
       if CheckNameChar(ss[i]) = Chr(0) then
         ss[i]:= '|';
       while Pos('|', ss) > 0 do begin
@@ -2926,7 +2920,7 @@ begin
   if FDataTransfer then
     exit;
 
-  if (not CanDelete) and (not IBLogin.IsUserAdmin) then
+  if not CanDelete then
     raise EgdcUserHaventRights.CreateFmt(strHaventRights,
       [strDelete, ClassName, SubType, GetDisplayName(SubType)]);
 
@@ -7172,7 +7166,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
                 else
                   LocName := SourceDS.FieldByName('_SETTABLE').AsString;
 
-                AddText('Считывание данных множества ' + LocName + #13#10, clBlue);
+                AddText('Считывание данных множества ' + LocName + #13#10);
                 ibsql.ExecQuery;
               end;
             finally
@@ -7182,7 +7176,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
         except
           on E: Exception do
           begin
-            AddMistake(E.Message, clRed);
+            AddMistake(E.Message);
           end;
         end;
       end
@@ -7413,7 +7407,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
         begin
           try
             TargetDS.Post;
-            AddText('Объект обновлен данными из потока!', clBlack);
+            AddText('Объект обновлен данными из потока!');
             LoadedRecordState := lsModified;
           except
             on E: EIBError do
@@ -7426,7 +7420,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
                 //=> Делаем Cancel объекту, удаляем некорректный РУИД
                 //=> Пытаемся добавить новую запись.
                 TargetDS.Cancel;
-                AddText('РУИД некорректен. Попытка найти объект по уникальному ключу.', clBlack);
+                AddText('РУИД некорректен. Попытка найти объект по уникальному ключу.');
                 gdcBaseManager.DeleteRUIDByXID(SourceDS.FieldByName('_XID').AsInteger,
                   SourceDS.FieldByName('_DBID').AsInteger, Transaction);
                 InsertRecord(SourceDS, TargetDS, UL);
@@ -7469,7 +7463,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
                SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsString]);
 
           //AddMistake(ErrorSt, clRed);
-          AddMistake(E.Message, clRed);
+          AddMistake(E.Message);
 
           TargetDS.Cancel;
           AddToIDMapping(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger, -1, lsNotLoaded);
@@ -7546,16 +7540,16 @@ begin
     if (CDS.FindField(GetListField(SubType)) = nil) then
     begin
       AddText('Объект "' + GetDisplayName(GetSubType) + '" (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
-        CDS.FieldByName('_dbid').AsString + ')', clBlue);
+        CDS.FieldByName('_dbid').AsString + ')');
 
       AddMistake('Структура загружаемого объекта не соответствует структуре уже существующего объекта в базе. '#13#10 +
-        ' Поле ' + GetListField(SubType) + ' не найдено в потоке данных!', clRed);
+        ' Поле ' + GetListField(SubType) + ' не найдено в потоке данных!');
     end
     else
     begin
       AddText('Объект "' + GetDisplayName(GetSubType) + ' ' + CDS.FieldByName(GetListField(SubType)).AsString +
         '" (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
-        CDS.FieldByName('_dbid').AsString + ')', clBlue);
+        CDS.FieldByName('_dbid').AsString + ')');
     end;
 
     FStreamXID := CDS.FieldByName('_xid').AsInteger;
@@ -7617,7 +7611,7 @@ begin
         end else
         begin
           // Запись найдена, РУИД корректен
-          AddText('Объект найден по РУИДу'#13#10, clBlue);
+          AddText('Объект найден по РУИДу'#13#10);
 
           //Проверяем, необходимо ли нам удалить найденную запись, перед считыванием ее аналога из потока
           if NeedDeleteTheSame(SubType) and
@@ -7719,7 +7713,7 @@ begin
     if Assigned(frmStreamSaver) then
       frmStreamSaver.SetupProgress(ObjectSet.Count, 'Загрузка...');
 
-    AddText('Начата загрузка данных из потока.', clBlack);
+    AddText('Начата загрузка данных из потока.');
 
     if Assigned(frmSQLProcess) and Assigned(ObjectSet) then
     begin
@@ -7902,7 +7896,7 @@ begin
         if Assigned(frmStreamSaver) then
           frmStreamSaver.Done;
 
-        AddText('Закончена загрузка данных из потока.', clBlack);
+        AddText('Закончена загрузка данных из потока.');
       end;
 
     except
@@ -7915,7 +7909,7 @@ begin
           if Assigned(frmStreamSaver) then
             frmStreamSaver.AddMistake(E.Message);
 
-          AddMistake(E.Message, clRed);
+          AddMistake(E.Message);
         end;
         raise;
       end;
@@ -8093,7 +8087,7 @@ const
                 F.AsInteger,
                 C.SubType);
             try
-              if (not (Obj is TgdcMetaBase)) or (not TgdcMetaBase(Obj).IsDerivedObject) then
+              if Obj.CanAddToNS then
               begin
                 //Установим флаг нового объекта в то состояние, которое имеет Self
                 //только если значение флага Self.ModifyFromStream отличается от значения устанавливаемого по умолчанию
@@ -8172,8 +8166,7 @@ var
       AddText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
         FieldByName(GetListField(SubType)).AsString + #13#10 +
         ' (' + FieldByName(GetKeyField(SubType)).AsString + ') ' +
-        ' с данными множества ' + LocName + #13#10,
-        clBlue);
+        ' с данными множества ' + LocName + #13#10);
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
           FieldByName(GetListField(SubType)).AsString + #13#10 +
@@ -8184,8 +8177,7 @@ var
     begin
       AddText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
         FieldByName(GetListField(SubType)).AsString +
-        ' (' + FieldByName(GetKeyField(SubType)).AsString + ')',
-        clBlue);
+        ' (' + FieldByName(GetKeyField(SubType)).AsString + ')');
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
           FieldByName(GetListField(SubType)).AsString +
@@ -8636,8 +8628,7 @@ begin
                   begin
                     AddText('Сохранение: ' + Obj.GetDisplayName(Obj.GetSubType) + ' ' +
                       Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                      ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')',
-                      clBlue);
+                      ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')');
                     if Assigned(frmStreamSaver) then
                       frmStreamSaver.SetProcessText(Obj.GetDisplayName(Obj.GetSubType) + ' ' +
                         Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
@@ -8833,7 +8824,7 @@ begin
 
                         if not Obj.EOF then
                         begin
-                          if (not (Obj is TgdcMetaBase)) or (not TgdcMetaBase(Obj).IsDerivedObject) then
+                          if Obj.CanAddToNS then
                           begin
                             Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList,
                               WithDetailList,
@@ -9118,6 +9109,11 @@ end;
 procedure TgdcBase.EditMultipleSort(var BL: OleVariant);
 begin
   //
+end;
+
+function TgdcBase.GetCanAddToNS: Boolean;
+begin
+  Result := True;
 end;
 
 { TgdcDataLink }
@@ -12356,7 +12352,7 @@ begin
   if not Result then
   begin
     for I := 0 to FOldValues.Count - 1 do
-      if AnsiCompareText((FOldValues[I] as TFieldValue).FieldName, AFieldName) = 0 then
+      if AnsiSameText((FOldValues[I] as TFieldValue).FieldName, AFieldName) then
       begin
         Result := True;
         exit;
@@ -12779,6 +12775,9 @@ begin
   OldRUIDString := RUIDToStr(AnOldXID, AnOldDBID);
   NewRUIDString := RUIDToStr(ANewXID, ANewDBID);
 
+  if OldRUIDString = NewRUIDString then
+    exit;
+
   if FChangedRUIDs = nil then
   begin
     FChangedRUIDs := TStringList.Create;
@@ -12799,15 +12798,58 @@ begin
       q.Transaction := ATr;
 
       q.SQL.Text :=
-        'UPDATE gd_ruid SET xid = :new_xid, dbid = :new_dbid, ' +
-        '  modified = CURRENT_TIMESTAMP(0) ' +
+        'SELECT id FROM gd_ruid ' +
         'WHERE xid = :old_xid AND dbid = :old_dbid';
       q.ParamByName('old_xid').AsInteger := AnOldXID;
       q.ParamByName('old_dbid').AsInteger := AnOldDBID;
-      q.ParamByName('new_xid').AsInteger := ANewXID;
-      q.ParamByName('new_dbid').AsInteger := ANewDBID;
       q.ExecQuery;
 
+      if not q.EOF then
+      begin
+        q.Close;
+
+        q.SQL.Text :=
+          'SELECT id FROM gd_ruid ' +
+          'WHERE xid = :new_xid AND dbid = :new_dbid';
+        q.ParamByName('new_xid').AsInteger := ANewXID;
+        q.ParamByName('new_dbid').AsInteger := ANewDBID;
+        q.ExecQuery;
+
+        if not q.EOF then
+        begin
+          if MessageBox(0,
+            PChar('В БД присутствует РУИД ' + NewRUIDString +
+              ', который соответствует ИД=' +
+              q.FieldbyName('id').AsString +
+              #13#10#13#10'. Отменить операцию замены?'),
+            'Внимание',
+            MB_YESNO or MB_TASKMODAL or MB_ICONQUESTION) = IDYES then
+          begin
+            exit;
+          end;
+
+          q.Close;
+          q.SQL.Text :=
+            'DELETE FROM gd_ruid ' +
+            'WHERE xid = :new_xid AND dbid = :new_dbid';
+          q.ParamByName('new_xid').AsInteger := ANewXID;
+          q.ParamByName('new_dbid').AsInteger := ANewDBID;
+          q.ExecQuery;
+        end;
+
+        q.Close;
+        q.SQL.Text :=
+          'UPDATE gd_ruid SET xid = :new_xid, dbid = :new_dbid, ' +
+          '  modified = CURRENT_TIMESTAMP(0) ' +
+          'WHERE xid = :old_xid AND dbid = :old_dbid';
+        q.ParamByName('old_xid').AsInteger := AnOldXID;
+        q.ParamByName('old_dbid').AsInteger := AnOldDBID;
+        q.ParamByName('new_xid').AsInteger := ANewXID;
+        q.ParamByName('new_dbid').AsInteger := ANewDBID;
+        q.ExecQuery;
+      end;
+
+      q.Close;
       q.SQL.Text :=
         'UPDATE gd_command SET cmd = :new, ' +
         '  editiondate = CURRENT_TIMESTAMP(0) ' +
@@ -14016,7 +14058,7 @@ begin
   MS := TMemoryStream.Create;
   OS := TgdcObjectSet.Create(TgdcBase, '');
 
-  AddText('Началось сохранение данных в поток.', clBlack);
+  AddText('Началось сохранение данных в поток.');
 
   WasActive := Transaction.InTransaction;
 
@@ -14079,7 +14121,7 @@ begin
     end;
 
   finally
-    AddText('Закончено сохранение данных в поток.', clBlack);
+    AddText('Закончено сохранение данных в поток.');
 
     OS.SaveToStream(Stream);
     Stream.CopyFrom(MS, 0);
@@ -14488,7 +14530,7 @@ begin
     if q.RecordCount = 1 then
     begin       
       AddText('Объект найден по уникальному ключу ' + ClassName + ' ' +
-        RUIDToStr(GetRUID) + ' "' + FieldByName(GetListField(SubType)).AsString + '"', clBlack);
+        RUIDToStr(GetRUID) + ' "' + FieldByName(GetListField(SubType)).AsString + '"');
       if (sLoadFromStream in BaseState) and NeedDeleteTheSame(SubType) then
       begin
         DeleteTheSame(q.Fields[0].AsInteger, FieldByName(GetListField(SubType)).AsString);
@@ -14576,7 +14618,7 @@ begin
                 raise;
               end;
               AddText('Обновлен объект ' + ClassName + ' ' + RUIDToStr(GetRUID) + ' "' +
-                FieldByName(GetListField(SubType)).AsString + '"', clBlack);
+                FieldByName(GetListField(SubType)).AsString + '"');
             except
               Cancel;
             end;
@@ -14647,11 +14689,6 @@ begin
   {M}      ClearMacrosStack2('TGDCBASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcBase.CommitRequired: Boolean;
-begin
-  Result := False;
 end;
 
 procedure TgdcBase.ExecSingleQuery(const S: String; Param: Variant);

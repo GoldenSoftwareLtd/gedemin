@@ -353,7 +353,10 @@ CREATE TABLE gd_bank
   bankcode    dtext20 NOT NULL,
   bankbranch  dtext20,
   bankMFO     dtext20,
-  SWIFT       dtext20
+  SWIFT       dtext20,
+  
+  oldbankcode dtext20,
+  oldbankMFO  dtext20
 );
 
 COMMIT;
@@ -366,8 +369,54 @@ ALTER TABLE gd_bank ADD CONSTRAINT gd_fk_bank_bankkey
   ON UPDATE CASCADE
   ON DELETE CASCADE;
 
-CREATE UNIQUE INDEX gd_x_bank_bankcode
-  ON gd_bank (bankcode, bankbranch);
+CREATE INDEX gd_x_bank_bankcode
+  ON gd_bank (bankcode);
+  
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_biu_bank FOR gd_bank
+  ACTIVE
+  BEFORE INSERT OR UPDATE
+  POSITION 32000
+AS
+  DECLARE VARIABLE d_name VARCHAR(60);
+  DECLARE VARIABLE d_id INTEGER;
+BEGIN
+  IF (INSERTING OR NEW.bankcode <> OLD.bankcode) THEN
+  BEGIN
+    NEW.bankMFO = NEW.bankcode;
+    NEW.SWIFT = NEW.bankcode;    
+  END ELSE
+  BEGIN
+    IF (NEW.bankMFO IS NOT NULL AND NEW.bankMFO IS DISTINCT FROM OLD.bankMFO) THEN
+    BEGIN
+      NEW.bankcode = NEW.bankMFO;
+      NEW.SWIFT = NEW.bankMFO;
+    END ELSE
+    BEGIN
+      IF (NEW.SWIFT IS NOT NULL AND NEW.SWIFT IS DISTINCT FROM OLD.SWIFT) THEN
+      BEGIN
+        NEW.bankcode = NEW.SWIFT;
+        NEW.bankMFO = NEW.SWIFT;
+      END
+    END
+  END    
+
+  /* IF (NOT (NEW.bankcode SIMILAR TO '[A-Z]{6}([A-Z0-9]{2}|[A-Z0-9]{5})')) THEN
+    EXCEPTION gd_e_exception 'Неверный формат BIC "' || NEW.bankcode || '"'; */
+    
+  FOR
+    SELECT c.id, c.name 
+    FROM gd_contact c JOIN gd_bank b ON b.bankkey = c.id    
+    WHERE b.bankkey <> NEW.bankkey AND b.bankcode = NEW.bankcode
+      AND b.bankbranch IS NOT DISTINCT FROM NEW.bankbranch
+    INTO :d_id, :d_name
+  DO     
+    EXCEPTION gd_e_exception 'Дублируется BIC у банка "' || :d_name || '", ИД=' || :d_id;
+END
+^  
+
+SET TERM ; ^
 
 COMMIT;
 
@@ -412,6 +461,10 @@ CREATE TABLE gd_companyaccount
   disabled       dboolean DEFAULT 0,
 
   accounttype    dtext20,            /* для совместимости с предыдущей версией    */
+  
+  oldaccount     dbankaccount,
+  iban           dbankaccount,
+  
   editiondate    deditiondate
 );
 
@@ -443,32 +496,55 @@ ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_companyaccountkey
   
 SET TERM ^ ;
 
-CREATE OR ALTER TRIGGER gd_aiu_companyaccount FOR gd_companyaccount
-  INACTIVE
-  AFTER INSERT OR UPDATE
+CREATE OR ALTER TRIGGER gd_biu_companyaccount FOR gd_companyaccount
+  ACTIVE
+  BEFORE INSERT OR UPDATE
   POSITION 30000
 AS
+  DECLARE VARIABLE hc INTEGER = NULL;
+  DECLARE VARIABLE c_id INTEGER = NULL;
+  DECLARE VARIABLE c_name dtext180 = NULL;
 BEGIN
-  IF (EXISTS(
+  IF (INSERTING OR NEW.account <> OLD.account) THEN
+  BEGIN    
+    /* IF (NOT (NEW.account SIMILAR TO '[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{4}[A-Z0-9]{16}')) THEN
+      EXCEPTION gd_e_exception 'Неверный формат IBAN "' || NEW.account || '"'; */
+      
+    NEW.iban = NEW.account;
+
     SELECT
-      b.bankcode, b.bankbranch, a.account, COUNT(*)
+      co.headcompany
     FROM
-      gd_companyaccount a JOIN gd_bank b 
-        ON b.bankkey = a.bankkey
+      gd_company co
     WHERE
-      a.account = NEW.account
-    GROUP BY
-      b.bankcode, b.bankbranch, a.account
-    HAVING
-      COUNT(*) > 1)) THEN
-  BEGIN      
-    EXCEPTION gd_e_exception 'Дублируется номер банковского счета!'; 
-  END
+      co.contactkey = NEW.companykey
+    INTO
+      :hc;    
+      
+    FOR      
+      SELECT
+        co.contactkey, co.fullname
+      FROM 
+        gd_company co JOIN gd_companyaccount acc ON acc.companykey = co.contactkey
+      WHERE
+        acc.account = NEW.account
+        AND
+        acc.id <> NEW.id
+        AND
+        (
+          (:hc IS NULL)
+          OR
+          (co.headcompany IS DISTINCT FROM :hc)
+        )
+      INTO :c_id, :c_name
+    DO      
+      EXCEPTION gd_e_exception 'Дублируется IBAN у организации "' || :c_name || '", ИД=' || :c_id;           
+  END    
 END
-^
+^  
 
 SET TERM ; ^
-  
+
 COMMIT;
 
 CREATE TABLE gd_contactlist

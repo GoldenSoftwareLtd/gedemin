@@ -1,7 +1,7 @@
 
  {++
 
-   Copyright © 2000-2014 by Golden Software of Belarus, Ltd
+   Copyright © 2000-2017 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -66,8 +66,8 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Temp: String;
-  Res: OleVariant;
+  {Temp: String;
+  Res: OleVariant;}
 begin
   {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGBANK', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}Result := True;
@@ -97,6 +97,7 @@ begin
 
   Result := inherited TestCorrect;
 
+  {
   if Result then
   begin
     if (gdcObject.State = dsInsert) or gdcObject.FieldChanged('bankcode')
@@ -125,7 +126,8 @@ begin
       end;
     end;
   end;
-  
+  }
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGBANK', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then

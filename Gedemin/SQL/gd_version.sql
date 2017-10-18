@@ -817,6 +817,21 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (262, '0000.0001.0000.0293', '31.03.2017', 'Added restrict remains field to INV_BALANCEOPTION');      
+
+INSERT INTO fin_versioninfo
+  VALUES (263, '0000.0001.0000.0294', '15.06.2017', 'Preparing for IBAN and BIC');      
+  
+INSERT INTO fin_versioninfo
+  VALUES (264, '0000.0001.0000.0295', '18.06.2017', 'Preparing for IBAN and BIC #2');      
+  
+INSERT INTO fin_versioninfo
+  VALUES (265, '0000.0001.0000.0296', '04.07.2017', 'Preparing for IBAN and BIC #3');      
+  
+INSERT INTO fin_versioninfo
+  VALUES (266, '0000.0001.0000.0297', '13.07.2017', 'Preparing for IBAN and BIC #4'); 
+     
+INSERT INTO fin_versioninfo
+  VALUES (267, '0000.0001.0000.0298', '02.08.2017', 'Add support database triggers'); 
   
 COMMIT;
 

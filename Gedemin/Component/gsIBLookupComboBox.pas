@@ -2197,55 +2197,67 @@ begin
   begin
     FgdClass := CgdcBase(C);
 
-    { TODO : чуствительно к порядку! вначале надо присваивать сабтайп, потом клас, а не наоборот! }
-    if (FgdClass.GetListTable(FSubType) > '') and (FListTable = '') then
-      FListTable := FgdClass.GetListTable(FSubType);
-
-    if (FgdClass.GetListField(FSubType) > '') then
+    if (FSubType = '') or FgdClass.CheckSubType(FSubType) then
     begin
-      //
-      // Пытаемся получить поле для просмотра из атрибутов,
-      // если оно пустое - используем поле из базового класса
-
-      if
-        Assigned(DataSource) and
-        Assigned(DataSource.DataSet) and
-        DataSource.DataSet.Active and
-        (DataSource.DataSet.FindField(FDataField) <> nil) and
-        Assigned(atDatabase) then
-      begin
-        Origin := DataSource.DataSet.FieldByName(FDataField).Origin;
-        I := AnsiPos('.', Origin);
-
-        F := atDatabase.FindRelationField(
-          Copy(Origin, 1, I - 1),
-          Copy(Origin, I + 1, Length(Origin))
-        );
-      end else
-        F := nil;
+      if FListTable = '' then
+        FListTable := FgdClass.GetListTable(FSubType);
 
       if FListField = '' then
       begin
-        if not Assigned(F) or (F.Field.RefListFieldName = '') then
+        //
+        // Пытаемся получить поле для просмотра из атрибутов,
+        // если оно пустое - используем поле из базового класса
+
+        if
+          Assigned(DataSource) and
+          Assigned(DataSource.DataSet) and
+          DataSource.DataSet.Active and
+          (DataSource.DataSet.FindField(FDataField) <> nil) and
+          Assigned(atDatabase) then
+        begin
+          Origin := DataSource.DataSet.FieldByName(FDataField).Origin;
+          I := AnsiPos('.', Origin);
+
+          F := atDatabase.FindRelationField(
+            Copy(Origin, 1, I - 1),
+            Copy(Origin, I + 1, Length(Origin))
+          );
+        end else
+          F := nil;
+
+        if (F = nil) or (F.Field.RefListFieldName = '') then
           FListField := FgdClass.GetListField(FSubType)
         else
           FListField := F.Field.RefListFieldName;
       end;
-    end;
 
-    if (FKeyField = '') and (FgdClass.GetKeyField(FSubType) > '') then
-      FKeyField := FgdClass.GetKeyField(FSubType);
+      if FKeyField = '' then
+        FKeyField := FgdClass.GetKeyField(FSubType);
 
-    if (FCondition = '')
-      and (not FEmptyCondition)
-      and AnsiSameText(FgdClass.GetListTable(FSubType), FListTable)
-      and (GetRestrCondition > '') then
+      if (FCondition = '')
+        and (not FEmptyCondition)
+        and AnsiSameText(FgdClass.GetListTable(FSubType), FListTable)
+        and (GetRestrCondition > '') then
+      begin
+        FCondition := GetRestrCondition;
+      end;
+
+      if Fields = '' then
+        Fields := FgdClass.GetListFieldExtended(FSubType);
+    end else
     begin
-      FCondition := GetRestrCondition;
+      MessageBox(0,
+        PChar('Для компонента "' + Self.Name + '"'#13#10 +
+        'неверно заданы класс и сабтайп: ' + #13#10 +
+        FgdClassName + ' ' + FSubType + '.'),
+        'Предупреждение',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      FListTable := '';
+      FListField := '';
+      FKeyField := '';
+      FCondition := '';
+      Fields := '';
     end;
-
-    if (FFields = '') and (FgdClass.GetListFieldExtended(FSubType) > '') then
-      Fields := FgdClass.GetListFieldExtended(FSubType);
   end else
   begin
     FgdClass := nil;

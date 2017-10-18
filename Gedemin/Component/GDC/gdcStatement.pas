@@ -1695,7 +1695,7 @@ var
       begin
         gdcAccount.Transaction := Transaction;
         gdcAccount.ReadTransaction := Transaction;
-        gdcAccount.IgnoryQuestion := True;
+        //gdcAccount.IgnoryQuestion := True;
         gdcAccount.Open;
         gdcAccount.Insert;
         gdcAccount.FieldByName('account').AsString := FieldByName('account').AsString;

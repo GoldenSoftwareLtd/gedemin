@@ -143,6 +143,7 @@ begin
       FIBTransaction.Commit;
       FIBTransaction.StartTransaction;
 
+      (*
       ibsql.Close;
       ibsql.SQL.Text := 'ALTER PROCEDURE AT_P_SYNC_TRIGGERS_ALL '#13#10 +
         ' AS '#13#10 +
@@ -200,6 +201,7 @@ begin
 
       Log('Изменение процедуры AT_P_SYNC_TRIGGERS_ALL');
       ibsql.ExecQuery;
+      *)
 
       ibsql.Close;
       ibsql.SQL.Text :=  ' ALTER PROCEDURE AT_P_SYNC_INDEXES ( ' + #13#10 +

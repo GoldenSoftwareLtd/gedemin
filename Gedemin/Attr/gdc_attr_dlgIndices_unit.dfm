@@ -1,6 +1,6 @@
 inherited gdc_dlgIndices: Tgdc_dlgIndices
-  Left = 227
-  Top = 142
+  Left = 897
+  Top = 270
   HelpContext = 85
   ActiveControl = dbeIndexName
   Caption = 'Индексы'
@@ -25,23 +25,28 @@ inherited gdc_dlgIndices: Tgdc_dlgIndices
   inherited btnAccess: TButton
     Left = 18
     Top = 267
+    TabOrder = 10
   end
   inherited btnNew: TButton
     Left = 90
     Top = 267
     Enabled = False
-  end
-  inherited btnOK: TButton
-    Left = 265
-    Top = 267
-  end
-  inherited btnCancel: TButton
-    Left = 337
-    Top = 267
+    TabOrder = 11
   end
   inherited btnHelp: TButton
     Left = 162
     Top = 267
+    TabOrder = 12
+  end
+  inherited btnOK: TButton
+    Left = 265
+    Top = 267
+    TabOrder = 8
+  end
+  inherited btnCancel: TButton
+    Left = 337
+    Top = 267
+    TabOrder = 9
   end
   object lbFields: TListBox [7]
     Left = 21
@@ -50,7 +55,7 @@ inherited gdc_dlgIndices: Tgdc_dlgIndices
     Height = 169
     DragMode = dmAutomatic
     ItemHeight = 13
-    TabOrder = 5
+    TabOrder = 1
     OnDblClick = actAddToIndexExecute
     OnDragDrop = lbFieldsDragDrop
     OnDragOver = lbFieldsDragOver
@@ -63,7 +68,7 @@ inherited gdc_dlgIndices: Tgdc_dlgIndices
     Height = 169
     DragMode = dmAutomatic
     ItemHeight = 13
-    TabOrder = 6
+    TabOrder = 4
     OnDblClick = actRemoveFromIndexExecute
     OnDragDrop = lbIndexFieldsDragDrop
     OnDragOver = lbIndexFieldsDragOver
@@ -77,7 +82,7 @@ inherited gdc_dlgIndices: Tgdc_dlgIndices
     CharCase = ecUpperCase
     DataField = 'indexname'
     DataSource = dsgdcBase
-    TabOrder = 7
+    TabOrder = 0
   end
   object btnRight: TBitBtn [10]
     Left = 197
@@ -85,7 +90,7 @@ inherited gdc_dlgIndices: Tgdc_dlgIndices
     Width = 33
     Height = 41
     Action = actAddToIndex
-    TabOrder = 8
+    TabOrder = 2
     Glyph.Data = {
       76010000424D7601000000000000760000002800000020000000100000000100
       04000000000000010000120B0000120B00001000000000000000000000000000
@@ -108,7 +113,7 @@ inherited gdc_dlgIndices: Tgdc_dlgIndices
     Width = 33
     Height = 41
     Action = actRemoveFromIndex
-    TabOrder = 9
+    TabOrder = 3
     Glyph.Data = {
       76010000424D7601000000000000760000002800000020000000100000000100
       04000000000000010000120B0000120B00001000000000000000000000000000
@@ -132,7 +137,7 @@ inherited gdc_dlgIndices: Tgdc_dlgIndices
     Height = 21
     Style = csDropDownList
     ItemHeight = 13
-    TabOrder = 10
+    TabOrder = 6
     Items.Strings = (
       'По возрастанию'
       'По убыванию')
@@ -145,7 +150,7 @@ inherited gdc_dlgIndices: Tgdc_dlgIndices
     Caption = 'Уникальный'
     DataField = 'unique_flag'
     DataSource = dsgdcBase
-    TabOrder = 11
+    TabOrder = 7
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
@@ -157,7 +162,7 @@ inherited gdc_dlgIndices: Tgdc_dlgIndices
     Caption = 'Активный'
     DataField = 'index_inactive'
     DataSource = dsgdcBase
-    TabOrder = 12
+    TabOrder = 5
     ValueChecked = '0'
     ValueUnchecked = '1'
   end

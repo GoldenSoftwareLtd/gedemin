@@ -642,7 +642,7 @@ type
     // Указатели на действия
     FMasterAct, FRefreshAct, FFindAct, FFindNextAct, FPanelAct,
     FHideColAct, FGroupAct, FInputCaptionAct, FFrozeColumnAct, FCancelAutoFilterAct,
-    FFirst, FLast, FNext, FPrior, FPageUp, FPageDown,
+    FFirst, FLast, FNext, FPrior, FPageUp, FPageDown, FExportAct,
     FCopyToClipboardAct, FCopyTotalToClipboardAct: TAction;
 
     FSelectedFont: TFont;                 // Шрифт выделенного текста
@@ -795,6 +795,7 @@ type
     procedure DoOnFindNextExecute(Sender: TObject);
     procedure DoOnCopyToClipboardExecute(Sender: TObject);
     procedure DoOnCopyTotalToClipboardExecute(Sender: TObject);
+    procedure DoOnExportExecute(Sender: TObject);
 
     procedure DoOnRefresh(Sender: TObject);
     procedure DoOnPanel(Sender: TObject);
@@ -1230,7 +1231,7 @@ implementation
 {$R GSDBGRID.RES}
 
 uses
-  Math, ClipBrd, DsgnIntf, TypInfo, gsdbGrid_dlgFilter, jclStrings
+  Math, ClipBrd, DsgnIntf, TypInfo, gsdbGrid_dlgFilter, jclStrings, gdcExportService
   {$IFDEF GEDEMIN}
   , Storages, gd_security, gsDBGrid_dlgMaster, gsdbGrid_dlgFind_unit, ComObj
   {$ENDIF}
@@ -1261,6 +1262,7 @@ const
   MENU_FINDNEXT = 'Найти следующее';
   MENU_PANEL = 'Панель инструментов';
   MENU_HIDECOL = 'Скрыть колонку';
+  MENU_EXPORT = 'Экспорт данных...';
 
   MENU_GROUP = 'Группировать';
   MENU_UNGROUP = 'Снять группировки';
@@ -3729,6 +3731,7 @@ begin
   FCancelAutoFilterAct := nil;
   FCopyToClipboardAct := nil;
   FCopyTotalToClipboardAct := nil;
+  FExportAct := nil;
 
   FSelectedFont := TFont.Create;
   FSelectedFont.Color := clHighlightText;
@@ -4120,6 +4123,7 @@ begin
   FreeAndNil(FFindNextAct);
   FreeAndNil(FCopyToClipboardAct);
   FreeAndNil(FCopyTotalToClipboardAct);
+  FreeAndNil(FExportAct);
 end;
 
 procedure TgsCustomDBGrid.Read(Reader: TReader);
@@ -6918,6 +6922,12 @@ begin
   FFindNextAct.Hint := MENU_FINDNEXT;
 
   //
+  FExportAct := NewAction;
+  FExportAct.OnExecute := DoOnExportExecute;
+  FExportAct.Caption := MENU_EXPORT;
+  FExportAct.ImageIndex := 228;
+  FExportAct.Hint := MENU_EXPORT;
+
   FCopyToClipboardAct := NewAction;
   FCopyToClipboardAct.OnExecute := DoOnCopyToClipboardExecute;
   FCopyToClipboardAct.Caption := MENU_COPYTOCLIPBOARD;
@@ -7090,6 +7100,11 @@ begin
     begin
       // Разделитель
       Items.Add(AddItem(APopupMenu.Items, '-'));
+
+      // Экспорт данных
+      MenuItem := AddItem(APopupMenu.Items, '');
+      MenuItem.Action := FExportAct;
+      Items.Add(MenuItem);
 
       // Скопировать ячейки в буфер
       MenuItem := AddItem(APopupMenu.Items, '');
@@ -10383,6 +10398,12 @@ begin
       C.Free;
     end;
   end;
+end;
+
+procedure TgsCustomDBGrid.DoOnExportExecute(Sender: TObject);
+begin
+  inherited;
+  TExportService.DoExportWithSettingsForm(self);
 end;
 
 procedure TgsDataLink.DataSetChanged;

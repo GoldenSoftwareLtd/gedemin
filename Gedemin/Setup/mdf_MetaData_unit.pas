@@ -68,6 +68,7 @@ function ConstraintExist(Constraint: TmdfConstraint; Db: TIBDataBase): Boolean;
 function ConstraintExist2(const ATableName, AConstraintName: String; ATr: TIBTransaction): Boolean;
 procedure DropConstraint(Constraint: TmdfConstraint; Db: TIBDataBase);
 procedure DropConstraint2(const ATableName, AConstraintName: String; ATr: TIBTransaction);
+procedure DropNotNullConstraint2(const ATableName, AFieldName: String; ATr: TIBTransaction);
 procedure AddConstraint(Constraint: TmdfConstraint; Db: TIBDataBase);
 
 function IndexExist2(const AnIndexName: String; ATr: TIBTransaction): boolean;
@@ -496,6 +497,40 @@ begin
     finally
       SQl.Free;
     end;
+  end;
+end;
+
+procedure DropNotNullConstraint2(const ATableName, AFieldName: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQL;
+  S: String;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+
+    SQL.SQL.Text :=
+      'SELECT rc.rdb$constraint_name '#13#10 +
+      'FROM rdb$relation_constraints rc '#13#10 +
+      'JOIN rdb$check_constraints cc '#13#10 +
+      'ON rc.rdb$constraint_name = cc.rdb$constraint_name '#13#10 +
+      'WHERE rc.rdb$constraint_type = ''NOT NULL'' '#13#10 +
+      'AND rc.rdb$relation_name = :TN '#13#10 +
+      'AND cc.rdb$trigger_name = :FN ';
+    SQL.ParamByName('TN').AsString := ATableName;
+    SQL.ParamByName('FN').AsString := AFieldName;
+    SQL.ExecQuery;
+
+    if not SQL.EOF then
+    begin
+      S := 'ALTER TABLE ' + ATableName +
+        ' DROP CONSTRAINT ' + SQL.Fields[0].AsString;
+      SQL.Close;
+      SQL.SQL.Text := S;
+      SQL.ExecQuery;
+    end;
+  finally
+    SQl.Free;
   end;
 end;
 

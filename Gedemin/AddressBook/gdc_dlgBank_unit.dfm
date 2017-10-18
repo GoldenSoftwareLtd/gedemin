@@ -1,64 +1,85 @@
 inherited gdc_dlgBank: Tgdc_dlgBank
-  Left = 411
-  Top = 200
+  Left = 416
+  Top = 206
   HelpContext = 32
   Caption = 'Банк'
-  ClientHeight = 384
+  ClientHeight = 371
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 356
+    Top = 343
   end
   inherited btnNew: TButton
-    Top = 356
+    Top = 343
   end
   inherited btnHelp: TButton
-    Top = 356
+    Top = 343
   end
   inherited btnOK: TButton
-    Top = 356
+    Top = 343
   end
   inherited btnCancel: TButton
-    Top = 356
+    Top = 343
   end
   inherited pgcMain: TPageControl
-    Height = 346
+    Height = 333
     inherited tbsMain: TTabSheet
       object LabelCode: TLabel [10]
         Left = 6
-        Top = 129
-        Width = 57
+        Top = 130
+        Width = 21
         Height = 13
-        Caption = 'Код банка:'
+        Caption = 'BIC:'
       end
       object LabelMFO: TLabel [11]
-        Left = 321
-        Top = 129
-        Width = 24
+        Left = 172
+        Top = 182
+        Width = 94
         Height = 13
-        Caption = 'БИК:'
+        Caption = 'БИК (бывш. МФО):'
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clBtnShadow
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        Visible = False
       end
       object lblSWIFT: TLabel [12]
         Left = 6
-        Top = 154
+        Top = 181
         Width = 36
         Height = 13
         Caption = 'SWIFT:'
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clBtnShadow
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        Visible = False
       end
       object lblBankBranch: TLabel [13]
-        Left = 172
-        Top = 129
-        Width = 25
+        Left = 176
+        Top = 130
+        Width = 180
         Height = 13
-        Caption = 'ЦБУ:'
+        Caption = 'ЦБУ (номер отделения, если есть):'
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
       end
       inherited btnSaveRec: TButton
-        TabOrder = 13
+        Top = 180
+        TabOrder = 11
       end
       inherited pnAccount: TPanel
-        Top = 170
+        Top = 148
         Height = 131
-        TabOrder = 10
+        TabOrder = 12
         inherited Label23: TLabel
           Left = 5
           Top = 26
@@ -102,16 +123,17 @@ inherited gdc_dlgBank: Tgdc_dlgBank
         end
       end
       inherited dbcbDisabled: TDBCheckBox
-        Top = 302
+        Top = 285
         Caption = 'Банк не активен'
-        TabOrder = 11
+        TabOrder = 13
       end
       inherited dbeOkulp: TDBEdit
-        TabOrder = 12
+        TabStop = False
+        TabOrder = 14
       end
       object dbeBankCode: TDBEdit
         Left = 74
-        Top = 125
+        Top = 126
         Width = 95
         Height = 21
         DataField = 'BANKCODE'
@@ -119,31 +141,37 @@ inherited gdc_dlgBank: Tgdc_dlgBank
         TabOrder = 7
       end
       object dbeBankMFO: TDBEdit
-        Left = 365
-        Top = 125
+        Left = 109
+        Top = 234
         Width = 107
         Height = 21
+        TabStop = False
+        Color = clBtnFace
         DataField = 'BANKMFO'
         DataSource = dsgdcBase
-        TabOrder = 9
+        TabOrder = 10
+        Visible = False
       end
       object dbeSWIFT: TDBEdit
-        Left = 74
-        Top = 149
-        Width = 241
+        Left = 114
+        Top = 210
+        Width = 95
         Height = 21
+        TabStop = False
+        Color = clBtnFace
         DataField = 'SWIFT'
         DataSource = dsgdcBase
-        TabOrder = 8
+        TabOrder = 9
+        Visible = False
       end
       object dbedBankBranch: TDBEdit
-        Left = 200
-        Top = 125
-        Width = 115
+        Left = 365
+        Top = 126
+        Width = 106
         Height = 21
         DataField = 'BANKBRANCH'
         DataSource = dsgdcBase
-        TabOrder = 14
+        TabOrder = 8
       end
     end
     inherited TabSheet3: TTabSheet
@@ -162,12 +190,12 @@ inherited gdc_dlgBank: Tgdc_dlgBank
     end
     inherited tbsLogo: TTabSheet
       inherited JvDBImage: TJvDBImage
-        Height = 296
+        Height = 283
       end
     end
     inherited tbsAttr: TTabSheet
       inherited atcMain: TatContainer
-        Height = 318
+        Height = 305
       end
     end
   end

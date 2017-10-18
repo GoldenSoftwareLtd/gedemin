@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -193,7 +193,6 @@ type
 
     procedure UpdateEditState;
 
-    procedure TestName;
     procedure TestType;
     procedure TestVisualSettings;
 
@@ -218,7 +217,6 @@ type
     procedure SetupRecord; override;
     procedure SetupDialog; override;
     function TestCorrect: Boolean; override;
-
   end;
 
   Egdc_dlgFieldError = class(Exception);
@@ -425,12 +423,6 @@ function Tgdc_dlgField.TestCorrect: Boolean;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-{  WasEditingState: Boolean;
-  Stream: TStringStream;
-  S: String;
-  i: Integer;
-  Relation: TatRelation;
-  RelationField: TatRelationField;}
 begin
   {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGFIELD', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}Result := True;
@@ -457,21 +449,17 @@ begin
   {M}      end;
   {M}  end;
   {END MACRO}
-  Result := True;
-
-  //
-  //  ќсуществл€ем проверку
-  //  показателей, необходимых
-  //  дл€ создани€ метаданных
 
   try
-    TestName;
     TestType;
     TestVisualSettings;
   except
     ModalResult := mrNone;
     raise;
   end;
+
+  Result := True;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGFIELD', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -604,9 +592,6 @@ begin
       begin
         pcDataType.ActivePage := tsNumeric;
         rgNumeric.ItemIndex := 3;
-
-{        edPrecision.Text := gdcObject.FieldByName('fprecision').AsString;
-        edScale.Text := IntToStr(Abs(gdcObject.FieldByName('fscale').AsInteger));}
       end;
 
       //
@@ -813,28 +798,6 @@ begin
   UpdateConstraints;
 end;
 
-procedure Tgdc_dlgField.TestName;
-var
-  ibsql: TIBSQL;
-begin
-  Assert(gdcBaseManager <> nil);
-  Assert(atDataBase <> nil);
-
-  if gdcObject.State = dsEdit then
-    exit;
-
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    ibsql.SQL.Text := 'SELECT * FROM at_fields WHERE fieldname = ' + QuotedStr(dbedTypeName.Text);
-    ibsql.ExecQuery;
-    if not ibsql.Eof then
-      raise Egdc_dlgFieldError.Create('Ќаименование типа пол€ дублируетс€ с уже существующим!');
-  finally
-    ibsql.Free;
-  end;
-end;
-
 procedure Tgdc_dlgField.TestType;
 var
   I: Integer;
@@ -845,7 +808,8 @@ begin
 
   // ќсуществл€ем проверку только в случае
   // добавлени€ новой записи
-  if gdcObject.State = dsEdit then Exit;
+  if gdcObject.State = dsEdit then
+    exit;
 
   //
   // —троковый тип
@@ -1656,23 +1620,8 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  with gdcObject do
-  begin
-    //
-    //  ≈сли поле не имеет префикса пол€-атрибута,
-    //  добавл€ем указанный префикс;
-    //  если не указано кратное наименование и(или)
-    //  описание пол€ - копируем из локализированного наименовани€
 
-    if (State = dsInsert) and
-      (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('fieldname').AsString)) <> 1)
-    then
-      FieldByName('fieldname').AsString :=
-        UserPrefix +
-        FieldByName('fieldname').AsString;
-  end;
-
-    //
+  //
   //  ќсуществл€ем проверку и создание
   //  метаданных
 

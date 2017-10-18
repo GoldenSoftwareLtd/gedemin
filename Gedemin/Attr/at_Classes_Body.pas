@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2017 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -80,7 +80,7 @@ type
 
     procedure LoadFromStream(S: TStream);
     procedure SaveToStream(S: TStream);
-
+              
 
   public
     constructor Create(ADatabase: TatDatabase);
@@ -442,8 +442,10 @@ type
 
     procedure ProceedLoading(Force: Boolean = False); override;
     procedure ForceLoadFromDatabase; override;
+    procedure SaveToCacheFile; override;
 
-    function FindRelationField(const ARelationName, ARelationFieldName: String): TatRelationField; override;
+    function FindRelationField(const ARelationName, ARelationFieldName: String): TatRelationField; overload; override;
+    function FindRelationField(const AnID: Integer): TatRelationField; overload; override;
 
     procedure NotifyMultiConnectionTransaction; override;
     procedure CancelMultiConnectionTransaction(const All: Boolean = False); override;
@@ -472,7 +474,7 @@ uses
   IBUtils,           gd_splash,         at_frmIBUserList,  iberrorcodes,
   dmDatabase_unit,   IB,                IBHeader
   {$IFDEF WITH_INDY}
-    , gdccClient_unit
+    , gdccClient_unit, gdccConst
   {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -930,7 +932,7 @@ begin
         end;
       finally
         SL.Free;
-      end;
+      end;                       
     end;
 
     // Если такого поля нет, то первое текстовое поле, обязательное для заполнения
@@ -2125,6 +2127,17 @@ begin
   begin
     FgdClassName := CE.TheClass.ClassName;
     FgdSubType := SQLRecord.ByName('GDSUBTYPE').AsTrimString;
+
+    if (FgdSubType > '') and (not CE.CheckSubType(FgdSubType)) then
+    begin
+      MessageBox(0,
+        PChar('Для домена ' + FFieldName + #13#10 +
+        ' указаны недопустимые класс и подтип: ' + #13#10 +
+        FgdClassName + ' ' + FgdSubType),
+        'Внимание',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
+      FgdSubType := '';
+    end;
   end else
   begin
     FgdClassName := '';
@@ -2569,28 +2582,7 @@ begin
 end;
 
 destructor TatBodyDatabase.Destroy;
-var
-  S, CS: TStream;
 begin
-  if FLoaded and (FFileName > '') then
-  begin
-    try
-      S := TFileStream.Create(FFileName, fmCreate or fmShareExclusive);
-      CS := TZCompressionStream.Create(S, zcDefault);
-      try
-        SaveToStream(CS);
-      finally
-        CS.Free;
-        S.Free;
-      end;
-    except
-      on EFOpenError do
-        raise EatDatabaseError.Create('Can''t create attributes file!');
-      else
-        raise EatDatabaseError.Create('Error during storing of attributes data locally!');
-    end;
-  end;
-
   FRelations.Free;
   FFields.Free;
   FForeignKeys.Free;
@@ -2618,6 +2610,43 @@ begin
 end;
 
 procedure TatBodyDatabase.LoadFromDatabase(const Synchronize: Boolean = True);
+
+  procedure ExecSyncProc(q: TIBSQL; const S: String);
+  var
+    I: Integer;
+  begin
+    if not FTransaction.InTransaction then
+      FTransaction.StartTransaction;
+      
+    q.SQL.Text := 'EXECUTE PROCEDURE ' + S;
+    {$IFDEF WITH_INDY}
+    gdccClient.AddLogRecord('atdatabase', q.SQL.Text);
+    {$ENDIF}
+    try
+      for I := 0 to 5 do
+      begin
+        try
+          q.ExecQuery;
+          FTransaction.Commit;
+          break;
+        except
+          on E: Exception do
+          begin
+            if ((E is EIBError) and (((E as EIBError).IBErrorCode = isc_deadlock)
+              or ((E as EIBError).IBErrorCode = isc_lock_conflict)))
+            then
+              Sleep(1000)
+            else
+              raise;
+          end;
+        end;
+      end;
+    except
+      on E: Exception do
+        Application.HandleException(E);
+    end;
+  end;
+
 var
   ibsql: TIBSQL;
   atRelation: TatBodyRelation;
@@ -2631,6 +2660,10 @@ begin
   Assert(not FLoading);
   Assert(Assigned(FDatabase));
   Assert(Assigned(FTransaction));
+
+  {$IFDEF WITH_INDY}
+  gdccClient.AddLogRecord('atdatabase', 'Загрузка из БД');
+  {$ENDIF}
 
   if Assigned(IBLogin) then
   begin
@@ -2663,33 +2696,10 @@ begin
     begin
       if Assigned(gdSplash) then
         gdSplash.ShowText(sSynchronizationAtRelations);
-      {$IFDEF WITH_INDY}
-      gdccClient.AddLogRecord('atdatabase', 'EXECUTE PROCEDURE at_p_sync');
-      {$ENDIF}
-      ibsql.SQL.Text := 'EXECUTE PROCEDURE at_p_sync';
-      try
-        for I := 0 to 5 do
-        begin
-          try
-            ibsql.ExecQuery;
-            FTransaction.Commit;
-            Break;
-          except
-            on E: Exception do
-            begin
-              if ((E is EIBError) and (((E as EIBError).IBErrorCode = isc_deadlock)
-                or ((E as EIBError).IBErrorCode = isc_lock_conflict)))
-              then
-                Sleep(1000)
-              else
-                raise;
-            end;
-          end;
-        end;
-      except
-        on E: Exception do
-          Application.HandleException(E);
-      end;
+
+      ExecSyncProc(ibsql, 'at_p_sync');
+      ExecSyncProc(ibsql, 'at_p_sync_triggers_all');
+      ExecSyncProc(ibsql, 'at_p_sync_indexes_all');
     end;
 
     if not FTransaction.InTransaction then
@@ -3112,68 +3122,44 @@ procedure TatBodyDatabase.KillGarbage;
 var
   I, K: Integer;
 begin
-  if FGarbageCount > 0 then
-  begin
-    FGarbageCount := 0;
+  if FGarbageCount = 0 then
+    exit;
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Удаление мусора из списка таблиц
-    ////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+  // Удаление мусора из списка внешних ключей
+  ////////////////////////////////////////////////////////////////////////////
 
-{    for I := FRelations.Count - 1 downto 0 do
+  for I := FForeignKeys.Count - 1 downto 0 do
+    if FForeignKeys[I].IsDropped then
     begin
-      if FRelations[I].IsDropped then
-        TatBodyRelations(FRelations).FList.Remove(FRelations[I])
-      else with TatBodyRelation(FRelations[I]) do
+      with TatBodyForeignKey(FForeignKeys[I]) do
       begin
-        for K := FRelationFields.Count - 1 downto 0 do
-          if FRelationFields[K].IsDropped then
-            TatBodyRelationFields(FRelationFields).FList.Remove(FRelationFields[K]);
-      end;
-    end;         }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Удаление мусора из списка типов полей
-    ////////////////////////////////////////////////////////////////////////////
-
-{    for I := FFields.Count - 1 downto 0 do
-      if FFields[I].IsDropped then
-        TatBodyFields(FFields).FList.Remove(FFields[I]);   }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Удаление мусора из списка внешних ключей
-    ////////////////////////////////////////////////////////////////////////////
-
-    for I := FForeignKeys.Count - 1 downto 0 do
-      if FForeignKeys[I].IsDropped then
-      begin
-        with TatBodyForeignKey(FForeignKeys[I]) do
+        if FForeignKeys[I].IsSimpleKey then
         begin
-          if FForeignKeys[I].IsSimpleKey then
-          begin
-            TatBodyRelationField(ConstraintField).FReferences := nil;
-            TatBodyRelationField(ConstraintField).FReferencesField := nil;
-          end;
-
-          for K := 0 to FConstraintFields.Count - 1 do
-          with TatBodyRelationField(FConstraintFields[K]) do
-            FForeignKey := nil;
+          TatBodyRelationField(ConstraintField).FReferences := nil;
+          TatBodyRelationField(ConstraintField).FReferencesField := nil;
         end;
 
-        TatBodyForeignKeys(FForeignKeys).FList.Remove(FForeignKeys[I]);
+        for K := 0 to FConstraintFields.Count - 1 do
+        with TatBodyRelationField(FConstraintFields[K]) do
+          FForeignKey := nil;
       end;
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Удаление мусора из списка главных ключей
-    ////////////////////////////////////////////////////////////////////////////
+      TatBodyForeignKeys(FForeignKeys).FList.Remove(FForeignKeys[I]);
+    end;
 
-    for I := FPrimaryKeys.Count - 1 downto 0 do
-      if FPrimaryKeys[I].IsDropped then
-      begin
-        TatBodyRelation(TatBodyPrimaryKey(FPrimaryKeys[I]).FRelation).FPrimaryKey := nil;
-        TatBodyPrimaryKeys(FPrimaryKeys).FList.Remove(FPrimaryKeys[I]);
-      end;
-  end;
+  ////////////////////////////////////////////////////////////////////////////
+  // Удаление мусора из списка главных ключей
+  ////////////////////////////////////////////////////////////////////////////
+
+  for I := FPrimaryKeys.Count - 1 downto 0 do
+    if FPrimaryKeys[I].IsDropped then
+    begin
+      TatBodyRelation(TatBodyPrimaryKey(FPrimaryKeys[I]).FRelation).FPrimaryKey := nil;
+      TatBodyPrimaryKeys(FPrimaryKeys).FList.Remove(FPrimaryKeys[I]);
+    end;
+
+  FGarbageCount := 0;
 end;
 
 function TatBodyDatabase.StartMultiConnectionTransaction: Boolean;
@@ -3267,6 +3253,7 @@ procedure TatBodyDatabase.ProceedLoading(Force: Boolean = False);
 var
   S, DS: TStream;
   Path: array[0..1024] of Char;
+  WasError: Boolean;
 begin
   CheckMultiConnectionTransaction;
 
@@ -3290,21 +3277,35 @@ begin
       FFileName := '';
     end;
 
+    WasError := False;
     if (FFileName > '') and FileExists(FFileName) then
     begin
-      S := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);
+      {$IFDEF WITH_INDY}
+      gdccClient.AddLogRecord('atdatabase', 'Загрузка из файла: ' + FFileName);
+      {$ENDIF}
       try
-        DS := TZDecompressionStream.Create(S);
+        S := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);
         try
-          LoadFromStream(DS);
+          DS := TZDecompressionStream.Create(S);
+          try
+            LoadFromStream(DS);
+          finally
+            DS.Free;
+          end;
         finally
-          DS.Free;
+          S.Free;
         end;
-      finally
-        S.Free;
+      except
+        on E: Exception do
+        begin
+          {$IFDEF WITH_INDY}
+          gdccClient.AddLogRecord('atdatabase', E.Message, gdcc_lt_Error);
+          {$ENDIF}
+          WasError := True;
+        end;
       end;
 
-      if IsDatabaseDataRequired then
+      if WasError or IsDatabaseDataRequired then
         LoadFromDatabase;
     end else
       LoadFromDatabase;
@@ -3598,6 +3599,49 @@ begin
     end;
 end;
 
+procedure TatBodyDatabase.SaveToCacheFile;
+var
+  S, CS: TStream;
+begin
+  if FLoaded and (FFileName > '') then
+  begin
+    {$IFDEF WITH_INDY}
+    gdccClient.AddLogRecord('atdatabase', 'Сохранение в файл: ' + FFileName);
+    {$ENDIF}
+    try
+      S := TFileStream.Create(FFileName, fmCreate or fmShareExclusive);
+      CS := TZCompressionStream.Create(S, zcDefault);
+      try
+        SaveToStream(CS);
+      finally
+        CS.Free;
+        S.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        {$IFDEF WITH_INDY}
+        gdccClient.AddLogRecord('atdatabase', E.Message, gdcc_lt_Error);
+        {$ENDIF}
+      end;
+    end;
+  end;
+end;
+
+function TatBodyDatabase.FindRelationField(
+  const AnID: Integer): TatRelationField;
+var
+  I: Integer;
+begin
+  Result := nil;
+  for I := 0 to FRelations.Count - 1 do
+  begin
+    Result := FRelations[I].RelationFields.ByID(AnID);
+    if Result <> nil then
+      break;
+  end;
+end;
+
 { TatBodyRelationField }
 
 constructor TatBodyRelationField.Create(atRelation: TatRelation);
@@ -3767,7 +3811,17 @@ begin
   if CE <> nil then
   begin
     FgdClassName := CE.TheClass.ClassName;
-    FgdSubType := SQLRecord.ByName('gdsubtype').AsTrimString;
+    FgdSubType := SQLRecord.ByName('GDSUBTYPE').AsTrimString;
+
+    if (FgdSubType > '') and (not CE.CheckSubType(FgdSubType)) then
+    begin
+      MessageBox(0,
+        PChar('Для поля ' + FRelation.RelationName + '.' + FFieldName + #13#10 +
+        ' указаны недопустимые класс и подтип: ' + #13#10 +
+        FgdClassName + ' ' + FgdSubType),
+        'Внимание',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
+    end;
   end else
   begin
     FgdClassName := '';
