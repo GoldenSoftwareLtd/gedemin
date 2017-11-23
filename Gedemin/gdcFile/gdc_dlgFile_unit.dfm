@@ -1,42 +1,41 @@
 inherited gdc_dlgFile: Tgdc_dlgFile
-  Left = 375
-  Top = 217
+  Left = 734
   HelpContext = 20
   Caption = 'Файл'
-  ClientHeight = 361
+  ClientHeight = 414
   ClientWidth = 378
   OldCreateOrder = True
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Left = 2
-    Top = 333
+    Left = 8
+    Top = 386
   end
   inherited btnNew: TButton
-    Left = 74
-    Top = 333
-  end
-  inherited btnOK: TButton
-    Left = 235
-    Top = 333
-  end
-  inherited btnCancel: TButton
-    Left = 307
-    Top = 333
+    Left = 80
+    Top = 386
   end
   inherited btnHelp: TButton
-    Left = 146
-    Top = 333
+    Left = 152
+    Top = 386
+  end
+  inherited btnOK: TButton
+    Left = 227
+    Top = 386
+  end
+  inherited btnCancel: TButton
+    Left = 299
+    Top = 386
   end
   inherited Panel1: TPanel
     Width = 378
-    Height = 326
+    Height = 379
     inherited GroupBox1: TGroupBox
       Width = 361
-      Height = 161
+      Height = 154
       inherited Label3: TLabel
         Top = 131
-        Width = 77
+        Width = 74
         Caption = 'Размер файла:'
       end
       inherited lblDataSize: TLabel
@@ -70,13 +69,13 @@ inherited gdc_dlgFile: Tgdc_dlgFile
     end
     object GroupBox2: TGroupBox
       Left = 8
-      Top = 168
+      Top = 163
       Width = 361
-      Height = 153
+      Height = 213
       TabOrder = 1
       object Image1: TImage
         Left = 24
-        Top = 24
+        Top = 88
         Width = 121
         Height = 113
         Picture.Data = {
@@ -209,7 +208,7 @@ inherited gdc_dlgFile: Tgdc_dlgFile
       end
       object Label5: TLabel
         Left = 184
-        Top = 24
+        Top = 88
         Width = 153
         Height = 33
         Alignment = taCenter
@@ -217,29 +216,61 @@ inherited gdc_dlgFile: Tgdc_dlgFile
         Caption = 'Функции для работы с содержимым файла:'
         WordWrap = True
       end
-      object Button1: TButton
+      object Label7: TLabel
+        Left = 23
+        Top = 34
+        Width = 325
+        Height = 38
+        AutoSize = False
+        Caption = 
+          'НЕ УПАКОВЫВАЙТЕ данные, если Вы планируете напрямую подключать и' +
+          'х к визуальным компонентам. Пример: вывод загруженного изображен' +
+          'ия в отчетах.'
+        Color = clBtnFace
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clRed
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentColor = False
+        ParentFont = False
+        WordWrap = True
+      end
+      object btnLoad: TButton
         Left = 185
-        Top = 65
+        Top = 129
         Width = 150
         Height = 25
         Action = actLoadDataFromFile
-        TabOrder = 0
+        TabOrder = 1
       end
-      object Button2: TButton
+      object btnSave: TButton
         Left = 185
-        Top = 89
+        Top = 153
         Width = 150
         Height = 25
         Action = actSaveDataToFile
-        TabOrder = 1
+        TabOrder = 2
       end
-      object Button3: TButton
+      object btnView: TButton
         Left = 185
-        Top = 113
+        Top = 177
         Width = 150
         Height = 25
         Action = actViewFile
-        TabOrder = 2
+        TabOrder = 3
+      end
+      object chbxZIP: TCheckBox
+        Left = 23
+        Top = 13
+        Width = 313
+        Height = 17
+        Caption = 'Упаковывать данные при загрузке с диска в базу'
+        Checked = True
+        Color = clBtnFace
+        ParentColor = False
+        State = cbChecked
+        TabOrder = 0
       end
     end
   end

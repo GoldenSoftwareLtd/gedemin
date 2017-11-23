@@ -141,7 +141,7 @@ const
   WeightInGram: Integer;
   Date: TDateTime;
   Number: Integer;
-  NameGoods, Code, Key: String;
+  NameGoods, Code, Key, NPart: String;
   Index, I: Integer;
   SL: TStringList;
  begin
@@ -154,7 +154,7 @@ const
      for I := DocumentLine to SL.Count - 1 do
      begin
        Key := Copy(SL[I], 1, Length(SL[I]) - 1);
-       GetInfoGoods(Key, Code, NameGoods, WeightInGram, Date, Number);
+       GetInfoGoods(Key, Code, NameGoods, WeightInGram, Date, Number, NPart);
        Weight := WeightInGram/1000;
        if (Weight > weight_for_checking_sites)
        then
@@ -188,11 +188,12 @@ end;
    NameGoods, Code: String;
    Index: Integer;
    TempS: String;
+   NPart: String;
  begin
    TempS := FPosition[FPosition.Count - 1];
    SetLength(TempS, Length(TempS) - 1);
 
-   GetInfoGoods(TempS, Code, NameGoods, Weight, Date, Number);
+   GetInfoGoods(TempS, Code, NameGoods, Weight, Date, Number, NPart);
    Index := FMemoPositions.IndexOf(Code);
 
    if (Index <> - 1) then
@@ -226,6 +227,7 @@ end;
   Date: TDateTime;
   BarCode: String;
   TempS: String;
+  NPart: String;
   Count: Integer;
  begin
    FSetBarCode := True;
@@ -233,7 +235,7 @@ end;
      BarCode := Trim(AKey);
      if CheckBarCode(BarCode) then
      begin
-       GetInfoGoods(AKey, Code, NameGoods, WeightInGram, Date, Number);
+       GetInfoGoods(AKey, Code, NameGoods, WeightInGram, Date, Number, NPart);
        if not FEnterCount and
          (WeightInGram > weight_for_checking_sites) and
          (Length(BarCode) = length_code_for_checking_sites) then
@@ -243,7 +245,7 @@ end;
            and (Length(TempS) <= 3)
            and TryStrToInt(TempS, Count)
          then
-           BarCode := CreateBarCode(WeightInGram, Date, Code, Count);
+           BarCode := CreateBarCode(WeightInGram, Date, Code, Count, Npart);
          {$IFNDEF SKORPIOX3}
            registerLabelMessage(Handle, AM_DCD_SCAN);
          {$ENDIF}
@@ -378,13 +380,14 @@ end;
    Weight: Integer;
    Date: TDateTime;
    Number: Integer;
+   NPart: String;
  begin
     case Key of
       VK_F2:
       begin
         if (FPosition.Count > DocumentLine) then
         begin
-          GetInfoGoods(FPosition[FPosition.Count - 1], Code, NameGoods, Weight, Date, Number);
+          GetInfoGoods(FPosition[FPosition.Count - 1], Code, NameGoods, Weight, Date, Number, NPart);
           if (MessageForm.MessageDlg(PChar('Удалить последнюю позицию документа "' + NameGoods +
             '  ' + FloatToStr(Weight/1000) + 'кг "?'),
             'Внимание', mtInformation, [mbYes, mbNo]) = mrYes) then

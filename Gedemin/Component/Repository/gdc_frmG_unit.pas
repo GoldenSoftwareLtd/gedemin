@@ -1039,7 +1039,7 @@ procedure Tgdc_frmG.SetupSearchPanel(Obj: TgdcBase;
 const
   RowHeight = 36;
 var
-  W, I, J, K, Pass: Integer;
+  W, I, J, Line, U, K, Pass: Integer;
   L: TLabel;
   E: TCustomEdit;
   F: TWinControl;
@@ -1093,6 +1093,7 @@ begin
       while Pass < 2 do
       begin
         J := 0;
+        Line := 0;
         for I := 0 to SL.Count - 1 do
         begin
           if SL.Names[I] = '*' then
@@ -1118,12 +1119,18 @@ begin
                 end
                 else begin
                   Find := false;
+                  U := 0;
                   for k := 0 to Grid.Columns.Count-1 do
                   begin
+                    if ((Grid.Columns[k].Field.DataType = ftInteger)  and (Grid.Columns[k].FieldName <> 'ID'))
+                      or (Grid.Columns[k].Visible = false) then
+                      U := U + 1;
+
                     if Grid.Columns[k].Visible and
                         (Grid.Columns[k].FieldName = SL.Names[I]) then
                     begin
                       Find := true;
+                      Line := k - U;
                       break;
                     end;
                   end;
@@ -1154,7 +1161,7 @@ begin
             end;
 
             E.Parent := SB;
-            E.Top := J * RowHeight + 22;
+            E.Top := Line * RowHeight + 22;
             E.Left := 4;
             E.Width := SB.Width - 8 - 14;
             E.Tag := FO.Add(SL.Values[SL.Names[I]] + '=' + IntToStr(Integer(Fld.DataType)));
@@ -1174,7 +1181,7 @@ begin
 
             L := TLabel.Create(PN);
             L.Parent := SB;
-            L.Top := J * RowHeight + 8;
+            L.Top := Line * RowHeight + 8;
             L.Left := 4;
             L.AutoSize := True;
             if LocalizeListName.Values[copy(SL.Names[I], 1, 31)] = '' then
@@ -1185,6 +1192,7 @@ begin
             L.Visible := True;
 
             Inc(J);
+            Line := J;
           end;
         end;
 

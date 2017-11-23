@@ -103,7 +103,8 @@ type
       Action: TflAction = flAsk); override;
 
     procedure SaveToStreamFromField(S: TStream; Fld: TField);
-    procedure SaveToFieldFromStream(S: TStream; Fld: TField);
+    procedure SaveToFieldFromStream(S: TStream; Fld: TField; const ZIPData: Boolean = True);
+    function IsDataZIPped: Boolean;
 
   public
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
@@ -111,8 +112,8 @@ type
 
     {—читывание содержимого из файла в текущую запись. «апись должна находитс€
      в состо€нии редактировани€ или вставки}
-    procedure LoadDataFromFile(AfileName: String);
-    procedure LoadDataFromStream(const Stream: TStream);
+    procedure LoadDataFromFile(AfileName: String; const ZIPData: Boolean);
+    procedure LoadDataFromStream(const Stream: TStream; const ZIPData: Boolean);
     {—охранение содержимого (поле data) текущей записи на диск. }
     procedure SaveDataToFile(AfileName: String);
     {—охранение содержимого (поле data) в поток }
@@ -471,7 +472,7 @@ begin
                   begin
                     ObjFile.Edit;
                     try
-                      ObjFile.LoadDataFromFile(S);
+                      ObjFile.LoadDataFromFile(S, ObjFile.IsDataZIPped);
                       ObjFile.Post;
                     except
                       ObjFile.Cancel;
@@ -897,7 +898,7 @@ begin
                     begin
                       ObjFile.Edit;
                       try
-                        ObjFile.LoadDataFromFile(S);
+                        ObjFile.LoadDataFromFile(S, ObjFile.IsDataZIPped);
                         ObjFile.Post;
                       except
                         ObjFile.Cancel;
@@ -942,7 +943,7 @@ end;
 
 { TgdcFile }
 
-procedure TgdcFile.LoadDataFromFile(AfileName: String);
+procedure TgdcFile.LoadDataFromFile(AfileName: String; const ZIPData: Boolean);
 var
   F: TSearchRec;
   AnAnswer: Integer;
@@ -973,7 +974,7 @@ begin
 
     FS := TFileStream.Create(AFileName, fmOpenRead);
     try
-      SaveToFieldFromStream(FS, FieldByName('data'));
+      SaveToFieldFromStream(FS, FieldByName('data'), ZIPData);
     finally
       FS.Free;
     end;
@@ -1106,7 +1107,7 @@ begin
           WasBrowse := not (State in dsEditModes);
           if WasBrowse then
             Edit;
-          LoadDataFromFile(FileName);
+          LoadDataFromFile(FileName, IsDataZIPped);
           if WasBrowse then
             Post;
         end;
@@ -1249,7 +1250,7 @@ begin
               begin
                 Obj.Edit;
                 try
-                  Obj.LoadDataFromFile(S);
+                  Obj.LoadDataFromFile(S, IsDataZIPped);
                   Obj.Post;
                 except
                   Obj.Cancel;
@@ -1298,12 +1299,12 @@ begin
   SaveToStreamFromField(AStream, FieldByName('data'));
 end;
 
-procedure TgdcFile.LoadDataFromStream(const Stream: TStream);
+procedure TgdcFile.LoadDataFromStream(const Stream: TStream; const ZIPData: Boolean);
 begin
   if not (State in dsEditModes) then
     raise Exception.Create('«апись должна находитьс€ в режиме вставки или редактировани€!');
 
-  SaveToFieldFromStream(Stream, FieldByName('data'));
+  SaveToFieldFromStream(Stream, FieldByName('data'), ZIPData);
   FieldByName('datasize').AsInteger := Stream.Size;
   FieldByName('crc').AsInteger := GetStreamCrc(Stream);
 end;
@@ -1347,7 +1348,7 @@ begin
   end;
 end;
 
-procedure TgdcFile.SaveToFieldFromStream(S: TStream; Fld: TField);
+procedure TgdcFile.SaveToFieldFromStream(S: TStream; Fld: TField; const ZIPData: Boolean = True);
 var
   CS: TZCompressionStream;
   SSH, SSD: TStringStream;
@@ -1365,35 +1366,40 @@ begin
   BS := CreateBlobStream(Fld, bmWrite);
   try
     S.Position := 0;
-    SSH := TStringStream.Create('');
-    SSD := TStringStream.Create('');
-    try
-      CS := TZCompressionStream.Create(SSD);
+
+    if ZIPData then
+    begin
+      SSH := TStringStream.Create('');
+      SSD := TStringStream.Create('');
       try
-        repeat
-          I := S.Read(Buf, SizeOf(Buf));
-          CS.Write(Buf, I);
-        until I = 0;
+        CS := TZCompressionStream.Create(SSD);
+        try
+          repeat
+            I := S.Read(Buf, SizeOf(Buf));
+            CS.Write(Buf, I);
+          until I = 0;
+        finally
+          CS.Free;
+        end;
+
+        H.Signature := attSignature;
+        H.Version := attVersion;
+        H.Compression := attZLibCompression;
+        H.DataType := 0;
+        H.Size := S.Size;
+        H.CompressedSize := SSD.Size;
+        H.ReservedB := 0;
+        H.ReservedL := 0;
+        SSH.WriteBuffer(H, SizeOf(H));
+
+        BS.CopyFrom(SSH, 0);
+        BS.CopyFrom(SSD, 0);
       finally
-        CS.Free;
+        SSH.Free;
+        SSD.Free;
       end;
-
-      H.Signature := attSignature;
-      H.Version := attVersion;
-      H.Compression := attZLibCompression;
-      H.DataType := 0;
-      H.Size := S.Size;
-      H.CompressedSize := SSD.Size;
-      H.ReservedB := 0;
-      H.ReservedL := 0;
-      SSH.WriteBuffer(H, SizeOf(H));
-
-      BS.CopyFrom(SSH, 0);
-      BS.CopyFrom(SSD, 0);
-    finally
-      SSH.Free;
-      SSD.Free;
-    end;
+    end else
+      BS.CopyFrom(S, 0);
   finally
     BS.Free;
   end;
@@ -1403,6 +1409,30 @@ class function TgdcFile.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgFile';
+end;
+
+function TgdcFile.IsDataZIPped: Boolean;
+var
+  BS: TStream;
+  H: TAttachmentHeader;
+begin
+  if (State = dsInactive) or IsEmpty then
+  begin
+    Result := False;
+    exit;
+  end;
+
+  BS := CreateBlobStream(FieldByName('data'), bmRead);
+  try
+    if (BS.Read(H, SizeOf(H)) <> SizeOf(H)) or (H.Signature <> attSignature) or
+      (H.Version <> attVersion) then
+    begin
+      Result := False;
+    end else
+      Result := True;
+  finally
+    BS.Free;
+  end;
 end;
 
 initialization

@@ -140,6 +140,7 @@ const
  var
   Weight: Double;
   WeightInGram: Integer;
+  WeightInGramT: Integer;
   Date: TDateTime;
   Number: Integer;
   NTara: Integer;
@@ -157,7 +158,7 @@ const
      for I := DocumentLine to SL.Count - 1 do
      begin
        Key := Copy(SL[I], 1, Length(SL[I]) - 1);
-       GetInfoGoods(Key, Code, NameGoods, WeightInGram, Date, Number, Npart, NTara);
+       GetInfoGoods(Key, Code, NameGoods, WeightInGram, Date, Number, Npart, NTara, WeightInGramT);
        Weight := WeightInGram/1000;
        if (Weight > weight_for_checking_sites)
        then
@@ -186,6 +187,7 @@ end;
  procedure TOperationRQ.DeleteLastItem;
  var
    Weight: Integer;
+   WeightT: Integer;
    Date: TDateTime;
    Number: Integer;
    NameGoods, Code: String;
@@ -197,7 +199,7 @@ end;
    TempS := FPosition[FPosition.Count - 1];
    SetLength(TempS, Length(TempS) - 1);
 
-   GetInfoGoods(TempS, Code, NameGoods, Weight, Date, Number, Npart, NTara);
+   GetInfoGoods(TempS, Code, NameGoods, Weight, Date, Number, Npart, NTara, WeightT );
    Index := FMemoPositions.IndexOf(Code);
 
    if (Index <> - 1) then
@@ -228,6 +230,7 @@ end;
   NameGoods, Code: String;
   Index: Integer;
   WeightInGram, Number: Integer;
+  WeightInGramT: Integer;
   Date: TDateTime;
   BarCode: String;
   TempS: String;
@@ -240,17 +243,17 @@ end;
      BarCode := Trim(AKey);
      if CheckBarCode(BarCode) then
      begin
-       GetInfoGoods(AKey, Code, NameGoods, WeightInGram, Date, Number, Npart, Ntara);
+       GetInfoGoods(AKey, Code, NameGoods, WeightInGram, Date, Number, Npart, Ntara, WeightInGramT);
        if not FEnterCount and
          (WeightInGram > weight_for_checking_sites) and
          (Length(BarCode) = length_code_for_checking_sites) then
        begin
          TempS := Trim(TBaseAddInformation.Execute('Введите кол-во мест: '));
          if (TempS > '')
-           and (Length(TempS) <= 3)
+           and (Length(TempS) <= 2)
            and TryStrToInt(TempS, Count)
          then
-           BarCode := CreateBarCode(WeightInGram, Date, Code, Count, Npart, Ntara);
+           BarCode := CreateBarCode(WeightInGram, Date, Code, Count, Npart, Ntara, WeightInGramT);
 
        end;
        Weight := WeightInGram/1000;
@@ -388,6 +391,7 @@ end;
  var
    Code, NameGoods: String;
    Weight: Integer;
+   WeightT: Integer;
    Date: TDateTime;
    Number: Integer;
    Npart: String;
@@ -398,7 +402,7 @@ end;
       begin
         if (FPosition.Count > DocumentLine) then
         begin
-          GetInfoGoods(FPosition[FPosition.Count - 1], Code, NameGoods, Weight, Date, Number,  Npart, NTara);
+          GetInfoGoods(FPosition[FPosition.Count - 1], Code, NameGoods, Weight, Date, Number,  Npart, NTara, WeightT);
           if (MessageForm.MessageDlg(PChar('Удалить последнюю позицию документа "' + NameGoods +
             '  ' + FloatToStr(Weight/1000) + 'кг "?'),
             'Внимание', mtInformation, [mbYes, mbNo]) = mrYes) then

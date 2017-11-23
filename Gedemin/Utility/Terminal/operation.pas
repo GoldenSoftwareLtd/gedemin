@@ -69,6 +69,7 @@ var
   Date: TDateTime;
   NameGoods, Code: String;
   BarCode: String;
+  NPart: String;
   TempS: String;
   Count: Integer;
 begin
@@ -77,7 +78,7 @@ begin
     BarCode := Trim(AKey);
     if CheckBarCode(BarCode) then
     begin
-      GetInfoGoods(BarCode, Code, NameGoods, Weight, Date, Number);
+      GetInfoGoods(BarCode, Code, NameGoods, Weight, Date, Number, NPart);
       if not FEnterCount and
         (Weight > weight_for_checking_sites) and
         (Length(BarCode) = length_code_for_checking_sites) then
@@ -87,7 +88,7 @@ begin
           and (Length(TempS) <= 3)
           and TryStrToInt(TempS, Count)
         then
-          BarCode := CreateBarCode(Weight, Date, Code, Count);
+          BarCode := CreateBarCode(Weight, Date, Code, Count, Npart);
         {$IFNDEF SKORPIOX3}
         registerLabelMessage(Handle, AM_DCD_SCAN);
         {$ENDIF}
@@ -114,11 +115,12 @@ var
   NameGood: String;
   Number: Integer;
   Temps: String;
+  Npart: String;
 begin
   TempS := FPosition[FPosition.Count - 1];
   Setlength(TempS, Length(TempS) - 1);
 
-  GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number);
+  GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number, Npart);
   FPosition.Delete(FPosition.Count - 1);
   FTotalWeight := FTotalWeight - StrToFloat(FMemoPositions.ValueFromIndex[FMemoPositions.Count - 1]);
   FMemoPositions.Delete(FMemoPositions.Count - 1);

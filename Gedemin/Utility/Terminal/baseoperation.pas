@@ -55,9 +55,9 @@ type
     procedure LoadSHCODE;
     procedure NewMemo; virtual;
     procedure DeleteLastItem; virtual; abstract;
-    procedure GetInfoGoods(const AKey: String; out ACode: String; out ANameGoods: String; out AWeight: Integer; out ADate: TDateTime; out ANumber: Integer);
-    function CreateBarCode(const AWeight: Integer; ADate: TDateTime; AProductCode: String; ANumber: Integer): String;
-    procedure DecodeBarCode(const ABarCode: String; out AWeight: Integer; out ADate: TDateTime; out AProductCode: Integer; out ANumber: Integer);
+    procedure GetInfoGoods(const AKey: String; out ACode: String; out ANameGoods: String; out AWeight: Integer; out ADate: TDateTime; out ANumber: Integer; out ANpart:String);
+    function CreateBarCode(const AWeight: Integer; ADate: TDateTime; AProductCode: String; ANumber: Integer; ANpart: String): String;
+    procedure DecodeBarCode(const ABarCode: String; out AWeight: Integer; out ADate: TDateTime; out AProductCode: Integer; out ANumber: Integer; out ANpart:String);
   public
     { public declarations }
     procedure AddPosition(const AString: String); virtual;
@@ -205,6 +205,7 @@ var
   Date: TDateTime;
   ProductCode: String;
   NameGood: String;
+  NPart: String;
   Number: Integer;
   TotalWeight: Integer;
 begin
@@ -259,7 +260,7 @@ begin
         begin
           TempS := FPosition[FPosition.Count - 1];
           SetLength(TempS, Length(TempS) - 1);
-          GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number);
+          GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number, Npart);
           DeleteLastItem;
           TotalWeight := Weight * Count;
           Weight := maxweight;
@@ -271,7 +272,7 @@ begin
                 TotalWeight := TotalWeight - Weight
               else
                 Weight := TotalWeight;
-              SetBarCode(CreateBarCode(Weight, Date, ProductCode, Count));
+              SetBarCode(CreateBarCode(Weight, Date, ProductCode, Count, Npart));
               Date := IncMinute(Date, 1);
               Count := 0;
             end;
@@ -360,7 +361,7 @@ begin
   end;
 end;
 
-procedure TBaseOperation.GetInfoGoods(const AKey: String; out ACode: String; out ANameGoods: String; out AWeight: Integer; out ADate: TDateTime; out ANumber: Integer);
+procedure TBaseOperation.GetInfoGoods(const AKey: String; out ACode: String; out ANameGoods: String; out AWeight: Integer; out ADate: TDateTime; out ANumber: Integer; out ANpart: String);
 var
   Index: Integer;
   Fmt: TFormatSettings;
@@ -378,7 +379,18 @@ begin
   ADate := StrToDateTime(StrDate, fmt);
   AWeight := StrToInt(Copy(AKey, 1, 6));
   ACode := Copy(AKey, 17, 4);
-  ANumber := StrToInt(Copy(AKey, 21, 3));
+  if Length(AKey) = 23 then
+    ANumber := StrToInt(Copy(AKey, 21, 3))
+  else
+    if  StrToInt(Copy(AKey, 21, 3)) > 0 then
+      ANumber := StrToInt(Copy(AKey, 21, 3))
+    else
+      ANumber := StrToInt(Copy(AKey, 21, 4));
+
+  if  Length(AKey) >= 28 then
+    ANpart := Copy(AKey, 25, 4)
+  else
+    ANpart := '9999';
 
   Index := FSHCODE.IndexOfName(ACode);
   if Index <> - 1 then
@@ -387,13 +399,13 @@ begin
     ANameGoods := 'Неизвестный';
 end;
 
-function TBaseOperation.CreateBarCode(const AWeight: Integer; ADate: TDateTime; AProductCode: String; ANumber: Integer): String;
+function TBaseOperation.CreateBarCode(const AWeight: Integer; ADate: TDateTime; AProductCode: String; ANumber: Integer; ANpart: String): String;
 var
   TempS: String;
   CurrPos: Integer;
 begin
   Result := '';
-  Setlength(Result, 23);
+  Setlength(Result, 28);
   FillChar(Result[1], Length(Result), '0');
   TempS := IntToStr(AWeight);
   Move(TempS[1], Result[6 - Length(Temps) + 1], Length(TempS));
@@ -401,11 +413,13 @@ begin
   Move(TempS[1], Result[16 - Length(Temps) + 1], Length(TempS));
   Move(AProductCode[1], Result[20 - Length(AProductCode)  + 1], Length(AProductCode));
   TempS := IntToStr(ANumber);
-  Move(TempS[1], Result[23 - Length(TempS)  + 1], Length(TempS));
+  Move(TempS[1], Result[24 - Length(TempS)  + 1], Length(TempS));
+  TempS := ANpart;
+  Move(TempS[1], Result[28 - Length(TempS)  + 1], Length(TempS));
 end;
 
 procedure TBaseOperation.DecodeBarCode(const ABarCode: String; out AWeight: Integer;
-  out ADate: TDateTime; out AProductCode: Integer; out ANumber: Integer);
+  out ADate: TDateTime; out AProductCode: Integer; out ANumber: Integer; out ANpart: String);
 var
   Fmt: TFormatSettings;
   StrDate: String;
@@ -423,6 +437,10 @@ begin
   AWeight := StrToInt(Copy(ABarCode, 1, 6));
   AProductCode := StrToInt(Copy(ABarCode, 17, 4));
   ANumber := StrToInt(Copy(ABarCode, 21, 3));
+  if  Length(ABarCode) >= 27 then
+    ANpart := Copy(ABarCode, 25, 4)
+  else
+    ANpart := '9999';
 end;
 
 procedure TBaseOperation.AddPosition(const AString: String);
@@ -432,11 +450,12 @@ var
   ProductCode: String;
   NameGood: String;
   Number: Integer;
+  NPart: String;
 begin
   if FSetBarCode then
   begin
     FPosition.Add(AString + Separator);
-    GetInfoGoods(AString, ProductCode, NameGood, Weight, Date, Number);
+    GetInfoGoods(AString, ProductCode, NameGood, Weight, Date, Number, NPart);
     if (Weight > weight_for_checking_sites) and
       (Length(AString) = length_code_for_checking_sites)
     then

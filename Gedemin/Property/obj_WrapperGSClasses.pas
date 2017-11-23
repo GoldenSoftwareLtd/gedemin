@@ -16606,12 +16606,12 @@ end;
 
 procedure TwrpGdcFile.LoadDataFromFile(const AFileName: WideString);
 begin
-  GetGdcFile.LoadDataFromFile(AFileName);
+  GetGdcFile.LoadDataFromFile(AFileName, True);
 end;
 
 procedure TwrpGdcFile.LoadDataFromStream(const Stream: IgsStream);
 begin
-  GetGdcFile.LoadDataFromStream(InterfaceToObject(Stream) as TStream);
+  GetGdcFile.LoadDataFromStream(InterfaceToObject(Stream) as TStream, True);
 end;
 
 procedure TwrpGdcFile.SaveDataToFile(const AFileName: WideString);

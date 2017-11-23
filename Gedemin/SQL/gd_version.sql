@@ -833,6 +833,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (267, '0000.0001.0000.0298', '02.08.2017', 'Add support database triggers'); 
   
+INSERT INTO fin_versioninfo
+  VALUES (268, '0000.0001.0000.0299', '21.11.2017', 'Add new exception for new inventory system'); 
+
+INSERT INTO fin_versioninfo
+  VALUES (269, '0000.0001.0000.0300', '22.11.2017', 'relationname field in the at_triggers table fixed');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

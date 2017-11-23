@@ -297,7 +297,7 @@ begin
             try
               Obj.Open;
               Obj.Insert;
-              Obj.LoadDataFromFile(edFileName.Text);
+              Obj.LoadDataFromFile(edFileName.Text, True);
               if iblkupFolder.CurrentKey > '' then
                 Obj.FieldByName('parent').AsInteger := iblkupFolder.CurrentKeyInt
               else

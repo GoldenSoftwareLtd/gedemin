@@ -1223,18 +1223,15 @@ end;
 
 procedure CreateException2(const AnException, AMessage: String; ATr: TIBTransaction);
 var
-  SQL: TIBSQL;
+  q: TIBSQL;
 begin
-  if not ExceptionExist2(AnException, ATr) then
-  begin
-    SQL := TIBSQL.Create(nil);
-    try
-      SQL.Transaction := ATr;
-      SQL.SQL.Text := Format('CREATE EXCEPTION %s ''%s'' ', [AnException, AMessage]);
-      SQL.ExecQuery;
-    finally
-      SQl.Free;
-    end;
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ATr;
+    q.SQL.Text := Format('CREATE OR ALTER EXCEPTION %s ''%s'' ', [AnException, AMessage]);
+    q.ExecQuery;
+  finally
+    q.Free;
   end;
 end;
 

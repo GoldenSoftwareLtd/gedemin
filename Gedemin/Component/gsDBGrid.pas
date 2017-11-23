@@ -4170,76 +4170,83 @@ begin
   BeginLayout;
 
   try
-    Reader.ReadSignature;
-
-    //////////////////////////////
-    // —читывание данных дл€
-    // версии грида
-
-    I := Reader.Position;
     try
-      if (Reader.NextValue = vaString) then
-      begin
-        Version := Reader.ReadString;
+      Reader.ReadSignature;
 
-        if
-          (Version <> GRID_STREAM_VERSION_2) and
-          (Version <> GRID_STREAM_VERSION_3) and
-          (Version <> GRID_STREAM_VERSION_4)
-        then begin
-          Reader.Position := I;
+      //////////////////////////////
+      // —читывание данных дл€
+      // версии грида
+
+      I := Reader.Position;
+      try
+        if (Reader.NextValue = vaString) then
+        begin
+          Version := Reader.ReadString;
+
+          if
+            (Version <> GRID_STREAM_VERSION_2) and
+            (Version <> GRID_STREAM_VERSION_3) and
+            (Version <> GRID_STREAM_VERSION_4)
+          then begin
+            Reader.Position := I;
+            Version := '';
+          end;
+        end else
           Version := '';
-        end;
-      end else
+      except
+        Reader.Position := I;
         Version := '';
+      end;
+
+      ReadFont(TableFont);
+      TableColor := ReadColor(TableColor);
+
+      ReadFont(SelectedFont);
+      SelectedColor := ReadColor(SelectedColor);
+
+      ReadFont(TitleFont);
+      TitleColor := ReadColor(TitleColor);
+
+      Striped := Reader.ReadBoolean;
+      StripeOdd := ReadColor(StripeOdd);
+      StripeEven := ReadColor(StripeEven);
+
+      if Reader.ReadValue = vaCollection then Reader.ReadCollection(FExpands);
+      ExpandsActive := Reader.ReadBoolean;
+      ExpandsSeparate := Reader.ReadBoolean;
+
+      if Reader.ReadValue = vaCollection then Reader.ReadCollection(FConditions);
+      ConditionsActive := Reader.ReadBoolean;
+
+      if Reader.ReadValue = vaCollection then Reader.ReadCollection(Columns);
+
+      ScaleColumns := Reader.ReadBoolean;
+
+      if (Version = GRID_STREAM_VERSION_2) then
+        TitlesExpanding := Reader.ReadBoolean
+      else if (Version = GRID_STREAM_VERSION_3) or (Version = GRID_STREAM_VERSION_4) then
+      begin
+        TitlesExpanding := Reader.ReadBoolean;
+
+        Reader.Read(O, SizeOf(TDBGridOptions));
+        if dgRowLines in O then
+          Options := Options + [dgRowLines]
+        else
+          Options := Options - [dgRowLines];
+      end;
+
+      if (Version = GRID_STREAM_VERSION_4) then
+      begin
+        FShowTotals := Reader.ReadBoolean;
+        FShowFooter := Reader.ReadBoolean;
+      end;
+      FSettingsLoaded := True;
     except
-      Reader.Position := I;
-      Version := '';
+      on E: Exception do
+      begin
+        Application.ShowException(E);
+      end;
     end;
-
-    ReadFont(TableFont);
-    TableColor := ReadColor(TableColor);
-
-    ReadFont(SelectedFont);
-    SelectedColor := ReadColor(SelectedColor);
-
-    ReadFont(TitleFont);
-    TitleColor := ReadColor(TitleColor);
-
-    Striped := Reader.ReadBoolean;
-    StripeOdd := ReadColor(StripeOdd);
-    StripeEven := ReadColor(StripeEven);
-
-    if Reader.ReadValue = vaCollection then Reader.ReadCollection(FExpands);
-    ExpandsActive := Reader.ReadBoolean;
-    ExpandsSeparate := Reader.ReadBoolean;
-
-    if Reader.ReadValue = vaCollection then Reader.ReadCollection(FConditions);
-    ConditionsActive := Reader.ReadBoolean;
-
-    if Reader.ReadValue = vaCollection then Reader.ReadCollection(Columns);
-
-    ScaleColumns := Reader.ReadBoolean;
-
-    if (Version = GRID_STREAM_VERSION_2) then
-      TitlesExpanding := Reader.ReadBoolean
-    else if (Version = GRID_STREAM_VERSION_3) or (Version = GRID_STREAM_VERSION_4) then
-    begin
-      TitlesExpanding := Reader.ReadBoolean;
-
-      Reader.Read(O, SizeOf(TDBGridOptions));
-      if dgRowLines in O then
-        Options := Options + [dgRowLines]
-      else
-        Options := Options - [dgRowLines];
-    end;
-
-    if (Version = GRID_STREAM_VERSION_4) then
-    begin
-      FShowTotals := Reader.ReadBoolean;
-      FShowFooter := Reader.ReadBoolean;
-    end;
-    FSettingsLoaded := True;
   finally
     EndLayout;
     ValidateColumns;

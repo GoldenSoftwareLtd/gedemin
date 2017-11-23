@@ -74,7 +74,7 @@ end;
 
 procedure TOperationTP.SetBarCode(const AKey: String);
 var
-  Weight, ProductCode, Number: Integer;
+  Weight, WeightT, ProductCode, Number: Integer;
   WeightInKg: Double;
   Date: TDateTime;
   NameGoods, Code: String;
@@ -90,17 +90,17 @@ begin
    // Application.MessageBox(Pchar(BarCode), '', 0);
     if CheckBarCode(BarCode) then
     begin
-      GetInfoGoods(BarCode, Code, NameGoods, Weight, Date, Number, Npart, NTara);
+      GetInfoGoods(BarCode, Code, NameGoods, Weight, Date, Number, Npart, NTara, WeightT);
       if not FEnterCount and
         (Weight > weight_for_checking_sites) and
         (Length(BarCode) = length_code_for_checking_sites) then
       begin
         TempS := Trim(TBaseAddInformation.Execute('Введите кол-во мест: '));
         if (TempS > '')
-          and (Length(TempS) <= 3)
+          and (Length(TempS) <= 2)
           and TryStrToInt(TempS, Count)
         then
-          BarCode := CreateBarCode(Weight, Date, Code, Count, Npart, NTara);
+          BarCode := CreateBarCode(Weight, Date, Code, Count, Npart, NTara, WeightT);
 
       end;
       WeightInKg := Weight/1000;
@@ -120,6 +120,7 @@ end;
 procedure TOperationTP.DeleteLastItem;
 var
   Weight: Integer;
+  WeightT: Integer;
   Date: TDateTime;
   ProductCode: String;
   NameGood: String;
@@ -131,7 +132,7 @@ begin
   TempS := FPosition[FPosition.Count - 1];
   Setlength(TempS, Length(TempS) - 1);
 
-  GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number, Npart, NTara);
+  GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number, Npart, NTara, WeightT);
   FPosition.Delete(FPosition.Count - 1);
   FTotalWeight := FTotalWeight - StrToFloat(FMemoPositions.ValueFromIndex[FMemoPositions.Count - 1]);
   FMemoPositions.Delete(FMemoPositions.Count - 1);

@@ -16,13 +16,15 @@ type
     actViewFile: TAction;
     dbtDataSize: TDBText;
     GroupBox2: TGroupBox;
-    Button1: TButton;
-    Button2: TButton;
-    Button3: TButton;
+    btnLoad: TButton;
+    btnSave: TButton;
+    btnView: TButton;
     Image1: TImage;
     Label5: TLabel;
     Label6: TLabel;
     dbmDescription: TDBMemo;
+    chbxZIP: TCheckBox;
+    Label7: TLabel;
     procedure actLoadDataFromFileExecute(Sender: TObject);
     procedure actSaveDataToFileExecute(Sender: TObject);
     procedure actViewFileExecute(Sender: TObject);
@@ -58,7 +60,7 @@ begin
     (gdcObject as TgdcFile).FullPath);
   if OpenDialog.Execute then
   begin
-    (gdcObject as TgdcFile).LoadDataFromFile(OpenDialog.FileName);
+    (gdcObject as TgdcFile).LoadDataFromFile(OpenDialog.FileName, chbxZIP.Checked);
   end;
 end;
 

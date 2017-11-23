@@ -1,6 +1,6 @@
 object gd_frmBackupRestore: Tgd_frmBackupRestore
-  Left = 567
-  Top = 264
+  Left = 568
+  Top = 266
   BorderStyle = bsDialog
   Caption = '<>'
   ClientHeight = 364

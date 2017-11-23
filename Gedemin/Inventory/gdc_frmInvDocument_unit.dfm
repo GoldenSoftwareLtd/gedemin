@@ -1,6 +1,6 @@
 inherited gdc_frmInvDocument: Tgdc_frmInvDocument
-  Left = 380
-  Top = 184
+  Left = 673
+  Top = 313
   Caption = 'Складской документ'
   PixelsPerInch = 96
   TextHeight = 13

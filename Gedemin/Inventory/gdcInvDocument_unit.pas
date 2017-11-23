@@ -5471,6 +5471,27 @@ begin
         gdcTrigger.Post
 
       end;
+
+      gdcTrigger.Close;
+      NameTrigger := 'USR$AU_D_' + FieldByName('ruid').AsString;
+
+      gdcTrigger.ParamByName('triggername').AsString := NameTrigger;
+      gdcTrigger.Open;
+      gdcTrigger.Edit;
+      gdcTrigger.FieldByName('triggername').AsString := NameTrigger;
+      gdcTrigger.FieldByName('relationkey').AsInteger := atDatabase.Relations.ByRelationName('GD_DOCUMENT').ID;
+      gdcTrigger.FieldByName('rdb$trigger_sequence').AsInteger := 100;
+      gdcTrigger.FieldByName('rdb$trigger_name').AsString := gdcTrigger.FieldByName('triggername').AsString;
+      gdcTrigger.FieldByName('trigger_inactive').AsInteger := 0;
+      gdcTrigger.FieldByName('rdb$trigger_type').AsInteger := 4;
+      gdcTrigger.FieldByName('rdb$trigger_source').AsString :=
+        'AS ' +
+        'BEGIN ' +
+        '  if (NEW.documenttypekey = ' + FieldByName('ID').AsString + ' and OLD.documentdate <> NEW.documentdate) then ' +
+        '    UPDATE ' + DocLineRelationName + ' SET documentkey = documentkey WHERE documentkey = NEW.id; ' +
+        'END';
+      gdcTrigger.Post
+
     finally
       gdcTrigger.Free;
     end;

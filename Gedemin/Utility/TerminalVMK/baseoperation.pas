@@ -53,9 +53,9 @@ type
     procedure LoadSHCODE;
     procedure NewMemo; virtual;
     procedure DeleteLastItem; virtual; abstract;
-    procedure GetInfoGoods(const AKey: String; out ACode: String; out ANameGoods: String; out AWeight: Integer; out ADate: TDateTime; out ANumber: Integer; out ANpart: String; out ATara: Integer );
-    function CreateBarCode(const AWeight: Integer; ADate: TDateTime; AProductCode: String; ANumber: Integer; ANpart: String; ATara: Integer): String;
-    procedure DecodeBarCode(const ABarCode: String; out AWeight: Integer; out ADate: TDateTime; out AProductCode: Integer; out ANumber: Integer; out ANpart: String; out ATara: Integer);
+    procedure GetInfoGoods(const AKey: String; out ACode: String; out ANameGoods: String; out AWeight: Integer; out ADate: TDateTime; out ANumber: Integer; out ANpart: String; out ATara: Integer; out AWeightT: Integer);
+    function CreateBarCode(const AWeight: Integer; ADate: TDateTime; AProductCode: String; ANumber: Integer; ANpart: String; ATara: Integer; AWeightT: Integer): String;
+    procedure DecodeBarCode(const ABarCode: String; out AWeight: Integer; out ADate: TDateTime; out AProductCode: Integer; out ANumber: Integer; out ANpart: String; out ATara: Integer; out AWeightT: Integer);
   public
     { public declarations }
     procedure AddPosition(const AString: String); virtual;
@@ -232,6 +232,7 @@ var
   Temps: String;
   Count: Integer;
   Weight: Integer;
+  WeightT: Integer;
   Date: TDateTime;
   ProductCode: String;
   NameGood: String;
@@ -295,7 +296,7 @@ begin
         begin
           TempS := FPosition[FPosition.Count - 1];
           SetLength(TempS, Length(TempS) - 1);
-          GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number, Npart, Ntara);
+          GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number, Npart, Ntara, WeightT);
           DeleteLastItem;
           TotalWeight := Weight * Count;
           Weight := maxweight;
@@ -307,7 +308,7 @@ begin
                 TotalWeight := TotalWeight - Weight
               else
                 Weight := TotalWeight;
-              SetBarCode(CreateBarCode(Weight, Date, ProductCode, Count, Npart, Ntara ));
+              SetBarCode(CreateBarCode(Weight, Date, ProductCode, Count, Npart, Ntara, WeightT ));
               Date := IncMinute(Date, 1);
               Count := 0;
             end;
@@ -389,11 +390,13 @@ begin
   end;
 end;
 
-procedure TBaseOperation.GetInfoGoods(const AKey: String; out ACode: String; out ANameGoods: String; out AWeight: Integer; out ADate: TDateTime; out ANumber: Integer; out ANpart: String; out ATara: Integer);
+procedure TBaseOperation.GetInfoGoods(const AKey: String; out ACode: String; out ANameGoods: String; out AWeight: Integer; out ADate: TDateTime; out ANumber: Integer; out ANpart: String; out ATara: Integer; out AWeightT: Integer);
 var
   Index: Integer;
   Fmt: TFormatSettings;
   StrDate: String;
+  hh: string;
+  mm: string;
 begin
   Assert(Length(AKey) >= 29);
 
@@ -402,14 +405,24 @@ begin
   fmt.DateSeparator  := '/';
   fmt.LongTimeFormat := 'hh:nn:ss';
   fmt.TimeSeparator  := ':';
-
-  StrDate:= Copy(AKey, 7, 2) + '/' + Copy(AKey, 9, 2) + '/20' +
-    Copy(AKey, 11, 2) + ' ' + Copy(AKey, 13, 2) + ':' + Copy(AKey, 15, 2);
+  hh:= Copy(AKey, 11, 2);
+  if StrToInt(hh) > 59 then
+    begin
+      hh:= '00';
+    end;
+  mm:= Copy(AKey, 13, 2);
+  if StrToInt(mm) > 59 then
+    begin
+      mm:= '00';
+    end;
+  StrDate:= Copy(AKey, 7, 2) + '/' + Copy(AKey, 9, 2) + '/' + IntToStr(YearOf(Date)) +
+     ' ' + hh + ':' + mm;
   ADate := StrToDateTime(StrDate, fmt);
   AWeight := StrToInt(Copy(AKey, 1, 6));
-  ACode := Copy(AKey, 17, 5);
-  ANumber := StrToInt(Copy(AKey, 22, 3));
-  ANpart := Copy(AKey, 25, 4);
+  ACode := Copy(AKey, 15, 5);
+  ANumber := StrToInt(Copy(AKey, 20, 2));
+  ANpart := Copy(AKey, 22, 4);
+  AWeightT := StrToInt(Copy(AKey, 26, 3));
   ATara := StrToInt(Copy(AKey, 29, 1));
   Index := FSHCODE.IndexOfName(ACode);
   if Index <> - 1 then
@@ -418,7 +431,7 @@ begin
     ANameGoods := 'Неизвестный';
 end;
 
-function TBaseOperation.CreateBarCode(const AWeight: Integer; ADate: TDateTime; AProductCode: String; ANumber: Integer; ANpart: String; ATara: Integer): String;
+function TBaseOperation.CreateBarCode(const AWeight: Integer; ADate: TDateTime; AProductCode: String; ANumber: Integer; ANpart: String; ATara: Integer; AWeightT: Integer): String;
 var
   TempS: String;
   CurrPos: Integer;
@@ -429,22 +442,27 @@ begin
   TempS := IntToStr(AWeight);
   Move(TempS[1], Result[6 - Length(Temps) + 1], Length(TempS));
   Temps := FormatDateTime('DDMMYYhhnn', ADate);
-  Move(TempS[1], Result[16 - Length(Temps) + 1], Length(TempS));
-  Move(AProductCode[1], Result[21 - Length(AProductCode)  + 1], Length(AProductCode));
+  Move(TempS[1], Result[7], 4);
+  Move(TempS[7], Result[11], 4);
+  Move(AProductCode[1], Result[19 - Length(AProductCode)  + 1], Length(AProductCode));
   TempS := IntToStr(ANumber);
-  Move(TempS[1], Result[23 - Length(TempS)  + 1], Length(TempS));
+  Move(TempS[1], Result[21 - Length(TempS)  + 1], Length(TempS));
   TempS := ANpart;
-  Move(TempS[1], Result[27 - Length(TempS)  + 1], Length(TempS));
+  Move(TempS[1], Result[25 - Length(TempS)  + 1], Length(TempS));
+  TempS := IntToStr(AWeightT);
+  Move(TempS[1], Result[28 - Length(TempS)  + 1], Length(TempS));
   TempS := IntToStr(ATara);
   Move(TempS[1], Result[29 - Length(TempS)  + 1], Length(TempS));
 
 end;
 
 procedure TBaseOperation.DecodeBarCode(const ABarCode: String; out AWeight: Integer;
-  out ADate: TDateTime; out AProductCode: Integer; out ANumber: Integer; out ANpart: String; out ATara: Integer);
+  out ADate: TDateTime; out AProductCode: Integer; out ANumber: Integer; out ANpart: String; out ATara: Integer; out AWeightT: Integer);
 var
   Fmt: TFormatSettings;
   StrDate: String;
+  hh: string;
+  mm: string;
 begin
   Assert(Length(ABarCode) >= 29);
   {if Length(ABarCode) = 30 then
@@ -457,19 +475,33 @@ begin
   fmt.LongTimeFormat := 'hh:nn:ss';
   fmt.TimeSeparator  := ':';
 
-  StrDate:= Copy(ABarCode, 7, 2) + '/' + Copy(ABarCode, 9, 2) + '/20' +
-    Copy(ABarCode, 11, 2) + ' ' + Copy(ABarCode, 13, 2) + ':' + Copy(ABarCode, 15, 2);
+{  StrDate:= Copy(ABarCode, 7, 2) + '/' + Copy(ABarCode, 9, 2) + '/20' +
+    Copy(ABarCode, 11, 2) + ' ' + Copy(ABarCode, 13, 2) + ':' + Copy(ABarCode, 15, 2);  }
+  hh:= Copy(ABarCode, 11, 2);
+  if StrToInt(hh) > 59 then
+    begin
+      hh:= '00';
+    end;
+  mm:= Copy(ABarCode, 13, 2);
+  if StrToInt(mm) > 59 then
+    begin
+      mm:= '00';
+    end;
+  StrDate:= Copy(ABarCode, 7, 2) + '/' + Copy(ABarCode, 9, 2) + '/' + IntToStr(YearOf(Date)) +
+     ' ' + hh + ':' + mm;
   ADate := StrToDateTime(StrDate, fmt);
   AWeight := StrToInt(Copy(ABarCode, 1, 6));
-  AProductCode := StrToInt(Copy(ABarCode, 17, 5));
-  ANumber := StrToInt(Copy(ABarCode, 22, 3));
-  ANpart := Copy(ABarCode, 25, 4);
+  AProductCode := StrToInt(Copy(ABarCode, 15, 5));
+  ANumber := StrToInt(Copy(ABarCode, 20, 2));
+  ANpart := Copy(ABarCode, 22, 4);
+  AWeightT := StrToInt(Copy(ABarCode, 26, 3));
   ATara := StrToInt(Copy(ABarCode, 29, 1));
 end;
 
 procedure TBaseOperation.AddPosition(const AString: String);
 var
   Weight: Integer;
+  WeightT: Integer;
   Date: TDateTime;
   ProductCode: String;
   NameGood: String;
@@ -480,7 +512,7 @@ begin
   if FSetBarCode then
   begin
     FPosition.Add(AString + Separator);
-    GetInfoGoods(AString, ProductCode, NameGood, Weight, Date, Number, Npart, NTara);
+    GetInfoGoods(AString, ProductCode, NameGood, Weight, Date, Number, Npart, NTara, WeightT);
     if (Weight > weight_for_checking_sites) and
       (Length(AString) = length_code_for_checking_sites)
     then
@@ -538,6 +570,8 @@ var
   StrDate: string;
   Fmt: TFormatSettings;
   dt: TDateTime;
+  hh: string;
+  mm: string;
 begin
   Result := False;
 
@@ -558,8 +592,20 @@ begin
 
     if (Length(AKey) >= 28) then
     begin
-      StrDate:= Copy(AKey, 7, 2) + '/' + Copy(AKey, 9, 2) + '/20' +
-        Copy(AKey, 11, 2) + ' ' + Copy(AKey, 13, 2) + ':' + Copy(AKey, 15, 2);
+      {StrDate:= Copy(AKey, 7, 2) + '/' + Copy(AKey, 9, 2) + '/20' +
+        Copy(AKey, 11, 2) + ' ' + Copy(AKey, 13, 2) + ':' + Copy(AKey, 15, 2);  }
+      hh:= Copy(AKey, 11, 2);
+      if StrToInt(hh) > 59 then
+        begin
+          hh:= '00';
+        end;
+      mm:= Copy(AKey, 13, 2);
+      if StrToInt(mm) > 59 then
+        begin
+          mm:= '00';
+        end;
+      StrDate:= Copy(AKey, 7, 2) + '/' + Copy(AKey, 9, 2) + '/' + IntToStr(YearOf(Date)) +
+        ' ' + hh + ':' + mm;
 
       if TryStrToDateTime (StrDate, dt, fmt) then
         Result := True

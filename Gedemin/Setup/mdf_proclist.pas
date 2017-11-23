@@ -50,16 +50,16 @@ uses
   mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
   mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL,
   mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddWebRelayTable, mdf_AddFieldToAC_TRRECORD,
-  mdf_AccAnalyticsExtSupport, mdf_AddRestrFieldToInv_BalanceOption, mdf_AddSupportDatabaseTriggers;
+  mdf_AccAnalyticsExtSupport, mdf_AddRestrFieldToInv_BalanceOption, mdf_AddSupportDatabaseTriggers, mdf_modifyinvent;
 
 const
   {$IFDEF GEDEMIN_LOCK}
-  cProcCount = 10;
+  cProcCount = 12;
   {$ELSE}
     {$IFDEF FULL_MODIFY}
-    cProcCount = 223;
+    cProcCount = 224;
     {$ELSE}
-    cProcCount = 43;
+    cProcCount = 44;
     {$ENDIF}
   {$ENDIF}
 
@@ -396,7 +396,8 @@ const
     (ModifyProc: AddAccAnalyticsExt; ModifyVersion: '0000.0001.0000.0291'; NeedDBShutdown: True),
     (ModifyProc: AddRestrFieldToInv_BalanceOption; ModifyVersion: '0000.0001.0000.0292'; NeedDBShutdown: True),
     (ModifyProc: AddIBAN; ModifyVersion: '0000.0001.0000.0296'; NeedDBShutdown: True),
-    (ModifyProc: AddSupportDatabaseTriggers; ModifyVersion: '0000.0001.0000.0297'; NeedDBShutdown: True)
+    (ModifyProc: AddSupportDatabaseTriggers; ModifyVersion: '0000.0001.0000.0297'; NeedDBShutdown: True),
+    (ModifyProc: CreateNewException; ModifyVersion: '0000.0001.0000.0299'; NeedDBShutdown: True)
   );
 
   {
