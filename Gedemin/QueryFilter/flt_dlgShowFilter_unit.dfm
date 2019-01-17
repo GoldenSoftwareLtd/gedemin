@@ -454,8 +454,8 @@ object dlgShowFilter: TdlgShowFilter
   object ibsqlGetID: TIBSQL
     SQL.Strings = (
       
-        'SELECT GEN_ID(GD_G_UNIQUE, 1) + GEN_ID(gd_g_offset, 0) FROM RDB$' +
-        'DATABASE')
+        'SELECT id FROM gd_p_getnextid' +
+        ' ')
     Left = 272
     Top = 80
   end

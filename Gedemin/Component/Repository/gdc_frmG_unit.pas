@@ -1039,22 +1039,21 @@ procedure Tgdc_frmG.SetupSearchPanel(Obj: TgdcBase;
 const
   RowHeight = 36;
 var
-  W, I, J, Line, U, K, Pass: Integer;
+  W, I,J, Line, K: Integer;
   L: TLabel;
   E: TCustomEdit;
-  F: TWinControl;
+  C: TComponent;
   SL: TStringList;
-  S: String;
+  EditL: TStringList;
+  ColL: TStringList;
+  S, edName: String;
   KIA: TgdKeyIntAssoc;
-  Flag, Find: Boolean;
+  Find: Boolean;
   St: TMemoryStream;
   Btn, BtnVF: TButton;
   Fld: TField;
   Grid: TgsIBGrid;
 begin
-  F := nil;
-  Flag := False;
-
   Grid := nil;
   if ShowVisibleFields then
   begin
@@ -1070,14 +1069,19 @@ begin
       ShowVisibleFields := False;
   end;
 
+  if Assigned(Grid) then
+    SetLocalizeListName(Grid);
+
   PreservedConditions := Obj.ExtraConditions.Text;
 
   if FO = nil then
   begin
     FO := TStringList.Create;
-    J := 0;
     SL := TStringList.Create;
     KIA := TgdKeyIntAssoc.Create;
+    EditL := TStringList.Create;
+    EditL.Sorted := true;
+    ColL := TStringList.Create;
     try
       St := TMemoryStream.Create;
       try
@@ -1086,123 +1090,121 @@ begin
       finally
         St.Free;
       end;
-
-      Pass := 0;
       // Получим список алиасов запроса соотнесенных с реальными полями таблиц
       GetTableAliasOriginField(Obj.SelectSQL.Text, SL);
-      while Pass < 2 do
+
+      Line := 0;
+      J := 0;
+      edName := 'ed' + SB.Name + '%.3d';
+
+      if ShowVisibleFields then
       begin
-        J := 0;
-        Line := 0;
-        for I := 0 to SL.Count - 1 do
+        for k := 0 to Grid.Columns.Count-1 do
         begin
-          if SL.Names[I] = '*' then
-            continue;
+           if ((Grid.Columns[k].Field is TNumericField) or (Grid.Columns[k].Field is TStringField) or (Grid.Columns[k].Field is TDateTimeField))
+           and (Grid.Columns[k].Visible)
+           and (SL.IndexOfName(Grid.Columns[k].FieldName) <> -1) then
+           begin
+              if (Grid.Columns[k].Field.DataType = ftInteger) and (Grid.Columns[k].FieldName <> 'ID') then
+                continue;
 
-          // Обратимся к полю датасета
-          Fld := Obj.FieldByName(copy(SL.Names[I], 1, 31));
-          if ((Fld is TNumericField) or (Fld is TStringField) or (Fld is TDateTimeField)) and
-            (Fld.Visible or (copy(SL.Names[I], 1, 31) = 'ID')) then
-          begin
-            // Из целочисленных полей будем показывать только ID
-            if (Fld.DataType = ftInteger) and (copy(SL.Names[I], 1, 31) <> 'ID') then
-              continue;
-
-            if Pass = 0 then
-            begin
-              if not ShowAllFields then
-              begin
-                S := SL.Values[SL.Names[I]];
-                if not ShowVisibleFields then begin
-                  if KIA.IndexOf(Integer(Crc32_P(@S[1], Length(S), 0))) = -1 then
-                    continue
-                end
-                else begin
-                  Find := false;
-                  U := 0;
-                  for k := 0 to Grid.Columns.Count-1 do
-                  begin
-                    if ((Grid.Columns[k].Field.DataType = ftInteger)  and (Grid.Columns[k].FieldName <> 'ID'))
-                      or (Grid.Columns[k].Visible = false) then
-                      U := U + 1;
-
-                    if Grid.Columns[k].Visible and
-                        (Grid.Columns[k].FieldName = SL.Names[I]) then
-                    begin
-                      Find := true;
-                      Line := k - U;
-                      break;
-                    end;
-                  end;
-                  if not Find then
-                    continue;
-                end;
-              end;
-              Flag := True;
-            end;
-
-            if Fld is TDateTimeField then
-            begin
-              E := TxDateEdit.Create(PN);
-              if Fld.DataType = ftDate then
-               (E as TxDateEdit).Kind := kDate
-              else if Fld.DataType = ftTime then
-               (E as TxDateEdit).Kind := kTime
-              else
-               (E as TxDateEdit).Kind := kDateTime;
-              if (not ShowAllFields) and (not ShowVisibleFields) and Flag then
-                (E as TxDateEdit).PopupMenu := pmFind;
-            end
-            else
-            begin
-              E := TEdit.Create(PN);
-              if (not ShowAllFields) and (not ShowVisibleFields) and Flag then
-                (E as TEdit).PopupMenu := pmFind;
-            end;
-
-            E.Parent := SB;
-            E.Top := Line * RowHeight + 22;
-            E.Left := 4;
-            E.Width := SB.Width - 8 - 14;
-            E.Tag := FO.Add(SL.Values[SL.Names[I]] + '=' + IntToStr(Integer(Fld.DataType)));
-            E.Visible := True;
-
-            { TODO : не знаю, нужен ли этот хинт? }
-            if (IBLogin <> nil) and IBLogin.IsUserAdmin then
-            begin
-              E.Hint := SL.Values[SL.Names[I]];
-              E.ShowHint := True;
-            end;
-
-            E.Text := '';
-
-            if J = 0 then
-              F := E;
-
-            L := TLabel.Create(PN);
-            L.Parent := SB;
-            L.Top := Line * RowHeight + 8;
-            L.Left := 4;
-            L.AutoSize := True;
-            if LocalizeListName.Values[copy(SL.Names[I], 1, 31)] = '' then
-              L.Caption := Fld.DisplayName + ':'
-            else
-              L.Caption := LocalizeListName.Values[copy(SL.Names[I], 1, 31)] + ':';
-            L.FocusControl := E;
-            L.Visible := True;
-
-            Inc(J);
-            Line := J;
+              ColL.Add(Grid.Columns[k].FieldName);
           end;
         end;
-
-        if Flag then
-          break;
-
-        Inc(Pass);
       end;
 
-      if (Pass = 0) and (not ShowAllFields) then
+      for I := 0 to SL.Count - 1 do
+      begin
+        if SL.Names[I] = '*' then
+          continue;
+
+        // Обратимся к полю датасета
+        Fld := Obj.FieldByName(copy(SL.Names[I], 1, 31));
+        if ((Fld is TNumericField) or (Fld is TStringField) or (Fld is TDateTimeField)) and
+          (Fld.Visible or (copy(SL.Names[I], 1, 31) = 'ID')) then
+        begin
+          // Из целочисленных полей будем показывать только ID
+          if (Fld.DataType = ftInteger) and (copy(SL.Names[I], 1, 31) <> 'ID') then
+            continue;
+
+          if not ShowAllFields then
+          begin
+            S := SL.Values[SL.Names[I]];
+            if not ShowVisibleFields then begin
+              if KIA.IndexOf(Integer(Crc32_P(@S[1], Length(S), 0))) = -1 then
+                continue
+            end
+            else begin
+              Find := false;
+
+              if ColL.IndexOf(SL.Names[I]) <> -1 then
+              begin
+                Line := ColL.IndexOf(SL.Names[I]);
+                if EditL.IndexOf(Format(edName, [Line])) = -1 then
+                begin
+                  Find := true;
+                end;
+              end;
+              if not Find then
+                continue;
+            end;
+          end;
+
+          if Fld is TDateTimeField then
+          begin
+            E := TxDateEdit.Create(PN);
+            if Fld.DataType = ftDate then
+             (E as TxDateEdit).Kind := kDate
+            else if Fld.DataType = ftTime then
+             (E as TxDateEdit).Kind := kTime
+            else
+             (E as TxDateEdit).Kind := kDateTime;
+            if (not ShowAllFields) and (not ShowVisibleFields)  then
+              (E as TxDateEdit).PopupMenu := pmFind;
+          end
+          else
+          begin
+            E := TEdit.Create(PN);
+            if (not ShowAllFields) and (not ShowVisibleFields)  then
+              (E as TEdit).PopupMenu := pmFind;
+          end;
+
+          E.Parent := SB;
+          E.Top := Line * RowHeight + 22;
+          E.Left := 4;
+          E.Width := SB.Width - 8 - 14;
+          E.Tag := FO.Add(SL.Values[SL.Names[I]] + '=' + IntToStr(Integer(Fld.DataType)));
+          E.Visible := True;
+          E.Name := Format(edName, [Line]);
+          EditL.Add(E.Name);
+
+          { TODO : не знаю, нужен ли этот хинт? }
+          if (IBLogin <> nil) and IBLogin.IsUserAdmin then
+          begin
+            E.Hint := SL.Values[SL.Names[I]];
+            E.ShowHint := True;
+          end;
+
+          E.Text := '';
+
+          L := TLabel.Create(PN);
+          L.Parent := SB;
+          L.Top := Line * RowHeight + 8;
+          L.Left := 4;
+          L.AutoSize := True;
+          if LocalizeListName.Values[copy(SL.Names[I], 1, 31)] = '' then
+            L.Caption := Fld.DisplayName + ':'
+          else
+            L.Caption := LocalizeListName.Values[copy(SL.Names[I], 1, 31)] + ':';
+          L.FocusControl := E;
+          L.Visible := True;
+
+          Inc(J);
+          Line := J;
+        end;
+      end;
+
+     if (not ShowAllFields) then
       begin
         Btn := TButton.Create(PN);
         Btn.Parent := SB;
@@ -1224,39 +1226,59 @@ begin
       BtnVF.Visible := True;
       BtnVF.Caption := 'Видимые';
       BtnVF.OnClick := DoShowVisibleFields;
+
+      //устанавливаем табуляцию
+      if ShowVisibleFields then
+      begin
+        for i := 0 to EditL.Count - 1 do
+        begin
+          C := SB.FindChildControl(EditL.Strings[i]);
+          if Assigned(C) and (C is TCustomEdit) then
+            (C as TCustomEdit).TabOrder := i;
+        end;
+      end;
+
+      if ShowAllFields or ShowVisibleFields then
+      begin
+        if SP <> nil then
+          SP.Visible := True;
+
+        PN.Visible := True;
+
+      end else
+      begin
+        W := PN.Width;
+        PN.Width := 0;
+
+        if SP <> nil then
+          SP.Visible := True;
+
+        PN.Visible := True;
+
+        while PN.Width < (W - 32) do
+        begin
+          Application.ProcessMessages;
+          PN.Width := PN.Width + 32;
+        end;
+
+        PN.Width := W;
+      end;
+
+      if EditL.Count > 0 then
+      begin
+        C := SB.FindChildControl(EditL.Strings[0]);
+        if Assigned(C) and (C is TCustomEdit) then
+          (C as TCustomEdit).SetFocus;
+      end;
+
     finally
       SL.Free;
+      EditL.Free;
+      ColL.Free;
       KIA.Free;
     end;
   end;
 
-  if ShowAllFields or ShowVisibleFields then
-  begin
-    if SP <> nil then
-      SP.Visible := True;
-
-    PN.Visible := True;
-  end else
-  begin
-    W := PN.Width;
-    PN.Width := 0;
-
-    if SP <> nil then
-      SP.Visible := True;
-
-    PN.Visible := True;
-
-    while PN.Width < (W - 32) do
-    begin
-      Application.ProcessMessages;
-      PN.Width := PN.Width + 32;
-    end;
-
-    PN.Width := W;
-  end;
-
-  if Assigned(F) and F.CanFocus and (GetParentForm(F) = Self) then
-    ActiveControl := F;
 end;
 
 procedure Tgdc_frmG.SearchExecute(Obj: TgdcBase; SB: TPanel;
@@ -2100,49 +2122,87 @@ end;
 procedure Tgdc_frmG.DoShowAllFields(Sender: TObject);
 var
   I: Integer;
+  OldValue: TStringList;
 begin
-  if pnlSearchMain.Visible then
-  begin
-    gdcObject.ExtraConditions.Text := FMainPreservedConditions;
-    FreeAndNil(FFieldOrigin);
-
-    for I := sbSearchMain.ControlCount - 1 downto 0 do
+  OldValue := TStringList.Create;
+  try
+    if pnlSearchMain.Visible then
     begin
-      sbSearchMain.Controls[I].Free;
-    end;
+      gdcObject.ExtraConditions.Text := FMainPreservedConditions;
 
-    SetupSearchPanel(gdcObject,
-      pnlSearchMain,
-      sbSearchMain,
-      nil{sSearchMain},
-      FFieldOrigin,
-      FMainPreservedConditions,
-      True);
+      for I := sbSearchMain.ControlCount - 1 downto 0 do
+      begin
+        if (sbSearchMain.Controls[I] is TCustomEdit)
+          and  (TCustomEdit(sbSearchMain.Controls[I]).Text <> '') then
+            OldValue.Add(FFieldOrigin.Names[sbSearchMain.Controls[I].Tag]+'='+TCustomEdit(sbSearchMain.Controls[I]).Text);
+
+        sbSearchMain.Controls[I].Free;
+      end;
+      FreeAndNil(FFieldOrigin);
+
+      for I := sbSearchMain.ControlCount - 1 downto 0 do
+      begin
+        sbSearchMain.Controls[I].Free;
+      end;
+
+      SetupSearchPanel(gdcObject,
+        pnlSearchMain,
+        sbSearchMain,
+        nil{sSearchMain},
+        FFieldOrigin,
+        FMainPreservedConditions,
+        True);
+
+      for I := sbSearchMain.ControlCount - 1 downto 0 do
+      begin
+        if (sbSearchMain.Controls[I] is TCustomEdit) then
+          TCustomEdit(sbSearchMain.Controls[I]).Text := OldValue.Values[FFieldOrigin.Names[sbSearchMain.Controls[I].Tag]];
+      end;
+    end;
+  finally
+    OldValue.Free;
   end;
 end;
 
 procedure Tgdc_frmG.DoShowVisibleFields(Sender: TObject);
 var
   I: Integer;
+  OldValue: TStringList;
 begin
-  if pnlSearchMain.Visible then
-  begin
-    gdcObject.ExtraConditions.Text := FMainPreservedConditions;
-    FreeAndNil(FFieldOrigin);
+  OldValue := TStringList.Create;
+  try
 
-    for I := sbSearchMain.ControlCount - 1 downto 0 do
+    if pnlSearchMain.Visible then
     begin
-      sbSearchMain.Controls[I].Free;
-    end;
+      gdcObject.ExtraConditions.Text := FMainPreservedConditions;
 
-    SetupSearchPanel(gdcObject,
-      pnlSearchMain,
-      sbSearchMain,
-      nil{sSearchMain},
-      FFieldOrigin,
-      FMainPreservedConditions,
-      False,
-      True);
+      for I := sbSearchMain.ControlCount - 1 downto 0 do
+      begin
+        if (sbSearchMain.Controls[I] is TCustomEdit)
+          and  (TCustomEdit(sbSearchMain.Controls[I]).Text <> '') then
+            OldValue.Add(FFieldOrigin.Names[sbSearchMain.Controls[I].Tag]+'='+TCustomEdit(sbSearchMain.Controls[I]).Text);
+
+        sbSearchMain.Controls[I].Free;
+      end;
+      FreeAndNil(FFieldOrigin);
+
+      SetupSearchPanel(gdcObject,
+        pnlSearchMain,
+        sbSearchMain,
+        nil{sSearchMain},
+        FFieldOrigin,
+        FMainPreservedConditions,
+        False,
+        True);
+
+      for I := sbSearchMain.ControlCount - 1 downto 0 do
+      begin
+        if (sbSearchMain.Controls[I] is TCustomEdit) then
+          TCustomEdit(sbSearchMain.Controls[I]).Text := OldValue.Values[FFieldOrigin.Names[sbSearchMain.Controls[I].Tag]];
+      end;
+    end;
+  finally
+    OldValue.Free;
   end;
 end;
 

@@ -29,7 +29,9 @@ function GetEqKey: Integer;
 
 function DisplayFormat(DecDig: Integer): string;
 //заполн€ет список полей аналитик
+procedure GetAnalyticsFieldsExtended(const List: TList; const ShowAddAnaliseLines: boolean = True);
 procedure GetAnalyticsFields(const List: TList);
+procedure GetAnalyticsFieldsWithoutAddAnaliseLines(const List: TList);
 //провер€ет список аналитик на присутствие в Ѕƒ
 procedure CheckAnalyticsList(const List: TStringList);
 //¬озвращает ид счета по алиасу дл€ астивного плана счетов
@@ -233,9 +235,20 @@ begin
 end;
 
 procedure GetAnalyticsFields(const List: TList);
+begin
+  GetAnalyticsFieldsExtended(List, True);
+end;
+
+procedure GetAnalyticsFieldsWithoutAddAnaliseLines(const List: TList);
+begin
+  GetAnalyticsFieldsExtended(List, False);
+end;
+
+procedure GetAnalyticsFieldsExtended(const List: TList; const ShowAddAnaliseLines: boolean = True);
 {$IFDEF GEDEMIN}
 var
   R: TatRelation;
+  F: TatRelationField;
   I, Index: Integer;
 {$ENDIF}
 
@@ -278,6 +291,24 @@ begin
       end;
     end else
       List.Clear;
+
+    if ShowAddAnaliseLines then
+    begin
+      F := atDatabase.FindRelationField(AC_ENTRY, 'CURRKEY');
+      if F <> nil then
+      begin
+        List.Add(F);
+      end;
+
+      F := atDatabase.FindRelationField(AC_ENTRY, 'MASTERDOCKEY');
+      if F <> nil then
+      begin
+        F := atDatabase.FindRelationField('GD_DOCUMENT', 'DOCUMENTTYPEKEY');
+        List.Add(F);
+      end;
+
+    end;
+
   end;
 {$ENDIF}
 end;

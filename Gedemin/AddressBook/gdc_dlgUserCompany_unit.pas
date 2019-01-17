@@ -1,7 +1,8 @@
+// andreik 15.01.2019
 
  {++
    Project ADDRESSBOOK
-   Copyright © 2000- by Golden Software
+   Copyright © 2000-2019 by Golden Software
 
    Модуль
 
@@ -33,7 +34,7 @@ uses
   IBCustomDataSet, gdcBase, gdcContacts, ActnList, at_Container,
   ToolWin, ExtCtrls, gsDBGrid, gsDBTreeView, gsIBLookupComboBox, Grids,
   DBGrids, Buttons, Menus, gsIBGrid, gdcTree, IBDatabase,
-  TB2Item, TB2Dock, TB2Toolbar;
+  TB2Item, TB2Dock, TB2Toolbar, JvDBImage;
 
 type
   Tgdc_dlgUserCompany = class(Tgdc_dlgCustomCompany)

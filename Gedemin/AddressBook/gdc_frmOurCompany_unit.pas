@@ -1,3 +1,4 @@
+// andreik, 15.01.2019
 
 unit gdc_frmOurCompany_unit;
 
@@ -72,7 +73,7 @@ begin
             q.Transaction.StartTransaction;
           q.SQL.Text := 'INSERT INTO gd_ourcompany (companykey, afull, achag, aview, disabled) VALUES (:CK, :A, :A, :A, 0) ';
           q.Prepare;
-          q.ParamByName('CK').AsInteger := K;
+          SetTID(q.ParamByName('CK'), K);
           q.ParamByName('A').AsInteger := IBLogin.InGroup;
           try
             q.ExecQuery;

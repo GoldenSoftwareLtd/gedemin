@@ -50,16 +50,17 @@ uses
   mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
   mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL,
   mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddWebRelayTable, mdf_AddFieldToAC_TRRECORD,
-  mdf_AccAnalyticsExtSupport, mdf_AddRestrFieldToInv_BalanceOption, mdf_AddSupportDatabaseTriggers, mdf_modifyinvent;
+  mdf_AccAnalyticsExtSupport, mdf_AddRestrFieldToInv_BalanceOption, mdf_AddSupportDatabaseTriggers,
+  mdf_modifyinvent;
 
 const
   {$IFDEF GEDEMIN_LOCK}
-  cProcCount = 12;
+  cProcCount = 23;
   {$ELSE}
     {$IFDEF FULL_MODIFY}
-    cProcCount = 224;
+    cProcCount = 227;
     {$ELSE}
-    cProcCount = 44;
+    cProcCount = 46;
     {$ENDIF}
   {$ENDIF}
 
@@ -352,8 +353,8 @@ const
     (ModifyProc: ChangeDuplicateAccount2; ModifyVersion: '0000.0001.0000.0191'; NeedDBShutdown: True),
     (ModifyProc: DeletecbAnalyticFromScript; ModifyVersion: '0000.0001.0000.0192'; NeedDBShutdown: True),
     (ModifyProc: AddNSMetadata; ModifyVersion: '0000.0001.0000.0193'; NeedDBShutdown: True),
-    {$ENDIF}
     (ModifyProc: Issue2846; ModifyVersion: '0000.0001.0000.0194'; NeedDBShutdown: False),
+    {$ENDIF}
     (ModifyProc: Issue2688; ModifyVersion: '0000.0001.0000.0195'; NeedDBShutdown: False),
     (ModifyProc: AddUqConstraintToGD_RUID; ModifyVersion: '0000.0001.0000.0196'; NeedDBShutdown: True),
     (ModifyProc: DropConstraintFromAT_OBJECT; ModifyVersion: '0000.0001.0000.0197'; NeedDBShutdown: True),
@@ -377,6 +378,7 @@ const
     (ModifyProc: CorrectEntryTriggers; ModifyVersion: '0000.0001.0000.0230'; NeedDBShutdown: True),
     (ModifyProc: CorrectAutoEntryScript; ModifyVersion: '0000.0001.0000.0231'; NeedDBShutdown: False),
     (ModifyProc: ModifyBLOB; ModifyVersion: '0000.0001.0000.0233'; NeedDBShutdown: True),
+    {$ENDIF}
     (ModifyProc: ModifyAC_ACCOUNTEXSALDO_BAL; ModifyVersion: '0000.0001.0000.0237'; NeedDBShutdown: False),
     (ModifyProc: IntroduceIncorrectRecordGTT; ModifyVersion: '0000.0001.0000.0241'; NeedDBShutdown: True),
     (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0243'; NeedDBShutdown: False),
@@ -385,7 +387,6 @@ const
     (ModifyProc: AddSMTPTable; ModifyVersion: '0000.0001.0000.0251'; NeedDBShutdown: True),
     (ModifyProc: ModifyAutoTaskAndSMTPTable; ModifyVersion: '0000.0001.0000.0276'; NeedDBShutdown: True),
     (ModifyProc: AddWebRelayTable; ModifyVersion: '0000.0001.0000.0278'; NeedDBShutdown: True),
-    {$ENDIF}
     (ModifyProc: AddGDEMPLOYEETable; ModifyVersion: '0000.0001.0000.0284'; NeedDBShutdown: True),
     (ModifyProc: CorrectSubAccounts; ModifyVersion: '0000.0001.0000.0285'; NeedDBShutdown: False),
     (ModifyProc: CorrectClientAddress; ModifyVersion: '0000.0001.0000.0286'; NeedDBShutdown: True),
@@ -397,7 +398,10 @@ const
     (ModifyProc: AddRestrFieldToInv_BalanceOption; ModifyVersion: '0000.0001.0000.0292'; NeedDBShutdown: True),
     (ModifyProc: AddIBAN; ModifyVersion: '0000.0001.0000.0296'; NeedDBShutdown: True),
     (ModifyProc: AddSupportDatabaseTriggers; ModifyVersion: '0000.0001.0000.0297'; NeedDBShutdown: True),
-    (ModifyProc: CreateNewException; ModifyVersion: '0000.0001.0000.0299'; NeedDBShutdown: True)
+    (ModifyProc: CreateNewException; ModifyVersion: '0000.0001.0000.0299'; NeedDBShutdown: True),
+    (ModifyProc: AddAvailableIDProc; ModifyVersion: '0000.0001.0000.0300'; NeedDBShutdown: False),
+    (ModifyProc: CreateNewInvTable; ModifyVersion: '0000.0001.0000.0303'; NeedDBShutdown: False),
+    (ModifyProc: AddSemanticCategory; ModifyVersion: '0000.0001.0000.0305'; NeedDBShutdown: False)
   );
 
   {

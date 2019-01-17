@@ -1,7 +1,8 @@
+// andreik, 15.01.2019
 
  {++
 
-   Copyright © 2000-2015 by Golden Software
+   Copyright © 2000-2019 by Golden Software
 
    Модуль
 
@@ -46,7 +47,6 @@ implementation
 
 {$R *.DFM}
 
-
 uses
   gd_ClassList;
 
@@ -55,5 +55,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgCompany);
-
 end.

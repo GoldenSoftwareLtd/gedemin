@@ -199,9 +199,14 @@ begin
       begin
         for I := 0 to FFields.Count - 1 do
         begin
-          if SQL.SQL.Count > 0 then
-            SQL.SQL.Add(', ');
-          SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FFields[I]).FieldName]));
+
+          if (TatRelationField(FFields[I]).FieldName <> 'DOCUMENTTYPEKEY')
+            and (TatRelationField(FFields[I]).FieldName <> 'CURRKEY') then
+          begin
+            if SQL.SQL.Count > 0 then
+              SQL.SQL.Add(', ');
+            SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FFields[I]).FieldName]));
+          end;
         end;
 
         if FFields.Count > 0 then
@@ -212,16 +217,20 @@ begin
           SQL.ExecQuery;
         end;
       end;
-
       for I := 0 to FFields.Count - 1 do
       begin
-        if IDList.Count > 0 then
+        if (IDList.Count > 0)
+          and (TatRelationField(FFields[i]).FieldName <> 'CURRKEY')
+          and(TatRelationField(FFields[i]).FieldName <> 'DOCUMENTTYPEKEY') then
           C := SQL.Fields[I].AsInteger
         else
           C := 0;
 
         try
-          if C = IDList.Count then
+          if (C = IDList.Count)
+            or (TatRelationField(FFields[i]).FieldName = 'CURRKEY')
+            or (TatRelationField(FFields[i]).FieldName = 'DOCUMENTTYPEKEY')
+           then
           begin
             Index := IndexOf(TatRelationField(FFields[i]));
             if Index = - 1 then
@@ -264,6 +273,7 @@ begin
 
   finally
     LAnaliseLines.Free;
+
   end;
 end;
 

@@ -1,8 +1,9 @@
+// andreik, 15.01.2019
 
  {++
 
    Project GEDEMIN
-   Copyright © 2000- 2017 by Golden Software of Belarus, Ltd
+   Copyright © 2000-2019 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -155,8 +156,11 @@ type
     procedure actSavePictureUpdate(Sender: TObject);
     procedure actDeletePictureUpdate(Sender: TObject);
     procedure actShowOnMapExecute(Sender: TObject);
+    procedure FormShow(Sender: TObject);
 
   protected
+    FOld_Global_DisableQueryFilter: boolean;
+
     //Указывает необходимо ли отображать страницу
     function NeedVisibleTabSheet(const ARelationName: String): Boolean; override;
 
@@ -175,6 +179,8 @@ type
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
+
+    procedure Loaded; override;
   end;
 
 var
@@ -295,8 +301,7 @@ end;
 
 procedure Tgdc_dlgCustomCompany.actEditAccountExecute(Sender: TObject);
 begin
-  if gdcAccount.EditDialog
-    and (gdcAccount.ID = gsiblkupMainAccount.CurrentKeyInt) then
+  if gdcAccount.EditDialog and EqTID(gdcAccount.ID, gsiblkupMainAccount.CurrentKeyInt) then
   begin
     gsiblkupMainAccount.CurrentKeyInt := gdcAccount.ID;
   end;
@@ -304,7 +309,7 @@ end;
 
 procedure Tgdc_dlgCustomCompany.actDelAccountExecute(Sender: TObject);
 begin
-  if gdcAccount.ID = gdcObject.FieldByName('companyaccountkey').AsInteger then
+  if EqTID(gdcAccount.ID, GetTID(gdcObject.FieldByName('companyaccountkey'))) then
   begin
     gdcObject.FieldByName('companyaccountkey').Clear;
     gdcAccount.DeleteMultiple(nil);
@@ -356,9 +361,9 @@ begin
   {END MACRO}
 
   gsiblkupDirector.Params.Clear;
-  gsiblkupDirector.Params.Add('cc_id=' + IntToStr(gdcObject.ID));
+  gsiblkupDirector.Params.Add('cc_id=' + TID2S(gdcObject.ID));
   gsiblkupChiefAccountant.Params.Clear;
-  gsiblkupChiefAccountant.Params.Add('cc_id=' + IntToStr(gdcObject.ID));
+  gsiblkupChiefAccountant.Params.Add('cc_id=' + TID2S(gdcObject.ID));
 
   if (not gdcObject.FieldByName('lat').IsNull)
     and (not gdcObject.FieldByName('lon').IsNull) then
@@ -376,7 +381,7 @@ begin
   end else
   begin
     gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_contact WHERE id=' +
-      IntToStr(gdcObject.ID), varNull, Res);
+      TID2S(gdcObject.ID), varNull, Res);
 
     if not VarIsEmpty(Res) then
     begin
@@ -389,7 +394,7 @@ begin
     end;
   end;
 
-  gsiblkupMainAccount.Condition := 'companykey = ' + IntToStr(gdcObject.ID);
+  gsiblkupMainAccount.Condition := 'companykey = ' + TID2S(gdcObject.ID);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGCUSTOMCOMPANY', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -583,7 +588,7 @@ begin
           'SELECT cc.companykey, c.name FROM gd_companycode cc JOIN gd_contact c ON c.id = cc.companykey ' +
           'WHERE cc.taxid = :TI AND cc.companykey <> :ID';
         q.Prepare;
-        q.ParamByName('ID').AsInteger := gdcObject.ID;
+        SetTID(q.ParamByName('ID'), gdcObject.ID);
         q.ParamByName('TI').AsString := gdcObject.FieldByName('taxid').AsString;
         q.ExecQuery;
         if not q.EOF then
@@ -592,7 +597,7 @@ begin
             PChar(
             'Организация с таким УНП(ИНН) уже существует в базе данных!'#13#10#13#10 +
             'Наименование: ' + q.FieldByName('name').AsString + #13#10 +
-            'Идентификатор: ' + q.FieldByName('companykey').AsString + #13#10#13#10 +
+            'Идентификатор: ' + TID2S(q.FieldByName('companykey')) + #13#10#13#10 +
             'Ввод дублирующихся записей не рекомендован.'#13#10 +
             'Отключить данную проверку Вы можете в окне "Опции" пункта "Сервис" главного меню.'#13#10#13#10 +
             'Вернуться к редактированию организации?'#13#10#13#10 +
@@ -630,7 +635,7 @@ begin
           q.SQL.Text :=
             'SELECT c.name FROM gd_contact c JOIN gd_company co ON c.id=co.contactkey WHERE UPPER(c.name) LIKE ''' + S + ''' AND c.id <> :ID' ;
           q.Prepare;
-          q.ParamByName('ID').AsInteger := gdcObject.ID;
+          SetTID(q.ParamByName('ID'), gdcObject.ID);
           q.ExecQuery;
           if not q.EOF then
           begin
@@ -727,7 +732,7 @@ end;
 procedure Tgdc_dlgCustomCompany.gsiblkupMainAccountCreateNewObject(
   Sender: TObject; ANewObject: TgdcBase);
 begin
-  ANewObject.FieldByName('companykey').AsInteger := gdcObject.ID;
+  SetTID(ANewObject.FieldByName('companykey'), gdcObject.ID);
 end;
 
 procedure Tgdc_dlgCustomCompany.actAccountReductionUpdate(Sender: TObject);
@@ -757,8 +762,7 @@ begin
     ANewObject.Open;
     ANewObject.Insert;
   end;  
-  ANewObject.FieldByName('wcompanykey').AsInteger :=
-    gdcObject.ID;
+  SetTID(ANewObject.FieldByName('wcompanykey'), gdcObject.ID);
   ANewObject.FieldByName('wcompanykey').ReadOnly := True;
 end;
 
@@ -777,7 +781,6 @@ begin
     Result := 'OnlyCompany'
   else
     Result := inherited GetChooseSubSet(ARelationName);
-
 end;
 
 procedure Tgdc_dlgCustomCompany.actLoadPictureExecute(Sender: TObject);
@@ -894,6 +897,19 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGCUSTOMCOMPANY', 'BEFOREPOST', KEYBEFOREPOST);
   {M}end;
   {END MACRO}
+end;
+
+procedure Tgdc_dlgCustomCompany.Loaded;
+begin
+  inherited;
+  FOld_Global_DisableQueryFilter := Global_DisableQueryFilter;
+  Global_DisableQueryFilter := true;
+end;
+
+procedure Tgdc_dlgCustomCompany.FormShow(Sender: TObject);
+begin
+  inherited;
+  Global_DisableQueryFilter := FOld_Global_DisableQueryFilter;
 end;
 
 initialization

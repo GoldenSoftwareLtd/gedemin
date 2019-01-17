@@ -1,6 +1,6 @@
 inherited gdc_dlgRelation: Tgdc_dlgRelation
-  Left = 1382
-  Top = 496
+  Left = 689
+  Top = 171
   Width = 538
   Height = 544
   HelpContext = 84
@@ -43,7 +43,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
   object pcRelation: TPageControl [5]
     Left = 0
     Top = 0
-    Width = 514
+    Width = 522
     Height = 469
     ActivePage = tsCommon
     Align = alTop
@@ -82,7 +82,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object lblReference: TLabel
         Left = 6
-        Top = 199
+        Top = 229
         Width = 240
         Height = 13
         Caption = 'Ссылка на таблицу/наследование от таблицы:'
@@ -90,21 +90,21 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object lblBranch: TLabel
         Left = 6
-        Top = 169
+        Top = 199
         Width = 234
         Height = 13
         Caption = 'Ветка для команды вызова в Исследователе:'
       end
       object Label3: TLabel
         Left = 6
-        Top = 228
+        Top = 258
         Width = 240
         Height = 13
         Caption = 'Поле для отображения в выпадающем списке:'
       end
       object Label4: TLabel
         Left = 6
-        Top = 253
+        Top = 283
         Width = 235
         Height = 31
         AutoSize = False
@@ -115,17 +115,24 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object Label5: TLabel
         Left = 6
-        Top = 289
+        Top = 319
         Width = 70
         Height = 13
         Caption = 'Бизнес-класс:'
       end
       object Label6: TLabel
         Left = 6
-        Top = 317
+        Top = 347
         Width = 42
         Height = 13
         Caption = 'Подтип:'
+      end
+      object Label1: TLabel
+        Left = 6
+        Top = 167
+        Width = 138
+        Height = 13
+        Caption = 'Семантические категории:'
       end
       object dbedRelationName: TDBEdit
         Left = 256
@@ -174,7 +181,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object ibcmbReference: TgsIBLookupComboBox
         Left = 256
-        Top = 194
+        Top = 224
         Width = 241
         Height = 21
         HelpContext = 1
@@ -189,12 +196,12 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 6
         Visible = False
       end
       object iblcExplorerBranch: TgsIBLookupComboBox
         Left = 256
-        Top = 164
+        Top = 194
         Width = 241
         Height = 21
         HelpContext = 1
@@ -210,41 +217,31 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 5
       end
       object dbeExtendedFields: TDBEdit
         Left = 256
-        Top = 253
+        Top = 283
         Width = 241
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         CharCase = ecUpperCase
         DataField = 'extendedfields'
         DataSource = dsgdcBase
-        TabOrder = 7
+        TabOrder = 8
       end
       object dbeListField: TDBEdit
         Left = 256
-        Top = 224
+        Top = 254
         Width = 241
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         CharCase = ecUpperCase
         DataField = 'listfield'
         DataSource = dsgdcBase
-        TabOrder = 6
+        TabOrder = 7
       end
       object lClass: TEdit
-        Left = 256
-        Top = 283
-        Width = 241
-        Height = 21
-        TabStop = False
-        Anchors = [akLeft, akTop, akRight]
-        Color = clBtnFace
-        TabOrder = 8
-      end
-      object lSubType: TEdit
         Left = 256
         Top = 313
         Width = 241
@@ -254,19 +251,29 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         Color = clBtnFace
         TabOrder = 9
       end
+      object lSubType: TEdit
+        Left = 256
+        Top = 343
+        Width = 241
+        Height = 21
+        TabStop = False
+        Anchors = [akLeft, akTop, akRight]
+        Color = clBtnFace
+        TabOrder = 10
+      end
       object Panel8: TPanel
         Left = 0
         Top = 393
-        Width = 506
+        Width = 514
         Height = 48
         Align = alBottom
         BevelOuter = bvNone
         BorderWidth = 4
-        TabOrder = 10
+        TabOrder = 11
         object lblWarn: TLabel
           Left = 4
           Top = 4
-          Width = 498
+          Width = 506
           Height = 40
           Align = alClient
           AutoSize = False
@@ -278,6 +285,16 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           ParentFont = False
           WordWrap = True
         end
+      end
+      object dbedSemCategory: TDBEdit
+        Left = 256
+        Top = 164
+        Width = 241
+        Height = 21
+        Anchors = [akLeft, akTop, akRight]
+        DataField = 'SEMCATEGORY'
+        DataSource = dsgdcBase
+        TabOrder = 4
       end
     end
     object tsFields: TTabSheet

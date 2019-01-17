@@ -289,11 +289,12 @@ begin
 
       Value := S.Values['CURRKEY'];
 
-      if Value > '' then
+      if (Value > '') and (pos(',',Value) = 0) then
       begin
         frAcctSum.Currkey := StrToInt(Value);
         frAcctSum.InCurr := True;
-      end;
+      end;  
+
     finally
       S.Free;
     end;

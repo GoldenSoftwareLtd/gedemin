@@ -1,7 +1,9 @@
+// andreik, 15.01.2019
+
 
 {++
 
-   Copyright c 2000-2015 by Golden Software of Belarus, Ltd
+   Copyright (c) 2000-2019 by Golden Software of Belarus, Ltd
 
    Модуль
 

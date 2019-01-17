@@ -188,7 +188,7 @@ begin
         except
           on E: EIBError do
           begin
-            if E.IBErrorCode = isc_lock_conflict then
+            if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
             begin
               Synchronize(ShowWarning);
               if FCancel then

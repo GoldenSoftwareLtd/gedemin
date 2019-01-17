@@ -1,3 +1,5 @@
+// andreik, 15.01.2019
+
 unit gdc_frmGroup_unit;
 
 interface
@@ -41,5 +43,4 @@ initialization
 
 finalization
   UnRegisterFRMClass(Tgdc_frmGroup);
-
 end.

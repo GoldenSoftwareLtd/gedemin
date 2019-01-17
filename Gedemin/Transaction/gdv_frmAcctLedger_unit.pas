@@ -964,6 +964,13 @@ begin
 
     DebitCreditSQL := DebitCreditSQL + #13#10'ORDER BY ' + OrderClause;
 
+    if gdvObject.DocumentTypeKeyInAcctConditions then
+    begin
+       DebitCreditSQL := StringReplace(DebitCreditSQL, ' ac_entry ' + 'e ', AC_ENTRY_RPL + 'e ', [rfReplaceAll, rfIgnoreCase]);
+       DebitCreditSQL := StringReplace(DebitCreditSQL, ' ac_entry ' + 'e_m ', AC_ENTRY_RPL + 'e_m ', [rfReplaceAll, rfIgnoreCase]);
+       DebitCreditSQL := StringReplace(DebitCreditSQL, ' ac_entry ' + 'e_cm ', AC_ENTRY_RPL + 'e_cm ', [rfReplaceAll, rfIgnoreCase]);
+    end;
+
     Result := DebitCreditSQL;
   finally
     Strings.Free;

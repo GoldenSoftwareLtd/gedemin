@@ -2664,7 +2664,24 @@ begin
 
   Stream.ReadBuffer(LCount, SizeOf(LCount));
   for I := 0 to LCount - 1 do
+  try
     TVisualBlock.LoadFromStream(Stream, AOwner, V, AFunctionName, AParentFunctionName);
+  except
+    on E: Exception do
+    begin
+      MessageBox(0,
+        PChar(
+          'Ошибка при считывании из потока.'#13#10 +
+          'Имя функции: ' + AFunctionName + #13#10 +
+          'Имя родительской функции: ' + AParentFunctionName + #13#10 +
+          #13#10 +
+          E.Message
+        ),
+        'Ошибка',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      break;
+    end;
+  end;
 end;
 
 procedure TVisualBlock.SaveToStream(Stream: TStream);
@@ -5061,15 +5078,15 @@ var
   A: TStrings;
   AName, AValue: string;
 const
-  cCreateSQl = 'Set %s = Designer.CreateObject(null, "TIBSQL", "")';
-  cCreateSR = 'Set %s = Designer.CreateObject(null, "TgdcAcctSimpleRecord", "")';
+  cCreateSQl = 'Set %s = Designer.CreateObject(nil, "TIBSQL", "")';
+  cCreateSR = 'Set %s = Designer.CreateObject(nil, "TgdcAcctSimpleRecord", "")';
   cDidActivateTr = '%s = Not %s.Transaction.InTransaction';
   cActivateTr = 'If %s Then %s.Transaction.StartTransaction';
   cSetSQLTransaction = '%s.Transaction = %s.Transaction';
   cSQLExecQuery = '%s.ExecQuery';
   cSQLClose = '%s.Close';
-  cSetInsertSQLText1 = '%s.SQL.Text = "INSERT INTO AC_AUTOENTRY (id, entrykey, trrecordkey, begindate, " & _';
-  cSetInsertSQLText2 = '  "enddate, debitaccount, creditaccount) VALUES((SELECT gen_id(gd_g_unique, 1) FROM rdb$database), :entrykey, " & _';
+  cSetInsertSQLText1 = '%s.SQL.Text = "INSERT INTO AC_AUTOENTRY (entrykey, trrecordkey, begindate, " & _';
+  cSetInsertSQLText2 = '  "enddate, debitaccount, creditaccount) VALUES(:entrykey, " & _';
   cSetInsertSQLText3 = '  ":trrecordkey, :begindate, :enddate, :debit, :credit)"';
   cSetDebitField = '%s.DebitEntryLine.FieldByName("%s").AsString = %s';
   cSetCreditField = '%s.CreditEntryLine.FieldByName("%s").AsString = %s';
@@ -5141,7 +5158,7 @@ begin
     S.Add('');
     S.Add(lS + Format('%s.FieldByName("recorddate").AsDateTime = %s',
       [gdcSRName, GenerateExpression(EntryDate)]));
-    S.Add(lS + Format('%s.FieldByName("DELAYED").AsInteger = 1', [gdcSRName]));
+    S.Add(lS + Format('%s.FieldByName("delayed").AsInteger = 1', [gdcSRName]));
     S.Add(lS + Format('%s.FieldByName("transactionkey").AsInteger = TransactionKey',
       [gdcSRName]));
     S.Add(lS + Format('%s.FieldByName("trrecordkey").AsInteger = TrRecordKey',
@@ -6498,13 +6515,13 @@ var
 begin
   lS := StringOfChar(' ', Paragraph );
 
-  S.Add(lS + 'Set SimpleRecordSQL = Creator.GetObject(null, "TIBSQL", "")');
+  S.Add(lS + 'Set SimpleRecordSQL = Creator.GetObject(nil, "TIBSQL", "")');
   S.Add(lS + 'SimpleRecordSQL.Transaction = Transaction');
-  S.Add(lS + 'SimpleRecordSQL.SQL.Text = "INSERT INTO AC_AUTOENTRY (id, entrykey, trrecordkey, begindate, " & _');
-  S.Add(lS + '  "enddate, debitaccount, creditaccount) VALUES((SELECT gen_id(gd_g_unique, 1) FROM rdb$database), :entrykey, " & _');
+  S.Add(lS + 'SimpleRecordSQL.SQL.Text = "INSERT INTO AC_AUTOENTRY (entrykey, trrecordkey, begindate, " & _');
+  S.Add(lS + '  "enddate, debitaccount, creditaccount) VALUES(:entrykey, " & _');
   S.Add(lS + '  ":trrecordkey, :begindate, :enddate, :debit, :credit)"');
   S.Add('');
-  S.Add(lS + 'Set gdcSimpleRecord = Creator.GetObject(null, "TgdcAcctSimpleRecord", "")');
+  S.Add(lS + 'Set gdcSimpleRecord = Creator.GetObject(nil, "TgdcAcctSimpleRecord", "")');
   S.Add(lS + 'gdcSimpleRecord.Transaction = Transaction');
   S.Add(lS + 'gdcSimpleRecord.ReadTransaction = Transaction');
   S.Add(lS + 'gdcSimpleRecord.Open');

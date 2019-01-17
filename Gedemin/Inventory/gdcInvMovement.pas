@@ -1359,6 +1359,7 @@ var
   ibsql: TIBSQL;
   TempCardKey: Integer;
   Flag: Boolean;
+  isDestCard: Boolean;
   {$IFDEF DEBUGMOVE}
   Times: LongWord;
   {$ENDIF}
@@ -1376,11 +1377,17 @@ begin
     else
       TempCardKey := -1;
 
-    if (gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtInventorization then
-      SourceCardKey := AddInvCard(TempCardKey, invPosition,
-         (gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtFeatureChange)
+    if ((gdcDocumentLine as TgdcInvDocumentLine).RelationType = irtInventorization) or ((gdcDocumentLine as TgdcInvDocumentLine).RelationType = irtFeatureChange) then
+      isDestCard := False
     else
-      SourceCardKey := AddInvCard(TempCardKey, invPosition, False);
+    begin
+      if (aQuantity < 0) and ((gdcDocumentLine as TgdcInvDocumentLine).RelationType = irtTransformation) then
+        isDestCard := False
+      else
+        isDestCard := True;
+    end;
+
+    SourceCardKey := AddInvCard(TempCardKey, invPosition, isDestCard);
   end;
 
   with invPosition do
@@ -2536,18 +2543,22 @@ begin
           else
             tmpQuantity := 0;
 
-          tmpQuantity := GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger) +
-             tmpQuantity + ipQuantity;
-             
-          if (tmpQuantity < 0)
-          then
+          if (tmpQuantity > 0) and ipOneRecord and (ipCheckRemains = []) then
+//            Result := True
+          else
           begin
-          // В результате изменения - оcтатка не хватит для проведения ранее cделанного отпуcка
-            FInvErrorCode := iecDontDecreaseQuantity;
-            Result := False;
-            exit;
-          end;
+            tmpQuantity := GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger) +
+               tmpQuantity + ipQuantity;
 
+            if (tmpQuantity < 0)
+            then
+            begin
+            // В результате изменения - оcтатка не хватит для проведения ранее cделанного отпуcка
+              FInvErrorCode := iecDontDecreaseQuantity;
+              Result := False;
+              exit;
+            end;
+          end;
           if ((cmDestContact in ChangeMove) or (cmGood in ChangeMove)) and
             IsMovementExists(FieldByName('contactkey').AsInteger,
               FieldByName('cardkey').AsInteger, FieldByName('documentkey').AsInteger)
@@ -6357,6 +6368,7 @@ begin
     FEndMonthRemains := EndMonthRemains;
     FIsMinusRemains := isMinusRemains;
     FIsUseCompanyKey := isUseCompanyKey;
+    FRestrictRemainsBy := RestrictRemainsBy;
 
     if not FisMinusRemains then
     begin

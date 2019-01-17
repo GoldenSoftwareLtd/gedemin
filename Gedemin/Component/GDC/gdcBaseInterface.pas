@@ -4,7 +4,7 @@ unit gdcBaseInterface;
 interface
 
 uses
-  DB, IBDatabase, classes, zlib, gd_directories_const;
+  DB, IBDatabase, IBSQL, classes, zlib, gd_directories_const;
 
 type
   //////////////////////////////////////////////////////////
@@ -143,6 +143,29 @@ type
   function StrToRUID(const AString: String): TRUID;
   function RUID(const XID, DBID: TID): TRUID;
 
+  // функции для получения ИД из запроса, строки, варианта
+  function GetTID(f: TIBXSQLVAR): TID; overload;
+  function GetTID(f: TField): TID; overload;
+  function GetTID(s: String): TID; overload;
+  function GetTID(v: Variant): TID; overload;
+
+  // функции для присваивания и преобразования ИД
+  function SetTID(f: TIBXSQLVAR; const ID: TID): TID; overload;
+  function SetTID(f: TField; const ID: TID): TID; overload;
+  function SetTID(f: TIBXSQLVAR; fld: TField): TID; overload;
+  function TID2S(const ID: TID): string; overload;
+  function TID2S(f: TIBXSQLVAR): string; overload;
+  function TID2V(const ID: TID): variant; overload;
+
+  // функции для проверки ИД в 32битном диапазоне
+  function Is32TID(const ID: TID): boolean;
+  procedure Check32TID(const ID: TID);
+
+  // сравнение ИД
+  function EqTID(const ID1, ID2: TID): boolean; overload;
+  function EqTID(ID1: TField; const ID2: TID): boolean; overload;
+  function EqTID(f: TIBXSQLVAR; const ID: TID): boolean; overload;
+
 const
   IDCacheRegKey = ClientRootRegistrySubKey + 'IDCache\';
   IDCacheStep: Integer = 100; // will be set to 1 if in terminal session
@@ -150,6 +173,9 @@ const
   IDCacheLimitName = 'IDLimit';
   IDCacheTestName = 'IDTest';
   IDCacheExpDateName = 'IDExp';
+
+  IDGeneratorMaxThreshold = 1600000000;
+  MinIDInterval = 100;
 
 var
   gdcBaseManager: IgdcBaseManager;
@@ -160,6 +186,101 @@ implementation
 
 uses
   SysUtils;
+
+// функции для получения ИД из запроса, строки, варианта
+function GetTID(f: TIBXSQLVAR): TID; overload;
+begin
+  Result := f.AsInteger;
+end;
+
+function GetTID(f: TField): TID; overload;
+begin
+  Result := f.AsInteger;
+end;
+
+function GetTID(s: String): TID; overload;
+begin
+  Result := StrToInt(s);
+end;
+
+function GetTID(v: Variant): TID; overload;
+var
+  S: String;
+begin
+  if VarType(v) = varString then
+  begin
+    S := v;
+    Result : GetTID(S);
+  end else
+    Result := v;
+end;
+
+// функции для присваивания и преобразования ИД
+function SetTID(f: TIBXSQLVAR; const ID: TID): TID; overload;
+begin
+  f.AsInteger := ID;
+  Result := ID;
+end;
+
+function SetTID(f: TField; const ID: TID): TID; overload;
+begin
+  f.AsInteger := ID;
+  Result := ID;
+end;
+
+function SetTID(f: TIBXSQLVAR; fld: TField): TID; overload;
+var
+  ID: TID;
+begin
+  ID := GetTID(fld);
+  SetTID(f, ID);
+  Result := ID;
+end;
+
+function TID2S(const ID: TID): string; overload;
+begin
+  Result := IntToStr(ID);
+end;
+
+function TID2S(f: TIBXSQLVAR): string; overload;
+begin
+  Result := TID2S(GetTID(f));
+end;
+
+function TID2V(const ID: TID): variant; overload;
+begin
+  if Is32TID(ID) then
+    Result := ID
+  else
+    Result := TID2S(ID); // после Делфи 7 проверка не будет нужна!
+end;
+
+// функции для проверки ИД в 32битном диапазоне
+function Is32TID(const ID: TID): boolean;
+begin
+  Result := True; //ID <= MAXINT;
+end;
+
+procedure Check32TID(const ID: TID);
+begin
+  {if ID > MAXINT then
+    raise Exception.Create('Invalid 32bit TID');}
+end;
+
+function EqTID(const ID1, ID2: TID): boolean; overload;
+begin
+  Result := ID1 = ID2;
+end;
+
+function EqTID(ID1: TField; const ID2: TID): boolean; overload;
+begin
+  Result := GetTID(ID1) = ID2;
+end;
+
+function EqTID(f: TIBXSQLVAR; const ID: TID): boolean; overload;
+begin
+  Result := GetTID(f) = ID;
+end;
 
 function CheckRuid(const RUIDString: String): Boolean;
 var

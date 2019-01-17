@@ -122,12 +122,6 @@ begin
   begin
     AddAnalytics('ACCOUNTKEY', '—чета и субсчета', F, '')
   end;
-  
-  F := atDatabase.FindRelationField(AC_ENTRY, 'CURRKEY');
-  if F <> nil then
-  begin
-    AddAnalytics('CURRKEY', '¬алюта', F, '')
-  end;
 
   F := atDatabase.FindRelationField(AC_ENTRY, 'COMPANYKEY');
   if F <> nil then

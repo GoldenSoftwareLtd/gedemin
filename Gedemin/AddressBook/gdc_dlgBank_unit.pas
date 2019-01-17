@@ -1,7 +1,8 @@
+// andreik, 15.01.2019
 
  {++
 
-   Copyright © 2000-2017 by Golden Software of Belarus, Ltd
+   Copyright © 2000-2019 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -57,7 +58,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdcBaseInterface;
+  gd_ClassList;
 
 function Tgdc_dlgBank.TestCorrect: Boolean;
 var

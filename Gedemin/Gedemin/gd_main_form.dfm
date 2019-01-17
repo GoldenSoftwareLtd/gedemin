@@ -1,6 +1,6 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 471
-  Top = 142
+  Left = 472
+  Top = 143
   Width = 969
   Height = 85
   HelpContext = 76
@@ -26,7 +26,7 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockMain: TTBDock
     Left = 0
     Top = 0
-    Width = 953
+    Width = 961
     Height = 26
     LimitToOneRow = True
     object tbMainMenu: TTBToolbar
@@ -328,6 +328,14 @@ object frmGedeminMain: TfrmGedeminMain
       object TBControlItem6: TTBControlItem
         Control = lblDatabase
       end
+      object TBItem31: TTBItem
+        Caption = 'aaa'
+        OnClick = TBItem31Click
+      end
+      object TBItem32: TTBItem
+        Caption = 'bbb'
+        OnClick = TBItem32Click
+      end
       object Label1: TLabel
         Left = 235
         Top = 4
@@ -387,8 +395,8 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object TBDockForms: TTBDock
     Left = 0
-    Top = 26
-    Width = 953
+    Top = 27
+    Width = 961
     Height = 27
     BoundLines = [blTop]
     Color = clWindow

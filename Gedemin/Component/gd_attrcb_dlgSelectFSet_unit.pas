@@ -110,6 +110,7 @@ type
     procedure Draw500Item;
     function SetAliasPrefix(AnCondition, AnAlias: String): String;
     function FieldWithAlias(AFieldName, AAlias: String): String;
+    function FindInTreeView(TreeView: TTreeView; Value: Integer): Integer;
 
   public
     function GetElements(var SetList: TStrings; const TableName, FieldName,
@@ -155,9 +156,16 @@ begin
       else
         L := tvAttrSet.Items.AddChild(TTreeNode(FParentList.Items[FParentList.Count - 1]),
          ibqryFind.FieldByName(FFieldName).AsString);
+
       FParentList.Add(L);
     end;
     L.Data := Pointer(ibqryFind.FieldByName(FPrimaryName).AsInteger);
+
+    if CheckValue(0, FValueList.Count - 1,
+      ibqryFind.FieldByName(FPrimaryName).AsInteger) <> -1 then begin
+        L.ImageIndex := 4;
+        L.SelectedIndex := 4;
+    end;
 
     Inc(I);
     ibqryFind.Next;
@@ -317,6 +325,7 @@ begin
   ibqryFind.Close;
   ibqryFind.SQL.Clear;
   ibqryFind.SQL.Text := 'SELECT * FROM ' + FTableName + ' gg1 ';
+
   if Trim(FCondition) > '' then
   begin
     ibqryFind.SQL.Add(' WHERE ' +
@@ -324,6 +333,7 @@ begin
         FTableName + '.',             // таблицы, если у нее есть алиас
         'gg1.', [rfReplaceAll, rfIgnoreCase]));
   end;
+
   if FIsTree then
     ibqryFind.SQL.Add(' ORDER BY gg1.lb')
   else if FSortField > '' then
@@ -514,11 +524,16 @@ begin
        Integer(tvAttrSet.Items[I].Data)) = -1 then
       begin
         FValueList.AddObject(tvAttrSet.Items[I].Text, tvAttrSet.Items[I].Data);
+        tvAttrSet.Items[I].ImageIndex := 4;
+        tvAttrSet.Items[I].SelectedIndex := 4;
         Flag := True;
         FValueList.CustomSort(ValueListCompare);
       end;
   if Flag then
+  begin
+    tvAttrSet.Repaint;
     ShowTargetList(FValueList);
+  end;
 end;
 
 function ValueListCompare(List: TStringList; Index1, Index2: Integer): Integer;
@@ -529,7 +544,7 @@ end;
 
 procedure TdlgSelectFSet.actFromExecute(Sender: TObject);
 var
-  I, J: Integer;
+  I, J, f: Integer;
   Flag: Boolean;
 begin
   Flag := False;
@@ -542,10 +557,19 @@ begin
       begin
         FValueList.Delete(J);
         Flag := True;
+        f := FindInTreeView(tvAttrSet, Integer(tvTarget.Items[I].Data));
+        if f <> -1 then
+        begin
+          tvAttrSet.Items[f].ImageIndex := 0;
+          tvAttrSet.Items[f].SelectedIndex := 0;
+        end;
       end;
     end;
   if Flag then
+  begin
+    tvAttrSet.Repaint;
     ShowTargetList(FValueList);
+  end;
 end;
 
 procedure TdlgSelectFSet.tvAttrSetDblClick(Sender: TObject);
@@ -634,11 +658,16 @@ begin
      Integer(tvAttrSet.Items[I].Data)) = -1 then
     begin
       FValueList.AddObject(tvAttrSet.Items[I].Text, tvAttrSet.Items[I].Data);
+      tvAttrSet.Items[I].ImageIndex := 4;
+      tvAttrSet.Items[I].SelectedIndex := 4;
       Flag := True;
       FValueList.CustomSort(ValueListCompare);
     end;
   if Flag then
+  begin
+    tvAttrSet.Repaint;
     ShowTargetList(FValueList);
+  end;
 end;
 
 procedure TdlgSelectFSet.actToAllUpdate(Sender: TObject);
@@ -648,7 +677,7 @@ end;
 
 procedure TdlgSelectFSet.actFromAllExecute(Sender: TObject);
 var
-  I, J: Integer;
+  I, J, f: Integer;
   Flag: Boolean;
 begin
   Flag := False;
@@ -660,10 +689,19 @@ begin
     begin
       FValueList.Delete(J);
       Flag := True;
+      f := FindInTreeView(tvAttrSet, Integer(tvTarget.Items[I].Data));
+      if f <> -1 then
+      begin
+        tvAttrSet.Items[f].ImageIndex := 0;
+        tvAttrSet.Items[f].SelectedIndex := 0;
+      end;
     end;
   end;
   if Flag then
+  begin
+    tvAttrSet.Repaint;
     ShowTargetList(FValueList);
+  end;
 end;
 
 procedure TdlgSelectFSet.actFromAllUpdate(Sender: TObject);
@@ -739,6 +777,21 @@ end;
 procedure TdlgSelectFSet.edNameExit(Sender: TObject);
 begin
   btnOk.Default := True;
+end;
+
+function TdlgSelectFSet.FindInTreeView(TreeView: TTreeView;
+  Value: Integer): Integer;
+var i: integer;
+begin
+  Result := -1;
+  for i := 0 to TreeView.Items.Count - 1 do
+  begin
+    if integer(TreeView.Items[i].Data) = Value then
+    begin
+      Result := i;
+      break;
+    end;
+  end;
 end;
 
 end.

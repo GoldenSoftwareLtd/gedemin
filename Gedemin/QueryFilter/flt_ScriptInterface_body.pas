@@ -147,10 +147,14 @@ const
   Signs: array[1..8] of String =
     ('>=', '<=', '<>', '>', '<', '=', 'LIKE', 'SIMILAR TO');
 var
-  I, P: Integer;
-  TempStr, Cond, Tkn: String;
+  {$IFDEF GEDEMIN}
+  P: Integer;
   q: TIBSQL;
   F: TrpCustomFunction;
+  Cond, Tkn: String;
+  {$ENDIF}
+  I: Integer;
+  TempStr: String;
 begin
   {$IFNDEF GEDEMIN}
   if not Assigned(FScriptControl) then

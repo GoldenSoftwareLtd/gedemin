@@ -33,6 +33,7 @@ type
     procedure ReConnect;
     procedure ActivateSettings(const ASettings: String);
     procedure SaveStringToFile(const S: String; const FN: String);
+    function GetUserSessionVar(const AName: String): String;
 
   public
     property SettingsLoaded: Boolean read FSettingsLoaded;
@@ -91,6 +92,21 @@ begin
     q.ExecQuery;
     Result := Result + q.Fields[0].AsTrimString;
     q.Close;
+  finally
+    q.Free;
+  end;
+end;
+
+function TgsDBTestCase.GetUserSessionVar(const AName: String): String;
+var
+  q: TIBSQL;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT RDB$GET_CONTEXT(''USER_SESSION'', ''' + AName + ''') FROM rdb$database';
+    q.ExecQuery;
+    Result := q.Fields[0].AsString;
   finally
     q.Free;
   end;
@@ -183,7 +199,7 @@ begin
 
   if not DirectoryExists(Result) then
     Result := ExtractFileDrive(Application.EXEName) +
-      '\Golden\Gedemin\Test\GedeminTest\Data';
+      '\Golden\Gedemin\Gedemin\Test\GedeminTest\Data';
 end;
 
 procedure TgsTestCase.SetUp;

@@ -66,6 +66,8 @@ type
     procedure actAllowDragnDropExecute(Sender: TObject);
     procedure tvGroupClickedCheck(Sender: TObject; CheckID: String;
       Checked: Boolean);
+    procedure actDetailAddToSelectedExecute(Sender: TObject);
+    procedure actDetailRemoveFromSelectedExecute(Sender: TObject);
 
   protected
     ByLBRBSubSetName, ByParentSubSetName, ByLBRBContrSubSetName: String;
@@ -912,6 +914,17 @@ begin
       raise Exception.Create('Ошибка при выборе записи. Неверный id: '+ CheckID);
     end;
   end;  
+end;
+
+procedure Tgdc_frmMDVTree.actDetailAddToSelectedExecute(Sender: TObject);
+begin
+  gdcDetailObject.AddToSelectedID(ibgrDetail.SelectedRows);
+end;
+
+procedure Tgdc_frmMDVTree.actDetailRemoveFromSelectedExecute(
+  Sender: TObject);
+begin
+  gdcDetailObject.RemoveFromSelectedID(ibgrDetail.SelectedRows);
 end;
 
 initialization

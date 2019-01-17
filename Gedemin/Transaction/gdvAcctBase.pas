@@ -115,6 +115,7 @@ type
     FCorrAccounts: TgdKeyArray;
     FAcctConditions: TStrings;
     FAcctValues: TStringList;
+    FDocumentTypeKeyInAcctConditions: Boolean;
 
     // Описания полей
     FFieldInfos: TgdvFieldInfos;
@@ -129,6 +130,7 @@ type
     procedure DoEmptySQL; virtual;
     procedure DoAfterBuildSQL; virtual;
     procedure DoAfterBuildReport; virtual;
+    procedure UpdateDocumentTypeKeyInAcctConditions; virtual;
 
     function GetNameAlias(Name: String): String;
 
@@ -187,6 +189,7 @@ type
     property IncludeInternalMovement: Boolean read FIncludeInternalMovement write FIncludeInternalMovement;
     property ShowExtendedFields: Boolean read FShowExtendedFields write FShowExtendedFields;
     property UseEntryBalance: Boolean read FUseEntryBalance write SetUseEntryBalance;
+    property DocumentTypeKeyInAcctConditions: Boolean read FDocumentTypeKeyInAcctConditions;
 
   published
     { TIBCustomDataSet }
@@ -318,6 +321,7 @@ begin
   inherited;
 
   FUseEntryBalanceWasSetManually := False;
+  FDocumentTypeKeyInAcctConditions := False;
 
   FMakeEmpty := False;
   FDateBegin := Date;
@@ -591,7 +595,7 @@ begin
         end;
       end;
     end;
-  end
+  end;
 end;
 
 function TgdvAcctBase.InternalMovementClause(TableAlias: String = 'e'): string;
@@ -1278,6 +1282,18 @@ begin
     Result := q.Fields[0].AsString;
   finally
     q.Free;
+  end;
+end;
+
+procedure TgdvAcctBase.UpdateDocumentTypeKeyInAcctConditions;
+var  I: Integer;
+begin
+  FDocumentTypeKeyInAcctConditions := False;
+  for I := 0 to FAcctConditions.Count - 1 do
+  begin
+    FDocumentTypeKeyInAcctConditions := AnsiCompareText(Trim(FAcctConditions.Names[I]), fnDocumentTypeKey) = 0;
+    if FDocumentTypeKeyInAcctConditions then
+      Break;
   end;
 end;
 

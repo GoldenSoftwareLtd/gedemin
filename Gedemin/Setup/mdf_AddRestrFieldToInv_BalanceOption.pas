@@ -34,7 +34,8 @@ begin
             '  id_from       dintkey, '#13#10 +
             '  id_to         dintkey, '#13#10 +
             ' '#13#10 +
-            '  CONSTRAINT gd_pk_available_id PRIMARY KEY (id_from, id_to) '#13#10 +
+            '  CONSTRAINT gd_pk_available_id PRIMARY KEY (id_from, id_to), '#13#10 +
+            '  CONSTRAINT gd_chk_available_id CHECK (id_from <= id_to) '#13#10 +
             ')';
           q.ExecQuery;
 

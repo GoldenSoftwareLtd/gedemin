@@ -101,6 +101,12 @@ begin
 
   ClearError;
 
+  if smProcedureBody.Text = '' then
+  begin
+    (gdcObject as TgdcStoredProc).CheckObjectName;
+    smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetProcedureText;
+  end;
+
   gdcObject.FieldByName('rdb$procedure_source').AsString := smProcedureBody.Text;
 
   inherited;

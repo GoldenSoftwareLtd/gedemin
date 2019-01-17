@@ -1,7 +1,8 @@
+// andreik, 15.01.2019
 
  {++
  
-   Copyright © 2000-2017 by Golden Software of Belarus, Ltd
+   Copyright © 2000-2019 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -59,7 +60,7 @@ implementation
 {$R *.DFM}
 
 uses
-  dmDataBase_unit, gsDesktopManager, gd_ClassList;
+  gd_ClassList;
 
 initialization
   RegisterFrmClass(Tgdc_dlgCompanyAccount);

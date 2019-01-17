@@ -1511,6 +1511,31 @@ begin
         break;
       end;
     end;
+  end
+  else if (ssLeft in Shift)
+    and
+    (
+      (X >= FRowHeaderWidth)
+      and (X < ClientWidth - FRowTailWidth - 1)
+      and (Y < FHeaderHeight)
+      and (Y >= 0)
+    ) then
+  begin
+    C := IncValue(FFirstVisibleValue, (X - FRowHeaderWidth) div FCellWidth);
+    if (C >= FMinValue) and (C <= FMaxValue) then
+    begin
+      OldCursor := FCursor;
+      FCursor.X := C;
+      if (not (ssCtrl in Shift)) and (not (ssShift in Shift)) then
+        SetLength(FSelected, 0);
+      if ssShift in Shift then
+        SelectRegion(RAPoint(OldCursor.X, 0), RAPoint(C, FResources.Count - 1))
+      else
+        SelectRegion(RAPoint(C, 0), RAPoint(C, FResources.Count - 1));
+
+      Invalidate;
+      DoChange;
+    end;
   end;
 
   if Visible and CanFocus and TabStop and not (csDesigning in ComponentState) then

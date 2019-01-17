@@ -6,6 +6,7 @@ uses
   IBDatabase, gdModify, mdf_MetaData_unit;
 
 procedure AddSupportDatabaseTriggers(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddAvailableIDProc(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -209,6 +210,48 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (267, ''0000.0001.0000.0298'', ''02.08.2017'', ''Add support database triggers'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log(E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure AddAvailableIDProc(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    try
+      Tr.DefaultDatabase := IBDB;
+      q.Transaction := Tr;
+      Tr.StartTransaction;
+
+      if not ConstraintExist2('GD_AVAILABLE_ID', 'GD_CHK_AVAILABLE_ID', Tr) then
+      begin
+        q.SQL.Text :=
+          'ALTER TABLE gd_available_id ADD CONSTRAINT gd_chk_available_id CHECK (id_from <= id_to)';
+        q.ExecQuery;
+      end;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (270, ''0000.0001.0000.0301'', ''19.12.2017'', ''Added GD_AVAILABLE_ID procs.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

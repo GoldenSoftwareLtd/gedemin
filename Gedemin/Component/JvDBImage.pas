@@ -103,7 +103,8 @@ uses
   JclUnitVersioning,
   {$ENDIF UNITVERSIONING}
   Windows, Messages, Classes, Graphics, Controls,
-  Clipbrd, DB, DBCtrls, Forms, Contnrs;
+  Clipbrd, DB, DBCtrls, Forms, Contnrs,
+  frxpngimage;
 
 type
   TJvGetGraphicClassEvent = procedure(Sender: TObject; Stream: TMemoryStream;
@@ -412,7 +413,10 @@ begin
     // If we got one, load it..
     if GraphicClass <> nil then
     begin
-      Graphic := GraphicClass.Create;
+      if GraphicClass.InheritsFrom(TPNGObject) then
+        Graphic := TPNGObject.Create
+      else
+        Graphic := GraphicClass.Create;
       try
         Stream.Position := 0;
         Graphic.LoadFromStream(Stream);

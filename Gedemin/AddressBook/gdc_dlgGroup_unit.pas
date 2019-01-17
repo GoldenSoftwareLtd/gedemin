@@ -1,7 +1,8 @@
+// andreik 15.01.2019
 
  {++
    Project ADDRESSBOOK
-   Copyright © 2000- by Golden Software
+   Copyright © 2000-2019 by Golden Software
 
    Модуль
 
@@ -53,5 +54,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgGroup);
-
 end.

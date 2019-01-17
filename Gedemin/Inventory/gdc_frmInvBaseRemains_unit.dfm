@@ -1,6 +1,6 @@
 inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
-  Left = 644
-  Top = 330
+  Left = 534
+  Top = 127
   Width = 636
   ActiveControl = ibgrDetail
   Caption = ''
@@ -83,14 +83,14 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
         Left = 377
         Top = 0
         Width = 3
-        Height = 563
+        Height = 475
         Cursor = crHSplit
       end
       object pnMain: TPanel
         Left = 160
         Top = 0
         Width = 217
-        Height = 563
+        Height = 475
         Align = alLeft
         BevelOuter = bvNone
         Caption = 'pnMain'
@@ -100,7 +100,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
           Left = 0
           Top = 0
           Width = 217
-          Height = 563
+          Height = 475
           DataSource = dsDetail
           KeyField = 'ID'
           ParentField = 'PARENT'
@@ -124,7 +124,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
         Left = 380
         Top = 0
         Width = 222
-        Height = 563
+        Height = 475
         Align = alClient
         BevelOuter = bvNone
         Caption = 'pnDetail'
@@ -133,7 +133,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
           Left = 0
           Top = 0
           Width = 222
-          Height = 563
+          Height = 475
           HelpContext = 3
           Align = alClient
           Ctl3D = True

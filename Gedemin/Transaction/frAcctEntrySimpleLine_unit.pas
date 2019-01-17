@@ -176,7 +176,7 @@ begin
     L := TList.Create;
     try
       L.Add(Pointer(cbAccount.CurrentKeyInt));
-      frAcctAnalytics.UpdateAnalyticsList(L, False, False);
+      frAcctAnalytics.UpdateAnalyticsList(L, False, False, False);
       frQuantity.UpdateQuantityList(L);
     finally
       L.Free;

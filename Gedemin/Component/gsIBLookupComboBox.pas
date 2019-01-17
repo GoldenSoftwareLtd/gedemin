@@ -676,7 +676,7 @@ begin
     else
       S := S + ' AND ';
 
-    S := Format('%s ((%1:s.disabled IS NULL) OR (%1:s.disabled = 0))',
+    S := Format('%s (COALESCE(%1:s.disabled, 0) = 0)',
       [S, GetTableAlias(FgdClass.GetListTable(FSubType))]);
   end;
 
@@ -1425,7 +1425,7 @@ begin
         else
           S := S + ' AND ';
 
-        S := Format('%s ((%1:s.disabled IS NULL) OR (%1:s.disabled = 0))',
+        S := Format('%s (COALESCE(%1:s.disabled, 0) = 0)',
           [S, GetTableAlias(FgdClass.GetListTable(FSubType))]);
       end;
 

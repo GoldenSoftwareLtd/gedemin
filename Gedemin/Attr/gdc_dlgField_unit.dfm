@@ -1,6 +1,6 @@
 inherited gdc_dlgField: Tgdc_dlgField
-  Left = 836
-  Top = 217
+  Left = 837
+  Top = 218
   HelpContext = 82
   ActiveControl = dbedTypeName
   BorderIcons = [biSystemMenu]
@@ -575,7 +575,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 KeyField = 'id'
                 SortOrder = soAsc
                 gdClassName = 'TgdcTable'
-                ItemHeight = 13
+                ItemHeight = 0
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 0
@@ -598,7 +598,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Condition = 'RELATIONKEY = -1'
                 gdClassName = 'TgdcTableField'
                 OnCreateNewObject = luSetListFieldCreateNewObject
-                ItemHeight = 13
+                ItemHeight = 0
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 1

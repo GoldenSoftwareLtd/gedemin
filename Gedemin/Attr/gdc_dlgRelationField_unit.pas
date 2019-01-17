@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2017 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001 - 2018 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -87,6 +87,8 @@ type
     lComputed: TLabel;
     dbmComputed: TDBMemo;
     cbNotNull: TCheckBox;
+    Label6: TLabel;
+    dbedSemCategory: TDBEdit;
 
     procedure luFieldTypeChange(Sender: TObject);
     procedure dbedRelationFieldNameEnter(Sender: TObject);

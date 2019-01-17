@@ -401,6 +401,7 @@ type
     FNextIDSQL: TIBSQL;
     FIBSQL: TIBSQL;
     FIDCurrent, FIDLimit: Integer;
+    FUseIDTable: Boolean;
     FChangedRUIDs: TStringList;
 
     // на каждый класс одна строка из пяти элементов в массиве
@@ -2176,18 +2177,21 @@ uses
   Messages,                     gsIBLookupCombobox,           comctrls,
   gsDBDelete_dlgTableValues,    rp_ReportClient,              gdc_dlgQueryDescendant_unit,
   gdc_dlgObjectProperties_unit, gsDBReduction,                gdcUser,
-  flt_sql_parser,               JclStrHashMap,                gdDBImpExp_unit,
+  flt_sql_parser,               JclStrHashMap,                at_frmIBUserList,
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
   gs_Exception,                 Storages,                     at_sql_parser,
   at_frmSQLProcess,             DBConsts,                     gd_common_functions,
   ComObj,                       gdc_frmMDH_unit,              AcctUtils,
+  {$IFDEF WITH_INDY}
+  gdccClient_unit,
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
   gd_localization_stub, gd_localization,
   {$ENDIF}
   gdc_frmStreamSaver,           gdcStreamSaver,               gdcLBRBTreeMetaData,
-  gdcTableMetaData;
+  gdcTableMetaData,             mdf_MetaData_unit,            gd_CmdLineParams_unit;
 
 const
   cst_sql_SelectRuidByID =
@@ -4960,7 +4964,7 @@ begin
       if FClassMethodAssoc.IntByIndex[Index] <> 0 then
         TObject(FClassMethodAssoc.IntByIndex[Index]).Free;
     FreeAndNil(FClassMethodAssoc);
-  end;  
+  end;
 
   FVariables.Free;
   FObjects.Free;
@@ -9436,32 +9440,486 @@ begin
 end;
 
 function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
+
+  const FillAvailableIDs =
+    'EXECUTE BLOCK '#13#10 +
+    '  /* RETURNS(tbl VARCHAR(31), cnt INTEGER) */ '#13#10 +
+    'AS '#13#10 +
+    '  DECLARE VARIABLE rn VARCHAR(31); '#13#10 +
+    '  DECLARE VARIABLE fn VARCHAR(31); '#13#10 +
+    '  DECLARE VARIABLE id INTEGER; '#13#10 +
+    '  DECLARE VARIABLE b INTEGER = 147000001; '#13#10 +
+    '  DECLARE VARIABLE e INTEGER = 147000001; '#13#10 +
+    '  DECLARE VARIABLE limit INTEGER; '#13#10 +
+    '  DECLARE VARIABLE d INTEGER; '#13#10 +
+    '  DECLARE VARIABLE c INTEGER = 0; '#13#10 +
+    'BEGIN '#13#10 +
+    '  SELECT GEN_ID(gd_g_unique, 0) FROM rdb$database '#13#10 +
+    '    INTO :limit; '#13#10 +
+    ' '#13#10 +
+    '  /* возможно в кэшах ИД на рабочих станциях сохранены интервалы */ '#13#10 +
+    '  /* берем с большим запасом, чтобы избежать перекрытия ИД       */ '#13#10 +
+    '  limit = :limit - 25000000; '#13#10 +
+    ' '#13#10 +
+    '  IF (:limit > 147000000) THEN '#13#10 +
+    '  BEGIN '#13#10 +
+    '    DELETE FROM gd_available_id; '#13#10 +
+    ' '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID'', NULL); '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_SESSION'', ''GD_LIMIT_ID'', NULL); '#13#10 +
+    ' '#13#10 +
+    '    IF (g_his_create(0, 0) = 0) THEN '#13#10 +
+    '      EXCEPTION gd_e_exception ''Can''''t create huge array''; '#13#10 +
+    ' '#13#10 +
+    '    FOR '#13#10 +
+    '      SELECT '#13#10 +
+    '        rf.rdb$relation_name, LIST(TRIM(rf.rdb$field_name)) '#13#10 +
+    '      FROM '#13#10 +
+    '        rdb$relation_fields rf '#13#10 +
+    '        JOIN rdb$relations r ON r.rdb$relation_name = rf.rdb$relation_name '#13#10 +
+    '        JOIN rdb$index_segments idxs ON idxs.rdb$field_name = rf.rdb$field_name '#13#10 +
+    '        JOIN rdb$indices idx ON idx.rdb$index_name = idxs.rdb$index_name '#13#10 +
+    '        JOIN rdb$relation_constraints rc ON rc.rdb$index_name = idx.rdb$index_name '#13#10 +
+    '          AND rc.rdb$relation_name = rf.rdb$relation_name '#13#10 +
+    '      WHERE '#13#10 +
+    '        rc.rdb$constraint_type = ''PRIMARY KEY'' '#13#10 +
+    '        AND '#13#10 +
+    '        rf.rdb$relation_name <> ''GD_RUID'' '#13#10 +
+    '        /* '#13#10 +
+    ' '#13#10 +
+    '        Тут должно быть условие на таблицы, в которых не соблюдается '#13#10 +
+    '        условие уникальности ИД. '#13#10 +
+    ' '#13#10 +
+    '        */ '#13#10 +
+    '        AND '#13#10 +
+    '        r.rdb$system_flag = 0 '#13#10 +
+    '        AND '#13#10 +
+    '        COALESCE(r.rdb$relation_type, 0) = 0 '#13#10 +
+    '      GROUP BY '#13#10 +
+    '        1 '#13#10 +
+    '      HAVING '#13#10 +
+    '        LIST(TRIM(rf.rdb$field_name)) = ''ID'' '#13#10 +
+    '    INTO '#13#10 +
+    '      :rn, :fn '#13#10 +
+    '    DO BEGIN '#13#10 +
+    '      d = 0; '#13#10 +
+    '      EXECUTE STATEMENT '#13#10 +
+    '        ''SELECT SUM(g_his_include(0, id)) FROM '' || :rn || '' WHERE id > 147000000'' '#13#10 +
+    '      INTO :d; '#13#10 +
+    '      c = :c + COALESCE(:d, 0); '#13#10 +
+    ' '#13#10 +
+    '      /* '#13#10 +
+    '      tbl = :rn; '#13#10 +
+    '      cnt = :d; '#13#10 +
+    '      SUSPEND; '#13#10 +
+    '      */ '#13#10 +
+    '    END '#13#10 +
+    '     '#13#10 +
+    '    SELECT '#13#10 +
+    '      SUM(g_his_include(0, movementkey)) '#13#10 +
+    '    FROM '#13#10 +
+    '      inv_movement '#13#10 +
+    '    WHERE '#13#10 +
+    '      movementkey > 147000000 '#13#10 +
+    '    INTO :d; '#13#10 +
+    ' '#13#10 +
+    '    /* '#13#10 +
+    '    tbl = ''total objects count''; '#13#10 +
+    '    cnt = :c; '#13#10 +
+    '    SUSPEND; '#13#10 +
+    '    */ '#13#10 +
+    ' '#13#10 +
+    '    WHILE ((:e < :limit) AND (:c > 0)) DO '#13#10 +
+    '    BEGIN '#13#10 +
+    '      IF (g_his_has(0, :e) <> 0) THEN '#13#10 +
+    '      BEGIN '#13#10 +
+    '        c = :c - 1; '#13#10 +
+    ' '#13#10 +
+    '        IF ((:e - :b) >= 100) THEN '#13#10 +
+    '        BEGIN '#13#10 +
+    '          INSERT INTO gd_available_id (id_from, id_to) VALUES (:b, :e - 1); '#13#10 +
+    '        END '#13#10 +
+    ' '#13#10 +
+    '        e = :e + 1; '#13#10 +
+    '        b = :e; '#13#10 +
+    '      END ELSE '#13#10 +
+    '      BEGIN '#13#10 +
+    '        e = :e + 1; '#13#10 +
+    '      END '#13#10 +
+    '    END '#13#10 +
+    ' '#13#10 +
+    '    IF (:c = 0) THEN '#13#10 +
+    '    BEGIN '#13#10 +
+    '      IF (:e < :limit) THEN '#13#10 +
+    '        e = :limit; '#13#10 +
+    ' '#13#10 +
+    '      IF ((:e - :b) >= 100) THEN '#13#10 +
+    '      BEGIN '#13#10 +
+    '        INSERT INTO gd_available_id (id_from, id_to) VALUES (:b, :e - 1); '#13#10 +
+    '      END '#13#10 +
+    '    END '#13#10 +
+    ' '#13#10 +
+    '    g_his_destroy(0); '#13#10 +
+    '  END '#13#10 +
+    'END';
+
+  function CheckUDF: Boolean;
+  var
+    q: TIBSQL;
+    Tr: TIBTransaction;
+  begin
+    try
+      Tr := TIBTransaction.Create(nil);
+      q := TIBSQL.Create(nil);
+      try
+        Tr.DefaultDatabase := gdcBaseManager.Database;
+        q.Transaction := Tr;
+
+        Tr.StartTransaction;
+
+        if not FunctionExist2('G_HIS_CREATE', Tr) then
+        begin
+          q.SQL.Text :=
+            'DECLARE EXTERNAL FUNCTION G_HIS_CREATE '#13#10 +
+            '  INTEGER, '#13#10 +
+            '  INTEGER '#13#10 +
+            'RETURNS INTEGER BY VALUE '#13#10 +
+            'ENTRY_POINT ''g_his_create'' MODULE_NAME ''gudf'' ';
+          q.ExecQuery;
+        end;
+
+        if not FunctionExist2('G_HIS_INCLUDE', Tr) then
+        begin
+          q.SQL.Text :=
+            'DECLARE EXTERNAL FUNCTION G_HIS_INCLUDE '#13#10 +
+            ' INTEGER, '#13#10 +
+            ' INTEGER '#13#10 +
+            'RETURNS INTEGER BY VALUE '#13#10 +
+            'ENTRY_POINT ''g_his_include'' MODULE_NAME ''gudf'' ';
+          q.ExecQuery;
+        end;
+
+        if not FunctionExist2('G_HIS_HAS', Tr) then
+        begin
+          q.SQL.Text :=
+            'DECLARE EXTERNAL FUNCTION G_HIS_HAS '#13#10 +
+            ' INTEGER, '#13#10 +
+            ' INTEGER '#13#10 +
+            'RETURNS INTEGER BY VALUE '#13#10 +
+            'ENTRY_POINT ''g_his_has'' MODULE_NAME ''gudf'' ';
+          q.ExecQuery;
+        end;
+
+        if not FunctionExist2('G_HIS_COUNT', Tr) then
+        begin
+          q.SQL.Text :=
+            'DECLARE EXTERNAL FUNCTION G_HIS_COUNT '#13#10 +
+            ' INTEGER '#13#10 +
+            'RETURNS INTEGER BY VALUE '#13#10 +
+            'ENTRY_POINT ''g_his_count'' MODULE_NAME ''gudf'' ';
+          q.ExecQuery;
+        end;
+
+        if not FunctionExist2('G_HIS_EXCLUDE', Tr) then
+        begin
+          q.SQL.Text :=
+            'DECLARE EXTERNAL FUNCTION G_HIS_EXCLUDE '#13#10 +
+            '  INTEGER, '#13#10 +
+            '  INTEGER '#13#10 +
+            'RETURNS INTEGER BY VALUE '#13#10 +
+            'ENTRY_POINT ''g_his_exclude'' MODULE_NAME ''gudf'' ';
+          q.ExecQuery;
+        end;
+
+        if not FunctionExist2('G_HIS_DESTROY', Tr) then
+        begin
+          q.SQL.Text :=
+            'DECLARE EXTERNAL FUNCTION G_HIS_DESTROY '#13#10 +
+            '  INTEGER '#13#10 +
+            'RETURNS INTEGER BY VALUE '#13#10 +
+            'ENTRY_POINT ''g_his_destroy'' MODULE_NAME ''gudf'' ';
+          q.ExecQuery;
+        end;
+
+        Tr.Commit;
+      finally
+        q.Free;
+        Tr.Free;
+      end;
+
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        if (not gd_CmdLineParams.QuietMode) and (gd_CmdLineParams.LoadsettingFileName = '') then
+          Application.ShowException(E);
+        Result := False;
+      end;
+    end;
+  end;
+
+  function FillinIDTable: Boolean;
+  var
+    q: TIBSQL;
+    Tr: TIBTransaction;
+  begin
+    Result := False;
+
+    {$IFDEF DUNIT_TEST}
+    exit;
+    {$ENDIF}
+
+    if IBLogin.IsIBUserAdmin then
+    begin
+      if (not gd_CmdLineParams.QuietMode) and (gd_CmdLineParams.LoadsettingFileName = '') then
+      begin
+        if not CheckUDF then
+        begin
+          MessageBox(0,
+            'Обновите библиотеку GUDF.DLL на сервере базы данных.',
+            'Внимание',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        end else
+        begin
+          if MessageBox(0,
+            PChar(
+              'Необходимо заполнить таблицу идентификаторов.'#13#10 +
+              'В зависимости от размера базы данных этот процесс может занять'#13#10 +
+              'от нескольких минут, до нескольких часов.'#13#10 +
+              'Заполнение таблицы идентификаторов следует выполнять'#13#10 +
+              'в однопользовательском режиме.'),
+            'Внимание',
+            MB_OKCANCEL or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDOK then
+          begin
+            with TfrmIBUserList.Create(nil) do
+            try
+              if CheckUsers then
+              begin
+                Tr := TIBTransaction.Create(nil);
+                q := TIBSQL.Create(nil);
+                try
+                  Tr.DefaultDatabase := gdcBaseManager.Database;
+                  Tr.StartTransaction;
+                  q.Transaction := Tr;
+                  q.SQL.Text := FillAvailableIDs;
+                  q.ExecQuery;
+                  Tr.Commit;
+
+                  Tr.StartTransaction;
+                  q.SQL.Text := 'SET STATISTICS INDEX GD_PK_AVAILABLE_ID';
+                  q.ExecQuery;
+                  Tr.Commit;
+
+                  Result := True;
+                finally
+                  q.Free;
+                  Tr.Free;
+                end;
+              end;
+            finally
+              Free;
+            end;
+          end;
+        end;
+      end;
+    end else
+    begin
+      if (not gd_CmdLineParams.QuietMode) and (gd_CmdLineParams.LoadsettingFileName = '') then
+      begin
+        MessageBox(0,
+          'Необходимо войти под учетной записью Administrator для заполнения таблицы идентификаторов.',
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      end;
+    end;
+  end;
+
+  function GetAvailableID(out AnIDFrom, AnIDTo: Integer): Boolean;
+  var
+    q, qModify: TIBSQL;
+    Tr: TIBTransaction;
+    IDFrom, IDTo: Integer;
+  begin
+    Result := False;
+
+    try
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := gdcBaseManager.ReadTransaction;
+        q.SQL.Text := 'SELECT * FROM gd_available_id';
+        q.ExecQuery;
+
+        repeat
+          if q.EOF then
+          begin
+            if FillinIDTable then
+            begin
+              q.Close;
+              q.ExecQuery;
+            end else
+              break;
+          end else
+          begin
+            IDFrom := q.FieldByName('id_from').AsInteger;
+            IDTo := q.FieldByName('id_to').AsInteger;
+
+            Tr := TIBTransaction.Create(nil);
+            qModify := TIBSQL.Create(nil);
+            try
+              Tr.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait';
+              Tr.DefaultDatabase := gdcBaseManager.Database;
+              qModify.Transaction := Tr;
+              Tr.StartTransaction;
+              try
+                if (IDTo - IDFrom + 1) > MinIDInterval then
+                begin
+                  AnIDFrom := IDFrom;
+                  AnIDTo := AnIDFrom + MinIDInterval - 1;
+                  qModify.SQL.Text := 'UPDATE gd_available_id SET id_from = :new_id_from WHERE id_from = :id_from AND id_to = :id_to';
+                  qModify.ParamByName('new_id_from').AsInteger := AnIDTo + 1;
+
+                  {$IFDEF WITH_INDY}
+                  gdccClient.AddLogRecord('id_cache', 'Update gd_available_id, id_from = ' + IntToStr(IDFrom));
+                  {$ENDIF}
+                end else
+                begin
+                  AnIDFrom := IDFrom;
+                  AnIDTo := IDTo;
+                  qModify.SQL.Text := 'DELETE FROM gd_available_id WHERE id_from = :id_from AND id_to = :id_to';
+
+                  {$IFDEF WITH_INDY}
+                  gdccClient.AddLogRecord('id_cache', 'Delete from gd_available_id, id_from = ' + IntToStr(IDFrom));
+                  {$ENDIF}
+                end;
+
+                qModify.ParamByName('id_from').AsInteger := IDFrom;
+                qModify.ParamByName('id_to').AsInteger := IDTo;
+                qModify.ExecQuery;
+
+                if qModify.RowsAffected = 1 then
+                begin
+                  Tr.Commit;
+                  Result := AnIDFrom <= AnIDTo;
+                end
+                else begin
+                  {$IFDEF WITH_INDY}
+                  gdccClient.AddLogRecord('id_cache', 'No rows affected');
+                  {$ENDIF}
+
+                  Tr.Rollback;
+                end;
+              except
+                on E: Exception do
+                begin
+                  if Tr.InTransaction then
+                    Tr.Rollback;
+
+                  {$IFDEF WITH_INDY}
+                  gdccClient.AddLogRecord('id_cache', E.Message);
+                  {$ENDIF}
+                end;
+              end;
+            finally
+              qModify.Free;
+              Tr.Free;
+            end;
+
+            if not Result then
+            begin
+              q.Next;
+              if q.EOF then
+              begin
+                q.Close;
+                q.ExecQuery;
+              end;
+            end;
+          end;
+        until Result;
+      finally
+        q.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        if (not gd_CmdLineParams.QuietMode) and (gd_CmdLineParams.LoadsettingFileName = '') then
+          Application.ShowException(E);
+      end;
+    end;
+  end;
+
+  function ShouldUseIDTable: Boolean;
+  var
+    q: TIBSQL;
+  begin
+    if FUseIDTable then
+      Result := True
+    else if (FIDLimit > 0) and (FIDCurrent > IDGeneratorMaxThreshold) then
+      Result := True
+    else if (FIDLimit < 0) or (FNextIDSQL = nil) then
+    begin
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := gdcBaseManager.ReadTransaction;
+
+        q.SQL.Text := 'SELECT FIRST 1 * FROM gd_available_id';
+        q.ExecQuery;
+
+        if not q.EOF then
+          Result := True
+        else begin
+          q.Close;
+          q.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 0) FROM rdb$database';
+          q.ExecQuery;
+          Result := q.Fields[0].AsInteger > IDGeneratorMaxThreshold;
+        end;
+      finally
+        q.Free;
+      end;
+    end else
+      Result := False;
+  end;
+
+var
+  IDFrom, IDTo: Integer;
 begin
-  if (FIDLimit < 0) or ResetCache then
+  if FIDLimit < 0 then
     IDCacheInit;
 
-  if FIDCurrent <= FIDLimit then
+  if ResetCache then
   begin
-    Result := FIDCurrent;
-  end else
-  begin
-    if FNextIDSQL = nil then
-    begin
-      if GetSystemMetrics(SM_REMOTESESSION) <> 0 then
-        IDCacheStep := 1;
-
-      FNextIDSQL := TIBSQL.Create(nil);
-      FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
-      FNextIDSQL.SQL.Text := 'SELECT GEN_ID(gd_g_unique, ' +
-        IntToStr(IDCacheStep) + ') + GEN_ID(gd_g_offset, 0) FROM rdb$database';
-    end;
-
-    FNextIDSQL.ExecQuery;
-    FIDLimit := FNextIDSQL.Fields[0].AsInteger;
-    FNextIDSQL.Close;
-    FIDCurrent := FIDLimit - IDCacheStep + 1;
-    Result := FIDCurrent;
+    FIDCurrent := 0;
+    FIDLimit := -1;
   end;
+
+  if FIDCurrent > FIDLimit then
+  begin
+    if ShouldUseIDTable and GetAvailableID(IDFrom, IDTo) then
+    begin
+      FIDCurrent := IDFrom;
+      FIDLimit := IDTo;
+      FUseIDTable := True;
+    end else
+    begin
+      if FNextIDSQL = nil then
+      begin
+        if GetSystemMetrics(SM_REMOTESESSION) <> 0 then
+          IDCacheStep := 1;
+
+        FNextIDSQL := TIBSQL.Create(nil);
+        FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
+        FNextIDSQL.SQL.Text := 'SELECT GEN_ID(gd_g_unique, ' +
+          IntToStr(IDCacheStep) + ') + GEN_ID(gd_g_offset, 0) FROM rdb$database';
+      end;
+
+      FNextIDSQL.ExecQuery;
+      FIDLimit := FNextIDSQL.Fields[0].AsInteger;
+      FNextIDSQL.Close;
+      FIDCurrent := FIDLimit - IDCacheStep + 1;
+      FUseIDTable := False;
+    end;
+  end;
+
+  Result := FIDCurrent;
   Inc(FIDCurrent);
 end;
 
@@ -9474,35 +9932,36 @@ begin
   FIDLimit := -1;
   FIDCurrent := 0;
 
-  if GetSystemMetrics(SM_REMOTESESSION) = 0 then
-  begin
+  if GetSystemMetrics(SM_REMOTESESSION) <> 0 then
+    exit;
+
+  try
+    Reg := TRegistry.Create;
     try
-      Reg := TRegistry.Create;
+      Reg.LazyWrite := False;
+      Reg.RootKey := HKEY_CURRENT_USER;
+      if Reg.OpenKey(IDCacheRegKey + IntToStr(IBLogin.DBID), False)
+        and Reg.ValueExists(IDCacheCurrentName) then
       try
-        Reg.LazyWrite := False;
-        Reg.RootKey := HKEY_CURRENT_USER;
-        if Reg.OpenKey(IDCacheRegKey + IntToStr(IBLogin.DBID), false) then
-        try
-          TempIDCurrent := Reg.ReadInteger(IDCacheCurrentName);
-          TempIDLimit := Reg.ReadInteger(IDCacheLimitName);
-          Test := not Reg.ReadInteger(IDCacheTestName);
-          ExpDate := Reg.ReadDate(IDCacheExpDateName);
-          if Reg.DeleteValue(IDCacheCurrentName) and (TempIDCurrent xor Test = TempIDLimit)
-            and (SysUtils.Date < ExpDate) then
-          begin
-            FIDLimit := TempIDLimit;
-            FIDCurrent := TempIDCurrent;
-          end;
-        finally
-          Reg.CloseKey;
+        TempIDCurrent := Reg.ReadInteger(IDCacheCurrentName);
+        TempIDLimit := Reg.ReadInteger(IDCacheLimitName);
+        Test := not Reg.ReadInteger(IDCacheTestName);
+        ExpDate := Reg.ReadDate(IDCacheExpDateName);
+        if Reg.DeleteValue(IDCacheCurrentName) and (TempIDCurrent xor Test = TempIDLimit)
+          and (SysUtils.Date < ExpDate) and (TempIDCurrent <= TempIDLimit) then
+        begin
+          FIDLimit := TempIDLimit;
+          FIDCurrent := TempIDCurrent;
         end;
       finally
-        Reg.Free;
+        Reg.CloseKey;
       end;
-    except
-      FIDLimit := -1;
-      FIDCurrent := 0;
+    finally
+      Reg.Free;
     end;
+  except
+    FIDLimit := -1;
+    FIDCurrent := 0;
   end;
 end;
 
@@ -9510,22 +9969,39 @@ procedure TgdcBaseManager.IDCacheFlush;
 var
   Reg: TRegistry;
 begin
-  if (FIDLimit > 0)
-    and (GetSystemMetrics(SM_REMOTESESSION) = 0) then
+  if (FIDLimit > 0) and (FIDCurrent <= FIDLimit) then
   begin
-    Reg := TRegistry.Create;
-    try
-      Reg.LazyWrite := False;
-      Reg.RootKey := HKEY_CURRENT_USER;
-      Reg.OpenKey(IDCacheRegKey + IntToStr(IBLogin.DBID), True);
-      Reg.WriteInteger(IDCacheCurrentName, FIDCurrent);
-      Reg.WriteInteger(IDCacheLimitName, FIDLimit);
-      Reg.WriteInteger(IDCacheTestName, not(FIDCurrent xor FIDLimit));
-      Reg.WriteDate(IDCacheExpDateName, SysUtils.Date + 15);
-      FIDLimit := -1;
-    finally
-      Reg.CloseKey;
-      Reg.Free;
+    if FUseIDTable then
+    begin
+      try
+        gdcBaseManager.ExecSingleQuery('INSERT INTO gd_available_id (id_from, id_to) VALUES (:id_from, :id_to)',
+          VarArrayOf([FIDCurrent, FIDLimit]));
+      except
+        on E: Exception do
+        begin
+          {$IFDEF WITH_INDY}
+          gdccClient.AddLogRecord('id_cache', E.Message);
+          {$ENDIF}
+        end;
+      end;
+    end
+    else if GetSystemMetrics(SM_REMOTESESSION) = 0 then
+    begin
+      Reg := TRegistry.Create;
+      try
+        Reg.LazyWrite := False;
+        Reg.RootKey := HKEY_CURRENT_USER;
+        Reg.OpenKey(IDCacheRegKey + IntToStr(IBLogin.DBID), True);
+        Reg.WriteInteger(IDCacheCurrentName, FIDCurrent);
+        Reg.WriteInteger(IDCacheLimitName, FIDLimit);
+        Reg.WriteInteger(IDCacheTestName, not(FIDCurrent xor FIDLimit));
+        Reg.WriteDate(IDCacheExpDateName, SysUtils.Date + 15);
+        FIDLimit := -1;
+        FIDCurrent := 0;
+      finally
+        Reg.CloseKey;
+        Reg.Free;
+      end;
     end;
   end;
 end;
@@ -9919,6 +10395,11 @@ begin
     raise EgdcUserHaventRights.Create('Объединение записей запрещено текущими настройками политики безопасности.');
   end;
 
+  if Self is TgdcDocument then
+  begin
+    raise EgdcException.CreateObj('Нельзя объединять документы!', Self);
+  end;
+
   DidActivate := False;
   FgsDBReduction := TgsDBReductionWizard.Create(nil);
   try
@@ -10044,10 +10525,13 @@ end;
 
 function TgdcBase.CreateDialog(C: TgdcFullClass;
   const AnInitProc: TgdcBaseInitProc = nil): Boolean;
+const
+  TempObjName = 'TemporaryNameOfParent';
 var
   Obj: TgdcBase;
   I: Integer;
   F: TField;
+  ThisObjName: string;
 begin
   if C.gdClass <> nil then
   begin
@@ -10057,6 +10541,12 @@ begin
     else begin
       Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction,
         C.SubType, 'OnlySelected');
+      if Obj.ClassType = Self.ClassType then
+      begin
+        ThisObjName := Self.Name;
+        Self.Name := TempObjName;
+        Obj.Name := ThisObjName;
+      end;
       if Assigned(AnInitProc) then
         AnInitProc(Obj);
       try
@@ -10108,6 +10598,9 @@ begin
 
       finally
         Obj.Free;
+
+        if Self.Name = TempObjName then
+          Self.Name := ThisObjName;
       end;
     end;
   end else
@@ -12176,7 +12669,7 @@ procedure TgdcBase.Post;
   end;
 
 var
-  I, C: Integer;
+  I, C, D: Integer;
   Det: TgdcBase;
   F: TField;
 begin
@@ -12251,6 +12744,14 @@ begin
             if (E.IBErrorCode = isc_unique_key_violation) and (C = 0)
               and ViolationOfPrimaryKey(E.Message) then
             begin
+              for D := 0 to DetailLinksCount - 1 do
+              begin
+                if (DetailLinks[D].State in [dsInsert, dsEdit]) or (not DetailLinks[D].IsEmpty) then
+                begin
+                  raise EgdcException.CreateObj('В базе данных уже есть запись с таким ИД.', Self);
+                end;
+              end;
+
               FieldByName(GetKeyField(SubType)).AsInteger := GetNextID(True, True);
               Inc(C);
             end

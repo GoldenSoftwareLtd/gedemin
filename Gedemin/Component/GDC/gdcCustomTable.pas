@@ -118,8 +118,8 @@ begin
       Format(
         'CREATE TABLE %s '#13#10 +
         '( '#13#10 +
-        '  documentkey               dintkey, '#13#10 +
-        '  PRIMARY KEY (documentkey) '#13#10 +
+        '  DOCUMENTKEY               dintkey, '#13#10 +
+        '  PRIMARY KEY (DOCUMENTKEY) '#13#10 +
         ')',
         [FieldByName('relationname').AsString])
       );
@@ -127,7 +127,7 @@ begin
       [FieldByName('relationname').AsString]));
     S.Add(Format(
       'ALTER TABLE %0:s ADD CONSTRAINT %1:s ' +
-      '  FOREIGN KEY (documentkey) REFERENCES gd_document(id) ON UPDATE CASCADE ON DELETE CASCADE ',
+      '  FOREIGN KEY (DOCUMENTKEY) REFERENCES gd_document(id) ON UPDATE CASCADE ON DELETE CASCADE ',
       [FieldByName('relationname').AsString, KeyName]));
   end;
 
@@ -136,7 +136,7 @@ end;
 
 class function TgdcBaseDocumentTable.GetPrimaryFieldName: String;
 begin
-  Result := 'documentkey';
+  Result := 'DOCUMENTKEY';
 end;
 
 { TgdcDocumentTable }

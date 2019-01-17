@@ -38,10 +38,10 @@ inherited gdc_dlgCompanyAccountType: Tgdc_dlgCompanyAccountType
     Top = 60
     TabOrder = 5
   end
-  inherited btnOK: TButton
-    Left = 165
+  inherited btnHelp: TButton
+    Left = 85
     Top = 60
-    TabOrder = 1
+    TabOrder = 3
   end
   object dbedName: TDBEdit [6]
     Left = 96
@@ -52,15 +52,15 @@ inherited gdc_dlgCompanyAccountType: Tgdc_dlgCompanyAccountType
     DataSource = dsgdcBase
     TabOrder = 0
   end
+  inherited btnOK: TButton
+    Left = 165
+    Top = 60
+    TabOrder = 1
+  end
   inherited btnCancel: TButton
     Left = 245
     Top = 60
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Left = 85
-    Top = 60
-    TabOrder = 3
   end
   inherited alBase: TActionList
     Left = 130

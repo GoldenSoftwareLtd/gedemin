@@ -52,6 +52,8 @@ type
     procedure actViewGoodUpdate(Sender: TObject);
     procedure actViewCardUpdate(Sender: TObject);
     procedure actViewFullCardUpdate(Sender: TObject);
+    procedure actAddToSelectedExecute(Sender: TObject);
+    procedure actRemoveFromSelectedExecute(Sender: TObject);
 
   private
     FIsSetup: Boolean;
@@ -362,6 +364,17 @@ end;
 procedure Tgdc_frmInvBaseRemains.actViewFullCardUpdate(Sender: TObject);
 begin
   actViewFullCard.Enabled := gdcObject <> nil;
+end;
+
+procedure Tgdc_frmInvBaseRemains.actAddToSelectedExecute(Sender: TObject);
+begin
+  gdcObject.AddToSelectedID(ibgrDetail.SelectedRows);
+end;
+
+procedure Tgdc_frmInvBaseRemains.actRemoveFromSelectedExecute(
+  Sender: TObject);
+begin
+  gdcObject.RemoveFromSelectedID(ibgrDetail.SelectedRows);
 end;
 
 initialization

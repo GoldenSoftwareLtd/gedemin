@@ -1260,7 +1260,17 @@ var
         begin
           xvar.FXSQLVAR^.sqltype := SQL_TEXT or (FXSQLVAR^.sqltype and 1);
           if (FMaxLen > 0) and (Length(Value) > FMaxLen) then
+          begin
+            MessageBox(0,
+              PChar(
+                'Длина значения параметра ' + FName + ' (' + IntToStr(Length(Value)) + ')' + #13#10 +
+                'больше размера поля (' + IntToStr(FMaxLen) + ')' + #13#10 +
+                'Query: '#13#10 + FSQL.SQL.Text),
+              'Ошибка',
+              MB_OK or MB_ICONHAND or MB_TASKMODAL);
+
             IBError(ibxeStringTooLarge, [Length(Value), FMaxLen]);
+          end;  
           xvar.FXSQLVAR^.sqllen := Length(Value);
           IBAlloc(xvar.FXSQLVAR^.sqldata, 0, xvar.FXSQLVAR^.sqllen + 1);
           if (Length(Value) > 0) then

@@ -1184,28 +1184,44 @@ end;
 procedure Tgdc_frmMDH.DoShowAllFields(Sender: TObject);
 var
   I: Integer;
+  FO_OldValue: TStringList;
 begin
   Assert(Sender is TWinControl);
 
   if TWinControl(Sender).Parent = sbSearchDetail then
   begin
-    if pnlSearchDetail.Visible then
-    begin
-      gdcDetailObject.ExtraConditions.Text := FDetailPreservedConditions;
-      FreeAndNil(FFieldOriginDetail);
-
-      for I := sbSearchDetail.ControlCount - 1 downto 0 do
+    FO_OldValue := TStringList.Create;
+    try
+      if pnlSearchDetail.Visible then
       begin
-        sbSearchDetail.Controls[I].Free;
-      end;
+        gdcDetailObject.ExtraConditions.Text := FDetailPreservedConditions;
 
-      SetupSearchPanel(gdcDetailObject,
-        pnlSearchDetail,
-        sbSearchDetail,
-        nil{sSearchDetail},
-        FFieldOriginDetail,
-        FDetailPreservedConditions,
-        True);
+        for I := sbSearchDetail.ControlCount - 1 downto 0 do
+        begin
+          if (sbSearchDetail.Controls[I] is TCustomEdit)
+            and  (TCustomEdit(sbSearchDetail.Controls[I]).Text <> '') then
+              FO_OldValue.Add(FFieldOriginDetail.Names[sbSearchDetail.Controls[I].Tag]+'='+TCustomEdit(sbSearchDetail.Controls[I]).Text);
+
+          sbSearchDetail.Controls[I].Free;
+        end;
+        FreeAndNil(FFieldOriginDetail);
+
+        SetupSearchPanel(gdcDetailObject,
+          pnlSearchDetail,
+          sbSearchDetail,
+          nil{sSearchDetail},
+          FFieldOriginDetail,
+          FDetailPreservedConditions,
+          True);
+
+        for I := sbSearchDetail.ControlCount - 1 downto 0 do
+        begin
+          if (sbSearchDetail.Controls[I] is TCustomEdit) then
+          TCustomEdit(sbSearchDetail.Controls[I]).Text := FO_OldValue.Values[FFieldOriginDetail.Names[sbSearchDetail.Controls[I].Tag]];
+        end;
+      end;
+    finally
+      FO_OldValue.Free;
     end;
   end else
     inherited;
@@ -1214,29 +1230,49 @@ end;
 procedure Tgdc_frmMDH.DoShowVisibleFields(Sender: TObject);
 var
   I: Integer;
+  FO_OldValue: TStringList;
 begin
   Assert(Sender is TWinControl);
 
   if TWinControl(Sender).Parent = sbSearchDetail then
   begin
-    if pnlSearchDetail.Visible then
-    begin
-      gdcDetailObject.ExtraConditions.Text := FDetailPreservedConditions;
-      FreeAndNil(FFieldOriginDetail);
-
-      for I := sbSearchDetail.ControlCount - 1 downto 0 do
+    FO_OldValue := TStringList.Create;
+    try
+      if pnlSearchDetail.Visible then
       begin
-        sbSearchDetail.Controls[I].Free;
-      end;
+        gdcDetailObject.ExtraConditions.Text := FDetailPreservedConditions;
+        for I := sbSearchDetail.ControlCount - 1 downto 0 do
+        begin
+          if (sbSearchDetail.Controls[I] is TCustomEdit)
+            and  (TCustomEdit(sbSearchDetail.Controls[I]).Text <> '') then
+              FO_OldValue.Add(FFieldOriginDetail.Names[sbSearchDetail.Controls[I].Tag]+'='+TCustomEdit(sbSearchDetail.Controls[I]).Text);
 
-      SetupSearchPanel(gdcDetailObject,
-        pnlSearchDetail,
-        sbSearchDetail,
-        nil{sSearchDetail},
-        FFieldOriginDetail,
-        FDetailPreservedConditions,
-        False,
-        True);
+          sbSearchDetail.Controls[I].Free;
+        end;
+        FreeAndNil(FFieldOriginDetail);
+
+        for I := sbSearchDetail.ControlCount - 1 downto 0 do
+        begin
+          sbSearchDetail.Controls[I].Free;
+        end;
+
+        SetupSearchPanel(gdcDetailObject,
+          pnlSearchDetail,
+          sbSearchDetail,
+          nil{sSearchDetail},
+          FFieldOriginDetail,
+          FDetailPreservedConditions,
+          False,
+          True);
+
+        for I := sbSearchDetail.ControlCount - 1 downto 0 do
+        begin
+          if (sbSearchDetail.Controls[I] is TCustomEdit) then
+          TCustomEdit(sbSearchDetail.Controls[I]).Text := FO_OldValue.Values[FFieldOriginDetail.Names[sbSearchDetail.Controls[I].Tag]];
+        end;
+      end;
+    finally
+      FO_OldValue.Free;
     end;
   end else
     inherited;

@@ -1,3 +1,4 @@
+// andreik, 15.01.2019
 
 unit gdc_dlgDepartment_unit;
 
@@ -116,12 +117,12 @@ begin
 
   if iblkupDepartment.CurrentKey > '' then
   begin
-    if gdcObject.FieldByName('parent').AsInteger <> iblkupDepartment.CurrentKeyInt then
-      gdcObject.FieldByName('parent').AsInteger := iblkupDepartment.CurrentKeyInt;
+    if not EqTID(gdcObject.FieldByName('parent'), iblkupDepartment.CurrentKeyInt) then
+      SetTID(gdcObject.FieldByName('parent'), iblkupDepartment.CurrentKeyInt);
   end else
   begin
-    if (iblkupCompany.CurrentKey > '') and (gdcObject.FieldByName('parent').AsInteger <> iblkupCompany.CurrentKeyInt) then
-      gdcObject.FieldByName('parent').AsInteger := iblkupCompany.CurrentKeyInt;
+    if (iblkupCompany.CurrentKey > '') and (not EqTID(gdcObject.FieldByName('parent'), iblkupCompany.CurrentKeyInt)) then
+      SetTID(gdcObject.FieldByName('parent'), iblkupCompany.CurrentKeyInt);
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGDEPARTMENT', 'BEFOREPOST', KEYBEFOREPOST)}
@@ -137,8 +138,8 @@ begin
   if iblkupCompany.CurrentKey > '' then
   begin
     iblkupDepartment.Condition := Format(
-      'contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id = %0:d) AND rb <= (SELECT c1.rb FROM gd_contact c1 WHERE c1.id = %0:d)',
-      [iblkupCompany.CurrentKeyInt]);
+      'contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id = %0:s) AND rb <= (SELECT c1.rb FROM gd_contact c1 WHERE c1.id = %0:s)',
+      [iblkupCompany.CurrentKey]);
     iblkupDepartment.ReadOnly := False;
     iblkupDepartment.CurrentKey := iblkupDepartment.CurrentKey;
   end;
@@ -200,7 +201,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-
   q: TIBSQL;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDEPARTMENT', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -239,7 +239,7 @@ begin
       'SELECT c.id as companykey FROM gd_contact c JOIN gd_contact d ' +
       '  ON c.lb <= d.lb AND c.rb >= d.rb ' +
       'WHERE d.id = :ID AND c.contacttype = 3 ';
-    q.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+    SetTID(q.ParamByName('id'), gdcObject.FieldByName('parent'));
     q.ExecQuery;
 
     if q.EOF or q.FieldByName('companykey').IsNull then
@@ -251,13 +251,13 @@ begin
       iblkupDepartment.ReadOnly := True;
     end else
     begin
-      iblkupCompany.CurrentKeyInt := q.FieldByName('companykey').AsInteger;
+      iblkupCompany.CurrentKeyInt := GetTID(q.FieldByName('companykey'));
       iblkupCompany.ReadOnly := True;
 
       iblkupDepartment.Condition :=
-        Format('contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id=%0:d) AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id=%0:d)',
-        [q.FieldByName('companykey').Asinteger]);
-      iblkupDepartment.CurrentKeyInt := gdcObject.FieldByName('parent').AsInteger;
+        Format('contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id=%0:s) AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id=%0:s)',
+        [TID2S(q.FieldByName('companykey'))]);
+      iblkupDepartment.CurrentKeyInt := GetTID(gdcObject.FieldByName('parent'));
       iblkupDepartment.ReadOnly := False;
     end;
   finally
@@ -282,7 +282,7 @@ procedure Tgdc_dlgDepartment.iblkupDepartmentCreateNewObject(
   Sender: TObject; ANewObject: TgdcBase);
 begin
   if iblkupCompany.CurrentKey > '' then
-    ANewObject.FieldByName('parent').AsInteger := iblkupCompany.CurrentKeyInt;
+    SetTID(ANewObject.FieldByName('parent'), iblkupCompany.CurrentKeyInt);
 end;
 
 procedure Tgdc_dlgDepartment.actShowOnMapExecute(Sender: TObject);

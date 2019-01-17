@@ -1,3 +1,5 @@
+// andreik, 15.01.2019
+
 unit gdc_frmBank_unit;
 
 interface

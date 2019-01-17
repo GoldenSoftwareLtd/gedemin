@@ -1,3 +1,4 @@
+// andreik, 15.01.2019
 
 {++
     Форма ввода и редактирования контактов
@@ -132,7 +133,7 @@ implementation
 
 uses
   gd_ClassList,
-  Gedemin_TLB
+  gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -263,20 +264,20 @@ begin
         'Выбор организации',
         0,
         '',
-        gdcObject.FieldByName('wcompanykey').AsInteger);
+        GetTID(gdcObject.FieldByName('wcompanykey')));
       if ID <> -1 then
       begin
         Dep := TgdcDepartment.SelectObject('Подразделение:', 'Выбор подразделения',
           0,
-          Format('lb > (SELECT c.lb FROM gd_contact c WHERE c.id = %d) ' +
-            'AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id = %d) ', [ID, ID]));
+          Format('lb > (SELECT c.lb FROM gd_contact c WHERE c.id = %s) ' +
+            'AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id = %s) ', [TID2S(ID), TID2S(ID)]));
 
         if Dep <> -1 then
         begin
-          gdcObject.FieldByName('parent').AsInteger := Dep;
+          SetTID(gdcObject.FieldByName('parent'), Dep);
 
           gdcObject.ExecSingleQuery('UPDATE OR INSERT INTO gd_employee (contactkey) ' +
-            'VALUES (' + IntToStr(gdcObject.ID) + ') MATCHING (contactkey)');
+            'VALUES (' + TID2S(gdcObject.ID) + ') MATCHING (contactkey)');
 
           ModalResult := mrOk;
         end;  
@@ -296,7 +297,6 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgContact);
-
 end.
 
 

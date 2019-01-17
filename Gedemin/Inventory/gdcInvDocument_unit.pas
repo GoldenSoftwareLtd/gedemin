@@ -129,6 +129,7 @@ type
   TgdcInvDocument = class(TgdcInvBaseDocument)
   private
     FJoins: TStringList;
+    FisLocalChange: Boolean;
 
   protected
     function GetSelectClause: String; override;
@@ -1047,6 +1048,7 @@ constructor TgdcInvDocument.Create(AnOwner: TComponent);
 begin
   inherited;
   FJoins := TStringList.Create;
+  FisLocalChange := False;
 end;
 
 procedure TgdcInvDocument.CustomInsert(Buff: Pointer);
@@ -1082,6 +1084,9 @@ begin
 
   if SubType > '' then
   begin
+    if FieldByName('id').AsInteger <> FieldByName('documentkey').AsInteger then
+      FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+      
     CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
     CustomExecQuery(
       Format(
@@ -1485,19 +1490,20 @@ procedure TgdcInvDocument.InternalSetFieldData(Field: TField;
   Buffer: Pointer);
 var
   DocumentLine: TgdcInvDocumentLine;
+  OldValue: Variant;
 {$IFNDEF NEWDEPOT}
   dsMain: TDataSource;
   i: Integer;
 {$ENDIF}  
   DidActivate: Boolean;
 
-  procedure MakeMovementOnLine;
+  function MakeMovementOnLine: boolean;
   var
     FLSavePoint: String;
   begin
+    MakeMovementOnLine := True;
     if DocumentLine.FieldByName('masterkey').AsInteger = FieldByName('id').AsInteger then
     begin
-
       FLSavePoint := '';
       if not Transaction.Active then
       begin
@@ -1534,6 +1540,8 @@ var
             if (DocumentLine.Movement.CountPositionChanged >= 0) and (not (sLoadFromStream in DocumentLine.BaseState) and not (sLoadFromStream in BaseState) ) then
             begin
 
+              MakeMovementOnLine := False;
+
               MessageBox(ParentHandle,
                 PChar(E.Message),
                 PChar(sAttention),
@@ -1551,7 +1559,7 @@ var
               end;
               if not DidActivate and not Transaction.InTransaction  then
                 Transaction.StartTransaction;
-              abort;
+//              abort;
             end
             else begin
               raise;
@@ -1568,9 +1576,11 @@ var
   end;
 
 begin
+
+  OldValue := Field.Value;
   inherited;
 
-  if FDataTransfer then
+  if FIsLocalChange or FDataTransfer then
     exit;
 
 {$IFNDEF NEWDEPOT}
@@ -1619,7 +1629,11 @@ begin
             begin
               DocumentLine := DetailLinks[i] as TgdcInvDocumentLine;
               if DocumentLine.Active then
-                MakeMovementOnLine;
+                if not MakeMovementOnLine then
+                begin
+                  FIsLocalChange := True;
+                  Field.Value := OldValue;
+                end;
             end;
         end
         else
@@ -1634,7 +1648,11 @@ begin
             DocumentLine.DetailField := 'parent';
             DocumentLine.MasterSource := dsMain;
             DocumentLine.Open;
-            MakeMovementOnLine;
+            if not MakeMovementOnLine then
+            begin
+              FIsLocalChange := True;
+              Field.Value := OldValue;
+            end;
           finally
             DocumentLine.Free;
             dsMain.Free;
@@ -1643,6 +1661,7 @@ begin
       finally
         if DidActivate and Transaction.InTransaction then
           Transaction.Commit;
+        FIsLocalChange := False;  
       end;
     end;
   end;
@@ -2020,6 +2039,9 @@ begin
   try
 
     inherited;
+
+    if FieldByName('id').AsInteger <> FieldByName('documentkey').AsInteger then
+      FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
     {$IFDEF DEBUGMOVE}
     TimeCustomInsertDoc := GetTickCount - TimeTmp;
     {$ENDIF}
@@ -3743,7 +3765,7 @@ const
     '  /* получаем тип докумнта, рабочую компанию и дату, запись в gd_document уже добавлена */ ' + #13#10 +
     '  select dt.ruid, d.companykey, d.documentdate, d.delayed from  ' + #13#10 +
     '     gd_document d join gd_documenttype dt ON d.documenttypekey = dt.id ' + #13#10 +
-    '  where d.id = NEW.documentkey ' + #13#10 +
+    '  where d.id = NEW.masterkey ' + #13#10 +
     '  into :ruid, :companykey, :documentdate, :delayed; ' + #13#10 +
     '  isdeletemovement = 0; ' + #13#10;
 
@@ -4033,7 +4055,7 @@ begin
       'and doc.documenttypekey in ('' || dtstring || '') and  m.credit <> 0 and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(10)); ' + #13#10 +
       '          EXECUTE STATEMENT sqlstatement INTO :dockey, :badmovekey; ' + #13#10 +
       '          if (badmovekey is not null) then ' + #13#10 +
-      '            EXCEPTION INV_E_CANNTCHANGEFEATURCE; ' + #13#10 +
+      '            EXCEPTION INV_E_CANNTCHANGEFEATURE; ' + #13#10 +
       '        end ' + #13#10 +
       '      end ' + #13#10 +
       '      sqlstatement = ''INSERT INTO GD_CHANGEDDOC (changedfields, sourcedockey, destdockey, editiondate, editorkey) select DISTINCT '''''' || changefields || '''''''' || '','' ' +
@@ -4131,9 +4153,11 @@ function GetCheckRemainsOnDateSQL(IsFrom: Boolean): String;
 begin
   if isFrom then
     Result :=
+       '  /* Производится проверка остатков на новую дату документа */ ' + #13#10 +
        '            for ' + #13#10 +
-       '              select cardkey, credit from inv_movement ' + #13#10 +
+       '              select cardkey, SUM(credit) from inv_movement ' + #13#10 +
        '              where documentkey = NEW.documentkey and credit <> 0 ' + #13#10 +
+       '              group by cardkey ' + #13#10 +
        '              into :id, :movementquantity ' + #13#10 +
        '            do ' + #13#10 +
        '            begin ' + #13#10 +
@@ -4141,7 +4165,7 @@ begin
        '                (select balance from inv_balance where ' + #13#10 +
        '                 cardkey = :id and contactkey = :fromcontactkey ' + #13#10 +
        '                 union all ' + #13#10 +
-       '                 select SUM(credit - debit) from inv_movement where ' + #13#10 +
+       '                 select credit - debit from inv_movement where ' + #13#10 +
        '                 cardkey = :id and contactkey = :fromcontactkey and movementdate > :documentdate) m ' + #13#10 +
        '              into :oldquantity; ' + #13#10 +
        '              if (oldquantity < movementquantity) then ' + #13#10 +
@@ -4149,6 +4173,7 @@ begin
        '            end ' + #13#10
   else
     Result :=
+       '  /* Производится проверка остатков на новую дату документа */ ' + #13#10 +
        '            for ' + #13#10 +
        '              select cardkey, debit from inv_movement ' + #13#10 +
        '              where documentkey = NEW.documentkey and debit <> 0 ' + #13#10 +
@@ -4159,7 +4184,7 @@ begin
        '                (select balance from inv_balance where ' + #13#10 +
        '                 cardkey = :id and contactkey = :tocontactkey ' + #13#10 +
        '                 union all ' + #13#10 +
-       '                 select SUM(credit - debit) from inv_movement where ' + #13#10 +
+       '                 select credit - debit from inv_movement where ' + #13#10 +
        '                 cardkey = :id and contactkey = :tocontactkey and movementdate >= :documentdate) m ' + #13#10 +
        '              into :oldquantity; ' + #13#10 +
        '              if (oldquantity < movementquantity) then ' + #13#10 +
@@ -4170,8 +4195,9 @@ end;
 function GetUpdateDateSQL: String;
 begin
   Result :=
+       '            /* Изменяем дату движения на дату документа */ ' + #13#10 +
        '            update inv_movement set movementdate = :documentdate ' + #13#10 +
-       '            where documentkey = NEW.documentkey; ' + #13#10;
+       '            where documentkey = NEW.documentkey; ' + #13#10 + #13#10;
 
 end;
 
@@ -4331,10 +4357,11 @@ begin
     if FIE.GetFlag(efLiveTimeRemains) then
       s := '        if (isdeletemovement = 0) then ' + #13#10 +
            '        begin ' + #13#10 +
-           '        if (olddocumentdate > documentdate) then ' + #13#10 + GetUpdateDateSQL +
-           '        else ' + #13#10 +
-           '        begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) +  GetUpdateDateSQL +
-           '        end ' + #13#10 +
+           '          if (olddocumentdate > documentdate) then ' + #13#10 +
+           '' + GetUpdateDateSQL +
+           '          else ' + #13#10 +
+           '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) +  GetUpdateDateSQL +
+           '          end ' + #13#10 +
            '        end ' + #13#10
 
     else
@@ -4358,7 +4385,7 @@ begin
         '    else ' + #13#10 +
         '    begin ' + #13#10 +
         '      rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', :checkremains); ' + #13#10 +
-        '      if ((ischange = 1) or (oldfromcontactkey <> fromcontactkey) or (olddocumentdate IS NULL)) then ' + #13#10 +
+        '      if ((ischange = 1) or (oldfromcontactkey <> fromcontactkey) or (olddocumentdate IS NULL) or (NOT EXISTS (select id from inv_movement where documentkey = NEW.documentkey))) then ' + #13#10 +
         '      begin ' + #13#10 +
         '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
         '        isdeletemovement = 1; ' + #13#10 +
@@ -4490,6 +4517,20 @@ begin
           '    else ' + #13#10 +
           '    begin ' + #13#10 +
           '/* если документ не отложенный создаем движение */ ' + #13#10 +
+          '      if (not exists(select id from inv_movement where documentkey = NEW.documentkey)) then ' + #13#10 +
+          '      begin ' + #13#10 +
+          '        movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          ' ' + #13#10 +
+          '  /* добавляем значения в inv_movememt */ ' + #13#10 +
+          ' ' + #13#10 +
+          '        INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+          '        VALUES (:movementkey, NEW.documentkey, :goodkey, NEW.fromcardkey, :fromcontactkey, :documentdate, NEW.quantity); ' + #13#10 +
+          ' ' + #13#10 +
+          '        INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, debit) ' + #13#10 +
+          '        VALUES (:movementkey, NEW.documentkey, :goodkey, NEW.fromcardkey, :tocontactkey, :documentdate, NEW.quantity); ' + #13#10 +
+          '      end ' + #13#10 +
+          '      else ' + #13#10 +
+          '      begin ' + #13#10 +
           '      if (coalesce(oldfromcontactkey, 0) <> coalesce(fromcontactkey, 0)) then ' + #13#10 +
           '      begin ' + #13#10 +
           '        UPDATE inv_movement SET contactkey = :fromcontactkey ' + #13#10 +
@@ -4505,7 +4546,7 @@ begin
           '          exception INV_E_DONTCHANGEBENEFICIARY; ' + #13#10 +
           '      end ' + #13#10 +
           '      if (coalesce(NEW.quantity, 0) > coalesce(OLD.quantity, 0)) then ' + #13#10 +
-          '      begin ' + #13#10 + 
+          '      begin ' + #13#10 +
           '        select MAX(movementkey) from inv_movement where documentkey = NEW.DOCUMENTKEY ' + #13#10 +
           '        INTO :movementkey; ' + #13#10 +
           '        tmpquantity = coalesce(NEW.quantity, 0) - coalesce(OLD.quantity, 0); ' + #13#10 +
@@ -4557,6 +4598,7 @@ begin
           '      if (olddocumentdate > documentdate) then ' + #13#10 + GetUpdateDateSQL +
           '      else ' + #13#10 +
           '      begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) + GetUpdateDateSQL +
+          '      end ' + #13#10 +
           '      end ' + #13#10 +
           '    end ' + #13#10 +
           '    end ' + #13#10 +
@@ -4700,20 +4742,22 @@ begin
         '    rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', :checkremains); ' + #13#10 +
         '    if (delayed = 0) then ' + #13#10 +
         '    begin ' + #13#10 +
-        '      if (ischange = 1 or fromcontactkey <> oldfromcontactkey or coalesce(NEW.quantity, 0) = 0) then' + #13#10 +
+        '      if (not exists(select id from inv_movement where documentkey = NEW.documentkey)) then ' + #13#10 +
+        '        isdeletemovement = 1; ' + #13#10 +
+        '      if (isdeletemovement = 0 and (ischange = 1 or fromcontactkey <> oldfromcontactkey or coalesce(NEW.quantity, 0) = 0)) then' + #13#10 +
         '      begin ' + #13#10 +
         '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
         '        isdeletemovement = 1; ' + #13#10 +
         '      end ' + #13#10 +
-        '      if (ischange = 1 or coalesce(NEW.quantity, 0) > coalesce(OLD.quantity, 0) or fromcontactkey <> oldfromcontactkey) then ' + #13#10 +
+        '      if (isdeletemovement = 1 or ischange = 1 or coalesce(NEW.quantity, 0) > coalesce(OLD.quantity, 0) or fromcontactkey <> oldfromcontactkey) then ' + #13#10 +
         '      begin ' + #13#10 +
-        '        if (tocontactkey <> oldtocontactkey) then ' + #13#10 +
+        '        if (isdeletemovement = 0 and tocontactkey <> oldtocontactkey) then ' + #13#10 +
         '        begin ' + #13#10 +
         '          UPDATE inv_movement SET contactkey = :tocontactkey WHERE documentkey = NEW.documentkey and debit <> 0; ' + #13#10 +
         '          when EXCEPTION INV_E_INVALIDMOVEMENT do ' + #13#10 +
         '            exception INV_E_DONTCHANGEBENEFICIARY; ' + #13#10 +
         '        end ' + #13#10 +
-        '        if (ischange = 1) then ' + #13#10 +
+        '        if (ischange = 1 or isdeletemovement = 1) then ' + #13#10 +
         '          tmpquantity = NEW.quantity; ' + #13#10 +
         '        else ' + #13#10 +
         '          tmpquantity = coalesce(NEW.quantity, 0) - coalesce(OLD.quantity, 0); ' + #13#10;
@@ -4943,7 +4987,7 @@ begin
         '    oldtocontactkey = oldfromcontactkey; ' + #13#10 +
         '    quant = coalesce(NEW.fromquantity, 0) - coalesce(NEW.toquantity, 0); ' + #13#10 +
         '    oldquantity = coalesce(OLD.fromquantity, 0) - coalesce(OLD.toquantity, 0); ' + #13#10 +
-        '    if (ischange = 1 or oldfromcontactkey <> fromcontactkey or quant * oldquantity < 0 or delayed = 1) then ' + #13#10 +
+        '    if (ischange = 1 or oldfromcontactkey <> fromcontactkey or quant * oldquantity < 0 or delayed = 1 or not EXISTS(select id from inv_movement where documentkey = NEW.documentkey)) then ' + #13#10 +
         '    begin ' + #13#10 +
         '      DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
         '      if (coalesce(NEW.fromquantity, 0) > coalesce(NEW.toquantity, 0)) then ' + #13#10 +
@@ -5487,8 +5531,10 @@ begin
       gdcTrigger.FieldByName('rdb$trigger_source').AsString :=
         'AS ' +
         'BEGIN ' +
-        '  if (NEW.documenttypekey = ' + FieldByName('ID').AsString + ' and OLD.documentdate <> NEW.documentdate) then ' +
+        '  if (NEW.documenttypekey = ' + FieldByName('ID').AsString + ' and (OLD.documentdate <> NEW.documentdate AND NEW.parent IS NOT NULL)) then ' +
         '    UPDATE ' + DocLineRelationName + ' SET documentkey = documentkey WHERE documentkey = NEW.id; ' +
+        '  if (NEW.documenttypekey = ' + FieldByName('ID').AsString + ' and (OLD.delayed <> NEW.delayed AND NEW.parent IS NULL)) then ' +
+        '    UPDATE ' + DocLineRelationName + ' SET documentkey = documentkey WHERE masterkey = NEW.id; ' +
         'END';
       gdcTrigger.Post
 

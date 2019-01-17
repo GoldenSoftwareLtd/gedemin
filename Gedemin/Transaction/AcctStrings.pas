@@ -40,6 +40,7 @@ const
   EXTRACT_YEAR = ' EXTRACT(YEAR FROM %0:s) ';
 
   AC_ENTRY = 'AC_ENTRY';
+  AC_ENTRY_RPL = ' (select ac_entry.*, gd_document.documenttypekey from ac_entry join gd_document on ac_entry.masterdockey = gd_document.id) ';
 
   //params
   BeginDate  = 'BEGINDATE';

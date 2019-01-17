@@ -232,11 +232,13 @@ begin
 end;
 
 procedure TdmLogin.boLoginAfterChangeCompany(Sender: TObject);
+{$IFDEF WITH_INDY}
 var
   CN: array[0..MAX_COMPUTERNAME_LENGTH] of Char;
   J: DWORD;
   Activate: Boolean;
   SL: TStringList;
+{$ENDIF}
 begin
   if not Application.Terminated then
   begin

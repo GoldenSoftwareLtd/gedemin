@@ -685,4 +685,4 @@ finalization
   UnregisterGdcClass(TgdcHoliday);
   UnregisterGdcClass(TgdcTableCalendar);
   UnregisterGdcClass(TgdcTableCalendarDay);
-end.
+end.   

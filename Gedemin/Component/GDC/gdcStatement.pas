@@ -574,7 +574,7 @@ begin
   {M}        begin
   {M}          Inherited;
   {M}          Exit;
-  {M}        end;
+  {M}        end;                                                                                    
   {M}    end;
   {END MACRO}
   inherited;

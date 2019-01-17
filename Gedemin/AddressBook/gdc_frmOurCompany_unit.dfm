@@ -4,54 +4,50 @@ inherited gdc_frmOurCompany: Tgdc_frmOurCompany
   Width = 696
   Height = 480
   Caption = 'gdc_frmOurCompany'
-  Font.Name = 'Tahoma'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 425
+    Top = 421
     Width = 688
   end
   inherited TBDockTop: TTBDock
     Width = 688
   end
   inherited TBDockLeft: TTBDock
-    Height = 376
+    Height = 370
   end
   inherited TBDockRight: TTBDock
     Left = 679
-    Height = 376
+    Height = 370
   end
   inherited TBDockBottom: TTBDock
-    Top = 444
+    Top = 440
     Width = 688
   end
   inherited pnlWorkArea: TPanel
     Width = 670
-    Height = 376
+    Height = 370
     inherited spChoose: TSplitter
-      Top = 273
+      Top = 267
       Width = 670
     end
     inherited pnlMain: TPanel
       Width = 670
-      Height = 273
+      Height = 267
       inherited pnlSearchMain: TPanel
-        Height = 273
+        Height = 267
         inherited sbSearchMain: TScrollBox
-          Height = 235
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 235
+          Height = 240
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 510
-        Height = 273
+        Height = 267
       end
     end
     inherited pnChoose: TPanel
-      Top = 277
+      Top = 271
       Width = 670
       inherited pnButtonChoose: TPanel
         Left = 565

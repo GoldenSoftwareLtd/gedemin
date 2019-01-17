@@ -1,4 +1,4 @@
-
+...
 {++
 
   Copyright (c) 2000-2001 by Golden Software of Belarus
@@ -2183,9 +2183,14 @@ begin
       // Если нет создаем новый
       try
         ibsqlComp.Close;
+        {$IFNDEF GEDEMIN}
         ibsqlComp.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0) FROM rdb$database';
         ibsqlComp.ExecQuery;
         FComponentKey := ibsqlComp.Fields[0].AsInteger;
+        {$ELSE}
+        FComponentKey := gdcBaseManager.GetNextID;
+        {$ENDIF}
+
         ibsqlComp.Close;
         ibsqlComp.SQL.Text := 'INSERT INTO flt_componentfilter (id, formname, filtername, applicationname)'
          + ' VALUES(' + IntToStr(FComponentKey) + ',''' + FOwnerName + ''',''' + FltName

@@ -1109,7 +1109,7 @@ procedure TgdcAcctBaseEntryRegister.CreateReversalEntry(
   const AReversalEntryDate: TDateTime; const ATransactionKey: TID; const AllDocEntry: Boolean);
 var
   Transaction: TIBTransaction;
-  ibsqlInsertDocument, ibsqlInsertEntryRecord, ibsqlInsertEntry: TIBSQL;
+  ibsqlInsertDocument, ibsqlInsertEntryRecord, ibsqlInsertEntry, ibsqlInsertEntryQty: TIBSQL;
   AcEntryRelation: TatRelation;
   FieldCounter: Integer;
   TRRecordKey, CompanyKey, ReversalDocumentKey, ReversalRecordKey, CurrentRecordKey: TID;
@@ -1119,9 +1119,12 @@ var
   procedure InsertEntryPart(const AEntryPart: String);
   var
     Counter: Integer;
+    ReversalEntryKey, ReversalEntryQtyKey: TID;
   begin
     // заполнение части сторнирующей проводки
     ibsqlInsertEntry.Close;
+    ReversalEntryKey := gdcBaseManager.GetNextID;
+    ibsqlInsertEntry.ParamByName('ID').AsInteger := ReversalEntryKey;
     ibsqlInsertEntry.ParamByName('RECORDKEY').AsInteger := ReversalRecordKey;
     ibsqlInsertEntry.ParamByName('ENTRYDATE').AsDateTime := AReversalEntryDate;
     ibsqlInsertEntry.ParamByName('TRANSACTIONKEY').AsInteger := ATransactionKey;
@@ -1143,6 +1146,19 @@ var
         ibsqlInsertEntry.ParamByName(TempString).AsVariant := CurrentEntry.FieldByName(TempString).AsVariant;
       end;
     ibsqlInsertEntry.ExecQuery;
+
+    // Количественные показатели
+    CurrentEntry.gdcQuantity.First;
+    while not CurrentEntry.gdcQuantity.Eof do
+    begin
+      ReversalEntryQtyKey := gdcBaseManager.GetNextID;
+      ibsqlInsertEntryQty.ParamByName('ID').AsInteger := ReversalEntryQtyKey;
+      ibsqlInsertEntryQty.ParamByName('ENTRYKEY').AsInteger := ReversalEntryKey;
+      ibsqlInsertEntryQty.ParamByName('VALUEKEY').AsInteger := CurrentEntry.gdcQuantity.FieldByName('VALUEKEY').AsInteger;
+      ibsqlInsertEntryQty.ParamByName('QUANTITY').AsCurrency := - CurrentEntry.gdcQuantity.FieldByName('QUANTITY').AsCurrency;
+      ibsqlInsertEntryQty.ExecQuery;
+      CurrentEntry.gdcQuantity.Next;
+    end;
   end;
 
 begin
@@ -1150,6 +1166,7 @@ begin
   ibsqlInsertDocument := TIBSQL.Create(nil);
   ibsqlInsertEntryRecord := TIBSQL.Create(nil);
   ibsqlInsertEntry := TIBSQL.Create(nil);
+  ibsqlInsertEntryQty := TIBSQL.Create(nil);
   try
     Transaction.DefaultDatabase := gdcBaseManager.Database;
     Transaction.StartTransaction;
@@ -1178,7 +1195,7 @@ begin
       ibsqlInsertEntry.Transaction := Transaction;
       TempString :=
         ' INSERT INTO ac_entry ' +
-        '   (recordkey, transactionkey, companykey, entrydate, accountkey, accountpart, ' +
+        '   (id, recordkey, transactionkey, companykey, entrydate, accountkey, accountpart, ' +
         '    debitncu, debitcurr, debiteq, creditncu, creditcurr, crediteq, currkey ';
       // Возьмем все пользовательские аналитики
       for FieldCounter := 0 to AcEntryRelation.RelationFields.Count - 1 do
@@ -1186,13 +1203,21 @@ begin
           TempString := TempString + ', ' + AcEntryRelation.RelationFields.Items[FieldCounter].FieldName;
       TempString := TempString +
         ') VALUES ' +
-        ' (:recordkey, :transactionkey, :companykey, :entrydate, :accountkey, :accountpart, ' +
+        ' (:id, :recordkey, :transactionkey, :companykey, :entrydate, :accountkey, :accountpart, ' +
         '  :debitncu, :debitcurr, :debiteq, :creditncu, :creditcurr, :crediteq, :currkey ';
       for FieldCounter := 0 to AcEntryRelation.RelationFields.Count - 1 do
         if AcEntryRelation.RelationFields.Items[FieldCounter].IsUserDefined then
           TempString := TempString + ', :' + AcEntryRelation.RelationFields.Items[FieldCounter].FieldName;
       ibsqlInsertEntry.SQL.Text := TempString + ')';
       ibsqlInsertEntry.Prepare;
+      //  Запрос на добавление количественных показателей
+      ibsqlInsertEntryQty.Transaction := Transaction;
+      ibsqlInsertEntryQty.SQL.Text :=
+        ' INSERT INTO ac_quantity ' +
+        '   (id, entrykey, valuekey, quantity) ' +
+        ' VALUES ' +
+        '   (:id, :entrykey, :valuekey, :quantity) ';
+      ibsqlInsertEntryQty.Prepare;
 
       // Ключ типовой проводки
       TRRecordKey := Self.FieldByName('TRRECORDKEY').AsInteger;
@@ -1280,6 +1305,7 @@ begin
       end;
     end;
   finally
+    ibsqlInsertEntryQty.Free;
     ibsqlInsertEntry.Free;
     ibsqlInsertEntryRecord.Free;
     ibsqlInsertDocument.Free;
@@ -2709,7 +2735,7 @@ begin
   FAmountCurr := FieldByName('debitcurr').AsCurrency;
 
   if FieldByName('number').AsString = '' then
-    FieldByName('number').AsString := ' ';
+    FieldByName('number').AsString := 'б/н';
 
   if FieldByName('currkey').IsNull then
     FieldByName('currkey').AsInteger := GetNCUKey;
@@ -4366,7 +4392,7 @@ begin
   {END MACRO}
   { TODO : Добавить проверку корректности сумм }
   if FieldByName('number').AsString = '' then
-    FieldByName('number').AsString := ' ';
+    FieldByName('number').AsString := 'б/н';
 
   if FieldByName('currkey').IsNull then
     FieldByName('currkey').AsInteger := GetNCUKey;

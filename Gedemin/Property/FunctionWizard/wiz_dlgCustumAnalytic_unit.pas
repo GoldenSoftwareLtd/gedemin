@@ -102,6 +102,7 @@ begin
       cbAnalyticValue.KeyField :=  '';
       cbAnalyticValue.Fields := '';
       cbAnalyticValue.Text := '';
+      cbAnalyticValue.SubType := '';
 
       cbAnalyticValue.gdClassName := FC.gdClassName;
       cbAnalyticValue.SubType := FC.SubType;

@@ -6,6 +6,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
   Caption = 'BaseContact'
   ClientHeight = 366
   ClientWidth = 495
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton

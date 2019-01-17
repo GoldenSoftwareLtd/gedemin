@@ -1,6 +1,6 @@
 inherited gdc_dlgBank: Tgdc_dlgBank
-  Left = 416
-  Top = 206
+  Left = 752
+  Top = 243
   HelpContext = 32
   Caption = 'Банк'
   ClientHeight = 371
@@ -172,20 +172,6 @@ inherited gdc_dlgBank: Tgdc_dlgBank
         DataField = 'BANKBRANCH'
         DataSource = dsgdcBase
         TabOrder = 8
-      end
-    end
-    inherited TabSheet3: TTabSheet
-      inherited gsiblkupAddress: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsIBlcHeadCompany: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsiblkupChiefAccountant: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsiblkupDirector: TgsIBLookupComboBox
-        ItemHeight = 13
       end
     end
     inherited tbsLogo: TTabSheet

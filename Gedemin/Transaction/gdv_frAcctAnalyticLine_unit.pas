@@ -433,6 +433,7 @@ begin
     SubType := FField.gdSubType;
     gdClassName := FField.gdClassName;
     ListTable := FField.References.RelationName;
+    Fields := FField.References.ExtendedFields;
     if gdClassName <> '' then
     begin
       C := GetClass(gdClassName);
@@ -444,6 +445,9 @@ begin
         Condition := StringReplace(Condition, gdcClass.GetListTableAlias + '.', ListTable + '.', [rfReplaceAll, rfIgnoreCase]);
       end;
     end;
+
+    if  Condition = '' then
+      Condition := FField.Field.RefCondition;
 
     if FField.Field.RefListFieldName <> '' then
        ListField := FField.Field.RefListFieldName

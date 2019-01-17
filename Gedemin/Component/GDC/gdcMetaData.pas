@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2017 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2018 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -526,6 +526,7 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetSubSetList: String; override;
     // Список полей, которые не надо сохранять в поток.
     class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
     class procedure EnumTriggerTypes(S: TStrings); virtual;
@@ -1871,7 +1872,7 @@ begin
     gdcTrigger := TgdcBaseTrigger.Create(nil);
     try
       gdcTrigger.Transaction := Transaction;
-      gdcTrigger.SubSet := 'ByRelation;OnlyAttribute';
+      gdcTrigger.SubSet := 'ByRelation,OnlyAttribute';
       gdcTrigger.ParamByName('relationkey').AsInteger := ID;
       gdcTrigger.Open;
       while not gdcTrigger.EOF do
@@ -6527,7 +6528,12 @@ begin
   if not IsUserDefined then
     Result := False
   else
-    Result := inherited GetCanEdit;  
+    Result := inherited GetCanEdit;
+end;
+
+class function TgdcBaseTrigger.GetSubSetList: String;
+begin
+  Result := inherited GetSubSetList + 'ByRelation;';
 end;
 
 { TgdcTrigger }
@@ -6578,7 +6584,7 @@ end;
 
 class function TgdcTrigger.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + 'ByRelation;ByTriggerName;';
+  Result := inherited GetSubSetList + 'ByTriggerName;';
 end;
 
 procedure TgdcTrigger.SyncTriggers(const ARelationName: String; const NeedRefresh: Boolean = True);

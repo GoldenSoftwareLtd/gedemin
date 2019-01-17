@@ -8,50 +8,47 @@ inherited gdc_frmContact: Tgdc_frmContact
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 434
+    Top = 430
     Width = 688
   end
   inherited TBDockTop: TTBDock
     Width = 688
   end
   inherited TBDockLeft: TTBDock
-    Height = 376
+    Height = 370
   end
   inherited TBDockRight: TTBDock
     Left = 679
-    Height = 376
+    Height = 370
   end
   inherited TBDockBottom: TTBDock
-    Top = 425
+    Top = 421
     Width = 688
   end
   inherited pnlWorkArea: TPanel
     Width = 670
-    Height = 376
+    Height = 370
     inherited sMasterDetail: TSplitter
-      Height = 274
+      Height = 265
     end
     inherited spChoose: TSplitter
-      Top = 274
+      Top = 265
       Width = 670
     end
     inherited pnlMain: TPanel
-      Height = 274
+      Height = 265
       inherited pnlSearchMain: TPanel
-        Height = 274
+        Height = 265
         inherited sbSearchMain: TScrollBox
-          Height = 236
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 236
+          Height = 238
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 274
+        Height = 265
       end
     end
     inherited pnChoose: TPanel
-      Top = 277
+      Top = 271
       Width = 670
       inherited pnButtonChoose: TPanel
         Left = 565
@@ -59,25 +56,25 @@ inherited gdc_frmContact: Tgdc_frmContact
       inherited ibgrChoose: TgsIBGrid
         Width = 565
       end
+      inherited pnlChooseCaption: TPanel
+        Width = 670
+      end
     end
     inherited pnlDetail: TPanel
-      Width = 466
-      Height = 274
+      Width = 498
+      Height = 265
       inherited TBDockDetail: TTBDock
-        Width = 466
+        Width = 498
       end
       inherited pnlSearchDetail: TPanel
-        Height = 248
+        Height = 239
         inherited sbSearchDetail: TScrollBox
-          Height = 210
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 210
+          Height = 212
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 306
-        Height = 248
+        Width = 338
+        Height = 239
       end
     end
   end

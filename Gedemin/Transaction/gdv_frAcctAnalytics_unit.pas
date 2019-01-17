@@ -33,7 +33,7 @@ type
 
   public
     destructor Destroy; override;
-    procedure UpdateAnalyticsList(AIDList: TList; const ANeedNull: boolean = True; const ANeedSet: boolean = True);
+    procedure UpdateAnalyticsList(AIDList: TList; const ANeedNull: boolean = True; const ANeedSet: boolean = True; const ShowAddAnaliseLines: boolean = True);
     procedure SaveToStream(const Stream: TStream);
     procedure LoadFromStream(const Stream: TStream);
 
@@ -171,10 +171,22 @@ begin
     try
       for I := 0 to FAnalyticsLineList.Count - 1 do
       begin
-        S.AddObject(TfrAcctAnalyticLine(FAnalyticsLineList[I]).lAnaliticName.Caption,
-          FAnalyticsLineList[I]);
+        if (TfrAcctAnalyticLine(FAnalyticsLineList[I]).Field.FieldName <> 'DOCUMENTTYPEKEY')
+          and (TfrAcctAnalyticLine(FAnalyticsLineList[I]).Field.FieldName <> 'CURRKEY')
+        then
+          S.AddObject(TfrAcctAnalyticLine(FAnalyticsLineList[I]).lAnaliticName.Caption,
+            FAnalyticsLineList[I]);
       end;
       S.Sort;
+
+      for I := 0 to FAnalyticsLineList.Count - 1 do
+      begin
+        if (TfrAcctAnalyticLine(FAnalyticsLineList[I]).Field.FieldName = 'DOCUMENTTYPEKEY')
+          or (TfrAcctAnalyticLine(FAnalyticsLineList[I]).Field.FieldName = 'CURRKEY')
+        then
+          S.AddObject(TfrAcctAnalyticLine(FAnalyticsLineList[I]).lAnaliticName.Caption,
+            FAnalyticsLineList[I]);
+      end;
 
       T := ppAnalytics.ClientRect.Top;
       for I := 0 to S.Count - 1 do
@@ -188,7 +200,8 @@ begin
   end;
 end;
 
-procedure TfrAcctAnalytics.UpdateAnalyticsList(AIDList: TList; const ANeedNull: boolean = True; const ANeedSet: boolean = True);
+procedure TfrAcctAnalytics.UpdateAnalyticsList(AIDList: TList; const ANeedNull: boolean = True; const ANeedSet: boolean = True;
+const ShowAddAnaliseLines: boolean = True);
 var
   I, Index: Integer;
   SQL: TIBSQl;
@@ -218,7 +231,10 @@ begin
   if FAnalyticsFieldList = nil then
   begin
     FAnalyticsFieldList := TList.Create;
-    GetAnalyticsFields(FAnalyticsFieldList);
+    if ShowAddAnaliseLines then
+      GetAnalyticsFields(FAnalyticsFieldList)
+    else
+      GetAnalyticsFieldsWithoutAddAnaliseLines(FAnalyticsFieldList);
   end;
 
   NeedNull:= ANeedNull;
@@ -237,9 +253,13 @@ begin
       begin
         for I := 0 to FAnalyticsFieldList.Count - 1 do
         begin
-          if SQL.SQL.Count > 0 then
-            SQL.SQL.Add(', ');
-          SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FAnalyticsFieldList[i]).FieldName]));
+          if ((TatRelationField(FAnalyticsFieldList[i]).FieldName) <> 'DOCUMENTTYPEKEY')
+            and ((TatRelationField(FAnalyticsFieldList[i]).FieldName) <> 'CURRKEY') then
+          begin
+            if SQL.SQL.Count > 0 then
+              SQL.SQL.Add(', ');
+            SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FAnalyticsFieldList[i]).FieldName]));
+          end;
         end;
 
         if FAnalyticsFieldList.Count > 0 then
@@ -250,18 +270,21 @@ begin
           SQL.ExecQuery;
         end;
       end;
-
       for I := 0 to FAnalyticsFieldList.Count - 1 do
       begin
-        if AIDList.Count > 0 then
+        if (AIDList.Count > 0)
+          and ((TatRelationField(FAnalyticsFieldList[i]).FieldName) <> 'DOCUMENTTYPEKEY')
+          and ((TatRelationField(FAnalyticsFieldList[i]).FieldName) <> 'CURRKEY')
+        then
           C := SQL.Fields[i].AsInteger
         else
           C := 0;
-
         try
           if (C = AIDList.Count)
             or (TatRelationField(FAnalyticsFieldList[i]).FieldName = 'ACCOUNTKEY')
-            or (TatRelationField(FAnalyticsFieldList[i]).FieldName = 'CURRKEY') then
+            or (TatRelationField(FAnalyticsFieldList[i]).FieldName = 'CURRKEY')
+            or (TatRelationField(FAnalyticsFieldList[i]).FieldName = 'DOCUMENTTYPEKEY')
+            then
           begin
             Index := IndexOf(TatRelationField(FAnalyticsFieldList[i]));
             if Index = - 1 then
@@ -290,7 +313,6 @@ begin
           SQL.Close;
         end;
       end;
-
       if FAnalyticsLineList <> nil then
       begin
         P := ppAnalytics.ClientRect.Top;

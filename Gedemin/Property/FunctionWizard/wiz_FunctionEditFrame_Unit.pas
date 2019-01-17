@@ -135,7 +135,8 @@ begin
   begin
     Index := lbParams.ItemIndex;
     lbParams.Items.Move(Index, Index - 1);
-    FFunctionParams.Move(Index, Index - 1)
+    FFunctionParams.Move(Index, Index - 1);
+    lbParams.ItemIndex := Index - 1
   end;
 end;
 
@@ -152,7 +153,8 @@ begin
   begin
     Index := lbParams.ItemIndex;
     lbParams.Items.Move(Index, Index + 1);
-    FFunctionParams.Move(Index, Index + 1)
+    FFunctionParams.Move(Index, Index + 1);
+    lbParams.ItemIndex := Index + 1    
   end;
 end;
 

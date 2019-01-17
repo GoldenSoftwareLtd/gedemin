@@ -1,55 +1,54 @@
 inherited gdc_frmAccountType: Tgdc_frmAccountType
   Left = 370
-  Top = 257
+  Top = 238
   Width = 696
-  Height = 480
+  Height = 499
   HelpContext = 133
   Caption = 'Типы банковских счетов'
-  Font.Name = 'Tahoma'
   PixelsPerInch = 96
-  TextHeight = 14
+  TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 421
+    Top = 440
     Width = 688
   end
   inherited TBDockTop: TTBDock
     Width = 688
   end
   inherited TBDockLeft: TTBDock
-    Height = 370
+    Height = 389
   end
   inherited TBDockRight: TTBDock
     Left = 679
-    Height = 370
+    Height = 389
   end
   inherited TBDockBottom: TTBDock
-    Top = 440
+    Top = 459
     Width = 688
   end
   inherited pnlWorkArea: TPanel
     Width = 670
-    Height = 370
+    Height = 389
     inherited spChoose: TSplitter
-      Top = 267
+      Top = 286
       Width = 670
     end
     inherited pnlMain: TPanel
       Width = 670
-      Height = 267
+      Height = 286
       inherited pnlSearchMain: TPanel
-        Height = 267
+        Height = 286
         inherited sbSearchMain: TScrollBox
-          Height = 240
+          Height = 259
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 510
-        Height = 267
+        Height = 286
         Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
       end
     end
     inherited pnChoose: TPanel
-      Top = 271
+      Top = 290
       Width = 670
       inherited pnButtonChoose: TPanel
         Left = 565

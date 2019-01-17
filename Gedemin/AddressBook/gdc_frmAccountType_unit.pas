@@ -1,3 +1,5 @@
+// andreik, 15.01.2019
+
 unit gdc_frmAccountType_unit;
 
 interface
@@ -46,9 +48,7 @@ end;
 
 initialization
   RegisterFrmClass(Tgdc_frmAccountType);
-  //RegisterClass(Tgdc_frmAccountType);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAccountType);
-
 end.

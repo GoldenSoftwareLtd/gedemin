@@ -1,6 +1,6 @@
 inherited gdc_dlgRelationField: Tgdc_dlgRelationField
-  Left = 1433
-  Top = 566
+  Left = 690
+  Top = 235
   HelpContext = 86
   Caption = 'Поле таблицы'
   ClientHeight = 435
@@ -43,7 +43,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       Caption = 'Общие'
       object Label1: TLabel
         Left = 12
-        Top = 69
+        Top = 63
         Width = 126
         Height = 13
         Caption = 'Название поля таблицы:'
@@ -72,21 +72,21 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object Label3: TLabel
         Left = 12
-        Top = 99
+        Top = 88
         Width = 138
         Height = 13
         Caption = 'Локализованное название:'
       end
       object Label4: TLabel
         Left = 12
-        Top = 129
+        Top = 113
         Width = 183
         Height = 13
         Caption = 'Краткое локализованное название:'
       end
       object Label5: TLabel
         Left = 12
-        Top = 161
+        Top = 139
         Width = 80
         Height = 13
         Caption = 'Описание поля:'
@@ -108,9 +108,16 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         ParentFont = False
         Layout = tlCenter
       end
+      object Label6: TLabel
+        Left = 12
+        Top = 184
+        Width = 138
+        Height = 13
+        Caption = 'Семантические категории:'
+      end
       object dbedRelationFieldName: TDBEdit
         Left = 250
-        Top = 65
+        Top = 59
         Width = 201
         Height = 21
         CharCase = ecUpperCase
@@ -124,7 +131,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object dbedRelationFieldLName: TDBEdit
         Left = 250
-        Top = 95
+        Top = 84
         Width = 201
         Height = 21
         DataField = 'LNAME'
@@ -133,7 +140,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object dbedRelationFieldShortLName: TDBEdit
         Left = 250
-        Top = 125
+        Top = 109
         Width = 201
         Height = 21
         DataField = 'LSHORTNAME'
@@ -142,9 +149,9 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
       end
       object dbedRelationFieldDescription: TDBMemo
         Left = 250
-        Top = 156
+        Top = 134
         Width = 201
-        Height = 54
+        Height = 43
         DataField = 'DESCRIPTION'
         DataSource = dsgdcBase
         TabOrder = 3
@@ -157,7 +164,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
         Align = alBottom
         BevelOuter = bvNone
         BorderWidth = 4
-        TabOrder = 4
+        TabOrder = 5
         object pcType: TPageControl
           Left = 4
           Top = 4
@@ -256,7 +263,7 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
             object lComputed: TLabel
               Left = 0
               Top = 0
-              Width = 260
+              Width = 435
               Height = 13
               Align = alTop
               Caption = 'Выражение  для вычисляемого поля на языке SQL:'
@@ -273,6 +280,15 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
             end
           end
         end
+      end
+      object dbedSemCategory: TDBEdit
+        Left = 250
+        Top = 181
+        Width = 201
+        Height = 21
+        DataField = 'SEMCATEGORY'
+        DataSource = dsgdcBase
+        TabOrder = 4
       end
     end
     object tsVisualSettings: TTabSheet

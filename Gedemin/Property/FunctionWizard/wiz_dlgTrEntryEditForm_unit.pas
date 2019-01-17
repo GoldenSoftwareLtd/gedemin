@@ -199,7 +199,7 @@ begin
         beCurr.Text := GetCurrNameById(FCurrKey);
       end else
         beCurr.Text := CurrRUID;
-        
+
       beSumCurr.Text := SumCurr;
       UpdateControls;
       if (FAnalyticLines <> nil) and (FAnalyticLines.Count > 0) then
@@ -431,11 +431,15 @@ begin
       SelectClause := '';
       for I := 0 to FAvailAnalyticFields.Count - 1 do
       begin
-        if SelectClause > '' then
-          SelectClause := SelectClause + ',';
-        SelectClause := SelectClause + Format('Sum(a.%s) AS %s',
-          [TatRelationField(FAvailAnalyticFields[I]).FieldName,
-          TatRelationField(FAvailAnalyticFields[I]).FieldName]);
+        if  (TatRelationField(FAvailAnalyticFields[I]).FieldName <> 'CURRKEY')
+        and (TatRelationField(FAvailAnalyticFields[I]).FieldName <> 'DOCUMENTTYPEKEY') then
+        begin
+          if SelectClause > '' then
+            SelectClause := SelectClause + ',';
+          SelectClause := SelectClause + Format('Sum(a.%s) AS %s',
+            [TatRelationField(FAvailAnalyticFields[I]).FieldName,
+            TatRelationField(FAvailAnalyticFields[I]).FieldName]);
+        end;
       end;
 
       if SelectClause > '' then

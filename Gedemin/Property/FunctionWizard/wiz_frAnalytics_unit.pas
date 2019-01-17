@@ -204,11 +204,15 @@ begin
       SelectClause := '';
       for I := 0 to FAvailAnalyticFields.Count - 1 do
       begin
-        if SelectClause > '' then
-          SelectClause := SelectClause + ',';
-        SelectClause := SelectClause + Format('Sum(a.%s) AS %s',
-          [TatRelationField(FAvailAnalyticFields[I]).FieldName,
-          TatRelationField(FAvailAnalyticFields[I]).FieldName]);
+        if  (TatRelationField(FAvailAnalyticFields[I]).FieldName <> 'CURRKEY')
+        and (TatRelationField(FAvailAnalyticFields[I]).FieldName <> 'DOCUMENTTYPEKEY') then
+        begin
+          if SelectClause > '' then
+            SelectClause := SelectClause + ',';
+          SelectClause := SelectClause + Format('Sum(a.%s) AS %s',
+            [TatRelationField(FAvailAnalyticFields[I]).FieldName,
+            TatRelationField(FAvailAnalyticFields[I]).FieldName]);
+        end;
       end;
 
       if SelectClause > '' then

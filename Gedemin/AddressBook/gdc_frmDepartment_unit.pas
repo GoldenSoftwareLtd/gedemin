@@ -1,3 +1,4 @@
+// andreik, 15.01.2019
 
 unit gdc_frmDepartment_unit;
 
@@ -41,7 +42,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_security, IBSQL,  gd_ClassList, gd_keyAssoc, Storages;
+  gd_security, IBSQL, gd_ClassList, gd_keyAssoc, Storages, gdcBaseInterface;
 
 procedure Tgdc_frmDepartment.FormCreate(Sender: TObject);
 begin
@@ -77,13 +78,12 @@ procedure Tgdc_frmDepartment.ibcmbCompanyChange(Sender: TObject);
 var
   WasActive: Boolean;
 begin
-  if gdcObject.ParamByName('companykey').AsInteger <> ibcmbCompany.CurrentKeyInt then
+  if not EqTID(gdcObject.ParamByName('companykey'), ibcmbCompany.CurrentKeyInt) then
   begin
     WasActive := gdcObject.Active;
     try
       gdcObject.Active := False;
-      gdcObject.ParamByName('companykey').AsInteger :=
-        ibcmbCompany.CurrentKeyInt;
+      SetTID(gdcObject.ParamByName('companykey'), ibcmbCompany.CurrentKeyInt);
     finally
       gdcObject.Active := WasActive;
     end;
@@ -94,7 +94,7 @@ procedure Tgdc_frmDepartment.gdcDepartmentNewRecord(DataSet: TDataSet);
 begin
   inherited;
   if DataSet.FieldByName('parent').IsNull and (ibcmbCompany.CurrentKey > '') then
-    DataSet.FieldByName('parent').AsInteger := ibcmbCompany.CurrentKeyInt;
+    SetTID(DataSet.FieldByName('parent'), ibcmbCompany.CurrentKeyInt);
 end;
 
 initialization

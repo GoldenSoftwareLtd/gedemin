@@ -1730,7 +1730,7 @@ begin
         RemoveList := FRemoveList;
         DoDialog;
       finally
-        Free;
+        Free;                                                           
       end;
     end;  
   end;
@@ -1861,13 +1861,17 @@ end;
 procedure TgdcNamespaceLoaderNexus.WMLoadNamespace(var Msg: TMessage);
 var
   L: TgdcNamespaceLoader;
+  {$IFDEF WITH_INDY}
   SL: TStringList;
   T: TDateTime;
+  {$ENDIF}
 begin
   Assert(not FLoading);
   Assert(FList <> nil);
 
+  {$IFDEF WITH_INDY}
   T := Now;
+  {$ENDIF}
   FLoading := True;
   try
     L := TgdcNamespaceLoader.Create;

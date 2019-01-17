@@ -660,8 +660,8 @@ var
   C: TPersistentClass;
   RN, S: String;
   SL: TStringList;
-  Cnt: Integer;
   {$IFDEF WITH_INDY}
+  Cnt: Integer;
   Progress: TgdccProgress;
   {$ENDIF}
 begin
@@ -702,9 +702,9 @@ begin
       qList.ParamByName('nk').AsInteger := ANamespaceKey;
     qList.ExecQuery;
 
+    {$IFDEF WITH_INDY}
     Cnt := qList.Fields[0].AsInteger;
 
-    {$IFDEF WITH_INDY}
     if Cnt > 0 then
       Progress.StartWork('ќбновление', 'ќбновл€ютс€ даты изменени€ объектов', Cnt + 1);
     {$ENDIF}

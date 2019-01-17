@@ -639,7 +639,7 @@ begin
   end;
 
   if not IsCommon and not HasSubSet('ByID') and not HasSubSet('ByParent') then
-    S.Add('z.companykey in (' + IBLogin.HoldingList + ')');
+    S.Add('z.companykey + 0 in (' + IBLogin.HoldingList + ')');
 end;
 
 procedure TgdcDocument.DoOnReportClick(Sender: TObject);
@@ -719,7 +719,7 @@ begin
     except
       on E: EIBError do
       begin
-        if E.IBErrorCode = isc_lock_conflict then
+        if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
         begin
            if MessageBox(ParentHandle,
              'ƒанный документ находитс€ на редактировании.'#13#10 +
@@ -3442,6 +3442,9 @@ begin
   {END MACRO}
 
   inherited;
+
+  if FieldByName('documentkey').AsInteger <> FieldByName('id').AsInteger then
+    FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
 
   CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
   CustomExecQuery(

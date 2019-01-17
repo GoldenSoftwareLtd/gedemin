@@ -6,7 +6,6 @@ inherited gdc_dlgCustomGroup: Tgdc_dlgCustomGroup
   Caption = 'Группа'
   ClientHeight = 259
   ClientWidth = 432
-  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
@@ -15,12 +14,14 @@ inherited gdc_dlgCustomGroup: Tgdc_dlgCustomGroup
     TabOrder = 1
   end
   inherited btnNew: TButton
-    Left = 77
     Top = 232
     TabOrder = 2
   end
+  inherited btnHelp: TButton
+    Left = 149
+    Top = 232
+  end
   inherited btnOK: TButton
-    Left = 284
     Top = 232
     TabOrder = 3
   end
@@ -28,10 +29,6 @@ inherited gdc_dlgCustomGroup: Tgdc_dlgCustomGroup
     Left = 357
     Top = 232
     TabOrder = 4
-  end
-  inherited btnHelp: TButton
-    Left = 149
-    Top = 232
   end
   inherited pgcMain: TPageControl
     Width = 421

@@ -91,6 +91,7 @@ var
   ValueSelect, ValueJoin, ValueAlias, QuantityAlias, IDValues: String;
   K: Integer;
   ASelect, AFrom, AGroup, ACorrSelect, ACorrFrom, ACorrGroup: String;
+  SQLNullBalance, SQLNullBalanceQty: String;
 
   function FormBalanceQuery(ADate: TDate): String;
   begin
@@ -172,6 +173,20 @@ begin
   ValueSelect := '';
   ValueJoin := '';
   AccWhereQuantity := '';
+  SQLNullBalance :=
+    ' SELECT  FIRST 1 SKIP 0 '#13#10 +
+    '  0 AS Saldo, '#13#10 +
+    '  0 AS SaldoCurr, '#13#10 +
+    '  0 AS SaldoEQ'#13#10 +
+    ' FROM ac_entry e '#13#10 +
+    ' WHERE e.entrydate < :begindate ';
+
+  SQLNullBalanceQty :=
+    ' SELECT  FIRST 1 SKIP 0 '#13#10 +
+    '  0 AS Saldo '#13#10 +
+    ' FROM ac_entry e '#13#10 +
+    ' WHERE e.entrydate < :begindate ';
+
   //Количественные показатели
   if FAcctValues.Count > 0 then
   begin
@@ -235,33 +250,39 @@ begin
   // Сальдо на начало
   if FIBDSSaldoBegin.Active then
     FIBDSSaldoBegin.Close;
-  if FUseEntryBalance and (FCorrAccounts.Count = 0) and (FAcctValues.Count = 0) then
-  begin
-    CompanySBalance := 'bal.companykey + 0 IN (' + FCompanyList + ')';
 
-    if FAccounts.Count > 0 then
-      AccWhereBalance := 'bal.accountkey IN (' + IDList(FAccounts) + ')'#13#10'    AND '
-    else
-      AccWhereBalance := '';
-
-    FIBDSSaldoBegin.SelectSQL.Text := FormBalanceQuery(FDateBegin);
-  end
+  if FDocumentTypeKeyInAcctConditions then
+    FIBDSSaldoBegin.SelectSQL.Text := SQLNullBalance
   else
   begin
-    FIBDSSaldoBegin.SelectSQL.Text := Format(
-      'SELECT CAST(SUM(e.debitncu - e.creditncu) / %d AS NUMERIC(15, %d))AS Saldo, '#13#10 +
-      ' CAST(SUM(e.debitcurr - e.creditcurr) / %d AS NUMERIC(15, %d)) AS SaldoCurr, '#13#10 +
-      ' CAST(SUM(e.debiteq - e.crediteq) / %d AS NUMERIC(15, %d)) AS SaldoEQ ',
-      [FNcuSumInfo.Scale, FNcuSumInfo.DecDigits, FCurrSumInfo.Scale,
-       FCurrSumInfo.DecDigits, FEQSumInfo.Scale, FEQSumInfo.DecDigits]) +
-      ' FROM '#13#10 +
-      '   ac_entry e  ' +
-        IIF(FCorrAccounts.Count > 0,
-          ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
-      ' WHERE ' + AccWhere + ' e.entrydate < :begindate AND ' + CompanyS +
-        IIF(FCurrSumInfo.Show and (FCurrkey > 0),
-          ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
-        IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '');
+    if FUseEntryBalance and (FCorrAccounts.Count = 0) and (FAcctValues.Count = 0) then
+    begin
+      CompanySBalance := 'bal.companykey + 0 IN (' + FCompanyList + ')';
+
+      if FAccounts.Count > 0 then
+        AccWhereBalance := 'bal.accountkey IN (' + IDList(FAccounts) + ')'#13#10'    AND '
+      else
+        AccWhereBalance := '';
+
+      FIBDSSaldoBegin.SelectSQL.Text := FormBalanceQuery(FDateBegin);
+    end
+    else
+    begin
+      FIBDSSaldoBegin.SelectSQL.Text := Format(
+        'SELECT CAST(SUM(e.debitncu - e.creditncu) / %d AS NUMERIC(15, %d))AS Saldo, '#13#10 +
+        ' CAST(SUM(e.debitcurr - e.creditcurr) / %d AS NUMERIC(15, %d)) AS SaldoCurr, '#13#10 +
+        ' CAST(SUM(e.debiteq - e.crediteq) / %d AS NUMERIC(15, %d)) AS SaldoEQ ',
+        [FNcuSumInfo.Scale, FNcuSumInfo.DecDigits, FCurrSumInfo.Scale,
+         FCurrSumInfo.DecDigits, FEQSumInfo.Scale, FEQSumInfo.DecDigits]) +
+        ' FROM '#13#10 +
+        '   ac_entry e  ' +
+          IIF(FCorrAccounts.Count > 0,
+            ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
+        ' WHERE ' + AccWhere + ' e.entrydate < :begindate AND ' + CompanyS +
+          IIF(FCurrSumInfo.Show and (FCurrkey > 0),
+            ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
+          IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '');
+    end;
   end;
   FIBDSSaldoBegin.ParamByName(BeginDate).AsDateTime := FDateBegin;
   FIBDSSaldoBegin.Open;
@@ -277,13 +298,18 @@ begin
   // Сальдо на конец
   if FIBDSSaldoEnd.Active then
     FIBDSSaldoEnd.Close;
-  if FUseEntryBalance and (FCorrAccounts.Count = 0) and (FAcctValues.Count = 0) then
-  begin
-    FIBDSSaldoEnd.SelectSQL.Text := FormBalanceQuery(FDateEnd + 1);
-  end
+  if FDocumentTypeKeyInAcctConditions then
+    FIBDSSaldoEnd.SelectSQL.Text := SQLNullBalance
   else
   begin
-    FIBDSSaldoEnd.SelectSQL.Text := FIBDSSaldoBegin.SelectSQL.Text;
+    if FUseEntryBalance and (FCorrAccounts.Count = 0) and (FAcctValues.Count = 0) then
+    begin
+      FIBDSSaldoEnd.SelectSQL.Text := FormBalanceQuery(FDateEnd + 1);
+    end
+    else
+    begin
+      FIBDSSaldoEnd.SelectSQL.Text := FIBDSSaldoBegin.SelectSQL.Text;
+    end;
   end;
   FIBDSSaldoEnd.ParamByName(BeginDate).AsDateTime := FDateEnd + 1;
   FIBDSSaldoEnd.Open;
@@ -308,21 +334,27 @@ begin
 
   if FIBDSSaldoQuantityBegin.Active then
     FIBDSSaldoQuantityBegin.Close;
-  FIBDSSaldoQuantityBegin.SelectSQL.Text :=
-    'SELECT ' +
-    '  CAST(SUM(CASE WHEN e.debitncu > 0 THEN q.quantity ELSE -q.quantity END) AS NUMERIC(15, 4)) AS Saldo '#13#10 +
-    'FROM ' +
-    '  ac_entry e  ' +
-    '  JOIN ac_quantity q ON e.id = q.entrykey AND q.valuekey IN (' + IDValues + ')';
-  if FCorrAccounts.Count > 0 then
-    FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text +
-      ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart ';
-  FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' WHERE ' + AccWhere +
-    '   e.entrydate < :begindate AND ' + CompanyS;
-  if FCurrSumInfo.Show and (FCurrkey > 0) then
-    FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND e.currkey = ' + IntToStr(FCurrkey);
-  if EntryCondition <> '' then
-    FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND ' + EntryCondition;
+
+  if FDocumentTypeKeyInAcctConditions then
+    FIBDSSaldoQuantityBegin.SelectSQL.Text := SQLNullBalanceQty
+  else
+  begin
+    FIBDSSaldoQuantityBegin.SelectSQL.Text :=
+      'SELECT ' +
+      '  CAST(SUM(CASE WHEN e.debitncu > 0 THEN q.quantity ELSE -q.quantity END) AS NUMERIC(15, 4)) AS Saldo '#13#10 +
+      'FROM ' +
+      '  ac_entry e  ' +
+      '  JOIN ac_quantity q ON e.id = q.entrykey AND q.valuekey IN (' + IDValues + ')';
+    if FCorrAccounts.Count > 0 then
+      FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text +
+        ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart ';
+    FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' WHERE ' + AccWhere +
+      '   e.entrydate < :begindate AND ' + CompanyS;
+    if FCurrSumInfo.Show and (FCurrkey > 0) then
+      FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND e.currkey = ' + IntToStr(FCurrkey);
+    if EntryCondition <> '' then
+      FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND ' + EntryCondition;
+  end;
   FIBDSSaldoQuantityBegin.ParamByName(BeginDate).AsDateTime := FDateBegin;
   //FIBDSSaldoQuantityBegin.Open;
 
@@ -471,6 +503,10 @@ begin
 
   Self.SelectSQL.Text := Self.SelectSQL.Text +
     'ORDER BY e.entrydate, doc.number, a.alias, corr_a.alias';
+
+   if FDocumentTypeKeyInAcctConditions then
+    Self.SelectSQL.Text := StringReplace(Self.SelectSQL.Text, ' ac_entry ' + 'e ', AC_ENTRY_RPL + 'e ', [rfReplaceAll, rfIgnoreCase]);
+
 end;
 
 procedure TgdvAcctAccCard.SetDefaultParams;
@@ -507,6 +543,7 @@ begin
     ' AND ((:enddate > CAST(''17.11.1858'' AS DATE)) OR (1 = 1)) ';
 
   Self.SelectSQL.Text := SQLText;
+
 end;
 
 procedure TgdvAcctAccCard.DoLoadConfig(const Config: TBaseAcctConfig);

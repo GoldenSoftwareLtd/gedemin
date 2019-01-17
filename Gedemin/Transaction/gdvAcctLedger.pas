@@ -259,7 +259,7 @@ type
 
     procedure CheckAnalyticLevelProcedures;
     procedure UpdateEntryDateIsFirst;
-    
+
     //процедура возвращает СКЛ запрос для вычисления начального сальдо
     //когда выбрана фиксированная аналитика и дата стоит первой аналитикой
     //для группировки
@@ -315,6 +315,8 @@ type
     procedure SetDefaultParams; override;
 
     function LargeSQLErrorMessage: String; override;
+    procedure UpdateDocumentTypeKeyInAcctConditions; override;
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -551,7 +553,11 @@ begin
       end;
     end;
     // Если это уровни по новой аналитике
-    F := atDatabase.FindRelationField(AC_ENTRY, AnalyticName);
+    if AnsiCompareText(AnalyticName, fnDocumentTypeKey) = 0 then
+      F := atDatabase.FindRelationField('GD_DOCUMENT', 'DOCUMENTTYPEKEY')
+    else
+      F := atDatabase.FindRelationField(AC_ENTRY, AnalyticName);
+
     if Assigned(F) then
     begin
       AnalyticLevel := TgdvAcctAnalyticLevels.Create;
@@ -588,12 +594,12 @@ begin
   if not FMakeEmpty then
   begin
     UpdateEntryDateIsFirst;
+    UpdateDocumentTypeKeyInAcctConditions;
 
     if (FAccounts.Count > 0) or
       ((FAcctConditions.Count > 0) and FEntryDateIsFirst) then
     begin
       FSQLHandle := gdcBaseManager.GetNextID;
-
       Tr := TIBTransaction.Create(nil);
       try
         Tr.DefaultDatabase := gdcBaseManager.Database;
@@ -633,6 +639,10 @@ begin
             ibsql.SQL.Add('e.entrydate <= :enddate AND');
             ibsql.SQL.Add('r.companykey IN (' + FCompanyList + ') AND');
             ibsql.SQL.Add(Self.GetCondition('e'));
+
+            if FDocumentTypeKeyInAcctConditions then
+              ibsql.SQL.Text := StringReplace(ibsql.SQL.Text, ' ac_entry ' + 'e ', AC_ENTRY_RPL + 'e ', [rfReplaceAll, rfIgnoreCase]);
+
             ibsql.ParamByName('begindate').AsDateTime := FDateBegin;
             ibsql.ParamByName('enddate').AsDateTime := FDateEnd;
             ibsql.ExecQuery;
@@ -651,7 +661,7 @@ begin
       FSQLHandle := 0;
 
     CheckAnalyticLevelProcedures;
-  end;  
+  end;
 end;
 
 procedure TgdvAcctLedger.DoBuildSQL;
@@ -696,7 +706,6 @@ var
     RefListField: TatRelationField;
   begin
     F := CurrentAnalytic.Field;
-
     if Assigned(FFieldInfos) then
     begin
       FI := FFieldInfos.AddInfo;
@@ -751,16 +760,17 @@ var
       FNcuTotalBlock.EndCredit.FieldName := BaseAcctFieldList[5].FieldName;
       if FUseEntryBalance then
       begin
+
         GetDebitSumSelectClauseBalance;
         GetCreditSumSelectClauseBalance;
       end
       else
       begin
+
         GetDebitSumSelectClause;
         GetCreditSumSelectClause;
       end;
       FNcuTotalBlock := nil;
-
       // Итого для иностранной валюты
       if FCurrSumInfo.Show then
       begin
@@ -895,9 +905,7 @@ var
           MainGroup := MainGroup +
             'en.' + F.FieldName;
           if MainSubSubGroup03 > '' then MainSubSubGroup03 := MainSubSubGroup03 + ', ';
-          MainSubSubGroup03 := MainSubSubGroup03 +
-            'em.' + F.FieldName;
-
+          MainSubSubGroup03 := MainSubSubGroup03 + 'em.' + F.FieldName;
           // Не будем заполнять эти поля при обработке уровня аналитики,
           //  они заполнятся нужными значениями при обработке группировочной аналитике
           if not IsTreeAnalytic then
@@ -909,11 +917,9 @@ var
             MainSubSubSelect01 := MainSubSubSelect01 +
               'bal.' + F.FieldName;
             if MainSubSubSelect02 > '' then MainSubSubSelect02 := MainSubSubSelect02 + ', ';
-            MainSubSubSelect02 := MainSubSubSelect02 +
-              'e.' + F.FieldName;
+            MainSubSubSelect02 := MainSubSubSelect02 + 'e.' + F.FieldName;
             if MainSubSubSelect03 > '' then MainSubSubSelect03 := MainSubSubSelect03 + ', ';
-            MainSubSubSelect03 := MainSubSubSelect03 +
-              'em.' + F.FieldName;
+            MainSubSubSelect03 := MainSubSubSelect03 + 'em.' + F.FieldName;
             CorrWhere := CorrWhere + ' AND em.' + F.FieldName + ' = :' + Alias;
           end;
 
@@ -1005,8 +1011,7 @@ var
               Format(' em.%0:s AS %1:s '#13#10, [F.FieldName, Alias]);
             // Заполняем секции GROUP BY в третьем запросе второго уровня вложенности в главном запросе
             if MainSubSubGroup03 > '' then MainSubSubGroup03 := MainSubSubGroup03 + ', ';
-            MainSubSubGroup03 := MainSubSubGroup03 +
-              Format(' em.%0:s '#13#10, [F.FieldName]);
+            MainSubSubGroup03 := MainSubSubGroup03 +  Format(' em.%0:s '#13#10, [F.FieldName]);
           end;
         end
         else
@@ -1119,7 +1124,6 @@ var
     end
     else
     begin
-
       if IDSelect > '' then
         IDSelect := IDSelect + ', ';
       if NameSelect > '' then
@@ -1400,14 +1404,12 @@ begin
     AnalyticFilterBal := Self.GetCondition('bal');
     if AnalyticFilterBal > '' then
       AnalyticFilterBal := ' AND ' + AnalyticFilterBal + #13#10;
-
     TempVariables := TStringList.Create;
     try
       N := FAcctGroupBy.Count;        // Кол-во выбранных группировочных аналитик
       for I := 0 to FAcctGroupBy.Count - 1 do
       begin
         F := FAcctGroupBy[I].Field;
-
         if Assigned(F) then
         begin
           // Индекс строки ввода уровня аналитики
@@ -1443,7 +1445,6 @@ begin
             end;
           end;
         end;
-
         Alias := Format('c%d', [I]);
         Name := Format('NAME%d', [I]);
         SortName := Format('s%d', [I]);
@@ -1595,7 +1596,6 @@ begin
             Accounts.Objects[I].Free;
         Accounts.Free;
       end;
-
       DebitCreditSQL :=
         ' EXECUTE BLOCK ( '#13#10 +
         '   datebegin DATE = :BEGINDATE, '#13#10 +
@@ -1660,7 +1660,8 @@ begin
             TempVariables.Names[I] + ' = ''''; '#13#10;
 
       DebitCreditSQL := DebitCreditSQL +
-          IIF(not FEntryDateIsFirst, ' FOR '#13#10, '') +
+        IIF(not FEntryDateIsFirst, ' FOR '#13#10, '') +
+        IIF(FEntryDateIsFirst and FDocumentTypeKeyInAcctConditions, '',
         ' SELECT '#13#10 +
         '   m.ncu, '#13#10 +
         '   m.curr, '#13#10 +
@@ -1675,6 +1676,7 @@ begin
           IIF(MainSubSelect <> '', ', ' + MainSubSelect, '') + #13#10 +
         '   FROM '#13#10 +
         '   ( '#13#10 +
+          IIF(FDocumentTypeKeyInAcctConditions, '',
         '     SELECT '#13#10 +
         '       bal.debitncu, '#13#10 +
         '       bal.creditncu, '#13#10 +
@@ -1695,18 +1697,18 @@ begin
         '  '#13#10 +
         '     SELECT '#13#10 +
           IIF(FEntryBalanceDate > FDateBegin,
-            ' - e1.debitncu, '#13#10 +
-            ' - e1.creditncu, '#13#10 +
-            ' - e1.debitcurr, '#13#10 +
-            ' - e1.creditcurr, '#13#10 +
-            ' - e1.debiteq, '#13#10 +
-            ' - e1.crediteq '#13#10,
-            ' e1.debitncu, '#13#10 +
-            ' e1.creditncu, '#13#10 +
-            ' e1.debitcurr, '#13#10 +
-            ' e1.creditcurr, '#13#10 +
-            ' e1.debiteq, '#13#10 +
-            ' e1.crediteq '#13#10) +
+            ' - e1.debitncu AS debitncu, '#13#10 +
+            ' - e1.creditncu AS creditncu, '#13#10 +
+            ' - e1.debitcurr AS debitcurr, '#13#10 +
+            ' - e1.creditcurr AS creditcurr, '#13#10 +
+            ' - e1.debiteq AS debiteq, '#13#10 +
+            ' - e1.crediteq AS crediteq '#13#10,
+            ' e1.debitncu AS debitncu, '#13#10 +
+            ' e1.creditncu AS creditncu, '#13#10 +
+            ' e1.debitcurr AS debitcurr, '#13#10 +
+            ' e1.creditcurr AS creditcurr, '#13#10 +
+            ' e1.debiteq AS debiteq, '#13#10 +
+            ' e1.crediteq AS crediteq '#13#10) +
           IIF(MainSubSubSelect02 <> '', ', ' + MainSubSubSelect02 + #13#10, '') +
         '     FROM '#13#10 +
         '       ac_entry e '#13#10 +
@@ -1724,11 +1726,12 @@ begin
             ' e.entrydate <= :closedate AND '#13#10,
             ' e.entrydate <= :dateend AND '#13#10) +
         '       e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-          AnalyticFilterE +
+          AnalyticFilterE ) +
           IIF(not FEntryDateIsFirst,
+            IIF(FDocumentTypeKeyInAcctConditions, '',
             '  '#13#10 +
             ' UNION ALL '#13#10 +
-            '  '#13#10 +
+            '  '#13#10) +
             ' SELECT '#13#10 +
             '   CAST(0 as numeric(15, 4)) AS debitncu, '#13#10 +
             '   CAST(0 as numeric(15, 4)) AS creditncu, '#13#10 +
@@ -1766,7 +1769,7 @@ begin
         ' IF (varcurrbegin IS NULL) THEN '#13#10 +
         '   varcurrbegin = 0; '#13#10 +
         ' IF (vareqbegin IS NULL) THEN '#13#10 +
-        '   vareqbegin = 0; '#13#10 +
+        '   vareqbegin = 0; '#13#10) +
         '  '#13#10 +
           IIF(FEntryDateIsFirst, ' FOR '#13#10 +
             ' SELECT '#13#10 +
@@ -1835,9 +1838,10 @@ begin
         '     curr_credit = CAST((varcurrcredit / %2:d) AS NUMERIC(15, %3:d));  '#13#10 +
         '     eq_debit = CAST((vareqdebit / %4:d) AS NUMERIC(15, %5:d));  '#13#10 +
         '     eq_credit = CAST((vareqcredit / %4:d) AS NUMERIC(15, %5:d)); '#13#10 +
+        IIF(FDocumentTypeKeyInAcctConditions, '',
         '     varncuend = varncubegin + (varncudebit - varncucredit); '#13#10 +
         '     varcurrend = varcurrbegin + (varcurrdebit - varcurrcredit); '#13#10 +
-        '     vareqend = vareqbegin + (vareqdebit - vareqcredit); '#13#10 +
+        '     vareqend = vareqbegin + (vareqdebit - vareqcredit); '#13#10) +
         '  '#13#10 +
         '     IF (varncubegin > 0) THEN '#13#10 +
         '     BEGIN '#13#10 +
@@ -2029,7 +2033,7 @@ begin
         CurrId := Format('  AND e.currkey = %d'#13#10, [FCurrKey])
       else
         CurrId := '';
-      
+
       NcuDecDig := Format('NUMERIC(15, %d)', [FNcuSumInfo.DecDigits]);
       CurrDecDig := Format('NUMERIC(15, %d)', [FCurrSumInfo.DecDigits]);
       EQDecDig := Format('NUMERIC(15, %d)', [FEQSumInfo.DecDigits]);
@@ -2151,8 +2155,8 @@ begin
             FQuantityTotalBlock.Credit.FieldName := Format(BaseAcctQuantityFieldList[1].FieldName, [VKeyAlias]);
             FQuantityTotalBlock.EndDebit.FieldName := Format(BaseAcctQuantityFieldList[4].FieldName, [VKeyAlias]);
             FQuantityTotalBlock.EndCredit.FieldName := Format(BaseAcctQuantityFieldList[5].FieldName, [VKeyAlias]);
-           // GetDebitQuantitySelectClause;
-          //  GetCreditQuantitySelectClause;
+            GetDebitQuantitySelectClause;
+            GetCreditQuantitySelectClause;
             FQuantityTotalBlock := nil;
 
             if not FEntryDateIsFirst then
@@ -2380,7 +2384,9 @@ begin
         if (FAcctValues.Count = 0) or
             ((FAcctValues.Count > 0) and FNcuSumInfo.Show) then
         begin
-          HavingClause := HavingClause + ' OR '#13#10 +
+          if HavingClause > '' then
+            HavingClause := HavingClause + ' OR '#13#10 ;
+          HavingClause := HavingClause +
           '  SUM(e2.debitncu) <> 0 OR '#13#10 +
           '  SUM(e2.creditncu) <> 0 OR '#13#10 +
           '  SUM(e1.debitncu - e1.creditncu) <> 0'#13#10;
@@ -2388,20 +2394,23 @@ begin
 
         if FCurrSumInfo.Show then
         begin
-          HavingClause := HavingClause + ' OR '#13#10 +
+          if HavingClause > '' then
+            HavingClause := HavingClause + ' OR '#13#10 ;
+          HavingClause := HavingClause +
             '  SUM(e1.debitcurr - e1.creditcurr) <> 0 OR '#13#10 +
             '  SUM(e2.debitcurr) <> 0 OR SUM(e2.creditcurr) <> 0 ';
         end;
 
         if FEQSumInfo.Show then
         begin
-          HavingClause := HavingClause + ' OR '#13#10 +
+          if HavingClause > '' then
+            HavingClause := HavingClause + ' OR '#13#10 ;
+          HavingClause := HavingClause +
             '  SUM(e1.debiteq - e1.crediteq) <> 0 OR '#13#10 +
             '  SUM(e2.debiteq) <> 0 OR SUM(e2.crediteq) <> 0 ';
         end;
 
         HavingClause := 'HAVING ' + HavingClause;
-
         DebitCreditSQL := Format(cDebitCredit, [SelectClause, NcuBegin,
           GetDebitSumSelectClause, FNcuSumInfo.Scale, NcuDecDig,
           GetCreditSumSelectClause, FNcuSumInfo.Scale, NcuDecDig, NcuEnd,
@@ -2481,6 +2490,15 @@ begin
       Strings.Free;
     end;
   end;
+
+  if FDocumentTypeKeyInAcctConditions then
+  begin
+    DebitCreditSQL := StringReplace(DebitCreditSQL, ' ac_entry ' + 'e ', AC_ENTRY_RPL + 'e ', [rfReplaceAll, rfIgnoreCase]);
+    DebitCreditSQL := StringReplace(DebitCreditSQL, ' ac_entry ' + 'em ', AC_ENTRY_RPL + 'em ', [rfReplaceAll, rfIgnoreCase]);
+    DebitCreditSQL := StringReplace(DebitCreditSQL, ' ac_entry ' + 'e_cm ', AC_ENTRY_RPL + 'e_cm ', [rfReplaceAll, rfIgnoreCase]);
+    DebitCreditSQL := StringReplace(DebitCreditSQL, ' ac_entry ' + 'e_m ', AC_ENTRY_RPL + 'e_m ', [rfReplaceAll, rfIgnoreCase]);
+  end;
+
   Self.SelectSQL.Text := DebitCreditSQL;
 end;
 
@@ -2539,7 +2557,6 @@ begin
           SaldoBeginSQL(ibsql);
           ibsql.ParamByName('datebegin').AsDateTime := FDateBegin;
           ibsql.ExecQuery;
-
           Self.ParamByName('saldobegin').AsCurrency := ibsql.FieldByName('saldobegin').AsCurrency;
           Self.ParamByName('saldobegincurr').AsCurrency := ibsql.FieldByName('saldobegincurr').AsCurrency;
           Self.ParamByName('saldobegineq').AsCurrency := ibsql.FieldByName('saldobegineq').AsCurrency;
@@ -2598,6 +2615,9 @@ begin
   end;
 
   SQL.SQL.Text := SQL.SQL.Text + #13#10 + GetCondition('e');
+
+  if FDocumentTypeKeyInAcctConditions then
+    SQL.SQL.Text := StringReplace(SQL.SQL.Text, ' ac_entry ', AC_ENTRY_RPL + 'e ', [rfReplaceAll, rfIgnoreCase]);
 end;
 
 procedure TgdvAcctLedger.SetDefaultParams;
@@ -2720,6 +2740,22 @@ begin
   end;
 end;
 
+procedure TgdvAcctLedger.UpdateDocumentTypeKeyInAcctConditions;
+var  I: Integer;
+begin
+  inherited;
+
+  if FDocumentTypeKeyInAcctConditions = False then
+  begin
+    for I := 0 to FAcctGroupBy.Count - 1 do
+    begin
+      FDocumentTypeKeyInAcctConditions := AnsiCompareText(FAcctGroupBy[I].FieldName, fnDocumentTypeKey) = 0;
+      if FDocumentTypeKeyInAcctConditions then
+        Break;
+    end;
+  end;
+end;
+
 { TgdvLedgerFieldInfo }
 
 procedure TgdvLedgerFieldInfo.SetAccountAlias(const Value: string);
@@ -2753,8 +2789,8 @@ begin
       for I := 0 to FAcctGroupBy.Count  - 1 do
       begin
         F := FAcctGroupBy[I].Field;
-
-        if (F <> nil) and (F.FieldName <> EntryDate) then
+        if (F <> nil) and (F.FieldName <> EntryDate)
+        then
         begin
           {Если тип INTEGER}
           if F.SQLType in [blr_short, blr_long, blr_int64] then
@@ -2777,7 +2813,8 @@ begin
       begin
         F := atDatabase.FindRelationField(AC_ENTRY, FAcctConditions.Names[I]);
 
-        if (F <> nil) and (F.FieldName <> EntryDate) then
+        if (F <> nil) and (F.FieldName <> EntryDate)
+        then
         begin
           {Если тип INTEGER}
           if F.SQLType in [blr_short, blr_long, blr_int64] then
@@ -2804,7 +2841,6 @@ begin
       for I := 0 to FAcctGroupBy.Count  - 1 do
       begin
         F := FAcctGroupBy[I].Field;
-
         if (F <> nil) and (F.FieldName <> EntryDate) then
         begin
           {Если тип INTEGER}
@@ -2902,7 +2938,6 @@ begin
         APart := ' e.accountpart = :accountpart AND '
       else
         APart := '';
-
       AnalyticsCond := Self.GetCondition('e');
       if AnalyticsCond > '' then AnalyticsCond := ' AND ' + AnalyticsCond;
 
@@ -3007,11 +3042,19 @@ begin
         end;
       end;
 
+      if FDocumentTypeKeyInAcctConditions then
+      begin
+        SQL.SQL.Text := StringReplace(SQL.SQL.Text, ' ac_entry ' + 'e ', AC_ENTRY_RPL + 'e ', [rfReplaceAll, rfIgnoreCase]);
+        SQL.SQL.Text := StringReplace(SQL.SQL.Text, ' ac_entry ' + 'e_cm ', AC_ENTRY_RPL + 'e_cm ', [rfReplaceAll, rfIgnoreCase]);
+        SQL.SQL.Text := StringReplace(SQL.SQL.Text, ' ac_entry ' + 'e_m ', AC_ENTRY_RPL + 'e_m ', [rfReplaceAll, rfIgnoreCase]);
+      end;
+
       if AccountPart > '' then
         SQL.ParamByName('accountpart').AsString := AccountPart;
       SQL.ParamByName('datebegin').AsDateTime := FDateBegin;
       SQL.ParamByName('dateend').AsDateTime := FDateEnd;
       SQL.ExecQuery;
+
       while not SQL.Eof do
       begin
         Strings.AddFieldInfo(SQL.FieldByName('alias').AsString,

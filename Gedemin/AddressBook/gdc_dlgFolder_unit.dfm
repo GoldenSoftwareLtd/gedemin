@@ -6,7 +6,6 @@ inherited gdc_dlgFolder: Tgdc_dlgFolder
   BorderIcons = [biSystemMenu]
   Caption = 'Папка'
   ClientHeight = 202
-  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
@@ -19,6 +18,10 @@ inherited gdc_dlgFolder: Tgdc_dlgFolder
     Top = 171
     TabOrder = 2
   end
+  inherited btnHelp: TButton
+    Left = 165
+    Top = 171
+  end
   inherited btnOK: TButton
     Left = 277
     Top = 171
@@ -28,10 +31,6 @@ inherited gdc_dlgFolder: Tgdc_dlgFolder
     Left = 357
     Top = 171
     TabOrder = 4
-  end
-  inherited btnHelp: TButton
-    Left = 165
-    Top = 171
   end
   inherited pgcMain: TPageControl
     Height = 155

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2017 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2018 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -136,6 +136,8 @@ type
     Panel7: TPanel;
     Panel8: TPanel;
     lblWarn: TLabel;
+    Label1: TLabel;
+    dbedSemCategory: TDBEdit;
 
     procedure actNewFieldExecute(Sender: TObject);
     procedure actNewFieldUpdate(Sender: TObject);

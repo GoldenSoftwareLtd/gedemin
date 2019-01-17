@@ -4,11 +4,10 @@ inherited gdc_frmBank: Tgdc_frmBank
   Width = 696
   Height = 480
   Caption = 'Банки'
-  Font.Name = 'Tahoma'
   OldCreateOrder = False
   OnActivate = actAddToSelectedExecute
   PixelsPerInch = 96
-  TextHeight = 14
+  TextHeight = 13
   inherited sbMain: TStatusBar
     Top = 421
     Width = 688

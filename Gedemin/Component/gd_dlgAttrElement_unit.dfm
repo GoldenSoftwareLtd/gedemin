@@ -276,8 +276,8 @@ object gd_dlgAttrElement: Tgd_dlgAttrElement
     ParamCheck = True
     SQL.Strings = (
       
-        'SELECT GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0) FROM rdb$' +
-        'database')
+        'SELECT id FROM gd_p_getnextid' +
+        ' ')
     Left = 179
     Top = 61
   end

@@ -16,9 +16,10 @@ uses
   Test_gsFTPClient_unit,
   Test_yaml_unit,
   TestBasics_unit,
-  Test_SWIProlog_unit
+  Test_SWIProlog_unit,
+  Test_GetNextID_unit
   {$IFDEF WITH_INDY}
-  , Test_Indy_unit 
+  , Test_Indy_unit
   {$ENDIF}
   {$IFDEF GEDEMIN}
   , Test_gsStorage_unit

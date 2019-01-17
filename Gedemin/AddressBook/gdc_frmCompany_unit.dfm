@@ -8,50 +8,47 @@ inherited gdc_frmCompany: Tgdc_frmCompany
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 434
+    Top = 430
     Width = 688
   end
   inherited TBDockTop: TTBDock
     Width = 688
   end
   inherited TBDockLeft: TTBDock
-    Height = 376
+    Height = 370
   end
   inherited TBDockRight: TTBDock
     Left = 679
-    Height = 376
+    Height = 370
   end
   inherited TBDockBottom: TTBDock
-    Top = 425
+    Top = 421
     Width = 688
   end
   inherited pnlWorkArea: TPanel
     Width = 670
-    Height = 376
+    Height = 370
     inherited sMasterDetail: TSplitter
-      Height = 273
+      Height = 265
     end
     inherited spChoose: TSplitter
-      Top = 273
+      Top = 265
       Width = 670
     end
     inherited pnlMain: TPanel
-      Height = 273
+      Height = 265
       inherited pnlSearchMain: TPanel
-        Height = 273
+        Height = 265
         inherited sbSearchMain: TScrollBox
-          Height = 235
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 235
+          Height = 238
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 273
+        Height = 265
       end
     end
     inherited pnChoose: TPanel
-      Top = 277
+      Top = 271
       Width = 670
       inherited pnButtonChoose: TPanel
         Left = 565
@@ -64,23 +61,20 @@ inherited gdc_frmCompany: Tgdc_frmCompany
       end
     end
     inherited pnlDetail: TPanel
-      Width = 500
-      Height = 273
+      Width = 498
+      Height = 265
       inherited TBDockDetail: TTBDock
-        Width = 500
+        Width = 498
       end
       inherited pnlSearchDetail: TPanel
-        Height = 247
+        Height = 239
         inherited sbSearchDetail: TScrollBox
-          Height = 209
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 209
+          Height = 212
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 340
-        Height = 247
+        Width = 338
+        Height = 239
       end
     end
   end

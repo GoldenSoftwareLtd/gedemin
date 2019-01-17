@@ -1,3 +1,5 @@
+// andreik, 15.01.2019
+
 unit gdc_dlgCompanyAccountType_unit;
 
 interface
@@ -12,8 +14,6 @@ type
     Label4: TLabel;
     DBText1: TDBText;
     Label1: TLabel;
-
-  public
   end;
 
 var
@@ -31,5 +31,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgCompanyAccountType);
-
 end.

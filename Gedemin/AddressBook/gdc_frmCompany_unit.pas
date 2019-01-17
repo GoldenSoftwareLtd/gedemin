@@ -1,3 +1,4 @@
+// andreik, 15.01.2019
 
 unit gdc_frmCompany_unit;
 
