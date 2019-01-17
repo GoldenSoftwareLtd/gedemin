@@ -358,7 +358,7 @@ begin
   end;
 
   edEnglishName.MaxLength := 14;
-  
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGDOCUMENTTYPE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -517,6 +517,29 @@ procedure Tgdc_dlgDocumentType.Post;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+var
+  gdcExplorer: TgdcExplorer;
+
+  procedure _InsertExplorer;
+  begin
+    gdcExplorer.Open;
+    gdcExplorer.Insert;
+    try
+      gdcExplorer.FieldByName('parent').AsInteger := iblcExplorerBranch.CurrentKeyInt;
+      gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('name').AsString;
+      gdcExplorer.FieldByName('classname').AsString :=
+        (gdcObject as TgdcDocumentType).GetHeaderDocumentClass.ClassName;
+      gdcExplorer.FieldByName('subtype').AsString := gdcObject.FieldByName('ruid').AsString;
+      gdcExplorer.FieldByName('cmd').AsString := gdcObject.FieldByName('ruid').AsString;
+      gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
+      gdcExplorer.Post;
+      gdcObject.FieldByName('branchkey').AsInteger := gdcExplorer.ID;
+    finally
+      if gdcExplorer.State in dsEditModes then
+        gdcExplorer.Cancel;
+    end;
+  end;
+
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDOCUMENTTYPE', 'POST', KEYPOST)}
   {M}  try
@@ -536,7 +559,62 @@ begin
   {M}          Exit;
   {M}        end;
   {M}    end;
+
   {END MACRO}
+ if iblcExplorerBranch.Enabled then
+  try
+    gdcExplorer := TgdcExplorer.CreateSubType(nil, '', 'ByID');
+    try
+      gdcExplorer.Transaction := gdcObject.Transaction;
+      gdcExplorer.ReadTransaction := gdcObject.ReadTransaction;
+      if (gdcObject.FieldByName('branchkey').IsNull) and
+        (iblcExplorerBranch.CurrentKeyInt > 0)
+      then
+      begin
+        {если у нас не было ветки в исследователе и мы захотели ее создать}
+        _InsertExplorer;
+      end
+      else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
+        (iblcExplorerBranch.CurrentKeyInt = -1)
+      then
+      begin
+        {если у нас была ветка в исследователе и мы захотели ее удалить}
+        gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
+        gdcExplorer.Open;
+        if not gdcExplorer.EOF then
+        begin
+          gdcExplorer.Delete;
+        end;
+        gdcObject.FieldByName('branchkey').Clear;
+      end
+      else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
+        (iblcExplorerBranch.CurrentKeyInt > 0)
+      then
+      begin
+        {если у нас была ветка в исследователе, подредактируем ее и заменим наименование, родителя}
+        gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
+        gdcExplorer.Open;
+        if gdcExplorer.EOF or
+          (gdcExplorer.FieldByName('subtype').AsString <> gdcObject.FieldByName('ruid').AsString)
+        then
+        begin
+          _InsertExplorer;
+        end else
+        begin
+          gdcExplorer.Edit;
+          gdcExplorer.FieldByName('parent').AsInteger := iblcExplorerBranch.CurrentKeyInt;
+          gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('name').AsString;
+          gdcExplorer.Post;
+        end;
+      end;
+    finally
+      gdcExplorer.Free
+    end;
+  except
+    // гасим все исключения. если добавили поле ссылку, то оно
+    // еще не будет присутствовать в базе и на стадии обновления
+    // исследователя кинет ошибку.
+  end;
 
   inherited;
 
@@ -714,28 +792,6 @@ procedure Tgdc_dlgDocumentType.BeforePost;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-var
-  gdcExplorer: TgdcExplorer;
-
-  procedure _InsertExplorer;
-  begin
-    gdcExplorer.Open;
-    gdcExplorer.Insert;
-    try
-      gdcExplorer.FieldByName('parent').AsInteger := iblcExplorerBranch.CurrentKeyInt;
-      gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('name').AsString;
-      gdcExplorer.FieldByName('classname').AsString :=
-        (gdcObject as TgdcDocumentType).GetHeaderDocumentClass.ClassName;
-      gdcExplorer.FieldByName('subtype').AsString := gdcObject.FieldByName('ruid').AsString;
-      gdcExplorer.FieldByName('cmd').AsString := gdcObject.FieldByName('ruid').AsString;
-      gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
-      gdcExplorer.Post;
-      gdcObject.FieldByName('branchkey').AsInteger := gdcExplorer.ID;
-    finally
-      if gdcExplorer.State in dsEditModes then
-        gdcExplorer.Cancel;
-    end;
-  end;
 
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDOCUMENTTYPE', 'BEFOREPOST', KEYBEFOREPOST)}
@@ -764,61 +820,6 @@ begin
   begin
     gdcObject.FieldByName('name').FocusControl;
     raise EgdcIBError.Create('Укажите наименование типового документа!');
-  end;
-
-  if iblcExplorerBranch.Enabled then
-  try
-    gdcExplorer := TgdcExplorer.CreateSubType(nil, '', 'ByID');
-    try
-      gdcExplorer.Transaction := gdcObject.Transaction;
-      gdcExplorer.ReadTransaction := gdcObject.ReadTransaction;
-      if (gdcObject.FieldByName('branchkey').IsNull) and
-        (iblcExplorerBranch.CurrentKeyInt > 0)
-      then
-      begin
-        {если у нас не было ветки в исследователе и мы захотели ее создать}
-        _InsertExplorer;
-      end
-      else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
-        (iblcExplorerBranch.CurrentKeyInt = -1)
-      then
-      begin
-        {если у нас была ветка в исследователе и мы захотели ее удалить}
-        gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
-        gdcExplorer.Open;
-        if not gdcExplorer.EOF then
-        begin
-          gdcExplorer.Delete;
-        end;
-        gdcObject.FieldByName('branchkey').Clear;
-      end
-      else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
-        (iblcExplorerBranch.CurrentKeyInt > 0)
-      then
-      begin
-        {если у нас была ветка в исследователе, подредактируем ее и заменим наименование, родителя}
-        gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
-        gdcExplorer.Open;
-        if gdcExplorer.EOF or
-          (gdcExplorer.FieldByName('subtype').AsString <> gdcObject.FieldByName('ruid').AsString)
-        then
-        begin
-          _InsertExplorer;
-        end else
-        begin
-          gdcExplorer.Edit;
-          gdcExplorer.FieldByName('parent').AsInteger := iblcExplorerBranch.CurrentKeyInt;
-          gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('name').AsString;
-          gdcExplorer.Post;
-        end;
-      end;
-    finally
-      gdcExplorer.Free
-    end;
-  except
-    // гасим все исключения. если добавили поле ссылку, то оно
-    // еще не будет присутствовать в базе и на стадии обновления
-    // исследователя кинет ошибку.
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGDOCUMENTTYPE', 'BEFOREPOST', KEYBEFOREPOST)}
