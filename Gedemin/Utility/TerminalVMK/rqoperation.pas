@@ -132,7 +132,7 @@ const
   if AName <> '' then
   begin
     LoadDelayRequest(AName);
-    SysUtils.DeleteFile(ExtractFilePath(Application.ExeName) + DelayPath + AName + '.txt');
+  {  SysUtils.DeleteFile(ExtractFilePath(Application.ExeName) + DelayPath + AName + '.txt');  }
   end;
  end;
 
@@ -145,6 +145,8 @@ const
   Number: Integer;
   NTara: Integer;
   Npart: String;
+  StrTara: String;
+  NumT: String;
   NameGoods, Code, Key: String;
   Index, I: Integer;
   SL: TStringList;
@@ -158,13 +160,20 @@ const
      for I := DocumentLine to SL.Count - 1 do
      begin
        Key := Copy(SL[I], 1, Length(SL[I]) - 1);
-       GetInfoGoods(Key, Code, NameGoods, WeightInGram, Date, Number, Npart, NTara, WeightInGramT);
+       GetInfoGoods(Key, Code, NameGoods, WeightInGram, Date, Number, Npart, NTara, WeightInGramT, NumT);
+       case NTara of
+         0: StrTara := 'ящ';
+         1: StrTara := 'общ';
+         2: StrTara := 'тара';
+         3: StrTara := 'уп';
+       end;
+       NameGoods := NameGoods + '('+ StrTara +')';
        Weight := WeightInGram/1000;
-       if (Weight > weight_for_checking_sites)
-       then
-          Inc(FGoodsCount, Number)
-       else
-          if  Number > 0 then Inc(FGoodsCount);
+       if  NTara = 0 then
+         Inc(FGoodsCount);
+       if  NTara = 1 then
+          Inc(FGoodsCount, (StrToInt(NumT) div Number));
+       FTotalWeight := FTotalWeight + Weight;
        Index := FMemoPositions.IndexOf(Code);
        if (Index <> - 1) and ((FMemoPositions.Objects[Index] as TGoodInfo).Weight > (FMemoPositions.Objects[Index] as TGoodInfo).Error) then
        begin
@@ -194,25 +203,30 @@ end;
    Index: Integer;
    TempS: String;
    Npart: String;
+   NumT: String;
    NTara: Integer;
  begin
    TempS := FPosition[FPosition.Count - 1];
    SetLength(TempS, Length(TempS) - 1);
 
-   GetInfoGoods(TempS, Code, NameGoods, Weight, Date, Number, Npart, NTara, WeightT );
+   GetInfoGoods(TempS, Code, NameGoods, Weight, Date, Number, Npart, NTara, WeightT, NumT);
    Index := FMemoPositions.IndexOf(Code);
 
    if (Index <> - 1) then
      (FMemoPositions.Objects[Index] as TGoodInfo).Weight := (FMemoPositions.Objects[Index] as TGoodInfo).Weight + Weight/1000;
-
+   FTotalWeight := FTotalWeight -  Weight/1000;
    FPosition.Delete(FPosition.Count - 1);
 
-   if (Weight > weight_for_checking_sites)
+  { if (Weight > weight_for_checking_sites)
     and (Length(TempS) = length_code_for_checking_sites)
    then
      Dec(FGoodsCount, Number)
    else
-     if  Number > 0  then Dec(FGoodsCount);
+     if  Number > 0  then Dec(FGoodsCount);}
+   if  NTara = 0 then
+     Dec(FGoodsCount);
+   if  NTara = 1 then
+      Dec(FGoodsCount, (StrToInt(NumT) div Number));
  end;
 
  procedure TOperationRQ.Clear;
@@ -236,6 +250,8 @@ end;
   TempS: String;
   Count: Integer;
   Npart: String;
+  NumT: String;
+  StrTara: String;
   NTara: Integer;
  begin
    FSetBarCode := True;
@@ -243,7 +259,7 @@ end;
      BarCode := Trim(AKey);
      if CheckBarCode(BarCode) then
      begin
-       GetInfoGoods(AKey, Code, NameGoods, WeightInGram, Date, Number, Npart, Ntara, WeightInGramT);
+       GetInfoGoods(AKey, Code, NameGoods, WeightInGram, Date, Number, Npart, Ntara, WeightInGramT, NumT);
        if not FEnterCount and
          (WeightInGram > weight_for_checking_sites) and
          (Length(BarCode) = length_code_for_checking_sites) then
@@ -254,9 +270,9 @@ end;
            and TryStrToInt(TempS, Count)
          then
            BarCode := CreateBarCode(WeightInGram, Date, Code, Count, Npart, Ntara, WeightInGramT);
-
        end;
        Weight := WeightInGram/1000;
+
        Index := FMemoPositions.IndexOf(Code);
        if ((Index <> - 1) and ((FMemoPositions.Objects[Index] as TGoodInfo).Weight > (FMemoPositions.Objects[Index] as TGoodInfo).Error)) then
        begin
@@ -267,8 +283,15 @@ end;
            FMemoPositions.Delete(Index);
          end; }
          AddPosition(BarCode);
+         FTotalWeight := FTotalWeight + Weight;
          //FPosition.Add(AKey + Separator);
-
+         case NTara of
+           0: StrTara := 'ящ';
+           1: StrTara := 'общ';
+           2: StrTara := 'тара';
+           3: StrTara := 'уп';
+         end;
+         NameGoods := NameGoods + '('+ StrTara +')';
          CurrGood := NameGoods + '=' + FloatToStr(Weight) + 'кг';
        end else
        begin
@@ -286,6 +309,7 @@ end;
              if Index <> - 1 then
                (FMemoPositions.Objects[Index] as TGoodInfo).Weight := (FMemoPositions.Objects[Index] as TGoodInfo).Weight - Weight;
             // FPosition.Add(BarCode + Separator);
+            FTotalWeight := FTotalWeight + Weight;
             AddPosition(BarCode);
             CurrGood := NameGoods + '=' + FloatToStr(Weight) + 'кг';
            end;
@@ -308,6 +332,8 @@ end;
 
    for I := 0 to DocumentLine - 3 do
      Temps := Temps + FPosition[I];
+   //Удаляем отложенную заявку
+   SysUtils.DeleteFile(ExtractFilePath(Application.ExeName) + DelayPath + StringReplace(Temps, Separator, '', [rfReplaceAll]) + '.txt');
    if (MessageForm.MessageDlg(PChar('Заявка сформирована полностью?'),
      'Внимание', mtInformation, [mbYes, mbNo]) = mrYes)
    then
@@ -354,15 +380,19 @@ end;
    for I := 0 to InfoLine - 1 do
      Temps := Temps + FMemoPositions[I] + EndStr;
 
-   Temps := Temps + 'Кол-во позиций: ' + IntToStr(FGoodsCount) + EndStr;
-
+   Temps := Temps + 'Кол-во коробок с товаром: ' + IntToStr(FGoodsCount) + EndStr;
+   Temps := Temps + 'Общий вес: ' +  FloatToStrF(FTotalWeight, ffFixed, 6, 3) + 'кг' + EndStr;
    if CurrGood <> '' then
-   begin
-     Canvas.Font := mTP.Font;
-     Temps := Temps + StrFillChar('-', (mTP.VertScrollBar.ClientSize div Canvas.TextWidth('-')));
-     Temps := Temps + 'Добавлена позиция: ' + CurrGood +
-       EndStr + StrFillChar('-', (mTP.VertScrollBar.ClientSize div Canvas.TextWidth('-')));
-   end;
+     begin
+       Canvas.Font := mTP.Font;
+       Temps := Temps + StrFillChar('-', (mTP.VertScrollBar.ClientSize div Canvas.TextWidth('-')));
+       Temps := Temps + 'Добавлена позиция: ' + CurrGood +
+         EndStr + StrFillChar('-', (mTP.VertScrollBar.ClientSize div Canvas.TextWidth('-')));
+     end
+   else
+     begin
+       Temps := Temps + StrFillChar('-', (mTP.VertScrollBar.ClientSize div Canvas.TextWidth('-')));
+     end;
 
    for I := InfoLine to FMemoPositions.Count - 1 do
      if (FMemoPositions.Objects[I] as TGoodInfo).Weight > (FMemoPositions.Objects[I] as TGoodInfo).Error then
@@ -395,6 +425,7 @@ end;
    Date: TDateTime;
    Number: Integer;
    Npart: String;
+   NumT: String;
    NTara: Integer;
  begin
     case Key of
@@ -402,7 +433,7 @@ end;
       begin
         if (FPosition.Count > DocumentLine) then
         begin
-          GetInfoGoods(FPosition[FPosition.Count - 1], Code, NameGoods, Weight, Date, Number,  Npart, NTara, WeightT);
+          GetInfoGoods(FPosition[FPosition.Count - 1], Code, NameGoods, Weight, Date, Number,  Npart, NTara, WeightT, NumT);
           if (MessageForm.MessageDlg(PChar('Удалить последнюю позицию документа "' + NameGoods +
             '  ' + FloatToStr(Weight/1000) + 'кг "?'),
             'Внимание', mtInformation, [mbYes, mbNo]) = mrYes) then

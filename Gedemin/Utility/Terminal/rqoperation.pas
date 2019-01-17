@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  ExtCtrls, BaseOperation, Windows;
+  ExtCtrls, BaseOperation, Windows, ShowOrder;
 
 const
   LoadPath = 'cl\';
@@ -22,7 +22,6 @@ type
     FPosition: Integer;
   public
     constructor Create;
-
     property BarCode: String read FBarCode write FBarCode;
     property Weight: Double read FWeight write FWeight;
     property Error: Double read FError write FError;
@@ -51,6 +50,7 @@ type
     procedure LoadRequest(const AnUserID, AName: String);
     procedure Clear;
     procedure AddPositionToMemo(const AString: String); override;
+    property FPPosition: TStringList read FPosition write FPosition;
   end;
 
 
@@ -160,7 +160,7 @@ const
        then
           Inc(FGoodsCount, Number)
        else
-          if  Number > 0 then Inc(FGoodsCount);
+          if  Number >= 0 then Inc(FGoodsCount);
        Index := FMemoPositions.IndexOf(Code);
        if (Index <> - 1) and ((FMemoPositions.Objects[Index] as TGoodInfo).Weight > (FMemoPositions.Objects[Index] as TGoodInfo).Error) then
        begin
@@ -202,11 +202,11 @@ end;
    FPosition.Delete(FPosition.Count - 1);
 
    if (Weight > weight_for_checking_sites)
-    and (Length(TempS) = length_code_for_checking_sites)
+    and (Length(TempS) >= length_code_for_checking_sites)
    then
      Dec(FGoodsCount, Number)
    else
-     if  Number > 0  then Dec(FGoodsCount);
+     Dec(FGoodsCount);
  end;
 
  procedure TOperationRQ.Clear;
@@ -238,14 +238,16 @@ end;
        GetInfoGoods(AKey, Code, NameGoods, WeightInGram, Date, Number, NPart);
        if not FEnterCount and
          (WeightInGram > weight_for_checking_sites) and
-         (Length(BarCode) = length_code_for_checking_sites) then
+         (Length(BarCode) >= length_code_for_checking_sites) then
        begin
          TempS := Trim(TBaseAddInformation.Execute('Введите кол-во мест: '));
          if (TempS > '')
            and (Length(TempS) <= 3)
            and TryStrToInt(TempS, Count)
          then
-           BarCode := CreateBarCode(WeightInGram, Date, Code, Count, Npart);
+           begin
+             BarCode := CreateBarCode(WeightInGram, Date, Code, Count, Npart);
+           end;
          {$IFNDEF SKORPIOX3}
            registerLabelMessage(Handle, AM_DCD_SCAN);
          {$ENDIF}
@@ -381,6 +383,10 @@ end;
    Date: TDateTime;
    Number: Integer;
    NPart: String;
+   I: integer;
+   TempS: String;
+   AllWeight: Double;
+   AllCount: Integer;
  begin
     case Key of
       VK_F2:
@@ -397,7 +403,38 @@ end;
             NewMemo;
           end;
         end;
-      end
+      end;
+      VK_F5:
+      begin
+        AllWeight := 0;
+        AllCount := 0;
+        with TShowOrder.Create(self) do
+        try
+          AddPositionToMemo('Date: ' + FormatDateTime('c', Now));
+          AddPositionToMemo('');
+          AddPositionToMemo('Отсканировано:');
+          AddPositionToMemo('');
+          for I := DocumentLine to FPPosition.Count - 1 do
+            begin
+              TempS := FPPosition[i];
+              SetLength(TempS, Length(TempS) - 1);
+              GetInfoGoods(TempS, Code, NameGoods, Weight, Date, Number, NPart);
+              AddPositionToMemo(NameGoods + '=' + FloatToStr(Weight/1000) + 'кг');
+              if (Weight > weight_for_checking_sites)
+                and (Length(TempS) >= length_code_for_checking_sites)
+               then
+                 Inc(AllCount, Number)
+               else
+                 Inc(AllCount);
+              AllWeight := AllWeight + Weight/1000;
+            end;
+          eWeight.Text := FloatToStrF(AllWeight, ffFixed, 6, 3);
+          eGoods.Text := IntToStr(AllCount);
+          ShowModal;
+        finally
+          Free;
+        end;
+      end;
     else
       inherited;
     end;

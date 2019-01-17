@@ -14,14 +14,17 @@ type
 
   TOperationTP = class(TBaseOperation)
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure Panel1Click(Sender: TObject);
   private
     { private declarations }
+    FDoctype :Integer;
   protected
     procedure SetBarCode(const AKey: String); override;
     procedure SaveToFile; override;
     procedure DeleteLastItem; override;
   public
     { public declarations }
+    property DocType: Integer read FDocType write FDocType;
   end;
 
 
@@ -33,6 +36,7 @@ uses
   JcfStringUtils, MessageForm, BaseAddInformation, terminal_common, ProjectCommon;
 
 { TOperationTP }
+
 
 procedure TOperationTP.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
@@ -47,6 +51,11 @@ begin
     NewMemo;
   end else
     inherited;
+end;
+
+procedure TOperationTP.Panel1Click(Sender: TObject);
+begin
+
 end;
 
 procedure TOperationTP.SaveToFile;
@@ -80,15 +89,17 @@ begin
     begin
       GetInfoGoods(BarCode, Code, NameGoods, Weight, Date, Number, NPart);
       if not FEnterCount and
-        (Weight > weight_for_checking_sites) and
-        (Length(BarCode) = length_code_for_checking_sites) then
+        (Weight > weight_for_checking_sites) and (FDocType <> 8) and
+        (Length(BarCode) >= length_code_for_checking_sites)  then
       begin
         TempS := Trim(TBaseAddInformation.Execute('Введите кол-во мест: '));
         if (TempS > '')
           and (Length(TempS) <= 3)
           and TryStrToInt(TempS, Count)
         then
-          BarCode := CreateBarCode(Weight, Date, Code, Count, Npart);
+          begin
+            BarCode := CreateBarCode(Weight, Date, Code, Count, Npart);
+          end;
         {$IFNDEF SKORPIOX3}
         registerLabelMessage(Handle, AM_DCD_SCAN);
         {$ENDIF}
@@ -125,7 +136,7 @@ begin
   FTotalWeight := FTotalWeight - StrToFloat(FMemoPositions.ValueFromIndex[FMemoPositions.Count - 1]);
   FMemoPositions.Delete(FMemoPositions.Count - 1);
   if (Weight > weight_for_checking_sites)
-    and (Length(TempS) = length_code_for_checking_sites) then
+    and (Length(TempS) >= length_code_for_checking_sites) then
     Dec(FGoodsCount, Number)
   else
     Dec(FGoodsCount);

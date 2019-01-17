@@ -110,20 +110,27 @@ begin
   WindowState := wsNormal;
 
   mTP.Height := ((GetSystemMetrics(SM_CYSCREEN) - 2*ChildSizing.TopBottomSpacing)*65) div 100;
-
-  Temps := 'F4-ручной ввод ';
-  if Self.ClassName <> 'TOperationRQ' then
-    Temps := Temps + 'F1-сброс о/вес';
-  {$IFNDEF SKORPIOX3}
-  lEnter.Caption := 'Ctrl+Enter-сохр. ESC-выход';
-  {$ELSE}
-  lEnter.Caption := 'F10-сохр. ESC-выход';
-  {$ENDIF}
-
-  //lManual.Caption := 'F4-ручной ввод';
-  lExit.Caption := Temps;
-  lDelete.Caption := 'F2-отмена последней позиции';
-
+  if  Self.ClassName <> 'TShowOrder' then
+    begin
+      Temps := 'F4-ручной ввод ';
+      if Self.ClassName <> 'TOperationRQ' then
+        Temps := Temps + 'F1-сброс о/вес'
+      else
+        Temps := Temps + 'F5-собр. позиции';
+      lExit.Caption := Temps;
+      lDelete.Caption := 'F2-отмена последней позиции';
+      {$IFNDEF SKORPIOX3}
+      lEnter.Caption := 'Ctrl+Enter-сохр. ESC-выход';
+      {$ELSE}
+      lEnter.Caption := 'F10-сохр. ESC-выход';
+      {$ENDIF}
+    end
+  else
+    begin
+     lEnter.Caption := 'ESC-выход';
+     lDelete.Caption := '';
+     lExit.Caption := '';
+    end;
   eWeight.Text := '0';
 
   FPosition := TStringList.Create;
@@ -226,6 +233,7 @@ begin
     {$ELSE}
     VK_F10: ModalResult := mrOk;
     {$ENDIF}
+
     VK_F4:
     begin
       Temps := Trim(TBaseAddInformation.Execute('Введите код товара: '));
@@ -345,18 +353,21 @@ begin
   Result := True;
   if ModalResult = mrCancel then
   begin
-    case MessageForm.MessageDlg(
-      'Документ будет закрыт, сохранить изменения?',
-      'Внимание', mtInformation,
-      [mbYes, mbNo, mbCancel]) of
-        mrYes: ModalResult := mrOk;
-        mrNO: ModalResult := mrCancel;
-        mrCANCEL:
-        begin
-          ModalResult := mrNone;
-          Result := False;
-        end;
-    end;
+    if  Self.ClassName <> 'TShowOrder' then
+      case MessageForm.MessageDlg(
+        'Документ будет закрыт, сохранить изменения?',
+        'Внимание', mtInformation,
+        [mbYes, mbNo, mbCancel]) of
+          mrYes: ModalResult := mrOk;
+          mrNO: ModalResult := mrCancel;
+          mrCANCEL:
+          begin
+            ModalResult := mrNone;
+            Result := False;
+          end;
+      end
+    else
+      ModalResult := mrCancel;
     Application.ProcessMessages;
   end;
 end;
@@ -413,7 +424,7 @@ begin
   Move(TempS[1], Result[16 - Length(Temps) + 1], Length(TempS));
   Move(AProductCode[1], Result[20 - Length(AProductCode)  + 1], Length(AProductCode));
   TempS := IntToStr(ANumber);
-  Move(TempS[1], Result[24 - Length(TempS)  + 1], Length(TempS));
+  Move(TempS[1], Result[24 - Length(TempS)], Length(TempS));
   TempS := ANpart;
   Move(TempS[1], Result[28 - Length(TempS)  + 1], Length(TempS));
 end;
@@ -457,11 +468,11 @@ begin
     FPosition.Add(AString + Separator);
     GetInfoGoods(AString, ProductCode, NameGood, Weight, Date, Number, NPart);
     if (Weight > weight_for_checking_sites) and
-      (Length(AString) = length_code_for_checking_sites)
+      (Length(AString) >= length_code_for_checking_sites)
     then
       Inc(FGoodsCount, Number)
     else
-       if  Number > 0 then Inc(FGoodsCount);
+      Inc(FGoodsCount);
     eGoods.Text := IntToStr(FGoodsCount);
   end else
     FPosition.Add(AString + Separator);
@@ -526,7 +537,7 @@ begin
     MessageForm.MessageDlg('Товар уже добавлен в документ', 'Внимание', mtInformation, [mbOK])
   end else
   begin
-    if (Length(AKey) >= 23) then
+    if (Length(AKey) >= 28) then
     begin
       StrDate:= Copy(AKey, 7, 2) + '/' + Copy(AKey, 9, 2) + '/20' +
         Copy(AKey, 11, 2) + ' ' + Copy(AKey, 13, 2) + ':' + Copy(AKey, 15, 2);

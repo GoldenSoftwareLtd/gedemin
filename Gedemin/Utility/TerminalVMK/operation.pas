@@ -82,6 +82,8 @@ var
   TempS: String;
   Count: Integer;
   Npart: String;
+  StrTara: String;
+  NumT: String;
   NTara: Integer;
 begin
   FSetBarCode := True;
@@ -90,7 +92,7 @@ begin
    // Application.MessageBox(Pchar(BarCode), '', 0);
     if CheckBarCode(BarCode) then
     begin
-      GetInfoGoods(BarCode, Code, NameGoods, Weight, Date, Number, Npart, NTara, WeightT);
+      GetInfoGoods(BarCode, Code, NameGoods, Weight, Date, Number, Npart, NTara, WeightT, NumT);
       if not FEnterCount and
         (Weight > weight_for_checking_sites) and
         (Length(BarCode) = length_code_for_checking_sites) then
@@ -105,10 +107,18 @@ begin
       end;
       WeightInKg := Weight/1000;
       AddPosition(Trim(BarCode));
+      case NTara of
+        0: StrTara := 'ящ';
+        1: StrTara := 'общ';
+        2: StrTara := 'тара';
+        3: StrTara := 'уп';
+      end;
+      NameGoods := NameGoods + '('+ StrTara +')';
       FMemoPositions.Add(NameGoods + '=' + FloatToStrF(WeightInKg, ffFixed, 6, 3));
       FTotalWeight := FTotalWeight + WeightInKg;
       eWeight.Text := FloatToStrF(FTotalWeight, ffFixed, 6, 3);
      // eGoods.Text := IntToStr(FPosition.Count - DocumentLine);
+
       mTP.Lines.Add(NameGoods + '=' + FloatToStrF(WeightInKg, ffFixed, 6, 3) + 'кг');
     end;
 
@@ -127,20 +137,25 @@ var
   Number: Integer;
   Temps: String;
   Npart: String;
+  NumT: String;
   NTara: Integer;
 begin
   TempS := FPosition[FPosition.Count - 1];
   Setlength(TempS, Length(TempS) - 1);
 
-  GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number, Npart, NTara, WeightT);
+  GetInfoGoods(TempS, ProductCode, NameGood, Weight, Date, Number, Npart, NTara, WeightT, NumT);
   FPosition.Delete(FPosition.Count - 1);
   FTotalWeight := FTotalWeight - StrToFloat(FMemoPositions.ValueFromIndex[FMemoPositions.Count - 1]);
   FMemoPositions.Delete(FMemoPositions.Count - 1);
-  if (Weight > weight_for_checking_sites)
+ { if (Weight > weight_for_checking_sites)
     and (Length(TempS) = length_code_for_checking_sites) then
     Dec(FGoodsCount, Number)
   else
-    Dec(FGoodsCount);
+    Dec(FGoodsCount);}
+  if  NTara = 0 then
+     Dec(FGoodsCount);
+  if  NTara = 1 then
+      Dec(FGoodsCount, (StrToInt(NumT) div Number));
   eWeight.Text := FloatToStrF(FTotalWeight, ffFixed, 6, 3);
   eGoods.Text := IntToStr(FGoodsCount);
 end;

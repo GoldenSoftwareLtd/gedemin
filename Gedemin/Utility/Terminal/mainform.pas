@@ -38,8 +38,9 @@ type
   private
     { private declarations }
     function GetDocumentType(AKey: Word): String;
+    function GetDocumentTypeInt(AKey: Word): Integer;
   protected
-    //
+   //
   public
     { public declarations }
   end;
@@ -164,6 +165,7 @@ begin
 
       if (Temps <> '') or (Key in [VK_4, VK_6, VK_7, VK_8, VK_9]) then
       begin
+
         with TOperationTP.Create(self) do
         try
           AddPositionToMemo('Код подразделения: ' + Temps);
@@ -176,6 +178,7 @@ begin
           AddPosition(FormatDateTime('ddmmyyyyhhmmss', Now));
           AddPosition('');
           AddPosition('');
+          DocType := GetDocumentTypeInt(Key);
           ShowModal;
         finally
           Free;
@@ -236,6 +239,21 @@ begin
     VK_7: Result := 'На исследование';
     VK_8: Result := 'Инвентаризация';
     VK_9: Result := 'Сверка отгрузки';
+  end;
+end;
+
+function TMainForm.GetDocumentTypeInt(AKey: Word): Integer;
+begin
+  case AKey of
+    VK_1: Result := 1;
+    VK_2: Result := 2;
+    VK_3: Result := 3;
+    VK_4: Result := 4;
+    VK_5: Result := 5;
+    VK_6: Result := 6;
+    VK_7: Result := 7;
+    VK_8: Result := 8;
+    VK_9: Result := 9;
   end;
 end;
 end.
