@@ -1,3 +1,4 @@
+// ShlTanya, 12.03.2019
 
 unit gdc_frmStorage_unit;
 
@@ -76,7 +77,7 @@ begin
       'SELECT id FROM gd_storage_data WHERE parent IS NULL AND data_type = ''G'' ';
     q.ExecQuery;
     if not q.EOF then
-      lkupStorage.CurrentKeyInt := q.Fields[0].AsInteger;
+      lkupStorage.CurrentKeyInt := GetTID(q.Fields[0]);
 
     q.Close;
     q.SQL.Text := SelSQL;
@@ -96,7 +97,7 @@ end;
 procedure Tgdc_frmStorage.lkupStorageChange(Sender: TObject);
 begin
   gdcStorageFolder.Close;
-  gdcStorageFolder.ParamByName('RootID').AsInteger := lkupStorage.CurrentKeyInt;
+  SetTID(gdcStorageFolder.ParamByName('RootID'), lkupStorage.CurrentKeyInt);
   gdcStorageFolder.Open;
 end;
 

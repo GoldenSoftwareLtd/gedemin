@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 // sources from here http://www.prestwood.com/ASPSuite/KB/Document_View.asp?QID=100258
 
 unit gd_getmacaddress;

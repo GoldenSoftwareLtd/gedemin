@@ -1,3 +1,5 @@
+// ShlTanya, 11.02.2019
+
 unit gd_dlgEntryFunctionWizard;
 
 interface
@@ -125,7 +127,7 @@ type
     FgdcTransactionEntry: TgdcAcctTransactionEntry;
     FgdcDocumentHead: TgdcBase;
     FgdcDocumentLine: TgdcBase;
-    FDocumentType: Integer;
+    FDocumentType: TID;
     FReadIBSQL: TIBSQL;
     FAccountType: TAccountType;
     FMultyCurr: Boolean;
@@ -153,14 +155,14 @@ type
     procedure SaveFunction;
 
     procedure SetgdcTransactionEntry(const Value: TgdcAcctTransactionEntry);
-    procedure SetDocumentType(const Value: Integer);
+    procedure SetDocumentType(const Value: TID);
   public
     constructor Create(AOwner: TComponent); override;
     destructor  Destroy; override;
 
     function  ShowModal: Integer; override;
 
-    property  DocumentType: Integer read FDocumentType write SetDocumentType;
+    property  DocumentType: TID read FDocumentType write SetDocumentType;
     property  gdcTransactionEntry: TgdcAcctTransactionEntry read FgdcTransactionEntry write SetgdcTransactionEntry;
   end;
 
@@ -274,7 +276,7 @@ begin
       AnList.AddAnalytic(RelationFields[I]);
 end;
 
-procedure TdlgEntryFunctionWizard.SetDocumentType(const Value: Integer);
+procedure TdlgEntryFunctionWizard.SetDocumentType(const Value: TID);
 begin
   FDocumentType := Value;
 end;
@@ -288,7 +290,7 @@ end;
 function TdlgEntryFunctionWizard.ShowModal: Integer;
 var
   Str: String;
-  FunctionKey: Integer;
+  FunctionKey: TID;
 begin
   Result := mrAbort;
   if FIsWizardActive then
@@ -302,7 +304,7 @@ begin
   if FReadIBSQL.Open then
     FReadIBSQL.Close;
   FReadIBSQL.SQL.Text := 'SELECT dt.name FROM GD_DOCUMENTTYPE dt WHERE id = :id';
-  FReadIBSQL.Params[0].AsInteger := DocumentType;
+  SetTID(FReadIBSQL.Params[0], DocumentType);
   FReadIBSQL.ExecQuery;
   if FReadIBSQL.Eof then
     raise Exception.Create('Не выбран тип документа.');
@@ -327,14 +329,13 @@ begin
   if FReadIBSQL.Open then
     FReadIBSQL.Close;
   FReadIBSQL.SQL.Text := 'SELECT ac.* FROM ac_account ac WHERE id = :id';
-  FReadIBSQL.Params[0].AsInteger :=
-    gdcTransactionEntry.FieldByName('accountkey').AsInteger;
+  SetTID(FReadIBSQL.Params[0], gdcTransactionEntry.FieldByName('accountkey'));
   FReadIBSQL.ExecQuery;
   if FReadIBSQL.Eof then
     raise Exception.Create('Не выбран счет.');
   FMultyCurr := 1 = FReadIBSQL.FieldByName('multycurr').AsInteger;
 
-  FunctionKey := FgdcTransactionEntry.FieldByName('entryfunctionkey').AsInteger;
+  FunctionKey := GetTID(FgdcTransactionEntry.FieldByName('entryfunctionkey'));
   if FunctionKey > 0 then
   begin
     gdcFunction.SubSet	 := 'ByID';
@@ -488,7 +489,7 @@ begin
     begin
       if TItemData(lvAnalytics.Selected.Data).RelationField.References <> nil then
       try
-      ListItem.SubItems[1] := gdcBaseManager.GetRUIDStringByID(StrToInt(rfcValue.CurrentValue));
+      ListItem.SubItems[1] := gdcBaseManager.GetRUIDStringByID(GetTID(rfcValue.CurrentValue));
       TItemData(ListItem.Data).AnalyticsType := antRUID;
       except
         ListItem.SubItems[1] := rfcValue.CurrentValue;
@@ -818,7 +819,7 @@ begin
   begin
     if dsEdit <> FgdcTransactionEntry.State then
       FgdcTransactionEntry.Edit;
-    FgdcTransactionEntry.FieldByName('entryfunctionkey').AsInteger := gdcFunction.ID;
+    SetTID(FgdcTransactionEntry.FieldByName('entryfunctionkey'), gdcFunction.ID);
     FgdcTransactionEntry.FieldByName('functionname').AsString :=
       gdcFunction.FieldByName('name').AsString;
     SaveFunction;
@@ -1468,8 +1469,8 @@ end;
 
 procedure TdlgEntryFunctionWizard.btnEditDBPClick(Sender: TObject);
 var
-  ClassKey: Integer;
-  mtdFunctionKey: Integer;
+  ClassKey: TID;
+  mtdFunctionKey: TID;
   gdcClass: TgdcFullClassName;
   gdcEvent: TgdcEvent;
   gdcMethodFunc: TgdcFunction;
@@ -1512,7 +1513,7 @@ begin
   gdcEvent := TgdcEvent.Create(nil);
   try
     gdcEvent.SubSet := cByObjectKey;
-    gdcEvent.ParamByName('objectkey').AsInteger := ClassKey;
+    SetTID(gdcEvent.ParamByName('objectkey'), ClassKey);
     gdcEvent.Open;
     mtdFunctionKey := -1;
     while not gdcEvent.Eof do
@@ -1528,7 +1529,7 @@ begin
             raise Exception.Create(Format(cMtdDisableWithSubType,
               [gdcClass.gdClassName, gdcEvent.SubType]));
         end;
-        mtdFunctionKey := gdcEvent.FieldByName('functionkey').AsInteger;
+        mtdFunctionKey := GetTID(gdcEvent.FieldByName('functionkey'));
         Break;
       end;
       gdcEvent.Next;
@@ -1601,7 +1602,7 @@ end;
 
 procedure TdlgEntryFunctionWizard.tsKeysShow(Sender: TObject);
 var
-  Key: Integer;
+  Key: TID;
 begin
   if lvAnalytics.Selected = nil then
   begin
@@ -1615,7 +1616,7 @@ begin
       Key := -1;
     end;
     rfcValue.CreateControl(TItemData(lvAnalytics.Selected.Data).RelationField,
-      IntToStr(Key));
+      TID2S(Key));
   end else
     rfcValue.CreateControl(TItemData(lvAnalytics.Selected.Data).RelationField,
       lvAnalytics.Selected.SubItems[1]);

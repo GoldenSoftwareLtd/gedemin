@@ -1,10 +1,13 @@
+// ShlTanya, 25.02.2019
+
 unit obj_GSFunction;
 
 interface
 
 uses
   ComObj, Gedemin_TLB, Comserv, Controls, gdcTaxFunction, Classes, IBSQL,
-  NumConv, at_classes, gdcConstants, AcctStrings, AcctUtils, IBDataBase, dialogs;
+  NumConv, at_classes, gdcConstants, AcctStrings, AcctUtils, IBDataBase, dialogs,
+  gdcBaseInterface;
 
 type
   TBalanceType = (gsDebit, gsCredit);
@@ -31,7 +34,7 @@ type
     procedure FillCalcBalanceDate;
 
     //function GetWithAnDefault(AccountID: Integer): String;
-    function GetWithAnDefaultSql(AccountID: Integer; const TableAlias: String = ''): String;
+    function GetWithAnDefaultSql(AccountID: TID; const TableAlias: String = ''): String;
     function  GetBalance(const Account: WideString;
       const OnDate: TDateTime; const Analytics: WideString;
       const BalType: TBalanceType): Currency; safecall;
@@ -39,14 +42,14 @@ type
     function  GetCurrBalance(const Account: WideString;
       const OnDate: TDateTime; const Analytics: WideString;
       const BalType: TBalanceType;
-      const CurrKey: Integer): Currency; safecall;
+      const CurrKey: TID): Currency; safecall;
 
     function  GetEqBalance(const Account: WideString;
       const OnDate: TDateTime; const Analytics: WideString;
       const BalType: TBalanceType): Currency; safecall;
 
 
-    function  GetQuantBalance(ValueKey: Integer;
+    function  GetQuantBalance(ValueKey: TID;
       const Account: WideString; const OnDate: TDateTime;
       const Analytics: WideString; const BalType: TBalanceType): Currency; safecall;
 
@@ -54,7 +57,7 @@ type
     procedure InitFIBSQL;
     procedure CheckNumConv;
     function GetNumberConvert: TNumberConvert;
-    function GetAccountKey(const Account: String): Integer;
+    function GetAccountKey(const Account: String): TID;
     procedure SetTransaction(const Value: TIBTransaction);
     procedure SetupTransaction(SQL: TIBSQl);
 
@@ -62,15 +65,15 @@ type
     procedure Set_Transaction(const Value: IgsIBTransaction); safecall;
   protected
     // функции, возвращающие количественные показателями по проводкам
-    function  K_SK(ValueKey: Integer; const Account: WideString; OnDate: TDateTime;
+    function  K_SK(ValueKey: ATID; const Account: WideString; OnDate: TDateTime;
                              const Analytics: WideString): Currency; safecall;
-    function  K_SD(ValueKey: Integer; const Account: WideString; OnDate: TDateTime;
+    function  K_SD(ValueKey: ATID; const Account: WideString; OnDate: TDateTime;
                               const Analytics: WideString): Currency; safecall;
-    function  K_OD(ValueKey: Integer; const Account: WideString; BDate: TDateTime;
+    function  K_OD(ValueKey: ATID; const Account: WideString; BDate: TDateTime;
                                EDate: TDateTime; const Analytics: WideString): Currency; safecall;
-    function  K_OK(ValueKey: Integer; const Account: WideString; BDate: TDateTime;
+    function  K_OK(ValueKey: ATID; const Account: WideString; BDate: TDateTime;
                                 EDate: TDateTime; const Analytics: WideString): Currency; safecall;
-    function  K_O(ValueKey: Integer; const AccDeb: WideString;
+    function  K_O(ValueKey: ATID; const AccDeb: WideString;
                               const AccCred: WideString; BDate: TDateTime; EDate: TDateTime;
                               const AnalyticsDeb: WideString; const AnalyticsCred: WideString): Currency; safecall;
 
@@ -90,11 +93,11 @@ type
 
     function  V_SK(const Account: WideString;
       OnDate: TDateTime; const Analytics: WideString;
-      CurrKey: Integer): Currency; safecall;
+      CurrKey: ATID): Currency; safecall;
 
     function  V_SD(const Account: WideString;
       OnDate: TDateTime; const Analytics: WideString;
-      CurrKey: Integer): Currency; safecall;
+      CurrKey: ATID): Currency; safecall;
 
     function  OD(const Account: WideString;
       BDate: TDateTime; EDate: TDateTime; const Analytics: WideString): Currency; safecall;
@@ -109,13 +112,13 @@ type
 
     function  V_OD(const Account: WideString;
       BDate: TDateTime; EDate: TDateTime; const Analytics: WideString;
-      CurrKey: Integer): Currency; safecall;
+      CurrKey: ATID): Currency; safecall;
     function  V_OK(const Account: WideString;
       BDate: TDateTime; EDate: TDateTime; const Analytics: WideString;
-      CurrKey: Integer): Currency; safecall;
+      CurrKey: ATID): Currency; safecall;
     function  V_O(const AccDeb: WideString; const AccCred: WideString; BDate: TDateTime;
                          EDate: TDateTime; const AnalyticsDeb: WideString;
-                         const AnalyticsCred: WideString; CurrKey: Integer): Currency; safecall;
+                         const AnalyticsCred: WideString; CurrKey: ATID): Currency; safecall;
 
     function  O(const AccDeb: WideString; const AccCred: WideString; BDate: TDateTime;
                          EDate: TDateTime; const AnalyticsDeb: WideString;
@@ -135,7 +138,7 @@ type
     // Действует как VBS DateAdd, учитывает только банковские дни, если передан ключ табеля ATBLCID, то берет выходные из него,
     //  иначе из справочника праздников по умолчанию
     function  DateAddBank(const Interval: WideString; Number: Integer;
-      DateValue: TDateTime; TBLCALID: Integer = -1): TDateTime; safecall;
+      DateValue: TDateTime; TBLCALID: ATID = -1): TDateTime; safecall;
 
     function  NM(Date: TDateTime): TDateTime; safecall;
     function  KM(Date: TDateTime): TDateTime; safecall;
@@ -158,12 +161,12 @@ type
     function  GetNumeral(const AFormat: WideString; AValue: Double; ARounding: Double;
                          AFracBase: Integer; ACase: Integer; AParts: Integer;
                          const ANames: WideString): WideString; safecall;
-    function  GetCurrNumeral(ACurrKey: Integer; const AFormat: WideString; AValue: Double;
+    function  GetCurrNumeral(ACurrKey: ATID; const AFormat: WideString; AValue: Double;
                              ARounding: Double; ACase: Integer; AParts: Integer;
                              const ASubst: WideString; const ADecimalSeparator: WideString;
                              const AThousandSeparator: WideString): WideString; safecall;
 
-    function  GetAccountKeyByAlias(const AnAlias: WideString): Integer; safecall;
+    function  GetAccountKeyByAlias(const AnAlias: WideString): ATID; safecall;
     function  MulDiv(ANumber: Double; ANumerator: Double; ADenominator: Double; 
                      ARoundMethod: Integer; ADecPlaces: Integer): Double; safecall;
 
@@ -180,7 +183,7 @@ type
 implementation
 
 uses
-  dmDataBase_unit, SysUtils, gdcBaseInterface, gdc_frmTaxDesignTime_unit,
+  dmDataBase_unit, SysUtils, gdc_frmTaxDesignTime_unit,
   gd_security, prp_methods, wiz_Utils_unit, gdcOLEClassList, gd_convert;
 
 type
@@ -267,7 +270,7 @@ function TobjGSFunction.O(const AccDeb: WideString;
   const AnalyticsDeb: WideString; const AnalyticsCred: WideString): Currency;
 var
   IBSQL: TIBSQL;
-  DAccountKey, CAccountKey: Integer;
+  DAccountKey, CAccountKey: TID;
   AnalDebReady, AnalCredReady: String;
 begin
   Result := 0;
@@ -303,8 +306,8 @@ begin
         '  JOIN ac_entry ec ON ed.recordkey = ec.recordkey AND ' +
         '    ed.accountpart <> ec.accountpart AND ' +
         '  (ed.entrydate >= :bdate AND ed.entrydate <= :edate) AND ' +
-        '  ((ed.accountpart = ''D'' AND ed.accountkey IN (' + IntToStr(DAccountKey) + ')) AND ' +
-        '  (ec.accountpart = ''C'' AND ec.accountkey IN (' + IntToStr(CAccountKey) + '))) ' +
+        '  ((ed.accountpart = ''D'' AND ed.accountkey IN (' + TID2S(DAccountKey) + ')) AND ' +
+        '  (ec.accountpart = ''C'' AND ec.accountkey IN (' + TID2S(CAccountKey) + '))) ' +
         AnalDebReady +
         AnalCredReady+
         'WHERE ' +
@@ -331,7 +334,7 @@ function TobjGSFunction.E_O(const AccDeb: WideString;
   const AnalyticsDeb: WideString; const AnalyticsCred: WideString): Currency;
 var
   IBSQL: TIBSQL;
-  DAccountKey, CAccountKey: Integer;
+  DAccountKey, CAccountKey: TID;
   AnalDebReady, AnalCredReady: String;
 begin
   Result := 0;
@@ -369,8 +372,8 @@ begin
         '  JOIN ac_entry ec ON ed.recordkey = ec.recordkey AND ' +
         '    ed.accountpart <> ec.accountpart AND ' +
         '  (ed.entrydate >= :bdate AND ed.entrydate <= :edate) AND ' +
-        '  ((ed.accountpart = ''D'' AND ed.accountkey IN (' + IntToStr(DAccountKey) + ')) AND ' +
-        '  (ec.accountpart = ''C'' AND ec.accountkey IN (' + IntToStr(CAccountKey) + '))) ' +
+        '  ((ed.accountpart = ''D'' AND ed.accountkey IN (' + TID2S(DAccountKey) + ')) AND ' +
+        '  (ec.accountpart = ''C'' AND ec.accountkey IN (' + TID2S(CAccountKey) + '))) ' +
         AnalDebReady +
         AnalCredReady+
         'WHERE ' +
@@ -400,7 +403,7 @@ function TobjGSFunction.OK(const Account: WideString;
 var
   IBSQL: TIBSQL;
   AnalyticsReady: String;
-  Id: Integer;
+  Id: TID;
 begin
   Result := 0;
   Id := GetAccountKey(Account);
@@ -424,7 +427,7 @@ begin
 
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName(fnAccountKey).AsInteger := Id;
+      SetTID(ParamByName(fnAccountKey), Id);
 
       ExecQuery;
 
@@ -441,7 +444,7 @@ function TobjGSFunction.OD(const Account: WideString;
 var
   IBSQL: TIBSQL;
   AnalyticsReady: String;
-  ID: Integer;
+  ID: TID;
 begin
   Result := 0;
   Id := GetAccountKey(Account);
@@ -466,7 +469,7 @@ begin
 
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName(fnAccountKey).AsInteger := Id;
+      SetTID(ParamByName(fnAccountKey), Id);
       ExecQuery;
 
       if not Eof then
@@ -482,7 +485,7 @@ function TobjGSFunction.E_OK(const Account: WideString;
 var
   IBSQL: TIBSQL;
   AnalyticsReady: String;
-  Id: Integer;
+  Id: TID;
 begin
   Result := 0;
   Id := GetAccountKey(Account);
@@ -506,7 +509,7 @@ begin
 
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName(fnAccountKey).AsInteger := Id;
+      SetTID(ParamByName(fnAccountKey), Id);
 
       ExecQuery;
 
@@ -523,7 +526,7 @@ function TobjGSFunction.E_OD(const Account: WideString;
 var
   IBSQL: TIBSQL;
   AnalyticsReady: String;
-  ID: Integer;
+  ID: TID;
 begin
   Result := 0;
   Id := GetAccountKey(Account);
@@ -548,7 +551,7 @@ begin
 
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName(fnAccountKey).AsInteger := Id;
+      SetTID(ParamByName(fnAccountKey), Id);
       ExecQuery;
 
       if not Eof then
@@ -593,7 +596,7 @@ var
   S: TStrings;
   AN, AV, A: string;
   Index: Integer;
-  ID: Integer;
+  ID: TID;
   F: TatRelationField;
   L: TList;
 const
@@ -646,7 +649,7 @@ begin
               except
                 raise Exception.Create(Format(MSG_INVALID_VALUE,[AN]))
               end;
-              Result := Result + Format(' %s.%s = ''%d''', [TableAlias, AN, Id])
+              Result := Result + Format(' %s.%s = ''%d''', [TableAlias, AN, TID264(Id)])
             end else
             begin
               try
@@ -773,7 +776,7 @@ function TobjGSFunction.GetBalance(const Account: WideString;
 var
   AnalyticsReady: String;
   MainAnalNameB, MainAnalNameE, MainAnalNameZ: String;
-  Id: Integer;
+  Id: TID;
   AnalyticsReadyB, AnalyticsReadyE: String;
 begin
   Result := 0;
@@ -843,7 +846,7 @@ begin
         IIF(MainAnalNameZ <> '', 'GROUP BY ' + MainAnalNameZ, '');
     FIBSQL.ParamByName('ondate').AsDate := OnDate;
     FIBSQL.ParamByName('balancedate').AsDate := FCalcBalanceDate;
-    FIBSQL.ParamByName('accountkey').AsInteger := Id;
+    SetTID(FIBSQL.ParamByName('accountkey'), Id);
     FIBSQL.ExecQuery;
 
     
@@ -890,7 +893,7 @@ begin
           AnalyticsReady;
 
         ParamByName('ondate').AsDate := OnDate;
-        ParamByName('accountkey').AsInteger := Id;
+        SetTID(ParamByName('accountkey'), Id);
         ExecQuery;
 
         if RecordCount > 0 then
@@ -915,7 +918,7 @@ begin
           'GROUP BY ' + MainAnalNameZ;
 
         ParamByName('ondate').AsDate := OnDate;
-        ParamByName('accountkey').AsInteger := Id;
+        SetTID(ParamByName('accountkey'), Id);
 
         ExecQuery;
         while not Eof do
@@ -1040,12 +1043,12 @@ begin
   end;
 end;
 
-function TobjGSFunction.K_O(ValueKey: Integer; const AccDeb: WideString;
+function TobjGSFunction.K_O(ValueKey: ATID; const AccDeb: WideString;
   const AccCred: WideString; BDate: TDateTime; EDate: TDateTime;
   const AnalyticsDeb: WideString; const AnalyticsCred: WideString): Currency;
 var
   IBSQL: TIBSQL;
-  DAccountKey, CAccountKey: Integer;
+  DAccountKey, CAccountKey: TID;
   AnalDebReady, AnalCredReady: String;
 begin
   Result := 0;
@@ -1098,11 +1101,11 @@ begin
         AnalDebReady +
         AnalCredReady;
 
-      ParamByName('valuekey').AsInteger := ValueKey;
+      SetTID(ParamByName('valuekey'), GetTID(ValueKey));
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName('daccountkey').AsInteger := DAccountKey;
-      ParamByName('caccountkey').AsInteger := CAccountKey;
+      SetTID(ParamByName('daccountkey'), DAccountKey);
+      SetTID(ParamByName('caccountkey'), CAccountKey);
 
       ExecQuery;
 
@@ -1117,24 +1120,24 @@ begin
   end;
 end;
 
-function TobjGSFunction.K_SK(ValueKey: Integer;
+function TobjGSFunction.K_SK(ValueKey: ATID;
   const Account: WideString; OnDate: TDateTime;
   const Analytics: WideString): Currency;
 begin
-  Result := GetQuantBalance(ValueKey, Account, OnDate, Analytics, gsCredit);
+  Result := GetQuantBalance(GetTID(ValueKey), Account, OnDate, Analytics, gsCredit);
   if Result > 0 then
     Result := 0
   else
     Result := Abs(Result);
 end;
 
-function TobjGSFunction.K_OK(ValueKey: Integer;
+function TobjGSFunction.K_OK(ValueKey: ATID;
   const Account: WideString; BDate, EDate: TDateTime;
   const Analytics: WideString): Currency;
 var
   IBSQL: TIBSQL;
   AnalyticsReady: String;
-  Id: Integer;
+  Id: TID;
 begin
   Result := 0;
   Id := GetAccountKey(Account);
@@ -1157,10 +1160,10 @@ begin
         '  z.entrydate >= :bdate AND z.entrydate <= :edate ' +
         AnalyticsReady;
 
-      ParamByName('valuekey').AsInteger := ValueKey;
+      SetTID(ParamByName('valuekey'), GetTID(ValueKey));
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName('accountkey').AsInteger := Id;
+      SetTID(ParamByName('accountkey'), Id);
 
       ExecQuery;
 
@@ -1172,24 +1175,24 @@ begin
   end;
 end;
 
-function TobjGSFunction.K_SD(ValueKey: Integer;
+function TobjGSFunction.K_SD(ValueKey: ATID;
   const Account: WideString; OnDate: TDateTime;
   const Analytics: WideString): Currency;
 begin
-  Result := GetQuantBalance(ValueKey, Account, OnDate, Analytics, gsDebit);
+  Result := GetQuantBalance(GetTID(ValueKey), Account, OnDate, Analytics, gsDebit);
   if Result < 0 then
     Result := 0
   else
     Result := Result;
 end;
 
-function TobjGSFunction.K_OD(ValueKey: Integer;
+function TobjGSFunction.K_OD(ValueKey: ATID;
   const Account: WideString; BDate, EDate: TDateTime;
   const Analytics: WideString): Currency;
 var
   IBSQL: TIBSQL;
   AnalyticsReady: String;
-  Id: Integer;
+  Id: TID;
 begin
   Result := 0;
   Id := GetAccountKey(Account);
@@ -1213,10 +1216,10 @@ begin
         '  z.entrydate >= :bdate AND z.entrydate <= :edate ' +
         AnalyticsReady;
 
-      ParamByName('valuekey').AsInteger := ValueKey;
+      SetTID(ParamByName('valuekey'), GetTID(ValueKey));
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName('accountkey').AsInteger := Id;
+      SetTID(ParamByName('accountkey'), Id);
 
       ExecQuery;
 
@@ -1228,13 +1231,13 @@ begin
   end;
 end;
 
-function TobjGSFunction.GetQuantBalance(ValueKey: Integer;
+function TobjGSFunction.GetQuantBalance(ValueKey: TID;
   const Account: WideString; const OnDate: TDateTime;
   const Analytics: WideString; const BalType: TBalanceType): Currency;
 var
   AnalyticsReady: String;
   MainAnalNameZ: String;
-  Id: Integer;
+  Id: TID;
   QuantSaldo: Currency;
 begin
   Result := 0;
@@ -1268,9 +1271,9 @@ begin
         '  z.entrydate <= :ondate ' +
         AnalyticsReady;
 
-      ParamByName('valuekey').AsInteger := ValueKey;
+      SetTID(ParamByName('valuekey'), ValueKey);
       ParamByName('ondate').AsDate := OnDate;
-      ParamByName('accountkey').AsInteger := Id;
+      SetTID(ParamByName('accountkey'), Id);
       ExecQuery;
 
       if not Eof then
@@ -1294,9 +1297,9 @@ begin
         '  z.entrydate <= :ondate ' +
         ' GROUP BY ' + MainAnalNameZ;
 
-      ParamByName('valuekey').AsInteger := ValueKey;
+      SetTID(ParamByName('valuekey'), ValueKey);
       ParamByName('ondate').AsDate := OnDate;
-      ParamByName('accountkey').AsInteger := Id;
+      SetTID(ParamByName('accountkey'), Id);
 
 
       ExecQuery;
@@ -1340,9 +1343,9 @@ function TobjGSFunction.GetSumCurr(CurrKey: OleVariant; Sum: OleVariant; CentPre
   ShowCent: WordBool): OleVariant;
 begin
   if VarType(CentPrecision) = varBoolean then
-    Result := gd_convert.GetSumCurr(CurrKey, Sum, CentPrecision, ShowCent)
+    Result := gd_convert.GetSumCurr(GetTID(CurrKey), Sum, CentPrecision, ShowCent)
   else
-    Result := gd_convert.GetSumCurr(CurrKey, Sum, CentPrecision <> 0, ShowCent);
+    Result := gd_convert.GetSumCurr(GetTID(CurrKey), Sum, CentPrecision <> 0, ShowCent);
 end;
 
 function TobjGSFunction.GetSumStr(D1: OleVariant; D2: ShortInt): OleVariant;
@@ -1358,11 +1361,11 @@ end;
 
 function TobjGSFunction.GetCurrBalance(const Account: WideString;
   const OnDate: TDateTime; const Analytics: WideString;
-  const BalType: TBalanceType; const CurrKey: Integer): Currency;
+  const BalType: TBalanceType; const CurrKey: TID): Currency;
 var
   AnalyticsReady: String;
   MainAnalNameB, MainAnalNameE, MainAnalNameZ: String;
-  Id: Integer;
+  Id: TID;
   AnalyticsReadyB, AnalyticsReadyE: String;
 begin
   Result := 0;
@@ -1436,8 +1439,8 @@ begin
           IIF(MainAnalNameZ <> '', 'GROUP BY ' + MainAnalNameZ, '');
       ParamByName('ondate').AsDate := OnDate;
       ParamByName('balancedate').AsDate := FCalcBalanceDate;
-      ParamByName('accountkey').AsInteger := Id;
-      ParamByName('currkey').AsInteger := CurrKey;
+      SetTID(ParamByName('accountkey'), Id);
+      SetTID(ParamByName('currkey'), CurrKey);
       ExecQuery;
 
       if RecordCount > 0 then
@@ -1484,8 +1487,8 @@ begin
           AnalyticsReady;
 
         ParamByName('ondate').AsDate := OnDate;
-        ParamByName('accountkey').AsInteger := Id;
-        ParamByName('currkey').AsInteger := CurrKey;
+        SetTID(ParamByName('accountkey'), Id);
+        SetTID(ParamByName('currkey'), CurrKey);
         ExecQuery;
 
         if RecordCount > 0 then
@@ -1510,8 +1513,8 @@ begin
           ' GROUP BY ' + MainAnalNameZ;
 
         ParamByName('ondate').AsDate := OnDate;
-        ParamByName('accountkey').AsInteger := Id;
-        ParamByName('currkey').AsInteger := CurrKey;
+        SetTID(ParamByName('accountkey'), Id);
+        SetTID(ParamByName('currkey'), CurrKey);
 
         ExecQuery;
         while not Eof do
@@ -1537,7 +1540,7 @@ function  TobjGSFunction.GetEqBalance(const Account: WideString;
 var
   AnalyticsReady: String;
   MainAnalNameB, MainAnalNameE, MainAnalNameZ: string;
-  Id: Integer;
+  Id: TID;
   AnalyticsReadyB, AnalyticsReadyE: String; 
 begin
   Result := 0;
@@ -1608,7 +1611,7 @@ begin
           IIF(MainAnalNameZ <> '', 'GROUP BY ' + MainAnalNameZ, '');
       ParamByName('ondate').AsDate := OnDate;
       ParamByName('balancedate').AsDate := FCalcBalanceDate;
-      ParamByName('accountkey').AsInteger := Id;
+      SetTID(ParamByName('accountkey'), Id);
       ExecQuery;
 
       if RecordCount > 0 then
@@ -1655,7 +1658,7 @@ begin
           AnalyticsReady;
 
         ParamByName('ondate').AsDate := OnDate;
-        ParamByName('accountkey').AsInteger := Id;
+        SetTID(ParamByName('accountkey'), Id);
   //      ParamByName('ingroup').AsInteger := IBLogin.Ingroup;
         ExecQuery;
 
@@ -1681,7 +1684,7 @@ begin
           'GROUP BY ' + MainAnalNameZ;
 
         ParamByName('ondate').AsDate := OnDate;
-        ParamByName('accountkey').AsInteger := Id;
+        SetTID(ParamByName('accountkey'), Id);
   //      ParamByName('ingroup').AsInteger := IBLogin.Ingroup;
 
         ExecQuery;
@@ -1705,9 +1708,9 @@ end;
 
 function TobjGSFunction.V_SK(const Account: WideString;
   OnDate: TDateTime; const Analytics: WideString;
-  CurrKey: Integer): Currency;
+  CurrKey: ATID): Currency;
 begin
-  Result := GetCurrBalance(Account, OnDate, Analytics, gsCredit, CurrKey);
+  Result := GetCurrBalance(Account, OnDate, Analytics, gsCredit, GetTID(CurrKey));
   if Result > 0 then
     Result := 0
   else
@@ -1717,9 +1720,9 @@ end;
 
 function TobjGSFunction.V_SD(const Account: WideString;
   OnDate: TDateTime; const Analytics: WideString;
-  CurrKey: Integer): Currency;
+  CurrKey: ATID): Currency;
 begin
-  Result := GetCurrBalance(Account, OnDate, Analytics, gsDebit, CurrKey);
+  Result := GetCurrBalance(Account, OnDate, Analytics, gsDebit, GetTID(CurrKey));
   if Result < 0 then
     Result := 0
   else
@@ -1728,11 +1731,11 @@ end;
 
 function TobjGSFunction.V_OK(const Account: WideString; BDate,
   EDate: TDateTime; const Analytics: WideString;
-  CurrKey: Integer): Currency;
+  CurrKey: ATID): Currency;
 var
   IBSQL: TIBSQL;
   AnalyticsReady: String;
-  Id: Integer;
+  Id: TID;
 begin
   Result := 0;
   Id :=  GetAccountKey(Account);
@@ -1761,9 +1764,9 @@ begin
 
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName(fnAccountKey).AsInteger := Id;
+      SetTID(ParamByName(fnAccountKey), Id);
 //      ParamByName('ingroup').AsInteger := IBLogin.Ingroup;
-      ParamByName('currkey').AsInteger := CurrKey;
+      SetTID(ParamByName('currkey'), GetTID(CurrKey));
       ExecQuery;
 
       if not Eof then
@@ -1776,11 +1779,11 @@ end;
 
 function TobjGSFunction.V_OD(const Account: WideString; BDate,
   EDate: TDateTime; const Analytics: WideString;
-  CurrKey: Integer): Currency;
+  CurrKey: ATID): Currency;
 var
   IBSQL: TIBSQL;
   AnalyticsReady: String;
-  Id: Integer;
+  Id: TID;
 begin
   Result := 0;
   Id := GetAccountKey(Account);
@@ -1806,9 +1809,9 @@ begin
 
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName(fnAccountKey).AsInteger := Id;
+      SetTID(ParamByName(fnAccountKey), Id);
 //      ParamByName('ingroup').AsInteger := IBLogin.Ingroup;
-      ParamByName('currkey').AsInteger := CurrKey;
+      SetTID(ParamByName('currkey'), GetTID(CurrKey));
       ExecQuery;
 
       if not Eof then
@@ -1819,7 +1822,7 @@ begin
   end;
 end;
 
-function TobjGSFunction.GetAccountKey(const Account: String): Integer;
+function TobjGSFunction.GetAccountKey(const Account: String): TID;
 begin
   if CheckRUID(Account) then
   begin
@@ -1829,8 +1832,8 @@ begin
     // или передан ИД счета, или его номер в текстовом
     // представлении. Последний или будет коротким (2-3 символа)
     // или будет содержать не цифровые символыи
-    if StrToIntDef(Account, -1) > 99999 then
-      Result := StrToInt(Account)
+    if GetTID(Account, -1) > 99999 then
+      Result := GetTID(Account)
     else
       Result := AcctUtils.GetAccountKeyByAlias(Account);
   end;
@@ -1862,7 +1865,7 @@ begin
   end;
 end;}
 
-function TobjGSFunction.GetWithAnDefaultSql(AccountID: Integer;
+function TobjGSFunction.GetWithAnDefaultSql(AccountID: TID;
   const TableAlias: String): String;
 begin
   FIBSQL.Close;
@@ -1873,7 +1876,7 @@ begin
     'WHERE ' +
     '  aa.accountkey = :id';
 
-  FIBSQL.ParamByName(fnId).AsInteger := AccountId;
+  SetTID(FIBSQL.ParamByName(fnId), AccountId);
   FIBSQL.ExecQuery;
 
   try
@@ -1895,10 +1898,10 @@ end;
 
 function TobjGSFunction.V_O(const AccDeb, AccCred: WideString; BDate,
   EDate: TDateTime; const AnalyticsDeb, AnalyticsCred: WideString;
-  CurrKey: Integer): Currency;
+  CurrKey: ATID): Currency;
 var
   IBSQL: TIBSQL;
-  DAccountKey, CAccountKey: Integer;
+  DAccountKey, CAccountKey: TID;
   AnalDebReady, AnalCredReady: String;
 begin
   Result := 0;
@@ -1939,8 +1942,8 @@ begin
         '    ed.accountpart <> ec.accountpart ' +
         'WHERE ' +
         '  (ed.entrydate >= :bdate AND ed.entrydate <= :edate) AND ' +
-        '  ((ed.accountpart = ''D'' AND ed.accountkey IN (' + IntToStr(DAccountKey) + ')) AND ' +
-        '  (ec.accountpart = ''C'' AND ec.accountkey IN (' + IntToStr(CAccountKey) + '))) AND ' +
+        '  ((ed.accountpart = ''D'' AND ed.accountkey IN (' + TID2S(DAccountKey) + ')) AND ' +
+        '  (ec.accountpart = ''C'' AND ec.accountkey IN (' + TID2S(CAccountKey) + '))) AND ' +
         '  ed.currkey = :currkey AND ec.currkey = :currkey AND ' +
         GetCompCondition('ed.companykey') +
         AnalDebReady +
@@ -1949,7 +1952,7 @@ begin
 
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
-      ParamByName('currkey').AsInteger := CurrKey;
+      SetTID(ParamByName('currkey'), GetTID(CurrKey));
 
       ExecQuery;
 
@@ -2006,7 +2009,7 @@ begin
 end;
 
 function TobjGSFunction.DateAddBank(const Interval: WideString; Number: Integer;
-  DateValue: TDateTime; TBLCALID: Integer = -1): TDateTime;
+  DateValue: TDateTime; TBLCALID: ATID = -1): TDateTime;
 var
   IBSQL: TIBSQL;
   WorkingDate: TDate;
@@ -2170,7 +2173,7 @@ begin
     begin
       // Если указан ключ табеля
       IBSQL.SQL.Text := 'SELECT id FROM wg_tblcalday WHERE tblcalkey = :tblkey AND theday = :thedate AND workday = 0';
-      IBSQL.ParamByName('TBLKEY').AsInteger := TBLCALID;
+      SetTID(IBSQL.ParamByName('TBLKEY'), GetTID(TBLCALID));
     end else
       IBSQL.SQL.Text := 'SELECT id FROM wg_holiday WHERE holidaydate = :thedate';
 
@@ -2216,17 +2219,17 @@ begin
 end;
 
 function TobjGSFunction.GetAccountKeyByAlias(
-  const AnAlias: WideString): Integer;
+  const AnAlias: WideString): ATID;
 begin
   Result := Self.GetAccountKey(AnAlias);
 end;
 
-function TobjGSFunction.GetCurrNumeral(ACurrKey: Integer;
+function TobjGSFunction.GetCurrNumeral(ACurrKey: ATID;
   const AFormat: WideString; AValue, ARounding: Double; ACase,
   AParts: Integer; const ASubst, ADecimalSeparator,
   AThousandSeparator: WideString): WideString;
 begin
-  Result := gd_convert.GetCurrNumeral(ACurrKey, AFormat, AValue, ARounding,
+  Result := gd_convert.GetCurrNumeral(GetTID(ACurrKey), AFormat, AValue, ARounding,
     ACase, AParts, ASubst, ADecimalSeparator, AThousandSeparator);
 end;
 

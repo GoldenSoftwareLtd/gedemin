@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 {++
 
@@ -326,7 +327,7 @@ type
     FChildren: TObjectList;
     FHidden: Boolean;
     FVirtualSubType: Boolean;
-    FGroupID: Integer;
+    FGroupID: TID;
 
     function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
@@ -334,7 +335,7 @@ type
       AData2: Pointer): Boolean;
     function GetCaption: String;
 
-    function GetGroupID: Integer; virtual;
+    function GetGroupID: TID; virtual;
 
   protected
     function Traverse(ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
@@ -375,7 +376,7 @@ type
     property ClassMethods: TgdClassMethods read FClassMethods;
     property Hidden: Boolean read FHidden write FHidden;
     property VirtualSubType: Boolean read FVirtualSubType write FVirtualSubType;
-    property GroupID: Integer read GetGroupID write FGroupID;
+    property GroupID: TID read GetGroupID write FGroupID;
   end;
   CgdClassEntry = class of TgdClassEntry;
 
@@ -387,7 +388,7 @@ type
     function GetGdcClass: CgdcBase;
     function GetDistinctRelation: String; virtual;
     procedure SetDistinctRelation(const Value: String);
-    function GetGroupID: Integer; override;
+    function GetGroupID: TID; override;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -412,22 +413,22 @@ type
 
   TgdDocumentEntry = class(TgdBaseEntry)
   private
-    FTypeID: Integer;
+    FTypeID: TID;
     FIsCommon: Boolean;
-    FHeaderFunctionKey: Integer;
-    FLineFunctionKey: Integer;
+    FHeaderFunctionKey: TID;
+    FLineFunctionKey: TID;
     FDescription: String;
     FOptions: String;
     FIsCheckNumber: TIsCheckNumber;
-    FHeaderRelKey: Integer;
-    FLineRelKey: Integer;
-    FBranchKey: Integer;
+    FHeaderRelKey: TID;
+    FLineRelKey: TID;
+    FBranchKey: TID;
     FEditionDate: TDateTime;
     FInvalid: Boolean;
 
     function GetDistinctRelation: String; override;
-    procedure SetHeaderRelKey(const Value: Integer);
-    procedure SetLineRelKey(const Value: Integer);
+    procedure SetHeaderRelKey(const Value: TID);
+    procedure SetLineRelKey(const Value: TID);
     function GetHeaderRelName: String;
     function GetLineRelName: String;
     procedure SetInvalid(const Value: Boolean);
@@ -438,25 +439,25 @@ type
   public
     class function CheckSubType(const ASubType: TgdcSubType): Boolean; override;
     procedure Assign(CE: TgdClassEntry); override;
-    function FindParentByDocumentTypeKey(const ADocumentTypeKey: Integer;
+    function FindParentByDocumentTypeKey(const ADocumentTypeKey: TID;
       const APart: TgdcDocumentClassPart): TgdDocumentEntry;
     procedure ParseOptions; virtual;
     procedure ConvertOptions; virtual;
     procedure LoadDE(q, qOpt: TIBSQL; const AnAllowParseOptions: Boolean = False); overload; virtual;
     procedure LoadDE(Tr: TIBTransaction); overload; virtual;
 
-    property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
-    property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
-    property HeaderRelKey: Integer read FHeaderRelKey write SetHeaderRelKey;
-    property LineRelKey: Integer read FLineRelKey write SetLineRelKey;
+    property HeaderFunctionKey: TID read FHeaderFunctionKey write FHeaderFunctionKey;
+    property LineFunctionKey: TID read FLineFunctionKey write FLineFunctionKey;
+    property HeaderRelKey: TID read FHeaderRelKey write SetHeaderRelKey;
+    property LineRelKey: TID read FLineRelKey write SetLineRelKey;
     property HeaderRelName: String read GetHeaderRelName;
     property LineRelName: String read GetLineRelName;
     property IsCommon: Boolean read FIsCommon write FIsCommon;
     property Description: String read FDescription write FDescription;
     property IsCheckNumber: TIsCheckNumber read FIsCheckNumber write FIsCheckNumber;
     property Options: String read FOptions write FOptions;
-    property TypeID: Integer read FTypeID write FTypeID;
-    property BranchKey: Integer read FBranchKey write FBranchKey;
+    property TypeID: TID read FTypeID write FTypeID;
+    property BranchKey: TID read FBranchKey write FBranchKey;
     property EditionDate: TDateTime read FEditionDate write FEditionDate;
     property Invalid: Boolean read FInvalid write SetInvalid;
   end;
@@ -571,11 +572,11 @@ type
     // формы доступные для наследования из редактора экранных форм
     FShowInFormEditor: Boolean;
 
-    FMacrosGroupID: Integer;
+    FMacrosGroupID: TID;
 
     function GetFrmClass: CgdcCreateableForm;
-    function GetGroupID: Integer; override;
-    function GetMacrosGroupID: Integer;
+    function GetGroupID: TID; override;
+    function GetMacrosGroupID: TID;
     function GetInitialName: String;
 
   public
@@ -586,7 +587,7 @@ type
     property frmClass: CgdcCreateableForm read GetFrmClass;
     property AbstractBaseForm: Boolean read FAbstractBaseForm write FAbstractBaseForm;
     property ShowInFormEditor: Boolean read FShowInFormEditor write FShowInFormEditor;
-    property MacrosGroupID: Integer read GetMacrosGroupID write FMacrosGroupID;
+    property MacrosGroupID: TID read GetMacrosGroupID write FMacrosGroupID;
     property InitialName: String read GetInitialName;
   end;
 
@@ -1572,7 +1573,7 @@ begin
     Result := nil;
 end;
 
-function TgdFormEntry.GetGroupID: Integer;
+function TgdFormEntry.GetGroupID: TID;
 var
   q: TIBSQL;
 begin
@@ -1589,7 +1590,7 @@ begin
 
       q.ExecQuery;
       if not q.Eof then
-        FGroupID := q.FieldByName('reportgroupkey').AsInteger;
+        FGroupID := GetTID(q.FieldByName('reportgroupkey'));
     finally
       q.Free;
     end;
@@ -1598,7 +1599,7 @@ begin
   Result := FGroupID;
 end;
 
-function TgdFormEntry.GetMacrosGroupID: Integer;
+function TgdFormEntry.GetMacrosGroupID: TID;
 var
   q: TIBSQL;
   ObjectName: String;
@@ -1628,7 +1629,7 @@ begin
         end;
 
         if not q.EOF then
-          FMacrosGroupID := q.FieldByName('macrosgroupkey').AsInteger;
+          FMacrosGroupID := GetTID(q.FieldByName('macrosgroupkey'));
     finally
       q.Free;
     end;
@@ -1813,7 +1814,7 @@ begin
     Result := '';    
 end;
 
-function TgdClassEntry.GetGroupID: Integer;
+function TgdClassEntry.GetGroupID: TID;
 begin
   Result := -1;
 end;
@@ -2393,7 +2394,7 @@ begin
       LoadRelation(nil, R, CEAttrUserDefined, CEAttrUserDefinedTree,
         CEAttrUserDefinedLBRBTree);
   end;
-
+  
   CEUserDocument := Get(TgdBaseEntry, 'TgdcUserDocument');
   CEUserDocumentLine := Get(TgdBaseEntry, 'TgdcUserDocumentLine');
   CEInvDocument := Get(TgdBaseEntry, 'TgdcInvDocument');
@@ -2430,12 +2431,12 @@ begin
       else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvPriceListType') = 0 then
         LoadDocument(TgdInvPriceDocumentEntry, CEInvPriceList, q, qOpt)
       else begin
-        DE := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpHeader);
+        DE := FindDocByTypeID(GetTID(q.FieldByName('id')), dcpHeader);
         if DE = nil then
           LoadDocument(TgdDocumentEntry, Get(TgdDocumentEntry, 'TgdcDocument'), q, qOpt)
         else begin
           DE.LoadDE(q, qOpt, True);
-          DELn := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpLine);
+          DELn := FindDocByTypeID(GetTID(q.FieldByName('id')), dcpLine);
           if DELn <> nil then
             DELn.Assign(DE);
           q.Next;
@@ -2470,7 +2471,7 @@ begin
     qOpt.Free;
     q.Free;
   end;
-
+  
   CopyDocSubTree(CEUserDocument, CEUserDocumentLine, TgdDocumentEntry);
   CopyDocSubTree(CEInvDocument, CEInvDocumentLine, TgdInvDocumentEntry);
   CopyDocSubTree(CEInvPriceList, CEInvPriceListLine, TgdInvPriceDocumentEntry);
@@ -3006,7 +3007,7 @@ begin
 end;
 
 function TgdDocumentEntry.FindParentByDocumentTypeKey(
-  const ADocumentTypeKey: Integer; const APart: TgdcDocumentClassPart): TgdDocumentEntry;
+  const ADocumentTypeKey: TID; const APart: TgdcDocumentClassPart): TgdDocumentEntry;
 begin
   Result := Self;
   while Result.TypeID <> ADocumentTypeKey do
@@ -3035,19 +3036,19 @@ end;
 
 procedure TgdDocumentEntry.LoadDE(q, qOpt: TIBSQL; const AnAllowParseOptions: Boolean = False);
 begin
-  FTypeID := q.FieldByName('id').AsInteger;
+  FTypeID := GetTID(q.FieldByName('id'));
   FIsCommon := q.FieldByName('iscommon').AsInteger > 0;
-  FHeaderFunctionKey := q.FieldByName('headerfunctionkey').AsInteger;
-  FLineFunctionKey := q.FieldByName('linefunctionkey').AsInteger;
+  FHeaderFunctionKey := GetTID(q.FieldByName('headerfunctionkey'));
+  FLineFunctionKey := GetTID(q.FieldByName('linefunctionkey'));
   FDescription := q.FieldByName('description').AsString;
   FIsCheckNumber := TIsCheckNumber(q.FieldByName('ischecknumber').AsInteger);
   FOptions := '';
-  FGroupID := q.FieldByName('reportgroupkey').AsInteger;
-  FHeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
-  FLineRelKey := q.FieldByName('linerelkey').AsInteger;
-  FBranchKey := q.FieldByName('branchkey').AsInteger;
+  FGroupID := GetTID(q.FieldByName('reportgroupkey'));
+  FHeaderRelKey := GetTID(q.FieldByName('headerrelkey'));
+  FLineRelKey := GetTID(q.FieldByName('linerelkey'));
+  FBranchKey := GetTID(q.FieldByName('branchkey'));
   FEditionDate := q.FieldByName('editiondate').AsDateTime;
-  if qOpt.EOF or (qOpt.FieldbyName('dtkey').AsInteger <> q.FieldByName('id').AsInteger) then
+  if qOpt.EOF or (GetTID(qOpt.FieldbyName('dtkey')) <> GetTID(q.FieldByName('id'))) then
   begin
     if ((Parent is TgdInvDocumentEntry) or (Parent is TgdInvPriceDocumentEntry))
       and (Parent.SubType = '') and (SubType > '')
@@ -3120,14 +3121,14 @@ begin
       '  LEFT JOIN at_relation_fields rf ON opt.relationfieldkey = rf.id ' +
       'WHERE ' +
       '  opt.dtkey = :id';
-    qOpt.ParamByName('id').AsInteger := TypeID;
+    SetTID(qOpt.ParamByName('id'), TypeID);
     qOpt.ExecQuery;
 
     q.SQL.Text :=
       'SELECT dt.* ' +
       'FROM gd_documenttype dt ' +
       'WHERE dt.id = :id';
-    q.ParamByName('id').AsInteger := TypeID;
+    SetTID(q.ParamByName('id'), TypeID);
     q.ExecQuery;
 
     LoadDE(q, qOpt);
@@ -3148,12 +3149,12 @@ begin
   //
 end;
 
-procedure TgdDocumentEntry.SetHeaderRelKey(const Value: Integer);
+procedure TgdDocumentEntry.SetHeaderRelKey(const Value: TID);
 begin
   FHeaderRelKey := Value;
 end;
 
-procedure TgdDocumentEntry.SetLineRelKey(const Value: Integer);
+procedure TgdDocumentEntry.SetLineRelKey(const Value: TID);
 begin
   FLineRelKey := Value;
 end;
@@ -3163,7 +3164,7 @@ begin
   FDistinctRelation := UpperCase(Value);
 end;
 
-function TgdBaseEntry.GetGroupID: Integer;
+function TgdBaseEntry.GetGroupID: TID;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -3182,7 +3183,7 @@ begin
       q.ParamByName('UGN').AsString := UGN;
       q.ExecQuery;
       if not q.EOF then
-        FGroupID := q.FieldByName('id').AsInteger
+        FGroupID := GetTID(q.FieldByName('id'))
       else begin
         q.Close;
         Tr := TIBTransaction.Create(nil);
@@ -3208,7 +3209,7 @@ begin
 
             q.Close;
             q.SQL.Text := 'INSERT INTO RP_REPORTGROUP(ID, USERGROUPNAME, NAME) VALUES (:ID, :UGN, :N)';
-            q.ParamByName('ID').AsInteger := FGroupID;
+            SetTID(q.ParamByName('ID'), FGroupID);
             q.ParamByName('UGN').AsString := UGN;
             q.ParamByName('N').AsString := N;
             q.ExecQuery;
@@ -3289,10 +3290,11 @@ procedure TgdInvDocumentEntry.ConvertOptions;
 var
   q, qRUID, qNS, qFindObj: TIBSQL;
   Tr: TIBTransaction;
-  NSID, NSPos, NSHeadObjectID: Integer;
+  NSID, NSHeadObjectID: TID;
+  NSPos: Integer;
 
-  procedure AddNSObject(const AnObjectName: String; const AnOptID: Integer;
-    const ADependentOnID: Integer = -1);
+  procedure AddNSObject(const AnObjectName: String; const AnOptID: TID;
+    const ADependentOnID: TID = -1);
   var
     P: Integer;
   begin
@@ -3303,8 +3305,8 @@ var
       if ADependentOnID > 147000000 then
       begin
         qFindObj.Close;
-        qFindObj.ParamByName('nk').AsInteger := NSID;
-        qFindObj.ParamByName('id').AsInteger := ADependentOnID;
+        SetTID(qFindObj.ParamByName('nk'), NSID);
+        SetTID(qFindObj.ParamByName('id'), ADependentOnID);
         qFindObj.ParamByName('p').AsInteger := NSPos;
         qFindObj.ExecQuery;
         if not qFindObj.EOF then
@@ -3318,22 +3320,22 @@ var
         P := NSPos;
       end;
 
-      qNS.ParamByName('namespacekey').AsInteger := NSID;
+      SetTID(qNS.ParamByName('namespacekey'), NSID);
       qNS.ParamByName('objectname').AsString := Copy(AnObjectName, 1, 60);
-      qNS.ParamByName('xid').AsInteger := AnOptID;
+      SetTID(qNS.ParamByName('xid'), AnOptID);
       qNS.ParamByName('objectpos').AsInteger := P;
-      qNS.ParamByName('headobjectkey').AsInteger := NSHeadObjectID;
+      SetTID(qNS.ParamByName('headobjectkey'), NSHeadObjectID);
       qNS.ParamByName('modified').AsDateTime := EditionDate;
       qNS.ParamByName('curr_modified').AsDateTime := EditionDate;
       qNS.ExecQuery;
     end;
   end;
 
-  function GetOptID: Integer;
+  function GetOptID: TID;
   begin
     Result := gdcBaseManager.GetNextID;
 
-    qRUID.ParamByName('id').AsInteger := Result;
+    SetTID(qRUID.ParamByName('id'), Result);
     qRUID.ExecQuery;
   end;
 
@@ -3341,18 +3343,18 @@ var
     const AnOptionName: String);
   var
     F: TatRelationField;
-    OptID: Integer;
+    OptID: TID;
   begin
     F := atDatabase.FindRelationField(ARelationName, AFieldName);
     if F <> nil then
     begin
       OptID := GetOptID;
 
-      q.ParamByName('id').AsInteger := OptID;
-      q.ParamByName('dtkey').AsInteger := TypeID;
+      SetTID(q.ParamByName('id'), OptID);
+      SetTID(q.ParamByName('dtkey'), TypeID);
       q.ParamByName('option_name').AsString := AnOptionName;
       q.ParamByName('bool_value').Clear;
-      q.ParamByName('relationfieldkey').AsInteger := F.ID;
+      SetTID(q.ParamByName('relationfieldkey'), F.ID);
       q.ParamByName('contactkey').Clear;
       q.ParamByName('editiondate').AsDateTime := EditionDate;
       q.ExecQuery;
@@ -3364,14 +3366,14 @@ var
   procedure ConvertBoolean(const AValue: Boolean; const AnOptionName: String;
     const AnObjectName: String = '');
   var
-    OptID: Integer;
+    OptID: TID;
   begin
     if AValue then
     begin
       OptID := GetOptID;
 
-      q.ParamByName('id').AsInteger := OptID;
-      q.ParamByName('dtkey').AsInteger := TypeID;
+      SetTID(q.ParamByName('id'), OptID);
+      SetTID(q.ParamByName('dtkey'), TypeID);
       q.ParamByName('option_name').AsString := AnOptionName;
       q.ParamByName('bool_value').AsInteger := 1;
       q.ParamByName('relationfieldkey').Clear;
@@ -3386,22 +3388,22 @@ var
     end;
   end;
 
-  procedure ConvertContact(const AContactKey: Integer; const AnOptionName: String);
+  procedure ConvertContact(const AContactKey: TID; const AnOptionName: String);
   var
-    OptID: Integer;
+    OptID: TID;
     R: OleVariant;
   begin
     if gdcBaseManager.ExecSingleQueryResult('SELECT name FROM gd_contact WHERE id=:id',
-      AContactKey, R) then
+      TID2V(AContactKey), R) then
     begin
       OptID := GetOptID;
 
-      q.ParamByName('id').AsInteger := OptID;
-      q.ParamByName('dtkey').AsInteger := TypeID;
+      SetTID(q.ParamByName('id'), OptID);
+      SetTID(q.ParamByName('dtkey'), TypeID);
       q.ParamByName('option_name').AsString := AnOptionName;
       q.ParamByName('bool_value').Clear;
       q.ParamByName('relationfieldkey').Clear;
-      q.ParamByName('contactkey').AsInteger := AContactKey;
+      SetTID(q.ParamByName('contactkey'), AContactKey);
       q.ParamByName('editiondate').AsDateTime := EditionDate;
       q.ExecQuery;
 
@@ -3427,7 +3429,7 @@ var
   procedure ConvertFeatures(const AFeature: TgdInvDocumentEntryFeature);
   var
     F: TatRelationField;
-    OptID: Integer;
+    OptID: TID;
     J: Integer;
     UserWarn: Boolean;
   begin
@@ -3439,11 +3441,11 @@ var
       begin
         OptID := GetOptID;
 
-        q.ParamByName('id').AsInteger := OptID;
-        q.ParamByName('dtkey').AsInteger := TypeID;
+        SetTID(q.ParamByName('id'), OptID);
+        SetTID(q.ParamByName('dtkey'), TypeID);
         q.ParamByName('option_name').AsString := InvDocumentFeaturesNames[AFeature];
         q.ParamByName('bool_value').Clear;
-        q.ParamByName('relationfieldkey').AsInteger := F.ID;
+        SetTID(q.ParamByName('relationfieldkey'), F.ID);
         q.ParamByName('contactkey').Clear;
         q.ParamByName('editiondate').AsDateTime := EditionDate;
 
@@ -3512,14 +3514,14 @@ begin
       '  ON r.xid = obj.xid AND r.dbid = obj.dbid ' +
       'WHERE ' +
       '  r.id = :ID';
-    q.ParamByName('id').AsInteger := TypeID;
+    SetTID(q.ParamByName('id'), TypeID);
     q.ExecQuery;
 
     if not q.EOF then
     begin
-      NSID := q.FieldByName('namespacekey').AsInteger;
+      NSID := GetTID(q.FieldByName('namespacekey'));
       NSPos := q.FieldByName('objectpos').AsInteger;
-      NSHeadObjectID := q.FieldByName('id').AsInteger;
+      NSHeadObjectID := GetTID(q.FieldByName('id'));
     end else
     begin
       NSID := -1;
@@ -3812,16 +3814,16 @@ procedure TgdInvDocumentEntry.LoadDEOption(qOpt: TIBSQL);
       FMovement[M].SubSourceFieldName := qOpt.FieldByName('fieldname').AsString;
     end
     else if AnOptName = 'Predefined' then
-      FMovement[M].AddPredefined(qOpt.FieldByName('contactkey').AsInteger)
+      FMovement[M].AddPredefined(GetTID(qOpt.FieldByName('contactkey')))
     else if AnOptName = 'SubPredefined' then
-      FMovement[M].AddSubPredefined(qOpt.FieldByName('contactkey').AsInteger);
+      FMovement[M].AddSubPredefined(GetTID(qOpt.FieldByName('contactkey')));
   end;
 
   procedure LoadFeatures(R: TatRelation; const AFeature: TgdInvDocumentEntryFeature);
   var
     F: TatRelationField;
   begin
-    F := R.RelationFields.ByID(qOpt.FieldByName('relationfieldkey').AsInteger);
+    F := R.RelationFields.ByID(GetTID(qOpt.FieldByName('relationfieldkey')));
     if F <> nil then
       FFeatures[AFeature].Add(F.FieldName);
   end;
@@ -3834,7 +3836,7 @@ begin
   R := atDatabase.Relations.ByRelationName('INV_CARD');
   Assert(R <> nil);
 
-  while (not qOpt.EOF) and (qOpt.FieldbyName('dtkey').AsInteger = TypeID) do
+  while (not qOpt.EOF) and (GetTID(qOpt.FieldbyName('dtkey')) = TypeID) do
   begin
     OptName := qOpt.FieldbyName('option_name').AsString;
 
@@ -3882,12 +3884,14 @@ var
   F: TatRelationField;
   TempDirection: TgdcInvMovementDirection;
   TempSources: TgdcInvReferenceSources;
+  Reader: TReader;
 begin
   if Options = '' then
     exit;
 
   SS := TStringStream.Create(Options);
-  with TReader.Create(SS, 1024) do
+  Reader :=TReader.Create(SS, 1024);
+  with Reader do
   try
     Version := ReadString;
 
@@ -3912,7 +3916,7 @@ begin
       (Version = gdcInvDocument_Version2_0) or
       (Version = gdcInvDocument_Version1_9) then
     begin
-      ReadInteger;
+      ReadTID(Reader);
     end;
 
     // Приход
@@ -3927,13 +3931,13 @@ begin
     SetLength(FMovement[emDebit].Predefined, 0);
     ReadListBegin;
     while not EndOfList do
-      FMovement[emDebit].AddPredefined(ReadInteger);
+      FMovement[emDebit].AddPredefined(ReadTID(Reader));
     ReadListEnd;
 
     SetLength(FMovement[emDebit].SubPredefined, 0);
     ReadListBegin;
     while not EndOfList do
-      FMovement[emDebit].AddSubPredefined(ReadInteger);
+      FMovement[emDebit].AddSubPredefined(ReadTID(Reader));
     ReadListEnd;
 
     // Расход
@@ -3948,13 +3952,13 @@ begin
     SetLength(FMovement[emCredit].Predefined, 0);
     ReadListBegin;
     while not EndOfList do
-      FMovement[emCredit].AddPredefined(ReadInteger);
+      FMovement[emCredit].AddPredefined(ReadTID(Reader));
     ReadListEnd;
 
     SetLength(FMovement[emCredit].SubPredefined, 0);
     ReadListBegin;
     while not EndOfList do
-      FMovement[emCredit].AddSubPredefined(ReadInteger);
+      FMovement[emCredit].AddSubPredefined(ReadTID(Reader));
     ReadListEnd;
 
     // Настройки признаков
@@ -4101,10 +4105,11 @@ procedure TgdInvPriceDocumentEntry.ConvertOptions;
 var
   q, qRUID, qNS, qFindObj: TIBSQL;
   Tr: TIBTransaction;
-  NSID, NSPos, NSHeadObjectID: Integer;
+  NSID, NSHeadObjectID: TID;
+  NSPos: Integer;
 
-  procedure AddNSObject(const AnObjectName: String; const AnOptID: Integer;
-    const ADependentOnID: Integer = -1);
+  procedure AddNSObject(const AnObjectName: String; const AnOptID: TID;
+    const ADependentOnID: TID = -1);
   var
     P: Integer;
   begin
@@ -4115,8 +4120,8 @@ var
       if ADependentOnID > 147000000 then
       begin
         qFindObj.Close;
-        qFindObj.ParamByName('nk').AsInteger := NSID;
-        qFindObj.ParamByName('id').AsInteger := ADependentOnID;
+        SetTID(qFindObj.ParamByName('nk'), NSID);
+        SetTID(qFindObj.ParamByName('id'), ADependentOnID);
         qFindObj.ParamByName('p').AsInteger := NSPos;
         qFindObj.ExecQuery;
         if not qFindObj.EOF then
@@ -4130,29 +4135,29 @@ var
         P := NSPos;
       end;
 
-      qNS.ParamByName('namespacekey').AsInteger := NSID;
+      SetTID(qNS.ParamByName('namespacekey'), NSID);
       qNS.ParamByName('objectname').AsString := Copy(AnObjectName, 1, 60);
-      qNS.ParamByName('xid').AsInteger := AnOptID;
+      SetTID(qNS.ParamByName('xid'), AnOptID);
       qNS.ParamByName('objectpos').AsInteger := P;
-      qNS.ParamByName('headobjectkey').AsInteger := NSHeadObjectID;
+      SetTID(qNS.ParamByName('headobjectkey'), NSHeadObjectID);
       qNS.ParamByName('modified').AsDateTime := EditionDate;
       qNS.ParamByName('curr_modified').AsDateTime := EditionDate;
       qNS.ExecQuery;
     end;
   end;
 
-  function GetOptID: Integer;
+  function GetOptID: TID;
   begin
     Result := gdcBaseManager.GetNextID;
 
-    qRUID.ParamByName('id').AsInteger := Result;
+    SetTID(qRUID.ParamByName('id'), Result);
     qRUID.ExecQuery;
   end;
 
   procedure ConvertFields(const ARelName: String; const AnOptName: String; const AFields: TgdcInvPriceFields);
   var
     F: TatRelationField;
-    OptID: Integer;
+    OptID: TID;
     J: Integer;
   begin
     for J := Low(AFields) to High(AFields) do
@@ -4162,17 +4167,17 @@ var
       begin
         OptID := GetOptID;
 
-        q.ParamByName('id').AsInteger := OptID;
-        q.ParamByName('dtkey').AsInteger := TypeID;
+        SetTID(q.ParamByName('id'), OptID);
+        SetTID(q.ParamByName('dtkey'), TypeID);
         q.ParamByName('option_name').AsString := AnOptName;
         q.ParamByName('bool_value').Clear;
-        q.ParamByName('relationfieldkey').AsInteger := F.ID;
+        SetTID(q.ParamByName('relationfieldkey'), F.ID);
         if AFields[J].ContactKey > 0 then
-          q.ParamByName('contactkey').AsInteger := AFields[J].ContactKey
+          SetTID(q.ParamByName('contactkey'), AFields[J].ContactKey)
         else
           q.ParamByName('contactkey').Clear;
         if AFields[J].CurrencyKey > 0 then
-          q.ParamByName('currkey').AsInteger := AFields[J].CurrencyKey
+          SetTID(q.ParamByName('currkey'), AFields[J].CurrencyKey)
         else
           q.ParamByName('currkey').Clear;
         q.ParamByName('editiondate').AsDateTime := EditionDate;
@@ -4216,14 +4221,14 @@ begin
       '  ON r.xid = obj.xid AND r.dbid = obj.dbid ' +
       'WHERE ' +
       '  r.id = :ID';
-    q.ParamByName('id').AsInteger := TypeID;
+    SetTID(q.ParamByName('id'), TypeID);
     q.ExecQuery;
 
     if not q.EOF then
     begin
-      NSID := q.FieldByName('namespacekey').AsInteger;
+      NSID := GetTID(q.FieldByName('namespacekey'));
       NSPos := q.FieldByName('objectpos').AsInteger;
-      NSHeadObjectID := q.FieldByName('id').AsInteger;
+      NSHeadObjectID := GetTID(q.FieldByName('id'));
     end else
     begin
       NSID := -1;
@@ -4267,20 +4272,20 @@ begin
   PL := atDatabase.Relations.ByRelationName('INV_PRICELINE');
   Assert((P <> nil) and (PL <> nil));
 
-  while (not qOpt.EOF) and (qOpt.FieldbyName('dtkey').AsInteger = TypeID) do
+  while (not qOpt.EOF) and (GetTID(qOpt.FieldbyName('dtkey')) = TypeID) do
   begin
     OptName := qOpt.FieldbyName('option_name').AsString;
 
     if OptName = 'HF' then
-      F := P.RelationFields.ByID(qOpt.FieldbyName('relationfieldkey').AsInteger)
+      F := P.RelationFields.ByID(GetTID(qOpt.FieldbyName('relationfieldkey')))
     else
-      F := PL.RelationFields.ByID(qOpt.FieldbyName('relationfieldkey').AsInteger);
+      F := PL.RelationFields.ByID(GetTID(qOpt.FieldbyName('relationfieldkey')));
 
     if F <> nil then
     begin
       NewField.FieldName := F.FieldName;
-      NewField.ContactKey := qOpt.FieldbyName('contactkey').AsInteger;
-      NewField.CurrencyKey := qOpt.FieldbyName('currkey').AsInteger;
+      NewField.ContactKey := GetTID(qOpt.FieldbyName('contactkey'));
+      NewField.CurrencyKey := GetTID(qOpt.FieldbyName('currkey'));
 
       if OptName = 'HF' then
       begin
@@ -4308,30 +4313,33 @@ var
     NewField: TgdcInvPriceField;
     R: OleVariant;
   begin
-    Reader.ReadListBegin;
-    while not Reader.EndOfList do
-    begin
-      Reader.Read(NewField, SizeOf(TgdcInvPriceField));
-
-      if atDatabase.FindRelationField(ARelName, NewField.FieldName) <> nil then
+    try
+      Reader.ReadListBegin;
+      while not Reader.EndOfList do
       begin
-        if (NewField.ContactKey > 0) and (not gdcBaseManager.ExecSingleQueryResult(
-          'SELECT id FROM gd_contact WHERE id = :id', NewField.ContactKey, R)) then
-        begin
-          NewField.ContactKey := -1;
-        end;
+        Reader.Read(NewField, SizeOf(TgdcInvPriceField));
 
-        if (NewField.CurrencyKey > 0) and (not gdcBaseManager.ExecSingleQueryResult(
-          'SELECT id FROM gd_curr WHERE id = :id', NewField.CurrencyKey, R)) then
+        if atDatabase.FindRelationField(ARelName, NewField.FieldName) <> nil then
         begin
-          NewField.CurrencyKey := -1;
-        end;
+          if (NewField.ContactKey > 0) and (not gdcBaseManager.ExecSingleQueryResult(
+            'SELECT id FROM gd_contact WHERE id = :id', TID2V(NewField.ContactKey), R)) then
+          begin
+            NewField.ContactKey := -1;
+          end;
 
-        SetLength(L, Length(L) + 1);
-        L[Length(L) - 1] := NewField;
+          if (NewField.CurrencyKey > 0) and (not gdcBaseManager.ExecSingleQueryResult(
+            'SELECT id FROM gd_curr WHERE id = :id', TID2V(NewField.CurrencyKey), R)) then
+          begin
+            NewField.CurrencyKey := -1;
+          end;
+
+          SetLength(L, Length(L) + 1);
+          L[Length(L) - 1] := NewField;
+        end;
       end;
+      Reader.ReadListEnd;
+    except
     end;
-    Reader.ReadListEnd;
   end;
 
 begin
@@ -4350,7 +4358,7 @@ begin
 
     // Ключ группы отчетов
     if (Version = gdcInvPrice_Version1_1) or (Version = gdcInvPrice_Version1_2) then
-      ReadInteger;
+      ReadTID(Reader);
 
     // Настройки шапки прайс-листа
     ReadList('INV_PRICE', FHeaderFields);
@@ -4396,7 +4404,11 @@ begin
 
     for I := 0 to Obj.Fields.Count - 1 do
     begin
-      if Obj.Fields[I].DataType = ftInteger then
+      {$IFDEF ID64}
+      if Obj.Fields[I].DataType in [ftLargeInt] then
+      {$ELSE}
+      if Obj.Fields[I].DataType in [ftInteger] then
+      {$ENDIF}
       begin
         ParseFieldOrigin(Obj.Fields[I].Origin, RN, FN);
         RF := atDatabase.FindRelationField(RN, FN);

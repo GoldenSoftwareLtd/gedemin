@@ -1,9 +1,11 @@
+// ShlTanya, 09.02.2019
+
 unit gd_OData;
 
 interface
 
 uses
-  gd_ClassList;
+  gd_ClassList, gdcBaseInterface;
 
 type
   TgdOData = class(TObject)
@@ -12,8 +14,8 @@ type
       AData2: Pointer): Boolean;
     function BuildServiceMetadata(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
-    procedure ParseURL(const AnURL: String; out AClassName, ASubType: String;
-      out AnID: Integer);
+    procedure ParseURL(const AnURL: String; out AClassName,
+      ASubType: String; out AnID: TID);
 
   public
     function GetServiceRoot: String;
@@ -53,7 +55,8 @@ end;
 function TgdOData.GetEntitySet(const ADocument: String): String;
 var
   ClassName, SubType: String;
-  ID, I: Integer;
+  ID: TID;
+  I: Integer;
   BE: TgdBaseEntry;
   Obj: TgdcBase;
   SL: TStringList;
@@ -77,9 +80,9 @@ begin
     while not Obj.EOF do
     begin
       W.BeginObject;
-      W.AddValue('@odata.id', gdWebServerControl.GetODataRoot + '/' + BE.GetEntitySetUrl + '(''' + IntToStr(Obj.ID) + ''')');
+      W.AddValue('@odata.id', gdWebServerControl.GetODataRoot + '/' + BE.GetEntitySetUrl + '(''' + TID2S(Obj.ID) + ''')');
       W.AddValue('@odata.etag', 'W/"' + FormatDateTime('yyyymmddhhnnss', Obj.EditionDate) + '"');
-      W.AddValue('@odata.editLink', gdWebServerControl.GetODataRoot + '/' + BE.GetEntitySetUrl + '(''' + IntToStr(Obj.ID) + ''')');
+      W.AddValue('@odata.editLink', gdWebServerControl.GetODataRoot + '/' + BE.GetEntitySetUrl + '(''' + TID2S(Obj.ID) + ''')');
 
       for I := 0 to Obj.Fields.Count - 1 do
       begin
@@ -155,7 +158,7 @@ end;
 }
 
 procedure TgdOData.ParseURL(const AnURL: String; out AClassName,
-  ASubType: String; out AnID: Integer);
+  ASubType: String; out AnID: TID);
 var
   P, B, E: Integer;
 begin

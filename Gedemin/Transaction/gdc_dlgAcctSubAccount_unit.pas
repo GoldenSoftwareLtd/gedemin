@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_dlgAcctSubAccount_unit;
 
 interface
@@ -25,7 +27,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, jclStrings, gdc_frmAcctAccount_unit;
+  gd_ClassList, jclStrings, gdc_frmAcctAccount_unit, gdcBaseInterface;
 
 procedure Tgdc_dlgAcctSubAccount.dbedAliasChange(Sender: TObject);
 begin
@@ -66,9 +68,9 @@ begin
     if Owner is Tgdc_frmAcctAccount then
     begin
       if (Owner as Tgdc_frmAcctAccount).gdcDetailObject.FieldByName('accounttype').AsString = 'S' then
-        gdcObject.FieldByName('parent').AsInteger := (Owner as Tgdc_frmAcctAccount).gdcDetailObject.FieldByName('parent').AsInteger
+        SetTID(gdcObject.FieldByName('parent'), (Owner as Tgdc_frmAcctAccount).gdcDetailObject.FieldByName('parent'))
       else
-        gdcObject.FieldByName('parent').AsVariant := (Owner as Tgdc_frmAcctAccount).gdcDetailObject.FieldByName('id').AsVariant;
+        SetTID(gdcObject.FieldByName('parent'), (Owner as Tgdc_frmAcctAccount).gdcDetailObject.FieldByName('id'));
     end
     else
       gdcObject.FieldByName('parent').Clear;

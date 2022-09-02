@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019
+
 unit rp_dlgEditFunction_unit;
 
 interface
@@ -134,9 +136,9 @@ type
   public
     property ExecuteFunction: TExecuteFunction read FExecuteFunction write FExecuteFunction;
 
-    function AddFunction(const AnModule: String; out AnFunctionKey: Integer): Boolean;
-    function EditFunction(const AnFunctionKey: Integer): Boolean;
-    function DeleteFunction(const AnFunctionKey: Integer): Boolean;
+    function AddFunction(const AnModule: String; out AnFunctionKey: TID): Boolean;
+    function EditFunction(const AnFunctionKey: TID): Boolean;
+    function DeleteFunction(const AnFunctionKey: TID): Boolean;
   end;
 
 var
@@ -178,7 +180,7 @@ procedure TdlgEditFunction.ViewEvent;
 begin
 end;
 
-function TdlgEditFunction.AddFunction(const AnModule: String; out AnFunctionKey: Integer): Boolean;
+function TdlgEditFunction.AddFunction(const AnModule: String; out AnFunctionKey: TID): Boolean;
 var
   Str: TStream;
 begin
@@ -195,7 +197,7 @@ begin
   ibdsFunction.FieldByName('afull').AsInteger := -1;
   ibdsFunction.FieldByName('achag').AsInteger := -1;
   ibdsFunction.FieldByName('aview').AsInteger := -1;
-  ibdsFunction.FieldByName('modulecode').AsInteger := 1;
+  SetTID(ibdsFunction.FieldByName('modulecode'), 1);
   dbcbLangChange(nil);
   FCompiled := False;
 
@@ -203,8 +205,7 @@ begin
   if ShowModal = mrOk then
   begin
     try
-      ibdsFunction.FieldByName('id').AsInteger := GetUniqueKey(ibdsFunction.Database,
-       ibdsFunction.Transaction);
+      SetTID(ibdsFunction.FieldByName('id'), GetUniqueKey(ibdsFunction.Database, ibdsFunction.Transaction));
       Str := ibdsFunction.CreateBlobStream(ibdsFunction.FieldByName('testresult'), bmWrite);
       try
         PrepareTestResult;
@@ -228,7 +229,7 @@ begin
       SetAddFunction;
 
       Result := True;
-      AnFunctionKey := ibdsFunction.FieldByName('id').AsInteger;
+      AnFunctionKey := GetTID(ibdsFunction.FieldByName('id'));
     except
       on E: Exception do
       begin
@@ -244,7 +245,7 @@ begin
     ibtrFunction.Commit;
 end;
 
-function TdlgEditFunction.EditFunction(const AnFunctionKey: Integer): Boolean;
+function TdlgEditFunction.EditFunction(const AnFunctionKey: TID): Boolean;
 var
   Str: TStream;
 begin
@@ -252,7 +253,7 @@ begin
   if not ibtrFunction.Active then
     ibtrFunction.StartTransaction;
   ibdsFunction.Close;
-  ibdsFunction.Params[0].AsInteger := AnFunctionKey;
+  SetTID(ibdsFunction.Params[0], AnFunctionKey);
   ibdsFunction.Open;
   dbcbLangChange(nil);
   if ibdsFunction.Eof then
@@ -330,13 +331,13 @@ begin
     ibtrFunction.Commit;
 end;
 
-function TdlgEditFunction.DeleteFunction(const AnFunctionKey: Integer): Boolean;
+function TdlgEditFunction.DeleteFunction(const AnFunctionKey: TID): Boolean;
 begin
   Result := False;
   if not ibtrFunction.Active then
     ibtrFunction.StartTransaction;
   ibdsFunction.Close;
-  ibdsFunction.Params[0].AsInteger := AnFunctionKey;
+  SetTID(ibdsFunction.Params[0], AnFunctionKey);
   ibdsFunction.Open;
   if ibdsFunction.Eof then
   begin
@@ -442,7 +443,7 @@ begin
         LocSQL.SQL.Text := 'SELECT script FROM gd_function WHERE id in(';
         for I := 1 to SL.Count - 1 do
         begin
-          LocSQL.SQL.Add(IntToStr(Integer(SL.Objects[I])));
+          LocSQL.SQL.Add(TID2S(GetTID(SL.Objects[I])));
           LocSQL.SQL.Add(',');
         end;
         LocSQL.SQL.Strings[LocSQL.SQL.Count - 1] := ')';
@@ -553,7 +554,7 @@ var
       end;
   end;
 
-  procedure SetID(LocStartInd, LocKey: Integer; LocName: String);
+  procedure SetID(LocStartInd: Integer; LocKey: TID; LocName: String);
   var
     K: Integer;
   begin
@@ -602,7 +603,7 @@ begin
       ibsqlWork.ExecQuery;
       while not ibsqlWork.Eof do
       begin
-        SetID(StartIndex, ibsqlWork.FieldByName('id').AsInteger,
+        SetID(StartIndex, GetTID(ibsqlWork.FieldByName('id')),
          AnsiUpperCase(ibsqlWork.FieldByName('name').AsString));
 
         ibsqlWork.Next;
@@ -637,7 +638,7 @@ begin
       for I := 1 to SL.Count - 1 do
       begin
         LocSQL.Close;
-        LocSQL.Params[0].AsInteger := Integer(SL.Objects[I]);
+        SetTID(LocSQL.Params[0], GetTID(SL.Objects[I]));
         LocSQL.ExecQuery;
       end;
     finally

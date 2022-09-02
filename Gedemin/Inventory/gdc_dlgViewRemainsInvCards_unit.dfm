@@ -16,8 +16,8 @@ object gdc_dlgViewRemainsInvCards: Tgdc_dlgViewRemainsInvCards
   TextHeight = 13
   object pnlBottom: TPanel
     Left = 0
-    Top = 248
-    Width = 544
+    Top = 236
+    Width = 536
     Height = 25
     Align = alBottom
     BevelOuter = bvNone
@@ -46,8 +46,8 @@ object gdc_dlgViewRemainsInvCards: Tgdc_dlgViewRemainsInvCards
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 544
-    Height = 248
+    Width = 536
+    Height = 236
     Align = alClient
     BevelInner = bvLowered
     BevelOuter = bvNone
@@ -57,7 +57,7 @@ object gdc_dlgViewRemainsInvCards: Tgdc_dlgViewRemainsInvCards
     object lHeader: TLabel
       Left = 5
       Top = 5
-      Width = 534
+      Width = 526
       Height = 16
       Align = alTop
       Alignment = taCenter
@@ -73,23 +73,23 @@ object gdc_dlgViewRemainsInvCards: Tgdc_dlgViewRemainsInvCards
     object Panel2: TPanel
       Left = 5
       Top = 21
-      Width = 534
-      Height = 222
+      Width = 526
+      Height = 210
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
       object Bevel1: TBevel
         Left = 0
         Top = 0
-        Width = 534
+        Width = 526
         Height = 2
         Align = alTop
       end
       object ibgrInvCardList: TgsIBGrid
         Left = 0
         Top = 2
-        Width = 534
-        Height = 220
+        Width = 526
+        Height = 208
         Align = alClient
         BorderStyle = bsNone
         DataSource = dsInvCardList

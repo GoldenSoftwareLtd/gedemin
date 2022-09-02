@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit evt_Base;
 
@@ -8,7 +9,7 @@ uses
   SysUtils, scr_i_FunctionList, Windows, Comctrls, Controls, menus, Actnlist,
   Gedemin_TLB, forms, Messages, stdctrls, rp_report_const,
   dbgrids, grids, gsDBGrid, IBCustomDataSet, gdcBase, gd_DebugLog, gd_KeyAssoc,
-  gdc_dlgG_unit, TB2Item;
+  gdc_dlgG_unit, TB2Item, gdcBaseInterface;
 
 const
   GD_TEMPPATH = 'Temp\';
@@ -20,7 +21,7 @@ type
     DBIB: Integer;
     DBPath: String[255];
     ServerName: String[24];
-    SFModifyID: Integer;
+    SFModifyID: TID;
     UseDebugInfo: Boolean;
     StreamVertion: Integer;
   end;
@@ -28,9 +29,6 @@ type
   TgsFunctionList = class(TComponent, IScriptFunctions)
   private
     FSortFuncList: TgdKeyObjectAssoc;
-    {$IFDEF DEBUG}
-    FSFLoadTime: TStrings;
-    {$ENDIF}
 
     // Свойства для работы с файл-кэшем СФ
     // Список указателей позиций СФ в файл-кэше
@@ -53,7 +51,7 @@ type
     // Создает файловые потоки для работы с файл-кэшем СФ
     function CreateSFDHandleList: Boolean;
     // Возвращает СФ из файл-кэша
-    function ReadSFFromStream(const AnFunctionKey: Integer): TrpCustomFunction;
+    function ReadSFFromStream(const AnFunctionKey: TID): TrpCustomFunction;
     // Удаляет файлы файл-кэша
     function DeleteSFFiles: Boolean;
 
@@ -67,13 +65,13 @@ type
   protected
     function Get_Self: TObject;
     //Поиск в списке по ключу функции
-    function FindFunctionWithoutDB(const AnFunctionKey: Integer): TrpCustomFunction;
-    function FindFunctionInDB(const AnFunctionKey: Integer): TrpCustomFunction;
-    function FindFunction(const AnFunctionKey: Integer): TrpCustomFunction;
+    function FindFunctionWithoutDB(const AnFunctionKey: TID): TrpCustomFunction;
+    function FindFunctionInDB(const AnFunctionKey: TID): TrpCustomFunction;
+    function FindFunction(const AnFunctionKey: TID): TrpCustomFunction;
     function ReleaseFunction(AnFunction: TrpCustomFunction): Integer;
     function  UpdateList: Boolean;
     // Удаляет ф-цию, чистит файл кэша
-    procedure RemoveFunction(const AnFunctionKey: Integer);
+    procedure RemoveFunction(const AnFunctionKey: TID);
 
 
     function Get_Function(Index: Integer): TrpCustomFunction;
@@ -101,17 +99,17 @@ type
   TCustomFunctionItem = class
   private
     FDisable: Boolean;
-    FOldFunctionKey: Integer;
+    FOldFunctionKey: TID;
     procedure SetDisable(const Value: Boolean);
     procedure SetName(const Value: String);
-    procedure SetFunctionKey(const Value: Integer);
+    procedure SetFunctionKey(const Value: TID);
   protected
     // Локализованное наименование
     // Для события - наименование события
     // Для метода - наименование перекрываемого метода
     FCustomName: String;
     // Ключ функции
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
 
     function GetComplexParams(const AnLang: TFuncParamLang;
       const FunctionName: String = ''): String; virtual; abstract;
@@ -129,8 +127,8 @@ type
     property Name: String read FCustomName write SetName;
     // Наименование объекта которому принадлежит функция
     property ObjectName: String read GetObjectName;
-    property FunctionKey: Integer read FFunctionKey write SetFunctionKey;
-    property OldFunctionKey: Integer read FOldFunctionKey write FOldFunctionKey default 0;
+    property FunctionKey: TID read FFunctionKey write SetFunctionKey;
+    property OldFunctionKey: TID read FOldFunctionKey write FOldFunctionKey default 0;
     // поле указывает используется скрипт-метод для метода или нет
     property Disable: Boolean read FDisable write SetDisable default True;
   end;
@@ -144,12 +142,12 @@ type
     FOldEvent: TMethod;
     FIsOldEventSet: Boolean;
     FObject: TEventObject;
-    FEventID: Integer;
+    FEventID: TID;
     function GetDelphiParamString(const LocParamCount: Integer;
       const LocParams: array of Char; const AnLang: TFuncParamLang;
       out AnResultParam: String): String;
     procedure SetOldEvent(const Value: TMethod);
-    procedure SetEventID(const Value: Integer);
+    procedure SetEventID(const Value: TID);
     // Сохраняет для существующего в БД EventItem изменения
     procedure SaveChangeInDB(AnDatabase: TIBDatabase);
 
@@ -172,23 +170,23 @@ type
     // Указатель на стуктуру TTypeData для события
     property EventData: PTypeData read FEventData write FEventData;
     property EventObject: TEventObject read FObject write FObject;
-    property EventID: Integer read FEventID write SetEventID;
+    property EventID: TID read FEventID write SetEventID;
   end;
 
   // Класс для хранения списка присвоенных ивентов
   TEventList = class(TObjectList)
   private
     function GetEventName(Index: Integer): String;
-    function GetFunc(Index: Integer): Integer;
+    function GetFunc(Index: Integer): TID;
     function GetItem(Index: Integer): TEventItem;
     function GetMethod(Index: Integer): TMethod;
     procedure SetEventName(Index: Integer; const Value: String);
-    procedure SetFunc(Index: Integer; const Value: Integer);
+    procedure SetFunc(Index: Integer; const Value: TID);
     procedure SetMethod(Index: Integer; const Value: TMethod);
     function GetNameItem(const AName: String): TEventItem;
   public
     function Add(const ASource: TEventItem): Integer; overload;
-    function Add(const AName: String; const AFuncKey: Integer): Integer; overload;
+    function Add(const AName: String; const AFuncKey: TID): Integer; overload;
     function Last: TEventItem;
     procedure Assign(ASource: TEventList);
     function Find(const AName: String): TEventItem;
@@ -199,7 +197,7 @@ type
     property ItemByName[const AName: String]: TEventItem read GetNameItem;
     property Name[Index: Integer]: String read GetEventName write SetEventName;
     property OldMethod[Index: Integer]: TMethod read GetMethod write SetMethod;
-    property EventFunctionKey[Index: Integer]: Integer read GetFunc write SetFunc;
+    property EventFunctionKey[Index: Integer]: TID read GetFunc write SetFunc;
   end;
 
   // Класс для хранения зарегистрированных в БД объектов.
@@ -209,7 +207,7 @@ type
   // Класс хранит данные по одному объекту
   TEventObject = class
   private
-    FObjectKey: Integer;
+    FObjectKey: TID;
     FObjectName: String;
     FChildObjects: TEventObjectList;
     FObjectClassType: TClass;
@@ -238,7 +236,7 @@ type
     function FindRightEvent(AnEventName: String): TEventItem;
 
     property ObjectClassType: TClass read FObjectClassType write FObjectClassType;
-    property ObjectKey: Integer read FObjectKey write FObjectKey;
+    property ObjectKey: TID read FObjectKey write FObjectKey;
     property ObjectName: String read FObjectName write FObjectName;
     property ChildObjects: TEventObjectList read FChildObjects;
     property EventList: TEventList read FEventList write FEventList;
@@ -280,10 +278,10 @@ type
     function Last: TEventObject;
     function FindObject(const AnName: String): TEventObject; overload;
     function FindObject(const AnObject: TObject): TEventObject; overload;
-    function FindObject(const AnObjectKey: Integer): TEventObject; overload;
+    function FindObject(const AnObjectKey: TID): TEventObject; overload;
     function FindAllObject(const AnName: String): TEventObject; overload;
     function FindAllObject(AObject: TComponent): TEventObject; overload;
-    function FindAllObject(const AnObjectKey: Integer): TEventObject; overload;
+    function FindAllObject(const AnObjectKey: TID): TEventObject; overload;
     function FindObjectAndIndex(AObject: TComponent;
       out DynArrayIndex: Integer): TEventObject;
 
@@ -491,7 +489,7 @@ const
 
   //!DAlex
 
-  cMsgCantFindObject    = 'TEventControl: Не найден объект, вызвавший событие!';
+  cMsgCantFindObject                    = 'TEventControl: Не найден объект, вызвавший событие!';
 
 // Класс для работы с событиями
 // Компонента создаетчся одна на проект
@@ -626,7 +624,7 @@ type
     procedure GoToClassMethods(const AClassName, ASubType: String);
     procedure EditObject(const AnComponent: TComponent;
      const EditMode: TEditMode = emNone; const AnName: String = '';
-     const AnFunctionID: integer = 0);
+     const AnFunctionID: TID = 0);
     //Уведомляет окно свойств об изменениях в системе
     procedure PropertyNotification(AComponent: TComponent;
       Operation: TPrpOperation; const AOldName: String = '');
@@ -637,16 +635,16 @@ type
     function GetProperty: TCustomForm;
     procedure PrepareSOEditorForModal;
 
-    procedure DebugScriptFunction(const AFunctionKey: Integer;
+    procedure DebugScriptFunction(const AFunctionKey: TID;
       const AModuleName: String = scrUnkonownModule;
       const CurrentLine: Integer = - 1);
 
     //Редактирование отчета
-    procedure EditReport(IDReportGroup, IDReport: Integer);
+    procedure EditReport(IDReportGroup, IDReport: TID);
 
-    procedure LoadBranch(const AnObjectKey: Integer);
+    procedure LoadBranch(const AnObjectKey: TID);
     //
-    function EditScriptFunction(var AFunctionKey: Integer): Boolean;
+    function EditScriptFunction(var AFunctionKey: TID): Boolean;
     // Инициализация
     procedure LoadLists;
     function Get_PropertyIsLoaded: Boolean;
@@ -1037,7 +1035,7 @@ type
     procedure OnConditionChanged(Sender: TObject);
     // TFilterChanged
     procedure OnFilterChangedSQLFilter(Sender: TObject;
-      const AnCurrentFilter: Integer);
+      const AnCurrentFilter: TID);
 
     {!!! Events from TTimer !!!}
     // TNotifyEvent
@@ -1117,7 +1115,7 @@ uses
   gd_Security, obj_i_Debugger, dlg_gsResizer_ObjectInspector_unit,
   prp_frmGedeminProperty_Unit, gd_createable_form, mtd_i_Base,
   gdc_frmMDVTree_unit, gdcReport, FileCtrl, prp_PropertySettings, gsSupportClasses,
-  shdocvw, gdcBaseInterface, gd_ClassList, gdc_createable_form, gdcDelphiObject
+  shdocvw, gd_ClassList, gdc_createable_form, gdcDelphiObject, dialogs
   {$IFDEF MODEM}
     , gsModem
   {$ENDIF}
@@ -1131,7 +1129,12 @@ const
   bSFHandleStream: Integer = $7FFFEAA5;
   eSFHandleStream: Integer = $7F5FCBCF;
 
+  {$IFDEF ID64}
+  rp_SFFileName = '%sg.64.%d.%s';
+  {$ELSE}
   rp_SFFileName = '%sg%d.%s';
+  {$ENDIF}
+
   rp_SFStreamVertion = 17;
 
   MaxRecursionDepth = 200;
@@ -1821,7 +1824,7 @@ begin
   ExecuteNotifyEvent(Sender, cDatabaseFreeEventName);
 end;
 
-procedure TEventControl.DebugScriptFunction(const AFunctionKey: Integer;
+procedure TEventControl.DebugScriptFunction(const AFunctionKey: TID;
   const AModuleName: String; const CurrentLine: Integer);
 begin
   if (not Application.Terminated) and IBLogin.Database.Connected then
@@ -1858,7 +1861,7 @@ begin
       SQL.Transaction := FTransaction;
       SQL.SQL.Text := 'DELETE FROM evt_objectevent ' +
         'WHERE UPPER(eventname) = ''' + UpperCase(E.Name) + ''' AND objectkey = ' +
-        IntToStr(Ob.ObjectKey);
+        TID2S(Ob.ObjectKey);
       Flag := not FTransaction.InTransaction;
       if Flag then
         FTransaction.StartTransaction;
@@ -1915,7 +1918,7 @@ end;
 
 procedure TEventControl.EditObject(const AnComponent: TComponent;
   const EditMode: TEditMode = emNone; const AnName: String = '';
-  const AnFunctionID: integer = 0);
+  const AnFunctionID: TID = 0);
 begin
   if not Application.Terminated and (IBLogin <> nil) and
     (IbLogin.IsUserAdmin) then
@@ -1933,14 +1936,14 @@ begin
   frmGedeminProperty.GoToClassMethods(AClassName, ASubType);
 end;
 
-procedure TEventControl.EditReport(IDReportGroup, IDReport: Integer);
+procedure TEventControl.EditReport(IDReportGroup, IDReport: TID);
 begin
   CheckCreateForm;
 
   frmGedeminProperty.EditReport(IDReportGroup, IDReport);
 end;
 
-function TEventControl.EditScriptFunction(var AFunctionKey: Integer): Boolean;
+function TEventControl.EditScriptFunction(var AFunctionKey: TID): Boolean;
 begin
   Result := False;
   if not Application.Terminated then
@@ -2016,7 +2019,7 @@ begin
         {$IFDEF DEBUG}
         if UseLog then
           Log.LogLn(DateTimeToStr(Now) + ': Запущено событие ' + LFunction.Name +
-            '  ИД функции ' + IntToStr(LFunction.FunctionKey));
+            '  ИД функции ' + TID2S(LFunction.FunctionKey));
         try
         {$ENDIF}
         Inc(FRecursionDepth);
@@ -2032,14 +2035,14 @@ begin
         except
           if UseLog  then
             Log.LogLn(DateTimeToStr(Now) + ': Ошибка во время выполнения события ' + LFunction.Name +
-              '  ИД функции ' + IntToStr(LFunction.FunctionKey));
+              '  ИД функции ' + TID2S(LFunction.FunctionKey));
           raise;
         end;
         {$ENDIF}
         {$IFDEF DEBUG}
         if UseLog then
           Log.LogLn(DateTimeToStr(Now) + ': Удачное выполнение события ' + LFunction.Name +
-            '  ИД функции ' + IntToStr(LFunction.FunctionKey));
+            '  ИД функции ' + TID2S(LFunction.FunctionKey));
         {$ENDIF}
       finally
         Dec(FRecursionDepth);
@@ -2155,7 +2158,7 @@ begin
   Result := Assigned(frmGedeminProperty) and frmGedeminProperty.Visible;
 end;
 
-procedure TEventControl.LoadBranch(const AnObjectKey: Integer);
+procedure TEventControl.LoadBranch(const AnObjectKey: TID);
 var
   LocSQL: TIBSQL;
   LEvtObjList: TEventObjectList;
@@ -2169,19 +2172,19 @@ begin
       FTransaction.StartTransaction;
     LocSQL.SQL.Text := 'SELECT evtd.id, evtd.name FROM evt_object evtm, evt_object evtd ' +
      'WHERE evtm.id = :id AND evtd.lb <= evtm.lb AND evtd.rb >= evtm.rb ORDER BY evtd.lb';
-    LocSQL.Params[0].AsInteger := AnObjectKey;
+    SetTID(LocSQL.Params[0], AnObjectKey);
     LocSQL.ExecQuery;
 
     LEvtObjList := EventObjectList;
 
     while not LocSQL.Eof do
     begin
-      LEvtObj := LEvtObjList.FindObject(LocSQL.FieldByName('id').AsInteger);
+      LEvtObj := LEvtObjList.FindObject(GetTID(LocSQL.FieldByName('id')));
       if not Assigned(LEvtObj) then
       begin
         LEvtObjList.AddObject(nil);
         LEvtObjList.Last.ObjectName := LocSQL.FieldByName('name').AsString;
-        LEvtObjList.Last.ObjectKey := LocSQL.FieldByName('id').AsInteger;
+        LEvtObjList.Last.ObjectKey := GetTID(LocSQL.FieldByName('id'));
 //        LEvtObjList.LoadFromDatabaseOpt(FDatabase, FTransaction, )
         LEvtObj := LEvtObjList.Last;
       end;
@@ -2942,11 +2945,11 @@ begin
 end;
 
 procedure TEventControl.OnFilterChangedSQLFilter(Sender: TObject;
-  const AnCurrentFilter: Integer);
+  const AnCurrentFilter: TID);
 var
   LParams: Variant;
 begin
-  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, AnCurrentFilter]);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, TID2V(AnCurrentFilter)]);
 
   _EventExecute(Sender, LParams, cFilterChangedEventName);
 end;
@@ -3599,7 +3602,7 @@ procedure TEventControl.SetEvents(AnComponent: TComponent;
 var
   EO: TEventObject;
 begin
-  if AnComponent <> nil then
+  if (AnComponent <> nil) and (gdcBaseManager <> nil) and gdcBaseManager.Database.Connected then
   begin
     EO := FEventObjectList.FindAllObject(AnComponent);
 
@@ -4035,40 +4038,6 @@ begin
   _EventExecute(Sender, LParams, cValidateEventName);
 end;
 
-{procedure TEventControl.OverSetEvents(AnComponent: TComponent);
-var
-  LEventObject: TEventObject;
-  TempPropList: TPropList;
-  TempPropInfo: PPropInfo;
-  I, J: Integer;
-  E: TEventItem;
-begin
-  if AnComponent = nil then
-    Exit;
-
-
-  LEventObject := FEventObjectList.FindAllObject(AnComponent);
-  if Assigned(LEventObject) then
-  begin
-    J := GetPropList(AnComponent.ClassInfo, [tkMethod], @TempPropList);
-
-    for I := 0 to J - 1 do
-    begin
-      E := LEventObject.EventList.Find(TempPropList[I]^.Name);
-      if E <> nil then
-      begin
-        TempPropInfo := GetPropInfo(AnComponent, TempPropList[I]^.Name);
-        SetMethodProp(AnComponent, TempPropInfo,
-          E.OldEvent);
-        E.FIsOldEventSet := False;
-      end;
-    end;
-  end;
-
-  SetComponentEvent(AnComponent, FEventObjectList.FindAllObject(AnComponent),
-    True, False);
-end;}
-
 function TEventControl.OnTestCorrect(Sender: TObject): Boolean;
 var
   LParams: Variant;
@@ -4408,7 +4377,7 @@ end;
 function TgsFunctionList.AddFromDataSet(AnDataSet: TDataSet): TrpCustomFunction;
 begin
   Result := TrpCustomFunction.Create;
-  Result.FunctionKey := AnDataSet.FieldByName('id').AsInteger;
+  Result.FunctionKey := GetTID(AnDataSet.FieldByName('id'));
   AddFunction(Result);
   Result.ReadFromDataSet(AnDataSet);
 end;
@@ -4442,15 +4411,12 @@ begin
   glbFunctionList := Self;
 
   FSFStreamState := sfsUnassigned;
-
-  {$IFDEF DEBUG}
-  FSFLoadTime := TStringList.Create;
-  {$ENDIF}
 end;
 
 function TgsFunctionList.CreateSFDHandleList: Boolean;
 var
-  Len, Value, I: Integer;
+  Len, Value, I, LenID: Integer;
+  ID: TID;
   DirStr: String;
   Ch: array[0..1024] of Char;
   SFStreamDesc: TSFStreamDesc;
@@ -4506,26 +4472,8 @@ var
         CIBSQL.Transaction.DefaultDatabase := IBLogin.Database;
         CIBSQL.Transaction.StartTransaction;
         CIBSQL.SQL.Text := 'SELECT GEN_ID(gd_g_functionch, 0) FROM rdb$database';
-
-        { TODO :
-в будущем, когда все базы сапгрейдим
-убрать этот код }
-        try
-          CIBSQL.ExecQuery;
-        except
-          on E: EIBError do
-          begin
-            if E.IBErrorCode <> 335544343 then
-              raise
-            else begin
-              CIBSQL.SQL.Text := 'CREATE GENERATOR gd_g_functionch ';
-              CIBSQL.ExecQuery;
-              CIBSQL.SQL.Text := 'SELECT GEN_ID(gd_g_functionch, 0) FROM rdb$database';
-              CIBSQL.ExecQuery;
-            end;
-          end;
-        end;
-
+        CIBSQL.ExecQuery;
+        
         // Создаем системную информацию
         with FSFStreamDesc do
         begin
@@ -4533,7 +4481,7 @@ var
           DBPath := Trim(AnsiUpperCase(IBLogin.DatabaseName));
           ServerName := Trim(AnsiUpperCase(IBLogin.ServerName));
           if not CIBSQL.Eof then
-            SFModifyID := CIBSQL.Fields[0].AsInteger
+            SFModifyID := GetTID(CIBSQL.Fields[0])
           else
             raise Exception.Create(
               'Неудалось получить информацию о версии изменения скрипт-функций.');
@@ -4667,6 +4615,7 @@ begin
   begin
     FSFStream.ReadBuffer(Len, SizeOf(Integer));
     FSFStream.ReadBuffer(SFStreamDesc, Len);
+
     if not CheckSysInfo(SFStreamDesc) then
       RecreateSFDFiles;
   end else
@@ -4681,8 +4630,11 @@ begin
         if  Value <> bSFHandleStream then
           raise Exception.Create(GetGsException(Self, 'Wrong stream data'));
 
-        FSFHandleStream.ReadBuffer(Value, Len);
-        I := FSFDHandleList.Add(Value);
+        {метка сохранения ID в Int64}
+        LenID := GetLenIDinStream(@FSFHandleStream);
+
+        FSFHandleStream.ReadBuffer(ID, LenID);
+        I := FSFDHandleList.Add(ID);
 
         FSFHandleStream.ReadBuffer(Value, Len);
         FSFDHandleList.ValuesByIndex[I] := Value;
@@ -4732,11 +4684,6 @@ begin
   if FSFStreamState = sfsFailed then
     DeleteSFFiles;
 
-  {$IFDEF DEBUG}
-  FSFLoadTime.SaveToFile('LoadTime.$$$');
-  FSFLoadTime.Free;
-  {$ENDIF}
-
   FreeAndNil(FSortFuncList);
 
   if (glbFunctionList <> nil) and (glbFunctionList.Get_Self = Self) then
@@ -4759,34 +4706,31 @@ begin
 end;
 
 function TgsFunctionList.FindFunction(
-  const AnFunctionKey: Integer): TrpCustomFunction;
+  const AnFunctionKey: TID): TrpCustomFunction;
 begin
   if AnFunctionKey = 0 then
   begin
     Result := nil;
     Exit;
   end;
-
   Result := FindFunctionWithoutDB(AnFunctionKey);
-
   if not Assigned(Result) then
     Result := FindFunctionInDB(AnFunctionKey);
-
 //  else
   if Assigned(Result) then
     Inc(TrpCustomFunctionEx(Result).FExternalUsedCounter);
 end;
 
 function TgsFunctionList.FindFunctionInDB(
-  const AnFunctionKey: Integer): TrpCustomFunction;
+  const AnFunctionKey: TID): TrpCustomFunction;
 var
   ibsqlFunc: TIBQuery;
 begin
   Result := nil;
 
   // Если нет подключения к БД, то не ищем
-  if not gdcBaseManager.Database.Connected then
-    Exit;
+  if (gdcBaseManager = nil) or (not gdcBaseManager.Database.Connected) then
+    exit;
 
   try
     ibsqlFunc := TIBQuery.Create(nil);
@@ -4794,7 +4738,7 @@ begin
       ibsqlFunc.Transaction := gdcBaseManager.ReadTransaction;
       ibsqlFunc.SQL.Text := 'SELECT ID, MODULECODE, NAME, COMMENT, SCRIPT, ' +
         ' MODULE, LANGUAGE, EDITIONDATE, ENTEREDPARAMS FROM gd_function WHERE id = :id';
-      ibsqlFunc.Params[0].AsInteger := AnFunctionKey;
+      SetTID(ibsqlFunc.Params[0], AnFunctionKey);
       ibsqlFunc.Open;
       if not ibsqlFunc.Eof then
       begin
@@ -4810,7 +4754,7 @@ begin
 end;
 
 function TgsFunctionList.FindFunctionWithoutDB(
-  const AnFunctionKey: Integer): TrpCustomFunction;
+  const AnFunctionKey: TID): TrpCustomFunction;
 var
   Index: Integer;
 begin
@@ -4849,13 +4793,19 @@ var
   procedure SaveSFHandle(
     const AnFunction: TrpCustomFunction; const Position: Integer);
   var
-    tmpInt: Integer;
+    tmpInt, LenID: Integer;
+    tmpID: TID;
   begin
     FSFHandleStream.Position := FSFHandleStream.Size;
     tmpInt := bSFHandleStream;
     FSFHandleStream.Write(tmpInt, SizeOf(tmpInt));
-    tmpInt := AnFunction.FunctionKey;
-    FSFHandleStream.Write(tmpInt, SizeOf(tmpInt));
+
+    {метка сохранения ID в Int64}
+    LenID := SetLenIDinStream(@FSFHandleStream);
+
+    tmpID := AnFunction.FunctionKey;
+    FSFHandleStream.Write(tmpID, LenID);
+
     tmpInt := Position;
     FSFHandleStream.Write(Position, SizeOf(tmpInt));
     tmpInt := eSFHandleStream;
@@ -4886,43 +4836,11 @@ begin
   end;
 end;
 
-(*procedure TgsFunctionList.ReadFromSFSFile;
-var
-  CustomFunction: TrpCustomFunction;
-  strTest: String;
-  Len, Value: Integer;
-  Str: String;
-  LDate: TDateTime;
-  LBool: Boolean;
-begin
-{  FSortFuncList.Clear;
-
-  if FSFStream.Size > 0 then
-  try
-    FSFStream.Position := 0;
-    while FSFStream.Position < FSFStream.Size do
-    begin
-      CustomFunction := TrpCustomFunction.Create;
-      CustomFunction.LoadFromStream(FSFStream);
-      FSortFuncList.AddObject(CustomFunction.FunctionKey, CustomFunction);
-    end;
-  except
-    FSortFuncList.Clear;
-  end}
-end;*)
-
 function TgsFunctionList.ReadSFFromStream(
-  const AnFunctionKey: Integer): TrpCustomFunction;
+  const AnFunctionKey: TID): TrpCustomFunction;
 var
   I: Integer;
-  {$IFDEF DEBUG}
-  Tick: DWORD;
-  {$ENDIF}
 begin
-  {$IFDEF DEBUG}
-  Tick := GetTickCount;
-  {$ENDIF}
-
   Result := nil;
 
   if (FSFStreamState in [sfsFailed, sfsBlocked]) or (not CreateSFDHandleList) then
@@ -4941,9 +4859,6 @@ begin
     FreeAndNil(Result);
   end;
   AddFunction(Result);
-  {$IFDEF DEBUG}
-  FSFLoadTime.Add(IntToStr(GetTickCount - Tick));
-  {$ENDIF}
 end;
 
 function TgsFunctionList.ReleaseFunction(
@@ -4957,7 +4872,7 @@ begin
   Result := TrpCustomFunctionEx(AnFunction).FExternalUsedCounter;
 end;
 
-procedure TgsFunctionList.RemoveFunction(const AnFunctionKey: Integer);
+procedure TgsFunctionList.RemoveFunction(const AnFunctionKey: TID);
 var
   Index: Integer;
 begin
@@ -4992,7 +4907,7 @@ begin
       ibqueryFunc.Open;
       while not ibqueryFunc.Eof do
       begin
-        LFunction := FindFunctionWithoutDB(ibqueryFunc.FieldByName('ID').AsInteger);
+        LFunction := FindFunctionWithoutDB(GetTID(ibqueryFunc.FieldByName('ID')));
         if Assigned(LFunction) then
           LFunction.ReadFromDataSet(ibqueryFunc);
         ibqueryFunc.Next;
@@ -5316,7 +5231,7 @@ procedure TEventObjectList.LoadFromDatabaseOpt(AnDatabase: TIBDatabase;
   AnTransaction: TIBTransaction; const AnParent: Variant);
 type
   TTempRec = record
-    ObjectKey: Integer;
+    ObjectKey: TID;
     EventObject: TEventObject;
   end;
 
@@ -5340,15 +5255,18 @@ begin
       try
         ibsqlObj.Database := AnDatabase;
         ibsqlObj.Transaction := AnTransaction;
-        ibsqlObj.SQL.Text := 'SELECT PARENT, ID, OBJECTNAME FROM evt_object WHERE objectname > '''' ' +
-         'ORDER BY lb';
+        ibsqlObj.SQL.Text :=
+          'SELECT PARENT, ID, OBJECTNAME FROM evt_object WHERE objectname > '''' ' +
+          'ORDER BY lb';
         ibsqlObj.ExecQuery;
 
         ibsqlEvent.Database := AnDatabase;
         ibsqlEvent.Transaction := AnTransaction;
-        ibsqlEvent.SQL.Text := 'SELECT oe.objectkey, oe.eventname, oe.id, oe.functionkey, oe.disable ' +
-         ' FROM evt_objectevent oe JOIN ' +
-         ' evt_object ob ON oe.objectkey = ob.id WHERE ob.objectname > '''' ORDER BY ob.lb, oe.eventname';
+        ibsqlEvent.SQL.Text :=
+          'SELECT oe.objectkey, oe.eventname, oe.id, oe.functionkey, oe.disable ' +
+          'FROM evt_objectevent oe JOIN ' +
+          ' evt_object ob ON oe.objectkey = ob.id WHERE ob.objectname > '''' ' +
+          'ORDER BY ob.lb, oe.eventname';
         ibsqlEvent.ExecQuery;
 
         while not ibsqlObj.Eof do
@@ -5357,7 +5275,7 @@ begin
             CurrentIndex := -1
           else
             for I := CurrentIndex downto 0 do
-              if ibsqlObj.FieldByName('parent').AsInteger = TreeArray[I].ObjectKey then
+              if GetTID(ibsqlObj.FieldByName('parent')) = TreeArray[I].ObjectKey then
               begin
                 CurrentIndex := I;
                 Break;
@@ -5374,19 +5292,19 @@ begin
           end;
           Inc(CurrentIndex);
           TreeArray[CurrentIndex].EventObject.ObjectName := ibsqlObj.FieldByName('objectname').AsString;
-          TreeArray[CurrentIndex].EventObject.ObjectKey := ibsqlObj.FieldByName('id').AsInteger;
+          TreeArray[CurrentIndex].EventObject.ObjectKey := GetTID(ibsqlObj.FieldByName('id'));
           TreeArray[CurrentIndex].ObjectKey := TreeArray[CurrentIndex].EventObject.ObjectKey;
 
 
           while not ibsqlEvent.Eof and
-           (ibsqlEvent.FieldByName('objectkey').AsInteger = TreeArray[CurrentIndex].ObjectKey) do
+           (GetTID(ibsqlEvent.FieldByName('objectkey')) = TreeArray[CurrentIndex].ObjectKey) do
           begin
             with TreeArray[CurrentIndex].EventObject.EventList do
             begin
               Add(ibsqlEvent.FieldByName('eventname').AsString,
-               ibsqlEvent.FieldByName('functionkey').AsInteger);
+               GetTID(ibsqlEvent.FieldByName('functionkey')));
               Last.EventObject := TreeArray[CurrentIndex].EventObject;
-              Last.EventId := ibsqlEvent.FieldByName('id').AsInteger;
+              Last.EventId := GetTID(ibsqlEvent.FieldByName('id'));
               Last.Name := ibsqlEvent.FieldByName('eventname').AsString;
 
               if ibsqlEvent.FieldByName('Disable').IsNull then
@@ -5409,76 +5327,6 @@ begin
       AnTransaction.Commit;
   end;
 end;
-
-(*procedure TEventObjectList.LoadFromDatabase(AnDatabase: TIBDatabase;
-  AnTransaction: TIBTransaction; const AnParent: Variant);
-var
-  ibsqlObj: TIBSQL;
-  ibsqlEvent: TIBSQL;
-  FlagTr: Boolean;
-begin
-  Clear;
-  FlagTr := AnTransaction.InTransaction;
-  if not FlagTr then
-    AnTransaction.StartTransaction;
-  try
-    ibsqlObj := TIBSQL.Create(nil);
-    try
-      ibsqlEvent := TIBSQL.Create(nil);
-      try
-        ibsqlObj.Database := AnDatabase;
-        ibsqlObj.Transaction := AnTransaction;
-        {Сволочь такая не работает с NULL параметром} {gs}
-        if AnParent = NULL then
-          ibsqlObj.SQL.Text := 'SELECT * FROM evt_object WHERE objectname > '''' ' +
-           'AND parent IS NULL ORDER BY objectname'
-        else
-        begin
-          ibsqlObj.SQL.Text := 'SELECT * FROM evt_object WHERE objectname > '''' ' +
-           'AND parent = :pr ORDER BY objectname';
-          ibsqlObj.Params[0].AsVariant := AnParent;
-        end;
-        ibsqlObj.ExecQuery;
-
-        ibsqlEvent.Database := AnDatabase;
-        ibsqlEvent.Transaction := AnTransaction;
-        ibsqlEvent.SQL.Text := 'SELECT * FROM evt_objectevent WHERE objectkey = :id ' +
-         'ORDER BY eventname';
-        ibsqlEvent.Prepare;
-
-        while not ibsqlObj.Eof do
-        begin
-          AddObject(nil);
-          Last.ObjectName := ibsqlObj.FieldByName('objectname').AsString;
-          Last.ObjectKey := ibsqlObj.FieldByName('id').AsInteger;
-          ibsqlEvent.Close;
-          ibsqlEvent.Params[0].AsInteger := Last.ObjectKey;
-          ibsqlEvent.ExecQuery;
-          while not ibsqlEvent.Eof do
-          begin
-            Last.EventList.Add(ibsqlEvent.FieldByName('eventname').AsString,
-             ibsqlEvent.FieldByName('functionkey').AsInteger);
-            Last.EventList.Last.EventObject := Last;
-            Last.EventList.Last.EventID := ibsqlEvent.FieldByName('id').AsInteger;
-
-            ibsqlEvent.Next;
-          end;
-          Last.ChildObjects.LoadFromDatabase(AnDatabase, AnTransaction,
-           Last.ObjectKey);
-
-          ibsqlObj.Next;
-        end;
-      finally
-        ibsqlEvent.Free;
-      end;
-    finally
-      ibsqlObj.Free;
-    end;
-  finally
-    if not FlagTr then
-      AnTransaction.Commit;
-  end;
-end;*)
 
 procedure TEventObjectList.LoadFromStream(AnStream: TStream);
 var
@@ -5511,7 +5359,7 @@ begin
 end;
 
 function TEventObjectList.FindObject(
-  const AnObjectKey: Integer): TEventObject;
+  const AnObjectKey: TID): TEventObject;
 var
   I: Integer;
 begin
@@ -5525,7 +5373,7 @@ begin
 end;
 
 function TEventObjectList.FindAllObject(
-  const AnObjectKey: Integer): TEventObject;
+  const AnObjectKey: TID): TEventObject;
 var
   I: Integer;
 begin
@@ -5811,8 +5659,6 @@ var
     end;
   end;
 
-
-
   function GetEventParamName(const Index: Integer;
       const ParamList: array of Char): String;
   var
@@ -6093,7 +5939,7 @@ begin
   FIsOldEventSet := False;
 end;
 
-procedure TEventItem.SetEventID(const Value: Integer);
+procedure TEventItem.SetEventID(const Value: TID);
 begin
   FEventID := Value;
 end;
@@ -6131,12 +5977,12 @@ begin
             'SET functionkey = :functionkey, disable = :disable WHERE ' +
             'objectkey = :objectkey AND UPPER(eventname) = :eventname';
 
-        ibsqlUpdate.ParamByName('functionkey').AsInteger := FunctionKey;
+        SetTID(ibsqlUpdate.ParamByName('functionkey'), FunctionKey);
         if Disable then
           ibsqlUpdate.ParamByName('disable').AsInteger := 1
         else
           ibsqlUpdate.ParamByName('disable').AsInteger := 0;
-        ibsqlUpdate.ParamByName('objectkey').AsInteger := EventObject.ObjectKey;
+        SetTID(ibsqlUpdate.ParamByName('objectkey'), EventObject.ObjectKey);
         ibsqlUpdate.ParamByName('eventname').AsString := AnsiUppercase(Name);
         ibsqlUpdate.ExecQuery;
 
@@ -6163,7 +6009,7 @@ begin
 end;
 
 function TEventList.Add(const AName: String;
-  const AFuncKey: Integer): Integer;
+  const AFuncKey: TID): Integer;
 begin
   Result := Add(nil);
   Last.Name := AName;
@@ -6201,7 +6047,7 @@ begin
   Result := Items[Index].Name;
 end;
 
-function TEventList.GetFunc(Index: Integer): Integer;
+function TEventList.GetFunc(Index: Integer): TID;
 begin
   Result := Items[Index].FunctionKey;
 end;
@@ -6239,7 +6085,7 @@ begin
   Items[Index].Name := UpperCase(Value);
 end;
 
-procedure TEventList.SetFunc(Index: Integer; const Value: Integer);
+procedure TEventList.SetFunc(Index: Integer; const Value: TID);
 begin
   Items[Index].FunctionKey := Value;
 end;
@@ -6262,7 +6108,7 @@ begin
   FDisable := Value;
 end;
 
-procedure TCustomFunctionItem.SetFunctionKey(const Value: Integer);
+procedure TCustomFunctionItem.SetFunctionKey(const Value: TID);
 begin
   FFunctionKey := Value;
 end;

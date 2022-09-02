@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gd_dlgChooseVariable_unit;
 
 interface
@@ -32,10 +34,6 @@ type
     ibgrTax: TgsIBGrid;
     ibdsTax: TIBDataSet;
     dsTax: TDataSource;
-    ibdsTaxID: TIntegerField;
-    ibdsTaxNAME: TIBStringField;
-    ibdsTaxSHOT: TIBStringField;
-    ibdsTaxRATE: TIBBCDField;
   private
     function GetVariable: String;
     { Private declarations }

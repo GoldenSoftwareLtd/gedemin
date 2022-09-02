@@ -1,7 +1,7 @@
 object BaseAddInformation: TBaseAddInformation
-  Left = 381
+  Left = 766
   Height = 240
-  Top = 301
+  Top = 222
   Width = 320
   BorderStyle = bsNone
   Caption = 'Form1'
@@ -17,7 +17,7 @@ object BaseAddInformation: TBaseAddInformation
   OnKeyDown = FormKeyDown
   OnShow = FormShow
   Position = poScreenCenter
-  LCLVersion = '1.0.8.0'
+  LCLVersion = '1.0.14.0'
   object lInfo: TLabel
     Left = 5
     Height = 19

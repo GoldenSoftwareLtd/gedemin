@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 {++
 
   Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
@@ -26,7 +28,7 @@ interface
 
 uses
   classes, prp_frmClassesInspector_unit, comctrls, ActiveX, MSScriptControl_TLB,
-  contnrs, dmClientReport_unit;
+  contnrs, dmClientReport_unit, gdcBaseInterface;
 
 const
   MaxFuncParams = 164;
@@ -41,7 +43,7 @@ type
   private
     FScriptControl: TScriptControl;
     FVBClasses: array of TSingleGlObj;
-    FModuleCode: Integer;
+    FModuleCode: TID;
     FModuleName: String;
 
     procedure Clear;
@@ -52,8 +54,8 @@ type
     destructor  Destroy; override;
 
     function CreateVBClasses(
-      const ModuleCode: Integer; const ModuleName: String): Boolean;
-    property ModuleCode: Integer read FModuleCode;
+      const ModuleCode: TID; const ModuleName: String): Boolean;
+    property ModuleCode: TID read FModuleCode;
     property ModuleName: String read FModuleName;
     property VBClasses[Index: Integer]: TSingleGlObj read GetVBClasses; default;
     property Count: Integer read GetCount;
@@ -150,7 +152,7 @@ implementation
 
 uses
   Windows, IBDatabase, IBSQL, gd_Security, gd_security_operationconst,
-  Sysutils, gd_ClassList, gdcBaseInterface, gdcOLEClassList, rp_report_const,
+  Sysutils, gd_ClassList, gdcOLEClassList, rp_report_const,
   Consts, obj_GedeminApplication, Comserv, Forms, prp_VBStandart_const, comobj,
   registry
   {must be placed after Windows unit!}
@@ -1768,7 +1770,7 @@ begin
 end;
 
 function TVBModuleItem.CreateVBClasses(
-  const ModuleCode: Integer; const ModuleName: String): Boolean;
+  const ModuleCode: TID; const ModuleName: String): Boolean;
 var
   ibsqlCl: TIBSQL;
   objNum: Integer;
@@ -1802,7 +1804,7 @@ begin
   try
     ibsqlCl.Transaction := gdcBaseManager.ReadTransaction;
     ibsqlCl.SQL.Text := 'SELECT * FROM gd_function WHERE ' +
-      'module = ''VBCLASSES'' AND modulecode = ' + IntToStr(FModuleCode);
+      'module = ''VBCLASSES'' AND modulecode = ' + TID2S(FModuleCode);
     ibsqlCl.ExecQuery;
 
     if ibsqlCl.Eof then
@@ -1918,7 +1920,7 @@ begin
 
       try
         if LModuleItem.CreateVBClasses(
-          ibsqlCl.FieldByName('modulecode').AsInteger,
+          GetTID(ibsqlCl.FieldByName('modulecode')),
           ibsqlCl.FieldByName('objectname').AsString) then
         begin
           FList.Add(LModuleItem);

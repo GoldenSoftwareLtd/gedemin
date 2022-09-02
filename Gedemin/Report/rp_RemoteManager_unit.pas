@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019
+
 unit rp_RemoteManager_unit;
 
 interface
@@ -130,7 +132,7 @@ begin
       ibqryServerKey.Open;
 
       SetDatabaseAndTransaction(F, ibqryServerKey.Database, ibqryServerKey.Transaction);
-      F.ViewOptions(ibqryServerKey.Fields[0].AsInteger);
+      F.ViewOptions(GetTID(ibqryServerKey.Fields[0]));
     finally
       if ibtrServerKey.InTransaction then
         ibtrServerKey.Commit;

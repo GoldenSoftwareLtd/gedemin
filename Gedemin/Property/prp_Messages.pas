@@ -1,7 +1,9 @@
+// ShlTanya, 25.02.2019
+
 unit prp_Messages;
 
 interface
-uses comctrls;
+uses comctrls, gdcBaseInterface;
 
 type
   TMessageType = (mtUnknown, mtSearch, mtError, mtCallStack, mtWatch, mtCompile);
@@ -13,13 +15,13 @@ type
     FMsgType: TMessageType;
     FNode: TTreeNode;
     FLine: Integer;
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
     FModule: String;
     FItemType: TItemType;
     procedure SetMessage(const Value: string);
     procedure SetNode(const Value: TTreeNode);
     procedure SetLine(const Value: Integer);
-    procedure SetFunctionKey(const Value: Integer);
+    procedure SetFunctionKey(const Value: TID);
     procedure SetModule(const Value: String);
     procedure SetItemType(const Value: TItemType);
   public
@@ -28,7 +30,7 @@ type
     property MsgType: TMessageType read FMsgType;
     property Node: TTreeNode read FNode write SetNode;
     property Line: Integer read FLine write SetLine;
-    property FunctionKey: Integer read FFunctionKey write SetFunctionKey;
+    property FunctionKey: TID read FFunctionKey write SetFunctionKey;
     property Module: String read FModule write SetModule;
     property ItemType: TItemType read FItemType write SetItemType;
   end;
@@ -36,11 +38,20 @@ type
   TSearchMessageItem = class(TCustomMessageItem)
   private
     FColumn: Integer;
+    FMatchStart: Integer;
+    FMatchLen: Integer;
+    FReplaced: Boolean;
     procedure SetColumn(const Value: Integer);
+    procedure SetMatchStart(const Value: Integer);
+    procedure SetMatchLen(const Value: Integer);
+    procedure SetReplaced(const Value: Boolean);
   public
     constructor Create;
 
     property Column: Integer read FColumn write SetColumn;
+    property MatchStart: Integer read FMatchStart write SetMatchStart;
+    property MatchLen: Integer read FMatchLen write SetMatchLen;
+    property Replaced: Boolean read FReplaced write SetReplaced;
   end;
 
   TErrorMessageItem = class(TCustomMessageItem)
@@ -50,16 +61,16 @@ type
 
   TCompileMessageItem = class(TCustomMessageItem)
   private
-    FReferenceToSF: Integer;
+    FReferenceToSF: TID;
     FAutoClear: Boolean;
 
-    procedure SetReferenceToSF(const Value: Integer);
+    procedure SetReferenceToSF(const Value: TID);
     procedure SetAutoClear(const Value: Boolean);
   public
     constructor Create;
 
     // ИД СФ, на кот. ссылка в ошибке или предупреждении
-    property ReferenceToSF: Integer read FReferenceToSF write SetReferenceToSF;
+    property ReferenceToSF: TID read FReferenceToSF write SetReferenceToSF;
     property AutoClear: Boolean read FAutoClear write SetAutoClear default False;
   end;
 
@@ -86,7 +97,7 @@ begin
   FMsgType := mtUnknown;
 end;
 
-procedure TCustomMessageItem.SetFunctionKey(const Value: Integer);
+procedure TCustomMessageItem.SetFunctionKey(const Value: TID);
 begin
   FFunctionKey := Value;
 end;
@@ -128,6 +139,21 @@ begin
   FColumn := Value;
 end;
 
+procedure TSearchMessageItem.SetMatchLen(const Value: integer);
+begin
+  FMatchLen := Value;
+end;
+
+procedure TSearchMessageItem.SetMatchStart(const Value: Integer);
+begin
+  FMatchStart := Value;
+end;
+
+procedure TSearchMessageItem.SetReplaced(const Value: Boolean);
+begin
+  FReplaced := Value;
+end;
+
 { TErrorMessageItem }
 
 constructor TErrorMessageItem.Create;
@@ -166,7 +192,7 @@ begin
   FAutoClear := Value;
 end;
 
-procedure TCompileMessageItem.SetReferenceToSF(const Value: Integer);
+procedure TCompileMessageItem.SetReferenceToSF(const Value: TID);
 begin
   FReferenceToSF := Value;
 end;

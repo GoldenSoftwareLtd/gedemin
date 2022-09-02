@@ -1,3 +1,4 @@
+// ShlTanya, 25.02.2019
 
 unit prp_TreeItems;
 
@@ -34,15 +35,15 @@ type
     FMainOwnerName: string;
     procedure SetMainOwnerName(const Value: string);
   protected
-    FOwnerId: Integer;
-    FId: Integer;
+    FOwnerId: TID;
+    FId: TID;
     FEditorFrame: TFrame;
     FName: string;
     FItemType: TTreeItemType;
     FNode: TTreeNode;
     procedure SetEditorFrame(const Value: TFrame);
-    procedure SetId(const Value: Integer); virtual;
-    procedure SetOwnerId(const Value: Integer);
+    procedure SetId(const Value: TID); virtual;
+    procedure SetOwnerId(const Value: TID);
     procedure SetName(const Value: string);
     procedure SetItemType(const Value: TTreeItemType);
     procedure SetNode(const Value: TTreeNode);
@@ -50,8 +51,8 @@ type
     constructor Create; virtual; abstract;
     procedure SaveToStream(Stream: TStream); virtual;
     procedure LoadFromStream(Stream: TStream); virtual;
-    property Id: Integer read FId write SetId;
-    property OwnerId: Integer read FOwnerId write SetOwnerId;
+    property Id: TID read FId write SetId;
+    property OwnerId: TID read FOwnerId write SetOwnerId;
     property EditorFrame: TFrame read FEditorFrame write SetEditorFrame;
     property Name: string read FName write SetName;
     property ItemType: TTreeItemType read FItemType write SetItemType;
@@ -61,20 +62,26 @@ type
 
   TMacrosTreeItem = class(TCustomTreeItem)
   private
-    FMacrosFolderId: Integer;
-    procedure SetMacrosFolderId(const Value: Integer);
+    FMacrosFolderId: TID;
+    FShowInMenu: Boolean;
+    procedure SetMacrosFolderId(const Value: TID);
+    procedure SetShowInMenu(Value: Boolean);
   public
     constructor Create; override;
-    property MacrosFolderId: Integer read FMacrosFolderId write SetMacrosFolderId;
+    property MacrosFolderId: TID read FMacrosFolderId write SetMacrosFolderId;
+    property ShowInMenu: Boolean read FShowInMenu write SetShowInMenu;
   end;
 
   TReportTreeItem = class(TCustomTreeItem)
   private
-    FReportFolderId: Integer;
-    procedure SetReportFolderId(const Value: Integer);
+    FReportFolderId: TID;
+    FShowInMenu: Boolean;
+    procedure SetReportFolderId(const Value: TID);
+    procedure SetShowInMenu(Value: Boolean);
   public
     constructor Create; override;
-    property ReportFolderId: Integer read FReportFolderId write SetReportFolderId;
+    property ReportFolderId: TID read FReportFolderId write SetReportFolderId;
+    property ShowInMenu: Boolean read FShowInMenu write SetShowInMenu;
   end;
 
   TReportFunctionTreeItem = class(TCustomTreeItem)
@@ -106,7 +113,7 @@ type
   protected
     FEventItem: TEventItem;
     procedure SetEventItem(const Value: TEventItem);
-    procedure SetId(const Value: Integer); override;
+    procedure SetId(const Value: TID); override;
   public
     constructor Create; override;
     property EventItem: TEventItem read FEventItem write SetEventItem;
@@ -121,7 +128,7 @@ type
     procedure SetClassItem(const Value: TgdcClassTreeItem);
     procedure SetTheMethod(const Value: TMethodItem);
   protected
-    procedure SetId(const Value: Integer); override;
+    procedure SetId(const Value: TID); override;
   public
     constructor Create; override;
     property TheMethod: TMethodItem read FTheMethod write SetTheMethod;
@@ -252,7 +259,7 @@ type
 type
   TLabelStream = array[0..3] of char;
 const
-  LblSize = SizeOf(TLabelStream);
+  LblSize = SizeOf(TLabelStream); 
 
 procedure SaveStringToStream(Stream: TStream; S: String);
 function LoadStringFromStream(Stream: TStream): string;
@@ -304,26 +311,38 @@ end;
 { TCustomTreeItem }
 
 procedure TCustomTreeItem.LoadFromStream(Stream: TStream);
+var Len: integer;
 begin
   if not Assigned(Stream) then
     raise Exception.Create(MSG_STREAM_DO_NOT_INIT);
 
   CheckLabel(TreeItemLabel, Stream);
-  Stream.ReadBuffer(FId, SizeOf(FId));
-  Stream.ReadBuffer(FOwnerId, SizeOf(FOwnerID));
+
+  {метка сохранения ID в Int64}
+  Len := GetLenIDinStream(Pointer(Stream));
+
+  Stream.ReadBuffer(FId, Len);
+  Stream.ReadBuffer(FOwnerId, Len);
+
   FName := LoadStringFromStream(Stream);
   Stream.ReadBuffer(FItemType, SizeOf(FItemType));
   FMainOwnerName := LoadStringFromStream(Stream);  
 end;
 
 procedure TCustomTreeItem.SaveToStream(Stream: TStream);
+var Len: integer;
 begin
   if not Assigned(Stream) then
     raise Exception.Create(MSG_STREAM_DO_NOT_INIT);
 
   SaveLabelToStream(TreeItemLabel, Stream);
-  Stream.WriteBuffer(FId, SizeOf(FId));
-  Stream.WriteBuffer(FOwnerId, SizeOf(FOwnerID));
+
+  {метка сохранения ID в Int64}
+  Len := SetLenIDinStream(Pointer(Stream));
+
+  Stream.WriteBuffer(FId, Len);
+  Stream.WriteBuffer(FOwnerId, Len);
+
   SaveStringToStream(Stream, FName);
   Stream.WriteBuffer(FItemType, SizeOf(FItemType));
   SaveStringToStream(Stream, FMainOwnerName);
@@ -339,7 +358,7 @@ begin
   FMainOwnerName := Value;
 end;
 
-procedure TCustomTreeItem.SetId(const Value: Integer);
+procedure TCustomTreeItem.SetId(const Value: TID);
 begin
   FId := Value;
 end;
@@ -359,7 +378,7 @@ begin
   FNode := Value;
 end;
 
-procedure TCustomTreeItem.SetOwnerId(const Value: Integer);
+procedure TCustomTreeItem.SetOwnerId(const Value: TID);
 begin
   FOwnerId := Value;
 end;
@@ -433,9 +452,16 @@ begin
   FItemType := tiMacros;
 end;
 
-procedure TMacrosTreeItem.SetMacrosFolderId(const Value: Integer);
+procedure TMacrosTreeItem.SetMacrosFolderId(const Value: TID);
 begin
   FMacrosFolderId := Value;
+end;
+
+procedure TMacrosTreeItem.SetShowInMenu(Value: Boolean);
+begin
+  FShowInMenu := Value;
+  if Assigned(Node) and Assigned(Node.TreeView) then
+    Node.TreeView.Invalidate;
 end;
 
 { TReportTreeItem }
@@ -445,9 +471,16 @@ begin
   FItemType := tiReport; 
 end;
 
-procedure TReportTreeItem.SetReportFolderId(const Value: Integer);
+procedure TReportTreeItem.SetReportFolderId(const Value: TID);
 begin
   FReportFolderId := Value;
+end;
+
+procedure TReportTreeItem.SetShowInMenu(Value: Boolean);
+begin
+  FShowInMenu := Value;
+  if Assigned(Node) and Assigned(Node.TreeView) then
+    Node.TreeView.Invalidate;
 end;
 
 { TReportFunctionTreeItem }
@@ -541,7 +574,7 @@ begin
   FClassItem := Value;
 end;
 
-procedure TMethodTreeItem.SetId(const Value: Integer);
+procedure TMethodTreeItem.SetId(const Value: TID);
 begin
   inherited;
   if Assigned(FTheMethod) then
@@ -568,7 +601,7 @@ begin
 end;
 
 
-procedure TEventTreeItem.SetId(const Value: Integer);
+procedure TEventTreeItem.SetId(const Value: TID);
 begin
   inherited;
   if Assigned(FEventItem) then

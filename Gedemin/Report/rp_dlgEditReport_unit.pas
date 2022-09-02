@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019
+
 unit rp_dlgEditReport_unit;
 
 interface
@@ -94,14 +96,14 @@ type
     FExecuteFunction: TExecuteFunction;
     procedure CheckDatabase;
 
-    function EditFunction(var AnReportKey: Integer; const AnModule: String): Boolean;
+    function EditFunction(var AnReportKey: TID; const AnModule: String): Boolean;
   public
     property ExecuteFunction: TExecuteFunction read FExecuteFunction write FExecuteFunction;
 
-    function AddReport(const AnGroupKey: Integer): Boolean;
-    function EditReport(const AnReportKey: Integer): Boolean;
-    function DeleteReport(const AnReportKey: Integer): Boolean;
-    function PrepareReport(const AnReportKey: Integer): Boolean;
+    function AddReport(const AnGroupKey: TID): Boolean;
+    function EditReport(const AnReportKey: TID): Boolean;
+    function DeleteReport(const AnReportKey: TID): Boolean;
+    function PrepareReport(const AnReportKey: TID): Boolean;
     procedure UnPrepareReport;
   end;
 
@@ -138,7 +140,7 @@ begin
   ibsqlNewId.Transaction := FTransaction;}
 end;
 
-function TdlgEditReport.AddReport(const AnGroupKey: Integer): Boolean;
+function TdlgEditReport.AddReport(const AnGroupKey: TID): Boolean;
 begin
   Result := False;
   if not ibtrReport.InTransaction then
@@ -152,13 +154,13 @@ begin
     ibdsReport.FieldByName('preview').AsInteger := 1;
     ibdsReport.FieldByName('frqrefresh').AsInteger := 1;
     ibdsReport.FieldByName('islocalexecute').AsInteger := 0;
-    ibdsReport.FieldByName('reportgroupkey').AsInteger := AnGroupKey;
+    SetTID(ibdsReport.FieldByName('reportgroupkey'), AnGroupKey);
     ibdsReport.FieldByName('afull').AsInteger := -1;
     ibdsReport.FieldByName('achag').AsInteger := -1;
     ibdsReport.FieldByName('aview').AsInteger := -1;
     if ShowModal = mrOk then
     try
-      ibdsReport.FieldByName('id').AsInteger := GetUniqueKey(ibdsReport.Database, ibdsReport.Transaction);
+      SetTID(ibdsReport.FieldByName('id'), GetUniqueKey(ibdsReport.Database, ibdsReport.Transaction));
       ibdsReport.Post;
       Result := True;
     except
@@ -175,7 +177,7 @@ begin
   end;
 end;
 
-function TdlgEditReport.EditReport(const AnReportKey: Integer): Boolean;
+function TdlgEditReport.EditReport(const AnReportKey: TID): Boolean;
 begin
   Result := False;
   if not ibtrReport.InTransaction then
@@ -183,7 +185,7 @@ begin
   try
     ibdsReport.Close;
     CheckDatabase;
-    ibdsReport.ParamByName('id').AsInteger := AnReportKey;
+    SetTID(ibdsReport.ParamByName('id'), AnReportKey);
     ibdsReport.Open;
     if ibdsReport.Eof then
     begin
@@ -209,7 +211,7 @@ begin
   end;
 end;
 
-function TdlgEditReport.DeleteReport(const AnReportKey: Integer): Boolean;
+function TdlgEditReport.DeleteReport(const AnReportKey: TID): Boolean;
 begin
   Result := False;
   if not ibtrReport.InTransaction then
@@ -217,7 +219,7 @@ begin
   try
     ibdsReport.Close;
     CheckDatabase;
-    ibdsReport.ParamByName('id').AsInteger := AnReportKey;
+    SetTID(ibdsReport.ParamByName('id'), AnReportKey);
     ibdsReport.Open;
     if ibdsReport.Eof then
     begin
@@ -251,7 +253,7 @@ begin
     Exit;
   end;
 
-  if (dblcbMainFormula.KeyValue = 0) or (dblcbMainFormula.KeyValue <> ibdsReport.FieldByName('mainformulakey').AsInteger) then
+  if (dblcbMainFormula.KeyValue = 0) or (dblcbMainFormula.KeyValue <> GetTID(ibdsReport.FieldByName('mainformulakey'))) then
   begin
     MessageBox(Self.Handle, 'Не выбрана функция для построения отчета.', 'Внимание', MB_OK or MB_ICONWARNING);
     dblcbMainFormula.SetFocus;
@@ -268,7 +270,7 @@ begin
   ModalResult := mrOk;
 end;
 
-function TdlgEditReport.EditFunction(var AnReportKey: Integer; const AnModule: String): Boolean;
+function TdlgEditReport.EditFunction(var AnReportKey: TID; const AnModule: String): Boolean;
 var
   F: TdlgEditFunction;
 begin
@@ -287,7 +289,7 @@ end;
 
 procedure TdlgEditReport.actSelectMainFuncExecute(Sender: TObject);
 var
-  I: Integer;
+  I: TID;
 begin
   I := 0;
   if not VarIsNull(dblcbMainFormula.KeyValue) then
@@ -296,13 +298,13 @@ begin
   begin
     ibqryMainFormula.Close;
     ibqryMainFormula.Open;
-    ibdsReport.FieldByName('mainformulakey').AsInteger := I;
+    SetTID(ibdsReport.FieldByName('mainformulakey'), I);
   end;
 end;
 
 procedure TdlgEditReport.actSelectEventFuncExecute(Sender: TObject);
 var
-  I: Integer;
+  I: TID;
 begin
   I := 0;
   if not VarIsNull(dblcbEventFormula.KeyValue) then
@@ -311,13 +313,13 @@ begin
   begin
     ibqryEventFormula.Close;
     ibqryEventFormula.Open;
-    ibdsReport.FieldByName('eventformulakey').AsInteger := I;
+    SetTID(ibdsReport.FieldByName('eventformulakey'), I);
   end;
 end;
 
 procedure TdlgEditReport.actSelectParamFuncExecute(Sender: TObject);
 var
-  I: Integer;
+  I: TID;
 begin
   I := 0;
   if not VarIsNull(dblcbParamFormula.KeyValue) then
@@ -326,7 +328,7 @@ begin
   begin
     ibqryParamFormula.Close;
     ibqryParamFormula.Open;
-    ibdsReport.FieldByName('paramformulakey').AsInteger := I;
+    SetTID(ibdsReport.FieldByName('paramformulakey'), I);
   end;
 end;
 
@@ -375,7 +377,7 @@ end;
 procedure TdlgEditReport.actSelectTemplateExecute(Sender: TObject);
 var
   F: TdlgEditTemplate;
-  ResultValue: Integer;
+  ResultValue: TID;
   LocReportResult: TReportResult;
   Str: TStream;
 begin
@@ -400,10 +402,10 @@ begin
         begin
           ibqryTemplate.Close;
           ibqryTemplate.Open;
-          ibdsReport.FieldByName('templatekey').AsInteger := ResultValue;
+          SetTID(ibdsReport.FieldByName('templatekey'), ResultValue);
         end
       end else
-        F.EditTemplate(ibdsReport.FieldByName('templatekey').AsInteger, LocReportResult);
+        F.EditTemplate(GetTID(ibdsReport.FieldByName('templatekey')), LocReportResult);
     finally
       LocReportResult.Free;
     end;
@@ -421,14 +423,14 @@ begin
   end;
 end;
 
-function TdlgEditReport.PrepareReport(const AnReportKey: Integer): Boolean;
+function TdlgEditReport.PrepareReport(const AnReportKey: TID): Boolean;
 begin
   Result := False;
   if not ibtrReport.InTransaction then
     ibtrReport.StartTransaction;
   ibdsReport.Close;
   CheckDatabase;
-  ibdsReport.ParamByName('id').AsInteger := AnReportKey;
+  SetTID(ibdsReport.ParamByName('id'), AnReportKey);
   ibdsReport.Open;
   if ibdsReport.Eof then
   begin

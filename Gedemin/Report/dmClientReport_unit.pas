@@ -1,7 +1,8 @@
+// ShlTanya, 26.02.2019
 
 {++
 
-  Copyright (c) 2001-16 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-22 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -159,9 +160,9 @@ type
 
     // функцыі для працы з канстантамі
     function GetConstByName(const AName: String): Variant;
-    function GetConstByID(const AnID: Integer): Variant;
+    function GetConstByID(const AnID: TID): Variant;
     function GetConstByNameForDate(const AName: String; const ADate: TDateTime): Variant;
-    function GetConstByIDForDate(const AnID: Integer; const ADate: TDateTime): Variant;
+    function GetConstByIDForDate(const AnID: TID; const ADate: TDateTime): Variant;
 
     function AdvString: Variant;
 
@@ -376,9 +377,9 @@ begin
           begin
             try
               try
-                FStaticSFList.Add(ibsqlConst.FieldByName(fnid).AsInteger);
+                FStaticSFList.Add(GetTID(ibsqlConst.FieldByName(fnid)));
                 LocRS.AddCode(ibsqlConst.FieldByName(fnscript).AsString);
-                FVBConst.Add(ibsqlConst.FieldByName(fnid).AsInteger);
+                FVBConst.Add(GetTID(ibsqlConst.FieldByName(fnid)));
               except
                 ErrScript := LocRS.Error.Description + ': ' + LocRS.Error.Text + #13#10 +
                   'Строка: ' + IntToStr(LocRS.Error.Line) + #13#10;
@@ -416,39 +417,79 @@ var
   i: Integer;
   LocFucn: TrpCustomFunction;
   Params: PSafeArray;
+  Name, Error: String;
 begin
-  LocFucn := TrpCustomFunction.Create;
-  try
-    LocFucn.Language := 'VBSCRIPT';
-    LocFucn.FunctionKey := -1;
-    for i := 0 to Length(FGlObjArray) - 1 do
-    begin
-      try
-        Params := SafeArrayCreateVector(vtVariant, 0, 0);
-        // вызов скрипт-функции уничтожения гл. объекта
-        try
-          FGlObjectRS.Run(FGlObjArray[i].Name + '_Terminate', Params);
-        finally
-          SafeArrayDestroy(Params);
+  if FGlObjectRS <> nil then
+  begin
+    LocFucn := TrpCustomFunction.Create;
+    try
+      LocFucn.Language := 'VBSCRIPT';
+      LocFucn.FunctionKey := -1;
+      for i := 0 to Length(FGlObjArray) - 1 do
+        if FGlObjArray[i].IDisp <> nil then
+        begin
+          Name := FGlObjArray[i].Name;
+          try
+            Params := SafeArrayCreateVector(vtVariant, 0, 0);
+            // вызов скрипт-функции уничтожения гл. объекта
+            try
+              {$IFDEF WITH_INDY}
+              //if gdccClient <> nil then
+              //  gdccClient.AddLogRecord('Global Objects', 'Calling ' + FGlObjArray[i].Name + '_Terminate');
+              {$ENDIF}
+
+              FGlObjectRS.Run(FGlObjArray[i].Name + '_Terminate', Params);
+            finally
+              SafeArrayDestroy(Params);
+            end;
+          except
+            if FGlObjectRS.Error <> nil then
+            begin
+              Error := FGlObjectRS.Error.Get_Description + #13#10 +
+                'Строка: ' + IntToStr(FGlObjectRS.Error.Get_Number);
+            end else
+            begin
+              Error := 'unknown error';
+            end;
+
+            MessageBox(0, PChar(String(
+              'Ошибка уничтожения объекта ' + Name + ' с сообщением:'#13#10 +
+              Error)),
+              PChar(String('Скрипт-функция ' + Name + '_Terminate')),
+              MB_Ok or MB_ICONERROR or MB_TOPMOST);
+          end;
+          {$IFDEF WITH_INDY}
+          //if gdccClient <> nil then
+          //  gdccClient.AddLogRecord('Global Objects', 'Freeing disp interface of ' + FGlObjArray[i].Name + '...');
+          {$ENDIF}
+
+          try
+            FGlObjArray[i].IDisp := nil;
+          except
+            on E: Exception do
+            begin
+              {$IFDEF WITH_INDY}
+              //if gdccClient <> nil then
+              //  gdccClient.AddLogRecord('Global Objects', 'Error: ' + E.Message, gdcc_lt_Error);
+              {$ENDIF}
+
+              //MessageBox(0, PChar(String(
+              //  'Ошибка обнуления disp интерфейса объекта ' + Name + ' с сообщением:'#13#10 +
+              //  E.Message)),
+              //  'Ошибка',
+              //  MB_OK or MB_ICONERROR or MB_TOPMOST);
+            end;
+          end;
         end;
-      except
-        MessageBox(0, PChar(String('Ошибка уничтожения объекта ' +
-          FGlObjArray[i].Name + ' с сообщением:'#13#10 +
-          FGlObjectRS.Error.Get_Description + #13#10 + 'Строка: ' +
-          IntToStr(FGlObjectRS.Error.Get_Number))),
-          PChar(String('Скрипт-функция ' + FGlObjArray[i].Name + '_Terminate')),
-          MB_Ok or MB_ICONERROR or MB_TOPMOST);
-      end;
-      FGlObjArray[i].IDisp := nil;
+    finally
+      LocFucn.Free;
     end;
-  finally
-    LocFucn.Free;
   end;
 
   if FGlObjectRS <> nil then
     FGlObjectRS.Reset;
 
-  // обнуления массыва, хранящего указатели на интерфейсы гл.объекта
+  // обнуление массива, хранящего указатели на интерфейсы гл.объекта
   SetLength(FGlObjArray, 0);
 end;
 
@@ -484,9 +525,8 @@ begin
       ibDatasetWork.SQL.Text := 'SELECT id ' +
        'FROM gd_function WHERE module = ''' + scrVBClasses +
        ''' AND modulecode = :MC';
-      ibDatasetWork.ParamByName('MC').AsInteger := OBJ_APPLICATION;
+      SetTID(ibDatasetWork.ParamByName('MC'), OBJ_APPLICATION);
       ibDatasetWork.ExecQuery;
-
       FVBClassKey.Clear;
 
       rsTest := TReportScript.Create(nil);
@@ -501,8 +541,8 @@ begin
           while not (ibDatasetWork.Eof) do
           try
             try
-              FStaticSFList.Add(ibDatasetWork.FieldByName(fnid).AsInteger);
-              FVBClassKey.Add(ibDatasetWork.FieldByName(fnid).AsInteger);
+              FStaticSFList.Add(GetTID(ibDatasetWork.FieldByName(fnid)));
+              FVBClassKey.Add(GetTID(ibDatasetWork.FieldByName(fnid)));
             except
             end;
           finally
@@ -564,7 +604,7 @@ begin
 
         while not ibsqlConst.Eof do
         begin
-          FStaticSFList.Add(ibsqlConst.FieldByName(fnId).AsInteger);
+          FStaticSFList.Add(GetTID(ibsqlConst.FieldByName(fnId)));
           ibsqlConst.Next
         end;
         ibsqlConst.First;
@@ -575,7 +615,7 @@ begin
         objNum := 0;
         while not ibsqlConst.Eof do
         begin
-          LocFucn := glbFunctionList.FindFunction(ibsqlConst.FieldByName(fnID).AsInteger);
+          LocFucn := glbFunctionList.FindFunction(GetTID(ibsqlConst.FieldByName(fnID)));
           try
             LocFucn.Name := ibsqlConst.FieldByName(fnName).AsString + '_Initialize';
             // добавляется пустая функция уничтожения гл.объектов
@@ -670,7 +710,6 @@ begin
       gdScriptFactory1.Transaction := IBTransaction1;
       EventControl1.Database := dmDatabase.ibdbGAdmin;
       MethodControl1.Database := dmDatabase.ibdbGAdmin;
-
       SetLength(FGlObjArray, 0);
       CreateVBConst;
       CreateVBClasses;
@@ -791,10 +830,10 @@ begin
     'DATESTR(<Дата>)/Возвращает дату (месяц на русском языке)');
   AddFunctionDesc('GETVALUEBYID', 'Golden Software',
     'GETVALUEBYID(<Идентификатор>)/Возвращает значение константы по идентификатору');
-  AddFunctionDesc('GETVALUEBYNAME', 'Golden Software',
-    'GETVALUEBYNAME(<Наименование>)/Возвращает значение константы по наименованию');
   AddFunctionDesc('GETVALUEBYIDFORDATE', 'Golden Software',
     'GETVALUEBYIDFORDATE(<Идентификатор>, <Дата>)/Возвращает значение периодической константы по идентификатору на указанную дату');
+  AddFunctionDesc('GETVALUEBYNAME', 'Golden Software',
+    'GETVALUEBYNAME(<Наименование>)/Возвращает значение константы по наименованию');
   AddFunctionDesc('GETVALUEBYNAMEFORDATE', 'Golden Software',
     'GETVALUEBYNAMEFORDATE(<Наименование>, <Дата>)/Возвращает значение периодической константы по наименованию на указанную дату');
   AddFunctionDesc('SUMCURRSTR', 'Golden Software',
@@ -831,9 +870,9 @@ begin
   val := 0;
   case FNo of
      0: val := DateStr(frParser.Calc(p1));
-     1: val := GetConstByID(frParser.Calc(p1));
-     2: val := GetConstByName(frParser.Calc(p1));
-     3: val := GetConstByIDForDate(frParser.Calc(p1), frParser.Calc(p2));
+     1: val := GetConstByID(GetTID(frParser.Calc(p1)));
+     2: val := GetConstByIDForDate(GetTID(frParser.Calc(p1)), frParser.Calc(p2));
+     3: val := GetConstByName(frParser.Calc(p1));
      4: val := GetConstByNameForDate(frParser.Calc(p1), frParser.Calc(p2));
      5: val := GetSumCurr(frParser.Calc(p1), frParser.Calc(p2), 1, frParser.Calc(p3));
      6: val := GetSumCurr(frParser.Calc(p1), frParser.Calc(p2), 0, frParser.Calc(p3));
@@ -850,9 +889,9 @@ end;
 function TgsFunctionLibrary.GetSumCurr(D1, D2, D3: Variant; D4: Boolean = False): Variant;
 begin
   if VarType(D3) = varBoolean then
-    Result := gd_convert.GetSumCurr(D1, D2, D3, D4)
+    Result := gd_convert.GetSumCurr(GetTID(D1), D2, D3, D4)
   else
-    Result := gd_convert.GetSumCurr(D1, D2, D3 <> 0, D4);
+    Result := gd_convert.GetSumCurr(GetTID(D1), D2, D3 <> 0, D4);
 end;
 
 function TgsFunctionLibrary.GetSumStr(D1: Variant; D2: Byte = 0): Variant;
@@ -899,7 +938,7 @@ end;
 
 function TgsFunctionLibrary.AdvString: Variant;
 begin
-  Result := 'Подготовлено в системе Гедымин. Тел.: (017) 256-17-59, 256-27-83. http://gsbelarus.com © Golden Software of Belarus Ltd. ';
+  Result := 'Подготовлено в системе Гедымин. Тел.: (017) 256-17-59, 256-27-83. http://gsbelarus.com © 1994-2020 Golden Software of Belarus, Ltd. ';
 end;
 
 
@@ -948,12 +987,12 @@ begin
   end;
 end;
 
-function TgsFunctionLibrary.GetConstByID(const AnID: Integer): Variant;
+function TgsFunctionLibrary.GetConstByID(const AnID: TID): Variant;
 begin
   Result := TgdcConst.QGetValueByID(AnID);
 end;
 
-function TgsFunctionLibrary.GetConstByIDForDate(const AnID: Integer;
+function TgsFunctionLibrary.GetConstByIDForDate(const AnID: TID;
   const ADate: TDateTime): Variant;
 begin
   Result := TgdcConst.QGetValueByIDAndDate(AnID, ADate);

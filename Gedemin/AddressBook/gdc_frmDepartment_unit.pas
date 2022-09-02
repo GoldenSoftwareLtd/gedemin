@@ -78,7 +78,7 @@ procedure Tgdc_frmDepartment.ibcmbCompanyChange(Sender: TObject);
 var
   WasActive: Boolean;
 begin
-  if not EqTID(gdcObject.ParamByName('companykey'), ibcmbCompany.CurrentKeyInt) then
+  if GetTID(gdcObject.ParamByName('companykey')) <> ibcmbCompany.CurrentKeyInt then
   begin
     WasActive := gdcObject.Active;
     try

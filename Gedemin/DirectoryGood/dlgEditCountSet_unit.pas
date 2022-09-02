@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgEditCountSet_unit;
 
 interface
@@ -25,8 +27,8 @@ type
   public
     { Public declarations }
     Name: String;
-    SetKey: Integer;
-    GoodKey: Integer;
+    SetKey: TID;
+    GoodKey: TID;
     procedure ActiveDialog;
     function Delete: Boolean;
   end;
@@ -45,8 +47,8 @@ begin
   // Инициализация
   // Вытягиваем запись по ключу и переходим в режим редактирования
   ibqrySetCount.Close;
-  ibqrySetCount.ParamByName('setkey').AsInteger := SetKey;
-  ibqrySetCount.ParamByName('goodkey').AsInteger := GoodKey;
+  SetTID(ibqrySetCount.ParamByName('setkey'), SetKey);
+  SetTID(ibqrySetCount.ParamByName('goodkey'), GoodKey);
   ibqrySetCount.Open;
   ibqrySetCount.Edit;
 end;

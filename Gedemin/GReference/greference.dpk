@@ -7,7 +7,6 @@ package greference;
 {$R '..\Component\gsIBGrid.dcr'}
 {$R '..\Component\gsReportRegistry.dcr'}
 {$R '..\Component\gsDocNumerator.dcr'}
-{$R '..\Security\gd_security.dcr'}
 {$R '..\..\Comp5\xProgr.dcr'}
 {$R '..\Component\Bkground.dcr'}
 {$R '..\Imports\HHCTRLLib_TLB.dcr'}
@@ -19,14 +18,14 @@ package greference;
 {$ALIGN ON}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
-{$DEBUGINFO ON}
+{$DEBUGINFO OFF}
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
 {$LOCALSYMBOLS ON}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
 {$REFERENCEINFO ON}
@@ -42,6 +41,7 @@ package greference;
 {$DEFINE ENTRY_BALANCE}
 {$DEFINE _QBUILDER}
 {$DEFINE _FR4}
+{$DEFINE _ID64}
 
 requires
   Vcl50,
@@ -55,7 +55,8 @@ requires
   vcljpg50,
   vclado50,
   Tee50,
-  Fr5;
+  Fr5,
+  frx5;
 
 contains
   gsDesktopManager in '..\Component\gsDesktopManager.pas',
@@ -112,7 +113,6 @@ contains
   gdcAcctAccount in '..\Component\GDC\gdcAcctAccount.pas',
   gdcStatement in '..\Component\GDC\gdcStatement.pas',
   gdcExplorer in '..\Component\GDC\gdcExplorer.pas',
-  IBRegister in '..\IBX\ibregister.pas',
   gdc_framSetControl_unit in '..\Component\Repository\gdc_framSetControl_unit.pas',
   gdc_dlgG_unit in '..\Component\Repository\gdc_dlgG_unit.pas',
   gdc_dlgTR_unit in '..\Component\Repository\gdc_dlgTR_unit.pas',

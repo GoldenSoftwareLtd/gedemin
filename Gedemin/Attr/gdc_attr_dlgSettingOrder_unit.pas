@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit gdc_attr_dlgSettingOrder_unit;
 
 interface
@@ -47,7 +49,7 @@ var
 
 implementation
 uses
-  IBSQL, IBDatabase, gd_classlist;
+  IBSQL, IBDatabase, gd_classlist, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -241,7 +243,7 @@ begin
     ibsql.Transaction := gdcObject.ReadTransaction;
     ibsql.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey ' +
       ' ORDER BY objectorder ';
-    ibsql.ParamByName('settingkey').AsInteger := gdcObject.ID;
+    SetTID(ibsql.ParamByName('settingkey'), gdcObject.ID);
     ibsql.ExecQuery;
     while not ibsql.Eof do
     begin

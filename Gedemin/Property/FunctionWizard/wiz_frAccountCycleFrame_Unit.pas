@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_frAccountCycleFrame_Unit;
 
 interface
@@ -52,7 +54,7 @@ type
     procedure actOnlySelectedExecute(Sender: TObject);
   private
     { Private declarations }
-    FCardOfAccountKey: Integer;
+    FCardOfAccountKey: TID;
     FFiltered: Boolean;
   protected
     procedure SetBlock(const Value: TVisualBlock); override;
@@ -145,7 +147,7 @@ begin
       ShowMessage('”казан неверный план счетов');
       FCardOfAccountKey := -1;
     end;
-    IBDataSet.ParamByName('accountkey').AsInteger := FCardOfAccountKey;
+    SetTID(IBDataSet.ParamByName('accountkey'), FCardOfAccountKey);
     IBDataSet.Open;
     SetAccounts(Account);
     beAnal.Text := Analise;

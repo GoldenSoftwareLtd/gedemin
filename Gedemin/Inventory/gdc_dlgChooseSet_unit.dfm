@@ -2,7 +2,7 @@ object dlg_ChooseSet: Tdlg_ChooseSet
   Left = 300
   Top = 137
   Width = 513
-  Height = 432
+  Height = 444
   Caption = 'Выбор'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,15 +18,15 @@ object dlg_ChooseSet: Tdlg_ChooseSet
   object pnlWorkArea: TPanel
     Left = 9
     Top = 26
-    Width = 487
-    Height = 370
+    Width = 479
+    Height = 371
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object spChoose: TSplitter
       Left = 0
       Top = 245
-      Width = 487
+      Width = 479
       Height = 5
       Cursor = crVSplit
       Align = alTop
@@ -35,7 +35,7 @@ object dlg_ChooseSet: Tdlg_ChooseSet
     object pnlMain: TPanel
       Left = 0
       Top = 0
-      Width = 487
+      Width = 479
       Height = 245
       Align = alTop
       BevelOuter = bvNone
@@ -45,7 +45,7 @@ object dlg_ChooseSet: Tdlg_ChooseSet
       object dbtvMain: TgsDBTreeView
         Left = 0
         Top = 0
-        Width = 487
+        Width = 479
         Height = 245
         KeyField = 'ID'
         ParentField = 'PARENT'
@@ -64,7 +64,7 @@ object dlg_ChooseSet: Tdlg_ChooseSet
       object ibgrMain: TgsIBGrid
         Left = 0
         Top = 0
-        Width = 487
+        Width = 479
         Height = 245
         HelpContext = 3
         Align = alClient
@@ -106,17 +106,17 @@ object dlg_ChooseSet: Tdlg_ChooseSet
     object pnChoose: TPanel
       Left = 0
       Top = 250
-      Width = 487
-      Height = 120
+      Width = 479
+      Height = 121
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 120
       TabOrder = 1
       object pnButtonChoose: TPanel
-        Left = 400
+        Left = 392
         Top = 18
         Width = 87
-        Height = 102
+        Height = 103
         Align = alRight
         BevelOuter = bvNone
         TabOrder = 0
@@ -160,7 +160,7 @@ object dlg_ChooseSet: Tdlg_ChooseSet
       object pnlChooseCaption: TPanel
         Left = 0
         Top = 0
-        Width = 487
+        Width = 479
         Height = 18
         Align = alTop
         Alignment = taLeftJustify
@@ -171,7 +171,7 @@ object dlg_ChooseSet: Tdlg_ChooseSet
         object Bevel1: TBevel
           Left = 0
           Top = 0
-          Width = 487
+          Width = 479
           Height = 2
           Align = alTop
           Style = bsRaised
@@ -180,8 +180,8 @@ object dlg_ChooseSet: Tdlg_ChooseSet
       object dbgrChoose: TgsDBGrid
         Left = 0
         Top = 18
-        Width = 400
-        Height = 102
+        Width = 392
+        Height = 103
         Align = alClient
         DataSource = dsChoose
         Options = [dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -205,7 +205,7 @@ object dlg_ChooseSet: Tdlg_ChooseSet
   object TBDockTop: TTBDock
     Left = 0
     Top = 0
-    Width = 505
+    Width = 497
     Height = 26
     object tbMainToolbar: TTBToolbar
       Left = 0
@@ -269,21 +269,21 @@ object dlg_ChooseSet: Tdlg_ChooseSet
     Left = 0
     Top = 26
     Width = 9
-    Height = 370
+    Height = 371
     Position = dpLeft
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 396
-    Width = 505
+    Top = 397
+    Width = 497
     Height = 9
     Position = dpBottom
   end
   object TBDockRight: TTBDock
-    Left = 496
+    Left = 488
     Top = 26
     Width = 9
-    Height = 370
+    Height = 371
     Position = dpRight
   end
   object alMain: TActionList
@@ -416,16 +416,7 @@ object dlg_ChooseSet: Tdlg_ChooseSet
   end
   object cdsChoose: TClientDataSet
     Aggregates = <>
-    FieldDefs = <
-      item
-        Name = 'name'
-        DataType = ftString
-        Size = 80
-      end
-      item
-        Name = 'id'
-        DataType = ftInteger
-      end>
+    FieldDefs = <>
     IndexDefs = <>
     Params = <>
     StoreDefs = True

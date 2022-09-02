@@ -1,11 +1,11 @@
 inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
   Width = 224
-  Height = 136
+  Height = 203
   object ppMain: TgdvParamPanel [0]
     Left = 0
     Top = 0
     Width = 224
-    Height = 136
+    Height = 202
     Align = alTop
     Caption = 'Группировать по аналитике'
     Color = 15329769
@@ -29,7 +29,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
       Left = 6
       Top = 18
       Width = 212
-      Height = 116
+      Height = 182
       Align = alClient
       BevelOuter = bvNone
       Color = 15987699
@@ -38,14 +38,14 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Left = 4
         Top = 16
         Width = 88
-        Height = 81
+        Height = 164
         Shape = bsFrame
       end
       object bSelected: TBevel
         Left = 122
         Top = 16
         Width = 88
-        Height = 81
+        Height = 141
         Shape = bsFrame
       end
       object lAvail: TLabel
@@ -80,9 +80,9 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
       end
       object lbAvail: TListBox
         Left = 6
-        Top = 18
+        Top = 17
         Width = 84
-        Height = 77
+        Height = 161
         Hint = 'Доступная аналитика'
         BorderStyle = bsNone
         Font.Charset = DEFAULT_CHARSET
@@ -102,25 +102,12 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         OnKeyPress = lbAvailKeyPress
       end
       object bUp: TButton
-        Left = 123
-        Top = 98
-        Width = 40
-        Height = 17
+        Left = 122
+        Top = 159
+        Width = 42
+        Height = 20
         Action = actUp
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clBlack
-        Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = []
-        ParentFont = False
-        TabOrder = 5
-      end
-      object bDown: TButton
-        Left = 168
-        Top = 98
-        Width = 40
-        Height = 17
-        Action = actDown
+        Anchors = [akLeft, akTop, akRight]
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
@@ -129,9 +116,24 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         ParentFont = False
         TabOrder = 6
       end
+      object bDown: TButton
+        Left = 167
+        Top = 159
+        Width = 42
+        Height = 20
+        Action = actDown
+        Anchors = [akLeft, akTop, akRight]
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        TabOrder = 7
+      end
       object bIncludeAll: TButton
         Left = 94
-        Top = 38
+        Top = 33
         Width = 25
         Height = 17
         Action = actIncludeAll
@@ -145,7 +147,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
       end
       object bInclude: TButton
         Left = 94
-        Top = 20
+        Top = 15
         Width = 25
         Height = 17
         Action = actInclude
@@ -159,7 +161,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
       end
       object bExcludeAll: TButton
         Left = 94
-        Top = 74
+        Top = 69
         Width = 25
         Height = 17
         Action = actExcludeAll
@@ -173,7 +175,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
       end
       object bExclude: TButton
         Left = 94
-        Top = 56
+        Top = 51
         Width = 25
         Height = 17
         Action = actExclude
@@ -189,7 +191,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Left = 123
         Top = 17
         Width = 84
-        Height = 78
+        Height = 138
         OnClickCheck = lbSelectedClickCheck
         BorderStyle = bsNone
         Font.Charset = DEFAULT_CHARSET
@@ -199,7 +201,7 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Font.Style = []
         ItemHeight = 13
         ParentFont = False
-        TabOrder = 7
+        TabOrder = 5
         OnDblClick = lbSelectedDblClick
         OnKeyDown = lbSelectedKeyDown
         OnKeyPress = lbSelectedKeyPress

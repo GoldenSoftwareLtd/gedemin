@@ -1,7 +1,10 @@
 inherited SubDevision: TSubDevision
-  Left = 627
-  Top = 334
+  Left = 666
+  Top = 247
   OnCreate = FormCreate
+  inherited eInfo: TEdit
+    OnEnter = eInfoEnter
+  end
   object lInfoMsg: TLabel[2]
     Left = 5
     Height = 19

@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcTableMetaData;
 
 interface
@@ -47,7 +49,24 @@ begin
       q.ParamByName('RN').AsString := ARelName;
       q.ExecQuery;
 
-      Result := q.Fields[0].AsTrimString;
+      if not q.EOF then
+        Result := q.Fields[0].AsTrimString
+      else begin
+        q.Close;
+        q.SQL.Text :=
+          'SELECT t.rdb$trigger_name FROM rdb$triggers t ' +
+          '  JOIN rdb$dependencies d1 ON d1.rdb$dependent_name = t.rdb$trigger_name ' +
+          '    AND d1.rdb$depended_on_name = :G1 ' +
+          'WHERE t.rdb$trigger_type = :T ' +
+          '  AND t.rdb$relation_name = :RN';
+        q.ParamByName('T').AsInteger := 1;
+        q.ParamByName('G1').AsString := 'GD_P_GETNEXTID_EX';
+        q.ParamByName('RN').AsString := ARelName;
+        q.ExecQuery;
+
+        if not q.EOF then
+          Result := q.Fields[0].AsTrimString;
+      end;
     finally
       q.Free;
     end;

@@ -1,3 +1,4 @@
+// ShlTanya, 11.02.2019
 
 unit gdc_createable_form;
 
@@ -136,7 +137,7 @@ uses
   Windows,              Controls,       gd_strings
 
   {$IFDEF DUNIT_TEST}
-    , extctrls, Test_Global_unit
+    , extctrls
   {$ENDIF}
 
   , gdcClasses;

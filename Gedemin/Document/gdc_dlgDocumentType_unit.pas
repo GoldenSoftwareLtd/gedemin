@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gdc_dlgDocumentType_unit;
 
 interface
@@ -411,7 +413,7 @@ begin
         gdcFunction.FieldByName(fnModuleCode).AsInteger := OBJ_APPLICATION;
         gdcFunction.FieldByName(fnModule).AsString := scrEntryModuleName;
         gdcFunction.FieldByName(fnName).AsString := Format('AutoEntryScript%d_%d_%s',
-          [gdcFunction.ID, IbLogin.DBID, FunctionNameSufix]);
+          [TID264(gdcFunction.ID), IbLogin.DBID, FunctionNameSufix]);
         gdcFunction.FieldByName(fnLANGUAGE).AsString := DefaultLanguage;
       end else
         gdcFunction.Edit;
@@ -422,7 +424,7 @@ begin
 
     if gdcObject.FieldByName(FunctionTemplateField).IsNull then
     begin
-      DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
+      DE := gdClassList.FindDocByTypeID(GetTID(gdcObject.FieldByName('parent')), dcpHeader, True);
       while (DE <> nil) and (ParentFunctionName = '') do
       begin
         ibsql := TIBSQL.Create(nil);
@@ -439,7 +441,7 @@ begin
               '  d.id = :id '#13#10 +
               '  AND d.documenttype = ''D'' '#13#10 +
               '  AND d.' + FunctionTemplateField + ' IS NOT NULL';
-          ibsql.ParamByName('id').AsInteger := DE.TypeID;
+          SetTID(ibsql.ParamByName('id'), DE.TypeID);
           ibsql.ExecQuery;
           if (not ibsql.Eof) and (not ibsql.FieldByName(FunctionTemplateField).IsNull) then
           begin
@@ -498,8 +500,7 @@ begin
         Params.Free;
       end;
 
-      gdcObject.FieldByName(functionkeyfield).AsInteger :=
-        gdcFunction.FieldByName(fnid).AsInteger;
+      SetTID(gdcObject.FieldByName(functionkeyfield), gdcFunction.FieldByName(fnid));
     end else
     begin
       if not (DS in [dsEdit, dsInsert]) then
@@ -525,7 +526,7 @@ var
     gdcExplorer.Open;
     gdcExplorer.Insert;
     try
-      gdcExplorer.FieldByName('parent').AsInteger := iblcExplorerBranch.CurrentKeyInt;
+      SetTID(gdcExplorer.FieldByName('parent'), iblcExplorerBranch.CurrentKeyInt);
       gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('name').AsString;
       gdcExplorer.FieldByName('classname').AsString :=
         (gdcObject as TgdcDocumentType).GetHeaderDocumentClass.ClassName;
@@ -533,7 +534,7 @@ var
       gdcExplorer.FieldByName('cmd').AsString := gdcObject.FieldByName('ruid').AsString;
       gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
       gdcExplorer.Post;
-      gdcObject.FieldByName('branchkey').AsInteger := gdcExplorer.ID;
+      SetTID(gdcObject.FieldByName('branchkey'), gdcExplorer.ID);
     finally
       if gdcExplorer.State in dsEditModes then
         gdcExplorer.Cancel;
@@ -574,12 +575,12 @@ begin
         {если у нас не было ветки в исследователе и мы захотели ее создать}
         _InsertExplorer;
       end
-      else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
+      else if (GetTID(gdcObject.FieldByName('branchkey')) > 0) and
         (iblcExplorerBranch.CurrentKeyInt = -1)
       then
       begin
         {если у нас была ветка в исследователе и мы захотели ее удалить}
-        gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
+        gdcExplorer.ID := GetTID(gdcObject.FieldByName('branchkey'));
         gdcExplorer.Open;
         if not gdcExplorer.EOF then
         begin
@@ -587,12 +588,12 @@ begin
         end;
         gdcObject.FieldByName('branchkey').Clear;
       end
-      else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
+      else if (GetTID(gdcObject.FieldByName('branchkey')) > 0) and
         (iblcExplorerBranch.CurrentKeyInt > 0)
       then
       begin
         {если у нас была ветка в исследователе, подредактируем ее и заменим наименование, родителя}
-        gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
+        gdcExplorer.ID := GetTID(gdcObject.FieldByName('branchkey'));
         gdcExplorer.Open;
         if gdcExplorer.EOF or
           (gdcExplorer.FieldByName('subtype').AsString <> gdcObject.FieldByName('ruid').AsString)
@@ -602,7 +603,7 @@ begin
         end else
         begin
           gdcExplorer.Edit;
-          gdcExplorer.FieldByName('parent').AsInteger := iblcExplorerBranch.CurrentKeyInt;
+          SetTID(gdcExplorer.FieldByName('parent'), iblcExplorerBranch.CurrentKeyInt);
           gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('name').AsString;
           gdcExplorer.Post;
         end;
@@ -620,8 +621,8 @@ begin
 
   if FScriptChanged then
   begin
-    ScriptFactory.ReloadFunction(gdcObject.FieldByName('headerfunctionkey').AsInteger);
-    ScriptFactory.ReloadFunction(gdcObject.FieldByName('linefunctionkey').AsInteger);
+    ScriptFactory.ReloadFunction(GetTID(gdcObject.FieldByName('headerfunctionkey')));
+    ScriptFactory.ReloadFunction(GetTID(gdcObject.FieldByName('linefunctionkey')));
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGDOCUMENTTYPE', 'POST', KEYPOST)}
@@ -635,15 +636,15 @@ end;
 procedure Tgdc_dlgDocumentType.actDeleteHeaderFunctionExecute(
   Sender: TObject);
 var
-  Id: Integer;
+  Id: TID;
 begin
   if not gdcObject.FieldByName('headerfunctionkey').IsNull then
   begin
     if MessageDlg('Вы действительно хотите удалить функцию?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
     begin
-      Id := gdcObject.FieldByName('headerfunctionkey').AsInteger;
+      Id := GetTID(gdcObject.FieldByName('headerfunctionkey'));
       gdcBaseManager.ExecSingleQuery('UPDATE gd_documenttype SET headerfunctionkey = NULL WHERE id = :id',
-        gdcObject.ID, gdcObject.Transaction);
+        TID2V(gdcObject.ID), gdcObject.Transaction);
       if gdcFunctionHeader.Active then
         gdcFunctionHeader.Close;
       gdcFunctionHeader.Id := Id;
@@ -662,15 +663,15 @@ end;
 procedure Tgdc_dlgDocumentType.actDeleteLineFunctionExecute(
   Sender: TObject);
 var
-  Id: Integer;
+  Id: TID;
 begin
   if not gdcObject.FieldByName('linefunctionkey').IsNull then
   begin
     if MessageDlg('Вы действительно хотите удалить функцию?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
     begin
-      Id := gdcObject.FieldByName('linefunctionkey').AsInteger;
+      Id := GetTID(gdcObject.FieldByName('linefunctionkey'));
       gdcBaseManager.ExecSingleQuery('UPDATE gd_documenttype SET linefunctionkey = NULL WHERE id = :id',
-        gdcObject.ID, gdcObject.Transaction);
+        TID2V(gdcObject.ID), gdcObject.Transaction);
       if gdcFunctionLine.Active then
         gdcFunctionLine.Close;
       gdcFunctionLine.Id := Id;
@@ -737,7 +738,7 @@ begin
   inherited;
 
   DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
-  DEParent := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
+  DEParent := gdClassList.FindDocByTypeID(GetTID(gdcObject.FieldByName('parent')), dcpHeader, True);
 
   if (DE <> nil) and (DEParent <> nil) and (DE.Parent <> DEParent) then
     raise Exception.Create('Internal consistency check');
@@ -765,9 +766,9 @@ begin
 
   //Выведем родителя нашей ветки в исследователе
   if gdcBaseManager.ExecSingleQueryResult('SELECT parent FROM gd_command WHERE id = :id AND parent IS NOT NULL',
-    gdcObject.FieldByName('branchkey').AsInteger, R) then
+    TID2V(gdcObject.FieldByName('branchkey')), R) then
   begin
-    iblcExplorerBranch.CurrentKeyInt := R[0, 0];
+    iblcExplorerBranch.CurrentKeyInt := GetTID(R[0, 0]);
   end;
 
   //Для редактирования нескольких веток запрещаем изменении ветки исследователя

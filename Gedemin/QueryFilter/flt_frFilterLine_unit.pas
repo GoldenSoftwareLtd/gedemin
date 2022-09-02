@@ -1,3 +1,5 @@
+// ShlTanya, 10.03.2019
+
 unit flt_frFilterLine_unit;
 
 interface
@@ -6,7 +8,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, ComCtrls, DBCtrls, flt_sqlfilter_condition_type, IBDatabase,
   gd_AttrComboBox, ImgList, Buttons, IBSQL, gsComboTreeBox,
-  flt_EnumComboBox;
+  flt_EnumComboBox, gdcBaseInterface;
 
 const
   WM_CLOSEFILTERLINE = 1200;
@@ -62,7 +64,7 @@ type
     procedure SpeedButton1Click(Sender: TObject);
   private
     function CheckFormula(FormulaType: Boolean): Boolean;
-    function GetUserKey: Integer;
+    function GetUserKey: TID;
   public
     // Все эти поля присваиваются при после создания фрэйма
     ConditionList: TFilterConditionList;
@@ -70,7 +72,7 @@ type
     SortFieldList: TStrings;
     FunctionList: TStrings;
     FTableList: TfltStringList;
-    FComponentKey: Integer;
+    FComponentKey: TID;
     SQLText: String;
 
     IBDatabase: TIBDatabase;
@@ -603,7 +605,7 @@ begin
 end;
 
 // Функция проверки формулы
-function TfrFilterLine.GetUserKey: Integer;
+function TfrFilterLine.GetUserKey: TID;
 begin
   if IBLogin <> nil then
     Result := IBLogin.Ingroup
@@ -644,14 +646,23 @@ begin
       // Обработка ошибки
       on E: Exception do
       begin
-        if FormulaType then
-          Result := MessageBox(Handle, PChar('Условие задано не верно.'#13#10 + E.Message +
-           #13#10 + 'Отменить сохранение?'), 'Внимание', MB_YESNO or MB_ICONSTOP) = IDNO
+        // Считаем что FTableList содержит только нужные данные о таблицах. Если в запросе есть подзапрос,
+        // то ibsqlTemp всегда будет с ошибкой -204.
+        if AnsiPos('-204',E.Message) > 0 then
+            Result := MessageBox(Handle, PChar('Запрос возможно содержит подзапрос(ы).'#13#10 +
+            'Невозможно проверить правильность введенного условия/формулы.'#13#10 + E.Message +
+             #13#10 + 'Отменить сохранение?'), 'Внимание', MB_YESNO or MB_ICONSTOP) = IDNO
         else
         begin
-          MessageBox(Handle, PChar('Формула написана неверно.'#13#10 + E.Message), 'Внимание',
-           MB_OK or MB_ICONSTOP);
-          Result := False;
+          if FormulaType then
+            Result := MessageBox(Handle, PChar('Условие задано не верно.'#13#10 + E.Message +
+             #13#10 + 'Отменить сохранение?'), 'Внимание', MB_YESNO or MB_ICONSTOP) = IDNO
+          else
+          begin
+            MessageBox(Handle, PChar('Формула написана неверно.'#13#10 + E.Message), 'Внимание',
+             MB_OK or MB_ICONSTOP);
+            Result := False;
+          end;
         end;
         if not Result then
           cbFormula.SetFocus;

@@ -1,8 +1,8 @@
 LANGUAGE LANG_RUSSIAN,1
 
-1 VERSIONINFO LOADONCALL MOVEABLE DISCARDABLE IMPURE 
-FILEVERSION 2, 9, 12, 0
-PRODUCTVERSION 2, 9, 12, 0
+1 VERSIONINFO LOADONCALL MOVEABLE DISCARDABLE IMPURE
+FILEVERSION 2, 9, 12, 167
+PRODUCTVERSION 2, 9, 12, 167
 FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 FILEOS VOS__WINDOWS32
 FILETYPE VFT_APP
@@ -13,9 +13,9 @@ FILETYPE VFT_APP
   {
    VALUE "CompanyName", "Golden Software of Belarus, Ltd\000"
    VALUE "FileDescription", "GDCC\000"
-   VALUE "FileVersion", "2.9.12\000"
+   VALUE "FileVersion", "2.9.12.167\000"
    VALUE "InternalName", "Gedemin\000"
-   VALUE "LegalCopyright", "Copyright (c) 2000-2017 by Golden Software of Belarus, Ltd\000"
+   VALUE "LegalCopyright", "Copyright (c) 2000-2022 by Golden Software of Belarus, Ltd\000"
    VALUE "LegalTrademarks", "Gedemin\000"
    VALUE "OriginalFilename", "gdcc.exe\000"
    VALUE "ProductName", "Gedemin\000"

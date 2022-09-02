@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -586,7 +588,7 @@ procedure TfrmClassesInspector.AddPropMethod(const Node: TTreeNode);
 var
   COMClassItem: TgdcCOMClassItem;
 begin
-  COMClassItem := TgdcCOMClassItem(OLEClassList.ValuesByKey[Integer(Node.Data)]);
+  COMClassItem := TgdcCOMClassItem(OLEClassList.ValuesByKey[GetTID(Node.Data)]);
   if COMClassItem <> nil then
     AddItemsForDelphiClass(Node, COMClassItem.TypeLib, COMClassItem.DispIntf);
 

@@ -1,3 +1,4 @@
+// ShlTanya, 02.02.2019
 
 {++
 
@@ -541,6 +542,7 @@ begin
           ReassignParams := Prepared;
 
           try
+       //   TODO: возможные ошибки #Int64 при вызове Assign
             P.Assign(Params);
             SQL.Text := AdjustSQL((FLink as TIBQuery).SQL.Text);
 

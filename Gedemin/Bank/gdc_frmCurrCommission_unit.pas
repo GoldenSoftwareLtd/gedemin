@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit gdc_frmCurrCommission_unit;
 
 interface

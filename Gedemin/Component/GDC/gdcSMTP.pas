@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcSMTP;
 
 interface

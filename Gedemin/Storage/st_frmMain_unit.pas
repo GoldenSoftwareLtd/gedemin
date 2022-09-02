@@ -1,3 +1,4 @@
+// ShlTanya, 12.03.2019, #4135
 
 unit st_frmMain_unit;
 
@@ -7,7 +8,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gd_createable_form, TB2Item, StdCtrls, ExtCtrls, ComCtrls, TB2Dock,
   TB2Toolbar, dmImages_unit, ActnList, gsStorage, Menus, st_dlgFind_unit,
-  gd_KeyAssoc;
+  gd_KeyAssoc, gdcBaseInterface;
 
 type
   Tst_frmMain = class(TCreateableForm)
@@ -164,7 +165,7 @@ type
     InSett: TgdKeyArray;
     dlgFind: Tst_dlgFind;
 
-    procedure LoadTreeView(const ID: Integer);
+    procedure LoadTreeView(const ID: TID);
 
   protected
     procedure DoCreate; override;
@@ -191,7 +192,7 @@ uses
   Storages,               gdcUser,           gd_security,
   st_dlgEditValue_unit,   dlgEditDFM_unit,   gdcStorage,
   at_AddToSetting,        gsDesktopManager,  gd_directories_const,
-  gsStorage_CompPath,     IBSQL,             gdcBaseInterface,
+  gsStorage_CompPath,     IBSQL,
   gdcStorage_Types,       gd_common_functions,
   gd_dlgClassList_unit,   gd_ClassList
   {must be placed after Windows unit!}
@@ -245,22 +246,22 @@ begin
     U.Open;
     while not U.EOF do
     begin
-      cb.Items.AddObject(U.ObjectName, Pointer(U.ID));
+      cb.Items.AddObject(U.ObjectName, TID2Pointer(U.ID, Name));
       U.Next;
     end;
   finally
     U.Free;
   end;
 
-  cb.Items.AddObject('<GLOBAL>', Pointer(-1000));
-  cb.Items.AddObject('<COMPANY>', Pointer(-2000));
-  cb.Items.AddObject('<DESKTOP>', Pointer(-3000));
+  cb.Items.AddObject('<GLOBAL>', TID2Pointer(-2, Name));
+  cb.Items.AddObject('<COMPANY>', TID2Pointer(-3, Name));
+  cb.Items.AddObject('<DESKTOP>', TID2Pointer(-4, Name));
 
   cb.ItemIndex := cb.Items.IndexOf('<GLOBAL>');
-  LoadTreeView(-1000);
+  LoadTreeView(-2);
 end;
 
-procedure Tst_frmMain.LoadTreeView(const ID: Integer);
+procedure Tst_frmMain.LoadTreeView(const ID: TID);
 var
   N: TTreeNode;
   S: String;
@@ -278,9 +279,9 @@ begin
   end;
 
   case ID of
-    -1000: CurrentStorage := GlobalStorage;
-    -2000: CurrentStorage := CompanyStorage;
-    -3000: CurrentStorage := DesktopManager.Storage;
+    -2: CurrentStorage := GlobalStorage;
+    -3: CurrentStorage := CompanyStorage;
+    -4: CurrentStorage := DesktopManager.Storage;
   else
     if ID = IBLogin.UserKey then
       CurrentStorage := UserStorage
@@ -388,7 +389,7 @@ end;
 
 procedure Tst_frmMain.cbChange(Sender: TObject);
 begin
-  LoadTreeView(Integer(cb.Items.Objects[cb.ItemIndex]));
+  LoadTreeView(GetTID(cb.Items.Objects[cb.ItemIndex], Name));
 end;
 
 procedure Tst_frmMain.actSaveStorageUpdate(Sender: TObject);
@@ -566,10 +567,10 @@ begin
 
       try
         case rg.ItemIndex of
-          0: CurrentStorage.WriteInteger(S^, edName.Text, StrToInt(edValue.Text));
+          0: CurrentStorage.WriteInteger(S^, edName.Text, GetTID(edValue.Text));
           1: CurrentStorage.WriteDateTime(S^, edName.Text, StrToDateTime(edValue.Text));
           3: CurrentStorage.WriteCurrency(S^, edName.Text, StrToCurr(edValue.Text));
-          4: CurrentStorage.WriteBoolean(S^, edName.Text, Boolean(StrToInt(edValue.Text)));
+          4: CurrentStorage.WriteBoolean(S^, edName.Text, Boolean(GetTID(edValue.Text)));
         else
           if Length(edValue.Text) <= cStorageMaxStrLen then
             CurrentStorage.WriteString(S^, edName.Text, edValue.Text)
@@ -805,7 +806,7 @@ begin
       with Tst_dlgEditValue.Create(Self) do
       try
         edValue.Text := V.AsString;
-        edID.Text := IntToStr(V.ID);
+        edID.Text := TID2S(V.ID);
         edName.Text := V.Name;
 
         edName.Enabled := False;
@@ -900,7 +901,7 @@ end;
 procedure Tst_frmMain.actRefreshExecute(Sender: TObject);
 begin
   actShowInSett.Execute;
-  LoadTreeView(Integer(cb.Items.Objects[cb.ItemIndex]));
+  LoadTreeView(GetTID(cb.Items.Objects[cb.ItemIndex], Name));
 end;
 
 procedure Tst_frmMain.actSaveToFileUpdate(Sender: TObject);
@@ -1023,7 +1024,8 @@ end;
 
 procedure Tst_frmMain.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  Action := caFree;
+  if (Action = caHide) and FShiftDown then
+    Action := caFree;
 end;
 
 procedure Tst_frmMain.lvKeyDown(Sender: TObject; var Key: Word;
@@ -1189,7 +1191,7 @@ begin
 
     while not q.EOF do
     begin
-      InSett.Add(q.Fields[0].AsInteger, True);
+      InSett.Add(GetTID(q.Fields[0]), True);
       q.Next;
     end;
 

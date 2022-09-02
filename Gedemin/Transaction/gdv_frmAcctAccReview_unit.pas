@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_frmAcctAccReview_unit;
 
 interface
@@ -247,7 +249,7 @@ begin
         try
           SQL.Transaction := gdcBaseManager.ReadTransaction;
           SQL.SQL.Text := 'SELECT alias FROM ac_account WHERE id = :id';
-          SQL.ParamByName('id').AsInteger := StrToInt(Value);
+          SetTID(SQL.ParamByName('id'), GetTID(Value));
           SQL.ExecQuery;
           cbAccounts.Text := SQl.FieldByName('alias').AsString;
         finally
@@ -259,7 +261,7 @@ begin
 
       if (Value > '') and (pos(',',Value) = 0) then
       begin
-        frAcctSum.Currkey := StrToInt(Value);
+        frAcctSum.Currkey := GetTID(Value);
         frAcctSum.InCurr := True;
       end;
     finally
@@ -294,7 +296,7 @@ begin
     FCorrAccountIDs.Clear;
 
   if not FMakeEmpty then
-    SetAccountIDs(cbCorrAccounts, FCorrAccountIDs, cbShowCorrSubAccounts.Checked);
+    SetAccountIDs(cbCorrAccounts, FCorrAccountIDs, cbShowCorrSubAccounts.Checked, Name);
 
   SaveHistory(cbCorrAccounts);
 
@@ -424,7 +426,7 @@ begin
   if not gdvObject.MakeEmpty then
   begin
     for I := 0 to FCorrAccountIDs.Count - 1 do
-      gdvObject.AddCorrAccount(Integer(FCorrAccountIDs.Items[I]));
+      gdvObject.AddCorrAccount(GetTID(FCorrAccountIDs.Items[I], Name));
 
     TgdvAcctAccReview(gdvObject).CorrDebit := rbDebit.Checked;
     TgdvAcctAccReview(gdvObject).WithCorrSubAccounts := cbShowCorrSubAccounts.Checked;
@@ -534,6 +536,7 @@ begin
         with Tgdv_frmAcctAccCard(Tgdv_frmAcctAccCard.CreateAndAssign(Application)) do begin
           DateBegin := Self.DateBegin;
           DateEnd := Self.DateEnd;
+          ActiveControl := ibgrMain;
 
           Show;
           Execute(C);
@@ -543,6 +546,7 @@ begin
         with Tgdv_frmAcctAccCard(Tgdv_frmAcctAccCard.Create(Application)) do begin
           DateBegin := Self.DateBegin;
           DateEnd := Self.DateEnd;
+          ActiveControl := ibgrMain;
 
           Show;
           Execute(C);
@@ -562,7 +566,7 @@ begin
   if Result then
   begin
     F := gdvObject.FindField('id');
-    Result := (F <> nil) and (F.AsInteger > 0);
+    Result := (F <> nil) and (GetTID(F) > 0);
   end;
 end;
 

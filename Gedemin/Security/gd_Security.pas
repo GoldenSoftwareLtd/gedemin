@@ -1,3 +1,4 @@
+// ShlTanya, 06.02.2019
 
 {++
 
@@ -36,7 +37,7 @@ interface
 uses
   Windows,            Messages,           SysUtils,           Classes,
   Graphics,           Controls,           Forms,              Dialogs,
-  ComCtrls,           DB,                 IBDatabase;
+  ComCtrls,           DB,                 IBDatabase,         gdcBaseInterface;
 
 // бітавыя маскі для зарэзерваваных групаў карыстальнікаў
 const
@@ -162,33 +163,33 @@ type
     function GetAuditMaxDays: Integer;
     function GetAllowUserAudit: Boolean;
 
-    function GetCompanyKey: Integer;
+    function GetCompanyKey: TID;
     function GetCompanyName: String;
     function GetCompanyPhone: String;
     function GetCompanyEmail: String;
     function GetIsHolding: Boolean;
     function GetHoldingList: String;
-    function GetHoldingKey: Integer;
+    function GetHoldingKey: TID;
 
-    function GetContactKey: Integer;
+    function GetContactKey: TID;
     function GetContactName: String;
 
     function GetDBReleaseDate: TDateTime;
     function GetDBVersion: String;
     function GetDBVersionComment: String;
-    function GetDBVersionID: Integer;
+    function GetDBVersionID: TID;
 
     function GetGroupName: String;
     function GetIngroup: Integer;
     procedure SetIngroup(const Value: Integer);
 
     function GetSessionDuration: TDateTime;
-    function GetSessionKey: Integer;
+    function GetSessionKey: TID;
     function GetStartTime: TDateTime;
     function GetSubSystemKey: Integer;
     function GetSubSystemName: String;
 
-    function GetUserKey: Integer;
+    function GetUserKey: TID;
     function GetUserName: String;
     function GetUserPassword: String;
 
@@ -206,7 +207,7 @@ type
     function GetIsIBUserAdmin: Boolean;
     function GetServerName: String;
     function GetDBID: Integer;
-    function GetActiveAccount: Integer;
+    function GetActiveAccount: TID;
 
     procedure SetSubSystemKey(const Value: Integer);
 
@@ -225,7 +226,7 @@ type
     procedure CloneDatabase(ADatabase: TIBDatabase);
 
     function OpenCompany(const ShowDialogAnyway: Boolean = False;
-      const CK: Integer = -1; const CN: String = ''): Boolean;
+      const CK: TID = -1; const CN: String = ''): Boolean;
     procedure UpdateCompanyData;
     procedure UpdateUserData;
 
@@ -237,14 +238,14 @@ type
 
     //
     procedure ClearHoldingListCache;
-    procedure ChangeUser(const AUserKey: Integer;
+    procedure ChangeUser(const AUserKey: TID;
       const ACheckMultipleConnections: Boolean = False);
 
     //
     procedure AddEvent(const AData: String;
       const ASource: String = '';
       const AnObjectName: String = '';
-      const AnObjectID: Integer = -1;
+      const AnObjectID: TID = -1;
       const ATransaction: TObject = nil);
 
     function GetMainWindowCaption: String;
@@ -267,7 +268,7 @@ type
     //  Свойства сессии
     property SessionDuration: TDateTime read GetSessionDuration;
     property StartTime: TDateTime read GetStartTime;
-    property SessionKey: Integer read GetSessionKey;
+    property SessionKey: TID read GetSessionKey;
 
     // Права пользователя
     property Ingroup: Integer read GetIngroup write SetIngroup;
@@ -283,7 +284,7 @@ type
     property DatabaseName: String read GetDatabaseName;
     property DBVersion: String read GetDBVersion;
     property DBReleaseDate: TDateTime read GetDBReleaseDate;
-    property DBVersionID: Integer read GetDBVersionID;
+    property DBVersionID: TID read GetDBVersionID;
     property DBVersionComment: String read GetDBVersionComment;
 
     // Параметры регистрации операций пользователя
@@ -293,27 +294,27 @@ type
     property AllowUserAudit: Boolean read GetAllowUserAudit; // разрешена ли регистрации действий данного пользователя
 
     // Пользователь
-    property UserKey: Integer read GetUserKey;
+    property UserKey: TID read GetUserKey;
     property UserName: String read GetUserName;
     property UserPassword: String read GetUserPassword;
-    property ContactKey: Integer read GetContactKey;
+    property ContactKey: TID read GetContactKey;
     property ContactName: String read GetContactName;
 
     // Компания
-    property CompanyKey: Integer read GetCompanyKey;
+    property CompanyKey: TID read GetCompanyKey;
     property CompanyName: String read GetCompanyName;
     property CompanyPhone: String read GetCompanyPhone;
     property CompanyEmail: String read GetCompanyEmail;
     property IsHolding: Boolean read GetIsHolding;     // является ли данная компания холдингом
     property HoldingList: String read GetHoldingList;  // если является, то список ключей компаний входящих в этот холдинг
-    property HoldingKey: Integer read GetHoldingKey;   // если, компания входит в некоторый холдинг, то эт его ключ
+    property HoldingKey: TID read GetHoldingKey;   // если, компания входит в некоторый холдинг, то эт его ключ
                                                        // если нет, то -1
                                                        // если сама является холдингом, то HoldingKey = CompanyKey
                                                        // если компания входит в несколько холдингов, то
                                                        // свойство содержит ключ первого из них (по порядку
                                                        // в базе данных)
     //Возвкащает ID асктивного плана счетов
-    property ActiveAccount: Integer read GetActiveAccount;
+    property ActiveAccount: TID read GetActiveAccount;
     //
     property DBID: Integer read GetDBID;
 

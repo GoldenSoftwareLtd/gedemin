@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_dlgAcctTrEntry_unit;
 
 interface
@@ -115,12 +117,12 @@ begin
     ShowMessage(MSG_ENTERDESCRIPTION);
     Result := False;
   end
-  else if gdcObject.FieldByName(fnDocumenttypekey).AsInteger = 0 then
+  else if GetTID(gdcObject.FieldByName(fnDocumenttypekey)) = 0 then
   begin
     ShowMessage(MSG_ENTERDOCUMENTTYPE);
     Result := False;
   end
-  else if gdcObject.FieldByName(fnFunctionKey).AsInteger = 0 then
+  else if GetTID(gdcObject.FieldByName(fnFunctionKey)) = 0 then
   begin
     ShowMessage(MSG_ENTERFUNCTIONKEY);
     Result := False;
@@ -207,9 +209,9 @@ begin
 
   if (gdcObject.State = dsInsert) then
   begin
-    if (gdcObject.FieldByName(fnFunctionKey).AsInteger = 0) then
+    if (GetTID(gdcObject.FieldByName(fnFunctionKey)) = 0) then
       gdcObject.FieldByName(fnFunctionKey).Clear;
-    gdcObject.FieldByName(fnAccountKey).AsInteger := IbLogin.ActiveAccount;  
+    SetTID(gdcObject.FieldByName(fnAccountKey), IbLogin.ActiveAccount);  
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGACCTTRENTRY', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -294,7 +296,7 @@ begin
 
   if FScriptChanged then
   begin
-    ScriptFactory.ReloadFunction(gdcObject.FieldByName(fnFunctionKey).AsInteger);
+    ScriptFactory.ReloadFunction(GetTID(gdcObject.FieldByName(fnFunctionKey)));
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGACCTTRENTRY', 'POST', KEYPOST)}
@@ -326,16 +328,16 @@ begin
       DS := gdcFunction.State;
       if not (gdcFunction.State in [dsEdit, dsInsert]) then
       begin
-        if D.FieldByName(fnFunctionKey).AsInteger = 0 then
+        if GetTID(D.FieldByName(fnFunctionKey)) = 0 then
         begin
           if not D.FieldByName(fnFunctionKey).IsNull then
             D.FieldByName(fnFunctionKey).Clear;
             
           gdcFunction.Insert;
-          gdcFunction.FieldByName(fnModuleCode).AsInteger := OBJ_APPLICATION;
+          SetTID(gdcFunction.FieldByName(fnModuleCode), OBJ_APPLICATION);
           gdcFunction.FieldByName(fnModule).AsString := scrEntryModuleName;
           gdcFunction.FieldByName(fnName).AsString := Format('TrEntryScript%d_%d',
-            [gdcFunction.FieldByName(fnId).AsInteger, IbLogin.DBID]);
+            [TID264(gdcFunction.FieldByName(fnId)), IbLogin.DBID]);
           gdcFunction.FieldByName(fnLanguage).AsString := DefaultLanguage;
         end else
           gdcFunction.Edit;
@@ -348,10 +350,10 @@ begin
           FunctionCreater.FunctionRUID := RUIDToStr(gdcFunction.GetRUID);
           FunctionCreater.Stream := Str;
           FunctionCreater.FunctionName := gdcFunction.FieldByName(fnName).AsString;
-          FunctionCreater.TransactionRUID := gdcBaseManager.GetRUIDStringByID(D.FieldByName(fnTransactionkey).AsInteger);
-          FunctionCreater.TrRecordRUID := gdcBaseManager.GetRUIDStringByID(D.FieldByName(fnId).AsInteger);
-          FunctionCreater.CardOfAccountRUID := gdcBaseManager.GetRuidStringById(gdcObject.FieldByName(fnAccountKey).AsInteger);
-          FunctionCreater.DocumentRUID := gdcBaseManager.GetRUIDStringByID(gdcObject.FieldByName(fnDocumentTypeKey).AsInteger);
+          FunctionCreater.TransactionRUID := gdcBaseManager.GetRUIDStringByID(GetTID(D.FieldByName(fnTransactionkey)));
+          FunctionCreater.TrRecordRUID := gdcBaseManager.GetRUIDStringByID(GetTID(D.FieldByName(fnId)));
+          FunctionCreater.CardOfAccountRUID := gdcBaseManager.GetRuidStringById(GetTID(gdcObject.FieldByName(fnAccountKey)));
+          FunctionCreater.DocumentRUID := gdcBaseManager.GetRUIDStringByID(GetTID(gdcObject.FieldByName(fnDocumentTypeKey)));
           FunctionCreater.SaveEmpty := gdcObject.FieldByName(fnIsSaveNull).AsInteger = 1;
           if gdcObject.FieldByName(fnDocumentPart).AsString = cwHeader then
             FunctionCreater.DocumentPart := dcpHeader
@@ -384,8 +386,7 @@ begin
           finally
             Params.Free;
           end;
-          D.FieldByName(fnFunctionKey).AsInteger :=
-            gdcFunction.FieldByName(fnID).AsInteger;
+          SetTID(D.FieldByName(fnFunctionKey), gdcFunction.FieldByName(fnID));
         end else
         begin
           if not (DS in [dsEdit, dsInsert]) then
@@ -405,9 +406,9 @@ end;
 procedure Tgdc_dlgAcctTrEntry.actWizardUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := (gdcObject <> nil)
-    and (gdcObject.FieldByName(fndocumenttypekey).AsInteger > 0)
+    and (GetTID(gdcObject.FieldByName(fndocumenttypekey)) > 0)
     and (gdcObject.FieldByName(fndocumentpart).AsString > '')
-    and (gdcObject.FieldByName(fnAccountKey).AsInteger > 0)
+    and (GetTID(gdcObject.FieldByName(fnAccountKey)) > 0)
     and IBLogin.IsIBUserAdmin
 end;
 

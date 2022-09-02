@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcNamespace;
 
@@ -35,7 +36,7 @@ type
       const AModified: TDateTime; const ASubstituteEditionDate: Boolean;
       AnObjCache: TStringHashMap);
 
-    class procedure UpdateCurrModified(ATr: TIBTRansaction; const ANamespaceKey: Integer = -1);
+    class procedure UpdateCurrModified(ATr: TIBTRansaction; const ANamespaceKey: TID = -1);
     class procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
 
     function MakePos: Boolean;
@@ -117,7 +118,7 @@ begin
   if AnIDField.IsNull then
     Result := '~'
   else begin
-    Result := gdcBaseManager.GetRUIDStringByID(AnIDField.AsInteger, ATr);
+    Result := gdcBaseManager.GetRUIDStringByID(GetTID(AnIDField), ATr);
     if AnObjectName > '' then
       Result := Result + ' ' + AnObjectName;
   end;
@@ -128,7 +129,7 @@ begin
   if AnIDField.IsNull then
     Result := '~'
   else begin
-    Result := gdcBaseManager.GetRUIDStringByID(AnIDField.AsInteger, ATr) + ' ' +
+    Result := gdcBaseManager.GetRUIDStringByID(GetTID(AnIDField), ATr) + ' ' +
       AnObjectNameField.AsString;
   end;
 end;
@@ -215,7 +216,7 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
           continue;
 
         q.SQL.Text := AnObj.SetAttributes[I].SQL;
-        q.ParamByName('rf').AsInteger := AnObj.ID;
+        SetTID(q.ParamByName('rf'), AnObj.ID);
         q.ExecQuery;
 
         if not q.Eof then
@@ -469,7 +470,7 @@ begin
                   end;
 
                   try
-                    Obj.ID := F.AsInteger;
+                    Obj.ID := GetTID(F);
                     Obj.Open;
                     if not Obj.EOF then
                     begin
@@ -597,7 +598,7 @@ begin
     q.Transaction := Tr;
     q.SQL.Text :=
       'SELECT * FROM at_object WHERE namespacekey = :NK ORDER BY objectpos';
-    q.ParamByName('NK').AsInteger := ID;
+    SetTID(q.ParamByName('NK'), ID);
     q.ExecQuery;
 
     if not q.EOF then
@@ -653,7 +654,7 @@ begin
 end;
 
 class procedure TgdcNamespace.UpdateCurrModified(ATr: TIBTRansaction;
-  const ANamespaceKey: Integer = -1);
+  const ANamespaceKey: TID = -1);
 var
   Tr: TIBTransaction;
   qList, q: TIBSQL;
@@ -699,7 +700,7 @@ begin
     qList.Transaction := Tr;
     qList.SQL.Text := 'SELECT COUNT(*) FROM (' + S + ')';
     if ANamespaceKey > -1 then
-      qList.ParamByName('nk').AsInteger := ANamespaceKey;
+      SetTID(qList.ParamByName('nk'), ANamespaceKey);
     qList.ExecQuery;
 
     {$IFDEF WITH_INDY}
@@ -712,7 +713,7 @@ begin
     qList.Close;
     qList.SQL.Text := S;
     if ANamespaceKey > -1 then
-      qList.ParamByName('nk').AsInteger := ANamespaceKey;
+      SetTID(qList.ParamByName('nk'), ANamespaceKey);
     qList.ExecQuery;
 
     while not qList.EOF do
@@ -792,7 +793,7 @@ begin
     if ANamespaceKey > -1 then
     begin
       q.SQL.Text := q.SQL.Text + 'AND o.namespacekey = :nk)';
-      q.ParamByName('nk').AsInteger := ANamespaceKey;
+      SetTID(q.ParamByName('nk'), ANamespaceKey);
     end else
       q.SQL.Text := q.SQL.Text + ')';
     q.ExecQuery;
@@ -859,7 +860,7 @@ begin
       'SELECT * FROM at_object ' +
       'WHERE namespacekey = :nk AND includesiblings <> 0 ' +
       'ORDER BY objectpos DESC ';
-    q.ParamByName('nk').AsInteger := ID;
+    SetTID(q.ParamByName('nk'), ID);
     q.ExecQuery;
     while not q.EOF do
     begin
@@ -888,14 +889,14 @@ begin
           end else
             ListObj.Close;
 
-          ListObj.ParamByName('RootID').AsInteger := gdcBaseManager.GetIDByRUID(
-            q.FieldByName('xid').AsInteger, q.FieldByName('dbid').AsInteger, Transaction);
+          SetTID(ListObj.ParamByName('RootID'), gdcBaseManager.GetIDByRUID(
+            GetTID(q.FieldByName('xid')), q.FieldByName('dbid').AsInteger, Transaction));
           ListObj.Open;
           while not ListObj.Eof do
           begin
             qCheck.Close;
-            qCheck.ParamByName('nk').AsInteger := ID;
-            qCheck.ParamByName('xid').AsInteger := ListObj.GetRUID.XID;
+            SetTID(qCheck.ParamByName('nk'), ID);
+            SetTID(qCheck.ParamByName('xid'), ListObj.GetRUID.XID);
             qCheck.ParamByName('dbid').AsInteger := ListObj.GetRUID.DBID;
             qCheck.ExecQuery;
 
@@ -911,17 +912,17 @@ begin
 
               Obj.Insert;
               try
-                Obj.FieldByName('namespacekey').AsInteger := ID;
+                SetTID(Obj.FieldByName('namespacekey'), ID);
                 Obj.FieldByName('objectname').AsString := ListObj.ObjectName;
                 Obj.FieldByName('objectclass').AsString := ListObj.GetCurrRecordClass.gdClass.ClassName;
                 Obj.FieldByName('subtype').AsString := ListObj.GetCurrRecordClass.SubType;
-                Obj.FieldByName('xid').AsInteger := ListObj.GetRUID.XID;
+                SetTID(Obj.FieldByName('xid'), ListObj.GetRUID.XID);
                 Obj.FieldByName('dbid').AsInteger := ListObj.GetRUID.DBID;
                 Obj.FieldByName('objectpos').AsInteger := q.FieldByName('objectpos').AsInteger + 1;
                 Obj.FieldByName('alwaysoverwrite').AsInteger := q.FieldByName('alwaysoverwrite').AsInteger;
                 Obj.FieldByName('dontremove').AsInteger := q.FieldByName('dontremove').AsInteger;
                 Obj.FieldByName('includesiblings').AsInteger := 1;
-                Obj.FieldByName('headobjectkey').AsInteger := q.FieldByName('id').AsInteger;
+                SetTID(Obj.FieldByName('headobjectkey'), q.FieldByName('id'));
                 Obj.Post;
               except
                 if Obj.State = dsInsert then
@@ -1145,7 +1146,7 @@ end;
 procedure TgdcNamespace.DeleteNamespaceWithObjects;
 var
   Obj: TgdcNamespaceObject;
-  InstID: Integer;
+  InstID: TID;
   InstObj: TgdcBase;
   InstClass: TPersistentClass;
 begin
@@ -1155,13 +1156,13 @@ begin
   Obj := TgdcNamespaceObject.Create(nil);
   try
     Obj.SubSet := 'ByNamespace';
-    Obj.ParamByName('namespacekey').AsInteger := Self.ID;
+    SetTID(Obj.ParamByName('namespacekey'), Self.ID);
     Obj.Open;
     while not Obj.Eof do
     begin
       if Obj.FieldByName('dontremove').AsInteger = 0 then
       begin
-        InstID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
+        InstID := gdcBaseManager.GetIDByRUID(GetTID(Obj.FieldByName('xid')),
           Obj.FieldByName('dbid').AsInteger);
 
         InstClass := GetClass(Obj.FieldByName('objectclass').AsString);
@@ -1296,7 +1297,7 @@ begin
       if SS.DataString = SS1251.DataString then
         gdcBaseManager.ExecSingleQuery(
           'UPDATE at_namespace SET changed = 0, md5 = :md5 WHERE id = ' +
-          IntToStr(ID), HashString);
+          TID2S(ID), HashString);
 
       ScriptComparer.Compare(SS.DataString, SS1251.DataString);
       ScriptComparer.LeftCaption('Текущее состояние в базе данных:');
@@ -1354,7 +1355,7 @@ begin
         'FROM at_namespace_link l JOIN at_namespace n ' +
         '  ON l.useskey = n.id ' +
         'WHERE l.namespacekey = :NK';
-      q.ParamByName('NK').AsInteger := Self.ID;
+      SetTID(q.ParamByName('NK'), Self.ID);
       q.ExecQuery;
 
       if not q.EOF then
@@ -1385,7 +1386,7 @@ begin
         Obj.ReadTransaction := Transaction;
         Obj.Transaction := Transaction;
         Obj.SubSet := 'ByNamespace';
-        Obj.ParamByName('namespacekey').AsInteger := Self.ID;
+        SetTID(Obj.ParamByName('namespacekey'), Self.ID);
         Obj.Open;
 
         if not Obj.Eof then
@@ -1417,7 +1418,7 @@ begin
               if InstObj <> nil then
               try
                 InstObj.Close;
-                InstObj.ID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
+                InstObj.ID := gdcBaseManager.GetIDByRUID(GetTID(Obj.FieldByName('xid')),
                   Obj.FieldByName('dbid').AsInteger, Transaction);
                 InstObj.Open;
 
@@ -1431,7 +1432,7 @@ begin
                     HeadObject := '';
                     if not Obj.FieldByName('headobjectkey').IsNull then
                     begin
-                      q.ParamByName('id').AsInteger := Obj.FieldByName('headobjectkey').AsInteger;
+                      SetTID(q.ParamByName('id'), Obj.FieldByName('headobjectkey'));
                       q.ExecQuery;
                       if not q.Eof then
                         HeadObject := q.FieldByName('ruid').AsString;
@@ -1598,7 +1599,7 @@ begin
   if HasSubSet('OrderByName') then
     Result := 'ORDER BY z.name'
   else
-    Result := '';  
+    Result := '';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCNAMESPACE', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
   {M}  finally
@@ -1622,13 +1623,13 @@ end;
 
 procedure TgdcNamespaceObject.ShowObject;
 var
-  ObjID: Integer;
+  ObjID: TID;
   Obj: TgdcBase;
   CE: TgdClassEntry;
 begin
   Obj := nil;
   try
-    ObjID := gdcBaseManager.GetIDByRUID(FieldByName('xid').AsInteger,
+    ObjID := gdcBaseManager.GetIDByRUID(GetTID(FieldByName('xid')),
       FieldByName('dbid').AsInteger);
     if ObjID <> -1 then
     begin
@@ -1779,7 +1780,7 @@ begin
         'FROM '#13#10 +
         '  group_tree gt '#13#10 +
         'WHERE gt.id <> :id';
-      q.ParamByName('id').AsInteger := ID;
+      SetTID(q.ParamByName('id'), ID);
       q.ExecQuery;
 
       if not q.EOF then
@@ -1798,7 +1799,7 @@ begin
 
           if Dlg.rbDeleteOne.Checked then
             ExecSingleQuery('UPDATE at_object SET headobjectkey = NULL ' +
-              'WHERE headobjectkey = :ID', ID);
+              'WHERE headobjectkey = :ID', TID2V(ID));
         finally
           Dlg.Free;
         end;
@@ -1821,13 +1822,13 @@ end;
 
 procedure TgdcNamespaceObject.ShowNSDialog;
 var
-  ObjID: Integer;
+  ObjID: TID;
   Obj: TgdcBase;
   CE: TgdClassEntry;
 begin
   Obj := nil;
   try
-    ObjID := gdcBaseManager.GetIDByRUID(FieldByName('xid').AsInteger,
+    ObjID := gdcBaseManager.GetIDByRUID(GetTID(FieldByName('xid')),
       FieldByName('dbid').AsInteger);
     if ObjID <> -1 then
     begin
@@ -1874,7 +1875,7 @@ begin
       if q.EOF then
         break;
       Inc(I);
-      BL[I] := q.FieldByName('id').AsInteger;
+      BL[I] := TID2V(q.FieldByName('id'));
       q.Next;
     end;
     if (I < VarArrayHighBound(BL, 1)) or (not q.EOF) then

@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 unit gdvAcctBase;
 
@@ -147,7 +148,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    function GetKeyAlias(ID: Integer): String; overload;
+    function GetKeyAlias(ID: TID): String; overload;
     function GetKeyAlias(ID: String): String; overload;
 
     procedure ShowInNCU(Show: Boolean; DecDigits: Integer = -1; Scale: Integer = 0);
@@ -667,7 +668,7 @@ begin
     try
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
       ibsql.SQL.Text := 'SELECT config FROM ac_acct_config WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := AID;
+      SetTID(ibsql.ParamByName('id'), AID);
       ibsql.ExecQuery;
       if ibsql.RecordCount > 0 then
       begin
@@ -754,7 +755,7 @@ begin
             if AConfigKey > -1 then
             begin
               SQL.SQL.Text := 'UPDATE ac_acct_config SET config = :config WHERE id = :id';
-              SQL.ParamByName(fnId).AsInteger := AConfigKey;
+              SetTID(SQL.ParamByName(fnId), AConfigKey);
               FConfigKey := AConfigKey;
             end
             else
@@ -765,11 +766,11 @@ begin
                 'imageindex, folder, showinexplorer, classname) VALUES (:id, ' +
                 ' :name, :config, :imageindex, :folder, :showinexplorer, :classname)';
               SQL.ParamByName(fnImageIndex).AsInteger := iiGreenCircle;
-              SQL.ParamByName(fnFolder).AsInteger := AC_ACCOUNTANCY;
+              SetTID(SQL.ParamByName(fnFolder), AC_ACCOUNTANCY);
               SQL.ParamByName(fnShowInExplorer).AsInteger := 0;
               SQL.ParamByName(fnClassName).AsString := ConfigClassName;
-              SQL.ParamByName(fnId).AsInteger := FConfigKey;
-              SQL.ParamByName(fnName).AsString := 'Конфигурация ' + IntToStr(FConfigKey);
+              SetTID(SQL.ParamByName(fnId), FConfigKey);
+              SQL.ParamByName(fnName).AsString := 'Конфигурация ' + TID2S(FConfigKey);
             end;
 
             SQL.ParamByName(fnConfig).LoadFromStream(Str);
@@ -970,11 +971,11 @@ procedure TgdvAcctBase.AddValue(ValueKey: TID; ValueName: String = '');
 var
   ibsql: TIBSQL;
 begin
-  if FAcctValues.IndexOfName(IntToStr(ValueKey)) = -1 then
+  if FAcctValues.IndexOfName(TID2S(ValueKey)) = -1 then
   begin
     if ValueName <> '' then
     begin
-      FAcctValues.Add(IntToStr(ValueKey) + '=' + ValueName);
+      FAcctValues.Add(TID2S(ValueKey) + '=' + ValueName);
     end
     else
     begin
@@ -982,12 +983,12 @@ begin
       try
         ibsql.Transaction := gdcBaseManager.ReadTransaction;
         ibsql.SQL.Text := 'SELECT name FROM gd_value WHERE id = :id';
-        ibsql.ParamByName('ID').AsInteger := ValueKey;
+        SetTID(ibsql.ParamByName('ID'), ValueKey);
         ibsql.ExecQuery;
         if ibsql.RecordCount > 0 then
-          FAcctValues.Add(IntToStr(ValueKey) + '=' + ibsql.FieldByName('NAME').AsString)
+          FAcctValues.Add(TID2S(ValueKey) + '=' + ibsql.FieldByName('NAME').AsString)
         else
-          FAcctValues.Add(IntToStr(ValueKey));
+          FAcctValues.Add(TID2S(ValueKey));
       finally
         ibsql.Free;
       end;
@@ -1028,9 +1029,9 @@ begin
   Result := IntToStr(Index);
 end;
 
-function TgdvAcctBase.GetKeyAlias(ID: Integer): String;
+function TgdvAcctBase.GetKeyAlias(ID: TID): String;
 begin
-  Result := Self.GetKeyAlias(IntToStr(ID));
+  Result := Self.GetKeyAlias(TID2S(ID));
 end;
 
 function TgdvAcctBase.GetNameAlias(Name: String): String;
@@ -1059,10 +1060,10 @@ begin
       try
         ibsql.Transaction := gdcBaseManager.ReadTransaction;
         ibsql.SQL.Text := 'SELECT companykey FROM gd_holding WHERE holdingkey = :holdingkey';
-        ibsql.ParamByName('holdingkey').AsInteger := FCompanyKey;
+        SetTID(ibsql.ParamByName('holdingkey'), FCompanyKey);
         ibsql.ExecQuery;
 
-        FCompanyList := IntToStr(FCompanyKey);
+        FCompanyList := TID2S(FCompanyKey);
         while not ibsql.Eof do
         begin
           FCompanyList := FCompanyList + ',' + ibsql.FieldByName('companykey').AsString;
@@ -1077,7 +1078,7 @@ begin
   end
   else
   begin
-    FCompanyList := IntToStr(FCompanyKey);
+    FCompanyList := TID2S(FCompanyKey);
   end;
 end;
 
@@ -1187,8 +1188,8 @@ begin
       AccountArray.Clear;
       while not ibsql.Eof do
       begin
-        if AccountArray.IndexOf(ibsql.Fields[0].AsInteger) = -1 then
-          AccountArray.Add(ibsql.Fields[0].AsInteger);
+        if AccountArray.IndexOf(GetTID(ibsql.Fields[0])) = -1 then
+          AccountArray.Add(GetTID(ibsql.Fields[0]));
         ibsql.Next;
       end;
     finally
@@ -1274,10 +1275,10 @@ begin
       '   FROM gd_contact c ' +
       '   WHERE c.id = :CK) s';
     if AllHolding then
-      q.ParamByName('HK').AsInteger := CompanyKey
+      SetTID(q.ParamByName('HK'), CompanyKey)
     else
-      q.ParamByName('HK').AsInteger := -1;
-    q.ParamByName('CK').AsInteger := CompanyKey;
+      SetTID(q.ParamByName('HK'), -1);
+    SetTID(q.ParamByName('CK'), CompanyKey);
     q.ExecQuery;
     Result := q.Fields[0].AsString;
   finally

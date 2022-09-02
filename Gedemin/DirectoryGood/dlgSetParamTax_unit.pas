@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgSetParamTax_unit;
 
 interface
@@ -27,8 +29,8 @@ type
     { Private declarations }
   public
     { Public declarations }
-    TaxKey: Integer;
-    GoodKey: Integer;
+    TaxKey: TID;
+    GoodKey: TID;
     DateTax: TDate;
     procedure ActiveDialog;
   end;
@@ -59,8 +61,8 @@ begin
   else begin
     // Вытягиваем нужную запись и устанавливаем режим редактирования
     ibqryEditGoodTax.Close;
-    ibqryEditGoodTax.ParamByName('goodkey').AsInteger := GoodKey;
-    ibqryEditGoodTax.ParamByName('taxkey').AsInteger := TaxKey;
+    SetTID(ibqryEditGoodTax.ParamByName('goodkey'), GoodKey);
+    SetTID(ibqryEditGoodTax.ParamByName('taxkey'), TaxKey);
     ibqryEditGoodTax.ParamByName('datetax').AsDateTime := DateTax;
     ibqryEditGoodTax.Open;
     ibqryEditGoodTax.Edit;

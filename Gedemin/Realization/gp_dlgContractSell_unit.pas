@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019
+
 unit gp_dlgContractSell_unit;
 
 interface
@@ -40,8 +42,8 @@ type
     procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
-    FDocumentKey: Integer;
-    FCustomerKey: Integer;
+    FDocumentKey: TID;
+    FCustomerKey: TID;
     FIsOk: Boolean;
     FDocumentInfo: String;
 
@@ -50,9 +52,9 @@ type
     function Save: Boolean;
   public
     { Public declarations }
-    procedure SetupDialog(const aDocumentKey, aCustomerKey: Integer);
+    procedure SetupDialog(const aDocumentKey, aCustomerKey: TID);
     property isOK: Boolean read FIsOk;
-    property DocumentKey: Integer read FDocumentKey;
+    property DocumentKey: TID read FDocumentKey;
     property DocumentInfo: String read FDocumentInfo;
   end;
 
@@ -72,14 +74,14 @@ begin
   ibdsContract.Open;
 
   ibdsDocument.Insert;
-  ibdsDocument.FieldByName('id').AsInteger := FDocumentKey;
+  SetTID(ibdsDocument.FieldByName('id'), FDocumentKey);
 
   ibdsContract.Insert;
-  ibdsContract.FieldByName('documentkey').AsInteger := FDocumentKey;
+  SetTID(ibdsContract.FieldByName('documentkey'), FDocumentKey);
 
   if FCustomerKey <> -1 then
   begin
-    ibdsContract.FieldByName('contactkey').AsInteger := FCustomerKey;
+    SettID(ibdsContract.FieldByName('contactkey'), FCustomerKey);
     gsiblcContact.Enabled := False;
     lContact.Enabled := False;
   end;  
@@ -87,10 +89,10 @@ end;
 
 procedure Tdlg_gpContractSell.EditDocument;
 begin
-  ibdsDocument.ParamByName('dk').AsInteger := FDocumentKey;
+  SetTID(ibdsDocument.ParamByName('dk'), FDocumentKey);
   ibdsDocument.Open;
 
-  ibdsContract.ParamByName('dk').AsInteger := FDocumentKey;
+  SetTID(ibdsContract.ParamByName('dk'), FDocumentKey);
   ibdsContract.Open;
 
   bNext.Enabled := False;
@@ -122,7 +124,7 @@ begin
   FisOk := FisOK or Result;
 end;
 
-procedure Tdlg_gpContractSell.SetupDialog(const aDocumentKey, aCustomerKey: Integer);
+procedure Tdlg_gpContractSell.SetupDialog(const aDocumentKey, aCustomerKey: TID);
 begin
   if not IBTransaction.InTransaction then
     IBTransaction.StartTransaction;

@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit dmLogin_unit;
 
 interface
@@ -6,7 +8,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gd_security_body, syn_ManagerInterface_body_unit, gdcBase, gsDesktopManager,
   IBDatabase, flt_ScriptInterface_body, prm_ParamFunctions_unit, FileCtrl,
-  gd_resourcestring, gdcNamespaceSyncController;
+  gd_resourcestring, gdcNamespaceSyncController, gdcBaseInterface;
 
 type
   TLoginType = (ltQuery, ltSilent, ltSingle, ltMulti, ltSingleSilent, ltMultiSilent);
@@ -26,7 +28,7 @@ type
     procedure boLoginBeforeChangeCompany(Sender: TObject);
     procedure DataModuleCreate(Sender: TObject);
     procedure prmGlobalDlg1DlgCreate(const AnFirstKey,
-      AnSecondKey: Integer; const AnParamList: TgsParamList;
+      AnSecondKey: TID; const AnParamList: TgsParamList;
       var AnResult: Boolean; const AShowDlg: Boolean = True;
       const AFormName: string = ''; const AFilterName: string = '');
 
@@ -37,6 +39,8 @@ type
     procedure DoLoadNamespace;
     procedure Log(const AMessageType: TLogMessageType; const AMessage: String);
     procedure ApplicationOnException(Sender: TObject; E: Exception);
+
+    function CheckUDF: Boolean;
 
   public
     constructor CreateAndConnect(AOwner: TComponent; const ALoginType: TLoginType;
@@ -61,7 +65,7 @@ uses
   at_classes_body,              flt_dlg_dlgQueryParam_unit,
   rp_BaseReport_unit,           gd_splash,             gsStorage,
   Registry,                     inst_const,            gdcSetting,
-  gdcBaseInterface,             dm_i_ClientReport_unit,gd_GlobalParams_unit,
+  dm_i_ClientReport_unit,       gd_GlobalParams_unit,
   prp_PropertySettings,         gd_i_ScriptFactory,    flt_sqlFilterCache,
 
   {$IFDEF WITH_INDY}
@@ -215,6 +219,9 @@ begin
       Application.Terminate;
     end;
   end;
+
+    // Проверяем наличие GUDF.DLL
+  CheckUDF;
 
   if (gdAutoTaskThread = nil)
     and (gd_CmdLineParams <> nil)
@@ -374,7 +381,7 @@ begin
 end;
 
 procedure TdmLogin.prmGlobalDlg1DlgCreate(const AnFirstKey,
-  AnSecondKey: Integer; const AnParamList: TgsParamList;
+  AnSecondKey: TID; const AnParamList: TgsParamList;
   var AnResult: Boolean; const AShowDlg: Boolean = True;
   const AFormName: string = ''; const AFilterName: string = '');
 
@@ -403,9 +410,9 @@ begin
     MS := TMemoryStream.Create;
     try
 
-      if UserStorage.ValueExists(LocFilterFolderName + IntToStr(AnFirstKey), IntToStr(AnSecondKey), False) then
+      if UserStorage.ValueExists(LocFilterFolderName + TID2S(AnFirstKey), TID2S(AnSecondKey), False) then
       begin
-        UserStorage.ReadStream(LocFilterFolderName + IntToStr(AnFirstKey), IntToStr(AnSecondKey), MS, False);
+        UserStorage.ReadStream(LocFilterFolderName + TID2S(AnFirstKey), TID2S(AnSecondKey), MS, False);
         VS := TVarStream.Create(MS);
         try
           VS.Read(TempVar);
@@ -630,6 +637,69 @@ begin
     end;
     {$ENDIF}
   {$ENDIF}
+end;
+
+function TdmLogin.CheckUDF: Boolean;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+  s: string;
+begin
+  Result := True;
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    q.Transaction := Tr;
+    Tr.StartTransaction;
+
+    q.SQL.Text :=
+      'SELECT * FROM rdb$functions WHERE rdb$function_name = ''G_D_SERVERDATE''';
+    q.ExecQuery;
+
+    if q.Eof then
+    begin
+      q.Close;
+      q.SQL.Text :=
+        'DECLARE EXTERNAL FUNCTION G_D_SERVERDATE '#13#10 +
+        'RETURNS TIMESTAMP '#13#10 +
+        'ENTRY_POINT ''G_D_SERVERDATE'' MODULE_NAME ''gudf'' ';
+      try
+        q.ExecQuery;
+        Tr.Commit;
+      except
+        Result := False;
+        Tr.Rollback;
+      end;
+    end;
+
+    q.Close;
+    if not Tr.InTransaction then
+      Tr.StartTransaction;
+
+    q.SQL.Text :=
+      'SELECT G_D_SERVERDATE() FROM rdb$database';
+    try
+      q.ExecQuery;
+    except
+      Result := False;
+    end;
+
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+
+  if not Result then
+  begin
+    s := 'Проверьте наличие GUDF.DLL на сервере.' + #10+
+         'Отсутствие данной библиотеки может привести к некорректной работе программы!';
+    {$IFDEF WITH_INDY}
+    gdccClient.AddLogRecord('GUDF', s);
+    {$ENDIF}
+    if (not gd_CmdLineParams.QuietMode) and (gd_CmdLineParams.LoadsettingFileName = '') then
+      MessageBox(0, PCHAR(s), 'Внимание', MB_OK + MB_TOPMOST);
+  end;
 end;
 
 initialization

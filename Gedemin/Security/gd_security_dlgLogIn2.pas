@@ -1,3 +1,4 @@
+// ShlTanya, 06.02.2019
 
 {++
 
@@ -97,8 +98,11 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_directories_const, gd_dlgAbout_unit, gd_DatabasesList_unit, jclStrings,
+  gd_directories_const, gd_DatabasesList_unit, jclStrings,
   gd_common_functions
+  {$IFDEF GEDEMIN}
+    , gd_dlgAbout_unit
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
@@ -148,12 +152,14 @@ end;
 
 procedure TdlgSecLogIn2.actVerExecute(Sender: TObject);
 begin
+  {$IFDEF GEDEMIN}
   with Tgd_dlgAbout.Create(Self) do
   try
     ShowModal;
   finally
     Free;
   end;
+  {$ENDIF}
 end;
 
 procedure TdlgSecLogIn2.actSelectDBExecute(Sender: TObject);

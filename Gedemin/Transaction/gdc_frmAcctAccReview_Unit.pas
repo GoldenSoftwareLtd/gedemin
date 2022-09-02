@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_frmAcctAccReview_Unit;
 
 interface
@@ -6,7 +8,8 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_frmSGR_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
-  ComCtrls, IBCustomDataSet, gdcBase, gdcLedger, gd_ClassList;
+  ComCtrls, IBCustomDataSet, gdcBase, gdcLedger, gd_ClassList,
+  gdcAcctConfig;
 
 type
   Tgdc_frmAcctAccReview = class(Tgdc_frmSGR)

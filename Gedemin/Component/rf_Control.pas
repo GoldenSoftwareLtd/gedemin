@@ -1,3 +1,5 @@
+// ShlTanya, 20.02.2019
+
  {++
 
 
@@ -148,7 +150,7 @@ begin
       ListTable   := atRelationField.References.RelationName;
       ListField   := atRelationField.References.ListField.FieldName;
       try
-        CurrentKeyInt := StrToInt(InitialValue);
+        CurrentKeyInt := GetTID(InitialValue);
       except
       end;
     end;
@@ -275,7 +277,7 @@ begin
   end;
 
   if FControl.InheritsFrom(TgsIBLookupComboBox) then
-    Result := IntToStr(TgsIBLookupComboBox(FControl).CurrentKeyInt)
+    Result := TID2S(TgsIBLookupComboBox(FControl).CurrentKeyInt)
   else
   if FControl.InheritsFrom(TatSetLookupComboBox) then
 //    Result := TatSetLookupComboBox(FControl).

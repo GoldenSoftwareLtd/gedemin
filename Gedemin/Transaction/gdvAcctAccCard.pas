@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdvAcctAccCard;
 
 interface
@@ -114,7 +116,7 @@ var
       '    ac_entry_balance bal '#13#10 +
       '  WHERE '#13#10 +
       '    ' + AccWhereBalance + CompanySBalance +
-        IIF(FCurrSumInfo.Show and (FCurrkey > 0), '    AND bal.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
+        IIF(FCurrSumInfo.Show and (FCurrkey > 0), '    AND bal.currkey = ' + TID2S(FCurrkey) + #13#10, '') +
         IIF(BalanceCondition <> '', ' AND ' + BalanceCondition + #13#10, '');
     if FEntryBalanceDate <> ADate then
     begin
@@ -156,7 +158,7 @@ var
           '    AND e.entrydate < :begindate ';
       end;
       if FCurrSumInfo.Show and (FCurrkey > 0) then
-        Result := Result + #13#10 + '    AND e.currkey = ' + IntToStr(FCurrkey);
+        Result := Result + #13#10 + '    AND e.currkey = ' + TID2S(FCurrkey);
 
       if EntryCondition > '' then
         Result := Result + ' AND ' + EntryCondition;
@@ -280,7 +282,7 @@ begin
             ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
         ' WHERE ' + AccWhere + ' e.entrydate < :begindate AND ' + CompanyS +
           IIF(FCurrSumInfo.Show and (FCurrkey > 0),
-            ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
+            ' AND e.currkey = ' + TID2S(FCurrkey) + #13#10, '') +
           IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '');
     end;
   end;
@@ -351,7 +353,7 @@ begin
     FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' WHERE ' + AccWhere +
       '   e.entrydate < :begindate AND ' + CompanyS;
     if FCurrSumInfo.Show and (FCurrkey > 0) then
-      FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND e.currkey = ' + IntToStr(FCurrkey);
+      FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND e.currkey = ' + TID2S(FCurrkey);
     if EntryCondition <> '' then
       FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND ' + EntryCondition;
   end;
@@ -420,7 +422,7 @@ begin
       FEQSumInfo.Scale, FEQSumInfo.DecDigits]);
 
     if FCurrSumInfo.Show and (FCurrkey > 0) then
-      Self.SelectSQL.Text := Self.SelectSQL.Text + ' AND e.currkey = ' + IntToStr(FCurrkey);
+      Self.SelectSQL.Text := Self.SelectSQL.Text + ' AND e.currkey = ' + TID2S(FCurrkey);
 
     if FCorrAccounts.Count > 0 then
     begin
@@ -485,7 +487,7 @@ begin
       IIF(EntryCondition <> '', ' AND ' + EntryCondition, '') +
       Self.InternalMovementClause +
       IIF(FCurrSumInfo.Show and (FCurrkey > 0),
-        ' AND e.currkey = ' + IntToStr(FCurrkey), '') +
+        ' AND e.currkey = ' + TID2S(FCurrkey), '') +
     ' GROUP BY doc.number, doc.editiondate, e.entrydate, doct.name, a.alias, corr_a.alias, '#13#10 +
     '   r.description, doc.parent, '#13#10 +
     '   curr.ShortName, e.transactionkey, t.Name, tr.description, e.masterdockey ' + AGroup + ACorrGroup + #13#10 +
@@ -573,13 +575,13 @@ begin
       if Value > '' then
       begin
         FAccounts.Clear;
-        AddAccount(StrToInt(Value));
+        AddAccount(GetTID(Value));
       end;
 
       Value := S.Values['CURRKEY'];
       if Value > '' then
       begin
-        FCurrkey := StrToInt(Value);
+        FCurrkey := GetTID(Value);
         FCurrSumInfo.Show := True;
       end;
     finally

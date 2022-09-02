@@ -84,7 +84,7 @@ end;
 
 procedure Tgdc_frmInvPriceList.actDetailNewExecute(Sender: TObject);
 var
-  OldID: Integer;
+  OldID: TID;
   C: TgdcFullClass;
 begin
   if not gdcDetailObject.IsEmpty then

@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gdUpdateIndiceStat;
 
 interface
@@ -331,6 +333,14 @@ var
   qry: TIBSQL;
   Transaction : TIBTransaction;
 begin
+  // если домен поля задан именем или типом данных, то с возвращаем его
+  // и не формируем SQL код с типом поля
+  if Pos('RDB$', FieldName) <> 1 then
+  begin
+    Result := FieldName;
+    exit;
+  end;
+
   qry := TIBSQL.Create(nil);
   Transaction := TIBTransaction.Create(nil);
   try

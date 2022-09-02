@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 unit prp_dlgBreakPointProperty_unit;
 
 interface
@@ -119,7 +121,7 @@ begin
       try
         SQl.Transaction := gdcBaseManager.ReadTransaction;
         SQL.SQL.Text := 'SELECT ' + fnName + ' FROM gd_function WHERE id = :id';
-        SQl.Params[0].AsInteger := FunctionKey;
+        SetTID(SQl.Params[0], FunctionKey);
         SQL.ExecQuery;
         cbName.Text := SQL.FieldByName(fnName).AsString;
       finally

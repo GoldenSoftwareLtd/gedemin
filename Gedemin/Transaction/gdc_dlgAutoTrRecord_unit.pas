@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_dlgAutoTrRecord_unit;
 
 interface
@@ -48,7 +50,7 @@ type
     procedure Cancel; override;
     procedure FillImageList;
     class function DefImageIndex: Integer; virtual;
-    class function DefFolderKey: Integer; virtual;
+    class function DefFolderKey: TID; virtual;
 
   public
     function TestCorrect: Boolean; override;
@@ -117,7 +119,7 @@ begin
   end;
 
   if Result and (gdcObject.FieldByName(fnSHOWINEXPLORER).AsInteger = 1) and
-    (gdcObject.FieldByName(fnFOLDERKEY).AsInteger <= 0) then
+    (GetTID(gdcObject.FieldByName(fnFOLDERKEY)) <= 0) then
   begin
     Result := False;
     gdcObject.FieldByName(fnFOLDERKEY).FocusControl;
@@ -151,16 +153,16 @@ begin
       NewFun := False;
       if not (DS in [dsEdit, dsInsert]) then
       begin
-        if D.FieldByName(fnFunctionKey).AsInteger = 0 then
+        if GetTID(D.FieldByName(fnFunctionKey)) = 0 then
         begin
           if not D.FieldByName(fnFunctionKey).IsNull then
             D.FieldByName(fnFunctionKey).Clear;
 
           gdcFunction.Insert;
-          gdcFunction.FieldByName(fnModuleCode).AsInteger := OBJ_APPLICATION;
+          SetTID(gdcFunction.FieldByName(fnModuleCode), OBJ_APPLICATION);
           gdcFunction.FieldByName(fnModule).AsString := scrEntryModuleName;
           gdcFunction.FieldByName(fnName).AsString := Format('AutoEntryScript%d_%d',
-            [gdcFunction.FieldByName(fnId).AsInteger, IbLogin.DBID]);
+            [TID264(gdcFunction.FieldByName(fnId)), IbLogin.DBID]);
           gdcFunction.FieldByName(fnLANGUAGE).AsString := DefaultLanguage;
           NewFun := True;
         end else
@@ -174,9 +176,9 @@ begin
           FunctionCreater.FunctionRUID := RUIDToStr(gdcFunction.GetRUID);
           FunctionCreater.Stream := Str;
           FunctionCreater.FunctionName := gdcFunction.FieldByName(fnName).AsString;
-          FunctionCreater.TransactionRUID := gdcBaseManager.GetRUIDStringByID(D.FieldByName(fnTransactionkey).AsInteger);
-          FunctionCreater.TrRecordRUID := gdcBaseManager.GetRUIDStringByID(D.FieldByName(fnId).AsInteger);
-          FunctionCreater.CardOfAccountRUID := gdcBaseManager.GetRUIDStringByID(gdcObject.FieldByName(fnAccountKey).AsInteger);
+          FunctionCreater.TransactionRUID := gdcBaseManager.GetRUIDStringByID(GetTID(D.FieldByName(fnTransactionkey)));
+          FunctionCreater.TrRecordRUID := gdcBaseManager.GetRUIDStringByID(GetTID(D.FieldByName(fnId)));
+          FunctionCreater.CardOfAccountRUID := gdcBaseManager.GetRUIDStringByID(GetTID(gdcObject.FieldByName(fnAccountKey)));
           F.CreateNewFunction(FunctionCreater);
         finally
           FunctionCreater.Free;
@@ -211,8 +213,7 @@ begin
           finally
             Params.Free;
           end;
-          D.FieldByName(fnfunctionkey).AsInteger :=
-            gdcFunction.FieldByName(fnid).AsInteger;
+          SetTID(D.FieldByName(fnfunctionkey), gdcFunction.FieldByName(fnid));
         end else
         begin
           if not (DS in [dsEdit, dsInsert]) then
@@ -261,8 +262,8 @@ begin
   begin
     gdcObject.FieldByName(fnFunctionKey).Clear;
     gdcObject.FieldByName(fnImageIndex).AsInteger := DefImageIndex;
-    gdcObject.FieldByName(fnFolderKey).AsInteger := DefFolderKey;
-    gdcObject.FieldByName(fnAccountKey).AsInteger := IbLogin.ActiveAccount;
+    SetTID(gdcObject.FieldByName(fnFolderKey), DefFolderKey);
+    SetTID(gdcObject.FieldByName(fnAccountKey), IbLogin.ActiveAccount);
   end;
   cbImage.ItemIndex := gdcObject.FieldByName(fnImageIndex).AsInteger;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGAUTOTRRECORD', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -384,7 +385,7 @@ begin
 
   if FScriptChanged then
   begin
-    ScriptFactory.ReloadFunction(gdcObject.FieldByName('functionkey').AsInteger);
+    ScriptFactory.ReloadFunction(GetTID(gdcObject.FieldByName('functionkey')));
   end;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGAUTOTRRECORD', 'POST', KEYPOST)}
   {M}finally
@@ -438,7 +439,7 @@ begin
   cbImage.Enabled := dbcbShowInExplorer.Checked;
 end;
 
-class function Tgdc_dlgAutoTrRecord.DefFolderKey: Integer;
+class function Tgdc_dlgAutoTrRecord.DefFolderKey: TID;
 begin
   Result := 714000;
 end;
@@ -462,7 +463,7 @@ end;
 
 procedure Tgdc_dlgAutoTrRecord.actWizardUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := (gdcObject.FieldByName(fnAccountKey).AsInteger > 0)
+  TAction(Sender).Enabled := (GetTID(gdcObject.FieldByName(fnAccountKey)) > 0)
     and (IBLogin <> nil) and IBLogin.IsUserAdmin;
 end;
 

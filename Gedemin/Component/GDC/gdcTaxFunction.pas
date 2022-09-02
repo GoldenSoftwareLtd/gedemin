@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 {++
 
@@ -48,9 +49,9 @@ type
   TTaxFunctionItem = record
     Name: String;
     TF: String;
-    TFKey: Integer;
+    TFKey: TID;
     Result: Variant;
-    ActualKey: Integer;
+    ActualKey: TID;
     ReportDay: Byte;
     Calculated: Boolean;
   end;
@@ -69,8 +70,8 @@ type
 
   TgdcTaxActual = class(TgdcBase)
   private
-    FReportGroupKey: Integer;
-    FTrRecordKey: Integer;
+    FReportGroupKey: TID;
+    FTrRecordKey: TID;
 
   protected
     function  GetSelectClause: String; override;
@@ -80,7 +81,7 @@ type
     procedure DoAfterDelete; override;
     procedure DoBeforeDelete; override;
 
-    function GetGroupID: Integer; override;
+    function GetGroupID: TID; override;
     function GetNotCopyField: String; override;
 
   public
@@ -109,7 +110,7 @@ type
     procedure CustomModify(Buff: Pointer); override;
     procedure GetWhereClauseConditions(S: TStrings); override;
     procedure _DoOnNewRecord; override;
-    function GetGroupID: Integer; override;
+    function GetGroupID: TID; override;
   public
     class function ClassDocumentTypeKey: Integer; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
@@ -131,7 +132,7 @@ type
     procedure CustomModify(Buff: Pointer); override;
     procedure GetWhereClauseConditions(S: TStrings); override;
     procedure _DoOnNewRecord; override;
-    function GetGroupID: Integer; override;
+    function GetGroupID: TID; override;
   public
     class function ClassDocumentTypeKey: Integer; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
@@ -223,7 +224,7 @@ begin
     Result := inherited CheckTheSameStatement
   else
     Result := Format('SELECT id FROM gd_taxactual WHERE taxnamekey = %d AND actualdate = ''%s'' ',
-      [FieldByName('taxnamekey').AsInteger, FormatDateTime('dd.mm.yyyy', FieldByName('actualdate').AsDateTime)]);
+      [TID264(FieldByName('taxnamekey')), FormatDateTime('dd.mm.yyyy', FieldByName('actualdate').AsDateTime)]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAXACTUAL', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
@@ -236,11 +237,11 @@ end;
 function TgdcTaxActual.Copy(const AFields: String; AValues: Variant;
   const ACopyDetail, APost, AnAppend: Boolean): Boolean;
 var
-  TrKey: Integer;
+  TrKey: TID;
   O: TgdcAutoTrRecord;
   B: Boolean;
 begin
-  TrKey := FieldByName('trrecordkey').AsInteger;
+  TrKey := GetTID(FieldByName('trrecordkey'));
   B := APost;
   Result := inherited Copy(AFields, AValues, ACopyDetail, False, AnAppend);
 
@@ -260,11 +261,11 @@ begin
           Result := O.Copy('', VarArrayOf([]), False, False, False);
           if Result then
           begin
-            TrKey := O.FieldByName('id').AsInteger;
+            TrKey := GetTID(O.FieldByName('id'));
             if TrKey > 0 then
             begin
               O.Post;
-              FieldByName('trrecordkey').AsInteger := TrKey;
+              SetTID(FieldByName('trrecordkey'), TrKey);
             end;
           end;
         end;
@@ -289,15 +290,15 @@ begin
   Result := inherited CopyObject(ACopyDetailObjects, AShowEditDialog);
 
   if Result and (not EOF) and (Self.ID <> SelfID)
-    and IsGedeminNonSystemID(FieldByName('TRRECORDKEY').AsInteger) then
+    and IsGedeminNonSystemID(GetTID(FieldByName('TRRECORDKEY'))) then
   begin
     gdcTrRecord := TgdcAutoTrRecord.CreateSingularByID(nil,
-      FieldByName('TRRECORDKEY').AsInteger) as TgdcAutoTrRecord;
+      GetTID(FieldByName('TRRECORDKEY'))) as TgdcAutoTrRecord;
     try
       if gdcTrRecord.CopyObject(False, True) then
       begin
         Edit;
-        FieldByName('TRRECORDKEY').AsInteger := gdcTrRecord.ID;
+        SetTID(FieldByName('TRRECORDKEY'), gdcTrRecord.ID);
         Post;
       end;
     finally
@@ -343,7 +344,7 @@ begin
     try
       gdcReportGroup.Transaction := Self.Transaction;
       gdcReportGroup.SubSet := ssByID;
-      gdcReportGroup.ParamByName('id').AsInteger := FReportGroupKey;
+      SetTID(gdcReportGroup.ParamByName('id'), FReportGroupKey);
       gdcReportGroup.Open;
       try
         while not gdcReportGroup.Eof do
@@ -351,17 +352,17 @@ begin
       except
         if gdcReportGroup.Eof then
           raise Exception.Create(Format('Ошибка удаления папки с ИД = %d.',
-            [FReportGroupKey]))
+            [TID264(FReportGroupKey)]))
         else
           raise Exception.Create(Format('Ошибка удаления папки отчетов ''%s'' с ИД = %d.',
-            [gdcReportGroup.FieldByName('name').AsString, FReportGroupKey]));
+            [gdcReportGroup.FieldByName('name').AsString, TID264(FReportGroupKey)]));
       end;
     finally
       gdcReportGroup.Free;
     end;
   finally
     if not Eof then
-      FReportGroupKey := Self.FieldByName('reportgroupkey').AsInteger;
+      FReportGroupKey := GetTID(Self.FieldByName('reportgroupkey'));
   end;
 
   gdcAutoTrRecord := TgdcAutoTrRecord.Create(nil);
@@ -413,8 +414,8 @@ begin
   {M}    end;
   {END MACRO}
 
-  FReportGroupKey := Self.FieldByName('reportgroupkey').AsInteger;
-  FTrRecordKey := Self.FieldByName('trrecordkey').AsInteger;
+  FReportGroupKey := GetTID(Self.FieldByName('reportgroupkey'));
+  FTrRecordKey := GetTID(Self.FieldByName('trrecordkey'));
   inherited;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAXACTUAL', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
@@ -480,10 +481,10 @@ begin
   {END MACRO}
 end;
 
-function TgdcTaxActual.GetGroupID: Integer;
+function TgdcTaxActual.GetGroupID: TID;
 begin
   if Active then
-    Result := FieldByName('reportgroupkey').AsInteger
+    Result := GetTID(FieldByName('reportgroupkey'))
   else
     Result := -1;
 end;
@@ -610,7 +611,7 @@ end;
 procedure TgdcTaxActual.Post;
 var
   FolderName: String;
-  ParentFolder: Integer;
+  ParentFolder: TID;
   D: TgdcBase;
   RG: TgdcReportGroup;
 begin
@@ -636,21 +637,21 @@ begin
       RG.Open;
       RG.Insert;
       RG.FieldByName(fnname).AsString := FolderName;
-      RG.FieldByName(fnparent).AsInteger := ParentFolder;
+      SetTID(RG.FieldByName(fnparent), ParentFolder);
       RG.Post;
 
-      Self.FieldByName(fnreportgroupkey).AsInteger := RG.ID;
+      SetTID(Self.FieldByName(fnreportgroupkey), RG.ID);
     end else
     begin
       RG.SubSet := 'ByID';
-      RG.ID := Self.FieldByName(fnReportGroupKey).AsInteger;
+      RG.ID := GetTID(Self.FieldByName(fnReportGroupKey));
       RG.Open;
       if (RG.FieldByName(fnname).AsString <> FolderName) or
-        (RG.FieldByName(fnparent).AsInteger <> ParentFolder) then
+        (GetTID(RG.FieldByName(fnparent)) <> ParentFolder) then
       begin
         RG.Edit;
         RG.FieldByName(fnname).AsString := FolderName;
-        RG.FieldByName(fnparent).AsInteger := ParentFolder;
+        SetTID(RG.FieldByName(fnparent), ParentFolder);
         RG.Post;
       end;
     end;
@@ -848,10 +849,10 @@ begin
   {END MACRO}
 end;
 
-function TgdcTaxResult.GetGroupID: Integer;
+function TgdcTaxResult.GetGroupID: TID;
 begin
   if Active then
-    Result := FieldByName('reportgroupkey').AsInteger
+    Result := GetTID(FieldByName('reportgroupkey'))
   else
     Result := - 1;
 end;
@@ -954,8 +955,8 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  FieldByName('DocumentKey').AsInteger := ID;
-  FieldByName('TaxDesignDateKey').AsInteger := FieldByName('Parent').AsInteger;
+  SetTID(FieldByName('DocumentKey'), ID);
+  SetTID(FieldByName('TaxDesignDateKey'), FieldByName('Parent'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAXRESULT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1117,10 +1118,10 @@ begin
   {END MACRO}
 end;
 
-function TgdcTaxDesignDate.GetGroupID: Integer;
+function TgdcTaxDesignDate.GetGroupID: TID;
 begin
   if Active then
-    Result := FieldByName('reportgroupkey').AsInteger
+    Result := GetTID(FieldByName('reportgroupkey'))
   else
     Result := -1;
 end;
@@ -1234,7 +1235,7 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  FieldByName('DocumentKey').AsInteger := ID;
+  SetTID(FieldByName('DocumentKey'), ID);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAXDESIGNDATE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

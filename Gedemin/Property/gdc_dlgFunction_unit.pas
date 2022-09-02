@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gdc_dlgFunction_unit;
 
 interface
@@ -159,7 +161,8 @@ uses
   prp_MessageConst, rp_report_const, Gedemin_TLB, rp_dlgEnterParam_unit,
   Clipbrd, gdcDelphiObject, gdcFunction, gs_Exception, gd_ClassList,
   gdc_createable_form, scr_i_FunctionList, mtd_i_Base, prp_i_VBProposal,
-  gd_createable_form, Storages, gsStorage_CompPath, prp_FunctionHistoryFrame_unit
+  gd_createable_form, Storages, gsStorage_CompPath, prp_FunctionHistoryFrame_unit,
+  gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -247,7 +250,7 @@ begin
       HistoryFrame.Parent := tsHistory;
       Tprp_FunctionHistoryFrame(HistoryFrame).S := gdcObject.FieldByName('script').AsString;
 
-      Tprp_FunctionHistoryFrame(HistoryFrame).ibdsLog.ParamByName('ID').AsInteger := gdcObject.ID;
+      SetTID(Tprp_FunctionHistoryFrame(HistoryFrame).ibdsLog.ParamByName('ID'), gdcObject.ID);
       Tprp_FunctionHistoryFrame(HistoryFrame).ibdsLog.Open;
     end;
 end;
@@ -583,8 +586,8 @@ begin
   gdcFunction.FieldByName('publicfunction').Required := False;
   if gdcFunction.FieldByName('modulecode').IsNull then
   begin
-    gdcFunction.FieldByName('modulecode').AsInteger :=
-      TgdcDelphiObject.AddObject(Owner, gdcFunction.Transaction);
+    SetTID(gdcFunction.FieldByName('modulecode'),
+      TgdcDelphiObject.AddObject(Owner, gdcFunction.Transaction));
   end;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGFUNCTION', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally
@@ -677,7 +680,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Module: string;
-  Id: Integer;
+  Id: TID;
   Fnc: TrpCustomFunction;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGFUNCTION', 'POST', KEYPOST)}
@@ -700,7 +703,7 @@ begin
   {M}    end;
   {END MACRO}
   Module := gdcObject.FieldByName(fnModule).AsString;
-  Id := gdcObject.FieldByName(fnId).AsInteger;
+  Id := GetTID(gdcObject.FieldByName(fnId));
   inherited;
   //Регестрирум функцию в глобальном списке функций
   Fnc := glbFunctionList.FindFunction(Id);
@@ -859,7 +862,7 @@ begin
       if gdcObject.FieldByName(fnName).IsNull then
         gdcObject.FieldByName(fnName).AsString :=
           TgdcFunction(gdcObject).GetUniqueName('ScriptFunction', '',
-            gdcObject.FieldByName('ModuleCode').AsInteger);
+            GetTID(gdcObject.FieldByName('ModuleCode')));
       if gdcObject.FieldByName(fnModule).IsNull then
         gdcObject.FieldByName(fnModule).AsString := scrUnkonownModule;
       dbcbLangChange(nil);

@@ -67,7 +67,7 @@ begin
   begin
     ibdsEntry.Close;
     ibdsDocument.Close;
-    ibdsDocument.ParamByName('dockey').AsInteger := gdcDocumentLine.FieldByName('id').AsInteger;
+    SetTID(ibdsDocument.ParamByName('dockey'), GetTID(gdcDocumentLine.FieldByName('id')));
     ibdsDocument.Open;
     ibdsEntry.Open;
   end;
@@ -213,7 +213,7 @@ begin
   gdcDocument := TgdcDocument.Create(Self);
   try
     gdcDocument.SubSet := 'ByID';
-    gdcDocument.ID := ibdsDocument.FieldByName('id').AsInteger;
+    gdcDocument.ID := GetTID(ibdsDocument.FieldByName('id'));
     gdcDocument.Open;
     gdcDocument.EditDialog;
   finally

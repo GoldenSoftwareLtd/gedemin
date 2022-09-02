@@ -9,7 +9,7 @@ uses
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Windows, Forms, mainform, LoginForm, SysUtils, MessageForm, Dialogs, FileUtil,
-  JcfStringUtils, Classes;
+  JcfStringUtils, Classes, DCalendar;
 
 {$R *.res}
   function MCScanInit: Integer;
@@ -119,6 +119,22 @@ uses
     end;
   end;
 
+  function CheckDate: Boolean;
+  begin
+    Result := false;
+    if (date < StrToDate('01.01.2015') ) then
+      begin
+        if TDCalendar.Execute3 then
+          begin
+            Result := true;
+          end
+      end else
+      begin
+        Result := true;
+      end;
+
+  end;
+
   function DoInit(var Log: String): Boolean;
     var
       inres:integer;
@@ -193,7 +209,14 @@ uses
           end;
         end;
       end;
-
+    if Result then
+      begin
+        Result := CheckDate;
+        if not Result then
+        begin
+           Log := 'Неправильно установлена системная дата. Выставьте правильно!';
+        end;
+      end;
 
    {   if Result then
       begin

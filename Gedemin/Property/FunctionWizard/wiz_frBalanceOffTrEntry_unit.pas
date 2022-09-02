@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_frBalanceOffTrEntry_unit;
 
 interface
@@ -24,7 +26,7 @@ type
     procedure beDateBtnOnClick(Sender: TObject);
   private
     { Private declarations }
-    FCompanyKey: Integer;
+    FCompanyKey: TID;
 
     procedure ClickCompany(Sender: TObject);
     procedure ClickExpression(Sender: TObject);
@@ -65,7 +67,7 @@ end;
 procedure TfrBalanceOffTrEntry.SetBlock(const Value: TVisualBlock);
 var
   SQL: TIBSQL;
-  Id: Integer;
+  Id: TID;
 begin
   inherited;
   with FBlock as TBalanceOffTrEntryPositionBlock do
@@ -77,7 +79,7 @@ begin
         SQL.Transaction := gdcBaseManager.ReadTransaction;
         SQl.SQl.Text := 'SELECT name FROM gd_contact WHERE id = :id';
         ID := gdcBaseManager.GetIDByRUIDString(CompanyRUID);
-        SQL.ParamByName(fnId).AsInteger := Id;
+        SetTID(SQL.ParamByName(fnId), Id);
         SQl.ExecQuery;
         beCompany.Text := SQL.FieldByName(fnName).AsString;
         FCompanyKey := Id;

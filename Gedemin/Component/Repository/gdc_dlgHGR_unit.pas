@@ -1,3 +1,5 @@
+// ShlTanya, 21.02.2019
+
 unit gdc_dlgHGR_unit;
 
 interface
@@ -295,7 +297,7 @@ end;
 
 function Tgdc_dlgHGR.Get_SelectedKey: OleVariant;
 begin
-  Result := VarArrayOf([VarArrayOf([gdcObject.ID]),
+  Result := VarArrayOf([VarArrayOf([TID2V(gdcObject.ID)]),
     CreateSelectedArr(gdcDetailObject, ibgrDetail.SelectedRows)]);
 end;
 

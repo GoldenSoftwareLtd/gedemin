@@ -1,3 +1,4 @@
+// ShlTanya, 10.03.2019
 
 unit flt_dlgShowFilter_unit;
 
@@ -7,7 +8,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, ActnList, flt_sqlfilter_condition_type, IBDatabase, Db,
   IBCustomDataSet, IBQuery, ComCtrls, IBSQL, Contnrs,
-  Buttons, gd_security, Mask, DBCtrls, ImgList;
+  Buttons, gd_security, Mask, DBCtrls, ImgList, gdcBaseInterface;
 
 const
   FUserFieldPrefix = 'USR$';            // Префикс атрибутов
@@ -95,7 +96,7 @@ type
     FSortList: TTreeView;      // Список полей для сортировки
     FIndexList: TTreeView;     // Список индексированных полей для сортировки
 
-    FComponentKey: Integer;             // Ключ компонента
+    FComponentKey: TID;             // Ключ компонента
 
     FFilterList: TObjectList;           // Список указателей фрэймов фильтра
     FOrderList: TObjectList;            // Список указателей фрэймов условий сортировки
@@ -173,7 +174,7 @@ type
     procedure WMUser(var Message: TMessage); message WM_USER;
 
     function GetIngroup: Integer;
-    function GetUserKey: Integer;
+    function GetUserKey: TID;
     procedure ClearFieldList;
     procedure ClearSortList;
     procedure ClearIndexList;
@@ -196,13 +197,14 @@ type
     function ShowFilter(const AnConditionList: TFilterConditionList; const AnOrderByList: TFilterOrderByList;
      const AnNoVisibleList: TStrings; const AnTableList, AnLinkCondition: TfltStringList; const AnIsFill: Boolean): Boolean;
     // Добавить фильтр
-    function AddFilter(const AnComponentKey: Integer; const AnSQLText: String;
-     const AnNoVisibleList: TStrings; const AnIsFill: Boolean; out AnIsNewFilter: Boolean): Integer;
+    function AddFilter(const AnComponentKey: TID; const AnSQLText: String;
+     const AnNoVisibleList: TStrings; const AnIsFill: Boolean; out AnIsNewFilter: Boolean): TID;
     // Изменить фильтр
-    function EditFilter(const FilterKey: Integer; const AnSQLText: String;
-     const AnNoVisibleList: TStrings; const AnIsFill: Boolean; out AnIsNewFilter: Boolean): Integer;
+    function EditFilter(const FilterKey: TID; const AnSQLText: String;
+     const AnNoVisibleList: TStrings; const AnIsFill: Boolean; out AnIsNewFilter: Boolean): TID;
     // Удалить фильтр
-    function DeleteFilter(const FilterKey: Integer): Boolean;
+    function DeleteFilter(const FilterKey: TID): Boolean;
+    destructor Destroy; override;    
   end;
 
 var
@@ -1517,8 +1519,8 @@ begin
 end;
 
 // Добавляем фильтра
-function TdlgShowFilter.AddFilter(const AnComponentKey: Integer; const AnSQLText: String;
- const AnNoVisibleList: TStrings; const AnIsFill: Boolean; out AnIsNewFilter: Boolean): Integer;
+function TdlgShowFilter.AddFilter(const AnComponentKey: TID; const AnSQLText: String;
+ const AnNoVisibleList: TStrings; const AnIsFill: Boolean; out AnIsNewFilter: Boolean): TID;
 var
   LocFilterData: TFilterData;
   LocBlobStream: TIBDSBlobStream;
@@ -1526,6 +1528,7 @@ var
 begin
   Result := 0;
   LocFilterData := TFilterData.Create;
+  LocFilterData.Context := Name;
   FComponentKey := AnComponentKey;
   FSQLText := AnSQLText;
 
@@ -1566,8 +1569,8 @@ begin
         ibsqlGetID.Database := Database;
         ibsqlGetID.Transaction := Transaction;
         ibsqlGetID.ExecQuery;
-        ibdsFilter.FieldByName('id').AsInteger := ibsqlGetID.Fields[0].AsInteger;
-        ibdsFilter.FieldByName('componentkey').AsInteger := AnComponentKey;
+        SetTID(ibdsFilter.FieldByName('id'), ibsqlGetID.Fields[0]);
+        SetTID(ibdsFilter.FieldByName('componentkey'), AnComponentKey);
 
         FMainWindow := True;
         FIsNewFilter := False;
@@ -1586,11 +1589,11 @@ begin
 
             if cbOnlyForMe.Checked and (GetUserKey <> -1) then
             begin
-              ibdsFilter.FieldByName('userkey').AsInteger := GetUserKey;
+              SetTID(ibdsFilter.FieldByName('userkey'), GetUserKey);
               // Thanks to Julia ...
               if Assigned(ibdsFilter.FindField('editorkey')) then
-                ibdsFilter.FieldByName('editorkey').AsInteger :=
-                 ibdsFilter.FieldByName('userkey').AsInteger;
+                SetTID(ibdsFilter.FieldByName('editorkey'),
+                 ibdsFilter.FieldByName('userkey'));
             end;
 
             LocBlobStream := ibdsFilter.CreateBlobStream(ibdsFilter.FieldByName('data'), bmReadWrite) as TIBDSBlobStream;
@@ -1600,7 +1603,7 @@ begin
               LocBlobStream.Free;
             end;
             ibdsFilter.Post;
-            Result := ibdsFilter.FieldByName('id').AsInteger;
+            Result := GetTID(ibdsFilter.FieldByName('id'));
             FIsNewFilter := True;
           except
             on E: Exception do
@@ -1627,8 +1630,8 @@ begin
 end;
 
 // Редактирование фильтра
-function TdlgShowFilter.EditFilter(const FilterKey: Integer; const AnSQLText: String;
- const AnNoVisibleList: TStrings; const AnIsFill: Boolean; out AnIsNewFilter: Boolean): Integer;
+function TdlgShowFilter.EditFilter(const FilterKey: TID; const AnSQLText: String;
+ const AnNoVisibleList: TStrings; const AnIsFill: Boolean; out AnIsNewFilter: Boolean): TID;
 var
   LocFilterData: TFilterData;
   LocBlobStream: TIBDSBlobStream;
@@ -1638,26 +1641,27 @@ begin
   FSQLText := AnSQLText;
   ExtractSQLGroupBy(FSQLText, FGroupByFields);
   LocFilterData := TFilterData.Create;
+  LocFilterData.Context := Name;
   try
     // Ищем фильтр
     ibdsFilter.Close;
     ibdsFilter.Database := Database;
     ibdsFilter.Transaction := Transaction;
-    ibdsFilter.Params[0].AsInteger := FilterKey;
+    SetTID(ibdsFilter.Params[0], FilterKey);
     ibdsFilter.Open;
     if not ibdsFilter.Eof then
     begin
       // Проверяем права
       if ((ibdsFilter.FieldByName('afull').AsInteger or
        ibdsFilter.FieldByName('achag').AsInteger) and GetIngroup = 0) and
-       (ibdsFilter.FieldByName('userkey').AsInteger = 0) then
+       (GetTID(ibdsFilter.FieldByName('userkey')) = 0) then
       begin
         MessageBox(Self.Handle, 'У вас нет прав редактировать данный фильтр.', 'Внимание', MB_OK or MB_ICONWARNING);
         Exit;
       end;
 
       // Устанавливаем необходимые параметры
-      FComponentKey := ibdsFilter.FieldByName('componentkey').AsInteger;
+      FComponentKey := GetTID(ibdsFilter.FieldByName('componentkey'));
 
       ibdsFilter.Edit;
       LocBlobStream := ibdsFilter.CreateBlobStream(ibdsFilter.FieldByName('data'), bmRead) as TIBDSBlobStream;
@@ -1684,7 +1688,7 @@ begin
             // Сохраняем все параметры
             try
               if cbOnlyForMe.Checked and (GetUserKey <> -1) then
-                ibdsFilter.FieldByName('userkey').AsInteger := GetUserKey
+                SetTID(ibdsFilter.FieldByName('userkey'), GetUserKey)
               else
                 ibdsFilter.FieldByName('userkey').AsVariant := NULL;
               LocBlobStream := ibdsFilter.CreateBlobStream(ibdsFilter.FieldByName('data'), bmWrite) as TIBDSBlobStream;
@@ -1693,8 +1697,9 @@ begin
               finally
                 FreeAndNil(LocBlobStream);
               end;
+
               ibdsFilter.Post;
-              Result := ibdsFilter.FieldByName('id').AsInteger;
+              Result := GetTID(ibdsFilter.FieldByName('id'));
               FIsNewFilter := True;
             except
               on E: Exception do
@@ -1727,14 +1732,14 @@ begin
 end;
 
 // Удаляем фильтр
-function TdlgShowFilter.DeleteFilter(const FilterKey: Integer): Boolean;
+function TdlgShowFilter.DeleteFilter(const FilterKey: TID): Boolean;
 begin
   Result := False;
   // Ищем фильтр
   ibdsFilter.Close;
   ibdsFilter.Database := Database;
   ibdsFilter.Transaction := Transaction;
-  ibdsFilter.Params[0].AsInteger := FilterKey;
+  SetTID(ibdsFilter.Params[0], FilterKey);
   ibdsFilter.Open;
   if not ibdsFilter.Eof then
   begin
@@ -2286,7 +2291,8 @@ begin
     FData.ConditionList.Clear;
     // Заполняем блок данных
     CompliteFilterData(FData.ConditionList, FData.OrderByList);
-
+    FData.Context := Name;
+    
     // Сохраняем все это дело в базе
     try
       LocBlobStream := ibdsFilter.CreateBlobStream(ibdsFilter.FieldByName('data'), bmWrite) as TIBDSBlobStream;
@@ -2303,7 +2309,7 @@ begin
         ibdsFilter.FieldByName('editiondate').Required := False;
 
       if cbOnlyForMe.Checked and (GetUserKey <> -1) then
-        ibdsFilter.FieldByName('userkey').AsInteger := GetUserKey
+        SetTID(ibdsFilter.FieldByName('userkey'), GetUserKey)
       else
         ibdsFilter.FieldByName('userkey').AsVariant := NULL;
       ibdsFilter.Post;
@@ -2321,8 +2327,8 @@ begin
     ibdsFilter.Insert;
     ibsqlGetID.Close;
     ibsqlGetID.ExecQuery;
-    ibdsFilter.FieldByName('id').AsInteger := ibsqlGetID.Fields[0].AsInteger;
-    ibdsFilter.FieldByName('componentkey').AsInteger := FComponentKey;
+    SetTID(ibdsFilter.FieldByName('id'), ibsqlGetID.Fields[0]);
+    SetTID(ibdsFilter.FieldByName('componentkey'), FComponentKey);
     ibdsFilter.FieldByName('name').AsString := 'Без имени';
     ibdsFilter.FieldByName('lastextime').AsDateTime := 0;
     ibdsFilter.FieldByName('afull').AsInteger := GetIngroup or 1;
@@ -2400,7 +2406,7 @@ begin
     Result := -1;
 end;
 
-function TdlgShowFilter.GetUserKey: Integer;
+function TdlgShowFilter.GetUserKey: TID;
 begin
   if IBLogin <> nil then
     Result := IBLogin.UserKey
@@ -2599,11 +2605,11 @@ begin
     ibsql.SQL.Text := 'SELECT * FROM flt_savedfilter ' +
       ' WHERE name = :name AND componentkey = :componentkey AND id <> :id';
     if cbOnlyForMe.Checked and (GetUserKey > -1) then
-      ibsql.SQL.Text := ibsql.SQL.Text + ' AND userkey = ' + IntToStr(GetUserKey)
+      ibsql.SQL.Text := ibsql.SQL.Text + ' AND userkey = ' + TID2S(GetUserKey)
     else
       ibsql.SQL.Text := ibsql.SQL.Text + ' AND userkey IS NULL ';
     ibsql.ParamByName('name').AsString := Trim(dbeName.Text);
-    ibsql.ParamByName('componentkey').AsInteger := FComponentKey;
+    SetTID(ibsql.ParamByName('componentkey'), FComponentKey);
     ibsql.ParamByName('id').AsString := ibdsFilter.ParamByName('filterkey').AsString;
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
@@ -2808,6 +2814,14 @@ begin
   {$IFDEF SQLD3}
   if AnsiUpperCase(Result) <> Result then
     Result := '"' + Result + '"';
+  {$ENDIF}
+end;
+
+destructor TdlgShowFilter.Destroy;
+begin
+  inherited;
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
   {$ENDIF}
 end;
 

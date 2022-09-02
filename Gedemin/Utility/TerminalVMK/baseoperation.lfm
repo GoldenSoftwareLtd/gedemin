@@ -1,14 +1,14 @@
 object BaseOperation: TBaseOperation
-  Left = 642
+  Left = 590
   Height = 469
-  Top = 221
-  Width = 655
+  Top = 128
+  Width = 394
   BorderStyle = bsNone
   Caption = 'Операция'
   ChildSizing.LeftRightSpacing = 5
   ChildSizing.TopBottomSpacing = 5
   ClientHeight = 469
-  ClientWidth = 655
+  ClientWidth = 394
   Color = 3092302
   Font.CharSet = RUSSIAN_CHARSET
   Font.Height = -11
@@ -18,13 +18,14 @@ object BaseOperation: TBaseOperation
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
+  OnKeyUp = FormKeyUp
   OnShow = FormShow
   LCLVersion = '1.0.14.0'
   object mTP: TMemo
     Left = 5
     Height = 128
     Top = 5
-    Width = 645
+    Width = 384
     Align = alTop
     BorderStyle = bsNone
     Color = 13425138
@@ -45,7 +46,7 @@ object BaseOperation: TBaseOperation
     Left = 5
     Height = 17
     Top = 447
-    Width = 645
+    Width = 384
     Align = alBottom
     Caption = 'lEnter'
     Color = 12582911
@@ -63,7 +64,7 @@ object BaseOperation: TBaseOperation
     Left = 5
     Height = 17
     Top = 413
-    Width = 645
+    Width = 384
     Align = alBottom
     Caption = 'lExit'
     Color = 12582911
@@ -80,7 +81,7 @@ object BaseOperation: TBaseOperation
     Left = 5
     Height = 270
     Top = 138
-    Width = 645
+    Width = 384
     Align = alClient
     BorderSpacing.Top = 5
     BorderSpacing.Bottom = 5
@@ -89,7 +90,7 @@ object BaseOperation: TBaseOperation
     ChildSizing.Layout = cclTopToBottomThenLeftToRight
     ChildSizing.ControlsPerLine = 2
     ClientHeight = 270
-    ClientWidth = 645
+    ClientWidth = 384
     Color = 13425138
     ParentColor = False
     TabOrder = 1
@@ -97,7 +98,7 @@ object BaseOperation: TBaseOperation
       Left = 0
       Height = 17
       Top = 0
-      Width = 319
+      Width = 188
       Caption = 'Общий вес(кг):'
       Color = 13425138
       Font.CharSet = RUSSIAN_CHARSET
@@ -113,7 +114,7 @@ object BaseOperation: TBaseOperation
       Left = 0
       Height = 24
       Top = 17
-      Width = 319
+      Width = 188
       Color = 12582911
       Enabled = False
       Font.CharSet = RUSSIAN_CHARSET
@@ -126,10 +127,10 @@ object BaseOperation: TBaseOperation
       Text = 'eWeight'
     end
     object lWeight1: TLabel
-      Left = 319
+      Left = 188
       Height = 17
       Top = 0
-      Width = 326
+      Width = 196
       Caption = 'Кол-во поз-ций:'
       Color = 13425138
       Font.CharSet = RUSSIAN_CHARSET
@@ -142,10 +143,10 @@ object BaseOperation: TBaseOperation
       Transparent = False
     end
     object eGoods: TEdit
-      Left = 319
+      Left = 188
       Height = 24
       Top = 17
-      Width = 326
+      Width = 196
       Color = 12582911
       Enabled = False
       Font.CharSet = RUSSIAN_CHARSET
@@ -162,7 +163,7 @@ object BaseOperation: TBaseOperation
     Left = 5
     Height = 17
     Top = 430
-    Width = 645
+    Width = 384
     Align = alBottom
     Caption = 'lDelete'
     Color = 12582911

@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgAddTax_unit;
 
 interface
@@ -23,13 +25,13 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
-    FTaxKey: Integer;
+    FTaxKey: TID;
 
   public
     { Public declarations }
 
-    property TaxKey: Integer read FTaxKey;
-    procedure ActiveDialog(const aTaxKey: Integer);
+    property TaxKey: TID read FTaxKey;
+    procedure ActiveDialog(const aTaxKey: TID);
   end;
 
 var
@@ -46,14 +48,14 @@ begin
   FTaxKey := -1;
 end;
 
-procedure TdlgAddTax.ActiveDialog(const aTaxKey: Integer);
+procedure TdlgAddTax.ActiveDialog(const aTaxKey: TID);
 begin
   FTaxKey := aTaxKey;
   if FTaxKey = -1 then
   begin
     FTaxKey := GenUniqueID;
     dsTax.DataSet.Insert;
-    dsTax.DataSet.FieldByName('ID').AsInteger := FTaxKey;
+    SetTID(dsTax.DataSet.FieldByName('ID'), FTaxKey);
   end
   else
     dsTax.DataSet.Edit;

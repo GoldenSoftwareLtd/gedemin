@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit boCurrency;
 
@@ -5,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gd_security, Db, IBQuery;
+  gd_security, Db, IBQuery, gdcBaseInterface;
 
 type
   TboCurrency = class(TComponent)
@@ -13,33 +14,33 @@ type
   protected
   public
     // Идентификатор НДЕ
-    NCU: Integer;
+    NCU: TID;
     // Идентификатор эквивалента
-    Eq: Integer;
+    Eq: TID;
 
     procedure LoadData;
 
     // Курс валюты относительно другой валюты на дату
-    function GetRate(FromCurr, ToCurr: Integer; Date: TDate): Double; overload;
+    function GetRate(FromCurr, ToCurr: TID; Date: TDate): Double; overload;
     // Курс валюты относительно другой валюты на текущую дату
-    function GetRate(FromCurr, ToCurr: Integer): Double; overload;
+    function GetRate(FromCurr, ToCurr: TID): Double; overload;
     // Курс валюты относительно NCU на дату
-    function GetRate(FromCurr: Integer; Date: TDate): Double; overload;
+    function GetRate(FromCurr: TID; Date: TDate): Double; overload;
     // Курс валюты относительно NCU на текущую дату
-    function GetRate(FromCurr: Integer): Double; overload;
+    function GetRate(FromCurr: TID): Double; overload;
     // Курс Eq относительно NCU на дату
     function GetRate(Date: TDate): Double; overload;
     // Курс Eq относительно NCU на текущую дату
     function GetRate: Double; overload;
 
     // Установка курса валюты относительно другой валюты на дату
-    function SetRate(FromCurr, ToCurr: Integer; Date: TDate; Rate: Double): Boolean; overload;
+    function SetRate(FromCurr, ToCurr: TID; Date: TDate; Rate: Double): Boolean; overload;
     // Установка курса валюты относительно другой валюты на текущую дату
-    function SetRate(FromCurr, ToCurr: Integer; Rate: Double): Boolean; overload;
+    function SetRate(FromCurr, ToCurr: TID; Rate: Double): Boolean; overload;
     // Установка курса валюты относительно NCU на дату
-    function SetRate(FromCurr: Integer; Date: TDate; Rate: Double): Boolean; overload;
+    function SetRate(FromCurr: TID; Date: TDate; Rate: Double): Boolean; overload;
     // Установка курса валюты относительно NCU на текущую дату
-    function SetRate(FromCurr: Integer; Rate: Double): Boolean; overload;
+    function SetRate(FromCurr: TID; Rate: Double): Boolean; overload;
     // Установка курса Eq относительно NCU на дату
     function SetRate(Date: TDate; Rate: Double): Boolean; overload;
     // Установка курса Eq относительно NCU на текущую дату
@@ -53,7 +54,7 @@ procedure Register;
 implementation
 
 uses
-  IBSQL, gdcBaseInterface;
+  IBSQL;
 
 procedure TboCurrency.LoadData;
 var
@@ -68,7 +69,7 @@ begin
     q.SQL.Text := 'SELECT id FROM gd_curr WHERE isncu <> 0';
     q.ExecQuery;
     if not q.EOF then
-      NCU := q.Fields[0].AsInteger
+      NCU := GetTID(q.Fields[0])
     else
       NCU := -1;
 
@@ -76,7 +77,7 @@ begin
     q.SQL.Text := 'SELECT id FROM gd_curr WHERE iseq <> 0';
     q.ExecQuery;
     if not q.EOF then
-      Eq := q.Fields[0].AsInteger
+      Eq := GetTID(q.Fields[0])
     else
       Eq := -1;
   finally
@@ -85,7 +86,7 @@ begin
 end;
 
 // Установка курса валюты относительно другой валюты на дату
-function TboCurrency.SetRate(FromCurr, ToCurr: Integer; Date: TDate; Rate: Double): Boolean;
+function TboCurrency.SetRate(FromCurr, ToCurr: TID; Date: TDate; Rate: Double): Boolean;
 var
   Q: TIBSQL;
 begin
@@ -99,8 +100,8 @@ begin
           ' INSERT INTO gd_currrate(fromcurr, tocurr, fordate, coeff) VALUES( ' +
           ':fromcurrkey, :tocurrkey, :fordate, :coef)';
         Q.Prepare;
-        Q.ParamByName('FromCurrKey').AsInteger := FromCurr;
-        Q.ParamByName('ToCurrKey').AsInteger := ToCurr;
+        SetTID(Q.ParamByName('FromCurrKey'), FromCurr);
+        SetTID(Q.ParamByName('ToCurrKey'), ToCurr);
 
         Q.ParamByName('fordate').AsDateTime := Date;
         Q.ParamByName('coef').AsCurrency := Rate;
@@ -114,8 +115,8 @@ begin
             ' UPDATE gd_currrate SET coeff = :coeff ' +
             ' WHERE fromcurr = :FromCurrKey AND tocurr = :ToCurrKey AND fordate = :fordate ';
           Q.Prepare;
-          Q.ParamByName('FromCurrKey').AsInteger := FromCurr;
-          Q.ParamByName('ToCurrKey').AsInteger := ToCurr;
+          SetTID(Q.ParamByName('FromCurrKey'), FromCurr);
+          SetTID(Q.ParamByName('ToCurrKey'), ToCurr);
 
           Q.ParamByName('fordate').AsDateTime := Date;
           Q.ParamByName('coef').AsCurrency := Rate;
@@ -135,19 +136,19 @@ begin
 end;
 
 // Установка курса валюты относительно другой валюты на текущую дату
-function TboCurrency.SetRate(FromCurr, ToCurr: Integer; Rate: Double): Boolean;
+function TboCurrency.SetRate(FromCurr, ToCurr: TID; Rate: Double): Boolean;
 begin
   Result := SetRate(FromCurr, ToCurr, Rate, SysUtils.Date);
 end;
 
 // Установка курса валюты относительно NCU на дату
-function TboCurrency.SetRate(FromCurr: Integer; Date: TDate; Rate: Double): Boolean;
+function TboCurrency.SetRate(FromCurr: TID; Date: TDate; Rate: Double): Boolean;
 begin
   Result := SetRate(FromCurr, NCU, Date, Rate);
 end;
 
 // Установка курса валюты относительно NCU на текущую дату
-function TboCurrency.SetRate(FromCurr: Integer; Rate: Double): Boolean;
+function TboCurrency.SetRate(FromCurr: TID; Rate: Double): Boolean;
 begin
   Result := SetRate(FromCurr, SysUtils.Date, Rate);
 end;
@@ -165,7 +166,7 @@ begin
 end;
 
 // Курс валюты относительно другой валюты на дату
-function TboCurrency.GetRate(FromCurr, ToCurr: Integer; Date: TDate): Double;
+function TboCurrency.GetRate(FromCurr, ToCurr: TID; Date: TDate): Double;
 var
   Q: TIBQuery;
 begin
@@ -177,8 +178,8 @@ begin
       Q.SQL.Text :=
         ' SELECT crt.coeff FROM gd_currrate crt WHERE crt.fromcurr = :FromCurrKey AND crt.tocurr = :ToCurrKey AND ' +
         ' crt.fordate = (SELECT MAX(crt2.fordate) FROM gd_currrate crt2 WHERE crt2.fromcurr = :FromCurrKey AND crt2.tocurr = :ToCurrKey) ';
-      Q.ParamByName('FromCurrKey').AsInteger := FromCurr;
-      Q.ParamByName('ToCurrKey').AsInteger := ToCurr;
+      SetTID(Q.ParamByName('FromCurrKey'), FromCurr);
+      SetTID(Q.ParamByName('ToCurrKey'), ToCurr);
       Q.Prepare;
       Q.Open;
       if Q.RecordCount > 0 then
@@ -194,19 +195,19 @@ begin
 end;
 
 // Курс валюты относительно другой валюты на текущую дату
-function TboCurrency.GetRate(FromCurr, ToCurr: Integer): Double;
+function TboCurrency.GetRate(FromCurr, ToCurr: TID): Double;
 begin
   Result := GetRate(FromCurr, ToCurr, SysUtils.Date);
 end;
 
 // Курс валюты относительно NCU на дату
-function TboCurrency.GetRate(FromCurr: Integer; Date: TDate): Double;
+function TboCurrency.GetRate(FromCurr: TID; Date: TDate): Double;
 begin
   Result := GetRate(FromCurr, NCU, Date);
 end;
 
 // Курс валюты относительно NCU на текущую дату
-function TboCurrency.GetRate(FromCurr: Integer): Double;
+function TboCurrency.GetRate(FromCurr: TID): Double;
 begin
   Result := GetRate(FromCurr, SysUtils.Date);
 end;

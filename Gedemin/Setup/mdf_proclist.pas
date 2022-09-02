@@ -51,16 +51,16 @@ uses
   mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL,
   mdf_AddAutoTask, mdf_AddSMTP, mdf_AddSendReport, mdf_AddWebRelayTable, mdf_AddFieldToAC_TRRECORD,
   mdf_AccAnalyticsExtSupport, mdf_AddRestrFieldToInv_BalanceOption, mdf_AddSupportDatabaseTriggers,
-  mdf_modifyinvent;
+  mdf_modifyinvent, mdf_AddGeneratorName, mdf_ID64_proc_trig, mdf_AddCheckIdFieldToGD_Ref_Constraints;
 
 const
   {$IFDEF GEDEMIN_LOCK}
-  cProcCount = 23;
+  cProcCount = 14;
   {$ELSE}
     {$IFDEF FULL_MODIFY}
-    cProcCount = 227;
+    cProcCount = 234;
     {$ELSE}
-    cProcCount = 46;
+    cProcCount = 53;
     {$ENDIF}
   {$ENDIF}
 
@@ -378,7 +378,6 @@ const
     (ModifyProc: CorrectEntryTriggers; ModifyVersion: '0000.0001.0000.0230'; NeedDBShutdown: True),
     (ModifyProc: CorrectAutoEntryScript; ModifyVersion: '0000.0001.0000.0231'; NeedDBShutdown: False),
     (ModifyProc: ModifyBLOB; ModifyVersion: '0000.0001.0000.0233'; NeedDBShutdown: True),
-    {$ENDIF}
     (ModifyProc: ModifyAC_ACCOUNTEXSALDO_BAL; ModifyVersion: '0000.0001.0000.0237'; NeedDBShutdown: False),
     (ModifyProc: IntroduceIncorrectRecordGTT; ModifyVersion: '0000.0001.0000.0241'; NeedDBShutdown: True),
     (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0243'; NeedDBShutdown: False),
@@ -394,6 +393,7 @@ const
     (ModifyProc: AddFieldPeriodToAC_TRRECORD; ModifyVersion: '0000.0001.0000.0288'; NeedDBShutdown: True),
     (ModifyProc: AddFieldsToGD_CURRRATE; ModifyVersion: '0000.0001.0000.0289'; NeedDBShutdown: True),
     (ModifyProc: UpgradeAT_P_SYNC; ModifyVersion: '0000.0001.0000.0290'; NeedDBShutdown: False),
+    {$ENDIF}
     (ModifyProc: AddAccAnalyticsExt; ModifyVersion: '0000.0001.0000.0291'; NeedDBShutdown: True),
     (ModifyProc: AddRestrFieldToInv_BalanceOption; ModifyVersion: '0000.0001.0000.0292'; NeedDBShutdown: True),
     (ModifyProc: AddIBAN; ModifyVersion: '0000.0001.0000.0296'; NeedDBShutdown: True),
@@ -401,7 +401,14 @@ const
     (ModifyProc: CreateNewException; ModifyVersion: '0000.0001.0000.0299'; NeedDBShutdown: True),
     (ModifyProc: AddAvailableIDProc; ModifyVersion: '0000.0001.0000.0300'; NeedDBShutdown: False),
     (ModifyProc: CreateNewInvTable; ModifyVersion: '0000.0001.0000.0303'; NeedDBShutdown: False),
-    (ModifyProc: AddSemanticCategory; ModifyVersion: '0000.0001.0000.0305'; NeedDBShutdown: False)
+    (ModifyProc: AddSemanticCategory; ModifyVersion: '0000.0001.0000.0305'; NeedDBShutdown: False),
+    (ModifyProc: AddGeneratorName; ModifyVersion: '0000.0001.0000.0308'; NeedDBShutdown: False),
+    (ModifyProc: ModifyMovementTrigger; ModifyVersion: '0000.0001.0000.0309'; NeedDBShutdown: True),
+    (ModifyProc: CorrectIntervalIDProcs; ModifyVersion: '0000.0001.0000.0310'; NeedDBShutdown: True),
+    (ModifyProc: Modify_StoredProc_ID64; ModifyVersion: '0000.0001.0000.0311'; NeedDBShutdown: True),
+    (ModifyProc: Modify_Trigger_ID64; ModifyVersion: '0000.0001.0000.0312'; NeedDBShutdown: True),
+    (ModifyProc: Create_DRUID_NULL; ModifyVersion: '0000.0001.0000.0313'; NeedDBShutdown: True),
+    (ModifyProc: AddCheckIdFieldToGD_Ref_Constraints; ModifyVersion: '0000.0001.0000.0314'; NeedDBShutdown: True)
   );
 
   {

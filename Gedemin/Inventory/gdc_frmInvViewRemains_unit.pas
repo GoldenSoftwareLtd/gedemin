@@ -8,7 +8,7 @@ uses
   ActnList, Grids, DBGrids, gsDBGrid, gsIBGrid, ComCtrls, gsDBTreeView,
   ToolWin, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar, gdcInvMovement,
   StdCtrls, gsIBLookupComboBox, gdcTree, gd_MacrosMenu, Mask, xDateEdits,
-  Buttons, gdcMetaData, IBDatabase;
+  Buttons, gdcMetaData, IBDatabase, gdcBaseInterface;
 
 type
   Tgdc_frmInvViewRemains = class(Tgdc_frmInvBaseRemains)
@@ -58,7 +58,7 @@ type
     procedure cbSubDepartmentClick(Sender: TObject);
 
   private
-    FCurrentCompany: Integer;
+    FCurrentCompany: TID;
     FCurrentDate: TDateTime;
     isCreate: Boolean;
     isHolding: Boolean;
@@ -71,7 +71,7 @@ type
     function CheckHolding: Boolean; override;
 
   public
-    property CurrentCompany: Integer read FCurrentCompany;
+    property CurrentCompany: TID read FCurrentCompany;
   end;
 
 var
@@ -94,7 +94,7 @@ begin
       exit;
 
     if Assigned(UserStorage) and Assigned(IBLogin) then
-      FCurrentCompany := UserStorage.ReadInteger(Name + SubType + '\Remains', 'CurrentCompany', IBLogin.CompanyKey)
+      FCurrentCompany := GetTID(UserStorage.ReadString(Name + SubType + '\Remains', 'CurrentCompanyStr', TID2S(IBLogin.CompanyKey)))
     else
       FCurrentCompany := -1;
 
@@ -104,7 +104,7 @@ begin
     ibtrCommon.StartTransaction;
 
 
-    gsiblcCompany.CurrentKey := IntToStr(CurrentCompany);
+    gsiblcCompany.CurrentKey := TID2S(CurrentCompany);
     if gsiblcCompany.CurrentKey = '' then
       gsiblcCompany.CurrentKeyInt := IBLogin.CompanyKey;
 
@@ -502,14 +502,14 @@ begin
         gsiblcCompany.CurrentKey;
       ibsql.Transaction := gdcInvRemains.ReadTransaction;
       ibsql.ExecQuery;
-      isHolding := ibsql.FieldByName('holdingkey').AsInteger > 0;
+      isHolding := GetTID(ibsql.FieldByName('holdingkey')) > 0;
       ibsql.Close;
 
       ibsql.SQL.Text := 'SELECT companykey FROM gd_ourcompany WHERE companykey = ' +
         gsiblcCompany.CurrentKey;
       ibsql.Transaction := gdcInvRemains.ReadTransaction;
       ibsql.ExecQuery;
-      isOurCompany := ibsql.FieldByName('companykey').AsInteger > 0;
+      isOurCompany := GetTID(ibsql.FieldByName('companykey')) > 0;
     finally
       ibsql.Free;
     end;
@@ -554,7 +554,7 @@ begin
   try
     if Assigned(UserStorage) then
     begin
-      UserStorage.WriteInteger(Name + SubType + '\Remains', 'CurrentCompany', CurrentCompany);
+      UserStorage.WriteString(Name + SubType + '\Remains', 'CurrentCompanyStr', TID2S(CurrentCompany));
       UserStorage.WriteBoolean(Name + SubType + '\Remains', 'CurrentRemains', cbCurrentRemains.Checked);
     end;
   except

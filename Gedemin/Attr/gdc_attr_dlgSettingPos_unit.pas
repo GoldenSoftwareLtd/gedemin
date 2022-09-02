@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit gdc_attr_dlgSettingPos_unit;
 
 interface

@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 unit gdc_dlgExplorer_unit;
 
@@ -6,7 +7,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, StdCtrls, dmDatabase_unit,
-  gsIBLookupComboBox, Mask, DBCtrls, ExtCtrls;
+  gsIBLookupComboBox, Mask, DBCtrls, ExtCtrls, gdcBaseInterface;
 
 type
   Tgdc_dlgExplorer = class(Tgdc_dlgTR)
@@ -49,7 +50,7 @@ type
     procedure actSelectClassUpdate(Sender: TObject);
 
   private
-    function CheckReport(const AReportKey: Integer): Boolean;
+    function CheckReport(const AReportKey: TID): Boolean;
 
   public
     procedure BeforePost; override;
@@ -65,7 +66,7 @@ var
 implementation
 
 uses
-  gdcBase, gdcBaseInterface, IBSQL, gd_security, gdcExplorer,
+  gdcBase, IBSQL, gd_security, gdcExplorer,
   dmImages_unit, Storages, gsStorage, gdcAttrUserDefined, gdcClasses,
   jclStrings, gsResizerInterface, gd_directories_const, prp_MessageConst,
   prm_ParamFunctions_unit, gd_dlgClassList_unit, gd_ClassList
@@ -554,7 +555,7 @@ begin
   {END MACRO}
 end;
 
-function Tgdc_dlgExplorer.CheckReport(const AReportKey: Integer): Boolean;
+function Tgdc_dlgExplorer.CheckReport(const AReportKey: TID): Boolean;
 var
   LocParamList: TgsParamList;
   Script: OleVariant;
@@ -568,7 +569,7 @@ begin
     'FROM rp_reportlist r ' +
     '  JOIN gd_function f on f.id = r.mainformulakey ' +
     'WHERE r.id = :id ',
-    AReportKey,
+    TID2V(AReportKey),
     Script);
   if not VarIsEmpty(Script) then
   begin

@@ -1,3 +1,5 @@
+// ShlTanya, 16.03.2019
+
 unit gdc_dlgObjectProperties_unit;
 
 interface
@@ -24,7 +26,6 @@ type
     btnExclude: TButton;
     gdcUserGroup: TgdcUserGroup;
     dsUserGroup: TDataSource;
-    gdcUserGroupID: TIntegerField;
     gdcUserGroupNAME: TIBStringField;
     btnInclude: TButton;
     actExclude: TAction;
@@ -287,7 +288,7 @@ var
   OldCursor: TCursor;
   SS: TStringStream;
   W: TyamlWriter;
-  Cnt: Integer;
+  Cnt: TID;
 begin
   SyncCombo;
 
@@ -352,7 +353,7 @@ begin
         ibdsNS.Close;
         dsNS.DataSet := nil;
       end;
-      ibdsNS.ParamByName('id').AsInteger := gdcObject.ID;
+      SetTID(ibdsNS.ParamByName('id'), gdcObject.ID);
       ibdsNS.Open;
       ibdsNS.FieldByName('ObjectID').Visible := False;
       ibdsNS.FieldByName('NSID').Visible := False;
@@ -817,7 +818,7 @@ var
         ' WHERE ' +
         F.ConstraintFields[0].FieldName +
         '=' +
-        IntToStr(gdcObject.ID);
+        TID2S(gdcObject.ID);
 
       q.Close;
       q.SQL.Text := S;
@@ -915,7 +916,7 @@ end;
 procedure Tgdc_dlgObjectProperties.actShowLinkObjectExecute(
   Sender: TObject);
 
-  procedure _Show(const T: String; const AnID: Integer);
+  procedure _Show(const T: String; const AnID: TID);
   var
     FC: TgdcFullClass;
     Obj: TgdcBase;
@@ -935,7 +936,7 @@ procedure Tgdc_dlgObjectProperties.actShowLinkObjectExecute(
             and (cbOpenDoc.ItemIndex > 0) then
           begin
             _Show(Obj.GetListTable(Obj.SubType),
-              Obj.FieldByName('parent').AsInteger);
+              GetTID(Obj.FieldByName('parent')));
           end else
             Obj.EditDialog('');
         end;
@@ -951,7 +952,7 @@ procedure Tgdc_dlgObjectProperties.actShowLinkObjectExecute(
   end;
 
 begin
-  _Show(ibdsLinks.Fields[0].AsString, ibdsLinks.Fields[1].AsInteger);
+  _Show(ibdsLinks.Fields[0].AsString, GetTID(ibdsLinks.Fields[1]));
 end;
 
 

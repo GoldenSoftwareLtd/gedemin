@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcSetting;
 
 interface                                           
@@ -31,7 +33,7 @@ type
 
     //Загружает в список id главных настроек
     procedure LoadMainSettingsID(KA: TgdKeyArray);
-    procedure AddMainSettings(FKeys: TStrings; const MainID: Integer = 0);
+    procedure AddMainSettings(FKeys: TStrings; const MainID: TID = 0);
 
     procedure OnStartLoading(Sender: TatSettingWalker; AnObjectSet: TgdcObjectSet);
     procedure OnObjectLoad(Sender: TatSettingWalker; const AClassName, ASubType: String;
@@ -259,7 +261,7 @@ type
 
   //Загружает в стринглист в порядке создания руиды объектов,
   //входящих в текущую настройку
-  procedure LoadRUIDFromBlob(RuidList: TStrings; RUIDField: TField; const AnID: Integer = -1);
+  procedure LoadRUIDFromBlob(RuidList: TStrings; RUIDField: TField; const AnID: TID = -1);
 const
 
   // Идентификатор файла настройки
@@ -325,7 +327,7 @@ end;
 
 { TgdcSetting }
 
-procedure TgdcSetting.AddMainSettings(FKeys: TStrings; const MainID: Integer = 0);
+procedure TgdcSetting.AddMainSettings(FKeys: TStrings; const MainID: TID = 0);
 var
   I: Integer;
   KA: TgdKeyArray;
@@ -335,14 +337,14 @@ begin
   if FieldByName('Disabled').AsInteger = 0 then
     Exit;
 
-  if FKeys.IndexOf(IntToStr(ID)) > -1 then
+  if FKeys.IndexOf(TID2S(ID)) > -1 then
     Exit;
 
-  Index := FKeys.IndexOf(IntToStr(MainID));
+  Index := FKeys.IndexOf(TID2S(MainID));
   if Index = -1 then
     Index := 0;
 
-  FKeys.Insert(Index, IntToStr(ID));
+  FKeys.Insert(Index, TID2S(ID));
 
   KA := TgdKeyArray.Create;
   gdcMain := TgdcSetting.CreateSubType(Self, '', 'ByID');
@@ -430,7 +432,7 @@ begin
       {Если нам передан список ключей пробежимся по нему и найдем главные настройки}
       for J := 0 to KeyAr.Count - 1 do
       begin
-        ID := StrToInt(KeyAr[J]);
+        ID := GetTID(KeyAr[J]);
         AddKeyAr.Clear;
         AddMainSettings(AddKeyAr);
         for K := 0 to AddKeyAr.Count - 1 do
@@ -481,7 +483,8 @@ var
   I: Integer;
   HelpList: TStringList;
   stClass, stSubType: String;
-  AXID, ADBID, AnID: Integer;
+  AXID, AnID: TID;
+  ADBID:  Integer;
   C: TPersistentClass;
   Obj: TgdcBase;
   AnAnswer: Integer;
@@ -510,7 +513,7 @@ begin
           if NewRuidList.IndexOf(OldRuidList[I]) = -1 then
           begin
             HelpList.CommaText := OldRuidList[I];
-            AXID := StrToInt(HelpList[0]);
+            AXID := GetTID(HelpList[0]);
             ADBID := StrToInt(HelpList[1]);
             stClass := HelpList[2];
             if HelpList.Count = 4 then
@@ -550,7 +553,7 @@ begin
                     begin
                       AnAnswer := MessageBox(0, PChar('Объект ' + Obj.GetDisplayName(Obj.SubType) +
                         ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                        ' с идентификатором ' + IntToStr(Obj.ID) + ' не найден в новой версии настройки. Удалить объект?'),
+                        ' с идентификатором ' + TID2S(Obj.ID) + ' не найден в новой версии настройки. Удалить объект?'),
                         'Загрузка настройки', MB_ICONQUESTION or MB_YESNOCANCEL or MB_TASKMODAL);
 
                       if AnAnswer = IDCANCEL then
@@ -564,7 +567,7 @@ begin
                           begin
                             MessageBox(0, PChar('При удалении объекта ' + Obj.GetDisplayName(Obj.SubType) +
                               ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                              ' с идентификатором ' + IntToStr(Obj.ID) + ' произошла ошибка: ' +
+                              ' с идентификатором ' + TID2S(Obj.ID) + ' произошла ошибка: ' +
                               E.Message),
                               'Загрузка настройки', MB_ICONERROR or MB_OK or MB_TASKMODAL);
                           end;
@@ -643,7 +646,7 @@ begin
 
     with TActivateSetting.Create(Application) do
     begin
-      SettingKeys := IntToStr(ID);
+      SettingKeys := TID2S(ID);
       PostMessage(Handle, WM_DEACTIVATESETTING, 0, Integer(True));
     end;
   end;
@@ -1028,7 +1031,7 @@ var
   ibsqlPos: TIBQuery;
   C: TPersistentClass;
   Obj: TgdcBase;
-  AnID: Integer;
+  AnID: TID;
   OS: TgdcObjectSet;
   MS: TMemoryStream;
   StorageName, Path: String;
@@ -1109,7 +1112,7 @@ begin
           StreamSaver.ReplicationMode := Self.Silent;
           StreamSaver.ReadUserFromStream := Self.Silent;
           StreamSaver.StreamFormat := SettingFormat;
-          StreamSaver.SaveSettingDataToStream(MS, FieldByName(GetKeyField(SubType)).AsInteger);
+          StreamSaver.SaveSettingDataToStream(MS, GetTID(FieldByName(GetKeyField(SubType))));
           // 22.03.2010: Мы больше не используем отдельное сохранение хранилища
           //StreamSaver.SaveSettingStorageToStream(StorageStream, FieldByName(GetKeyField(SubType)).AsInteger);
         finally
@@ -1179,7 +1182,7 @@ begin
             // вытянем позиции сохраняемой настройки
             ibsqlPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey ' +
               ' ORDER BY objectorder';
-            ibsqlPos.ParamByName('settingkey').AsInteger := FieldByName(GetKeyField(SubType)).AsInteger;
+            SetTID(ibsqlPos.ParamByName('settingkey'), FieldByName(GetKeyField(SubType)));
             ibsqlPos.Open;
             while not ibsqlPos.Eof do
             begin
@@ -1192,7 +1195,7 @@ begin
               //Если мы должны сохранить объект с детальными объектами, то занесем его id в список
               if ibsqlPos.FieldByName('withdetail').AsInteger = 1 then
               begin
-                WithDetailID := gdcBaseManager.GetIDByRUID(ibsqlPos.FieldByName('xid').AsInteger,
+                WithDetailID := gdcBaseManager.GetIDByRUID(GetTID(ibsqlPos.FieldByName('xid')),
                   ibsqlPos.FieldByName('dbid').AsInteger, ReadTransaction);
                 if WithDetailID > -1 then
                   DL.Add(WithDetailID)
@@ -1220,10 +1223,10 @@ begin
 
               {при репликации добавление объекта, его РУИДА и сохр. настройки идет на одной транзакции}
               if Self.Silent and Transaction.InTransaction then
-                AnID := gdcBaseManager.GetIDByRUID(ibsqlPos.FieldByName('xid').AsInteger,
+                AnID := gdcBaseManager.GetIDByRUID(GetTID(ibsqlPos.FieldByName('xid')),
                   ibsqlPos.FieldByName('dbid').AsInteger, Transaction)
               else
-                AnID := gdcBaseManager.GetIDByRUID(ibsqlPos.FieldByName('xid').AsInteger,
+                AnID := gdcBaseManager.GetIDByRUID(GetTID(ibsqlPos.FieldByName('xid')),
                   ibsqlPos.FieldByName('dbid').AsInteger);
               //Сохраняем сами мета-данные в блоб-поле
               C := GetClass(ibsqlPos.FieldByName('objectclass').AsString);
@@ -1260,9 +1263,9 @@ begin
                     and (StrIPos(USERPREFIX, Obj.FieldByName('fieldname').AsString) = 1)
                     and (Obj.FieldByname('crosstable').AsString > '') then
                   begin
-                    OS.Add(Obj.FieldByname('crosstablekey').AsInteger, '', '', '');
+                    OS.Add(GetTID(Obj.FieldByname('crosstablekey')), '', '', '');
                     Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects);
-                    OS.Remove(Obj.FieldByname('crosstablekey').AsInteger);
+                    OS.Remove(GetTID(Obj.FieldByname('crosstablekey')));
                   end else
                     Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects);
                 end
@@ -1334,7 +1337,7 @@ begin
           ibsqlPos.Close;
           ibsqlPos.SQL.Text :=
             'SELECT COUNT(*) AS StorPosCount FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
-          ibsqlPos.ParamByName('settingkey').AsInteger := ID;
+          SetTID(ibsqlPos.ParamByName('settingkey'), ID);
           ibsqlPos.Open;
 
           PositionsCount := ibsqlPos.FieldByName('STORPOSCOUNT').AsInteger;
@@ -1347,7 +1350,7 @@ begin
             ibsqlPos.Close;
             ibsqlPos.SQL.Text :=
               'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
-            ibsqlPos.ParamByName('settingkey').AsInteger := ID;
+            SetTID(ibsqlPos.ParamByName('settingkey'), ID);
             ibsqlPos.Open;
             while not ibsqlPos.Eof do
             begin
@@ -1638,7 +1641,7 @@ procedure TgdcSetting.LoadMainSettingsID(KA: TgdKeyArray);
 var
   RuidList: TStringList;
   RUID: TRUID;
-  AnID: Integer;
+  AnID: TID;
   I: Integer;
 begin
   CheckBrowseMode;
@@ -1825,7 +1828,7 @@ begin
       FieldByName('objectorder').AsInteger := GetLastOrder;//FieldByName('id').AsInteger;
   end;
 
-  if (FieldByName('xid').AsInteger = FieldByName('settingkey').AsInteger) and
+  if (GetTID(FieldByName('xid')) = GetTID(FieldByName('settingkey'))) and
     (FieldByName('dbid').AsInteger = IBLogin.DBID)
   then
     raise Exception.Create('Попытка зацикливания!');
@@ -1911,7 +1914,8 @@ end;
 
 procedure TgdcSettingPos.AddPos(AnObject: TgdcBase; const WithDetail: Boolean);
 var
-  AXID, ADBID: TID;
+  AXID: TID;
+  ADBID: Integer;
   ibsql, ibsqlID: TIBSQL;
   DL: TObjectList;
   C: TgdcFullClass;
@@ -1953,7 +1957,7 @@ begin
           else
             gdcObject := CgdcBase(TgdcBaseTable).CreateSubType(nil, '', 'ByID');
           try
-            gdcObject.ID := ibsqlID.FieldByName('id').AsInteger;
+            gdcObject.ID := GetTID(ibsqlID.FieldByName('id'));
             gdcObject.Open;
             if (gdcObject.ID <> ID) and (not gdcObject.EOF) then
               AddPos(gdcObject, WithDetail);
@@ -1974,7 +1978,7 @@ begin
             while not ibsqlID.Eof do
             begin
               gdcObject.Close;
-              gdcObject.ID := ibsqlID.Fields[0].AsInteger;
+              gdcObject.ID := GetTID(ibsqlID.Fields[0]);
               gdcObject.Open;
               if (gdcObject.ID <> AnObject.ID) and (gdcObject.RecordCount > 0) then
                 AddPos(gdcObject, WithDetail);
@@ -2005,16 +2009,16 @@ begin
       DidActivate := ActivateTransaction;
       ibsql.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey ' +
         ' AND xid = :xid AND dbid = :dbid';
-      ibsql.ParamByName('settingkey').AsInteger := ParamByName('settingkey').AsInteger;
-      ibsql.ParamByName('xid').AsInteger := AXID;
+      SetTID(ibsql.ParamByName('settingkey'), ParamByName('settingkey'));
+      SetTID(ibsql.ParamByName('xid'), AXID);
       ibsql.ParamByName('dbid').AsInteger := ADBID;
       ibsql.ExecQuery;
       if ibsql.RecordCount = 0 then
       begin
         try
           Insert;
-          if FieldByName('settingkey').IsNull or (FieldByName('settingkey').AsInteger = -1) then
-            FieldByName('settingkey').AsInteger := ParamByName('settingkey').AsInteger;
+          if FieldByName('settingkey').IsNull or (GetTID(FieldByName('settingkey')) = -1) then
+            SetTID(FieldByName('settingkey'), ParamByName('settingkey'));
 
           if AnObject.FieldByName(AnObject.GetListField(AnObject.SubType)).AsString > '' then
             FieldByName('objectname').AsString := AnObject.FieldByName(AnObject.GetListField(AnObject.SubType)).AsString
@@ -2023,7 +2027,7 @@ begin
           FieldByName('category').AsString := AnObject.GetDisplayName(AnObject.SubType);
           FieldByName('objectclass').AsString := AnObject.GetCurrRecordClass.gdClass.ClassName;
           FieldByName('subtype').AsString := AnObject.GetCurrRecordClass.SubType;
-          FieldByName('xid').AsInteger := AXID;
+          SetTID(FieldByName('xid'), AXID);
           FieldByName('dbid').AsInteger := ADBID;
           FieldByName('needmodify').AsInteger := Integer(AnObject.NeedModifyFromStream(AnObject.SubType));
           if (AnObject is TgdcIndex) or (AnObject is TgdcTrigger) or
@@ -2139,7 +2143,7 @@ begin
               begin
                 //Создаем его экземпляр с одной записью
                 Obj := C.gdClass.CreateSingularByID(nil, Database, Transaction,
-                  ibsql.Fields[0].AsInteger, C.SubType);
+                  GetTID(ibsql.Fields[0]), C.SubType);
                 try
                   Obj.Open;
                   //Находим класс для записи
@@ -2158,7 +2162,7 @@ begin
                   Obj.Transaction := Transaction;
                   while not ibsql.Eof do
                   begin
-                    Obj.ID := ibsql.Fields[0].AsInteger;
+                    Obj.ID := GetTID(ibsql.Fields[0]);
                     Obj.Open;
                     if (not Obj.EOF) and (Obj is TgdcMetaBase) and
                       (TgdcMetaBase(Obj).IsUserDefined) and (not TgdcMetaBase(Obj).IsDerivedObject) then
@@ -2222,7 +2226,7 @@ begin
   begin
     gdcFunction := TgdcFunction.CreateSubType(Self, '', 'ByID');
     try
-      gdcFunction.ID := AnObject.FieldByName('functionkey').AsInteger;
+      gdcFunction.ID := GetTID(AnObject.FieldByName('functionkey'));
       gdcFunction.Open;
       if gdcFunction.RecordCount > 0 then
       begin
@@ -2312,8 +2316,8 @@ begin
   else
     Result := Format('SELECT id FROM at_settingpos WHERE settingkey = %d ' +
       ' AND xid = %d AND dbid = %d',
-      [FieldByName('settingkey').AsInteger,
-       FieldByName('xid').AsInteger,
+      [TID264(FieldByName('settingkey')),
+       TID264(FieldByName('xid')),
        FieldByName('dbid').AsInteger]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSETTINGPOS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
@@ -2365,7 +2369,7 @@ end;
 
 procedure TgdcSettingPos.Valid(const DoAutoDelete: Boolean = false);
 var
-  AnID: Integer;
+  AnID: TID;
   C: TPersistentClass;
   Obj: TgdcBase;
   WasDelete: Boolean;
@@ -2384,7 +2388,7 @@ begin
   First;
   while not Eof do
   begin
-    AnID := gdcBaseManager.GetIDByRUID(FieldByName('xid').AsInteger,
+    AnID := gdcBaseManager.GetIDByRUID(GetTID(FieldByName('xid')),
       FieldByName('dbid').AsInteger);
 
     C := GetClass(FieldByName('objectclass').AsString);
@@ -2609,7 +2613,7 @@ function TgdcSettingPos.GetLastOrder: Integer;
 var
   ibtr: TIBTRansaction;
 begin
-  Assert(FieldByName('settingkey').AsInteger > 0);
+  Assert(GetTID(FieldByName('settingkey')) > 0);
   if not Assigned(FLastOrderSQL) then
   begin
     FLastOrderSQL := TIBSQL.Create(Self);
@@ -2628,7 +2632,7 @@ begin
   end;
 
   try
-    FLastOrderSQL.ParamByName('sk').AsInteger := FieldByName('settingkey').AsInteger;
+    SetTID(FLastOrderSQL.ParamByName('sk'), FieldByName('settingkey'));
     FLastOrderSQL.ExecQuery;
 
     if FLastOrderSQL.RecordCount > 0 then
@@ -2664,7 +2668,7 @@ begin
   TestSetting := TgdcSetting.CreateWithID(nil, Database, Transaction, ASettingKey);
   try
     if Assigned(TestSetting) and (TestSetting.ID = ASettingKey) then
-      raise EgdcIDNotFound.Create(Format('Настройка с идентификатором %d не существует.', [ASettingKey]));
+      raise EgdcIDNotFound.Create(Format('Настройка с идентификатором %d не существует.', [TID264(ASettingKey)]));
   finally
     FreeAndNil(TestSetting);
   end;
@@ -2674,7 +2678,7 @@ begin
   begin
     // Изменим ссылку на настройку
     Self.Edit;
-    Self.FieldByName('SETTINGKEY').AsInteger := ASettingKey;
+    SetTID(Self.FieldByName('SETTINGKEY'), ASettingKey);
     Self.Post;
 
     Result := True;
@@ -2710,7 +2714,7 @@ begin
   Assert(Active);
 
   Insert;
-  FieldByName('settingkey').AsInteger := ParamByName('settingkey').AsInteger;
+  SetTID(FieldByName('settingkey'), ParamByName('settingkey'));
   FieldByName('branchname').AsString := ABranchName;
   FieldByName('valuename').AsString := AValueName;
   FieldByName('crc').AsInteger := GetCRC32FromText(ABranchName);
@@ -2859,9 +2863,10 @@ end;
 // заполняет свойства объекта данными о настройке
 procedure TSettingHeader.SetInfo(gdcObject: TgdcBase);
 var
-  XID, DBID: TID;
+  XID: TID;
+  DBID: Integer;
 begin
-  gdcBaseManager.GetRUIDByID(gdcObject.FieldByName('ID').AsInteger, XID, DBID, gdcObject.Transaction);
+  gdcBaseManager.GetRUIDByID(GetTID(gdcObject.FieldByName('ID')), XID, DBID, gdcObject.Transaction);
   RUID.XID  := XID;
   RUID.DBID := DBID;
 
@@ -3666,7 +3671,7 @@ begin
     RealSettID := gdcBaseManager.GetIDByRUID((Objects[StrToInt(SettIDList[i])] as TGSFHeader).RUID.XID,
       (Objects[StrToInt(SettIDList[i])] as TGSFHeader).RUID.DBID);
     if RealSettID > -1 then
-      KeyArr.Add(IntToStr(RealSettID));
+      KeyArr.Add(TID2S(RealSettID));
   end;
 
   gdcSetts.Open;
@@ -3683,7 +3688,7 @@ end;
 // ------------------------------ TSettingHeader ------------------------------
 
 
-procedure LoadRUIDFromBlob(RuidList: TStrings; RUIDField: TField; const AnID: Integer = -1);
+procedure LoadRUIDFromBlob(RuidList: TStrings; RUIDField: TField; const AnID: TID = -1);
 var
   BlobStream: TStream;
   CDS: TClientDataSet;
@@ -3729,7 +3734,7 @@ begin
             StPos := TgdcSettingPos.Create(nil);
             StPos.AddSubSet('BySetting');
             StPos.AddSubSet('ByRUID');
-            StPos.ParamByName('settingkey').AsInteger := AnID;
+            SetTID(StPos.ParamByName('settingkey'), AnID);
           end;
 
           if BlobStream.Size = 0 then
@@ -4709,7 +4714,7 @@ var
     Obj: TgdcBase;
     C: TPersistentClass;
     ibsqlPos: TIBSQL;
-    AnID: Integer;
+    AnID: TID;
     StorageName, Path: String;
     NewFolder: TgsStorageFolder;
     J: Integer;
@@ -4749,7 +4754,7 @@ var
             C := GetClass(ibsqlPos.FieldByName('objectclass').AsString);
             if C <> nil then
             begin
-              AnID := gdcBaseManager.GetIDByRUID(ibsqlPos.FieldByName('xid').AsInteger,
+              AnID := gdcBaseManager.GetIDByRUID(GetTID(ibsqlPos.FieldByName('xid')),
                 ibsqlPos.FieldByName('dbid').AsInteger);
 
                 Obj := CgdcBase(C).CreateSubType(nil, ibsqlPos.FieldByName('subtype').AsString, 'ByID');
@@ -4765,7 +4770,7 @@ var
                     try
                       AddText('Удаление объекта ' + Obj.GetDisplayName(Obj.SubType) +
                         ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                        ' с идентификатором ' + IntToStr(AnID));
+                        ' с идентификатором ' + TID2S(AnID));
                       if (not (Obj is TgdcMetaBase)) or (Obj as TgdcMetaBase).IsUserDefined then
                         Obj.Delete;
                     except
@@ -4777,7 +4782,7 @@ var
                     end else
                       AddText('Объект ' + Obj.GetDisplayName(Obj.SubType) +
                         ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                        ' с идентификатором ' + IntToStr(AnID) + ' уже удален ');
+                        ' с идентификатором ' + TID2S(AnID) + ' уже удален ');
 
                   end;
                 finally
@@ -4994,7 +4999,7 @@ var
 begin
   while not ADataSet.EOF do
   begin
-    if (FIBSQLSelectAllPos.FieldByName('xid').AsInteger = ADataSet.FieldByName('_xid').AsInteger)
+    if (GetTID(FIBSQLSelectAllPos.FieldByName('xid')) = GetTID(ADataSet.FieldByName('_xid')))
       and (FIBSQLSelectAllPos.FieldByName('dbid').AsInteger = ADataSet.FieldByName('_dbid').AsInteger) then
     begin
       FIBSQLSelectAllPos.Next;
@@ -5006,7 +5011,7 @@ begin
       Assert((C <> nil) and C.InheritsFrom(TgdcBase));
 
       FIBSQLSelectPos.Close;
-      FIBSQLSelectPos.ParamByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+      SetTID(FIBSQLSelectPos.ParamByName('xid'), ADataSet.FieldByName('_xid'));
       FIBSQLSelectPos.ParamByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
       FIBSQLSelectPos.ExecQuery;
       if FIBSQLSelectPos.Eof then
@@ -5019,9 +5024,9 @@ begin
         FIBSQLInsertPos.ParamByName('subtype').AsString := ASubtype;
         FIBSQLInsertPos.ParamByName('category').AsString := System.Copy(CgdcBase(C).GetDisplayName(ASubType), 1, 20);
         FIBSQLInsertPos.ParamByName('objectname').AsString := System.Copy(CgdcBase(C).GetListNameByID(
-          gdcBaseManager.GetIDByRUID(ADataSet.FieldByName('_xid').AsInteger,
+          gdcBaseManager.GetIDByRUID(GetTID(ADataSet.FieldByName('_xid')),
           ADataSet.FieldByName('_dbid').AsInteger), ASubType), 1, 60);
-        FIBSQLInsertPos.ParamByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+        SetTID(FIBSQLInsertPos.ParamByName('xid'), ADataSet.FieldByName('_xid'));
         FIBSQLInsertPos.ParamByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
         FIBSQLInsertPos.ParamByName('objectorder').AsInteger :=
           FIBSQLSelectAllPos.FieldByName('objectorder').AsInteger + FNewPositionOffset;
@@ -5060,16 +5065,17 @@ procedure TgdcSetting.OnObjectLoadNew(Sender: TatSettingWalker;
   const AClassName, ASubType: String; ADataSet: TDataSet);
 var
   C: TPersistentClass;
-  XID, DBID: Integer;
+  XID: TID;
+  DBID: Integer;
   TempIndex: Integer;
 begin
-  XID := ADataSet.FieldByName('_xid').AsInteger;
+  XID := GetTID(ADataSet.FieldByName('_xid'));
   DBID := ADataSet.FieldByName('_dbid').AsInteger;
   // Если это не обычная позиция настройки
-  if not FManualAddedPositions.Find(IntToStr(XID) + '_' + IntToStr(DBID), TempIndex) then
+  if not FManualAddedPositions.Find(TID2S(XID) + '_' + IntToStr(DBID), TempIndex) then
   begin
     // И если мы еще не добавляли объект с таким РУИДом
-    if not FAddedPositions.Find(IntToStr(XID) + '_' + IntToStr(DBID), TempIndex) then
+    if not FAddedPositions.Find(TID2S(XID) + '_' + IntToStr(DBID), TempIndex) then
     begin
       C := FindClass(AClassName);
 
@@ -5079,9 +5085,9 @@ begin
       FIBSQLInsertPos.ParamByName('subtype').AsString := ASubtype;
       FIBSQLInsertPos.ParamByName('category').AsString := System.Copy(CgdcBase(C).GetDisplayName(ASubType), 1, 20);
       FIBSQLInsertPos.ParamByName('objectname').AsString := System.Copy(CgdcBase(C).GetListNameByID(
-        gdcBaseManager.GetIDByRUID(ADataSet.FieldByName('_xid').AsInteger,
+        gdcBaseManager.GetIDByRUID(GetTID(ADataSet.FieldByName('_xid')),
         ADataSet.FieldByName('_dbid').AsInteger), ASubType), 1, 60);
-      FIBSQLInsertPos.ParamByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+      SetTID(FIBSQLInsertPos.ParamByName('xid'), ADataSet.FieldByName('_xid'));
       FIBSQLInsertPos.ParamByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
       FIBSQLInsertPos.ParamByName('objectorder').AsInteger := FNewPositionOffset;
       FIBSQLInsertPos.ParamByName('withdetail').AsInteger := 0;
@@ -5092,14 +5098,14 @@ begin
       else
         FIBSQLInsertPos.ParamByName('needmodify').AsInteger := 0;
 
-      FAddedPositions.Add(IntToStr(XID) + '_' + IntToStr(DBID));
+      FAddedPositions.Add(TID2S(XID) + '_' + IntToStr(DBID));
       Inc(FNewPositionOffset);
       FIBSQLInsertPos.ExecQuery;
     end;
   end
   else
   begin
-    FIBSQLUpdatePosOrder.ParamByName('xid').AsInteger := XID;
+    SetTID(FIBSQLUpdatePosOrder.ParamByName('xid'), XID);
     FIBSQLUpdatePosOrder.ParamByName('dbid').AsInteger := DBID;
     FIBSQLUpdatePosOrder.ParamByName('oorder').AsInteger := FNewPositionOffset;
     Inc(FNewPositionOffset);
@@ -5136,27 +5142,27 @@ begin
     FIBSQLUpdatePosOrder.Transaction := Tr;
 
     FIBSQLSelectAllPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :SK ORDER BY objectorder';
-    FIBSQLSelectAllPos.ParamByName('SK').AsInteger := Self.FieldByName('id').AsInteger;
+    SetTID(FIBSQLSelectAllPos.ParamByName('SK'), Self.FieldByName('id'));
 
     FIBSQLUpdatePos.SQL.Text := 'UPDATE at_settingpos SET objectorder = objectorder + 1 WHERE ' +
       ' settingkey = :SK AND objectorder >= :OO ';
-    FIBSQLUpdatePos.ParamByName('SK').AsInteger := Self.FieldByName('id').AsInteger;
+    SetTID(FIBSQLUpdatePos.ParamByName('SK'), Self.FieldByName('id'));
 
     FIBSQLInsertPos.SQL.Text := 'INSERT INTO at_settingpos(settingkey, objectclass, subtype, category, ' +
       'objectname, xid, dbid, objectorder, withdetail, needmodify, autoadded) VALUES( ' +
       ':settingkey, :objectclass, :subtype, :category, ' +
       ':objectname, :xid, :dbid, :objectorder, :withdetail, :needmodify, :autoadded) ';
-    FIBSQLInsertPos.ParamByName('settingkey').AsInteger := Self.FieldByName('id').AsInteger;
+    SetTID(FIBSQLInsertPos.ParamByName('settingkey'), Self.FieldByName('id'));
 
     FIBSQLSelectPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :SK AND xid = :XID AND dbid = :DBID ';
-    FIBSQLSelectPos.ParamByName('SK').AsInteger := Self.FieldByName('id').AsInteger;
+    SetTID(FIBSQLSelectPos.ParamByName('SK'), Self.FieldByName('id'));
 
     FIBSQLDeleteAllPos.SQL.Text := 'DELETE FROM at_settingpos WHERE settingkey = :SK and autoadded = 1';
-    FIBSQLDeleteAllPos.ParamByName('SK').AsInteger := Self.FieldByName('id').AsInteger;
+    SetTID(FIBSQLDeleteAllPos.ParamByName('SK'), Self.FieldByName('id'));
 
     FIBSQLUpdatePosOrder.SQL.Text := 'UPDATE at_settingpos SET objectorder = :oorder ' +
       'WHERE settingkey = :SK AND xid = :xid AND dbid = :dbid';
-    FIBSQLUpdatePosOrder.ParamByName('SK').AsInteger := Self.FieldByName('id').AsInteger;
+    SetTID(FIBSQLUpdatePosOrder.ParamByName('SK'), Self.FieldByName('id'));
 
     SettingWalker.StartLoadingNew := OnStartLoadingNew;
     SettingWalker.ObjectLoadNew := OnObjectLoadNew;

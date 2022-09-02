@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 {++
 
@@ -42,7 +43,7 @@ type
     FHintList: TObjectList;
     FPredefinedNames: TStringList;
 
-    function  AddModule(const ModuleCode: Integer): TStringList;
+    function  AddModule(const ModuleCode: TID): TStringList;
     // для сортированного списка с Duplicates = dupAccept возвращает первое
     // вхождение строки равной StrList[CurrentIndex]
     function  GetFirstItems(
@@ -56,7 +57,7 @@ type
     procedure SetErrorList(const Value: TObjectList);
     procedure SetHintList(const Value: TObjectList);
   protected
-    procedure AddNameList(const ModuleCode: Integer; NameList: TStrings);
+    procedure AddNameList(const ModuleCode: TID; NameList: TStrings);
 
   public
     constructor Create;
@@ -68,7 +69,7 @@ type
     function  CompileScript(gdcFunction: TgdcCustomFunction;
       const CheckUniname: Boolean; TestScriptSyntax: Boolean): Boolean;
 
-    function  CheckName(const Name: String; const ModuleCode: Integer): Boolean;
+    function  CheckName(const Name: String; const ModuleCode: TID): Boolean;
 
     // Очистка всех списков
     procedure ClearList;
@@ -78,7 +79,7 @@ type
     procedure  AddFuncInfo(const gdcFunction: TgdcCustomFunction);
     // Удаляет инф. о ф-ции из списка
     // DeletteeList - содержит список удаленных имен
-    procedure DeleteFuncInfo(const ModuleCode: Integer; const FunctionKey: Integer;
+    procedure DeleteFuncInfo(const ModuleCode: TID; const FunctionKey: TID;
       const DeletteeList: TStrings = nil);
 
     property  ErrorList: TObjectList read FErrorList write SetErrorList;
@@ -88,8 +89,8 @@ type
   TgdcCustomFunction = class(TgdcBase)
   private
     FCompileScript: Boolean;
-    FDelFunctionKey: Integer;
-    FDelModuleCode: Integer;
+    FDelFunctionKey: TID;
+    FDelModuleCode: TID;
 
     procedure SetCompileScript(const Value: Boolean);
   protected
@@ -101,6 +102,7 @@ type
 
     procedure DoAfterPost; override;
     procedure DoBeforePost; override;
+    procedure DoAfterOpen; override;
 
     function CheckDataset(q: TIBSQL): Boolean;
     function ObjectChanged: Boolean; virtual;
@@ -114,9 +116,9 @@ type
     property  CompileScript: Boolean read FCompileScript write SetCompileScript default False;
   end;
 
-  procedure ReadAddFunction(const FunctionKey: Integer; SL: TStrings;
-    AnScript: String; const ModuleCode: Integer; const Transaction: TIBTransaction);
-  function TestCyclicRef(const FunctionKey: Integer; SL: TStrings;
+  procedure ReadAddFunction(const FunctionKey: TID; SL: TStrings;
+    AnScript: String; const ModuleCode: TID; const Transaction: TIBTransaction);
+  function TestCyclicRef(const FunctionKey: TID; SL: TStrings;
     ErrorList: TObjectList): Boolean;
   function VBCompiler: TgsVBCompiler;
 
@@ -144,7 +146,7 @@ begin
   Result := _VBCompiler;
 end;
 
-function TestCyclicRef(const FunctionKey: Integer; SL: TStrings;
+function TestCyclicRef(const FunctionKey: TID; SL: TStrings;
   ErrorList: TObjectList): Boolean;
 var
   ibsqlCyclic: TIBSQL;
@@ -153,17 +155,17 @@ var
   AlreadyTestedList: TgdKeyArray;
   SFIDList: TList;
 
-  procedure TestSingleSF(const SingleSFID: Integer);
+  procedure TestSingleSF(const SingleSFID: TID);
   var
-    AddSFID: Integer;
+    AddSFID: TID;
   begin
     if ibsqlCyclic.Open then
       ibsqlCyclic.Close;
-    ibsqlCyclic.Params[0].AsInteger := SingleSFID;
+    SetTID(ibsqlCyclic.Params[0], SingleSFID);
     ibsqlCyclic.ExecQuery;
     while not ibsqlCyclic.Eof do
     begin
-      if ibsqlCyclic.Fields[0].AsInteger = FunctionKey then
+      if GetTID(ibsqlCyclic.Fields[0]) = FunctionKey then
       begin
         Result := False;
         CompileItem := TgdCompileItem.Create;
@@ -171,14 +173,14 @@ var
         CompileItem.ReferenceToSF := SingleSFID;
         CompileItem.Line := 0;
         CompileItem.Msg := Format(MSG_ERROR_CYCLICREF,
-          [ibsqlCyclic.Fields[1].AsString, CompileItem.ReferenceToSF]);
+          [ibsqlCyclic.Fields[1].AsString, TID264(CompileItem.ReferenceToSF)]);
         CompileItem.SFID := FunctionKey;
         ErrorList.Add(CompileItem);
       end;
-      AddSFID := ibsqlCyclic.Fields[2].AsInteger;
+      AddSFID := GetTID(ibsqlCyclic.Fields[2]);
       if (AlreadyTestedList.IndexOf(AddSFID) = -1) then
       begin
-        SFIDList.Add(Pointer(AddSFID));
+        SFIDList.Add(TID2Pointer(AddSFID, cEmptyContext));
         AlreadyTestedList.Add(AddSFID);
       end;
 
@@ -209,12 +211,12 @@ begin
           if SL.Objects[i] <> nil then
           begin
             SFIDList.Add(SL.Objects[i]);
-            AlreadyTestedList.Add(Integer(SL.Objects[i]));
+            AlreadyTestedList.Add(GetTID(SL.Objects[i], cEmptyContext));
           end;
         end;
         while SFIDList.Count > 0 do
         begin
-          TestSingleSF(Integer(SFIDList[0]));
+          TestSingleSF(GetTID(SFIDList[0], cEmptyContext));
           SFIDList.Delete(0);
         end;
       finally
@@ -228,8 +230,8 @@ begin
   end;
 end;
 
-procedure ReadAddFunction(const FunctionKey: Integer; SL: TStrings;
-  AnScript: String; const ModuleCode: Integer; const Transaction: TIBTransaction);
+procedure ReadAddFunction(const FunctionKey: TID; SL: TStrings;
+  AnScript: String; const ModuleCode: TID; const Transaction: TIBTransaction);
 const
   IncludePrefix = '#INCLUDE ';
   ReplacePrefix = '_________';
@@ -239,7 +241,7 @@ var
   TempStr, Msg: String;
   I, J, StartIndex: Integer;
   ibsqlWork: TIBSQL;
-  ObjectId: Integer;
+  ObjectId: TID;
 
   procedure FindDouble;
   var
@@ -253,19 +255,19 @@ var
       end;
   end;
 
-  procedure SetID(LocStartInd, LocKey: Integer; LocName: String);
+  procedure SetID(LocStartInd: Integer; LocKey: TID; LocName: String);
   var
     K: Integer;
   begin
     for K := LocStartInd to SL.Count - 1 do
       if LocName = SL.Strings[K] then
       begin
-        SL.Objects[K] := Pointer(LocKey);
+        SL.Objects[K] := TID2Pointer(LocKey, cEmptyContext);
         Break;
       end;
   end;
 
-  function GetParentObjectID(ID: Integer): Integer;
+  function GetParentObjectID(ID: TID): TID;
   var
     ibsqlObject: TIBSQL;
   begin
@@ -273,9 +275,9 @@ var
     try
       ibsqlObject.Transaction := Transaction;
       ibsqlObject.SQL.Text := 'SELECT parent FROM evt_object WHERE id = :P';
-      ibsqlObject.ParamByName('P').AsInteger := ID;
+      SetTID(ibsqlObject.ParamByName('P'), ID);
       ibsqlObject.ExecQuery;
-      Result := ibsqlObject.FieldByName(fnParent).AsInteger;
+      Result := GetTID(ibsqlObject.FieldByName(fnParent));
       if (Result = 0) and (Id <> OBJ_APPLICATION) then
         Result := OBJ_APPLICATION;
     finally
@@ -320,13 +322,13 @@ begin
         ObjectId := ModuleCode;
         while ObjectId > 0 do
         begin
-          ibsqlWork.ParamByName('modulecode').AsInteger := ObjectId;
+          SetTID(ibsqlWork.ParamByName('modulecode'), ObjectId);
           ibsqlWork.ExecQuery;
           if not ibsqlWork.Eof then
           begin
             while not ibsqlWork.Eof do
             begin
-              SetID(StartIndex, ibsqlWork.FieldByName('id').AsInteger,
+              SetID(StartIndex, GetTID(ibsqlWork.FieldByName('id')),
                 AnsiUpperCase(ibsqlWork.FieldByName('name').AsString));
 
               ibsqlWork.Next;
@@ -368,7 +370,7 @@ end;
 
 function TgdcCustomFunction.CheckDataset(q: TIBSQL): Boolean;
 begin
-  if FieldByName('id').AsInteger <> ID then
+  if GetTID(FieldByName('id')) <> ID then
     raise Exception.Create('Не совпадает ключ записи');
   Result :=
     (FieldByName('editiondate').AsDateTime = q.FieldByName('editiondate').AsDateTime) and
@@ -425,6 +427,12 @@ begin
   {M}      ClearMacrosStack2('TGDCCUSTOMFUNCTION', 'DOAFTERDELETE', KEYDOAFTERDELETE);
   {M}  end;
   {END MACRO}
+end;
+
+procedure TgdcCustomFunction.DoAfterOpen;
+begin
+  inherited;
+
 end;
 
 procedure TgdcCustomFunction.DoAfterPost;
@@ -494,8 +502,8 @@ begin
   inherited;
 
   // сохраняем ключ и код модуля удаляемой ф-ции
-  FDelFunctionKey := FieldByName('id').AsInteger;
-  FDelModuleCode := FieldByName('modulecode').AsInteger;
+  FDelFunctionKey := GetTID(FieldByName('id'));
+  FDelModuleCode := GetTID(FieldByName('modulecode'));
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCUSTOMFUNCTION', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
   {M}  finally
@@ -535,8 +543,8 @@ begin
   inherited;
 
   // сохраняем ключ и код модуля редактируемой ф-ции
-  FDelFunctionKey := FieldByName('id').AsInteger;
-  FDelModuleCode := FieldByName('modulecode').AsInteger;
+  FDelFunctionKey := GetTID(FieldByName('id'));
+  FDelModuleCode := GetTID(FieldByName('modulecode'));
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCUSTOMFUNCTION', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
   {M}  finally
@@ -597,7 +605,7 @@ begin
     q.Transaction := ReadTransaction;
     q.SQL.Text :=
       'SELECT id, editiondate, script FROM gd_function WHERE id = :id';
-    q.ParamByName('id').AsInteger := ID;
+    SetTID(q.ParamByName('id'), ID);
     q.ExecQuery;
     Result := not (q.EOF or CheckDataSet(q));
   finally
@@ -635,7 +643,7 @@ var
       for I := 1 to SL.Count - 1 do
       begin
         LocSQL.Close;
-        LocSQL.Params[0].AsInteger := Integer(SL.Objects[I]);
+        SetTID(LocSQL.Params[0], GetTID(SL.Objects[I], cEmptyContext));
         LocSQL.ExecQuery;
       end;
     finally
@@ -655,15 +663,13 @@ begin
         LErrorList, ID)
     end else
       InternalScriptList(FieldByName('Script').AsString, FInternalSciptNameList);
-
     FieldByName('displayscript').AsString := FInternalSciptNameList.Text;
 
     SL := TStringList.Create;
     try
       SL.Add(AnsiUpperCase(FieldByName('name').AsString));
       ReadAddFunction(ID, SL, FieldByName('script').AsString,
-        FieldByName('modulecode').AsInteger, ReadTransaction);
-
+        GetTID(FieldByName('modulecode')), ReadTransaction);
       DeletteeList := nil;
       try
         case State of
@@ -677,7 +683,6 @@ begin
         else
           AddType := atIgnore;
         end;
-
         try
           if Assigned(frmGedeminProperty) and FCompileScript then
           begin
@@ -688,7 +693,6 @@ begin
 
               for ErrCount := 0 to LErrorList.Count - 1 do
                 VBCompiler.ErrorList.Add(LErrorList[ErrCount]);
-
               if VBCompiler.ErrorList.Count > 0 then
               begin
                 frmGedeminProperty.Show;
@@ -703,7 +707,6 @@ begin
               end;
             end;
           end;
-
           inherited;
         except
           if DeletteeList <> nil then
@@ -714,7 +717,6 @@ begin
         if DeletteeList <> nil then
           DeletteeList.Free;
       end;
-
       if AddType in [atAddInfo, atChangeInfo] then
         VBCompiler.AddFuncInfo(Self);
 
@@ -753,7 +755,8 @@ end;
 
 procedure TgsVBCompiler.CompileVBProject;
 var
-  LastModuleCode, I, Index, LID: Integer;
+  I, Index: Integer;
+  LastModuleCode, LID: TID;
   LNameList, LApplNameList, LtmpStrings: TStringList;
   ErrorItem: TgdCompileItem;
 begin
@@ -766,7 +769,7 @@ begin
     FIBSQL.Transaction := gdcBaseManager.ReadTransaction;
     FIBSQL.SQL.Text :=
       'SELECT id, displayscript, name FROM gd_function ' +
-      'WHERE modulecode = ' + IntToStr(OBJ_APPLICATION);
+      'WHERE modulecode = ' + TID2S(OBJ_APPLICATION);
     FIBSQL.ExecQuery;
 
     // Добавляем в список модуль
@@ -775,7 +778,7 @@ begin
     try
       while not FIBSQL.Eof do
       begin
-        LID := FIBSQL.FieldByName('id').AsInteger;
+        LID := GetTID(FIBSQL.FieldByName('id'));
         LtmpStrings.Text := FIBSQL.FieldByName('displayscript').AsString;
         if LtmpStrings.IndexOf(FIBSQL.FieldByName('name').AsString) = -1 then
           LtmpStrings.Add(FIBSQL.FieldByName('name').AsString);
@@ -786,19 +789,19 @@ begin
           // Добавляем имя ф-ции
           Index := LApplNameList.IndexOf(LtmpStrings[I]);
           if Index = -1 then
-            LApplNameList.AddObject(LtmpStrings[I], TObject(LID))
+            LApplNameList.AddObject(LtmpStrings[I], TID2TObject(LID, cEmptyContext))
           else
           begin
             ErrorItem := AddErrorOrHint(vbcError);
 
             ErrorItem.Msg := Format(MSG_ERROR_UNINAME,
-              [LtmpStrings[I], Integer(LApplNameList.Objects[Index])]);
+              [LtmpStrings[I], TID264(GetTID(LApplNameList.Objects[Index], cEmptyContext))]);
 
             // Добавить поиск строки
             ErrorItem.Line := 0;
 
             ErrorItem.SFID := LID;
-            ErrorItem.ReferenceToSF := Integer(LApplNameList.Objects[Index]);
+            ErrorItem.ReferenceToSF := GetTID(LApplNameList.Objects[Index], cEmptyContext);
           end;
         end;
 
@@ -808,7 +811,7 @@ begin
       FIBSQL.Close;
       FIBSQL.SQL.Text :=
         'SELECT modulecode, id, displayscript, name FROM gd_function ' +
-        'WHERE modulecode <> ' + IntToStr(OBJ_APPLICATION) + ' ' +
+        'WHERE modulecode <> ' + TID2S(OBJ_APPLICATION) + ' ' +
         'ORDER BY modulecode';
       FIBSQL.ExecQuery;
 
@@ -818,9 +821,9 @@ begin
       while not FIBSQL.Eof do
       begin
         // Добавляем в список модуль
-        if LastModuleCode <> FIBSQL.FieldByName('modulecode').AsInteger then
+        if LastModuleCode <> GetTID(FIBSQL.FieldByName('modulecode')) then
         begin
-          LastModuleCode := FIBSQL.FieldByName('modulecode').AsInteger;
+          LastModuleCode := GetTID(FIBSQL.FieldByName('modulecode'));
           LNameList := AddModule(LastModuleCode);
         end;
         if LNameList = nil then
@@ -829,7 +832,7 @@ begin
           Continue;
         end;
 
-        LID := FIBSQL.FieldByName('id').AsInteger;
+        LID := GetTID(FIBSQL.FieldByName('id'));
         LtmpStrings.Text := FIBSQL.FieldByName('displayscript').AsString;
         if LtmpStrings.IndexOf(FIBSQL.FieldByName('name').AsString) = -1 then
           LtmpStrings.Add(FIBSQL.FieldByName('name').AsString);
@@ -840,19 +843,19 @@ begin
           // Добавляем имя ф-ции
           Index := LNameList.IndexOf(LtmpStrings[I]);
           if Index = -1 then
-            LNameList.AddObject(LtmpStrings[I], TObject(LID))
+            LNameList.AddObject(LtmpStrings[I], TID2TObject(LID, cEmptyContext))
           else
           begin
             ErrorItem := AddErrorOrHint(vbcError);
 
             ErrorItem.Msg := Format(MSG_ERROR_UNINAME,
-              [LtmpStrings[I], Integer(LNameList.Objects[Index])]);
+              [LtmpStrings[I], TID264(GetTID(LNameList.Objects[Index], cEmptyContext))]);
 
             // Добавить поиск строки
             ErrorItem.Line := 0;
 
             ErrorItem.SFID := LID;
-            ErrorItem.ReferenceToSF := Integer(LNameList.Objects[Index]);
+            ErrorItem.ReferenceToSF := GetTID(LNameList.Objects[Index], cEmptyContext);
           end;
 
           Index := LApplNameList.IndexOf(LtmpStrings[I]);
@@ -861,13 +864,13 @@ begin
             ErrorItem := AddErrorOrHint(vbcHint);
 
             ErrorItem.Msg := Format(MSG_HINT,
-              [LtmpStrings[I], Integer(LApplNameList.Objects[Index])]);
+              [LtmpStrings[I], TID264(GetTID(LApplNameList.Objects[Index], cEmptyContext))]);
 
             // Добавить поиск строки
             ErrorItem.Line := 0;
 
             ErrorItem.SFID := LID;
-            ErrorItem.ReferenceToSF := Integer(LApplNameList.Objects[Index]);
+            ErrorItem.ReferenceToSF := GetTID(LApplNameList.Objects[Index], cEmptyContext);
           end;
         end;
 
@@ -903,7 +906,8 @@ end;
 
 procedure TgsVBCompiler.CreateScriptNameList;
 var
-  LastModuleCode, I, LID: Integer;
+  I: Integer;
+  LastModuleCode, LID: TID;
   LNameList, LtmpStrings: TStringList;
 begin
   if (FModuleList.Count > 0) and (not FCreateWithError) then
@@ -926,19 +930,19 @@ begin
       while not FIBSQL.Eof do
       begin
         // Добавляем в список модуль
-        if LastModuleCode <> FIBSQL.FieldByName('modulecode').AsInteger then
+        if LastModuleCode <> GetTID(FIBSQL.FieldByName('modulecode')) then
         begin
-          LastModuleCode := FIBSQL.FieldByName('modulecode').AsInteger;
+          LastModuleCode := GetTID(FIBSQL.FieldByName('modulecode'));
           LNameList := AddModule(LastModuleCode);
         end;
-        LID := FIBSQL.FieldByName('id').AsInteger;
+        LID := GetTID(FIBSQL.FieldByName('id'));
 
         LtmpStrings.Text := FIBSQL.FieldByName('displayscript').AsString;
 
         // Добавляем имена внутренних ф-ций
         for I := 0 to LtmpStrings.Count - 1 do
         try
-          LNameList.AddObject(LtmpStrings[I], Pointer(LID));
+          LNameList.AddObject(LtmpStrings[I], TID2Pointer(LID, cEmptyContext));
         except
           // Может быть, что уже есть повторяющиеся имена,
           // продолжаем запись имен и ставим флаг, что список создан с ошибкой
@@ -978,10 +982,10 @@ var
   NameIndex, I: Integer;
   LNameInModuleList: TStringList;
   LNameInFuncList: TStrings;
-  LSFModule, LSFID: Integer;
+  LSFModule, LSFID: TID;
   ErrorItem: TgdCompileItem;
 
-  procedure  NotUniqueExcept(const CheckID: Integer; CompileType: TVBCompileType;
+  procedure  NotUniqueExcept(const CheckID: TID; CompileType: TVBCompileType;
     const ErrorName: String; const LineNum: Integer);
   var
     NErrorItem: TgdCompileItem;
@@ -992,9 +996,9 @@ var
       NErrorItem.AutoClear := True;
       case CompileType of
         vbcError:
-          NErrorItem.Msg := Format(MSG_ERROR_UNINAME, [ErrorName, CheckID]);
+          NErrorItem.Msg := Format(MSG_ERROR_UNINAME, [ErrorName, TID264(CheckID)]);
         vbcHint:
-          NErrorItem.Msg := Format(MSG_HINT,  [ErrorName, CheckID]);
+          NErrorItem.Msg := Format(MSG_HINT,  [ErrorName, TID264(CheckID)]);
       end;
       NErrorItem.Line := LineNum;
       NErrorItem.SFID := LSFID;
@@ -1002,7 +1006,7 @@ var
     end;
   end;
 
-  procedure CompileInModule(const ModuleCode: Integer; CompileType: TVBCompileType);
+  procedure CompileInModule(const ModuleCode: TID; CompileType: TVBCompileType);
   var
     CI: Integer;
   begin
@@ -1026,8 +1030,8 @@ var
             while (NameIndex < LNameInModuleList.Count) and
               (AnsiUpperCase(LNameInModuleList[NameIndex]) = LNameInFuncList[CI]) do
             begin
-              NotUniqueExcept(Integer(LNameInModuleList.Objects[NameIndex]),
-                CompileType, LNameInFuncList[CI], Integer(LNameInFuncList.Objects[CI]));
+              NotUniqueExcept(GetTID(LNameInModuleList.Objects[NameIndex], cEmptyContext),
+                CompileType, LNameInFuncList[CI], GetTID(LNameInFuncList.Objects[CI], cEmptyContext));
               Inc(NameIndex);
             end;
           end;
@@ -1043,7 +1047,7 @@ begin
 
   with gdcFunction do
   begin
-    LSFID := FieldByName('id').AsInteger;
+    LSFID := GetTID(FieldByName('id'));
     for I := 0 to FInternalSciptNameList.Count - 1 do
     begin
       if FPredefinedNames.IndexOf(FInternalSciptNameList[I]) > -1 then
@@ -1057,7 +1061,7 @@ begin
       end;
     end;
 
-    LSFModule := FieldByName('modulecode').AsInteger;
+    LSFModule := GetTID(FieldByName('modulecode'));
     LNameInFuncList := FInternalSciptNameList;
     if LSFModule <> OBJ_APPLICATION then
     begin
@@ -1119,7 +1123,7 @@ begin
   end;
 end;
 
-function  TgsVBCompiler.AddModule(const ModuleCode: Integer): TStringList;
+function  TgsVBCompiler.AddModule(const ModuleCode: TID): TStringList;
 begin
   Result := TStringList.Create;
   Result.Sorted := True;
@@ -1127,8 +1131,8 @@ begin
   FModuleList.AddObject(ModuleCode, Result);
 end;
 
-procedure TgsVBCompiler.DeleteFuncInfo(const ModuleCode: Integer;
-  const FunctionKey: Integer; const DeletteeList: TStrings);
+procedure TgsVBCompiler.DeleteFuncInfo(const ModuleCode: TID;
+  const FunctionKey: TID; const DeletteeList: TStrings);
 var
   I: Integer;
   ModuleNameList: TStringList;
@@ -1143,7 +1147,7 @@ begin
   I := 0;
   while I < ModuleNameList.Count do
   begin
-    if Integer(ModuleNameList.Objects[I]) = FunctionKey then
+    if GetTID(ModuleNameList.Objects[I], cEmptyContext) = FunctionKey then
     begin
       if DeletteeList <> nil then
         DeletteeList.AddObject(ModuleNameList[I], ModuleNameList.Objects[I]);
@@ -1155,32 +1159,32 @@ end;
 
 procedure TgsVBCompiler.AddFuncInfo(const gdcFunction: TgdcCustomFunction);
 var
-  I, SFID, ModuleCode: Integer;
+  I: Integer;
+  SFID, ModuleCode: TID;
   ModuleNameList: TStringList;
   NameList: TStrings;
 begin
   if gdcFunction = nil then
     Exit;
-
+	
   with gdcFunction do
   begin
     // получаем список имен
-    ModuleCode := FieldByName('modulecode').AsInteger;
+    ModuleCode := GetTID(FieldByName('modulecode'));
     I := FModuleList.IndexOf(ModuleCode);
     if I = -1 then
       ModuleNameList := AddModule(ModuleCode)
     else
       ModuleNameList := TStringList(FModuleList.ObjectByIndex[I]);
-
     // добавляем имена
-    SFID := FieldByName('id').AsInteger;
+    SFID := GetTID(FieldByName('id'));
     if Length(Trim(FieldByName('displayscript').AsString)) > 0 then
     begin
       NameList := TStringList.Create;
       try
         NameList.Text := FieldByName('displayscript').AsString;
         for I := 0 to NameList.Count - 1 do
-          ModuleNameList.AddObject(NameList[I], TObject(SFID));
+          ModuleNameList.AddObject(NameList[I], TID2TObject(SFID, cEmptyContext));
       finally
         NameList.Free;
       end;
@@ -1188,7 +1192,7 @@ begin
   end;
 end;
 
-procedure TgsVBCompiler.AddNameList(const ModuleCode: Integer;
+procedure TgsVBCompiler.AddNameList(const ModuleCode: TID;
   NameList: TStrings);
 var
   I: Integer;
@@ -1214,7 +1218,7 @@ begin
 end;
 
 function TgsVBCompiler.CheckName(const Name: String;
-  const ModuleCode: Integer): Boolean;
+  const ModuleCode: TID): Boolean;
 var
   NameIndex: Integer;
 begin
@@ -1237,4 +1241,7 @@ finalization
   UnregisterGdcClass(TgdcCustomFunction);
   FreeAndNil(_VBCompiler);
 end.
+
+
+
 

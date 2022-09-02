@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 {++
 
@@ -26,7 +27,7 @@ interface
 
 uses
   forms, controls, contnrs, classes, messages, dlg_gsResizer_Components_unit,
-  sysutils, typinfo, ActnList;
+  sysutils, typinfo, ActnList, gdcBaseInterface;
 
 const
   ATCOMPONENT_PREFIX = 'usrat_';
@@ -150,8 +151,8 @@ type
 
   TChangedEvent = class
   private
-    FOldFunctionID: integer;
-    FNewFunctionID: integer;
+    FOldFunctionID: TID;
+    FNewFunctionID: TID;
     FEventName: string;
     FComp: TComponent;
     FFunctionName: string;
@@ -159,15 +160,15 @@ type
     property Comp: TComponent read FComp write FComp;
     property EventName: string read FEventName write FEventName;
     property FunctionName: string read FFunctionName write FFunctionName;
-    property OldFunctionID: integer read FOldFunctionID write FOldFunctionID;
-    property NewFunctionID: integer read FNewFunctionID write FNewFunctionID;
+    property OldFunctionID: TID read FOldFunctionID write FOldFunctionID;
+    property NewFunctionID: TID read FNewFunctionID write FNewFunctionID;
   end;
 
   TChangedEventList = class(TObjectList)
   private
     function GetItem(const Index: Integer): TChangedEvent;
   public
-    function  Add(AComp: TComponent; AEvent: string; ANewID: integer; AName: string): Integer;
+    function  Add(AComp: TComponent; AEvent: string; ANewID: TID; AName: string): Integer;
     function  FindByCompAndEvent(AComp: TComponent; AEvent: string): integer; overload;
     function  FindByCompAndEvent(AName: string; AEvent: string): integer; overload;
     property  Items[const Index: Integer]: TChangedEvent read GetItem; default;
@@ -277,7 +278,7 @@ type
     property ResizersList: TObjectList read GetResizerList;
 
     procedure ComponentNameChanged(AComponent: TComponent; AOldValue, ANewValue: TComponentName);
-    procedure EventFunctionChanged(AComp: TComponent; AEvent: string; ANewID: integer; AName: string);
+    procedure EventFunctionChanged(AComp: TComponent; AEvent: string; ANewID: TID; AName: string);
     procedure CheckForEventChanged(AComp: TComponent; SL: TStringList);
 
   end;
@@ -743,7 +744,7 @@ end;
 
 { TChangedEventList }
 
-function TChangedEventList.Add(AComp: TComponent; AEvent: string; ANewID: integer; AName: string): Integer;
+function TChangedEventList.Add(AComp: TComponent; AEvent: string; ANewID: TID; AName: string): Integer;
 var
   ceEvent: TChangedEvent;
   EvtItem: TEventItem;

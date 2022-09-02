@@ -1,7 +1,7 @@
 object BaseAddInformation: TBaseAddInformation
-  Left = 381
+  Left = 640
   Height = 240
-  Top = 301
+  Top = 60
   Width = 320
   BorderStyle = bsNone
   Caption = 'Form1'

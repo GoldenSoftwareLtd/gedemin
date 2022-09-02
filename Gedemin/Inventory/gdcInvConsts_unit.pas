@@ -26,7 +26,7 @@ unit gdcInvConsts_unit;
 
 interface
 
-uses Classes;
+uses Classes, gdcBaseInterface;
 
 const
   //
@@ -107,7 +107,7 @@ const
   );
 
 type
-  TgdcMCOPredefined = array of Integer;
+  TgdcMCOPredefined = array of TID;
 
   // Структура используется при определении атрибута
   // отвечающего за источник или получателя ТМЦ
@@ -128,8 +128,8 @@ type
 
     procedure Assign(AnObject: TgdcInvMovementContactOption);
     procedure GetProperties(ASL: TStrings);
-    procedure AddPredefined(const AnID: Integer);
-    procedure AddSubPredefined(const AnID: Integer);
+    procedure AddPredefined(const AnID: TID);
+    procedure AddSubPredefined(const AnID: TID);
     procedure Clear;
   end;
 
@@ -169,7 +169,7 @@ const
 
 type
   // Список резервных складов
-  TgdcInvReserveInvents = array of Integer;
+  TgdcInvReserveInvents = array of TID;
 
   // Вид сохранения позиции (документ или одна позиция)
   TgdcInvPositionSaveMode = (ipsmDocument, ipsmPosition);
@@ -253,8 +253,8 @@ type
   // Запись для хранения поля прайс-листа
   TgdcInvPriceField = record
     FieldName: String[31];    // Наименование поля
-    CurrencyKey: Integer;     // Тип валюты
-    ContactKey: Integer;      // Тип контакта
+    CurrencyKey: TID;     // Тип валюты
+    ContactKey: TID;      // Тип контакта
   end;
 
   // Список полей прайс-листа
@@ -277,17 +277,17 @@ uses
 
 { TgdcInvMovementContactOption }
 
-procedure TgdcInvMovementContactOption.AddPredefined(const AnID: Integer);
+procedure TgdcInvMovementContactOption.AddPredefined(const AnID: TID);
 begin
   SetLength(Predefined, Length(Predefined) + 1);
   Predefined[High(Predefined)] := AnID;
 end;
 
 procedure TgdcInvMovementContactOption.AddSubPredefined(
-  const AnID: Integer);
+  const AnID: TID);
 begin
   SetLength(SubPredefined, Length(SubPredefined) + 1);
-  Predefined[High(SubPredefined)] := AnID;
+  SubPredefined[High(SubPredefined)] := AnID;
 end;
 
 procedure TgdcInvMovementContactOption.Assign(

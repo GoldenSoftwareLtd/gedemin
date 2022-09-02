@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_AcctConfig_unit;
 
 interface
@@ -24,13 +26,13 @@ type
     FCurrDecDigits: Integer;
     FNcuDecDigits: Integer;
     FCurrScale: Integer;
-    FCurrKey: Integer;
+    FCurrKey: TID;
     FNcuScale: Integer;
     FQuantity: string;
     FAnalytics: string;
     FExtendedFields: boolean;
     FAllHoldingCompanies: Boolean;
-    FCompanyKey: Integer;
+    FCompanyKey: TID;
     FStreamVersion: Integer;
     FGridSettings: TStream;
     FInEQ: boolean;
@@ -43,7 +45,7 @@ type
     procedure SetIncludeInternalMovement(const Value: boolean);
     procedure SetIncSubAccounts(const Value: boolean);
     procedure SetCurrDecDigits(const Value: Integer);
-    procedure SetCurrKey(const Value: Integer);
+    procedure SetCurrKey(const Value: TID);
     procedure SetCurrScale(const Value: Integer);
     procedure SetInCurr(const Value: boolean);
     procedure SetInNcu(const Value: boolean);
@@ -54,7 +56,7 @@ type
     procedure SetExtendedFields(const Value: boolean);
     function GetAccounts: string;
     procedure SetAllHoldingCompanies(const Value: Boolean);
-    procedure SetCompanyKey(const Value: Integer);
+    procedure SetCompanyKey(const Value: TID);
     function GetGridSettings: TStream;
     procedure SetEQDecDigits(const Value: Integer);
     procedure SetEQScale(const Value: Integer);
@@ -87,7 +89,7 @@ type
     property InCurr: boolean read FInCurr write SetInCurr;
     property CurrDecDigits: Integer read FCurrDecDigits write SetCurrDecDigits;
     property CurrScale: Integer read FCurrScale write SetCurrScale;
-    property CurrKey: Integer read FCurrKey write SetCurrKey;
+    property CurrKey: TID read FCurrKey write SetCurrKey;
 
     property InEQ: boolean read FInEQ write SetInEQ;
     property EQDecDigits: Integer read FEQDecDigits write SetEQDecDigits;
@@ -100,7 +102,7 @@ type
     property Analytics: string read FAnalytics write SetAnalytics;
     property ExtendedFields: boolean read FExtendedFields write SetExtendedFields;
 
-    property CompanyKey: Integer read FCompanyKey write SetCompanyKey;
+    property CompanyKey: TID read FCompanyKey write SetCompanyKey;
     property AllHoldingCompanies: Boolean read FAllHoldingCompanies write SetAllHoldingCompanies;
     property GridSettings: TStream read GetGridSettings;
   end;
@@ -220,7 +222,7 @@ type
   end;
 
 function LoadConfigFromStream(Str: TStream): TBaseAcctConfig;
-function LoadConfigById(Id: Integer): TBaseAcctConfig;
+function LoadConfigById(Id: TID): TBaseAcctConfig;
 procedure SaveConfigToStream(const Config: TBaseAcctConfig; const Stream: TStream);
 
 implementation
@@ -234,7 +236,7 @@ begin
   Config.SaveToStream(Stream);
 end;
 
-function LoadConfigById(Id: Integer): TBaseAcctConfig;
+function LoadConfigById(Id: TID): TBaseAcctConfig;
 var
   SQL: TIBSQL;
   Str: TStream;
@@ -244,7 +246,7 @@ begin
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQL.SQL.text := 'SELECT * FROM ac_acct_config WHERE id = :id';
-    SQL.ParamByName(fnId).AsInteger := id;
+    SetTID(SQL.ParamByName(fnId), id);
     SQL.ExecQuery;
 
     if SQL.RecordCount > 0 then
@@ -259,7 +261,7 @@ begin
         Str.Free;
       end;
     end else
-      raise Exception.Create(Format('Не найдена конфигурация с ИД: %d', [id]))
+      raise Exception.Create(Format('Не найдена конфигурация с ИД: %d', [TID264(id)]))
   finally
     SQl.Free;
   end;
@@ -347,10 +349,11 @@ end;
 
 procedure TBaseAcctConfig.LoadFromStream(const Stream: TStream);
 var
-  Size: Integer;
+  Size, LenID: Integer;
 begin
   ResetSize;
   Stream.Read(FStreamVersion, SizeOf(FStreamVersion));
+  LenID := GetLenIDinStream(@Stream);
   if FStreamVersion >= 0 then
   begin
     FAccounts := ReadStringFromStream(Stream);
@@ -364,7 +367,7 @@ begin
     FInCurr := ReadBooleanFromStream(Stream);
     FCurrDecDigits := ReadIntegerFromStream(Stream);
     FCurrScale := ReadIntegerFromStream(Stream);
-    FCurrKey := ReadIntegerFromStream(Stream);
+    Stream.ReadBuffer(FCurrKey, LenID);
 
     if FStreamVersion > 6 then begin
       FInEQ := ReadBooleanFromStream(Stream);
@@ -381,7 +384,7 @@ begin
 
       if FStreamVersion >= 2 then
       begin
-        FCompanyKey := ReadIntegerFromStream(Stream);
+        Stream.ReadBuffer(FCompanyKey, LenID);
         FAllHoldingCompanies := ReadBooleanFromStream(Stream);
       end;
     end;
@@ -427,10 +430,11 @@ end;
 
 procedure TBaseAcctConfig.SaveToStream(const Stream: TStream);
 var
-  SV: Integer;
+  SV, LenID: Integer;
 begin
   SV := StreamVersion;
   Stream.Write(SV, SizeOf(SV));
+  LenID := SetLenIDinStream(@Stream);
   SaveStringToStream(FAccounts, Stream);
   Stream.Write(FIncSubAccounts, SizeOf(FIncSubAccounts));
   Stream.Write(FIncludeInternalMovement, SizeOf(FIncludeInternalMovement));
@@ -442,7 +446,7 @@ begin
   SaveBooleanToStream(FInCurr, Stream);
   SaveIntegerToStream(FCurrDecDigits, Stream);
   SaveIntegerToStream(FCurrScale, Stream);
-  SaveIntegerToStream(FCurrKey, Stream);
+  Stream.Write(FCurrKey, LenID);
 
   SaveBooleanToStream(FInEQ, Stream);
   SaveIntegerToStream(FEQDecDigits, Stream);
@@ -452,7 +456,7 @@ begin
   SaveStringToStream(FAnalytics, Stream);
   SaveBooleanToStream(FExtendedFields, Stream);
 
-  SaveIntegerToStream(FCompanyKey, Stream);
+  Stream.Write(FCompanyKey, LenID);
   SaveBooleanToStream(FAllHoldingCompanies, Stream);
 
   SaveIntegerToStream(GridSettings.Size, Stream);
@@ -506,7 +510,7 @@ begin
   FCurrDecDigits := Value;
 end;
 
-procedure TBaseAcctConfig.SetCurrKey(const Value: Integer);
+procedure TBaseAcctConfig.SetCurrKey(const Value: TID);
 begin
   FCurrKey := Value;
 end;
@@ -567,7 +571,7 @@ begin
   FAllHoldingCompanies := Value;
 end;
 
-procedure TBaseAcctConfig.SetCompanyKey(const Value: Integer);
+procedure TBaseAcctConfig.SetCompanyKey(const Value: TID);
 begin
   FCompanyKey := Value;
 end;

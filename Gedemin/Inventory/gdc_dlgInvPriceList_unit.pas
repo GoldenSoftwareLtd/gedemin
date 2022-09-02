@@ -437,7 +437,7 @@ begin
         lblCurrency.Visible := True;
         lblCurrencyInfo.Visible := True;
 
-        FCurrency.ParamByName('ID').AsInteger := DocumentLine.LineFields[I].CurrencyKey;
+        SetTID(FCurrency.ParamByName('ID'), DocumentLine.LineFields[I].CurrencyKey);
         FCurrency.ExecQuery;
 
         lblCurrency.Caption := FCurrency.Fields[0].AsString;
@@ -473,7 +473,7 @@ begin
       begin
         {„тобы добавление шло по пор€дку делаем Append, а не Insert}
         DocumentLine.Append;
-        DocumentLine.FieldByName('goodkey').AsInteger := V[I];
+        SetTID(DocumentLine.FieldByName('goodkey'), GetTID(V[I]));
         DocumentLine.UpdateGoodNames;
         DocumentLine.Post;
       end;

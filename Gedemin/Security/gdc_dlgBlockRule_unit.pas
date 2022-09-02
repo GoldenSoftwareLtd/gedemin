@@ -1,3 +1,5 @@
+// ShlTanya, 06.02.2019
+
 unit gdc_dlgBlockRule_unit;
 
 interface

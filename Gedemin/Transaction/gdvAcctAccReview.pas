@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdvAcctAccReview;
 
 interface
@@ -202,7 +204,7 @@ begin
           begin
             for I := 0 to ibsql.Current.Count - 1 do
             begin
-              if ibsql.Current[I].AsInteger > 0 then
+              if GetTID(ibsql.Current[I]) > 0 then
               begin
                 F := atDatabase.FindRelationField(AC_ENTRY, ibsql.Current[I].Name);
                 if Assigned(F) then
@@ -290,7 +292,7 @@ var
       '    ac_entry_balance bal '#13#10 +
       '  WHERE '#13#10 +
       '    ' + AccWhereBalance + CompanySBalance +
-        IIF(FCurrSumInfo.Show and (FCurrkey > 0), '    AND bal.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
+        IIF(FCurrSumInfo.Show and (FCurrkey > 0), '    AND bal.currkey = ' + TID2S(FCurrkey) + #13#10, '') +
         IIF(BalanceCondition <> '', ' AND ' + BalanceCondition + #13#10, '');
       if FEntryBalanceDate <> ADate then
       begin
@@ -334,7 +336,7 @@ var
             '    AND e.entrydate < :begindate ';
         end;
         if FCurrSumInfo.Show and (FCurrkey > 0) then
-          Result := Result + #13#10 + '    AND e.currkey = ' + IntToStr(FCurrkey);
+          Result := Result + #13#10 + '    AND e.currkey = ' + TID2S(FCurrkey);
 
         if EntryCondition > '' then
           Result := Result + ' AND ' + EntryCondition;
@@ -444,7 +446,7 @@ begin
             ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
         ' WHERE ' + AccWhere + '   e.entrydate < :begindate AND ' + CompanyS +
           IIF(FCurrSumInfo.Show and (FCurrkey > 0),
-            ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
+            ' AND e.currkey = ' + TID2S(FCurrkey) + #13#10, '') +
           IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '') +
         ' GROUP BY 1';
     end;
@@ -506,7 +508,7 @@ begin
         ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart '#13#10, '') +
     ' WHERE ' + AccWhere +
     '   e.entrydate >= :begindate AND e.entrydate <= :enddate AND ' + CompanyS +
-      IIF(FCurrSumInfo.Show and (FCurrkey > 0), ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
+      IIF(FCurrSumInfo.Show and (FCurrkey > 0), ' AND e.currkey = ' + TID2S(FCurrkey) + #13#10, '') +
       InternalMovementClause('e') +
       IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition + #13#10, '') +
     ' GROUP BY 1 ';
@@ -575,7 +577,7 @@ begin
       '        e.entrydate >= :begindate '#13#10 +
       '        AND e.entrydate <= :enddate '#13#10 +
         IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '') +
-        IIF(FCurrSumInfo.Show and (FCurrkey > 0), ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
+        IIF(FCurrSumInfo.Show and (FCurrkey > 0), ' AND e.currkey = ' + TID2S(FCurrkey) + #13#10, '') +
         InternalMovementClause +
       '    ) entry '#13#10 +
       '    LEFT JOIN ac_entry corr_entry ON corr_entry.recordkey = entry.recordkey AND corr_entry.accountpart <> entry.accountpart '#13#10 +
@@ -634,7 +636,7 @@ begin
       InternalMovementClause,
       [FNcuSumInfo.Scale, FNcuSumInfo.DecDigits, FCurrSumInfo.Scale,
        FCurrSumInfo.DecDigits, FEQSumInfo.Scale, FEQSumInfo.DecDigits]) +
-      IIF(FCurrSumInfo.Show and (FCurrkey > 0), ' AND e.currkey = ' + IntToStr(FCurrkey), '') +
+      IIF(FCurrSumInfo.Show and (FCurrkey > 0), ' AND e.currkey = ' + TID2S(FCurrkey), '') +
       IIF(FCorrAccounts.Count > 0,
         IIF(FCorrDebit,
           ' AND e1.accountkey IN (' + IDList(FCorrAccounts) + ') AND e1.accountpart = ''D''',
@@ -751,13 +753,13 @@ begin
       if Value > '' then
       begin
         FAccounts.Clear;
-        AddAccount(StrToInt(Value));
+        AddAccount(GetTID(Value));
       end;
 
       Value := S.Values['CURRKEY'];
       if Value > '' then
       begin
-        FCurrkey := StrToInt(Value);
+        FCurrkey := GetTID(Value);
         FCurrSumInfo.Show := True;
       end;
     finally

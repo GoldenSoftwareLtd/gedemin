@@ -1,3 +1,5 @@
+// ShlTanya, 10.03.2019
+
 unit flt_dlgInputFormula_unit;
 
 interface
@@ -28,14 +30,14 @@ type
     procedure actProcedureExecute(Sender: TObject);
     procedure btnSQLEditorClick(Sender: TObject);
   private
-    FComponentKey: Integer;
+    FComponentKey: TID;
   public
     // Ёти параметры необходимо присваивать перед вызовом процедуры
     PIBDatabase: TIBDatabase;
     PIBTransaction: TIBTransaction;
 
     // ƒаем пользователю написать свои услови€ или отредактировать запрос
-    function InputFormula(var TextFormula: String; const AnSortList, AnFunctionList: TStrings; const AnComponentKey: Integer): Boolean;
+    function InputFormula(var TextFormula: String; const AnSortList, AnFunctionList: TStrings; const AnComponentKey: TID): Boolean;
   end;
 
 var
@@ -54,7 +56,7 @@ uses
 
 {$R *.DFM}
 
-function TdlgInputFormula.InputFormula(var TextFormula: String; const AnSortList, AnFunctionList: TStrings; const AnComponentKey: Integer): Boolean;
+function TdlgInputFormula.InputFormula(var TextFormula: String; const AnSortList, AnFunctionList: TStrings; const AnComponentKey: TID): Boolean;
 begin
   // ѕрисваиваем локальные переменные
   Result := False;

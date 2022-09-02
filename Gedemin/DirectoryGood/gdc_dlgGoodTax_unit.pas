@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit gdc_dlgGoodTax_unit;
 
 interface

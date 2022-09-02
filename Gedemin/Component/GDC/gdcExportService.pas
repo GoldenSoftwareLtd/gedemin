@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcExportService;
 
 interface
@@ -127,7 +129,7 @@ type
   TExportWriterFactory = class
     class function CreateWriter(AWriter: TExportWriter;
       AFilename: string = '';
-      ASMTPKey: integer = -1;
+      ASMTPKey: TID = -1;
       ARecipients: string = '';
       ASubject: string = '';
       ABody: string = '';
@@ -156,7 +158,7 @@ type
   end;
 
   TExportWriterEMail = class(TInterfacedObject, IExportWriter)
-    constructor Create(AFilename: TFileName; ASMTPKey: integer; ARecipients, ASubject, ABody: string;
+    constructor Create(AFilename: TFileName; ASMTPKey: TID; ARecipients, ASubject, ABody: string;
       AShowSendForm: boolean = false);
     destructor Destroy(); override;
     procedure SetBulkWriteMode(ABulkWriteMode: boolean);
@@ -165,7 +167,7 @@ type
     procedure Close();
   private
     FFileName: TFilename;
-    FSMTPKey: integer;
+    FSMTPKey: TID;
     FRecipients: string;
     FSubject: string;
     FBody: string;
@@ -275,7 +277,7 @@ type
                     ARecipients:string = '';
                     ASubject: string = 'Ёкспорт данных';
                     ABody: string = '';
-                    ASMTPKey: integer = -1;
+                    ASMTPKey: TID = -1;
                     ACallback: TExportProcessCallback = nil): boolean;
 
     constructor Create(const ASrcConnector: ISrcConnector);
@@ -303,7 +305,7 @@ begin
   Terminate := (MessageDlg('Ёкспортировано записей: '+ IntToStr(RecordsCount)+#13#10+ ' ѕродолжить?', mtConfirmation, mbOKCancel, 0) <> 1);
 end;
 
-procedure SendEmailWithAttachment(AFilename: TFileName; ASMTPKey: integer; ARecipients, ASubject, ABody: string;
+procedure SendEmailWithAttachment(AFilename: TFileName; ASMTPKey: TID; ARecipients, ASubject, ABody: string;
   AShowSendForm: boolean = false);
 begin
   if AShowSendForm then
@@ -711,7 +713,7 @@ class function TExportService.DoExportWithParams(
                 ARecipients:string = '';
                 ASubject: string = 'Ёкспорт данных';
                 ABody: string = '';
-                ASMTPKey: integer = -1;
+                ASMTPKey: TID = -1;
                 ACallback: TExportProcessCallback = nil): boolean;
 
 var
@@ -755,7 +757,7 @@ var SrcFields: TSrcFields;
     Writer: TExportWriter;
     Filename: TFileName;
     Recipients, Subject, Body: string;
-    SMTPKey: integer;
+    SMTPKey: TID;
     iFormater: IExportFormater;     // об€зательно объ€вл€ем как интерфейсные типы
     iWriter: IExportWriter;
     ExportService : TExportService;
@@ -763,7 +765,7 @@ var SrcFields: TSrcFields;
 begin
   iConnector:= TSrcConnectorFactory.CreateConnector(Sender);
   SrcFields := iConnector.GetSrcFields;
-  FieldsTitle := ftLName;
+  FieldsTitle := ftTitleGrid;
   Writer := ewrClipboard;
   Formater := efmTabText;
   Filename := 'd:\export.txt';
@@ -812,9 +814,9 @@ begin
   SetLength(ExportFields, 0);
 
   if Result then
-    MessageBox(0, 'ƒанные скопированы', 'Ёкспорт данных', mb_Ok)
+    MessageBox(0, 'ƒанные успешно скопированы!', 'Ёкспорт данных', mb_Ok)
   else
-    MessageBox(0, '¬о врем€ копировани€ данных произошла ошибка', 'Ёкспорт данных', mb_Ok)
+    MessageBox(0, '¬о врем€ копировани€ данных произошла ошибка!', 'Ёкспорт данных', mb_Ok)
 end;
 
 class function TExportService.ShowSettingsForm(ASrcFields: TSrcFields; var AExportFields: TExportFields;
@@ -899,7 +901,7 @@ begin
           + trim(FormatFloat(AExportFields[i].DisplayFormat , ADataSet.fieldbyname(AExportFields[i].FieldName).AsFloat))
           + AFieldsSeparator;
       end;
-      ftWord, ftInteger, ftSmallint: begin
+      ftWord, ftInteger, ftSmallint, ftLargeInt: begin
         result:= result
           + trim(ADataSet.fieldbyname(AExportFields[i].FieldName).AsString)
           + AFieldsSeparator;
@@ -977,7 +979,7 @@ begin
   for i:= 0 to High(AExportFields) do begin
     result := result + ' <Cell ss:StyleID="Column' + inttostr(i) + '">';
     case ADataSet.fieldbyname(AExportFields[i].FieldName).DataType of
-      ftFloat, ftCurrency, ftBCD, ftWord, ftInteger, ftSmallint: begin
+      ftFloat, ftCurrency, ftBCD, ftWord, ftInteger, ftSmallint, ftLargeInt: begin
         result := result + '<Data ss:Type="Number">' + ADataSet.fieldbyname(AExportFields[i].FieldName).Asstring
       end;
       ftDate, ftDateTime: begin
@@ -1031,7 +1033,7 @@ begin
     DisplayFormat := AExportFields[i].DisplayFormat;
     StrColumnsStyle := StrColumnsStyle + ' <Style ss:ID="Column' + inttostr(i) + '">' + EOL;
     case ADataset.FieldByName(AExportFields[i].FieldName).DataType of
-      ftFloat, ftCurrency, ftBCD, ftWord, ftInteger, ftSmallint: begin
+      ftFloat, ftCurrency, ftBCD, ftWord, ftInteger, ftSmallint, ftLargeInt: begin
         StrColumnsStyle := StrColumnsStyle
                           + '  <Alignment ss:Horizontal="Right" ss:Vertical="Top" ss:WrapText="0"/>' + EOL
       end;
@@ -1209,7 +1211,7 @@ end;
 { TExportWriterFactory }
 
 class function TExportWriterFactory.CreateWriter(AWriter: TExportWriter; AFilename: string = '';
-  ASMTPKey: integer = -1; ARecipients: string = ''; ASubject: string = ''; ABody: string = '';
+  ASMTPKey: TID = -1; ARecipients: string = ''; ASubject: string = ''; ABody: string = '';
   AShowSendForm: boolean = false): IExportWriter;
 begin
   case AWriter of
@@ -1305,7 +1307,7 @@ end;
 
 { TExportWriterEMail }
 
-constructor TExportWriterEMail.Create(AFilename: TFileName; ASMTPKey: integer;
+constructor TExportWriterEMail.Create(AFilename: TFileName; ASMTPKey: TID;
   ARecipients, ASubject, ABody: string; AShowSendForm: boolean = false);
 begin
   FFileName := AFilename;

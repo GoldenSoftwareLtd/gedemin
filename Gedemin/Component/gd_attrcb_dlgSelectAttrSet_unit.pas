@@ -1,6 +1,8 @@
+// ShlTanya, 20.02.2019, #4135
+
  {++
    Project ADDRESSBOOK
-   Copyright © 2000- by Golden Software
+   Copyright © 2000-2019 by Golden Software
 
    Модуль
 
@@ -28,7 +30,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   IBDatabase, Db, IBCustomDataSet, IBQuery, ComCtrls, ExtCtrls, StdCtrls,
-  Menus, ActnList, gd_security, IBSQL, ImgList;
+  Menus, ActnList, gd_security, IBSQL, ImgList, gdcBaseInterface;
 
 const
   TreeLeftBorder = 'LB';
@@ -88,21 +90,24 @@ type
     procedure actEditUpdate(Sender: TObject);
   private
     FIsTree: Boolean;
-    FAttrKey: Integer;
+    FAttrKey: TID;
     FParentList: TList;
     FValueList: TStringList;
 
     procedure ShowAttrSet;
     procedure ShowFind(Qry: Boolean);
     procedure ShowTargetList(SL: TStrings);
-    function CheckValue(StartP, EndP, Value: Integer): Integer;
+    function CheckValue(StartP, EndP, Value: TID): Integer;
     procedure Draw500Item;
+
   public
-    function GetElements(AttrKey: Integer; SetList: TStrings): Boolean;
+    function GetElements(AttrKey: TID; SetList: TStrings; AContext: String): Boolean;
   end;
 
 var
   dlgSelectAttrSet: TdlgSelectAttrSet;
+  //FreeConvertContext вызывается из формы-родителя gd_AttrComboBox
+  FContext: String;
 
   function ValueListCompare(List: TStringList; Index1, Index2: Integer): Integer;
 
@@ -125,8 +130,8 @@ begin
       FParentList.Clear
     else
       while (FParentList.Count > 0) and
-       (ibqryFind.FieldByName('parent').AsInteger <>
-       Integer(TTreeNode(FParentList.Items[FParentList.Count - 1]).Data)) do
+       (GetTID(ibqryFind.FieldByName('parent')) <>
+       GetTID(TTreeNode(FParentList.Items[FParentList.Count - 1]).Data, FContext)) do
         FParentList.Delete(FParentList.Count - 1);
     if FParentList.Count = 0 then
       L := tvAttrSet.Items.Add(nil, ibqryFind.FieldByName('name').AsString)
@@ -138,7 +143,7 @@ begin
     end;
     FParentList.Add(L);
 
-    L.Data := Pointer(ibqryFind.FieldByName('id').AsInteger);
+    L.Data := TID2Pointer(GetTID(ibqryFind.FieldByName('id')), FContext);
 
     Inc(I);
     ibqryFind.Next;
@@ -167,13 +172,13 @@ begin
   ibsqlTarget.SQL.Clear;
 
   ibsqlTarget.SQL.Text := 'SELECT DISTINCT(gg2.id), 0 isinclude, gg2.lb, gg2.name, gg2.parent '
-   + 'FROM gd_attrset gg1, gd_attrset gg2 WHERE gg1.attrkey = ' + IntToStr(FAttrKey)
+   + 'FROM gd_attrset gg1, gd_attrset gg2 WHERE gg1.attrkey = ' + TID2S(FAttrKey)
    + ' AND gg2.attrkey = gg1.attrkey AND gg1.id IN(';
   TempList := TStringList.Create;
   try
     for I := 0 to SL.Count - 1 do
     begin
-      TempList.Add(IntToStr(Integer(SL.Objects[I])));
+      TempList.Add(TID2S(GetTID(SL.Objects[I], FContext)));
       TempList.Add(',');
     end;
     TempList.Strings[TempList.Count - 1] := ')';
@@ -185,7 +190,7 @@ begin
     ibsqlTarget.SQL.Add('UNION');
     ibsqlTarget.SQL.Add('SELECT gg1.id, 1 isinclude, gg1.lb, gg1.name, gg1.parent '
      + ' FROM gd_attrset gg1 ');
-    ibsqlTarget.SQL.Add('WHERE gg1.attrkey = ' + IntToStr(FAttrKey) + ' AND gg1.id IN(');
+    ibsqlTarget.SQL.Add('WHERE gg1.attrkey = ' + TID2S(FAttrKey) + ' AND gg1.id IN(');
     ibsqlTarget.SQL.AddStrings(TempList);
     ibsqlTarget.SQL.Add('ORDER BY 3');
   finally
@@ -205,8 +210,8 @@ begin
         TargetParentList.Clear
       else
         while (TargetParentList.Count > 0) and
-         (ibsqlTarget.FieldByName('parent').AsInteger <>
-         Integer(TTreeNode(TargetParentList.Items[TargetParentList.Count - 1]).Data)) do
+         (GetTID(ibsqlTarget.FieldByName('parent')) <>
+         GetTID(TTreeNode(TargetParentList.Items[TargetParentList.Count - 1]).Data, FContext)) do
           TargetParentList.Delete(TargetParentList.Count - 1);
       if TargetParentList.Count = 0 then
         L := tvTarget.Items.Add(nil, ibsqlTarget.FieldByName('name').AsString)
@@ -218,7 +223,7 @@ begin
       end;
       TargetParentList.Add(L);
 
-      L.Data := Pointer(ibsqlTarget.FieldByName('id').AsInteger);
+      L.Data := TID2Pointer(GetTID(ibsqlTarget.FieldByName('id')), FContext);
       L.ImageIndex := ibsqlTarget.FieldByName('isinclude').AsInteger;
       L.SelectedIndex := ibsqlTarget.FieldByName('isinclude').AsInteger + 2;
 
@@ -241,7 +246,7 @@ begin
   // Запрос
   ibqryFind.Close;
   ibqryFind.SQL.Clear;
-  ibqryFind.SQL.Text := 'SELECT * FROM gd_attrset WHERE attrkey = ' + IntToStr(FAttrKey);
+  ibqryFind.SQL.Text := 'SELECT * FROM gd_attrset WHERE attrkey = ' + TID2S(FAttrKey);
   ibqryFind.SQL.Add('ORDER BY lb');
   ibqryFind.Open;
 
@@ -269,7 +274,7 @@ begin
     ibqryFind.Close;
     ibqryFind.SQL.Clear;
     ibqryFind.SQL.Text := 'SELECT DISTINCT(gg2.id), gg2.name, gg2.parent FROM gd_attrset gg1, '
-      + 'gd_attrset gg2 WHERE gg1.attrkey = ' + IntToStr(FAttrKey)
+      + 'gd_attrset gg2 WHERE gg1.attrkey = ' + TID2S(FAttrKey)
       + {' AND gg2.attrkey = ' + IntToStr(FAttrKey) + }' AND ';
 
     case cbCondition.ItemIndex of
@@ -300,31 +305,32 @@ begin
   end;
 end;
 
-function TdlgSelectAttrSet.CheckValue(StartP, EndP, Value: Integer): Integer;
+function TdlgSelectAttrSet.CheckValue(StartP, EndP, Value: TID): Integer;
 var
   Posit: Integer;
+  Diff: TID;
 begin
   // Функция двоичного поиска в списке
+  Result := -1;
   if StartP > EndP then
-  begin
-    Result := -1;
     Exit;
-  end;
+
   Posit := StartP + (EndP - StartP) div 2;
-  Result := Value - Integer(FValueList.Objects[Posit]);
-  if Result = 0 then
+  Diff := Value - GetTID(FValueList.Objects[Posit], FContext);
+  if Diff = 0 then
     Result := Posit
   else
-    if Result > 0 then
+    if Diff > 0 then
       Result := CheckValue(Posit + 1, EndP, Value)
     else
-      if Result < 0 then
+      if Diff < 0 then
         Result := CheckValue(StartP, Posit - 1, Value);
 end;
 
-function TdlgSelectAttrSet.GetElements(AttrKey: Integer; SetList: TStrings): Boolean;
+function TdlgSelectAttrSet.GetElements(AttrKey: TID; SetList: TStrings; AContext: String): Boolean;
 begin
   FAttrKey := AttrKey;
+  FContext := AContext;
 
   FIsTree := False;
   // Основная функция формы
@@ -356,6 +362,7 @@ begin
   cbCondition.ItemIndex := 0;
   FParentList := TList.Create;
   FValueList := TStringList.Create;
+  FContext := Name;
 end;
 
 procedure TdlgSelectAttrSet.actFindExecute(Sender: TObject);
@@ -388,7 +395,7 @@ begin
   for I := 0 to tvAttrSet.Items.Count - 1 do
     if tvAttrSet.Items[I].Selected then
       if CheckValue(0, FValueList.Count - 1,
-       Integer(tvAttrSet.Items[I].Data)) = -1 then
+       GetTID(tvAttrSet.Items[I].Data, FContext)) = -1 then
       begin
         FValueList.AddObject(tvAttrSet.Items[I].Text, tvAttrSet.Items[I].Data);
         Flag := True;
@@ -403,8 +410,7 @@ end;
 
 function ValueListCompare(List: TStringList; Index1, Index2: Integer): Integer;
 begin
-  // Функция сортировки
-  Result := Integer(List.Objects[Index1]) - Integer(List.Objects[Index2]);
+  Result := GetTID(List.Objects[Index1], FContext) - GetTID(List.Objects[Index2], FContext);
 end;
 
 procedure TdlgSelectAttrSet.actFromExecute(Sender: TObject);
@@ -417,7 +423,7 @@ begin
   for I := tvTarget.Items.Count - 1 downto 0 do
     if tvTarget.Items[I].Selected then
     begin
-      J := CheckValue(0, FValueList.Count - 1, Integer(tvTarget.Items[I].Data));
+      J := CheckValue(0, FValueList.Count - 1, GetTID(tvTarget.Items[I].Data, FContext));
       if J <> -1 then
       begin
         FValueList.Delete(J);
@@ -473,7 +479,7 @@ begin
   with Tgd_dlgAttrElement.Create(Self) do
   try
     SetDatabase(ibqryFind.Database, ibqryFind.Transaction);
-    if EditElement(Integer(tvAttrSet.Selected.Data)) then
+    if EditElement(GetTID(tvAttrSet.Selected.Data, FContext)) then
       tvAttrSet.Selected.Text := dbeName.Text;
   finally
     Free;
@@ -487,7 +493,7 @@ begin
   with Tgd_dlgAttrElement.Create(Self) do
   try
     SetDatabase(ibqryFind.Database, ibqryFind.Transaction);
-    if DeleteElement(Integer(tvAttrSet.Selected.Data)) then
+    if DeleteElement(GetTID(tvAttrSet.Selected.Data, FContext)) then
       tvAttrSet.Selected.Delete;
   finally
     Free;

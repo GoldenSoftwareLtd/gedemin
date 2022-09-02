@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019, 08.10.2019
+
 unit gp_dlgDetailBill_unit;
 
 interface
@@ -28,38 +30,9 @@ type
     bDel: TButton;
     gsdbgrContact: TgsDBGrid;
     cdsListContact: TClientDataSet;
-    cdsListContactContactKey: TIntegerField;
-    cdsListContactContactName: TStringField;
-    cdsListContactDocumentKey: TIntegerField;
-    cdsListContactDocumentNumber: TStringField;
     dsListContact: TDataSource;
     gsdbgrGoodPos: TgsDBGrid;
     cdsGoodPos: TClientDataSet;
-    cdsGoodPosDocRealPosKey: TIntegerField;
-    cdsGoodPosGoodKey: TIntegerField;
-    cdsGoodPosGoodName: TStringField;
-    cdsGoodPosQuantityBase: TIBBCDField;
-    cdsGoodPosQuantityRest: TIBBCDField;
-    cdsGoodPosQuantity1: TIBBCDField;
-    cdsGoodPosQuantity2: TIBBCDField;
-    cdsGoodPosQuantity3: TIBBCDField;
-    cdsGoodPosQuantity4: TIBBCDField;
-    cdsGoodPosQuantity5: TIBBCDField;
-    cdsGoodPosQuantity6: TIBBCDField;
-    cdsGoodPosQuantity7: TIBBCDField;
-    cdsGoodPosQuantity8: TIBBCDField;
-    cdsGoodPosQuantity9: TIBBCDField;
-    cdsGoodPosQuantity10: TIBBCDField;
-    cdsGoodPosQuantity11: TIBBCDField;
-    cdsGoodPosQuantity12: TIBBCDField;
-    cdsGoodPosQuantity13: TIBBCDField;
-    cdsGoodPosQuantity14: TIBBCDField;
-    cdsGoodPosQuantity15: TIBBCDField;
-    cdsGoodPosQuantity16: TIBBCDField;
-    cdsGoodPosQuantity17: TIBBCDField;
-    cdsGoodPosQuantity18: TIBBCDField;
-    cdsGoodPosQuantity19: TIBBCDField;
-    cdsGoodPosQuantity20: TIBBCDField;
     dsGoodPos: TDataSource;
     Panel7: TPanel;
     bOk: TButton;
@@ -80,44 +53,11 @@ type
     ibsqlDocument: TIBSQL;
     ibsqlDocRealization: TIBSQL;
     ibsqlDocRealPos: TIBSQL;
-    cdsGoodPosValueKey: TIntegerField;
-    cdsGoodPosMainQuantity: TIBBCDField;
-    cdsGoodPosTrTypeKey: TIntegerField;
-    cdsListContactFieldName: TStringField;
-    cdsGoodPosWeight: TIBBCDField;
-    cdsGoodPosWeightKey: TIntegerField;
     cdsAmount: TClientDataSet;
-    IntegerField1: TIntegerField;
-    IntegerField2: TIntegerField;
-    StringField1: TStringField;
-    IBBCDField1: TIBBCDField;
-    IBBCDField2: TIBBCDField;
-    IBBCDField3: TIBBCDField;
-    IBBCDField4: TIBBCDField;
-    IBBCDField5: TIBBCDField;
-    IBBCDField6: TIBBCDField;
-    IBBCDField7: TIBBCDField;
-    IBBCDField8: TIBBCDField;
-    IBBCDField9: TIBBCDField;
-    IBBCDField10: TIBBCDField;
-    IBBCDField11: TIBBCDField;
-    IBBCDField12: TIBBCDField;
-    IBBCDField13: TIBBCDField;
-    IBBCDField14: TIBBCDField;
-    IBBCDField15: TIBBCDField;
-    IBBCDField16: TIBBCDField;
-    IBBCDField17: TIBBCDField;
-    IBBCDField18: TIBBCDField;
-    IBBCDField19: TIBBCDField;
-    IBBCDField20: TIBBCDField;
-    IBBCDField21: TIBBCDField;
-    IBBCDField22: TIBBCDField;
     dsAmount: TDataSource;
     PopupMenu1: TPopupMenu;
     actCalcAmount: TAction;
     N1: TMenuItem;
-    cdsGoodPosAmountNCU: TCurrencyField;
-    cdsGoodPosCostNCU: TCurrencyField;
     cbCheckQuantity: TCheckBox;
     FormPlaceSaver1: TFormPlaceSaver;
     ibdsDocRealInfo: TIBDataSet;
@@ -125,28 +65,6 @@ type
     Panel8: TPanel;
     gsdbgrAmount: TgsDBGrid;
     gsDBGrid1: TgsDBGrid;
-    cdsListContactContractKey: TIntegerField;
-    cdsListContactContractName: TStringField;
-    cdsGoodPosCostNCU1: TIBBCDField;
-    cdsGoodPosCostNCU2: TIBBCDField;
-    cdsGoodPosCostNCU3: TIBBCDField;
-    cdsGoodPosCostNCU4: TIBBCDField;
-    cdsGoodPosCostNCU5: TIBBCDField;
-    cdsGoodPosCostNCU6: TIBBCDField;
-    cdsGoodPosCostNCU7: TIBBCDField;
-    cdsGoodPosCostNCU8: TIBBCDField;
-    cdsGoodPosCostNCU9: TIBBCDField;
-    cdsGoodPosCostNCU10: TIBBCDField;
-    cdsGoodPosCostNCU11: TIBBCDField;
-    cdsGoodPosCostNCU12: TIBBCDField;
-    cdsGoodPosCostNCU13: TIBBCDField;
-    cdsGoodPosCostNCU14: TIBBCDField;
-    cdsGoodPosCostNCU15: TIBBCDField;
-    cdsGoodPosCostNCU16: TIBBCDField;
-    cdsGoodPosCostNCU17: TIBBCDField;
-    cdsGoodPosCostNCU18: TIBBCDField;
-    cdsGoodPosCostNCU19: TIBBCDField;
-    cdsGoodPosCostNCU20: TIBBCDField;
     actNaturalLoss: TAction;
     rgCostType: TRadioGroup;
     lPrice: TLabel;
@@ -156,62 +74,10 @@ type
     Label2: TLabel;
     edOtherBill: TEdit;
     Label4: TLabel;
-    cdsListContactPriceKey: TIntegerField;
-    cdsListContactTypeCost: TIntegerField;
     xFoCal: TxFoCal;
-    cdsListContactpricefield: TStringField;
     lblDateDocument: TLabel;
-    cdsListContactcontacttype: TIntegerField;
-    cdsGoodPosQuantity21: TIBBCDField;
-    cdsGoodPosQuantity22: TIBBCDField;
-    cdsGoodPosQuantity23: TIBBCDField;
-    cdsGoodPosQuantity24: TIBBCDField;
-    cdsGoodPosQuantity25: TIBBCDField;
-    cdsGoodPosQuantity26: TIBBCDField;
-    cdsGoodPosQuantity27: TIBBCDField;
-    cdsGoodPosQuantity28: TIBBCDField;
-    cdsGoodPosQuantity29: TIBBCDField;
-    cdsGoodPosQuantity30: TIBBCDField;
-    cdsGoodPosQuantity31: TIBBCDField;
-    cdsGoodPosQuantity32: TIBBCDField;
-    cdsGoodPosQuantity33: TIBBCDField;
-    cdsGoodPosQuantity34: TIBBCDField;
-    cdsGoodPosQuantity35: TIBBCDField;
-    cdsGoodPosCostNCU21: TIBBCDField;
-    cdsGoodPosCostNCU22: TIBBCDField;
-    cdsGoodPosCostNCU23: TIBBCDField;
-    cdsGoodPosCostNCU24: TIBBCDField;
-    cdsGoodPosCostNCU25: TIBBCDField;
-    cdsGoodPosCostNCU26: TIBBCDField;
-    cdsGoodPosCostNCU27: TIBBCDField;
-    cdsGoodPosCostNCU28: TIBBCDField;
-    cdsGoodPosCostNCU29: TIBBCDField;
-    cdsGoodPosCostNCU30: TIBBCDField;
-    cdsGoodPosCostNCU31: TIBBCDField;
-    cdsGoodPosCostNCU32: TIBBCDField;
-    cdsGoodPosCostNCU33: TIBBCDField;
-    cdsGoodPosCostNCU34: TIBBCDField;
-    cdsGoodPosCostNCU35: TIBBCDField;
-    cdsAmountQuantity21: TIBBCDField;
-    cdsAmountQuantity22: TIBBCDField;
-    cdsAmountQuantity23: TIBBCDField;
-    cdsAmountQuantity24: TIBBCDField;
-    cdsAmountQuantity25: TIBBCDField;
-    cdsAmountQuantity26: TIBBCDField;
-    cdsAmountQuantity27: TIBBCDField;
-    cdsAmountQuantity28: TIBBCDField;
-    cdsAmountQuantity29: TIBBCDField;
-    cdsAmountQuantity30: TIBBCDField;
-    cdsAmountQuantity31: TIBBCDField;
-    cdsAmountQuantity32: TIBBCDField;
-    cdsAmountQuantity33: TIBBCDField;
-    cdsAmountQuantity34: TIBBCDField;
-    cdsAmountQuantity35: TIBBCDField;
-    cdsGoodPosNaturalLoss: TIBBCDField;
     ibsqlGroupInfo: TIBSQL;
     N2: TMenuItem;
-    cdsListContactAmountBill: TIBBCDField;
-    cdsGoodPosGroupKey: TIntegerField;
     dsDocReal: TDataSource;
     ibdsDocReal: TIBDataSet;
     ibdsRealPos: TIBDataSet;
@@ -243,8 +109,8 @@ type
     procedure gsiblcBaseDocumentExit(Sender: TObject);
   private
     FDate: TDateTime;
-    FFromContactKey, FToContactKey, FForwarderKey: Integer;
-    FPriceKey: Integer;
+    FFromContactKey, FToContactKey, FForwarderKey: TID;
+    FPriceKey: TID;
     FFieldName: String;
     FTaxList: TObjectList;
     FDistance: Integer;
@@ -257,7 +123,7 @@ type
 
     procedure MakeBill;
     function GetFieldName(const NameCustomer: String): String;
-    function AddContact(const aContactKey, aDocumentKey, aPriceKey: Integer;
+    function AddContact(const aContactKey, aDocumentKey, aPriceKey: TID;
       const aContactName, aDocumentNumber, aPriceField: String): String;
     function GetCostField(const NameQuantityField: String): String;
     procedure MakeNew;
@@ -268,12 +134,12 @@ type
     procedure SetAmountNCU(const FieldName: String; const AmountNCU: Currency);
     procedure SetPriceField;
     procedure SetCostGood(const NameField, NamePriceField: String;
-      const TypeCost, PriceKey: Integer);
-    function CalcTax(const GoodKey, CurrentTax: Integer; const Quantity,
+      const TypeCost: Integer; PriceKey: TID);
+    function CalcTax(const GoodKey, CurrentTax: TID; const Quantity,
       Cost: Currency): Currency;
     procedure SetCurPriceField(const aFieldName: String);
     procedure ReadNaturalLossInfo;
-    function GetNaturalLoss(const GoodKey: Integer; Weight: Currency): Currency;
+    function GetNaturalLoss(const GoodKey: TID; Weight: Currency): Currency;
     procedure SetNaturalLoss;
     function GetDistance: Integer;
     procedure SetGroupTara;
@@ -301,13 +167,13 @@ type
   end;
 
   TNaturalLossInfo = class
-    GroupKey: Integer;
+    GroupKey: TID;
     LB: Integer;
     RB: Integer;
     Distance: Integer;
     IsIncMode: Boolean;
     Koef: Currency;
-    constructor Create(const aGroupKey, aLB, aRB, aDistance: Integer; S: String);
+    constructor Create(const aGroupKey: TID; const aLB, aRB, aDistance: Integer; S: String);
   end;
 
 constructor TDetailTaxField.Create(const aTaxField: String; aAmount: Double);
@@ -318,7 +184,7 @@ end;
 
 { TNaturalLossInfo }
 
-constructor TNaturalLossInfo.Create(const aGroupKey, aLB, aRB,
+constructor TNaturalLossInfo.Create(const aGroupKey: TID; const aLB, aRB,
   aDistance: Integer; S: String);
 begin
   GroupKey := aGroupKey;
@@ -357,7 +223,7 @@ begin
          UpperCase(Trim(ibsql.FieldByName('relationname').AsString)),
         ibsql.FieldByName('fieldname').AsString,
         ibsql.FieldByName('expression').AsString,
-        ibsql.FieldByName('taxkey').AsInteger,
+        GetTID(ibsql.FieldByName('taxkey')),
         ibsql.FieldByName('includetax').AsInteger = 1,
         ibsql.FieldByName('iscurrency').AsInteger = 1,
         ibsql.FieldByName('rounding').AsCurrency,
@@ -418,12 +284,13 @@ begin
   end;  
 end;
 
-function TdlgDetailBill.AddContact(const aContactKey, aDocumentKey, aPriceKey: Integer;
+function TdlgDetailBill.AddContact(const aContactKey, aDocumentKey, aPriceKey: TID;
   const aContactName, aDocumentNumber, aPriceField: String): String;
 var
   ibsql: TIBSQL;
   S: String;
-  ContractKey, ContactType: Integer;
+  ContractKey: TID;
+  ContactType: Integer;
 begin
   Result := GetFieldName(aContactName);
   if Result > '' then
@@ -436,7 +303,7 @@ begin
       ibsql.SQL.Text := 'SELECT doc.id, doc.number, doc.documentdate FROM gd_contract c ' +
         ' JOIN gd_document doc ON c.documentkey = doc.id and c.contactkey = :ck ' +
         ' ORDER BY doc.documentdate ';
-      ibsql.ParamByName('ck').AsInteger := aContactKey;
+      SetTID(ibsql.ParamByName('ck'), aContactKey);
       ibsql.ExecQuery;
       while not ibsql.EOF do
       begin
@@ -445,12 +312,12 @@ begin
           Break;
         S := '№ ' + ibsql.FieldByName('number').AsString + ' от ' +
           ibsql.FieldByName('documentdate').AsString;
-        ContractKey := ibsql.FieldByName('id').AsInteger;
+        ContractKey := GetTID(ibsql.FieldByName('id'));
         ibsql.Next;
       end;
       ibsql.Close;
       ibsql.SQL.Text := 'SELECT contacttype FROM gd_contact WHERE ID = :ck';
-      ibsql.ParamByName('ck').AsInteger := aContactKey;
+      SetTID(ibsql.ParamByName('ck'), aContactKey);
       ibsql.ExecQuery;
       ContactType := ibsql.FieldByName('contacttype').AsInteger;
       ibsql.Close;
@@ -458,12 +325,10 @@ begin
       ibsql.Free;
     end;
     cdsListContact.Insert;
-    cdsListContact.FieldByName('contactkey').AsInteger :=
-      aContactKey;
+    SetTID(cdsListContact.FieldByName('contactkey'), aContactKey);
     cdsListContact.FieldByName('contacttype').AsInteger :=
       ContactType;
-    cdsListContact.FieldByName('documentkey').AsInteger :=
-      aDocumentKey;
+    SetTID(cdsListContact.FieldByName('documentkey'), aDocumentKey);
     cdsListContact.FieldByName('contactname').AsString :=
       aContactName;
     cdsListContact.FieldByName('documentnumber').AsString :=
@@ -474,28 +339,28 @@ begin
     cdsListContact.FieldByName('typecost').AsInteger :=
       rgCostType.ItemIndex;
 
-    cdsListContact.FieldByName('pricekey').AsInteger := aPriceKey;
+    SetTID(cdsListContact.FieldByName('pricekey'), aPriceKey);
 
     cdsListContact.FieldByName('pricefield').AsString := aPriceField;
 
     if S > '' then
     begin
-      cdsListContact.FieldByName('contractkey').AsInteger := ContractKey;
+      SetTID(cdsListContact.FieldByName('contractkey'), ContractKey);
       cdsListContact.FieldByName('contractname').AsString := S;
     end;
     cdsListContact.Post;
-    gsiblcPrice.CurrentKey := IntToStr(aPriceKey);
+    gsiblcPrice.CurrentKey := TID2S(aPriceKey);
   end;
 end;
 
 procedure TdlgDetailBill.MakeBill;
 var
   ibsql: TIBSQL;
-  DocumentKey: Integer;
+  DocumentKey: TID;
   i: Integer;
   NameField, S, S1, S2: String;
 
-function GotoGoodPos(const GoodKey: Integer; const Quantity: Currency): Boolean;
+function GotoGoodPos(const GoodKey: TID; const Quantity: Currency): Boolean;
 var
   Bookmark: TBookmark;
 begin
@@ -506,7 +371,7 @@ begin
     cdsGoodPos.First;
     while not cdsGoodPos.EOF do
     begin
-      if cdsGoodPos.FieldByName('GoodKey').AsInteger = GoodKey then
+      if GetTID(cdsGoodPos.FieldByName('GoodKey')) = GoodKey then
       begin
         Result := True;
         Break;
@@ -531,7 +396,7 @@ begin
     ibsql.SQL.Text  := 'SELECT * FROM gd_documentlink l ' +
      ' JOIN gd_document doc ON l.sourcedockey = doc.id ' +
      ' WHERE l.destdockey = :destkey AND doc.documenttypekey = 802001 ';
-    ibsql.ParamByName('destkey').AsInteger := gsiblcBaseDocument.CurrentKeyInt;
+    SetTID(ibsql.ParamByName('destkey'), gsiblcBaseDocument.CurrentKeyInt);
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
       MessageBox(HANDLE, 'Нельзя отчитывать дополнительную накладную.', 'Внимание',
@@ -571,11 +436,11 @@ begin
 
       FDate := ibsql.FieldByName('documentdate').AsDateTime;
       lblDateDocument.Caption := DateToStr(FDate);
-      FFromContactKey := ibsql.FieldByName('fromcontactkey').AsInteger;
-      FToContactKey := ibsql.FieldByName('tocontactkey').AsInteger;
-      FPriceKey := ibsql.FieldByName('pricekey').AsInteger;
+      FFromContactKey := GetTID(ibsql.FieldByName('fromcontactkey'));
+      FToContactKey := GetTID(ibsql.FieldByName('tocontactkey'));
+      FPriceKey := GetTID(ibsql.FieldByName('pricekey'));
       FFieldName := ibsql.FieldByName('pricefield').AsString;
-      FForwarderKey := ibsql.FieldByName('forwarderkey').AsInteger;
+      FForwarderKey := GetTID(ibsql.FieldByName('forwarderkey'));
       ibsql.Close;
 
       S :=
@@ -617,8 +482,8 @@ begin
       while not ibsql.EOF do
       begin
         cdsGoodPos.Insert;
-        cdsGoodPos.FieldByName('goodkey').AsInteger := ibsql.FieldByName('goodkey').AsInteger;
-        cdsGoodPos.FieldByName('groupkey').AsInteger := ibsql.FieldByName('groupkey').AsInteger;
+        SetTID(cdsGoodPos.FieldByName('goodkey'), ibsql.FieldByName('goodkey'));
+        SetTID(cdsGoodPos.FieldByName('groupkey'), ibsql.FieldByName('groupkey'));
         cdsGoodPos.FieldByName('goodname').AsString := ibsql.FieldByName('name').AsString;
         cdsGoodPos.FieldByName('quantitybase').AsCurrency := ibsql.FieldByName('quantity').AsCurrency;
         cdsGoodPos.FieldByName('quantityrest').AsCurrency := ibsql.FieldByName('quantity').AsCurrency;
@@ -627,19 +492,16 @@ begin
           ibsql.FieldByName('amountncu').AsCurrency / ibsql.FieldByName('quantity').AsCurrency;
         cdsGoodPos.FieldByName('mainquantity').AsCurrency :=
           ibsql.FieldByName('mainquantity').AsCurrency;
-        cdsGoodPos.FieldByName('valuekey').AsInteger :=
-          ibsql.FieldByName('valuekey').AsInteger;
-        cdsGoodPos.FieldByName('trtypekey').AsInteger :=
-          ibsql.FieldByName('trtypekey').AsInteger;
+        SetTID(cdsGoodPos.FieldByName('valuekey'), ibsql.FieldByName('valuekey'));
+        SetTID(cdsGoodPos.FieldByName('trtypekey'), ibsql.FieldByName('trtypekey'));
         cdsGoodPos.FieldByName('weight').AsCurrency :=
           ibsql.FieldByName('weight').AsCurrency;
-        cdsGoodPos.FieldByName('weightkey').AsInteger :=
-          ibsql.FieldByName('weightkey').AsInteger;
+        SetTID(cdsGoodPos.FieldByName('weightkey'), ibsql.FieldByName('weightkey'));
 
         for i:= 0 to FTaxList.Count - 1 do
           if TTaxField(FTaxList[i]).RelationName = 'GD_DOCREALPOS' then
-            cdsGoodPos.FieldByName(TTaxField(FTaxList[i]).FieldName).Value := ibsql.FieldByName(
-              TTaxField(FTaxList[i]).FieldName).Value;
+            SetVar2Field(cdsGoodPos.FieldByName(TTaxField(FTaxList[i]).FieldName),
+              GetFieldAsVar(ibsql.FieldByName(TTaxField(FTaxList[i]).FieldName)));
 
         cdsGoodPos.Post;
         ibsql.Next;
@@ -657,24 +519,24 @@ begin
         '  JOIN gd_contact c ON  d.tocontactkey = c.id ' +
         '  JOIN gd_document dd ON d.documentkey = dd.id';
       ibsql.Prepare;
-      ibsql.ParamByName('id').AsInteger := gsiblcBaseDocument.CurrentKeyInt;
+      SetTID(ibsql.ParamByName('id'), gsiblcBaseDocument.CurrentKeyInt);
       ibsql.ExecQuery;
 
       MessageBox(Handle, 'Проверили старые', '1', mb_OK);
       DocumentKey := -1;
       while not ibsql.EOF do
       begin
-        if DocumentKey <> ibsql.FieldByName('documentkey').AsInteger then
+        if DocumentKey <> GetTID(ibsql.FieldByName('documentkey')) then
         begin
-          DocumentKey := ibsql.FieldByName('documentkey').AsInteger;
-          NameField := AddContact(ibsql.FieldByName('tocontactkey').AsInteger,
-            DocumentKey, ibsql.FieldByName('pricekey').AsInteger,
+          DocumentKey := GetTID(ibsql.FieldByName('documentkey'));
+          NameField := AddContact(GetTID(ibsql.FieldByName('tocontactkey')),
+            DocumentKey, GetTID(ibsql.FieldByName('pricekey')),
             ibsql.FieldByName('name').AsString,
             ibsql.FieldByName('number').AsString,
             ibsql.FieldByName('pricefield').AsString);
         end;
         if (NameField > '') and
-           GotoGoodPos(ibsql.FieldByName('goodkey').AsInteger,
+           GotoGoodPos(GetTID(ibsql.FieldByName('goodkey')),
                        ibsql.FieldByName('quantity').AsCurrency)
         then
         begin
@@ -695,7 +557,7 @@ begin
 
       if DocumentKey = -1 then
       begin
-        gsiblcPrice.CurrentKey := IntToStr(FPriceKey);
+        gsiblcPrice.CurrentKey := TID2S(FPriceKey);
         SetCurPriceField(FFieldName);
       end;
 
@@ -740,7 +602,7 @@ begin
           if ibsql.RecordCount = 1 then
             cbPriceField.Items.AddObject(R.RelationFields[i].LName,
               TPriceField.Create(R.RelationFields[i].FieldName,
-                R.RelationFields[i].LShortName, ibsql.FieldByName('currkey').AsInteger))
+                R.RelationFields[i].LShortName, GetTID(ibsql.FieldByName('currkey'))))
           else
             cbPriceField.Items.AddObject(R.RelationFields[i].LName,
               TPriceField.Create(R.RelationFields[i].FieldName,
@@ -753,7 +615,7 @@ begin
   end;
 end;
 
-function TdlgDetailBill.CalcTax(const GoodKey, CurrentTax: Integer;
+function TdlgDetailBill.CalcTax(const GoodKey, CurrentTax: TID;
   const Quantity, Cost: Currency): Currency;
 var
   ibsql: TIBSQL;
@@ -769,7 +631,7 @@ begin
                       'datetax = (SELECT MAX(gt1.datetax) FROM gd_goodtax gt1 WHERE gt1.datetax <= :d and ' +
                       'gt1.goodkey = :gk and gt1.taxkey = :tk)';
     ibsql.Prepare;
-    ibsql.ParamByName('gk').AsInteger := GoodKey;
+    SetTID(ibsql.ParamByName('gk', GoodKey);
     ibsql.ParamByName('d').AsDateTime := FDate;
 
     Result := 0;
@@ -790,7 +652,7 @@ begin
       for i:= 0 to CurrentTax do
         if Trim(TTaxField(FTaxList[i]).RelationName) = 'GD_DOCREALPOS' then
         begin
-          ibsql.ParamByName('tk').AsInteger := TTaxField(FTaxList[i]).TaxKey;
+          SetTID(ibsql.ParamByName('tk'), TTaxField(FTaxList[i]).TaxKey);
           ibsql.ExecQuery;
           if ibsql.RecordCount = 1 then
             Rate := ibsql.FieldByName('rate').AsCurrency
@@ -813,7 +675,7 @@ begin
       else
       begin
 
-        ibsql.ParamByName('tk').AsInteger := TTaxField(FTaxList[CurrentTax]).TaxKey;
+        SetTID(ibsql.ParamByName('tk'), TTaxField(FTaxList[CurrentTax]).TaxKey);
         ibsql.ExecQuery;
         if ibsql.RecordCount = 1 then
           Rate := ibsql.FieldByName('rate').AsCurrency
@@ -839,7 +701,7 @@ end;
 function TdlgDetailBill.SaveData: Boolean;
 var
   i: Integer;
-  DocumentKey: Integer;
+  DocumentKey: TID;
   ibsql: TIBSQL;
   S, S1, S2: String;
   IdDocReal: String;
@@ -862,12 +724,12 @@ begin
     if edOtherBill.Text > '' then
     begin
       ibsql.SQL.Text := 'DELETE FROM gd_documentlink WHERE sourcedockey = :id';
-      ibsql.ParamByName('id').AsInteger := gsiblcBaseDocument.CurrentKeyInt;
+      SetTID(ibsql.ParamByName('id'), gsiblcBaseDocument.CurrentKeyInt);
       ibsql.ExecQuery;
       ibsql.Close;
       ibsql.SQL.Text := Format('INSERT INTO gd_documentlink (sourcedockey, destdockey) ' +
         ' SELECT %d, id FROM gd_document WHERE number IN (',
-        [gsiblcBaseDocument.CurrentKeyInt]);
+        [TID264(gsiblcBaseDocument.CurrentKeyInt)]);
       S := '';
       if edOtherBill.Text > '' then
       begin
@@ -897,36 +759,36 @@ begin
     cdsListContact.First;
     while not cdsListContact.EOF do
     begin
-      if cdsListContact.FieldByName('documentkey').AsInteger > 0 then
+      if GetTID(cdsListContact.FieldByName('documentkey')) > 0 then
       begin
         ibsql.SQL.Text := 'DELETE FROM gd_docrealpos WHERE documentkey = :id';
         ibsql.Prepare;
-        DocumentKey := cdsListContact.FieldByName('documentkey').AsInteger;
-        ibsql.ParamByName('id').AsInteger := DocumentKey;
+        DocumentKey := GetTID(cdsListContact.FieldByName('documentkey'));
+        SetTID(ibsql.ParamByName('id'), DocumentKey);
         ibsql.ExecQuery;
         ibsql.Close;
         ibsql.SQL.Text := 'UPDATE gd_docrealization SET tocontactkey = :ck WHERE documentkey = :id';
         ibsql.Prepare;
-        ibsql.ParamByName('ck').AsInteger := cdsListContact.FieldByName('contactkey').AsInteger;
-        ibsql.ParamByName('id').AsInteger := DocumentKey;
+        SetTID(ibsql.ParamByName('ck'), cdsListContact.FieldByName('contactkey'));
+        SetTID(ibsql.ParamByName('id'), DocumentKey);
         ibsql.ExecQuery;
         ibsql.Close;
-        IdDocReal := IdDocReal + IntToStr(DocumentKey) + ',';
+        IdDocReal := IdDocReal + TID2S(DocumentKey) + ',';
 
       end
       else
       begin
         ibsql.SQL.Text := 'SELECT * FROM gd_docrealization WHERE documentkey = :dk';
         ibsql.Prepare;
-        ibsql.ParamByName('dk').AsInteger := gsiblcBaseDocument.CurrentKeyInt;
+        SetTID(ibsql.ParamByName('dk'), gsiblcBaseDocument.CurrentKeyInt);
         ibsql.ExecQuery;
 
         DocumentKey := GenUniqueID;
-        ibsqlDocument.Params.ByName('id').AsInteger := DocumentKey;
+        SetTID(ibsqlDocument.Params.ByName('id'), DocumentKey);
         if cdsListContact.FieldByName('contacttype').AsInteger <> 4 then
-          ibsqlDocument.Params.ByName('documenttypekey').AsInteger := 802001
+          SetTID(ibsqlDocument.Params.ByName('documenttypekey'), 802001)
         else
-          ibsqlDocument.Params.ByName('documenttypekey').AsInteger := 802003;
+          SetTID(ibsqlDocument.Params.ByName('documenttypekey'), 802003);
         ibsqlDocument.Params.ByName('trtypekey').Clear;
         ibsqlDocument.Params.ByName('number').AsString :=
           cdsListContact.FieldByName('documentnumber').AsString;
@@ -934,10 +796,10 @@ begin
         ibsqlDocument.Params.ByName('afull').AsInteger := -1;
         ibsqlDocument.Params.ByName('achag').AsInteger := -1;
         ibsqlDocument.Params.ByName('aview').AsInteger := -1;
-        ibsqlDocument.Params.ByName('companykey').AsInteger := IBLogin.CompanyKey;
-        ibsqlDocument.Params.ByName('creatorkey').AsInteger := IBLogin.ContactKey;
+        SetTID(ibsqlDocument.Params.ByName('companykey'), IBLogin.CompanyKey);
+        SetTID(ibsqlDocument.Params.ByName('creatorkey'), IBLogin.ContactKey);
         ibsqlDocument.Params.ByName('creationdate').AsDateTime := Now;
-        ibsqlDocument.Params.ByName('editorkey').AsInteger := IBLogin.ContactKey;
+        SetTID(ibsqlDocument.Params.ByName('editorkey'), IBLogin.ContactKey);
         ibsqlDocument.Params.ByName('editiondate').AsDateTime := Now;
         ibsqlDocument.Params.ByName('disabled').AsInteger := 0;
         ibsqlDocument.Params.ByName('reserved').Clear;
@@ -945,21 +807,21 @@ begin
         ibsqlDocument.Close;
 
         cdsListContact.Edit;
-        cdsListContact.FieldByName('documentkey').AsInteger := DocumentKey;
+        SetTID(cdsListContact.FieldByName('documentkey'), DocumentKey);
         cdsListContact.Post;
 
-        IdDocReal := IdDocReal + IntToStr(DocumentKey) + ',';
-        ibsqlDocRealization.ParamByName('documentkey').AsInteger := DocumentKey;
+        IdDocReal := IdDocReal + TID2S(DocumentKey) + ',';
+        SetTID(ibsqlDocRealization.ParamByName('documentkey'), DocumentKey);
         if cdsListContact.FieldByName('contacttype').AsInteger <> 4 then
-          ibsqlDocRealization.ParamByName('fromcontactkey').AsInteger := FFromContactKey
+          SetTID(ibsqlDocRealization.ParamByName('fromcontactkey'), FFromContactKey)
         else
-          ibsqlDocRealization.ParamByName('fromcontactkey').AsInteger := FForwarderKey;
-        ibsqlDocRealization.ParamByName('tocontactkey').AsInteger :=
-          cdsListContact.FieldByName('contactkey').AsInteger;
-        ibsqlDocRealization.ParamByName('fromdocumentkey').AsInteger :=
-          gsiblcBaseDocument.CurrentKeyInt;
-        ibsqlDocRealization.ParamByName('pricekey').AsInteger :=
-          cdsListContact.FieldByName('pricekey').AsInteger;
+          SetTID(ibsqlDocRealization.ParamByName('fromcontactkey'), FForwarderKey);
+        SetTID(ibsqlDocRealization.ParamByName('tocontactkey'),
+          cdsListContact.FieldByName('contactkey'));
+        SetTID(ibsqlDocRealization.ParamByName('fromdocumentkey'),
+          gsiblcBaseDocument.CurrentKeyInt);
+        SetTID(ibsqlDocRealization.ParamByName('pricekey'),
+          cdsListContact.FieldByName('pricekey'));
         if cdsListContact.FieldByName('pricefield').AsString > '' then
           ibsqlDocRealization.ParamByName('pricefield').AsString :=
             cdsListContact.FieldByName('pricefield').AsString
@@ -977,20 +839,20 @@ begin
 
         ibsql.SQL.Text := 'SELECT * FROM gd_docrealinfo WHERE documentkey = :dk';
         ibsql.Prepare;
-        ibsql.ParamByName('dk').AsInteger := gsiblcBaseDocument.CurrentKeyInt;
+        SetTID(ibsql.ParamByName('dk'), gsiblcBaseDocument.CurrentKeyInt);
         ibsql.ExecQuery;
         if ibsql.RecordCount > 0 then
         begin
           ibdsDocRealInfo.Insert;
-          ibdsDocRealInfo.FieldByName('documentkey').AsInteger := DocumentKey;
+          SetTID(ibdsDocRealInfo.FieldByName('documentkey'), DocumentKey);
           for i:= 1 to ibsql.Current.Count - 1 do
             if not ibsql.Fields[i].IsNull then
               ibdsDocRealInfo.Fields[i].AsString := ibsql.Fields[i].AsString;
 
           if not cdsListContact.FieldByName('contractkey').IsNull then
           begin
-            ibdsDocRealInfo.FieldByName('contractkey').AsInteger :=
-              cdsListContact.FieldByName('contractkey').AsInteger;
+            SetTID(ibdsDocRealInfo.FieldByName('contractkey'),
+              cdsListContact.FieldByName('contractkey'));
             ibdsDocRealInfo.FieldByName('contractnum').AsString :=
               cdsListContact.FieldByName('contractname').AsString;
           end;
@@ -1001,9 +863,9 @@ begin
           if not cdsListContact.FieldByName('contractkey').IsNull then
           begin
             ibdsDocRealInfo.Insert;
-            ibdsDocRealInfo.FieldByName('documentkey').AsInteger := DocumentKey;
-              ibdsDocRealInfo.FieldByName('contractkey').AsInteger :=
-              cdsListContact.FieldByName('contractkey').AsInteger;
+            SetTID(ibdsDocRealInfo.FieldByName('documentkey'), DocumentKey);
+              SetTID(ibdsDocRealInfo.FieldByName('contractkey'),
+              cdsListContact.FieldByName('contractkey'));
             ibdsDocRealInfo.FieldByName('contractnum').AsString :=
               cdsListContact.FieldByName('contractname').AsString;
             ibdsDocRealInfo.Post;
@@ -1018,17 +880,17 @@ begin
         if cdsGoodPos.FieldByName(cdsListContact.FieldByName('fieldname').AsString).AsCurrency <> 0
         then
         begin
-          ibsqlDocRealPos.ParamByName('documentkey').AsInteger := DocumentKey;
-          ibsqlDocRealPos.ParamByName('goodkey').AsInteger :=
-            cdsGoodPos.FieldByName('goodkey').AsInteger;
-          if cdsGoodPos.FieldByName('trtypekey').AsInteger > 0 then
-            ibsqlDocRealPos.ParamByName('trtypekey').AsInteger :=
-              cdsGoodPos.FieldByName('trtypekey').AsInteger
+          SetTID(ibsqlDocRealPos.ParamByName('documentkey'), DocumentKey);
+          SetTID(ibsqlDocRealPos.ParamByName('goodkey'),
+            cdsGoodPos.FieldByName('goodkey'));
+          if GetTID(cdsGoodPos.FieldByName('trtypekey')) > 0 then
+            SetTID(ibsqlDocRealPos.ParamByName('trtypekey'),
+              cdsGoodPos.FieldByName('trtypekey'))
           else
             ibsqlDocRealPos.ParamByName('trtypekey').Clear;
-          if cdsGoodPos.FieldByName('valuekey').AsInteger > 0 then
-            ibsqlDocRealPos.ParamByName('valuekey').AsInteger :=
-              cdsGoodPos.FieldByName('valuekey').AsInteger
+          if GetTID(cdsGoodPos.FieldByName('valuekey')) > 0 then
+            GetTID(ibsqlDocRealPos.ParamByName('valuekey'),
+              cdsGoodPos.FieldByName('valuekey'))
           else
             ibsqlDocRealPos.ParamByName('valuekey').Clear;
           ibsqlDocRealPos.ParamByName('quantity').AsCurrency :=
@@ -1050,9 +912,9 @@ begin
               cdsGoodPos.FieldByName('costncu').AsCurrency;
 
 
-          if cdsGoodPos.FieldByName('weightkey').AsInteger > 0 then
-            ibsqlDocRealPos.ParamByName('weightkey').AsInteger :=
-               cdsGoodPos.FieldByName('weightkey').AsInteger
+          if GetTID(cdsGoodPos.FieldByName('weightkey')) > 0 then
+            SetTID(ibsqlDocRealPos.ParamByName('weightkey'),
+               cdsGoodPos.FieldByName('weightkey'))
           else
             ibsqlDocRealPos.ParamByName('weightkey').Clear;
 
@@ -1082,7 +944,7 @@ begin
                   cdsGoodPos.FieldByName('quantitybase').AsCurrency
               else
                 ibsqlDocRealPos.ParamByName(TTaxField(FTaxList[i]).FieldName).AsCurrency :=
-                CalcTax(cdsGoodPos.FieldByName('GoodKey').AsInteger, i,
+                CalcTax(GetTID(cdsGoodPos.FieldByName('GoodKey')), i,
                   cdsGoodPos.FieldByName(cdsListContact.FieldByName('fieldname').AsString).AsCurrency,
                   cdsGoodPos.FieldByName(
                     GetCostField(cdsListContact.FieldByName('fieldname').AsString)).AsCurrency);
@@ -1172,13 +1034,13 @@ procedure TdlgDetailBill.actReplaceUpdate(Sender: TObject);
 begin
   actReplace.Enabled := (gsiblcBaseDocument.CurrentKey > '') and
     (gsiblcCompany.CurrentKey > '') and (edNumBill.Text > '') and
-    (cdsListContact.FieldByName('ContactKey').AsInteger > 0);
+    (GetTID(cdsListContact.FieldByName('ContactKey')) > 0);
 end;
 
 procedure TdlgDetailBill.actDeleteUpdate(Sender: TObject);
 begin
   actDelete.Enabled := (gsiblcBaseDocument.CurrentKey > '') and
-    (cdsListContact.FieldByName('ContactKey').AsInteger > 0);
+    (GetTID(cdsListContact.FieldByName('ContactKey')) > 0);
 end;
 
 procedure TdlgDetailBill.actOkUpdate(Sender: TObject);
@@ -1196,7 +1058,8 @@ end;
 procedure TdlgDetailBill.actNewExecute(Sender: TObject);
 var
   NameField, PriceField: String;
-  PriceKey, TypeCost: Integer;
+  PriceKey: TID;
+  TypeCost: Integer;
 
 function CheckNumberBill: Boolean;
 begin
@@ -1207,7 +1070,7 @@ begin
     cdsListContact.First;
     while not cdsListContact.EOF do
     begin
-      if (cdsListContact.FieldByName('ContactKey').AsInteger =
+      if (GetTID(cdsListContact.FieldByName('ContactKey')) =
          gsiblcCompany.CurrentKeyInt) and
          (cdsListContact.FieldByName('DocumentNumber').AsString =
          edNumBill.Text)
@@ -1229,7 +1092,7 @@ end;
 procedure SetQuantity;
 var
   ibsql: TIBSQL;
-  DocKey: Integer;
+  DocKey: TID;
 begin
   ibsql := TIBSQL.Create(Self);
   try
@@ -1239,16 +1102,16 @@ begin
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin
-      DocKey := ibsql.FieldByName('id').AsInteger;
+      DocKey := GetTID(ibsql.FieldByName('id'));
       ibsql.Close;
       ibsql.SQL.Text := 'SELECT * FROM USR$BER_ADDPRODUCTLINE WHERE masterkey = :dockey AND usr$goodkey = :goodkey';
-      ibsql.ParamByName('dockey').AsInteger := DocKey;
+      SetTID(ibsql.ParamByName('dockey'), DocKey);
       cdsGoodPos.First;
       while not cdsGoodPos.EOF do
       begin
         cdsGoodPos.Edit;
         ibsql.Close;
-        ibsql.ParamByName('goodkey').AsInteger := cdsGoodPos.FieldByName('goodkey').AsInteger;
+        SetTID(ibsql.ParamByName('goodkey'), cdsGoodPos.FieldByName('goodkey'));
         ibsql.ExecQuery;
         if ibsql.RecordCount > 0 then
           cdsGoodPos.FieldByName(NameField).AsCurrency := ibsql.FieldByName('USR$QUANTITY').AsCurrency;
@@ -1300,8 +1163,8 @@ var
 begin
   OldTypeCost := cdsListContact.FieldByName('typecost').AsInteger;
   cdsListContact.Edit;
-  cdsListContact.FieldByName('contactkey').AsInteger :=
-    gsiblcCompany.CurrentKeyInt;
+  SetTID(cdsListContact.FieldByName('contactkey'),
+    gsiblcCompany.CurrentKeyInt);
   cdsListContact.FieldByName('contactname').AsString :=
     gsiblcCompany.Text;
   cdsListContact.FieldByName('documentnumber').AsString :=
@@ -1319,7 +1182,7 @@ begin
     SetCostGood(cdsListContact.FieldByName('FieldName').AsString,
       cdsListContact.FieldByName('pricefield').AsString,
       cdsListContact.FieldByName('typecost').AsInteger,
-      cdsListContact.FieldByName('pricekey').AsInteger);
+      GetTID(cdsListContact.FieldByName('pricekey')));
 
 end;
 
@@ -1333,20 +1196,19 @@ begin
     mb_YesNo or mb_IconQuestion) = idYes
   then
   begin
-    if (cdsListContact.FieldByName('documentkey').AsInteger = -1) or
+    if (GetTID(cdsListContact.FieldByName('documentkey')) = -1) or
        (MessageBox(HANDLE, 'Удалить сформированную накладную по клиенту?', 'Внимание',
        mb_YesNo or mb_IconQuestion) = idYes)
     then
     begin
-      if cdsListContact.FieldByName('documentkey').AsInteger > -1 then
+      if GetTID(cdsListContact.FieldByName('documentkey')) > -1 then
       begin
         ibsql := TIBSQL.Create(Self);
         try
           ibsql.Transaction := IBTransaction;
           ibsql.SQL.Text := 'DELETE FROM gd_document WHERE id = :id';
           ibsql.Prepare;
-          ibsql.ParamByName('id').AsInteger :=
-            cdsListContact.FieldByName('documentkey').AsInteger;
+          SetTID(ibsql.ParamByName('id'), cdsListContact.FieldByName('documentkey'));
           try
             ibsql.ExecQuery;
           except
@@ -1575,7 +1437,7 @@ begin
 end;
 
 procedure TdlgDetailBill.SetCostGood(const NameField, NamePriceField: String;
-  const TypeCost, PriceKey: Integer);
+  const TypeCost: Integer; const PriceKey: TID);
 var
   ibsql: TIBSQL;
   NameCostField: String;
@@ -1605,7 +1467,7 @@ begin
          cdsGoodPos.FieldByName('CostNCU').AsCurrency
       else
       begin
-        ibsql.ParamByName('gk').AsInteger := cdsGoodPos.FieldByName('goodkey').AsInteger;
+        SetTID(ibsql.ParamByName('gk'), cdsGoodPos.FieldByName('goodkey'));
         ibsql.ExecQuery;
         try
           if ibsql.RecordCount > 0 then
@@ -1684,7 +1546,7 @@ begin
             if ShowModal = mrOk then
             begin
               FDistance := Distance;
-              GlobalStorage.WriteInteger('distance', Format('value_%d', [FToContactKey]), FDistance);
+              GlobalStorage.WriteInteger('distance', Format('value_%d', [TID264(FToContactKey)]), FDistance);
             end;  
           finally
             Free;
@@ -1696,7 +1558,7 @@ begin
     begin
       cdsGoodPos.Edit;
       cdsGoodPos.FieldByName('NaturalLoss').AsCurrency :=
-        GetNaturalLoss(cdsGoodPos.FieldByName('GoodKey').AsInteger,
+        GetNaturalLoss(GetTID(cdsGoodPos.FieldByName('GoodKey')),
         cdsGoodPos.FieldByName('QuantityBase').AsCurrency);
       cdsGoodPos.Post;
       cdsGoodPos.Next;
@@ -1707,12 +1569,12 @@ begin
   end;
 end;
 
-function TdlgDetailBill.GetNaturalLoss(const GoodKey: Integer; Weight: Currency): Currency;
+function TdlgDetailBill.GetNaturalLoss(const GoodKey: TID; Weight: Currency): Currency;
 var
   i: Integer;
 begin
   Result := 0;
-  ibsqlGroupInfo.ParamByName('ID').AsInteger := GoodKey;
+  SetTID(ibsqlGroupInfo.ParamByName('ID'), GoodKey);
   ibsqlGroupInfo.ExecQuery;
   try
     if ibsqlGroupInfo.RecordCount > 0 then
@@ -1784,7 +1646,7 @@ begin
     ibsql.SQL.Text := 'SELECT * FROM gd_documentlink l ' +
       ' JOIN gd_document doc ON l.destdockey = doc.id ' +
       ' WHERE l.sourcedockey = :sourcekey AND doc.documenttypekey = 802001 ';
-    ibsql.ParamByName('sourcekey').AsInteger := gsiblcBaseDocument.CurrentKeyInt;
+    SetTID(ibsql.ParamByName('sourcekey'), gsiblcBaseDocument.CurrentKeyInt);
     ibsql.ExecQuery;
     S := '';
     while not ibsql.EOF do

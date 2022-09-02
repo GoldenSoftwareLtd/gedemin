@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_frmAnalyticsSel_unit;
 
 interface
@@ -27,10 +29,10 @@ type
   private
     FField: TatRelationField;
     procedure SetAnalyticAlias(const Value: String);
-    procedure SetAnalyticsKey(const Value: Integer);
+    procedure SetAnalyticsKey(const Value: TID);
     procedure SetAnalyticsRUID(const Value: string);
     function GetAnalyticAlias: String;
-    function GetAnalyticsKey: Integer;
+    function GetAnalyticsKey: TID;
     function GetAnalyticsRUID: string;
     function GetCondition: string;
     procedure SetCondition(const Value: string);
@@ -43,7 +45,7 @@ type
     function DefaultCondition: string; virtual;
   public
     property AnalyticAlias: String read GetAnalyticAlias write SetAnalyticAlias;
-    property AnalyticsKey: Integer read GetAnalyticsKey write SetAnalyticsKey;
+    property AnalyticsKey: TID read GetAnalyticsKey write SetAnalyticsKey;
     property AnalyticsRUID: string read GetAnalyticsRUID write SetAnalyticsRUID;
 
     property DataField: TatRelationField read FField write SetField;
@@ -88,7 +90,7 @@ begin
   ibcbAnalytics.Text := Value
 end;
 
-procedure TfrmAnalyticSel.SetAnalyticsKey(const Value: Integer);
+procedure TfrmAnalyticSel.SetAnalyticsKey(const Value: TID);
 begin
   ibcbAnalytics.CurrentKeyInt := Value;
 end;
@@ -103,7 +105,7 @@ begin
   Result := ibcbAnalytics.Text
 end;
 
-function TfrmAnalyticSel.GetAnalyticsKey: Integer;
+function TfrmAnalyticSel.GetAnalyticsKey: TID;
 begin
   Result := ibcbAnalytics.CurrentKeyInt
 end;

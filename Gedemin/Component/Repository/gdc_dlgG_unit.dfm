@@ -1,6 +1,6 @@
 object gdc_dlgG: Tgdc_dlgG
-  Left = 1061
-  Top = 509
+  Left = 468
+  Top = 105
   HelpContext = 114
   BorderIcons = [biSystemMenu, biMaximize]
   BorderStyle = bsDialog
@@ -165,6 +165,11 @@ object gdc_dlgG: Tgdc_dlgG
       OnExecute = actHistoryExecute
       OnUpdate = actHistoryUpdate
     end
+    object actCopyIDToClipboard: TAction
+      Caption = 'Скопировать ИД записи в буфер'
+      OnExecute = actCopyIDToClipboardExecute
+      OnUpdate = actSecurityUpdate
+    end
   end
   object dsgdcBase: TDataSource
     Left = 80
@@ -175,6 +180,9 @@ object gdc_dlgG: Tgdc_dlgG
     Top = 216
     object actSecurity1: TMenuItem
       Action = actSecurity
+    end
+    object nCopyIDToClipboard: TMenuItem
+      Action = actCopyIDToClipboard
     end
     object actHistory1: TMenuItem
       Action = actHistory

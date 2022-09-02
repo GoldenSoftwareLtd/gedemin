@@ -1,28 +1,30 @@
+// ShlTanya, 26.02.2019
+
 unit gsGdcBaseManager_unit;
 
 interface
 
 uses
-  Comserv, ComObj, Gedemin_TLB;
+  Comserv, ComObj, Gedemin_TLB, gdcBaseInterface;
 
 type
   TgsGdcBaseManager = class(TAutoObject, IgsGdcBaseManager)
   protected
     function  Get_Database: IgsIBDatabase; safecall;
     function  Get_ReadTransaction: IgsIBTransaction; safecall;
-    function  GetIDByRUID(XID: Integer; DBID: Integer): Integer; safecall;
-    procedure GetRUIDByID(ID: Integer; var XID: OleVariant; var DBID: OleVariant); safecall;
+    function  GetIDByRUID(XID: ATID; DBID: Integer): ATID; safecall;
+    procedure GetRUIDByID(ID: ATID; var XID: OleVariant; var DBID: OleVariant); safecall;
     function  ProcessSQL(const S: WideString): WideString; safecall;
     function  AdjustMetaName(const S: WideString): WideString; safecall;
-    procedure GetFullRUIDByID(ID: Integer; var XID: OleVariant; var DBID: OleVariant); safecall;
-    function  GetNextID: Integer; safecall;
-    function  GetIDByRUIDString(const RUIDStr: WideString): Integer; safecall;
-    function  GetRUIDStringByID(ID: Integer): WideString; safecall;
-    function  GetIDByRUIDTr(XID: Integer; DBID: Integer; const ibtr: IgsIBTransaction): Integer; safecall;
-    procedure GetRUIDByIDTr(ID: Integer; var XID: OleVariant; var DBID: OleVariant;
+    procedure GetFullRUIDByID(Id: ATID; var XID: OleVariant; var DBID: OleVariant); safecall;
+    function  GetNextID: ATID; safecall;
+    function  GetIDByRUIDString(const RUIDStr: WideString): ATID; safecall;
+    function  GetRUIDStringByID(ID: ATID): WideString; safecall;
+    function  GetIDByRUIDTr(XID: ATID; DBID: Integer; const ibtr: IgsIBTransaction): ATID; safecall;
+    procedure GetRUIDByIDTr(ID: ATID; var XID: OleVariant; var DBID: OleVariant;
                             const ibtr: IgsIBTransaction); safecall;
-    function  GetIDByRUIDStringTr(const RUIDStr: WideString; const ibtr: IgsIBTransaction): Integer; safecall;
-    function  GetRUIDStringByIDTr(ID: Integer; const ibtr: IgsIBTransaction): WideString; safecall;
+    function  GetIDByRUIDStringTr(const RUIDStr: WideString; const ibtr: IgsIBTransaction): ATID; safecall;
+    function  GetRUIDStringByIDTr(ID: ATID; const ibtr: IgsIBTransaction): WideString; safecall;
 
     procedure PackStream(const SourceStream, DestStream: IgsStream; CompressionLevel: TgsZCompressionLevel); safecall;
     procedure UnPackStream(const SourceStream, DestStream: IgsStream); safecall;
@@ -38,7 +40,7 @@ type
 implementation
 
 uses
-  gdcBaseInterface, gdcOLEClassList, prp_methods, IBDatabase, classes, zlib;
+  gdcOLEClassList, prp_methods, IBDatabase, classes, zlib;
 
 
 { TgsGdcBaseManager }
@@ -78,15 +80,16 @@ begin
   end;    
 end;
 
-procedure TgsGdcBaseManager.GetFullRUIDByID(ID: Integer; var XID,
+procedure TgsGdcBaseManager.GetFullRUIDByID(ID: ATID; var XID,
   DBID: OleVariant);
 var
-  FXID, FDBID: TID;
+  FXID: TID;
+  FDBID: Integer;
 begin
   if Assigned(gdcBaseManager) then
   begin
-    gdcBaseManager.GetRUIDByID(ID, FXID, FDBID);
-    XID := FXID;
+    gdcBaseManager.GetRUIDByID(GetTID(ID), FXID, FDBID);
+    XID := TID2V(FXID);
     DBID := FDBID;
   end else
   begin
@@ -95,49 +98,50 @@ begin
   end;
 end;
 
-function TgsGdcBaseManager.GetIDByRUID(XID, DBID: Integer): Integer;
+function TgsGdcBaseManager.GetIDByRUID(XID: ATID; DBID: Integer): ATID;
 begin
   if Assigned(gdcBaseManager) then
-    Result := gdcBaseManager.GetIDByRUID(XID, DBID)
+    Result := gdcBaseManager.GetIDByRUID(GetTID(XID), DBID)
   else
     Result := -1;
 end;
 
 function TgsGdcBaseManager.GetIDByRUIDString(
-  const RUIDStr: WideString): Integer;
+  const RUIDStr: WideString): ATID;
 begin
   Result := gdcBaseManager.GetIDByRUIDString(RUIDStr);
 end;
 
 function TgsGdcBaseManager.GetIDByRUIDStringTr(const RUIDStr: WideString;
-  const ibtr: IgsIBTransaction): Integer;
+  const ibtr: IgsIBTransaction): ATID;
 begin
   Result := gdcBaseManager.GetIDByRUIDString(RUIDStr, InterfaceToObject(ibtr) as TIBTransaction);
 end;
 
-function TgsGdcBaseManager.GetIDByRUIDTr(XID, DBID: Integer;
-  const ibtr: IgsIBTransaction): Integer;
+function TgsGdcBaseManager.GetIDByRUIDTr(XID: ATID; DBID: Integer;
+  const ibtr: IgsIBTransaction): ATID;
 begin
   if Assigned(gdcBaseManager) then
-    Result := gdcBaseManager.GetIDByRUID(XID, DBID, InterfaceToObject(ibtr) as TIBTransaction)
+    Result := gdcBaseManager.GetIDByRUID(GetTID(XID), DBID, InterfaceToObject(ibtr) as TIBTransaction)
   else
     Result := -1;
 end;
 
-function TgsGdcBaseManager.GetNextID: Integer;
+function TgsGdcBaseManager.GetNextID: ATID;
 begin
   Result := gdcBaseManager.GetNextID;
 end;
 
-procedure TgsGdcBaseManager.GetRUIDByID(ID: Integer; var XID,
+procedure TgsGdcBaseManager.GetRUIDByID(ID: ATID; var XID,
   DBID: OleVariant);
 var
-  FXID, FDBID: TID;
+  FXID: TID;
+  FDBID: Integer;
 begin
   if Assigned(gdcBaseManager) then
   begin
-    gdcBaseManager.GetRUIDByID(ID, FXID, FDBID);
-    XID := FXID;
+    gdcBaseManager.GetRUIDByID(GetTID(ID), FXID, FDBID);
+    XID := TID2V(FXID);
     DBID := FDBID;
   end else
   begin
@@ -146,15 +150,16 @@ begin
   end;
 end;
 
-procedure TgsGdcBaseManager.GetRUIDByIDTr(ID: Integer; var XID,
+procedure TgsGdcBaseManager.GetRUIDByIDTr(ID: ATID; var XID,
   DBID: OleVariant; const ibtr: IgsIBTransaction);
 var
-  FXID, FDBID: TID;
+  FXID: TID;
+  FDBID: Integer;
 begin
   if Assigned(gdcBaseManager) then
   begin
-    gdcBaseManager.GetRUIDByID(ID, FXID, FDBID, InterfaceToObject(ibtr) as TIBTransaction);
-    XID := FXID;
+    gdcBaseManager.GetRUIDByID(GetTID(ID), FXID, FDBID, InterfaceToObject(ibtr) as TIBTransaction);
+    XID := TID2V(FXID);
     DBID := FDBID;
   end else
   begin
@@ -163,15 +168,15 @@ begin
   end;
 end;
 
-function TgsGdcBaseManager.GetRUIDStringByID(ID: Integer): WideString;
+function TgsGdcBaseManager.GetRUIDStringByID(ID: ATID): WideString;
 begin
-  Result := gdcBaseManager.GetRUIDStringByID(ID);
+  Result := gdcBaseManager.GetRUIDStringByID(GetTID(ID));
 end;
 
-function TgsGdcBaseManager.GetRUIDStringByIDTr(ID: Integer;
+function TgsGdcBaseManager.GetRUIDStringByIDTr(ID: ATID;
   const ibtr: IgsIBTransaction): WideString;
 begin
-  Result := gdcBaseManager.GetRUIDStringByID(ID, InterfaceToObject(ibtr) as TIBTransaction);
+  Result := gdcBaseManager.GetRUIDStringByID(GetTID(ID), InterfaceToObject(ibtr) as TIBTransaction);
 end;
 
 function TgsGdcBaseManager.Get_Database: IgsIBDatabase;

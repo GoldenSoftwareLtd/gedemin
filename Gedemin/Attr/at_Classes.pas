@@ -1,7 +1,8 @@
+// ShlTanya, 31.01.2019
 
 {++
 
-  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2022 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -30,7 +31,8 @@ unit at_classes;
 interface
 
 uses
-  ComCtrls, DB, IBSQL, Contnrs, gd_security_OperationConst, Classes, IBDatabase;
+  ComCtrls, DB, IBSQL, Contnrs, gd_security_OperationConst, Classes, IBDatabase,
+  gdcBaseInterface;
 
 const
   UserPrefix            = 'USR$';  //Пользователькие мета-данные
@@ -62,7 +64,7 @@ type
   private
 
   protected
-    FID: Integer;
+    FID: TID;
     FFieldName: String;
 
     FHasRecord: Boolean;
@@ -117,7 +119,7 @@ type
     function GetNumerationName(const Value: String): String; virtual; abstract;
     function GetNumerationValue(const NameNumeration: String): String; virtual; abstract;
 
-    property ID: Integer read FID;
+    property ID: TID read FID;
     property FieldName: String read FFieldName;
     property FieldType: TFieldType read GetFieldType;
     property SQLType: Smallint read FSQLType write FSQLType; // see IBHeader for constants
@@ -171,7 +173,7 @@ type
 
     function Add(atField: TatField): Integer; virtual; abstract;
     function ByFieldName(const AFieldName: String): TatField; virtual; abstract;
-    function ByID(const AID: Integer): TatField; virtual; abstract;
+    function ByID(const AID: TID): TatField; virtual; abstract;
     procedure Delete(const Index: Integer); virtual; abstract;
     function FindFirst(const AFieldName: String): TatField; virtual; abstract;
     function IndexOf(AObject: TObject): Integer; virtual; abstract;
@@ -185,7 +187,7 @@ type
 
   TatRelation = class(TObject)
   protected
-    FID: Integer;
+    FID: TID;
     FRelationName: String;
     FLName: String;
     FTreeNode: TTreeNode;
@@ -202,10 +204,12 @@ type
     FRelationID: Integer;
 
     FIsDropped: Boolean;
-    FBranchKey: Integer;
+    FBranchKey: TID;
 
     FListField: String;
     FExtendedFields: String;
+
+    FGeneratorName: String;
 
     function GetIsUserDefined: Boolean; virtual; abstract;
     function GetIsSystem: Boolean; virtual; abstract;
@@ -236,7 +240,7 @@ type
     property IsStandartTreeRelation: Boolean read GetIsStandartTreeRelation;
     property IsLBRBTreeRelation: Boolean read GetIsLBRBTreeRelation;
 
-    property ID: Integer read FID;
+    property ID: TID read FID;
     property RelationName: String read FRelationName;
     property HasRecord: Boolean read FHasRecord;
     property IsUserDefined: Boolean read GetIsUserDefined;
@@ -261,7 +265,9 @@ type
     property aView: TSecurityDescriptor read FaView;
 
     property IsDropped: Boolean read FIsDropped;
-    property BranchKey: Integer read FBranchKey;
+    property BranchKey: TID read FBranchKey;
+
+    property GeneratorName: String read FGeneratorName;
   end;
 
   TatRelations = class(TObject)
@@ -282,7 +288,7 @@ type
     function Remove(atRelation: TatRelation): Integer; virtual; abstract;
 
     function ByRelationName(const ARelationName: String): TatRelation; virtual; abstract;
-    function ByID(const aID: Integer): TatRelation; virtual; abstract;
+    function ByID(const aID: TID): TatRelation; virtual; abstract;
     function FindFirst(const ARelationName: String): TatRelation; virtual; abstract;
     function IndexOf(AObject: TObject): Integer; virtual; abstract;
 
@@ -294,7 +300,7 @@ type
 
   TatRelationField = class(TObject)
   protected
-    FID: Integer;
+    FID: TID;
     FRelation: TatRelation;
     FFieldName: String;
 
@@ -351,7 +357,7 @@ type
     procedure RecordAcquired; virtual; abstract;
     function IsNecessaryAttr(const AClassName: String): Boolean; virtual; abstract;
 
-    property ID: Integer read FID;
+    property ID: TID read FID;
     property FieldName: String read FFieldName write SetFieldName;
     property SQLType: Smallint read GetSQLType;
     property IsUserDefined: Boolean read GetIsUserDefined;
@@ -418,7 +424,7 @@ type
     function Add(atRelationField: TatRelationField): Integer; virtual; abstract;
     function AddRelationField(const AFieldName: String): TatRelationField; virtual; abstract;
     function ByFieldName(const AName: String): TatRelationField; virtual; abstract;
-    function ByID(const aID: Integer): TatRelationField; virtual; abstract;
+    function ByID(const aID: TID): TatRelationField; virtual; abstract;
     function ByPos(const APosition: Integer): TatRelationField; virtual; abstract;
     procedure Delete(const Index: Integer); virtual; abstract;
     function IndexOf(AObject: TObject): Integer; virtual; abstract;
@@ -584,7 +590,7 @@ type
     procedure SaveToCacheFile; virtual; abstract;
 
     function FindRelationField(const ARelationName, ARelationFieldName: String): TatRelationField; overload; virtual; abstract;
-    function FindRelationField(const AnID: Integer): TatRelationField; overload; virtual; abstract;
+    function FindRelationField(const AnID: TID): TatRelationField; overload; virtual; abstract;
 
     procedure NotifyMultiConnectionTransaction; virtual; abstract;
     procedure CancelMultiConnectionTransaction(const All: Boolean = False); virtual; abstract;

@@ -1,10 +1,12 @@
+// ShlTanya, 09.03.2019
+
 unit frAcctQuantityLine_unit;
 
 interface
 
 uses 
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, xCalculatorEdit;
+  StdCtrls, xCalculatorEdit, gdcBaseInterface;
 
 type
   TfrAcctQuantityLine = class(TFrame)
@@ -13,15 +15,15 @@ type
     procedure eCalcChange(Sender: TObject);
   private
     FOnValueChange: TNotifyEvent;
-    FValueId: Integer;
+    FValueId: TID;
     procedure SetOnValueChange(const Value: TNotifyEvent);
     function GetValue: Double;
     procedure SetValue(const Value: Double);
-    procedure SetValueId(const Value: Integer);
+    procedure SetValueId(const Value: TID);
   public
     property Value: Double read GetValue write SetValue;
     function IsEmpty: boolean;
-    property ValueId: Integer read FValueId write SetValueId;
+    property ValueId: TID read FValueId write SetValueId;
     property OnValueChange: TNotifyEvent read FOnValueChange write SetOnValueChange;
   end;
 
@@ -57,7 +59,7 @@ begin
     FOnValueChange(Sender);
 end;
 
-procedure TfrAcctQuantityLine.SetValueId(const Value: Integer);
+procedure TfrAcctQuantityLine.SetValueId(const Value: TID);
 begin
   FValueId := Value;
 end;

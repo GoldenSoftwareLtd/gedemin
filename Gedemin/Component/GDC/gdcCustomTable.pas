@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcCustomTable;
 
 interface
@@ -233,6 +235,8 @@ begin
 
   if AMetadata = mdsCreate then
   begin
+    S.Add(Format('ALTER TABLE %s ADD checkremains DBOOLEAN ',
+      [FieldByName('relationname').AsString]));
     S.Add(Format('ALTER TABLE %s ADD fromcardkey DINTKEY ',
       [FieldByName('relationname').AsString]));
     S.Add(Format('ALTER TABLE %s ADD quantity DQUANTITY ',
@@ -246,11 +250,11 @@ begin
         'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
         'BEFORE INSERT POSITION 1 '#13#10 +
         'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+        '  DECLARE VARIABLE delayed SMALLINT; '#13#10 +
         '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
         '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+        '  DECLARE VARIABLE fc DINTKEY; '#13#10 +
+        '  DECLARE VARIABLE tc DINTKEY; '#13#10 +
         'BEGIN '#13#10 +
         '  /* Trigger body */ '#13#10 +
         '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
@@ -289,11 +293,11 @@ begin
         'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
         'BEFORE UPDATE POSITION 1 '#13#10 +
         'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+        '  DECLARE VARIABLE delayed SMALLINT; '#13#10 +
         '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
         '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+        '  DECLARE VARIABLE fc DINTKEY; '#13#10 +
+        '  DECLARE VARIABLE tc DINTKEY; '#13#10 +
         'BEGIN '#13#10 +
         '  /* Trigger body */ '#13#10 +
         '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
@@ -348,6 +352,10 @@ end;
 procedure TgdcInvSimpleDocumentLineTable.MakePredefinedObjects;
 begin
   inherited;
+  NewField('CHECKREMAINS',
+    'Контроль остатков', 'DBOOLEAN', 'Контроль остатков', 'Контроль остатков',
+    'L', '20', '0', '1');
+
   NewField('FROMCARDKEY',
     'Из карточки', 'DINTKEY', 'Из карточки', 'Из карточки',
     'L', '10', '1', '0');
@@ -374,6 +382,8 @@ begin
 
   if AMetadata = mdsCreate then
   begin
+    S.Add(Format('ALTER TABLE %s ADD checkremains DBOOLEAN ',
+      [FieldByName('relationname').AsString]));
     S.Add(Format('ALTER TABLE %s ADD fromcardkey DINTKEY ',
       [FieldByName('relationname').AsString]));
     S.Add(Format('ALTER TABLE %s ADD quantity DQUANTITY ',
@@ -399,11 +409,11 @@ begin
         'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
         'BEFORE INSERT POSITION 1 '#13#10 +
         'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+        '  DECLARE VARIABLE delayed SMALLINT; '#13#10 +
         '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
         '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+        '  DECLARE VARIABLE fc DINTKEY; '#13#10 +
+        '  DECLARE VARIABLE tc DINTKEY; '#13#10 +
         'BEGIN '#13#10 +
         '  /* Trigger body */ '#13#10 +
         '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
@@ -448,11 +458,11 @@ begin
         'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
         'BEFORE UPDATE POSITION 1 '#13#10 +
         'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+        '  DECLARE VARIABLE delayed SMALLINT; '#13#10 +
         '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
         '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+        '  DECLARE VARIABLE fc DINTKEY; '#13#10 +
+        '  DECLARE VARIABLE tc DINTKEY; '#13#10 +
         'BEGIN '#13#10 +
         '  /* Trigger body */ '#13#10 +
         '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
@@ -509,6 +519,9 @@ end;
 procedure TgdcInvFeatureDocumentLineTable.MakePredefinedObjects;
 begin
   inherited;
+  NewField('CHECKREMAINS',
+    'Контроль остатков', 'DBOOLEAN', 'Контроль остатков', 'Контроль остатков',
+    'L', '20', '0', '1');
   
   NewField('FROMCARDKEY',
     'Из карточки', 'DINTKEY', 'Из карточки', 'Из карточки',
@@ -540,6 +553,8 @@ begin
 
   if AMetadata = mdsCreate then
   begin
+    S.Add(Format('ALTER TABLE %s ADD checkremains DBOOLEAN ',
+      [FieldByName('relationname').AsString]));
     S.Add(Format('ALTER TABLE %s ADD fromcardkey DINTKEY ',
       [FieldByName('relationname').AsString]));
     S.Add(Format('ALTER TABLE %s ADD fromquantity DQUANTITY ',
@@ -557,11 +572,11 @@ begin
         'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
         'BEFORE INSERT POSITION 1 '#13#10 +
         'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+        '  DECLARE VARIABLE delayed SMALLINT; '#13#10 +
         '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
         '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+        '  DECLARE VARIABLE fc DINTKEY; '#13#10 +
+        '  DECLARE VARIABLE tc DINTKEY; '#13#10 +
         'BEGIN '#13#10 +
         '  /* Trigger body */ '#13#10 +
         '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
@@ -608,11 +623,11 @@ begin
         'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
         'BEFORE UPDATE POSITION 1 '#13#10 +
         'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+        '  DECLARE VARIABLE delayed SMALLINT; '#13#10 +
         '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
         '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+        '  DECLARE VARIABLE fc DINTKEY; '#13#10 +
+        '  DECLARE VARIABLE tc DINTKEY; '#13#10 +
         'BEGIN '#13#10 +
         '  /* Trigger body */ '#13#10 +
         '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
@@ -671,6 +686,10 @@ end;
 procedure TgdcInvInventDocumentLineTable.MakePredefinedObjects;
 begin
   inherited;
+    NewField('CHECKREMAINS',
+    'Контроль остатков', 'DBOOLEAN', 'Контроль остатков', 'Контроль остатков',
+    'L', '20', '0', '1');
+
   NewField('FROMCARDKEY',
     'Из карточки', 'DINTKEY', 'Из карточки', 'Из карточки',
     'L', '10', '1', '0');
@@ -697,6 +716,9 @@ begin
 
   if AMetadata = mdsCreate then
   begin
+    S.Add(Format('ALTER TABLE %s ADD checkremains DBOOLEAN ',
+      [FieldByName('relationname').AsString]));
+
     S.Add(Format('ALTER TABLE %s ADD fromcardkey DINTKEY ',
       [FieldByName('relationname').AsString]));
 
@@ -719,11 +741,11 @@ begin
         'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
         'BEFORE INSERT POSITION 1 '#13#10 +
         'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+        '  DECLARE VARIABLE delayed SMALLINT; '#13#10 +
         '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
         '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+        '  DECLARE VARIABLE fc DINTKEY; '#13#10 +
+        '  DECLARE VARIABLE tc DINTKEY; '#13#10 +
         'BEGIN '#13#10 +
         '  /* Trigger body */ '#13#10 +
         '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
@@ -775,11 +797,11 @@ begin
         'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
         'BEFORE UPDATE POSITION 1 '#13#10 +
         'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+        '  DECLARE VARIABLE delayed SMALLINT; '#13#10 +
         '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
         '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+        '  DECLARE VARIABLE fc DINTKEY; '#13#10 +
+        '  DECLARE VARIABLE tc DINTKEY; '#13#10 +
         'BEGIN '#13#10 +
         '  /* Trigger body */ '#13#10 +
         '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
@@ -843,6 +865,10 @@ end;
 procedure TgdcInvTransformDocumentLineTable.MakePredefinedObjects;
 begin
   inherited;
+  NewField('CHECKREMAINS',
+    'Контроль остатков', 'DBOOLEAN', 'Контроль остатков', 'Контроль остатков',
+    'L', '20', '0', '1');
+
   NewField('FROMCARDKEY',
     'Из карточки', 'DINTKEY', 'Из карточки', 'Из карточки',
     'L', '10', '1', '0');

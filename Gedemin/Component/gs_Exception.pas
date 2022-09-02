@@ -1,3 +1,5 @@
+// ShlTanya, 11.02.2019
+
 unit gs_Exception;
 
 interface

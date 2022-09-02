@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit at_frmSyncNamespace_unit;
 
 interface
@@ -189,7 +191,7 @@ implementation
 
 uses
   FileCtrl, gd_GlobalParams_unit, gd_ExternalEditor, jclStrings, Storages,
-  gdcNamespaceLoader;
+  gdcNamespaceLoader, gdcBaseInterface;
 
 procedure Tat_frmSyncNamespace.actChooseDirExecute(Sender: TObject);
 var
@@ -223,12 +225,12 @@ end;
 procedure Tat_frmSyncNamespace.actEditNamespaceUpdate(Sender: TObject);
 begin
   actEditNamespace.Enabled := (not FNSC.DataSet.IsEmpty)
-    and (FNSC.DataSet.FieldByName('namespacekey').AsInteger > 0);
+    and (GetTID(FNSC.DataSet.FieldByName('namespacekey')) > 0);
 end;
 
 procedure Tat_frmSyncNamespace.actEditNamespaceExecute(Sender: TObject);
 begin
-  FNSC.EditNamespace(FNSC.DataSet.FieldByName('namespacekey').AsInteger);
+  FNSC.EditNamespace(GetTID(FNSC.DataSet.FieldByName('namespacekey')));
 end;
 
 procedure Tat_frmSyncNamespace.actEditFileUpdate(Sender: TObject);
@@ -258,7 +260,7 @@ end;
 procedure Tat_frmSyncNamespace.actCompareWithDataExecute(Sender: TObject);
 begin
   FNSC.CompareWithData(
-    FNSC.DataSet.FieldByName('namespacekey').AsInteger,
+    GetTID(FNSC.DataSet.FieldByName('namespacekey')),
     FNSC.DataSet.FieldByName('filename').AsString,
     True);
 end;
@@ -578,7 +580,7 @@ end;
 procedure Tat_frmSyncNamespace.actOnlyCompareExecute(Sender: TObject);
 begin
   FNSC.CompareWithData(
-    FNSC.DataSet.FieldByName('namespacekey').AsInteger,
+    GetTID(FNSC.DataSet.FieldByName('namespacekey')),
     FNSC.DataSet.FieldByName('filename').AsString,
     False);
 end;

@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 {++
 
@@ -109,17 +110,17 @@ type
 type
   TTransactionCacheItem = class(TgdKeyIntAssoc)
   private
-    FFunctionKey: Integer;
-    FTrRecordKey: Integer;
-    FDocumentTypeKey: Integer;
+    FFunctionKey: TID;
+    FTrRecordKey: TID;
+    FDocumentTypeKey: TID;
     FDBegin: TDateTime;
     FDEnd: TDateTime;
     FDocumentPart: TgdcDocumentClassPart;
 
   public
-    property TrRecordKey: Integer read FTrRecordKey write FTrRecordKey;
-    property FunctionKey: Integer read FFunctionKey write FFunctionKey;
-    property DocumentTypeKey: Integer read FDocumentTypeKey write FDocumentTypeKey;
+    property TrRecordKey: TID read FTrRecordKey write FTrRecordKey;
+    property FunctionKey: TID read FFunctionKey write FFunctionKey;
+    property DocumentTypeKey: TID read FDocumentTypeKey write FDocumentTypeKey;
     property DBegin: TDateTime read FDBegin write FDBegin;
     property DEnd: TDateTime read FDEnd write FDEnd;
     property DocumentPart: TgdcDocumentClassPart read FDocumentPart write FDocumentPart;
@@ -129,14 +130,14 @@ type
   private
     function GetItems(Index: Integer): TTransactionCacheItem;
   public
-    function IndexOf(TrRecord, DocumentTypeKey: Integer; DBegin: TDateTime; DEnd: TDateTime; DocumentPart: TgdcDocumentClassPart): Integer;
-    function Add(TrRecordKey, FunctionKey, DocumentTypeKey: Integer; DBegin: TDateTime; DEnd: TDateTime; DocumentPart: TgdcDocumentClassPart): Integer;
+    function IndexOf(TrRecord, DocumentTypeKey: TID; DBegin: TDateTime; DEnd: TDateTime; DocumentPart: TgdcDocumentClassPart): Integer;
+    function Add(TrRecordKey, FunctionKey, DocumentTypeKey: TID; DBegin: TDateTime; DEnd: TDateTime; DocumentPart: TgdcDocumentClassPart): Integer;
     property Items[Index: Integer]: TTransactionCacheItem read GetItems; default;
   end;
 
   TTransactionCache = class(TgdKeyObjectAssoc, IConnectChangeNotify)
   private
-    function GetCacheItems(Key: Integer): TTransactionCacheItems;
+    function GetCacheItems(Key: TID): TTransactionCacheItems;
     function GetCacheItemsByIndex(Index: Integer): TTransactionCacheItems;
 
     procedure DoAfterSuccessfullConnection;
@@ -150,7 +151,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    property CacheItemsByKey[Key: Integer]: TTransactionCacheItems read GetCacheItems; default;
+    property CacheItemsByKey[Key: TID]: TTransactionCacheItems read GetCacheItems; default;
     property CacheItemsByIndex[Index: Integer]: TTransactionCacheItems read GetCacheItemsByIndex;
   end;
 
@@ -230,7 +231,8 @@ end;
 
 function TgdcBaseAcctTransaction.AcceptClipboard(CD: PgdcClipboardData): Boolean;
 var
-  i, key, documentkey: Integer;
+  i: Integer;
+  key, documentkey: TID;
   LocalObj: TgdcBase;
   V: OleVariant;
 begin
@@ -242,11 +244,11 @@ begin
   begin
     for I := 0 to CD.ObjectCount - 1 do
     begin
-      if CD.Obj.Locate('ID', CD.ObjectArr[I].ID, []) then
+      if CD.Obj.Locate('ID', TID2V(CD.ObjectArr[I].ID), []) then
       begin
         CD.Obj.Edit;
         try
-          CD.Obj.FieldByName('transactionkey').AsInteger := Self.ID;
+          SetTID(CD.Obj.FieldByName('transactionkey'), Self.ID);
           CD.Obj.Post;
         except
           CD.Obj.Cancel;
@@ -254,7 +256,7 @@ begin
         end;
       end else
       begin
-              LocalObj := CgdcBase(FindClass(CD.ClassName)).CreateWithParams(nil,
+          LocalObj := CgdcBase(FindClass(CD.ClassName)).CreateWithParams(nil,
           Database,
           Transaction,
           '',
@@ -268,7 +270,7 @@ begin
           begin
             LocalObj.Edit;
             try
-              LocalObj.FieldByName('transactionkey').AsInteger := Self.ID;
+              SetTID(LocalObj.FieldByName('transactionkey'), Self.ID);
               LocalObj.Post;
             except
               LocalObj.Cancel;
@@ -291,23 +293,23 @@ begin
 
         key := -1;
         documentkey := -1;
-        if CD.Obj.Locate('ID', CD.ObjectArr[I].ID, []) then
-          key := CD.Obj.FieldByName('recordkey').AsInteger
+        if CD.Obj.Locate('ID', TID2V(CD.ObjectArr[I].ID), []) then
+          key := GetTID(CD.Obj.FieldByName('recordkey'))
         else begin
           ExecSingleQueryResult('SELECT recordkey, documentkey FROM ac_entry WHERE id = :id',
-            VarArrayOf([CD.ObjectArr[I].ID]), V);
+            VarArrayOf([TID2V(CD.ObjectArr[I].ID)]), V);
           if VarType(V) <> VarEmpty then
           begin
-            key := Integer(V[0, 0]);
-            documentkey := Integer(V[1, 0]);
+            key := GetTID(V[0, 0]);
+            documentkey := GetTID(V[1, 0]);
           end
         end;
         if (Key > -1) and (DocumentKey > -1) then
         begin
           ExecSingleQuery('UPDATE ac_record SET transactionkey = :TrKey WHERE ID = :ID',
-            VarArrayOf([Self.ID, Key]));
+            VarArrayOf([TID2V(Self.ID), TID2V(Key)]));
           ExecSingleQuery('UPDATE gd_document SET transactionkey = :TrKey WHERE ID = :ID',
-            VarArrayOf([Self.ID, documentkey]));
+            VarArrayOf([TID2V(Self.ID), TID2V(documentkey)]));
         end;
       end;
       Result := True;
@@ -712,7 +714,7 @@ begin
     try
       q.Transaction := ReadTransaction;
       q.SQL.Text := 'SELECT id FROM ac_autotrrecord WHERE id = :id';
-      q.ParamByName(fnId).AsInteger := Id;
+      SetTID(q.ParamByName(fnId), Id);
       q.ExecQuery;
       if not q.EOF then
         Result.gdClass := TgdcAutoTrRecord
@@ -773,12 +775,12 @@ begin
       ibsql.Transaction := ReadTransaction;
 
     ibsql.SQL.Text := 'SELECT id FROM ac_record WHERE trrecordkey = :trkey';
-    ibsql.ParamByName('trkey').AsInteger := ID;
+    SetTID(ibsql.ParamByName('trkey'), ID);
     ibsql.ExecQuery;
 
     if not ibsql.EOF then
       raise EgdcIBError.Create(Format('Удаление невозможно: %s %s с идентификатором %d используется в проводках!',
-        [GetDisplayName(SubType), FieldByName(GetListField(SubType)).AsString, ID]));
+        [GetDisplayName(SubType), FieldByName(GetListField(SubType)).AsString, TID264(ID)]));
   finally
     ibsql.Free;
   end;
@@ -811,7 +813,7 @@ begin
 end;
 
 function TTransactionCache.GetCacheItems(
-  Key: Integer): TTransactionCacheItems;
+  Key: TID): TTransactionCacheItems;
 begin
   Result := TTransactionCacheItems(ObjectByKey[Key])
 end;
@@ -903,12 +905,12 @@ begin
       ibsql.Transaction := ReadTransaction;
 
     ibsql.SQL.Text := 'SELECT id FROM ac_record WHERE transactionkey = :trkey';
-    ibsql.ParamByName('trkey').AsInteger := ID;
+    SetTID(ibsql.ParamByName('trkey'), ID);
     ibsql.ExecQuery;
 
     if not ibsql.EOF then
       raise EgdcIBError.Create(Format('Удаление невозможно: %s %s с идентификатором %d используется в проводках!',
-        [GetDisplayName(SubType), FieldByName(GetListField(SubType)).AsString, ID]));
+        [GetDisplayName(SubType), FieldByName(GetListField(SubType)).AsString, TID264(ID)]));
   finally
     ibsql.Free;
   end;
@@ -926,7 +928,7 @@ end;
 
 { TTransactionCacheItems }
 
-function TTransactionCacheItems.Add(TrRecordKey, FunctionKey, DocumentTypeKey: Integer;
+function TTransactionCacheItems.Add(TrRecordKey, FunctionKey, DocumentTypeKey: TID;
    DBegin: TDateTime; DEnd: TDateTime; DocumentPart: TgdcDocumentClassPart): Integer;
 var
   Index: Integer;
@@ -955,7 +957,7 @@ begin
 end;
 
 function TTransactionCacheItems.IndexOf(
-  TrRecord, DocumentTypeKey: Integer;
+  TrRecord, DocumentTypeKey: TID;
   DBegin: TDateTime; DEnd: TDateTime;
   DocumentPart: TgdcDocumentClassPart): Integer;
 var

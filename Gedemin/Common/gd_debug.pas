@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gd_debug;
 
@@ -10,7 +11,7 @@ unit gd_debug;
 interface
 
 procedure LogRecord(const S: String); overload;
-procedure LogRecord(const S: String; const I: Integer); overload;
+procedure LogRecord(const S: String; const I: Int64); overload;
 
 implementation
 
@@ -25,7 +26,7 @@ begin
   end;
 end;
 
-procedure LogRecord(const S: String; const I: Integer); overload;
+procedure LogRecord(const S: String; const I: Int64); overload;
 begin
   LogRecord(S + ', ' + IntToStr(I));
 end;

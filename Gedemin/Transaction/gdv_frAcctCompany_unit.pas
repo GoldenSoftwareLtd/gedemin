@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_frAcctCompany_unit;
 
 interface
@@ -20,10 +22,10 @@ type
   private
     FHoldingList: string;
     function GetCompanyList: string;
-    function GetCompanyKey: integer;
+    function GetCompanyKey: TID;
     procedure SetAllHoldingCompanies(const Value: boolean);
     function GetAllHoldingCompanies: boolean;
-    procedure SetCompanyKey(const Value: integer);
+    procedure SetCompanyKey(const Value: TID);
 
   protected
     procedure Loaded; override;
@@ -35,7 +37,7 @@ type
     procedure LoadFromStream(const Stream: TStream);
 
     property CompanyList: string read GetCompanyList;
-    property CompanyKey: integer read GetCompanyKey write SetCompanyKey;
+    property CompanyKey: TID read GetCompanyKey write SetCompanyKey;
     property AllHoldingCompanies: boolean read GetAllHoldingCompanies write SetAllHoldingCompanies;
   end;
 
@@ -92,7 +94,7 @@ begin
           'SELECT LIST(companykey, '','') ' +
           'FROM gd_holding ' +
           'WHERE holdingkey = :holdingkey';
-        SQL.ParamByName('holdingkey').AsInteger := iblCompany.CurrentKeyInt;
+        SetTID(SQL.ParamByName('holdingkey'), iblCompany.CurrentKeyInt);
         SQL.ExecQuery;
         if not SQL.Eof then
           FHoldingList := FHoldingList + ',' + SQL.Fields[0].AsString;
@@ -131,7 +133,7 @@ begin
   SaveBooleanToStream(cbAllCompanies.Checked, Stream);
 end;
 
-function TfrAcctCompany.GetCompanyKey: integer;
+function TfrAcctCompany.GetCompanyKey: TID;
 begin
   Result := iblCompany.CurrentKeyInt;
 end;
@@ -146,7 +148,7 @@ begin
   Result := cbAllCompanies.Checked;
 end;
 
-procedure TfrAcctCompany.SetCompanyKey(const Value: integer);
+procedure TfrAcctCompany.SetCompanyKey(const Value: TID);
 begin
   iblCompany.CurrentKeyInt := Value
 end;

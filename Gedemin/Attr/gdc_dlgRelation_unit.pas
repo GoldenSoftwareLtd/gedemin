@@ -1,3 +1,4 @@
+// ShlTanya, 03.02.2019
 
 {++
 
@@ -138,6 +139,8 @@ type
     lblWarn: TLabel;
     Label1: TLabel;
     dbedSemCategory: TDBEdit;
+    Label2: TLabel;
+    DBEGENERATORNAME: TDBEdit;
 
     procedure actNewFieldExecute(Sender: TObject);
     procedure actNewFieldUpdate(Sender: TObject);
@@ -361,7 +364,7 @@ procedure Tgdc_dlgRelation.BeforePost;
     {если у нас не было ветки в исследователе и мы захотели ее создать}
     gdcExplorer.Open;
     gdcExplorer.Insert;
-    gdcExplorer.FieldByName('parent').AsInteger := iblcExplorerBranch.CurrentKeyInt;
+    SetTID(gdcExplorer.FieldByName('parent'), iblcExplorerBranch.CurrentKeyInt);
     if gdcObject.FieldByName('lname').AsString = '' then
       gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('relationname').AsString
     else
@@ -372,7 +375,7 @@ procedure Tgdc_dlgRelation.BeforePost;
       gdcObject.FieldByName('relationname').AsString);
     gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
     gdcExplorer.Post;
-    gdcObject.FieldByName('branchkey').AsInteger := gdcExplorer.ID;
+    SetTID(gdcObject.FieldByName('branchkey'), gdcExplorer.ID);
   end;
 
 begin
@@ -410,23 +413,23 @@ begin
     begin
       _InsertExplorer;
     end
-    else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
+    else if (GetTID(gdcObject.FieldByName('branchkey')) > 0) and
       (iblcExplorerBranch.CurrentKeyInt = -1)
     then
     begin
       {если у нас была ветка в исследователе и мы захотели ее удалить}
-      gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
+      gdcExplorer.ID := GetTID(gdcObject.FieldByName('branchkey'));
       gdcExplorer.Open;
       if not gdcExplorer.EOF then
         gdcExplorer.Delete;
       gdcObject.FieldByName('branchkey').Clear;
     end
-    else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
+    else if (GetTID(gdcObject.FieldByName('branchkey')) > 0) and
       (iblcExplorerBranch.CurrentKeyInt > 0)
     then
     begin
       {если у нас была ветка в исследователе, подредактируем ее и заменим наименование, родителя}
-      gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
+      gdcExplorer.ID := GetTID(gdcObject.FieldByName('branchkey'));
       gdcExplorer.Open;
       if (gdcExplorer.RecordCount = 0) or
         (gdcExplorer.FieldByName('subtype').AsString <> gdcObject.FieldByName('relationname').AsString) then
@@ -435,7 +438,7 @@ begin
       end else
       begin
         gdcExplorer.Edit;
-        gdcExplorer.FieldByName('parent').AsInteger := iblcExplorerBranch.CurrentKeyInt;
+        SetTID(gdcExplorer.FieldByName('parent'), iblcExplorerBranch.CurrentKeyInt);
         gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('lname').AsString;
         gdcExplorer.Post;
       end;
@@ -532,17 +535,17 @@ begin
     dbedRelationName.Color := clBtnFace;
   end;
 
-  if gdcObject.FieldByName('branchkey').AsInteger > 0 then
+  if GetTID(gdcObject.FieldByName('branchkey')) > 0 then
   begin
     ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := gdcBaseManager.ReadTRansaction;
       ibsql.SQL.Text := 'SELECT parent FROM gd_command WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('branchkey').AsInteger;
+      SetTID(ibsql.ParamByName('id'), gdcObject.FieldByName('branchkey'));
       ibsql.ExecQuery;
 
-      if (not ibsql.EOF) and (ibsql.FieldByName('parent').AsInteger > 0) then
-        iblcExplorerBranch.CurrentKeyInt := ibsql.FieldByName('parent').AsInteger;
+      if (not ibsql.EOF) and (GetTID(ibsql.FieldByName('parent')) > 0) then
+        iblcExplorerBranch.CurrentKeyInt := GetTID(ibsql.FieldByName('parent'));
     finally
       ibsql.Free;
     end;
@@ -670,7 +673,7 @@ function Tgdc_dlgRelation.TestCorrect: Boolean;
     R: OleVariant;
   begin
     Count := 0;
-    if gdcBaseManager.ExecSingleQueryResult('SELECT relationname FROM at_relations WHERE id = :id', RID, R) then
+    if gdcBaseManager.ExecSingleQueryResult('SELECT relationname FROM at_relations WHERE id = :id', TID2V(RID), R) then
       _Traverse(gdClassList.Get(TgdBaseEntry, 'TgdcBase'), R[0, 0], Count);
     Result := Count <= 1;
   end;
@@ -733,7 +736,7 @@ begin
       q.SQL.Text :=
         'SELECT r.relationname FROM at_relations r WHERE r.lname = :lname ' +
         '  AND r.id <> :ID ';
-      q.ParamByName('id').AsInteger := gdcObject.ID;
+      SetTID(q.ParamByName('id'), gdcObject.ID);
       q.ParamByName('lname').AsString := gdcObject.FieldByName('lname').AsString;
       q.ExecQuery;
 

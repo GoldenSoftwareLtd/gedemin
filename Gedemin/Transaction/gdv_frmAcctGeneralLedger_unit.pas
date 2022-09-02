@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019, #4135
+
 unit gdv_frmAcctGeneralLedger_unit;
 
 interface
@@ -211,7 +213,7 @@ begin
     FAccountIDs.Clear;
     if (iblConfiguratior.CurrentKey > '') and (cbAccounts.Text > '') then
     begin
-      SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, False);
+      SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, Name, False);
       if FAccountIDs.Count > 1 then
       begin
         SQL := TIBSQL.Create(nil);
@@ -220,15 +222,15 @@ begin
           SQL.SQL.Text := Format(
             ' SELECT a.id, a.parent, a.accounttype FROM ac_account a WHERE a.id in(%s) and ' +
             ' a.accounttype in (''A'', ''S'') ORDER BY a.accounttype',
-            [IDList(FAccountIDs)]);
+            [IDList(FAccountIDs, Name)]);
           SQL.ExecQuery;
           if not SQL.Eof then
           begin
             FAccountIDs.Clear;
             if SQL.FieldByName('accounttype').AsString = 'A' then
-              FAccountIDs.Add(Pointer(SQL.FieldByName('id').AsInteger))
+              FAccountIDs.Add(TID2Pointer(GetTID(SQL.FieldByName('id')), Name))
             else
-              FAccountIDs.Add(Pointer(SQL.FieldByName('parent').AsInteger));
+              FAccountIDs.Add(TID2Pointer(GetTID(SQL.FieldByName('parent')), Name));
           end; 
         finally
           SQL.Free;
@@ -240,7 +242,7 @@ begin
         or (gdcAcctChart.FieldByName('accounttype').AsString = 'S')
         or chkBuildGroup.Checked then
       begin
-        FAccountIDs.Add(Pointer(gdcAcctChart.FieldByName('id').AsInteger));
+        FAccountIDs.Add(TID2Pointer(GetTID(gdcAcctChart.FieldByName('id')), Name));
         cbAccounts.Text := gdcAcctChart.FieldByName('alias').AsString;
       end;
     end;
@@ -274,14 +276,14 @@ begin
     '  WHERE z.LB >= c1.lb AND z.rb <= c1.rb AND cc.companykey IN (%s) AND z.id <> 300003 ) ',
     [frAcctCompany.CompanyList]);
   if cbAccounts.Text <> '' then
-    SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, False);
+    SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, Name, False);
   if Assigned(FAccountIDs) and (FAccountIDs.Count > 0) then begin
     Delete(s, 1, 2);
     q:= TIBSQL.Create(nil);
     try
       q.Transaction:= gdcBaseManager.ReadTransaction;
       q.SQL.Text:= 'SELECT lb, rb FROM ac_account WHERE id IN ' +
-        '(' + IDList(FAccountIDs) + ')';
+        '(' + IDList(FAccountIDs, Name) + ')';
       q.ExecQuery;
       s:= '';
       while not q.Eof do
@@ -386,6 +388,7 @@ begin
         with Tgdv_frmAcctAccCard(Tgdv_frmAcctAccCard.CreateAndAssign(Application)) do
         begin
           gsPeriodEdit.Text := Self.gsPeriodEdit.Text;
+          ActiveControl := ibgrMain;
 
           Show;
           Execute(C);
@@ -395,7 +398,8 @@ begin
         with Tgdv_frmAcctAccCard(Tgdv_frmAcctAccCard.Create(Application)) do
         begin
           gsPeriodEdit.Text := Self.gsPeriodEdit.Text;
-
+          ActiveControl := ibgrMain;
+          
           Show;
           Execute(C);
         end;
@@ -524,7 +528,7 @@ begin
       try
         ibsql.Transaction := gdcBaseManager.ReadTransaction;
         ibsql.SQL.Text := 'SELECT * FROM ac_account a WHERE a.id = :id';
-        ibsql.ParamByName('id').AsInteger := gdvObject.Accounts[0];
+        SetTID(ibsql.ParamByName('id'), gdvObject.Accounts[0]);
         ibsql.ExecQuery;
         if not ibsql.Eof
           and ((ibsql.FieldByName('accounttype').AsString = 'A')
@@ -541,7 +545,7 @@ begin
 
         ibsql.SQL.Text := 'SELECT * FROM ac_accanalyticsext aa JOIN at_relation_fields rf ' +
           ' ON aa.valuekey = rf.id and aa.accountkey = :id';
-        ibsql.ParamByName('id').AsInteger := gdvObject.Accounts[0];
+        SetTID(ibsql.ParamByName('id'), gdvObject.Accounts[0]);
         ibsql.ExecQuery;
 
         if not ibsql.Eof then

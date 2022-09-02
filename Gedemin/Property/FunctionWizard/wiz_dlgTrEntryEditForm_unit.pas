@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_dlgTrEntryEditForm_unit;
 
 interface
@@ -58,12 +60,12 @@ type
     { Private declarations }
     FDocumentHead: TDocumentInfo;
     FDocumentLine: TDocumentLineInfo;
-    FAccountKey: Integer;
+    FAccountKey: TID;
     FAvailAnalyticFields: TList;
     FAccountAnalyticFields: TList;
     FAnalyticLines: TObjectList;
 
-    FCurrKey: Integer;
+    FCurrKey: TID;
 
     procedure ClickAccount(Sender: TObject);
     procedure ClickAccountCicle(Sender: TObject);
@@ -176,7 +178,7 @@ var
   S: TStrings;
   I, J: Integer;
   FieldName: String;
-  ID: Integer;
+  ID: TID;
   SQL: TIBSQL;
   QName, Q, QScript: string;
   LI: TListItem;
@@ -232,7 +234,7 @@ begin
                     [TfrAnalyticLine(FAnalyticLines[J]).Field.References.ListField.FieldName,
                     TfrAnalyticLine(FAnalyticLines[J]).Field.References.RelationName,
                     TfrAnalyticLine(FAnalyticLines[J]).Field.ReferencesField.FieldName,
-                    id]);
+                    TID264(id)]);
                   SQL.ExecQuery;
                   try
                     TfrAnalyticLine(FAnalyticLines[J]).eAnalytic.Text := SQL.Fields[0].AsString;
@@ -274,7 +276,7 @@ begin
               try
                 SQL.Transaction := gdcBaseManager.ReadTransaction;
                 SQL.SQl.Text := 'SELECT name FROM gd_value WHERE id = :id';
-                SQL.ParamByName(fnId).AsInteger := id;
+                SetTID(SQL.ParamByName(fnId), id);
                 SQL.ExecQuery;
                 if SQl.RecordCount > 0 then
                   QName := SQL.FieldByName(fnNAme).AsString;
@@ -447,14 +449,14 @@ begin
         { TODO : Нужно подумать с планом счетов }
         SQL.SQL.Text := Format('SELECT %s FROM ac_account a JOIN ac_account c ' +
           ' ON c.lb <= a.lb AND c.rb >= c.rb AND c.accounttype = ''C'' WHERE a.id = %d '+
-          ' AND c.id = %d', [SelectClause, FAccountKey,
-          gdcBaseManager.GetIdByRUIDString(MainFunction.CardOfAccountsRUID)]);
+          ' AND c.id = %d', [SelectClause, TID264(FAccountKey),
+          TID264(gdcBaseManager.GetIdByRUIDString(MainFunction.CardOfAccountsRUID))]);
         SQL.ExecQuery;
         if SQL.RecordCount > 0 then
         begin
           for I := 0 to SQL.Current.Count - 1 do
           begin
-            if SQL.Current[I].AsInteger > 0 then
+            if GetTID(SQL.Current[I]) > 0 then
             begin
               for J := 0 to FAvailAnalyticFields.Count - 1 do
               begin

@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_frQuantity_unit;
 
 interface
@@ -28,17 +30,17 @@ type
     procedure lvQuantityDblClick(Sender: TObject);
   private
     FBlock: TVisualBlock;
-    FAccountKey: Integer;
+    FAccountKey: TID;
     procedure SetBlock(const Value: TVisualBlock);
     function GetQuantity: string;
     procedure SetQuantity(const Value: string);
-    procedure SetAccountKey(const Value: Integer);
+    procedure SetAccountKey(const Value: TID);
     { Private declarations }
   public
     { Public declarations }
     property Block: TVisualBlock read FBlock write SetBlock;
     property Quantity: string read GetQuantity write SetQuantity;
-    property AccountKey: Integer read FAccountKey write SetAccountKey;
+    property AccountKey: TID read FAccountKey write SetAccountKey;
   end;
 
 implementation
@@ -79,7 +81,8 @@ var
   S: TStrings;
   SQL: TIBSQL;
   QName, Q, QScript: string;
-  Id, I: Integer;
+  Id: TID;
+  I: Integer;
   LI: TListItem;
 begin
   lvQuantity.Items.BeginUpdate;
@@ -105,7 +108,7 @@ begin
           try
             SQL.Transaction := gdcBaseManager.ReadTransaction;
             SQL.SQl.Text := 'SELECT name FROM gd_value WHERE id = :id';
-            SQL.ParamByName(fnId).AsInteger := id;
+            SetTID(SQL.ParamByName(fnId), id);
             SQL.ExecQuery;
             if SQl.RecordCount > 0 then
               QName := SQL.FieldByName(fnNAme).AsString;
@@ -206,7 +209,7 @@ begin
   actEditQuantity.Execute;
 end;
 
-procedure TfrQuantity.SetAccountKey(const Value: Integer);
+procedure TfrQuantity.SetAccountKey(const Value: TID);
 begin
   FAccountKey := Value;
 end;

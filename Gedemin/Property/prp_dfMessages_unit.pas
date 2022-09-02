@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019, #4135
+
 unit prp_dfMessages_unit;
 
 interface
@@ -12,10 +14,8 @@ type
     lvMessages: TListView;
     actDelete: TAction;
     actClearErrorMessages: TAction;
-    actClearSearchMessages: TAction;
     N1: TMenuItem;
     N2: TMenuItem;
-    N3: TMenuItem;
     N4: TMenuItem;
     N5: TMenuItem;
     actClearCompileMessages: TAction;
@@ -27,7 +27,6 @@ type
     procedure actDeleteExecute(Sender: TObject);
     procedure actClearErrorMessagesExecute(Sender: TObject);
     procedure lvMessagesDblClick(Sender: TObject);
-    procedure actClearSearchMessagesExecute(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure lvMessagesSelectItem(Sender: TObject; Item: TListItem;
@@ -53,14 +52,9 @@ type
     { Public declarations }
     procedure UpdateErrors;
     procedure ClearErrorResults;
-    procedure ClearSearchResult;
-    procedure ClearSearch;
     procedure ClearCompileResult;
     procedure GotoLastError;
     procedure SetErrorMessages(const ErrorList: TObjectList);
-
-//    procedure
-
   end;
 
 var
@@ -309,15 +303,7 @@ begin
   ClearErrorResults;
 end;
 
-procedure TdfMessages.ClearSearchResult;
-begin
-  ClearSearch;
-  if lvMessages.Items.Count = 0 then Hide;
-end;
-
 procedure TdfMessages.lvMessagesDblClick(Sender: TObject);
-var
-  SQL: TIBSQL;
 begin
   if Assigned(lvMessages.Selected) and Assigned(lvMessages.Selected.Data) then
   begin
@@ -327,71 +313,8 @@ begin
           TCustomMessageItem(lvMessages.Selected.Data).FunctionKey,
           TCustomMessageItem(lvMessages.Selected.Data).Line, 0,
           True);
-      mtSearch:
-        with TSearchMessageItem(lvMessages.Selected.Data) do
-        begin
-          if FunctionKey = 0 then Exit;
-          case ItemType of
-            itReport:
-            begin
-              SQL := TIBSQL.Create(nil);
-              try
-                SQl.Transaction := gdcBaseManager.ReadTransaction;
-                SQl.SQl.Text := 'select id from rp_reportlist where id = :id';
-                SQL.ParamByName('id').AsInteger := FunctionKey;
-                SQL.ExecQuery;
-                if SQl.RecordCount > 0 then
-                  if Assigned(frmGedeminProperty) then
-                    frmGedeminProperty.EditReport(0, FunctionKey)
-                else
-                  FunctionKey := 0;
-              finally
-                SQL.Free;
-              end;
-            end;
-            itMacro:
-            begin
-              SQL := TIBSQL.Create(nil);
-              try
-                SQl.Transaction := gdcBaseManager.ReadTransaction;
-                SQl.SQl.Text := 'select id from evt_macroslist where id = :id';
-                SQL.ParamByName('id').AsInteger := FunctionKey;
-                SQL.ExecQuery;
-                if SQl.RecordCount > 0 then
-                  if Assigned(frmGedeminProperty) then
-                    frmGedeminProperty.EditMacro(FunctionKey)
-                else
-                  FunctionKey := 0;
-              finally
-                SQL.Free;
-              end;
-            end;
-          else
-            begin
-              SQL := TIBSQL.Create(nil);
-              try
-                SQl.Transaction := gdcBaseManager.ReadTransaction;
-                SQl.SQl.Text := 'Select id from gd_function where id = :id';
-                SQL.ParamByName('id').AsiNteger := FunctionKey;
-                SQL.ExecQuery;
-                if SQl.RecordCount > 0 then
-                  TfrmGedeminProperty(DockForm).FindAndEdit(
-                    FunctionKey, Line, Column, False)
-                else
-                  FunctionKey := 0;
-              finally
-                SQL.Free;
-              end;
-            end;
-          end;
-        end;
     end;
   end;
-end;
-
-procedure TdfMessages.actClearSearchMessagesExecute(Sender: TObject);
-begin
-  ClearSearchResult;
 end;
 
 procedure TdfMessages.DeleteItem(LI: TListItem);
@@ -466,7 +389,7 @@ var
 begin
   lvMessages.Refresh;
   ListItem := lvMessages.Selected;
-  if ListItem <> nil then 
+  if ListItem <> nil then
   try
     if TObject(ListItem.Data).InheritsFrom(TCompileMessageItem) then
     begin
@@ -481,9 +404,9 @@ begin
         pmMain.Items.Insert(0, FRefMenuItem);
       end;
 
-      FRefMenuItem.Tag := TCompileMessageItem(ListItem.Data).ReferenceToSF;
+      FRefMenuItem.Tag := TID2Tag(TCompileMessageItem(ListItem.Data).ReferenceToSF, Name);
       FRefMenuItem.Caption := 'Îòêðûòü ÑÔ ¹' +
-        IntToStr(TCompileMessageItem(ListItem.Data).ReferenceToSF);
+        TID2S(TCompileMessageItem(ListItem.Data).ReferenceToSF);
     end else
       begin
         if FRefMenuItem <> nil then
@@ -502,31 +425,16 @@ end;
 
 procedure TdfMessages.OpenSF(Sender: TObject);
 begin
-  if (Sender = FRefMenuItem) and (TMenuItem(Sender).Tag > 0) then
+  if (Sender = FRefMenuItem) and (GetTID(TMenuItem(Sender).Tag, Name) > 0) then
   begin
     TfrmGedeminProperty(DockForm).FindAndEdit(
-      TMenuItem(Sender).Tag, 0, 0, False);
+      GetTID(TMenuItem(Sender).Tag, Name), 0, 0, False);
   end;
 end;
 
 procedure TdfMessages.actClearCompileMessagesExecute(Sender: TObject);
 begin
   ClearCompileResult;
-end;
-
-procedure TdfMessages.ClearSearch;
-var
-  I: Integer;
-begin
-  CheckHandle(Self);
-  for I := lvMessages.Items.Count - 1 downto 0 do
-  begin
-    if Assigned(lvMessages.Items[I].Data) and
-      (TObject(lvMessages.Items[I].Data) is TSearchMessageItem) then
-    begin
-      DeleteItem(lvMessages.Items[I]);
-    end;
-  end;
 end;
 
 procedure TdfMessages.lvMessagesKeyDown(Sender: TObject; var Key: Word;

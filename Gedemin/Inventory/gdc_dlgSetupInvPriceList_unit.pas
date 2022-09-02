@@ -375,21 +375,21 @@ end;
 procedure TdlgSetupInvPriceList.WriteOptions(Stream: TStream);
 var
   I: Integer;
-  rpgroupkey: Integer;
+  rpgroupkey: TID;
 begin
   with TWriter.Create(Stream, 1024) do
   try
     // ¬ерси€ потока
     WriteString(gdcInvPrice_Version1_2);
 
-    rpgroupkey := Document.FieldByName('reportgroupkey').AsInteger;
+    rpgroupkey := GetTID(Document.FieldByName('reportgroupkey'));
     if not Document.UpdateReportGroup(
       'ѕрайс-листы',
       Document.FieldByName('name').AsString, rpgroupkey, True)
     then
       raise EdlgSetupInvPriceList.Create('Report Group Key not created!');
 
-    Document.FieldByName('reportgroupkey').AsInteger := rpgroupkey;
+    SetTID(Document.FieldByName('reportgroupkey'), rpgroupkey);
     //  люч группы отчетов записываем
     WriteInteger(rpgroupkey);
 
@@ -559,13 +559,13 @@ begin
   if Sender = lvDetailUsed then
   begin
     if gdcBaseManager.ExecSingleQueryResult('SELECT name FROM gd_curr WHERE id = :id',
-      CurrField.FPriceField.CurrencyKey, R) then
+      TID2V(CurrField.FPriceField.CurrencyKey), R) then
     begin
       memo.Lines.Add('¬алюта: ' + R[0, 0] + #13#10);
     end;
 
     if gdcBaseManager.ExecSingleQueryResult('SELECT name FROM gd_contact WHERE id = :id',
-      CurrField.FPriceField.ContactKey, R) then
+      TID2V(CurrField.FPriceField.ContactKey), R) then
     begin
       memo.Lines.Add('ќрганизаци€: ' + R[0, 0] + #13#10);
     end;
@@ -699,7 +699,7 @@ begin
         {если у нас не было ветки в исследователе и мы захотели ее создать}
         gdcExplorer.Open;
         gdcExplorer.Insert;
-        gdcExplorer.FieldByName('parent').AsInteger := ibcmbExplorer.CurrentKeyInt;
+        SetTID(gdcExplorer.FieldByName('parent'), ibcmbExplorer.CurrentKeyInt);
         gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('name').AsString;
         gdcExplorer.FieldByName('classname').AsString :=
           (gdcObject as TgdcDocumentType).GetHeaderDocumentClass.ClassName;
@@ -707,14 +707,14 @@ begin
         gdcExplorer.FieldByName('cmd').AsString := gdcObject.FieldByName('ruid').AsString;
         gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
         gdcExplorer.Post;
-        gdcObject.FieldByName('branchkey').AsInteger := gdcExplorer.ID;
+        SetTID(gdcObject.FieldByName('branchkey'), gdcExplorer.ID);
       end
-      else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
+      else if (GetTID(gdcObject.FieldByName('branchkey')) > 0) and
         (ibcmbExplorer.CurrentKeyInt = -1)
       then
       begin
         {если у нас была ветка в исследователе и мы захотели ее удалить}
-        gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
+        gdcExplorer.ID := GetTID(gdcObject.FieldByName('branchkey'));
         gdcExplorer.Open;
         if gdcExplorer.RecordCount > 0 then
         begin
@@ -722,18 +722,18 @@ begin
         end;
         gdcObject.FieldByName('branchkey').Clear;
       end
-      else if (gdcObject.FieldByName('branchkey').AsInteger > 0) and
+      else if (GetTID(gdcObject.FieldByName('branchkey')) > 0) and
         (ibcmbExplorer.CurrentKeyInt > 0)
       then
       begin
         {если у нас была ветка в исследователе, подредактируем ее и заменим наименование, родител€}
-        gdcExplorer.ID := gdcObject.FieldByName('branchkey').AsInteger;
+        gdcExplorer.ID := GetTID(gdcObject.FieldByName('branchkey'));
         gdcExplorer.Open;
         if (gdcExplorer.RecordCount = 0) or
           (gdcExplorer.FieldByName('subtype').AsString <> gdcObject.FieldByName('ruid').AsString) then
         begin
           gdcExplorer.Insert;
-          gdcExplorer.FieldByName('parent').AsInteger := ibcmbExplorer.CurrentKeyInt;
+          SetTID(gdcExplorer.FieldByName('parent'), ibcmbExplorer.CurrentKeyInt);
           gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('name').AsString;
           gdcExplorer.FieldByName('classname').AsString :=
             (gdcObject as TgdcDocumentType).GetHeaderDocumentClass.ClassName;
@@ -741,11 +741,11 @@ begin
           gdcExplorer.FieldByName('cmd').AsString := gdcObject.FieldByName('ruid').AsString;
           gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
           gdcExplorer.Post;
-          gdcObject.FieldByName('branchkey').AsInteger := gdcExplorer.ID;
+          SetTID(gdcObject.FieldByName('branchkey'), gdcExplorer.ID);
         end else
         begin
           gdcExplorer.Edit;
-          gdcExplorer.FieldByName('parent').AsInteger := ibcmbExplorer.CurrentKeyInt;
+          SetTID(gdcExplorer.FieldByName('parent'), ibcmbExplorer.CurrentKeyInt);
           gdcExplorer.FieldByName('name').AsString := gdcObject.FieldByName('name').AsString;
           gdcExplorer.Post;
         end;
@@ -841,7 +841,7 @@ begin
 
   inherited;
 
-  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
+  DE := gdClassList.FindDocByTypeID(GetTID(gdcObject.FieldByName('parent')), dcpHeader, True);
   if DE is TgdInvPriceDocumentEntry then
     IPDEParent := DE as TgdInvPriceDocumentEntry
   else
@@ -856,7 +856,7 @@ begin
     if gdcObject.State = dsInsert then
     begin
       gdcObject.FieldByName('name').AsString := 'Ќаследник ' + IPDEParent.Caption;
-      gdcObject.FieldByName('branchkey').AsInteger := IPDEParent.BranchKey;
+      SetTID(gdcObject.FieldByName('branchkey'), IPDEParent.BranchKey);
     end;
   end else
     edParentName.Text := '';
@@ -876,9 +876,9 @@ begin
 
   //¬ыведем родител€ нашей ветки в исследователе
   if gdcBaseManager.ExecSingleQueryResult('SELECT parent FROM gd_command WHERE id = :id',
-    gdcObject.FieldByName('branchkey').AsInteger, R) then
+    TID2V(gdcObject.FieldByName('branchkey')), R) then
   begin
-    ibcmbExplorer.CurrentKeyInt := R[0, 0];
+    ibcmbExplorer.CurrentKeyInt := GetTID(R[0, 0]);
   end;
 
   //ƒл€ редактировани€ нескольких веток запрещаем изменении ветки исследовател€
@@ -1044,7 +1044,7 @@ procedure TdlgSetupInvPriceList.Post;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  RGKey: Integer;
+  RGKey: TID;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGSETUPINVPRICELIST', 'POST', KEYPOST)}
   {M}  try
@@ -1068,11 +1068,11 @@ begin
 
   Assert(gdcObject.Transaction.InTransaction);
 
-  RGKey := gdcObject.FieldByName('reportgroupkey').AsInteger;
+  RGKey := GetTID(gdcObject.FieldByName('reportgroupkey'));
   if not Document.UpdateReportGroup('ѕрайс-листы', gdcObject.FieldByName('name').AsString, RGKey, True) then
     raise EdlgSetupInvPriceList.Create('Report Group Key has not been created!');
 
-  gdcObject.FieldByName('reportgroupkey').AsInteger := RGKey;
+  SetTID(gdcObject.FieldByName('reportgroupkey'), RGKey);
 
   inherited;
 

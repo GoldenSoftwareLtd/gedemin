@@ -1,9 +1,11 @@
+// ShlTanya, 24.02.2019
+
 unit evt_i_Base;
 
 interface
 
 uses
-  Classes, rp_report_const, forms, windows;
+  Classes, rp_report_const, forms, windows, gdcBaseInterface;
 
 type
   TEditMode = (
@@ -47,7 +49,7 @@ type
     function Get_Self: TObject;
     function Get_PropertyIsLoaded: Boolean;
 
-    procedure LoadBranch(const AnObjectKey: Integer);
+    procedure LoadBranch(const AnObjectKey: TID);
     // Инициализация
     procedure LoadLists;
     // Установка событий для компоненты
@@ -81,9 +83,9 @@ type
     // Вызов окна редактирования для всех свойств
     procedure EditObject(const AnComponent: TComponent;
      const EditMode: TEditMode; const AnName: String = '';
-     const AnFunctionID: integer = 0);
+     const AnFunctionID: TID = 0);
     //Редактирование отдельной скрипт функции
-    function EditScriptFunction(var AFunctionKey: Integer): Boolean;
+    function EditScriptFunction(var AFunctionKey: TID): Boolean;
     //Уведомляет окно свойств об изменениях в системе  
     procedure PropertyNotification(AComponent: TComponent;
       Operation: TPrpOperation; const ANewName: string = '');
@@ -96,7 +98,7 @@ type
     procedure PrepareSOEditorForModal;
     procedure SetPropertyCanChangeCaption(const Value: Boolean);
     //Редактирование отчета
-    procedure EditReport(IDReportGroup, IDReport: Integer);
+    procedure EditReport(IDReportGroup, IDReport: TID);
     //Пытается закрыть окно редактирования одиночной функции
     //Если окно закрылось возвр. ТРУ
     function PropertyClose: Boolean;
@@ -120,7 +122,7 @@ type
     procedure Drop;
 
     procedure CheckCreateForm;
-    procedure DebugScriptFunction(const AFunctionKey: Integer;
+    procedure DebugScriptFunction(const AFunctionKey: TID;
       const AModuleName: string = scrUnkonownModule;
       const CurrentLine: Integer = - 1);
 

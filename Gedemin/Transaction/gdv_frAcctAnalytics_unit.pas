@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 unit gdv_frAcctAnalytics_unit;
 
@@ -19,6 +20,7 @@ type
     FOnValueChange: TNotifyEvent;
     FNeedNull: Boolean;
     FNeedSet: Boolean;
+    FContext: String;
 
     procedure SortLine;
     function GetAnalyticsCount: Integer;
@@ -44,6 +46,7 @@ type
     property NeedNull: Boolean read FNeedNull write FNeedNull;
     property NeedSet: Boolean read FNeedSet write FNeedSet;
     property Description: String read GetDescription;
+    property Context: String write FContext;
   end;
 
 implementation
@@ -266,7 +269,7 @@ begin
         begin
           SQL.SQL.Insert(0, 'SELECT ');
           SQL.SQL.Add('FROM ac_account ');
-          SQL.SQL.Add(Format('WHERE id IN (%s)', [AcctUtils.IdList(AIdList)]));
+          SQL.SQL.Add(Format('WHERE id IN (%s)', [AcctUtils.IdList(AIdList, FContext)]));
           SQL.ExecQuery;
         end;
       end;

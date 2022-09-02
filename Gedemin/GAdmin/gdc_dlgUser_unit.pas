@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdc_dlgUser_unit;
 
@@ -175,7 +176,7 @@ begin
     exit;
   end;
 
-  if gdcObject.FieldByName('contactkey').AsInteger > 0 then
+  if GetTID(gdcObject.FieldByName('contactkey')) > 0 then
   begin
     q := TIBSQL.Create(nil);
     try
@@ -319,11 +320,6 @@ begin
         FileName := FileName + '.log';
       LimitLines := cbLimitLines.Checked;
       LinesCount := spErrorLines.Value;
-{      if Assigned(ScriptFactory) then
-      begin
-        ScriptFactory.ExceptionFlags := Exceptions;
-      end;}
-
       UserStorage.ObjectKey := gdcObject.ID;
       UserStorage.WriteBoolean(sPropertyExceptionPath,
         cSaveErrorLog, SaveErrorLog);

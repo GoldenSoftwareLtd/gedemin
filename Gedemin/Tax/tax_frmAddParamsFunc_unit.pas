@@ -1,3 +1,5 @@
+// ShlTanya, 12.03.2019
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -27,7 +29,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Spin, Buttons, StdCtrls, ExtCtrls, ImgList, ActnList, Menus, BtnEdit,
-  tax_frmAvailableTaxFunc_unit, wiz_FunctionBlock_unit;
+  tax_frmAvailableTaxFunc_unit, wiz_FunctionBlock_unit, gdcBaseInterface;
 
 type
   TParamPanel = class(TPanel)
@@ -83,7 +85,7 @@ type
     procedure actCancelExecute(Sender: TObject);
     procedure actAddValueExecute(Sender: TObject);
   protected
-    FActualTaxKey: Integer;
+    FActualTaxKey: TID;
     FActiveEdit: TBtnEdit;
     FFuncDescr: TFuncDescr;
     FParamPanelList: TList;
@@ -97,7 +99,7 @@ type
     destructor  Destroy; override;
 
     procedure  SetParams(const FuncMask, Description: String;
-      const ActualTaxKey: Integer; const FuncDescr: TFuncDescr);
+      const ActualTaxKey: TID; const FuncDescr: TFuncDescr);
 
     property ParamsStr: String read GetParamsStr;
   end;
@@ -108,8 +110,7 @@ var
 implementation
 
 uses
-  tax_frmAnalytics_unit, gdc_frmAccountSel_unit, gdc_frmValueSel_unit,
-  gdcBaseInterface;
+  tax_frmAnalytics_unit, gdc_frmAccountSel_unit, gdc_frmValueSel_unit;
 
 
 {$R *.DFM}
@@ -215,7 +216,7 @@ begin
 end;
 
 procedure TfrmAddParamsFunc.SetParams(const FuncMask, Description: String;
-  const ActualTaxKey: Integer; const FuncDescr: TFuncDescr);
+  const ActualTaxKey: TID; const FuncDescr: TFuncDescr);
 var
   i: Integer;
   ParamPanel: TParamPanel;

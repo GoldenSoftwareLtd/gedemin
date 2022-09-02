@@ -1,3 +1,4 @@
+// ShlTanya, 03.02.2019
 
 unit gsNSObjects;
 
@@ -70,12 +71,12 @@ type
   private
     FList: TgsNSList;
     FTransaction: TIBTransaction;
-    FSessionID: Integer;
+    FSessionID: TID;
 
     function GetTransaction: TIBTransaction;
 
   protected
-    function GetNextSessionID: Integer;
+    function GetNextSessionID: TID;
 
   public
     constructor Create;
@@ -124,7 +125,7 @@ begin
   Result := FTransaction;  
 end;
 
-function TgsNSObjects.GetNextSessionID: Integer;
+function TgsNSObjects.GetNextSessionID: TID;
 begin
   Inc(FSessionID);
   Result := FSessionID;
@@ -186,7 +187,7 @@ end;
 
 procedure TgsNSObject.Add(AnObject: TgdcBase);
 var
-  SessionID: Integer;
+  SessionID: TID;
   qLink, qNS: TIBSQL;
   J: Integer;
   LinkObj, CompoundObj: TgdcBase;
@@ -213,7 +214,7 @@ begin
       '  JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
       '  JOIN at_namespace n ON n.id = o.namespacekey ' +
       'WHERE r.id = :ID';
-    qNS.ParamByName('id').AsInteger := AnObject.ID;
+    SetTID(qNS.ParamByName('id'), AnObject.ID);
     qNS.ExecQuery;
     if not qNS.EOF then
       FNamespace.CommaText := qNS.Fields[0].AsString;
@@ -245,12 +246,12 @@ begin
       '  od.sessionid = :sid '#13#10 +
       'ORDER BY '#13#10 +
       '  od.reflevel DESC';
-    qLink.ParamByName('sid').AsInteger := SessionID;
+    SetTID(qLink.ParamByName('sid'), SessionID);
     qLink.ExecQuery;
 
     while not qLink.EOF do
     begin
-      if FNSObjects.FindObject(qLink.FieldByName('id').AsInteger) = nil then
+      if FNSObjects.FindObject(GetTID(qLink.FieldByName('id'))) = nil then
       begin
         C := GetClass(qLink.FieldByName('class').AsString);
 
@@ -261,7 +262,7 @@ begin
             LinkObj.Transaction := FNSObjects.Transaction;
             LinkObj.SubType := qLink.FieldByName('subtype').AsString;
             LinkObj.SubSet := 'ByID';
-            LinkObj.ID := qLink.FieldByName('id').AsInteger;
+            LinkObj.ID := GetTID(qLink.FieldByName('id'));
             LinkObj.Open;
 
             if not LinkObj.EOF then
@@ -292,7 +293,7 @@ begin
               TL.Values[AnObject.CompoundClasses[J].LinkRelationName] +
               AnObject.CompoundClasses[J].LinkFieldName +
               '=:LinkID');
-            CompoundObj.ParamByName('LinkID').AsInteger := AnObject.ID;
+            GetTID(CompoundObj.ParamByName('LinkID'), AnObject.ID);
             CompoundObj.Open;
             while not CompoundObj.EOF do
             begin

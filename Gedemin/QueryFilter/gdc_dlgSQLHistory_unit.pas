@@ -1,3 +1,5 @@
+// ShlTanya, 10.03.2019
+
 unit gdc_dlgSQLHistory_unit;
 
 interface

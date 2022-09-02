@@ -1,3 +1,4 @@
+// ShlTanya, 27.02.2019
 
 {++
 
@@ -32,13 +33,13 @@ unit rp_ReportServer;
 
 interface
 
-{$DEFINE LogReport}
+{$UNDEF LogReport}
 
 uses
   Classes, SysUtils, IBDatabase, rp_BaseReport_unit, IBSQL,
   IBQuery, DB, IBCustomDataSet, DBClient, Forms, ExtCtrls,
   rp_ReportScriptControl, Gedemin_TLB, Windows,
-  ScktComp, gd_SetDatabase,
+  ScktComp, gd_SetDatabase, gdcBaseInterface,
   rp_report_const, gd_KeyAssoc;
 
 const
@@ -82,7 +83,7 @@ type
 
     {$IFNDEF GEDEMIN}
     procedure CreateModuleVBClass(Sender: TObject;
-      const ModuleCode: Integer; VBClassArray: TgdKeyArray);
+      const ModuleCode: TID; VBClassArray: TgdKeyArray);
     {$ENDIF}
 
     procedure SetDatabase(const AnDatabase: TIBDatabase);
@@ -135,9 +136,9 @@ type
       var AnParamAndResult: Variant): Boolean;
     function InputParams(const AnFunction: TrpCustomFunction; out AnParamResult: Variant): Boolean;
     procedure SetTransactionParams; virtual;
-    function FindReportNow(const AnReportKey: Integer;
+    function FindReportNow(const AnReportKey: TID;
       const AnCustomReport: TCustomReport; const AnReadTemplate: Boolean = True): Boolean;
-    function FindFunctionNow(const AnFunctionKey: Integer;
+    function FindFunctionNow(const AnFunctionKey: TID;
       const AnCustomReport: TCustomReport; const AnReadTemplate: Boolean = True): Boolean;
 
   public
@@ -179,43 +180,6 @@ uses
 {$IFNDEF GEDEMIN}
 {$R Gedemin.TLB}
 {$ENDIF}
-
-{procedure WriteError(AnError: String);
-var
-  FStr: TFileStream;
-  S: String;
-begin
-  try
-    AnError := AnError + ' ' + DateTimeToStr(Now) + #13#10;
-    S := ChangeFileExt(Application.EXEName, '.log');
-    if FileExists(S) then
-      FStr := TFileStream.Create(S, fmOpenWrite)
-    else
-      FStr := TFileStream.Create(S, fmCreate);
-    try
-      FStr.Position := FStr.Size;
-      FStr.Write(AnError[1], Length(AnError));
-    finally
-      FStr.Free;
-    end;
-  except
-    on E: Exception do
-      MessageBox(0, PChar(E.Message), 'SaveLog', MB_OK or MB_TASKMODAL);
-  end;
-end;
-
-function rpSetServerState(const AnState: TServerConnectionState): String;
-begin
-  case AnState of
-    rsIdle: Result := 'Свободен';
-    rsRefresh: Result := 'Обновление';
-    rsRebuild: Result := 'Перестройка';
-    rsOption: Result := 'Параметры';
-    rsGetResult: Result := 'Вызов клиентом';
-  else
-    Result := 'Unknown'
-  end;
-end;      }
 
 // TBaseReport
 
@@ -343,7 +307,6 @@ function TBaseReport.ExecuteFunctionWithoutParam(const AnFunction: TrpCustomFunc
 var
   LocDispatch: IDispatch;
   LocReportResult: IgsQueryList;
-{  VarResult: Variant;  }
  {$IFNDEF GEDEMIN}
   LocRpScrCtrl: TReportScript;
  {$ENDIF}
@@ -496,11 +459,6 @@ begin
           LocRpScrCtrl.OnIsCreated := FReportScriptControl.OnIsCreated;
           LocRpScrCtrl.OnCreateModuleVBClasses := FReportScriptControl.OnCreateModuleVBClasses;
           LocRpScrCtrl.Transaction := FTransaction;
-
-  //        LocRpScrCtrl.CreateConst;
-  //        LocRpScrCtrl.CreateObject;
-  //        LocRpScrCtrl.CreateVBClasses;
-  //        LocRpScrCtrl.CreateGlobalObj;
           Result := LocRpScrCtrl.InputParams(AnFunction, AnParamResult);
         finally
           LocRpScrCtrl.Free;
@@ -575,11 +533,11 @@ begin
   end;
 end;
 
-function TBaseReport.FindReportNow(const AnReportKey: Integer;
+function TBaseReport.FindReportNow(const AnReportKey: TID;
   const AnCustomReport: TCustomReport; const AnReadTemplate: Boolean): Boolean;
 var
   TempQuery: TIBQuery;
-  ParamKey, MainKey, EventKey: Integer;
+  ParamKey, MainKey, EventKey: TID;
   FunctionKeyList: TgdKeyArray;
 
   procedure AddIncludingFunctions(const AddQuery: TIBQuery; const AnFunction: TrpCustomFunction;
@@ -598,7 +556,7 @@ var
           Continue;
 
         AddQuery.Close;
-        AddQuery.Params[0].AsInteger := KeyList.Keys[i];
+        SetTID(AddQuery.Params[0], KeyList.Keys[i]);
         AddQuery.Open;
         LFunction.ReadFromDataSet(AddQuery);
         AnFunction.Script.Text := AnFunction.Script.Text +
@@ -635,15 +593,15 @@ begin
         TempQuery.Database := FDatabase;
         TempQuery.Transaction := FTransaction;
         TempQuery.SQL.Text := 'SELECT * FROM rp_reportlist WHERE id = :id';
-        TempQuery.ParamByName('id').AsInteger := AnReportKey;
+        SetTID(TempQuery.ParamByName('id'), AnReportKey);
         TempQuery.Open;
         if TempQuery.Eof then
-          raise Exception.Create(Format('Запись отчета %d не найдена.', [AnReportKey]));
+          raise Exception.Create(Format('Запись отчета %d не найдена.', [TID264(AnReportKey)]));
         AnCustomReport.ReadFromDataSet(TempQuery, AnReadTemplate);
 
-        ParamKey := TempQuery.FieldByName('paramformulakey').AsInteger;
-        MainKey := TempQuery.FieldByName('mainformulakey').AsInteger;
-        EventKey := TempQuery.FieldByName('eventformulakey').AsInteger;
+        ParamKey := GetTID(TempQuery.FieldByName('paramformulakey'));
+        MainKey := GetTID(TempQuery.FieldByName('mainformulakey'));
+        EventKey := GetTID(TempQuery.FieldByName('eventformulakey'));
 
         TempQuery.Close;
         TempQuery.SQL.Text := 'SELECT * FROM gd_function WHERE id = :id';
@@ -653,36 +611,26 @@ begin
           TempQuery.Close;
           if ParamKey > 0 then
           begin
-            TempQuery.Params[0].AsInteger := ParamKey;
+            SetTID(TempQuery.Params[0], ParamKey);
             TempQuery.Open;
           end;
           AnCustomReport.ParamFunction.ReadFromDataSet(TempQuery);
-//          AddIncludingFunctions(TempQuery, AnCustomReport.ParamFunction,
-//            AnCustomReport.ParamFunction.IncludingList);
-//          AnCustomReport.ParamFunction.IncludingList.Clear;
 
           TempQuery.Close;
           if MainKey > 0 then
           begin
-            TempQuery.Params[0].AsInteger := MainKey;
+            SetTID(TempQuery.Params[0], MainKey);
             TempQuery.Open;
           end;
           AnCustomReport.MainFunction.ReadFromDataSet(TempQuery);
-//          AddIncludingFunctions(TempQuery, AnCustomReport.MainFunction,
-//            AnCustomReport.MainFunction.IncludingList);
-//          AnCustomReport.MainFunction.IncludingList.Clear;
 
           TempQuery.Close;
           if EventKey > 0 then
           begin
-            TempQuery.Params[0].AsInteger := EventKey;
+            SetTID(TempQuery.Params[0], EventKey);
             TempQuery.Open;
           end;
           AnCustomReport.EventFunction.ReadFromDataSet(TempQuery);
-//          AnCustomReport.EventFunction.ReadFromDataSet(TempQuery);
-//          AddIncludingFunctions(TempQuery, AnCustomReport.EventFunction,
-//            AnCustomReport.EventFunction.IncludingList);
-//          AnCustomReport.EventFunction.IncludingList.Clear;
         finally
           FunctionKeyList.Free;
         end;
@@ -700,7 +648,7 @@ begin
   end;
 end;
 
-function TBaseReport.FindFunctionNow(const AnFunctionKey: Integer;
+function TBaseReport.FindFunctionNow(const AnFunctionKey: TID;
   const AnCustomReport: TCustomReport;
   const AnReadTemplate: Boolean): Boolean;
 var
@@ -719,10 +667,10 @@ begin
         TempQuery.Database := FDatabase;
         TempQuery.Transaction := FTransaction;
         TempQuery.SQL.Text := 'SELECT * FROM gd_function WHERE id = :id';
-        TempQuery.Params[0].AsInteger := AnFunctionKey;
+        SetTID(TempQuery.Params[0], AnFunctionKey);
         TempQuery.Open;
         if TempQuery.Eof then
-          raise Exception.Create(Format('Запись функции %d не найдена.', [AnFunctionKey]));
+          raise Exception.Create(Format('Запись функции %d не найдена.', [TID264(AnFunctionKey)]));
         AnCustomReport.MainFunction.ReadFromDataSet(TempQuery);
         Result := True;
       finally
@@ -734,10 +682,6 @@ begin
   except
     on E: Exception do
       SaveLog(E.Message);
-{    on E: Exception do
-      if (Self is TClientReport) then
-        MessageBox(0, PChar('Произошла ошибка при поиске отчета.'#13#10 + E.Message),
-         'Ошибка', MB_OK or MB_ICONERROR);}
   end;
 end;
 
@@ -817,7 +761,7 @@ begin
           while not ibsqlVB.Eof do
           begin
             try
-              FNonLoadSFList.Add(ibsqlVB.FieldByName('id').AsInteger);
+              FNonLoadSFList.Add(GetTID(ibsqlVB.FieldByName('id')));
               TestRS.AddCode(ibsqlVB.FieldByName('script').AsString);
               FVBClasses := FVBClasses +
                 ibsqlVB.FieldByName('script').AsString + #13#10;
@@ -877,7 +821,6 @@ begin
   {$IFDEF DEBUG}
   SaveLog('    SetOnCreateEvets');
   {$ENDIF}
-//  if FReportScriptControl.IsBusy
   LVers := Get_gd_functionVersion;
   if Fgd_functionVers <> LVers then
   begin
@@ -918,7 +861,6 @@ begin
 end;
 {$ENDIF}
 
-
 {$IFNDEF GEDEMIN}
 procedure TBaseReport.CreateVBConstLists;
 var
@@ -955,13 +897,12 @@ begin
           while not ibsqlVB.Eof do
           begin
             try
-              FNonLoadSFList.Add(ibsqlVB.FieldByName('id').AsInteger);
+              FNonLoadSFList.Add(GetTID(ibsqlVB.FieldByName('id')));
               TestRS.AddCode(ibsqlVB.FieldByName('script').AsString);
               FConstants := FConstants +
                 ibsqlVB.FieldByName('script').AsString + #13#10;
             except
               begin
-//                MessageBeep(1000);
                 ErrScript := #13#10 + 'ОШИБКА!!!  Блок констант ' +  ibsqlVB.FieldByName('Name').AsString +
                   ' не загружен.'#13#10 + '  ' + TestRS.Error.Description + ': ' + TestRS.Error.Text + #13#10 +
                   '  Строка: ' + IntToStr(TestRS.Error.Line) + #13#10 + '  Дата: ';
@@ -1050,7 +991,7 @@ end;
 
 {$IFNDEF GEDEMIN}
 procedure TBaseReport.CreateModuleVBClass(Sender: TObject;
-  const ModuleCode: Integer; VBClassArray: TgdKeyArray);
+  const ModuleCode: TID; VBClassArray: TgdKeyArray);
 var
   ibDatasetWork: TIBDataset;
   SF: TrpCustomFunction;
@@ -1064,7 +1005,7 @@ begin
   {$ENDIF}
   VBClassArray.Clear;
   begin
-    LModuleName := IntToStr(ModuleCode);
+    LModuleName := TID2S(ModuleCode);
     ibDatasetWork := TIBDataset.Create(nil);
     try
       ibDatasetWork.Transaction := FTransaction;

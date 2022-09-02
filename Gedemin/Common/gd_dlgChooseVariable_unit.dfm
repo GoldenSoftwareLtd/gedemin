@@ -12,6 +12,7 @@ object dlgChooseVariable: TdlgChooseVariable
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  OldCreateOrder = True
   Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
@@ -64,12 +65,16 @@ object dlgChooseVariable: TdlgChooseVariable
         Expands = <>
         ExpandsActive = False
         ExpandsSeparate = False
+        TitlesExpanding = False
         Conditions = <>
         ConditionsActive = False
         CheckBox.DisplayField = 'LNAME'
         CheckBox.FieldName = 'LVAR'
         CheckBox.Visible = True
+        CheckBox.FirstColumn = False
         MinColWidth = 40
+        ColumnEditors = <>
+        Aliases = <>
         Columns = <
           item
             Alignment = taLeftJustify
@@ -151,12 +156,16 @@ object dlgChooseVariable: TdlgChooseVariable
         Expands = <>
         ExpandsActive = False
         ExpandsSeparate = False
+        TitlesExpanding = False
         Conditions = <>
         ConditionsActive = False
         CheckBox.DisplayField = 'NAME'
         CheckBox.FieldName = 'SHOT'
         CheckBox.Visible = True
+        CheckBox.FirstColumn = False
         MinColWidth = 40
+        ColumnEditors = <>
+        Aliases = <>
         Columns = <
           item
             Alignment = taRightJustify
@@ -225,8 +234,6 @@ object dlgChooseVariable: TdlgChooseVariable
   object ibdsRelationField: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
     Transaction = IBTransaction
-    BufferChunks = 1000
-    CachedUpdates = False
     SelectSQL.Strings = (
       'SELECT '
       '  rf.LName, '
@@ -240,6 +247,7 @@ object dlgChooseVariable: TdlgChooseVariable
       
         '  at_relations r JOIN at_relation_fields rf ON r.relationname = ' +
         'rf.relationname')
+    ReadTransaction = IBTransaction
     Left = 160
     Top = 72
     object ibdsRelationFieldLNAME: TIBStringField
@@ -290,6 +298,7 @@ object dlgChooseVariable: TdlgChooseVariable
       'read_committed'
       'rec_version'
       'nowait')
+    AutoStopAction = saNone
     Left = 168
     Top = 104
   end
@@ -301,33 +310,12 @@ object dlgChooseVariable: TdlgChooseVariable
   object ibdsTax: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
     Transaction = IBTransaction
-    BufferChunks = 1000
-    CachedUpdates = False
     SelectSQL.Strings = (
       'SELECT * FROM gd_tax'
       'WHERE not shot IS NULL and Shot <> '#39#39)
+    ReadTransaction = IBTransaction
     Left = 133
     Top = 357
-    object ibdsTaxID: TIntegerField
-      FieldName = 'ID'
-      Required = True
-    end
-    object ibdsTaxNAME: TIBStringField
-      DisplayLabel = 'Налог'
-      DisplayWidth = 30
-      FieldName = 'NAME'
-      Required = True
-      Size = 60
-    end
-    object ibdsTaxSHOT: TIBStringField
-      DisplayLabel = 'Переменная'
-      FieldName = 'SHOT'
-    end
-    object ibdsTaxRATE: TIBBCDField
-      FieldName = 'RATE'
-      Precision = 9
-      Size = 2
-    end
   end
   object dsTax: TDataSource
     DataSet = ibdsTax

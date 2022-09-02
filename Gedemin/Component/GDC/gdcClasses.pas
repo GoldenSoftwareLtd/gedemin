@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 {++
 
@@ -51,7 +52,8 @@ type
   private
     FgdcAcctEntryRegister: TgdcBase;
     FNumberUpdated: Boolean;
-    FLastNumber, FAddNumber, FNumberCompanyKey: Integer;
+    FLastNumber, FAddNumber: Integer;
+    FNumberCompanyKey: TID;
     FMask: String;
     FAutoNumber: String;
 
@@ -69,9 +71,9 @@ type
 
   protected
     FIsCommon: Boolean;
-    FTransactionFunction: Integer;
-    FDocumentTypeKey: Integer;
-    FBranchKey: Integer;
+    FTransactionFunction: TID;
+    FDocumentTypeKey: TID;
+    FBranchKey: TID;
 
     procedure SetSubType(const Value: TgdcSubType); override;
     procedure ReadOptions(DE: TgdDocumentEntry); virtual;
@@ -116,7 +118,7 @@ type
     procedure CreateEntry;
 
     class function ClassDocumentTypeKey: Integer; virtual;
-    function DocumentTypeKey: Integer; virtual;
+    function DocumentTypeKey: TID; virtual;
     function Reduction(BL: TBookmarkList): Boolean; override;
     function EditDialog(const ADlgClassName: String = ''): Boolean; override;
 
@@ -133,7 +135,7 @@ type
     function GetCurrRecordClass: TgdcFullClass; override;
 
     // Возвращает класс документа
-    class function GetDocumentClass(const TypeKey: Integer;
+    class function GetDocumentClass(const TypeKey: TID;
       const DocClassPart: TgdcDocumentClassPart): TgdcFullClass;
 
     property DocumentName: String read GetDocumentName;
@@ -163,7 +165,7 @@ type
 
     function CheckTheSameStatement: String; override;
     function UpdateReportGroup(MainBranchName: String; DocumentName: String;
-      var GroupKey: Integer; const ShouldUpdateData: Boolean = False): Boolean;
+      var GroupKey: TID; const ShouldUpdateData: Boolean = False): Boolean;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -195,7 +197,8 @@ type
   TgdcDocumentType = class(TgdcBaseDocumentType)
   protected
     FqGetOptID, FqDel, FqRUID, FqNS, Fq, FqFindObj: TIBSQL;
-    FNSID, FNSPos, FHeadObjectKey: Integer;
+    FNSID, FHeadObjectKey: TID;
+    FNSPos: Integer;
 
     procedure _DoOnNewRecord; override;
 
@@ -210,16 +213,17 @@ type
     destructor Destroy; override;
 
     class function GetHeaderDocumentClass: CgdcBase; virtual;
+    procedure FullCopyDocument; virtual;
+
     class function IsAbstractClass: Boolean; override;
 
     procedure DoAfterShowDialog(DlgForm: TCreateableForm; IsOk: Boolean); override;
     function GetCurrRecordClass: TgdcFullClass; override;
-
     procedure InitOpt; virtual;
     procedure DoneOpt; virtual;
-    function GetOptID(const AName: String; out AnOptID: Integer): Boolean;
+    function GetOptID(const AName: String; out AnOptID: TID): Boolean;
     procedure DelOpt(const AName: String);
-    procedure AddNSObject(const AnObjID: Integer; const AName: String; const ADependentOnID: Integer = -1);
+    procedure AddNSObject(const AnObjID: TID; const AName: String; const ADependentOnID: TID = -1);
   end;
 
   TgdcUserDocumentType = class(TgdcDocumentType)
@@ -228,7 +232,7 @@ type
 
   public
     constructor Create(AnOwner: TComponent); override;
-
+    procedure FullCopyDocument; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetHeaderDocumentClass: CgdcBase; override;
   end;
@@ -485,8 +489,8 @@ begin
   begin
     FNumberUpdated := False;
 
-    FieldByName('DOCUMENTTYPEKEY').AsInteger := DocumentTypeKey;
-    FieldByName('COMPANYKEY').AsInteger := IBLogin.CompanyKey;
+    SetTID(FieldByName('DOCUMENTTYPEKEY'), DocumentTypeKey);
+    SetTID(FieldByName('COMPANYKEY'), IBLogin.CompanyKey);
 
     if GetDocumentClassPart = dcpHeader then
     begin
@@ -601,7 +605,7 @@ procedure TgdcDocument.GetWhereClauseConditions(S: TStrings);
   begin
     for I := 0 to CE.Count - 1 do
       _Traverse(CE.Children[I], IDs);
-    IDs := IDs + IntToStr((CE as TgdDocumentEntry).TypeID) + ',';
+    IDs := IDs + TID2S((CE as TgdDocumentEntry).TypeID) + ',';
   end;
 
 var
@@ -630,7 +634,7 @@ begin
       end;
     end
     else if DocumentTypeKey > 0 then
-      S.Add(' z.documenttypekey = ' + IntToStr(DocumentTypeKey));
+      S.Add(' z.documenttypekey = ' + TID2S(DocumentTypeKey));
 
     if GetDocumentClassPart = dcpLine then
       S.Add('z.parent + 0 IS NOT NULL')
@@ -698,13 +702,13 @@ begin
       begin
         if I > 1000 then
           break;
-        FPrintList := FPrintList + IntToStr(GetIDForBookmark(GridBm[I])) + ',';
+        FPrintList := FPrintList + TID2S(GetIDForBookmark(GridBm[I])) + ',';
       end;
       if FPrintList > '' then
         SetLength(FPrintList, Length(FPrintList) - 1);
     end
     else
-      FPrintList := IntToStr(Self.ID);
+      FPrintList := TID2S(Self.ID);
 
     ibsql.Transaction := Transaction;
     DidActivate := ActivateTransaction;
@@ -845,8 +849,8 @@ begin
     try
       ibsql.Transaction := ReadTransaction;
       ibsql.SQL.Text := cst_sql_GetLastNumber;
-      ibsql.ParamByName('ck').AsInteger := FieldByName('companykey').AsInteger;
-      ibsql.ParamByName('dtk').AsInteger := FieldByName('documenttypekey').AsInteger;
+      SetTID(ibsql.ParamByName('ck'), FieldByName('companykey'));
+      SetTID(ibsql.ParamByName('dtk'), FieldByName('documenttypekey'));
       ibsql.ExecQuery;
 
       if ibsql.RecordCount > 0 then
@@ -869,9 +873,9 @@ begin
     with FgdcDataLink do
     begin
       if Active and (DataSet is TgdcDocument) and
-        (FieldByName('companykey').AsInteger <> DataSet.FieldByName('companykey').AsInteger)
+        (GetTID(FieldByName('companykey')) <> GetTID(DataSet.FieldByName('companykey')))
       then
-        FieldByName('companykey').AsInteger := DataSet.FieldByName('companykey').AsInteger;
+        SetTID(FieldByName('companykey'), DataSet.FieldByName('companykey'));
       if Active and (DataSet is TgdcDocument) and
         (FieldByName('documentdate').AsDateTime <> DataSet.FieldByName('documentdate').AsDateTime)
       then
@@ -1054,7 +1058,7 @@ begin
 
   if (GetDocumentClassPart = dcpLine) and not Assigned(MasterSource) then
   begin
-    if FieldByName('transactionkey').AsInteger > 0 then
+    if GetTID(FieldByName('transactionkey')) > 0 then
     begin
       dsMaster := TDataSource.Create(Self);
       gdcMaster := GetMasterObject;
@@ -1064,7 +1068,7 @@ begin
       gdcMaster.Transaction := Transaction;
       gdcMaster.ReadTransaction := ReadTransaction;
       gdcMaster.SubSet := 'ByID';
-      gdcMaster.ID := FieldByName('parent').AsInteger;
+      gdcMaster.ID := GetTID(FieldByName('parent'));
       gdcMaster.Open;
       FIsInternalMasterSource := True;
     end
@@ -1088,7 +1092,7 @@ begin
         ibsql.Transaction := Transaction;
         ibsql.SQL.Text := 'SELECT id FROM gd_document doc WHERE ' +
           ' doc.transactionkey IS NOT NULL and doc.parent = :id ';
-        ibsql.ParamByName('id').AsInteger := FieldByName('id').AsInteger;
+        SetTID(ibsql.ParamByName('id'), FieldByName('id'));
         ibsql.ExecQuery;
         isCreateEntry := ibsql.RecordCount > 0;
       finally
@@ -1111,7 +1115,7 @@ begin
                 DetailDoc.DisableControls;
                 try
                   DetailDoc.First;
-                  while not DetailDoc.EOF and (DetailDoc.FieldByName('parent').asInteger = FieldByName('id').AsInteger) do
+                  while not DetailDoc.EOF and (GetTID(DetailDoc.FieldByName('parent')) = GetTID(FieldByName('id'))) do
                   begin
                     DetailDoc.MakeEntry;
                     DetailDoc.Next;
@@ -1136,7 +1140,7 @@ begin
           DetailDoc.Open;
 
           DetailDoc.First;
-          while not DetailDoc.EOF and (DetailDoc.FieldByName('parent').asInteger = FieldByName('id').AsInteger) do
+          while not DetailDoc.EOF and (GetTID(DetailDoc.FieldByName('parent')) = GetTID(FieldByName('id'))) do
           begin
             DetailDoc.MakeEntry;
             DetailDoc.Next;
@@ -1166,7 +1170,7 @@ begin
     else
       Part := dcpLine;
 
-    DE := gdClassList.FindDocByTypeID(FieldByName('documenttypekey').AsInteger, Part, True);
+    DE := gdClassList.FindDocByTypeID(GetTID(FieldByName('documenttypekey')), Part, True);
 
     if DE <> nil then
     begin
@@ -1238,7 +1242,7 @@ begin
 
 end;
 
-function TgdcDocument.DocumentTypeKey: Integer;
+function TgdcDocument.DocumentTypeKey: TID;
 begin
   if FDocumentTypeKey = -1 then
     Result := ClassDocumentTypeKey
@@ -1255,7 +1259,7 @@ begin
   Result := False;
 end;
 
-class function TgdcDocument.GetDocumentClass(const TypeKey: Integer;
+class function TgdcDocument.GetDocumentClass(const TypeKey: TID;
   const DocClassPart: TgdcDocumentClassPart): TgdcFullClass;
 var
   //S: String;
@@ -1387,14 +1391,14 @@ begin
     if FieldByName('COMPANYKEY').IsNull then
       FNumberCompanyKey := IBLogin.CompanyKey
     else
-      FNumberCompanyKey := FieldByName('COMPANYKEY').AsInteger;
+      FNumberCompanyKey := GetTID(FieldByName('COMPANYKEY'));
 
     Tr.DefaultDatabase := gdcBaseManager.Database;
     Tr.StartTransaction;
     q.Transaction := Tr;
     q.SQL.Text := cst_sql_GetLastNumber;
-    q.ParamByName('ck').AsInteger := FNumberCompanyKey;
-    q.ParamByName('dtk').AsInteger := DocumentTypeKey;
+    SetTID(q.ParamByName('ck'), FNumberCompanyKey);
+    SetTID(q.ParamByName('dtk'), DocumentTypeKey);
     q.ExecQuery;
     if q.EOF then
     begin
@@ -1402,8 +1406,8 @@ begin
       FAddNumber := 1;
       q.Close;
       q.SQL.Text := cst_sql_InsertLastNumber;
-      q.ParamByName('ck').AsInteger := FNumberCompanyKey;
-      q.ParamByName('dtk').AsInteger := DocumentTypeKey;
+      SetTID(q.ParamByName('ck'), FNumberCompanyKey);
+      SetTID(q.ParamByName('dtk'), DocumentTypeKey);
       q.ParamByName('mask').AsString := NumerationVars[0];
       q.ParamByName('lastnumber').AsInteger := FLastNumber;
       q.ParamByName('addnumber').AsInteger := FAddNumber;
@@ -1426,8 +1430,8 @@ begin
             Tr.StartTransaction;
           q.Close;
           q.SQL.Text := cst_sql_NextNumber;
-          q.ParamByName('ck').AsInteger := FNumberCompanyKey;
-          q.ParamByName('dtk').AsInteger := DocumentTypeKey;
+          SetTID(q.ParamByName('ck'), FNumberCompanyKey);
+          SetTID(q.ParamByName('dtk'), DocumentTypeKey);
           try
             q.ExecQuery;
             Tr.Commit;
@@ -1470,8 +1474,8 @@ begin
     Tr.StartTransaction;
     q.Transaction := Tr;
     q.SQL.Text := cst_sql_ReturnLastNumber;
-    q.ParamByName('ck').AsInteger := FNumberCompanyKey;
-    q.ParamByName('dtk').AsInteger := DocumentTypeKey;
+    SetTID(q.ParamByName('ck'), FNumberCompanyKey);
+    SetTID(q.ParamByName('dtk'), DocumentTypeKey);
     q.ParamByName('lastnumber').AsInteger := FLastNumber;
     try
       q.ExecQuery;
@@ -1492,7 +1496,7 @@ end;
 procedure TgdcDocument.ExecuteTransactionFunction;
 var
   DE: TgdDocumentEntry;
-  FunctionKey: Integer;
+  FunctionKey: TID;
   LParams, LResult: Variant;
 begin
   FunctionKey := 0;
@@ -1581,7 +1585,7 @@ begin
 
       gdcBaseManager.ExecSingleQuery(
         'UPDATE gd_lastnumber SET mask = :mask WHERE ourcompanykey = :ck AND documenttypekey = :dtk ',
-        VarArrayOf([FMask, FieldByName('companykey').AsInteger, DocumentTypeKey]));
+        VarArrayOf([FMask, TID2V(FieldByName('companykey')), TID2V(DocumentTypeKey)]));
     end;
   end;
 
@@ -1603,9 +1607,9 @@ begin
       'SELECT id FROM gd_document WHERE number = :number AND ' +
       ' documenttypekey = :dt AND id <> :id AND parent + 0 IS NULL AND companykey = :companykey ' +
       Chck;
-    ibsql.ParamByName('dt').AsInteger := DocumentTypeKey;
-    ibsql.ParamByName('id').AsInteger := FieldByName('id').AsInteger;
-    ibsql.ParamByName('companykey').AsInteger := FieldByName('companykey').AsInteger;
+    SetTID(ibsql.ParamByName('dt'), DocumentTypeKey);
+    SetTID(ibsql.ParamByName('id'), FieldByName('id'));
+    SetTID(ibsql.ParamByName('companykey'), FieldByName('companykey'));
     if IsCheckNumber in [icnYear, icnMonth] then
     begin
       DecodeDate(FieldByName('documentdate').AsdateTime, Y, M, D);
@@ -1665,12 +1669,12 @@ end;
 procedure TgdcDocument.InternalSetFieldData(Field: TField;
   Buffer: Pointer);
 var
-  OldCK: Integer;
+  OldCK: TID;
   q: TIBSQL;
   Tr: TIBTransaction;
 begin
   if UpperCase(Field.FieldName) = 'COMPANYKEY' then
-    OldCK := Field.AsInteger
+    OldCK := GetTID(Field)
   else
     OldCK := -1;
 
@@ -1683,7 +1687,7 @@ begin
   begin
     if UpperCase(Field.FieldName) = 'COMPANYKEY' then
     begin
-      if (OldCK <> Field.AsInteger) and
+      if (OldCK <> GetTID(Field)) and
         (not (sLoadFromStream in BaseState)) then
       begin
         if FNumberUpdated then
@@ -1711,9 +1715,9 @@ begin
             'UPDATE gd_lastnumber ' +
             ' SET lastnumber = :ln' +
             ' WHERE ourcompanykey = :ck AND documenttypekey = :dtk ';
-          q.ParamByName('CK').AsInteger := FieldByName('companykey').AsInteger;
-          q.ParamByName('DTK').AsInteger := Self.DocumentTypeKey;
-          q.ParamByName('LN').AsInteger := Field.AsInteger;
+          SetTID(q.ParamByName('CK'), FieldByName('companykey'));
+          SetTID(q.ParamByName('DTK'), Self.DocumentTypeKey);
+          SetTID(q.ParamByName('LN'), Field);
           try
             q.ExecQuery;
             Tr.Commit;
@@ -1747,7 +1751,7 @@ begin
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text := 'SELECT * FROM gd_document WHERE parent = :id';
-    ibsql.ParamByName('id').AsInteger := ID;
+    SetTID(ibsql.ParamByName('id'), ID);
     Result := ibsql.RecordCount > 0;
   finally
     ibsql.Free;
@@ -1880,9 +1884,9 @@ function TgdcDocument.GetIsCheckNumber: TIsCheckNumber;
 var
   DE: TgdDocumentEntry;
 begin
-  if (not IsEmpty) and (FieldByName('documenttypekey').AsInteger > 0) then
+  if (not IsEmpty) and (GetTID(FieldByName('documenttypekey')) > 0) then
   begin
-    DE := gdClassList.FindDocByTypeID(FieldByName('documenttypekey').AsInteger,
+    DE := gdClassList.FindDocByTypeID(GetTID(FieldByName('documenttypekey')),
       GetDocumentClassPart, True);
     if DE <> nil then
       Result := DE.IsCheckNumber
@@ -1934,14 +1938,14 @@ begin
   {END MACRO}
 
   if Active and (not EOF) and (ADlgClassName = '')
-    and (FieldByName('documenttypekey').AsInteger = DefaultDocumentTypeKey) then
+    and (GetTID(FieldByName('documenttypekey')) = DefaultDocumentTypeKey) then
   begin
     gdcAcctComplexRecord := TgdcAcctComplexRecord.Create(nil);
     try
       gdcAcctComplexRecord.Transaction := Transaction;
       gdcAcctComplexRecord.ReadTransaction := ReadTransaction;
       gdcAcctComplexRecord.SubSet := 'ByDocument';
-      gdcAcctComplexRecord.ParamByName('documentkey').AsInteger := Self.ID;
+      SetTID(gdcAcctComplexRecord.ParamByName('documentkey'), Self.ID);
       gdcAcctComplexRecord.Open;
       if gdcAcctComplexRecord.EOF then
         Result := inherited EditDialog(ADlgClassName)
@@ -2093,7 +2097,7 @@ begin
     if Assigned(FgdcDataLink.DataSet) and
       (FgdcDataLink.DataSet is TgdcBaseDocumentType)
     then
-      Result := FgdcDataLink.DataSet.FieldByName('id').AsInteger
+      Result := GetTID(FgdcDataLink.DataSet.FieldByName('id'))
     else
       Result := inherited GetParent;
   end;
@@ -2114,10 +2118,10 @@ end;
 
 function TgdcBaseDocumentType.UpdateReportGroup(
   MainBranchName, DocumentName: String;
-  var GroupKey: Integer; const ShouldUpdateData: Boolean): Boolean;
+  var GroupKey: TID; const ShouldUpdateData: Boolean): Boolean;
 var
   ibsql: TIBSQL;
-  BranchID: Integer;
+  BranchID: TID;
   DidActivate: Boolean;
 begin
   DidActivate := False;
@@ -2129,7 +2133,7 @@ begin
 
     ibsql.Close;
     ibsql.SQL.Text := 'SELECT id FROM rp_reportgroup WHERE id = :id';
-    ibsql.ParamByName('id').Asinteger := GroupKey;
+    SetTID(ibsql.ParamByName('id'), GroupKey);
     ibsql.ExecQuery;
 
     //
@@ -2158,18 +2162,18 @@ begin
           'VALUES ' +
           '  (:id, :parent, :name, :description, :usergroupname) ';
 
-        ibsql.ParamByName('id').AsInteger := GetNextID;
+        SetTID(ibsql.ParamByName('id'), GetNextID);
         ibsql.ParamByName('parent').Clear;
         ibsql.ParamByName('name').AsString := MainBranchName;
         ibsql.ParamByName('description').AsString := MainBranchName;
         ibsql.ParamByName('usergroupname').AsString :=
-          gdcBaseManager.GetRUIDStringByID(ibsql.ParamByName('ID').AsInteger);
+          gdcBaseManager.GetRUIDStringByID(GetTID(ibsql.ParamByName('ID')));
 
         ibsql.ExecQuery;
 
-        BranchID := ibsql.ParamByName('id').AsInteger;
+        BranchID := GetTID(ibsql.ParamByName('id'));
       end else
-        BranchID := ibsql.Fields[0].AsInteger;
+        BranchID := GetTID(ibsql.Fields[0]);
 
       ibsql.Close;
       ibsql.SQL.Text :=
@@ -2178,16 +2182,16 @@ begin
         'VALUES ' +
         ' (:id, :parent, :name, :description, :usergroupname)';
 
-      ibsql.ParamByName('id').AsInteger := GetNextID;
-      ibsql.ParamByName('parent').AsInteger := BranchID;
+      SetTID(ibsql.ParamByName('id'), GetNextID);
+      SetTID(ibsql.ParamByName('parent'), BranchID);
       ibsql.ParamByName('name').AsString := DocumentName;
       ibsql.ParamByName('description').AsString := DocumentName;
       ibsql.ParamByName('usergroupname').AsString :=
-        gdcBaseManager.GetRUIDStringByID(ibsql.ParamByName('ID').AsInteger);
+        gdcBaseManager.GetRUIDStringByID(GetTID(ibsql.ParamByName('ID')));
 
       ibsql.ExecQuery;
 
-      GroupKey := ibsql.ParamByName('id').AsInteger;
+      GroupKey := GetTID(ibsql.ParamByName('id'));
       Result := True;
     end else
 
@@ -2206,7 +2210,7 @@ begin
         'WHERE ' +
         '  id = :id';
 
-      ibsql.ParamByName('id').AsInteger := GroupKey;
+      SetTID(ibsql.ParamByName('id'), GroupKey);
       ibsql.ParamByName('name').AsString := DocumentName;
       ibsql.ParamByName('description').AsString := DocumentName;
       ibsql.ExecQuery;
@@ -2334,6 +2338,9 @@ begin
   При дублировании наименования, подкорректируем его
   Проверка идет через запрос к базе, никаких кэшей!!!}
 
+  if sCopy in BaseState then
+    FieldByName('name').AsString := System.copy('Copy ' + FieldByName('name').AsString, 1, 50); 
+
   ibsql := TIBSQL.Create(nil);
   try
     if Transaction.InTransaction then
@@ -2345,7 +2352,7 @@ begin
       'SELECT id, name FROM gd_documenttype ' +
       'WHERE UPPER(name) = :name and id <> :id';
     ibsql.ParamByName('name').AsString := AnsiUpperCase(FieldByName('name').AsString);
-    ibsql.ParamByName('id').AsInteger := ID;
+    SetTID(ibsql.ParamByName('id'), ID);
     ibsql.ExecQuery;
 
     if not ibsql.EOF then
@@ -2414,7 +2421,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := inherited GetNotCopyField + ',RUID,HEADERRELKEY,LINERELKEY,REPORTGROUPKEY';
+  Result := inherited GetNotCopyField + ',RUID,REPORTGROUPKEY';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEDOCUMENTTYPE', 'GETNOTCOPYFIELD', KEYGETNOTCOPYFIELD)}
   {M}  finally
@@ -2441,7 +2448,7 @@ var
 begin
   if not IsEmpty then
   begin
-    R := atDatabase.Relations.ByID(FieldByName('linerelkey').AsInteger);
+    R := atDatabase.Relations.ByID(GetTID(FieldByName('linerelkey')));
     if R <> nil then
       Result := R.RelationName
     else
@@ -2456,7 +2463,7 @@ var
 begin
   if not IsEmpty then
   begin
-    R := atDatabase.Relations.ByID(FieldByName('headerrelkey').AsInteger);
+    R := atDatabase.Relations.ByID(GetTID(FieldByName('headerrelkey')));
     if R <> nil then
       Result := R.RelationName
     else
@@ -2557,23 +2564,23 @@ begin
   if not (sLoadFromStream in BaseState) then
   begin
     FieldByName('documenttype').AsString := 'D';
-    FieldByName('parent').AsInteger := GetParent;
+    SetTID(FieldByName('parent'), GetParent);
     FieldByName('classname').AsString := ClassName;
 
-    DEParent := gdClassList.FindDocByTypeID(FieldByName('parent').AsInteger, dcpHeader, True);
+    DEParent := gdClassList.FindDocByTypeID(GetTID(FieldByName('parent')), dcpHeader, True);
     if DEParent <> nil then
     begin
       FieldByName('name').AsString := 'Наследник ' + DEParent.Caption;
       if DEParent.BranchKey > 0 then
-        FieldByName('branchkey').AsInteger := DEParent.BranchKey
+        SetTID(FieldByName('branchkey'), DEParent.BranchKey)
       else
         FieldByName('branchkey').Clear;
       if DEParent.HeaderRelKey > 0 then
-        FieldByName('headerrelkey').AsInteger := DEParent.HeaderRelKey
+        SetTID(FieldByName('headerrelkey'), DEParent.HeaderRelKey)
       else
         FieldByName('headerrelkey').Clear;
       if DEParent.LineRelKey > 0 then
-        FieldByName('linerelkey').AsInteger := DEParent.LineRelKey
+        SetTID(FieldByName('linerelkey'), DEParent.LineRelKey)
       else
         FieldByName('linerelkey').Clear;
     end;
@@ -2698,7 +2705,7 @@ begin
   {END MACRO}
 
   Result := inherited GetFromClause(ARefresh) +
-    ' LEFT JOIN gd_lastnumber ln ON ln.ourcompanykey = ' + IntToStr(IBLogin.CompanyKey)
+    ' LEFT JOIN gd_lastnumber ln ON ln.ourcompanykey = ' + TID2S(IBLogin.CompanyKey)
     + ' AND ln.documenttypekey = z.id ';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
@@ -2718,7 +2725,7 @@ begin
     q.Transaction := ReadTransaction;
     q.SQL.Text :=
       'SELECT ruid FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-    q.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+    SetTID(q.ParamByName('id'), FieldByName('parent'));
     q.ExecQuery;
     if not q.Eof then
       Result := q.FieldByName('RUID').AsString
@@ -2832,8 +2839,8 @@ begin
     try
       q.Transaction := Transaction;
       q.SQL.Text := cst_sql_GetLastNumber;
-      q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
-      q.ParamByName('dtk').AsInteger := ID;
+      SetTID(q.ParamByName('ck'), IBLogin.CompanyKey);
+      SetTID(q.ParamByName('dtk'), ID);
       q.ExecQuery;
 
       if q.EOF then
@@ -2843,8 +2850,8 @@ begin
         //нумерации (числовая с приростом 1)
         q.Close;
         q.SQL.Text := cst_sql_InsertLastNumber;
-        q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
-        q.ParamByName('dtk').AsInteger := ID;
+        SetTID(q.ParamByName('ck'), IBLogin.CompanyKey);
+        SetTID(q.ParamByName('dtk'), ID);
         q.ParamByName('lastnumber').AsInteger := FieldByName('lastnumber').AsInteger;
 
         if not (sLoadFromStream in BaseState) then
@@ -2882,8 +2889,8 @@ begin
           q.Close;
           q.SQL.Text := cst_sql_UpdateLastNumber;
           q.ParamByName('lastnumber').AsInteger := FieldByName('lastnumber').AsInteger;
-          q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
-          q.ParamByName('dtk').AsInteger := ID;
+          SetTID(q.ParamByName('ck'), IBLogin.CompanyKey);
+          SetTID(q.ParamByName('dtk'), ID);
           q.ParamByName('mask').AsString := FieldByName('mask').AsString;
 
           q.ParamByName('addnumber').AsInteger := FieldByName('addnumber').AsInteger;
@@ -2981,7 +2988,7 @@ begin
     'FROM at_object obj ' +
     '  JOIN gd_ruid r ON r.xid = obj.xid AND r.dbid = obj.dbid ' +
     'WHERE r.id = :id';
-  Fq.ParamByName('id').AsInteger := ID;
+  SetTID(Fq.ParamByName('id'), ID);
   Fq.ExecQuery;
   if Fq.EOF then
   begin
@@ -2990,19 +2997,19 @@ begin
     FHeadObjectKey := -1;
   end else
   begin
-    FNSID := Fq.FieldbyName('namespacekey').AsInteger;
+    FNSID := GetTID(Fq.FieldbyName('namespacekey'));
     FNSPos := Fq.FieldByName('objectpos').AsInteger;
-    FHeadObjectKey := Fq.FieldByName('id').AsInteger;
+    FHeadObjectKey := GetTID(Fq.FieldByName('id'));
   end;
   Fq.Close;
 end;
 
 function TgdcDocumentType.GetOptID(const AName: String;
-  out AnOptID: Integer): Boolean;
+  out AnOptID: TID): Boolean;
 begin
   Assert(FqGetOptID <> nil);
   FqGetOptID.Close;
-  FqGetOptID.ParamByName('dtkey').AsInteger := ID;
+  SetTID(FqGetOptID.ParamByName('dtkey'), ID);
   FqGetOptID.ParamByName('s').AsString := AName;
   FqGetOptID.ExecQuery;
   if FqGetOptID.EOF then
@@ -3011,7 +3018,7 @@ begin
     Result := False;
   end else
   begin
-    AnOptID := FqGetOptID.Fields[0].AsInteger;
+    AnOptID := GetTID(FqGetOptID.Fields[0]);
     Result := True;
   end;
 end;
@@ -3019,13 +3026,13 @@ end;
 procedure TgdcDocumentType.DelOpt(const AName: String);
 begin
   Assert(FqDel <> nil);
-  FqDel.ParamByName('dtkey').AsInteger := ID;
+  SetTID(FqDel.ParamByName('dtkey'), ID);
   FqDel.ParamByName('s').AsString := AName;
   FqDel.ExecQuery;
 end;
 
-procedure TgdcDocumentType.AddNSObject(const AnObjID: Integer;
-  const AName: String; const ADependentOnID: Integer = -1);
+procedure TgdcDocumentType.AddNSObject(const AnObjID: TID;
+  const AName: String; const ADependentOnID: TID = -1);
 var
   P: Integer;
 begin
@@ -3039,8 +3046,8 @@ begin
     if ADependentOnID > 147000000 then
     begin
       FqFindObj.Close;
-      FqFindObj.ParamByName('nk').AsInteger := FNSID;
-      FqFindObj.ParamByName('id').AsInteger := ADependentOnID;
+      SetTID(FqFindObj.ParamByName('nk'), FNSID);
+      SetTID(FqFindObj.ParamByName('id'), ADependentOnID);
       FqFindObj.ParamByName('p').AsInteger := FNSPos;
       FqFindObj.ExecQuery;
       if not FqFindObj.EOF then
@@ -3054,13 +3061,151 @@ begin
       P := FNSPos;
     end;
 
-    FqNS.ParamByName('namespacekey').AsInteger := FNSID;
+    SetTID(FqNS.ParamByName('namespacekey'), FNSID);
     FqNS.ParamByName('objectname').AsString := System.Copy(AName, 1, 60);
-    FqNS.ParamByName('xid').AsInteger := AnObjID;
+    SetTID(FqNS.ParamByName('xid'), AnObjID);
     FqNS.ParamByName('objectpos').AsInteger := P;
-    FqNS.ParamByName('headobjectkey').AsInteger := FHeadObjectKey;
+    SetTID(FqNS.ParamByName('headobjectkey'), FHeadObjectKey);
     FqNS.ExecQuery;
   end;
+end;
+
+procedure TgdcDocumentType.FullCopyDocument;
+var
+  InTransaction: Boolean;
+  ibsql: TIBSQL;
+  OldID: TID;
+  OldRUID: String;
+  CurID, NewID, NewFuncID, NewEvID: TID;
+
+procedure InsertFunction(OldFuncID, MainFuncID: TID);
+var
+  ibsqlList: TIBSQL;
+  NewLinkID: TID;
+  NewRUIDStr: String;
+  NameFunc: String;
+begin
+  ibsqlList := TIBSQL.Create(nil);
+  try
+    ibsqlList.Transaction := Transaction;
+    ibsqlList.SQL.Text := 'select ADDFUNCTIONKEY as id, f.name from RP_ADDITIONALFUNCTION r left join gd_function f ON r.ADDFUNCTIONKEY = f.id where r.MAINFUNCTIONKEY = :id';
+    ibsqlList.ParamByName('id').AsInteger := OldFuncID;
+    ibsqlList.ExecQuery;
+    while not ibsqlList.EOF do
+    begin
+      if MessageBox(ParentHandle,
+             PChar('Используется функция ' + ibsqlList.FieldByName('name').AsString +  '. Сделать ее копию или сделать ссылку на оригинал?'),
+             PChar(sAttention),
+             MB_YESNO or MB_TASKMODAL or MB_ICONWARNING) = IDYES then
+      begin
+        NewLinkID := GetNextID;
+        NewRUIDStr := gdcBaseManager.GetRUIDStringByID(NewLinkID, Transaction);
+        NameFunc := System.copy(ibsqlList.FieldByName('name').AsString, 1, 60 - Length(NewRUIDStr)) + NewRUIDStr;
+        gdcBaseManager.ExecSingleQuery('insert into gd_function (ID, ACHAG,AFULL,AVIEW,BREAKPOINTS,COMMENT,DISPLAYSCRIPT,EDITIONDATE,EDITORKEY,EDITORSTATE,ENTEREDPARAMS,EVENT,FUNCTIONTYPE,GROUPNAME, ' +
+            ' INHERITEDRULE,LANGUAGE,LOCALNAME,MODIFYDATE,MODULE,MODULECODE,NAME,OWNERNAME,PUBLICFUNCTION,RESERVED,SCRIPT,SHORTCUT,TESTRESULT,USEDEBUGINFO) ' +
+            ' select ' + TID2S(NewLinkID) + ', ACHAG,AFULL,AVIEW,BREAKPOINTS,COMMENT,DISPLAYSCRIPT,EDITIONDATE,EDITORKEY,EDITORSTATE,ENTEREDPARAMS,EVENT,FUNCTIONTYPE,GROUPNAME, ' +
+            '  INHERITEDRULE,LANGUAGE,LOCALNAME,MODIFYDATE,MODULE,MODULECODE,''' + NameFunc + ''',OWNERNAME,PUBLICFUNCTION,RESERVED,SCRIPT,SHORTCUT,TESTRESULT,USEDEBUGINFO ' +
+            '  from gd_function where id = ' + TID2S(ibsqlList.FieldByName('id')), Transaction);
+        gdcBaseManager.ExecSingleQuery('update gd_function set script = replace(script, ''' + ibsqlList.FieldByName('name').AsString + ''', ''' + NameFunc + ''') where id = ' + TID2S(NewLinkID), Transaction);
+        gdcBaseManager.ExecSingleQuery('update gd_function set script = replace(script, ''' + ibsqlList.FieldByName('name').AsString + ''', ''' + NameFunc + ''') where id = ' + TID2S(MainFuncID), Transaction);
+        InsertFunction(GetTID(ibsqlList.FieldByName('id')), NewLinkID);
+      end
+      else
+      begin
+        NameFunc := ibsqlList.FieldByName('name').AsString;
+        NewLinkID := GetTID(ibsqlList.FieldByName('id'));
+      end;
+      gdcBaseManager.ExecSingleQuery('INSERT INTO RP_ADDITIONALFUNCTION (MAINFUNCTIONKEY, ADDFUNCTIONKEY) VALUES(' + TID2S(MainFuncID) + ',' + TID2S(NewLinkID) + ')', Transaction);
+      ibsqlList.Next;
+    end;
+  finally
+    ibsqlList.Free;
+  end
+end;
+
+procedure CopyStorageDocument;
+begin
+
+end;
+
+begin
+  InTransaction := Transaction.InTransaction;
+
+{ Копирование самого документа с признаками }
+  OldRUID := FieldByName('RUID').AsString;
+  OldID := GetTID(FieldByName('ID'));
+  if not InTransaction then
+    Transaction.StartTransaction;
+  try
+    CopyObject(True, False);
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := Transaction;
+      ibsql.SQL.Text := 'INSERT INTO GD_DOCUMENTTYPE_OPTION (BOOL_VALUE,CONTACTKEY,CURRKEY,DISABLED,DTKEY,EDITIONDATE,OPTION_NAME,RELATIONFIELDKEY) ' +
+        ' select BOOL_VALUE,CONTACTKEY,CURRKEY,DISABLED,CAST(:DTKEY as DINTKEY),EDITIONDATE,OPTION_NAME,RELATIONFIELDKEY from GD_DOCUMENTTYPE_OPTION where DTKEY = :OLDID ';
+      SetTID(ibsql.ParamByName('DTKEY'), ID);
+      SetTID(ibsql.ParamByName('OLDID'), OLDID);
+      ibsql.ExecQuery;
+
+  { Копирование объектов, методов и событий }
+      CurID := -1;
+      NewID := -1;
+      ibsql.Close;
+      ibsql.SQL.Text :=
+        ' select e.id, e.NAME, e.objectname, ev.id as ev_id, e.subtype, ev.functionkey, f.name as function_name from evt_object e ' +
+        '  left join EVT_OBJECTEVENT ev ON e.ID = ev.OBJECTKEY ' +
+        '  left join gd_function f ON ev.functionkey = f.id ' +
+        ' where e.name like ''%' + OldRUID + '%''' +
+        ' order by e.id ';
+      ibsql.ExecQuery;
+      while not ibsql.EOF do
+      begin
+        if CurID <> GetTID(ibsql.FieldByName('id')) then
+        begin
+          NewID := GetNextID;
+          if ibsql.FieldByName('subtype').AsString = '' then
+            gdcBaseManager.ExecSingleQuery('INSERT INTO evt_object (REPORTGROUPKEY,EDITIONDATE,RESERVED,ID,PARENTINDEX,CLASSNAME,MACROSGROUPKEY,EDITORKEY,LB,NAME,OBJECTNAME,DESCRIPTION,AFULL,RB,ACHAG,PARENT,OBJECTTYPE,AVIEW) ' +
+              ' select REPORTGROUPKEY,EDITIONDATE,RESERVED,' + TID2S(NewID) + ',PARENTINDEX,CLASSNAME,MACROSGROUPKEY,EDITORKEY,LB,''' + StringReplace(ibsql.FieldByName('name').AsString, OldRUID, FieldByName('ruid').AsString, []) + ''',''' + StringReplace(ibsql.FieldByName('objectname').AsString, OldRUID, FieldByName('ruid').AsString, []) + ''',DESCRIPTION,AFULL,RB,ACHAG,PARENT,OBJECTTYPE,AVIEW from evt_object where id = ' + TID2S(ibsql.FieldByName('id')),
+              Transaction)
+          else
+            gdcBaseManager.ExecSingleQuery('INSERT INTO evt_object (REPORTGROUPKEY,EDITIONDATE,RESERVED,ID,PARENTINDEX,CLASSNAME,MACROSGROUPKEY,EDITORKEY,LB,NAME,OBJECTNAME,DESCRIPTION,AFULL,RB,ACHAG,PARENT,OBJECTTYPE,AVIEW, SUBTYPE) ' +
+              ' select REPORTGROUPKEY,EDITIONDATE,RESERVED,' + TID2S(NewID) + ',PARENTINDEX,CLASSNAME,MACROSGROUPKEY,EDITORKEY,LB,''' + StringReplace(ibsql.FieldByName('name').AsString, OldRUID, FieldByName('ruid').AsString, []) + ''',''' + StringReplace(ibsql.FieldByName('objectname').AsString, OldRUID, FieldByName('ruid').AsString, []) + ''',DESCRIPTION,AFULL,RB,ACHAG,PARENT,OBJECTTYPE,AVIEW, ''' + FieldByName('ruid').AsString + ''' from evt_object where id = ' + TID2S(ibsql.FieldByName('id')),
+              Transaction);
+          CurID := GetTID(ibsql.FieldByName('id'));
+        end;
+        if ibsql.FieldByName('functionkey').AsInteger > 0 then
+        begin
+          NewFuncID := GetNextID;
+          gdcBaseManager.ExecSingleQuery('insert into gd_function (ID, ACHAG,AFULL,AVIEW,BREAKPOINTS,COMMENT,DISPLAYSCRIPT,EDITIONDATE,EDITORKEY,EDITORSTATE,ENTEREDPARAMS,EVENT,FUNCTIONTYPE,GROUPNAME, ' +
+            ' INHERITEDRULE,LANGUAGE,LOCALNAME,MODIFYDATE,MODULE,MODULECODE,NAME,OWNERNAME,PUBLICFUNCTION,RESERVED,SCRIPT,SHORTCUT,TESTRESULT,USEDEBUGINFO) ' +
+            ' select ' + TID2S(NewFuncID) + ', ACHAG,AFULL,AVIEW,BREAKPOINTS,COMMENT,DISPLAYSCRIPT,EDITIONDATE,EDITORKEY,EDITORSTATE,ENTEREDPARAMS,EVENT,FUNCTIONTYPE,GROUPNAME, ' +
+            '  INHERITEDRULE,LANGUAGE,LOCALNAME,MODIFYDATE,MODULE,MODULECODE,''' + StringReplace(ibsql.FieldByName('function_name').AsString, OldRUID, FieldByName('ruid').AsString, []) + ''',OWNERNAME,PUBLICFUNCTION,RESERVED,SCRIPT,SHORTCUT,TESTRESULT,USEDEBUGINFO ' +
+            '  from gd_function where id = ' + TID2S(ibsql.FieldByName('functionkey')), Transaction);
+
+          gdcBaseManager.ExecSingleQuery('update gd_function set script = replace(script, ''' + ibsql.FieldByName('function_name').AsString + ''', ''' + StringReplace(ibsql.FieldByName('function_name').AsString, OldRUID, FieldByName('ruid').AsString, []) + ''') where id = ' + TID2S(NewFuncID), Transaction);
+
+          InsertFunction(GetTID(ibsql.FieldByName('functionkey')), NewFuncID);
+
+          NewEvID := GetNextID;
+          gdcBaseManager.ExecSingleQuery('insert into evt_objectevent (EDITIONDATE,RESERVED,ID,EDITORKEY,OBJECTKEY,DISABLE,AFULL,EVENTNAME,FUNCTIONKEY) ' +
+            ' select EDITIONDATE,RESERVED,' + TID2S(NewEvID) + ',EDITORKEY,' + TID2S(NewID) + ',DISABLE,AFULL,EVENTNAME, ' + TID2S(NewFuncID) + ' from evt_objectevent where id = ' +  TID2S(ibsql.FieldByName('ev_id')),
+            Transaction);
+        end;
+        ibsql.Next;
+      end;
+    finally
+      ibsql.Free;
+    end;
+
+  { Коприование методов }
+
+    if not InTransaction then
+      Transaction.Commit;
+  except
+    if not InTransaction then
+      Transaction.Rollback;
+    Refresh;  
+  end
 end;
 
 { TgdcUserDocumentType }
@@ -3112,7 +3257,7 @@ begin
     DE.TypeID := ID;
     DE.LoadDE(Transaction);
 
-    if FieldbyName('linerelkey').AsInteger > 0 then
+    if GetTID(FieldbyName('linerelkey')) > 0 then
     begin
       gdClassList.Add('TgdcUserDocumentLine', FieldByName('ruid').AsString, GetParentSubType,
         TgdDocumentEntry, FieldbyName('name').AsString).Assign(DE);
@@ -3139,6 +3284,22 @@ class function TgdcUserDocumentType.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgUserDocumentSetup';
+end;
+
+procedure TgdcUserDocumentType.FullCopyDocument;
+begin
+  inherited;
+{ Копируем сам документ все поля называем его название + copy }
+
+{ В хранилище ищем ветки Tgdc_dlgUserSimpleDocument, Tgdc_dlgUserComplexDocument, Tgdc_dlgUserDocumentLine (последние если есть позиция) }
+{    Tgdc_frmUserSimpleDocument, Tgdc_frmUserComplexDocument }
+{ в этих ветках ищем руид и копируем }
+{ В хранилище в ветке Administrator ищем ветки gdc_dlgUserComplexDocumentRUID и копируем все содержимое,
+  так же gdc_frmUserSimpleDOcumentRUID и gdc_frmUserComplexDocmentRUID }
+{ в таблице evt_object ищем все объекты которые содержат руид нашего документа и все вложенное }
+{ по найденным объектам создаем копии и ищем для них записи в таблице evt_objectevent }
+{ и копируем записи в таблице gd_function находим функции для evt_objectevent и создаем копии функций }
+  
 end;
 
 { TgdcUserBaseDocument }
@@ -3170,9 +3331,9 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  FieldByName('documentkey').AsInteger := FieldByName('ID').AsInteger;
+  SetTID(FieldByName('documentkey'), FieldByName('ID'));
   if GetDocumentClassPart <> dcpHeader then
-    FieldByName('masterkey').AsInteger := FieldByName('parent').AsInteger;
+    SetTID(FieldByName('masterkey'), FieldByName('parent'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERBASEDOCUMENT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3443,8 +3604,8 @@ begin
 
   inherited;
 
-  if FieldByName('documentkey').AsInteger <> FieldByName('id').AsInteger then
-    FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+  if GetTID(FieldByName('documentkey')) <> GetTID(FieldByName('id')) then
+    SetTID(FieldByName('documentkey'), FieldByName('id'));
 
   CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
   CustomExecQuery(
@@ -3571,7 +3732,7 @@ begin
     for I := 0 to SelectedID.Count - 1 do
     begin
       if Length(Str) >= 8192 then break;
-      Str := Str + IntToStr(SelectedID[I]) + ',';
+      Str := Str + TID2S(SelectedID[I]) + ',';
     end;
     if Str = '' then
       Str := '-1'

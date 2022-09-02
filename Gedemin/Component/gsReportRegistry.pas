@@ -1,3 +1,5 @@
+// ShlTanya, 20.02.2019, #4135
+
 unit gsReportRegistry;
 
 interface
@@ -5,7 +7,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   IBDatabase, DB, Menus, {xReport, }flt_sqlFilter, Contnrs, IBSQL, xfReport,
-  Printers;
+  Printers, gdcBaseInterface;
 
 type
   TMenuType = (mtSubMenu, mtSeparator);
@@ -22,7 +24,7 @@ type
     FQueryFilter: TgsQueryFilter;
     FMenuType: TMenuType;
     FCaption: String;
-    FGroupID: Integer;
+    FGroupID: TID;
     FComponentList: TComponentList;
     FOnBeforePrint: TOnBeforePrint;
 
@@ -38,7 +40,7 @@ type
     // Печать отчета. OnClick - в PopupMenu
     procedure DoOnReportClick(Sender: TObject);
     // Печать отчета
-    procedure PrintReport(const ID: Integer);
+    procedure PrintReport(const ID: TID);
     // Список печатных форм
     procedure RegistryList;
 
@@ -62,7 +64,7 @@ type
     property QueryFilter: TgsQueryFilter read FQueryFilter write SetQueryFilter;
     property MenuType: TMenuType read FMenuType write FMenuType;
     property Caption: String read FCaption write FCaption;
-    property GroupID: Integer read FGroupID write FGroupID;
+    property GroupID: TID read FGroupID write FGroupID;
 
     property OnBeforePrint: TOnBeforePrint read FOnBeforePrint write FOnBeforePrint;
   end;
@@ -112,7 +114,7 @@ end;
 // Выбор отчета для печати
 procedure TgsReportRegistry.DoOnReportClick(Sender: TObject);
 begin
-  PrintReport((Sender as TMenuItem).Tag);
+  PrintReport(GetTID((Sender as TMenuItem).Tag, cEmptyContext));
 end;
 
 // Формирование меню
@@ -164,14 +166,14 @@ begin
       MenuItem.OnClick := DoOnReportListClick;
 
       IBSQL.SQL.Text := Format(
-        'SELECT id, name FROM rp_registry r WHERE r.parent = %d ', [FGroupID]);
+        'SELECT id, name FROM rp_registry r WHERE r.parent = %d ', [TID264(FGroupID)]);
       IBSQL.ExecQuery;
 
       while not IBSQL.Eof do
       begin
         MenuItem := AddItem(SubMenu, IBSQL.FieldByName('Name').AsString);
         FComponentList.Add(MenuItem);
-        MenuItem.Tag := IBSQL.FieldByName('ID').AsInteger;
+        MenuItem.Tag := TID2Tag(GetTID(IBSQL.FieldByName('ID')), cEmptyContext);
         MenuItem.OnClick := DoOnReportClick;
 
         IBSQL.Next;
@@ -214,7 +216,7 @@ begin
   end;
 end;
 
-procedure TgsReportRegistry.PrintReport(const ID: Integer);
+procedure TgsReportRegistry.PrintReport(const ID: TID);
 var
   IBSQL: TIBSQL;
   I, QCopy: Integer;
@@ -236,7 +238,7 @@ begin
     IBSQL.Transaction := FTransaction;
 
     IBSQL.SQL.Text := Format('SELECT * FROM rp_registry WHERE ID = %d',
-      [ID]);
+      [TID264(ID)]);
     IBSQL.ExecQuery;
     if IBSQL.RecordCount = 0 then
       MessageBox(Application.Handle,

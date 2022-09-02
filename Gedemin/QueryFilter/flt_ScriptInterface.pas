@@ -1,3 +1,4 @@
+// ShlTanya, 10.03.2019
 
 {++
 
@@ -32,7 +33,7 @@ unit flt_ScriptInterface;
 interface
 
 uses
-  prm_ParamFunctions_unit;
+  prm_ParamFunctions_unit, gdcBaseInterface;
 
 const
   GD_PRM_REPORT         = 100;
@@ -50,7 +51,7 @@ type
   IFilterEnterData = interface
   ['{5D46F401-BC95-11D5-B5EC-00C0DF0E09D1}']
     function Get_Object: TObject;
-    procedure QueryParams(const AnFirstKey, AnSecondKey: Integer;
+    procedure QueryParams(const AnFirstKey, AnSecondKey: TID;
      const AnParamList: TgsParamList; var AnResult: Boolean;
      const AShowDlg: Boolean = True;
      const AFormName: string = ''; const AFilterName: string = '');

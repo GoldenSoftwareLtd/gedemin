@@ -1,15 +1,17 @@
+// ShlTanya, 20.02.2019
+
 unit gd_AutoTaskThread;
 
 interface
 
 uses
   Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread,
-  gd_WebClientControl_unit, Messages, idThreadSafe;
+  gd_WebClientControl_unit, Messages, idThreadSafe, gdcBaseInterface;
 
 type
   TgdAutoTask = class(TObject)
   private
-    FId: Integer;
+    FId: TID;
     FName: String;
     FDescription: String;
     FExactDate: TDateTime;
@@ -43,7 +45,7 @@ type
     procedure TaskExecuteForDlg; virtual;
     procedure Schedule;
 
-    property Id: Integer read FId write FId;
+    property Id: TID read FId write FId;
     property Name: String read FName write FName;
     property Description: String read FDescription write FDescription;
     property ExactDate: TDateTime read FExactDate write FExactDate;
@@ -63,13 +65,13 @@ type
 
   TgdAutoFunctionTask = class(TgdAutoTask)
   private
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
 
   protected
     procedure TaskExecute; override;
 
   public
-    property FunctionKey: Integer read FFunctionKey write FFunctionKey;
+    property FunctionKey: TID read FFunctionKey write FFunctionKey;
   end;
 
   TgdAutoCmdTask = class(TgdAutoTask)
@@ -118,21 +120,21 @@ type
 
   TgdAutoReportTask = class(TgdAutoTask)
   private
-    FReportKey: Integer;
+    FReportKey: TID;
     FExportType: String;
     FRecipients: String;
-    FGroupKey: Integer;
-    FSMTPKey: Integer;
+    FGroupKey: TID;
+    FSMTPKey: TID;
 
   protected
     procedure TaskExecute; override;
 
   public
-    property ReportKey: Integer read FReportKey write FReportKey;
+    property ReportKey: TID read FReportKey write FReportKey;
     property ExportType: String read FExportType write FExportType;
     property Recipients: String read FRecipients write FRecipients;
-    property GroupKey: Integer read FGroupKey write FGroupKey;
-    property SMTPKey: Integer read FSMTPKey write FSMTPKey;
+    property GroupKey: TID read FGroupKey write FGroupKey;
+    property SMTPKey: TID read FSMTPKey write FSMTPKey;
   end;
 
   TgdAutoTaskThread = class(TgdMessagedThread)
@@ -171,7 +173,7 @@ var
 implementation
 
 uses
-  Forms, at_classes, gdcBaseInterface, IBDatabase, IBSQL, rp_BaseReport_unit,
+  Forms, at_classes, IBDatabase, IBSQL, rp_BaseReport_unit,
   scr_i_FunctionList, gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security,
   gdNotifierThread_unit, gd_ProgressNotifier_unit, IBServices,
   gd_common_functions, gd_directories_const, gd_messages_const, jclSysInfo;
@@ -206,7 +208,7 @@ begin
   begin
     gdAutoTaskThread.SendNotification('Ошибка при выполнении автозадачи: ' + FErrorMsg, True);
     gdAutoTaskThread.Synchronize(LogErrorMsg);
-  end else 
+  end else
   begin
     gdAutoTaskThread.SendNotification('Автозадача "' + Name + '" выполнена.', True);
     gdAutoTaskThread.Synchronize(LogEndTask);
@@ -397,10 +399,10 @@ begin
       q.SQL.Text :=
         'INSERT INTO gd_autotask_log (autotaskkey, eventtext, creationdate, creatorkey) ' +
         'VALUES (:atk, :etext, :cd, :ck)';
-      q.ParamByName('atk').AsInteger := ID;
+      SetTID(q.ParamByName('atk'), ID);
       q.ParamByName('etext').AsString := AMsg;
       q.ParamByName('cd').AsDateTime := Now;
-      q.ParamByName('ck').AsInteger := IBLogin.ContactKey;
+      SetTID(q.ParamByName('ck'), IBLogin.ContactKey);
       q.ExecQuery;
       Tr.Commit;
     finally
@@ -430,7 +432,7 @@ begin
       'WHERE ' +
       '  l.groupkey = :gk ' +
       '  AND c.email > '''' ',
-      GroupKey,
+      TID2V(GroupKey),
       R) and (not VarIsNull(R[0, 0])) then
     begin
       if Trim(Recipients) > '' then
@@ -441,7 +443,7 @@ begin
       ToAddresses := Recipients;
 
     if gdcBaseManager.ExecSingleQueryResult(
-      'SELECT name FROM rp_reportlist WHERE id = :id', ReportKey, R) then
+      'SELECT name FROM rp_reportlist WHERE id = :id', TID2V(ReportKey), R) then
     begin
       Subj := R[0, 0];
     end else
@@ -492,7 +494,7 @@ begin
       '  AND (userkey IS NULL OR userkey = :uk)' +
       '  AND (COALESCE(computer, '''') = '''' ' +
       '    OR UPPER(computer) = :comp OR computer = :ip)';
-    q.ParamByName('uk').AsInteger := IBLogin.UserKey;
+    SetTID(q.ParamByName('uk'), IBLogin.UserKey);
     q.ParamByName('comp').AsString := AnsiUpperCase(GetLocalComputerName);
     q.ParamByName('ip').AsString := GetIPAddress(GetLocalComputerName);
     q.ExecQuery;
@@ -505,10 +507,10 @@ begin
         continue;
       end;
 
-      if q.FieldByName('functionkey').AsInteger > 0 then
+      if GetTID(q.FieldByName('functionkey')) > 0 then
       begin
         Task := TgdAutoFunctionTask.Create;
-        (Task as TgdAutoFunctionTask).FunctionKey := q.FieldbyName('functionkey').AsInteger;
+        (Task as TgdAutoFunctionTask).FunctionKey := GetTID(q.FieldbyName('functionkey'));
       end else
       if q.FieldByName('cmdline').AsString > '' then
       begin
@@ -520,14 +522,14 @@ begin
         Task := TgdAutoBackupTask.Create;
         (Task as TgdAutoBackupTask).BackupFile := q.FieldbyName('backupfile').AsString;
       end else
-      if q.FieldByName('reportkey').AsInteger > 0 then
+      if GetTID(q.FieldByName('reportkey')) > 0 then
       begin
         Task := TgdAutoReportTask.Create;
-        (Task as TgdAutoReportTask).ReportKey := q.FieldbyName('reportkey').AsInteger;
+        (Task as TgdAutoReportTask).ReportKey := GetTID(q.FieldbyName('reportkey'));
         (Task as TgdAutoReportTask).ExportType := q.FieldbyName('emailexporttype').AsString;
         (Task as TgdAutoReportTask).Recipients := q.FieldbyName('emailrecipients').AsString;
-        (Task as TgdAutoReportTask).GroupKey := q.FieldbyName('emailgroupkey').AsInteger;
-        (Task as TgdAutoReportTask).SMTPKey := q.FieldbyName('emailsmtpkey').AsInteger;
+        (Task as TgdAutoReportTask).GroupKey := GetTID(q.FieldbyName('emailgroupkey'));
+        (Task as TgdAutoReportTask).SMTPKey := GetTID(q.FieldbyName('emailsmtpkey'));
       end else
       if q.FieldByName('reload').AsInteger <> 0 then
       begin
@@ -539,7 +541,7 @@ begin
 
       if Task <> nil then
       begin
-        Task.Id := q.FieldbyName('id').AsInteger;
+        Task.Id := GetTID(q.FieldbyName('id'));
         Task.Name := q.FieldbyName('name').AsString;
         Task.Description := q.FieldbyName('description').AsString;
         Task.ExactDate := q.FieldbyName('exactdate').AsDateTime;
@@ -686,6 +688,12 @@ begin
     if AT.NextEndTime >= Now then
       AT.Execute;
 
+    if (AT.ExactDate > 0) and (Now > AT.NextEndTime) then
+    begin
+      AT.Done := True;
+      gdAutoTaskThread.SendNotification('Автозадача "' + AT.Name + '" отключена, т.к. не была выполнена по расписанию.', True);
+    end;
+
     AT.Schedule;
 
     if AT.Done then
@@ -744,7 +752,7 @@ begin
     while C < FTaskList.Count do
     begin
       q.Close;
-      q.ParamByName('id').AsInteger := (FTaskList[0] as TgdAutoTask).ID;
+      SetTID(q.ParamByName('id'), (FTaskList[0] as TgdAutoTask).ID);
       q.ParamByName('et').AsDateTime := (FTaskList[0] as TgdAutoTask).NextStartTime;
       q.ExecQuery;
 
@@ -752,9 +760,9 @@ begin
         or (q.FieldbyName('disabled').AsInteger <> 0)
         or
           (
-            (q.FieldByName('userkey').AsInteger <> 0)
+            (GetTID(q.FieldByName('userkey')) <> 0)
             and
-            (q.FieldbyName('userkey').AsInteger <> IBLogin.UserKey)
+            (GetTID(q.FieldbyName('userkey')) <> IBLogin.UserKey)
           )
         or
           (
@@ -768,7 +776,7 @@ begin
         FTaskList.Delete(0);
         continue;
       end;
-
+      
       if q.FieldByName('creationdate').IsNull then
         break;
 
@@ -798,7 +806,7 @@ begin
   try
     gdcBaseManager.ExecSingleQuery(
       'UPDATE gd_autotask SET disabled = 1 WHERE id = ' +
-        IntToStr((FTaskList[0] as TgdAutoTask).ID));
+        TID2S((FTaskList[0] as TgdAutoTask).ID));
   except
     // small chance that there would be a deadlock
     // but we don't care

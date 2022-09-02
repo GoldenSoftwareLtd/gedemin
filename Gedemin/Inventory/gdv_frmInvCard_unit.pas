@@ -80,6 +80,8 @@ type
     TBControlItem5: TTBControlItem;
     cmbDept: TgsIBLookupComboBox;
     TBControlItem6: TTBControlItem;
+    actListDocument: TAction;
+    TBItem6: TTBItem;
     procedure actShowParamPanelExecute(Sender: TObject);
     procedure actRunExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -107,6 +109,7 @@ type
     procedure gdcInvCardGetFromClause(Sender: TObject; var Clause: String);
     procedure frMainValuesResize(Sender: TObject);
     procedure actShowCardExecute(Sender: TObject);
+    procedure actListDocumentExecute(Sender: TObject);
   private
     procedure UpdateFieldsDataList;
     procedure PrepareConfigPanel;
@@ -146,7 +149,8 @@ implementation
 uses
   gd_ClassList, at_Classes, gdv_dlgConfigName_unit, AcctStrings, gdcConstants,
   gd_security_operationconst, gdcBaseInterface, frFieldValuesLineConfig_unit,
-  gdv_dlgInvCardParams_unit;
+  gdv_dlgInvCardParams_unit, gdcClasses_interface, gdc_createable_form,
+  gdcAcctEntryRegister, gdcClasses;
 
 { Tgdv_frmInvCard }
 
@@ -634,7 +638,7 @@ begin
   try
     gdcInvDocument.SubType := gdcObject.FieldByName('ruid').AsString;
     gdcInvDocument.SubSet := 'ByID';
-    gdcInvDocument.ID := gdcObject.FieldByName('parent').AsInteger;
+    gdcInvDocument.ID := GetTID(gdcObject.FieldByName('parent'));
     gdcInvDocument.Open;
     if gdcInvDocument.EditDialog then begin
       gdcObject.CloseOpen;
@@ -885,6 +889,45 @@ begin
   end;
   for i:= BaseInvCardFieldCount to ibgrMain.Columns.Count - 1 do
     ibgrMain.Columns[i].Visible:= False;
+end;
+
+procedure Tgdv_frmInvCard.actListDocumentExecute(Sender: TObject);
+var
+  Cl: TPersistentClass;
+  F: TgdcFullClass;
+  FormList: TgdcCreateableForm;
+  gdcInvDocument: TgdcInvDocument;
+begin
+  gdcInvDocument := TgdcInvDocument.Create(Self);
+  try
+    gdcInvDocument.SubType := gdcObject.FieldByName('ruid').AsString;
+    gdcInvDocument.SubSet := 'ByID';
+    gdcInvDocument.ID := GetTID(gdcObject.FieldByName('parent'));
+    gdcInvDocument.Open;
+
+    if (gdcInvDocument.RecordCount > 0) then begin
+      if GetTID(gdcInvDocument.FieldByName('documenttypekey')) <> DefaultDocumentTypeKey then
+      begin
+        F := TgdcDocument.GetDocumentClass(GetTID(gdcInvDocument.FieldByName('documenttypekey')), dcpHeader);
+        Cl := Classes.GetClass(F.gdClass.ClassName);
+        FormList := CgdcBase(Cl).CreateViewForm(Application, '', F.SubType, False) as TgdcCreateableForm;
+        if Assigned(FormList) and Assigned(FormList.gdcObject) and Assigned(FormList.gdcObject.FindField('ID')) then
+        begin
+          if Assigned(FormList.gdcObject.Filter) and (GetTID(FormList.gdcObject.Filter.CurrentFilter) > 0)
+            and (FormList.gdcObject.Filter.FilterData.FilterText <> '') then
+            MessageBox(Handle, 'Внимание! На форме включена фильтрация данных.', PChar('Внимание!'), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
+          FormList.gdcObject.Locate('ID', TID2V(gdcObject.FieldByName('parent')),[]);
+         end;
+        if FormList <> nil then
+          FormList.Show;
+      end;
+    end
+    else
+      MessageDlg('Документ не выбран.', mtInformation, [mbOk], -1)
+  finally
+    gdcInvDocument.Free;
+  end;
+  inherited;
 end;
 
 initialization

@@ -1,3 +1,5 @@
+// ShlTanya, 09.02.2019
+
 unit gdcConstants;
 
 interface

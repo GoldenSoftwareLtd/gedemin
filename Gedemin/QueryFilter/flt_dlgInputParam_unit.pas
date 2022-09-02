@@ -1,3 +1,5 @@
+// ShlTanya, 10.03.2019
+
 unit flt_dlgInputParam_unit;
 
 interface
@@ -53,7 +55,7 @@ var
 implementation
 
 uses
-  IBHeader, xDateEdits, flt_SafeConversion_unit
+  IBHeader, xDateEdits, flt_SafeConversion_unit, gdcBaseInterface
 {$IFDEF VER140}
   , Variants
 {$ENDIF}
@@ -117,7 +119,7 @@ begin
             case AnParam.Vars[I].SQLType of
               SQL_SHORT, SQL_LONG, SQL_INT64:
                 case AnParam.Vars[I].Data.SQLScale of
-                       0: AnParam.Vars[I].AsInteger := TfrParamLine(FLineList.Items[Index]).AsInteger;
+                       0: SetTID(AnParam.Vars[I], GetTID(TfrParamLine(FLineList.Items[Index]).AsInteger));
                   -4..-1: AnParam.Vars[I].AsCurrency := TfrParamLine(FLineList.Items[Index]).AsCurrency;
                 else
                   AnParam.Vars[I].AsFloat := TfrParamLine(FLineList.Items[Index]).AsFloat;

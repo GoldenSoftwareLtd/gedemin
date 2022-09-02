@@ -1,10 +1,11 @@
+// ShlTanya, 10.02.2019
 
 unit gdcNamespaceSyncController;
 
 interface
 
 uses
-  Classes, DB, IBDatabase, IBSQL, IBCustomDataSet;
+  Classes, DB, IBDatabase, IBSQL, IBCustomDataSet, gdcBaseInterface;
 
 type
   TLogMessageType = (lmtInfo, lmtWarning, lmtError);
@@ -50,8 +51,8 @@ type
     procedure ClearAll;
     procedure Sync;
     procedure SyncSilent(const ATerminate: Boolean);
-    procedure EditNamespace(const ANSK: Integer);
-    procedure CompareWithData(const ANSK: Integer; const AFileName: String;
+    procedure EditNamespace(const ANSK: TID);
+    procedure CompareWithData(const ANSK: TID; const AFileName: String;
       const A3Way: Boolean);
     procedure ShowChanged;
 
@@ -70,7 +71,7 @@ type
 implementation
 
 uses
-  SysUtils, Controls, jclFileUtils, gdcBaseInterface, gdcBase,
+  SysUtils, Controls, jclFileUtils, gdcBase,
   gdcNamespace, gdcNamespaceLoader, gd_GlobalParams_unit, yaml_parser,
   gd_common_functions, at_dlgCheckOperation_unit, at_frmSQLProcess,
   flt_frmSQLEditorSyn_unit, gd_security, gdccClient_unit, gdccConst;
@@ -128,7 +129,7 @@ begin
 
       FqFindFile.Close;
       FqFindFile.ParamByName('name').AsString := M.ReadString('Properties\Name');
-      FqFindFile.ParamByName('xid').AsInteger := NSRUID.XID;
+      SetTID(FqFindFile.ParamByName('xid'), NSRUID.XID);
       FqFindFile.ParamByName('dbid').AsInteger := NSRUID.DBID;
       FqFindFile.ExecQuery;
 
@@ -151,7 +152,7 @@ begin
         FqInsertFile.ParamByName('optional').AsInteger := M.ReadInteger('Properties\Optional');
         FqInsertFile.ParamByName('internal').AsInteger := M.ReadInteger('Properties\Internal');
         FqInsertFile.ParamByName('comment').AsString := M.ReadString('Properties\Comment');
-        FqInsertFile.ParamByName('xid').AsInteger := NSRUID.XID;
+        SetTID(FqInsertFile.ParamByName('xid'), NSRUID.XID);
         FqInsertFile.ParamByName('dbid').AsInteger := NSRUID.DBID;
         FqInsertFile.ParamByName('md5').AsString := M.ReadString('Properties\MD5');
         FqInsertFile.ExecQuery;
@@ -167,7 +168,7 @@ begin
               TgdcNamespace.ParseReferenceString((S.Items[I] as TyamlString).AsString, UsesRUID, UsesName);
 
               FqInsertLink.ParamByName('filename').AsString := AFileName;
-              FqInsertLink.ParamByName('uses_xid').AsInteger := UsesRUID.XID;
+              SetTID(FqInsertLink.ParamByName('uses_xid'), UsesRUID.XID);
               FqInsertLink.ParamByName('uses_dbid').AsInteger := UsesRUID.DBID;
               FqInsertLink.ParamByName('uses_name').AsString := UsesName;
               FqInsertLink.ExecQuery;
@@ -185,12 +186,12 @@ end;
 
 procedure TgdcNamespaceSyncController.ApplyFilter;
 var
-  NK: Integer;
+  NK: TID;
   FN: String;
 begin
   if not FDataSet.EOF then
   begin
-    NK := FDataSet.FieldByName('namespacekey').AsInteger;
+    NK := GetTID(FDataSet.FieldByName('namespacekey'));
     FN := FDataSet.FieldByName('filename').AsString;
   end else
   begin
@@ -279,7 +280,7 @@ begin
 
     FDataSet.Open;
 
-    if (NK = 0) or (not FDataSet.Locate('namespacekey', NK, [])) then
+    if (NK = 0) or (not FDataSet.Locate('namespacekey', TID2V(NK), [])) then
     begin
       if FN > '' then
         FDataSet.Locate('filename', FN, []);
@@ -311,7 +312,7 @@ begin
   end;
 end;
 
-procedure TgdcNamespaceSyncController.CompareWithData(const ANSK: Integer;
+procedure TgdcNamespaceSyncController.CompareWithData(const ANSK: TID;
   const AFileName: String; const A3Way: Boolean);
 var
   NS: TgdcNamespace;
@@ -320,7 +321,8 @@ var
   Parser: TYAMLParser;
   Mapping, MObject: TYAMLMapping;
   Objects, UsesNS: TYAMLSequence;
-  J, NSID: Integer;
+  J: Integer;
+  NSID: TID;
   Obj: TgdcBase;
   C: TPersistentClass;
   HSL: TStringList;
@@ -423,11 +425,11 @@ begin
                 if not Obj.EOF then
                 begin
                   NSO.Insert;
-                  NSO.FieldByName('namespacekey').AsInteger := NS.ID;
+                  SetTID(NSO.FieldByName('namespacekey'), NS.ID);
                   NSO.FieldByName('objectname').AsString := Obj.ObjectName;
                   NSO.FieldByName('objectclass').AsString := Obj.ClassName;
                   NSO.FieldByName('subtype').AsString := Obj.SubType;
-                  NSO.FieldByName('xid').AsInteger := Obj.GetRUID.XID;
+                  SetTID(NSO.FieldByName('xid'), Obj.GetRUID.XID);
                   NSO.FieldByName('dbid').AsInteger := Obj.GetRUID.DBID;
                   NSO.FieldByName('alwaysoverwrite').AsInteger :=
                     MObject.ReadInteger('Properties\AlwaysOverwrite');
@@ -443,7 +445,7 @@ begin
                   NSO.Post;
 
                   if MObject.ReadString('Properties\HeadObject') > '' then
-                    HSL.Add(IntToStr(NSO.ID) + '=' + MObject.ReadString('Properties\HeadObject'));
+                    HSL.Add(TID2S(NSO.ID) + '=' + MObject.ReadString('Properties\HeadObject'));
                 end;
               finally
                 Obj.Free;
@@ -470,14 +472,14 @@ begin
                   R := StrToRUID(HSL.Values[HSL.Names[J]]);
 
                   qList.Close;
-                  qList.ParamByName('nsk').AsInteger := NS.ID;
-                  qList.ParamByName('xid').AsInteger := R.XID;
+                  SetTID(qList.ParamByName('nsk'), NS.ID);
+                  SetTID(qList.ParamByName('xid'), R.XID);
                   qList.ParamByName('dbid').AsInteger := R.DBID;
                   qList.ExecQuery;
 
                   if not qList.EOF then
                   begin
-                    qUpdate.ParamByName('ho').AsInteger := qList.Fields[0].AsInteger;
+                    SetTID(qUpdate.ParamByName('ho'), qList.Fields[0]);
                     qUpdate.ParamByName('id').AsString := HSL.Names[J];
                     qUpdate.ExecQuery;
                   end;
@@ -510,8 +512,8 @@ begin
                 if (NSID = -1) or (NSID = NS.ID) then
                   continue;
 
-                q.ParamByName('nsk').AsInteger := NS.ID;
-                q.ParamByName('uk').AsInteger := NSID;
+                SetTID(q.ParamByName('nsk'), NS.ID);
+                SetTID(q.ParamByName('uk'), NSID);
                 try
                   q.ExecQuery;
                 except
@@ -597,7 +599,7 @@ begin
     end;
 end;
 
-procedure TgdcNamespaceSyncController.EditNamespace(const ANSK: Integer);
+procedure TgdcNamespaceSyncController.EditNamespace(const ANSK: TID);
 begin
   with TgdcNamespace.Create(nil) do
   try
@@ -1183,7 +1185,7 @@ begin
     if FDataSet.FieldByName('namespacekey').IsNull then
       FqUpdateOperation.ParamByName('nk').Clear
     else
-      FqUpdateOperation.ParamByName('nk').AsInteger := FDataSet.FieldByName('namespacekey').AsInteger;
+      SetTID(FqUpdateOperation.ParamByName('nk'), FDataSet.FieldByName('namespacekey'));
 
     if FDataSet.FieldByName('fileversion').AsString > '' then
       FqUpdateOperation.ParamByName('fn').AsString := FDataSet.FieldByName('filename').AsString
@@ -1222,7 +1224,7 @@ begin
             end else
             begin
               FqUpdateOperation.ParamByName('op').AsString := '<<';
-              FqUpdateOperation.ParamByName('nk').AsInteger := FqUsesList.FieldByName('namespacekey').AsInteger;
+              SetTID(FqUpdateOperation.ParamByName('nk'), FqUsesList.FieldByName('namespacekey'));
             end;
             FqUpdateOperation.ParamByName('fn').AsString := FqUsesList.FieldByName('filename').AsString;
             FqUpdateOperation.ExecQuery;
@@ -1314,7 +1316,7 @@ begin
           while not Fq.EOF do
           begin
             NS.Close;
-            NS.ID := Fq.FieldByName('id').AsInteger;
+            NS.ID := GetTID(Fq.FieldByName('id'));
             NS.Open;
             if (not NS.EOF) and NS.SaveNamespaceToFile(Fq.FieldByName('filename').AsString, chbxIncVersion.Checked) then
               DoLog(lmtInfo, 'Пространство имен "' + NS.ObjectName + '" записано в файл: ' +

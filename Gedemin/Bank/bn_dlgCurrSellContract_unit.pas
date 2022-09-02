@@ -1,3 +1,4 @@
+// ShlTanya, 30.01.2019
 
 unit bn_dlgCurrSellContract_unit;
 
@@ -47,14 +48,14 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_security, gdcBase, gd_ClassList;
+  gd_security, gdcBase, gd_ClassList, gdcBaseInterface;
 
 { Tgd_dlgCurrSellContract }
 
 procedure Tgd_dlgCurrSellContract.FormCreate(Sender: TObject);
 begin
   inherited;
-  iblcBankAccountKey.Condition := 'COMPANYKEY = ' + IntToStr(IBLogin.CompanyKey);
+  iblcBankAccountKey.Condition := 'COMPANYKEY = ' + TID2S(IBLogin.CompanyKey);
 end;
 
 procedure Tgd_dlgCurrSellContract.iblcBankKeyChange(Sender: TObject);

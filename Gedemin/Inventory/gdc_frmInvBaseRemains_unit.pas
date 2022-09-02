@@ -343,7 +343,7 @@ begin
   with TgdcGood.Create(nil) do
   try
     SubSet := 'ByID';
-    ID := Self.gdcObject.FieldByName('GOODKEY').AsInteger;
+    ID := GetTID(Self.gdcObject.FieldByName('GOODKEY'));
     Open;
     EditDialog;
   finally

@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit frm_SettingView_unit;
 
 interface
@@ -64,7 +66,7 @@ implementation
 {$R *.DFM}
 
 uses
-  DBCLient, DBGrids, gdcBase, SynEditTypes
+  DBCLient, DBGrids, gdcBase, SynEditTypes, gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -151,7 +153,7 @@ begin
     for ElementCounter := 0 to StreamLoadingOrderList.Count - 1 do
       CurrentSettingText := CurrentSettingText +
         Format('%6d: %d - %s %s',
-          [ElementCounter, StreamLoadingOrderList.Items[ElementCounter].RecordID,
+          [ElementCounter, TID264(StreamLoadingOrderList.Items[ElementCounter].RecordID),
           StreamDataObject.gdcObject[StreamLoadingOrderList.Items[ElementCounter].DSIndex].Classname,
           StreamDataObject.gdcObject[StreamLoadingOrderList.Items[ElementCounter].DSIndex].SubType]) + #13#10;
     ClassRecordList := TStringList.Create;
@@ -222,7 +224,7 @@ begin
     // первый элемент списка - показывает общее содержимое настройки
     CurrentSettingText := 'Порядок загрузки записей:' + #13#10;
     for I := 0 to OS.Count - 1 do
-      CurrentSettingText := CurrentSettingText + Format('%6d: %d', [I, OS.Items[I]]) + #13#10;
+      CurrentSettingText := CurrentSettingText + Format('%6d: %d', [I, TID264(OS.Items[I])]) + #13#10;
 
     ClassRecordList := TStringList.Create;
     ClassRecordList.Add(CurrentSettingText);

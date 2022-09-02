@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgAddTNVD_unit;
 
 interface
@@ -28,7 +30,7 @@ type
     New: Boolean;
   public
     { Public declarations }
-    TNVDKey: Integer;
+    TNVDKey: TID;
     function DeleteValue: Boolean;
     procedure ActiveDialog;
   end;
@@ -55,7 +57,7 @@ begin
   New := False;
   // Выполнение запроса
   ibqryEditTNVD.Close;
-  ibqryEditTNVD.ParamByName('id').AsInteger := TNVDKey;
+  SetTID(ibqryEditTNVD.ParamByName('id'), TNVDKey);
   ibqryEditTNVD.Open;
   ibqryEditTNVD.First;
   // Если записей не найдено создаем новую
@@ -74,7 +76,7 @@ begin
 
     New := True;
     ibqryEditTNVD.Insert;
-    ibqryEditTNVD.FieldByName('id').AsInteger := ibqryTNVDID.FieldByName('id').AsInteger;
+    SetTID(ibqryEditTNVD.FieldByName('id'), ibqryTNVDID.FieldByName('id'));
   // Иначе редактируем существующую
   end else
   begin
@@ -99,7 +101,7 @@ begin
     Exit;
   end;
   // Сохранение изменений
-  TNVDKey := ibqryEditTNVD.FieldByName('id').AsInteger;
+  TNVDKey := GetTID(ibqryEditTNVD.FieldByName('id'));
   ibqryEditTNVD.Post;
   if ibtrTNVD.InTransaction then
     ibtrTNVD.CommitRetaining;
@@ -126,7 +128,7 @@ begin
      'Внимание', MB_YESNO or MB_ICONQUESTION) <> IDYES) then
       Exit;
     ibqryEditTNVD.Close;
-    ibqryEditTNVD.ParamByName('id').AsInteger := TNVDKey;
+    SetTID(ibqryEditTNVD.ParamByName('id'), TNVDKey);
     ibqryEditTNVD.Open;
 
     if ((boAccess.GetRights(GD_OP_DELETETNVD)) and IBLogin.Ingroup = 0) then

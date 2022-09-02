@@ -1,12 +1,14 @@
+// ShlTanya, 11.02.2019
+
 unit gd_SetDatabase;
 
 interface
 
 uses
-  Forms, IBDatabase;
+  Forms, IBDatabase, gdcBaseInterface;
 
 type
-  TDnIntArray = array of Integer;
+  TDnIntArray = array of TID;
   TDnByteArray = array of Byte;
 
   procedure SetDatabase(const AnForm: TForm; const AnDatabase: TIBDatabase;
@@ -14,7 +16,7 @@ type
   procedure SetDatabaseAndTransaction(const AnForm: TForm; const AnDatabase: TIBDatabase;
    const AnTransaction: TIBTransaction);
   function GetUniqueKey(const AnDatabase: TIBDatabase;
-   const AnTransaction: TIBTransaction): Integer;
+   const AnTransaction: TIBTransaction): TID;
   function rpGetTempFileName(const Prefix: string): string;
 
 implementation
@@ -22,7 +24,7 @@ implementation
 uses
   IBCustomDataSet, IBSQL, SysUtils, Windows
 {$IFDEF GEDEMIN}
-  , gdcBaseInterface
+
 {$ENDIF}
   ;
 
@@ -63,7 +65,7 @@ begin
 end;
 
 function GetUniqueKey(const AnDatabase: TIBDatabase;
- const AnTransaction: TIBTransaction): Integer;
+ const AnTransaction: TIBTransaction): TID;
 {$IFNDEF GEDEMIN}
 var
   ibsqlUniqueKey: TIBSQL;
@@ -87,7 +89,7 @@ begin
       AnTransaction.StartTransaction;
     ibsqlUniqueKey.SQL.Text := 'SELECT GEN_ID(GD_G_UNIQUE, 1) + GEN_ID(gd_g_offset, 0) FROM RDB$DATABASE';
     ibsqlUniqueKey.ExecQuery;
-    Result := ibsqlUniqueKey.Fields[0].AsInteger;
+    Result := GetTID(ibsqlUniqueKey.Fields[0]);
     if not StateTr then
       AnTransaction.Commit;
     if not StateDb then

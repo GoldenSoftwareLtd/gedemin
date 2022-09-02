@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcStatement;
 
@@ -492,7 +493,7 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  FieldByName('bankcataloguekey').AsInteger := FieldByName('parent').AsInteger;
+  SetTID(FieldByName('bankcataloguekey'), FieldByName('parent'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKCATALOGUELINE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -751,7 +752,7 @@ begin
 
   if not (sMultiple in BaseState) then
   begin
-    FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+    SetTID(FieldByName('documentkey'), FieldByName('id'));
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKCATALOGUELINE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
@@ -1269,8 +1270,8 @@ begin
 
   if not (sMultiple in BaseState) then
   begin
-    FieldByName('lineid').AsInteger := FieldByName('id').AsInteger;
-    FieldByName('bankstatementkey').AsVariant := FieldByName('parent').AsVariant;
+    SetTID(FieldByName('lineid'), FieldByName('id'));
+    SetTID(FieldByName('bankstatementkey'), FieldByName('parent'));
   end;
 
   if ((FieldByName('dsumcurr').AsCurrency > 0) and
@@ -1320,8 +1321,8 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  FieldByName('bankstatementkey').AsInteger := FieldByName('parent').AsInteger;
-  FieldByName('lineid').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('bankstatementkey'), FieldByName('parent'));
+  SetTID(FieldByName('lineid'), FieldByName('id'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASESTATEMENTLINE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1355,8 +1356,7 @@ begin
       ' LEFT JOIN gd_companyaccount ca  ON ca.id = bs.accountkey' +
       ' LEFT JOIN gd_curr c ON c.id = ca.currkey ' +
       ' WHERE bs.documentkey = :bankstatementkey ';
-      qry.ParamByName('bankstatementkey').AsInteger :=
-        FieldByName('bankstatementkey').AsInteger;
+      SetTID(qry.ParamByName('bankstatementkey'), FieldByName('bankstatementkey'));
       qry.ExecQuery;
       if (qry.FieldByName('currkey').IsNull) or
         (qry.FieldByName('isncu').AsShort = 1)then
@@ -1600,7 +1600,7 @@ begin
           ibsql.Next;
           if ibsql.RecordCount = 1 then
           begin
-            FieldByName('companykeyline').AsInteger := ibsql.FieldByName('companykey').AsInteger;
+            SetTID(FieldByName('companykeyline'), ibsql.FieldByName('companykey'));
             if FieldByName('bankbranch').AsString <> ibsql.FieldByName('bankbranch').AsString then
               FieldByName('bankbranch').AsString := ibsql.FieldByName('bankbranch').AsString;
           end;
@@ -1622,7 +1622,7 @@ begin
           ' LEFT JOIN gd_companyaccount ac ON c.companyaccountkey = ac.id ' +
           ' LEFT JOIN gd_bank b ON ac.bankkey = b.bankkey ' +
           ' WHERE c.contactkey = :companykey';
-        ibsql.ParamByName('companykey').AsInteger := FieldByName('companykeyline').AsInteger;
+        SetTID(ibsql.ParamByName('companykey'), FieldByName('companykeyline'));
         ibsql.ExecQuery;
         if ibsql.RecordCount > 0 then
         begin
@@ -1665,7 +1665,7 @@ var
   DidActivate: Boolean;
   gdcBank: TgdcBank;
   gdcAccount: TgdcAccount;
-  BankID: Integer;
+  BankID: TID;
   LastCompanyName: String;
   ibsql: TIBSQL;
   CountCompany: Integer;
@@ -1699,8 +1699,8 @@ var
         gdcAccount.Open;
         gdcAccount.Insert;
         gdcAccount.FieldByName('account').AsString := FieldByName('account').AsString;
-        gdcAccount.FieldByName('bankkey').AsInteger := BankID;
-        gdcAccount.FieldByName('companykey').AsInteger := FieldByName('companykeyline').AsInteger;
+        SetTID(gdcAccount.FieldByName('bankkey'), BankID);
+        SetTID(gdcAccount.FieldByName('companykey'), FieldByName('companykeyline'));
         gdcAccount.Post;
       end;
     finally
@@ -1713,7 +1713,7 @@ var
 begin
 {Если у такой компании нет расчетного счета и банка, подставим их}
   if (FieldByName('account').AsString > '') and (FieldByName('bankcode').AsString > '')
-    and (FieldByName('companykeyline').AsInteger > 0) then
+    and (GetTID(FieldByName('companykeyline')) > 0) then
   begin
     ibsql := TIBSQL.Create(nil);
     try
@@ -1729,7 +1729,7 @@ begin
           ' AND ca.companykey = :companykey ';
         ibsql.ParamByName('bc').AsString := FieldByName('bankcode').AsString;
         ibsql.ParamByName('account').AsString := FieldByName('account').AsString;
-        ibsql.ParamByName('companykey').AsInteger := FieldByName('companykeyline').AsInteger;
+        SetTID(ibsql.ParamByName('companykey'), FieldByName('companykeyline'));
         ibsql.ExecQuery;
 
         if ibsql.RecordCount = 0 then
@@ -1746,7 +1746,7 @@ begin
 
           ibsql.ParamByName('bc').AsString := FieldByName('bankcode').AsString;
           ibsql.ParamByName('account').AsString := FieldByName('account').AsString;
-          ibsql.ParamByName('companykey').AsInteger := FieldByName('companykeyline').AsInteger;
+          SetTID(ibsql.ParamByName('companykey'), FieldByName('companykeyline'));
           ibsql.ExecQuery;
 
           LastCompanyName := '';

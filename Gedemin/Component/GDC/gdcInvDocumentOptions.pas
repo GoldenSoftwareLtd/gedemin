@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcInvDocumentOptions;
 
 interface
@@ -156,8 +158,8 @@ begin
       'SELECT id FROM gd_documenttype_option WHERE dtkey=%d ' +
       'AND option_name STARTING WITH ''%s'' ' +
       'AND COALESCE(relationfieldkey, 0)=%d AND COALESCE(contactkey, 0)=%d',
-      [FieldByName('dtkey').AsInteger, StringReplace(N, '''', '''''', [rfReplaceAll]),
-      FieldByName('relationfieldkey').AsInteger, FieldByName('contactkey').AsInteger]);
+      [TID264(FieldByName('dtkey')), StringReplace(N, '''', '''''', [rfReplaceAll]),
+      TID264(FieldByName('relationfieldkey')), TID264(FieldByName('contactkey'))]);
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPEOPTIONS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
@@ -201,7 +203,7 @@ begin
 
   inherited;
 
-  DE := gdClassList.FindDocByTypeID(FieldByName('dtkey').AsInteger, dcpHeader);
+  DE := gdClassList.FindDocByTypeID(GetTID(FieldByName('dtkey')), dcpHeader);
   if DE <> nil then
     DE.Invalid := True;
 

@@ -20,7 +20,7 @@ object dlgDetailBill: TdlgDetailBill
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 732
+    Width = 724
     Height = 55
     Align = alTop
     BevelInner = bvLowered
@@ -30,7 +30,7 @@ object dlgDetailBill: TdlgDetailBill
     object Label1: TLabel
       Left = 16
       Top = 14
-      Width = 100
+      Width = 99
       Height = 13
       Caption = 'Базовая накладная'
     end
@@ -44,7 +44,7 @@ object dlgDetailBill: TdlgDetailBill
     object Label4: TLabel
       Left = 14
       Top = 34
-      Width = 665
+      Width = 647
       Height = 13
       Caption = 
         'Внимание: накладные по отчету привязаны к базовой накладной, из ' +
@@ -97,14 +97,14 @@ object dlgDetailBill: TdlgDetailBill
   end
   object Panel2: TPanel
     Left = 0
-    Top = 470
-    Width = 732
+    Top = 459
+    Width = 724
     Height = 42
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 2
     object Panel7: TPanel
-      Left = 452
+      Left = 444
       Top = 0
       Width = 280
       Height = 42
@@ -150,8 +150,8 @@ object dlgDetailBill: TdlgDetailBill
   object Panel3: TPanel
     Left = 0
     Top = 55
-    Width = 732
-    Height = 415
+    Width = 724
+    Height = 404
     Align = alClient
     BevelInner = bvLowered
     BevelOuter = bvNone
@@ -160,7 +160,7 @@ object dlgDetailBill: TdlgDetailBill
     object Panel4: TPanel
       Left = 5
       Top = 5
-      Width = 722
+      Width = 714
       Height = 101
       Align = alTop
       BevelOuter = bvNone
@@ -169,7 +169,7 @@ object dlgDetailBill: TdlgDetailBill
       object lblContact: TLabel
         Left = 10
         Top = 9
-        Width = 144
+        Width = 140
         Height = 13
         Caption = 'Наименование организации'
         Enabled = False
@@ -177,7 +177,7 @@ object dlgDetailBill: TdlgDetailBill
       object lblNumberBill: TLabel
         Left = 10
         Top = 32
-        Width = 91
+        Width = 89
         Height = 13
         Caption = 'Номер накладной'
         Enabled = False
@@ -185,7 +185,7 @@ object dlgDetailBill: TdlgDetailBill
       object lPrice: TLabel
         Left = 10
         Top = 55
-        Width = 58
+        Width = 57
         Height = 13
         Caption = 'Прайс-лист'
         Enabled = False
@@ -193,7 +193,7 @@ object dlgDetailBill: TdlgDetailBill
       object lPriceField: TLabel
         Left = 472
         Top = 55
-        Width = 65
+        Width = 63
         Height = 13
         Caption = 'Поле прайса'
         Enabled = False
@@ -308,8 +308,8 @@ object dlgDetailBill: TdlgDetailBill
     object Panel5: TPanel
       Left = 5
       Top = 204
-      Width = 722
-      Height = 206
+      Width = 714
+      Height = 195
       Align = alClient
       BevelOuter = bvNone
       BorderWidth = 4
@@ -317,8 +317,8 @@ object dlgDetailBill: TdlgDetailBill
       TabOrder = 2
       object Panel8: TPanel
         Left = 4
-        Top = 144
-        Width = 714
+        Top = 133
+        Width = 706
         Height = 58
         Align = alBottom
         BevelOuter = bvNone
@@ -326,7 +326,7 @@ object dlgDetailBill: TdlgDetailBill
         object gsdbgrAmount: TgsDBGrid
           Left = 481
           Top = 0
-          Width = 233
+          Width = 225
           Height = 58
           TabStop = False
           Align = alClient
@@ -863,8 +863,8 @@ object dlgDetailBill: TdlgDetailBill
       object gsdbgrGoodPos: TgsDBGrid
         Left = 481
         Top = 4
-        Width = 237
-        Height = 140
+        Width = 229
+        Height = 129
         TabStop = False
         Align = alClient
         BorderStyle = bsNone
@@ -1181,7 +1181,7 @@ object dlgDetailBill: TdlgDetailBill
         Left = 4
         Top = 4
         Width = 477
-        Height = 140
+        Height = 129
         Align = alLeft
         BorderStyle = bsNone
         Ctl3D = False
@@ -1419,7 +1419,7 @@ object dlgDetailBill: TdlgDetailBill
     object Panel6: TPanel
       Left = 5
       Top = 106
-      Width = 722
+      Width = 714
       Height = 98
       Align = alTop
       BevelOuter = bvNone
@@ -1428,7 +1428,7 @@ object dlgDetailBill: TdlgDetailBill
       object gsdbgrContact: TgsDBGrid
         Left = 4
         Top = 4
-        Width = 714
+        Width = 706
         Height = 90
         Align = alClient
         BorderStyle = bsNone
@@ -1537,58 +1537,6 @@ object dlgDetailBill: TdlgDetailBill
     AfterScroll = cdsListContactAfterScroll
     Left = 229
     Top = 176
-    object cdsListContactContactKey: TIntegerField
-      FieldName = 'ContactKey'
-      Visible = False
-    end
-    object cdsListContactContactName: TStringField
-      DisplayLabel = 'Организация'
-      FieldName = 'ContactName'
-      Size = 60
-    end
-    object cdsListContactDocumentKey: TIntegerField
-      FieldName = 'DocumentKey'
-      Visible = False
-    end
-    object cdsListContactDocumentNumber: TStringField
-      DisplayLabel = 'Номер накладной'
-      FieldName = 'DocumentNumber'
-    end
-    object cdsListContactFieldName: TStringField
-      FieldName = 'FieldName'
-      Visible = False
-      Size = 31
-    end
-    object cdsListContactContractKey: TIntegerField
-      FieldName = 'ContractKey'
-      Visible = False
-    end
-    object cdsListContactContractName: TStringField
-      DisplayLabel = 'Договор'
-      DisplayWidth = 20
-      FieldName = 'ContractName'
-      Visible = False
-      Size = 40
-    end
-    object cdsListContactPriceKey: TIntegerField
-      FieldName = 'PriceKey'
-    end
-    object cdsListContactTypeCost: TIntegerField
-      FieldName = 'TypeCost'
-    end
-    object cdsListContactpricefield: TStringField
-      FieldName = 'pricefield'
-      Visible = False
-      Size = 31
-    end
-    object cdsListContactcontacttype: TIntegerField
-      FieldName = 'contacttype'
-      Visible = False
-    end
-    object cdsListContactAmountBill: TIBBCDField
-      DisplayLabel = 'Сумма накладной'
-      FieldName = 'AmountBill'
-    end
   end
   object dsListContact: TDataSource
     DataSet = cdsListContact
@@ -1602,367 +1550,6 @@ object dlgDetailBill: TdlgDetailBill
     BeforePost = cdsGoodPosBeforePost
     Left = 229
     Top = 282
-    object cdsGoodPosMainQuantity: TIBBCDField
-      FieldName = 'MainQuantity'
-      Visible = False
-    end
-    object cdsGoodPosDocRealPosKey: TIntegerField
-      FieldName = 'DocRealPosKey'
-      Visible = False
-    end
-    object cdsGoodPosGoodKey: TIntegerField
-      FieldName = 'GoodKey'
-      Visible = False
-    end
-    object cdsGoodPosGoodName: TStringField
-      DisplayLabel = 'Наименование ТМЦ'
-      DisplayWidth = 50
-      FieldName = 'GoodName'
-      Size = 60
-    end
-    object cdsGoodPosQuantityBase: TIBBCDField
-      DisplayLabel = 'Кол-во'
-      DisplayWidth = 5
-      FieldName = 'QuantityBase'
-    end
-    object cdsGoodPosQuantityRest: TIBBCDField
-      DisplayLabel = 'Остаток'
-      DisplayWidth = 6
-      FieldName = 'QuantityRest'
-    end
-    object cdsGoodPosQuantity1: TIBBCDField
-      FieldName = 'Quantity1'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity2: TIBBCDField
-      FieldName = 'Quantity2'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity3: TIBBCDField
-      FieldName = 'Quantity3'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity4: TIBBCDField
-      FieldName = 'Quantity4'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity5: TIBBCDField
-      FieldName = 'Quantity5'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity6: TIBBCDField
-      FieldName = 'Quantity6'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity7: TIBBCDField
-      FieldName = 'Quantity7'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity9: TIBBCDField
-      FieldName = 'Quantity9'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity8: TIBBCDField
-      FieldName = 'Quantity8'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity10: TIBBCDField
-      FieldName = 'Quantity10'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity11: TIBBCDField
-      FieldName = 'Quantity11'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity12: TIBBCDField
-      FieldName = 'Quantity12'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity13: TIBBCDField
-      FieldName = 'Quantity13'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity14: TIBBCDField
-      FieldName = 'Quantity14'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity15: TIBBCDField
-      FieldName = 'Quantity15'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity16: TIBBCDField
-      FieldName = 'Quantity16'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity17: TIBBCDField
-      FieldName = 'Quantity17'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity18: TIBBCDField
-      FieldName = 'Quantity18'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity19: TIBBCDField
-      FieldName = 'Quantity19'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity20: TIBBCDField
-      FieldName = 'Quantity20'
-      Visible = False
-      OnValidate = cdsGoodPosQuantity1Validate
-    end
-    object cdsGoodPosQuantity21: TIBBCDField
-      FieldName = 'Quantity21'
-      Visible = False
-    end
-    object cdsGoodPosQuantity22: TIBBCDField
-      FieldName = 'Quantity22'
-      Visible = False
-    end
-    object cdsGoodPosQuantity23: TIBBCDField
-      FieldName = 'Quantity23'
-      Visible = False
-    end
-    object cdsGoodPosQuantity24: TIBBCDField
-      FieldName = 'Quantity24'
-      Visible = False
-    end
-    object cdsGoodPosQuantity25: TIBBCDField
-      FieldName = 'Quantity25'
-      Visible = False
-    end
-    object cdsGoodPosQuantity26: TIBBCDField
-      FieldName = 'Quantity26'
-      Visible = False
-    end
-    object cdsGoodPosQuantity27: TIBBCDField
-      FieldName = 'Quantity27'
-      Visible = False
-    end
-    object cdsGoodPosQuantity28: TIBBCDField
-      FieldName = 'Quantity28'
-      Visible = False
-    end
-    object cdsGoodPosQuantity29: TIBBCDField
-      FieldName = 'Quantity29'
-      Visible = False
-    end
-    object cdsGoodPosQuantity30: TIBBCDField
-      FieldName = 'Quantity30'
-      Visible = False
-    end
-    object cdsGoodPosQuantity31: TIBBCDField
-      FieldName = 'Quantity31'
-      Visible = False
-    end
-    object cdsGoodPosQuantity32: TIBBCDField
-      FieldName = 'Quantity32'
-      Visible = False
-    end
-    object cdsGoodPosQuantity33: TIBBCDField
-      FieldName = 'Quantity33'
-      Visible = False
-    end
-    object cdsGoodPosQuantity34: TIBBCDField
-      FieldName = 'Quantity34'
-      Visible = False
-    end
-    object cdsGoodPosQuantity35: TIBBCDField
-      FieldName = 'Quantity35'
-      Visible = False
-    end
-    object cdsGoodPosAmountNCU: TCurrencyField
-      DisplayLabel = 'Сумма в НДЕ'
-      FieldName = 'AmountNCU'
-    end
-    object cdsGoodPosCostNCU: TCurrencyField
-      DisplayLabel = 'Цена в НДЕ'
-      FieldName = 'CostNCU'
-    end
-    object cdsGoodPosValueKey: TIntegerField
-      FieldName = 'ValueKey'
-      Visible = False
-    end
-    object cdsGoodPosTrTypeKey: TIntegerField
-      FieldName = 'TrTypeKey'
-      Visible = False
-    end
-    object cdsGoodPosWeight: TIBBCDField
-      FieldName = 'Weight'
-      Visible = False
-    end
-    object cdsGoodPosWeightKey: TIntegerField
-      FieldName = 'WeightKey'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU1: TIBBCDField
-      FieldName = 'CostNCU1'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU2: TIBBCDField
-      FieldName = 'CostNCU2'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU3: TIBBCDField
-      FieldName = 'CostNCU3'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU4: TIBBCDField
-      FieldName = 'CostNCU4'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU5: TIBBCDField
-      FieldName = 'CostNCU5'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU6: TIBBCDField
-      FieldName = 'CostNCU6'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU7: TIBBCDField
-      FieldName = 'CostNCU7'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU8: TIBBCDField
-      FieldName = 'CostNCU8'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU9: TIBBCDField
-      FieldName = 'CostNCU9'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU10: TIBBCDField
-      FieldName = 'CostNCU10'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU11: TIBBCDField
-      FieldName = 'CostNCU11'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU12: TIBBCDField
-      FieldName = 'CostNCU12'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU13: TIBBCDField
-      FieldName = 'CostNCU13'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU14: TIBBCDField
-      FieldName = 'CostNCU14'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU15: TIBBCDField
-      FieldName = 'CostNCU15'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU16: TIBBCDField
-      FieldName = 'CostNCU16'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU17: TIBBCDField
-      FieldName = 'CostNCU17'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU18: TIBBCDField
-      FieldName = 'CostNCU18'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU19: TIBBCDField
-      FieldName = 'CostNCU19'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU20: TIBBCDField
-      FieldName = 'CostNCU20'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU21: TIBBCDField
-      FieldName = 'CostNCU21'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU22: TIBBCDField
-      FieldName = 'CostNCU22'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU23: TIBBCDField
-      FieldName = 'CostNCU23'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU24: TIBBCDField
-      FieldName = 'CostNCU24'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU25: TIBBCDField
-      FieldName = 'CostNCU25'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU26: TIBBCDField
-      FieldName = 'CostNCU26'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU27: TIBBCDField
-      FieldName = 'CostNCU27'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU28: TIBBCDField
-      FieldName = 'CostNCU28'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU29: TIBBCDField
-      FieldName = 'CostNCU29'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU30: TIBBCDField
-      FieldName = 'CostNCU30'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU32: TIBBCDField
-      FieldName = 'CostNCU32'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU31: TIBBCDField
-      FieldName = 'CostNCU31'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU34: TIBBCDField
-      FieldName = 'CostNCU34'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU33: TIBBCDField
-      FieldName = 'CostNCU33'
-      Visible = False
-    end
-    object cdsGoodPosCostNCU35: TIBBCDField
-      FieldName = 'CostNCU35'
-      Visible = False
-    end
-    object cdsGoodPosNaturalLoss: TIBBCDField
-      DisplayLabel = 'Ест.убыль'
-      FieldName = 'NaturalLoss'
-      Visible = False
-    end
-    object cdsGoodPosGroupKey: TIntegerField
-      FieldName = 'GroupKey'
-      Visible = False
-    end
   end
   object dsGoodPos: TDataSource
     DataSet = cdsGoodPos
@@ -2084,170 +1671,6 @@ object dlgDetailBill: TdlgDetailBill
     Params = <>
     Left = 229
     Top = 322
-    object IntegerField1: TIntegerField
-      FieldName = 'DocRealPosKey'
-      Visible = False
-    end
-    object IntegerField2: TIntegerField
-      FieldName = 'GoodKey'
-      Visible = False
-    end
-    object StringField1: TStringField
-      DisplayLabel = 'Наименование ТМЦ'
-      DisplayWidth = 70
-      FieldName = 'GoodName'
-      Size = 60
-    end
-    object IBBCDField1: TIBBCDField
-      DisplayLabel = 'Кол-во'
-      DisplayWidth = 5
-      FieldName = 'QuantityBase'
-    end
-    object IBBCDField2: TIBBCDField
-      DisplayLabel = 'Остаток'
-      DisplayWidth = 6
-      FieldName = 'QuantityRest'
-    end
-    object IBBCDField3: TIBBCDField
-      FieldName = 'Quantity1'
-      Visible = False
-    end
-    object IBBCDField4: TIBBCDField
-      FieldName = 'Quantity2'
-      Visible = False
-    end
-    object IBBCDField5: TIBBCDField
-      FieldName = 'Quantity3'
-      Visible = False
-    end
-    object IBBCDField6: TIBBCDField
-      FieldName = 'Quantity4'
-      Visible = False
-    end
-    object IBBCDField7: TIBBCDField
-      FieldName = 'Quantity5'
-      Visible = False
-    end
-    object IBBCDField8: TIBBCDField
-      FieldName = 'Quantity6'
-      Visible = False
-    end
-    object IBBCDField9: TIBBCDField
-      FieldName = 'Quantity7'
-      Visible = False
-    end
-    object IBBCDField10: TIBBCDField
-      FieldName = 'Quantity8'
-      Visible = False
-    end
-    object IBBCDField11: TIBBCDField
-      FieldName = 'Quantity9'
-      Visible = False
-    end
-    object IBBCDField12: TIBBCDField
-      FieldName = 'Quantity10'
-      Visible = False
-    end
-    object IBBCDField13: TIBBCDField
-      FieldName = 'Quantity11'
-      Visible = False
-    end
-    object IBBCDField14: TIBBCDField
-      FieldName = 'Quantity12'
-      Visible = False
-    end
-    object IBBCDField15: TIBBCDField
-      FieldName = 'Quantity13'
-      Visible = False
-    end
-    object IBBCDField16: TIBBCDField
-      FieldName = 'Quantity14'
-      Visible = False
-    end
-    object IBBCDField17: TIBBCDField
-      FieldName = 'Quantity15'
-      Visible = False
-    end
-    object IBBCDField18: TIBBCDField
-      FieldName = 'Quantity16'
-      Visible = False
-    end
-    object IBBCDField19: TIBBCDField
-      FieldName = 'Quantity17'
-      Visible = False
-    end
-    object IBBCDField20: TIBBCDField
-      FieldName = 'Quantity18'
-      Visible = False
-    end
-    object IBBCDField21: TIBBCDField
-      FieldName = 'Quantity19'
-      Visible = False
-    end
-    object IBBCDField22: TIBBCDField
-      FieldName = 'Quantity20'
-      Visible = False
-    end
-    object cdsAmountQuantity21: TIBBCDField
-      FieldName = 'Quantity21'
-      Visible = False
-    end
-    object cdsAmountQuantity22: TIBBCDField
-      FieldName = 'Quantity22'
-      Visible = False
-    end
-    object cdsAmountQuantity23: TIBBCDField
-      FieldName = 'Quantity23'
-      Visible = False
-    end
-    object cdsAmountQuantity24: TIBBCDField
-      FieldName = 'Quantity24'
-      Visible = False
-    end
-    object cdsAmountQuantity25: TIBBCDField
-      FieldName = 'Quantity25'
-      Visible = False
-    end
-    object cdsAmountQuantity26: TIBBCDField
-      FieldName = 'Quantity26'
-      Visible = False
-    end
-    object cdsAmountQuantity27: TIBBCDField
-      FieldName = 'Quantity27'
-      Visible = False
-    end
-    object cdsAmountQuantity28: TIBBCDField
-      FieldName = 'Quantity28'
-      Visible = False
-    end
-    object cdsAmountQuantity29: TIBBCDField
-      FieldName = 'Quantity29'
-      Visible = False
-    end
-    object cdsAmountQuantity30: TIBBCDField
-      FieldName = 'Quantity30'
-      Visible = False
-    end
-    object cdsAmountQuantity31: TIBBCDField
-      FieldName = 'Quantity31'
-      Visible = False
-    end
-    object cdsAmountQuantity32: TIBBCDField
-      FieldName = 'Quantity32'
-      Visible = False
-    end
-    object cdsAmountQuantity33: TIBBCDField
-      FieldName = 'Quantity33'
-      Visible = False
-    end
-    object cdsAmountQuantity34: TIBBCDField
-      FieldName = 'Quantity34'
-      Visible = False
-    end
-    object cdsAmountQuantity35: TIBBCDField
-      FieldName = 'Quantity35'
-      Visible = False
-    end
   end
   object dsAmount: TDataSource
     DataSet = cdsAmount
@@ -2271,7 +1694,6 @@ object dlgDetailBill: TdlgDetailBill
   object ibdsDocRealInfo: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
     Transaction = IBTransaction
-    BufferChunks = 100
     DeleteSQL.Strings = (
       'delete from gd_docrealinfo'
       'where'
@@ -2358,7 +1780,6 @@ object dlgDetailBill: TdlgDetailBill
   object ibdsDocReal: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
     Transaction = IBTransaction
-    BufferChunks = 100
     DeleteSQL.Strings = (
       'delete from GD_DOCUMENT'
       'where'
@@ -2414,7 +1835,6 @@ object dlgDetailBill: TdlgDetailBill
   object ibdsRealPos: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
     Transaction = IBTransaction
-    BufferChunks = 100
     DeleteSQL.Strings = (
       'delete from GD_DOCREALPOS'
       'where'

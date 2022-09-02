@@ -1,3 +1,4 @@
+// ShlTanya, 17.02.2019
 
 unit gsDocNumerator;
 
@@ -5,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  IBDataBase, DB, IBSQL;
+  IBDataBase, DB, IBSQL, gdcBaseInterface;
 
 type
   TgsDocNumerator = class;
@@ -25,7 +26,7 @@ type
   TgsDocNumerator = class(TComponent)
   private
     FDatabase: TIBDataBase;
-    FDocumentType: Integer;
+    FDocumentType: TID;
     FDataLink: TgsDataLinkDocNumerator;
     FLastNumber: Integer;
     FAddNumber: Integer;
@@ -53,7 +54,7 @@ type
   published
     property Database: TIBDatabase read FDatabase write SetDatabase;
     property DataSource: TDataSource read GetDataSource write SetDataSource;
-    property DocumentType: Integer read FDocumentType write FDocumentType;
+    property DocumentType: TID read FDocumentType write FDocumentType;
   end;
 
 var
@@ -211,7 +212,7 @@ begin
       try
         ibsql.SQL.Text := Format(
           ' SELECT * FROM GD_LASTNUMBER WHERE documenttypekey = %d AND ' +
-          ' ourcompanykey = %d ', [FDocumentType, IBLogin.CompanyKey]);
+          ' ourcompanykey = %d ', [TID264(FDocumentType), TID264(IBLogin.CompanyKey)]);
         ibsql.ExecQuery;
 
         if ibsql.RecordCount > 0 then
@@ -226,7 +227,7 @@ begin
               ibsql.SQL.Text := Format(
                 ' UPDATE GD_LASTNUMBER SET lastnumber = %d WHERE ' +
                 ' documenttypekey = %d AND ourcompanykey = %d ',
-                [FLastNumber + FAddNumber, FDocumentType, IBLogin.CompanyKey]);
+                [FLastNumber + FAddNumber, TID264(FDocumentType), TID264(IBLogin.CompanyKey)]);
               ibsql.ExecQuery;
               Result := GetNumber;
               FLastNumber := FLastNumber + FAddNumber;
@@ -242,7 +243,7 @@ begin
             ibsql.SQL.Text := Format(
               ' INSERT INTO GD_LASTNUMBER(documenttypekey, ourcompanykey, ' +
               ' lastnumber, addnumber, disabled) VALUES (%d, %d, 2, 1, 0) ',
-              [FDocumentType, IBLogin.CompanyKey]);
+              [TID264(FDocumentType), TID264(IBLogin.CompanyKey)]);
             ibsql.ExecQuery;
             Result := '1';
             FAddNumber := 1;
@@ -275,8 +276,7 @@ begin
   Assert(IBLogin <> nil);
 
   FDataLink.DataSet.FieldByName('NUMBER').AsString := GetNewNumber;
-  FDataLink.DataSet.FieldByName('DocumentTypeKey').AsInteger :=
-    FDocumentType;
+  SetTID(FDataLink.DataSet.FieldByName('DocumentTypeKey'), FDocumentType);
 
   FDataLink.DataSet.FieldByName('documentdate').AsDateTime :=
     SysUtils.Date;
@@ -285,17 +285,14 @@ begin
   FDataLink.DataSet.FieldByName('achag').AsInteger := -1;
   FDataLink.DataSet.FieldByName('aview').AsInteger := -1;
 
-  FDataLink.DataSet.FieldByName('creatorkey').AsInteger :=
-    IBLogin.ContactKey;
+  SetTID(FDataLink.DataSet.FieldByName('creatorkey'), IBLogin.ContactKey);
   FDataLink.DataSet.FieldByName('creationdate').AsDateTime :=
     SysUtils.Date;
-  FDataLink.DataSet.FieldByName('editorkey').AsInteger :=
-    IBLogin.ContactKey;
+  SetTID(FDataLink.DataSet.FieldByName('editorkey'), IBLogin.ContactKey);
   FDataLink.DataSet.FieldByName('editiondate').AsDateTime :=
     SysUtils.Date;
   FDataLink.DataSet.FieldByName('disabled').AsInteger := 0;
-  FDataLink.DataSet.FieldByName('companykey').AsInteger :=
-    IBLogin.CompanyKey;
+  SetTID(FDataLink.DataSet.FieldByName('companykey'), IBLogin.CompanyKey);
 end;
 
 procedure TgsDocNumerator.EditValues;
@@ -305,8 +302,7 @@ begin
   Assert(FDataLink.DataSet.FindField('NUMBER') <> nil);
   Assert(IBLogin <> nil);
 
-  FDataLink.DataSet.FieldByName('editorkey').AsInteger :=
-    IBLogin.ContactKey;
+  SetTID(FDataLink.DataSet.FieldByName('editorkey'), IBLogin.ContactKey);
   FDataLink.DataSet.FieldByName('editiondate').AsDateTime :=
     SysUtils.Date;
 end;
@@ -337,7 +333,7 @@ begin
 
       ibsql.SQL.Text := Format(
         ' SELECT * FROM GD_LASTNUMBER WHERE documenttypekey = %d AND ' +
-        ' ourcompanykey = %d ', [FDocumentType, IBLogin.CompanyKey]);
+        ' ourcompanykey = %d ', [TID264(FDocumentType), TID264(IBLogin.CompanyKey)]);
       ibsql.ExecQuery;
 
       if (ibsql.RecordCount > 0) and
@@ -347,7 +343,7 @@ begin
         ibsql.SQL.Text := Format(
           ' UPDATE GD_LASTNUMBER SET lastnumber = %d WHERE ' +
           ' documenttypekey = %d AND ourcompanykey = %d ',
-          [FLastNumber - FAddNumber, FDocumentType, IBLogin.CompanyKey]);
+          [FLastNumber - FAddNumber, TID264(FDocumentType), TID264(IBLogin.CompanyKey)]);
         ibsql.ExecQuery;
         Transaction.Commit;
         FLastNumber := 0;

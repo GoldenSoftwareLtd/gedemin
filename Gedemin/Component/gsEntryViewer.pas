@@ -1,3 +1,4 @@
+// ShlTanya, 17.02.2019
 
 {++
 
@@ -2893,7 +2894,7 @@ end;
 function TevEntryRecordList.ReadNextRecord: TevEntryRecord;
 var
   CurrRecord: TevEntryRecord;
-  RecordKey: Integer;
+  RecordKey: TID;
 begin
   Result := nil;
 
@@ -2906,7 +2907,7 @@ begin
       begin
         GotoBookmark(Records[Self.RecordCount - 1].RecordBM);
 
-        RecordKey := FieldByName(RecordKeyField).AsInteger;
+        RecordKey := GetTID(FieldByName(RecordKeyField));
 
         // ѕереходим на первую запись новой проводки
         while
@@ -2917,7 +2918,7 @@ begin
           Next;
 
         // ≈сли нова€ проводка не обнаружена - выходим
-        if RecordKey = FieldByName(RecordKeyField).AsInteger then
+        if RecordKey = GetTID(FieldByName(RecordKeyField)) then
           Exit;
       end;
 
@@ -3697,16 +3698,16 @@ end;
 
 function TevEntryList.ReadEntries: Boolean;
 var
-  RecordKey: Integer;
+  RecordKey: TID;
 begin
   with Viewer.DataLink.DataSet, Viewer.Columns do
   begin
-    RecordKey := FieldByName(RecordKeyField).AsInteger;
+    RecordKey := GetTID(FieldByName(RecordKeyField));
 
     while
       not EOF
         and
-      (RecordKey = FieldByName(RecordKeyField).AsInteger)
+      (RecordKey = GetTID(FieldByName(RecordKeyField)))
     do begin
       FEntries.Add(TevEntry.Create(Self, GetBookmark));
       Next;

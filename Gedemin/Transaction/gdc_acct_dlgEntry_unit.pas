@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_acct_dlgEntry_unit;
 
 interface
@@ -9,7 +11,7 @@ uses
   IBCustomDataSet, gdcBase, gdcAcctEntryRegister, gdcAcctTransaction,
   xCalculatorEdit, ExtCtrls, at_classes, IBSQL, gdc_dlgTRPC_unit,
   at_Container, ComCtrls, xCalc, TB2Dock, TB2Toolbar, gdvParamPanel,
-  TB2Item, frAcctEntrySimpleLine_unit, AcctUtils;
+  TB2Item, frAcctEntrySimpleLine_unit, AcctUtils, gdcBaseInterface;
 
 type
   Tgdc_acct_dlgEntry = class(Tgdc_dlgTRPC)
@@ -78,7 +80,7 @@ type
 
     function DeleteEnable(Sb: TWinControl): Boolean;
     procedure OnLineChange(Sender: TObject);
-    procedure SetCurrRate(W: TWinControl; CurrKey: Integer; Rate: Double);
+    procedure SetCurrRate(W: TWinControl; CurrKey: TID; Rate: Double);
 
   protected
     function DlgModified: Boolean; override;
@@ -300,7 +302,7 @@ begin
     begin
       for I := 0 to EntryLines.Count - 1 do
       begin
-        if EntryLines[I].FieldByName('accountkey').AsInteger > 0 then
+        if GetTID(EntryLines[I].FieldByName('accountkey')) > 0 then
         begin
           if EntryLines[I].FieldByName('accountpart').AsString = 'D' then
           begin
@@ -333,7 +335,7 @@ begin
         with gdcObject as TgdcAcctComplexRecord do
         begin
           ibsql.Close;
-          ibsql.ParamByName('id').AsInteger := EntryLines[I].FieldByName('accountkey').AsInteger;
+          SetTID(ibsql.ParamByName('id'), EntryLines[I].FieldByName('accountkey'));
           ibsql.ExecQuery;
 
           if ibsql.RecordCount > 0 then
@@ -381,7 +383,7 @@ begin
         begin
           for I := 0 to EntryLines.Count - 1 do
           begin
-            if EntryLines[I].FieldByName('accountkey').AsInteger > 0 then
+            if GetTID(EntryLines[I].FieldByName('accountkey')) > 0 then
             begin
               Inc(k);
               if EntryLines[I].FieldByName('accountpart').AsString = 'D' then
@@ -405,7 +407,7 @@ begin
           begin
             for I := 0 to EntryLines.Count - 1 do
             begin
-              if EntryLines[I].FieldByName('accountkey').AsInteger = 0 then
+              if GetTID(EntryLines[I].FieldByName('accountkey')) = 0 then
               begin
                 MessageDlg('Необходимо указать счет.', mtError, [mbOK], -1 );
                 EntryLines[I].FieldByName('accountkey').FocusControl;
@@ -421,7 +423,7 @@ begin
             begin
               for I := 0 to EntryLines.Count - 1 do
               begin
-                if EntryLines[I].FieldByName('accountkey').AsInteger > 0 then
+                if GetTID(EntryLines[I].FieldByName('accountkey')) > 0 then
                 begin
                   if ((D > 1) or ((D = 1) and (C = 1)))and (DebitNcu > 0) and (CreditNcu = 0) and (EntryLines[I].FieldByName('accountpart').AsString = 'C') then
                   begin
@@ -448,7 +450,7 @@ begin
             begin
               for I := 0 to EntryLines.Count - 1 do
               begin
-                if EntryLines[I].FieldByName('accountkey').AsInteger > 0 then
+                if GetTID(EntryLines[I].FieldByName('accountkey')) > 0 then
                 begin
                   if EntryLines[I].FieldByName('accountpart').AsString = 'D' then
                   begin
@@ -496,17 +498,17 @@ procedure Tgdc_acct_dlgEntry.Post;
   var
     I: Integer;
     l: TfrAcctEntrySimpleLine;
-    Id: Integer;
+    Id: TID;
   begin
     for I := C.ControlCount - 1 downto 0 do
     begin
       if C.Controls[I] is TfrAcctEntrySimpleLine then
       begin
         L := TfrAcctEntrySimpleLine(C.Controls[I]);
-        if (L.DataSet <> nil) and (L.DataSet.FieldByName('accountkey').AsInteger = 0) then
+        if (L.DataSet <> nil) and (GetTID(L.DataSet.FieldByName('accountkey')) = 0) then
         begin
           L.DisableControls;
-          id := L.DataSet.FieldByName('id').AsInteger;
+          id := GetTID(L.DataSet.FieldByName('id'));
           (gdcObject as TgdcAcctComplexRecord).DeleteLine(id);
           L.Free;
         end;
@@ -595,7 +597,7 @@ var
   I: Integer;
   CorrCount: Integer;
   Sum: Currency;
-  CurrKey: Integer;
+  CurrKey: TID;
   CorrFieldName, FieldName: string;
 begin
   if ModalResult <> 0 then exit;
@@ -642,7 +644,7 @@ begin
             end
             else
             begin
-              CurrKey := DataSet.FieldByName('currkey').AsInteger;
+              CurrKey := GetTID(DataSet.FieldByName('currkey'));
               FieldName := 'debitcurr';
               CorrFieldName := 'creditcurr';
             end;
@@ -656,7 +658,7 @@ begin
             end
             else
             begin
-              CurrKey := DataSet.FieldByName('currkey').AsInteger;
+              CurrKey := GettID(DataSet.FieldByName('currkey'));
               CorrFieldName := 'debitcurr';
               FieldName := 'creditcurr';
             end;
@@ -666,7 +668,7 @@ begin
           begin
             if EntryLines[I].FieldByName('accountpart').AsString = AccountPart then
             begin
-              if ((CurrKey = -1) and (CE.Name <> 'cCurrSum')) or (CurrKey = EntryLines[i].FieldByName('currkey').AsInteger) then
+              if ((CurrKey = -1) and (CE.Name <> 'cCurrSum')) or (CurrKey = GetTID(EntryLines[i].FieldByName('currkey'))) then
               begin
                 if EntryLines[i] <> DataSet then
                   Sum := Sum + EntryLines[i].FieldByName(FieldName).AsCurrency
@@ -686,7 +688,7 @@ begin
               for I := 0 to EntryLines.Count - 1 do
               begin
                 if (EntryLines[i].FieldByName('accountpart').AsString <> AccountPart)
-                  and ((CurrKey = EntryLines[i].FieldByName('currkey').AsInteger) or (CE.Name = 'cSum')) then
+                  and ((CurrKey = GetTID(EntryLines[i].FieldByName('currkey'))) or (CE.Name = 'cSum')) then
                 begin
                   if not (EntryLines[I].State in [dsEdit, dsInsert]) then EntryLines[I].Edit;
 {                  begin}
@@ -713,7 +715,7 @@ begin
 end;
 
 
-procedure Tgdc_acct_dlgEntry.SetCurrRate(W: TWinControl; CurrKey: Integer; Rate: Double);
+procedure Tgdc_acct_dlgEntry.SetCurrRate(W: TWinControl; CurrKey: TID; Rate: Double);
 var
   I: Integer;
   L: TfrAcctEntrySimpleLine;

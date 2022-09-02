@@ -41,6 +41,9 @@ type
     gsPeriodEdit: TgsPeriodEdit;
     bSetCurrent: TButton;
     actSetCurrent: TAction;
+    actListDocument: TAction;
+    TBItem4: TTBItem;
+    nListDocument: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure actEditExecute(Sender: TObject);
     procedure actRunExecute(Sender: TObject);
@@ -53,6 +56,7 @@ type
     procedure iblcContactChange(Sender: TObject);
     procedure actSetCurrentExecute(Sender: TObject);
     procedure actSetCurrentUpdate(Sender: TObject);
+    procedure actListDocumentExecute(Sender: TObject);
   private
     { Private declarations }
     isHolding: Integer;
@@ -79,8 +83,9 @@ implementation
 
 uses
   Storages, gsStorage_CompPath, dmDatabase_unit,
-  gdc_attr_frmRelationField_unit,
-  gd_ClassList, IBSQL
+  gdc_attr_frmRelationField_unit, gdcBaseInterface,
+  gd_ClassList, IBSQL, gdc_createable_form,
+  gdcAcctEntryRegister, gdcClasses, gdcClasses_interface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -130,7 +135,7 @@ begin
   try
     gdcInvDocument.SubType := gdcObject.FieldByName('ruid').AsString;
     gdcInvDocument.SubSet := 'ByID';
-    gdcInvDocument.ID := gdcObject.FieldByName('parent').AsInteger;
+    gdcInvDocument.ID := GetTID(gdcObject.FieldByName('parent'));
     gdcInvDocument.Open;
     if gdcInvDocument.EditDialog then
     begin
@@ -204,7 +209,7 @@ begin
           gdcInvCard.SetDocumentLineConditions
         else
           if gdcObject.HasSubSet('ByContact') then
-            gdcObject.ParamByName('contactkey').AsInteger := iblcContact.CurrentKeyInt;  
+            SetTID(gdcObject.ParamByName('contactkey'), iblcContact.CurrentKeyInt);  
 
       if not cbAllInterval.Checked then
       begin
@@ -264,9 +269,9 @@ begin
     ibsql.Transaction := gdcInvCard.ReadTransaction;
     ibsql.SQL.Text := 'SELECT name FROM gd_contact WHERE id = :id';
     if gdcInvCard.HasSubSet('ByHolding') then
-      ibsql.ParamByName('id').AsInteger := -1
+      SetTID(ibsql.ParamByName('id'), -1)
     else
-      ibsql.ParamByName('id').AsInteger := gdcInvCard.ParamByName('contactkey').AsInteger;
+      SetTID(ibsql.ParamByName('id'), GetTID(gdcInvCard.ParamByName('contactkey')));
     ibsql.ExecQuery;
 
     NameContact := ibsql.FieldByName('name').AsString;
@@ -539,6 +544,45 @@ end;
 procedure Tgdc_frmInvCard.actSetCurrentUpdate(Sender: TObject);
 begin
   actSetCurrent.Enabled := not gdcInvCard.IsEmpty;
+end;
+
+procedure Tgdc_frmInvCard.actListDocumentExecute(Sender: TObject);
+var
+  Cl: TPersistentClass;
+  F: TgdcFullClass;
+  FormList: TgdcCreateableForm;
+  gdcInvDocument: TgdcInvDocument;
+begin
+  gdcInvDocument := TgdcInvDocument.Create(Self);
+  try
+    gdcInvDocument.SubType := gdcObject.FieldByName('ruid').AsString;
+    gdcInvDocument.SubSet := 'ByID';
+    gdcInvDocument.ID := GetTID(gdcObject.FieldByName('parent'));
+    gdcInvDocument.Open;
+
+    if (gdcInvDocument.RecordCount > 0) then begin
+      if GetTID(gdcInvDocument.FieldByName('documenttypekey')) <> DefaultDocumentTypeKey then
+      begin
+        F := TgdcDocument.GetDocumentClass(GetTID(gdcInvDocument.FieldByName('documenttypekey')), dcpHeader);
+        Cl := Classes.GetClass(F.gdClass.ClassName);
+        FormList := CgdcBase(Cl).CreateViewForm(Application, '', F.SubType, False) as TgdcCreateableForm;
+        if Assigned(FormList) and Assigned(FormList.gdcObject) and Assigned(FormList.gdcObject.FindField('ID')) then
+        begin
+          if Assigned(FormList.gdcObject.Filter) and (GetTID(FormList.gdcObject.Filter.CurrentFilter) > 0)
+            and (FormList.gdcObject.Filter.FilterData.FilterText <> '') then
+            MessageBox(Handle, 'Внимание! На форме включена фильтрация данных.', PChar('Внимание!'), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
+          FormList.gdcObject.Locate('ID', TID2V(gdcObject.FieldByName('parent')),[]);
+         end;
+        if FormList <> nil then
+          FormList.Show;
+      end;
+    end
+    else
+      MessageDlg('Документ не выбран.', mtInformation, [mbOk], -1)
+  finally
+    gdcInvDocument.Free;
+  end;
+  inherited;
 end;
 
 initialization

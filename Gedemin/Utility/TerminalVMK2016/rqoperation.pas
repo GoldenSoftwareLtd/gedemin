@@ -124,6 +124,7 @@ const
           Good.VName := Copy(Temps, Temp + 1, Length(Temps)) ;
           //Good.Error := StrToFloat(Copy(FSHCODE.ValueFromIndex[Index], Temp + 1, Length(FSHCODE.ValueFromIndex[Index])));
           FMemoPositions.AddObject(Request.Names[I], Good);
+          FFirstMemoPositions.Add(Request[i]);
         end else
         begin
           Good := TGoodInfo.Create;
@@ -133,6 +134,7 @@ const
           Good.InvWeight := 1;
           Good.VName := 'кг';
           FMemoPositions.AddObject(Request.Names[I], Good);
+          FFirstMemoPositions.Add(Request[i]);
         end;
       end;
     {finally
@@ -151,8 +153,8 @@ const
 
  procedure TOperationRQ.LoadDelayRequest(const AName: String);
  var
-  Weight, InvWeight: Double;
-  WeightInGram: Integer;
+  Weight, InvWeight, ADelta: Double;
+  WeightInGram, AWeight: Integer;
   Date: TDateTime;
   Number: Integer;
   NTara: Integer;
@@ -201,6 +203,15 @@ const
          CurrGood := NameGoods + '=' + FloatToStr(Weight/InvWeight) + Vname;
        end;
      end;
+     FCurrWeight := 0;
+     FDelta := 0;
+     GetWeightByProductCode(Code, AWeight, ADelta);
+     if (AWeight > 0) then
+       begin
+         FCurrWeight := AWeight/1000;
+         FDelta := ADelta;
+       end;
+
    finally
      SL.Free;
    end
@@ -208,8 +219,8 @@ end;
 
  procedure TOperationRQ.DeleteLastItem;
  var
-   Weight: Integer;
-   InvWeight: Double;
+   TempWeight, Weight, AWeight: Integer;
+   InvWeight, ADelta: Double;
    Date: TDateTime;
    Number: Integer;
    NameGoods, Code: String;
@@ -228,6 +239,24 @@ end;
      (FMemoPositions.Objects[Index] as TGoodInfo).Weight := (FMemoPositions.Objects[Index] as TGoodInfo).Weight + Weight/1000;
    FTotalWeight := FTotalWeight -  Weight/1000;
    FPosition.Delete(FPosition.Count - 1);
+   FCurrWeight := 0;
+   FDelta := 0;
+   TempWeight := 0;
+   Index := FPositionCode.IndexOfName(Code);
+    if (Index <> -1) then
+      begin
+        TempWeight := StrToInt(FPositionCode.ValueFromIndex[Index]) - Weight;
+        FPositionCode.Delete(Index);
+        if TempWeight > 0 then
+          FPositionCode.Add(Code + '=' + IntToStr(TempWeight));
+      end;
+
+   GetWeightByProductCode(Code, AWeight, ADelta);
+   if (AWeight > 0) then
+     begin
+       FCurrWeight := AWeight/1000;
+       FDelta := ADelta;
+     end;
 
    if (Weight > weight_for_checking_sites)
     and (Length(TempS) = length_code_for_checking_sites)
@@ -244,14 +273,17 @@ end;
    for I := InfoLine to FMemoPositions.Count - 1 do
      FMemoPositions.Objects[I].Free;
    FMemoPositions.Clear;
+   for I := InfoLine to FFirstMemoPositions.Count - 1 do
+     FFirstMemoPositions.Objects[I].Free;
+   FFirstMemoPositions.Clear;
  end;
 
  procedure TOperationRQ.SetBarCode(const AKey: String);
  var
-  Weight, InvWeight: Double;
+  Weight, InvWeight, ADelta: Double;
   NameGoods, Code: String;
   Index: Integer;
-  WeightInGram, Number: Integer;
+  WeightInGram, Number, AWeight: Integer;
   Date: TDateTime;
   BarCode: String;
   TempS: String;
@@ -290,6 +322,14 @@ end;
          end; }
          AddPosition(BarCode);
          FTotalWeight := FTotalWeight + Weight;
+         FCurrWeight := 0;
+         FDelta := 0;
+         GetWeightByProductCode(Code, AWeight, ADelta);
+         if (AWeight > 0) then
+           begin
+             FCurrWeight := AWeight/1000;
+             FDelta := ADelta;
+           end;
          //FPosition.Add(AKey + Separator);
          case NTara of
            0: StrTara := 'ящ';
@@ -318,6 +358,14 @@ end;
             FTotalWeight := FTotalWeight + Weight;
             AddPosition(BarCode);
             CurrGood := NameGoods + '=' + FloatToStr(Weight/InvWeight) + Vname;
+            FCurrWeight := 0;
+            FDelta := 0;
+            GetWeightByProductCode(Code, AWeight, ADelta);
+            if (AWeight > 0) then
+            begin
+              FCurrWeight := AWeight/1000;
+              FDelta := ADelta;
+            end;
            end;
          end;
        end;
@@ -330,10 +378,10 @@ end;
 
  procedure TOperationRQ.SetBarCodeSypka(const AKey: String);
  var
-  Weight, InvWeight: Double;
+  Weight, InvWeight, ADelta: Double;
   NameGoods, Code: String;
   Index: Integer;
-  WeightInGram, Number: Integer;
+  WeightInGram, Number, AWeight: Integer;
   Date: TDateTime;
   BarCode: String;
   TempS: String;
@@ -344,7 +392,7 @@ end;
  begin
    FSetBarCode := True;
    try
-     BarCode := Trim(AKey); MessageForm.MessageDlg('до ', 'Внимание', mtInformation, [mbOK]) ;
+     BarCode := Trim(AKey);
      if CheckBarCode(BarCode) then
      begin
        GetInfoGoods(AKey, Code, NameGoods, WeightInGram, Date, Number, Npart, Ntara, InvWeight, Vname);
@@ -367,6 +415,15 @@ end;
          (FMemoPositions.Objects[Index] as TGoodInfo).Weight := (FMemoPositions.Objects[Index] as TGoodInfo).Weight - Weight;
          AddPosition(BarCode);
          FTotalWeight := FTotalWeight + Weight;
+         FCurrWeight := 0;
+         FDelta := 0;
+           GetWeightByProductCode(Code, AWeight, ADelta);
+           if (AWeight > 0) then
+           begin
+             FCurrWeight := AWeight/1000;
+             FDelta := ADelta;
+           end;
+
          case NTara of
            0: StrTara := 'ящ';
            1: StrTara := 'общ';
@@ -390,6 +447,14 @@ end;
             FTotalWeight := FTotalWeight + Weight;
             AddPosition(BarCode);
             CurrGood := NameGoods + '=' + FloatToStr(Weight/InvWeight) + Vname;
+            FCurrWeight := 0;
+            FDelta := 0;
+            GetWeightByProductCode(Code, AWeight, ADelta);
+            if (AWeight > 0) then
+              begin
+                FCurrWeight := AWeight/1000;
+                FDelta := ADelta;
+              end;
            end;
        end;
        NewMemo;
@@ -460,7 +525,7 @@ end;
    //Temps := Temps + 'Кол-во позиций: ' + IntToStr(FGoodsCount) + EndStr;
    Temps := Temps + 'Кол-во коробок с товаром: ' + IntToStr(FGoodsCount) + EndStr;
    Temps := Temps + 'Общий вес: ' +  FloatToStrF(FTotalWeight, ffFixed, 6, 3) + 'кг' + EndStr;
-
+   Temps := Temps + 'Текущий вес: ' +  FloatToStrF(FCurrWeight, ffFixed, 6, 3) + 'кг; Разница:' +  FloatToStrF(FDelta, ffFixed, 6, 3) + 'кг' + EndStr;
    if CurrGood <> '' then
      begin
        Canvas.Font := mTP.Font;

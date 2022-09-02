@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 {++
 
@@ -33,14 +34,14 @@ unit gd_KeyAssoc;
 interface
 
 uses
-  Classes;
+  Classes, gdcBaseInterface, dialogs;
 
 type
   // sorted array of integer keys
   // duplicates are not allowed
   TgdKeyArray = class
   private
-    FArray: array of Integer;
+    FArray: array of TID;
     FCount: Integer;
     FSize: Integer;
     FOnChange: TNotifyEvent;
@@ -48,7 +49,7 @@ type
     FSorted: Boolean;
 
     function GetCount: Integer;
-    function GetKeys(Index: Integer): Integer;
+    function GetKeys(Index: Integer): TID;
     function GetSize: Integer;
     procedure SetSorted(const Value: Boolean);
     function GetCommaText: String;
@@ -57,7 +58,7 @@ type
   protected
     procedure Changed; virtual;
 
-    procedure InsertItem(const Index, Value: Integer); virtual;
+    procedure InsertItem(const Index: Integer; const Value: TID); virtual;
     procedure Grow; virtual;
     procedure CheckIndex(const Index: Integer);
 
@@ -65,12 +66,12 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function Add(const Value: Integer;
+    function Add(const Value: TID;
       const IgnoreDuplicates: Boolean = False): Integer;
-    function IndexOf(const Value: Integer): Integer;
-    function Remove(const Value: Integer): Integer;
+    function IndexOf(const Value: TID): Integer;
+    function Remove(const Value: TID): Integer;
     procedure Delete(const Index: Integer); virtual;
-    function Find(const Value: Integer; out Index: Integer): Boolean;
+    function Find(const Value: TID; out Index: Integer): Boolean;
     procedure Clear; virtual;
     // вычитает из нашего массива переданный. останутся только
     // те элементы, которые есть в нашем массиве, но отсутствуют
@@ -81,7 +82,7 @@ type
     procedure LoadFromStream(S: TStream); virtual;
     procedure SaveToStream(S: TStream); virtual;
 
-    property Keys[Index: Integer]: Integer read GetKeys; default;
+    property Keys[Index: Integer]: TID read GetKeys; default;
     property Count: Integer read GetCount;
     property Size: Integer read GetSize;
 
@@ -113,7 +114,7 @@ type
   public
     constructor Create;
 
-    function Add(const Value: Integer): Integer;
+    function Add(const Value: TID): Integer;
 
     property Duplicates: TDuplicates read FDuplicates write FDuplicates;
   end;
@@ -124,15 +125,15 @@ type
   // then use Values property to get or set integer value
   TgdKeyIntAssoc = class(TgdKeyArray)
   private
-    FValues: array of Integer;
+    FValues: array of TID;
 
-    function GetValuesByIndex(Index: Integer): Integer;
-    procedure SetValuesByIndex(Index: Integer; const Value: Integer);
-    function GetValuesByKey(Key: Integer): Integer;
-    procedure SetValuesByKey(Key: Integer; const Value: Integer);
+    function GetValuesByIndex(Index: Integer): TID;
+    procedure SetValuesByIndex(Index: Integer; const Value: TID);
+    function GetValuesByKey(Key: TID): TID;
+    procedure SetValuesByKey(Key: TID; const Value: TID);
 
   protected
-    procedure InsertItem(const Index, Value: Integer); override;
+    procedure InsertItem(const Index: Integer; const Value: TID); override;
     procedure Grow; override;
 
   public
@@ -143,9 +144,9 @@ type
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
 
-    property ValuesByIndex[Index: Integer]: Integer read GetValuesByIndex
+    property ValuesByIndex[Index: Integer]: TID read GetValuesByIndex
       write SetValuesByIndex;
-    property ValuesByKey[Key: Integer]: Integer read GetValuesByKey
+    property ValuesByKey[Key: TID]: TID read GetValuesByKey
       write SetValuesByKey;
   end;
 
@@ -159,13 +160,13 @@ type
     FOwnsObjects: Boolean;
 
     function GetObjectByIndex(Index: Integer): TObject;
-    function GetObjectByKey(Key: Integer): TObject;
+    function GetObjectByKey(Key: TID): TObject;
     procedure SetObjectByIndex(Index: Integer; const Value: TObject);
-    procedure SetObjectByKey(Key: Integer; const Value: TObject);
+    procedure SetObjectByKey(Key: TID; const Value: TObject);
     procedure SetOwnsObjects(const Value: Boolean);
 
   protected
-    procedure InsertItem(const Index, Value: Integer); override;
+    procedure InsertItem(const Index: Integer; const Value: TID); override;
     procedure Grow; override;
 
   public
@@ -173,14 +174,14 @@ type
     constructor Create(const OwnsObjects: Boolean); overload;
     destructor Destroy; override;
 
-    function  AddObject(const AKey: Integer; AObject: TObject): Integer;
+    function  AddObject(const AKey: TID; AObject: TObject): Integer;
     procedure Delete(const Index: Integer); override;
-    function Remove(const Key: Integer): Integer;
+    function Remove(const Key: TID): Integer;
     procedure Clear; override;
 
     property ObjectByIndex[Index: Integer]: TObject read GetObjectByIndex
       write SetObjectByIndex;
-    property ObjectByKey[Key: Integer]: TObject read GetObjectByKey
+    property ObjectByKey[Key: TID]: TObject read GetObjectByKey
       write SetObjectByKey; default;
     property OwnsObjects: Boolean read FOwnsObjects write SetOwnsObjects default False;
   end;
@@ -194,10 +195,10 @@ type
 
     function GetValuesByIndex(Index: Integer): String;
     procedure SetValuesByIndex(Index: Integer; const Value: String);
-    function GetValuesByKey(Key: Integer): String;
+    function GetValuesByKey(Key: TID): String;
 
   protected
-    procedure InsertItem(const Index, Value: Integer); override;
+    procedure InsertItem(const Index: Integer; const Value: TID); override;
     procedure Grow; override;
 
   public
@@ -212,7 +213,7 @@ type
 
     property ValuesByIndex[Index: Integer]: String read GetValuesByIndex
       write SetValuesByIndex;
-    property ValuesByKey[Key: Integer]: String read GetValuesByKey;
+    property ValuesByKey[Key: TID]: String read GetValuesByKey;
   end;
 
   TgdKeyIntArrayAssoc = class(TgdKeyArray)
@@ -220,10 +221,10 @@ type
     FValues: array of TgdKeyArray;
 
     function GetValuesByIndex(Index: Integer): TgdKeyArray;
-    function GetValuesByKey(Key: Integer): TgdKeyArray;
+    function GetValuesByKey(Key: TID): TgdKeyArray;
 
   protected
-    procedure InsertItem(const Index, Value: Integer); override;
+    procedure InsertItem(const Index: Integer; const Value: TID); override;
     procedure Grow; override;
 
   public
@@ -234,25 +235,25 @@ type
     procedure Clear; override;
 
     property ValuesByIndex[Index: Integer]: TgdKeyArray read GetValuesByIndex;
-    property ValuesByKey[Key: Integer]: TgdKeyArray read GetValuesByKey;
+    property ValuesByKey[Key: TID]: TgdKeyArray read GetValuesByKey;
   end;
 
   TgdKeyIntAndStrAssoc = class(TgdKeyArray)
   private
     FStrValues: TStringList;
-    FIntValues: array of Integer;
+    FIntValues: array of TID;
 
     function  GetStrByIndex(Index: Integer): String;
     procedure SetStrByIndex(Index: Integer; const Value: String);
-    function  GetStrByKey(Key: Integer): String;
-    procedure SetStrByKey(Key: Integer; const Value: String);
-    function  GetIntByIndex(Index: Integer): Integer;
-    procedure SetIntByIndex(Index: Integer; const Value: Integer);
-    function  GetIntByKey(Key: Integer): Integer;
-    procedure SetIntByKey(Key: Integer; const Value: Integer);
+    function  GetStrByKey(Key: TID): String;
+    procedure SetStrByKey(Key: TID; const Value: String);
+    function  GetIntByIndex(Index: Integer): TID;
+    procedure SetIntByIndex(Index: Integer; const Value: TID);
+    function  GetIntByKey(Key: TID): TID;
+    procedure SetIntByKey(Key: TID; const Value: TID);
 
   protected
-    procedure InsertItem(const Index, Value: Integer); override;
+    procedure InsertItem(const Index: Integer; const Value: TID); override;
     procedure Grow; override;
 
   public
@@ -264,11 +265,11 @@ type
 
     property StrByIndex[Index: Integer]: String read GetStrByIndex
       write SetStrByIndex;
-    property StrByKey[Key: Integer]: String read GetStrByKey
+    property StrByKey[Key: TID]: String read GetStrByKey
       write SetStrByKey;
-    property IntByIndex[Index: Integer]: Integer read GetIntByIndex
+    property IntByIndex[Index: Integer]: TID read GetIntByIndex
       write SetIntByIndex;
-    property IntByKey[Key: Integer]: Integer read GetIntByKey
+    property IntByKey[Key: TID]: TID read GetIntByKey
       write SetIntByKey;
   end;
 
@@ -282,13 +283,13 @@ const
 
 { TgdKeyArray }
 
-function TgdKeyArray.Add(const Value: Integer;
+function TgdKeyArray.Add(const Value: TID;
   const IgnoreDuplicates: Boolean = False): Integer;
 begin
   if not Find(Value, Result) then
     InsertItem(Result, Value)
   else if not IgnoreDuplicates then
-    raise Exception.Create('TgdKeyArray: Duplicate keys are not allowed. Key=' + IntToStr(Value));
+    raise Exception.Create('TgdKeyArray: Duplicate keys are not allowed. Key=' + TID2S(Value));
 end;
 
 procedure TgdKeyArray.Assign(KA: TgdKeyArray);
@@ -356,7 +357,7 @@ begin
       Delete(I);
 end;
 
-function TgdKeyArray.Find(const Value: Integer;
+function TgdKeyArray.Find(const Value: TID;
   out Index: Integer): Boolean;
 var
   L, H, I: Integer;
@@ -402,9 +403,9 @@ var
 begin
   Result := '';
   for I := 0 to Count - 1 do
-    Result := Result + IntToStr(Keys[I]) + ',';
+    Result := Result + TID2S(Keys[I]) + ',';
   if Result > '' then
-    SetLength(Result, Length(Result) - 1);  
+    SetLength(Result, Length(Result) - 1);
 end;
 
 function TgdKeyArray.GetCount: Integer;
@@ -412,7 +413,7 @@ begin
   Result := FCount;
 end;
 
-function TgdKeyArray.GetKeys(Index: Integer): Integer;
+function TgdKeyArray.GetKeys(Index: Integer): TID;
 begin
   CheckIndex(Index);
   Result := FArray[Index];
@@ -434,13 +435,13 @@ begin
   SetLength(FArray, FSize);
 end;
 
-function TgdKeyArray.IndexOf(const Value: Integer): Integer;
+function TgdKeyArray.IndexOf(const Value: TID): Integer;
 begin
   if not Find(Value, Result) then
     Result := -1;
 end;
 
-procedure TgdKeyArray.InsertItem(const Index, Value: Integer);
+procedure TgdKeyArray.InsertItem(const Index: Integer; const Value: TID);
 begin
   if FCount = FSize then Grow;
   if Index < FCount then
@@ -462,7 +463,11 @@ end;
 
 procedure TgdKeyArray.LoadFromStream(S: TStream);
 var
-  I: Integer;
+  I, Len: Integer;
+  {$IFDEF ID64}
+  j: Integer;
+  TmpArray: array of Integer;
+  {$ENDIF}
 begin
   S.ReadBuffer(I, SizeOf(I));
   if I <> $55443322 then
@@ -471,11 +476,29 @@ begin
   FSize := FCount;
   SetLength(FArray, FCount);
   if FCount > 0 then
-    S.ReadBuffer(FArray[0], FCount * SizeOf(FArray[0]));
-  FWasModified := False;  
+    try
+      Len := GetLenIDinStream(@S);
+      {$IFDEF ID64}
+      if Len = SizeOf(Integer) then
+      begin
+        SetLength(TmpArray, FCount);
+        S.ReadBuffer(TmpArray[0], FCount * Len);
+        for j:= Low(TmpArray) to High(TmpArray) do
+          FArray[j] := TmpArray[j];
+        SetLength(TmpArray,0);
+      end
+      else
+        S.ReadBuffer(FArray[0], FCount * Len);
+      {$ELSE}
+      S.ReadBuffer(FArray[0], FCount * Len);
+      {$ENDIF}
+
+    except
+    end;
+  FWasModified := False;
 end;
 
-function TgdKeyArray.Remove(const Value: Integer): Integer;
+function TgdKeyArray.Remove(const Value: TID): Integer;
 begin
   if Find(Value, Result) then
     Delete(Result);
@@ -483,25 +506,33 @@ end;
 
 procedure TgdKeyArray.SaveToStream(S: TStream);
 var
-  I: Integer;
+  I, Len: Integer;
 begin
   I := $55443322;
   S.Write(I, SizeOf(I));
   S.Write(FCount, SizeOf(FCount));
+
+  {метка сохранение ID в Int64}
+  Len := SetLenIDinStream(@S);
+
   if FCount > 0 then
-    S.Write(FArray[0], FCount * SizeOf(FArray[0]));
+    S.Write(FArray[0], FCount * Len);
 end;
 
 procedure TgdKeyArray.SetCommaText(const Value: String);
 
-  function ExtractInt(const V: String; var B: Integer): Integer;
+  function ExtractInt(const V: String; var B: Integer): TID;
   var
     E: Integer;
   begin
     E := B + 1;
     while (B <= Length(V)) and (E <= Length(V)) and (V[E] <> ',') do
       Inc(E);
+    {$IFDEF ID64}
+    Result := StrToInt64(Copy(V, B, E - B));
+    {$ELSE}
     Result := StrToInt(Copy(V, B, E - B));
+    {$ENDIF}
     B := E + 1;
   end;
 
@@ -548,13 +579,13 @@ begin
   inherited;
 end;
 
-function TgdKeyIntAssoc.GetValuesByIndex(Index: Integer): Integer;
+function TgdKeyIntAssoc.GetValuesByIndex(Index: Integer): TID;
 begin
   CheckIndex(Index);
   Result := FValues[Index];
 end;
 
-function TgdKeyIntAssoc.GetValuesByKey(Key: Integer): Integer;
+function TgdKeyIntAssoc.GetValuesByKey(Key: TID): TID;
 var
   Index: Integer;
 begin
@@ -570,7 +601,7 @@ begin
   SetLength(FValues, FSize);
 end;
 
-procedure TgdKeyIntAssoc.InsertItem(const Index, Value: Integer);
+procedure TgdKeyIntAssoc.InsertItem(const Index: Integer; const Value: TID);
 begin
   inherited;
   // пасля выкліку наследаванага метаду
@@ -584,7 +615,11 @@ end;
 
 procedure TgdKeyIntAssoc.LoadFromStream(S: TStream);
 var
-  I: Integer;
+  I, Len: Integer;
+  {$IFDEF ID64}
+  j: Integer;
+  TmpArray: array of Integer;
+  {$ENDIF}
 begin
   if (S = nil) or (S.Size = 0) then
     Clear
@@ -595,39 +630,94 @@ begin
       raise Exception.Create('Invalid stream format');
     S.ReadBuffer(FCount, SizeOf(FCount));
     FSize := FCount;
+
+    Len := GetLenIDinStream(@S);
+
+    {$IFDEF ID64}
+    if Len = SizeOf(Integer) then
+    begin
+      SetLength(TmpArray, FCount);
+      SetLength(FArray, FCount);
+      if FCount > 0 then
+      try
+        S.ReadBuffer(TmpArray[0], FCount * Len);
+        for j:= Low(TmpArray) to High(TmpArray) do
+          FArray[j] := TmpArray[j];
+        SetLength(TmpArray,0);
+      except
+      end;
+
+      SetLength(TmpArray, FCount);
+      SetLength(FValues, FCount);
+      if FCount > 0 then
+      try
+        S.ReadBuffer(TmpArray[0], FCount * Len);
+        for j:= Low(TmpArray) to High(TmpArray) do
+          FValues[j] := TmpArray[j];
+        SetLength(TmpArray,0);
+      except
+      end;
+
+    end
+    else begin
+      SetLength(FArray, FCount);
+      if FCount > 0 then
+      try
+         S.ReadBuffer(FArray[0], FCount * Len);
+      except
+      end;
+
+      SetLength(FValues, FCount);
+      if FCount > 0 then
+      try
+        S.ReadBuffer(FValues[0], FCount * Len);
+      except
+      end;
+    end;
+    {$ELSE}
     SetLength(FArray, FCount);
     if FCount > 0 then
-      S.ReadBuffer(FArray[0], FCount * SizeOf(FArray[0]));
+    try
+       S.ReadBuffer(FArray[0], FCount * Len);
+    except
+    end;
 
     SetLength(FValues, FCount);
     if FCount > 0 then
-      S.ReadBuffer(FValues[0], FCount * SizeOf(FValues[0]));
-  end;     
+    try
+      S.ReadBuffer(FValues[0], FCount * Len);
+    except
+    end;
+    {$ENDIF}
+  end;
 end;
 
 procedure TgdKeyIntAssoc.SaveToStream(S: TStream);
 var
-  I: Integer;
+  I, Len: Integer;
 begin
   I := kaIntAssocStream;
   S.Write(I, SizeOf(I));
   S.Write(FCount, SizeOf(FCount));
+
+  {метка сохранения ID в Int64}
+  Len := SetLenIDinStream(@S);
+
   if FCount > 0 then
   begin
-    S.Write(FArray[0], FCount * SizeOf(FArray[0]));
-
-    S.Write(FValues[0], FCount * SizeOf(FValues[0]));
-  end;  
+    S.Write(FArray[0], FCount * Len);
+    S.Write(FValues[0], FCount * Len);
+  end;
 end;
 
-procedure TgdKeyIntAssoc.SetValuesByIndex(Index: Integer; const Value: Integer);
+procedure TgdKeyIntAssoc.SetValuesByIndex(Index: Integer; const Value: TID);
 begin
   CheckIndex(Index);
   FValues[Index] := Value;
 end;
 
-procedure TgdKeyIntAssoc.SetValuesByKey(Key: Integer;
-  const Value: Integer);
+procedure TgdKeyIntAssoc.SetValuesByKey(Key: TID;
+  const Value: TID);
 var
   Index: Integer;
 begin
@@ -670,7 +760,7 @@ begin
   Result := FValues[Index];
 end;
 
-function TgdKeyStringAssoc.GetValuesByKey(Key: Integer): String;
+function TgdKeyStringAssoc.GetValuesByKey(Key: TID): String;
 begin
   Result := ValuesByIndex[IndexOf(Key)];
 end;
@@ -681,7 +771,7 @@ begin
   FValues.Capacity := FSize;
 end;
 
-procedure TgdKeyStringAssoc.InsertItem(const Index, Value: Integer);
+procedure TgdKeyStringAssoc.InsertItem(const Index: Integer; const Value: TID);
 begin
   inherited;
   FValues.Insert(Index, '');
@@ -749,7 +839,7 @@ begin
   Result := FValues[Index];
 end;
 
-function TgdKeyIntArrayAssoc.GetValuesByKey(Key: Integer): TgdKeyArray;
+function TgdKeyIntArrayAssoc.GetValuesByKey(Key: TID): TgdKeyArray;
 var
   Index: Integer;
 begin
@@ -765,7 +855,7 @@ begin
   SetLength(FValues, FSize);
 end;
 
-procedure TgdKeyIntArrayAssoc.InsertItem(const Index, Value: Integer);
+procedure TgdKeyIntArrayAssoc.InsertItem(const Index: Integer; const Value: TID);
 begin
   inherited;
   if Index < (FCount - 1) then
@@ -805,13 +895,13 @@ begin
   inherited;
 end;
 
-function TgdKeyIntAndStrAssoc.GetIntByIndex(Index: Integer): Integer;
+function TgdKeyIntAndStrAssoc.GetIntByIndex(Index: Integer): TID;
 begin
   CheckIndex(Index);
   Result := FIntValues[Index];
 end;
 
-function TgdKeyIntAndStrAssoc.GetIntByKey(Key: Integer): Integer;
+function TgdKeyIntAndStrAssoc.GetIntByKey(Key: TID): TID;
 var
   Index: Integer;
 begin
@@ -827,7 +917,7 @@ begin
   Result := FStrValues[Index];
 end;
 
-function TgdKeyIntAndStrAssoc.GetStrByKey(Key: Integer): String;
+function TgdKeyIntAndStrAssoc.GetStrByKey(Key: TID): String;
 begin
   Result := StrByIndex[IndexOf(Key)];
 end;
@@ -839,7 +929,7 @@ begin
   FStrValues.Capacity := FSize;
 end;
 
-procedure TgdKeyIntAndStrAssoc.InsertItem(const Index, Value: Integer);
+procedure TgdKeyIntAndStrAssoc.InsertItem(const Index: Integer; const Value: TID);
 begin
   inherited;
   if Index < (FCount - 1) then
@@ -852,14 +942,14 @@ begin
 end;
 
 procedure TgdKeyIntAndStrAssoc.SetIntByIndex(Index: Integer;
-  const Value: Integer);
+  const Value: TID);
 begin
   CheckIndex(Index);
   FIntValues[Index] := Value;
 end;
 
-procedure TgdKeyIntAndStrAssoc.SetIntByKey(Key: Integer;
-  const Value: Integer);
+procedure TgdKeyIntAndStrAssoc.SetIntByKey(Key: TID;
+  const Value: TID);
 var
   Index: Integer;
 begin
@@ -876,7 +966,7 @@ begin
   FStrValues[Index] := Value;
 end;
 
-procedure TgdKeyIntAndStrAssoc.SetStrByKey(Key: Integer;
+procedure TgdKeyIntAndStrAssoc.SetStrByKey(Key: TID;
   const Value: String);
 var
   Index: Integer;
@@ -889,7 +979,7 @@ end;
 
 { TgdKeyObjectAssoc }
 
-function TgdKeyObjectAssoc.AddObject(const AKey: Integer; AObject: TObject): Integer;
+function TgdKeyObjectAssoc.AddObject(const AKey: TID; AObject: TObject): Integer;
 begin
   Result := Add(AKey);
   ObjectByIndex[Result] := AObject;
@@ -955,7 +1045,7 @@ begin
   Result := FValues[Index];
 end;
 
-function TgdKeyObjectAssoc.GetObjectByKey(Key: Integer): TObject;
+function TgdKeyObjectAssoc.GetObjectByKey(Key: TID): TObject;
 var
   Index: Integer;
 begin
@@ -971,7 +1061,7 @@ begin
   SetLength(FValues, FSize);
 end;
 
-procedure TgdKeyObjectAssoc.InsertItem(const Index, Value: Integer);
+procedure TgdKeyObjectAssoc.InsertItem(const Index: Integer; const Value: TID);
 begin
   inherited;
   if Index < (FCount - 1) then
@@ -980,7 +1070,7 @@ begin
   FValues[Index] := nil;
 end;
 
-function TgdKeyObjectAssoc.Remove(const Key: Integer): Integer;
+function TgdKeyObjectAssoc.Remove(const Key: TID): Integer;
 begin
   if FOwnsObjects then
     ObjectByKey[Key].Free;
@@ -994,7 +1084,7 @@ begin
   FValues[Index] := Value;
 end;
 
-procedure TgdKeyObjectAssoc.SetObjectByKey(Key: Integer;
+procedure TgdKeyObjectAssoc.SetObjectByKey(Key: TID;
   const Value: TObject);
 var
   Index: Integer;
@@ -1012,7 +1102,7 @@ end;
 
 { TgdKeyDuplArray }
 
-function TgdKeyDuplArray.Add(const Value: Integer): Integer;
+function TgdKeyDuplArray.Add(const Value: TID): Integer;
 begin
   case FDuplicates of
     dupIgnore: Result := Inherited Add(Value, True);

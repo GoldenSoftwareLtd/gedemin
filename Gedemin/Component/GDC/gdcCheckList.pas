@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 unit gdcCheckList;
 
@@ -252,12 +253,12 @@ begin
         q.Transaction := ReadTransaction;
 
         q.SQL.Text := 'SELECT account FROM gd_companyaccount ca WHERE ca.id = :id';
-        q.ParamByName('id').AsInteger := FieldByName('accountkey').AsInteger;
+        SetTID(q.ParamByName('id'), FieldByName('accountkey'));
         q.ExecQuery;
 
         FieldByName('accounttext').AsString := q.FieldByName('account').AsString;
-        FieldByName('idline').AsInteger := FieldByName('id').AsInteger;
-        FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+        SetTID(FieldByName('idline'), FieldByName('id'));
+        SetTID(FieldByName('documentkey'), FieldByName('id'));
       finally
         q.Free;
       end;
@@ -307,10 +308,10 @@ begin
 
   if FgdcDataLink.Active then
   begin
-    FieldByName('CHECKLISTKEY').AsInteger :=
-      FgdcDataLink.DataSet.FieldByName(FgdcDataLink.MasterField).AsInteger;
-    FieldByName('PARENT').Value :=
-      FgdcDataLink.DataSet.FieldByName('DOCUMENTKEY').Value;
+    SetTID(FieldByName('CHECKLISTKEY'),
+      FgdcDataLink.DataSet.FieldByName(FgdcDataLink.MasterField));
+    SetTID(FieldByName('PARENT'),
+      FgdcDataLink.DataSet.FieldByName('DOCUMENTKEY'));
   end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLISTLINE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
@@ -640,7 +641,7 @@ begin
         ' WHERE C.ID = :Companykey ';
 
       q.Prepare;
-      q.ParamByName('COMPANYKEY').AsInteger := IBLogin.CompanyKey;
+      SetTID(q.ParamByName('COMPANYKEY'), IBLogin.CompanyKey);
       q.ExecQuery;
 
       FieldByName('OWNTAXID').AsString := q.FieldByName('TAXID').AsString;
@@ -656,7 +657,7 @@ begin
         ' WHERE A.ID = :Id AND COMP.CONTACTKEY = A.BANKKEY ';
 
       q.Prepare;
-      q.ParamByName('ID').AsInteger := FieldByName('ACCOUNTKEY').AsInteger;
+      SetTID(q.ParamByName('ID'), FieldByName('ACCOUNTKEY'));
       q.ExecQuery;
 
       FieldByName('OWNBANKTEXT').AsString := q.FieldByName('FULLNAME').AsString;
@@ -665,14 +666,14 @@ begin
       FieldByName('OWNACCOUNTCODE').AsString := q.FieldByName('BANKCODE').AsString;
 
       q.Close;
-      q.ParamByName('ID').AsInteger := FieldByName('BANKKEY').AsInteger;
+      SetTID(q.ParamByName('ID'), FieldByName('BANKKEY'));
       q.ExecQuery;
 
       FieldByName('BANKCITY').AsString := q.FieldByName('CITY').AsString;
       FieldByName('BANKCODE').AsString := q.FieldByName('BANKCODE').AsString;
       FieldByName('BANKTEXT').AsString := q.FieldByName('FULLNAME').AsString;
 
-      FieldByName('DOCUMENTKEY').AsInteger := FieldByName('ID').AsInteger;
+      SetTID(FieldByName('DOCUMENTKEY'), FieldByName('ID'));
     finally
       q.Free;
     end;

@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019
+
 unit gp_dlgBill_unit;
 
 interface
@@ -132,10 +134,10 @@ type
       Shift: TShiftState);
   private
     { Private declarations }
-    FDocumentKey: Integer;         // Ключ текущего документа
+    FDocumentKey: TID;         // Ключ текущего документа
     FCheckNumber: Boolean;         // Контроль номера накладной
     FisAppend: Boolean;             // Режим добавления
-    FDocumentType: Integer;
+    FDocumentType: TID;
     FisTransactionChange: Boolean;  // Изменена операция по позиции
 
     FisCurrChange: Boolean;         // Изменена Цена в валюте
@@ -148,10 +150,10 @@ type
     FisLocalQuantity: Boolean;         // Изменено количество в коде
     FisLocalPackQuantChange: Boolean;  // Изменено кол-во упаковок в коде
 
-    FPriceKey: Integer;           // Ключ текущего прайс-листа
+    FPriceKey: TID;           // Ключ текущего прайс-листа
 
     FTaxList: TObjectList;        // Список налогов
-    FWeightKey: Integer;          // Единица измерения для веса
+    FWeightKey: TID;          // Единица измерения для веса
     FPriceWithContact: Boolean;   // Жесткая привязка прайс-листа к контакту
 
 
@@ -165,7 +167,7 @@ type
                            // все Event
 
     procedure AppendDocument;     // Формирует новый документ
-    procedure CopyDocument(const aCopyID: Integer); // Создает новый документ путем копирования
+    procedure CopyDocument(const aCopyID: TID); // Создает новый документ путем копирования
     procedure JoinRecord;         // Объединение записей
 
     function CheckDublicate: Boolean; // Поиск совпадений номеров
@@ -205,7 +207,7 @@ type
     procedure ibdsDocRealPosCOSTCURRChange(Sender: TField); // Действие на изменение поля цена вал.
     procedure ibdsDocRealPosAmountNCUChange(Sender: TField); // Действие на изменение поля сумма НДЕ
     procedure ibdsDocRealPosAMOUNTCURRChange(Sender: TField); // Действие на изменение поля сумма вал.
-    function CalcTransTax(const Current: Integer): Currency; // Расчет налогов с транспорта
+    function CalcTransTax(const Current: TID): Currency; // Расчет налогов с транспорта
     procedure SetConditionGood;
     procedure SetGroupTara;
 
@@ -224,9 +226,9 @@ type
   public
     { Public declarations }
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-    procedure SetupDialog(const aDocumentKey, aCopyBill: Integer); // Инициализация документа
-    property DocumentType: Integer read FDocumentType write FDocumentType;
-    property DocumentKey: Integer read FDocumentKey; // Код документа
+    procedure SetupDialog(const aDocumentKey, aCopyBill: TID); // Инициализация документа
+    property DocumentType: TID read FDocumentType write FDocumentType;
+    property DocumentKey: TID read FDocumentKey; // Код документа
   end;
 
 var
@@ -246,10 +248,10 @@ var
   ibsql: TIBSQL;
   DocNumber: String;
   DocDate: TDate;
-  DocId: Integer;
+  DocId: TID;
 begin
   SetCurPriceField('');
-  if (Sender.AsInteger > 0) then
+  if (GetTID(Sender) > 0) then
   begin
     ibsql := TIBSQL.Create(Self);
     try
@@ -262,7 +264,7 @@ begin
       ibsql.SQL.Text := 'SELECT doc.id, doc.number, doc.documentdate FROM gd_contract c ' +
         ' JOIN gd_document doc ON c.documentkey = doc.id and c.contactkey = :ck ' +
         ' ORDER BY doc.documentdate ';
-      ibsql.ParamByName('ck').AsInteger := Sender.AsInteger;
+      SetTID(ibsql.ParamByName('ck'), Sender);
       ibsql.ExecQuery;
       while not ibsql.EOF do
       begin
@@ -272,7 +274,7 @@ begin
           Break;
         DocNumber := ibsql.FieldByName('number').AsString;
         DocDate := ibsql.FieldByName('documentdate').AsDateTime;
-        DocId := ibsql.FieldByName('id').AsInteger;
+        DocId := GetTID(ibsql.FieldByName('id'));
         ibsql.Next;
       end;
       ibsql.Close;
@@ -280,7 +282,7 @@ begin
       begin
         if not (ibdsDocRealInfo.State in [dsEdit, dsInsert]) then
           ibdsDocRealInfo.Edit;
-        ibdsDocRealInfo.FieldByName('contractkey').AsInteger := DocID;
+        SetTID(ibdsDocRealInfo.FieldByName('contractkey'), DocID);
         ibdsDocRealInfo.FieldByName('contractnum').AsString := Format('N %s от %s',
           [DocNumber, DateToStr(DocDate)]);
       end;
@@ -289,7 +291,7 @@ begin
       begin
         ibsql.SQL.Text := 'SELECT CITY FROM gd_contact WHERE id = :id';
         ibsql.Prepare;
-        ibsql.ParamByName('id').AsInteger := Sender.AsInteger;
+        SetTID(ibsql.ParamByName('id'), Sender);
         ibsql.ExecQuery;
         if ibsql.RecordCount > 0 then
           FCityCustomer := ibsql.Fields[0].AsString
@@ -330,7 +332,7 @@ begin
       [DateToStr(Date)]);
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
-      FPriceKey := ibsql.FieldByName('id').AsInteger
+      FPriceKey := GetTID(ibsql.FieldByName('id'))
     else
       FPriceKey := -1;
     ibsql.Close;
@@ -344,18 +346,18 @@ begin
       ':afull, :achag, :aview, :companykey, :creatorkey, :creationdate, :editorkey, :editiondate, ' +
       ':disabled, :delayed, :reserved) ';
     ibsql.Prepare;
-    ibsql.Params.ByName('id').AsInteger := FDocumentKey;
-    ibsql.Params.ByName('documenttypekey').AsInteger := FDocumentType; //!
+    SetTID(ibsql.Params.ByName('id'), FDocumentKey);
+    SetTID(ibsql.Params.ByName('documenttypekey'), FDocumentType); //!
     ibsql.Params.ByName('trtypekey').Clear;
     ibsql.Params.ByName('number').AsString := '';
     ibsql.Params.ByName('documentdate').AsDateTime := Date;
     ibsql.Params.ByName('afull').AsInteger := -1;
     ibsql.Params.ByName('achag').AsInteger := -1;
     ibsql.Params.ByName('aview').AsInteger := -1;
-    ibsql.Params.ByName('companykey').AsInteger := IBLogin.CompanyKey;
-    ibsql.Params.ByName('creatorkey').AsInteger := IBLogin.ContactKey;
+    SetTID(ibsql.Params.ByName('companykey'), IBLogin.CompanyKey);
+    SetTID(ibsql.Params.ByName('creatorkey'), IBLogin.ContactKey);
     ibsql.Params.ByName('creationdate').AsDateTime := Now;
-    ibsql.Params.ByName('editorkey').AsInteger := IBLogin.ContactKey;
+    SetTID(ibsql.Params.ByName('editorkey'), IBLogin.ContactKey);
     ibsql.Params.ByName('editiondate').AsDateTime := Now;
     ibsql.Params.ByName('disabled').AsInteger := 0;
     ibsql.Params.ByName('delayed').AsInteger := 0;
@@ -365,7 +367,7 @@ begin
 
     ibsql.SQL.Text := 'SELECT city FROM gd_contact WHERE id = :id';
     ibsql.Prepare;
-    ibsql.ParamByName('id').AsInteger := IBLogin.CompanyKey;
+    SetTID(ibsql.ParamByName('id'), IBLogin.CompanyKey);
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
       FCity := ibsql.Fields[0].AsString;
@@ -444,7 +446,7 @@ begin
   UserStorage.LoadComponent(gsibgrDocRealPos, gsibgrDocRealPos.LoadFromStream);
 end;
 
-procedure Tgp_dlgBill.SetupDialog(const aDocumentKey, aCopyBill: Integer);
+procedure Tgp_dlgBill.SetupDialog(const aDocumentKey, aCopyBill: TID);
 var
   i: Integer;
   LC: TListColumn;
@@ -501,16 +503,16 @@ begin
   else
     FDocumentKey := aDocumentKey;
 
-  ibdsDocument.ParamByName('id').AsInteger := FDocumentKey;
+  SetTID(ibdsDocument.ParamByName('id'), FDocumentKey);
   ibdsDocument.Open;
 
-  ibdsDocRealization.ParamByName('id').AsInteger := FDocumentKey;
+  SetTID(ibdsDocRealization.ParamByName('id'), FDocumentKey);
   ibdsDocRealization.Open;
 
-  ibdsDocRealInfo.ParamByName('id').AsInteger := FDocumentKey;
+  SetTID(ibdsDocRealInfo.ParamByName('id'), FDocumentKey);
   ibdsDocRealInfo.Open;
 
-  ibdsDocRealPos.ParamByName('dockey').AsInteger := FDocumentKey;
+  SetTID(ibdsDocRealPos.ParamByName('dockey'), FDocumentKey);
   ibdsDocRealPos.Open;
 
   for i:= 0 to gsibgrDocRealPos.Columns.Count - 1 do
@@ -550,15 +552,15 @@ begin
     if aCopyBill = -1 then
     begin
       ibdsDocRealization.Insert;
-      ibdsDocRealization.FieldByName('documentkey').AsInteger := FDocumentKey;
+      SetTID(ibdsDocRealization.FieldByName('documentkey'), FDocumentKey);
       if FPriceKey <> -1 then
-        ibdsDocRealization.FieldByName('pricekey').AsInteger := FPriceKey;
+        SetTID(ibdsDocRealization.FieldByName('pricekey'), FPriceKey);
 
       ibdsDocRealization.FieldByName('isrealization').AsInteger := 1;
       ibdsDocRealization.FieldByName('typetransport').AsString := 'C';
 
       ibdsDocRealInfo.Insert;
-      ibdsDocRealInfo.FieldByName('documentkey').AsInteger := FDocumentKey;
+      SetTID(ibdsDocRealInfo.FieldByName('documentkey'), FDocumentKey);
     end;
 
     DateTimeToString(S, 'dd.mm.yyyy', Date);
@@ -584,7 +586,7 @@ begin
     ibdsDocRealization.Edit;
     ibdsDocRealInfo.Edit;
     if ibdsDocRealInfo.FieldByName('documentkey').IsNull then
-      ibdsDocRealInfo.FieldByName('documentkey').AsInteger := FDocumentKey;
+      SetTID(ibdsDocRealInfo.FieldByName('documentkey'), FDocumentKey);
     actNext.Enabled := False;
     SetCurPriceField(ibdsDocRealization.FieldByName('pricefield').AsString);
     if cbAmount.Checked then
@@ -766,7 +768,7 @@ begin
     exit;
   if not ibsqlGood.Prepared then
     ibsqlGood.Prepare;
-  ibsqlGood.ParamByName('id').AsInteger := Sender.AsInteger;
+  SetTID(ibsqlGood.ParamByName('id'), Sender);
   ibsqlGood.ExecQuery;
   try
     if (ibsqlGood.RecordCount = 1) then
@@ -785,24 +787,24 @@ begin
         abort;
       end;
       ibdsDocRealPos.FieldByName('NAME').AsString := ibsqlGood.FieldByName('NAME').AsString;
-      ibdsDocRealPos.FieldByName('goodvaluekey').AsInteger :=
-        ibsqlGood.FieldByName('valuekey').AsInteger;
-      ibdsDocRealPos.FieldByName('GroupKey').AsInteger :=
-        ibsqlGood.FieldByName('GroupKey').AsInteger;  
+      SetTID(ibdsDocRealPos.FieldByName('goodvaluekey'),
+        ibsqlGood.FieldByName('valuekey'));
+      SetTID(ibdsDocRealPos.FieldByName('GroupKey'),
+        ibsqlGood.FieldByName('GroupKey'));  
       gsiblcValue.Condition :=
         Format('ID IN (SELECT valuekey FROM gd_goodvalue WHERE goodkey = %d) OR (ID = %d)',
-        [Sender.AsInteger, ibsqlGood.FieldByName('VALUEKEY').AsInteger]);
+        [TID264(Sender), TID264(ibsqlGood.FieldByName('VALUEKEY'))]);
 
-      ibdsDocRealPos.FieldByName('VALUEKEY').AsInteger := ibsqlGood.FieldByName('VALUEKEY').AsInteger;
-      if (FWeightKey > 0) and (ibdsDocRealPos.FieldByName('WeightKey').AsInteger = 0) then
-        ibdsDocRealPos.FieldByName('WeightKey').AsInteger := FWeightKey;
+      SetTID(ibdsDocRealPos.FieldByName('VALUEKEY'), ibsqlGood.FieldByName('VALUEKEY'));
+      if (FWeightKey > 0) and (GetTID(ibdsDocRealPos.FieldByName('WeightKey')) = 0) then
+        SetTID(ibdsDocRealPos.FieldByName('WeightKey'), FWeightKey);
 
-      ibsqlPack.ParamByName('gk').AsInteger := Sender.AsInteger;
+      SetTID(ibsqlPack.ParamByName('gk'), Sender);
       ibsqlPack.ExecQuery;
       try
         if (ibsqlPack.RecordCount > 0) then
         begin
-          ibdsDocRealPos.FieldByName('PACKKEY').AsInteger := ibsqlPack.FieldByName('valuekey').AsInteger;
+          SetTID(ibdsDocRealPos.FieldByName('PACKKEY'), ibsqlPack.FieldByName('valuekey'));
           ibdsDocRealPos.FieldByName('PACKINQUANT').AsFloat := ibsqlPack.FieldByName('Scale').AsInteger;
         end;
       finally
@@ -812,7 +814,7 @@ begin
       if ibdsDocRealPos.FieldByName('Quantity').AsCurrency = 0 then
         ibdsDocRealPos.FieldByName('Quantity').AsCurrency := 1;
 
-      if (ibdsDocRealization.FieldByName('pricekey').AsInteger > 0) and
+      if (GetTID(ibdsDocRealization.FieldByName('pricekey')) > 0) and
          (cbPriceField.ItemIndex >= 0)
       then
       begin
@@ -822,15 +824,15 @@ begin
           ibsql.SQL.Text := Format(
             'SELECT %s FROM gd_pricepos WHERE goodkey = %d and pricekey = %d',
             [TPriceField(cbPriceField.Items.Objects[cbPriceField.ItemIndex]).FieldName,
-             Sender.AsInteger,
-             ibdsDocRealization.FieldByName('pricekey').AsInteger]);
+             TID264(Sender),
+             TID264(ibdsDocRealization.FieldByName('pricekey'))]);
           ibsql.ExecQuery;
           if ibsql.RecordCount = 1 then
           begin
             if TPriceField(cbPriceField.Items.Objects[cbPriceField.ItemIndex]).CurrKey > 0 then
             begin
               if TPriceField(cbPriceField.Items.Objects[cbPriceField.ItemIndex]).CurrKey =
-                 ibdsDocument.FieldByName('currkey').AsInteger
+                 GetTID(ibdsDocument.FieldByName('currkey'))
               then
                 ibdsDocRealPos.FieldByName('CostCurr').AsCurrency := ibsql.Fields[0].AsCurrency;
             end
@@ -863,8 +865,8 @@ begin
   
   if not ibsqlValue.Prepared then
     ibsqlValue.Prepare;
-  ibsqlValue.ParamByName('id').AsInteger := Sender.AsInteger;
-  ibsqlValue.ParamByName('gk').AsInteger := ibdsDocRealPos.FieldByName('goodkey').AsInteger;
+  SetTID(ibsqlValue.ParamByName('id'), Sender);
+  SetTID(ibsqlValue.ParamByName('gk'), ibdsDocRealPos.FieldByName('goodkey'));
   ibsqlValue.ExecQuery;
   if ibsqlValue.RecordCount = 1 then
   begin
@@ -913,8 +915,8 @@ begin
   if LocalChange then exit;
   if not ibsqlValue.Prepared then
     ibsqlValue.Prepare;
-  ibsqlValue.ParamByName('id').AsInteger := Sender.AsInteger;
-  ibsqlValue.ParamByName('gk').AsInteger := ibdsDocRealPos.FieldByName('goodkey').AsInteger;
+  SetTID(ibsqlValue.ParamByName('id'), Sender);
+  SetTID(ibsqlValue.ParamByName('gk'), ibdsDocRealPos.FieldByName('goodkey'));
   ibsqlValue.ExecQuery;
   if ibsqlValue.RecordCount = 1 then
   begin
@@ -928,8 +930,8 @@ begin
   end;
   ibsqlValue.Close;
   
-  if ibdsDocRealPos.FieldByName('valuekey').AsInteger =
-     ibdsDocRealPos.FieldByName('weightkey').AsInteger
+  if GetTID(ibdsDocRealPos.FieldByName('valuekey')) =
+     GetTID(ibdsDocRealPos.FieldByName('weightkey'))
   then
     ibdsDocRealPos.FieldByName('Weight').AsCurrency :=
       ibdsDocRealPos.FieldByName('Quantity').AsCurrency;     
@@ -940,8 +942,8 @@ begin
   if LocalChange then exit;
   if not ibsqlValue.Prepared then
     ibsqlValue.Prepare;
-  ibsqlValue.ParamByName('id').AsInteger := Sender.AsInteger;
-  ibsqlValue.ParamByName('gk').AsInteger := ibdsDocRealPos.FieldByName('goodkey').AsInteger;
+  SetTID(ibsqlValue.ParamByName('id'), Sender);
+  SetTID(ibsqlValue.ParamByName('gk'), ibdsDocRealPos.FieldByName('goodkey'));
   ibsqlValue.ExecQuery;
   if ibsqlValue.RecordCount = 1 then
   begin
@@ -972,10 +974,10 @@ procedure Tgp_dlgBill.CalcWeight;
 var
   Koef: Currency;
 begin
-  if ibdsDocRealPos.FieldByName('WeightKey').AsInteger > 0 then
+  if GetTID(ibdsDocRealPos.FieldByName('WeightKey')) > 0 then
   begin
-    if ibdsDocRealPos.FieldByName('WeightKey').AsInteger =
-       ibdsDocRealPos.FieldByName('ValueKey').AsInteger
+    if GetTID(ibdsDocRealPos.FieldByName('WeightKey')) =
+       GetTID(ibdsDocRealPos.FieldByName('ValueKey'))
     then
       ibdsDocRealPos.FieldByName('Weight').AsCurrency :=
         ibdsDocRealPos.FieldByName('Quantity').AsCurrency
@@ -1059,11 +1061,11 @@ begin
   if FisLocalQuantity or LocalChange then exit;
   FisNCUChange := True;
   try
-    if (ibdsDocument.FieldByName('CurrKey').AsInteger > 0) and not FisCurrChange then
+    if (GetTID(ibdsDocument.FieldByName('CurrKey')) > 0) and not FisCurrChange then
       CalcCurr;
     if not FisAmountNCUChange then
       CalcAmount;
-    MakeOnChangeField(Sender);  
+    MakeOnChangeField(Sender);
   finally
     FisNCUChange := False;
   end;
@@ -1108,7 +1110,7 @@ begin
       ibdsDocRealPos.FieldByName('CostNCU').AsCurrency *
       ibdsDocRealPos.FieldByName('Quantity').AsCurrency;
 
-  if not FisAmountCurrChange and (ibdsDocument.FieldByName('CurrKey').AsInteger > 0) then
+  if not FisAmountCurrChange and (GetTID(ibdsDocument.FieldByName('CurrKey')) > 0) then
     ibdsDocRealPos.FieldByName('AmountCurr').AsCurrency :=
       ibdsDocRealPos.FieldByName('CostCurr').AsCurrency *
       ibdsDocRealPos.FieldByName('Quantity').AsCurrency;
@@ -1131,14 +1133,14 @@ begin
                       'datetax = (SELECT MAX(gt1.datetax) FROM gd_goodtax gt1 WHERE gt1.datetax <= :d and ' +
                       'gt1.goodkey = :gk and gt1.taxkey = :tk)';
     ibsql.Prepare;
-    ibsql.ParamByName('gk').AsInteger := ibdsDocRealPos.FieldByName('goodkey').AsInteger;
+    SetTID(ibsql.ParamByName('gk'), ibdsDocRealPos.FieldByName('goodkey'));
     ibsql.ParamByName('d').AsDateTime := ibdsDocument.FieldByName('documentdate').AsDateTime;
     for i:= 0 to FTaxList.Count - 1 do
       if (Trim(TTaxField(FTaxList[i]).RelationName) = 'GD_DOCREALPOS') and
          (TTaxField(FTaxList[i]).TaxKey > 0) then
       begin
 
-        ibsql.ParamByName('tk').AsInteger := TTaxField(FTaxList[i]).TaxKey;
+        SetTID(ibsql.ParamByName('tk'), TTaxField(FTaxList[i]).TaxKey);
         ibsql.ExecQuery;
         if ibsql.RecordCount = 1 then
           Rate := ibsql.FieldByName('rate').AsCurrency
@@ -1245,10 +1247,10 @@ begin
   SetCurrencyField;
   if not (ibdsDocRealization.State in [dsEdit, dsInsert]) then
     ibdsDocRealization.Edit;
-  if ibdsDocument.FieldByName('currkey').AsInteger > 0 then
+  if GetTID(ibdsDocument.FieldByName('currkey')) > 0 then
     ibdsDocRealization.FieldByName('rate').AsCurrency :=
       boCurrency.GetRate(
-        ibdsDocument.FieldByName('currkey').AsInteger,
+        GetTID(ibdsDocument.FieldByName('currkey')),
         200010,
         ibdsDocument.FieldByName('documentdate').asDateTime)
   else
@@ -1284,21 +1286,21 @@ begin
     if gsibgrDocRealPos.Columns[i].Field = ibdsDocRealPos.FieldByName('CostCurr')
     then
       gsibgrDocRealPos.Columns[i].Visible :=
-        ibdsDocument.FieldByName('CurrKey').AsInteger > 0;
+        GetTID(ibdsDocument.FieldByName('CurrKey')) > 0;
     if gsibgrDocRealPos.Columns[i].Field = ibdsDocRealPos.FieldByName('AmountCurr')
     then
       gsibgrDocRealPos.Columns[i].Visible :=
-        ibdsDocument.FieldByName('CurrKey').AsInteger > 0;
+        GetTID(ibdsDocument.FieldByName('CurrKey')) > 0;
     if (gsibgrDocRealPos.Columns[i].Field <> nil) and IsCurrencyTax(gsibgrDocRealPos.Columns[i].Field.FieldName) then
       gsibgrDocRealPos.Columns[i].Visible :=
-        ibdsDocument.FieldByName('CurrKey').AsInteger > 0;
+        GetTID(ibdsDocument.FieldByName('CurrKey')) > 0;
   end;
 
   for i:= 0 to lvAmount.Columns.Count - 1 do
   begin
     if (lvAmount.Column[i].Caption = 'Итого вал.') or (lvAmount.Column[i].Caption = 'По накл. в вал.')
     then
-      lvAmount.Columns[i].Width := 80 * Integer(ibdsDocument.FieldByName('CurrKey').AsInteger > 0);
+      lvAmount.Columns[i].Width := 80 * Integer(GetTID(ibdsDocument.FieldByName('CurrKey')) > 0);
   end;
 end;
 
@@ -1312,7 +1314,7 @@ begin
   ibsql := TIBSQL.Create(Self);
   try
     ibsql.Transaction := IBTransaction;
-    if ibdsDocRealization.FieldByName('TOCONTACTKEY').AsInteger > 0 then
+    if GetTID(ibdsDocRealization.FieldByName('TOCONTACTKEY')) > 0 then
     begin
       if aFieldName = '' then
       begin
@@ -1323,7 +1325,7 @@ begin
           '  CONTACTKEY IN ( ' +
           '    SELECT c.id FROM gd_contact c JOIN gd_contact c1 ' +
           '      ON (c.LB <= c1.LB) AND (c.RB >= c1.RB) and (C1.id = %d))',
-          [ibdsDocRealization.FieldByName('TOCONTACTKEY').AsInteger]);
+          [TID264(ibdsDocRealization.FieldByName('TOCONTACTKEY'))]);
         ibsql.ExecQuery;
         if ibsql.RecordCount = 1 then
           aFieldName := ibsql.FieldByName('fieldname').AsString;
@@ -1413,7 +1415,7 @@ begin
           if ibsql.RecordCount = 1 then
             cbPriceField.Items.AddObject(R.RelationFields[i].LName,
               TPriceField.Create(R.RelationFields[i].FieldName,
-                R.RelationFields[i].LShortName, ibsql.FieldByName('currkey').AsInteger))
+                R.RelationFields[i].LShortName, GetTID(ibsql.FieldByName('currkey'))))
           else
             cbPriceField.Items.AddObject(R.RelationFields[i].LName,
               TPriceField.Create(R.RelationFields[i].FieldName,
@@ -1441,7 +1443,7 @@ begin
       FTaxList.Add(TTaxField.Create(UpperCase(Trim(ibsql.FieldByName('relationname').AsString)),
         Trim(ibsql.FieldByName('fieldname').AsString),
         Trim(ibsql.FieldByName('expression').AsString),
-        ibsql.FieldByName('taxkey').AsInteger,
+        GetTID(ibsql.FieldByName('taxkey')),
         ibsql.FieldByName('includetax').AsInteger = 1,
         ibsql.FieldByName('iscurrency').AsInteger = 1,
         ibsql.FieldByName('rounding').AsCurrency,
@@ -1581,21 +1583,21 @@ var
   FirstSum: Currency;
   S: String;
 begin
-  if ibdsDocRealization.FieldByName('tocontactkey').AsInteger > 0 then
+  if GetTID(ibdsDocRealization.FieldByName('tocontactkey')) > 0 then
   begin
     ibsql := TIBSQL.Create(Self);
     try
       ibsql.Transaction := IBTransaction;
       ibsql.SQL.Text := Format('SELECT SUM(b.CSUMNCU - b.DSUMNCU) FROM ' +
         'BN_BANKSTATEMENTLINE b WHERE b.companykey = %d',
-        [ibdsDocRealization.FieldByName('tocontactkey').AsInteger]);
+        [TID264(ibdsDocRealization.FieldByName('tocontactkey'))]);
       ibsql.ExecQuery;
       FirstSum := ibsql.Fields[0].AsCurrency;
       ibsql.Close;
       ibsql.SQL.Text := Format('SELECT SUM(p.AmountNCU + p.USR$AmountVAT) FROM ' +
         'gd_docrealpos p JOIN gd_docrealization d ON p.documentkey = d.documentkey AND' +
         ' d.tocontactkey = %d',
-        [ibdsDocRealization.FieldByName('tocontactkey').AsInteger]);
+        [TID264(ibdsDocRealization.FieldByName('tocontactkey'))]);
       ibsql.ExecQuery;
       FirstSum := ibsql.Fields[0].AsCurrency - FirstSum;
       ibsql.Close;
@@ -1716,8 +1718,8 @@ end;
 
 procedure Tgp_dlgBill.ibdsDocRealPosAfterInsert(DataSet: TDataSet);
 begin
-  ibdsDocRealPos.FieldByName('documentkey').AsInteger := FDocumentKey;
-  ibdsDocRealPos.FieldByName('id').AsInteger := GenUniqueID;
+  SetTID(ibdsDocRealPos.FieldByName('documentkey'), FDocumentKey);
+  SetTID(ibdsDocRealPos.FieldByName('id'), GenUniqueID);
   ibdsDocRealPos.FieldByName('afull').AsInteger := -1;
   ibdsDocRealPos.FieldByName('achag').AsInteger := -1;
   ibdsDocRealPos.FieldByName('aview').AsInteger := -1;
@@ -1747,13 +1749,13 @@ begin
           '          p1.pricetype = ''C'' and p1.contactkey = :c) AND p.contactkey = :c and p.pricetype = ''C''';
         ibsql.Prepare;
         ibsql.ParamByName('d').AsDateTime := ibdsDocument.FieldByName('documentdate').AsDateTime;
-        ibsql.ParamByName('c').AsInteger := StrToInt(gsiblcFromContact.CurrentKey);
+        SetTID(ibsql.ParamByName('c'), gsiblcFromContact.CurrentKeyInt);
         ibsql.ExecQuery;
         if ibsql.RecordCount = 1 then
         begin
           if not (ibdsDocRealization.State in [dsEdit, dsInsert]) then
             ibdsDocRealization.Edit;
-          ibdsDocRealization.FieldByName('PriceKey').AsInteger := ibsql.FieldByName('id').AsInteger;
+          SetTID(ibdsDocRealization.FieldByName('PriceKey'), ibsql.FieldByName('id'));
         end;
         ibsql.Close;
       finally
@@ -1854,8 +1856,8 @@ procedure Tgp_dlgBill.ibdsDocRealPosAfterScroll(DataSet: TDataSet);
 begin
   gsiblcValue.Condition :=
     Format('ID IN (SELECT valuekey FROM gd_goodvalue WHERE goodkey = %d) OR (id = %d)',
-    [ibdsDocRealPos.FieldByName('goodkey').AsInteger,
-     ibdsDocRealPos.FieldByName('goodvaluekey').AsInteger]);
+    [TID264(ibdsDocRealPos.FieldByName('goodkey')),
+     TID264(ibdsDocRealPos.FieldByName('goodvaluekey'))]);
 
 end;
 
@@ -1874,18 +1876,18 @@ begin
       [Sender.AsString]);
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
-      FPriceKey := ibsql.FieldByName('id').AsInteger
+      FPriceKey := GetTID(ibsql.FieldByName('id'))
     else
       FPriceKey := -1;
     ibsql.Close;
-    if FPriceKey <> ibdsDocRealization.FieldByName('pricekey').AsInteger then
+    if FPriceKey <> GetTID(ibdsDocRealization.FieldByName('pricekey')) then
     begin
 
       if not (ibdsDocument.State in [dsEdit, dsInsert]) then
         ibdsDocument.Edit;
 
       if FPriceKey <> -1 then
-        ibdsDocRealization.FieldByName('pricekey').AsInteger := FPriceKey
+        SetTID(ibdsDocRealization.FieldByName('pricekey'), FPriceKey)
       else
         ibdsDocRealization.FieldByName('pricekey').Clear;
         
@@ -1897,9 +1899,9 @@ end;
 
 procedure Tgp_dlgBill.DoPriceKeyChange(Sender: TField);
 begin
-  if not Sender.IsNull and (Sender.AsInteger > 0) then
+  if not Sender.IsNull and (GetTID(Sender) > 0) then
   begin
-    FPriceKey := Sender.AsInteger;
+    FPriceKey := GetTID(Sender);
     SetConditionGood;
   end
   else
@@ -1944,7 +1946,7 @@ procedure Tgp_dlgBill.JoinRecord;
 var
   Bookmark: TBookmark;
   Quantity: Currency;
-  Code: Longint;
+  Code: TID;
   CostNCU: Currency;
   CostCurr: Currency;
   isOk: Boolean;
@@ -1960,7 +1962,7 @@ begin
       Quantity := ibdsDocRealPos.FieldByName('Quantity').AsCurrency;
       CostNCU := ibdsDocRealPos.FieldByName('CostNCU').AsCurrency;
       CostCurr := ibdsDocRealPos.FieldByName('CostCurr').AsCurrency;
-      Code := ibdsDocRealPos.FieldByName('GoodKey').AsInteger;
+      Code := GetTID(ibdsDocRealPos.FieldByName('GoodKey'));
       Weight := ibdsDocRealPos.FieldByName('Weight').AsCurrency;
       if ibdsDocRealPos.FindField('USR$DATAWORK') <> nil then
         DateWork := ibdsDocRealPos.FieldByName('USR$DATAWORK').AsCurrency
@@ -1972,7 +1974,7 @@ begin
       ibdsDocRealPos.Prior;
       while not ibdsDocRealPos.BOF do
       begin
-        if (ibdsDocRealPos.FieldByName('GoodKey').AsInteger = Code) and
+        if (GetTID(ibdsDocRealPos.FieldByName('GoodKey')) = Code) and
            (ibdsDocRealPos.FieldByName('CostNCU').AsCurrency = CostNCU) and
            (ibdsDocRealPos.FieldByName('CostCurr').AsCurrency = CostCurr) and
            (
@@ -2010,12 +2012,10 @@ begin
   Result := False;
 
   ibsqlCheckNumber.Prepare;
-  ibsqlCheckNumber.ParamByName('dt').AsInteger :=
-    FDocumentType;
-  ibsqlCheckNumber.ParamByName('ck').AsInteger :=
-    IBLogin.CompanyKey;
-  ibsqlCheckNumber.ParamByName('cid').AsInteger :=
-    FDocumentKey;
+  SetTID(ibsqlCheckNumber.ParamByName('dt'), FDocumentType);
+  SetTID(ibsqlCheckNumber.ParamByName('ck'),
+    IBLogin.CompanyKey);
+  SetTID(ibsqlCheckNumber.ParamByName('cid'), FDocumentKey);
   ibsqlCheckNumber.ParamByName('number').AsString :=
     ibdsDocument.FieldByName('number').AsString;
   ibsqlCheckNumber.ExecQuery;
@@ -2158,11 +2158,11 @@ end;
 
 procedure Tgp_dlgBill.actAddContractExecute(Sender: TObject);
 var
-  CustomerKey: Integer;
+  CustomerKey: TID;
 begin
   with Tdlg_gpContractSell.Create(Self) do
     try
-      CustomerKey := ibdsDocRealization.FieldByName('tocontactkey').AsInteger;
+      CustomerKey := GetTID(ibdsDocRealization.FieldByName('tocontactkey'));
       if CustomerKey = 0 then
         CustomerKey := -1;
       SetupDialog(-1, CustomerKey);
@@ -2171,7 +2171,7 @@ begin
       begin
         if not (ibdsDocRealInfo.State in [dsEdit, dsInsert]) then
           ibdsDocRealInfo.Edit;
-        ibdsDocRealInfo.FieldByName('contractkey').AsInteger := DocumentKey;
+        SetTID(ibdsDocRealInfo.FieldByName('contractkey'), DocumentKey);
         ibdsDocRealInfo.FieldByName('contractnum').AsString := DocumentInfo;  
       end;
     finally
@@ -2221,7 +2221,7 @@ begin
 
 end;
 
-procedure Tgp_dlgBill.CopyDocument(const aCopyID: Integer);
+procedure Tgp_dlgBill.CopyDocument(const aCopyID: TID);
 var
   ibsql: TIBSQL;
 
@@ -2272,7 +2272,7 @@ begin
     ibsql.SQL.Text := Format(
       'INSERT INTO gd_document (' + MakeFields([''], [''], 'GD_DOCUMENT') + ')' +
       ' SELECT ' + MakeFields(['%d'], ['ID'], 'GD_DOCUMENT') + ' FROM GD_DOCUMENT WHERE ID = %d',
-      [FDocumentKey, aCopyID]);
+      [TID264(FDocumentKey), TID264(aCopyID)]);
     ibsql.ExecQuery;
     ibsql.Close;
 
@@ -2280,7 +2280,7 @@ begin
       'INSERT INTO GD_DOCREALIZATION (' + MakeFields([''], [''], 'GD_DOCREALIZATION') + ')' +
       ' SELECT ' + MakeFields(['%d'], ['DOCUMENTKEY'], 'GD_DOCREALIZATION') +
       ' FROM GD_DOCREALIZATION WHERE DOCUMENTKEY = %d',
-      [FDocumentKey, aCopyID]);
+      [TID264(FDocumentKey), TID264(aCopyID)]);
     ibsql.ExecQuery;
     ibsql.Close;
 
@@ -2288,7 +2288,7 @@ begin
       'INSERT INTO GD_DOCREALINFO (' + MakeFields([''], [''], 'GD_DOCREALINFO') + ')' +
       ' SELECT ' + MakeFields(['%d'], ['DOCUMENTKEY'], 'GD_DOCREALINFO') +
       ' FROM GD_DOCREALINFO WHERE DOCUMENTKEY = %d',
-      [FDocumentKey, aCopyID]);
+      [TID264(FDocumentKey), TID264(aCopyID)]);
     ibsql.ExecQuery;
     ibsql.Close;
 
@@ -2298,7 +2298,7 @@ begin
         'INSERT INTO GD_DOCREALPOS (' + MakeFields([''], [''], 'GD_DOCREALPOS') + ')' +
         ' SELECT ' + MakeFields(['%d', 'NULL'], ['DOCUMENTKEY', 'ID'], 'GD_DOCREALPOS') +
         ' FROM GD_DOCREALPOS WHERE DOCUMENTKEY = %d',
-        [FDocumentKey, aCopyID]);
+        [TID264(FDocumentKey), TID264(aCopyID)]);
       ibsql.ExecQuery;
       ibsql.Close;
     end;

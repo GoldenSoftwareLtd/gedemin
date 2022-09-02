@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019, #4135
+
 unit rp_dlgViewReportServer_unit;
 
 interface
@@ -28,6 +30,7 @@ type
     procedure ShowServer;
     procedure ServerOption(const AnServerName: String);
   public
+    destructor Destroy; override;
 //    class function CreateAndAssign(AnOwner: TComponent): TForm; override;
   end;
 
@@ -76,7 +79,7 @@ begin
     begin
       L := lvReportServer.Items.Add;
       L.Caption := ibdsServer.FieldByName('computername').AsString;
-      L.Data := Pointer(ibdsServer.FieldByName('id').AsInteger);
+      L.Data := TID2Pointer(GetTID(ibdsServer.FieldByName('id')), Name);
 
       ibdsServer.Next;
     end;
@@ -133,7 +136,7 @@ begin
   if lvReportServer.Selected <> nil then
   begin
     ibdsServer.Open;
-    if ibdsServer.Locate('id', Integer(lvReportServer.Selected.Data), []) then
+    if ibdsServer.Locate('id', TID2V(GetTID(lvReportServer.Selected.Data, Name)), []) then
     begin
       ibdsServer.Delete;
       ShowServer;
@@ -144,4 +147,12 @@ end;
 
 //initialization
 //  RegisterClass(TdlgViewReportServer);
+destructor TdlgViewReportServer.Destroy;
+begin
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
+  inherited;
+end;
+
 end.

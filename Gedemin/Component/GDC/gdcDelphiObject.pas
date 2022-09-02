@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcDelphiObject;
 
 interface
@@ -34,7 +36,7 @@ type
     function CheckTheSameStatement: String; override;
 
     class function AddObject(AComponent: TComponent;
-      ATransaction: TIBTransaction = nil): Integer;
+      ATransaction: TIBTransaction = nil): TID;
 
   published
     property ObjectType: TObjectType read FObjectType write SetObjectType;
@@ -62,11 +64,11 @@ end;
 { TgdcObject }
 
 class function TgdcDelphiObject.AddObject(AComponent: TComponent;
-  ATransaction: TIBTransaction = nil): Integer;
+  ATransaction: TIBTransaction = nil): TID;
 var
-  Branch: Integer;
+  Branch: TID;
 
-  function _Insert(const AParent: Integer; const AName: String): Integer;
+  function _Insert(const AParent: TID; const AName: String): TID;
   var
     q: TIBSQL;
     Tr: TIBTransaction;
@@ -89,10 +91,10 @@ var
         q.Transaction := Tr;
         q.SQL.Text := 'INSERT INTO evt_object(id, objectname, parent, achag, afull, aview)' +
           ' VALUES (:id, :objectname, :parent, -1, -1, -1)';
-        q.ParamByName('id').AsInteger := Result;
+        SetTID(q.ParamByName('id'), Result);
         q.ParamByName('objectname').AsString := AName;
         if AParent > 0 then
-          q.ParamByName('parent').AsInteger := AParent
+          SetTID(q.ParamByName('parent'), AParent)
         else
           q.ParamByName('parent').Clear;
         q.ExecQuery;
@@ -108,10 +110,10 @@ var
     end;
   end;
 
-  function IterateOwner(C: TComponent; var ABranch: Integer): Integer;
+  function IterateOwner(C: TComponent; var ABranch: TID): TID;
   var
     q: TIBSQL;
-    Parent: Variant;
+    Parent: TID;
     ObjectName: String;
     Tr: TIBTransaction;
   begin
@@ -156,7 +158,7 @@ var
         ABranch := Result;
       end else
       begin
-        Result := q.FieldByName('id').AsInteger;
+        Result := GetTID(q.FieldByName('id'));
 
         if (C is TCreateableForm) and (not q.FieldByName(fnParent).IsNull) then
         begin
@@ -170,7 +172,7 @@ var
             q.Close;
             q.Transaction := Tr;
             q.SQL.Text := 'UPDATE evt_object SET parent = null WHERE id = :id';
-            q.Params[0].AsInteger := Result;
+            SetTID(q.Params[0], Result);
             q.ExecQuery;
             MessageBox(0,
               'ќбнаружена внутренн€€ ошибка в данных.'#13#10 +
@@ -238,7 +240,7 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  FieldByName('parentindex').AsInteger := 0;
+  SetTID(FieldByName('parentindex'), 0);
   FieldByName('AChag').AsInteger := -1;
   FieldByName('AFull').AsInteger := -1;
   FieldByName('AView').AsInteger := -1;
@@ -288,7 +290,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  ParentIndex: Integer;
+  ParentIndex: TID;
 begin
   {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCDELPHIOBJECT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  try
@@ -336,7 +338,7 @@ begin
     if FieldByName('parent').IsNull then
       ParentIndex := 1
     else
-      ParentIndex := FieldByName('parent').AsInteger;
+      ParentIndex := GetTID(FieldByName('parent'));
 
     Result := Format('SELECT o.id FROM evt_object o ' +
       ' WHERE ' +
@@ -346,7 +348,7 @@ begin
       ' (UPPER(o.subtype) = UPPER(''%s''))',
       [StringReplace(FieldByName('objectname').AsString, '''', '''''', [rfReplaceAll]),
        FieldByName('classname').AsString,
-       ParentIndex,
+       TID264(ParentIndex),
        FieldByName('subtype').AsString]);
   end;
 

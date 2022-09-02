@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019, #4135
+
 unit prp_dfPropertyTree_Unit;
 
 interface
@@ -9,7 +11,7 @@ uses
   mtd_Base, gdc_createable_form, ActnList, gdcFunction, TB2Item, TB2Dock,
   TB2Toolbar, gdcMacros, gdcReport, SuperPageControl, gd_createable_form,
   Menus, StdCtrls, FR_Ctrls, FR_Combo, prp_DOCKFORM_unit, evt_i_Base,
-  gdcCustomFunction, ExtCtrls, gdcClasses;
+  gdcCustomFunction, ExtCtrls, gdcClasses, gdcBaseInterface;
 
 const
   dfPasteError = 'Невозможно вставить данные из буфера обмена.';
@@ -246,27 +248,27 @@ type
     FdfClipboard: TdfClipboard;
     FOnChangeNode: TTVChangedEvent;
 
-    function FindNode(ID: Integer; AParent: TTreeNode): TTreeNode;
+    function FindNode(ID: TID; AParent: TTreeNode): TTreeNode;
     function FindNodeByClass(AClass: TClass; ASubType: string; APTN: TTreeNode): TTreeNode;
-    function FindMethod(Id: Integer): TTreeNode;
-    function FindMacros(Id: Integer): TTreeNode;
-    function FindEvent(Id: Integer): TTreeNode;
-    function FindReportFunction(Id: Integer): TTreeNode;
-    function FindReport(Id: Integer): TTreeNode;
-    function FindPrologSF(Id: Integer): TTreeNode;
+    function FindMethod(Id: TID): TTreeNode;
+    function FindMacros(Id: TID): TTreeNode;
+    function FindEvent(Id: TID): TTreeNode;
+    function FindReportFunction(Id: TID): TTreeNode;
+    function FindReport(Id: TID): TTreeNode;
+    function FindPrologSF(Id: TID): TTreeNode;
 
-    function FindVBClass(Id: Integer): TTreeNode;
-    function FindConst(Id: Integer): TTreeNode;
-    function FindGO(ID: Integer): TTreeNode;
+    function FindVBClass(Id: TID): TTreeNode;
+    function FindConst(Id: TID): TTreeNode;
+    function FindGO(ID: TID): TTreeNode;
     procedure InitOverloadAndDisable(C: TMethodClass);
     function GetSelectedNode: TTreeNode;
     function GetActiveTree: TTreeView;
     function GetActivePage: TTreeTabSheet;
-    procedure FunctionNotFound(ID: Integer);
+    procedure FunctionNotFound(ID: TID);
     procedure SetOnChangeNode(const Value: TTVChangedEvent);
     { Private declarations }
     procedure SetVisibleDisable;
-    function  FindMacrosByKey(MacrosKey: Integer): TTreeNode;
+    function  FindMacrosByKey(MacrosKey: TID): TTreeNode;
     function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
 
   protected
@@ -283,7 +285,7 @@ type
      // Получаем EventControl по его інтерфейсу
     function GetEventControl: TEventControl;
 
-    procedure RefreshVBClassTreeRoot(AParent: TTreeNode; OwnerId: Integer;
+    procedure RefreshVBClassTreeRoot(AParent: TTreeNode; OwnerId: TID;
       OwnerName: String);
     procedure RefreshConstTreeRoot(AParent: TTreeNode);
     procedure RefreshGOTreeRoot(AParent: TTreeNode);
@@ -291,20 +293,20 @@ type
     //проверяет присвено ли ид овнера для ветки содерж. нод
     procedure CheckOwnerId(Node: TTreeNode);
     //Обновляет ИД овнера. ТН - нод овнера
-    procedure UpdateOwnerId(TN: TTreeNode; Id: Integer);
+    procedure UpdateOwnerId(TN: TTreeNode; Id: TID);
     //Возвращает имя новой папки
     function GetName(const AName: String; const AParentNode: TTreeNode): String;
     function GetDBId: Integer;
     //Функции работы с папками макросов
-    procedure LoadMacrosFolder(AParent: TTreeNode; Id: Integer);
-    function LoadMacrosFolderByObject(AParent: TTreeNode; Id: Integer;
+    procedure LoadMacrosFolder(AParent: TTreeNode; Id: TID);
+    function LoadMacrosFolderByObject(AParent: TTreeNode; Id: TID;
       TV: TCustomTreeView; Create: Boolean = True): TTreeNode;
-    function AddMacrosFolderNode(AParent: TTreeNode; Id: Integer; Name: string):TTreeNode;overload;
-    function AddMacrosFolderNode(Parent: TTreeNode; Id: Integer; Name: string;
+    function AddMacrosFolderNode(AParent: TTreeNode; Id: TID; Name: string):TTreeNode;overload;
+    function AddMacrosFolderNode(Parent: TTreeNode; Id: TID; Name: string;
       TV: TCustomTreeView):TTreeNode;overload;
-    function AddMacrosNode(Parent: TTreeNode; Id: Integer; Name: string):TTreeNode;
+    function AddMacrosNode(Parent: TTreeNode; Id: TID; Name: string; Shown: Boolean):TTreeNode;
     //Добавляет папку локальных объектов
-    procedure AddLocalMacrosFolder(Id: Integer);
+    procedure AddLocalMacrosFolder(Id: TID);
     //Функции работы с классами
     procedure AddGDCClasses(AParent: TTreeNode; AKey: String);overload;
     procedure AddGDCClasses(AParent: TTreeNode; AKey: String; CClass: TClass);overload;
@@ -331,7 +333,7 @@ type
     //Добавление нода объекта
     procedure AddObjects(Parent: TTreeNode; C: TComponent);
     function AddObjectNode(Parent: TTreeNode; Name, ClassName: string): TTreeNode;
-    function AddFormNode(F: TForm; id: Integer; TV: TCustomTreeView): TTreeNode;
+    function AddFormNode(F: TForm; id: TID; TV: TCustomTreeView): TTreeNode;
     function CheckObjectNode(AParent: TTreeNode; ObjectName,
       ClassName: string; Add: Boolean = True): TTreeNode;
     function CheckComponentNode(Component: TComponent; Add: Boolean; const AOldName: string = ''): TTreeNode;
@@ -345,32 +347,32 @@ type
     function GetForm(Name: string): TCreateableForm;
     //Функции работы с отчетами
     procedure LoadAppReportRootNode(Parent: TTreeNode);
-    function GetReportFolderChildrenCount(Id: Integer): Integer;
-    procedure LoadReportFolder(Parent: TTreeNode; Id: Integer);
-    function AddReportFolderNode(Parent: TTreeNode; Id: Integer;
+    function GetReportFolderChildrenCount(Id: TID): Integer;
+    procedure LoadReportFolder(Parent: TTreeNode; Id: TID);
+    function AddReportFolderNode(Parent: TTreeNode; Id: TID;
       Name: string): TTreeNode;overload;
-    function AddReportFolderNode(Parent: TTreeNode; Id: Integer; Name: string;
+    function AddReportFolderNode(Parent: TTreeNode; Id: TID; Name: string;
       TV: TCustomTreeView): TTreeNode;overload;
-    function AddReportNode(Parent: TTreeNode; Id: Integer; Name: string):TTreeNode;
-    function LoadReportFolderByObject(AParent: TTreeNode; Id: Integer): TTreeNode;
-    function CheckCreateLocalReportFolder(Id: Integer; Name: string): Integer;
-    procedure CheckCreateGDCReportFolder(const AnID: Integer; AnObj: TgdcBase);
+    function AddReportNode(Parent: TTreeNode; Id: TID; Name: string; Shown: Boolean):TTreeNode;
+    function LoadReportFolderByObject(AParent: TTreeNode; Id: TID): TTreeNode;
+    function CheckCreateLocalReportFolder(Id: TID; Name: string): TID;
+    procedure CheckCreateGDCReportFolder(const AnID: TID; AnObj: TgdcBase);
     procedure CheckLoadReportFolder(Node: TTreeNode);
     //Функции работы с Sf
     //Возвращает строку с условие для выборки СФ из базы
-    function GetSFWhereClause(const AnID: Integer): String;
-    function AddSfRootNode(Id: Integer; OwnerName: string; TV: TTReeView): TTreeNode;
+    function GetSFWhereClause(const AnID: TID): String;
+    function AddSfRootNode(Id: TID; OwnerName: string; TV: TTReeView): TTreeNode;
     procedure LoadSf(Node: TTreeNode);
     procedure LoadPrologSF(Node: TTreeNode);
-    function AddPrologSFRootNode(Id: Integer; OwnerName: string; TV: TTReeView): TTreeNode;
+    function AddPrologSFRootNode(Id: TID; OwnerName: string; TV: TTReeView): TTreeNode;
     function GetSFType(Module: string): sfTypes;
-    function AddSFNode(Parent: TTreeNode; id: Integer; Name: string): TTreeNode;
+    function AddSFNode(Parent: TTreeNode; id: TID; Name: string): TTreeNode;
     procedure CheckLoadSf(TN: TTreeNode);
     procedure CheckLoadPrologSF(TN: TTreeNode);
-    function AddPSFNode(Parent: TTreeNode; id: Integer; Name: string): TTreeNode;
+    function AddPSFNode(Parent: TTreeNode; id: TID; Name: string): TTreeNode;
 
     //Возвращает индекс закладки объекта
-    function IndexOfByObjId(Id: Integer): Integer;
+    function IndexOfByObjId(Id: TID): Integer;
     //
     //добавление закладки для Application
     procedure AddApplicationPage;
@@ -395,7 +397,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor  Destroy; override;
 
-    function GetPageByObjID(Id: Integer): TTreeTabSheet;
+    function GetPageByObjID(Id: TID): TTreeTabSheet;
     procedure UpdatePages;
     procedure UpdateEventOverload(TN: TTreeNode; Increment: Integer);
     procedure UpdateEventDesabled(TN: TTreeNode; Increment: Integer);
@@ -411,8 +413,8 @@ type
     procedure AddReportFolder;
     function  AddReportItem: TCustomTreeItem;
     procedure Expand(Node: TTreeNode);
-    function FindSF(ID: Integer): TTreeNode; overload;
-    function FindSF(ID: Integer; Module: String): TTreeNode; overload;
+    function FindSF(ID: TID): TTreeNode; overload;
+    function FindSF(ID: TID; Module: String): TTreeNode; overload;
     procedure OpenNode(TN: TTreeNode);
     procedure RefreshSf;
     procedure RefreshObjects;
@@ -420,15 +422,15 @@ type
     procedure RefreshFullClassName(const FullName: Boolean);
     function CheckFormPage(F: TCreateableForm): TTreeTabSheet;
     procedure OpenEvent(Component: TComponent; EventName: string;
-      const AFunctionID: integer = 0);
+      const AFunctionID: TID = 0);
     procedure OpenMacrosRootFolder(Component: TComponent);
     procedure OpenReportRootFolder(Component: TComponent);
     procedure OpenObjectPage(Component: TComponent);
     //Ищет и открывает на редактирование отчёт
     //Возвращает Тру если отчет найден в дереве и открыт
-    function OpenReport(ID: integer): Boolean;
-    function OpenMacros(MacrosKey: integer): Boolean;
-    function FindReportFolder(Id: Integer; OnlyApplication: Boolean = False): TTreeNode;
+    function OpenReport(ID: TID): Boolean;
+    function OpenMacros(MacrosKey: TID): Boolean;
+    function FindReportFolder(Id: TID; OnlyApplication: Boolean = False): TTreeNode;
     procedure InvalidateTree;
     //Возвращает строковое представление пути к выделенному ноду
     function GetPath: string;
@@ -458,7 +460,7 @@ uses
   prp_frmGedeminProperty_Unit, prp_Filter, prp_PropertySettings,
   TypInfo, IBSQL, gdcConstants, mtd_i_Base, rp_report_const, gd_security,
   gd_security_operationconst, prp_MessageConst, prp_BaseFrame_unit,
-  gdcBaseInterface, dlgClassInfo_unit, at_AddToSetting,
+  dlgClassInfo_unit, at_AddToSetting,
 //  {$IFDEF GEDEMIN}
   prp_EventFrame_unit, prp_MethodFrame_unit,
 //  {$ENDIF}
@@ -638,32 +640,32 @@ var
   NameList: TStrings;
   I: Integer;
   TN: TTreeNode;
-  Id: Integer;
+  Id: TID;
   SQL: TIBSQL;
   Add: Boolean;
   O: Boolean;
 
-  procedure InsertObject(var Id: Integer; const Parent: Variant;
+  procedure InsertObject(var Id: TID; const Parent: Variant;
       AName: string);
   begin
     if not gdcDelphiObject.Active then gdcDelphiObject.Open;
     gdcDelphiObject.Insert;
     gdcDelphiObject.FieldByName(fnObjectName).AsString := AName;
-    gdcDelphiObject.FieldByName(fnParent).Value := Parent;
+    SetVar2Field(gdcDelphiObject.FieldByName(fnParent), Parent);
     gdcDelphiObject.Post;
-    Id := gdcDelphiObject.FieldByName(fnId).AsInteger;
+    Id := GetTID(gdcDelphiObject.FieldByName(fnId));
   end;
 
-  procedure InsertClass(var Id: Integer; const Parent: Variant;
+  procedure InsertClass(var Id: TID; const Parent: Variant;
       AName, SubType: string);
   begin
     if not gdcDelphiObject.Active then gdcDelphiObject.Open;
     gdcDelphiObject.Insert;
     gdcDelphiObject.FieldByName(fnClassName).AsString := AName;
     gdcDelphiObject.FieldByName(fnSubType).AsString := Subtype;
-    gdcDelphiObject.FieldByName(fnParent).Value := Parent;
+    SetVar2Field(gdcDelphiObject.FieldByName(fnParent), Parent);
     gdcDelphiObject.Post;
-    Id := gdcDelphiObject.FieldByName(fnId).AsInteger;
+    Id := GetTID(gdcDelphiObject.FieldByName(fnId));
   end;
 
 begin
@@ -719,7 +721,7 @@ begin
                 UpdateOwnerId(TTreeNode(NameList.Objects[NameList.Count - 1]), Id);
                 Add := True;
               end else
-                Id := SQL.FieldByName(fnId).AsInteger;
+                Id := GetTID(SQL.FieldByName(fnId));
 
               SQL.Close;
               if O then
@@ -731,7 +733,7 @@ begin
 
               for I := NameList.Count - 2 downto 0 do
               begin
-                SQL.Params[0].AsInteger := id;
+                SetTID(SQL.Params[0], id);
                 if O then
                   SQL.Params[1].AsString := UpperCase(NameList[I])
                 else
@@ -745,16 +747,16 @@ begin
                 if SQL.Eof then
                 begin
                   if O then
-                    InsertObject(Id, Id, NameList[I])
+                    InsertObject(Id, TID2V(Id), NameList[I])
                   else
-                    InsertClass(Id, Id,
+                    InsertClass(Id, TID2V(Id),
                       TCustomTreeItem(TTreeNode(NameList.Objects[I]).Data).Name,
                       TGDCClassTreeItem(TTreeNode(NameList.Objects[I]).Data).SubType);
 
                   UpdateOwnerId(TTreeNode(NameList.Objects[I]), Id);
                   Add := True;
                 end else
-                  Id := SQL.FieldByName(fnId).AsInteger;
+                  Id := GetTID(SQL.FieldByName(fnId));
                 SQL.Close;
               end;
 
@@ -778,7 +780,7 @@ begin
   end;
 end;
 
-procedure TdfPropertyTree.UpdateOwnerId(TN: TTreeNode; Id: Integer);
+procedure TdfPropertyTree.UpdateOwnerId(TN: TTreeNode; Id: TID);
 var
   I: Integer;
 begin
@@ -913,6 +915,18 @@ begin
       Sender.Canvas.Font.Color := clWindowText;
     if (cdsSelected in State) then
       Sender.Canvas.Font.Color := clHighlightText;
+  end else if NodeType = tiMacros then
+  begin
+    if TMacrosTreeItem(Node.Data).ShowInMenu then
+      Sender.Canvas.Font.Color := clBlack
+    else
+      Sender.Canvas.Font.Color := clGray;
+  end else if NodeType = tiReport then
+  begin
+    if TReportTreeItem(Node.Data).ShowInMenu then
+      Sender.Canvas.Font.Color := clBlack
+    else
+      Sender.Canvas.Font.Color := clGray;
   end else if NodeType = tiGDCClass then
   begin
     //Проверяем определен ли какой нибудь метод
@@ -933,7 +947,7 @@ begin
       NodeRect := Node.DisplayRect(True);
 
       Sender.Canvas.FillRect(NodeRect);
-      
+
       if (cdsSelected in State) then
         SetTextColor(Sender.Canvas.Handle, ColorToRGB(clYellow))
       else
@@ -985,7 +999,7 @@ end;
 
 
 procedure TdfPropertyTree.RefreshVBClassTreeRoot(AParent: TTreeNode;
-  OwnerId: Integer; OwnerName: String);
+  OwnerId: TID; OwnerName: String);
 var
   SQL: TIBSQL;
   TN: TTreeNode;
@@ -997,16 +1011,16 @@ begin
     SQL.SQL.Text := 'SELECT name, id, modulecode FROM gd_function WHERE UPPER(module) = :module ' +
       'and modulecode = :modulecode';
     SQL.Params[0].AsString := scrVBClasses;
-    SQL.Params[1].AsInteger := OwnerId;
+    SetTID(SQL.Params[1], OwnerId);
     SQL.ExecQuery;
     while not SQL.Eof do
     begin
       TN := TTreeView(AParent.TreeView).Items.AddChild(AParent,
         SQL.FieldByName(fnName).AsString);
       VBI := TVBClassTreeItem.Create;
-      VBI.Id := SQL.FieldByName(fnId).AsInteger;
+      VBI.Id := GetTID(SQL.FieldByName(fnId));
       VBI.Name := SQL.FieldByName(fnName).AsString;
-      VBI.OwnerId := SQL.FieldByName(fnModuleCode).AsInteger;
+      VBI.OwnerId := GetTID(SQL.FieldByName(fnModuleCode));
       VBI.MainOwnerName := OwnerName;
       VBI.Node := TN;
       TN.Data := VBI;
@@ -1034,9 +1048,9 @@ begin
       TN := TTreeView(AParent.TreeView).Items.AddChild(AParent,
         SQL.FieldByName(fnName).AsString);
       VBI := TConstTreeItem.Create;
-      VBI.Id := SQL.FieldByName(fnId).AsInteger;
+      VBI.Id := GetTID(SQL.FieldByName(fnId));
       VBI.Name := SQL.FieldByName(fnName).AsString;
-      VBI.OwnerId := SQL.FieldByName(fnModuleCode).AsInteger;
+      VBI.OwnerId := GetTID(SQL.FieldByName(fnModuleCode));
       VBI.MainOwnerName := 'APPLICATION';
       VBI.Node := TN;
       TN.Data := VBI;
@@ -1083,7 +1097,7 @@ begin
     VBI := TVBClassTreeItem.Create;
     VBI.Id := 0;
     VBI.Name := TN.Text;
-    VBI.OwnerId := ActivePage.Tag;
+    VBI.OwnerId := GetTID(ActivePage.Tag, Name);
     VBI.MainOwnerName := ActivePage.Caption;
     VBI.Node := TN;
     TN.Data := VBI;
@@ -1225,9 +1239,9 @@ begin
       TN := TTreeView(AParent.TreeView).Items.AddChild(AParent,
         SQL.FieldByName(fnName).AsString);
       VBI := TGlobalObjectTreeItem.Create;
-      VBI.Id := SQL.FieldByName(fnId).AsInteger;
+      VBI.Id := GetTID(SQL.FieldByName(fnId));
       VBI.Name := SQL.FieldByName(fnName).AsString;
-      VBI.OwnerId := SQL.FieldByName(fnModuleCode).AsInteger;
+      VBI.OwnerId := GetTID(SQL.FieldByName(fnModuleCode));
       VBI.MainOwnerName := 'APPLICATION';
       VBI.Node := TN;
       TN.Data := VBI;
@@ -1362,7 +1376,7 @@ begin
         gdcMacrosGroup.FieldByName(fnIsGlobal).AsInteger :=
           Integer(TCustomTreeItem(TN.Data).OwnerId = OBJ_APPLICATION);
         if TCustomTreeItem(TN.Data).ID > 0 then
-          gdcMacrosGroup.FieldByName(fnParent).AsInteger := TCustomTreeItem(TN.Data).ID;
+          SetTID(gdcMacrosGroup.FieldByName(fnParent), TCustomTreeItem(TN.Data).ID);
 
         gdcMacrosGroup.Post;
         FI := TMacrosTreeFolder.Create;
@@ -1373,7 +1387,7 @@ begin
         FI.Node := TN;
         TN.Data := FI;
         FI.Name := TN.Text;
-        FI.Id := gdcMacrosGroup.FieldByName(fnID).AsInteger;
+        FI.Id := GetTID(gdcMacrosGroup.FieldByName(fnID));
         FI.ChildsCreated := True;
         TN.Selected := True;
         TN.EditText;
@@ -1431,7 +1445,7 @@ begin
           SQL.Transaction.StartTransaction;
         try
           SQL.Params[0].AsString := S;
-          SQL.Params[1].AsInteger := TMacrosTreeFolder(Node.Data).ID;
+          SetTID(SQL.Params[1], TMacrosTreeFolder(Node.Data).ID);
           SQL.ExecQuery;
           if DidActivate then
             SQL.Transaction.Commit;
@@ -1454,7 +1468,7 @@ begin
           SQL.Transaction.StartTransaction;
         try
           SQL.Params[0].AsString := S;
-          SQL.Params[1].AsInteger := TReportTreeFolder(Node.Data).ID;
+          SetTID(SQL.Params[1], TReportTreeFolder(Node.Data).ID);
           SQL.ExecQuery;
           if DidActivate then
             SQL.Transaction.Commit;
@@ -1504,9 +1518,9 @@ begin
       try
         gdcReportGroup.FieldByName(fnName).AsString := GetName(NEW_FOLDER_NAME, TN);
         if TCustomTreeItem(TN.Data).ID > 0 then
-          gdcReportGroup.FieldByName(fnParent).AsInteger := TCustomTreeItem(TN.Data).ID;
+          SetTID(gdcReportGroup.FieldByName(fnParent), TCustomTreeItem(TN.Data).ID);
         if gdcReportGroup.FieldByName(fnUserGroupName).IsNull then
-          gdcReportGroup.FieldByName(fnUserGroupName).AsString := IntToStr(gdcReportGroup.ID) +
+          gdcReportGroup.FieldByName(fnUserGroupName).AsString := TID2S(gdcReportGroup.ID) +
             '_' + IntToStr(GetDBID);
         gdcReportGroup.Post;
         FI := TReportTreeFolder.Create;
@@ -1517,7 +1531,7 @@ begin
         FI.Node := TN;
         TN.Data := FI;
         FI.Name := TN.Text;
-        Fi.Id := gdcReportGroup.FieldByName(fnID).AsInteger;
+        Fi.Id := GetTID(gdcReportGroup.FieldByName(fnID));
         FI.ChildsCreated := True;
         TN.Selected := True;
         TN.EditText;
@@ -1592,7 +1606,7 @@ begin
 end;
 
 procedure TdfPropertyTree.LoadMacrosFolder(AParent: TTreeNode;
-  Id: Integer);
+  Id: TID);
 var
   fSQL: TIBSQL;
   TN: TTreeNode;
@@ -1602,12 +1616,12 @@ begin
   fSQL := TIBSQL.Create(nil);
   try
     fSQL.Transaction := gdcMacrosGroup.ReadTransaction;
-    fSQL.SQL.Text := 'SELECT * FROM evt_macrosgroup WHERE parent = ' +
-      IntToStr(Id);
+    fSQL.SQL.Text := 'SELECT * FROM evt_macrosgroup WHERE parent = :ID';
+    SetTID(fSQL.ParamByName('ID'), Id);
     fSQL.ExecQuery;
     while not fSQL.Eof do
     begin
-      TN := AddMacrosFolderNode(AParent, fSQL.FieldByName(fnId).AsInteger,
+      TN := AddMacrosFolderNode(AParent, GetTID(fSQL.FieldByName(fnId)),
         fSQL.FieldByName(fnName).AsString);
       SQL := TIBSQL.Create(nil);
       try
@@ -1616,7 +1630,7 @@ begin
           ' EXISTS (SELECT 1 FROM evt_macrosgroup WHERE parent = :id) or ' +
           ' EXISTS (SELECT 1 FROM evt_macroslist WHERE macrosgroupkey = :id AND ' +
           ' g_sec_test(aview, %d) <> 0)', [IBLogin.InGroup]);
-        SQL.Params[0].AsInteger := fSQL.FieldByName(fnId).AsInteger;
+        SetTID(SQL.Params[0], fSQL.FieldByName(fnId));
         SQL.ExecQuery;
         TN.HasChildren := not SQL.Eof;
         TCustomTreeFolder(TN.Data).ChildsCreated := not TN.HasChildren;
@@ -1626,13 +1640,15 @@ begin
       fSQL.Next;
     end;
     fSQL.Close;
-    fSQl.SQL.Text := 'SELECT * FROM evt_macroslist WHERE macrosgroupkey = ' +
-      IntToStr(Id) + ' AND g_sec_test(aview, ' + IntToStr(IBLogin.InGroup) + ') <> 0';
+    fSQl.SQL.Text := 'SELECT * FROM evt_macroslist WHERE macrosgroupkey = :ID' +
+      ' AND g_sec_test(aview, ' + IntToStr(IBLogin.InGroup) + ') <> 0';
+    SetTID(fSQL.ParamByName('ID'), Id);
     fSQL.ExecQuery;
     while not fSQL.Eof do
     begin
-      AddMacrosNode(AParent, fSQL.FieldByName(fnId).AsInteger,
-        fSQL.FieldByName(fnName).AsString);
+      AddMacrosNode(AParent, GetTID(fSQL.FieldByName(fnId)),
+        fSQL.FieldByName(fnName).AsString,
+        fSQL.FieldByName('displayinmenu').AsInteger <> 0);
       fSQL.Next;
     end;
   finally
@@ -1641,7 +1657,7 @@ begin
 end;
 
 
-function TdfPropertyTree.AddMacrosFolderNode(AParent: TTreeNode; Id: Integer;
+function TdfPropertyTree.AddMacrosFolderNode(AParent: TTreeNode; Id: TID;
   Name: string): TTreeNode;
 begin
   Result := nil;
@@ -1649,8 +1665,8 @@ begin
     Result := AddMacrosFolderNode(AParent, Id, Name, AParent.TreeView);
 end;
 
-function TdfPropertyTree.AddMacrosNode(Parent: TTreeNode; Id: Integer;
-  Name: string): TTreeNode;
+function TdfPropertyTree.AddMacrosNode(Parent: TTreeNode; Id: TID;
+  Name: string; Shown: Boolean): TTreeNode;
 var
   F: TMacrosTreeItem;
 begin
@@ -1663,6 +1679,7 @@ begin
     F.OwnerId := TMacrosTreeFolder(Parent.Data).OwnerID;
     F.MainOwnerName := TMacrosTreeFolder(Parent.Data).MainOwnerName;
     F.MacrosFolderId := TMacrosTreeFolder(Parent.Data).ID;
+    F.ShowInMenu := Shown;
   end;
   F.Node := Result;
   Result.Data := F;
@@ -1704,7 +1721,7 @@ begin
 end;
 
 function TdfPropertyTree.LoadMacrosFolderByObject(AParent: TTreeNode;
-  Id: Integer; TV: TCustomTreeView; Create: Boolean = True): TTreeNode;
+  Id: TID; TV: TCustomTreeView; Create: Boolean = True): TTreeNode;
 var
   SQL: TIBSQL;
 begin
@@ -1715,7 +1732,7 @@ begin
     SQl.SQl.Text := 'SELECT m.*, o.objectname as MainOwnerName, o.id AS OwnerID FROM ' +
       ' evt_macrosgroup m, evt_object o WHERE ' +
       ' o.id = :id AND o.macrosgroupkey = m.id ';
-    SQL.Params[0].AsInteger := Id;
+    SetTID(SQL.Params[0], Id);
     SQL.ExecQuery;
     if SQL.Eof and Create then
     begin
@@ -1726,9 +1743,9 @@ begin
     end;
     if not SQL.Eof then
     begin
-      Result := AddMacrosFolderNode(AParent, SQL.FieldByName(fnId).AsInteger,
+      Result := AddMacrosFolderNode(AParent, GetTID(SQL.FieldByName(fnId)),
         SQL.FieldByName(fnName).AsString, TV);
-      TMacrosTreeFolder(Result.Data).OwnerId := SQL.FieldByName('ownerid').AsInteger;
+      TMacrosTreeFolder(Result.Data).OwnerId := GetTID(SQL.FieldByName('ownerid'));
       TMacrosTreeFolder(Result.Data).MainOwnerName := SQL.FieldByName('MainOwnerName').AsString;
     end;
     if Assigned(Result) then
@@ -1738,7 +1755,7 @@ begin
         ' EXISTS (SELECT 1 FROM evt_macrosgroup WHERE parent = :id) or ' +
         ' EXISTS (SELECT 1 FROM evt_macroslist WHERE macrosgroupkey = :id AND' +
         ' g_sec_test(aview, %d) <> 0)', [IBLogin.InGroup]);
-      SQL.Params[0].AsInteger := TMacrosTreeFolder(Result.Data).ID;
+      SetTID(SQL.Params[0], TMacrosTreeFolder(Result.Data).ID);
       SQL.ExecQuery;
       Result.HasChildren := not SQL.Eof;
       TMacrosTreeFolder(Result.Data).ChildsCreated := not Result.HasChildren;
@@ -1748,12 +1765,12 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindPrologSF(Id: Integer): TTreeNode;
+function TdfPropertyTree.FindPrologSF(Id: TID): TTreeNode;
 var 
   SQL: TIBSQL;
   TS: TTreeTabSheet;
   TN: TTreeNode;
-  ModuleCode: Integer;
+  ModuleCode: TID;
   PI: TPrologTreeItem;
   N: TTreeNode;
 begin
@@ -1762,11 +1779,12 @@ begin
   try  
     SQL.Transaction := gdcDelphiObject.ReadTransaction;
     SQL.SQL.Text := 'SELECT g.*, o.objectname As ObjectName FROM gd_function g, ' +
-      ' evt_object o WHERE o.id = g.modulecode and g.id = ' + IntToStr(Id);
+      ' evt_object o WHERE o.id = g.modulecode and g.id = :ID';
+    SetTID(SQL.ParamByName('ID'), Id);
     SQL.ExecQuery;
     if not SQL.Eof then
     begin
-      ModuleCode := SQl.FieldByName(fnModuleCode).AsInteger;
+      ModuleCode := GetTID(SQl.FieldByName(fnModuleCode));
       TS := GetPageByObjID(ModuleCode);
       if Assigned(TS) then
       begin
@@ -1812,7 +1830,7 @@ begin
             begin
               Result := AddPSFNode(TN, id, SQL.FieldByName(fnName).AsString);
               PI := TPrologTreeItem(Result.Data);
-              PI.OwnerId := SQL.FieldByName(fnModuleCode).AsInteger;
+              PI.OwnerId := GetTID(SQL.FieldByName(fnModuleCode));
               PI.MainOwnerName := SQL.FieldByName('ObjectName').AsString;
             end;
           end;
@@ -1824,7 +1842,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindSF(ID: Integer): TTreeNode;
+function TdfPropertyTree.FindSF(ID: TID): TTreeNode;
 var
   SQL: TIBSQL;
 begin
@@ -1833,7 +1851,8 @@ begin
   try
     //Получаем модуль с.ф. из базы
     SQL.Transaction := gdcDelphiObject.ReadTransaction;
-    SQL.SQL.Text := 'SELECT module FROM gd_function WHERE id = ' + IntToStr(Id);
+    SQL.SQL.Text := 'SELECT module FROM gd_function WHERE id = :ID';
+    SetTID(SQL.ParamByName('ID'), ID);
     SQL.ExecQuery;
     if not SQL.Eof then
     begin
@@ -1847,12 +1866,12 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindSF(ID: Integer; Module: String): TTreeNode;
+function TdfPropertyTree.FindSF(ID: TID; Module: String): TTreeNode;
 var
   SQL: TIBSQL;
   TS: TTreeTabSheet;
   TN: TTreeNode;
-  ModuleCode: Integer;
+  ModuleCode: TID;
   SI: TSFTreeItem;
   N: TTreeNode;
 begin
@@ -1892,11 +1911,12 @@ begin
       //Вытягиваем инф. о функции из базы
       SQL.Transaction := gdcDelphiObject.ReadTransaction;
       SQL.SQL.Text := 'SELECT g.*, o.objectname As ObjectName FROM gd_function g, ' +
-        ' evt_object o WHERE o.id = g.modulecode and g.id = ' + IntToStr(Id);
+        ' evt_object o WHERE o.id = g.modulecode and g.id = :ID';
+      SetTID(SQL.ParamByName('ID'), ID);
       SQL.ExecQuery;
       if not SQL.Eof then
       begin
-        ModuleCode := SQL.FieldByName(fnModuleCode).AsInteger;
+        ModuleCode := GetTID(SQL.FieldByName(fnModuleCode));
         //Ищем падже объекта по ид объекта
         TS := GetPageByObjID(ModuleCode);
         if Assigned(TS) then
@@ -1959,7 +1979,7 @@ begin
                 SI := TSFTreeItem(Result.Data);
                 //Подставляем параметры специф. для с.ф.
                 SI.SFType := GetSFType(SQL.FieldByName(fnModule).AsString);
-                SI.OwnerId := SQL.FieldByName(fnModuleCode).AsInteger;
+                SI.OwnerId := GetTID(SQL.FieldByName(fnModuleCode));
                 SI.MainOwnerName := SQL.FieldByName('ObjectName').AsString;
               end;
             end;
@@ -1988,15 +2008,15 @@ begin
 end;
 
 function TdfPropertyTree.AddReportFolderNode(Parent: TTreeNode;
-  Id: Integer; Name: string): TTreeNode;
+  Id: TID; Name: string): TTreeNode;
 begin
   Result := nil;
   if Assigned(Parent) then
     Result := AddReportFolderNode(Parent, Id, Name, Parent.TreeView);
 end;
 
-function TdfPropertyTree.AddReportNode(Parent: TTreeNode; Id: Integer;
-  Name: string): TTreeNode;
+function TdfPropertyTree.AddReportNode(Parent: TTreeNode; Id: TID;
+  Name: string; Shown: Boolean): TTreeNode;
 var
   F: TReportTreeItem;
 begin
@@ -2009,12 +2029,13 @@ begin
     F.OwnerId := TReportTreeFolder(Parent.Data).OwnerID;
     F.MainOwnerName := TReportTreeFolder(Parent.Data).MainOwnerName;
     F.ReportFolderId := TReportTreeFolder(Parent.Data).Id;
+    F.ShowInMenu := Shown;
   end;
   F.Node := Result;
   Result.Data := F;
 end;
 
-procedure TdfPropertyTree.LoadReportFolder(Parent: TTreeNode; Id: Integer);
+procedure TdfPropertyTree.LoadReportFolder(Parent: TTreeNode; Id: TID);
 var
   fSQL: TIBSQL;
   TN: TTreeNode;
@@ -2024,13 +2045,13 @@ begin
   try
     fSQL.Transaction := gdcReportGroup.ReadTransaction;
     fSQL.SQL.Text := 'SELECT * FROM rp_reportgroup WHERE parent = :P';
-    fSQL.ParamByName('P').AsInteger := Id;
+    SetTID(fSQL.ParamByName('P'), Id);
     fSQL.ExecQuery;
     while not fSQL.Eof do
     begin
-      TN := AddReportFolderNode(Parent, fSQL.FieldByName(fnId).AsInteger,
+      TN := AddReportFolderNode(Parent, GetTID(fSQL.FieldByName(fnId)),
         fSQL.FieldByName(fnName).AsString);
-      TN.HasChildren := GetReportFolderChildrenCount(fSQL.FieldByName(fnId).AsInteger) > 0;
+      TN.HasChildren := GetReportFolderChildrenCount(GetTID(fSQL.FieldByName(fnId))) > 0;
       TCustomTreeFolder(TN.Data).ChildsCreated := not TN.HasChildren;
       fSQL.Next;
     end;
@@ -2041,12 +2062,13 @@ begin
       fSQl.SQL.Text := fSQl.SQL.Text + ' AND g_sec_test(aview, :U) <> 0';
       fSQL.ParamByName('U').AsInteger := IBLogin.InGroup;
     end;
-    fSQL.ParamByName('K').AsInteger := Id;
+    SetTID(fSQL.ParamByName('K'), Id);
     fSQL.ExecQuery;
     while not fSQL.Eof do
     begin
-      AddReportNode(Parent, fSQL.FieldByName(fnId).AsInteger,
-        fSQL.FieldByName(fnName).AsString);
+      AddReportNode(Parent, GetTID(fSQL.FieldByName(fnId)),
+        fSQL.FieldByName(fnName).AsString,
+        fSQL.FieldByName('displayinmenu').AsInteger <> 0);
       fSQL.Next;
     end;
   finally
@@ -2055,7 +2077,7 @@ begin
 end;
 
 function TdfPropertyTree.LoadReportFolderByObject(AParent: TTreeNode;
-  Id: Integer): TTreeNode;
+  Id: TID): TTreeNode;
 var
   SQL, oSQL: TIBSQL;
   TN: TTreeNode;
@@ -2076,14 +2098,14 @@ begin
       oSQL.Prepare;
       while not SQL.Eof do
       begin
-        TN := AddReportFolderNode(AParent, SQL.FieldByName(fnId).AsInteger,
+        TN := AddReportFolderNode(AParent, GetTID(SQL.FieldByName(fnId)),
           SQL.FieldByName(fnName).AsString);
-        oSQL.Params[0].AsInteger := SQL.FieldByName(fnId).AsInteger;
+        SetTID(oSQL.Params[0], SQL.FieldByName(fnId));
         oSQL.ExecQuery;
         try
           if not oSQL.Eof then
           begin
-            TReportTreeFolder(TN.Data).OwnerId := oSQL.FieldByName(fnId).AsInteger;
+            TReportTreeFolder(TN.Data).OwnerId := GetTID(oSQL.FieldByName(fnId));
             TReportTreeFolder(TN.Data).MainOwnerName := oSQL.FieldByName(fnName).AsString;
           end else
           begin
@@ -2094,7 +2116,7 @@ begin
           oSQL.Close;
         end;
 
-        TN.HasChildren := GetReportFolderChildrenCount(SQL.FieldByName(fnId).AsInteger) > 0;
+        TN.HasChildren := GetReportFolderChildrenCount(GetTID(SQL.FieldByName(fnId))) > 0;
         TCustomTreeFolder(TN.Data).ChildsCreated := not TN.HasChildren;
         SQL.Next;
       end;
@@ -2403,7 +2425,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindMethod(Id: Integer): TTreeNode;
+function TdfPropertyTree.FindMethod(Id: TID): TTreeNode;
 var
   SQL: TIBSQL;
   TN, PTN: TTreeNode;
@@ -2426,7 +2448,7 @@ begin
       '  o1.rb <= o2.rb ' +
       'ORDER BY ' +
       '  o2.lb';
-    SQl.Params[0].AsInteger := ID;
+    SetTID(SQl.Params[0], ID);
     SQL.ExecQuery;
     if not SQL.Eof then
     begin
@@ -2438,7 +2460,7 @@ begin
       while not SQL.Eof do
       begin
         //Попытка поиска нода в дереве
-        TN := FindNode(SQL.FieldByName(fnId).AsInteger, PTN);
+        TN := FindNode(GetTID(SQL.FieldByName(fnId)), PTN);
         { TODO : Добавление отфильтрованного касса }
         if not Assigned(TN) then
           TN := AddGDCClass(PTN, SQL.FieldByName(fnClassName).AsString,
@@ -2453,10 +2475,10 @@ begin
       if Assigned(PTN) then
       begin
         SQL.Close;
-        SQL.SQL.Text := 'SELECT id, eventname FROM evt_objectevent WHERE functionkey = ' +
-          IntToStr(Id);
+        SQL.SQL.Text := 'SELECT id, eventname FROM evt_objectevent WHERE functionkey = :ID';
+        SetTID(SQL.ParamByName('ID'), Id);
         SQL.ExecQuery;
-        Result := FindNode(SQL.Fields[0].AsInteger, PTN);
+        Result := FindNode(GetTID(SQL.Fields[0]), PTN);
         if not Assigned(Result) then
           Result := AddMethod(SQL.Fields[1].AsString, PTN);
       end;
@@ -2466,7 +2488,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindNode(ID: Integer;
+function TdfPropertyTree.FindNode(ID: TID;
   AParent: TTreeNode): TTreeNode;
 var
   N: TTreeNode;
@@ -2520,14 +2542,14 @@ begin
       SQL.SQL.Text := 'SELECT COUNT(*) FROM evt_objectevent e, evt_object o1, ' +
         ' evt_object o2 WHERE e.objectkey = o2.id AND o1.lb <= o2.lb AND ' +
         ' o1.rb >= o2.rb AND o1.id = :id AND e.FunctionKey > 0';
-      SQL.Params[0].AsInteger := C.Class_Key;
+      SetTID(SQL.Params[0], C.Class_Key);
       SQL.ExecQuery;
       C.SpecMethodCount := SQL.Fields[0].AsInteger;
       SQL.Close;
       SQL.SQL.Text := 'SELECT COUNT(*) FROM evt_objectevent e, evt_object o1, ' +
         ' evt_object o2 WHERE e.objectkey = o2.id AND o1.lb <= o2.lb AND ' +
         ' o1.rb >= o2.rb AND o1.id = :id AND e.disable = 1';
-      SQL.Params[0].AsInteger := C.Class_Key;
+      SetTID(SQL.Params[0], C.Class_Key);
       SQL.ExecQuery;
       C.SpecDisableMethod := SQL.Fields[0].AsInteger;
     finally
@@ -2660,14 +2682,14 @@ begin
   end;
 end;
 
-function TdfPropertyTree.IndexOfByObjId(Id: Integer): Integer;
+function TdfPropertyTree.IndexOfByObjId(Id: TID): Integer;
 var
   I: Integer;
 begin
   Result := - 1;
   for I := 0 to FPageControl.PageCount - 1 do
   begin
-    if FPageControl.Pages[I].Tag = Id then
+    if GetTID(FPageControl.Pages[I].Tag, Name) = Id then
     begin
       Result := I;
 //      if not TTreeTabSheet(FPageControl.Pages[I]).HandleAllocated then
@@ -2686,7 +2708,7 @@ begin
   try
     TS.PageControl := FPageControl;
     TS.Caption := 'APPLICATION';
-    TS.Tag := OBJ_APPLICATION;
+    TS.Tag := TID2Tag(OBJ_APPLICATION, Name);
     AppropriateHandlers(TS.Tree);
     TS.MacrosRootNode := LoadMacrosFolderByObject(nil, OBJ_APPLICATION, TS.Tree);
 
@@ -2784,7 +2806,7 @@ begin
 end;
 
 function TdfPropertyTree.AddMacrosFolderNode(Parent: TTreeNode;
-  Id: Integer; Name: string; TV: TCustomTreeView): TTreeNode;
+  Id: TID; Name: string; TV: TCustomTreeView): TTreeNode;
 var
   F: TMacrosTreeFolder;
 begin
@@ -2816,7 +2838,7 @@ begin
 end;
 
 function TdfPropertyTree.AddReportFolderNode(Parent: TTreeNode;
-  Id: Integer; Name: string; TV: TCustomTreeView): TTreeNode;
+  Id: TID; Name: string; TV: TCustomTreeView): TTreeNode;
 var
   F: TReportTreeFolder;
 begin
@@ -2834,7 +2856,7 @@ begin
   Result.Data := F;
 end;
 
-function TdfPropertyTree.GetPageByObjID(Id: Integer): TTreeTabSheet;
+function TdfPropertyTree.GetPageByObjID(Id: TID): TTreeTabSheet;
 var
   Index: Integer;
 begin
@@ -2868,7 +2890,7 @@ begin
     FTree.MacrosRootNode := Value;
 end;
 
-function TdfPropertyTree.FindMacros(Id: Integer): TTreeNode;
+function TdfPropertyTree.FindMacros(Id: TID): TTreeNode;
 var
   SQL, oSQL: TIBSQL;
   TN, PTN: TTreeNode;
@@ -2881,7 +2903,7 @@ begin
       'SELECT mg2.* FROM evt_macrosgroup mg1, evt_macrosgroup mg2, ' +
       '  evt_macroslist m WHERE m.functionkey = :id AND m.macrosgroupkey = mg1.id AND ' +
       '  mg1.lb >= mg2.lb AND mg1.rb <= mg2.rb ORDER BY mg2.lb';
-    SQl.Params[0].AsInteger := ID;
+    SetTID(SQl.Params[0], ID);
     SQL.ExecQuery;
     if not SQl.Eof then
     begin
@@ -2890,12 +2912,12 @@ begin
       oSQL := TIBSQL.Create(nil);
       try
         oSQL.Transaction := gdcDelphiObject.ReadTransaction;
-        oSQL.SQL.Text := 'SELECT * FROM evt_object WHERE macrosgroupkey = ' +
-          IntToStr(SQL.FieldByName(fnId).AsInteger);
+        oSQL.SQL.Text := 'SELECT * FROM evt_object WHERE macrosgroupkey = :fnID';
+        SetTID(oSQL.ParamByName('fnID'), SQL.FieldByName(fnId));
         oSQL.ExecQuery;
-        if not Assigned(GetPageByObjID(oSQL.FieldByName(fnId).AsInteger)) then
+        if not Assigned(GetPageByObjID(GetTID(oSQL.FieldByName(fnId)))) then
           Exit;
-        PTN := GetPageByObjID(oSQL.FieldByName(fnId).AsInteger).MacrosRootNode;
+        PTN := GetPageByObjID(GetTID(oSQL.FieldByName(fnId))).MacrosRootNode;
       finally
         oSQL.Free;
       end;
@@ -2906,7 +2928,7 @@ begin
       //Ищем по цепочке
       while not SQL.Eof do
       begin
-        TN := FindNode(SQL.FieldByName(fnId).AsInteger, PTN);
+        TN := FindNode(GetTID(SQL.FieldByName(fnId)), PTN);
         if not Assigned(TN) then
         begin
           if TCustomTreeItem(PTN.Data).Id = idMacrosRootFolder then
@@ -2917,8 +2939,8 @@ begin
               oSQL.SQL.Text := 'SELECT * FROM evt_object WHERE macrosgroupkey = ' +
                 SQL.FieldByName(fnId).AsString;
               oSQL.ExecQuery;
-              TN := LoadMacrosFolderByObject(PTN, oSQL.FieldByName(fnId).AsInteger, PTN.TreeView);
-              TMacrosTreeFolder(Result.Data).OwnerId := oSQL.FieldByName('ownerid').AsInteger;
+              TN := LoadMacrosFolderByObject(PTN, GetTID(oSQL.FieldByName(fnId)), PTN.TreeView);
+              TMacrosTreeFolder(Result.Data).OwnerId := GetTID(oSQL.FieldByName('ownerid'));
               TMacrosTreeFolder(Result.Data).MainOwnerName := oSQL.FieldByName('MainOwnerName').AsString;
             finally
               oSQl.Free;
@@ -2937,10 +2959,10 @@ begin
       begin
         //Ищем нод макроса
         SQL.Close;
-        SQL.SQL.Text := 'SELECT id FROM evt_macroslist WHERE functionkey = ' +
-          IntToStr(Id);
+        SQL.SQL.Text := 'SELECT id FROM evt_macroslist WHERE functionkey = :ID';
+        SetTID(SQL.ParamByName('ID'), Id);
         SQL.ExecQuery;
-        Result := FindNode(SQL.Fields[0].AsInteger, PTN);
+        Result := FindNode(GetTID(SQL.Fields[0]), PTN);
       end;
     end;
   finally
@@ -2958,14 +2980,14 @@ begin
   try
     TS.PageControl := FPageControl;
     TS.Caption := F.InitialName;
-    TS.Tag := gdcDelphiObject.AddObject(F);
+    TS.Tag := TID2Tag(gdcDelphiObject.AddObject(F), Name);
     AppropriateHandlers(TS.Tree);
-    TS.MacrosRootNode := LoadMacrosFolderByObject(nil, TS.Tag, TS.Tree);
+    TS.MacrosRootNode := LoadMacrosFolderByObject(nil, GetTID(TS.Tag, Name), TS.Tree);
     TS.ReportRootNode := TS.Tree.Items.AddChild(nil, 'Отчеты формы');
     TS.ReportRootNode.Data := TReportTreeFolder.Create;
-    TReportTreeFolder(TS.ReportRootNode.Data).OwnerId := TS.Tag;
+    TReportTreeFolder(TS.ReportRootNode.Data).OwnerId := GetTID(TS.Tag, Name);
     TReportTreeFolder(TS.ReportRootNode.Data).MainOwnerName := F.Name;
-    TReportTreeFolder(TS.ReportRootNode.Data).Id := CheckCreateLocalReportFolder(TS.Tag, F.InitialName);
+    TReportTreeFolder(TS.ReportRootNode.Data).Id := CheckCreateLocalReportFolder(GetTID(TS.Tag, Name), F.InitialName);
     if Assigned(TS.ReportRootNode) then
       TS.ReportRootNode.HasChildren := GetReportFolderChildrenCount(TReportTreeFolder(TS.ReportRootNode.Data).Id) > 0;
 
@@ -2995,11 +3017,11 @@ begin
 
     TS.VBClassRootNode := TS.Tree.Items.AddChild(nil, 'VB классы');
     TS.VBClassRootNode.Data := TVBClassTreeFolder.Create;
-    RefreshVBClassTreeRoot(TS.VBClassRootNode, TS.Tag, InitialName);
+    RefreshVBClassTreeRoot(TS.VBClassRootNode, GetTID(TS.Tag, Name), InitialName);
 
-    TS.ObjectsRootNode := AddFormNode(F, TS.Tag, TS.Tree);
+    TS.ObjectsRootNode := AddFormNode(F, GetTID(TS.Tag, Name), TS.Tree);
 
-    TS.SFRootNode := AddSfRootNode(TS.Tag, F.InitialName,TS.Tree);
+    TS.SFRootNode := AddSfRootNode(GetTID(TS.Tag, Name), F.InitialName,TS.Tree);
     Result := TS;
     cbObjectList.Items.AddObject(TS.Caption, TObject(F.ClassType));
     SetObjectIndex;
@@ -3008,7 +3030,7 @@ begin
   end;
 end;
 
-procedure TdfPropertyTree.AddLocalMacrosFolder(Id: Integer);
+procedure TdfPropertyTree.AddLocalMacrosFolder(Id: TID);
 begin
   if Id > 0 then
   begin
@@ -3029,14 +3051,14 @@ begin
             Integer(Id = OBJ_APPLICATION);
           gdcMacrosGroup.Post;
           gdcDelphiObject.Edit;
-          gdcDelphiObject.FieldByName(fnMacrosGroupKey).AsInteger :=
-            gdcMacrosGroup.FieldByName(fnId).AsInteger;
+          SetTID(gdcDelphiObject.FieldByName(fnMacrosGroupKey),
+            gdcMacrosGroup.FieldByName(fnId));
           gdcDelphiObject.Post;  
         finally
           gdcMacrosGroup.Close;
         end;
       end else
-        raise Exception.Create(Format('Не найден объект с id = %d', [id]));
+        raise Exception.Create(Format('Не найден объект с id = %d', [TID264(id)]));
     finally
       gdcDelphiObject.Close;
     end;
@@ -3128,7 +3150,7 @@ begin
   FillEvents(C, Parent);
 end;
 
-function TdfPropertyTree.AddFormNode(F: TForm; id: Integer; TV: TCustomTreeView): TTreeNode;
+function TdfPropertyTree.AddFormNode(F: TForm; id: TID; TV: TCustomTreeView): TTreeNode;
 var
   ObjectTreeItem: TFormTreeItem;
   EO: TEventObject;
@@ -3231,7 +3253,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindEvent(Id: Integer): TTreeNode;
+function TdfPropertyTree.FindEvent(Id: TID): TTreeNode;
 var
   SQL: TIBSQL;
   TN, PTN: TTreeNode;
@@ -3255,19 +3277,19 @@ begin
       '  o1.rb <= o2.rb ' +
       'ORDER BY ' +
       '  o2.lb';
-    SQl.Params[0].AsInteger := ID;
+    SetTID(SQl.Params[0], ID);
     SQL.ExecQuery;
     if not SQl.Eof then
     begin
       //Получаем коренную папку
-      if not Assigned(GetPageByObjID(SQL.FieldByName(fnId).AsInteger)) then
+      if not Assigned(GetPageByObjID(GetTID(SQL.FieldByName(fnId)))) then
       begin
         //Если страница не найдена то пытаемся создать
         F := GetForm(SQL.FieldByName(fnName).AsString);
         if Assigned(F) then AddFormPage(F) else Exit;
       end;
-      if GetPageByObjID(SQL.FieldByName(fnId).AsInteger) <> nil then
-        PTN := GetPageByObjID(SQL.FieldByName(fnId).AsInteger).ObjectsRootNode
+      if GetPageByObjID(GetTID(SQL.FieldByName(fnId))) <> nil then
+        PTN := GetPageByObjID(GetTID(SQL.FieldByName(fnId))).ObjectsRootNode
       else
         Exit;
         
@@ -3277,7 +3299,7 @@ begin
       while not SQL.Eof do
       begin
         //Попытка поиска нода в дереве
-        TN := FindNode(SQL.FieldByName(fnId).AsInteger, PTN);
+        TN := FindNode(GetTID(SQL.FieldByName(fnId)), PTN);
         { TODO : Добавление отфильтрованного касса }
         if not Assigned(TN) then Exit;
         PTN := TN;
@@ -3290,10 +3312,10 @@ begin
       if Assigned(PTN) then
       begin
         SQL.Close;
-        SQL.SQL.Text := 'SELECT id, eventname FROM evt_objectevent WHERE functionkey = ' +
-          IntToStr(Id);
+        SQL.SQL.Text := 'SELECT id, eventname FROM evt_objectevent WHERE functionkey = :ID';
+        SetTID(SQL.ParamByName('ID'), ID);
         SQL.ExecQuery;
-        Result := FindNode(SQL.Fields[0].AsInteger, PTN);
+        Result := FindNode(GetTID(SQL.Fields[0]), PTN);
       end;
     end;
   finally
@@ -3316,7 +3338,7 @@ begin
     SQL.ExecQuery;
     while not SQL.Eof do
     begin
-      TN := AddReportFolderNode(Parent, SQL.FieldByName(fnId).AsInteger,
+      TN := AddReportFolderNode(Parent, GetTID(SQL.FieldByName(fnId)),
         SQL.FieldByName(fnName).AsString);
 
       if SQL.FieldByName('ownerid').IsNull then
@@ -3325,10 +3347,10 @@ begin
         TReportTreeFolder(TN.Data).MainOwnerName := 'APPLICATION';
       end else
       begin
-        TReportTreeFolder(TN.Data).OwnerId := SQL.FieldByName('ownerid').AsInteger;
+        TReportTreeFolder(TN.Data).OwnerId := GetTID(SQL.FieldByName('ownerid'));
         TReportTreeFolder(TN.Data).MainOwnerName := SQL.FieldByName('mainownername').AsString;
       end;
-      TN.HasChildren := GetReportFolderChildrenCount(SQL.FieldByName(fnId).AsInteger) > 0;
+      TN.HasChildren := GetReportFolderChildrenCount(GetTID(SQL.FieldByName(fnId))) > 0;
       TCustomTreeFolder(TN.Data).ChildsCreated := not TN.HasChildren;
       SQL.Next;
     end;
@@ -3338,7 +3360,7 @@ begin
 end;
 
 function TdfPropertyTree.GetReportFolderChildrenCount(
-  Id: Integer): Integer;
+  Id: TID): Integer;
 {
 var
  oSQl: TIBSQL;
@@ -3365,7 +3387,7 @@ begin
 end;
 
 function TdfPropertyTree.CheckCreateLocalReportFolder(
-  Id: Integer; Name: string): Integer;
+  Id: TID; Name: string): TID;
 var
   SQl: TIBSQL;
   N: string;
@@ -3376,7 +3398,7 @@ begin
   try
     SQL.Transaction := gdcReportGroup.ReadTransaction;
     SQL.SQL.Text := 'SELECT r.* FROM evt_object o JOIN rp_reportgroup r ON o.reportgroupkey = r.id WHERE o.Id = :id';
-    SQL.Params[0].AsInteger := Id;
+    SetTID(SQL.Params[0], Id);
     SQL.ExecQuery;
     if SQL.Eof then
     begin
@@ -3406,7 +3428,7 @@ begin
           end;
         until SQL.RecordCount = 0;
 
-        gdcReportGroup.FieldByName(fnUserGroupName).AsString := IntToStr(gdcReportGroup.ID) +
+        gdcReportGroup.FieldByName(fnUserGroupName).AsString := TID2S(gdcReportGroup.ID) +
           '_' + IntToStr(GetDBID);
         gdcReportGroup.Post;
         gdcDelphiObject.ID := ID;
@@ -3415,26 +3437,26 @@ begin
           if not gdcDelphiObject.IsEmpty then
           begin
             gdcDelphiObject.Edit;
-            gdcDelphiObject.FieldByName(fnReportGroupKey).AsInteger :=
-              gdcReportGroup.FieldByName(fnId).AsInteger;
+            SetTID(gdcDelphiObject.FieldByName(fnReportGroupKey),
+              gdcReportGroup.FieldByName(fnId));
             gdcDelphiObject.Post;
           end else
-            raise Exception.Create(Format('Не найдем объект с id = %d',[ID]));
+            raise Exception.Create(Format('Не найдем объект с id = %d',[TID264(ID)]));
         finally
           gdcDelphiObject.Close;
         end;
-        Result := gdcReportGroup.FieldByName(fnId).AsInteger;
+        Result := GetTID(gdcReportGroup.FieldByName(fnId));
       finally
         gdcReportGroup.Close;
       end;
     end else
-      Result := SQL.FieldByName(fnId).AsInteger;
+      Result := GetTID(SQL.FieldByName(fnId));
   finally
     SQL.Free;
   end;
 end;
 
-function TdfPropertyTree.FindReportFunction(Id: Integer): TTreeNode;
+function TdfPropertyTree.FindReportFunction(Id: TID): TTreeNode;
 var
   SQL: TIBSQL;
 begin
@@ -3445,15 +3467,15 @@ begin
     SQL.SQL.Text :=
       'SELECT r.* FROM rp_reportlist r WHERE (r.mainformulakey = :id OR ' +
       '  r.paramformulakey = :id OR r.eventformulakey = :id )';
-    SQL.ParamByName('id').ASInteger := ID;
+    SetTID(SQL.ParamByName('id'), ID);
     SQL.ExecQuery;
-    Result := FindReport(SQL.FieldByName(fnId).AsInteger);
+    Result := FindReport(GetTID(SQL.FieldByName(fnId)));
   finally
     SQL.Free;
   end;
 end;
 
-function TdfPropertyTree.AddSfRootNode(Id: Integer; OwnerName: string; TV: TTReeView): TTreeNode;
+function TdfPropertyTree.AddSfRootNode(Id: TID; OwnerName: string; TV: TTReeView): TTreeNode;
 var
   SFI: TSFTreeFolder;
   SQL: TIBSQl;
@@ -3477,7 +3499,7 @@ begin
         ' JOIN evt_object o2 ON g.modulecode = o2.id ' +
         ' JOIN evt_object o1 ON o1.lb >= o2.lb AND o1.rb <= o2.rb WHERE ' +
         WhereClause;
-      SQL.Params[0].AsInteger := Id;
+      SetTID(SQL.Params[0], Id);
       SQL.ExecQuery;
       Result.HasChildren := not SQL.Eof;
     finally
@@ -3506,12 +3528,12 @@ begin
         '    o1.rb >= o2.rb AND o1.parent IS Null '#13#10 +
         '  WHERE o2.id = :id AND g.module = :m';
 
-      SQL.ParamByName('id').AsInteger := TCustomTreeFolder(Node.Data).OwnerId;
+      SetTID(SQL.ParamByName('id'), TCustomTreeFolder(Node.Data).OwnerId);
       SQL.ParamByName('m').AsString := scrPrologModuleName;
       SQL.ExecQuery;
       while not SQL.Eof do
       begin
-        AddPSFNode(Node, SQL.FieldByname(fnId).AsInteger, SQL.FieldByName(fnName).AsString);
+        AddPSFNode(Node, GetTID(SQL.FieldByname(fnId)), SQL.FieldByName(fnName).AsString);
         SQL.Next;
       end; 
     finally
@@ -3523,7 +3545,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.AddPrologSFRootNode(Id: Integer; OwnerName: string; TV: TTReeView): TTreeNode;
+function TdfPropertyTree.AddPrologSFRootNode(Id: TID; OwnerName: string; TV: TTReeView): TTreeNode;
 var
   PSFI: TPrologTreeFolder;
   SQL: TIBSQL;
@@ -3545,7 +3567,7 @@ begin
       ' JOIN evt_object o1 ON o1.lb >= o2.lb AND o1.rb <= o2.rb ' +
       'WHERE o2.id = :id AND module = :module';
 
-    SQL.ParamByName('id').AsInteger := Id;
+    SetTID(SQL.ParamByName('id'), Id);
     SQL.ParamByName('module').AsString := scrPrologModuleName;
     SQL.ExecQuery;
     Result.HasChildren := not SQL.Eof;
@@ -3578,11 +3600,11 @@ begin
           '    o1.rb >= o2.rb AND o1.parent Is Null '#13#10 +
           '  WHERE ' +
           WhereClause + ' ORDER BY g.Module';
-        SQL.Params[0].AsInteger := TCustomTreeFolder(Node.Data).OwnerId;
+        SetTID(SQL.Params[0], TCustomTreeFolder(Node.Data).OwnerId);
         SQL.ExecQuery;
         while not SQL.Eof do
         begin
-          TN := AddSFNode(Node, SQL.FieldByname(fnId).AsInteger, SQL.FieldByName(fnName).AsString);
+          TN := AddSFNode(Node, GetTID(SQL.FieldByname(fnId)), SQL.FieldByName(fnName).AsString);
           TSFTreeItem(TN.Data).SFType := GetSFType(SQL.FieldByName(fnModule).AsString);
           SQL.Next;
         end;
@@ -3596,7 +3618,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.AddSFNode(Parent: TTreeNode; id: Integer;
+function TdfPropertyTree.AddSFNode(Parent: TTreeNode; id: TID;
   Name: string): TTreeNode;
 var
   SI: TSFTreeItem;
@@ -3650,7 +3672,7 @@ begin
     LoadPrologSF(TN);
 end;
 
-function TdfPropertyTree.AddPSFNode(Parent: TTreeNode; id: Integer; Name: string): TTreeNode;
+function TdfPropertyTree.AddPSFNode(Parent: TTreeNode; id: TID; Name: string): TTreeNode;
 var
   PI: TPrologTreeItem;
 begin
@@ -3700,7 +3722,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindVBClass(Id: Integer): TTreeNode;
+function TdfPropertyTree.FindVBClass(Id: TID): TTreeNode;
 var
   J: Integer;
   TN: TTreeNode;
@@ -3726,7 +3748,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindConst(Id: Integer): TTreeNode;
+function TdfPropertyTree.FindConst(Id: TID): TTreeNode;
 var
   TN: TTreeNode;
   TS: TTreeTabSheet;
@@ -3748,7 +3770,7 @@ begin
   end
 end;
 
-function TdfPropertyTree.FindGO(ID: Integer): TTreeNode;
+function TdfPropertyTree.FindGO(ID: TID): TTreeNode;
 var
   TN: TTreeNode;
   TS: TTreeTabSheet;
@@ -3770,9 +3792,9 @@ begin
   end
 end;
 
-procedure TdfPropertyTree.FunctionNotFound(ID: Integer);
+procedure TdfPropertyTree.FunctionNotFound(ID: TID);
 begin
-  raise Exception.Create(Format('Функция с id = %d в базе не найдена', [ID]));
+  raise Exception.Create(Format('Функция с id = %d в базе не найдена', [TID264(ID)]));
 end;
 
 function TdfPropertyTree.GetSFType(Module: string): sfTypes;
@@ -3819,7 +3841,7 @@ begin
   SetFocusedControl(cbObjectList);
   for I := FPageControl.PageCount - 1 downto 0 do
   begin
-    if TTreeTabSheet(FPageControl.Pages[I]).Tag <> OBJ_APPLICATION then
+    if GetTID(TTreeTabSheet(FPageControl.Pages[I]).Tag, Name) <> OBJ_APPLICATION then
     begin
       TS := TTreeTabSheet(FPageControl.Pages[I]);
       TS.ObjectsRootNode.DeleteChildren;
@@ -3849,7 +3871,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.GetSFWhereClause(const AnID: Integer): String;
+function TdfPropertyTree.GetSFWhereClause(const AnID: TID): String;
 var
   S: string;
 //  b: boolean;
@@ -3908,7 +3930,8 @@ end;
 
 function TdfPropertyTree.CheckFormPage(F: TCreateableForm): TTreeTabSheet;
 var
-  ObjId, Index: Integer;
+  ObjId: TID;
+  Index: Integer;
 begin
   Result := nil;
   if Assigned(F) then
@@ -3930,7 +3953,7 @@ begin
 end;
 
 procedure TdfPropertyTree.OpenEvent(Component: TComponent;
-  EventName: string; const AFunctionID: integer = 0);
+  EventName: string; const AFunctionID: TID = 0);
 var
   TN: TTreeNode;
   F: TBaseFrame;
@@ -4163,7 +4186,7 @@ begin
   end;    
 end;
 
-function TdfPropertyTree.FindReport(Id: Integer): TTreeNode;
+function TdfPropertyTree.FindReport(Id: TID): TTreeNode;
 var
   SQL: TIBSQL;
   PTN: TTreeNode;
@@ -4175,10 +4198,10 @@ begin
     //Вытягиваем дерево папок, содерж. отчёт
     SQL.SQL.Text := 'SELECT * FROM rp_reportlist WHERE id = :id ';
 
-    SQl.Params[0].AsInteger := ID;
+    SetTID(SQl.Params[0],ID);
     SQL.ExecQuery;
 
-    PTN := FindReportFolder(SQL.FieldByName(fnReportGroupKey).AsInteger);
+    PTN := FindReportFolder(GetTID(SQL.FieldByName(fnReportGroupKey)));
 
     //Если папка найдена то ищем нод отчёта
     if Assigned(PTN) then Result := FindNode(ID, PTN);
@@ -4187,7 +4210,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.OpenReport(ID: integer): Boolean;
+function TdfPropertyTree.OpenReport(ID: TID): Boolean;
 var
   TN: TTreeNode;
 begin
@@ -4204,7 +4227,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindReportFolder(Id: Integer; OnlyApplication: Boolean = False): TTreeNode;
+function TdfPropertyTree.FindReportFolder(Id: TID; OnlyApplication: Boolean = False): TTreeNode;
 var
   SQL: TIBSQL;
   TN, PTN: TTreeNode;
@@ -4220,7 +4243,7 @@ begin
       '  WHERE rg1.id = :id AND rg1.lb >= rg2.lb AND rg1.rb <= rg2.rb ' +
       '  ORDER BY rg2.lb';
 
-    SQl.Params[0].AsInteger := ID;
+    SetTID(SQl.Params[0], ID);
     SQL.ExecQuery;
 
     PTN := nil;
@@ -4230,13 +4253,13 @@ begin
       begin
         for I := 0 to FPageControl.PageCount - 1 do
         begin
-          if FPageControl.Pages[I].Tag <> OBJ_APPLICATION then
+          if GetTID(FPageControl.Pages[I].Tag, Name) <> OBJ_APPLICATION then
           begin
           //Пытаемся найти у форм
             TN := TTreeTabSheet(FPageControl.Pages[I]).ReportRootNode;
             if TN <> nil then
             begin
-              if SQL.FieldByName(fnId).AsInteger = TCustomTreeItem(TN.Data).Id then
+              if GetTID(SQL.FieldByName(fnId)) = TCustomTreeItem(TN.Data).Id then
               begin
                 PTN := TN;
                 SQL.Next;
@@ -4247,7 +4270,7 @@ begin
             TN := TTreeTabSheet(FPageControl.Pages[I]).gdcReportRootNode;
             if TN <> nil then
             begin
-              if SQL.FieldByName(fnId).AsInteger = TCustomTreeItem(TN.Data).Id then
+              if GetTID(SQL.FieldByName(fnId)) = TCustomTreeItem(TN.Data).Id then
               begin
                 PTN := TN;
                 SQL.Next;
@@ -4275,7 +4298,7 @@ begin
       //Если чтото не так - выходим
       while not SQL.Eof do
       begin
-        TN := FindNode(SQL.FieldByName(fnId).AsInteger, PTN);
+        TN := FindNode(GetTID(SQL.FieldByName(fnId)), PTN);
         if not Assigned(TN) then Exit;
         PTN := TN;
         if Assigned(PTN) then
@@ -5153,7 +5176,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.OpenMacros(MacrosKey: integer): Boolean;
+function TdfPropertyTree.OpenMacros(MacrosKey: TID): Boolean;
 var
   TN: TTreeNode;
 begin
@@ -5168,7 +5191,7 @@ begin
   end;
 end;
 
-function TdfPropertyTree.FindMacrosByKey(MacrosKey: Integer): TTreeNode;
+function TdfPropertyTree.FindMacrosByKey(MacrosKey: TID): TTreeNode;
 var
   PTN: TTreeNode;
   I: Integer;
@@ -5184,7 +5207,7 @@ begin
   end;
 end;
 
-procedure TdfPropertyTree.CheckCreateGDCReportFolder(const AnID: Integer; AnObj: TgdcBase);
+procedure TdfPropertyTree.CheckCreateGDCReportFolder(const AnID: TID; AnObj: TgdcBase);
 var
   q: TIBSQL;
   UGN: String;
@@ -5200,7 +5223,7 @@ begin
       q.Transaction := AnObj.ReadTransaction;
     q.SQL.Text :=
       'SELECT r.id FROM rp_reportgroup r WHERE r.id = :id OR r.usergroupname = :UGN';
-    q.ParamByName('id').AsInteger := AnID;
+    SetTID(q.ParamByName('id'), AnID);
     q.ParamByName('ugn').AsString := UGN;
     q.ExecQuery;
     if q.Eof then
@@ -5208,7 +5231,7 @@ begin
       gdcReportGroup.Open;
       try
         gdcReportGroup.Insert;
-        gdcReportGroup.FieldByName(fnid).AsInteger := AnID;
+        SetTID(gdcReportGroup.FieldByName(fnid), AnID);
         gdcReportGroup.FieldByName(fnName).AsString := AnObj.GetDisplayName(AnObj.SubType);
         gdcReportGroup.FieldByName(fnUserGroupName).AsString := UGN;
         gdcReportGroup.Post;

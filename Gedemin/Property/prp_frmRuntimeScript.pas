@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 unit prp_frmRuntimeScript;
 
 interface
@@ -70,7 +72,7 @@ implementation
 
 uses
   prp_PropertySettings, gd_i_Scriptfactory, scr_i_FunctionList, mtd_i_Base,
-  prp_frmGedeminProperty_Unit, Storages;
+  prp_frmGedeminProperty_Unit, Storages, gdcBaseInterface;
 
 
 procedure TfrmRuntimeScript.EndRunScript(Sender: TObject;
@@ -129,9 +131,9 @@ begin
   end;
   with RuntimeRec do
   begin
-    Str := Format(rtStr, [FunctionKey, RuntimeTicks, FunctionName]) +
+    Str := Format(rtStr, [TID264(FunctionKey), RuntimeTicks, FunctionName]) +
       TimeToStr(BeginTime);
-    lbRunTime.Items.AddObject(Str, TObject(FunctionKey));
+    lbRunTime.Items.AddObject(Str, TID2TObject(FunctionKey, cEmptyContext));
   end;
 end;
 
@@ -210,9 +212,9 @@ end;
 procedure TfrmRuntimeScript.actGotoFunctionExecute(Sender: TObject);
 begin
   if (lbRunTime.ItemIndex > -1) and
-    (Integer(lbRunTime.Items.Objects[lbRunTime.ItemIndex]) > 0) then
+    (GetTID(lbRunTime.Items.Objects[lbRunTime.ItemIndex], cEmptyContext) > 0) then
     TfrmGedeminProperty(DockForm).FindAndEdit(
-      Integer(lbRunTime.Items.Objects[lbRunTime.ItemIndex]), 0, 0);
+      GetTID(lbRunTime.Items.Objects[lbRunTime.ItemIndex], cEmptyContext), 0, 0);
 end;
 
 procedure TfrmRuntimeScript.lbRunTimeDblClick(Sender: TObject);

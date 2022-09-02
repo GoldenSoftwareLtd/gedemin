@@ -1,3 +1,4 @@
+// ShlTanya, 21.02.2019
 var
   q: TIBSQL;
   US, OldUS: TgsUserStorage;
@@ -22,13 +23,13 @@ begin
     Screen.Cursor := crHourGlass;
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text := 'SELECT id FROM gd_user WHERE id <> ' +
-      IntToStr(IBLogin.UserKey);
+      TID2S(IBLogin.UserKey);
     q.ExecQuery;
     while not q.EOF do
     begin
       US := TgsUserStorage.Create;
       try
-        US.ObjectKey := q.Fields[0].AsInteger;
+        US.ObjectKey := GetTID(q.Fields[0]);
         OldUS := UserStorage;
         OldCFS := CreateableFormState;
         Include(FCreateableFormState, cfsDistributeSettings);

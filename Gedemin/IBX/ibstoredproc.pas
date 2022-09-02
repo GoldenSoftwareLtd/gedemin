@@ -454,8 +454,8 @@ begin
           SQLParams[i].AsShort := Params[j].AsSmallInt;
         ftInteger:
           SQLParams[i].AsLong := Params[j].AsInteger;
-{        ftLargeInt:
-          SQLParams[i].AsInt64 := Params[j].AsLargeInt; }
+        ftLargeInt:
+          SQLParams[i].AsString := Params[j].AsString;
         ftFloat, ftCurrency:
          SQLParams[i].AsDouble := Params[j].AsFloat;
         ftBCD:
@@ -504,7 +504,12 @@ begin
   for i := 0 to FParams.Count - 1 do
     with Params[I] do
       if ParamType = ptOutput then begin
-         Value := QSelect.Fields[j].Value;
+        if DataType <> ftLargeint then
+          Value := QSelect.Fields[j].Value
+        else
+        begin
+          Params[i].Value := QSelect.Fields[j].AsString;
+        end;
          Inc(j);
       end;
 end;

@@ -18,7 +18,7 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 694
+    Width = 686
     Height = 114
     Align = alTop
     BevelOuter = bvNone
@@ -26,7 +26,7 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
     object ibgrLine: TgsIBGrid
       Left = 0
       Top = 0
-      Width = 694
+      Width = 686
       Height = 66
       TabStop = False
       Align = alClient
@@ -51,7 +51,7 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
     object Memo1: TMemo
       Left = 0
       Top = 66
-      Width = 694
+      Width = 686
       Height = 48
       TabStop = False
       Align = alBottom
@@ -66,11 +66,11 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
           'По указанной позиции существует движение по указанным ниже докум' +
           'ентам.'
         
-          'Произведенные изменения могут привести к некорректности докумен' +
-          'тов или проводок по ним.'
+          'Произведенные изменения могут привести к некорректности документ' +
+          'ов или проводок по ним.'
         
-          'Проверьте, пожалуйста, и примите решение о сохранении изменений (O' +
-          'K) или их отмене (Отмена).'
+          'Проверьте, пожалуйста, и примите решение о сохранении изменений ' +
+          '(OK) или их отмене (Отмена).'
         ' '
         ' ')
       ParentFont = False
@@ -80,8 +80,8 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
   end
   object Panel2: TPanel
     Left = 0
-    Top = 412
-    Width = 694
+    Top = 400
+    Width = 686
     Height = 41
     Align = alBottom
     BevelOuter = bvNone
@@ -118,15 +118,15 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
   object Panel3: TPanel
     Left = 0
     Top = 114
-    Width = 694
-    Height = 298
+    Width = 686
+    Height = 286
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
     object Splitter1: TSplitter
       Left = 0
       Top = 153
-      Width = 694
+      Width = 686
       Height = 3
       Cursor = crVSplit
       Align = alTop
@@ -134,7 +134,7 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
     object Panel4: TPanel
       Left = 0
       Top = 0
-      Width = 694
+      Width = 686
       Height = 153
       Align = alTop
       BevelInner = bvLowered
@@ -145,7 +145,7 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
       object Label1: TLabel
         Left = 5
         Top = 5
-        Width = 684
+        Width = 676
         Height = 13
         Align = alTop
         Alignment = taCenter
@@ -154,7 +154,7 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
       object ibgrDocument: TgsIBGrid
         Left = 5
         Top = 18
-        Width = 684
+        Width = 676
         Height = 130
         Align = alClient
         DataSource = dsDocument
@@ -176,8 +176,8 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
     object Panel5: TPanel
       Left = 0
       Top = 156
-      Width = 694
-      Height = 142
+      Width = 686
+      Height = 130
       Align = alClient
       BevelInner = bvLowered
       BevelOuter = bvNone
@@ -187,7 +187,7 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
       object Label2: TLabel
         Left = 5
         Top = 5
-        Width = 684
+        Width = 676
         Height = 13
         Align = alTop
         Alignment = taCenter
@@ -196,8 +196,8 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
       object ibgrEntry: TgsIBGrid
         Left = 5
         Top = 18
-        Width = 684
-        Height = 119
+        Width = 676
+        Height = 107
         Align = alClient
         DataSource = dsEntry
         TabOrder = 0
@@ -232,7 +232,6 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
   end
   object ibdsDocument: TIBDataSet
     Transaction = ibtrCommon
-    BufferChunks = 100
     SelectSQL.Strings = (
       'select doct.name, doc.number, doc.documentdate, doc1.printdate,'
       
@@ -256,7 +255,6 @@ object gdc_dlgShowMovement: Tgdc_dlgShowMovement
   end
   object ibdsEntry: TIBDataSet
     Transaction = ibtrCommon
-    BufferChunks = 100
     SelectSQL.Strings = (
       'select a.alias, e.debitncu, e.creditncu from'
       '  ac_record r'

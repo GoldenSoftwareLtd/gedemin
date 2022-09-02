@@ -1,3 +1,4 @@
+// ShlTanya, 17.02.2019
 
 {++
          28.08.2003     Yuri     Подправил работу с таблицей (св-во ChangeDestEnabled)
@@ -10,7 +11,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, ActnList, StdCtrls, Buttons, gsIBLookupComboBox, ExtCtrls,
-  Grids, jpeg, gsDBReduction, ImgList, Menus;
+  Grids, jpeg, gsDBReduction, ImgList, Menus, gdHelp_Interface;
 
 type
   TdlgWizard = class(TForm)
@@ -52,6 +53,8 @@ type
     Label5: TLabel;
     Label6: TLabel;
     rgAfterAction: TRadioGroup;
+    btnHelp: TBitBtn;
+    actHelp: TAction;
     procedure actExitExecute(Sender: TObject);
     procedure actNextUpdate(Sender: TObject);
     procedure actPriorUpdate(Sender: TObject);
@@ -70,6 +73,7 @@ type
     procedure actSumUpdate(Sender: TObject);
     procedure actChangeExecute(Sender: TObject);
     procedure actChangeUpdate(Sender: TObject);
+    procedure actHelpExecute(Sender: TObject);
   private
     FReduction: TgsDBReductionWizard;
     FisReduction: Boolean;
@@ -483,6 +487,11 @@ end;
 procedure TdlgWizard.actChangeUpdate(Sender: TObject);
 begin
   actChange.Enabled := (gsibluCondemned.CurrentKey <> gsibluMaster.CurrentKey);
+end;
+
+procedure TdlgWizard.actHelpExecute(Sender: TObject);
+begin
+  ShowHelp('Объединение записей');
 end;
 
 end.

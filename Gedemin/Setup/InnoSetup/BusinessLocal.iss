@@ -5,4 +5,6 @@
 #define public GedSafeAppName "Комплексная автоматизация"
 #define public DBFileOnlyName "business"
 
+#define public Demo "True"
+
 #include "CommonLocal.iss"

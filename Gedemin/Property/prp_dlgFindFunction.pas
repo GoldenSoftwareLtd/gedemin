@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 unit prp_dlgFindFunction;
 
 interface
@@ -39,7 +41,7 @@ begin
   CanClose := ModalResult = mrCancel;
   if ModalResult = mrOk then
   try
-    StrToInt(eId.Text);
+    StrToInt64(eId.Text);
     CanClose := True;
   except
     on E: Exception do

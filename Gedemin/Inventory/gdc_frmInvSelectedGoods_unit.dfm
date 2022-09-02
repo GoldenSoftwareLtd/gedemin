@@ -11,14 +11,14 @@ inherited gdc_frmInvSelectedGoods: Tgdc_frmInvSelectedGoods
         Left = 286
         Top = 0
         Width = 3
-        Height = 564
+        Height = 474
         Cursor = crHSplit
       end
       object tvMain: TgsDBTreeView
         Left = 160
         Top = 0
         Width = 126
-        Height = 564
+        Height = 474
         DataSource = dsGoodGroup
         KeyField = 'ID'
         ParentField = 'PARENT'
@@ -42,7 +42,7 @@ inherited gdc_frmInvSelectedGoods: Tgdc_frmInvSelectedGoods
         Left = 289
         Top = 0
         Width = 736
-        Height = 564
+        Height = 474
         HelpContext = 3
         Align = alClient
         Ctl3D = True

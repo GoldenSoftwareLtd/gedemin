@@ -1,7 +1,8 @@
+// ShlTanya, 10.02.2019
 
 {++
 
-  Copyright (c) 2001-2018 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2022 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -102,7 +103,7 @@ type
     FNeedSingleUser: Boolean;
     FSkipMetadata: Boolean;
     FMetaDataScript: TgdcMetadataScript;
-    FDeletedID: Integer;
+    FDeletedID: TID;
 
     function GetIsUserDefined: Boolean; virtual;
     function GetIsFirebirdObject: Boolean; virtual;
@@ -140,7 +141,7 @@ type
     procedure CustomModify(Buff: Pointer); override;
 
     procedure GetMetadataScript(S: TSQLProcessList; const AMetadata: TgdcMetadataScript); virtual;
-    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); virtual;
+    procedure SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript); virtual;
     procedure SyncRDBObjects; virtual;
     procedure CheckDependencies; virtual;
     procedure DropDependencies; virtual;
@@ -186,7 +187,7 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetFirebirdObjectNameField: String; override;
-    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
+    procedure SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript); override;
 
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -207,7 +208,7 @@ type
   protected
     procedure GetMetadataScript(S: TSQLProcessList;
       const AMetadata: TgdcMetadataScript); override;
-    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
+    procedure SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript); override;
     procedure CheckDependencies; override;
     procedure DropDependencies; override;
     function GetFirebirdObjectNameField: String; override;
@@ -246,6 +247,7 @@ type
     FOnCustomTable: TgdcOnCustomTable;
 
   protected
+    function CreateGenerator: String;
     function CreateInsertTrigger: String;
     function CreateEditorForeignKey: String;
     procedure GetMetadataScript(S: TSQLProcessList;
@@ -290,7 +292,7 @@ type
 
   TgdcTable = class(TgdcBaseTable)
   protected
-    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
+    procedure SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript); override;
   end;
 
   TgdcPrimeTable = class(TgdcTable)
@@ -318,7 +320,7 @@ type
   protected
     procedure GetMetadataScript(S: TSQLProcessList;
       const AMetadata: TgdcMetadataScript); override;
-    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
+    procedure SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript); override;
     procedure MakePredefinedObjects; override;
 
   public
@@ -411,7 +413,7 @@ type
     procedure GetMetadataScript(S: TSQLProcessList;
       const AMetadata: TgdcMetadataScript); override;
     procedure MakePredefinedObjects; override;
-    procedure SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript); override;
+    procedure SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript); override;
     procedure SyncRDBObjects; override;
     procedure _DoOnNewRecord; override;
     procedure CustomInsert(Buff: Pointer); override;
@@ -687,7 +689,7 @@ begin
   );
 end;
 
-function GetFieldType(const AnID: Integer): Integer;
+function GetFieldType(const AnID: TID): Integer;
 var
   Obj: TgdcField;
 begin
@@ -1349,15 +1351,15 @@ begin
           q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('reftable').AsString));
           q.ExecQuery;
           if not q.EOF then
-            FieldByName('reftablekey').AsInteger := q.FieldByName('id').AsInteger;
+            SetTID(FieldByName('reftablekey'), q.FieldByName('id'));
         end;
 
         if (Trim(FieldByName('reftable').AsString) = '') and
-          (FieldByName('reftablekey').AsInteger > 0) then
+          (GetTID(FieldByName('reftablekey')) > 0) then
         begin
           q.Close;
           q.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
-          q.ParamByName('id').AsInteger := FieldByName('reftablekey').AsInteger;
+          SetTID(q.ParamByName('id'), FieldByName('reftablekey'));
           q.ExecQuery;
           if not q.EOF then
             FieldByName('reftable').AsString := q.FieldByName('relationname').AsString;
@@ -1373,15 +1375,15 @@ begin
           q.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('reflistfield').AsString));
           q.ExecQuery;
           if not q.EOF then
-            FieldByName('reflistfieldkey').AsInteger := q.FieldByName('id').AsInteger;
+            SetTID(FieldByName('reflistfieldkey'), q.FieldByName('id'));
         end;
 
         if (Trim(FieldByName('reflistfield').AsString) = '') and
-          (FieldByName('reflistfieldkey').AsInteger > 0) then
+          (GetTID(FieldByName('reflistfieldkey')) > 0) then
         begin
           q.Close;
           q.SQL.Text := 'SELECT fieldname FROM at_relation_fields WHERE id = :id';
-          q.ParamByName('id').AsInteger := FieldByName('reflistfieldkey').AsInteger;
+          SetTID(q.ParamByName('id'), FieldByName('reflistfieldkey'));
           q.ExecQuery;
           if not q.EOF then
             FieldByName('reflistfield').AsString := q.FieldByName('fieldname').AsString;
@@ -1396,15 +1398,15 @@ begin
           q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('settable').AsString));
           q.ExecQuery;
           if not q.EOF then
-            FieldByName('settablekey').AsInteger := q.FieldByName('id').AsInteger;
+            SetTID(FieldByName('settablekey'), q.FieldByName('id'));
         end;
 
         if (Trim(FieldByName('settable').AsString) = '') and
-          (FieldByName('settablekey').AsInteger > 0) then
+          (GetTID(FieldByName('settablekey')) > 0) then
         begin
           q.Close;
           q.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
-          q.ParamByName('id').AsInteger := FieldByName('settablekey').AsInteger;
+          SetTID(q.ParamByName('id'), FieldByName('settablekey'));
           q.ExecQuery;
           if not q.EOF then
             FieldByName('settable').AsString := q.FieldByName('relationname').AsString;
@@ -1420,15 +1422,15 @@ begin
           q.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('setlistfield').AsString));
           q.ExecQuery;
           if not q.EOF then
-            FieldByName('setlistfieldkey').AsInteger := q.FieldByName('id').AsInteger;
+            SetTID(FieldByName('setlistfieldkey'), q.FieldByName('id'));
         end;
 
         if (Trim(FieldByName('setlistfield').AsString) = '') and
-          (FieldByName('setlistfieldkey').AsInteger > 0) then
+          (GetTID(FieldByName('setlistfieldkey')) > 0) then
         begin
           q.Close;
           q.SQL.Text := 'SELECT fieldname FROM at_relation_fields WHERE id = :id';
-          q.ParamByName('id').AsInteger := FieldByName('setlistfieldkey').AsInteger;
+          SetTID(q.ParamByName('id'), FieldByName('setlistfieldkey'));
           q.ExecQuery;
           if not q.EOF then
             FieldByName('setlistfield').AsString := q.FieldByName('fieldname').AsString;
@@ -1480,7 +1482,7 @@ begin
   Result := 'fieldname';
 end;
 
-procedure TgdcField.SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript);
+procedure TgdcField.SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript);
 begin
   inherited;
 
@@ -1638,7 +1640,7 @@ begin
 
       q.SQL.Text := 'SELECT * FROM at_relations WHERE UPPER(lname) = :lname and id <> :id';
       q.ParamByName('lname').AsString := AnsiUpperCase(FieldByName('lname').AsString);
-      q.ParamByName('id').AsInteger := ID;
+      SetTID(q.ParamByName('id'), ID);
       q.ExecQuery;
 
       if not q.EOF then
@@ -1657,7 +1659,7 @@ begin
       q.Close;
       q.SQL.Text := 'SELECT * FROM at_relations WHERE UPPER(lshortname) = :lshortname and id <> :id';
       q.ParamByName('lshortname').AsString := AnsiUpperCase(FieldByName('lshortname').AsString);
-      q.ParamByName('id').AsInteger := ID;
+      SetTID(q.ParamByName('id'), ID);
       q.ExecQuery;
 
       if not q.EOF then
@@ -1836,7 +1838,7 @@ begin
   end;
 end;
 
-procedure TgdcRelation.SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript);
+procedure TgdcRelation.SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript);
 var
   R: TatRelation;
 begin
@@ -1873,7 +1875,7 @@ begin
     try
       gdcTrigger.Transaction := Transaction;
       gdcTrigger.SubSet := 'ByRelation,OnlyAttribute';
-      gdcTrigger.ParamByName('relationkey').AsInteger := ID;
+      SetTID(gdcTrigger.ParamByName('relationkey'), ID);
       gdcTrigger.Open;
       while not gdcTrigger.EOF do
         gdcTrigger.Delete;
@@ -1888,12 +1890,12 @@ begin
       q.SQL.Text :=
         'SELECT id, crosstablekey, crosstable FROM at_relation_fields ' +
         'WHERE relationkey = :relationkey AND crosstablekey IS NOT NULL ';
-      q.ParamByName('relationkey').AsInteger := ID;
+      SetTID(q.ParamByName('relationkey'), ID);
       q.ExecQuery;
 
       while not q.Eof do
       begin
-        gdcRelField.ID := q.FieldByName('id').AsInteger;
+        gdcRelField.ID := GetTID(q.FieldByName('id'));
         gdcRelField.Open;
         if not gdcRelField.EOF then
           gdcRelField.Delete;
@@ -1935,21 +1937,46 @@ end;
 
 { TgdcTable }
 
-function TGDCBASETABLE.CreateInsertTrigger: String;
+function TgdcBaseTable.CreateInsertTrigger: String;
+var
+  GeneratorStr: String;
 begin
-  Result := Format
-  (
-    'CREATE OR ALTER TRIGGER %1:s FOR %0:s '#13#10 +
-    '  BEFORE INSERT '#13#10 +
-    '  POSITION 0 '#13#10 +
-    'AS '#13#10 +
-    'BEGIN '#13#10 +
-    '  IF (NEW.id IS NULL) THEN '#13#10 +
-    '    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1); '#13#10 +
-    'END',
-    [FieldByName('relationname').AsString,
-     gdcBaseManager.AdjustMetaName('usr$bi_' + FieldByName('relationname').AsString)]
-  );
+  if FieldByName('generatorname').AsString = '' then
+  begin
+    Result := Format
+    (
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s '#13#10 +
+      '  BEFORE INSERT '#13#10 +
+      '  POSITION 0 '#13#10 +
+      'AS '#13#10 +
+      'BEGIN '#13#10 +
+      '  IF (NEW.id IS NULL) THEN '#13#10 +
+      '    EXECUTE PROCEDURE gd_p_getnextid_ex '#13#10 +
+      '      RETURNING_VALUES NEW.id; '#13#10 +
+      'END',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('usr$bi_' + FieldByName('relationname').AsString)]
+    );
+  end else
+  begin
+    GeneratorStr := Format('GEN_ID(gd_g_offset, 0) + GEN_ID(%0:s, 1)',
+      [FieldByName('generatorname').AsString]);
+
+    Result := Format
+    (
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s '#13#10 +
+      '  BEFORE INSERT '#13#10 +
+      '  POSITION 0 '#13#10 +
+      'AS '#13#10 +
+      'BEGIN '#13#10 +
+      '  IF (NEW.id IS NULL) THEN '#13#10 +
+      '    NEW.id = %2:s;'#13#10 +
+      'END',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('usr$bi_' + FieldByName('relationname').AsString),
+       GeneratorStr]
+    );
+  end;
 end;
 
 procedure TgdcBaseTable.NewField(FieldName,
@@ -1957,7 +1984,7 @@ procedure TgdcBaseTable.NewField(FieldName,
   ReadOnly, Visible: String);
 var
   q: TIBSQL;
-  FSK: Integer;
+  FSK: TID;
   DidActivate: Boolean;
 begin
   Assert(Transaction <> nil);
@@ -1974,7 +2001,7 @@ begin
     if q.EOF then
       raise EgdcIBError.Create('Invalid field source')
     else
-      FSK := q.Fields[0].AsInteger;
+      FSK := GetTID(q.Fields[0]);
     q.Close;
 
     q.SQL.Text :=
@@ -1985,11 +2012,11 @@ begin
       '  (:relationname, :relationkey, :fieldname, :lname, :fieldsource, :fieldsourcekey, :description, ' +
       '   :lshortname, :alignment, :colwidth, :readonly, :visible, :afull, :achag, :aview) ';
     q.ParamByName('relationname').AsString := FieldByName('relationname').AsString;
-    q.ParamByName('relationkey').AsInteger := ID;
+    SetTID(q.ParamByName('relationkey'), ID);
     q.ParamByName('fieldname').AsString := FieldName;
     q.ParamByName('lname').AsString := LName;
     q.ParamByName('fieldsource').AsString := FieldSource;
-    q.ParamByName('fieldsourcekey').AsInteger := FSK;
+    SetTID(q.ParamByName('fieldsourcekey'), FSK);
     q.ParamByName('description').AsString := Description;
     q.ParamByName('lshortname').AsString := LShortName;
     q.ParamByName('alignment').AsString := Alignment;
@@ -2321,7 +2348,7 @@ begin
     mdsAlter:
     begin
       S.Add(GetAlterViewTextBySource(FieldByName('view_source').AsString));
-      S.Add('DELETE FROM at_relation_fields WHERE relationkey = ' + IntToStr(ID));
+      S.Add('DELETE FROM at_relation_fields WHERE relationkey = ' + TID2S(ID));
     end;
 
     mdsDrop:
@@ -2363,7 +2390,7 @@ begin
     begin
       gdcViewField.Insert;
       try
-        gdcViewField.FieldByName('relationkey').AsInteger := ID;
+        SetTID(gdcViewField.FieldByName('relationkey'), ID);
         gdcViewField.FieldByName('relationname').AsString := q.FieldByName('rdb$relation_name').AsTrimString;
         gdcViewField.FieldByName('fieldname').AsString := q.FieldByName('rdb$field_name').AsTrimString;
         gdcViewField.FieldByName('fieldsource').AsString := q.FieldByName('rdb$field_source').AsTrimString;
@@ -3243,7 +3270,7 @@ begin
         q.ParamByName('fieldname').AsString := FieldByName('fieldsource').AsString;
         q.ExecQuery;
         if not q.EOF then
-          FieldByName('fieldsourcekey').AsInteger := q.FieldByName('id').AsInteger
+          SetTID(FieldByName('fieldsourcekey'), q.FieldByName('id'))
         else if StrIPos('RDB$', FieldByName('fieldsource').AsString) = 1 then
         begin
           Field := TgdcField.Create(nil);
@@ -3256,7 +3283,7 @@ begin
             Field.FieldByName('lname').AsString := FieldByName('fieldsource').AsString;
             Field.FieldByName('description').AsString := FieldByName('fieldsource').AsString;
             Field.Post;
-            FieldByName('fieldsourcekey').AsInteger := Field.ID;
+            SetTID(FieldByName('fieldsourcekey'), Field.ID);
           finally
             Field.Free;
           end;
@@ -3271,15 +3298,15 @@ begin
         q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('relationname').AsString));
         q.ExecQuery;
         if not q.EOF then
-          FieldByName('relationkey').AsInteger := q.FieldByName('id').AsInteger;
+          SetTID(FieldByName('relationkey'), q.FieldByName('id'));
       end;
 
       if (Trim(FieldByName('relationname').AsString) = '') and
-        (FieldByName('relationkey').AsInteger > -1) then
+        (GetTID(FieldByName('relationkey')) > -1) then
       begin
         q.Close;
         q.SQL.Text := 'SELECT * FROM at_relations WHERE id = :id';
-        q.ParamByName('id').AsInteger := FieldByName('relationkey').AsInteger;
+        SetTID(q.ParamByName('id'), FieldByName('relationkey'));
         q.ExecQuery;
         if not q.EOF then
           FieldByName('relationname').AsString := q.FieldByName('relationname').AsString;
@@ -3308,7 +3335,7 @@ begin
             Field.Transaction := Transaction;
             Field.ReadTransaction := ReadTransaction;
             Field.SubSet := 'ByID';
-            Field.ID := FieldByName('fieldsourcekey').AsInteger;
+            Field.ID := GetTID(FieldByName('fieldsourcekey'));
             Field.Open;
             if not Field.EOF then
             begin
@@ -3563,12 +3590,12 @@ begin
       Result :=
         'ALTER PROCEDURE AC_ACCOUNTEXSALDO '#13#10 +
         '  (DATEEND DATE, '#13#10 +
-        '   ACCOUNTKEY INTEGER, '#13#10 +
+        '   ACCOUNTKEY TYPE OF DINTKEY, '#13#10 +
         '   FIELDNAME VARCHAR(60), '#13#10 +
-        '   COMPANYKEY INTEGER, '#13#10 +
+        '   COMPANYKEY TYPE OF DINTKEY, '#13#10 +
         '   ALLHOLDINGCOMPANIES INTEGER,'#13#10 +
         '   INGROUP INTEGER,'#13#10 +
-        '   CURRKEY INTEGER)'#13#10 +
+        '   CURRKEY TYPE OF DINTKEY)'#13#10 +
         'RETURNS (DEBITSALDO NUMERIC(15, 4), '#13#10 +
         '   CREDITSALDO NUMERIC(15, 4), '#13#10 +
         '   CURRDEBITSALDO NUMERIC(15,4),'#13#10 +
@@ -3700,6 +3727,8 @@ var
   RF: TatRelationField;
   TN: String;
   Res: OleVariant;
+  q: TIBSQL;
+  T1, T2: Integer;
 begin
   inherited;
 
@@ -3729,6 +3758,63 @@ begin
 
         if FieldByName('refrelationname').AsString > '' then
         begin
+          //проверяем совпадает ли домен//
+
+          q := TIBSQL.Create(nil);
+          try
+            if Transaction.InTransaction then
+              q.Transaction := Transaction
+            else
+              q.Transaction := ReadTransaction;
+
+            q.SQL.Text := Format
+              (
+                'SELECT COUNT(*) FROM at_relation_fields z ' +
+                'LEFT OUTER JOIN at_fields f ON z.fieldsourcekey = f.id ' +
+                'WHERE f.fieldname = ''%s'' ', [FieldByName('fieldsource').AsString]
+              );
+
+            q.ExecQuery;
+
+            if q.Fields[0].AsInteger = 0 then
+            begin
+              q.Close;
+
+              q.SQL.Text := Format
+              (
+                'SELECT f.rdb$field_type FROM rdb$relation_fields rf ' +
+                'JOIN rdb$fields f ON rf.rdb$field_source = f.rdb$field_name ' +
+                'WHERE rf.rdb$relation_name = ''%s'' and rf.rdb$field_name = ''%s'' ' ,
+                [FieldByName('RefRelationName').AsString, GetKeyFieldName(FieldByName('RefRelationName').AsString)]
+              );
+              q.ExecQuery;
+              T1 := q.Fields[0].AsInteger;
+
+              q.Close;
+              q.SQL.Text := Format
+              (
+                'SELECT f.rdb$field_type FROM rdb$fields f ' +
+                'WHERE f.rdb$field_name = ''%s'' ' ,
+                [FieldByName('fieldsource').AsString]
+              );
+              q.ExecQuery;
+              T2 := q.Fields[0].AsInteger;
+              q.Close;
+
+              if T1 <> T2 then
+              begin
+                if T1 = 16 then
+                  S.Add(Format('ALTER DOMAIN %s TYPE BIGINT', [FieldByName('fieldsource').AsString]));
+
+                if T1 = 8 then
+                  S.Add(Format('ALTER DOMAIN %s TYPE INTEGER', [FieldByName('fieldsource').AsString]));
+              end;
+            end;
+
+          finally
+            q.Free;
+          end;
+
           if StrIPos(UserPrefix, FieldByName('relationname').AsString) = 1 then
             TableNameWithoutPrefix := System.Copy(FieldByName('relationname').AsString, Length(UserPrefix) + 1, 1024)
           else
@@ -3884,7 +3970,7 @@ begin
         FDefaultValue := System.Copy(FDefaultValue, 2, L - 2);
     end;
 
-    FFieldType := GetFieldType(FieldByName('fieldsourcekey').AsInteger);
+    FFieldType := GetFieldType(GetTID(FieldByName('fieldsourcekey')));
 
     if (FFieldType in [blr_Text, blr_varying,
       blr_Text2, blr_varying2, blr_cstring, blr_cstring2]) then
@@ -3916,14 +4002,21 @@ begin
           'Установка значения',
           MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES) then
       begin
-        if InputQuery('Значение', 'Введите значение для поля ' +
-          FieldByName('fieldname').AsString, FDefaultValue) then
-        begin
+        repeat
+          if not InputQuery('Значение', 'Введите значение для поля ' +
+            FieldByName('fieldname').AsString, FDefaultValue) then
+          begin
+            MessageBox(0,
+            PChar('Ввод значения для поля отменен.'),'Внимание',
+            MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+            exit;
+          end;
           FDefaultValue := Trim(FDefaultValue);
-          if FFieldType in [blr_Text, blr_varying, blr_Text2, blr_varying2, blr_cstring, blr_cstring2] then
-            FDefaultValue := System.Copy(FDefaultValue, 1, FieldByName('stringlength').AsInteger);
-          IsSetDefault := True;
-        end;
+        until FDefaultValue <> '';
+
+        if FFieldType in [blr_Text, blr_varying, blr_Text2, blr_varying2, blr_cstring, blr_cstring2] then
+          FDefaultValue := System.Copy(FDefaultValue, 1, FieldByName('stringlength').AsInteger);
+        IsSetDefault := True;
       end
     end else
       IsSetDefault := not FieldByName('defsource').IsNull;
@@ -3937,7 +4030,7 @@ begin
     ));
 end;
 
-procedure TgdcTableField.SyncAtDatabase(const AnID: Integer;
+procedure TgdcTableField.SyncAtDatabase(const AnID: TID;
   const AMetadata: TgdcMetadataScript);
 var
   R: TatRelation;
@@ -3949,7 +4042,7 @@ begin
 
     mdsCreate, mdsAlter:
     begin
-      R := atDatabase.Relations.ByID(FieldByName('relationkey').AsInteger);
+      R := atDatabase.Relations.ByID(GetTID(FieldByName('relationkey')));
       if R <> nil then
       begin
         F := R.RelationFields.ByFieldName(FieldByName('fieldname').AsString);
@@ -3981,12 +4074,12 @@ begin
   if (FieldByName('crosstable').AsString > '') and
     FieldByName('crosstablekey').IsNull then
   begin
-    FieldByName('crosstablekey').AsInteger := gdcBaseManager.GetNextID;
+    SetTID(FieldByName('crosstablekey'), gdcBaseManager.GetNextID);
     ExecSingleQuery(Format(
       'INSERT INTO at_relations (id, relationname, relationtype, lname, ' +
       'lshortname, description, afull, achag, aview) VALUES' +
       '(%1:d, ''%0:s'', ''T'', ''%0:s'', ''%0:s'', ''%0:s'', -1, -1, -1)',
-      [FieldByName('crosstable').AsString, FieldByName('crosstablekey').AsInteger]
+      [FieldByName('crosstable').AsString, TID264(FieldByName('crosstablekey'))]
     ));
   end;
 
@@ -4001,10 +4094,10 @@ begin
       FieldByName('fieldsource').AsString := Res[0, 0];
     end;
 
-    FieldByName('fieldsourcekey').AsInteger := gdcBaseManager.GetNextID;
+    SetTID(FieldByName('fieldsourcekey'), gdcBaseManager.GetNextID);
     ExecSingleQuery(Format(
       'INSERT INTO at_fields (id, fieldname, lname) VALUES (%d, ''%s'', ''%s'') ',
-      [FieldByName('fieldsourcekey').AsInteger,
+      [TID264(FieldByName('fieldsourcekey')),
        FieldByName('fieldsource').AsString, FieldByName('fieldsource').AsString]));
   end;
 end;
@@ -4242,17 +4335,17 @@ begin
     gdcField.Transaction := Transaction;
     gdcField.SubSet := 'ByFieldName';
 
-    ProcedureName := FieldByName('procedurename').AsString;
+    ProcedureName := Trim(FieldByName('procedurename').AsString);
     // Если мы находимся в состоянии копирования объекта, то параметры еще не создались,
     //  поэтому обращаемся к параметрам оригинальной процедуры
     if (sCopy in BaseState) and (CopiedObjectKey > -1) then
     begin
       q.SQL.Text :=
         'SELECT procedurename FROM at_procedures WHERE id = :id';
-      q.ParamByName('id').AsInteger := CopiedObjectKey;
+      SetTID(q.ParamByName('id'), CopiedObjectKey);
       q.ExecQuery;
       if not q.EOF then
-        ProcedureName := q.FieldByName('procedurename').AsString;
+        ProcedureName := q.FieldByName('procedurename').AsTrimString;
     end;
 
     q.Close;
@@ -4266,12 +4359,15 @@ begin
     S1 := '';
     while not q.EOF do
     begin
-      gdcField.ParamByName('fieldname').AsString := q.FieldByName('rdb$field_source').AsString;
+      gdcField.ParamByName('fieldname').AsString := q.FieldByName('rdb$field_source').AsTrimString;
       gdcField.Open;
       if S1 = '' then
         S1 := '('#13#10;
-      S1 := S1 + '    ' + Trim(q.FieldByName('rdb$parameter_name').AsString) + ' ' +
-         gdcField.GetDomainText(False, True);
+      S1 := S1 + '    ' + q.FieldByName('rdb$parameter_name').AsTrimString + ' ';
+      If StrIPos('RDB$', q.FieldByName('rdb$field_source').AsTrimString) = 1 then
+        S1 := S1 + gdcField.GetDomainText(False, True)
+      else
+        S1 := S1 + q.FieldByName('rdb$field_source').AsTrimString;
       q.Next;
       if not q.EOF then
         S1 := S1 + ','#13#10
@@ -4289,11 +4385,16 @@ begin
     S2 := '';
     while not q.EOF do
     begin
-      gdcField.ParamByName('fieldname').AsString := q.FieldByName('rdb$field_source').AsString;
+      gdcField.ParamByName('fieldname').AsString := q.FieldByName('rdb$field_source').AsTrimString;
       gdcField.Open;
       if S2 = '' then
         S2 := 'RETURNS ( '#13#10;
-      S2 := S2 + '    ' + Trim(q.FieldByName('rdb$parameter_name').AsString) + ' ' + gdcField.GetDomainText(False, True);
+      S2 := S2 + '    ' + q.FieldByName('rdb$parameter_name').AsTrimString + ' ';
+      If StrIPos('RDB$', q.FieldByName('rdb$field_source').AsTrimString) = 1 then
+        S2 := S2 + gdcField.GetDomainText(False, True)
+      else
+        S2 := S2 + q.FieldByName('rdb$field_source').AsTrimString;
+
       gdcField.Close;
       q.Next;
       if not q.EOF then
@@ -4494,6 +4595,7 @@ begin
       'editorkey dintkey, PRIMARY KEY (id))'
     );
     S.Add(CreateEditorForeignKey);
+    S.Add(CreateGenerator);
     S.Add(CreateInsertTrigger);
     S.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
     S.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
@@ -4534,6 +4636,7 @@ begin
       ' (id) ON DELETE CASCADE ON UPDATE CASCADE )'
     );
     S.Add(CreateEditorForeignKey);
+    S.Add(CreateGenerator);
     S.Add(CreateInsertTrigger);
     S.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
     S.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));
@@ -5499,7 +5602,7 @@ begin
         begin
           AnObject := Cl.CreateSubType(nil, '', 'ByID');
           try
-            AnObject.ID := ibsqlID.Fields[0].AsInteger;
+            AnObject.ID := GetTID(ibsqlID.Fields[0]);
             AnObject.Open;
             if (not AnObject.EOF)
               and (AnObject.ID <> ID)
@@ -5525,7 +5628,7 @@ end;
 
 procedure TgdcMetaBase.ShowSQLProcess(S: TSQLProcessList);
 var
-  TransactionKey: Integer;
+  TransactionKey: TID;
   q: TIBSQL;
   DidActivate: Boolean;
   I: Integer;
@@ -5560,7 +5663,7 @@ begin
           begin
             AddText(S[I]);
 
-            q.ParamByName('trkey').AsInteger := TransactionKey;
+            SetTID(q.ParamByName('trkey'), TransactionKey);
             q.ParamByName('numorder').AsInteger := i + 1;
             q.ParamByName('script').AsString := S[I];
             q.ParamByName('successfull').AsInteger := S.Successful[I];
@@ -5626,7 +5729,7 @@ begin
   end;
 end;
 
-procedure TgdcMetaBase.SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript);
+procedure TgdcMetaBase.SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript);
 begin
 
 end;
@@ -6129,7 +6232,7 @@ begin
       begin
         AnObject := TgdcRelationField.CreateSubType(nil, '', 'ByID');
         try
-          AnObject.ID := ibsqlID.Fields[0].AsInteger;
+          AnObject.ID := GetTID(ibsqlID.Fields[0]);
           AnObject.Open;
           if AnObject.RecordCount > 0 then
             AnObject._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
@@ -6378,7 +6481,7 @@ begin
     if (FieldByName('rdb$trigger_type').asinteger <= 114) and
        (FieldByName('relationname').AsString = '') then
       FieldByName('relationname').AsString :=
-        AnsiUpperCase(Trim(atDataBase.Relations.ByID(FieldByName('relationkey').AsInteger).RelationName));
+        AnsiUpperCase(Trim(atDataBase.Relations.ByID(GetTID(FieldByName('relationkey'))).RelationName));
 
     if FieldByName('rdb$trigger_name').AsString = '' then
       FieldByName('rdb$trigger_name').AsString := Trim(FieldByName('triggername').AsString);
@@ -6706,10 +6809,10 @@ begin
   q := CreateReadIBSQL;
   try
     q.Close;
-    if FieldByName('referencekey').AsInteger > 0 then
+    if GetTID(FieldByName('referencekey')) > 0 then
     begin
       q.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
-      q.ParamByName('id').AsInteger := FieldByName('referencekey').AsInteger;
+      SetTID(q.ParamByName('id'), FieldByName('referencekey'));
       q.ExecQuery;
     end;
 
@@ -6734,7 +6837,11 @@ begin
   if AMetadata = mdsCreate then
   begin
     FIDDomain := gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_DPK');
+    {$IFDEF ID64}
+    S.Add('CREATE DOMAIN ' + FIDDomain + ' AS BIGINT NOT NULL');
+    {$ELSE}
     S.Add('CREATE DOMAIN ' + FIDDomain + ' AS INTEGER NOT NULL');
+    {$ENDIF}
 
     S.Add(Format
       (
@@ -6782,7 +6889,7 @@ begin
   end;
 end;
 
-procedure TgdcTableToTable.SyncAtDatabase(const AnID: Integer;
+procedure TgdcTableToTable.SyncAtDatabase(const AnID: TID;
   const AMetadata: TgdcMetadataScript);
 begin
   inherited;
@@ -6813,8 +6920,8 @@ begin
       ' ''%1:s'', ''%2:s'', %3:d, %4:d )',
       [FIDDomain, GetReferenceName,
        atDatabase.Relations.ByRelationName(GetReferenceName).ListField.FieldName,
-       atDatabase.Relations.ByRelationName(GetReferenceName).ID,
-       atDatabase.Relations.ByRelationName(GetReferenceName).ListField.ID
+       TID264(atDatabase.Relations.ByRelationName(GetReferenceName).ID),
+       TID264(atDatabase.Relations.ByRelationName(GetReferenceName).ListField.ID)
       ]));
   end;
 end;
@@ -6923,6 +7030,29 @@ begin
   NewField(GetPrimaryFieldName,
     'Идентификатор', 'DINTKEY', 'Идентификатор', 'Идентификатор',
     'L', '10', '1', '0');
+end;
+
+function TgdcBaseTable.CreateGenerator: String;
+var q: TIBSQL;
+begin
+  if FieldByName('generatorname').AsString <> '' then
+  begin
+    // если необходимо, создаем генератор
+    Assert(Transaction <> nil);
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := Transaction;
+      q.SQL.Text := 'SELECT RDB$GENERATOR_ID FROM RDB$GENERATORS WHERE RDB$GENERATOR_NAME = :gn';
+      q.ParamByName('gn').AsString := FieldByName('generatorname').AsString;
+      q.ExecQuery;
+
+      if q.RecordCount = 0 then
+        Result := 'CREATE GENERATOR ' + FieldByName('generatorname').AsString;
+    finally;
+     q.Close;
+    end;
+  end;
+
 end;
 
 { TgdcUnknownTable }
@@ -7108,7 +7238,7 @@ var
 
 { TgdcTable }
 
-procedure TgdcTable.SyncAtDatabase(const AnID: Integer; const AMetadata: TgdcMetadataScript);
+procedure TgdcTable.SyncAtDatabase(const AnID: TID; const AMetadata: TgdcMetadataScript);
 var
   Prnt: TgdClassEntry;
   CE: TgdClassEntry;
@@ -7195,6 +7325,7 @@ begin
       'CREATE TABLE ' + FieldByName('relationname').AsString +
       '(id dintkey, editiondate deditiondate, PRIMARY KEY (id))'
     );
+    S.Add(CreateGenerator);
     S.Add(CreateInsertTrigger);
     S.Add(CreateInsertEditorTrigger(FieldByName('relationname').AsString));
     S.Add(CreateUpdateEditorTrigger(FieldByName('relationname').AsString));

@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_frFixedAnalytics_unit;
 
 interface
@@ -41,24 +43,24 @@ begin
       begin
         if FShowAnalyticName then
         begin
-          if Result > '' then Result := Result + ' + ";" + ';
+          if Result > '' then Result := Result + ';';
           if (TfrAnalyticLine(FAnalyticLines[I]).Field.ReferencesField <> nil) and
             (TfrAnalyticLine(FAnalyticLines[I]).AnalyticKey > 0) then
           begin
             Result := Result +
-              '"' + TfrAnalyticLine(FAnalyticLines[I]).Field.FieldName +
-              '= ' + gdcBaseManager.GetRUIDStringById(TfrAnalyticLine(FAnalyticLines[I]).AnalyticKey) + '"'
+              TfrAnalyticLine(FAnalyticLines[I]).Field.FieldName +
+              '=' + gdcBaseManager.GetRUIDStringById(TfrAnalyticLine(FAnalyticLines[I]).AnalyticKey)
           end else
-            Result := Result + '"' + TfrAnalyticLine(FAnalyticLines[I]).Field.FieldName +
-              '= " + ' + TfrAnalyticLine(FAnalyticLines[I]).eAnalytic.Text;
+            Result := Result + TfrAnalyticLine(FAnalyticLines[I]).Field.FieldName +
+                '=' + TfrAnalyticLine(FAnalyticLines[I]).eAnalytic.Text;
         end else
         begin
           if Result > '' then Result := Result + ';';
           if (TfrAnalyticLine(FAnalyticLines[I]).Field.ReferencesField <> nil) and
             (TfrAnalyticLine(FAnalyticLines[I]).AnalyticKey > 0) then
           begin
-            Result := Result + '"' +
-              gdcBaseManager.GetRUIDStringById(TfrAnalyticLine(FAnalyticLines[I]).AnalyticKey) + '"'
+            Result := Result +
+              gdcBaseManager.GetRUIDStringById(TfrAnalyticLine(FAnalyticLines[I]).AnalyticKey)
           end else
             Result := Result + TfrAnalyticLine(FAnalyticLines[I]).eAnalytic.Text;
         end;

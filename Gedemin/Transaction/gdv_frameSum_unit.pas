@@ -1,10 +1,12 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_frameSum_unit;
 
 interface
 
 uses 
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, gsIBLookupComboBox, ExtCtrls;
+  StdCtrls, gsIBLookupComboBox, ExtCtrls, gdcBaseInterface;
 
 type
   TframeSum = class(TFrame)
@@ -37,14 +39,14 @@ type
     procedure cbNcuScaleKeyPress(Sender: TObject; var Key: Char);
   private
     procedure SetCurrDecDigits(const Value: Integer);
-    procedure SetCurrkey(const Value: Integer);
+    procedure SetCurrkey(const Value: TID);
     procedure SetCurrScale(const Value: Integer);
     procedure SetInCurr(const Value: Boolean);
     procedure SetInNcu(const Value: Boolean);
     procedure SetNcuDecDigits(const Value: Integer);
     procedure SetNcuScale(const Value: Integer);
     function GetCurrDecDigits: Integer;
-    function GetCurrkey: Integer;
+    function GetCurrkey: TID;
     function GetCurrScale: Integer;
     function GetInCurr: Boolean;
     function GetInNcu: Boolean;
@@ -71,7 +73,7 @@ type
     property CurrDecDigits: Integer read GetCurrDecDigits write SetCurrDecDigits;
     property NcuScale: Integer read GetNcuScale write SetNcuScale;
     property CurrScale: Integer read GetCurrScale write SetCurrScale;
-    property Currkey: Integer read GetCurrkey write SetCurrkey;
+    property Currkey: TID read GetCurrkey write SetCurrkey;
 
     property InEQ: Boolean read GetInEQ write SetInEQ;
     property EQDecDigits: Integer read GetEQDecDigits write SetEQDecDigits;
@@ -92,7 +94,7 @@ begin
   Result := LocalStrToInt(cbCurrDecDigits.Text, 4);
 end;
 
-function TframeSum.GetCurrkey: Integer;
+function TframeSum.GetCurrkey: TID;
 begin
   Result := gsiblCurrKey.CurrentKeyInt;
 end;
@@ -131,7 +133,7 @@ begin
   cbCurrDecDigits.Text := IntToStr(Value);
 end;
 
-procedure TframeSum.SetCurrkey(const Value: Integer);
+procedure TframeSum.SetCurrkey(const Value: TID);
 begin
   gsiblCurrKey.CurrentKeyInt := Value;
 end;

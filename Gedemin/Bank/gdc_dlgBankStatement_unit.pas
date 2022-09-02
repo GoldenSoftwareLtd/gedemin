@@ -1,3 +1,4 @@
+// ShlTanya, 30.01.2019
 
 unit gdc_dlgBankStatement_unit;
 
@@ -82,7 +83,7 @@ procedure Tgdc_dlgBankStatement.ibcmbAccountCreateNewObject(
 begin
   Assert(aNewObject <> nil);
   inherited;
-  aNewObject.FieldByName('companykey').AsInteger := IBLogin.CompanyKey;
+  SetTID(aNewObject.FieldByName('companykey'), IBLogin.CompanyKey);
 end;
 
 procedure Tgdc_dlgBankStatement.SetCurrency;
@@ -93,7 +94,7 @@ begin
   ibsql.SQL.Text := 'SELECT c.name, c.sign FROM gd_companyaccount a ' +
     ' JOIN gd_curr c ON a.currkey = c.id ' +
     ' WHERE a.id = :id ';
-  ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('accountkey').AsInteger;
+  SetTID(ibsql.ParamByName('id'), gdcObject.FieldByName('accountkey'));
   ibsql.ExecQuery;
   if not ibsql.EOF then
   begin
@@ -154,7 +155,7 @@ begin
     FgdcDetailObject.DetailField := 'parent';
     FgdcDetailObject.Transaction := gdcObject.Transaction;
     FgdcDetailObject.ReadTransaction := gdcObject.Transaction;
-    FgdcDetailObject.ParamByName('parent').AsInteger := gdcObject.ID;
+    SetTID(FgdcDetailObject.ParamByName('parent'), gdcObject.ID);
     FgdcDetailObject.Open;
   end;
 
@@ -163,7 +164,7 @@ begin
   OldBeforePost := FgdcDetailObject.BeforePost;
   FgdcDetailObject.BeforePost := gdcBaseLineBeforePost;
 
-  ibcmbAccount.Condition := 'CompanyKey = ' + IntToStr(IBLogin.CompanyKey);
+  ibcmbAccount.Condition := 'CompanyKey = ' + TID2S(IBLogin.CompanyKey);
 
   edCompany.Text := IBLogin.CompanyName;
 
@@ -215,10 +216,10 @@ begin
     ibsql1.Transaction := gdcObject.ReadTransaction;
     ibsql1.SQL.Text := 'SELECT ca.*, c.isncu FROM gd_companyaccount ca LEFT JOIN gd_curr c ON c.id = ca.currkey ' +
       ' WHERE ca.id = :id ';
-    ibsql1.ParamByName('id').AsInteger := gdcObject.FieldByName('accountkey').AsInteger;
+    SetTID(ibsql1.ParamByName('id'), gdcObject.FieldByName('accountkey'));
     ibsql1.ExecQuery;
 
-    if (ibsql1.FieldByName('currkey').AsInteger = 0) or
+    if (GetTID(ibsql1.FieldByName('currkey'))= 0) or
       (ibsql1.FieldByName('isncu').AsInteger <> 0)
     then
     begin
@@ -226,7 +227,7 @@ begin
     end else
     begin
       xdbcRate.Enabled := True;
-      if (ibsql1.FieldByName('currkey').AsInteger > 0) and
+      if (GetTID(ibsql1.FieldByName('currkey')) > 0) and
          (ibsql1.FieldByName('isncu').AsInteger = 0) and
          (gdcObject.State = dsInsert) and gdcObject.FieldByName('rate').IsNull
       then
@@ -234,7 +235,7 @@ begin
           AcctUtils.GetCurrRate(gdcObject.FieldByName('documentdate').AsDateTime,
             -1,
             -1,
-            ibsql1.FieldByName('currkey').AsInteger,
+            TID2V(ibsql1.FieldByName('currkey')),
             'NCU',
             -1,
             1,
@@ -295,7 +296,7 @@ begin
   Плюс к этим условиям проверяется, что ключ счета непустой и введена дата}
   if (((Field.FieldName = 'RATE') and (gdcObject.FieldByName('rate').AsCurrency > 0))
      or (Field.FieldName = 'ACCOUNTKEY'))
-     and (gdcObject.FieldByName('accountkey').AsInteger > 0)
+     and (GetTID(gdcObject.FieldByName('accountkey')) > 0)
      and (not gdcObject.FieldByName('documentdate').IsNull)
      and (Field.DataSet = gdcObject)
   then
@@ -309,10 +310,10 @@ begin
       ibsql1.Transaction := gdcObject.ReadTransaction;
       ibsql1.SQL.Text := 'SELECT ca.*, c.isncu FROM gd_companyaccount ca LEFT JOIN gd_curr c ON c.id = ca.currkey ' +
         ' WHERE ca.id = :id ';
-      ibsql1.ParamByName('id').AsInteger := gdcObject.FieldByName('accountkey').AsInteger;
+      SetTID(ibsql1.ParamByName('id'), gdcObject.FieldByName('accountkey'));
       ibsql1.ExecQuery;
 
-      if (ibsql1.FieldByName('currkey').AsInteger = 0) or
+      if (GetTID(ibsql1.FieldByName('currkey')) = 0) or
         (ibsql1.FieldByName('isncu').AsInteger <> 0)
       then
       begin
@@ -333,7 +334,7 @@ begin
       ARate := AcctUtils.GetCurrRate(gdcObject.FieldByName('documentdate').AsDateTime,
         -1,
         -1,
-        ibsql1.FieldByName('currkey').AsInteger,
+        TID2V(ibsql1.FieldByName('currkey')),
         'NCU',
         -1,
         1,
@@ -424,8 +425,7 @@ begin
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin
-      gdcDetailObject.FieldByName('companykeyline').AsInteger :=
-        ibsql.FieldByName('companykey').AsInteger
+      SetTID(gdcDetailObject.FieldByName('companykeyline'), ibsql.FieldByName('companykey'))
     end;
     ibsql.Close;
   end else if  (Field.FieldName = 'COMPANYKEYLINE') and
@@ -443,7 +443,7 @@ begin
       ' LEFT JOIN gd_companyaccount ca ON c.companyaccountkey = ca.id ' +
       ' LEFT JOIN gd_bank b ON b.bankkey = ca.bankkey ' +
       ' WHERE c.contactkey = :ck ';
-    ibsql.ParamByName('ck').AsInteger := gdcDetailObject.FieldByName('companykeyline').AsInteger;
+    SetTID(ibsql.ParamByName('ck'), gdcDetailObject.FieldByName('companykeyline'));
     ibsql.ExecQuery;
     if not ibsql.EOF then
     begin

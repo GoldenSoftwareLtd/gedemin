@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_frameMapOfAnalitic_unit;
 
 interface
@@ -224,6 +226,11 @@ var
   SL: TStringList;
   I: Integer;
 begin
+  if UpperCase(Value) = 'NULL' then
+  begin
+    Exit;
+  end;
+
   case FieldType of
     aftReference:
     begin

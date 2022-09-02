@@ -1,3 +1,4 @@
+// ShlTanya, 19.02.2019
 
 unit gsIBLookupComboBox;
 
@@ -103,8 +104,8 @@ type
     procedure SetCurrentKey(const Value: String);
     procedure SetCheckUserRights(const Value: Boolean);
     procedure SetListTable(const Value: String);
-    function GetCurrentKeyInt: Integer;
-    procedure SetCurrentKeyInt(const Value: Integer);
+    function GetCurrentKeyInt: TID;
+    procedure SetCurrentKeyInt(const Value: TID);
     function GetValidObject: Boolean;
     procedure SetFields(const Value: String);
     procedure SetListField(const Value: String);
@@ -151,7 +152,7 @@ type
     function StripSpaces(const S: String): String;
 
     function GetTableAlias(const ATableName: String): String;
-    procedure SetDisplayText(const AText: String; const AParent: Integer = 0);
+    procedure SetDisplayText(const AText: String; const AParent: TID = 0);
     procedure ParseFieldsString(const AFields: String; SL: TStrings);
     function ConvertDate(const S: String): String;
     function ExtractDate(const S: String; out Y, M, D: Integer): Boolean;
@@ -171,7 +172,7 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure CNKeyDown(var Message: TWMKeyDown); message CN_KEYDOWN;
     //procedure KeyDown(var Key: Word; Shift: TShiftState); override;
-    function CreateGDClassInstance(const AnID: Integer): TgdcBase;
+    function CreateGDClassInstance(const AnID: TID): TgdcBase;
     procedure ShowDropDownDialog(const Match: String = ''; const UseExisting: Boolean = False);
     procedure InternalSetCheckUserRights;
     procedure DoExit; override;
@@ -206,7 +207,7 @@ type
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
 
     property CurrentKey: String read FCurrentKey write SetCurrentKey;
-    property CurrentKeyInt: Integer read GetCurrentKeyInt write SetCurrentKeyInt;
+    property CurrentKeyInt: TID read GetCurrentKeyInt write SetCurrentKeyInt;
 
     //
     property gdClass: CgdcBase read FgdClass;
@@ -479,7 +480,7 @@ var
       and (not IBLogin.IsUserAdmin) then
     begin
       Fibsql.SQL.Text := Fibsql.SQL.Text +
-        Format(' AND (BIN_AND(%s.aview, %d) <> 0) ', [MainTable, IBLogin.InGroup]);
+        Format(' AND (BIN_AND(%s.aview, %d) <> 0) ', [MainTable, TID264(IBLogin.InGroup)]);
     end;
 
     if FullCondition > '' then
@@ -661,9 +662,9 @@ begin
     and (not IBLogin.IsUserAdmin) then
   begin
     if Pos('WHERE ', S) = 0 then
-      S := S + Format(' WHERE (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup])
+      S := S + Format(' WHERE (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, TID264(IBLogin.InGroup)])
     else
-      S := S + Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup]);
+      S := S + Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, TID264(IBLogin.InGroup)]);
   end;
 
   if (not FShowDisabled)
@@ -1101,7 +1102,7 @@ begin
         if Fibsql.Current.Count = 1 then
           SetDisplayText(Fibsql.Fields[0].AsTrimString)
         else
-          SetDisplayText(Fibsql.Fields[0].AsTrimString, Fibsql.Fields[1].AsInteger);
+          SetDisplayText(Fibsql.Fields[0].AsTrimString, GetTID(Fibsql.Fields[1]));
 
         // cache start
         if not FCachedKey.Has(FDataLink.DataSet.FieldByName(FDataField).AsString) then
@@ -1149,7 +1150,7 @@ procedure TgsIBLookupComboBox.CreateNew(const FC: TgdcFullClass;
 var
   T2, obj: TgdcBase;
   C: TgdcFullClass;
-  CurrKey: Integer;
+  CurrKey: TID;
   WasCancel: Boolean;
 
   function _CreateDialog: Boolean;
@@ -1410,9 +1411,9 @@ begin
         and (not IBLogin.IsUserAdmin) then
       begin
         if Pos('WHERE ', S) = 0 then
-          S := S + Format(' WHERE (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup])
+          S := S + Format(' WHERE (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, TID264(IBLogin.InGroup)])
         else
-          S := S + Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup]);
+          S := S + Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, TID264(IBLogin.InGroup)]);
       end;
 
       if (not FShowDisabled)
@@ -1669,14 +1670,14 @@ begin
     SelStart := 0;
 end;
 
-function TgsIBLookupComboBox.GetCurrentKeyInt: Integer;
+function TgsIBLookupComboBox.GetCurrentKeyInt: TID;
 begin
-  Result := StrToIntDef(FCurrentKey, -1);
+  Result := GetTID(FCurrentKey, -1);         
 end;
 
-procedure TgsIBLookupComboBox.SetCurrentKeyInt(const Value: Integer);
+procedure TgsIBLookupComboBox.SetCurrentKeyInt(const Value: TID);
 begin
-  CurrentKey := IntToStr(Value);
+  CurrentKey := TID2S(Value);
 end;
 
 function TgsIBLookupComboBox.GetValidObject: Boolean;
@@ -1816,14 +1817,13 @@ begin
   end;
 end;
 
-function TgsIBLookupComboBox.CreateGDClassInstance(const AnID: Integer): TgdcBase;
+function TgsIBLookupComboBox.CreateGDClassInstance(const AnID: TID): TgdcBase;
 var
   Obj: TgdcBase;
   CE: TgdClassEntry;
   FC: TgdcFullClass;
 begin
   CE := gdClassList.Find(gdClassName, FSubType);
-
   if CE is TgdBaseEntry then
   begin
     Obj := TgdBaseEntry(CE).gdcClass.CreateSubType(Self.Owner, FSubType, 'ByID');
@@ -1855,7 +1855,10 @@ begin
         if Obj.IsEmpty then
         begin
           Obj.Free;
-          raise EgsIBLookupComboBoxError.Create('Internal consistency check');
+          raise EgsIBLookupComboBoxError.Create(
+            'Can''t find object with ID=' + IntToStr(AnID) +
+            ', class(subtype)=' + FC.gdClass.ClassName + '(' + FC.SubType + ')'
+          );
         end;
       end;
     end;
@@ -2506,8 +2509,6 @@ end;
 procedure TgsIBLookupComboBox.DblClick;
 begin
   inherited;
-
-  raise Exception.Create('Test exception');
 end;
 {$ENDIF}
 
@@ -2840,7 +2841,7 @@ begin
       MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
     begin
       if F.gdvObject <> nil then
-        CurrentKeyInt := F.gdvObject.FieldByName('documentkey').AsInteger;
+        CurrentKeyInt := GetTID(F.gdvObject.FieldByName('documentkey'));
     end;
   finally
     F.Free;
@@ -2901,10 +2902,10 @@ begin
   end;
 end;
 
-procedure TgsIBLookupComboBox.SetDisplayText(const AText: String; const AParent: Integer = 0);
+procedure TgsIBLookupComboBox.SetDisplayText(const AText: String; const AParent: TID = 0);
 var
   S, TempS: String;
-  I: Integer;
+  I: TID;
   DC: HDC;
   P: TSize;
   OldF: THandle;
@@ -2931,7 +2932,7 @@ begin
        FListTable,
        FieldWithAlias(FKeyField)]);
 
-    Fibsql.ParamByName('V').AsInteger := AParent;
+    SetTID(Fibsql.ParamByName('V'), AParent);
     repeat
       Fibsql.ExecQuery;
       if not Fibsql.EOF then
@@ -2962,9 +2963,9 @@ begin
         end;
         if Fibsql.Fields[1].IsNull then
           break;
-        I := Fibsql.Fields[1].AsInteger;
+        I := GetTID(Fibsql.Fields[1]);
         Fibsql.Close;
-        Fibsql.ParamByName('V').AsInteger := I;
+        SetTID(Fibsql.ParamByName('V'), I);
       end else
         break;
     until False;

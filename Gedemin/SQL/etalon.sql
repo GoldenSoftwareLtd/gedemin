@@ -1,9 +1,9 @@
-SET NAMES WIN1251;                        
-SET SQL DIALECT 3;                        
-CREATE DATABASE 'put_your_database_name'  
-USER 'SYSDBA' PASSWORD 'masterkey'         
-PAGE_SIZE 8192                            
-DEFAULT CHARACTER SET WIN1251;            
+SET NAMES WIN1251;
+SET SQL DIALECT 3;
+CREATE DATABASE 'put_your_database_name'
+USER 'SYSDBA' PASSWORD 'SYSDBA_password'
+PAGE_SIZE 8192
+DEFAULT CHARACTER SET WIN1251;
 
 /****************************************************/
 /****************************************************/
@@ -617,8 +617,12 @@ CREATE DOMAIN dtext32
   AS VARCHAR(32) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
 
 CREATE DOMAIN druid
-  AS VARCHAR(21)
+  AS VARCHAR(31)
   NOT NULL;
+
+CREATE DOMAIN druid_null
+  AS VARCHAR(31);
+
 
 CREATE DOMAIN dtax
   AS DECIMAL(7, 4)
@@ -1691,6 +1695,39 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (267, '0000.0001.0000.0298', '02.08.2017', 'Add support database triggers'); 
   
+INSERT INTO fin_versioninfo
+  VALUES (268, '0000.0001.0000.0299', '21.11.2017', 'Add new exception for new inventory system'); 
+
+INSERT INTO fin_versioninfo
+  VALUES (269, '0000.0001.0000.0300', '22.11.2017', 'relationname field in the at_triggers table fixed');
+
+INSERT INTO fin_versioninfo
+  VALUES (270, '0000.0001.0000.0301', '19.12.2017', 'Added GD_AVAILABLE_ID procs.');
+
+INSERT INTO fin_versioninfo
+  VALUES (271, '0000.0001.0000.0302', '27.12.2017', 'Add new table for new inventory system');
+
+INSERT INTO fin_versioninfo
+  VALUES (272, '0000.0001.0000.0303', '29.12.2017', 'Added trigger to AC_AUTOENTRY');
+
+INSERT INTO fin_versioninfo
+  VALUES (273, '0000.0001.0000.0304', '10.01.2018', 'Fixed rare situation with duplicated id');
+
+INSERT INTO fin_versioninfo
+  VALUES (274, '0000.0001.0000.0305', '04.06.2018', 'Added semantic category field to at_relation_fields');
+
+INSERT INTO fin_versioninfo
+  VALUES (275, '0000.0001.0000.0306', '05.06.2018', 'Added semantic category field to at_relations');
+  
+INSERT INTO fin_versioninfo
+  VALUES (277, '0000.0001.0000.0309', '14.02.2019', 'Added generator name field to at_relations');  
+
+INSERT INTO fin_versioninfo
+  VALUES (278, '0000.0001.0000.0310', '07.02.2019', 'trigger inv_bu_movement changed');  
+
+INSERT INTO fin_versioninfo
+  VALUES (279, '0000.0001.0000.0311', '14.03.2019', 'Corrected procs for interval id table');  
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -2279,11 +2316,11 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE PROCEDURE gd_p_sec_loginuser (username VARCHAR(20), passw VARCHAR(20), subsystem INTEGER)
+CREATE PROCEDURE gd_p_sec_loginuser (username VARCHAR(20), passw VARCHAR(20), subsystem DFOREIGNKEY)
   RETURNS (
     result        INTEGER,
-    userkey       INTEGER,
-    contactkey    INTEGER,
+    userkey       DFOREIGNKEY,
+    contactkey    DFOREIGNKEY,
     ibname        VARCHAR(20),
     ibpassword    VARCHAR(20),
     ingroup       INTEGER,
@@ -3372,7 +3409,7 @@ CREATE OR ALTER TRIGGER gd_biu_bank FOR gd_bank
   POSITION 32000
 AS
   DECLARE VARIABLE d_name VARCHAR(60);
-  DECLARE VARIABLE d_id INTEGER;
+  DECLARE VARIABLE d_id DFOREIGNKEY;
 BEGIN
   IF (INSERTING OR NEW.bankcode <> OLD.bankcode) THEN
   BEGIN
@@ -3493,8 +3530,8 @@ CREATE OR ALTER TRIGGER gd_biu_companyaccount FOR gd_companyaccount
   BEFORE INSERT OR UPDATE
   POSITION 30000
 AS
-  DECLARE VARIABLE hc INTEGER = NULL;
-  DECLARE VARIABLE c_id INTEGER = NULL;
+  DECLARE VARIABLE hc DFOREIGNKEY = NULL;
+  DECLARE VARIABLE c_id DFOREIGNKEY = NULL;
   DECLARE VARIABLE c_name dtext180 = NULL;
 BEGIN
   IF (INSERTING OR NEW.account <> OLD.account) THEN
@@ -3590,9 +3627,9 @@ COMMIT;
 SET TERM ^ ;
 
 
-CREATE PROCEDURE gd_p_SetCompanyToPeople(Department INTEGER)
+CREATE PROCEDURE gd_p_SetCompanyToPeople(Department DFOREIGNKEY)
 AS
-  DECLARE VARIABLE companykey INTEGER;
+  DECLARE VARIABLE companykey DFOREIGNKEY;
 BEGIN
 
   SELECT MIN(comp.id)
@@ -3686,10 +3723,10 @@ END
  *
  */
 
-CREATE PROCEDURE gd_p_getfolderelement(parent Integer)
+CREATE PROCEDURE gd_p_getfolderelement(parent DFOREIGNKEY)
 RETURNS
 (
-  id          INTEGER,
+  id          DFOREIGNKEY,
   contacttype INTEGER,
   name        VARCHAR(60),
   phone       VARCHAR(60),
@@ -3701,7 +3738,7 @@ RETURNS
   aview       INTEGER
 )
 AS
-  DECLARE VARIABLE N INTEGER;
+  DECLARE VARIABLE N DFOREIGNKEY;
 BEGIN
   FOR SELECT id, contacttype, name, phone, address, email, afull, achag, aview
     FROM gd_contact
@@ -3930,8 +3967,8 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE OR ALTER PROCEDURE GD_P_GETRUID(ID INTEGER)
-  RETURNS (XID INTEGER, DBID INTEGER)
+CREATE OR ALTER PROCEDURE GD_P_GETRUID(ID DFOREIGNKEY)
+  RETURNS (XID DFOREIGNKEY, DBID DFOREIGNKEY)
 AS
 BEGIN
   XID = NULL;
@@ -3968,21 +4005,27 @@ END
 CREATE EXCEPTION gd_e_invalid_ruid 'Invalid ruid specified'
 ^
 
-CREATE OR ALTER PROCEDURE GD_P_GETID(XID INTEGER, DBID INTEGER)
-  RETURNS (ID INTEGER)
+CREATE OR ALTER PROCEDURE GD_P_GETID(XID DFOREIGNKEY, DBID DFOREIGNKEY)
+  RETURNS (ID DFOREIGNKEY)
 AS
 BEGIN
-  ID = NULL;
-
-  SELECT id
-  FROM gd_ruid
-  WHERE xid=:XID AND dbid=:DBID
-  INTO :ID;
-
-  IF (ID IS NULL) THEN
+  IF (:XID < 147000000 OR :DBID = 17) THEN
   BEGIN
-    EXCEPTION gd_e_invalid_ruid 'Invalid ruid. XID = ' ||
-      :XID || ', DBID = ' || :DBID || '.';
+    ID = :XID;
+  END ELSE
+  BEGIN
+    ID = NULL;
+
+    SELECT id
+    FROM gd_ruid
+    WHERE xid=:XID AND dbid=:DBID
+    INTO :ID;
+
+    IF (ID IS NULL) THEN
+    BEGIN
+      EXCEPTION gd_e_invalid_ruid 'Invalid ruid. XID = ' ||
+        :XID || ', DBID = ' || :DBID || '.';
+    END
   END
 
   SUSPEND;
@@ -3995,15 +4038,119 @@ CREATE TABLE gd_available_id (
   id_from       dintkey,
   id_to         dintkey,
   
-  CONSTRAINT gd_pk_available_id PRIMARY KEY (id_from, id_to)
+  CONSTRAINT gd_pk_available_id PRIMARY KEY (id_from, id_to),
+  CONSTRAINT gd_chk_available_id CHECK (id_from <= id_to)
 );
 
 COMMIT;
+
+SET TERM ^ ;
+
+CREATE OR ALTER PROCEDURE gd_p_getnextid_ex
+  RETURNS(id DFOREIGNKEY)
+AS
+  DECLARE VARIABLE id_from DFOREIGNKEY;
+  DECLARE VARIABLE id_to DFOREIGNKEY;
+  DECLARE VARIABLE limit_id DFOREIGNKEY;
+  DECLARE VARIABLE rc INTEGER = 0;
+  DECLARE VARIABLE delta DFOREIGNKEY = 1;
+BEGIN
+  id = COALESCE(RDB$GET_CONTEXT('USER_SESSION', 'GD_CURRENT_ID'), 0);
+  limit_id = COALESCE(RDB$GET_CONTEXT('USER_SESSION', 'GD_LIMIT_ID'), 0);
+
+  IF (:id > 0 AND :id <= :limit_id) THEN
+    RDB$SET_CONTEXT('USER_SESSION', 'GD_CURRENT_ID', :id + 1);
+  ELSE BEGIN
+    id = -1;
+
+    FOR
+      SELECT id_from, id_to
+      FROM gd_available_id
+      INTO :id_from, :id_to
+    DO BEGIN
+      IF ((:id_to - :id_from + 1) <= :delta) THEN
+        IN AUTONOMOUS TRANSACTION DO
+        BEGIN
+          DELETE FROM gd_available_id WHERE id_from = :id_from AND id_to = :id_to;
+          rc = ROW_COUNT;
+        END
+      ELSE BEGIN
+        IN AUTONOMOUS TRANSACTION DO
+        BEGIN
+          UPDATE gd_available_id SET id_from = :id_from + :delta WHERE id_from = :id_from AND id_to = :id_to;
+          rc = ROW_COUNT;
+        END
+        id_to = :id_from + (:delta - 1);
+      END
+
+      IF (:rc = 1) THEN
+      BEGIN
+        id = :id_from;
+
+        RDB$SET_CONTEXT('USER_SESSION', 'GD_CURRENT_ID', :id + 1);
+        RDB$SET_CONTEXT('USER_SESSION', 'GD_LIMIT_ID', :id_to);
+
+        LEAVE;
+      END
+
+      WHEN ANY DO
+      BEGIN
+        id = -1;
+      END
+    END
+
+    IF (id = -1) THEN
+    BEGIN
+      id_to = GEN_ID(gd_g_unique, 1);
+      /*
+      id = :id_to - 100 + 1;
+      RDB$SET_CONTEXT('USER_SESSION', 'GD_CURRENT_ID', :id + 1);
+      RDB$SET_CONTEXT('USER_SESSION', 'GD_LIMIT_ID', :id_to);
+      */
+    END
+  END
+END
+^
+
+CREATE OR ALTER PROCEDURE gd_p_getnextid
+  RETURNS(id DFOREIGNKEY)
+AS
+BEGIN
+  EXECUTE PROCEDURE gd_p_getnextid_ex
+    RETURNING_VALUES :id;  
+
+  SUSPEND;
+END
+^
+
+/*
+CREATE OR ALTER TRIGGER gd_db_disconnect_save_id
+  ACTIVE
+  ON DISCONNECT
+  POSITION 32000
+AS
+  DECLARE VARIABLE id_from INTEGER;
+  DECLARE VARIABLE id_to INTEGER;
+BEGIN
+  id_from = COALESCE(RDB$GET_CONTEXT('USER_SESSION', 'GD_CURRENT_ID'), 0);
+  id_to = COALESCE(RDB$GET_CONTEXT('USER_SESSION', 'GD_LIMIT_ID'), 0);
+  
+  IF (:id_from > 0 AND :id_from <= :id_to) THEN
+    IN AUTONOMOUS TRANSACTION DO
+      INSERT INTO gd_available_id (id_from, id_to) VALUES (:id_from, :id_to);
+END
+^  
+*/
+
+SET TERM ; ^
 
 CREATE DOMAIN drelationtype
   AS CHAR(1)
   NOT NULL
   CHECK (VALUE IN ('T', 'V'));
+
+CREATE DOMAIN dgeneratorname 
+  AS VARCHAR(31);
 
 COMMIT;
 
@@ -4026,6 +4173,8 @@ CREATE TABLE at_relations (
   lname           dname,                            /* локализованное имя                    */
   lshortname      dname,                            /* локализованное короткое имя           */
   description     dtext180,                         /* описание                              */
+  semcategory     dtext60,
+  generatorname   dgeneratorname,
 
   afull           dsecurity,                        /* права доступа                         */
   achag           dsecurity,
@@ -4189,6 +4338,7 @@ CREATE TABLE at_relation_fields(
   lname           dname,                            /* локализованное наименование поля       */
   lshortname      dtext20,                          /* локализованное наименование поля       */
   description     dtext180,                         /* описание назначения поля               */
+  semcategory     dtext60,
 
   /* Визуальные настройки для поля */
 
@@ -5524,6 +5674,68 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER PROCEDURE gd_p_find_dupl_id
+  RETURNS(id DFOREIGNKEY, relationkey DFOREIGNKEY)
+AS
+  DECLARE VARIABLE rn VARCHAR(31);
+  DECLARE VARIABLE fn VARCHAR(31);
+  DECLARE VARIABLE rid DFOREIGNKEY;
+BEGIN
+  FOR
+    SELECT
+      rf.rdb$relation_name, atr.id, LIST(TRIM(rf.rdb$field_name))
+    FROM
+      rdb$relation_fields rf
+      JOIN rdb$relations r ON r.rdb$relation_name = rf.rdb$relation_name
+      JOIN rdb$index_segments idxs ON idxs.rdb$field_name = rf.rdb$field_name
+      JOIN rdb$indices idx ON idx.rdb$index_name = idxs.rdb$index_name
+      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = idx.rdb$index_name
+        AND rc.rdb$relation_name = rf.rdb$relation_name
+      JOIN at_relations atr ON atr.relationname = r.rdb$relation_name
+    WHERE
+      rc.rdb$constraint_type = 'PRIMARY KEY'
+      AND
+      rf.rdb$relation_name <> 'GD_RUID'
+      /*
+
+      Тут должно быть условие на таблицы, в которых не соблюдается
+      уникальность ИД.
+
+      */
+      AND
+      r.rdb$system_flag = 0
+      AND
+      COALESCE(r.rdb$relation_type, 0) = 0
+      AND
+      NOT EXISTS(
+        SELECT *
+        FROM
+          rdb$index_segments idxs_fk
+          JOIN rdb$indices idx_fk ON idxs_fk.rdb$index_name = idx_fk.rdb$index_name
+        WHERE
+          idxs_fk.rdb$field_name = rf.rdb$field_name
+          AND
+          idx_fk.rdb$relation_name = rf.rdb$relation_name
+          AND
+          idx_fk.rdb$index_name <> idx.rdb$index_name
+      )
+    GROUP BY
+      1, 2
+    HAVING
+      LIST(TRIM(rf.rdb$field_name)) = 'ID'
+  INTO
+    :rn, :rid, :fn
+  DO BEGIN
+    relationkey = :rid;
+    FOR
+      EXECUTE STATEMENT 'SELECT id FROM ' || :rn || ' WHERE id >= 147000000'
+      INTO :id
+    DO
+      SUSPEND;
+  END
+END
+^
+
 SET TERM ; ^
 
 COMMIT;
@@ -6098,8 +6310,8 @@ CREATE OR ALTER TRIGGER gd_au_documenttype FOR gd_documenttype
   AFTER UPDATE
   POSITION 20000
 AS
-  DECLARE VARIABLE new_root INTEGER = NULL;
-  DECLARE VARIABLE old_root INTEGER = NULL;
+  DECLARE VARIABLE new_root DFOREIGNKEY = NULL;
+  DECLARE VARIABLE old_root DFOREIGNKEY = NULL;
 BEGIN
   IF (NEW.parent IS DISTINCT FROM OLD.parent) THEN
   BEGIN
@@ -6132,8 +6344,8 @@ CREATE OR ALTER TRIGGER gd_aiu_documenttype FOR gd_documenttype
   POSITION 20001
 AS
   DECLARE VARIABLE P INTEGER;
-  DECLARE VARIABLE XID INTEGER;
-  DECLARE VARIABLE DBID INTEGER;
+  DECLARE VARIABLE XID DFOREIGNKEY;
+  DECLARE VARIABLE DBID DFOREIGNKEY;
 BEGIN
   IF (NEW.documenttype = 'B') THEN
   BEGIN
@@ -6661,8 +6873,8 @@ SET TERM ^ ;
 
 CREATE OR ALTER PROCEDURE AT_P_SYNC 
 AS
-  DECLARE VARIABLE ID INTEGER;
-  DECLARE VARIABLE ID1 INTEGER;
+  DECLARE VARIABLE ID DFOREIGNKEY;
+  DECLARE VARIABLE ID1 DFOREIGNKEY;
   DECLARE VARIABLE FN VARCHAR(31);
   DECLARE VARIABLE FS VARCHAR(31);
   DECLARE VARIABLE RN VARCHAR(31);
@@ -6941,7 +7153,7 @@ AS
   DEClARE VARIABLE FLIST VARCHAR(255);
   DEClARE VARIABLE FL VARCHAR(255);
   DEClARE VARIABLE INDEXNAME VARCHAR(31);
-  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE ID DFOREIGNKEY;
   DECLARE VARIABLE UF SMALLINT;
   DECLARE VARIABLE II SMALLINT;
 BEGIN
@@ -7051,7 +7263,7 @@ CREATE OR ALTER PROCEDURE AT_P_SYNC_TRIGGERS (
 AS
   DECLARE VARIABLE RN VARCHAR(31);
   DECLARE VARIABLE TN VARCHAR(31);
-  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE ID DFOREIGNKEY;
   DECLARE VARIABLE TI SMALLINT;
 BEGIN
 
@@ -7119,13 +7331,13 @@ CREATE PROCEDURE AT_P_SYNC_INDEXES_ALL
 AS
   DECLARE VARIABLE FN VARCHAR(31);
   DECLARE VARIABLE RN VARCHAR(31);
-  DECLARE VARIABLE I_ID INTEGER;
+  DECLARE VARIABLE I_ID DFOREIGNKEY;
   DECLARE VARIABLE I_N VARCHAR(31);
   DECLARE VARIABLE FP SMALLINT;
   DEClARE VARIABLE FLIST VARCHAR(255);
   DEClARE VARIABLE FL VARCHAR(255);
   DEClARE VARIABLE INDEXNAME VARCHAR(31);
-  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE ID DFOREIGNKEY;
   DECLARE VARIABLE UF SMALLINT;
   DECLARE VARIABLE II SMALLINT;
 BEGIN
@@ -7220,11 +7432,11 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE AT_P_SYNC_TRIGGERS_ALL
+CREATE OR ALTER PROCEDURE AT_P_SYNC_TRIGGERS_ALL
 AS
   DECLARE VARIABLE RN VARCHAR(31);
   DECLARE VARIABLE TN VARCHAR(31);
-  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE ID DFOREIGNKEY;
   DECLARE VARIABLE TI SMALLINT;
 BEGIN
 
@@ -7588,7 +7800,7 @@ CREATE TABLE bn_bankstatement
   csumcurr             dcurrency DEFAULT 0 NOT NULL,
 
   linecount            dinteger DEFAULT 0 NOT NULL,
-  rate                 dcurrency, /* курс валютной выписки */ 
+  rate                 DCURRRATE_NULL, /* курс валютной выписки */ 
 
   CHECK(linecount >= 0)
 );
@@ -7803,9 +8015,9 @@ END
   Данная процедура пересчитывает суммарные значения для всех выписок.
 
 */
-CREATE PROCEDURE bn_p_update_all_bankstatements
+CREATE OR ALTER PROCEDURE bn_p_update_all_bankstatements
 AS
-  DECLARE VARIABLE DK INTEGER;
+  DECLARE VARIABLE DK DFOREIGNKEY;
 BEGIN
   FOR
     SELECT documentkey FROM bn_bankstatement INTO :DK
@@ -8333,7 +8545,7 @@ CREATE TABLE gd_command (
   parent      dparent,                      /* спасылка на бацьку      */
 
   name        dname,                        /* імя элементу            */
-  cmd         dtext20,                      /* каманда                 */
+  cmd         dtext40,                      /* каманда                 */
   cmdtype     dinteger DEFAULT 0 NOT NULL,
   hotkey      dhotkey,                      /* гарачая клявіша         */
   imgindex    dsmallint DEFAULT 0 NOT NULL, /* індэкс малюнка          */
@@ -8623,7 +8835,7 @@ CREATE OR ALTER TRIGGER gd_biu_storage_data FOR gd_storage_data
   BEFORE INSERT OR UPDATE
   POSITION 0
 AS
-  DECLARE VARIABLE FID INTEGER = -1;
+  DECLARE VARIABLE FID DFOREIGNKEY = -1;
 BEGIN
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
@@ -10063,7 +10275,7 @@ CREATE OR ALTER TRIGGER ac_bi_companyaccount FOR ac_companyaccount
   BEFORE INSERT OR UPDATE
   POSITION 0
 AS
-  DECLARE VARIABLE ActiveID INTEGER = NULL;
+  DECLARE VARIABLE ActiveID DFOREIGNKEY = NULL;
 BEGIN
   SELECT FIRST 1 accountkey FROM ac_companyaccount
     WHERE companykey = NEW.companykey AND isactive = 1
@@ -10315,12 +10527,12 @@ CREATE OR ALTER TRIGGER ac_tc_record
   ON TRANSACTION COMMIT
   POSITION 9000
 AS
-  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE ID DFOREIGNKEY;
   DECLARE VARIABLE STM VARCHAR(512);
   DECLARE VARIABLE DNCU DCURRENCY;
   DECLARE VARIABLE CNCU DCURRENCY;
   DECLARE VARIABLE OFFBALANCE INTEGER;
-  DECLARE VARIABLE EID INTEGER;
+  DECLARE VARIABLE EID DFOREIGNKEY;
 BEGIN
   IF (EXISTS (SELECT * FROM ac_incorrect_record)) THEN
   BEGIN
@@ -10356,8 +10568,8 @@ CREATE OR ALTER TRIGGER ac_bi_entry FOR ac_entry
   BEFORE INSERT
   POSITION 31700
 AS
-  DECLARE VARIABLE Cnt INTEGER = 0;
-  DECLARE VARIABLE Cnt2 INTEGER = 0;
+  DECLARE VARIABLE Cnt DFOREIGNKEY = 0;
+  DECLARE VARIABLE Cnt2 DFOREIGNKEY = 0;
   DECLARE VARIABLE WasSetIsSimple INTEGER;
 BEGIN
   IF (NEW.ID IS NULL) THEN
@@ -10749,12 +10961,12 @@ END
 
 CREATE PROCEDURE AC_ACCOUNTEXSALDO (
     DATEEND DATE,
-    ACCOUNTKEY INTEGER,
+    ACCOUNTKEY DFOREIGNKEY,
     FIELDNAME VARCHAR(60),
-    COMPANYKEY INTEGER,
+    COMPANYKEY DFOREIGNKEY,
     ALLHOLDINGCOMPANIES INTEGER,
     INGROUP INTEGER,
-    CURRKEY INTEGER)
+    CURRKEY DFOREIGNKEY)
 RETURNS
     (DEBITSALDO NUMERIC(15,4),
     CREDITSALDO NUMERIC(15,4),
@@ -10778,11 +10990,11 @@ END
 
 CREATE OR ALTER PROCEDURE AC_ACCOUNTEXSALDO_BAL (
     DATEEND DATE,
-    ACCOUNTKEY INTEGER,
+    ACCOUNTKEY DFOREIGNKEY,
     FIELDNAME VARCHAR(60),
-    COMPANYKEY INTEGER,
+    COMPANYKEY DFOREIGNKEY,
     ALLHOLDINGCOMPANIES INTEGER,
-    CURRKEY INTEGER)
+    CURRKEY DFOREIGNKEY)
 RETURNS (
     DEBITSALDO NUMERIC(15, 4),
     CREDITSALDO NUMERIC(15, 4),
@@ -10796,7 +11008,7 @@ RETURNS (
    DECLARE VARIABLE SALDOEQ NUMERIC(15, 4);
    DECLARE VARIABLE TEMPVAR varchar(60);
    DECLARE VARIABLE CLOSEDATE DATE;
-   DECLARE VARIABLE CK INTEGER;
+   DECLARE VARIABLE CK DFOREIGNKEY;
    DECLARE VARIABLE SQLStatement VARCHAR(2048);
    DECLARE VARIABLE HoldingList VARCHAR(1024) = '';
    DECLARE VARIABLE CurrCondition_E VARCHAR(1024) = '';
@@ -10946,16 +11158,16 @@ RETURNS (
 CREATE OR ALTER PROCEDURE AC_CIRCULATIONLIST (
     datebegin date,
     dateend date,
-    companykey integer,
+    companykey dforeignkey,
     allholdingcompanies integer,
-    accountkey integer,
+    accountkey dforeignkey,
     ingroup integer,
-    currkey integer,
+    currkey dforeignkey,
     dontinmove integer)
 returns (
     alias varchar(20),
     name varchar(180),
-    id integer,
+    id dforeignkey,
     ncu_begin_debit numeric(15,4),
     ncu_begin_credit numeric(15,4),
     ncu_debit numeric(15,4),
@@ -11254,15 +11466,15 @@ END
 CREATE OR ALTER PROCEDURE ac_circulationlist_bal(
   datebegin DATE,
   dateend DATE,
-  companykey INTEGER,
+  companykey DFOREIGNKEY,
   allholdingcompanies INTEGER,
-  accountkey INTEGER,
-  currkey INTEGER,
+  accountkey DFOREIGNKEY,
+  currkey DFOREIGNKEY,
   dontinmove INTEGER)
 RETURNS (
   alias VARCHAR(20),
   name VARCHAR(180),
-  id INTEGER,
+  id DFOREIGNKEY,
   ncu_begin_debit NUMERIC(15,4),
   ncu_begin_credit NUMERIC(15,4),
   ncu_debit NUMERIC(15,4),
@@ -11673,10 +11885,10 @@ END
 COMMIT ^
 
 CREATE PROCEDURE AC_GETSIMPLEENTRY (
-    ENTRYKEY INTEGER,
-    ACORRACCOUNTKEY INTEGER)
+    ENTRYKEY DFOREIGNKEY,
+    ACORRACCOUNTKEY DFOREIGNKEY)
 RETURNS (
-    ID INTEGER,
+    ID DFOREIGNKEY,
     DEBIT NUMERIC(15,4),
     CREDIT NUMERIC(15,4),
     DEBITCURR NUMERIC(15,4),
@@ -11756,12 +11968,28 @@ ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_CREDIT
 ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_DEBIT
   FOREIGN KEY (DEBITACCOUNT) REFERENCES AC_ACCOUNT (ID);
 ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_ENTRYKEY
-  FOREIGN KEY (ENTRYKEY) REFERENCES AC_ENTRY (ID) ON DELETE CASCADE;
+  FOREIGN KEY (ENTRYKEY) REFERENCES AC_ENTRY (ID) ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_TRRECORDKEY
-  FOREIGN KEY (TRRECORDKEY) REFERENCES AC_TRRECORD (ID) ON DELETE CASCADE;
+  FOREIGN KEY (TRRECORDKEY) REFERENCES AC_TRRECORD (ID) ON DELETE CASCADE ON UPDATE CASCADE ;
 
 COMMIT;
 
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER ac_bi_autoentry FOR ac_autoentry
+  ACTIVE
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN  
+  IF (NEW.id IS NULL) THEN
+    EXECUTE PROCEDURE gd_p_getnextid_ex
+      RETURNING_VALUES NEW.id;  
+END
+^  
+
+SET TERM ; ^
+  
 /*Таблица для хранения настроек главной книги*/
 
 CREATE TABLE AC_GENERALLEDGER (
@@ -11888,8 +12116,7 @@ ALTER TABLE ac_quantity ADD CONSTRAINT fk_ac_quantity_entry
 
 ALTER TABLE ac_quantity ADD CONSTRAINT fk_ac_quantity_accvalue
   FOREIGN KEY (valuekey) REFERENCES gd_value(id)
-  ON UPDATE CASCADE
-  ON DELETE CASCADE;
+  ON UPDATE CASCADE;
 
 COMMIT;
 
@@ -15589,6 +15816,21 @@ COMMIT;
 */
 
 CREATE EXCEPTION INV_E_INVALIDMOVEMENT 'The movement was made incorrect!';
+CREATE EXCEPTION INV_E_CANNTCHANGEFEATURE 'Нельзя изменять признаки, т.к. они влияют на дальнейшее движение';
+CREATE EXCEPTION INV_E_CANNTCHANGEGOODKEY 'Нельзя изменять товар в позиции, т.к. по позиции было дальнейшее движение!';
+CREATE EXCEPTION INV_E_DONTCHANGEBENEFICIARY 'Нельзя изменить получателя';
+CREATE EXCEPTION INV_E_DONTCHANGESOURCE 'Нельзя изменить источник!';
+CREATE EXCEPTION INV_E_DONTREDUCEAMOUNT 'Нельзя уменьшить количество по позиции';
+CREATE EXCEPTION INV_E_INCORRECTQUANTITY 'Количество по документу не соответсвует созданному движению!';
+CREATE EXCEPTION INV_E_INSUFFICIENTBALANCE 'Недостаточно остатков на указанную дату';
+CREATE EXCEPTION INV_E_NOPRODUCT 'На указанную дату нет остатка товара!';
+
+CREATE DOMAIN DVIEWMOVEMENTPART AS VARCHAR(1) CHECK ((VALUE IN ('I', 'E') or VALUE is NULL));
+
+
+CREATE GENERATOR gd_g_movement;
+SET GENERATOR gd_g_movement TO 0;
+
 
 COMMIT;
 
@@ -15755,14 +15997,43 @@ CREATE INDEX INV_X_BALANCE_CB ON INV_BALANCE (
 
 COMMIT;
 
+CREATE TABLE GD_CHANGEDDOC (
+    ID             DINTKEY,
+    SOURCEDOCKEY   DFOREIGNKEY,
+    DESTDOCKEY     DFOREIGNKEY,
+    EDITORKEY      DFOREIGNKEY,
+    EDITIONDATE    DTIMESTAMP,
+    CHANGEDFIELDS  DTEXT1024
+);
+
+COMMIT;
+
+ALTER TABLE GD_CHANGEDDOC ADD CONSTRAINT PK_GD_CHANGEDDOC PRIMARY KEY (ID);
+ALTER TABLE GD_CHANGEDDOC ADD CONSTRAINT FK_GD_CHANGEDDOC_SK FOREIGN KEY (SOURCEDOCKEY) 
+  REFERENCES GD_DOCUMENT (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE GD_CHANGEDDOC ADD CONSTRAINT FK_GD_CHANGEDDOC_DK FOREIGN KEY (DESTDOCKEY) 
+  REFERENCES GD_DOCUMENT (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+
+COMMIT;
 
 SET TERM ^ ;
 
+CREATE trigger gd_changeddoc_bi0 FOR gd_changeddoc
+ACTIVE BEFORE INSERT position 0
+AS
+BEGIN
+  IF (NEW.id is NULL) THEN
+    NEW.ID = GEN_ID(gd_g_movement, 1);
+END
+^
+
+
+
 CREATE PROCEDURE inv_makerest                               
 AS                                               
-  DECLARE VARIABLE CONTACTKEY INTEGER;           
-  DECLARE VARIABLE CARDKEY INTEGER;              
-  DECLARE VARIABLE GOODKEY INTEGER;
+  DECLARE VARIABLE CONTACTKEY DFOREIGNKEY;           
+  DECLARE VARIABLE CARDKEY DFOREIGNKEY;              
+  DECLARE VARIABLE GOODKEY DFOREIGNKEY;
   DECLARE VARIABLE BALANCE NUMERIC(15, 4);       
 BEGIN                                            
   DELETE FROM INV_BALANCE;                      
@@ -15777,6 +16048,31 @@ BEGIN
     INSERT INTO inv_balance (contactkey, goodkey, cardkey, balance)  
       VALUES (:contactkey, :goodkey, :cardkey, :balance);             
 END 
+^
+
+CREATE PROCEDURE INV_INSERT_CARD (
+    ID DFOREIGNKEY,
+    PARENT DFOREIGNKEY)
+AS
+  declare variable SQLTEXT varchar(32000);
+  declare variable FIELDNAME varchar(32000);
+BEGIN 
+  SELECT LIST(fieldname, ',') 
+  FROM AT_RELATION_FIELDS 
+  WHERE 
+    relationname = 'INV_CARD' 
+    AND fieldname <> 'ID' 
+    AND fieldname <> 'PARENT' 
+  INTO :fieldname; 
+ 
+  sqltext = 
+    'INSERT INTO inv_card (id, parent, ' || :fieldname || ')' || 
+    'SELECT ' || :id || ',' || :parent || ',' || 
+    :fieldname || ' ' || 
+    'FROM inv_card WHERE id =' || :parent; 
+ 
+  EXECUTE STATEMENT :sqltext; 
+END
 ^
 
 SET TERM ; ^
@@ -15821,7 +16117,6 @@ CREATE TRIGGER inv_bi_balanceoption FOR inv_balanceoption
   BEFORE INSERT
   POSITION 0
 AS
-  DECLARE VARIABLE id INTEGER;
 BEGIN
   /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
@@ -15850,7 +16145,7 @@ CREATE TRIGGER inv_bu_card FOR inv_card
   BEFORE UPDATE
   POSITION 0
 AS
-  DECLARE VARIABLE firstdocumentkey INTEGER;
+  DECLARE VARIABLE firstdocumentkey DFOREIGNKEY;
   DECLARE VARIABLE firstdate DATE;
 BEGIN
 
@@ -15910,7 +16205,7 @@ AS
   DECLARE VARIABLE D DATE;
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF (GEN_ID(gd_g_block, 0) > 0) THEN
@@ -15954,7 +16249,7 @@ AS
   DECLARE VARIABLE D DATE;
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF (GEN_ID(gd_g_block, 0) > 0) THEN
@@ -15998,7 +16293,7 @@ AS
   DECLARE VARIABLE D DATE;
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF (GEN_ID(gd_g_block, 0) > 0) THEN
@@ -16180,7 +16475,7 @@ AS
   DECLARE VARIABLE balance NUMERIC(15, 4);
 BEGIN
   IF (NEW.id IS NULL) THEN
-    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+    NEW.id = GEN_ID(gd_g_movement, 1) + GEN_ID(gd_g_offset, 0);
 
   IF (NEW.debit IS NULL) THEN
     NEW.debit = 0;
@@ -16216,55 +16511,61 @@ BEGIN
 END;
 ^
 
-CREATE TRIGGER INV_BU_MOVEMENT FOR INV_MOVEMENT
-  ACTIVE
-  BEFORE UPDATE
-  POSITION 0
-AS
-  DECLARE VARIABLE balance NUMERIC(15, 4);
-BEGIN
-  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'GD_MERGING_RECORDS') IS NULL) THEN
-  BEGIN
-    IF (NEW.documentkey <> OLD.documentkey) THEN
-      EXCEPTION inv_e_movementchange;
-
-    IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN
-    BEGIN
-      IF (OLD.debit > 0) THEN
-      BEGIN
-        SELECT balance FROM inv_balance
-        WHERE contactkey = OLD.contactkey
-          AND cardkey = OLD.cardkey
-        INTO :balance;
-        IF (COALESCE(:balance, 0) < OLD.debit) THEN
-          EXCEPTION INV_E_INVALIDMOVEMENT;
-      END
-    END ELSE
-    BEGIN
-      IF (OLD.debit > NEW.debit) THEN
-      BEGIN
-        SELECT balance FROM inv_balance
-        WHERE contactkey = OLD.contactkey
-          AND cardkey = OLD.cardkey
-        INTO :balance;
-        balance = COALESCE(:balance, 0);
-        IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN
-          EXCEPTION INV_E_INVALIDMOVEMENT;
-      END ELSE
-      BEGIN
-        IF (NEW.credit > OLD.credit) THEN
-        BEGIN
-          SELECT balance FROM inv_balance
-          WHERE contactkey = OLD.contactkey
-            AND cardkey = OLD.cardkey
-          INTO :balance;
-          balance = COALESCE(:balance, 0);
-          IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN
-            EXCEPTION INV_E_INVALIDMOVEMENT;
-        END
-      END
-    END
-  END
+CREATE trigger inv_bu_movement for inv_movement
+active before update position 0
+AS 
+  DECLARE VARIABLE balance NUMERIC(15, 4); 
+  DECLARE VARIABLE controlremains INTEGER; 
+BEGIN 
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'GD_MERGING_RECORDS') IS NULL) THEN 
+  BEGIN 
+    IF (NEW.documentkey <> OLD.documentkey) THEN 
+      EXCEPTION inv_e_movementchange; 
+ 
+    IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN 
+    BEGIN 
+      IF (OLD.debit <> 0) THEN 
+      BEGIN 
+        SELECT balance FROM inv_balance 
+        WHERE contactkey = OLD.contactkey 
+          AND cardkey = OLD.cardkey 
+        INTO :balance; 
+        IF (COALESCE(:balance, 0) < OLD.debit) THEN 
+          EXCEPTION INV_E_INVALIDMOVEMENT; 
+      END 
+    END ELSE 
+    BEGIN 
+      IF (OLD.debit > NEW.debit) THEN 
+      BEGIN 
+        SELECT balance FROM inv_balance 
+        WHERE contactkey = OLD.contactkey 
+          AND cardkey = OLD.cardkey 
+        INTO :balance; 
+        balance = COALESCE(:balance, 0); 
+        IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN 
+          EXCEPTION INV_E_DONTREDUCEAMOUNT; 
+      END ELSE 
+      BEGIN 
+        IF (NEW.credit > OLD.credit) THEN 
+        BEGIN 
+          SELECT balance FROM inv_balance 
+          WHERE contactkey = OLD.contactkey 
+            AND cardkey = OLD.cardkey 
+          INTO :balance; 
+          balance = COALESCE(:balance, 0); 
+          controlremains = RDB$GET_CONTEXT('USER_TRANSACTION', 'CONTROLREMAINS'); 
+          IF (:controlremains IS NULL) THEN 
+          BEGIN 
+            IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN 
+              EXCEPTION INV_E_INSUFFICIENTBALANCE; 
+          END 
+          ELSE 
+            IF ((:controlremains <> 0) and (:balance < NEW.credit - OLD.credit)) THEN 
+              EXCEPTION INV_E_INSUFFICIENTBALANCE; 
+        END 
+      END 
+    END 
+  END 
 END;
 ^
 
@@ -16283,8 +16584,8 @@ END;
 CREATE TRIGGER INV_BD_MOVEMENT FOR INV_MOVEMENT
 BEFORE DELETE POSITION 0
 AS
-  DECLARE VARIABLE DOCKEY INTEGER;
-  DECLARE VARIABLE FIRSTDOCKEY INTEGER;
+  DECLARE VARIABLE DOCKEY DFOREIGNKEY;
+  DECLARE VARIABLE FIRSTDOCKEY DFOREIGNKEY;
   DECLARE VARIABLE CONTACTTYPE INTEGER;
   DECLARE VARIABLE BALANCE NUMERIC(15, 4);
 BEGIN
@@ -16327,9 +16628,9 @@ END;
 ^
 
 CREATE PROCEDURE INV_P_GETCARDS (
-    PARENT INTEGER)
+    PARENT DFOREIGNKEY)
 RETURNS (
-    ID INTEGER)
+    ID DFOREIGNKEY)
 AS
 BEGIN
 
@@ -16349,8 +16650,8 @@ END;
 ^
 
 CREATE OR ALTER PROCEDURE INV_GETCARDMOVEMENT (
-    CARDKEY INTEGER,
-    CONTACTKEY INTEGER,
+    CARDKEY DFOREIGNKEY,
+    CONTACTKEY DFOREIGNKEY,
     DATEEND DATE)
 RETURNS (
     REMAINS NUMERIC(15, 4))
@@ -16432,7 +16733,7 @@ CREATE TRIGGER inv_bi_movement_block FOR inv_movement
 AS
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF ((NEW.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
@@ -16472,7 +16773,7 @@ CREATE TRIGGER inv_bu_movement_block FOR inv_movement
 AS
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF (((NEW.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) 
@@ -16513,7 +16814,7 @@ CREATE TRIGGER inv_bd_movement_block FOR inv_movement
 AS
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF ((OLD.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
@@ -17152,8 +17453,8 @@ CREATE OR ALTER TRIGGER gd_ad_documenttype_option FOR gd_documenttype_option
   AFTER DELETE
   POSITION 32000
 AS
-  DECLARE VARIABLE xid  INTEGER = -1;
-  DECLARE VARIABLE dbid INTEGER = -1;
+  DECLARE VARIABLE xid  DFOREIGNKEY = -1;
+  DECLARE VARIABLE dbid DFOREIGNKEY = -1;
 BEGIN  
   FOR
     SELECT xid, dbid FROM gd_ruid WHERE id = OLD.id
@@ -17365,10 +17666,10 @@ END
 ^
 
 CREATE OR ALTER PROCEDURE at_p_findnsrec (InPath VARCHAR(32000),
-  InFirstID INTEGER, InID INTEGER)
-  RETURNS (OutPath VARCHAR(32000), OutFirstID INTEGER, OutID INTEGER)
+  InFirstID DFOREIGNKEY, InID DFOREIGNKEY)
+  RETURNS (OutPath VARCHAR(32000), OutFirstID DFOREIGNKEY, OutID DFOREIGNKEY)
 AS
-  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE ID DFOREIGNKEY;
   DECLARE VARIABLE NAME VARCHAR(255);
 BEGIN
   FOR
@@ -17400,12 +17701,12 @@ END
 ^
 
 CREATE OR ALTER PROCEDURE at_p_del_duplicates (
-  DeleteFromID INTEGER,
-  CurrentID INTEGER,
+  DeleteFromID DFOREIGNKEY,
+  CurrentID DFOREIGNKEY,
   Stack VARCHAR(32000))
 AS
-  DECLARE VARIABLE id INTEGER;
-  DECLARE VARIABLE nsid INTEGER;
+  DECLARE VARIABLE id DFOREIGNKEY;
+  DECLARE VARIABLE nsid DFOREIGNKEY;
 BEGIN
   IF (:DeleteFromID <> :CurrentID) THEN
   BEGIN
@@ -17576,7 +17877,7 @@ CREATE TRIGGER gd_bi_file FOR gd_file
   BEFORE INSERT
   POSITION 0
 AS
-  DECLARE VARIABLE id INTEGER;
+  DECLARE VARIABLE id DFOREIGNKEY;
 BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
@@ -17614,7 +17915,7 @@ CREATE TRIGGER gd_bu_file FOR gd_file
   BEFORE UPDATE
   POSITION 0
 AS
-  DECLARE VARIABLE id INTEGER;
+  DECLARE VARIABLE id DFOREIGNKEY;
 BEGIN
   IF (NEW.parent IS NULL) THEN
   BEGIN
@@ -18061,7 +18362,7 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE PROCEDURE AC_p_el_ACCOUNT (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE AC_p_el_ACCOUNT (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -18152,10 +18453,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE AC_p_gchc_ACCOUNT (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE AC_p_gchc_ACCOUNT (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -18182,7 +18483,7 @@ END
 CREATE PROCEDURE AC_p_restruct_ACCOUNT
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -18335,7 +18636,7 @@ GRANT EXECUTE ON PROCEDURE AC_p_gchc_ACCOUNT TO administrator
 GRANT EXECUTE ON PROCEDURE AC_p_restruct_ACCOUNT TO administrator
 ^
 
-CREATE PROCEDURE AC_p_el_TRANSACTION (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE AC_p_el_TRANSACTION (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -18426,10 +18727,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE AC_p_gchc_TRANSACTION (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE AC_p_gchc_TRANSACTION (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -18456,7 +18757,7 @@ END
 CREATE PROCEDURE AC_p_restruct_TRANSACTION
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -18609,7 +18910,7 @@ GRANT EXECUTE ON PROCEDURE AC_p_gchc_TRANSACTION TO administrator
 GRANT EXECUTE ON PROCEDURE AC_p_restruct_TRANSACTION TO administrator
 ^
 
-CREATE PROCEDURE EVT_p_el_MACROSGROUP (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE EVT_p_el_MACROSGROUP (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -18700,10 +19001,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE EVT_p_gchc_MACROSGROUP (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE EVT_p_gchc_MACROSGROUP (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -18730,7 +19031,7 @@ END
 CREATE PROCEDURE EVT_p_restruct_MACROSGROUP
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -18883,7 +19184,7 @@ GRANT EXECUTE ON PROCEDURE EVT_p_gchc_MACROSGROUP TO administrator
 GRANT EXECUTE ON PROCEDURE EVT_p_restruct_MACROSGROUP TO administrator
 ^
 
-CREATE PROCEDURE EVT_p_el_OBJECT (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE EVT_p_el_OBJECT (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -18974,10 +19275,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE EVT_p_gchc_OBJECT (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE EVT_p_gchc_OBJECT (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -19004,7 +19305,7 @@ END
 CREATE PROCEDURE EVT_p_restruct_OBJECT
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -19157,7 +19458,7 @@ GRANT EXECUTE ON PROCEDURE EVT_p_gchc_OBJECT TO administrator
 GRANT EXECUTE ON PROCEDURE EVT_p_restruct_OBJECT TO administrator
 ^
 
-CREATE PROCEDURE GD_p_el_CONTACT (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE GD_p_el_CONTACT (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -19248,10 +19549,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE GD_p_gchc_CONTACT (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE GD_p_gchc_CONTACT (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -19278,7 +19579,7 @@ END
 CREATE PROCEDURE GD_p_restruct_CONTACT
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -19431,7 +19732,7 @@ GRANT EXECUTE ON PROCEDURE GD_p_gchc_CONTACT TO administrator
 GRANT EXECUTE ON PROCEDURE GD_p_restruct_CONTACT TO administrator
 ^
 
-CREATE PROCEDURE GD_p_el_DOCUMENTTYPE (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE GD_p_el_DOCUMENTTYPE (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -19522,10 +19823,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE GD_p_gchc_DOCUMENTTYPE (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE GD_p_gchc_DOCUMENTTYPE (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -19552,7 +19853,7 @@ END
 CREATE PROCEDURE GD_p_restruct_DOCUMENTTYPE
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -19705,7 +20006,7 @@ GRANT EXECUTE ON PROCEDURE GD_p_gchc_DOCUMENTTYPE TO administrator
 GRANT EXECUTE ON PROCEDURE GD_p_restruct_DOCUMENTTYPE TO administrator
 ^
 
-CREATE PROCEDURE GD_p_el_FILE (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE GD_p_el_FILE (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -19796,10 +20097,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE GD_p_gchc_FILE (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE GD_p_gchc_FILE (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -19826,7 +20127,7 @@ END
 CREATE PROCEDURE GD_p_restruct_FILE
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -19979,7 +20280,7 @@ GRANT EXECUTE ON PROCEDURE GD_p_gchc_FILE TO administrator
 GRANT EXECUTE ON PROCEDURE GD_p_restruct_FILE TO administrator
 ^
 
-CREATE PROCEDURE GD_p_el_GOODGROUP (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE GD_p_el_GOODGROUP (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -20070,10 +20371,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE GD_p_gchc_GOODGROUP (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE GD_p_gchc_GOODGROUP (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -20100,7 +20401,7 @@ END
 CREATE PROCEDURE GD_p_restruct_GOODGROUP
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -20253,7 +20554,7 @@ GRANT EXECUTE ON PROCEDURE GD_p_gchc_GOODGROUP TO administrator
 GRANT EXECUTE ON PROCEDURE GD_p_restruct_GOODGROUP TO administrator
 ^
 
-CREATE PROCEDURE GD_p_el_PLACE (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE GD_p_el_PLACE (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -20344,10 +20645,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE GD_p_gchc_PLACE (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE GD_p_gchc_PLACE (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -20374,7 +20675,7 @@ END
 CREATE PROCEDURE GD_p_restruct_PLACE
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -20527,7 +20828,7 @@ GRANT EXECUTE ON PROCEDURE GD_p_gchc_PLACE TO administrator
 GRANT EXECUTE ON PROCEDURE GD_p_restruct_PLACE TO administrator
 ^
 
-CREATE PROCEDURE MSG_p_el_BOX (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE MSG_p_el_BOX (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -20618,10 +20919,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE MSG_p_gchc_BOX (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE MSG_p_gchc_BOX (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -20648,7 +20949,7 @@ END
 CREATE PROCEDURE MSG_p_restruct_BOX
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -20801,7 +21102,7 @@ GRANT EXECUTE ON PROCEDURE MSG_p_gchc_BOX TO administrator
 GRANT EXECUTE ON PROCEDURE MSG_p_restruct_BOX TO administrator
 ^
 
-CREATE PROCEDURE RP_p_el_REPORTGROUP (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)
+CREATE PROCEDURE RP_p_el_REPORTGROUP (Parent dparent, LB2 INTEGER, RB2 INTEGER)
   RETURNS (LeftBorder INTEGER, RightBorder INTEGER)
 AS
   DECLARE VARIABLE R     INTEGER = NULL;
@@ -20892,10 +21193,10 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE RP_p_gchc_REPORTGROUP (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE RP_p_gchc_REPORTGROUP (Parent dparent, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
 BEGIN
   LastIndex = :FirstIndex + 1;
 
@@ -20922,7 +21223,7 @@ END
 CREATE PROCEDURE RP_p_restruct_REPORTGROUP
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey dforeignkey;
   DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
   CurrentIndex = 1;
@@ -22612,14 +22913,9 @@ VALUES
 
 COMMIT;
 
-COMMIT;
-
-
-
-
 /*
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus, Ltd
+  Copyright (c) 2000-2017 by Golden Software of Belarus, Ltd
 
   Script
 
@@ -22748,6 +23044,7 @@ GRANT ALL ON ac_record TO administrator;
 GRANT ALL ON ac_entry TO administrator;
 GRANT ALL ON ac_entry_balance TO administrator;
 GRANT ALL ON ac_accvalue TO administrator;
+GRANT ALL ON GD_CHANGEDDOC TO ADMINISTRATOR;
 
 GRANT ALL ON GD_V_USER_GENERATORS TO administrator;
 GRANT ALL ON GD_V_USER_TRIGGERS TO administrator;
@@ -22758,10 +23055,12 @@ GRANT ALL ON GD_V_TABLES_WBLOB TO administrator;
 GRANT ALL ON GD_V_CONTACTLIST TO administrator;
 GRANT ALL ON GD_V_COMPANY TO administrator;
 
+
 GRANT EXECUTE ON PROCEDURE FIN_P_VER_GETDBVERSION TO administrator;
 GRANT EXECUTE ON PROCEDURE GD_P_SEC_GETGROUPSFORUSER TO administrator;
 GRANT EXECUTE ON PROCEDURE GD_P_SEC_LOGINUSER TO administrator;
 GRANT EXECUTE ON PROCEDURE GD_P_GETFOLDERELEMENT TO administrator;
+GRANT EXECUTE ON PROCEDURE INV_INSERT_CARD TO administrator;
 
 GRANT EXECUTE ON PROCEDURE GD_P_RELATION_FORMATS TO administrator;
 
@@ -22823,7 +23122,9 @@ GRANT EXECUTE ON PROCEDURE AC_G_L_S TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE AC_Q_G_L TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE  AC_GETSIMPLEENTRY TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE  INV_GETCARDMOVEMENT TO ADMINISTRATOR;
-/*GRANT EXECUTE ON PROCEDURE INV_INSERT_CARD TO ADMINISTRATOR;*/
+GRANT EXECUTE ON PROCEDURE  gd_p_getnextid TO ADMINISTRATOR;
+GRANT EXECUTE ON PROCEDURE  gd_p_getnextid_ex TO ADMINISTRATOR;
+GRANT EXECUTE ON PROCEDURE  gd_p_find_dupl_id TO ADMINISTRATOR;
 
 GRANT ALL ON AC_AUTOTRRECORD TO ADMINISTRATOR;
 GRANT ALL ON AC_GENERALLEDGER TO ADMINISTRATOR;
@@ -22860,6 +23161,7 @@ GRANT ALL ON gd_weblogdata    TO administrator;
 
 GRANT ALL ON gd_object_dependencies TO administrator;
 GRANT ALL ON ac_incorrect_record TO administrator;
+GRANT ALL ON gd_available_id TO administrator;
 
 COMMIT;
 
@@ -22871,8 +23173,8 @@ CREATE OR ALTER TRIGGER gd_db_connect
   POSITION 0
 AS
   DECLARE VARIABLE ingroup INTEGER = NULL;
-  DECLARE VARIABLE userkey INTEGER = NULL;
-  DECLARE VARIABLE contactkey INTEGER = NULL;
+  DECLARE VARIABLE userkey DFOREIGNKEY = NULL;
+  DECLARE VARIABLE contactkey DFOREIGNKEY = NULL;
 BEGIN
   SELECT FIRST 1 id, contactkey, ingroup 
   FROM gd_user 
@@ -22887,4 +23189,3 @@ END
 SET TERM ; ^
 
 COMMIT;
-

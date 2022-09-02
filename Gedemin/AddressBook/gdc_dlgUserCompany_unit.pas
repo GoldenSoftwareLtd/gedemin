@@ -38,8 +38,6 @@ uses
 
 type
   Tgdc_dlgUserCompany = class(Tgdc_dlgCustomCompany)
-  private
-  public
   end;
 
 var
@@ -58,5 +56,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserCompany);
-
 end.

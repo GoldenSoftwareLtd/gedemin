@@ -34,6 +34,11 @@ inherited gdc_dlgAddUserToGroup: Tgdc_dlgAddUserToGroup
     TabOrder = 7
     Visible = False
   end
+  inherited btnHelp: TButton
+    Left = 265
+    Top = 77
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 265
     Top = 13
@@ -43,11 +48,6 @@ inherited gdc_dlgAddUserToGroup: Tgdc_dlgAddUserToGroup
     Left = 265
     Top = 40
     TabOrder = 4
-  end
-  inherited btnHelp: TButton
-    Left = 265
-    Top = 77
-    TabOrder = 5
   end
   object gbGroups: TGroupBox [7]
     Left = 8
@@ -199,15 +199,6 @@ inherited gdc_dlgAddUserToGroup: Tgdc_dlgAddUserToGroup
     ReadTransaction = ibtrCommon
     Left = 184
     Top = 256
-    object gdcUserGroupID: TIntegerField
-      FieldName = 'ID'
-      Required = True
-      Visible = False
-    end
-    object gdcUserGroupNAME: TIBStringField
-      FieldName = 'NAME'
-      Required = True
-    end
   end
   object dsUserGroup: TDataSource
     DataSet = gdcUserGroup

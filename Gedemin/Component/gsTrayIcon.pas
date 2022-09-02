@@ -1,3 +1,4 @@
+// ShlTanya, 20.02.2019
 
 { TgsTrayIcon VCL. Version 1.3
 

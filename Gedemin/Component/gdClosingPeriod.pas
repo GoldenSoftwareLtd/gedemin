@@ -1,3 +1,5 @@
+// ShlTanya, 11.02.2019
+
 unit gdClosingPeriod;
 
 interface
@@ -89,12 +91,12 @@ type
     // Процедура находит записи ссылающиеся на карточку по переданному документу и пытается убрать зависимость
     procedure TryToDeleteInvCardReferences(const ADocumentKey: TID);
     // Процедура пытается удалить записи ссылающиеся на переданную
-    procedure TryToDeleteDocumentReferences(const AID: TID; const AdditionalRelationName: String; const ADocTypeKey: Integer = -1);
+    procedure TryToDeleteDocumentReferences(const AID: TID; const AdditionalRelationName: String; const ADocTypeKey: TID = -1);
     function CreateDummyInvDocument(const ADocTypeKey: TID): TID;
     // Пробуем удалить вес записи доп. таблицы документа
     //function TryToTruncateAdditionalTable(const ADocTypeKey: TID; const AdditionalRelationName: String): Boolean;
 
-    procedure DeleteRUID(const AID: Integer);
+    procedure DeleteRUID(const AID: TID);
 
     procedure InitialFillOptions;
     procedure InitializeIBSQLQueries;
@@ -464,19 +466,19 @@ begin
 
       // Если по полю USR$INV_ADDLINEKEY карточки нашли поставщика, создадим приход остатка с него
       if not ibsql.FieldByName('SUPPLIERKEY').IsNull then
-        NextSupplierKey := ibsql.FieldByName('SUPPLIERKEY').AsInteger
+        NextSupplierKey := GetTID(ibsql.FieldByName('SUPPLIERKEY'))
       else
         NextSupplierKey := FPseudoClientKey;
 
       // Если в цикле набрели на другой контакт, или другого поставщика,
       //   или кол-во позиций в документе превысило 2000 (оперативка не резиновая),
       //   то создадим новую шапку документа
-      if (ibsql.FieldByName('CONTACTKEY').AsInteger <> CurrentContactKey)
+      if (GetTID(ibsql.FieldByName('CONTACTKEY')) <> CurrentContactKey)
          or (NextSupplierKey <> CurrentSupplierKey)
          or ((LineCount mod 2000) = 0) then
       begin
         // Если перешли на другой контакт
-        if ibsql.FieldByName('CONTACTKEY').AsInteger <> CurrentContactKey then
+        if GetTID(ibsql.FieldByName('CONTACTKEY')) <> CurrentContactKey then
         begin
           // Визуализация процесса
           // Выведем конечное число позиций предыдущего контакта
@@ -486,7 +488,7 @@ begin
           // Сбросим счетчик позиций
           LineCount := 0;
           // Запомним текущий контакт
-          CurrentContactKey := ibsql.FieldByName('CONTACTKEY').AsInteger;
+          CurrentContactKey := GetTID(ibsql.FieldByName('CONTACTKEY'));
         end;
         // Запомним текущего поставщика
         CurrentSupplierKey := NextSupplierKey;
@@ -496,18 +498,18 @@ begin
       if ibsql.FieldByName('BALANCE').AsCurrency >= 0 then
       begin
         // Вставим шапку документа и получим ее ID
-        DocumentParentKey := AddDepotHeader(CurrentSupplierKey, CurrentContactKey, ibsql.FieldByName('COMPANYKEY').AsInteger);
+        DocumentParentKey := AddDepotHeader(CurrentSupplierKey, CurrentContactKey, GetTID(ibsql.FieldByName('COMPANYKEY')));
         // Создадим позицию INV_DOCUMENT
-        AddDepotPosition(CurrentSupplierKey, CurrentContactKey, ibsql.FieldByName('COMPANYKEY').AsInteger,
-          DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, ibsql.FieldByName('BALANCE').AsCurrency, ibsql);
+        AddDepotPosition(CurrentSupplierKey, CurrentContactKey, GetTID(ibsql.FieldByName('COMPANYKEY')),
+          DocumentParentKey, GetTID(ibsql.FieldByName('GOODKEY')), ibsql.FieldByName('BALANCE').AsCurrency, ibsql);
       end
       else
       begin
         // Иначе будем делать приход на FPseudoClientKey с CurrentContactKey (с положительным значением кол-ва ТМЦ)
-        DocumentParentKey := AddDepotHeader(CurrentContactKey, FPseudoClientKey, ibsql.FieldByName('COMPANYKEY').AsInteger);
+        DocumentParentKey := AddDepotHeader(CurrentContactKey, FPseudoClientKey, GetTID(ibsql.FieldByName('COMPANYKEY')));
         // Создадим позицию INV_DOCUMENT
-        AddDepotPosition(CurrentContactKey, FPseudoClientKey, ibsql.FieldByName('COMPANYKEY').AsInteger,
-          DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, - ibsql.FieldByName('BALANCE').AsCurrency, ibsql);
+        AddDepotPosition(CurrentContactKey, FPseudoClientKey, GetTID(ibsql.FieldByName('COMPANYKEY')),
+          DocumentParentKey, GetTID(ibsql.FieldByName('GOODKEY')), - ibsql.FieldByName('BALANCE').AsCurrency, ibsql);
       end;
 
       // Увеличим счетчик позиций в одном документе
@@ -551,7 +553,7 @@ var
   begin
     // Удалим ссылки на удаляемый документ из полей-признаков складских карточек
     ibsqlUpdateInvCard.Close;
-    ibsqlUpdateInvCard.ParamByName('DOCKEY').AsInteger := AID;
+    SetTID(ibsqlUpdateInvCard.ParamByName('DOCKEY'), AID);
     ibsqlUpdateInvCard.ExecQuery;
 
     // Удалим позицию документа из дополнительной таблицы
@@ -559,7 +561,7 @@ var
       ibsqlDeleteAddRecord.Close;
       ibsqlDeleteAddRecord.SQL.Text :=
         ' DELETE FROM ' + AdditionalTableName + ' WHERE documentkey = :dockey ';
-      ibsqlDeleteAddRecord.ParamByName('DOCKEY').AsInteger := AID;
+      SetTID(ibsqlDeleteAddRecord.ParamByName('DOCKEY'), AID);
       ibsqlDeleteAddRecord.ExecQuery;
     except
       if ForceDelete then
@@ -570,7 +572,7 @@ var
         ibsqlDeleteAddRecord.Close;
         ibsqlDeleteAddRecord.SQL.Text :=
           ' DELETE FROM ' + AdditionalTableName + ' WHERE documentkey = :dockey ';
-        ibsqlDeleteAddRecord.ParamByName('DOCKEY').AsInteger := AID;
+        SetTID(ibsqlDeleteAddRecord.ParamByName('DOCKEY'), AID);
         ibsqlDeleteAddRecord.ExecQuery;
       end
       else
@@ -579,18 +581,18 @@ var
 
     // Удалим проводки по этому документу
     ibsqlDeleteEntry.Close;
-    ibsqlDeleteEntry.ParamByName('DOCKEY').AsInteger := AID;
+    SetTID(ibsqlDeleteEntry.ParamByName('DOCKEY'), AID);
     ibsqlDeleteEntry.ExecQuery;
 
     // Удалим складское движение по этому документу
     ibsqlDeleteMovement.Close;
-    ibsqlDeleteMovement.ParamByName('DOCKEY').AsInteger := AID;
+    SetTID(ibsqlDeleteMovement.ParamByName('DOCKEY'), AID);
     ibsqlDeleteMovement.ExecQuery;
 
     // Удалим документ из GD_DOCUMENT
     try
       ibsqlDeleteDocument.Close;
-      ibsqlDeleteDocument.ParamByName('DOCKEY').AsInteger := AID;
+      SetTID(ibsqlDeleteDocument.ParamByName('DOCKEY'), AID);
       ibsqlDeleteDocument.ExecQuery;
 
       DeleteRUID(AID);
@@ -604,10 +606,10 @@ var
              or (AnsiPos('INV_FK_CARD_PARENT', E.Message) > 0) then
             TryToDeleteInvCardReferences(AID);
           // Пробуем удалить ссылки на текущую запись
-          TryToDeleteDocumentReferences(AID, 'GD_DOCUMENT', ibsqlDocument.FieldByName('DOCTYPEKEY').AsInteger);
+          TryToDeleteDocumentReferences(AID, 'GD_DOCUMENT', GetTID(ibsqlDocument.FieldByName('DOCTYPEKEY')));
           // Снова пробуем удалить запись
           ibsqlDeleteDocument.Close;
-          ibsqlDeleteDocument.ParamByName('DOCKEY').AsInteger := AID;
+          SetTID(ibsqlDeleteDocument.ParamByName('DOCKEY'), AID);
           ibsqlDeleteDocument.ExecQuery;
         end
         else
@@ -678,7 +680,7 @@ begin
         SQLText := SQLText + Format(UPDATE_INV_CARD_SET_NULL, [GDDocumentReferenceFieldList.Strings[I]]) + #13#10;
       end;
       ibsqlUpdateInvCard.SQL.Text :=
-        'EXECUTE BLOCK (dockey INTEGER = :dockey) AS BEGIN ' + SQLText + ' END ';
+        'EXECUTE BLOCK (dockey TYPE OF DINTKEY = :dockey) AS BEGIN ' + SQLText + ' END ';
       ibsqlUpdateInvCard.Prepare;
     finally
       GDDocumentReferenceFieldList.Free;
@@ -751,7 +753,7 @@ begin
               begin
                 DoOnProcessMessage(-1, -1, E.Message + #13#10 +
                   DocumentKeysToDelayedDelete.ValuesByIndex[I] +
-                  ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
+                  ' ( ' + TID2S(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
                 Inc(I);  
               end;
             end;
@@ -764,12 +766,12 @@ begin
       end;
 
       // Проверим можно ли удалять документ
-      if not FDontDeleteCardArray.Find(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger, DontDeleteIndex) then
+      if not FDontDeleteCardArray.Find(GetTID(ibsqlDocument.FieldByName('DOCUMENTKEY')), DontDeleteIndex) then
       begin
         // Удалим текущий документ и его проводки
         try
           // Пробуем удалить документ
-          DeleteSingleDocument(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger,
+          DeleteSingleDocument(GetTID(ibsqlDocument.FieldByName('DOCUMENTKEY')),
             ibsqlDocument.FieldByName('ADDTABLENAME').AsString, True);
           Inc(DeletedCount);
         except
@@ -777,7 +779,7 @@ begin
           on E: Exception do
           begin
             // Занесем документ в список отложенного удаления
-            DocumentListIndex := DocumentKeysToDelayedDelete.Add(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger);
+            DocumentListIndex := DocumentKeysToDelayedDelete.Add(GetTID(ibsqlDocument.FieldByName('DOCUMENTKEY')));
             DocumentKeysToDelayedDelete.ValuesByIndex[DocumentListIndex] := ibsqlDocument.FieldByName('ADDTABLENAME').AsString;
           end;
         end;
@@ -838,7 +840,7 @@ begin
           begin
             DoOnProcessMessage(-1, -1, E.Message + #13#10 +
               DocumentKeysToDelayedDelete.ValuesByIndex[I] +
-              ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
+              ' ( ' + TID2S(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
             Inc(I);
           end;
         end;
@@ -910,14 +912,14 @@ var
     // Удалим запись из пользовательской таблицы
     try
       ibsqlDeleteUserRecord.Close;
-      ibsqlDeleteUserRecord.ParamByName('DOCUMENTKEY').AsInteger := AID;
+      SetTID(ibsqlDeleteUserRecord.ParamByName('DOCUMENTKEY'), AID);
       ibsqlDeleteUserRecord.ExecQuery;
     except
       // Пробуем удалить ссылки на текущую запись
       TryToDeleteDocumentReferences(AID, CurrentRelationName);
       // Снова пробуем удалить запись
       ibsqlDeleteUserRecord.Close;
-      ibsqlDeleteUserRecord.ParamByName('DOCUMENTKEY').AsInteger := AID;
+      SetTID(ibsqlDeleteUserRecord.ParamByName('DOCUMENTKEY'), AID);
       ibsqlDeleteUserRecord.ExecQuery;
     end;
 
@@ -926,14 +928,14 @@ var
       DeleteRUID(AID);
 
       ibsqlDeleteDocument.Close;
-      ibsqlDeleteDocument.ParamByName('DOCUMENTKEY').AsInteger := AID;
+      SetTID(ibsqlDeleteDocument.ParamByName('DOCUMENTKEY'), AID);
       ibsqlDeleteDocument.ExecQuery;
     except
       // Пробуем удалить ссылки на текущую запись
       TryToDeleteDocumentReferences(AID, 'GD_DOCUMENT');
       // Снова пробуем удалить запись
       ibsqlDeleteDocument.Close;
-      ibsqlDeleteDocument.ParamByName('DOCUMENTKEY').AsInteger := AID;
+      SetTID(ibsqlDeleteDocument.ParamByName('DOCUMENTKEY'), AID);
       ibsqlDeleteDocument.ExecQuery;
     end;
   end;
@@ -952,7 +954,7 @@ begin
     begin
       if DocumentTypeListStr <> '' then
         DocumentTypeListStr := DocumentTypeListStr + ', ';
-      DocumentTypeListStr := DocumentTypeListStr + IntToStr(FUserDocumentTypesToDelete.Keys[DocumentTypeCounter]);
+      DocumentTypeListStr := DocumentTypeListStr + TID2S(FUserDocumentTypesToDelete.Keys[DocumentTypeCounter]);
     end;
 
     ibsqlSelectDocument := TIBSQL.Create(Application);
@@ -1012,7 +1014,7 @@ begin
         // Удалим текущий документ
         try
           // Пробуем удалить документ
-          DeleteSingleDocument(ibsqlSelectDocument.FieldByName('DOCUMENTKEY').AsInteger,
+          DeleteSingleDocument(GetTID(ibsqlSelectDocument.FieldByName('DOCUMENTKEY')),
             ibsqlSelectDocument.FieldByName('ADD_REL_NAME').AsString);
           Inc(DeletedCount);
         except
@@ -1020,7 +1022,7 @@ begin
           on E: Exception do
           begin
             // Занесем документ в список отложенного удаления
-            DocumentListIndex := DocumentKeysToDelayedDelete.Add(ibsqlSelectDocument.FieldByName('DOCUMENTKEY').AsInteger);
+            DocumentListIndex := DocumentKeysToDelayedDelete.Add(GetTID(ibsqlSelectDocument.FieldByName('DOCUMENTKEY')));
             DocumentKeysToDelayedDelete.ValuesByIndex[DocumentListIndex] := ibsqlSelectDocument.FieldByName('ADD_REL_NAME').AsString;
           end;
         end;
@@ -1124,10 +1126,10 @@ var
   ibsqlUpdateFirstDocKey: TIBSQL;
   ibsqlUpdateInvMovement: TIBSQL;
   ibsqlUpdateDocumentCardkey: TIBSQL;
-  CurrentCardKey, CurrentFirstDocKey, CurrentFromContactkey, CurrentToContactkey: Integer;
+  CurrentCardKey, CurrentFirstDocKey, CurrentFromContactkey, CurrentToContactkey: TID;
   CurrentRelationName: String;
   DocumentParentKey: TID;
-  NewCardKey, FirstDocumentKey: Integer;
+  NewCardKey, FirstDocumentKey: TID;
   FirstDate: TDateTime;
   FeatureCounter, RecordCounter: Integer;
   cFeatureList: String;
@@ -1135,8 +1137,8 @@ var
   procedure UpdateInvCard(const OldCardkey, NewCardkey: TID);
   begin
     // обновим ссылку на родительскую карточку
-    ibsqlUpdateCard.ParamByName('OLD_PARENT').AsInteger := OldCardkey;
-    ibsqlUpdateCard.ParamByName('NEW_PARENT').AsInteger := NewCardkey;
+    SetTID(ibsqlUpdateCard.ParamByName('OLD_PARENT'), OldCardkey);
+    SetTID(ibsqlUpdateCard.ParamByName('NEW_PARENT'), NewCardkey);
     ibsqlUpdateCard.ExecQuery;
     ibsqlUpdateCard.Close;
   end;
@@ -1146,8 +1148,8 @@ var
     if NewDocKey > -1 then
     begin
       // обновим ссылку на родительскую карточку
-      ibsqlUpdateFirstDocKey.ParamByName('OLDDOCKEY').AsInteger := OldDocKey;
-      ibsqlUpdateFirstDocKey.ParamByName('NEWDOCKEY').AsInteger := NewDocKey;
+      SetTID(ibsqlUpdateFirstDocKey.ParamByName('OLDDOCKEY'), OldDocKey);
+      SetTID(ibsqlUpdateFirstDocKey.ParamByName('NEWDOCKEY'), NewDocKey);
       ibsqlUpdateFirstDocKey.ParamByName('NEWDATE').AsDateTime := NewDocDate;
       ibsqlUpdateFirstDocKey.ExecQuery;
       ibsqlUpdateFirstDocKey.Close;
@@ -1157,8 +1159,8 @@ var
   procedure UpdateInvMovement(const OldCardkey, NewCardkey: TID);
   begin
     // обновим ссылки на карточки из движения
-    ibsqlUpdateInvMovement.ParamByName('OLD_CARDKEY').AsInteger := OldCardkey;
-    ibsqlUpdateInvMovement.ParamByName('NEW_CARDKEY').AsInteger := NewCardkey;
+    SetTID(ibsqlUpdateInvMovement.ParamByName('OLD_CARDKEY'), OldCardkey);
+    SetTID(ibsqlUpdateInvMovement.ParamByName('NEW_CARDKEY'), NewCardkey);
     ibsqlUpdateInvMovement.ExecQuery;
     ibsqlUpdateInvMovement.Close;
   end;
@@ -1173,8 +1175,8 @@ var
       begin
         ibsqlUpdateDocumentCardkey.SQL.Text := Format(UPDATE_DOCUMENT_CARDKEY_TEMPLATE,
           [RelationName, CardkeyFieldNames[I]]);
-        ibsqlUpdateDocumentCardkey.ParamByName('OLD_CARDKEY').AsInteger := OldCardkey;
-        ibsqlUpdateDocumentCardkey.ParamByName('NEW_CARDKEY').AsInteger := NewCardkey;
+        SetTID(ibsqlUpdateDocumentCardkey.ParamByName('OLD_CARDKEY'), OldCardkey);
+        SetTID(ibsqlUpdateDocumentCardkey.ParamByName('NEW_CARDKEY'), NewCardkey);
         ibsqlUpdateDocumentCardkey.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
         ibsqlUpdateDocumentCardkey.ExecQuery;
         ibsqlUpdateDocumentCardkey.Close;
@@ -1289,12 +1291,12 @@ begin
       DoOnProcessMessage(RecordCounter, -1, '');
 
       if ibsql.FieldByName('CARDKEY_OLD').IsNull then
-        CurrentCardKey := ibsql.FieldByName('CARDKEY_NEW').AsInteger
+        CurrentCardKey := GetTID(ibsql.FieldByName('CARDKEY_NEW'))
       else
-        CurrentCardKey := ibsql.FieldByName('CARDKEY_OLD').AsInteger;
-      CurrentFirstDocKey := ibsql.FieldByName('FIRSTDOCUMENTKEY').AsInteger;
-      CurrentFromContactkey := ibsql.FieldByName('FROMCONTACTKEY').AsInteger;
-      CurrentToContactkey := ibsql.FieldByName('TOCONTACTKEY').AsInteger;
+        CurrentCardKey := GetTID(ibsql.FieldByName('CARDKEY_OLD'));
+      CurrentFirstDocKey := GetTID(ibsql.FieldByName('FIRSTDOCUMENTKEY'));
+      CurrentFromContactkey := GetTID(ibsql.FieldByName('FROMCONTACTKEY'));
+      CurrentToContactkey := GetTID(ibsql.FieldByName('TOCONTACTKEY'));
       CurrentRelationName := ibsql.FieldByName('RELATIONNAME').AsString;
 
       if (CurrentFromContactkey > 0) or (CurrentToContactkey > 0) then
@@ -1311,22 +1313,22 @@ begin
               Format(' AND card.%0:s IS NULL ', [FFeatureList.Strings[FeatureCounter]]);
         end;
         ibsqlSearchNewCardkey.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
-        ibsqlSearchNewCardkey.ParamByName('GOODKEY').AsInteger := ibsql.FieldByName('GOODKEY').AsInteger;
-        ibsqlSearchNewCardkey.ParamByName('CONTACT_01').AsInteger := CurrentFromContactkey;
-        ibsqlSearchNewCardkey.ParamByName('CONTACT_02').AsInteger := CurrentToContactkey;
+        SetTID(ibsqlSearchNewCardkey.ParamByName('GOODKEY'), ibsql.FieldByName('GOODKEY'));
+        SetTID(ibsqlSearchNewCardkey.ParamByName('CONTACT_01'), CurrentFromContactkey);
+        SetTID(ibsqlSearchNewCardkey.ParamByName('CONTACT_02'), CurrentToContactkey);
         for FeatureCounter := 0 to FFeatureList.Count - 1 do
         begin
           if not ibsql.FieldByName(FFeatureList.Strings[FeatureCounter]).IsNull then
-            ibsqlSearchNewCardkey.ParamByName(FFeatureList.Strings[FeatureCounter]).AsVariant :=
-              ibsql.FieldByName(FFeatureList.Strings[FeatureCounter]).AsVariant;
+            SetVar2Param(ibsqlSearchNewCardkey.ParamByName(FFeatureList.Strings[FeatureCounter]),
+              GetFieldAsVar(ibsql.FieldByName(FFeatureList.Strings[FeatureCounter])));
         end;
         ibsqlSearchNewCardkey.ExecQuery;
 
         // Если мы нашли подходящую карточку, созданную документом остатков INV_DOCUMENT
         if ibsqlSearchNewCardkey.RecordCount > 0 then
         begin
-          NewCardKey := ibsqlSearchNewCardkey.FieldByName('CARDKEY').AsInteger;
-          FirstDocumentKey := ibsqlSearchNewCardkey.FieldByName('FIRSTDOCUMENTKEY').AsInteger;
+          NewCardKey := GetTID(ibsqlSearchNewCardkey.FieldByName('CARDKEY'));
+          FirstDocumentKey := GetTID(ibsqlSearchNewCardkey.FieldByName('FIRSTDOCUMENTKEY'));
           FirstDate := ibsqlSearchNewCardkey.FieldByName('FIRSTDATE').AsDateTime;
         end
         else
@@ -1335,25 +1337,25 @@ begin
           ibsqlSearchNewCardkey.Close;
           ibsqlSearchNewCardkey.SQL.Text := SEARCH_NEW_CARDKEY_TEMPLATE;
           ibsqlSearchNewCardkey.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
-          ibsqlSearchNewCardkey.ParamByName('GOODKEY').AsInteger := ibsql.FieldByName('GOODKEY').AsInteger;
-          ibsqlSearchNewCardkey.ParamByName('CONTACT_01').AsInteger := CurrentFromContactkey;
-          ibsqlSearchNewCardkey.ParamByName('CONTACT_02').AsInteger := CurrentToContactkey;
+          SetTID(ibsqlSearchNewCardkey.ParamByName('GOODKEY'), ibsql.FieldByName('GOODKEY'));
+          SetTID(ibsqlSearchNewCardkey.ParamByName('CONTACT_01'), CurrentFromContactkey);
+          SetTID(ibsqlSearchNewCardkey.ParamByName('CONTACT_02'), CurrentToContactkey);
           ibsqlSearchNewCardkey.ExecQuery;
 
           if ibsqlSearchNewCardkey.RecordCount > 0 then
           begin
-            NewCardKey := ibsqlSearchNewCardkey.FieldByName('CARDKEY').AsInteger;
-            FirstDocumentKey := ibsqlSearchNewCardkey.FieldByName('FIRSTDOCUMENTKEY').AsInteger;
+            NewCardKey := GetTID(ibsqlSearchNewCardkey.FieldByName('CARDKEY'));
+            FirstDocumentKey := GetTID(ibsqlSearchNewCardkey.FieldByName('FIRSTDOCUMENTKEY'));
             FirstDate := ibsqlSearchNewCardkey.FieldByName('FIRSTDATE').AsDateTime;
           end
           else
           begin
             // Иначе вставим документ нулевого прихода, и перепривяжем на созданную им карточку
-            DocumentParentKey := AddDepotHeader(CurrentFromContactkey, CurrentFromContactkey, ibsql.FieldByName('COMPANYKEY').AsInteger);
-            NewCardKey := AddDepotPosition(CurrentFromContactkey, CurrentFromContactkey, ibsql.FieldByName('COMPANYKEY').AsInteger,
-              DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, 0);
+            DocumentParentKey := AddDepotHeader(CurrentFromContactkey, CurrentFromContactkey, GetTID(ibsql.FieldByName('COMPANYKEY')));
+            NewCardKey := AddDepotPosition(CurrentFromContactkey, CurrentFromContactkey, GetTID(ibsql.FieldByName('COMPANYKEY')),
+              DocumentParentKey, GetTID(ibsql.FieldByName('GOODKEY')), 0);
 
-            DoOnProcessMessage(-1, -1, Format('  Создан документ нулевого прихода ID = %0:d', [DocumentParentKey]));
+            DoOnProcessMessage(-1, -1, Format('  Создан документ нулевого прихода ID = %0:d', [TID264(DocumentParentKey)]));
           end;
         end;
         ibsqlSearchNewCardkey.Close;
@@ -1372,18 +1374,18 @@ begin
               Format(' AND card.%0:s IS NULL ', [FFeatureList.Strings[FeatureCounter]]);
         end;
         ibsqlSearchNewCardkey.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
-        ibsqlSearchNewCardkey.ParamByName('DOCTYPEKEY').AsInteger := FInvDocumentTypeKey;
-        ibsqlSearchNewCardkey.ParamByName('GOODKEY').AsInteger := ibsql.FieldByName('GOODKEY').AsInteger;
+        SetTID(ibsqlSearchNewCardkey.ParamByName('DOCTYPEKEY'), FInvDocumentTypeKey);
+        SetTID(ibsqlSearchNewCardkey.ParamByName('GOODKEY'), ibsql.FieldByName('GOODKEY'));
         for FeatureCounter := 0 to FFeatureList.Count - 1 do
         begin
           if not ibsql.FieldByName(FFeatureList.Strings[FeatureCounter]).IsNull then
-            ibsqlSearchNewCardkey.ParamByName(FFeatureList.Strings[FeatureCounter]).AsVariant :=
-              ibsql.FieldByName(FFeatureList.Strings[FeatureCounter]).AsVariant;
+            SetVar2Param(ibsqlSearchNewCardkey.ParamByName(FFeatureList.Strings[FeatureCounter]),
+              GetFieldAsVar(ibsql.FieldByName(FFeatureList.Strings[FeatureCounter])));
         end;
         ibsqlSearchNewCardkey.ExecQuery;
 
         if ibsqlSearchNewCardkey.RecordCount > 0 then
-          NewCardKey := ibsqlSearchNewCardkey.FieldByName('CARDKEY').AsInteger
+          NewCardKey := GetTID(ibsqlSearchNewCardkey.FieldByName('CARDKEY'))
         else
           NewCardKey := -1;
           
@@ -1399,7 +1401,7 @@ begin
       end
       else
       begin
-        DoOnProcessMessage(-1, -1, Format('  Ошибка перепривязки карточки OLD_CARDKEY = %0:d', [CurrentCardKey]));
+        DoOnProcessMessage(-1, -1, Format('  Ошибка перепривязки карточки OLD_CARDKEY = %0:d', [TID264(CurrentCardKey)]));
       end;
 
       ibsql.Next;
@@ -1469,7 +1471,7 @@ begin
 end;
 
 procedure TgdClosingPeriod.TryToDeleteDocumentReferences(const AID: TID;
-  const AdditionalRelationName: String; const ADocTypeKey: Integer = -1);
+  const AdditionalRelationName: String; const ADocTypeKey: TID = -1);
 var
   TableReferenceIndex: Integer;
   OL: TObjectList;
@@ -1520,7 +1522,7 @@ begin
       // Найдем записи ссылающиеся на переданную запись в таблице по текущему внешнему ключу
       ibsql.Close;
       ibsql.SQL.Text := Format('SELECT * FROM %0:s WHERE %1:s = :aid', [ReferencesRelationName, ReferencesFieldName]);
-      ibsql.ParamByName('AID').AsInteger := AID;
+      SetTID(ibsql.ParamByName('AID'), AID);
       ibsql.ExecQuery;
       // Если нашли запись
       if ibsql.RecordCount > 0 then
@@ -1531,7 +1533,7 @@ begin
         begin
           ibsqlUpdate.Close;
           ibsqlUpdate.SQL.Text := Format('UPDATE %0:s SET %1:s = NULL WHERE %1:s = :aid', [ReferencesRelationName, ReferencesFieldName]);
-          ibsqlUpdate.ParamByName('AID').AsInteger := AID;
+          SetTID(ibsqlUpdate.ParamByName('AID'), AID);
           ibsqlUpdate.ExecQuery;
         end
         else
@@ -1540,8 +1542,8 @@ begin
           begin
             ibsqlUpdate.Close;
             ibsqlUpdate.SQL.Text := Format('UPDATE %0:s SET %1:s = :newkey WHERE %1:s = :aid', [ReferencesRelationName, ReferencesFieldName]);
-            ibsqlUpdate.ParamByName('AID').AsInteger := AID;
-            ibsqlUpdate.ParamByName('NEWKEY').AsInteger := CreateDummyInvDocument(ADocTypeKey);
+            SetTID(ibsqlUpdate.ParamByName('AID'), AID);
+            SetTID(ibsqlUpdate.ParamByName('NEWKEY'), CreateDummyInvDocument(ADocTypeKey));
             ibsqlUpdate.ExecQuery;
           end  
           else
@@ -1699,7 +1701,7 @@ begin
       ibsql.SQL.Text := ibWriteBegin + BalanceAnalytics + ') ' + ibMainBegin +
         BalanceAnalytics + ibMainMiddle + BalanceAnalytics + ibMainEnd;
       ibsql.ParamByName('BALANCEDATE').AsDateTime := FCloseDate;
-      ibsql.ParamByName('ACCKEY').AsInteger := ibsqlAccount.FieldByName('ID').AsInteger;
+      SetTID(ibsql.ParamByName('ACCKEY'), ibsqlAccount.FieldByName('ID'));
       ibsql.ExecQuery;
 
       // Запомним кол-во вставленных записей, будем использовать его при переносе бух. остатков в AC_ENTRY
@@ -1790,7 +1792,7 @@ begin
       'INSERT INTO gd_document ' +
       '  (id, documenttypekey, number, documentdate, companykey, afull, achag, aview, creatorkey, editorkey) ' +
       'VALUES ' +
-      '  (:id, %0:d, ''1'', :documentdate, :companykey, -1, -1, -1, %1:d, %1:d) ', [DocumentTypeKey, IBLogin.ContactKey]);
+      '  (:id, %0:d, ''1'', :documentdate, :companykey, -1, -1, -1, %1:d, %1:d) ', [TID264(DocumentTypeKey), TID264(IBLogin.ContactKey)]);
     ibsqlInsertGDDocument.Prepare;
 
     // Получим ключ типовой проводки
@@ -1802,7 +1804,7 @@ begin
       'INSERT INTO ac_record ' +
       '  (id, trrecordkey, transactionkey, recorddate, documentkey, masterdockey, companykey, afull, achag, aview) ' +
       'VALUES ' +
-      '  (:id, %0:d, %1:d, :recorddate, :documentkey, :documentkey, :companykey, -1, -1, -1) ', [TRRecordKey, TransactionKey]);
+      '  (:id, %0:d, %1:d, :recorddate, :documentkey, :documentkey, :companykey, -1, -1, -1) ', [TID264(TRRecordKey), TID264(TransactionKey)]);
     ibsqlInsertACRecord.Prepare;
 
     // возьмем выбранные аналитики по расчитываемому счету
@@ -1833,15 +1835,15 @@ begin
         else
           FProcessState := psWorking;
 
-      if CurrentCompanyKey <> ibsqlSelect.FieldByName('COMPANYKEY').AsInteger then
+      if CurrentCompanyKey <> GetTID(ibsqlSelect.FieldByName('COMPANYKEY')) then
       begin
-        CurrentCompanyKey := ibsqlSelect.FieldByName('COMPANYKEY').AsInteger;
+        CurrentCompanyKey := GetTID(ibsqlSelect.FieldByName('COMPANYKEY'));
         // Получение ключа для документа
         NextDocumentKey := gdcBaseManager.GetNextID;
         // Создание документа
-        ibsqlInsertGDDocument.ParamByName('ID').AsInteger := NextDocumentKey;
+        SetTID(ibsqlInsertGDDocument.ParamByName('ID'), NextDocumentKey);
         ibsqlInsertGDDocument.ParamByName('DOCUMENTDATE').AsDateTime := FCloseDate - 1;
-        ibsqlInsertGDDocument.ParamByName('COMPANYKEY').AsInteger := CurrentCompanyKey;
+        SetTID(ibsqlInsertGDDocument.ParamByName('COMPANYKEY'), CurrentCompanyKey);
         ibsqlInsertGDDocument.ExecQuery;
       end;
 
@@ -1849,10 +1851,10 @@ begin
       NextRecordKey := gdcBaseManager.GetNextID;
       // Вставка заголовка проводки
       ibsqlInsertACRecord.Close;
-      ibsqlInsertACRecord.ParamByName('ID').AsInteger := NextRecordKey;
+      SetTID(ibsqlInsertACRecord.ParamByName('ID'), NextRecordKey);
       ibsqlInsertACRecord.ParamByName('RECORDDATE').AsDateTime := FCloseDate - 1;
-      ibsqlInsertACRecord.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-      ibsqlInsertACRecord.ParamByName('COMPANYKEY').AsInteger := CurrentCompanyKey;
+      SetTID(ibsqlInsertACRecord.ParamByName('DOCUMENTKEY'), NextDocumentKey);
+      SetTID(ibsqlInsertACRecord.ParamByName('COMPANYKEY'), CurrentCompanyKey);
       ibsqlInsertACRecord.ExecQuery;
 
       // возьмем выбранные аналитики по расчитываемому счету
@@ -1872,14 +1874,14 @@ begin
         ibACEntryWriteValues + ValuesAnalytics + ')';
       // Вставка дебетовой части проводки
       ibsqlInsertACEntry.Close;
-      ibsqlInsertACEntry.ParamByName('RECORDKEY').AsInteger := NextRecordKey;
+      SetTID(ibsqlInsertACEntry.ParamByName('RECORDKEY'), NextRecordKey);
       ibsqlInsertACEntry.ParamByName('ENTRYDATE').AsDateTime := FCloseDate - 1;
-      ibsqlInsertACEntry.ParamByName('TRANSACTIONKEY').AsInteger := TransactionKey;
-      ibsqlInsertACEntry.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-      ibsqlInsertACEntry.ParamByName('COMPANYKEY').AsInteger := CurrentCompanyKey;
-      ibsqlInsertACEntry.ParamByName('ACCOUNTKEY').AsInteger := ibsqlSelect.FieldByName('ACCOUNTKEY').AsInteger;
+      SetTID(ibsqlInsertACEntry.ParamByName('TRANSACTIONKEY'), TransactionKey);
+      SetTID(ibsqlInsertACEntry.ParamByName('DOCUMENTKEY'), NextDocumentKey);
+      SetTID(ibsqlInsertACEntry.ParamByName('COMPANYKEY'), CurrentCompanyKey);
+      SetTID(ibsqlInsertACEntry.ParamByName('ACCOUNTKEY'), ibsqlSelect.FieldByName('ACCOUNTKEY'));
       ibsqlInsertACEntry.ParamByName('ACCOUNTPART').AsString := 'D';
-      ibsqlInsertACEntry.ParamByName('CURRKEY').AsInteger := ibsqlSelect.FieldByName('CURRKEY').AsInteger;
+      SetTID(ibsqlInsertACEntry.ParamByName('CURRKEY'), ibsqlSelect.FieldByName('CURRKEY'));
       ibsqlInsertACEntry.ParamByName('DEBITNCU').AsCurrency := ibsqlSelect.FieldByName('DEBITNCU').AsCurrency;
       ibsqlInsertACEntry.ParamByName('DEBITCURR').AsCurrency := ibsqlSelect.FieldByName('DEBITCURR').AsCurrency;
       ibsqlInsertACEntry.ParamByName('DEBITEQ').AsCurrency := ibsqlSelect.FieldByName('DEBITEQ').AsCurrency;
@@ -1890,21 +1892,21 @@ begin
       begin
         if not ibsqlSelect.FieldByName(FEntryAvailableAnalytics.Strings[AnalyticCounter]).IsNull then
         begin
-          ibsqlInsertACEntry.ParamByName(FEntryAvailableAnalytics.Strings[AnalyticCounter]).AsVariant :=
-            ibsqlSelect.FieldByName(FEntryAvailableAnalytics.Strings[AnalyticCounter]).AsVariant;
+          SetVar2Param(ibsqlInsertACEntry.ParamByName(FEntryAvailableAnalytics.Strings[AnalyticCounter]),
+            GetFieldAsVar(ibsqlSelect.FieldByName(FEntryAvailableAnalytics.Strings[AnalyticCounter])));
         end;
       end;
       ibsqlInsertACEntry.ExecQuery;
       // Вставка кредитовой части проводки
       ibsqlInsertACEntry.Close;
-      ibsqlInsertACEntry.ParamByName('RECORDKEY').AsInteger := NextRecordKey;
+      SetTID(ibsqlInsertACEntry.ParamByName('RECORDKEY'), NextRecordKey);
       ibsqlInsertACEntry.ParamByName('ENTRYDATE').AsDateTime := FCloseDate - 1;
-      ibsqlInsertACEntry.ParamByName('TRANSACTIONKEY').AsInteger := TransactionKey;
-      ibsqlInsertACEntry.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-      ibsqlInsertACEntry.ParamByName('COMPANYKEY').AsInteger := CurrentCompanyKey;
-      ibsqlInsertACEntry.ParamByName('ACCOUNTKEY').AsInteger := ibsqlSelect.FieldByName('ACCOUNTKEY').AsInteger;
+      SetTID(ibsqlInsertACEntry.ParamByName('TRANSACTIONKEY'), TransactionKey);
+      SetTID(ibsqlInsertACEntry.ParamByName('DOCUMENTKEY'), NextDocumentKey);
+      SetTID(ibsqlInsertACEntry.ParamByName('COMPANYKEY'), CurrentCompanyKey);
+      SetTID(ibsqlInsertACEntry.ParamByName('ACCOUNTKEY'), ibsqlSelect.FieldByName('ACCOUNTKEY'));
       ibsqlInsertACEntry.ParamByName('ACCOUNTPART').AsString := 'C';
-      ibsqlInsertACEntry.ParamByName('CURRKEY').AsInteger := ibsqlSelect.FieldByName('CURRKEY').AsInteger;
+      SetTID(ibsqlInsertACEntry.ParamByName('CURRKEY'), ibsqlSelect.FieldByName('CURRKEY'));
       ibsqlInsertACEntry.ParamByName('DEBITNCU').AsCurrency := 0;
       ibsqlInsertACEntry.ParamByName('DEBITCURR').AsCurrency := 0;
       ibsqlInsertACEntry.ParamByName('DEBITEQ').AsCurrency := 0;
@@ -1915,8 +1917,8 @@ begin
       begin
         if not ibsqlSelect.FieldByName(FEntryAvailableAnalytics.Strings[AnalyticCounter]).IsNull then
         begin
-          ibsqlInsertACEntry.ParamByName(FEntryAvailableAnalytics.Strings[AnalyticCounter]).AsVariant :=
-            ibsqlSelect.FieldByName(FEntryAvailableAnalytics.Strings[AnalyticCounter]).AsVariant;
+          SetVar2Param(ibsqlInsertACEntry.ParamByName(FEntryAvailableAnalytics.Strings[AnalyticCounter]),
+            GetFieldAsVar(ibsqlSelect.FieldByName(FEntryAvailableAnalytics.Strings[AnalyticCounter])));
         end;
       end;
       ibsqlInsertACEntry.ExecQuery;
@@ -2002,13 +2004,13 @@ var
 begin
   // Попробуем найти шапку с такими контактами
   FIBSQLGetDepotHeaderKey.Close;
-  FIBSQLGetDepotHeaderKey.ParamByName('OUTCONTACT').AsInteger := FromContact;
-  FIBSQLGetDepotHeaderKey.ParamByName('INCONTACT').AsInteger := ToContact;
+  SetTID(FIBSQLGetDepotHeaderKey.ParamByName('OUTCONTACT'), FromContact);
+  SetTID(FIBSQLGetDepotHeaderKey.ParamByName('INCONTACT'), ToContact);
   FIBSQLGetDepotHeaderKey.ExecQuery;
 
   if FIBSQLGetDepotHeaderKey.RecordCount > 0 then
   begin
-    Result := FIBSQLGetDepotHeaderKey.FieldByName('DOCUMENTKEY').AsInteger;
+    Result := GetTID(FIBSQLGetDepotHeaderKey.FieldByName('DOCUMENTKEY'));
   end
   else
   begin
@@ -2018,17 +2020,17 @@ begin
     NextDocumentKey := gdcBaseManager.GetNextID;
     // Вставим запись в gd_document
     FIBSQLInsertGdDocument.Close;
-    FIBSQLInsertGdDocument.ParamByName('ID').AsInteger := NextDocumentKey;
+    SetTID(FIBSQLInsertGdDocument.ParamByName('ID'), NextDocumentKey);
     FIBSQLInsertGdDocument.ParamByName('PARENT').Clear;
-    FIBSQLInsertGdDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+    SetTID(FIBSQLInsertGdDocument.ParamByName('COMPANYKEY'), CompanyKey);
     FIBSQLInsertGdDocument.ParamByName('DOCUMENTDATE').AsDateTime := FCloseDate;
     FIBSQLInsertGdDocument.ExecQuery;
 
     // Вставим запись в дополнительную таблицу документа шапки
     FIBSQLInsertDocumentHeader.Close;
-    FIBSQLInsertDocumentHeader.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-    FIBSQLInsertDocumentHeader.ParamByName('OUTCONTACT').AsInteger := FromContact;
-    FIBSQLInsertDocumentHeader.ParamByName('INCONTACT').AsInteger := ToContact;
+    SetTID(FIBSQLInsertDocumentHeader.ParamByName('DOCUMENTKEY'), NextDocumentKey);
+    SetTID(FIBSQLInsertDocumentHeader.ParamByName('OUTCONTACT'), FromContact);
+    SetTID(FIBSQLInsertDocumentHeader.ParamByName('INCONTACT'), ToContact);
     FIBSQLInsertDocumentHeader.ExecQuery;
 
     Result := NextDocumentKey;
@@ -2045,9 +2047,9 @@ begin
   NextDocumentKey := gdcBaseManager.GetNextID;
   // Вставим запись в gd_document
   FIBSQLInsertGdDocument.Close;
-  FIBSQLInsertGdDocument.ParamByName('ID').AsInteger := NextDocumentKey;
-  FIBSQLInsertGdDocument.ParamByName('PARENT').AsInteger := ADocumentParentKey;
-  FIBSQLInsertGdDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+  SetTID(FIBSQLInsertGdDocument.ParamByName('ID'), NextDocumentKey);
+  SetTID(FIBSQLInsertGdDocument.ParamByName('PARENT'), ADocumentParentKey);
+  SetTID(FIBSQLInsertGdDocument.ParamByName('COMPANYKEY'), CompanyKey);
   FIBSQLInsertGdDocument.ParamByName('DOCUMENTDATE').AsDateTime := FCloseDate;
   FIBSQLInsertGdDocument.ExecQuery;
 
@@ -2055,47 +2057,47 @@ begin
   NextCardKey := gdcBaseManager.GetNextID;
   // Создадим новую складскую карточку
   FIBSQLInsertInvCard.Close;
-  FIBSQLInsertInvCard.ParamByName('ID').AsInteger := NextCardKey;
-  FIBSQLInsertInvCard.ParamByName('GOODKEY').AsInteger := CardGoodkey;
-  FIBSQLInsertInvCard.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-  FIBSQLInsertInvCard.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+  SetTID(FIBSQLInsertInvCard.ParamByName('ID'), NextCardKey);
+  SetTID(FIBSQLInsertInvCard.ParamByName('GOODKEY'), CardGoodkey);
+  SetTID(FIBSQLInsertInvCard.ParamByName('DOCUMENTKEY'), NextDocumentKey);
+  SetTID(FIBSQLInsertInvCard.ParamByName('COMPANYKEY'), CompanyKey);
   for FieldCounter := 0 to FFeatureList.Count - 1 do
     if Assigned(FeatureDataset) then
-      FIBSQLInsertInvCard.ParamByName(FFeatureList.Strings[FieldCounter]).AsVariant :=
-        FeatureDataset.FieldByName(FFeatureList.Strings[FieldCounter]).AsVariant
+      SetVar2Param(FIBSQLInsertInvCard.ParamByName(FFeatureList.Strings[FieldCounter]),
+        GetFieldAsVar(FeatureDataset.FieldByName(FFeatureList.Strings[FieldCounter])))
     else
       FIBSQLInsertInvCard.ParamByName(FFeatureList.Strings[FieldCounter]).Clear;
   // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
   if FAddLineKeyFieldExists then
-    FIBSQLInsertInvCard.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NextDocumentKey;
+    SetTID(FIBSQLInsertInvCard.ParamByName('USR$INV_ADDLINEKEY'), NextDocumentKey);
   FIBSQLInsertInvCard.ExecQuery;
 
   // Получим ИД складского движения
   NextMovementKey := gdcBaseManager.GetNextID;
   // Создадим дебетовую часть складского движения
   FIBSQLInsertInvMovement.Close;
-  FIBSQLInsertInvMovement.ParamByName('MOVEMENTKEY').AsInteger := NextMovementKey;
-  FIBSQLInsertInvMovement.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-  FIBSQLInsertInvMovement.ParamByName('CONTACTKEY').AsInteger := ToContact;
-  FIBSQLInsertInvMovement.ParamByName('CARDKEY').AsInteger := NextCardKey;
+  SetTID(FIBSQLInsertInvMovement.ParamByName('MOVEMENTKEY'), NextMovementKey);
+  SetTID(FIBSQLInsertInvMovement.ParamByName('DOCUMENTKEY'), NextDocumentKey);
+  SetTID(FIBSQLInsertInvMovement.ParamByName('CONTACTKEY'), ToContact);
+  SetTID(FIBSQLInsertInvMovement.ParamByName('CARDKEY'), NextCardKey);
   FIBSQLInsertInvMovement.ParamByName('DEBIT').AsCurrency := GoodQuantity;
   FIBSQLInsertInvMovement.ParamByName('CREDIT').AsCurrency := 0;
   FIBSQLInsertInvMovement.ExecQuery;
   // Создадим кредитовую часть складского движения
   FIBSQLInsertInvMovement.Close;
-  FIBSQLInsertInvMovement.ParamByName('MOVEMENTKEY').AsInteger := NextMovementKey;
-  FIBSQLInsertInvMovement.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-  FIBSQLInsertInvMovement.ParamByName('CONTACTKEY').AsInteger := FromContact;
-  FIBSQLInsertInvMovement.ParamByName('CARDKEY').AsInteger := NextCardKey;
+  SetTID(FIBSQLInsertInvMovement.ParamByName('MOVEMENTKEY'), NextMovementKey);
+  SetTID(FIBSQLInsertInvMovement.ParamByName('DOCUMENTKEY'), NextDocumentKey);
+  SetTID(FIBSQLInsertInvMovement.ParamByName('CONTACTKEY'), FromContact);
+  SetTID(FIBSQLInsertInvMovement.ParamByName('CARDKEY'), NextCardKey);
   FIBSQLInsertInvMovement.ParamByName('DEBIT').AsCurrency := 0;
   FIBSQLInsertInvMovement.ParamByName('CREDIT').AsCurrency := GoodQuantity;
   FIBSQLInsertInvMovement.ExecQuery;
 
   // Вставим запись в дополнительную таблицу документа позиции
   FIBSQLInsertDocumentPosition.Close;
-  FIBSQLInsertDocumentPosition.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-  FIBSQLInsertDocumentPosition.ParamByName('MASTERKEY').AsInteger := ADocumentParentKey;
-  FIBSQLInsertDocumentPosition.ParamByName('FROMCARDKEY').AsInteger := NextCardKey;
+  SetTID(FIBSQLInsertDocumentPosition.ParamByName('DOCUMENTKEY'), NextDocumentKey);
+  SetTID(FIBSQLInsertDocumentPosition.ParamByName('MASTERKEY'), ADocumentParentKey);
+  SetTID(FIBSQLInsertDocumentPosition.ParamByName('FROMCARDKEY'), NextCardKey);
   FIBSQLInsertDocumentPosition.ParamByName('QUANTITY').AsCurrency := GoodQuantity;
   FIBSQLInsertDocumentPosition.ExecQuery;
 
@@ -2147,7 +2149,7 @@ begin
         'INSERT INTO gd_document ' +
         '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, creatorkey, editorkey) ' +
         'VALUES ' +
-        '  (:id, :parent, %0:d, ''1'', :documentdate, :companykey, -1, -1, -1, %1:d, %1:d) ', [FInvDocumentTypeKey, IBLogin.ContactKey]);
+        '  (:id, :parent, %0:d, ''1'', :documentdate, :companykey, -1, -1, -1, %1:d, %1:d) ', [TID264(FInvDocumentTypeKey), TID264(IBLogin.ContactKey)]);
       FIBSQLInsertGdDocument.Prepare;
 
       // Запрос на вставку записи в шапку складского документа
@@ -2307,16 +2309,16 @@ begin
     // Пройдем по типам документов, которые нельзя удалять
     for DocTypeCounter := 0 to FDontDeleteDocumentTypes.Count - 1 do
     begin
-      ibsqlSelect.ParamByName('DOCTYPEKEY').AsInteger := FDontDeleteDocumentTypes.Keys[DocTypeCounter];
+      SetTID(ibsqlSelect.ParamByName('DOCTYPEKEY'), FDontDeleteDocumentTypes.Keys[DocTypeCounter]);
       ibsqlSelect.ExecQuery;
 
       // Пройдем по всем ключам и занесем их в список
       while not ibsqlSelect.Eof do
       begin
-        if not FDontDeleteCardArray.Find(ibsqlSelect.FieldByName('ID').AsInteger, TempOutVariable) then
-          FDontDeleteCardArray.Add(ibsqlSelect.FieldByName('ID').AsInteger);
-        if not FDontDeleteCardArray.Find(ibsqlSelect.FieldByName('FIRSTID').AsInteger, TempOutVariable) then
-          FDontDeleteCardArray.Add(ibsqlSelect.FieldByName('FIRSTID').AsInteger);
+        if not FDontDeleteCardArray.Find(GetTID(ibsqlSelect.FieldByName('ID')), TempOutVariable) then
+          FDontDeleteCardArray.Add(GetTID(ibsqlSelect.FieldByName('ID')));
+        if not FDontDeleteCardArray.Find(GetTID(ibsqlSelect.FieldByName('FIRSTID')), TempOutVariable) then
+          FDontDeleteCardArray.Add(GetTID(ibsqlSelect.FieldByName('FIRSTID')));
 
         ibsqlSelect.Next;
       end;
@@ -2353,7 +2355,7 @@ begin
         '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, creatorkey, editorkey) ' +
         'VALUES ' +
         '  (%0:d, :parent, %1:d, ''CP_DUMMY'', :documentdate, %2:d, -1, -1, -1, %3d, %3d) ',
-        [NextDocumentKey, ADocTypeKey, IBLogin.CompanyKey, IBLogin.ContactKey]);
+        [TID264(NextDocumentKey), TID264(ADocTypeKey), TID264(IBLogin.CompanyKey), TID264(IBLogin.ContactKey)]);
       ibsqlDocumentInsert.FieldByName('DOCUMENTDATE').AsDateTime := FCloseDate;
       ibsqlDocumentInsert.ExecQuery;
     finally
@@ -2375,7 +2377,7 @@ var
   ibsqlCardSelect, ibsqlDocumentSelect, ibsqlDocumentUpdate: TIBSQL;
   ReferencesRelationName, ReferencesFieldName: String;
   ForeignKeyCounter, FeatureCounter: Integer;
-  CardReplacementKey: Integer;
+  CardReplacementKey: TID;
 begin
   TableReferenceIndex := FTableReferenceForeignKeysList.IndexOf('INV_CARD');
   if TableReferenceIndex > -1 then
@@ -2401,7 +2403,7 @@ begin
         '  inv_card c ' +
         'WHERE ' +
         '  c.documentkey = %0:d ' +
-        '  OR (c.firstdocumentkey = %0:d)', [ADocumentKey]);
+        '  OR (c.firstdocumentkey = %0:d)', [TID264(ADocumentKey)]);
       ibsqlCardSelect.ExecQuery;
       // Если такие карточки вообще есть
       while not ibsqlCardSelect.Eof do
@@ -2422,7 +2424,7 @@ begin
             '  %0:s l ' +
             '  JOIN gd_document d ON d.id = l.documentkey ' +
             'WHERE ' +
-            '  l.%1:s = %2:d ', [ReferencesRelationName, ReferencesFieldName, ibsqlCardSelect.FieldByName('ID').AsInteger]);
+            '  l.%1:s = %2:d ', [ReferencesRelationName, ReferencesFieldName, TID264(ibsqlCardSelect.FieldByName('ID'))]);
           ibsqlDocumentSelect.ExecQuery;
 
           if ibsqlDocumentSelect.RecordCount > 0 then
@@ -2430,12 +2432,12 @@ begin
             while not ibsqlDocumentSelect.Eof do
             begin
               // Найти подходящую карточку для замены
-              CardReplacementKey := GetReplacementInvCardKey(ibsqlCardSelect.FieldByName('ID').AsInteger, ibsqlCardSelect);
+              CardReplacementKey := GetReplacementInvCardKey(GetTID(ibsqlCardSelect.FieldByName('ID')), ibsqlCardSelect);
               if CardReplacementKey > -1 then
               begin
                 ibsqlDocumentUpdate.SQL.Text := Format(
                   'UPDATE %0:s SET %1:s = %2:d WHERE %1:s = %3:d',
-                  [ReferencesRelationName, ReferencesFieldName, CardReplacementKey, ibsqlCardSelect.FieldByName('ID').AsInteger]);
+                  [ReferencesRelationName, ReferencesFieldName, TID264(CardReplacementKey), TID264(ibsqlCardSelect.FieldByName('ID'))]);
                 ibsqlDocumentUpdate.ExecQuery;
                 ibsqlDocumentUpdate.Close;
               end;
@@ -2514,8 +2516,8 @@ begin
           Format(' AND card.%0:s IS NULL ', [FFeatureList.Strings[FeatureCounter]]);
     end;}
     ibsqlSearchNewCardkey.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
-    ibsqlSearchNewCardkey.ParamByName('DOCTYPEKEY').AsInteger := FInvDocumentTypeKey;
-    ibsqlSearchNewCardkey.ParamByName('GOODKEY').AsInteger := AFeatureDataset.FieldByName('GOODKEY').AsInteger;
+    SetTID(ibsqlSearchNewCardkey.ParamByName('DOCTYPEKEY'), FInvDocumentTypeKey);
+    SetTID(ibsqlSearchNewCardkey.ParamByName('GOODKEY'), AFeatureDataset.FieldByName('GOODKEY'));
     {for FeatureCounter := 0 to FFeatureList.Count - 1 do
     begin
       if not AFeatureDataset.FieldByName(FFeatureList.Strings[FeatureCounter]).IsNull then
@@ -2525,19 +2527,19 @@ begin
     ibsqlSearchNewCardkey.ExecQuery;
 
     if ibsqlSearchNewCardkey.RecordCount > 0 then
-      Result := ibsqlSearchNewCardkey.FieldByName('CARDKEY').AsInteger;
+      Result := GetTID(ibsqlSearchNewCardkey.FieldByName('CARDKEY'));
   finally
     FreeAndNil(ibsqlSearchNewCardkey);
   end;
 end;
 
-procedure TgdClosingPeriod.DeleteRUID(const AID: Integer);
+procedure TgdClosingPeriod.DeleteRUID(const AID: TID);
 begin
   // Закроем если еще открыт
   if FIBSQLDeleteRUID.Open then
     FIBSQLDeleteRUID.Close;
   // Удалим РУИД по переданному ключу  
-  FIBSQLDeleteRUID.ParamByName('ID').AsInteger := AID;
+  SetTID(FIBSQLDeleteRUID.ParamByName('ID'), AID);
   FIBSQLDeleteRUID.ExecQuery;
   FIBSQLDeleteRUID.Close;
 end;
@@ -2555,7 +2557,7 @@ begin
     ibsqlCount.SQL.Text :=
       'SELECT count(*) AS rec_count FROM (' + InIBSQL.SQL.Text + ')';
     for ParamCounter := 0 to InIBSQL.Params.Count - 1 do
-      ibsqlCount.Params[ParamCounter].AsVariant := InIBSQL.Params[ParamCounter].AsVariant;
+      SetVar2Param(ibsqlCount.Params[ParamCounter], GetFieldAsVar(InIBSQL.Params[ParamCounter]));
     ibsqlCount.ExecQuery;
 
     if ibsqlCount.RecordCount > 0 then

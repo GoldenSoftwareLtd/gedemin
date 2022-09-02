@@ -1,3 +1,5 @@
+// ShlTanya, 09.02.2019
+
 unit gd_ClassList_InitDoc;
 
 interface
@@ -30,15 +32,15 @@ begin
 
   DE.TypeID := Obj.ID;
   DE.IsCommon := Obj.FieldByName('iscommon').AsInteger > 0;
-  DE.HeaderFunctionKey := Obj.FieldByName('headerfunctionkey').AsInteger;
-  DE.LineFunctionKey := Obj.FieldByName('linefunctionkey').AsInteger;
+  DE.HeaderFunctionKey := GetTID(Obj.FieldByName('headerfunctionkey'));
+  DE.LineFunctionKey := GetTID(Obj.FieldByName('linefunctionkey'));
   DE.Description := Obj.FieldByName('description').AsString;
   DE.IsCheckNumber := TIsCheckNumber(Obj.FieldByName('ischecknumber').AsInteger);
   DE.Options := ''; //Obj.FieldByName('options').AsString;
-  DE.ReportGroupKey := Obj.FieldByName('reportgroupkey').AsInteger;
-  DE.HeaderRelKey := Obj.FieldByName('headerrelkey').AsInteger;
-  DE.LineRelKey := Obj.FieldByName('linerelkey').AsInteger;
-  DE.BranchKey := Obj.FieldByName('branchkey').AsInteger;
+  DE.ReportGroupKey := GetTID(Obj.FieldByName('reportgroupkey'));
+  DE.HeaderRelKey := GetTID(Obj.FieldByName('headerrelkey'));
+  DE.LineRelKey := GetTID(Obj.FieldByName('linerelkey'));
+  DE.BranchKey := GetTID(Obj.FieldByName('branchkey'));
 end;
 
 end.

@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_dlgSelectDocument_unit;
 
 interface
@@ -73,14 +75,14 @@ type
     { Private declarations }
 
     procedure ShowLinePanel(V: Boolean);
-    function GetSelectedId: Integer;
+    function GetSelectedId: TID;
     procedure LoadGridSettings(DataSet: TgdcBase; Grid: TgsIBGrid);
     procedure SaveGridSettings(DataSet: TgdcBase; Grid: TgsIBGrid);
   public
     procedure SaveSettings; override;
     procedure LoadSettings; override;
 
-    property SelectedId: Integer read GetSelectedId;
+    property SelectedId: TID read GetSelectedId;
   end;
 
 var
@@ -138,7 +140,7 @@ begin
     dsDocumentLine.DataSet := nil;
     gDocument.Columns.Clear;
     gDocumentLine.Columns.Clear;
-    F := TgdcDocument.GetDocumentClass(DataSet.FieldByName('id').AsInteger, dcpHeader);
+    F := TgdcDocument.GetDocumentClass(GetTID(DataSet.FieldByName('id')), dcpHeader);
     if (DataSet.FieldByName('documenttype').AsString <> 'B') and (F.gdClass <> nil) then
     begin
       if FDocument <> nil then
@@ -159,7 +161,7 @@ begin
       LoadGridSettings(FDocument, gDocument);
       gDocument.ResizeColumns;
 
-      F := TgdcDocument.GetDocumentClass(DataSet.FieldByName('id').AsInteger, dcpLine);
+      F := TgdcDocument.GetDocumentClass(GetTID(DataSet.FieldByName('id')), dcpLine);
       if F.gdClass <> nil then
       begin
         if FDocumentLine <> nil then
@@ -210,16 +212,16 @@ begin
   end;
 end;
 
-function TdlgSelectDocument.GetSelectedId: Integer;
+function TdlgSelectDocument.GetSelectedId: TID;
 begin
   Result := -1;
   if gDocument.CheckBox.CheckList.Count > 0 then
   begin
-    Result := StrToInt(gDocument.CheckBox.CheckList[0]);
+    Result := GetTID(gDocument.CheckBox.CheckList[0]);
   end else
   if gDocumentLine.CheckBox.CheckList.Count > 0 then
   begin
-    Result := StrToInt(gDocumentLine.CheckBox.CheckList[0]);
+    Result := GetTID(gDocumentLine.CheckBox.CheckList[0]);
   end;
 end;
 

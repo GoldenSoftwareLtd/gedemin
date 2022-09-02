@@ -1,3 +1,5 @@
+// ShlTanya, 12.03.2019
+
 {++
 
 
@@ -57,7 +59,7 @@ var
 implementation
 
 uses
-  gd_ClassList, gd_security, gdcConstants;
+  gd_ClassList, gd_security, gdcConstants, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -97,7 +99,7 @@ begin
   inherited;
   if (gdcObject.State = dsInsert) then
   begin
-    gdcObject.FieldByName(fnAccountKey).AsInteger := ibLogin.ActiveAccount;
+    SetTID(gdcObject.FieldByName(fnAccountKey), ibLogin.ActiveAccount);
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGTAXNAME', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -146,14 +148,14 @@ begin
 
   if Result then
   begin
-    if gdcObject.FieldByName(fnAccountKey).AsInteger = 0 then
+    if GetTID(gdcObject.FieldByName(fnAccountKey)) = 0 then
     begin
       Result := False;
       ShowMessage(MSG_INDICATE_ACCOUNTCARD);
       Exit;
     end;
 
-    if gdcObject.FieldByName(fnTransactionKey).AsInteger = 0 then
+    if GetTID(gdcObject.FieldByName(fnTransactionKey)) = 0 then
     begin
       Result := False;
       ShowMessage(MSG_INDICATE_TRANSACTION);

@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 unit UserGroupNameToRUID;
 
 interface
@@ -58,7 +60,7 @@ begin
           while not SQL.Eof do
           begin
             uSQL.Params[0].AsString := SQL.Fields[1].AsString;
-            uSQL.Params[1].AsInteger := SQL.Fields[0].AsInteger;
+            SetTID(uSQL.Params[1], SQL.Fields[0]);
             uSQL.ExecQuery;
             uSQL.Close;
             SQL.Next;

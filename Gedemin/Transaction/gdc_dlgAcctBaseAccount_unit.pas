@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019, #4135
+
 unit gdc_dlgAcctBaseAccount_unit;
 
 interface
@@ -116,9 +118,9 @@ begin
   for I := 0 to sbValues.ComponentCount - 1 do
     if (sbValues.Components[I] is TValueCheckBox) and
       (TValueCheckBox(sbValues.Components[I]).Checked and
-       (FValuesArray.IndexOf(sbValues.Components[I].Tag) = -1)) or
+       (FValuesArray.IndexOf(GetTID(sbValues.Components[I].Tag, Name)) = -1)) or
       ((not TValueCheckBox(sbValues.Components[I]).Checked) and
-       (FValuesArray.IndexOf(sbValues.Components[I].Tag) > -1))
+       (FValuesArray.IndexOf(GetTID(sbValues.Components[I].Tag, Name)) > -1))
     then
     begin
       Result := True;
@@ -216,7 +218,7 @@ begin
 
     q.SQL.Text :=
       'DELETE FROM ac_accvalue WHERE accountkey = :accountkey ';
-    q.ParamByName('accountkey').AsInteger := gdcObject.ID;
+    SetTID(q.ParamByName('accountkey'), gdcObject.ID);
     q.ExecQuery;
 
     q.SQL.Text :=
@@ -224,15 +226,15 @@ begin
     for I := 0 to sbValues.ComponentCount - 1 do
       if (sbValues.Components[I] is TValueCheckBox) and TValueCheckBox(sbValues.Components[I]).Checked then
       begin
-        q.ParamByName('id').AsInteger := gdcObject.GetNextID;
-        q.ParamByName('accountkey').AsInteger := gdcObject.ID;
-        q.ParamByName('valuekey').AsInteger := sbValues.Components[I].Tag;
+        SetTID(q.ParamByName('id'), gdcObject.GetNextID);
+        SetTID(q.ParamByName('accountkey'), gdcObject.ID);
+        SetTID(q.ParamByName('valuekey'), GetTID(sbValues.Components[I].Tag, Name));
         q.ExecQuery;
       end;
 
     q.SQL.Text :=
       'DELETE FROM ac_accanalyticsext WHERE accountkey = :accountkey ';
-    q.ParamByName('accountkey').AsInteger := gdcObject.ID;
+    SetTID(q.ParamByName('accountkey'), gdcObject.ID);
     q.ExecQuery;
 
     if dbrgTypeAccount.Value = 'B' then
@@ -243,9 +245,9 @@ begin
       for I := 0 to sbAnalyzeExt.ComponentCount - 1 do
         if (sbAnalyzeExt.Components[I] is TAnalyzeExtCheckBox) and TAnalyzeExtCheckBox(sbAnalyzeExt.Components[I]).Checked then
         begin
-          q.ParamByName('id').AsInteger := gdcObject.GetNextID;
-          q.ParamByName('accountkey').AsInteger := gdcObject.ID;
-          q.ParamByName('valuekey').AsInteger := sbAnalyzeExt.Components[I].Tag;
+          SetTID(q.ParamByName('id'), gdcObject.GetNextID);
+          SetTID(q.ParamByName('accountkey'), gdcObject.ID);
+          SetTID(q.ParamByName('valuekey'), GetTID(sbAnalyzeExt.Components[I].Tag, Name));
           q.ExecQuery;
         end;
     end;
@@ -322,16 +324,16 @@ begin
   try
     ibsql.Transaction := gdcObject.ReadTransaction;
     ibsql.SQL.Text :=
-      'SELECT * FROM ac_accvalue WHERE accountkey = ' + IntToStr(gdcObject.ID);
+      'SELECT * FROM ac_accvalue WHERE accountkey = ' + TID2S(gdcObject.ID);
     ibsql.ExecQuery;
     while not ibsql.Eof do
     begin
-      FValuesArray.AddObject(ibsql.FieldByName('valuekey').AsInteger, nil);
+      FValuesArray.AddObject(GetTID(ibsql.FieldByName('valuekey')), nil);
       ibsql.Next;
     end;
 
     ibsql.Close;
-    ibsql.SQL.Text := 'SELECT v.name, v.id FROM ac_accvalue a JOIN gd_value v ON a.valuekey = v.id WHERE a.accountkey = ' + IntToStr(gdcObject.ID) + ' ORDER BY name ASC';
+    ibsql.SQL.Text := 'SELECT v.name, v.id FROM ac_accvalue a JOIN gd_value v ON a.valuekey = v.id WHERE a.accountkey = ' + TID2S(gdcObject.ID) + ' ORDER BY name ASC';
     ibsql.ExecQuery;
     if ibsql.Eof then
       exit;
@@ -342,14 +344,14 @@ begin
       CB := TValueCheckBox.Create(sbValues);
       CB.Left := 5;
       CB.Top := CurrTop;
-      CB.Tag := ibsql.FieldByName('id').AsInteger;
+      CB.Tag := TID2Tag(GetTID(ibsql.FieldByName('id')), Name);
       CB.Caption := ibsql.FieldByName('name').AsString;
       sbValues.InsertControl(CB);
       CurrTop := CurrTop + CB.Height + 2;
-      if FValuesArray.IndexOf(ibsql.FieldByName('id').AsInteger) > -1 then
+      if FValuesArray.IndexOf(GetTID(ibsql.FieldByName('id'))) > -1 then
       begin
         CB.Checked := True;
-        FValuesArray.ObjectByKey[ibsql.FieldByName('id').AsInteger] := CB;
+        FValuesArray.ObjectByKey[GetTID(ibsql.FieldByName('id'))] := CB;
       end;
       ibsql.Next;
     end;
@@ -496,7 +498,7 @@ begin
       if (sbValues.Components[I] is TValueCheckBox) and
         (TValueCheckBox(sbValues.Components[I]).Checked )
       then
-        gdcValue.SelectedID.Add(sbValues.Components[I].Tag);
+        gdcValue.SelectedID.Add(GetTID(sbValues.Components[I].Tag, Name));
 
     if gdcValue.ChooseItems(A) then
     begin
@@ -504,7 +506,7 @@ begin
       if not (gdcObject.State in [dsEdit, dsInsert]) then
         gdcObject.Edit;
 
-      gdcObject.FieldByName('id').AsInteger := gdcObject.FieldByName('id').AsInteger;
+      SetTID(gdcObject.FieldByName('id'), gdcObject.FieldByName('id'));
 
       FValuesArray.Clear;
       while sbValues.ComponentCount > 0 do
@@ -523,11 +525,11 @@ begin
         CB := TValueCheckBox.Create(sbValues);
         CB.Left := 5;
         CB.Top := CurrTop;
-        CB.Tag := gdcValue.FieldByName('id').AsInteger;
+        CB.Tag := TID2Tag(GetTID(gdcValue.FieldByName('id')), Name);
         CB.Caption := gdcValue.FieldByName('name').AsString;
         sbValues.InsertControl(CB);
         CurrTop := CurrTop + CB.Height + 2;
-        FValuesArray.AddObject(gdcValue.FieldByName('id').AsInteger, CB);
+        FValuesArray.AddObject(GetTID(gdcValue.FieldByName('id')), CB);
         CB.Checked := True;
         gdcValue.Next;
       end;
@@ -567,8 +569,8 @@ begin
       if (sbAnalyzeExt.Components[I] is TAnalyzeExtCheckBox) and
         (TAnalyzeExtCheckBox(sbAnalyzeExt.Components[I]).Checked ) then
         begin
-          gdcRelationFields.SelectedID.Add(sbAnalyzeExt.Components[I].Tag);
-          strAnalyzeID := strAnalyzeID + inttostr(sbAnalyzeExt.Components[I].Tag) + ';';
+          gdcRelationFields.SelectedID.Add(GetTID(sbAnalyzeExt.Components[I].Tag, Name));
+          strAnalyzeID := strAnalyzeID + TID2S(GetTID(sbAnalyzeExt.Components[I].Tag, Name)) + ';';
         end;
         
   // формируем строку с выбранными по счету аналитиками
@@ -576,7 +578,7 @@ begin
       if (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].IsUserDefined and
         (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].Field.FieldName = 'DBOOLEAN')) and
         ((gdcObject.FieldByName(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName).AsInteger = 1) or
-        (AnsiPos(';' + inttostr(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].ID) + ';', strAnalyzeID) <> 0)) then
+        (AnsiPos(';' + TID2S(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].ID) + ';', strAnalyzeID) <> 0)) then
         begin
           if strAnalyze <> '' then
             strAnalyze := strAnalyze + ', ';
@@ -600,7 +602,7 @@ begin
     if not (gdcObject.State in [dsEdit, dsInsert]) then
         gdcObject.Edit;
 
-      gdcObject.FieldByName('id').AsInteger := gdcObject.FieldByName('id').AsInteger;
+      SetTID(gdcObject.FieldByName('id'), gdcObject.FieldByName('id'));
 
       FAnalyzeExtArray.Clear;
       while sbAnalyzeExt.ComponentCount > 0 do
@@ -619,11 +621,11 @@ begin
         CB := TAnalyzeExtCheckBox.Create(sbAnalyzeExt);
         CB.Left := 5;
         CB.Top := CurrTop;
-        CB.Tag := gdcRelationFields.FieldByName('id').AsInteger;
+        CB.Tag := TID2Tag(GetTID(gdcRelationFields.FieldByName('id')), Name);
         CB.Caption := gdcRelationFields.FieldByName('lname').AsString;
         sbAnalyzeExt.InsertControl(CB);
         CurrTop := CurrTop + CB.Height + 2;
-        FAnalyzeExtArray.AddObject(gdcRelationFields.FieldByName('id').AsInteger, CB);
+        FAnalyzeExtArray.AddObject(GetTID(gdcRelationFields.FieldByName('id')), CB);
         CB.Checked := True;
         gdcRelationFields.Next;
       end;
@@ -650,17 +652,17 @@ begin
   try
     ibsql.Transaction := gdcObject.ReadTransaction;
     ibsql.SQL.Text :=
-      'SELECT * FROM ac_accanalyticsext WHERE accountkey = ' + IntToStr(gdcObject.ID);
+      'SELECT * FROM ac_accanalyticsext WHERE accountkey = ' + TID2S(gdcObject.ID);
     ibsql.ExecQuery;
     while not ibsql.Eof do
     begin
-      FAnalyzeExtArray.AddObject(ibsql.FieldByName('valuekey').AsInteger, nil);
+      FAnalyzeExtArray.AddObject(GetTID(ibsql.FieldByName('valuekey')), nil);
       ibsql.Next;
     end;
 
     ibsql.Close;
 
-    ibsql.SQL.Text := 'SELECT r.lname, r.id FROM ac_accanalyticsext a JOIN at_relation_fields r ON a.valuekey = r.id WHERE a.accountkey = ' + IntToStr(gdcObject.ID) + ' ORDER BY lname ASC';
+    ibsql.SQL.Text := 'SELECT r.lname, r.id FROM ac_accanalyticsext a JOIN at_relation_fields r ON a.valuekey = r.id WHERE a.accountkey = ' + TID2S(gdcObject.ID) + ' ORDER BY lname ASC';
     ibsql.ExecQuery;
     if ibsql.Eof then
       exit;
@@ -671,14 +673,14 @@ begin
       CB := TAnalyzeExtCheckBox.Create(sbAnalyzeExt);
       CB.Left := 5;
       CB.Top := CurrTop;
-      CB.Tag := ibsql.FieldByName('id').AsInteger;
+      CB.Tag := TID2Tag(GetTID(ibsql.FieldByName('id')), Name);
       CB.Caption := ibsql.FieldByName('lname').AsString;
       sbAnalyzeExt.InsertControl(CB);
       CurrTop := CurrTop + CB.Height + 2;
-      if FAnalyzeExtArray.IndexOf(ibsql.FieldByName('id').AsInteger) > -1 then
+      if FAnalyzeExtArray.IndexOf(GetTID(ibsql.FieldByName('id'))) > -1 then
       begin
         CB.Checked := True;
-        FAnalyzeExtArray.ObjectByKey[ibsql.FieldByName('id').AsInteger] := CB;
+        FAnalyzeExtArray.ObjectByKey[GetTID(ibsql.FieldByName('id'))] := CB;
       end;
       ibsql.Next;
     end;

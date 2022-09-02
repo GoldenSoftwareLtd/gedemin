@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019
+
 unit tmp_dlgEditTemplate_unit;
 
 interface
@@ -40,9 +42,9 @@ type
     FOldTemplateType: Variant;
     FTestReportResult: TReportResult;
   public
-    function AddTemplate(out AnTemplateKey: Integer; const AnReportResult: TReportResult = nil): Boolean;
-    function EditTemplate(const AnTemplateKey: Integer; const AnReportResult: TReportResult = nil): Boolean;
-    function DeleteTemplate(const AnTemplateKey: Integer): Boolean;
+    function AddTemplate(out AnTemplateKey: TID; const AnReportResult: TReportResult = nil): Boolean;
+    function EditTemplate(const AnTemplateKey: TID; const AnReportResult: TReportResult = nil): Boolean;
+    function DeleteTemplate(const AnTemplateKey: TID): Boolean;
   end;
 
 var
@@ -56,7 +58,7 @@ uses
 
 {$R *.DFM}
 
-function TdlgEditTemplate.AddTemplate(out AnTemplateKey: Integer;
+function TdlgEditTemplate.AddTemplate(out AnTemplateKey: TID;
  const AnReportResult: TReportResult = nil): Boolean;
 begin
   Result := False;
@@ -67,7 +69,7 @@ begin
     ibtrTemplate.StartTransaction;
 
   ibdsTemplate.Close;
-  ibdsTemplate.Params[0].AsInteger := AnTemplateKey;
+  SetTID(ibdsTemplate.Params[0], AnTemplateKey);
   ibdsTemplate.Open;
   ibdsTemplate.Insert;
   FOldTemplateType := ibdsTemplate.FieldByName('templatetype').AsVariant;
@@ -77,11 +79,11 @@ begin
 
   if ShowModal = mrOk then
   try
-    ibdsTemplate.FieldByName('id').AsInteger :=
-     GetUniqueKey(ibtrTemplate.DefaultDatabase, ibtrTemplate);
+    SetTID(ibdsTemplate.FieldByName('id'),
+     GetUniqueKey(ibtrTemplate.DefaultDatabase, ibtrTemplate));
     ibdsTemplate.Post;
     Result := True;
-    AnTemplateKey := ibdsTemplate.FieldByName('id').AsInteger;
+    AnTemplateKey := GetTID(ibdsTemplate.FieldByName('id'));
   except
     on E: Exception do
     begin
@@ -96,7 +98,7 @@ begin
     ibtrTemplate.Commit;
 end;
 
-function TdlgEditTemplate.EditTemplate(const AnTemplateKey: Integer;
+function TdlgEditTemplate.EditTemplate(const AnTemplateKey: TID;
  const AnReportResult: TReportResult = nil): Boolean;
 begin
   Result := False;
@@ -107,7 +109,7 @@ begin
     ibtrTemplate.StartTransaction;
 
   ibdsTemplate.Close;
-  ibdsTemplate.Params[0].AsInteger := AnTemplateKey;
+  SetTID(ibdsTemplate.Params[0], AnTemplateKey);
   ibdsTemplate.Open;
   ibdsTemplate.Edit;
 
@@ -137,7 +139,7 @@ begin
     ibtrTemplate.Commit;
 end;
 
-function TdlgEditTemplate.DeleteTemplate(const AnTemplateKey: Integer): Boolean;
+function TdlgEditTemplate.DeleteTemplate(const AnTemplateKey: TID): Boolean;
 begin
   Result := False;
   if not ibtrTemplate.InTransaction then
@@ -149,7 +151,7 @@ begin
 
   {gs} // Проверка прав
   ibdsTemplate.Close;
-  ibdsTemplate.Params[0].AsInteger := AnTemplateKey;
+  SetTID(ibdsTemplate.Params[0], AnTemplateKey);
   ibdsTemplate.Open;
 
   if ibdsTemplate.Eof then

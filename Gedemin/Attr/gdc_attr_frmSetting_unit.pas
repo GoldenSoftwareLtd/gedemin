@@ -1,14 +1,16 @@
+// ShlTanya, 03.02.2019
 
 unit gdc_attr_frmSetting_unit;
 
-interface
+interface                                                                                   
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_frmSGR_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
   ComCtrls, IBCustomDataSet, gdcBase, gdcSetting, gdc_frmG_unit,
-  gdc_frmMDHGR_unit, IBSQL, gd_KeyAssoc, at_SettingWalker, gdcNamespace;
+  gdc_frmMDHGR_unit, IBSQL, gd_KeyAssoc, at_SettingWalker, gdcNamespace,
+  gdcBaseInterface;
 
 type
   Tgdc_frmSetting = class(Tgdc_frmMDHGR)
@@ -192,7 +194,7 @@ type
 
     procedure OnFakeLoad(Sender: TgdcBase; CDS: TDataSet);
 
-    function SaveObjectToNS: Integer;
+    function SaveObjectToNS: TID;
 
   protected
     procedure RemoveSubSetList(S: TStrings); override;
@@ -207,7 +209,7 @@ var
 implementation
 
 uses
-  gd_ClassList, gdcBaseInterface, at_frmUserForm_unit, gd_directories_const,
+  gd_ClassList, at_frmUserForm_unit, gd_directories_const,
   gsStorage, Storages, gdcStorage, frm_SettingView_unit, gd_security,
   gd_common_functions, jclSelected, IBDatabase, gdc_attr_dlgSetToTxt_unit,
   gdcMetaData
@@ -644,7 +646,7 @@ end;
 
 procedure Tgdc_frmSetting.actOpenObjectExecute(Sender: TObject);
 var
-  ObjID: Integer;
+  ObjID: TID;
   Obj: TgdcBase;
   Cl: TPersistentClass;
 begin
@@ -652,7 +654,7 @@ begin
   try
     with gdcSettingPos do
     begin
-      ObjID := gdcBaseManager.GetIDByRUID(FieldByName('xid').AsInteger,
+      ObjID := gdcBaseManager.GetIDByRUID(GetTID(FieldByName('xid')),
         FieldByName('dbid').AsInteger);
       if ObjID <> -1 then
       begin
@@ -858,14 +860,18 @@ begin
           case ADataSet.Fields[I].DataType of
             ftString:
               SList.Add(Format({'%2d: }'%20s', [{I,} FN]) + ':  "' + ADataSet.Fields[I].AsString + '"');
+            {$IFDEF ID64}
+            ftLargeint:
+            {$ELSE}
             ftInteger:
+            {$ENDIF}
             begin
               if UseRUID and ((Pos(';' + FN + ';', UseRUIDList) <> 0)
                 or ((Length(FN) > 3) and (Copy(FN, Length(FN) - 2, 3) = 'KEY'))) then
               begin
                 if FN = 'ID' then
                 begin
-                  K := IDLink.IndexOf(ADataSet.Fields[I].AsInteger);
+                  K := IDLink.IndexOf(GetTID(ADataSet.Fields[I]));
                   if K <> -1 then
                   begin
                     if IDLink.ValuesByIndex[K] <> (ADataSet.FieldByName('_xid').AsString
@@ -875,7 +881,7 @@ begin
                     end;
                   end else
                   begin
-                    K := IDLink.Add(ADataSet.Fields[I].AsInteger);
+                    K := IDLink.Add(GetTID(ADataSet.Fields[I]));
                     IDLink.ValuesByIndex[K] := ADataSet.FieldByName('_xid').AsString
                       + '_' + ADataSet.FieldByName('_dbid').AsString;
                   end;
@@ -883,7 +889,7 @@ begin
                     + IDLink.ValuesByIndex[K]);
                 end else
                 begin
-                  K := IDLink.IndexOf(ADataSet.Fields[I].AsInteger);
+                  K := IDLink.IndexOf(GetTID(ADataSet.Fields[I]));
                   if K = -1 then
                     SList.Add(Format({'%2d: }'%20s', [{I,} FN]) + ':  ' + ADataSet.Fields[I].AsString)
                   else
@@ -1043,14 +1049,18 @@ begin
         case ADataSet.Fields[I].DataType of
           ftString:
             SList.Add(Format('%20s', [FN]) + ':  "' + ADataSet.Fields[I].AsString + '"');
+          {$IFDEF ID64}
+          ftLargeint:
+          {$ELSE}
           ftInteger:
+          {$ENDIF}
           begin
             if UseRUID and ((Pos(';' + FN + ';', UseRUIDList) <> 0)
               or ((Length(FN) > 3) and (Copy(FN, Length(FN) - 2, 3) = 'KEY'))) then
             begin
               if FN = 'ID' then
               begin
-                K := IDLink.IndexOf(ADataSet.Fields[I].AsInteger);
+                K := IDLink.IndexOf(GetTID(ADataSet.Fields[I]));
                 if K <> -1 then
                 begin
                   if IDLink.ValuesByIndex[K] <> (ADataSet.FieldByName('_xid').AsString
@@ -1060,7 +1070,7 @@ begin
                   end;
                 end else
                 begin
-                  K := IDLink.Add(ADataSet.Fields[I].AsInteger);
+                  K := IDLink.Add(GetTID(ADataSet.Fields[I]));
                   IDLink.ValuesByIndex[K] := ADataSet.FieldByName('_xid').AsString
                     + '_' + ADataSet.FieldByName('_dbid').AsString;
                 end;
@@ -1068,7 +1078,7 @@ begin
                   + IDLink.ValuesByIndex[K]);
               end else
               begin
-                K := IDLink.IndexOf(ADataSet.Fields[I].AsInteger);
+                K := IDLink.IndexOf(GetTID(ADataSet.Fields[I]));
                 if K = -1 then
                   SList.Add(Format('%20s', [FN]) + ':  ' + ADataSet.Fields[I].AsString)
                 else
@@ -1164,11 +1174,12 @@ var
   WorkedOut: TList;
   WasError: Boolean;
 
-  procedure ParseSetting(const AnID: Integer;
+  procedure ParseSetting(const AnID: TID;
     const AFileName: String = '');
   var
     Obj: TgdcBase;
-    I, ID: Integer;
+    I: Integer;
+    ID: TID;
     RUID: TRUID;
     SW: TatSettingWalker;
     RuidList: TStringList;
@@ -1462,7 +1473,7 @@ procedure Tgdc_frmSetting.actSet2NSExecute(Sender: TObject);
 var
   q: TIBSQL;
   Tr: TIBTransaction;
-  NSID: Integer;
+  NSID: TID;
 begin
   NSID := SaveObjectToNS;
 
@@ -1479,14 +1490,14 @@ begin
       'WHERE '#13#10 +
       'EXISTS (SELECT p.* FROM at_settingpos p WHERE p.xid = o.xid AND p.dbid = o.dbid AND p.needmodify = 0) '#13#10 +
       'AND o.alwaysoverwrite <> 0 '#13#10 +
-      'AND o.namespacekey = ' + IntToStr(NSID);
+      'AND o.namespacekey = ' + TID2S(NSID);
     q.ExecQuery;
 
     q.SQL.Text :=
       'EXECUTE BLOCK '#13#10 +
       'AS '#13#10 +
-      '  DECLARE VARIABLE id INTEGER; '#13#10 +
-      '  DECLARE VARIABLE id2 INTEGER; '#13#10 +
+      '  DECLARE VARIABLE id DINTKEY; '#13#10 +
+      '  DECLARE VARIABLE id2 DINTKEY; '#13#10 +
       '  DECLARE VARIABLE sr VARCHAR(1024); '#13#10 +
       'BEGIN '#13#10 +
       '  FOR '#13#10 +
@@ -1494,7 +1505,7 @@ begin
       '    FROM at_setting s '#13#10 +
       '      JOIN gd_ruid r ON r.id = s.id '#13#10 +
       '      JOIN at_namespace n ON n.settingruid = r.xid || ''_'' || r.dbid '#13#10 +
-      '    WHERE n.id = ' + IntToStr(NSID) + #13#10 +
+      '    WHERE n.id = ' + TID2S(NSID) + #13#10 +
       '    INTO :id, :sr '#13#10 +
       '  DO BEGIN '#13#10 +
       '    FOR '#13#10 +
@@ -1549,11 +1560,11 @@ begin
       if (not C.InheritsFrom(TgdcMetaBase)) or (Pos('RDB$', ObjName) <> 1) then
       begin
         gdcNamespaceObject.Insert;
-        gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
+        SetTID(gdcNamespaceObject.FieldByName('namespacekey'), gdcNamespace.ID);
         gdcNamespaceObject.FieldByName('objectname').AsString := ObjName;
         gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
         gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
-        gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+        SetTID(gdcNamespaceObject.FieldByName('xid'), ADataSet.FieldByName('_xid'));
         gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
         gdcNamespaceObject.Post;
       end;
@@ -1569,7 +1580,7 @@ begin
   if not ADataSet.EOF then
   begin
     gdcNamespaceObject.Insert;
-    gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
+    SetTID(gdcNamespaceObject.FieldByName('namespacekey'), gdcNamespace.ID);
     if ADataSet.FindField('name') <> nil then
       gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
     else if ADataSet.FindField('usr$name') <> nil then
@@ -1579,7 +1590,7 @@ begin
         ADataSet.FieldByName('_xid').AsString + '_' + ADataSet.FieldByName('_dbid').AsString;
     gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
     gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
-    gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+    SetTID(gdcNamespaceObject.FieldByName('xid'), ADataSet.FieldByName('_xid'));
     gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
     gdcNamespaceObject.Post;
   end;
@@ -1596,9 +1607,9 @@ begin
   //
 end;
 
-function Tgdc_frmSetting.SaveObjectToNS: Integer;
+function Tgdc_frmSetting.SaveObjectToNS: TID;
 
-  procedure ParseSetting(const AnID: Integer;
+  procedure ParseSetting(const AnID: TID;
     const AFileName: String = '');
   var
     Obj: TgdcBase;
@@ -1744,8 +1755,8 @@ begin
     q.SQL.Text :=
       'EXECUTE BLOCK '#13#10 +
       'AS '#13#10 +
-      '  DECLARE VARIABLE id INTEGER; '#13#10 +
-      '  DECLARE VARIABLE id2 INTEGER; '#13#10 +
+      '  DECLARE VARIABLE id DINTKEY; '#13#10 +
+      '  DECLARE VARIABLE id2 DINTKEY; '#13#10 +
       '  DECLARE VARIABLE sr VARCHAR(1024); '#13#10 +
       'BEGIN '#13#10 +
       '  FOR '#13#10 +

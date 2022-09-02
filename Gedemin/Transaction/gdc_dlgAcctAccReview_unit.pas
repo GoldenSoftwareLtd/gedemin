@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_dlgAcctAccReview_unit;
 
 interface
@@ -194,7 +196,7 @@ begin
   if not Assigned(FCorrAccountIDs) then
     FCorrAccountIDs := TList.Create;
   inherited;
-  SetAccountIDs(cbCorrAccounts, FCorrAccountIDs, cbShowCorrSubAccounts.Checked);
+  SetAccountIDs(cbCorrAccounts, FCorrAccountIDs, cbShowCorrSubAccounts.Checked, Name);
 end;
 
 procedure TdlgAcctAccReviewConfig.btnCorrAccountsClick(Sender: TObject);

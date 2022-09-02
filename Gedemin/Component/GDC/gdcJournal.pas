@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcJournal;
 
@@ -23,7 +24,7 @@ type
 
     class procedure AddEvent(const AData: String;
       const ASource: String = '';
-      const AnObjectID: Integer = -1;
+      const AnObjectID: TID = -1;
       const ATransaction: TIBTransaction = nil;
       const AForce: Boolean = False);
 
@@ -409,7 +410,7 @@ begin
             qTestTable.ParamByName('RN').AsString := qTables.Fields[0].AsTrimString;
             qTestTable.ExecQuery;
 
-            if KA.IndexOf(qTestTable.Fields[0].AsInteger) = -1 then
+            if KA.IndexOf(GetTID(qTestTable.Fields[0])) = -1 then
             begin
               qTables.Next;
               continue;
@@ -566,7 +567,7 @@ begin
 end;
 
 class procedure TgdcJournal.AddEvent(const AData, ASource: String;
-  const AnObjectID: Integer; const ATransaction: TIBTransaction;
+  const AnObjectID: TID; const ATransaction: TIBTransaction;
   const AForce: Boolean);
 begin
   if Assigned(IBLogin) and Assigned(GlobalStorage)
@@ -578,7 +579,7 @@ begin
       gdcBaseManager.ExecSingleQuery(
         'INSERT INTO gd_journal (source, objectid, data, contactkey) ' +
           ' VALUES (:S, :OID, :D, :CK) ',
-        VarArrayOf([System.Copy(ASource, 1, 40), AnObjectID, AData, IBLogin.ContactKey]),
+        VarArrayOf([System.Copy(ASource, 1, 40), TID2V(AnObjectID), AData, TID2V(IBLogin.ContactKey)]),
         ATransaction);
     end;
   end;
@@ -613,7 +614,7 @@ var
 begin
   S := Trim(FieldByName('source').AsString);
 
-  if (S = '') or (FieldByName('objectid').AsInteger < 0) then
+  if (S = '') or (GetTID(FieldByName('objectid')) < 0) then
     exit;
 
   FC := GetBaseClassForRelation(S);
@@ -622,7 +623,7 @@ begin
     Obj := FC.gdClass.CreateWithID(nil,
       nil,
       nil,
-      FieldByName('objectid').AsInteger,
+      GetTID(FieldByName('objectid')),
       FC.SubType);
     try
       Obj.Open;
@@ -647,7 +648,7 @@ begin
       Obj := CgdcBase(C).CreateWithID(nil,
         nil,
         nil,
-        FieldByName('objectid').AsInteger,
+        GetTID(FieldByName('objectid')),
         S);
       try
         Obj.Open;

@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -23,7 +25,7 @@
 unit VBParser;
 
 interface
-uses Classes, Comctrls;
+uses Classes, Comctrls, gdcBaseInterface;
 
 type
   TOnStatament = procedure (Line: Integer) of object;
@@ -67,7 +69,7 @@ type
     //”казывает на необходимость добавлени€ определител€
     FAddDesignator: Boolean;
     FAtLine: Integer;
-    FProcedureId: Integer;
+    FProcedureId: TID;
     FSubFunction: string;
     FArgumentList: TStrings;
     FDesignator: String;

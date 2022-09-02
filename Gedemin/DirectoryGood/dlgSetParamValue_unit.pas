@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgSetParamValue_unit;
 
 interface
@@ -28,8 +30,8 @@ type
     { Private declarations }
   public
     { Public declarations }
-    GoodKey: Integer;
-    ValueKey: Integer;
+    GoodKey: TID;
+    ValueKey: TID;
     procedure ActiveDialog;
   end;
 
@@ -50,8 +52,8 @@ begin
   else begin
     // Вытягиваем запись и устанавливаем режим редактирования
     ibqryEditGoodValue.Close;
-    ibqryEditGoodValue.ParamByName('goodkey').AsInteger := GoodKey;
-    ibqryEditGoodValue.ParamByName('valuekey').AsInteger := ValueKey;
+    SetTID(ibqryEditGoodValue.ParamByName('goodkey'), GoodKey);
+    SetID(ibqryEditGoodValue.ParamByName('valuekey'), ValueKey);
     ibqryEditGoodValue.Open;
     lblBaseValue.Caption := ibqryEditGoodValue.FieldByName('name').AsString;
     ibqryEditGoodValue.Edit;

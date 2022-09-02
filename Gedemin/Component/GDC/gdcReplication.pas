@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcReplication;
 
@@ -17,7 +18,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
-    procedure PrepareRemoteDB(const ADBKey: Integer);
+    procedure PrepareRemoteDB(const ADBKey: TID);
   end;
 
   TgdcRplDomain = class(TgdcBase)
@@ -164,7 +165,7 @@ end;
 
 *)
 
-procedure TgdcRplDatabase.PrepareRemoteDB(const ADBKey: Integer);
+procedure TgdcRplDatabase.PrepareRemoteDB(const ADBKey: TID);
 var
   CurrStep: TrplPrepareStep;
   IBBackup: TIBBackupService;

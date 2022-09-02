@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_frAcctBaseAnalyticGroup;
 
 interface
@@ -43,6 +45,7 @@ type
   private
     FOnSelect: TNotifyEvent;
     FStringListAvail: TStringList;
+    FContext: String;
     function GetAvail: TgdvAvailAnalytics;
     function GetSelected: TgdvAnalyticsList;
     function GetSelectedCount: Integer;
@@ -75,6 +78,7 @@ type
     property SelectedCount: Integer read GetSelectedCount;
     property OnSelect: TNotifyEvent read FOnSelect write SetOnSelect;
     property AnalyticListFields: String read GetAnalyticListFields write SetAnalyticListFields;
+    property Context: String write FContext;
   end;
 
 implementation
@@ -513,7 +517,7 @@ begin
         SQL.SQL.Insert(0, 'SELECT ');
         SQL.SQL.Add('FROM ac_account ');
         if AIDList.Count > 0 then
-          SQL.SQL.Add(Format('WHERE id IN (%s)', [AcctUtils.IdList(AIdList)]));
+          SQL.SQL.Add(Format('WHERE id IN (%s)', [AcctUtils.IdList(AIdList, FContext)]));
         SQL.ExecQuery;
         for I := 0 to FAvailFieldList.Count - 1 do
         begin

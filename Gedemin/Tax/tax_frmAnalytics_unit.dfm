@@ -1,8 +1,8 @@
 object frmAnalytics: TfrmAnalytics
-  Left = 293
+  Left = 411
   Top = 219
   Width = 457
-  Height = 386
+  Height = 393
   HelpContext = 16
   BorderIcons = [biSystemMenu, biMaximize, biHelp]
   BorderWidth = 5
@@ -20,8 +20,8 @@ object frmAnalytics: TfrmAnalytics
   PixelsPerInch = 96
   TextHeight = 13
   object btnOk: TButton
-    Left = 281
-    Top = 328
+    Left = 273
+    Top = 324
     Width = 75
     Height = 21
     Action = actOk
@@ -31,8 +31,8 @@ object frmAnalytics: TfrmAnalytics
     TabOrder = 0
   end
   object btnCancel: TButton
-    Left = 364
-    Top = 328
+    Left = 356
+    Top = 324
     Width = 75
     Height = 21
     Action = actCancel
@@ -44,16 +44,16 @@ object frmAnalytics: TfrmAnalytics
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 439
-    Height = 323
+    Width = 431
+    Height = 315
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
     TabOrder = 2
     object Panel3: TPanel
       Left = 0
-      Top = 250
-      Width = 439
+      Top = 242
+      Width = 431
       Height = 73
       Align = alBottom
       BevelOuter = bvLowered
@@ -62,7 +62,7 @@ object frmAnalytics: TfrmAnalytics
       object mValue: TMemo
         Left = 1
         Top = 1
-        Width = 437
+        Width = 429
         Height = 71
         Align = alClient
         BorderStyle = bsNone
@@ -73,7 +73,7 @@ object frmAnalytics: TfrmAnalytics
     end
     object cbAnalyticName: TCheckBox
       Left = 0
-      Top = 231
+      Top = 223
       Width = 145
       Height = 17
       Anchors = [akLeft, akBottom]
@@ -83,17 +83,17 @@ object frmAnalytics: TfrmAnalytics
       TabOrder = 1
     end
     inline frFixedAnalytics: TfrFixedAnalytics
-      Width = 439
-      Height = 224
+      Width = 431
+      Height = 216
       Align = alTop
       Anchors = [akLeft, akTop, akRight, akBottom]
       TabOrder = 2
       inherited Panel: TPanel
-        Width = 439
-        Height = 224
+        Width = 431
+        Height = 216
         inherited sbAnalytics: TScrollBox
-          Width = 437
-          Height = 222
+          Width = 429
+          Height = 214
         end
       end
     end

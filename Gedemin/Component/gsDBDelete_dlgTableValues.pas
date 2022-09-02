@@ -1,3 +1,4 @@
+// ShlTanya, 17.02.2019
 
  {++
 
@@ -166,7 +167,7 @@ begin
   NewObject.IdList.Clear;
   try
     for I := 0 to AnID.Count - 1 do
-      NewObject.IdList.Add(StrToInt(AnID[I]));
+      NewObject.IdList.Add(GetTID(AnID[I]));
   except
     raise Exception.Create('Ошибка при создании объекта. Недействительный идентификатор!');
   end;

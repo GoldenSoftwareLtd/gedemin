@@ -453,7 +453,7 @@ begin
         ' WHERE ' + Field.ReferencesField.FieldName + ' = :id';
       while Pos(',', s) > 0 do begin
         ibsql.Close;
-        ibsql.ParamByName('id').AsInteger:= StrToInt(Copy(s, 1, Pos(',', s) - 1));
+        SetTID(ibsql.ParamByName('id'), GetTID(Copy(s, 1, Pos(',', s) - 1)));
         ibsql.ExecQuery;
         lbValue.Items.Add(ibsql.FieldByName('name').AsString);
         System.Delete(s, 1, Pos(',', s));

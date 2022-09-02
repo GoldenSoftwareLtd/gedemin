@@ -1,3 +1,4 @@
+// ShlTanya, 20.02.2019
 
 unit gd_createable_form;
 
@@ -255,6 +256,9 @@ uses
   {$ENDIF}
   , evt_i_Base, PasswordDialog, gd_security, Storages, gsStorage_CompPath,
   gd_Directories_const, Dialogs, gdc_frmG_unit, gdc_frmExplorer_unit, ComObj,
+  {$IFDEF ID64}
+  gdcBaseInterface,
+  {$ENDIF}
   {$IFDEF LOCALIZATION}
   gd_localization,
   {$ENDIF}
@@ -558,6 +562,10 @@ begin
   begin
     DesktopManager.DesktopItems.Remove(Self);
   end;
+
+  {$IFDEF ID64}
+  FreeConvertContext(Name); 
+  {$ENDIF}
 
   inherited;
 end;

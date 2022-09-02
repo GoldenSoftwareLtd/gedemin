@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdvAcctCirculationList;
 
 interface
@@ -104,7 +106,7 @@ begin
   EntryCondition := Self.GetCondition('e');
 
   if FCurrSumInfo.Show and (FCurrKey > 0) then
-    CurrId := Format('  AND e.currkey = %d'#13#10, [FCurrKey])
+    CurrId := Format('  AND e.currkey = %d'#13#10, [TID264(FCurrKey)])
   else
     CurrId := '';
 
@@ -142,7 +144,7 @@ begin
         '     ac_account c ' +
         '   WHERE ' +
         '     c.id = :accountkey ';
-      ibsql.ParamByName('ACCOUNTKEY').AsInteger := FAccounts[0];
+      SetTID(ibsql.ParamByName('ACCOUNTKEY'), FAccounts[0]);
       ibsql.ExecQuery;
       if ibsql.RecordCount > 0 then
       begin
@@ -157,9 +159,9 @@ begin
       ' EXECUTE BLOCK ( '#13#10 +
       '   datebegin DATE = :begindate, '#13#10 +
       '   dateend DATE = :enddate, '#13#10 +
-      '   currkey INTEGER = :currkey) '#13#10 +
+      '   currkey DFOREIGNKEY = :currkey) '#13#10 +
       ' RETURNS ( '#13#10 +
-      '   id INTEGER, '#13#10 +
+      '   id DINTKEY, '#13#10 +
       '   alias VARCHAR(20), '#13#10 +
       '   name VARCHAR(180), '#13#10 +
       '   offbalance INTEGER, '#13#10 +
@@ -237,7 +239,7 @@ begin
       '         WHERE '#13#10 +
       '           bal.accountkey = :id '#13#10 +
       '           AND bal.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-        IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND bal.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+        IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND bal.currkey = ' + TID2S(FCurrKey) + #13#10, '') +
         IIF(BalanceCondition <> '', ' AND '#13#10 + BalanceCondition, '') +
       ' '#13#10 +
       '         UNION ALL '#13#10 +
@@ -266,7 +268,7 @@ begin
           '           AND e.entrydate >= :datebegin '#13#10 +
           '           AND e.entrydate < :closedate '#13#10) +
       '           AND e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-        IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+        IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + TID2S(FCurrKey) + #13#10, '') +
         IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '') +
       '       ) main '#13#10 +
       '       INTO '#13#10 +
@@ -304,7 +306,7 @@ begin
       '         CAST((eqdebitsaldo / %4:d) AS NUMERIC(15, %5:d)), '#13#10 +
       '         CAST((eqcreditsaldo / %4:d) AS NUMERIC(15, %5:d)) '#13#10 +
       '       FROM '#13#10 +
-      '         ac_accountexsaldo_bal(:datebegin, :id, :fieldname, ' + IntToStr(FCompanyKey) + ', ' + IntToStr(Integer(FAllHolding)) + ', :currkey) '#13#10 +  // !!!!!!!!!!!!!!
+      '         ac_accountexsaldo_bal(:datebegin, :id, :fieldname, ' + TID2S(FCompanyKey) + ', ' + IntToStr(Integer(FAllHolding)) + ', :currkey) '#13#10 +  // !!!!!!!!!!!!!!
       '       INTO '#13#10 +
       '         :ncu_begin_debit, '#13#10 +
       '         :ncu_begin_credit, '#13#10 +
@@ -328,7 +330,7 @@ begin
       '       AND e.entrydate >= :datebegin '#13#10 +
       '       AND e.entrydate <= :dateend '#13#10 +
       '       AND e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-        IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+        IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + TID2S(FCurrKey) + #13#10, '') +
         IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '') +
         Self.InternalMovementClause('e') +
       '         INTO '#13#10 +
@@ -391,7 +393,7 @@ begin
       '           CAST((eqdebitsaldo / %4:d) AS NUMERIC(15, %5:d)), '#13#10 +
       '           CAST((eqcreditsaldo / %4:d) AS NUMERIC(15, %5:d)) '#13#10 +
       '         FROM '#13#10 +
-      '           ac_accountexsaldo_bal(:dateend + 1, :id, :fieldname, ' + IntToStr(FCompanyKey) + ', ' + IntToStr(Integer(FAllHolding)) + ', :currkey) '#13#10 +
+      '           ac_accountexsaldo_bal(:dateend + 1, :id, :fieldname, ' + TID2S(FCompanyKey) + ', ' + IntToStr(Integer(FAllHolding)) + ', :currkey) '#13#10 +
       '         INTO '#13#10 +
       '           :ncu_end_debit, :ncu_end_credit, :curr_end_debit, :curr_end_credit, :eq_end_debit, :eq_end_credit; '#13#10 +
       '       END '#13#10 +
@@ -412,10 +414,10 @@ begin
   else
   begin
     L_S := Format('AC_CIRCULATIONLIST(:begindate, :enddate, %d, %d, %d, %d, :currkey, %d)',
-      [FCompanyKey, Integer(FAllHolding), FAccounts[0], -1, Integer(not FIncludeInternalMovement)]);
+      [TID264(FCompanyKey), Integer(FAllHolding), TID264(FAccounts[0]), -1, Integer(not FIncludeInternalMovement)]);
 
     Q_S := Format('AC_Q_CIRCULATION(%s, :begindate, :enddate, %d, %d, cl.id, %d, :currkey)',
-      ['%s', FCompanyKey, Integer(FAllHolding), -1]);
+      ['%s', TID264(FCompanyKey), Integer(FAllHolding), -1]);
 
     QuantityGroup := '';
     QuantitySelectClause := '';

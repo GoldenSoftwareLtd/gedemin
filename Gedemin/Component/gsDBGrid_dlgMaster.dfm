@@ -1,8 +1,8 @@
 object dlgMaster: TdlgMaster
-  Left = 851
-  Top = 362
-  Width = 591
-  Height = 449
+  Left = 531
+  Top = 101
+  Width = 763
+  Height = 543
   HelpContext = 4
   BorderIcons = [biSystemMenu, biMaximize]
   Caption = 'Мастер установок'
@@ -20,8 +20,8 @@ object dlgMaster: TdlgMaster
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 575
-    Height = 380
+    Width = 755
+    Height = 482
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -29,9 +29,9 @@ object dlgMaster: TdlgMaster
     object pcOptions: TPageControl
       Left = 4
       Top = 4
-      Width = 567
-      Height = 372
-      ActivePage = tsTable
+      Width = 747
+      Height = 474
+      ActivePage = tsColumn
       Align = alClient
       TabHeight = 16
       TabOrder = 0
@@ -39,14 +39,14 @@ object dlgMaster: TdlgMaster
       object tsTable: TTabSheet
         Caption = 'Таблица'
         object Label7: TLabel
-          Left = 190
+          Left = 177
           Top = 134
           Width = 117
           Height = 13
           Caption = 'Внешний вид таблицы:'
         end
         object sgTableExample: TStringGrid
-          Left = 190
+          Left = 177
           Top = 150
           Width = 261
           Height = 91
@@ -64,7 +64,7 @@ object dlgMaster: TdlgMaster
           OnDrawCell = sgTableExampleDrawCell
         end
         object GroupBox1: TGroupBox
-          Left = 190
+          Left = 177
           Top = 8
           Width = 261
           Height = 120
@@ -111,7 +111,7 @@ object dlgMaster: TdlgMaster
           end
         end
         object cbScaleColumns: TCheckBox
-          Left = 190
+          Left = 177
           Top = 271
           Width = 261
           Height = 17
@@ -122,20 +122,20 @@ object dlgMaster: TdlgMaster
         object GroupBox2: TGroupBox
           Left = 14
           Top = 8
-          Width = 151
-          Height = 297
+          Width = 144
+          Height = 312
           Caption = ' Шрифт и цвет '
           TabOrder = 0
           object Label1: TLabel
             Left = 21
-            Top = 113
+            Top = 123
             Width = 101
             Height = 13
             Caption = 'Выделенный текст:'
           end
           object Shape1: TShape
             Left = 21
-            Top = 128
+            Top = 138
             Width = 101
             Height = 2
           end
@@ -154,14 +154,14 @@ object dlgMaster: TdlgMaster
           end
           object Label3: TLabel
             Left = 21
-            Top = 203
+            Top = 223
             Width = 96
             Height = 13
             Caption = 'Заглавия колонок:'
           end
           object Shape3: TShape
             Left = 21
-            Top = 218
+            Top = 238
             Width = 101
             Height = 2
           end
@@ -183,7 +183,7 @@ object dlgMaster: TdlgMaster
           end
           object btnSelectedFont: TButton
             Left = 21
-            Top = 136
+            Top = 146
             Width = 75
             Height = 21
             Action = actSelectedFont
@@ -191,7 +191,7 @@ object dlgMaster: TdlgMaster
           end
           object btnSelectedColor: TButton
             Left = 21
-            Top = 165
+            Top = 175
             Width = 75
             Height = 21
             Action = actSelectedColor
@@ -199,7 +199,7 @@ object dlgMaster: TdlgMaster
           end
           object btnTitleFont: TButton
             Left = 21
-            Top = 226
+            Top = 246
             Width = 75
             Height = 21
             Action = actTitleFont
@@ -207,7 +207,7 @@ object dlgMaster: TdlgMaster
           end
           object btnTitleColor: TButton
             Left = 21
-            Top = 255
+            Top = 275
             Width = 75
             Height = 21
             Action = actTitleColor
@@ -215,7 +215,7 @@ object dlgMaster: TdlgMaster
           end
         end
         object cbHorizLines: TCheckBox
-          Left = 190
+          Left = 177
           Top = 253
           Width = 261
           Height = 17
@@ -225,7 +225,7 @@ object dlgMaster: TdlgMaster
           OnClick = cbHorizLinesClick
         end
         object cbShowTotals: TCheckBox
-          Left = 190
+          Left = 177
           Top = 289
           Width = 261
           Height = 17
@@ -234,7 +234,7 @@ object dlgMaster: TdlgMaster
           TabOrder = 5
         end
         object cbShowFooter: TCheckBox
-          Left = 190
+          Left = 177
           Top = 307
           Width = 261
           Height = 17
@@ -247,19 +247,19 @@ object dlgMaster: TdlgMaster
         Caption = 'Колонки'
         ImageIndex = 1
         object Panel4: TPanel
-          Left = 250
+          Left = 430
           Top = 0
           Width = 309
-          Height = 346
+          Height = 448
           Align = alRight
           BevelOuter = bvNone
-          BorderWidth = 4
+          BorderWidth = 6
           TabOrder = 1
           object pcColumns: TPageControl
-            Left = 4
-            Top = 4
-            Width = 301
-            Height = 338
+            Left = 6
+            Top = 6
+            Width = 297
+            Height = 436
             ActivePage = TabSheet5
             Align = alClient
             TabHeight = 23
@@ -268,8 +268,8 @@ object dlgMaster: TdlgMaster
               Caption = 'Свойства колонки'
               ImageIndex = 1
               object lblExpands: TLabel
-                Left = 17
-                Top = 191
+                Left = 10
+                Top = 196
                 Width = 141
                 Height = 27
                 AutoSize = False
@@ -277,58 +277,58 @@ object dlgMaster: TdlgMaster
                 WordWrap = True
               end
               object lbExpandedLines: TListBox
-                Left = 16
-                Top = 224
-                Width = 181
-                Height = 76
+                Left = 9
+                Top = 229
+                Width = 185
+                Height = 158
                 ItemHeight = 13
                 TabOrder = 1
                 OnClick = lbExpandedLinesClick
               end
               object btnAddExp: TButton
-                Left = 216
-                Top = 192
+                Left = 205
+                Top = 228
                 Width = 75
                 Height = 19
                 Action = actColumnAddExp
                 TabOrder = 2
               end
               object btnDeleteExp: TButton
-                Left = 216
-                Top = 214
+                Left = 205
+                Top = 250
                 Width = 75
                 Height = 19
                 Action = actColumnDeleteExp
                 TabOrder = 3
               end
               object btnUpExp: TButton
-                Left = 216
-                Top = 259
+                Left = 205
+                Top = 295
                 Width = 75
                 Height = 19
                 Action = actColumnUpExp
                 TabOrder = 5
               end
               object btnDownExp: TButton
-                Left = 216
-                Top = 281
+                Left = 205
+                Top = 317
                 Width = 75
                 Height = 19
                 Action = actColumnDownExp
                 TabOrder = 6
               end
               object btnEditExp: TButton
-                Left = 216
-                Top = 237
+                Left = 205
+                Top = 273
                 Width = 75
                 Height = 19
                 Action = actColumnEditExp
                 TabOrder = 4
               end
               object GroupBox5: TGroupBox
-                Left = 16
+                Left = 9
                 Top = 8
-                Width = 275
+                Width = 271
                 Height = 177
                 Caption = ' Свойства колонки: '
                 TabOrder = 0
@@ -347,14 +347,14 @@ object dlgMaster: TdlgMaster
                   Caption = 'Ширина колонки:'
                 end
                 object Label15: TLabel
-                  Left = 205
+                  Left = 189
                   Top = 154
                   Width = 54
                   Height = 13
                   Caption = '- символов'
                 end
                 object btnChooseColumnFormat: TButton
-                  Left = 236
+                  Left = 232
                   Top = 98
                   Width = 26
                   Height = 22
@@ -362,9 +362,9 @@ object dlgMaster: TdlgMaster
                   TabOrder = 6
                 end
                 object editColumnFormat: TEdit
-                  Left = 140
+                  Left = 124
                   Top = 98
-                  Width = 91
+                  Width = 107
                   Height = 21
                   TabOrder = 5
                   Text = 'editColumnFormat'
@@ -388,7 +388,7 @@ object dlgMaster: TdlgMaster
                   TabOrder = 7
                 end
                 object editColumnLineCount: TxSpinEdit
-                  Left = 140
+                  Left = 124
                   Top = 124
                   Width = 61
                   Height = 21
@@ -405,9 +405,9 @@ object dlgMaster: TdlgMaster
                   OnChange = editColumnLineCountChange
                 end
                 object editColumnTitle: TEdit
-                  Left = 140
+                  Left = 124
                   Top = 16
-                  Width = 122
+                  Width = 135
                   Height = 21
                   TabOrder = 0
                   Text = 'Edit1'
@@ -423,7 +423,7 @@ object dlgMaster: TdlgMaster
                   TabOrder = 1
                 end
                 object editColumnWidth: TxSpinEdit
-                  Left = 140
+                  Left = 124
                   Top = 150
                   Width = 61
                   Height = 21
@@ -462,7 +462,7 @@ object dlgMaster: TdlgMaster
             object TabSheet1: TTabSheet
               Caption = 'Визуальные'
               object Label10: TLabel
-                Left = 16
+                Left = 10
                 Top = 153
                 Width = 54
                 Height = 46
@@ -471,9 +471,9 @@ object dlgMaster: TdlgMaster
                 WordWrap = True
               end
               object sgColumn: TStringGrid
-                Left = 80
+                Left = 74
                 Top = 153
-                Width = 210
+                Width = 203
                 Height = 91
                 TabStop = False
                 ColCount = 1
@@ -492,9 +492,9 @@ object dlgMaster: TdlgMaster
                 OnDrawCell = sgColumnDrawCell
               end
               object GroupBox3: TGroupBox
-                Left = 16
+                Left = 10
                 Top = 8
-                Width = 131
+                Width = 125
                 Height = 81
                 Caption = ' Колонка: '
                 TabOrder = 0
@@ -516,9 +516,9 @@ object dlgMaster: TdlgMaster
                 end
               end
               object rgColumnAlign: TRadioGroup
-                Left = 16
+                Left = 10
                 Top = 98
-                Width = 131
+                Width = 124
                 Height = 40
                 Caption = ' Выравнивание: '
                 Columns = 3
@@ -530,9 +530,9 @@ object dlgMaster: TdlgMaster
                 OnClick = rgColumnAlignClick
               end
               object rgColumnTitleAlign: TRadioGroup
-                Left = 161
+                Left = 154
                 Top = 97
-                Width = 131
+                Width = 125
                 Height = 40
                 Caption = ' Выравнивание: '
                 Columns = 3
@@ -544,9 +544,9 @@ object dlgMaster: TdlgMaster
                 OnClick = rgColumnTitleAlignClick
               end
               object GroupBox4: TGroupBox
-                Left = 160
+                Left = 153
                 Top = 8
-                Width = 131
+                Width = 125
                 Height = 81
                 Caption = ' Заглавие: '
                 TabOrder = 2
@@ -573,8 +573,8 @@ object dlgMaster: TdlgMaster
         object Panel5: TPanel
           Left = 0
           Top = 0
-          Width = 250
-          Height = 346
+          Width = 430
+          Height = 448
           Align = alClient
           BevelOuter = bvNone
           BorderWidth = 6
@@ -582,17 +582,17 @@ object dlgMaster: TdlgMaster
           object lvColumns: TListView
             Left = 6
             Top = 6
-            Width = 238
-            Height = 247
+            Width = 418
+            Height = 345
             Align = alClient
             Columns = <
               item
                 Caption = 'Колонка'
-                Width = 150
+                Width = 200
               end
               item
                 Caption = 'Поле таблицы'
-                Width = 140
+                Width = 210
               end>
             DragMode = dmAutomatic
             HideSelection = False
@@ -609,16 +609,16 @@ object dlgMaster: TdlgMaster
           end
           object Panel7: TPanel
             Left = 6
-            Top = 253
-            Width = 238
-            Height = 87
+            Top = 351
+            Width = 418
+            Height = 91
             Align = alBottom
             BevelOuter = bvNone
             TabOrder = 1
             object cbColumnsChooseAll: TCheckBox
               Left = 11
-              Top = 3
-              Width = 214
+              Top = 4
+              Width = 394
               Height = 17
               Alignment = taLeftJustify
               Anchors = [akLeft, akTop, akRight]
@@ -630,8 +630,8 @@ object dlgMaster: TdlgMaster
             end
             object GroupBox9: TGroupBox
               Left = 0
-              Top = 19
-              Width = 238
+              Top = 23
+              Width = 418
               Height = 68
               Align = alBottom
               Caption = ' Расширенное отображение '
@@ -639,7 +639,7 @@ object dlgMaster: TdlgMaster
               object cbColumnExpanded: TCheckBox
                 Left = 11
                 Top = 13
-                Width = 206
+                Width = 386
                 Height = 17
                 Action = actColumnExpaneded
                 Alignment = taLeftJustify
@@ -650,7 +650,7 @@ object dlgMaster: TdlgMaster
               object cbColumnSeparateExp: TCheckBox
                 Left = 11
                 Top = 30
-                Width = 206
+                Width = 386
                 Height = 17
                 Action = actColumnSeparateExp
                 Alignment = taLeftJustify
@@ -660,7 +660,7 @@ object dlgMaster: TdlgMaster
               object cbColumnTitleExp: TCheckBox
                 Left = 11
                 Top = 47
-                Width = 206
+                Width = 386
                 Height = 17
                 Action = actColumnTitleExp
                 Alignment = taLeftJustify
@@ -675,19 +675,19 @@ object dlgMaster: TdlgMaster
         Caption = 'Условия'
         ImageIndex = 2
         object Panel6: TPanel
-          Left = 246
+          Left = 426
           Top = 0
           Width = 313
-          Height = 346
+          Height = 448
           Align = alRight
           BevelOuter = bvNone
-          BorderWidth = 4
+          BorderWidth = 6
           TabOrder = 1
           object pcConditions: TPageControl
-            Left = 4
-            Top = 4
-            Width = 305
-            Height = 338
+            Left = 6
+            Top = 6
+            Width = 301
+            Height = 436
             ActivePage = TabSheet6
             Align = alClient
             Anchors = [akTop, akRight, akBottom]
@@ -696,7 +696,7 @@ object dlgMaster: TdlgMaster
             object TabSheet6: TTabSheet
               Caption = 'Формат условия'
               object Label8: TLabel
-                Left = 16
+                Left = 9
                 Top = 261
                 Width = 274
                 Height = 41
@@ -707,7 +707,7 @@ object dlgMaster: TdlgMaster
                 WordWrap = True
               end
               object GroupBox6: TGroupBox
-                Left = 16
+                Left = 9
                 Top = 8
                 Width = 275
                 Height = 87
@@ -748,7 +748,7 @@ object dlgMaster: TdlgMaster
                 end
               end
               object GroupBox7: TGroupBox
-                Left = 16
+                Left = 9
                 Top = 99
                 Width = 276
                 Height = 134
@@ -806,7 +806,7 @@ object dlgMaster: TdlgMaster
                 end
               end
               object cbEvaluateExpression: TCheckBox
-                Left = 16
+                Left = 9
                 Top = 241
                 Width = 143
                 Height = 17
@@ -835,7 +835,7 @@ object dlgMaster: TdlgMaster
               object pnlConditionPreview: TPanel
                 Left = 16
                 Top = 121
-                Width = 275
+                Width = 262
                 Height = 36
                 BevelInner = bvLowered
                 Caption = 'AaBbБбЯя'
@@ -850,9 +850,9 @@ object dlgMaster: TdlgMaster
                 TabOrder = 1
               end
               object btnConditionColumns: TButton
-                Left = 215
+                Left = 206
                 Top = 178
-                Width = 75
+                Width = 71
                 Height = 21
                 Action = actConditionColumns
                 TabOrder = 2
@@ -860,7 +860,7 @@ object dlgMaster: TdlgMaster
               object GroupBox8: TGroupBox
                 Left = 16
                 Top = 8
-                Width = 275
+                Width = 264
                 Height = 91
                 Caption = ' Шрифт и цвет условия '
                 TabOrder = 0
@@ -905,16 +905,16 @@ object dlgMaster: TdlgMaster
         object Panel8: TPanel
           Left = 0
           Top = 0
-          Width = 246
-          Height = 346
+          Width = 426
+          Height = 448
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
           object lbConditions: TListBox
             Left = 6
             Top = 25
-            Width = 242
-            Height = 172
+            Width = 414
+            Height = 308
             Anchors = [akLeft, akTop, akRight, akBottom]
             ItemHeight = 13
             TabOrder = 1
@@ -922,7 +922,7 @@ object dlgMaster: TdlgMaster
           end
           object btnConditonAdd: TButton
             Left = 6
-            Top = 209
+            Top = 341
             Width = 75
             Height = 21
             Action = actConditionAdd
@@ -931,7 +931,7 @@ object dlgMaster: TdlgMaster
           end
           object btnConditionDelete: TButton
             Left = 6
-            Top = 233
+            Top = 365
             Width = 75
             Height = 21
             Action = actConditionDelete
@@ -940,7 +940,7 @@ object dlgMaster: TdlgMaster
           end
           object btnConditionUp: TButton
             Left = 6
-            Top = 257
+            Top = 389
             Width = 75
             Height = 21
             Action = actConditionUp
@@ -949,7 +949,7 @@ object dlgMaster: TdlgMaster
           end
           object btnConditionDown: TButton
             Left = 6
-            Top = 281
+            Top = 413
             Width = 75
             Height = 21
             Action = actConditionDown
@@ -978,7 +978,7 @@ object dlgMaster: TdlgMaster
         end
         object Label11: TLabel
           Left = 8
-          Top = 231
+          Top = 330
           Width = 373
           Height = 61
           Anchors = [akLeft, akBottom]
@@ -992,7 +992,7 @@ object dlgMaster: TdlgMaster
         end
         object lblDefaults: TLabel
           Left = 132
-          Top = 292
+          Top = 398
           Width = 233
           Height = 50
           Anchors = [akLeft, akBottom]
@@ -1004,10 +1004,10 @@ object dlgMaster: TdlgMaster
           WordWrap = True
         end
         object lbTemplate: TListBox
-          Left = 6
+          Left = 8
           Top = 26
-          Width = 545
-          Height = 161
+          Width = 713
+          Height = 255
           Anchors = [akLeft, akTop, akRight, akBottom]
           Font.Charset = RUSSIAN_CHARSET
           Font.Color = clWindowText
@@ -1034,7 +1034,7 @@ object dlgMaster: TdlgMaster
         end
         object btnSetTemplate: TButton
           Left = 6
-          Top = 195
+          Top = 289
           Width = 117
           Height = 21
           Action = actTemplate
@@ -1043,7 +1043,7 @@ object dlgMaster: TdlgMaster
         end
         object btnSaveTemplate: TButton
           Left = 266
-          Top = 195
+          Top = 289
           Width = 117
           Height = 21
           Action = actSaveTemplate
@@ -1052,7 +1052,7 @@ object dlgMaster: TdlgMaster
         end
         object btnLoadTemplate: TButton
           Left = 136
-          Top = 195
+          Top = 289
           Width = 117
           Height = 21
           Action = actLoadTemplate
@@ -1061,7 +1061,7 @@ object dlgMaster: TdlgMaster
         end
         object btnDefaults: TButton
           Left = 6
-          Top = 295
+          Top = 401
           Width = 117
           Height = 21
           Hint = 'Установить шаблон'
@@ -1156,10 +1156,10 @@ object dlgMaster: TdlgMaster
           end
         end
         object seQuery: TSynEdit
-          Left = 5
+          Left = 7
           Top = 44
-          Width = 547
-          Height = 298
+          Width = 719
+          Height = 389
           Cursor = crIBeam
           Anchors = [akLeft, akTop, akRight, akBottom]
           Font.Charset = RUSSIAN_CHARSET
@@ -1515,14 +1515,14 @@ object dlgMaster: TdlgMaster
   end
   object Panel2: TPanel
     Left = 0
-    Top = 380
-    Width = 575
+    Top = 482
+    Width = 755
     Height = 30
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object Panel3: TPanel
-      Left = 311
+      Left = 491
       Top = 0
       Width = 264
       Height = 30

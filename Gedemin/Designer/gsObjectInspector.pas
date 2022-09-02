@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019, #4135
+
 {++
   Copyright (c) 2002 by Golden Software of Belarus
 
@@ -563,7 +565,7 @@ begin
             for i:= 0 to FCurrentComponents.Count - 1 do
               if FCurrentComponents[i] is TComponent then begin
                 FManager.EventFunctionChanged(FCurrentComponents[i] as TComponent,
-                  FItemlist.PropItem[iIndex].FName, integer(FListBox.Items.Objects[FListBox.ItemIndex]),
+                  FItemlist.PropItem[iIndex].FName, GetTID(FListBox.Items.Objects[FListBox.ItemIndex], Name),
                   FEditor.Text);
               end;
           end
@@ -695,6 +697,11 @@ begin
   end;
 
   FInspectorPanel.Free;
+
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
+
   inherited;
 end;
 
@@ -1288,7 +1295,7 @@ begin
     SQL.ExecQuery;
     while not SQL.Eof do begin
       I:= ASL.Add(SQL.Fields[0].AsString);
-      ASL.Objects[I]:= Pointer(SQL.Fields[1].AsInteger);
+      ASL.Objects[I]:= TID2Pointer(GetTID(SQL.Fields[1]), Name);
       SQL.Next;
     end;
   finally

@@ -1,4 +1,4 @@
-
+// ShlTanya, 06.02.2019
 {++
 
   Copyright (c) 1998-2015 by Golden Software of Belarus
@@ -78,7 +78,7 @@ type
 
     //  Свойства сессия
     FStartTime: TDateTime;
-    FSessionKey: Integer;
+    FSessionKey: TID;
 
     // Права пользователя
     FIngroup: Integer;
@@ -91,7 +91,7 @@ type
     // Версия базы данных
     FDBVersion: String;
     FDBReleaseDate: TDateTime;
-    FDBVersionID: Integer;
+    FDBVersionID: TID;
     FDBVersionComment: String;
 
     // Параметры регистрации операций пользователя
@@ -101,9 +101,9 @@ type
     FAllowUserAudit: Boolean;
 
     // Пользователь
-    FUserKey: Integer;
+    FUserKey: TID;
     FUserName: String;
-    FContactKey: Integer;
+    FContactKey: TID;
     FContactName: String;
 
     // Данные о последнем подключении
@@ -111,7 +111,7 @@ type
     FLastPassword: String;
 
     // Компания
-    FCompanyKey: Integer;
+    FCompanyKey: TID;
     FCompanyName: String;
     FCompanyPhone: String;
     FCompanyEmail: String;
@@ -127,12 +127,12 @@ type
     FLoggingOff: Boolean;
 
     //
-    FHoldingCacheKey: Integer;
+    FHoldingCacheKey: TID;
     FHoldingCacheValue: Boolean;
 
     FSilentLogin: Boolean;
 
-    procedure ProceedOpenCompany(NewCompanyKey: Integer; NewCompany: String);
+    procedure ProceedOpenCompany(NewCompanyKey: TID; NewCompany: String);
 
     function GetDatabase: TIBDatabase;
     procedure SetDatabase(const Value: TIBDatabase);
@@ -143,24 +143,24 @@ type
     function GetAuditLevel: TAuditLevel;
     function GetAuditMaxDays: Integer;
     function GetAllowUserAudit: Boolean;
-    function GetCompanyKey: Integer;
+    function GetCompanyKey: TID;
     function GetCompanyName: String;
     function GetCompanyPhone: String;
     function GetCompanyEmail: String;
-    function GetContactKey: Integer;
+    function GetContactKey: TID;
     function GetContactName: String;
     function GetDBReleaseDate: TDateTime;
     function GetDBVersion: String;
     function GetDBVersionComment: String;
-    function GetDBVersionID: Integer;
+    function GetDBVersionID: TID;
     function GetGroupName: String;
     function GetIngroup: Integer;
     function GetSessionDuration: TDateTime;
-    function GetSessionKey: Integer;
+    function GetSessionKey: TID;
     function GetStartTime: TDateTime;
     function GetSubSystemKey: Integer;
     function GetSubSystemName: String;
-    function GetUserKey: Integer;
+    function GetUserKey: TID;
     function GetUserName: String;
     function GetUserPassword: String;
     function GetComputerName: String;
@@ -180,8 +180,8 @@ type
     function GetDBID: Integer;
     function GetIsHolding: Boolean;
     function GetHoldingList: String;
-    function GetHoldingKey: Integer;
-    function GetActiveAccount: Integer;
+    function GetHoldingKey: TID;
+    function GetActiveAccount: TID;
     function GetIBRole: String;
     function GetReLogining: Boolean;
 
@@ -219,12 +219,12 @@ type
     function Relogin: Boolean;
     function GetLoggingOff: Boolean;
     function IsSilentLogin: Boolean;
-    procedure ChangeUser(const AUserKey: Integer; const ACheckMultipleConnections: Boolean = False);
+    procedure ChangeUser(const AUserKey: TID; const ACheckMultipleConnections: Boolean = False);
 
     procedure CloneDatabase(ADatabase: TIBDatabase);
 
     function OpenCompany(const ShowDialogAnyway: Boolean = False;
-      const CK: Integer = -1; const CN: String = ''): Boolean;
+      const CK: TID = -1; const CN: String = ''): Boolean;
     procedure UpdateCompanyData;
     // перечитывает из базы данных свойства текущего пользователя
     procedure UpdateUserData;
@@ -244,7 +244,7 @@ type
     procedure AddEvent(const AData: String;
       const ASource: String = '';
       const AnObjectName: String = '';
-      const AnObjectID: Integer = -1;
+      const AnObjectID: TID = -1;
       const ATransaction: TObject = nil);
 
     procedure ReadDBVersion;
@@ -270,7 +270,7 @@ type
     //  Свойства сессии
     property SessionDuration: TDateTime read GetSessionDuration;
     property StartTime: TDateTime read GetStartTime;
-    property SessionKey: Integer read GetSessionKey;
+    property SessionKey: TID read GetSessionKey;
 
     // Права пользователя
     property Ingroup: Integer read GetIngroup write SetIngroup;
@@ -286,7 +286,7 @@ type
     property DatabaseName: String read GetDatabaseName;
     property DBVersion: String read GetDBVersion;
     property DBReleaseDate: TDateTime read GetDBReleaseDate;
-    property DBVersionID: Integer read GetDBVersionID;
+    property DBVersionID: TID read GetDBVersionID;
     property DBVersionComment: String read GetDBVersionComment;
 
     // Параметры регистрации операций пользователя
@@ -296,18 +296,18 @@ type
     property AllowUserAudit: Boolean read GetAllowUserAudit;
 
     // Пользователь
-    property UserKey: Integer read GetUserKey;
+    property UserKey: TID read GetUserKey;
     property UserName: String read GetUserName;
-    property ContactKey: Integer read GetContactKey;
+    property ContactKey: TID read GetContactKey;
     property ContactName: String read GetContactName;
 
     // Компания
-    property CompanyKey: Integer read GetCompanyKey;
+    property CompanyKey: TID read GetCompanyKey;
     property CompanyName: String read GetCompanyName;
     property IsHolding: Boolean read GetIsHolding;
     property HoldingList: String read GetHoldingList;
     //Возвкащает ID асктивного плана счетов
-    property ActiveAccount: Integer read GetActiveAccount;
+    property ActiveAccount: TID read GetActiveAccount;
 
     //
     property DBID: Integer read GetDBID;
@@ -368,7 +368,7 @@ type
   private
     FLogin: TboLogin;
 
-    FNewCompanyKey: Integer;
+    FNewCompanyKey: TID;
     FNewCompany: String;
 
     procedure WMFinishOpenCompany(var Msg: TMessage);
@@ -438,7 +438,7 @@ begin
 end;
 
 procedure TboLogin.AddEvent(const AData, ASource, AnObjectName: String;
-  const AnObjectID: Integer; const ATransaction: TObject);
+  const AnObjectID: TID; const ATransaction: TObject);
 begin
   TgdcJournal.AddEvent(AData, ASource, AnObjectID,
     ATransaction as TIBTransaction);
@@ -601,15 +601,12 @@ var
 begin
   if Assigned(gdSplash) then
     gdSplash.ShowText(sReadingDbScheme);
-
   InitDatabase(dmLogin.ibtrAttr);
   atDatabase.ProceedLoading(True);
 
   if not Database.Connected then
     exit;
-
   ClearHoldingListCache;
-
   if dm_i_ClientReport <> nil then begin
     dm_i_ClientReport.DoConnect;
   end;
@@ -700,7 +697,7 @@ begin
       '    ON oc.companykey = c.id ' +
       'WHERE ' +
       '  uc.userkey = :UK';
-    q.ParamByName('UK').AsInteger := UserKey;
+    SetTID(q.ParamByName('UK'), UserKey);
     q.ExecQuery;
 
     if q.EOF then
@@ -723,7 +720,7 @@ begin
       (((q.FieldByName('afull').AsInteger or 1) and Ingroup) <> 0) then
     begin
       if FCompanyOpened then DoBeforeChangeCompany;
-      FCompanyKey := q.FieldByName('CompanyKey').AsInteger;
+      FCompanyKey := GetTID(q.FieldByName('CompanyKey'));
       FCompanyName := q.FieldByName('CompanyName').AsString;
       FCompanyPhone := q.FieldByName('phone').AsString;
       FCompanyEmail := q.FieldByName('email').AsString;
@@ -751,7 +748,7 @@ begin
   end;
 end;
 
-function TboLogin.GetActiveAccount: Integer;
+function TboLogin.GetActiveAccount: TID;
 var
   SQL: TIBSQL;
 begin
@@ -765,10 +762,10 @@ begin
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
       SQL.SQL.Text := 'SELECT * FROM ac_companyaccount WHERE companykey = :ck AND isactive = 1';
-      SQL.ParamByName('ck').AsInteger := CompanyKey;
+      SetTID(SQL.ParamByName('ck'), CompanyKey);
       SQL.ExecQuery;
       if SQL.RecordCount > 0 then
-        Result := SQL.FieldByName('accountkey').AsInteger;
+        Result := GetTID(SQL.FieldByName('accountkey'));
     finally
       SQL.Free;
     end;
@@ -795,7 +792,7 @@ begin
   Result := FAuditMaxDays;
 end;
 
-function TboLogin.GetCompanyKey: Integer;
+function TboLogin.GetCompanyKey: TID;
 begin
   Result := FCompanyKey
 end;
@@ -815,7 +812,7 @@ begin
   Result := FComputerName;
 end;
 
-function TboLogin.GetContactKey: Integer;
+function TboLogin.GetContactKey: TID;
 begin
   Result := FContactKey
 end;
@@ -834,7 +831,7 @@ begin
         FTransaction.StartTransaction;
 
       ibsql.SQL.Text := 'SELECT NAME FROM GD_CONTACT WHERE ID = :ID';
-      ibsql.ParamByName('ID').AsInteger := FContactKey;
+      SetTID(ibsql.ParamByName('ID'), FContactKey);
       ibsql.ExecQuery;
 
       FContactName := ibsql.Fields[0].AsString;
@@ -897,7 +894,7 @@ begin
   Result := FDBVersionComment;
 end;
 
-function TboLogin.GetDBVersionID: Integer;
+function TboLogin.GetDBVersionID: TID;
 begin
   Result := FDBVersionID;
 end;
@@ -907,7 +904,7 @@ begin
   Result := FGroupName;
 end;
 
-function TboLogin.GetHoldingKey: Integer;
+function TboLogin.GetHoldingKey: TID;
 var
   ibsql: TIBSQL;
 begin
@@ -923,12 +920,12 @@ begin
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
 
       ibsql.SQL.Text := 'SELECT holdingkey FROM gd_holding WHERE companykey = :key';
-      ibsql.ParamByName('key').AsInteger := CompanyKey;
+      SetTID(ibsql.ParamByName('key'), CompanyKey);
       ibsql.ExecQuery;
 
       if not ibsql.Eof then
       begin
-        Result := ibsql.Fields[0].AsInteger;
+        Result := GetTID(ibsql.Fields[0]);
       end else
         Result := -1;
     finally
@@ -950,9 +947,9 @@ begin
     try
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
       ibsql.SQL.Text := 'SELECT LIST(companykey, '','') FROM gd_holding WHERE holdingkey = :holdingkey';
-      ibsql.ParamByName('holdingkey').AsInteger := IBLogin.CompanyKey;
+      SetTID(ibsql.ParamByName('holdingkey'), IBLogin.CompanyKey);
       ibsql.ExecQuery;
-      Result := IntToStr(IBLogin.CompanyKey);
+      Result := TID2S(IBLogin.CompanyKey);
       if (not ibsql.EOF) and (ibsql.Fields[0].AsString > '') then
         Result := Result + ',' + ibsql.Fields[0].AsString;
       FHoldingListCache := Result;
@@ -1012,7 +1009,7 @@ begin
     try
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
       ibsql.SQL.Text := 'SELECT companykey FROM gd_holding WHERE holdingkey = :holdingkey';
-      ibsql.ParamByName('holdingkey').AsInteger := IBLogin.CompanyKey;
+      SetTID(ibsql.ParamByName('holdingkey'), IBLogin.CompanyKey);
       ibsql.ExecQuery;
 
       Result := ibsql.RecordCount > 0;
@@ -1067,7 +1064,7 @@ begin
   Result := Now - FStartTime;
 end;
 
-function TboLogin.GetSessionKey: Integer;
+function TboLogin.GetSessionKey: TID;
 begin
   Result := FSessionKey;
 end;
@@ -1097,7 +1094,7 @@ begin
   Result := FSubSystemName;
 end;
 
-function TboLogin.GetUserKey: Integer;
+function TboLogin.GetUserKey: TID;
 begin
   Result := FUserKey;
 end;
@@ -1109,6 +1106,36 @@ end;
 
 function TboLogin.Login: Boolean;
 
+  function CheckIdentifierFieldType(AQ: TIBSQL): String;
+  begin
+    Result := '';
+    AQ.SQL.Text :=
+      'SELECT rdb$field_type ' +
+      'FROM rdb$fields ' +
+      'WHERE rdb$field_name = ''DINTKEY''';
+    AQ.ExecQuery;
+    if AQ.RecordCount > 0 then
+    begin
+      {$IFDEF ID64}
+      if  AQ.Fields[0].AsInteger <> 16 then
+        Result := 'Версия программы не предназначена для работы c' + #13#10 +
+                  'выбранной базой данных.' + #13#10#13#10 +
+                  'Поддерживаемый  тип идентификаторов - BIGINT.';
+      {$ELSE}
+      if AQ.fields[0].AsInteger <> 8 then
+        Result := 'Версия программы не предназначена для работы c' + #13#10 +
+                  'выбранной базой данных.' + #13#10#13#10 +
+                  'Поддерживаемый  тип идентификаторов - Integer.';
+      {$ENDIF}
+    end
+    else
+      Result := 'Версия программы не предназначена для работы c' + #13#10 +
+                'выбранной базой данных.' + #13#10#13#10 +
+                'Тип идентификаторов в базе не определен.';
+    AQ.Close;
+
+  end;
+
   procedure InitDBID(AQ: TIBSQL);
   begin
     // каждая база данных должна иметь свой уникальный идентификатор, который
@@ -1119,9 +1146,11 @@ function TboLogin.Login: Boolean;
     AQ.SQL.Text :=
       'EXECUTE BLOCK ' +
       'AS ' +
+      '  DECLARE VARIABLE T INTEGER; ' +
       'BEGIN ' +
       '  IF ((SELECT GEN_ID(gd_g_dbid, 0) FROM rdb$database) = 0) THEN ' +
-      '    EXECUTE STATEMENT ''SET GENERATOR gd_g_dbid TO ' + IntToStr(gdcBaseManager.GenerateNewDBID) + '''; ' +
+      '    SELECT GEN_ID(gd_g_dbid, ' + IntToStr(gdcBaseManager.GenerateNewDBID) + ') FROM rdb$database INTO :T; ' +
+//      '    EXECUTE STATEMENT ''SET GENERATOR gd_g_dbid TO ' + IntToStr(gdcBaseManager.GenerateNewDBID) + '''; ' +
       'END';
     AQ.ExecQuery;
     AQ.Close;
@@ -1283,7 +1312,7 @@ function TboLogin.Login: Boolean;
   begin
     FDBVersion := ASP.ParamByName('DBVersion').AsString;
     FDBReleaseDate := ASP.ParamByName('DBReleaseDate').AsDateTime;
-    FDBVersionID := ASP.ParamByName('DBVersionID').AsInteger;
+    FDBVersionID := GetTID(ASP.ParamByName('DBVersionID'));
     FDBVersionComment := ASP.ParamByName('DBVersionComment').AsString;
 
     FIBName := ASP.ParamByName('ibname').AsString;
@@ -1292,12 +1321,12 @@ function TboLogin.Login: Boolean;
     FIsIBUserAdmin := AnsiCompareText(FIBName, SysDBAUserName) = 0;
 
     FStartTime := Now;
-    FUserKey := ASP.ParamByName('UserKey').AsInteger;
+    FUserKey := GetTID(ASP.ParamByName('UserKey'));
     FIngroup := ASP.ParamByName('Ingroup').AsInteger;
     if FInGroup = 0 then FInGroup := 1;
-    FContactKey := ASP.ParamByName('ContactKey').AsInteger;
+    FContactKey := GetTID(ASP.ParamByName('ContactKey'));
 
-    FSessionKey := ASP.ParamByName('Session').AsInteger;
+    FSessionKey := GetTID(ASP.ParamByName('Session'));
     FSubSystemName := ASP.ParamByName('SubsystemName').AsString;
     FGroupName := ASP.ParamByName('GroupName').AsString;
     FUserName := ASP.ParamByName('username').AsString;
@@ -1368,6 +1397,18 @@ function TboLogin.Login: Boolean;
             SP.Transaction := Tr;
 
             try
+              // проверяем соответсвие разрядности идентификаторов
+              // в программе и базе
+              ErrorString := CheckIdentifierFieldType(q);
+              if ErrorString > '' then
+              begin
+                MessageBox(0,
+                  PChar(ErrorString), 'Внимание',
+                    MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+                Result := False;
+                exit;
+              end;
+
               InitDBID(q);
 
               SP.StoredProcName := 'GD_P_SEC_LOGINUSER';
@@ -1758,9 +1799,9 @@ begin
 end;
 
 function TboLogin.OpenCompany(const ShowDialogAnyway: Boolean = False;
-  const CK: Integer = -1; const CN: String = ''): Boolean;
+  const CK: TID = -1; const CN: String = ''): Boolean;
 var
-  ACompanyKey: Integer;
+  ACompanyKey: TID;
   ACompanyName: String;
   Res: OleVariant;
 begin
@@ -1778,12 +1819,12 @@ begin
   else begin
     gdcBaseManager.ExecSingleQueryResult(
       'SELECT companykey FROM gd_userCompany WHERE userkey = ' +
-        IntToStr(IBLogin.UserKey),
+        TID2S(IBLogin.UserKey),
       Null,
       Res);
 
     if not VarIsEmpty(Res) then
-      ACompanyKey := Res[0, 0];
+      ACompanyKey := GetTID(Res[0, 0]);
 
     if ACompanyKey = -1 then
     begin
@@ -1793,7 +1834,7 @@ begin
         Res);
 
       if (not VarIsEmpty(Res)) and (VarArrayHighBound(Res, 2) = 0) then
-        ACompanyKey := Res[0, 0]
+        ACompanyKey := GetTID(Res[0, 0])
       else
         ACompanyKey := TgdcOurCompany.SelectObject(
           'Выберите активную организацию из предложенного списка:',
@@ -1824,7 +1865,7 @@ begin
   end;
 end;
 
-procedure TboLogin.ProceedOpenCompany(NewCompanyKey: Integer; NewCompany: String);
+procedure TboLogin.ProceedOpenCompany(NewCompanyKey: TID; NewCompany: String);
 begin
   if FCompanyOpened then DoBeforeChangeCompany;
 
@@ -1870,7 +1911,7 @@ begin
 
         q.Transaction := Tr;
         q.SQL.Text := 'UPDATE gd_user SET passw = :p, mustchange = 0 WHERE id = :id';
-        q.ParamByName('id').AsInteger := UserKey;
+        SetTID(q.ParamByName('id'), UserKey);
         q.ParamByName('p').AsString := Copy(edPassword.Text, 1, max_password_length);
         q.ExecQuery;
 
@@ -1939,7 +1980,7 @@ begin
   FLogin.ConnectionLost;
 end;
 
-procedure TboLogin.ChangeUser(const AUserKey: Integer;
+procedure TboLogin.ChangeUser(const AUserKey: TID;
   const ACheckMultipleConnections: Boolean = False);
 var
   q: TIBSQL;
@@ -1963,7 +2004,7 @@ begin
     begin
       q.SQL.Text := 'select * from mon$attachments where mon$user=' +
         '(select ibname from gd_user WHERE id=:id)';
-      q.ParamByName('ID').AsInteger := AUserKey;
+      SetTID(q.ParamByName('ID'), AUserKey);
       q.ExecQuery;
       if not q.EOF then
         raise EboLoginError.Create(
@@ -1977,7 +2018,7 @@ begin
       'AND disabled = 0 AND lockedout = 0 ' +
       'AND COALESCE(workstart, ''00:00:00'') <= CURRENT_TIME ' +
       'AND COALESCE(workend, ''23:59:59'') >= CURRENT_TIME';
-    q.ParamByName('ID').AsInteger := AUserKey;
+    SetTID(q.ParamByName('ID'), AUserKey);
     q.ExecQuery;
 
     if q.EOF then
@@ -1994,7 +2035,7 @@ begin
     FUserKey := AUserKey;
     FIngroup := q.FieldByName('InGroup').AsInteger;
     if FInGroup = 0 then FInGroup := 1;
-    FContactKey := q.FieldByName('ContactKey').AsInteger;
+    FContactKey := GetTID(q.FieldByName('ContactKey'));
 
     FGroupName := TgdcUserGroup.GetGroupList(FInGroup);
     FUserName := q.FieldByName('Name').AsString;
@@ -2004,7 +2045,7 @@ begin
     q.Close;
     q.SQL.Text := 'SELECT GEN_ID(gd_g_session_id, 1) FROM rdb$database ';
     q.ExecQuery;
-    FSessionKey := q.Fields[0].AsInteger;
+    FSessionKey := TID(q.Fields[0]);
 
     q.Close;
     q.SQL.Text :=
@@ -2040,7 +2081,7 @@ begin
 
     FDBVersion := q.FieldByName('versionstring').AsString;
     FDBReleaseDate := q.FieldByName('releasedate').AsDateTime;
-    FDBVersionID := q.FieldByName('id').AsInteger;
+    FDBVersionID := GetTID(q.FieldByName('id'));
     FDBVersionComment := q.FieldByName('comment').AsString;
   finally
     q.Free;
@@ -2264,7 +2305,6 @@ begin
         ReadDBVersion;
 
       DoAfterSuccessfullConnection;
-
       Result := Database.Connected and
         ((not FAutoOpenCompany) or EnterCompany or OpenCompany);
     end;

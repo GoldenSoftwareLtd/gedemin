@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit rp_dlgCountCopy_unit;
 
 interface

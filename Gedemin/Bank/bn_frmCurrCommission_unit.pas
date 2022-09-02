@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit bn_frmCurrCommission_unit;
 
 interface
@@ -27,13 +29,13 @@ type
     procedure actPrintOptionsExecute(Sender: TObject);
   private
     { Private declarations }
-    CurrDocumentKey: Integer;
+    CurrDocumentKey: TID;
     procedure Add;
     procedure Edit;
   protected
     procedure InternalStartTransaction; override;
     procedure InternalOpenMain; override;
-    function GetDocumentType: Integer; virtual;
+    function GetDocumentType: TID; virtual;
   public
     { Public declarations }
     function Get_SelectedKey: OleVariant; override;
@@ -72,7 +74,7 @@ begin
     Result := VarArrayOf([])
   else
     if ibgrMain.SelectedRows.Count = 0 then
-      Result := VarArrayOf([ibdsMain.FieldByName('documentkey').AsInteger])
+      Result := VarArrayOf(GetTID([ibdsMain.FieldByName('documentkey'))])
     else
     begin
       A := VarArrayCreate([0, ibgrMain.SelectedRows.Count - 1], varVariant);
@@ -82,7 +84,7 @@ begin
       for I := 0 to ibgrMain.SelectedRows.Count - 1 do
       begin
         ibdsMain.GotoBookMark(Pointer(ibgrMain.SelectedRows.Items[I]));
-        A[I] := ibdsMain.FieldByName('documentkey').AsInteger;
+        A[I] := GetTID(ibdsMain.FieldByName('documentkey'));
       end;
       ibdsMain.GotoBookMark(Mark);
       ibdsMain.EnableControls;
@@ -112,14 +114,12 @@ begin
 
   ibdsMain.Prepare;
 
-  ibdsMain.Params.ByName('CompanyKey').AsInteger :=
-    IBLogin.CompanyKey;
+  SetTID(ibdsMain.Params.ByName('CompanyKey'), IBLogin.CompanyKey);
 
-  ibdsMain.ParamByName('dt').AsInteger := GetDocumentType;
+  SetTID(ibdsMain.ParamByName('dt'), GetDocumentType);
 
   if gsibluAccount.CurrentKey > '' then
-    ibdsMain.Params.ByName('ID').AsInteger :=
-      gsibluAccount.CurrentKeyInt;
+    SetTID(ibdsMain.Params.ByName('ID'), gsibluAccount.CurrentKeyInt);
   ibdsMain.Open;
 
   if CurrDocumentKey <> -1 then
@@ -129,7 +129,7 @@ end;
 
 procedure Tbn_frmCurrCommission.FormCreate(Sender: TObject);
 begin
-  gsibluAccount.Condition := Format('companykey=%d', [IBLogin.CompanyKey]);
+  gsibluAccount.Condition := Format('companykey=%d', [TID264(IBLogin.CompanyKey)]);
   CurrDocumentKey := -1;
   
   inherited;
@@ -166,7 +166,7 @@ procedure Tbn_frmCurrCommission.Edit;
 begin
   with TdlgCurrCommission.Create(Self) do
   try
-    ID := ibdsMain.FieldByName('DOCUMENTKEY').AsInteger;
+    ID := GetTID(ibdsMain.FieldByName('DOCUMENTKEY'));
 
     if gsibluAccount.CurrentKey > '' then
       Account := gsibluAccount.CurrentKeyInt;
@@ -209,7 +209,7 @@ begin
     end;
 end;
 
-function Tbn_frmCurrCommission.GetDocumentType: Integer;
+function Tbn_frmCurrCommission.GetDocumentType: TID;
 begin
   Result := BN_DOC_CURRCOMMISION;
 end;

@@ -6,12 +6,12 @@ uses
   Windows, SysUtils, IB, IBDatabase, IBSQL, IBQuery, Classes, gd_ProgressNotifier_unit;
 
 const
-  NEWDOCUMENT_NUMBER = 'ГЎ/Г­';            // Г­Г®Г¬ГҐГ° Г­Г®ГўГ»Гµ Г¤Г®ГЄГіГ¬ГҐГ­ГІГ®Гў Г¤Г«Гї ГЎГіГµ Г±Г Г«ГјГ¤Г®
-  NEWINVDOCUMENT_NUMBER = '1';           // Г­Г®Г¬ГҐГ° Г­Г®ГўГ»Гµ Г¤Г®Г¬ГҐГ­ГІГ®Гў Г¤Г«Гї Г±ГЄГ«Г Г¤Г±ГЄГ®ГЈГ® Г±Г Г«ГјГ¤Г®
-  PROIZVOLNYE_TRANSACTION_KEY = 807001;  // AC_TRANSACTION.id WHERE AC_TRANSACTION.name = ГЏГ°Г®ГЁГ§ГўГ®Г«ГјГ­Г»ГҐ(Г Гї) ГЇГ°Г®ГўГ®Г¤ГЄГЁ(Г )
+  NEWDOCUMENT_NUMBER = 'б/н';            // номер новых документов для бух сальдо
+  NEWINVDOCUMENT_NUMBER = '1';           // номер новых доментов для складского сальдо
+  PROIZVOLNYE_TRANSACTION_KEY = 807001;  // AC_TRANSACTION.id WHERE AC_TRANSACTION.name = Произвольные(ая) проводки(а)
   PROIZVOLNYE_TRRECORD_KEY = 807100;     // AC_TRRECORD.id WHERE transactionkey = PROIZVOLNYE_TRANSACTION_KEY
-  OSTATKY_ACCOUNT_KEY = 300003;          // AC_ACCOUNT.id WHERE fullname = 00 ГЋГ±ГІГ ГІГЄГЁ
-  HOZOPERATION_DOCTYPE_KEY = 806001;     // gd_documenttype.id WHERE name = Г•Г®Г§ГїГ©Г±ГІГўГҐГ­Г­Г Гї Г®ГЇГҐГ°Г Г¶ГЁГї
+  OSTATKY_ACCOUNT_KEY = 300003;          // AC_ACCOUNT.id WHERE fullname = 00 Остатки
+  HOZOPERATION_DOCTYPE_KEY = 806001;     // gd_documenttype.id WHERE name = Хозяйственная операция
   MAX_PROGRESS_STEP = 12500;
   PROGRESS_STEP = MAX_PROGRESS_STEP div 100;
   INCLUDE_HIS_PROGRESS_STEP = PROGRESS_STEP*16;
@@ -52,18 +52,18 @@ type
 
     FAllOurCompaniesSaldo: Boolean;
     FCalculateSaldo: Boolean;
-    FCardFeaturesStr: String;                                   // cГЇГЁГ±Г®ГЄ ГЇГ®Г«ГҐГ©-ГЇГ°ГЁГ§Г­Г ГЄГ®Гў Г±ГЄГ«Г Г¤Г±ГЄГ®Г© ГЄГ Г°ГІГ®Г·ГЄГЁ
+    FCardFeaturesStr: String;                                   // cписок полей-признаков складской карточки
     FProcessedTbls: TStringList;
-    FClosingDate: TDateTime;                                    // Г¤Г ГІГ  Г§Г ГЄГ°Г»ГІГЁГї ГЇГҐГ°ГЁГ®Г¤Г  - Г¤Г® Г­ГҐГҐ (Г­ГҐ ГўГЄГ«ГѕГ·ГЁГІГҐГ«ГјГ­Г®) ГіГ¤Г Г«ГїГҐГ¬ Г¤Г®ГЄГіГ¬ГҐГ­ГІГ»
+    FClosingDate: TDateTime;                                    // дата закрытия периода - до нее (не включительно) удаляем документы
     FCurrentProgressStep: Integer;
     FCurUserContactKey: Integer;
-    FDocTypesList: TStringList;                                 // ГІГЁГЇГ» Г¤Г®ГЄГіГ¬ГҐГ­ГІГ®Гў ГўГ»ГЎГ°Г Г­Г­Г»ГҐ ГЇГ®Г«ГјГ§Г®ГўГ ГІГҐГ«ГҐГ¬
-    FDoProcDocTypes: Boolean;                                   // true - Г®ГЎГ°Г ГЎГ ГІГ»ГўГ ГІГј Г’ГЋГ‹ГњГЉГЋ Г¤Г®ГЄГіГ¬ГҐГ­ГІГ» Г± ГўГ»ГЎГ°Г Г­Г­Г»Г¬ГЁ ГІГЁГЇГ Г¬ГЁ, false - Г®ГЎГ°Г ГЎГ ГІГ»ГўГ ГІГј ГўГ±ГҐ ГЉГђГЋГЊГ… Г¤Г®ГЄГіГ¬ГҐГ­ГІГ®Гў Г± ГўГ»ГЎГ°Г Г­Г­Г»Г¬ГЁ ГІГЁГЇГ Г¬ГЁ
-    FDoStopProcessing: Boolean;                                 // ГґГ«Г ГЈ ГЇГ°ГҐГ°Г»ГўГ Г­ГЁГї ГўГ»ГЇГ®Г«Г­ГҐГ­ГЁГї
-    FEntryAnalyticsStr: String;                                 // Г±ГЇГЁГ±Г®ГЄ ГўГ±ГҐГµ ГЎГіГµГЈГ Г«ГІГҐГ°Г±ГЄГЁГµ Г Г­Г Г«ГЁГІГЁГЄ
+    FDocTypesList: TStringList;                                 // типы документов выбранные пользователем
+    FDoProcDocTypes: Boolean;                                   // true - обрабатывать ТОЛЬКО документы с выбранными типами, false - обрабатывать все КРОМЕ документов с выбранными типами
+    FDoStopProcessing: Boolean;                                 // флаг прерывания выполнения
+    FEntryAnalyticsStr: String;                                 // список всех бухгалтерских аналитик
     FInvSaldoDoc: Integer;
-    FOurCompaniesListStr: String;                               // Г±ГЇГЁГ±Г®ГЄ ГЄГ®Г¬ГЇГ Г­ГЁГ© ГЁГ§ gd_ourcompany
-    //FProizvolnyyDocTypeKey: Integer;                            // ''ГЏГ°Г®ГЁГ§ГўГ®Г«ГјГ­Г»Г© ГІГЁГЇ'' ГЁГ§ gd_documenttype
+    FOurCompaniesListStr: String;                               // список компаний из gd_ourcompany
+    //FProizvolnyyDocTypeKey: Integer;                            // ''Произвольный тип'' из gd_documenttype
 
     FOnGetConnectedEvent: TOnGetConnectedEvent;
     FOnGetDBPropertiesEvent: TOnGetDBPropertiesEvent;
@@ -82,7 +82,7 @@ type
     function DestroyHIS(AnIndex: Integer): Integer;
     function GetConnected: Boolean;
     function GetCountHIS(AnIndex: Integer): Integer;
-    function GetNewID: Integer;                                 // ГўГ®Г§ГўГ°Г Г№Г ГҐГІ Г±ГЈГҐГ­ГҐГ°ГЁГ°Г®ГўГ Г­Г­Г»Г© Г­Г®ГўГ»Г© ГіГ­ГЁГЄГ Г«ГјГ­Г»Г© ГЁГ¤ГҐГ­ГІГЁГґГЁГЄГ ГІГ®Г°
+    function GetNewID: Integer;                                 // возвращает сгенерированный новый уникальный идентификатор
 
   public
     constructor Create;
@@ -90,28 +90,28 @@ type
 
     procedure Test;
 
-    procedure CalculateAcSaldo;                                 // ГЇГ®Г¤Г±Г·ГҐГІ ГЎГіГµГЈГ Г«ГІГҐГ°Г±ГЄГ®ГЈГ® Г±Г Г«ГјГ¤Г®
-    procedure CalculateInvSaldo;                                // ГЇГ®Г¤Г±Г·ГҐГІ Г±ГЄГ«Г Г¤Г±ГЄГЁГµ Г®Г±ГІГ ГІГЄГ®Гў
+    procedure CalculateAcSaldo;                                 // подсчет бухгалтерского сальдо
+    procedure CalculateInvSaldo;                                // подсчет складских остатков
     procedure Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
-    procedure CreateAcEntries;                                  // ГґГ®Г°Г¬ГЁГ°Г®ГўГ Г­ГЁГҐ ГЎГіГµГЈГ Г«ГІГҐГ°Г±ГЄГ®ГЈГ® Г±Г Г«ГјГ¤Г®
-    procedure CreateDBSStateJournal;                            // Г±Г®Г§Г¤Г Г­ГЁГҐ ГІГ ГЎГ«ГЁГ¶Г» Г¦ГіГ°Г­Г Г«Г  ГўГ»ГЇГ®Г«ГҐГ­ГЁГї Г®ГЇГҐГ°Г Г¶ГЁГ©, Г·ГІГ®ГЎГ» ГЇГ°ГЁ ГЇГ®ГўГІГ®Г°Г­Г®Г© Г®ГЎГ°Г ГЎГ®ГІГЄГҐ ГЃГ„ Г¬Г®Г¦Г­Г® ГЎГ»Г«Г® ГЇГ°Г®Г¤Г®Г«Г¦ГЁГІГј
+    procedure CreateAcEntries;                                  // формирование бухгалтерского сальдо
+    procedure CreateDBSStateJournal;                            // создание таблицы журнала выполения операций, чтобы при повторной обработке БД можно было продолжить
     procedure CreateHIS_IncludeInHIS;
     procedure CreateInvBalance;
-    procedure CreateInvSaldo;                                   // ГґГ®Г°Г¬ГЁГ°Г®ГўГ Г­ГЁГҐ Г±ГЄГ«Г Г¤Г±ГЄГЁГµ Г®Г±ГІГ ГІГЄГ®Гў
-    procedure CreateMetadata;                                   // Г±Г®Г§Г¤Г Г­ГЁГҐ Г­ГҐГ®ГЎГµГ®Г¤ГЁГ¬Г»Гµ ГІГ ГЎГ«ГЁГ¶ Г¤Г«Гї ГЇГ°Г®ГЈГ°Г Г¬Г¬Г»
+    procedure CreateInvSaldo;                                   // формирование складских остатков
+    procedure CreateMetadata;                                   // создание необходимых таблиц для программы
     procedure DeleteDBSTables;
     procedure DeleteDocuments_DeleteHIS;
-    procedure DeleteOldAcEntryBalance;                          // ГіГ¤Г Г«ГҐГ­ГЁГҐ Г±ГІГ Г°Г®ГЈГ® ГЎГіГµ Г±Г Г«ГјГ¤Г®
+    procedure DeleteOldAcEntryBalance;                          // удаление старого бух сальдо
     procedure Disconnect;
     procedure DropDBSStateJournal;
     procedure ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String); Overload;
-    procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String); Overload;   // ExecQuery  ГЁ Г§Г ГЇГЁГ±Гј Гў Г«Г®ГЈ
+    procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String); Overload;   // ExecQuery  и запись в лог
     procedure InsertDBSStateJournal(const AFunctionKey: Integer; const AState: Integer; const AErrorMsg: String = '');
     procedure MergeCards(const ADocDate: TDateTime; const ADocTypeList: TStringList; const AUsrSelectedFieldsList: TStringList);
-    procedure PrepareDB;                                        // ГіГ¤Г Г«ГҐГ­ГЁГҐ PKs, FKs, UNIQs, Г®ГІГЄГ«ГѕГ·ГҐГ­ГЁГҐ ГЁГ­Г¤ГҐГЄГ±Г®Гў ГЁ ГІГ°ГЁГЈГЈГҐГ°Г®Гў
+    procedure PrepareDB;                                        // удаление PKs, FKs, UNIQs, отключение индексов и триггеров
     procedure Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
-    procedure RestoreDB;                                        // ГўГ®Г±Г±ГІГ Г­Г®ГўГ«ГҐГ­ГЁГҐ ГЇГҐГўГ®Г­Г Г·Г Г«ГјГ­Г®ГЈГ® Г±Г®Г±ГІГ®ГїГ­ГЁГї (Г±Г®Г§Г¤Г Г­ГЁГҐ PKs, FKs, UNIQs, ГўГЄГ«ГѕГ·ГҐГ­ГЁГҐ ГЁГ­Г¤ГҐГЄГ±Г®Гў ГЁ ГІГ°ГЁГЈГЈГҐГ°Г®Гў)
-    procedure SaveMetadata;                                     // Г±Г®ГµГ°Г Г­ГҐГ­ГЁГҐ ГЇГҐГ°ГўГ®Г­Г Г·Г Г«ГјГ­Г®ГЈГ® Г±Г®Г±ГІГ®ГїГ­ГЁГї (PKs, FKs, UNIQs, Г±Г®Г±ГІГ®ГїГ­ГЁГї ГЁГ­Г¤ГҐГЄГ±Г®Гў ГЁ ГІГ°ГЁГЈГЈГҐГ°Г®Гў)
+    procedure RestoreDB;                                        // восстановление певоначального состояния (создание PKs, FKs, UNIQs, включение индексов и триггеров)
+    procedure SaveMetadata;                                     // сохранение первоначального состояния (PKs, FKs, UNIQs, состояния индексов и триггеров)
     procedure SetFVariables;
     procedure SetSelectDocTypes(const ADocTypesList: TStringList);
     procedure UpdateInvCard;
@@ -119,16 +119,16 @@ type
     procedure ErrorEvent(const AMsg: String; const AProcessName: String = '');
     procedure MsgBoxEvent(const AMsg: String);
     procedure WarningEvent(const AMsg: String);
-    procedure GetDBPropertiesEvent;                             // ГЇГ®Г«ГіГ·ГЁГІГј ГЁГ­ГґГ®Г°Г¬Г Г¶ГЁГѕ Г® ГЃГ„
-    procedure GetInvCardFeaturesEvent;                          // Г§Г ГЇГ®Г«Г­ГЁГІГј Г±ГЇГЁГ±Г®ГЄ ГЇГ°ГЁГ§Г­Г ГЄГ®Гў INV_CARD Г¤Г«Гї StringGrid
-    procedure GetProcStatisticsEvent;                           // ГЇГ®Г«ГіГ·ГЁГІГј ГЄГ®Г«-ГўГ® Г§Г ГЇГЁГ±ГҐГ© Г¤Г«Гї Г®ГЎГ°Г ГЎГ®ГІГЄГЁ Гў GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
-    procedure GetStatisticsEvent;                               // ГЇГ®Г«ГіГ·ГЁГІГј ГІГҐГЄГіГ№ГҐГҐ ГЄГ®Г«-ГўГ® Г§Г ГЇГЁГ±ГҐГ© Гў GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
-    procedure GetInvCardStatisticsEvent;                        // ГЇГ®Г«ГіГ·ГЁГІГј ГІГҐГЄГіГ№ГҐГҐ ГЄГ®Г«-ГўГ® Г§Г ГЇГЁГ±ГҐГ© Гў INV_CARD
-    procedure LogEvent(const AMsg: String);                     // Г§Г ГЇГЁГ±Г ГІГј Гў Г«Г®ГЈ
+    procedure GetDBPropertiesEvent;                             // получить информацию о БД
+    procedure GetInvCardFeaturesEvent;                          // заполнить список признаков INV_CARD для StringGrid
+    procedure GetProcStatisticsEvent;                           // получить кол-во записей для обработки в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
+    procedure GetStatisticsEvent;                               // получить текущее кол-во записей в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
+    procedure GetInvCardStatisticsEvent;                        // получить текущее кол-во записей в INV_CARD
+    procedure LogEvent(const AMsg: String);                     // записать в лог
     procedure ProgressMsgEvent(const AMsg: String; AStepIncrement: Integer = 1);
     procedure ProgressWatchEvent(const AProgressInfo: TgdProgressInfo);
-    procedure SetDocTypeStringsEvent;                           // Г§Г ГЇГ®Г«Г­ГЁГІГј Г±ГЇГЁГ±Г®ГЄ ГІГЁГЇГ®Гў Г¤Г®ГЄГіГ¬ГҐГ­ГІГ®Гў Г¤Г«Гї StringGrid
-    procedure UsedDBEvent;                                      // ГЃГ„ ГіГ¦ГҐ Г°Г Г­ГҐГҐ Г®ГЎГ°Г ГЎГ ГІГ»ГўГ Г«Г Г±Гј ГЅГІГ®Г© ГЇГ°Г®ГЈГ°Г Г¬Г¬Г®Г©, ГўГ»ГўГҐГ±ГІГЁ Г¤ГЁГ Г«Г®ГЈ Г¤Г«Гї Г°ГҐГёГҐГ­ГЁГї ГЇГ°Г®Г¤Г®Г«Г¦ГЁГІГј Г®ГЎГ°Г ГЎГ®ГІГЄГі Г«ГЁГЎГ® Г­Г Г·Г ГІГј Г§Г Г­Г®ГўГ® Г®ГЎГ°Г ГЎГ ГІГ»ГўГ ГІГј
+    procedure SetDocTypeStringsEvent;                           // заполнить список типов документов для StringGrid
+    procedure UsedDBEvent;                                      // БД уже ранее обрабатывалась этой программой, вывести диалог для решения продолжить обработку либо начать заново обрабатывать
 
     property AllOurCompaniesSaldo: Boolean read FAllOurCompaniesSaldo write FAllOurCompaniesSaldo;
     property CalculateSaldo: Boolean       read FCalculateSaldo   write FCalculateSaldo;
@@ -166,7 +166,7 @@ type
 implementation
 
 uses
-  mdf_MetaData_unit, gdcInvDocument_unit, contnrs, IBServices, Messages, IBDatabaseInfo;
+  mdf_MetaData_unit, {gdcInvDocument_unit, }contnrs, IBServices, Messages, IBDatabaseInfo;
 
 { TgsDBSqueeze }
 
@@ -271,7 +271,7 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze.CreateUDFs;
 
-  procedure FuncTest(const AFuncName: String; const ATr: TIBTransaction);     // ГІГҐГ±ГІ Г­Г  Г­Г Г«ГЁГ·ГЁГҐ Гў UDF-ГґГ Г©Г«ГҐ ГґГіГ­ГЄГ¶ГЁГЁ
+  procedure FuncTest(const AFuncName: String; const ATr: TIBTransaction);     // тест на наличие в UDF-файле функции
   var
     q: TIBSQL;
   begin
@@ -464,7 +464,7 @@ begin
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze.CreateDBSStateJournal;
-var                                                                             ///TODO: Г®ГІГЇГ Г«Г  Г­ГҐГ®ГЎГµГ®Г¤ГЁГ¬Г®Г±ГІГј
+var                                                                             ///TODO: отпала необходимость
   q: TIBSQL;
   Tr: TIBTransaction;
 begin
@@ -482,7 +482,7 @@ begin
       q.SQL.Text :=
         'CREATE TABLE DBS_JOURNAL_STATE( ' +                                    #13#10 +
         '  FUNCTIONKEY   INTEGER, ' +                                           #13#10 +
-        '  STATE         SMALLINT, ' +                                          #13#10 +  // 1-ГіГ±ГЇГҐГёГ­Г®,0-Г®ГёГЁГЎГЄГ , NULL-ГўГ»ГЇГ®Г«Г­ГҐГ­ГЁГҐ ГЎГ»Г«Г® ГЇГ°ГҐГ°ГўГ Г­Г® ГЇГ®Г«ГјГ§Г®ГўГ ГІГҐГ«ГҐГ¬
+        '  STATE         SMALLINT, ' +                                          #13#10 +  // 1-успешно,0-ошибка, NULL-выполнение было прервано пользователем
         '  CALL_TIME     TIMESTAMP, ' +                                         #13#10 +
         '  ERROR_MESSAGE VARCHAR(32000))';
       ExecSqlLogEvent(q, 'CreateDBSStateJournal');
@@ -493,7 +493,7 @@ begin
       q.SQL.Text:=
         'SELECT COUNT(*) FROM dbs_journal_state';
       ExecSqlLogEvent(q, 'CreateDBSStateJournal');
-      if q.RecordCount <> 0 then  // ГЃГ„ ГіГ¦ГҐ Г®ГЎГ°Г ГЎГ ГІГ»ГўГ Г«Г Г±Гј ГЇГ°Г®ГЈГ°Г Г¬Г¬Г®Г©
+      if q.RecordCount <> 0 then  // БД уже обрабатывалась программой
         UsedDBEvent;
       q.Close;
     end;
@@ -574,8 +574,8 @@ procedure TgsDBSqueeze.SetDocTypeStringsEvent;
 var
   Tr: TIBTransaction;
   q, q2: TIBSQL;
-  DocTypeList: TStringList;   // Г‘ГЇГЁГ±Г®ГЄ ГІГЁГЇГ®Гў Г¤Г®ГЄГіГ¬ГҐГ­ГІГ®Гў
-  DocTypeBranch: TStringList; // Г‘ГЇГЁГ±Г®ГЄ ГўГҐГІГўГЁ ГІГЁГЇГ®Гў Г¤Г®ГЄГіГ¬ГҐГ­ГІГ®Гў
+  DocTypeList: TStringList;   // Список типов документов
+  DocTypeBranch: TStringList; // Список ветви типов документов
   I: Integer;
 
   function GetChildListStr(AParent: Integer): String;
@@ -718,7 +718,7 @@ begin
     if not q.EOF then
     begin
       DocTypeList.Append(q.FieldByName('DocType').AsString);
-      DocTypeBranch.Add('ГЌГҐГЇГ°ГЁГўГїГ§Г Г­Г­Г»ГҐ ГЄ ГўГҐГІГўГЁ');
+      DocTypeBranch.Add('Непривязанные к ветви');
     end;
     q.Close;
 
@@ -739,7 +739,7 @@ procedure TgsDBSqueeze.GetInvCardFeaturesEvent;
 var
   Tr: TIBTransaction;
   q: TIBSQL;
-  CardFeaturesList: TStringList;   // Г‘ГЇГЁГ±Г®ГЄ ГЇГ°ГЁГ§Г­Г ГЄГ®Гў ГЄГ Г°ГІГ®Г·ГҐГЄ
+  CardFeaturesList: TStringList;   // Список признаков карточек
 begin
   Assert(FIBDatabase.Connected and Assigned(FOnGetInvCardFeaturesEvent));
 
@@ -936,7 +936,7 @@ begin
     ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
 
     if q.FieldByName('Kolvo').AsInteger <> 0 then
-      WarningEvent('Г‚Г­ГЁГ¬Г Г­ГЁГҐ!' + #13#10 + 'ГЋГЎГ­Г Г°ГіГ¦ГҐГ­Г» ГЇГ°Г®ГўГ®Г¤ГЄГЁ Г± Г¤Г ГІГ Г¬ГЁ ac_entry.entrydate < 01.01.1900');
+      WarningEvent('Внимание!' + #13#10 + 'Обнаружены проводки с датами ac_entry.entrydate < 01.01.1900');
 
     q.Close;
     Tr.Commit;
@@ -954,7 +954,7 @@ var
   Tr: TIBTransaction;
 begin
   LogEvent('Getting INV_CARD statistics...');
-  ProgressMsgEvent('ГЏГ®Г«ГіГ·ГҐГ­ГЁГҐ Г±ГІГ ГІГЁГ±ГІГЁГЄГЁ...', 0);
+  ProgressMsgEvent('Получение статистики...', 0);
   Assert(Connected);
 
   Tr := TIBTransaction.Create(nil);
@@ -989,7 +989,7 @@ var
   Tr: TIBTransaction;
 begin
   LogEvent('Getting statistics...');
-  ProgressMsgEvent('ГЏГ®Г«ГіГ·ГҐГ­ГЁГҐ Г±ГІГ ГІГЁГ±ГІГЁГЄГЁ...', 0);
+  ProgressMsgEvent('Получение статистики...', 0);
   Assert(Connected);
 
   Tr := TIBTransaction.Create(nil);
@@ -1161,9 +1161,9 @@ begin
     Tr.Commit;
 
     if Result = 1 then
-      LogEvent(Format('HIS[%d] Г±Г®Г§Г¤Г Г­ ГіГ±ГЇГҐГёГ­Г®.', [AnIndex]))
+      LogEvent(Format('HIS[%d] создан успешно.', [AnIndex]))
     else begin
-      LogEvent(Format('ГЏГ®ГЇГ»ГІГЄГ  Г±Г®Г§Г¤Г Г­ГЁГї HIS[%d] Г§Г ГўГҐГ°ГёГЁГ«Г Г±Гј Г­ГҐГіГ¤Г Г·ГҐГ©!', [AnIndex]));
+      LogEvent(Format('Попытка создания HIS[%d] завершилась неудачей!', [AnIndex]));
       raise EgsDBSqueeze.Create('Error create HugeIntSet!');
     end;
   finally
@@ -1224,9 +1224,9 @@ begin
     Tr.Commit;
 
     if Result = 1 then
-      LogEvent(Format('HIS[%d] Г°Г Г§Г°ГіГёГҐГ­ ГіГ±ГЇГҐГёГ­Г®.', [AnIndex]))
+      LogEvent(Format('HIS[%d] разрушен успешно.', [AnIndex]))
     else begin
-      LogEvent(Format('ГЏГ®ГЇГ»ГІГЄГ  Г°Г Г§Г°ГіГёГҐГ­ГЁГї HIS[%d] Г§Г ГўГҐГ°ГёГЁГ«Г Г±Гј Г­ГҐГіГ¤Г Г·ГҐГ©!', [AnIndex]));
+      LogEvent(Format('Попытка разрушения HIS[%d] завершилась неудачей!', [AnIndex]));
     end;
   finally
     q.Free;
@@ -1349,11 +1349,11 @@ begin
     {q.SQL.Text :=
       'SELECT gd.id AS InvDocTypeKey ' +                #13#10 +
       '  FROM GD_DOCUMENTTYPE gd ' +                    #13#10 +
-      ' WHERE TRIM(gd.name) = ''ГЏГ°Г®ГЁГ§ГўГ®Г«ГјГ­Г»Г© ГІГЁГЇ'' ';
+      ' WHERE TRIM(gd.name) = ''Произвольный тип'' ';
     ExecSqlLogEvent(q, 'CreateInvSaldo');
 
     if q.EOF then
-      raise EgsDBSqueeze.Create('ГЋГІГ±ГіГІГ±ГІГўГіГҐГІ Г§Г ГЇГЁГ±Гј GD_DOCUMENTTYPE.NAME = ''ГЏГ°Г®ГЁГ§ГўГ®Г«ГјГ­Г»Г© ГІГЁГЇ''');
+      raise EgsDBSqueeze.Create('Отсутствует запись GD_DOCUMENTTYPE.NAME = ''Произвольный тип''');
     FProizvolnyyDocTypeKey := q.FieldByName('InvDocTypeKey').AsInteger;
     q.Close; }
 
@@ -1483,7 +1483,6 @@ var
       q.SQL.Text :=
         'CREATE TABLE DBS_TMP_INV_SALDO ( ' +                                   #13#10 +
         '  ID_MOVEMENT_D INTEGER, ' +                                           #13#10 +
-        '  ID_MOVEMENT_C INTEGER, ' +                                           #13#10 +
         '  MOVEMENTKEY   INTEGER, ' +                                           #13#10 +
         '  CONTACTKEY    INTEGER, ' +                                           #13#10 +
         '  GOODKEY       INTEGER, ' +                                           #13#10 +
@@ -1652,10 +1651,10 @@ begin
     // inactive triggers
     q.SQL.Text :=
       'INSERT INTO DBS_INACTIVE_TRIGGERS (trigger_name) ' +                          #13#10 +
-      'SELECT rdb$trigger_name ' +                                                   #13#10 +
-      '  FROM rdb$triggers ' +                                                       #13#10 +
-      ' WHERE (rdb$trigger_inactive <> 0) AND (rdb$trigger_inactive IS NOT NULL) ' + #13#10 +
-      '   AND ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL)) ';
+      'SELECT t.rdb$trigger_name ' +                                                   #13#10 +
+      '  FROM rdb$triggers t LEFT JOIN rdb$relations r ON t.rdb$relation_name = r.rdb$relation_name ' +                                                       #13#10 +
+      ' WHERE (t.rdb$trigger_inactive <> 0) AND (t.rdb$trigger_inactive IS NOT NULL) ' + #13#10 +
+      '   AND ((t.rdb$system_flag = 0) OR (t.rdb$system_flag IS NULL)) AND r.rdb$system_flag = 0 ';
     ExecSqlLogEvent(q, 'SaveMetadata');
 
     // inactive indices
@@ -1689,7 +1688,7 @@ begin
       '  1, 2, 3 ';
     ExecSqlLogEvent(q, 'SaveMetadata');
 
-    // Г€Г¬ГҐГ­Г  ГІГ ГЎГ«ГЁГ¶ ГЁ ГЁГµ ГЇГ®Г«Гї PK, ГЄГ®ГІГ®Г°Г»e ГЇГ®Г¤ГµГ®Г¤ГїГІ Г¤Г«Гї Г®ГЎГ°Г ГЎГ®ГІГЄГЁ
+    // Имена таблиц и их поля PK, которыe подходят для обработки
     q.SQL.Text :=
       'INSERT INTO DBS_SUITABLE_TABLES ' +                                                   #13#10 +
       'SELECT ' +                                                                            #13#10 +
@@ -1743,7 +1742,7 @@ begin
 
     if FCalculateSaldo then
     begin
-      // Г¤Г«Гї Г±Г±Г»Г«Г®Г·Г­Г®Г© Г¶ГҐГ«Г®Г±ГІГ­Г®Г±ГІГЁ AcSaldo
+      // для ссылочной целостности AcSaldo
       q.SQL.Text :=
         'INSERT INTO DBS_FK_CONSTRAINTS ( ' +                                   #13#10 +
         '  relation_name, ' +                                                   #13#10 +
@@ -1762,7 +1761,7 @@ begin
         '  AND list_fields LIKE ''%=USR$%'' ';
       ExecSqlLogEvent(q, 'SaveMetadata');
 
-      // Г·ГІГ®ГЎГ» Г±Г®ГµГ°Г Г­ГЁГІГј ГЄГ Г°ГІГ®Г·ГЄГЁ Г­ГҐГ®ГЎГµГ®Г¤ГЁГ¬Г»ГҐ InvSaldo
+      // чтобы сохранить карточки необходимые InvSaldo
       q.SQL.Text :=
         'INSERT INTO DBS_FK_CONSTRAINTS ( ' +                                   #13#10 +
         '  relation_name, ' +                                                   #13#10 +
@@ -1790,7 +1789,7 @@ var
   q: TIBSQL;
   Msg: String;
 begin
-  ProgressMsgEvent('ГЏГ°Г®ГўГҐГ°ГЄГ  ГЃГ„...', 0);
+  ProgressMsgEvent('Проверка БД...', 0);
   LogEvent('Test...');
   Assert(Connected);
 
@@ -1813,8 +1812,8 @@ begin
 
     if (not q.Eof) then
     begin
-      Msg := 'ГЃГ»Г«o Г®ГЎГ­Г Г°ГіГ¦ГҐГ­Г® Г­ГҐГ±Г®ГўГЇГ Г¤ГҐГ­ГЁГҐ Г±Г Г«ГјГ¤Г® Гў inv_balance Г± inv_movement! ГЏГ®Г¤Г°Г®ГЎГ­ГҐГҐ Гў Г«Г®ГЈГҐ. ';
-      LogEvent('ГЃГ»Г«o Г®ГЎГ­Г Г°ГіГ¦ГҐГ­Г® Г­ГҐГ±Г®ГўГЇГ Г¤ГҐГ­ГЁГҐ Г±Г Г«ГјГ¤Г® Гў inv_balance Г± inv_movement! ГЏГ®Г¤Г°Г®ГЎГ­ГҐГҐ Гў Г«Г®ГЈГҐ. ');
+      Msg := 'Былo обнаружено несовпадение сальдо в inv_balance с inv_movement! Подробнее в логе. ';
+      LogEvent('Былo обнаружено несовпадение сальдо в inv_balance с inv_movement! Подробнее в логе. ');
     end;
 
     while not q.Eof do
@@ -1831,22 +1830,22 @@ begin
     Tr.Commit;
 
     ProgressMsgEvent(' ', 0);
-    MsgBoxEvent('ГЏГ°Г®ГўГҐГ°ГЄГ  Г±Г®Г®ГІГўГҐГІГ±ГІГўГЁГї inv_balance ГЁ inv_movement Г§Г ГўГҐГ°ГёГҐГ­Г .');
+    MsgBoxEvent('Проверка соответствия inv_balance и inv_movement завершена.');
   finally
     q.Free;
     Tr.Free;
   end;
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze.CalculateAcSaldo; // ГЇГ®Г¤Г±Г·ГҐГІ ГЎГіГµГЈГ Г«ГІГҐГ°Г±ГЄГ®ГЈГ® Г±Г Г«ГјГ¤Г® c Г±Г®ГµГ°Г Г­ГҐГ­ГЁГҐГ¬ Гў ГІГ ГЎГ«ГЁГ¶ГҐ DBS_TMP_AC_SALDO
+procedure TgsDBSqueeze.CalculateAcSaldo; // подсчет бухгалтерского сальдо c сохранением в таблице DBS_TMP_AC_SALDO
 var
   Tr: TIBTransaction;
   q2, q3: TIBSQL;
   I: Integer;
   TmpStr: String;
   TmpList: TStringList;
-  AvailableAnalyticsList: TStringList;  // cГЇГЁГ±Г®ГЄ Г ГЄГІГЁГўГ­Г»Гµ Г Г­Г Г«ГЁГІГЁГЄ Г¤Г«Гї Г±Г·ГҐГІГ 
-  OurCompany_EntryDocList: TStringList; // Г±ГЇГЁГ±Г®ГЄ "ГЄГ®Г¬ГЇГ Г­ГЁГї=Г¤Г®ГЄГіГ¬ГҐГ­ГІ Г¤Г«Гї ГЇГ°Г®ГўГ®Г¤Г®ГЄ"
+  AvailableAnalyticsList: TStringList;  // cписок активных аналитик для счета
+  OurCompany_EntryDocList: TStringList; // список "компания=документ для проводок"
 begin
   LogEvent('Calculating entry balance...');
   Assert(Connected);
@@ -1873,8 +1872,8 @@ begin
       TmpList.Clear;
     end;
 
-    //-------------------------------------------- ГўГ»Г·ГЁГ±Г«ГҐГ­ГЁГҐ Г±Г Г«ГјГ¤Г® Г¤Г«Гї Г±Г·ГҐГІГ 
-    // ГЇГ®Г«ГіГ·Г ГҐГ¬ Г±Г·ГҐГІГ 
+    //-------------------------------------------- вычисление сальдо для счета
+    // получаем счета
     q2.SQL.Text :=
       'SELECT DISTINCT ' +                                                                          #13#10 +
       '  ae.accountkey AS id, ' +                                                                   #13#10 +
@@ -1891,11 +1890,11 @@ begin
 
     ExecSqlLogEvent(q2, 'CalculateAcSaldo');
 
-    // Г±Г·ГЁГІГ ГҐГ¬ ГЁ Г±Г®ГµГ°Г Г­ГїГҐГ¬ Г±Г Г«ГјГ¤Г® Г¤Г«Гї ГЄГ Г¦Г¤Г®ГЈГ® Г±Г·ГҐГІГ 
+    // считаем и сохраняем сальдо для каждого счета
     while (not q2.EOF) and (not FDoStopProcessing) do
     begin
       AvailableAnalyticsList.Text := StringReplace(FEntryAnalyticsStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
-      // ГЇГ®Г«ГіГ·Г ГҐГ¬ cГЇГЁГ±Г®ГЄ Г ГЄГІГЁГўГ­Г»Гµ Г Г­Г Г«ГЁГІГЁГЄ, ГЇГ® ГЄГ®ГІГ®Г°Г»Г¬ ГўГҐГ¤ГҐГІГ±Гї ГіГ·ГҐГІ Г¤Г«Гї Г±Г·ГҐГІГ 
+      // получаем cписок активных аналитик, по которым ведется учет для счета
       I := 0;
       while I < AvailableAnalyticsList.Count do
       begin
@@ -1907,9 +1906,9 @@ begin
           Inc(I);
       end;
 
-      // ГЇГ®Г¤Г±Г·ГҐГІ Г±Г Г«ГјГ¤Г® Гў Г°Г Г§Г°ГҐГ§ГҐ ГЄГ®Г¬ГЇГ Г­ГЁГЁ, Г±Г·ГҐГІГ , ГўГ Г«ГѕГІГ», Г Г­Г Г«ГЁГІГЁГЄ
+      // подсчет сальдо в разрезе компании, счета, валюты, аналитик
 
-      // ГЇГ°Г®ГўГ®Г¤ГЄГЁ ГЇГ® Г±Г·ГҐГІГ Г¬
+      // проводки по счетам
       q3.SQL.Text :=
         'INSERT INTO DBS_TMP_AC_SALDO ( ' +                                     #13#10 +
         '  documentkey, masterdockey, ' +                                       #13#10 +
@@ -2120,12 +2119,33 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
 
-    // Г§Г ГЇГ°Г®Г± Г­Г  Г±ГЄГ«Г Г¤Г±ГЄГЁГҐ Г®Г±ГІГ ГІГЄГЁ
+    // запрос на складские остатки
+    {$IFDEF VBPF}
+    q.SQL.Text :=
+      'INSERT INTO DBS_TMP_INV_SALDO ' +                                        #13#10 +
+      'SELECT ' +                                                               #13#10 +
+      '  GEN_ID(usr$vbpf_g_movement, 1) + GEN_ID(gd_g_offset, 0), ' +                   #13#10 +   // ID_MOVEMENT_D
+      '  GEN_ID(usr$vbpf_g_movement, 1) + GEN_ID(gd_g_offset, 0), ' +                   #13#10 +   // MOVEMENTKEY
+      '  im.contactkey AS ContactKey, ' +                                       #13#10 +
+      '  ic.goodkey, ' +                                                        #13#10 +
+      '  im.cardkey, ' +                                                        #13#10 +
+      '  doc.companykey, ' +                                                    #13#10 +
+      '  SUM(im.debit - im.credit) AS Balance ';
+    q.SQL.Add(' ' +
+      'FROM inv_movement im ' +                                                 #13#10 +
+      '  JOIN GD_DOCUMENT doc ON im.documentkey = doc.id ' +                    #13#10 +
+      '  JOIN INV_CARD ic ON im.cardkey = ic.id ' +                             #13#10 +
+      '  JOIN GD_CONTACT cont ON cont.id = im.contactkey ' +                    #13#10 +
+      '    JOIN gd_contact contact_head ' +                                     #13#10 +
+      '      ON contact_head.lb <= cont.lb AND contact_head.rb >= cont.rb ' +   #13#10 +
+      'WHERE ' +                                                                #13#10 +
+      '  im.cardkey > 0 ' +                                                     #13#10 +   // первый столбец в индексе, чтобы его задействовать
+      '  AND contact_head.id = doc.companykey ');
+    {$ELSE}
     q.SQL.Text :=
       'INSERT INTO DBS_TMP_INV_SALDO ' +                                        #13#10 +
       'SELECT ' +                                                               #13#10 +
       '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' +                   #13#10 +   // ID_MOVEMENT_D
-      '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' +                   #13#10 +   // ID_MOVEMENT_C
       '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' +                   #13#10 +   // MOVEMENTKEY
       '  im.contactkey AS ContactKey, ' +                                       #13#10 +
       '  ic.goodkey, ' +                                                        #13#10 +
@@ -2140,8 +2160,9 @@ begin
       '    JOIN gd_contact contact_head ' +                                     #13#10 +
       '      ON contact_head.lb <= cont.lb AND contact_head.rb >= cont.rb ' +   #13#10 +
       'WHERE ' +                                                                #13#10 +
-      '  im.cardkey > 0 ' +                                                     #13#10 +   // ГЇГҐГ°ГўГ»Г© Г±ГІГ®Г«ГЎГҐГ¶ Гў ГЁГ­Г¤ГҐГЄГ±ГҐ, Г·ГІГ®ГЎГ» ГҐГЈГ® Г§Г Г¤ГҐГ©Г±ГІГўГ®ГўГ ГІГј
+      '  im.cardkey > 0 ' +                                                     #13#10 +   // первый столбец в индексе, чтобы его задействовать
       '  AND contact_head.id = doc.companykey ');
+    {$ENDIF}
 
     if Assigned(FDocTypesList) then
     begin
@@ -2175,10 +2196,10 @@ begin
 
     ProgressMsgEvent('', 3*PROGRESS_STEP);
 
-    // Г±Г Г«ГјГ¤Г®ГўГ»Г© Г¤Г®ГЄГіГ¬ГҐГ­ГІ
+    // сальдовый документ
 
     q2.SQL.Text :=
-      'SELECT FIRST(1) s.companykey FROM DBS_TMP_INV_SALDO s';                  ///TODO: ГўГ»ГЎГ°Г ГІГј ГЄГ®Г¬ГЇГ Г­ГЁГѕ Г¤Г«Гї Г¤Г®ГЄГ 
+      'SELECT FIRST(1) s.companykey FROM DBS_TMP_INV_SALDO s';                  ///TODO: выбрать компанию для дока
     ExecSqlLogEvent(q2, 'CalculateInvSaldo');
 
     if not q2.EOF then
@@ -2303,15 +2324,15 @@ var
         q3.Transaction := Tr2;
         q5.Transaction := Tr2;
 
-        //include HIS_1 - Г®ГЎГїГ§Г Г­Г» Г®Г±ГІГ ГІГјГ±Гї
+        //include HIS_1 - обязаны остаться
 
-        //1) Г±ГЇГЁГ±Г®ГЄ ГІГ ГЎГ«. Г±Г®Г±ГІГ ГўГ«ГїГѕГ№ГЁГµ ГҐГ¤ГЁГ­Г®ГҐ Г¶ГҐГ«Г®ГҐ Г± Г¤Г®ГЄГіГ¬ГҐГ­ГІГ®Г¬
+        //1) список табл. составляющих единое целое с документом
 
-        LineDocTbls.Append('GD_DOCUMENT=PARENT'); // ГЇГ®Г§ГЁГ¶ГЁГЁ
+        LineDocTbls.Append('GD_DOCUMENT=PARENT'); // позиции
         LineDocTbls.Append('AC_ENTRY=DOCUMENTKEY||MASTERDOCKEY');
         LineDocTbls.Append('AC_RECORD=DOCUMENTKEY||MASTERDOCKEY');
 
-        // ГІГ ГЎГ« PK=FK             ГІГ ГЎГ«ГЁГ¶Г» Г±Г® Г±ГўГїГ§ГјГѕ 1-to-1 ГЄ GD_DOCUMENT
+        // табл PK=FK             таблицы со связью 1-to-1 к GD_DOCUMENT
 
         q.SQL.Text :=
           'SELECT ' +                                                                                                       #13#10 +
@@ -2332,7 +2353,7 @@ var
         while not q.EOF do
         begin
           FkFieldsList.Clear;
-          FkFieldsList.Text := StringReplace(q.FieldByName('pkfk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]); // ГЇГ®Г«Гї PK=FK
+          FkFieldsList.Text := StringReplace(q.FieldByName('pkfk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]); // поля PK=FK
 
           for I:=0 to FkFieldsList.Count-1 do
           begin
@@ -2351,7 +2372,7 @@ var
 
         LineDocTbls.Append('INV_CARD=DOCUMENTKEY||FIRSTDOCUMENTKEY');
 
-        // ГіГЇГ®Г°ГїГ¤Г®Г·ГЁГІГј Г·ГІГ®ГЎГ» ГЁГ§ГЎГҐГ¦Г ГІГј Г­ГҐГЄГ®ГІГ®Г°Г»Гµ ГЇГҐГ°ГҐГ®ГЎГ°Г ГЎГ®ГІГ®ГЄ: Line2 Г±Г±Г»Г«Г ГѕГ№ГЁГ©Г±Гї Г­Г  Line1 Г¤Г®Г«Г¦ГҐГ­ Г±ГІГ®ГїГІГј ГЏГ…ГђГ…Г„ Line1
+        // упорядочить чтобы избежать некоторых переобработок: Line2 ссылающийся на Line1 должен стоять ПЕРЕД Line1
         TmpList.CommaText := LineDocTbls.CommaText;
 
         for J:=0 to TmpList.Count-1 do
@@ -2396,7 +2417,7 @@ var
 
         LineDocTbls.Append('INV_MOVEMENT=DOCUMENTKEY');
 
-        // 2) cross-ГІГ ГЎГ« Г¤Г«Гї Г¬Г­Г®Г¦ГҐГ±ГІГў Line
+        // 2) cross-табл для множеств Line
 
         for J:=0 to LineDocTbls.Count-1 do
         begin
@@ -2440,7 +2461,7 @@ var
         LogEvent('CrossLineTbls: ' + CrossLineTbls.Text);
         LogEvent('LineDocTbls: ' + LineDocTbls.Text);
 
-  CreateHIS(0);   // Г§Г ГІГїГ­ГіГўГёГЁГҐГ±Гї Г¤Г®ГЄГіГ¬ГҐГ­ГІГ» - Г­ГҐ Г­Г Г¤Г® ГҐГ¤ГЁГ­Г®ГҐ Г¶ГҐГ«Г®ГҐ Г± Г­ГЁГ¬ГЁ Г®Г±ГІГ ГўГ«ГїГІГј
+  CreateHIS(0);   // затянувшиеся документы - не надо единое целое с ними оставлять
   CreateHIS(3);              LogEvent('3)');
 
   q3.SQL.Text :=
@@ -2452,7 +2473,7 @@ var
       Tr2.StartTransaction;
 
 
-        // 3) include HIS Г¤Г®ГЄГЁ Г­Г  ГЄГ®ГІГ®Г°Г»ГҐ ГҐГ±ГІГј Г±Г±Г»Г«ГЄГЁ (Г­ГҐ Г®ГІ ГІГ ГЎГ«ГЁГ¶Г» Line, Г­ГҐ Г®ГІ crossLine)
+        // 3) include HIS доки на которые есть ссылки (не от таблицы Line, не от crossLine)
         q2.SQL.Text :=
           'SELECT ' +                                                                #13#10 +
           '  TRIM(fc.relation_name)                            AS relation_name, ' + #13#10 +
@@ -2514,7 +2535,7 @@ var
         Tr2.StartTransaction;
 
         LogEvent('4.)');
-        // 4) include linefield Line ГҐГ±Г«ГЁ Г­Г  Г­ГҐГҐ ГҐГ±ГІГј Г±Г±Г»Г«ГЄГ  (Г­ГҐ Г®ГІ ГІГ ГЎГ«ГЁГ¶Г» Line ГЁ Г­ГҐ Г®ГІ cross-ГІГ ГЎГ«ГЁГ¶ Line)
+        // 4) include linefield Line если на нее есть ссылка (не от таблицы Line и не от cross-таблиц Line)
         for J:=0 to LineDocTbls.Count-1 do
         begin
           // line values
@@ -2618,7 +2639,7 @@ var
         LogEvent('5)');
 
 
-        // 5) Г‚Г±ГҐ Г®Г±ГІГ ГўГёГЁГҐГ±Гї Line Г¤Г®Г«Г¦Г­Г» Г§Г ГІГїГ­ГіГІГј Г§Г  Г±Г®ГЎГ®Г© Г¤Г®ГЄГЁ ГЁ ГЄГ°Г®Г±Г±-ГІГ ГЎГ«ГЁГ¶Г», ГҐГ±Г«ГЁ ГЁГ¬ГҐГҐГІ ГЇГ®Г«ГҐ-Г¬Г­Г®Г¦ГҐГ±ГІГўГ®
+        // 5) Все оставшиеся Line должны затянуть за собой доки и кросс-таблицы, если имеет поле-множество
         ReprocSituation := False;
         Step := 0;
         ReprocIncrement := (LineDocTbls.Count) div STEP_COUNT;
@@ -2642,9 +2663,9 @@ var
           FkFieldsList.Clear;
           FkFieldsList.Text := StringReplace(LineDocTbls.Values[LineDocTbls.Names[J]], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
 
-          //---------Г®ГЎГ°Г ГЎГ®ГІГЄГ  FKs Line
-          // 5.1) Г®ГЎГ°Г ГЎГ®ГІГЄГ  Г§Г ГЇГЁГ±ГҐГ© Line ГЄГ®ГІГ®Г°Г»ГҐ Гў HIS
-            // Г‚Г±ГҐ Г®Г±ГІГ ГўГёГЁГҐГ±Гї Г§Г ГЇГЁГ±ГЁ ГІГҐГЄГіГ№ГҐГЈГ® Line Г¤Г®Г«Г¦Г­Г» Г§Г ГІГїГ­ГіГІГј Г§Г  Г±Г®ГЎГ®Г© Г±ГўГ®ГЁ FK
+          //---------обработка FKs Line
+          // 5.1) обработка записей Line которые в HIS
+            // Все оставшиеся записи текущего Line должны затянуть за собой свои FK
 
           if IsFirstIteration then
           begin
@@ -2658,9 +2679,9 @@ var
               ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
               q3.Close;
             end;
-           } // ГіГ¦ГҐ Г¤Г®ГЎГ ГўГЁГ«ГЁ Г°Г Г­ГјГёГҐ
+           } // уже добавили раньше
 
-            // if PK<147000000 ГЈГ«Г ГўГ­Г»ГҐ ГЇГ®Г«Гї include HIS, Г·ГІГ®ГЎГ» Г¤Г Г«ГҐГҐ Г§Г ГІГїГ­ГіГІГј FKs ГІГ ГЄГЁГµ Г§Г ГЇГЁГ±ГҐГ©
+            // if PK<147000000 главные поля include HIS, чтобы далее затянуть FKs таких записей
             // PKs Line
             q4.SQL.Text :=
               'SELECT ' +                                                       #13#10 +
@@ -2721,7 +2742,7 @@ var
               begin
                 if q3.Fields[I].AsInteger > 0 then
                 begin
-                  RealKolvo := RealKolvo + q3.Fields[I].AsInteger;  // ГЄГ Г¦Г¤Г»Г© Г°Г Г§ ГЇГҐГ°ГҐГ®ГЎГ°Г ГЎГ®ГІГЄГ  Г± gd_document
+                  RealKolvo := RealKolvo + q3.Fields[I].AsInteger;  // каждый раз переобработка с gd_document
                   LogEvent('REPROCESS! LineTable: ' + LineDocTbls.Names[J] + ' FK: ' + FkFieldsList[I] + ' --> GD_DOCUMENT');
                 end;
               end;
@@ -2732,7 +2753,7 @@ var
             q4.Close;
           end;
 
-          if LineDocTbls.Names[J] = 'GD_DOCUMENT' then   ///TODO: ГЁГ§ГЎГ»ГІГ®Г·Г­Г® - Г±Г±Г»Г«ГЄГЁ Г­Г  Г±ГўГ®Гѕ ГІГ ГЎГ« Г®ГЎГ°Г ГЎГ ГІГ»ГўГ ГҐГ¬ Г­ГЁГ¦ГҐ
+          if LineDocTbls.Names[J] = 'GD_DOCUMENT' then   ///TODO: избыточно - ссылки на свою табл обрабатываем ниже
           begin
             repeat
               q3.Close;
@@ -2745,7 +2766,7 @@ var
             q3.Close;
           end;
 
-          // ГўГ±ГҐ FK ГЇГ®Г«Гї Гў Line
+          // все FK поля в Line
           q2.SQL.Text :=
             'SELECT ' +                                                                  #13#10 +
             '  REPLACE(TRIM(fc.list_fields), ''0='', '''')     AS fk_field, ' +          #13#10 +
@@ -2771,7 +2792,7 @@ var
                 FkFieldsListLine.Append(UpperCase( q2.FieldByName('fk_field').AsString ) + '=' + UpperCase( q2.FieldByName('ref_relation_name').AsString ));
                 FkFieldsList2.Append(UpperCase( q2.FieldByName('list_ref_fields').AsString ));
               end
-              else begin// Г±Г±Г»Г«ГЄГ  Г­Г  Г±Г Г¬Гі Г±ГҐГЎГї - Г®ГЎГ°Г ГЎГ®ГІГ ГҐГ¬ Г®ГІГ¤ГҐГ«ГјГ­Г®, Г·ГІГ®ГЎГ» ГЁГ§ГЎГҐГ¦Г ГІГј ГЇГҐГ°ГҐГ®ГЎГ°Г ГЎГ®ГІГЄГЁ
+              else begin// ссылка на саму себя - обработаем отдельно, чтобы избежать переобработки
                 SelfFkFieldsListLine.Append(UpperCase( q2.FieldByName('fk_field').AsString ) + '=' + UpperCase( q2.FieldByName('ref_relation_name').AsString ));
                 SelfFkFieldsList2.Append(UpperCase( q2.FieldByName('list_ref_fields').AsString ));
               end;
@@ -2781,7 +2802,7 @@ var
           end;
           q2.Close;
 
-          if LineDocTbls.Names[J] = 'INV_CARD' then  // Г­ГҐ Г®ГЎГ°Г ГЎГ ГІГ»ГўГ ГІГј Г§Г ГЇГЁГ±ГЁ Г¤Г«Гї ГЄГ®ГІГ®Г°Г»Гµ Г­ГҐГІ inv_movement - Г­ГіГ¦Г­Г® ГіГ¤Г Г«ГЁГІГј
+          if LineDocTbls.Names[J] = 'INV_CARD' then  // не обрабатывать записи для которых нет inv_movement - нужно удалить
             TmpStr := ' (g_his_has(2, rln.id)=1) OR (rln.id < 147000000) ' ;
 
           if FkFieldsList.Count = 1 then
@@ -2812,7 +2833,7 @@ var
                 for I:=0 to SelfFkFieldsListLine.Count-1 do
                 begin
                   RefRelation := SelfFkFieldsListLine.Values[SelfFkFieldsListLine.Names[I]];
-                  FkFieldsList3.Text := StringReplace(LineDocTbls.Values[RefRelation], '||', #13#10, [rfReplaceAll, rfIgnoreCase]); // ГЈГ«Г ГўГ­Г»ГҐ ГЇГ®Г«Гї ГІГ ГЎГ«ГЁГ¶Г» ref_relation_name
+                  FkFieldsList3.Text := StringReplace(LineDocTbls.Values[RefRelation], '||', #13#10, [rfReplaceAll, rfIgnoreCase]); // главные поля таблицы ref_relation_name
                   N := FkFieldsList.IndexOf(SelfFkFieldsListLine.Names[I]);
                   if I <> 0 then
                     q3.SQL.Add(' + ');
@@ -2824,7 +2845,7 @@ var
                   if LineDocTbls.Names[J] = 'INV_CARD' then
                     q3.SQL.Add(TmpStr)
                   else begin
-                    if N = -1 then  // Г­ГҐ ГЈГ«Г ГўГ­Г®ГҐ
+                    if N = -1 then  // не главное
                     begin
                       for K:=0 to FkFieldsList.Count-1 do
                       begin
@@ -2875,7 +2896,7 @@ var
                         'g_his_include(1, line' + IntToStr(I) + '.' +  FkFieldsList3[K] + ') ' );
                     end;
 
-                    if RefRelation = 'INV_CARD' then // ГҐГ±Г«ГЁ ГҐГ±ГІГј Г±Г±Г»Г«ГЄГ  ГІГ® Г­ГҐ ГіГ¤Г Г«ГїГҐГ¬
+                    if RefRelation = 'INV_CARD' then // если есть ссылка то не удаляем
                       q3.SQL.Add(' + ' +
                         ' g_his_include(2, line' + IntToStr(I) + '.id)');
                   end;
@@ -2909,7 +2930,7 @@ var
                 for I:=0 to SelfFkFieldsListLine.Count-1 do
                 begin
                   RefRelation := SelfFkFieldsListLine.Values[SelfFkFieldsListLine.Names[I]];
-                  FkFieldsList3.Text := StringReplace(LineDocTbls.Values[RefRelation], '||', #13#10, [rfReplaceAll, rfIgnoreCase]); // ГЈГ«Г ГўГ­Г»ГҐ ГЇГ®Г«Гї ГІГ ГЎГ«ГЁГ¶Г» ref_relation_name
+                  FkFieldsList3.Text := StringReplace(LineDocTbls.Values[RefRelation], '||', #13#10, [rfReplaceAll, rfIgnoreCase]); // главные поля таблицы ref_relation_name
                   //N := FkFieldsList.IndexOf(SelfFkFieldsListLine.Names[I]);
                   if I <> 0 then
                     q3.SQL.Add(' + ');
@@ -2939,7 +2960,7 @@ var
               for I:=0 to SelfFkFieldsListLine.Count-1 do
               begin
                 RefRelation := SelfFkFieldsListLine.Values[SelfFkFieldsListLine.Names[I]];
-                FkFieldsList3.Text := StringReplace(LineDocTbls.Values[RefRelation], '||', #13#10, [rfReplaceAll, rfIgnoreCase]); // ГЈГ«Г ГўГ­Г»ГҐ ГЇГ®Г«Гї ГІГ ГЎГ«ГЁГ¶Г» ref_relation_name
+                FkFieldsList3.Text := StringReplace(LineDocTbls.Values[RefRelation], '||', #13#10, [rfReplaceAll, rfIgnoreCase]); // главные поля таблицы ref_relation_name
                 //N := FkFieldsList.IndexOf(SelfFkFieldsListLine.Names[I]);
                 if I <> 0 then
                   q3.SQL.Add(', ');
@@ -2985,7 +3006,7 @@ var
             for I:=0 to FkFieldsListLine.Count-1 do
             begin
               RefRelation := FkFieldsListLine.Values[FkFieldsListLine.Names[I]];
-              FkFieldsList3.Text := StringReplace(LineDocTbls.Values[RefRelation], '||', #13#10, [rfReplaceAll, rfIgnoreCase]); // ГЈГ«Г ГўГ­Г»ГҐ ГЇГ®Г«Гї ГІГ ГЎГ«ГЁГ¶Г» ref_relation_name
+              FkFieldsList3.Text := StringReplace(LineDocTbls.Values[RefRelation], '||', #13#10, [rfReplaceAll, rfIgnoreCase]); // главные поля таблицы ref_relation_name
               N := FkFieldsList.IndexOf(FkFieldsListLine.Names[I]);
               if I <> 0 then
                 q3.SQL.Add(', ');
@@ -2997,7 +3018,7 @@ var
               if LineDocTbls.Names[J] = 'INV_CARD' then
                 q3.SQL.Add(TmpStr)
               else begin
-                if N = -1 then  // Г­ГҐ ГЈГ«Г ГўГ­Г®ГҐ
+                if N = -1 then  // не главное
                 begin
                   for K:=0 to FkFieldsList.Count-1 do
                   begin
@@ -3052,7 +3073,7 @@ var
                     'g_his_include(1, line' + IntToStr(I) + '.' +  FkFieldsList3[K] + ') ' );
                 end;
 
-                if RefRelation = 'INV_CARD' then // ГҐГ±Г«ГЁ ГҐГ±ГІГј Г±Г±Г»Г«ГЄГ  ГІГ® Г­ГҐ ГіГ¤Г Г«ГїГҐГ¬
+                if RefRelation = 'INV_CARD' then // если есть ссылка то не удаляем
                   q3.SQL.Add(' + ' +
                     ' g_his_include(2, line' + IntToStr(I) + '.id)');
               end;
@@ -3082,7 +3103,7 @@ var
 
                 if (ProcTblsNamesList.IndexOf(RefRelation) <> -1) or (RefRelation = 'INV_CARD') then            /////////////////tmpFIX
                 begin
-                  RealKolvo := RealKolvo + q3.Fields[I].AsInteger;  // ГЄГ Г¦Г¤Г»Г© Г°Г Г§ ГЇГҐГ°ГҐГ®ГЎГ°Г ГЎГ®ГІГЄГ  Г± gd_document
+                  RealKolvo := RealKolvo + q3.Fields[I].AsInteger;  // каждый раз переобработка с gd_document
                   LogEvent('REPROCESS! LineTable: ' + LineDocTbls.Names[J] + ' FK: ' + FkFieldsListLine.Names[I] + ' --> ' + RefRelation);
                 end;
               end;
@@ -3093,15 +3114,15 @@ var
           TmpStr := '';
 
 
-          // 5.2) if Line Г±Г®Г¤ГҐГ°Г¦ГЁГІ ГЇГ®Г«Гї-Г¬Г­Г®Г¦ГҐГ±ГІГўГ , ГІГ® Г®ГЎГ°Г ГЎГ®ГІГ ГҐГ¬ ГЁГµ CROSS-ГІГ ГЎГ«ГЁГ¶Г», Г·ГІГ®ГЎГ» Г±Г®ГµГ°Г Г­ГЁГІГј Г­ГҐГ®ГЎГµГ®Г¤ГЁГ¬Г»ГҐ Г§Г ГЇГЁГ±ГЁ
+          // 5.2) if Line содержит поля-множества, то обработаем их CROSS-таблицы, чтобы сохранить необходимые записи
 
-          //---Г®ГЎГ°Г ГЎГ®ГІГЄГ  PKs  ГҐГ±Г«ГЁ ГІГ ГЎГ« ГЁГ¬ГҐГҐГІ ГЇГ®Г«Гї-Г¬Г­Г®Г¦ГҐГ±ГІГўГ 
+          //---обработка PKs  если табл имеет поля-множества
 
           if LineSetTbls.IndexOfName(LineDocTbls.Names[J]) <> -1 then
           begin
-            if LineDocTbls.Names[J] <> 'INV_CARD' then /// inv_card.id ГіГ¦ГҐ Г±Г®ГµГ°Г Г­ГЁГ«ГЁ - HIS_2
+            if LineDocTbls.Names[J] <> 'INV_CARD' then /// inv_card.id уже сохранили - HIS_2
             begin
-              // PKs Line     (PK=FK Г®ГЎГ°Г ГЎГ®ГІГ Г­Г» ГіГ¦ГҐ)
+              // PKs Line     (PK=FK обработаны уже)
               q4.SQL.Text :=
                 'SELECT ' +                                                     #13#10 +
                 '  TRIM(c.list_fields) AS pk_fields ' +                         #13#10 +
@@ -3139,7 +3160,7 @@ var
 
                   TmpList.Clear;
                 end;
-                // include pk Line ГҐГ±Г«ГЁ ГЈГ«Г ГўГ­Г®ГҐ ГЇГ®Г«ГҐ Гў HIS
+                // include pk Line если главное поле в HIS
 
                 LogEvent('5.2)');
                 q3.SQL.Text :=
@@ -3173,7 +3194,7 @@ var
               end;
               q4.Close;
             end;
-            //---------Г®ГЎГ°Г ГЎГ®ГІГЄГ  ГЇГ®Г«ГҐГ©-Г¬Г­Г®Г¦ГҐГ±ГІГў Line
+            //---------обработка полей-множеств Line
 
             FkFieldsList3.Clear;
             if AnsiPos(',', LineSetTbls.Values[LineDocTbls.Names[J]]) = 0 then
@@ -3183,7 +3204,7 @@ var
 
             for N:=0 to FkFieldsList3.Count-1 do
             begin
-              // ГЇГ®Г«ГіГ·ГЁГ¬ ГўГ±ГҐ Г­ГҐ ГЈГ«Г ГўГ­Г»ГҐ FK cascade ГЇГ®Г«Гї Гў ГЄГ°Г®Г±Г±-ГІГ ГЎГ«ГЁГ¶ГҐ
+              // получим все не главные FK cascade поля в кросс-таблице
               q4.SQL.Text :=                                                    /// TODO: Prepare
                 'SELECT ' +                                                                  #13#10 +
                 '  REPLACE(TRIM(fc.list_fields), ''0='', '''')    AS list_field, ' +         #13#10 +
@@ -3219,7 +3240,7 @@ var
                 begin
                   RefRelation := FkFieldsListLine.Values[FkFieldsListLine.Names[I]];
                   FkFieldsList.Clear;
-                  FkFieldsList.Text := StringReplace(LineDocTbls.Values[FkFieldsListLine.Values[FkFieldsListLine.Names[I]]], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);   // ГЈГ«Г ГўГ­Г»ГҐ ГЇГ®Г«Гї ГІГ ГЎГ«ГЁГ¶Г» ref_relation_name
+                  FkFieldsList.Text := StringReplace(LineDocTbls.Values[FkFieldsListLine.Values[FkFieldsListLine.Names[I]]], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);   // главные поля таблицы ref_relation_name
 
                   if I<>0 then
                     q3.SQL.Add(', ');
@@ -3239,7 +3260,7 @@ var
                       'g_his_include(1, rln.' +  FkFieldsListLine.Names[I] + ')')
                   end
                   else begin
-                    if RefRelation = 'INV_CARD' then // ГҐГ±Г«ГЁ ГҐГ±ГІГј Г±Г±Г»Г«ГЄГ  ГІГ® Г­ГҐ ГіГ¤Г Г«ГїГҐГ¬
+                    if RefRelation = 'INV_CARD' then // если есть ссылка то не удаляем
                     begin
                       q3.SQL.Add(' IIF( g_his_has(2, line' + IntToStr(I) + '.id)=1');
                       if IsFirstIteration then
@@ -3298,7 +3319,7 @@ var
 
                     if ProcTblsNamesList.IndexOf(RefRelation) <> -1 then
                     begin
-                      RealKolvo := RealKolvo + q3.Fields[I].AsInteger;  // ГЄГ Г¦Г¤Г»Г© Г°Г Г§ ГЇГҐГ°ГҐГ®ГЎГ°Г ГЎГ®ГІГЄГ  Г± gd_document
+                      RealKolvo := RealKolvo + q3.Fields[I].AsInteger;  // каждый раз переобработка с gd_document
                       LogEvent('REPROCESS! CrossTable: ' + FkFieldsList3[N]  + ' FK: ' + FkFieldsListLine.Names[I] + ' --> ' + RefRelation);
                     end;
                   end;
@@ -3312,7 +3333,7 @@ var
 
           LogEvent('==> ' + IntToStr(J) + ' ' + LineDocTbls.Names[J]);
 ////////////
-          if RealKolvo > 0 then // ГЇГҐГ°ГҐГ®ГЎГ°Г ГЎГ®ГІГ ГҐГ¬ Гў ГЄГ®Г­Г¶ГҐ ГёГ ГЈГ 
+          if RealKolvo > 0 then // переобработаем в конце шага
             ReprocSituation := True;
 
           if not IsFirstIteration then
@@ -3334,7 +3355,7 @@ var
             ReprocCondition := True;
           end;
 
-          // Г§Г ГЇГіГ±ГЄ ГЇГҐГ°ГҐГ®ГЎГ°Г ГЎГ®ГІГЄГЁ
+          // запуск переобработки
           if  ReprocSituation and ReprocCondition then
           begin
             GoReprocess := True;
@@ -3347,7 +3368,7 @@ var
           Inc(J);
         end;
 
-        // Г±Г®ГµГ°Г Г­ГЁГ¬ Г®ГЎГ°Г ГЎГ®ГІГ Г­Г­Г»ГҐ ГІГ ГЎГ«ГЁГ¶Г» Г·ГІГ®ГЎГ» ГІГ®Г«ГјГЄГ® Г¤Г«Гї Г­ГЁГµ Г®ГІГЄГ«ГѕГ·Г ГІГј ГЁ ГіГ¤Г Г«ГїГІГј
+        // сохраним обработанные таблицы чтобы только для них отключать и удалять
         FProcessedTbls.Text := LineDocTbls.Text;
         if CrossLineTbls.Count > 0 then
           FProcessedTbls.CommaText := FProcessedTbls.CommaText + ',' + CrossLineTbls.CommaText;
@@ -3516,7 +3537,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    // Г­Г®ГўГ»ГҐ Г¤Г®ГЄГЁ ГЁ Г± ГІГЁГЇГ Г¬ГЁ ГіГЄГ Г§Г Г­Г­Г»Г¬ГЁ ГЇГ®Г«ГјГ§Г®ГўГ ГІГҐГ«ГҐГ¬ Г¤Г®Г«Г¦Г­Г» Г®Г±ГІГ ГІГјГ±Гї
+    // новые доки и с типами указанными пользователем должны остаться
 
     q.SQL.Text :=
       'SELECT SUM(g_his_include(1, doc.id)) AS Kolvo ' +                        #13#10 +
@@ -3590,7 +3611,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    CreateHIS(2); // inv_card.id Г­Г  ГЄГ®ГІГ®Г°Г»ГҐ ГҐГ±ГІГј Г±Г±Г»Г«ГЄГЁ
+    CreateHIS(2); // inv_card.id на которые есть ссылки
     ProgressMsgEvent('', 100);
 
 
@@ -3727,9 +3748,9 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
 
-    // ГЇГ®Г¤ГЈГ®ГІГ®ГўГЄГ  inv_card
+    // подготовка inv_card
 
-    // Г®ГІГЄГ«ГѕГ·ГҐГ­ГЁГҐ ГІГ°ГЁГЈГЈГҐГ°Г®Гў
+    // отключение триггеров
     q2.SQL.Text :=
       'SELECT ' +                                                               #13#10 +
       '  TRIM(rdb$trigger_name) AS TN ' +                                       #13#10 +
@@ -3756,7 +3777,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    // ГіГ¤Г Г«ГҐГ­ГЁГҐ FKs
+    // удаление FKs
     q2.SQL.Text :=                                                                                           //TESTME
       'SELECT ' +                                                                                            #13#10 +
       '  TRIM(c.rdb$constraint_name)                                                 AS ConstraintName, ' +  #13#10 +
@@ -3830,7 +3851,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    // ГіГ¤Г Г«ГҐГ­ГЁГҐ Uniques
+    // удаление Uniques
     q2.SQL.Text :=                                                                        //TESTME
       'SELECT ' +                                                                         #13#10 +
       '   c.rdb$constraint_name, ' +                                                      #13#10 +
@@ -3880,7 +3901,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    // Г¤ГҐГ ГЄГІГЁГўГ Г¶ГЁГї ГЁГ­Г¤ГҐГЄГ±Г®Гў
+    // деактивация индексов
     q2.SQL.Text :=
       'SELECT i.rdb$index_name ' +                                                                       #13#10 +
       '  FROM rdb$indices i ' +                                                                          #13#10 +
@@ -3988,7 +4009,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    // ГўГ®cГ±ГІГ Г­Г®ГўГ«ГҐГ­ГЁГҐ inv_card
+    // воcстановление inv_card
 
     for I:=RestoreQueries.Count-1 downto 0 do
     begin
@@ -4026,7 +4047,7 @@ var
   RestoreQueries: TStringList;
   MergeQueries: TStringList;
 begin
-  ProgressMsgEvent('ГЋГЎГєГҐГ¤ГЁГ­ГҐГ­ГЁГҐ ГЄГ Г°ГІГ®Г·ГҐГЄ...', 0);
+  ProgressMsgEvent('Объединение карточек...', 0);
   LogEvent('InvCard merging... ');
 
   //Reconnect(True, True);  // garbage collect OFF
@@ -4057,7 +4078,7 @@ begin
       LogEvent('Table DBS_TMP_MERGE_CARD exists.');
     end
     else begin
-      q.SQL.Text :=                                                             // ГЄГ Г°ГІГ®Г·ГЄГЁ, Г®ГІ ГЄГ®ГІГ®Г°Г»Гµ ГµГ®ГІГЁГ¬ ГЁГ§ГЎГ ГўГЁГІГјГ±Гї ГЇГіГІГҐГ¬ ГЇГҐГ°ГҐГЇГ°ГЁГўГїГ§ГЄГЁ ГЁ ГіГ¤Г Г«ГҐГ­ГЁГї
+      q.SQL.Text :=                                                             // карточки, от которых хотим избавиться путем перепривязки и удаления
         'CREATE TABLE DBS_TMP_MERGE_CARD ( ' +                                  #13#10 +
         '  OLD_CARDKEY INTEGER, ' +                                             #13#10 +
         '  NEW_CARDKEY INTEGER, ' +                                             #13#10 +
@@ -4069,7 +4090,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    q.SQL.Text :=                                                               // ГЄГ Г°ГІГ®Г·ГЄГЁ ГЇГ® ГЅГІГЁГ¬ Г¤Г®ГЄГіГ¬ГҐГ­ГІГ Г¬ ГЎГіГ¤ГҐГ¬ Г®ГЎГєГҐГ¤ГЁГ­ГїГІГј
+    q.SQL.Text :=                                                               // карточки по этим документам будем объединять
       'SELECT COUNT(g_his_include(0, doc.id)) ' +                               #13#10 +
       '  FROM gd_document doc ' +                                               #13#10 +
       ' WHERE doc.documentdate < :DocDate ';
@@ -4083,7 +4104,7 @@ begin
 
     ProgressMsgEvent('', 3*PROGRESS_STEP);    // 3%
 
-    q.SQL.Text :=                                                               // ГЄГ Г°ГІГ®Г·ГЄГЁ ГіГ·Г Г±ГІГўГіГѕГ№ГЁГҐ Гў Г¤ГўГЁГ¦ГҐГ­ГЁГЁ ГўГ­ГҐ ГЇГҐГ°ГЁГ®Г¤Г  Г­ГҐ Г®ГЎГєГҐГ¤ГЁГ­ГїГҐГ¬
+    q.SQL.Text :=                                                               // карточки участвующие в движении вне периода не объединяем
       'SELECT COUNT(g_his_include(0, im.cardkey)) ' +                           #13#10 +
       '  FROM inv_movement im ' +                                               #13#10 +
       ' WHERE im.movementdate >= :DocDate ';
@@ -4139,7 +4160,7 @@ begin
     if not FDoStopProcessing then
       ExecSqlLogEvent(q2, 'MergeCards');
 
-    // ГЄГ Г°ГІГ®Г·ГЄГЁ Г¤Г«Гї Г®ГЎГєГҐГ¤ГЁГ­ГҐГ­ГЁГї
+    // карточки для объединения
     q.SQL.Text :=
       'EXECUTE BLOCK   ' +                                                                                 #13#10 +
       'AS  ' +                                                                                             #13#10 +
@@ -4222,7 +4243,7 @@ begin
 
     ProgressMsgEvent('', 6*PROGRESS_STEP);    // 5%
 
-    // Г±Г®ГµГ°Г Г­ГҐГ­ГЁГҐ Г§Г ГЇГ°Г®Г±Г®Гў Г¤Г«Гї ГЇГҐГ°ГҐГЇГ°ГЁГўГїГ§ГЄГЁ
+    // сохранение запросов для перепривязки
 
     q2.SQL.Text :=
       'SELECT ' +                                                               #13#10 +
@@ -4266,7 +4287,7 @@ begin
 
     ProgressMsgEvent('', 1*PROGRESS_STEP);    // 1%
 
-    // Г®ГІГЄГ«ГѕГ·ГҐГ­ГЁГҐ Г¬ГҐГёГ ГѕГ№ГЁГµ ГЇГҐГ°ГҐГЇГ°ГЁГўГїГ§ГЄГҐ ГЄГ Г°ГІГ®Г·ГҐГЄ ГІГ°ГЁГЈГЈГҐГ°Г®Гў
+    // отключение мешающих перепривязке карточек триггеров
 
     q2.SQL.Text :=
       'SELECT ' +                                                               #13#10 +
@@ -4300,7 +4321,7 @@ begin
 
     ProgressMsgEvent('', 1*PROGRESS_STEP);    // 1%
 
-    // Г®ГІГЄГ«ГѕГ·ГҐГ­ГЁГҐ ГІГ°ГЁГЈГЈГҐГ°Г®Гў
+    // отключение триггеров
 
     q2.SQL.Text :=
       'SELECT ' +                                                               #13#10 +
@@ -4330,7 +4351,7 @@ begin
 
     ProgressMsgEvent('', 1*PROGRESS_STEP);    // 1%
 
-    // ГіГ¤Г Г«ГҐГ­ГЁГҐ FKs, ГЄГ°Г®Г¬ГҐ ГЁГ±ГЇГ®Г«ГјГ§ГіГҐГ¬Г»Гµ ГЇГ°ГЁ Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГЁ inv_card ГЁ inv_movement
+    // удаление FKs, кроме используемых при обновлении inv_card и inv_movement
 
     q2.SQL.Text :=
       'SELECT ' +                                                                                            #13#10 +
@@ -4405,7 +4426,7 @@ begin
 
      ProgressMsgEvent('', 2*PROGRESS_STEP);    // 2%
 
-    // ГіГ¤Г Г«ГҐГ­ГЁГҐ Uniques
+    // удаление Uniques
 
     q2.SQL.Text :=
       'SELECT ' +                                                                            #13#10 +
@@ -4459,7 +4480,7 @@ begin
 
      ProgressMsgEvent('', 1*PROGRESS_STEP);    // 1%
 
-    // Г¤ГҐГ ГЄГІГЁГўГ Г¶ГЁГї ГЁГ­Г¤ГҐГЄГ±Г®Гў
+    // деактивация индексов
 
     q2.SQL.Text :=
       'SELECT i.rdb$index_name ' +                                                                       #13#10 +
@@ -4490,7 +4511,7 @@ begin
 
     ProgressMsgEvent('', 1*PROGRESS_STEP);    // 1%
 
-    // ГЇГҐГ°ГҐГЇГ°ГЁГўГїГ§ГЄГ  Г±Г±Г»Г«Г®ГЄ Г­Г  ГЄГ Г°ГІГ®Г·ГЄГЁ
+    // перепривязка ссылок на карточки
 
     for I:=0 to MergeQueries.Count-1 do
     begin
@@ -4504,7 +4525,7 @@ begin
 
     ProgressMsgEvent('', 10*PROGRESS_STEP);    // 10%
 
-    // ГіГ¤Г Г«ГҐГ­ГЁГҐ Г®Г±ГІГ ГўГёГЁГµГ±Гї FKs inv_card
+    // удаление оставшихся FKs inv_card
     q2.SQL.Text :=
       'SELECT ' +                                                                                            #13#10 +
       '  TRIM(c.rdb$constraint_name)                                                 AS ConstraintName, ' +  #13#10 +
@@ -4579,7 +4600,7 @@ begin
 
     ProgressMsgEvent('', 1*PROGRESS_STEP);    // 1%
 
-    // ГіГ¤Г Г«ГҐГ­ГЁГҐ ГЄГ Г°ГІГ®Г·ГҐГЄ, ГЄГ®ГІГ®Г°Г»ГҐ ГЎГ»Г«ГЁ Г®ГЎГєГҐГ¤ГЁГ­ГҐГ­Г»
+    // удаление карточек, которые были объединены
 
     q.SQL.Text :=
       'DELETE FROM inv_card ' +                                                 #13#10 +
@@ -4593,7 +4614,7 @@ begin
 
     ProgressMsgEvent('', 64*PROGRESS_STEP);    // 64%
 
-    // ГўГ®cГ±ГІГ Г­Г®ГўГ«ГҐГ­ГЁГҐ
+    // воcстановление
 
     for I:=RestoreQueries.Count-1 downto 0 do
     begin
@@ -4605,7 +4626,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    // ГЇГҐГ°ГҐГ±Г·ГҐГІ Г±ГЄГ«Г Г¤Г±ГЄГ®ГЈГ® Г±Г Г«ГјГ¤Г® INV_BALANCE
+    // пересчет складского сальдо INV_BALANCE
     CreateInvBalance;
 
     ProgressMsgEvent('', 16*PROGRESS_STEP);    // 16%
@@ -4623,7 +4644,7 @@ begin
 
     LogEvent('InvCard merging... OK');
     ProgressMsgEvent(' ', - FCurrentProgressStep);
-    MsgBoxEvent('ГЋГЎГєГҐГ¤ГЁГ­ГҐГ­ГЁГҐ ГЄГ Г°ГІГ®Г·ГҐГЄ Г§Г ГўГҐГ°ГёГҐГ­Г®.');
+    MsgBoxEvent('Объединение карточек завершено.');
   finally
     q.Free;
     q2.Free;
@@ -4651,9 +4672,9 @@ var
       'BEGIN ' +                                                                        #13#10 +
       '  FOR ' +                                                                        #13#10 +
       '    SELECT t.rdb$trigger_name ' +                                                #13#10 +
-      '    FROM rdb$triggers t ' +                                                      #13#10 +
+      '    FROM rdb$triggers t LEFT JOIN rdb$relations r ON t.rdb$relation_name = r.rdb$relation_name ' +                                                      #13#10 +
       '    WHERE ((t.rdb$trigger_inactive = 0) OR (t.rdb$trigger_inactive IS NULL)) ' + #13#10 +
-      '      AND ((t.RDB$SYSTEM_FLAG = 0) OR (t.RDB$SYSTEM_FLAG IS NULL)) ' +           #13#10 +
+      '      AND ((t.RDB$SYSTEM_FLAG = 0) OR (t.RDB$SYSTEM_FLAG IS NULL)) AND (R.RDB$SYSTEM_FLAG = 0) ' +           #13#10 +
       //'      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
       '    INTO :TN ' +                                                                 #13#10 +
       '  DO ' +                                                                         #13#10 +
@@ -4788,13 +4809,13 @@ begin
   end;
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze.DeleteOldAcEntryBalance; // ГіГ¤Г Г«ГҐГ­ГЁГҐ Г±ГІГ Г°Г®ГЈГ® ГЎГіГµГЈГ Г«ГІГҐГ°Г±ГЄГ®ГЈГ® Г±Г Г«ГјГ¤Г®
+procedure TgsDBSqueeze.DeleteOldAcEntryBalance; // удаление старого бухгалтерского сальдо
 const
-  IB_DATE_DELTA = 15018; // Г°Г Г§Г­ГЁГ¶Г  Гў Г¤Г­ГїГµ Г¬ГҐГ¦Г¤Гі "Г­ГіГ«ГҐГўГ»Г¬ГЁ" Г¤Г ГІГ Г¬ГЁ Delphi ГЁ InterBase
+  IB_DATE_DELTA = 15018; // разница в днях между "нулевыми" датами Delphi и InterBase
 var
   q: TIBSQL;
   Tr: TIBTransaction;
-  CalculatedBalanceDate: TDateTime; // Г§Г­Г Г·ГҐГ­ГЁГҐ ГЈГҐГ­ГҐГ°Г ГІГ®Г°Г  Г± Г¤Г ГІГ®Г© ГЇГ®Г±Г«ГҐГ¤Г­ГҐГЈГ® ГЇГ®Г¤Г±Г·ГҐГІГ  ENTRY BALANCE
+  CalculatedBalanceDate: TDateTime; // значение генератора с датой последнего подсчета ENTRY BALANCE
 begin
   LogEvent('Deleting old entries balance...');
   Assert(Connected);
@@ -4880,7 +4901,7 @@ begin
       'DELETE FROM GD_DOCUMENT ' +                                              #13#10 +
       ' WHERE ' +                                                               #13#10 +
       '   ((g_his_has(1, id)=0) AND (g_his_has(0, id)=0)) ' +                   #13#10 +        //   '   ((g_his_has(1, id)=0) AND (g_his_has(1,parent)=0)) ' + #13#10 +      ///////////   g_his_has(1, id)=0
-      '   AND id >= 147000000';                                                 /// ГЇГ°Г®ГўГҐГ°ГЁГІГј Г·ГІГ® NULL Г¤Г ГҐГІ his has = 0
+      '   AND id >= 147000000';                                                 /// проверить что NULL дает his has = 0
     ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
 
     Tr.Commit;
@@ -4941,7 +4962,7 @@ begin
     qInsertAcEntry.Transaction := Tr;
     q2.Transaction := Tr;
 
-    // ГЇГҐГ°ГҐГ­Г®Г± Г¤Г®ГЄГіГ¬ГҐГ­ГІГ®Гў.  documentkey=masterdockey
+    // перенос документов.  documentkey=masterdockey
     q2.SQL.Text :=
       'INSERT INTO GD_DOCUMENT ( ' +                                            #13#10 +
       '  id, ' +                                                                #13#10 +
@@ -4966,7 +4987,7 @@ begin
     ExecSqlLogEvent(q2, 'CreateAcEntries');
     ProgressMsgEvent('', 2*PROGRESS_STEP);
 
-    // ГЇГҐГ°ГҐГ­Г®Г± ГЇГ°Г®ГўГ®Г¤Г®ГЄ
+    // перенос проводок
     qInsertAcRec.SQL.Text :=
       'INSERT INTO AC_RECORD ( ' +                                              #13#10 +
       '  id, ' +                                                                #13#10 +
@@ -4988,7 +5009,7 @@ begin
       ExecSqlLogEvent(qInsertAcRec, 'CreateAcEntries');
     ProgressMsgEvent('', 2*PROGRESS_STEP);
 
-    // ГЇГҐГ°ГҐГ­Г®Г± ГЇГ°Г®ГўГ®Г¤Г®ГЄ
+    // перенос проводок
     qInsertAcEntry.SQL.Text :=
       'INSERT INTO AC_ENTRY (' +                                                #13#10 +
       '  issimple, ' +                                                          #13#10 +
@@ -5063,7 +5084,7 @@ begin
         '  credit, ' +                                                          #13#10 +
         '  contactkey) ' +                                                      #13#10 +
         'SELECT ' +                                                             #13#10 +
-        '  id_movement_d, goodkey, movementkey, ' +                             #13#10 +
+        '  ID_MOVEMENT_D, goodkey, movementkey, ' +                             #13#10 +
         '  :ClosingDate, ' +                                                    #13#10 +
         '  :SaldoDoc, cardkey, ' +                                              #13#10 +
         '  IIF((balance >= 0), ' +                                              #13#10 +
@@ -5116,12 +5137,13 @@ var
       '      t.rdb$trigger_name ' +                                                       #13#10 +
       '    FROM ' +                                                                       #13#10 +
       '      rdb$triggers t ' +                                                           #13#10 +
+      '      LEFT JOIN RDB$RELATIONS r ON t.rdb$relation_name = r.rdb$relation_name ' +   #13#10 +
       '      LEFT JOIN DBS_INACTIVE_TRIGGERS it ' +                                       #13#10 +
       '        ON it.trigger_name = t.rdb$trigger_name ' +                                #13#10 +
       '    WHERE ' +                                                                      #13#10 +
       '      ((t.rdb$trigger_inactive <> 0) AND (t.rdb$trigger_inactive IS NOT NULL)) ' + #13#10 +
       '      AND ((t.rdb$system_flag = 0) OR (t.rdb$system_flag IS NULL)) ' +             #13#10 +
-      '      AND it.trigger_name IS NULL ' +                                              #13#10 +
+      '      AND it.trigger_name IS NULL AND r.rdb$system_flag = 0 ' +                    #13#10 +
       '    INTO :TN ' +                                                                   #13#10 +
       '  DO ' +                                                                           #13#10 +
       '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' ACTIVE ''; ' +               #13#10 +
@@ -5387,12 +5409,12 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
 
-    // Г®ГІГЄГ«ГѕГ·ГҐГ­ГЁГҐ ГІГ°ГЁГЈГЈГҐГ°Г®Гў
+    // отключение триггеров
     q2.SQL.Text :=
       'SELECT ' +                                                               #13#10 +
       '  TRIM(rdb$trigger_name) AS TN ' +                                       #13#10 +
       'FROM ' +                                                                 #13#10 +
-      '  RDB$TRIGGERS ' +                                                       #13#10 +
+      '  RDB$TRIGGERS' +                                                       #13#10 +
       'WHERE ' +                                                                #13#10 +
       '  rdb$relation_name = ''INV_BALANCE'' ' +                                #13#10 +
       '  AND rdb$trigger_type IN(1,2) ' +                                       #13#10 + // after/before insert
@@ -5451,7 +5473,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    // ГўГ®Г±Г±ГІГ Г­Г®ГўГ«ГҐГ­ГЁГҐ ГІГ°ГЁГЈГЈГҐГ°Г®Гў
+    // восстановление триггеров
     for I:=0 to RestoreQueries.Count-1  do
     begin
       q.SQL.Text := RestoreQueries[I];
@@ -5513,7 +5535,7 @@ begin
     except
       on E: Exception do
       begin
-        ErrorEvent('ГЋГёГЁГЎГЄГ  ГЇГ°ГЁ ГіГ¤Г Г«ГҐГ­ГЁГЁ ГІГ ГЎГ«ГЁГ¶Г»: ' + E.Message);
+        ErrorEvent('Ошибка при удалении таблицы: ' + E.Message);
       end;
     end;
   finally
@@ -5524,7 +5546,7 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze.ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String);
 const
-  Ms = 1 / (24 * 60 * 60 * 1000); // Г‡Г­Г Г·ГҐГ­ГЁГҐ 1 Г¬ГЁГ«Г«ГЁГ±ГҐГЄГіГ­Г¤Г» Гў ГґГ®Г°Г¬Г ГІГҐ TDateTime
+  Ms = 1 / (24 * 60 * 60 * 1000); // Значение 1 миллисекунды в формате TDateTime
 var
   I: Integer;
   ParamValuesStr: String;
@@ -5610,7 +5632,7 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze.ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String);
 const
-  Ms = 1 / (24 * 60 * 60 * 1000); // Г‡Г­Г Г·ГҐГ­ГЁГҐ 1 Г¬ГЁГ«Г«ГЁГ±ГҐГЄГіГ­Г¤Г» Гў ГґГ®Г°Г¬Г ГІГҐ TDateTime
+  Ms = 1 / (24 * 60 * 60 * 1000); // Значение 1 миллисекунды в формате TDateTime
 var
   I: Integer;
   ParamValuesStr: String;
@@ -5764,4 +5786,5 @@ begin
 end;
 
 end.
+
 

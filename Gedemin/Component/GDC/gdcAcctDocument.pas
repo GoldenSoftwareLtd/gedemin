@@ -1,10 +1,13 @@
+// ShlTanya, 09.02.2019
+
 unit gdcAcctDocument;
 
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Db, IBCustomDataSet, gdcBase, gdcTree, gdcClasses, gd_createable_form;
+  Db, IBCustomDataSet, gdcBase, gdcTree, gdcClasses, gd_createable_form,
+  gdcBaseInterface;
 
 type
   TgdcAcctDocument = class(TgdcDocument)

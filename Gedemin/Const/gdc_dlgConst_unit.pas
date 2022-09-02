@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdc_dlgConst_unit;
 
@@ -141,6 +142,12 @@ begin
       cbisPeriod.Enabled := False;
       cbisUser.Enabled := False;
       cbisCompany.Enabled := False;
+    end
+    else
+    begin
+      cbisPeriod.Enabled := True;
+      cbisUser.Enabled := True;
+      cbisCompany.Enabled := True;
     end;
 
     if (gdcObject.State <> dsEdit)
@@ -171,5 +178,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgConst);
-
 end.

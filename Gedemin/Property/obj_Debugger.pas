@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019, #4135
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -34,7 +36,8 @@ interface
 uses
   Windows, Classes, ComObj, ActiveX, AxCtrls, Gedemin_TLB, StdVcl, Messages,
   MSScriptControl_TLB, SynEdit, VBParser, Sysutils, Forms, obj_i_Debugger,
-  rp_BaseReport_unit, scr_i_FunctionList, evt_i_Base, gd_i_ScriptFactory;
+  rp_BaseReport_unit, scr_i_FunctionList, evt_i_Base, gd_i_ScriptFactory,
+  gdcBaseInterface;
 
 const
   sfRunTimeSciptMsg = 'ИД: %d; Время: %g c; СФ: %s';
@@ -48,7 +51,7 @@ type
     FScriptLine: Integer;
     FScriptLineAdd: Integer;
     FExecutable: Boolean;
-    FId: Integer;
+    FId: TID;
   protected
     //Устанавливает флаг выполняемости строки (для дебагера)
     procedure SetExecutable; override;
@@ -80,8 +83,8 @@ type
 
   TDebuggerParser = class
   private
-    FId: Integer;
-    FProcedureId: Integer;
+    FId: TID;
+    FProcedureId: TID;
     FLineNumber: Integer;
     FAddLine: Integer;
     FProcTable: array[#0..#255] of TProcTableProc;
@@ -184,7 +187,7 @@ type
     procedure ObjDeclStmt;
     function CurrentWord: string;
     function TestCorrect: Boolean;
-    procedure SetID(const Value: Integer);
+    procedure SetID(const Value: TID);
     procedure CheckBufSize(L: Integer);
     procedure SetDebugger(const Value: TDebugger);
   protected
@@ -208,7 +211,7 @@ type
     function Eval: Variant;
 
     property Script: string read GetScript write SetScript;
-    property ID: Integer read FID write SetID;
+    property ID: TID read FID write SetID;
     property Debugger: TDebugger read FDebugger write SetDebugger;
   end;
 
@@ -229,7 +232,7 @@ type
     FParser1: TDebuggerParser;
 //    FOnScriptInvalidate: TNotifyEvent;
 //    FProcedureId: Integer;
-    FExecuteScriptFunction: Integer{TrpCustomFunction};
+    FExecuteScriptFunction: TID {TrpCustomFunction};
     FExecuteScriptModule: string;
     FInDebugger: Boolean;
     //Стек переменных
@@ -249,7 +252,7 @@ type
     FEnabled: Boolean;
     //Список отключенных окон
     FEnabledList: TList;
-    FStopFunctionId: Integer;
+    FStopFunctionId: TID;
 //    FStopProcId: Integer;
     FOnEndScript: TEndScriptEvent;
 
@@ -262,15 +265,15 @@ type
     FLastActiveWindow: HWND;
 
     //Функции интерфейса IgsDebugger
-    function  BreakPoint(Sfid: Integer; ProcId: Integer;
+    function  BreakPoint(Sfid: ATID; ProcId: ATID;
       Line: Integer): WordBool; safecall;
-    procedure ProcBegin(sfid: Integer; const FunctionName: WideString); safecall;
+    procedure ProcBegin(sfid: ATID; const FunctionName: WideString); safecall;
     procedure SetVariable(const VarName: WideString; Value: OleVariant); safecall;
     function  GetVariable(const VarName: WideString): OleVariant; safecall;
     procedure SetArgument(const VarName: WideString; Value: OleVariant); safecall;
     procedure ProcEnd; safecall;
-    procedure BeginTime(FunctionKey: Integer; var FunctionName: WideString); safecall;
-    procedure EndTime(FunctionKey: Integer); safecall;
+    procedure BeginTime(FunctionKey: ATID; var FunctionName: WideString); safecall;
+    procedure EndTime(FunctionKey: ATID); safecall;
     //Возвращает значение переменной
     function VaribleExists(Name: WideString): Boolean;
     //вычисляет значение выражения
@@ -296,12 +299,12 @@ type
     procedure SetOnYield(const Value: TNotifyEvent);
     procedure SetCurrentLine(const Value: Integer);
     function GetExecuteDebugLines: TDebugLines;
-    function GetExecuteScriptFunction: Integer;
+    function GetExecuteScriptFunction: TID;
     procedure SetInDebugger(const Value: Boolean);
     function GetInDebugger: Boolean;
     procedure SetFunctionRun(const Value: Boolean);
     function GetFunctionRun: Boolean;
-    function GetLastScriptFunction: Integer;
+    function GetLastScriptFunction: TID;
     function GetFinallyParams(const Index: Integer): TFinallyRec;
     function GetCurrentFinallyParams: TFinallyRec;
     function GetEnabled: Boolean;
@@ -315,7 +318,7 @@ type
     procedure SetOnStateChanged(const Value: TnotifyEvent);
     function GetOnStateChanged: TnotifyEvent;
     procedure DecKeyIndex;
-    function  GetCurrentKey: Integer;
+    function  GetCurrentKey: TID;
     function  GetCurrentKeyIndex: Integer;
     function GetLastFinallyParams: TFinallyRec;
     procedure SetLastFinallyParams(const AParamArray: OleVariant;
@@ -353,7 +356,7 @@ type
     procedure Stop;
     procedure Reset;
     procedure WantPause;
-    procedure GotoToLine(SFID, Line: Integer);
+    procedure GotoToLine(SFID: TID; Line: Integer);
     procedure ToggleBreakPoint(ALine: Integer; DL: TDebugLines); overload;
     procedure ToggleExecuteBreakpoint(ALine: Integer);
     procedure SetErrorLine(Line: Integer); overload;
@@ -375,13 +378,13 @@ type
     property DebugLines: TDebugLines read GetDebugLines;
     property ExecuteDebugLines: TDebugLines read GetExecuteDebugLines;
     property Parser: TVBDebugParser read GetParser;
-    property ExecuteScriptFunction: Integer read GetExecuteScriptFunction;
+    property ExecuteScriptFunction: TID read GetExecuteScriptFunction;
     //Указывает на то что сейчас идет обработка точки прерывания
     property InDebugger: Boolean read GetInDebugger write SetInDebugger;
     //Указывает на то что скрипт-контрол запустил функцию на выполнение
     property FunctionRun: Boolean read GetFunctionRun write SetFunctionRun;
     //Ид последней скрипт-функции. Используется при возникновении ошибки
-    property LastScriptFunction: Integer read GetLastScriptFunction;
+    property LastScriptFunction: TID read GetLastScriptFunction;
     //Финалли-скрипт последней скрипт-функции.
     property LastFinallyParams: TFinallyRec read GetLastFinallyParams;
     //На время загрузки окна троперти необходимо отключать дебагер
@@ -673,7 +676,7 @@ end;
 
 function TDebugger.IsBreakpointLine(ALine: Integer): Boolean;
 begin
-  Result := (ALine > 0) and (FExecuteDebugLines.Count > ALine) and 
+  Result := (ALine > 0) and (FExecuteDebugLines.Count > ALine) and
     (dlBreakpointLine in FExecuteDebugLines.DebugLines[ALine]);
 end;
 
@@ -697,8 +700,8 @@ begin
     begin
       fWantedState := dsPaused;
       DoStateChange;
-    end;  
-  end;  
+    end;
+  end;
 end;
 
 procedure TDebugger.Run;
@@ -750,7 +753,7 @@ procedure TDebugger.ClearErrorLine;
 begin
 end;
 
-function  TDebugger.BreakPoint(Sfid: Integer; ProcId: Integer;
+function  TDebugger.BreakPoint(Sfid: ATID; ProcId: ATID;
   Line: Integer): WordBool;
 var
   Sf: TrpCustomFunction;
@@ -765,7 +768,7 @@ begin
     //поэтому в него загружен скрипт подготовленный для отладки
     if not PropertySettings.DebugSet.UseDebugInfo then
     begin
-      FExecuteScriptFunction := SfId;
+      FExecuteScriptFunction := GetTID(SFID);
       Exit;
     end;
 
@@ -781,7 +784,7 @@ begin
     begin
       FInDebugger := True;
 
-      BreakPoint := BreakPointList.BreakPoint(SFID, Line + 1);
+      BreakPoint := BreakPointList.BreakPoint(GetTID(SFID), Line + 1);
       B := False;
       if BreakPoint <> nil then
       begin
@@ -827,7 +830,7 @@ begin
       begin
         if glbFunctionList <> nil then
         begin
-          Sf := glbFunctionList.FindFunction(SFId);
+          Sf := glbFunctionList.FindFunction(GetTID(SFId));
           if Sf <> nil then
           begin
             try
@@ -853,7 +856,7 @@ begin
           Exit;
       end;
       //Проверяем является ли строка кторокой остановки
-      if ((Line = fLineToStop) and (FStopFunctionId = SFID)) or
+      if ((Line = fLineToStop) and (FStopFunctionId = GetTID(SFID))) or
         B or (fDebuggerState in [dsStep, dsStepOver]) or
         (fWantedState = dsPaused) then
       begin
@@ -869,7 +872,7 @@ begin
             if GetActiveWindow <> EventControl.GetPropertyHanlde then
               FLastActiveWindow := GetActiveWindow;
             //Отключаем очистку списка ошибок
-            EventControl.DebugScriptFunction(SFID, FExecuteScriptModule,
+            EventControl.DebugScriptFunction(GetTID(SFID), FExecuteScriptModule,
               Line);
           finally
             //подключаем дебаггер
@@ -911,11 +914,11 @@ begin
   FCurrentKeyIndex := -1;
 end;
 
-function TDebugger.GetLastScriptFunction: Integer;
+function TDebugger.GetLastScriptFunction: TID;
 begin
   if FScriptFunctionList.Count > 0 then
 //    Result := FLastScriptFunction;
-    Result := Integer(FScriptFunctionList[FScriptFunctionList.Count - 1])
+    Result := GetTID(FScriptFunctionList[FScriptFunctionList.Count - 1], cEmptyContext)
   else
     Result := 0;
 end;
@@ -1028,14 +1031,14 @@ begin
   IdList := FScriptFunctionList;
 end;
 
-procedure TDebugger.BeginTime(FunctionKey: Integer;
+procedure TDebugger.BeginTime(FunctionKey: ATID;
   var FunctionName: WideString);
 var
   LRuntimeRec: TRuntimeRec;
 begin
   try
     LRuntimeRec.FunctionName := FunctionName;
-    LRuntimeRec.FunctionKey := FunctionKey;
+    LRuntimeRec.FunctionKey := GetTID(FunctionKey);
     LRuntimeRec.RuntimeTicks := GetTickCount;
     LRuntimeRec.BeginTime := Now;
     {$IFDEF WITH_INDY}
@@ -1051,11 +1054,11 @@ begin
   end;
 end;
 
-procedure TDebugger.EndTime(FunctionKey: Integer);
+procedure TDebugger.EndTime(FunctionKey: ATID);
 var
   LRuntimeRec: TRuntimeRec;
 begin
-  if FRuntimeList.LastRec.FunctionKey = FunctionKey then
+  if FRuntimeList.LastRec.FunctionKey = GetTID(FunctionKey) then
   begin
     LRuntimeRec := FRuntimeList.LastRec;
     LRuntimeRec.RuntimeTicks := GetTickCount - FRuntimeList.LastRec.RuntimeTicks;
@@ -1087,7 +1090,7 @@ begin
   if CheckRunTimeFile then
   begin
     Str := Format(sfRunTimeSciptMsg,
-      [RuntimeRec.FunctionKey, RuntimeRec.RuntimeTicks / 1000, RuntimeRec.FunctionName]);
+      [TID264(RuntimeRec.FunctionKey), RuntimeRec.RuntimeTicks / 1000, RuntimeRec.FunctionName]);
     FRuntimeStream.WriteBuffer(Str[1], Length(Str));
     FRuntimeStream.WriteBuffer(#13#10, 2);
   end;
@@ -1215,10 +1218,10 @@ begin
   FFinallyVarList.Delete(FCurrentKeyIndex);
 end;
 
-function TDebugger.GetCurrentKey: Integer;
+function TDebugger.GetCurrentKey: TID;
 begin
   if FCurrentKeyIndex > -1 then
-    Result := Integer(FScriptFunctionList[FCurrentKeyIndex])
+    Result := GetTID(FScriptFunctionList[FCurrentKeyIndex], cEmptyContext)
   else
     Result := 0;
 end;
@@ -1238,12 +1241,11 @@ end;
 procedure TVBDebugParser.DoAfterStatament;
 begin
   inherited;
-
   if FExecutable then
   begin
     if FInFunction then
       FScript[FCurrentLine] := Format(StringOfChar(' ', FParagraph) +
-        cBreakPoint, [FId, FProcedureId, FCurrentLine, FSubFunction]) + ': ' +
+        cBreakPoint, [TID264(FId), TID264(FProcedureId), FCurrentLine, FSubFunction]) + ': ' +
         FScript[FCurrentLine];
     if FDesignator <> '' then
     begin
@@ -1266,7 +1268,7 @@ var
 begin
   Str := FStr;
   if PropertySettings.DebugSet.RuntimeSave then
-    Insert(' ' + Format(cEndTime, [FId]) + ': ' + cProcEnd + ': ', Str, P)
+    Insert(' ' + Format(cEndTime, [TID264(FId)]) + ': ' + cProcEnd + ': ', Str, P)
   else
     Insert(' ' + cProcEnd + ': ', Str, P);
   FScript[FCurrentLine] := Str;
@@ -1285,11 +1287,11 @@ begin
   if PropertySettings.DebugSet.RuntimeSave then
   begin
     FScript[FCurrentLine + FLineAdd - 1] := FScript[FCurrentLine + FLineAdd - 1] +
-      ': ' + Format(cProcBegin, [FId, S]) +
-      ': '+ Format(cBeginTime, [FId, S]);
+      ': ' + Format(cProcBegin, [TID264(FId), S]) +
+      ': '+ Format(cBeginTime, [TID264(FId), S]);
   end else
     FScript[FCurrentLine + FLineAdd - 1] := FScript[FCurrentLine + FLineAdd - 1] +
-      ': ' + Format(cProcBegin, [FId, S]);
+      ': ' + Format(cProcBegin, [TID264(FId), S]);
   //Добавляем Self-указатель на класс
   if FInClass then
     for I := 0 to FFieldsList.Count - 1 do
@@ -1306,7 +1308,7 @@ end;
 procedure TVBDebugParser.DoProcEnd;
 begin
   if PropertySettings.DebugSet.RuntimeSave then
-    FScript[FCurrentLine] := Format(cEndTime, [FId]) + ': ' +
+    FScript[FCurrentLine] := Format(cEndTime, [TID264(FId)]) + ': ' +
       cProcEnd + ': ' + FScript[FCurrentLine]
   else
     FScript[FCurrentLine] := cProcEnd + ': ' + FScript[FCurrentLine];
@@ -1388,9 +1390,9 @@ var
   begin
     if FCursorPos < Length(FStr) then
     begin
-      InsertStr := ': ' + Format(cProcBegin, [FId, '']);
+      InsertStr := ': ' + Format(cProcBegin, [TID264(FId), '']);
       if PropertySettings.DebugSet.RuntimeSave then
-        InsertStr := InsertStr + ': '+ Format(cBeginTime, [FId, ScriptName]);
+        InsertStr := InsertStr + ': '+ Format(cBeginTime, [TID264(FId), ScriptName]);
 
       FindEndLine;
       Insert(InsertStr, FStr, FCursorPos);
@@ -1514,7 +1516,7 @@ begin
           InsertStr := cProcEnd;
 //          InsertStr := cProcEnd + ': ';
           if PropertySettings.DebugSet.RuntimeSave then
-            InsertStr := InsertStr + Format(cEndTime, [FId]) + ': ';
+            InsertStr := InsertStr + Format(cEndTime, [TID264(FId)]) + ': ';
           Insert(InsertStr, FStr, P);
           FCursorPos := FCursorPos + Length(InsertStr);
           NextStmt;
@@ -1737,7 +1739,7 @@ var
   DP, P: Integer;
   Str: String;
 begin
-  if Assigned(Sf) then
+   if Assigned(Sf) then
   begin
     for I := Sf.Script.Count - 1 downto 0 do
     begin
@@ -1832,7 +1834,7 @@ begin
   FDebugLines.CurrentLine := Value;
 end;
 
-procedure TDebugger.GotoToLine(SFID, Line: Integer);
+procedure TDebugger.GotoToLine(SFID: TID; Line: Integer);
 begin
   fWantedState := dsRunning;
   CurrentLine := - 1;
@@ -1885,7 +1887,7 @@ begin
         FExecuteDebugLines[I] := [];
     end else
       FExecuteDebugLines.Add([]);
-//  Init(Count);    
+//  Init(Count);
 end;
 
 function TDebugger.GetExecuteDebugLines: TDebugLines;
@@ -1893,7 +1895,7 @@ begin
   Result := FExecuteDebugLines;
 end;
 
-function TDebugger.GetExecuteScriptFunction: Integer;
+function TDebugger.GetExecuteScriptFunction: TID;
 begin
   Result := FExecuteScriptFunction;
 end;
@@ -1960,9 +1962,10 @@ begin
     if (fDebuggerState = dsStepOver) and (FStepOverCount > 0) then
       Dec(FStepOverCount);
   end;
+
 end;
 
-procedure TDebugger.ProcBegin(sfid: Integer; const FunctionName: WideString);
+procedure TDebugger.ProcBegin(sfid: ATID; const FunctionName: WideString);
 begin
   if FEnabled then
   begin
@@ -1976,7 +1979,7 @@ begin
         Inc(FStepOverCount);
     end;
     //сохраняем ид функции для правильной обработки ошибок
-    FScriptFunctionList.Add(Pointer(SFID));
+    FScriptFunctionList.Add(TID2Pointer(GetTID(SFID), cEmptyContext));
     FFinallyVarList.Add;
 //    FLastScriptFunction := SFID;
     FCurrentKeyIndex := FScriptFunctionList.Count - 1;
@@ -2028,7 +2031,7 @@ begin
     if (VarType(Result) = varDispatch) and (IDispatch(Result) = nil) then
       Result := Unassigned;
   end;
-  
+
   if Extend or not VarIsEmpty(Result)  then
   begin
     if VarIsArray(Result) then
@@ -2576,7 +2579,7 @@ begin
     begin
       Inc(FRun, FStringLen);
       TrimSpace;
-      FExecutable := True;      
+      FExecutable := True;
     end;
   end else
   begin
@@ -3496,7 +3499,7 @@ begin
     TrimSpace;
     if psEnd in FParserStates then
       Exclude(FParserStates, psEnd);
-    FExecutable := True;  
+    FExecutable := True;
   end else
   begin
     Result := tkIdentifier;
@@ -3660,7 +3663,7 @@ begin
     begin
       if not FBreakPointAdded then
       begin
-        Str := Format(cBreakPoint, [FId, FProcedureId, FLineNumber,
+        Str := Format(cBreakPoint, [TID264(FId), TID264(FProcedureId), FLineNumber,
           FProcType]) + ': ';
         Insert(Str, FTokenPos);
         L := Length(Str);
@@ -3703,10 +3706,10 @@ begin
 
   if PropertySettings.DebugSet.RuntimeSave then
   begin
-    Str := ': ' + Format(cProcBegin, [FId, S]) +
-      ': '+ Format(cBeginTime, [FId, S]);
+    Str := ': ' + Format(cProcBegin, [TID264(FId), S]) +
+      ': '+ Format(cBeginTime, [TID264(FId), S]);
   end else
-    Str := ': ' + Format(cProcBegin, [FId, S]);
+    Str := ': ' + Format(cProcBegin, [TID264(FId), S]);
 
   Insert(Str, FRun);
   Inc(FRun, Length(Str));
@@ -3733,7 +3736,7 @@ var
   Str: String;
 begin
   if PropertySettings.DebugSet.RuntimeSave then
-    Str := Format(cEndTime, [FId]) + ': ' + cProcEnd
+    Str := Format(cEndTime, [TID264(FId)]) + ': ' + cProcEnd
   else
     Str := cProcEnd;
     Insert(Str, FTokenPos);
@@ -3790,7 +3793,7 @@ begin
   TermProc;
 end;
 
-procedure TDebuggerParser.SetID(const Value: Integer);
+procedure TDebuggerParser.SetID(const Value: TID);
 begin
   FID := Value;
 end;

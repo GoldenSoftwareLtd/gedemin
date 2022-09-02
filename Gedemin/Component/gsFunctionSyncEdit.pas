@@ -1,3 +1,5 @@
+// ShlTanya, 17.02.2019
+
 unit gsFunctionSyncEdit;
 
 interface
@@ -250,7 +252,6 @@ var
   I: Integer;
 begin
   inherited;
-
   for I := FirstLine - 1 to FirstLine + Count - 2 do
     Lines.Objects[I] := Pointer(lsEditable);
 end;
@@ -387,8 +388,6 @@ begin
 //    CP := CaretXY;
     if Assigned(FgdcFunction) and FgdcFunction.Active then
       Lines.Text :=  gdcFunction.FieldByName('Script').AsString;
-
-
     Str := gdcFunction.CreateBlobStream(gdcFunction.FieldByName('editorstate'),
       DB.bmRead);
     try

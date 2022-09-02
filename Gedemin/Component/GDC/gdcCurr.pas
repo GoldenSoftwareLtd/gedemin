@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 {
 
@@ -424,7 +425,7 @@ begin
   else
     Result := Format('SELECT id FROM gd_currrate WHERE fromcurr = %d AND '+
       ' tocurr = %d AND fordate = ''%s'' ' ,
-      [FieldByName('fromcurr').AsInteger, FieldByName('tocurr').AsInteger,
+      [TID264(FieldByName('fromcurr')), TID264(FieldByName('tocurr')),
        FormatDateTime('dd.mm.yyyy hh:nn:ss', FieldByName('fordate').AsDateTime)]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRRATE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}

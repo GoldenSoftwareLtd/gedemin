@@ -1,10 +1,13 @@
+// ShlTanya, 25.02.2019, #4135
+
 unit prp_dfCallStack_unit;
 
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, prp_Messages, prp_DOCKFORM_unit, Menus, ActnList, ExtCtrls;
+  ComCtrls, prp_Messages, prp_DOCKFORM_unit, Menus, ActnList, ExtCtrls,
+  gdcBaseInterface;
 
 type
   TdfCallStack = class(TDockableForm)
@@ -13,7 +16,7 @@ type
     procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
-    function AddListItem(Id, Line: Integer; Caption: String): TListItem;
+    function AddListItem(Id: TID; Line: Integer; Caption: String): TListItem;
     procedure DeleteItem(LI: TListItem);
   protected  
     procedure VisibleChanging; override;
@@ -32,7 +35,7 @@ uses obj_i_Debugger, prp_frmGedeminProperty_Unit;
 
 { TdfCallStack }
 
-function TdfCallStack.AddListItem(Id, Line: Integer;
+function TdfCallStack.AddListItem(Id: TID; Line: Integer;
   Caption: String): TListItem;
 var
   LI: TListItem;
@@ -73,7 +76,8 @@ begin
         if S.Count  > 0 then
         begin
           for I := S.Count - 1 downto 0 do
-            AddListItem(Integer(L[I]), Integer(S.Objects[I]), S[I]);
+            //cEmptyContext, потому что в obj_Debugger так
+            AddListItem(GetTID(L[I], cEmptyContext), Integer(S.Objects[I]), S[I]);
         end;
       finally
         S.Free;

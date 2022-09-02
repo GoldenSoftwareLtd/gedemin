@@ -1,3 +1,4 @@
+// ShlTanya, 08.03.2019
 
 unit gd_dlgAbout_unit;
 
@@ -30,7 +31,6 @@ type
     destructor Destroy; override;
 
     procedure FillSysData;
-    procedure CopyToClipboard;
 
     property Title: String read FTitle;
     property Copyright: String read FCopyright;
@@ -308,7 +308,7 @@ begin
     AddFile('g' + IntToStr(IBLogin.DBID) + '.sfh');
     AddFile('g' + IntToStr(IBLogin.DBID) + '.sfd');
     AddFile('g' + IntToStr(IBLogin.DBID) + '.gsc');
-    AddFile('g' + IntToStr(IBLogin.DBID) + '_' + IntToStr(IBLogin.UserKey) + '.usc');
+    AddFile('g' + IntToStr(IBLogin.DBID) + '_' + TID2S(IBLogin.UserKey) + '.usc');
 
     FLines.Add('');
     FLines.Add('; Временные файлы используются для кэширования информации');
@@ -321,15 +321,51 @@ begin
 end;
 
 procedure Tgd_dlgAbout.btnCopyClick(Sender: TObject);
+var
+  Ch: array[0..KL_NAMELENGTH] of Char;
+  Kl: Integer;
+  FNext: Boolean;
 begin
-  FSysInfo.CopyToClipboard;
+  FNext := False;
+
+  GetKeyboardLayoutName(Ch);
+  KL := StrToInt('$' + StrPas(Ch));
+
+  case (KL and $3ff) of
+    LANG_BELARUSIAN, LANG_RUSSIAN: ;
+  else
+    ActivateKeyBoardLayout(HKL_NEXT, 0);
+
+    GetKeyboardLayoutName(Ch);
+    KL := StrToInt('$' + StrPas(Ch));
+
+    case (KL and $3ff) of
+      LANG_BELARUSIAN, LANG_RUSSIAN: FNext := True;
+    else
+      ActivateKeyBoardLayout(HKL_PREV, 0);
+    end;
+  end;
+
+  if pc.ActivePage = tsAbout then
+    Clipboard.AsText := mCredits.Lines.Text
+  else if pc.ActivePage = tsParams then
+    Clipboard.AsText := mSysData.Lines.Text
+  else if pc.ActivePage = tsFiles then
+    Clipboard.AsText := mFiles.Lines.Text
+  else if pc.ActivePage = tsUpdate then
+    Clipboard.AsText := mSendData.Lines.Text
+  else
+    Clipboard.AsText := 'Hello World!';
+
+  if FNext then
+    ActivateKeyBoardLayout(HKL_PREV, 0);
 end;
 
 procedure TgdSysInfo.FillSysData;
-{$IFDEF DUNIT_TEST}
-const
-  {$INCLUDE versioninfo.inc}
-{$ENDIF}
+//{$IFDEF DUNIT_TEST}
+//const
+//  {$INCLUDE versioninfo.inc}
+//{$ENDIF}
 var
   T: TTraceFlag;
   S: String;
@@ -485,7 +521,7 @@ begin
   {$IFDEF GEDEMIN}AddSpaces('FastMM', FastMMVersion);{$ENDIF}
   {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
   {$IFDEF WITH_INDY}AddSpaces(gsIdProductName, gsIdVersion);{$ENDIF}
-  {$IFDEF DUNIT_TEST}AddSpaces('DUnit', ReleaseStr);{$ENDIF}
+  //{$IFDEF DUNIT_TEST}AddSpaces('DUnit', ReleaseStr);{$ENDIF}
   AddSpaces('TDBF', IntToStr(TDBF_MAJOR_VERSION) + '.' + IntToStr(TDBF_MINOR_VERSION) + '.' + IntToStr(TDBF_SUB_MINOR_VERSION));
   AddSpaces('TurboPower SysTools', StVersionStr);
 
@@ -534,10 +570,10 @@ begin
     AddSpaces('Дата релиза БД', FormatDateTime('dd.mm.yyyy', DBReleaseDate));
     AddSpaces('Комментарий', DBVersionComment);
 
-    AddSpaces('ИД организации', IntToStr(CompanyKey));
+    AddSpaces('ИД организации', TID2S(CompanyKey));
     AddSpaces('Организация', CompanyName);
     AddSpaces('Холдинг', HoldingList);
-    AddSpaces('Текущий ИД', IntToStr(gdcBaseManager.GetNextID));
+    AddSpaces('Текущий ИД', TID2S(gdcBaseManager.GetNextID));
 
     AddSection('Параметры подключения');
     for I := 0 to Database.Params.Count - 1 do
@@ -553,9 +589,9 @@ begin
     AddSpaces('Учетная запись', UserName);
     AddSpaces('Контакт', ContactName);
     AddSpaces('Пользователь ФБ', IBName);
-    AddSpaces('ИД учетной записи', IntToStr(UserKey));
-    AddSpaces('ИД контакта', IntToStr(ContactKey));
-    AddSpaces('Сессия',  IntToStr(SessionKey));
+    AddSpaces('ИД учетной записи', TID2S(UserKey));
+    AddSpaces('ИД контакта', TID2S(ContactKey));
+    AddSpaces('Сессия',  TID2S(SessionKey));
     AddSpaces('Дата и время подкл.',  DateTimeToStr(StartTime));
 
     AddSection('Параметры трассировки');
@@ -824,38 +860,6 @@ begin
   {$ENDIF}
   FSysInfo.Free;
   inherited;
-end;
-
-procedure TgdSysInfo.CopyToClipboard;
-var
-  Ch: array[0..KL_NAMELENGTH] of Char;
-  Kl: Integer;
-  FNext: Boolean;
-begin
-  FNext := False;
-
-  GetKeyboardLayoutName(Ch);
-  KL := StrToInt('$' + StrPas(Ch));
-
-  case (KL and $3ff) of
-    LANG_BELARUSIAN, LANG_RUSSIAN: ;
-  else
-    ActivateKeyBoardLayout(HKL_NEXT, 0);
-
-    GetKeyboardLayoutName(Ch);
-    KL := StrToInt('$' + StrPas(Ch));
-
-    case (KL and $3ff) of
-      LANG_BELARUSIAN, LANG_RUSSIAN: FNext := True;
-    else
-      ActivateKeyBoardLayout(HKL_PREV, 0);
-    end;
-  end;
-
-  Clipboard.AsText := FLines.Text;
-
-  if FNext then
-    ActivateKeyBoardLayout(HKL_PREV, 0);
 end;
 
 procedure Tgd_dlgAbout.actUpdateExecute(Sender: TObject);

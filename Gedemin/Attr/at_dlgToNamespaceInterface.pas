@@ -1,3 +1,4 @@
+// ShlTanya, 02.02.2019
 
 unit at_dlgToNamespaceInterface;
 
@@ -10,13 +11,13 @@ type
   TgsNSObjectKind = (nskSelected, nskLinked, nskCompound);
 
   Iat_dlgToNamespace = interface
-    procedure AddObject(const AnObjID: Integer;
+    procedure AddObject(const AnObjID: TID;
       const AnObjectName: String;
       const AClassName: String;
       const ASubType: String;
       const ARUID: TRUID;
       const AEditionDate: TDateTime;
-      const AHeadObjectKey: Integer;
+      const AHeadObjectKey: TID;
       const ANamespace: String;
       const AKind: TgsNSObjectKind);
   end;

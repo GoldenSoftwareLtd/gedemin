@@ -1,3 +1,4 @@
+// ShlTanya, 26.02.2019, #4135
 
 unit prp_ReportFrame_Unit;
 
@@ -82,6 +83,7 @@ type
     procedure gdcReportAfterInternalDeleteRecord(DataSet: TDataSet);
     procedure gdcReportAfterDelete(DataSet: TDataSet);
     procedure gdcReportAfterOpen(DataSet: TDataSet);
+    procedure dbeFunctionNameChange(Sender: TObject);
   private
     { Private declarations }
     procedure PrepareTestResult;
@@ -102,10 +104,10 @@ type
     procedure DoOnNewTemplate;
     function GetCanRun: Boolean; override;
     function GetCanPrepare: Boolean; override;
-    function GetFunctionID: Integer; override;
+    function GetFunctionID: TID; override;
     procedure ViewParam(const AnParam: Variant);
     procedure AfterPostCancel;
-    procedure SetObjectId(const Value: Integer);override;
+    procedure SetObjectId(const Value: TID);override;
     procedure SetOnCaretPosChange(const Value: TCaretPosChange); override;
     procedure SetParent(AParent: TWinControl); override;
     function  NewNameUpdate: Boolean; override;
@@ -113,7 +115,7 @@ type
     function GetRunning: Boolean; override;
     procedure SetPropertyTreeForm(const Value: TdfPropertyTree); override;
   public
-    procedure DeleteFunction(ReportKey, FunctionKey: Integer);
+    procedure DeleteFunction(ReportKey, FunctionKey: TID);
     { Public declarations }
     constructor Create(AOwner: TComponent); override;
 
@@ -127,7 +129,7 @@ type
     procedure InvalidateFrame; override;
     procedure Evaluate; override;
     procedure Cancel; override;
-    procedure EditFunction(ID: Integer); override;
+    procedure EditFunction(ID: TID); override;
     procedure GoToLine(Line, Column: Integer); override;
     procedure GotoErrorLine(Line: Integer); override;
     function GetSelectedText: string; override;
@@ -164,14 +166,14 @@ type
     function CanPasteSQL: Boolean; override;
     procedure Activate; override;
     procedure UpdateBreakPoints; override;
-    function IsFunction(Id: Integer): Boolean; override;
+    function IsFunction(Id: TID): Boolean; override;
 
     // Вставляет объект
     procedure PasteObject; override;
     // Помещает объект в буфер
     procedure CopyObject; override;
-    class function GetNameById(Id: Integer): string; override;
-    class function GetFunctionIdEx(Id: Integer): integer; override;
+    class function GetNameById(Id: TID): string; override;
+    class function GetFunctionIdEx(Id: TID): TID; override;
   end;
 
 var
@@ -284,8 +286,8 @@ procedure TReportFrame.MainFunctionFramegdcFunctionAfterPost(
 begin
   inherited;
   MainFunctionFrame.gdcFunctionAfterPost(DataSet);
-  gdcReport.FieldByName(fnMainFormulaKey).AsInteger :=
-     MainFunctionFrame.gdcFunction.Id;
+  SetTID(gdcReport.FieldByName(fnMainFormulaKey),
+     MainFunctionFrame.gdcFunction.Id);
 end;
 
 procedure TReportFrame.ParamFunctionFramegdcFunctionAfterPost(
@@ -293,8 +295,8 @@ procedure TReportFrame.ParamFunctionFramegdcFunctionAfterPost(
 begin
   inherited;
   ParamFunctionFrame.gdcFunctionAfterPost(DataSet);
-  gdcReport.FieldByName(fnParamFormulaKey).AsInteger :=
-     ParamFunctionFrame.gdcFunction.Id;
+  SetTID(gdcReport.FieldByName(fnParamFormulaKey),
+     ParamFunctionFrame.gdcFunction.Id);
 end;
 
 procedure TReportFrame.EventFunctionFramegdcFunctionAfterPost(
@@ -302,8 +304,8 @@ procedure TReportFrame.EventFunctionFramegdcFunctionAfterPost(
 begin
   inherited;
   EventFunctionFrame.gdcFunctionAfterPost(DataSet);
-  gdcReport.FieldByName(fnEventFormulaKey).AsInteger :=
-     EventFunctionFrame.gdcFunction.Id;
+  SetTID(gdcReport.FieldByName(fnEventFormulaKey),
+     EventFunctionFrame.gdcFunction.Id);
 end;
 
 procedure TReportFrame.DoOnCreate;
@@ -510,9 +512,9 @@ begin
         begin
           MS := TMemoryStream.Create;
           try
-            if UserStorage.ValueExists(LocFilterFolderName + IntToStr(GD_PRM_REPORT), IntToStr(MainFunctionFrame.gdcFunction.Id)) then
+            if UserStorage.ValueExists(LocFilterFolderName + IntToStr(GD_PRM_REPORT), TID2S(MainFunctionFrame.gdcFunction.Id)) then
             begin
-              UserStorage.ReadStream(LocFilterFolderName + IntToStr(GD_PRM_REPORT), IntToStr(MainFunctionFrame.gdcFunction.Id), MS);
+              UserStorage.ReadStream(LocFilterFolderName + IntToStr(GD_PRM_REPORT), TID2S(MainFunctionFrame.gdcFunction.Id), MS);
               MS.Position := 0;
               VS := TVarStream.Create(MS);
               try
@@ -663,9 +665,9 @@ begin
         begin
           MS := TMemoryStream.Create;
           try
-            if UserStorage.ValueExists(LocFilterFolderName + IntToStr(GD_PRM_REPORT), IntToStr(MainFunctionFrame.gdcFunction.Id)) then
+            if UserStorage.ValueExists(LocFilterFolderName + IntToStr(GD_PRM_REPORT), TID2S(MainFunctionFrame.gdcFunction.Id)) then
             begin
-              UserStorage.ReadStream(LocFilterFolderName + IntToStr(GD_PRM_REPORT), IntToStr(MainFunctionFrame.gdcFunction.Id), MS);
+              UserStorage.ReadStream(LocFilterFolderName + IntToStr(GD_PRM_REPORT), TID2S(MainFunctionFrame.gdcFunction.Id), MS);
               MS.Position := 0;
               VS := TVarStream.Create(MS);
               try
@@ -713,11 +715,11 @@ procedure TReportFrame.DoOnNewMain;
 begin
   if Assigned(CustomTreeItem) then
   begin
-    gdcReport.FieldByName(fnMainFormulaKey).AsInteger := gdcReport.GetNextID(True);
+    SetTID(gdcReport.FieldByName(fnMainFormulaKey), gdcReport.GetNextID(True));
     MainFunctionFrame.gdcFunction.Insert;
-    MainFunctionFrame.gdcFunction.FieldByName(fnId).AsInteger := gdcReport.FieldByName(fnMainFormulaKey).AsInteger;
+    SetTID(MainFunctionFrame.gdcFunction.FieldByName(fnId), gdcReport.FieldByName(fnMainFormulaKey));
     gdcReport.FieldByName(fnName).AsString := CustomTreeItem.Name;
-    gdcReport.FieldByName(fnReportGroupKey).AsInteger := TReportTreeItem(CustomTreeItem).ReportFolderId;
+    SetTID(gdcReport.FieldByName(fnReportGroupKey), TReportTreeItem(CustomTreeItem).ReportFolderId);
     MainFunctionFrame.gdcFunction.FieldByName(fnName).AsString :=
       {MainFunctionFrame.gdcFunction.GetUniqueName(}'rp_Main'{, '',
       CustomTreeItem.OwnerId)} + RUIDToStr(MainFunctionFrame.gdcFunction.GetRUID);
@@ -725,8 +727,7 @@ begin
       MainModuleName;
     MainFunctionFrame.gdcFunction.FieldByName(fnLanguage).AsString :=
       MainFunctionFrame.dbcbLang.Items[1];
-    MainFunctionFrame.gdcFunction.FieldByName(fnModuleCode).AsInteger :=
-      CustomTreeItem.OwnerId;
+    SetTID(MainFunctionFrame.gdcFunction.FieldByName(fnModuleCode), CustomTreeItem.OwnerId);
     MainFunctionFrame.gdcFunction.FieldByName(fnScript).AsString :=
       Format(VB_MAINFUNCTION_TEMPLATE,
       [MainFunctionFrame.gdcFunction.FieldByName(fnName).AsString,
@@ -742,17 +743,16 @@ procedure TReportFrame.DoOnNewParam;
 begin
   if Assigned(CustomTreeItem) then
   begin
-    gdcReport.FieldByName(fnParamFormulaKey).AsInteger := gdcReport.GetNextID;
+    SetTID(gdcReport.FieldByName(fnParamFormulaKey), gdcReport.GetNextID);
     ParamFunctionFrame.gdcFunction.Insert;    
-    ParamFunctionFrame.gdcFunction.FieldByName(fnId).AsInteger :=
-      gdcReport.FieldByName(fnParamFormulaKey).AsInteger;
+    SetTID(ParamFunctionFrame.gdcFunction.FieldByName(fnId),
+      gdcReport.FieldByName(fnParamFormulaKey));
     ParamFunctionFrame.gdcFunction.FieldByName(fnName).AsString :=
       {ParamFunctionFrame.gdcFunction.GetUniqueName(}'rp_Param'{, '',
       CustomTreeItem.OwnerId)} + RUIDToStr(ParamFunctionFrame.gdcFunction.GetRUID);
     ParamFunctionFrame.gdcFunction.FieldByName(fnModule).AsString :=
       ParamModuleName;
-    ParamFunctionFrame.gdcFunction.FieldByName(fnModuleCode).AsInteger :=
-      CustomTreeItem.OwnerId;
+    SetTID(ParamFunctionFrame.gdcFunction.FieldByName(fnModuleCode), CustomTreeItem.OwnerId);
     ParamFunctionFrame.gdcFunction.FieldByName(fnLanguage).AsString :=
       ParamFunctionFrame.dbcbLang.Items[1];
     ParamFunctionFrame.gdcFunction.FieldByName(fnScript).AsString :=
@@ -770,17 +770,16 @@ begin
   if Assigned(CustomTreeItem) then
   begin
 
-    gdcReport.FieldByName(fnEventFormulaKey).AsInteger := gdcReport.GetNextID;
+    SetTID(gdcReport.FieldByName(fnEventFormulaKey), gdcReport.GetNextID);
     EventFunctionFrame.gdcFunction.Insert;    
-    EventFunctionFrame.gdcFunction.FieldByName(fnId).AsInteger :=
-      gdcReport.FieldByName(fnEventFormulaKey).AsInteger;
+    SetTID(EventFunctionFrame.gdcFunction.FieldByName(fnId),
+      gdcReport.FieldByName(fnEventFormulaKey));
     EventFunctionFrame.gdcFunction.FieldByName(fnName).AsString :=
       {EventFunctionFrame.gdcFunction.GetUniqueName(}'rp_Event'{, '',
       CustomTreeItem.OwnerId)} + RUIDToStr(EventFunctionFrame.gdcFunction.GetRUID);
     EventFunctionFrame.gdcFunction.FieldByName(fnModule).AsString :=
       EventModuleName;
-    EventFunctionFrame.gdcFunction.FieldByName(fnModuleCode).AsInteger :=
-      CustomTreeItem.OwnerId;
+    SetTID(EventFunctionFrame.gdcFunction.FieldByName(fnModuleCode), CustomTreeItem.OwnerId);
     EventFunctionFrame.gdcFunction.FieldByName(fnLanguage).AsString :=
       EventFunctionFrame.dbcbLang.Items[1];
     EventFunctionFrame.gdcFunction.FieldByName(fnScript).AsString :=
@@ -795,10 +794,10 @@ end;
 
 procedure TReportFrame.DoOnNewTemplate;
 begin
-  gdcReport.FieldByName(fnTemplateKey).AsInteger := gdcReport.GetNextID;
-  TemplateFrame.gdcTemplate.Insert;  
-  TemplateFrame.gdcTemplate.FieldByName(fnId).AsInteger :=
-    gdcReport.FieldByName(fnTemplateKey).AsInteger;
+  SetTID(gdcReport.FieldByName(fnTemplateKey), gdcReport.GetNextID);
+  TemplateFrame.gdcTemplate.Insert;
+  SetTID(TemplateFrame.gdcTemplate.FieldByName(fnId),
+    gdcReport.FieldByName(fnTemplateKey));
   PageControl.Repaint;  
 end;
 
@@ -816,7 +815,7 @@ begin
     ((PageControl.ActivePage = tsEventFunction) and Assigned(EventFunctionFrame) and EventFunctionFrame.CanRun);
 end;
 
-procedure TReportFrame.EditFunction(ID: Integer);
+procedure TReportFrame.EditFunction(ID: TID);
 begin
   if MainFunctionFrame.ObjectId = id then
     MainFunctionFrame.gsFunctionSynEdit.Show
@@ -827,10 +826,10 @@ begin
   if EventFunctionFrame.ObjectId = id then
     EventFunctionFrame.gsFunctionSynEdit.Show
   else
-    raise Exception.Create(Format('Функция с id = %d не обнаружена', [id]))
+    raise Exception.Create(Format('Функция с id = %d не обнаружена', [TID264(id)]))
 end;
 
-function TReportFrame.GetFunctionID: Integer;
+function TReportFrame.GetFunctionID: TID;
 begin
   Result := 0;
   if PageControl.ActivePage = tsMainFunction then
@@ -1040,8 +1039,8 @@ begin
   if TemplateFrame.dbeName.ItemIndex > - 1 then
   begin
     TemplateFrame.gdcTemplate.Close;
-    gdcReport.FieldByName(fnTemplateKey).AsInteger :=
-      Integer(TemplateFrame.dbeName.Items.Objects[TemplateFrame.dbeName.ItemIndex]);
+    SetTID(gdcReport.FieldByName(fnTemplateKey),
+      GetTID(TemplateFrame.dbeName.Items.Objects[TemplateFrame.dbeName.ItemIndex], Name));
     TemplateFrame.gdcTemplate.Open;
     TemplateFrame.gdcTemplate.Edit;
     TemplateFrame.Modify := False;
@@ -1062,7 +1061,7 @@ begin
     while not SQl.Eof do
     begin
       TemplateFrame.dbeName.Items.AddObject(SQL.FieldByName(fnName).AsString,
-        Pointer(SQL.FieldByName(fnId).AsInteger));
+        TID2Pointer(GetTID(SQL.FieldByName(fnId)), Name));
       SQL.Next;
     end;
   finally
@@ -1086,9 +1085,9 @@ begin
   if MainFunctionFrame.dbeName.ItemIndex > - 1 then
   begin
     MainFunctionFrame.gdcFunction.Close;
-    gdcReport.FieldByName(fnMainFormulaKey).AsInteger :=
-      Integer(MainFunctionFrame.dbeName.Items.Objects[
-        MainFunctionFrame.dbeName.ItemIndex]);
+    SetTID(gdcReport.FieldByName(fnMainFormulaKey),
+      GetTID(MainFunctionFrame.dbeName.Items.Objects[
+        MainFunctionFrame.dbeName.ItemIndex], Name));
     MainFunctionFrame.gdcFunction.Open;
     MainFunctionFrame.gdcFunction.Edit;
     MainFunctionFrame.Modify := False;
@@ -1126,9 +1125,9 @@ begin
   if ParamFunctionFrame.dbeName.ItemIndex > - 1 then
   begin
     ParamFunctionFrame.gdcFunction.Close;
-    gdcReport.FieldByName(fnParamFormulaKey).AsInteger :=
-      Integer(ParamFunctionFrame.dbeName.Items.Objects[
-        ParamFunctionFrame.dbeName.ItemIndex]);
+    SetTID(gdcReport.FieldByName(fnParamFormulaKey),
+      GetTID(ParamFunctionFrame.dbeName.Items.Objects[
+        ParamFunctionFrame.dbeName.ItemIndex], Name));
     ParamFunctionFrame.gdcFunction.Open;
     ParamFunctionFrame.gdcFunction.Edit;
     ParamFunctionFrame.Modify := False;
@@ -1152,9 +1151,9 @@ begin
   if EventFunctionFrame.dbeName.ItemIndex > - 1 then
   begin
     EventFunctionFrame.gdcFunction.Close;
-    gdcReport.FieldByName(fnEventFormulaKey).AsInteger :=
-      Integer(EventFunctionFrame.dbeName.Items.Objects[
-        EventFunctionFrame.dbeName.ItemIndex]);
+    SetTID(gdcReport.FieldByName(fnEventFormulaKey),
+      GetTID(EventFunctionFrame.dbeName.Items.Objects[
+        EventFunctionFrame.dbeName.ItemIndex], Name));
     EventFunctionFrame.gdcFunction.Open;
     EventFunctionFrame.gdcFunction.Edit;
     EventFunctionFrame.Modify := False;
@@ -1201,7 +1200,7 @@ begin
 end;
 
 
-procedure TReportFrame.SetObjectId(const Value: Integer);
+procedure TReportFrame.SetObjectId(const Value: TID);
 var
   F: TCustomForm;
   I: Integer;
@@ -1620,7 +1619,7 @@ procedure TReportFrame.TemplateFrameactDeleteTemplateExecute(
 var
   SQL: TIBSQL;
   Transaction: TIBTransaction;
-  Id: Integer;
+  Id: TID;
 begin
   inherited;
   Transaction := TIBTransaction.Create(nil);
@@ -1632,20 +1631,20 @@ begin
       Transaction.StartTransaction;
       SQL.SQL.Text := 'SELECT * FROM rp_reportlist WHERE id <> :id AND ' +
         'templatekey = :templatekey';
-      SQL.Params[0].AsInteger := gdcReport.FieldByName(fnId).AsInteger;
-      SQL.Params[1].AsInteger := gdcReport.FieldByName(fnTemplateKey).AsInteger;
+      SetTID(SQL.Params[0], gdcReport.FieldByName(fnId));
+      SetTID(SQL.Params[1], gdcReport.FieldByName(fnTemplateKey));
       SQL.ExecQuery;
       if SQl.Eof then
       begin
         if MessageBox(Application.Handle, 'Удалить шаблон?', MSG_QUESTION,
           MB_YESNO or MB_TASKMODAL or MB_ICONQUESTION) = IDYES then
         begin
-          ID := gdcReport.FieldByName(fnTemplateKey).AsInteger;
+          ID := GetTID(gdcReport.FieldByName(fnTemplateKey));
           gdcReport.FieldByName(fnTemplateKey).Clear;
           Post;
           SQl.Close;
           SQL.SQL.text := 'DELETE FROM rp_reporttemplate WHERE id = ' +
-            IntToStr(Id);
+            TID2S(Id);
           SQL.ExecQuery;
           Transaction.Commit;
         end;
@@ -1734,7 +1733,7 @@ begin
   EventFunctionFrame.UpdateBreakpoints;
 end;
 
-procedure TReportFrame.DeleteFunction(ReportKey, FunctionKey: Integer);
+procedure TReportFrame.DeleteFunction(ReportKey, FunctionKey: TID);
 var
   F: TgdcFunction;
   Field: string;
@@ -1749,8 +1748,8 @@ var
       ibsql.SQL.Text:=
         'SELECT * FROM rp_reportlist ' +
         'WHERE id <> :rk AND ' + Field + ' = :fk ';
-      ibsql.ParamByName('fk').AsInteger:= FunctionKey;
-      ibsql.ParamByName('rk').AsInteger:= ReportKey;
+      SetTID(ibsql.ParamByName('fk'), FunctionKey);
+      SetTID(ibsql.ParamByName('rk'), ReportKey);
       ibsql.ExecQuery;
       Result:= not ibsql.EOF;
     finally
@@ -1769,12 +1768,12 @@ begin
         MSG_QUESTION,
         MB_YESNO or MB_TASKMODAL or MB_ICONQUESTION) = IDYES then
       begin
-        if gdcReport.FieldByName(fnParamFormulaKey).AsInteger = FunctionKey then
+        if GetTID(gdcReport.FieldByName(fnParamFormulaKey)) = FunctionKey then
         begin
           Field := fnParamFormulaKey;
           gdcReport.FieldByName(fnParamFormulaKey).Clear
         end else
-        if gdcReport.FieldByName(fnEventFormulaKey).AsInteger = FunctionKey then
+        if GetTID(gdcReport.FieldByName(fnEventFormulaKey)) = FunctionKey then
         begin
           Field := fnEventFormulaKey;
           gdcReport.FieldByName(fnEventFormulaKey).Clear;
@@ -1790,7 +1789,7 @@ begin
       begin
         if gdcReport.State <> dsEdit then
           gdcReport.Edit;
-        gdcReport.FieldByName(Field).AsInteger := FunctionKey;
+        SetTID(gdcReport.FieldByName(Field), FunctionKey);
         Post;
       end;
     end;
@@ -1802,15 +1801,15 @@ end;
 procedure TReportFrame.ParamFunctionFrameactDeleteFunctionExecute(
   Sender: TObject);
 begin
-  DeleteFunction(gdcReport.FieldByName('id').AsInteger,
-    gdcReport.FieldByName('paramformulakey').AsInteger);
+  DeleteFunction(GetTID(gdcReport.FieldByName('id')),
+    GetTID(gdcReport.FieldByName('paramformulakey')));
 end;
 
 procedure TReportFrame.EventFunctionFrameactDeleteFunctionExecute(
   Sender: TObject);
 begin
-  DeleteFunction(gdcReport.FieldByName('id').AsInteger,
-    gdcReport.FieldByName('eventformulakey').AsInteger);
+  DeleteFunction(GetTID(gdcReport.FieldByName('id')),
+    GetTID(gdcReport.FieldByName('eventformulakey')));
 end;
 
 procedure TReportFrame.ParamFunctionFramedbeNameDeleteRecord(
@@ -1855,7 +1854,7 @@ begin
         T := TTreeTabSheet(PropertyTreeForm.PageControl.Pages[I]).Tree;
         for J := T.Items.Count - 1 downto 0 do
         begin
-          if (TCustomTreeItem(T.Items[J].Data).Id = gdcReport.FieldByName('id').AsInteger) and
+          if (TCustomTreeItem(T.Items[J].Data).Id = GetTID(gdcReport.FieldByName('id'))) and
             (T.Items[J] <> Node) then
             T.Items[J].Delete;
         end;
@@ -1864,11 +1863,11 @@ begin
   end;
 end;
 
-function TReportFrame.IsFunction(Id: Integer): Boolean;
+function TReportFrame.IsFunction(Id: TID): Boolean;
 begin
-  Result := (Assigned(MainFunctionFrame) and (MainFunctionFrame.gdcFunction.FieldByName('id').AsInteger = id)) or
-    (Assigned(ParamFunctionFrame) and (ParamFunctionFrame.gdcFunction.FieldByName('id').AsInteger = id)) or
-    (Assigned(EventFunctionFrame) and (EventFunctionFrame.gdcFunction.FieldByName('id').AsInteger = id));
+  Result := (Assigned(MainFunctionFrame) and (GetTID(MainFunctionFrame.gdcFunction.FieldByName('id')) = id)) or
+    (Assigned(ParamFunctionFrame) and (GetTID(ParamFunctionFrame.gdcFunction.FieldByName('id')) = id)) or
+    (Assigned(EventFunctionFrame) and (GetTID(EventFunctionFrame.gdcFunction.FieldByName('id')) = id));
 end;
 
 function TReportFrame.GetRunning: Boolean;
@@ -2050,7 +2049,8 @@ var
   TmpStream: TMemoryStream;
   LStream: TStream;
   Str: String;
-  I: Integer;
+  I, Len: Integer;
+  ID: TID;
   ItemType: TTreeItemType;
   gdcTemplate: TgdcBase;
   StreamType: TrStreamType;
@@ -2101,6 +2101,8 @@ begin
     try
       ItemType := tiReport;
       TmpStream.Write(ItemType, SizeOf(ItemType));
+      {метка сохранения ID в Int64}
+      Len := SetLenIDinStream(@TmpStream);
 
       Str := gdcReport.FieldByName(fnName).AsString;
       I := Length(Str);
@@ -2112,8 +2114,8 @@ begin
       TmpStream.Write(Str[1], I);
       I := gdcReport.FieldByName(fnFRQREFRESH).AsInteger;
       TmpStream.Write(I, SizeOf(I));
-      I := gdcReport.FieldByName(fnServerKey).AsInteger;
-      TmpStream.Write(I, SizeOf(I));
+      ID := GetTID(gdcReport.FieldByName(fnServerKey));
+      TmpStream.Write(ID, Len);
 
       SaveRepFunction(rsEvent, EventFunctionFrame.gdcFunction);
       SaveRepFunction(rsMain, MainFunctionFrame.gdcFunction);
@@ -2168,7 +2170,8 @@ procedure TReportFrame.PasteObject;
 var
   LStream: TStream;
   Str, tmpStr: String;
-  I: Integer;
+  I, Len: Integer;
+  ID: TID;
   ItemType: TTreeItemType;
   gdcTemplate: TgdcBase;
   StreamType: TrStreamType;
@@ -2270,6 +2273,9 @@ begin
     if ItemType <> tiReport then
       raise Exception.Create(dfPasteError);
 
+    {метка сохранения ID в Int64}
+    Len := GetLenIDinStream(@ObjectStream);
+
     ObjectStream.ReadBuffer(I, SizeOf(I));
     SetLength(Str, I);
     if I > 0 then
@@ -2291,9 +2297,11 @@ begin
     gdcReport.FieldByName(fnDescription).AsString := Str;
     ObjectStream.ReadBuffer(I, SizeOf(I));
     gdcReport.FieldByName(fnFRQREFRESH).AsInteger := I;
-    ObjectStream.ReadBuffer(I, SizeOf(I));
-    if I > 0 then
-      gdcReport.FieldByName(fnServerKey).AsInteger := I;
+
+    ObjectStream.ReadBuffer(ID, Len);
+
+    if ID > 0 then
+      SetTID(gdcReport.FieldByName(fnServerKey), ID);
 
     ReadRepFunction(rsEvent, EventFunctionFrame.gdcFunction);
     ReadRepFunction(rsMain, MainFunctionFrame.gdcFunction);
@@ -2377,7 +2385,7 @@ begin
   Modify := True;
 end;
 
-class function TReportFrame.GetNameById(Id: Integer): string;
+class function TReportFrame.GetNameById(Id: TID): string;
 var
   SQL: TIBSQL;
 begin
@@ -2385,7 +2393,7 @@ begin
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQL.SQL.Text := 'SELECT name FROM rp_reportlist WHERE id = :id';
-    SQL.ParamByname('id').AsInteger := Id;
+    SetTID(SQL.ParamByname('id'), Id);
     SQL.ExecQuery;
 
     if SQl.RecordCount > 0 then
@@ -2398,7 +2406,7 @@ begin
   end;
 end;
 
-class function TReportFrame.GetFunctionIdEx(Id: Integer): integer;
+class function TReportFrame.GetFunctionIdEx(Id: TID): TID;
 var
   SQL: TIBSQL;
 begin
@@ -2406,9 +2414,9 @@ begin
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQL.SQl.Text := 'SELECT mainformulakey FROM rp_reportlist WHERE id = :id';
-    SQL.ParamByName('id').AsInteger := Id;
+    SetTID(SQL.ParamByName('id'), Id);
     SQL.ExecQuery;
-    Result := SQL.FieldByName('mainformulakey').AsInteger;
+    Result := GetTID(SQL.FieldByName('mainformulakey'));
   finally
     SQL.Free;
   end;
@@ -2443,13 +2451,13 @@ begin
   if ParamFunctionFrame.gdcFunction.RecordUsed <= 1 then
   begin
     if S > '' then S := S + ',';
-    S := S + IntToStr(ParamFunctionFrame.ObjectId);
+    S := S + TID2S(ParamFunctionFrame.ObjectId);
   end;
 
   if EventFunctionFrame.gdcFunction.RecordUsed <= 1 then
   begin
     if S > '' then S := S + ',';
-    S := S + IntToStr(EventFunctionFrame.ObjectId);
+    S := S + TID2S(EventFunctionFrame.ObjectId);
   end;
 
   if S > '' then
@@ -2490,13 +2498,13 @@ begin
   RUID := gdcBaseManager.GetRUIDStringByID(gdcReport.ID);
 
   if (RUID > '') and (gdcReport.State = dsBrowse)
-    and (gdcReport.FieldByName('folderkey').AsInteger > 0) then
+    and (GetTID(gdcReport.FieldByName('folderkey')) > 0) then
   begin
     q := TIBSQL.Create(nil);
     try
       q.Transaction := gdcReport.ReadTransaction;
       q.SQL.Text := 'SELECT id FROM gd_command WHERE parent = :p AND cmd = :c';
-      q.ParamByName('p').AsInteger := gdcReport.FieldByName('FOLDERKEY').AsInteger;
+      SetTID(q.ParamByName('p'), gdcReport.FieldByName('FOLDERKEY'));
       q.ParamByName('c').AsString := RUID;
       q.ExecQuery;
 
@@ -2506,6 +2514,13 @@ begin
       q.Free;
     end;
   end;
+end;
+
+procedure TReportFrame.dbeFunctionNameChange(Sender: TObject);
+begin
+  inherited;
+  if Assigned(FNode) and Assigned(FNode.Data) then
+    TReportTreeItem(FNode.Data).ShowInMenu := dbcbDisplayInMenu.Checked;
 end;
 
 initialization

@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_dlgAcctAccCard_unit;
 
 interface
@@ -90,7 +92,7 @@ begin
   if FCorrAccountIDs = nil then
     FCorrAccountIDs := TList.Create;
   inherited;
-  SetAccountIDs(cbCorrAccounts, FCorrAccountIDs, cbCorrSubAccounts.Checked);
+  SetAccountIDs(cbCorrAccounts, FCorrAccountIDs, cbCorrSubAccounts.Checked, Name);
 end;
 
 class function TdlgAcctAccCardConfig.ConfigClassName: string;

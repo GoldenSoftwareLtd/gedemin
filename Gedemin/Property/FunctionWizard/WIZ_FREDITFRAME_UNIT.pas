@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_frEditFrame_unit;
 
 interface
@@ -28,8 +30,8 @@ type
     procedure SetBlock(const Value: TVisualBlock); virtual;
     procedure beClick(Sender: TObject; PopupMenu: TPopupMenu);
 
-    function SetAccount(Account: string; out AccountID: Integer): string;
-    function GetAccount(Account: string; AccountId: Integer): string;
+    function SetAccount(Account: string; out AccountID: TID): string;
+    function GetAccount(Account: string; AccountId: TID): string;
 
     procedure ShowCheckOkMessage(const S: string);
     
@@ -90,7 +92,7 @@ begin
 end;
 
 function TfrEditFrame.GetAccount(Account: string;
-  AccountId: Integer): string;
+  AccountId: TID): string;
 begin
   if AccountId > 0 then
     Result := gdcBaseManager.GetRUIDStringById(AccountId)
@@ -132,7 +134,7 @@ begin
 end;
 
 function TfrEditFrame.SetAccount(Account: string;
-  out AccountID: Integer): string;
+  out AccountID: TID): string;
 begin
   if CheckRUID(Account) then
     AccountId := gdcBaseManager.GetIDByRUIDString(Account)

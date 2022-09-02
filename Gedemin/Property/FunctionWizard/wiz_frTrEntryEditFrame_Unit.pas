@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_frTrEntryEditFrame_Unit;
 
 interface
@@ -287,7 +289,7 @@ begin
                     [TfrAnalyticLine(FAnalyticLines[J]).Field.References.ListField.FieldName,
                     TfrAnalyticLine(FAnalyticLines[J]).Field.References.RelationName,
                     TfrAnalyticLine(FAnalyticLines[J]).Field.ReferencesField.FieldName,
-                    id]);
+                    TID264(id)]);
                   SQL.ExecQuery;
                   try
                     TfrAnalyticLine(FAnalyticLines[J]).eAnalytic.Text := SQL.Fields[0].AsString;

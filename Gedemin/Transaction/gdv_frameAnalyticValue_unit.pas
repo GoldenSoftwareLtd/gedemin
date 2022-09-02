@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019, #4135
+
 unit gdv_frameAnalyticValue_unit;
 
 interface
@@ -24,7 +26,7 @@ type
     { Public declarations }
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    procedure UpdateAnalytic(IdList: TList);
+    procedure UpdateAnalytic(IdList: TList; Context: String);
 
     property AnalyticCount: Integer read GetAnalyticCount;
     property Values: string read GetValues write SetValues;
@@ -157,7 +159,7 @@ begin
   end;
 end;
 
-procedure TframeAnalyticValue.UpdateAnalytic(IdList: TList);
+procedure TframeAnalyticValue.UpdateAnalytic(IdList: TList; Context: String);
 var
   I, Index: Integer;
   SQL: TIBSQl;
@@ -213,7 +215,7 @@ begin
         begin
           SQL.SQL.Insert(0, 'SELECT ');
           SQL.SQL.Add('FROM ac_account ');
-          SQL.SQL.Add(Format('WHERE id IN (%s)', [AcctUtils.IdList(IdList)]));
+          SQL.SQL.Add(Format('WHERE id IN (%s)', [AcctUtils.IdList(IdList, Context)]));
           SQL.ExecQuery;
         end;
       end;

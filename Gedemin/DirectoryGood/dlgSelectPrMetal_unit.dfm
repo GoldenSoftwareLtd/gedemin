@@ -90,6 +90,7 @@ object dlgSelectPrMetal: TdlgSelectPrMetal
       Expands = <>
       ExpandsActive = False
       ExpandsSeparate = False
+      TitlesExpanding = False
       Conditions = <>
       ConditionsActive = False
       CheckBox.DisplayField = 'NAME'
@@ -140,8 +141,7 @@ object dlgSelectPrMetal: TdlgSelectPrMetal
   end
   object ibdsPrMetal: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
-    BufferChunks = 1000
-    CachedUpdates = False
+    Transaction = frmGedeminMain.IBTransaction
     DeleteSQL.Strings = (
       'delete from GD_PRECIOUSEMETAL'
       'where'
@@ -168,30 +168,17 @@ object dlgSelectPrMetal: TdlgSelectPrMetal
       '  DESCRIPTION = :DESCRIPTION'
       'where'
       '  ID = :OLD_ID')
+    ReadTransaction = frmGedeminMain.IBTransaction
     Left = 136
     Top = 201
-    object ibdsPrMetalID: TIntegerField
-      FieldName = 'ID'
-      Required = True
-      Visible = False
-    end
-    object ibdsPrMetalNAME: TIBStringField
-      FieldName = 'NAME'
-      Required = True
-      Size = 60
-    end
-    object ibdsPrMetalDESCRIPTION: TIBStringField
-      FieldName = 'DESCRIPTION'
-      Size = 180
-    end
   end
   object ibsqlAddNew: TIBSQL
     Database = dmDatabase.ibdbGAdmin
-    ParamCheck = True
     SQL.Strings = (
       
         'INSERT INTO gd_goodprmetal(goodkey, prmetalkey) VALUES (:goodkey' +
         ', :prmetalkey)')
+    Transaction = frmGedeminMain.IBTransaction
     Left = 136
     Top = 104
   end

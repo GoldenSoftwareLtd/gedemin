@@ -1,3 +1,4 @@
+// ShlTanya, 30.01.2019
 
 unit bn_dlgCurrListAllocation_unit;
 

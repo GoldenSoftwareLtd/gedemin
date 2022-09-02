@@ -76,7 +76,7 @@ begin
       FDocument := TgdcInvPriceList.Create(Self);
       FDocument.SubType := DocumentLine.SubType;
       FDocument.SubSet := 'ByID';
-      FDocument.ID := DocumentLine.FieldByName('parent').AsInteger;
+      FDocument.ID := GetTID(DocumentLine.FieldByName('parent'));
       FDocument.Open;
     end;
     Result := FDocument;

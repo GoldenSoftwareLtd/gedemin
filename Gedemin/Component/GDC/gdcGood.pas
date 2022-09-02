@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 {
   Товары
@@ -106,7 +107,7 @@ type
 
   TgdcGood = class(TgdcBase)
   private
-    FGroupKey: Integer;
+    FGroupKey: TID;
 
   protected
     function GetSelectClause: String; override;
@@ -127,13 +128,13 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
-    function GetTaxRate(const TaxKey: Integer; const ForDate: TDateTime): Currency;
+    function GetTaxRate(const TaxKey: TID; const ForDate: TDateTime): Currency;
     function GetTaxRateOnName(const TaxName: String; const ForDate: TDateTime): Currency;
-    function GetTaxRateByID(const aID: Integer; const TaxKey: Integer; const ForDate: TDateTime): Currency;
-    function GetTaxRateOnNameByID(const aID: Integer; const TaxName: String; const ForDate: TDateTime): Currency;
+    function GetTaxRateByID(const aID: TID; const TaxKey: TID; const ForDate: TDateTime): Currency;
+    function GetTaxRateOnNameByID(const aID: TID; const TaxName: String; const ForDate: TDateTime): Currency;
     function CheckTheSameStatement: String; override;
 
-    property GroupKey: Integer read FGroupKey write FGroupKey;
+    property GroupKey: TID read FGroupKey write FGroupKey;
   end;
 
   TgdcSelectedGood = class(TgdcGood)
@@ -389,11 +390,11 @@ begin
   begin
     for I := 0 to CD.ObjectCount - 1 do
     begin
-      if CD.Obj.Locate('ID', CD.ObjectArr[I].ID, []) then
+      if CD.Obj.Locate('ID', TID2V(CD.ObjectArr[I].ID), []) then
       begin
         CD.Obj.Edit;
         try
-          CD.Obj.FieldByName('groupkey').AsInteger := Self.ID;
+          SetTID(CD.Obj.FieldByName('groupkey'), Self.ID);
           CD.Obj.Post;
         except
           CD.Obj.Cancel;
@@ -415,7 +416,7 @@ begin
           begin
             LocalObj.Edit;
             try
-              LocalObj.FieldByName('groupkey').AsInteger := Self.ID;
+              SetTID(LocalObj.FieldByName('groupkey'), Self.ID);
               LocalObj.Post;
             except
               LocalObj.Cancel;
@@ -548,7 +549,7 @@ begin
   inherited _DoOnNewRecord;
 
   if FGroupKey > 0 then
-    FieldByName('GroupKey').AsInteger := FGroupKey;
+    SetTID(FieldByName('GroupKey'), FGroupKey);
   FieldByName('discipline').AsString := 'F';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGOOD', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
@@ -689,11 +690,11 @@ begin
   Result := inherited GetSubSetList + cst_ByGroup + ';ByLBRB;ByParent;';
 end;
 
-function TgdcGood.GetTaxRate(const TaxKey: Integer;
+function TgdcGood.GetTaxRate(const TaxKey: TID;
   const ForDate: TDateTime): Currency;
 begin
   if Active then
-    Result := GetTaxRateByID(FieldByName('ID').AsInteger, TaxKey, ForDate)
+    Result := GetTaxRateByID(GetTID(FieldByName('ID')), TaxKey, ForDate)
   else
     Result := 0;
 end;
@@ -710,7 +711,7 @@ begin
   Result := 'Tgdc_frmMainGood';
 end;
 
-function TgdcGood.GetTaxRateByID(const aID, TaxKey: Integer;
+function TgdcGood.GetTaxRateByID(const aID, TaxKey: TID;
   const ForDate: TDateTime): Currency;
 var
   ibsql: TIBSQL;
@@ -725,8 +726,8 @@ begin
     ibsql.SQL.Text := 'SELECT tax.rate FROM gd_goodtax tax WHERE tax.goodkey = :goodkey ' +
        ' and tax.taxkey = :taxkey and tax.datetax = (SELECT max(tax1.datetax) FROM gd_goodtax tax1 ' +
        ' WHERE tax1.goodkey = :goodkey and tax1.taxkey = :taxkey and tax1.datetax <= :datetax) ';
-    ibsql.ParamByName('goodkey').AsInteger := aID;
-    ibsql.ParamByName('taxkey').AsInteger := TaxKey;
+    SetTID(ibsql.ParamByName('goodkey'), aID);
+    SetTID(ibsql.ParamByName('taxkey'), TaxKey);
     ibsql.ParamByName('datetax').AsDateTime := ForDate;
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
@@ -738,7 +739,7 @@ begin
   end;
 end;
 
-function TgdcGood.GetTaxRateOnNameByID(const aID: Integer;
+function TgdcGood.GetTaxRateOnNameByID(const aID: TID;
   const TaxName: String; const ForDate: TDateTime): Currency;
 var
   ibsql: TIBSQL;
@@ -752,7 +753,7 @@ begin
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin
-      Result := GetTaxRateByID(aID, ibsql.FieldByName('id').AsInteger, ForDate);
+      Result := GetTaxRateByID(aID, GetTID(ibsql.FieldByName('id')), ForDate);
     end
     else
       raise EgdcIBError.Create('Не найден указанный налог');

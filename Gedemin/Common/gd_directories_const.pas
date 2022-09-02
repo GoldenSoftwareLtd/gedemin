@@ -1,7 +1,8 @@
+// ShlTanya, 24.02.2019
 
 {++
 
-  Copyright (c) 2000-2017 by Golden Software of Belarus, Ltd
+  Copyright (c) 2000-2019 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -254,19 +255,12 @@ const
   GoogleGEOSearch                 = 'http://maps.google.com/maps?z=12&t=m&q=loc:';
   GoogleGEOHome                   = 'http://maps.google.com';
 
-function IsGedeminSystemID(const AnID: Integer): Boolean;
-function IsGedeminNonSystemID(const AnID: Integer): Boolean;
+var
+  DUnit_Process_Form_Flag         : Boolean;
 
 implementation
 
-function IsGedeminSystemID(const AnID: Integer): Boolean;
-begin
-  Result := AnID < cstUserIDStart;
-end;
 
-function IsGedeminNonSystemID(const AnID: Integer): Boolean;
-begin
-  Result := AnID >= cstUserIDStart;
-end;
-
+initialization
+  DUnit_Process_Form_Flag := False;
 end.

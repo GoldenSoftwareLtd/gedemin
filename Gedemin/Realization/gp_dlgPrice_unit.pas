@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019
+
 unit gp_dlgPrice_unit;
 
 interface
@@ -83,8 +85,8 @@ type
     procedure actFilterExecute(Sender: TObject);
   private
     { Private declarations }
-    FPriceKey: Integer;
-    FCopyPriceKey: Integer;
+    FPriceKey: TID;
+    FCopyPriceKey: TID;
     FCalcFields: TObjectList;
     CursList: TList;
     FirstFieldName: String;
@@ -98,8 +100,8 @@ type
     procedure CalcFields;
   public
     { Public declarations }
-    procedure SetupDialog(const aPriceKey, aCopyPriceKey: Integer);
-    property PriceKey: Integer read FPriceKey;
+    procedure SetupDialog(const aPriceKey, aCopyPriceKey: TID);
+    property PriceKey: TID read FPriceKey;
   end;
 
 var
@@ -122,11 +124,11 @@ type
   TCalcFieldInfo = class
     FieldName: String;
     Expression: String;
-    CurrKey: Integer;
-    constructor Create(const aFieldName, aExpression: String; aCurrKey: Integer);
+    CurrKey: TId;
+    constructor Create(const aFieldName, aExpression: String; aCurrKey: TID);
   end;
 
-constructor TCalcFieldInfo.Create(const aFieldName, aExpression: String; aCurrKey: Integer);
+constructor TCalcFieldInfo.Create(const aFieldName, aExpression: String; aCurrKey: TID);
 begin
   FieldName := Trim(aFieldName);
   Expression := aExpression;
@@ -135,13 +137,13 @@ end;
 
 type
   TCurs = class
-    CurrKey: Integer;
+    CurrKey: TID;
     Sign: String;
     Edit: TEdit;
-    constructor Create(const aCurrKey: Integer; const aSign: String; aEdit: TEdit);
+    constructor Create(const aCurrKey: TID; const aSign: String; aEdit: TEdit);
   end;
 
-constructor TCurs.Create(const aCurrKey: Integer; const aSign: String; aEdit: TEdit);
+constructor TCurs.Create(const aCurrKey: TID; const aSign: String; aEdit: TEdit);
 begin
   Sign := aSign;
   Edit := aEdit;
@@ -164,7 +166,7 @@ begin
 
     ibsql.SQL.Text := 'INSERT INTO gd_price(id, name, pricetype) VALUES (:pricekey, :name, ''C'')';
     ibsql.Prepare;
-    ibsql.ParamByName('pricekey').AsInteger := FPriceKey;
+    SetTID(ibsql.ParamByName('pricekey'), FPriceKey);
     ibsql.ParamByName('name').AsString := '';
     ibsql.ExecQuery;
     ibsql.Close;
@@ -217,14 +219,14 @@ begin
     ibsql.Transaction := IBTransaction;
     ibsql.SQL.Text := 'SELECT rate FROM gd_pricecurr WHERE pricekey = :pk and currkey = :ck';
     ibsql.Prepare;
-    ibsql.ParamByName('pk').AsInteger := FPriceKey;
+    SetTID(ibsql.ParamByName('pk'), FPriceKey);
     ibsqlPricePosOption.ExecQuery;
     while not ibsqlPricePosOption.EOF do
     begin
       FCalcFields.Add(TCalcFieldInfo.Create(ibsqlPricePosOption.FieldByName('FieldName').AsString,
         ibsqlPricePosOption.FieldByName('expression').AsString,
-        ibsqlPricePosOption.FieldByName('currkey').AsInteger));
-      if ibsqlPricePosOption.FieldByName('currkey').AsInteger > 0 then
+        GetTID(ibsqlPricePosOption.FieldByName('currkey'))));
+      if GetTID(ibsqlPricePosOption.FieldByName('currkey')) > 0 then
       begin
         lbl := TLabel.Create(Self);
         lbl.Parent := sbCurs;
@@ -237,17 +239,17 @@ begin
         Edit.Text := '';
         Edit.Left := LeftLabel + lbl.Canvas.TextWidth(lbl.Caption) + 6;
         Edit.Top := EditH;
-        Edit.Text := FloatToStr(boCurrency.GetRate(ibsqlPricePosOption.FieldByName('currkey').AsInteger));
+        Edit.Text := FloatToStr(boCurrency.GetRate(GetTID(ibsqlPricePosOption.FieldByName('currkey'))));
         if not isAppend then
         begin
-          ibsql.ParamByName('ck').AsInteger :=
-            ibsqlPricePosOption.FieldByName('currkey').AsInteger;
+          SetTID(ibsql.ParamByName('ck'),
+            ibsqlPricePosOption.FieldByName('currkey'));
           ibsql.ExecQuery;
           if ibsql.RecordCount = 1 then
             Edit.Text := ibsql.FieldByName('rate').AsString;
           ibsql.Close;   
         end;
-        CursList.Add(TCurs.Create(ibsqlPricePosOption.FieldByName('currkey').AsInteger,
+        CursList.Add(TCurs.Create(GetTID(ibsqlPricePosOption.FieldByName('currkey')),
           ibsqlPricePosOption.FieldByName('SIGN').AsString,
           Edit));
 
@@ -267,7 +269,7 @@ begin
   end;
 end;
 
-procedure TdlgPrice.SetupDialog(const aPriceKey, aCopyPriceKey: Integer);
+procedure TdlgPrice.SetupDialog(const aPriceKey, aCopyPriceKey: TID);
 var
   i: Integer;
 begin
@@ -279,10 +281,10 @@ begin
   else
     FPriceKey := aPriceKey;
 
-  ibdsPrice.ParamByName('pricekey').AsInteger := FPriceKey;
+  SetTID(ibdsPrice.ParamByName('pricekey'), FPriceKey);
   ibdsPrice.Open;
 
-  ibdsPricePos.ParamByName('id').AsInteger := FPriceKey;
+  SetTID(ibdsPricePos.ParamByName('id'), FPriceKey);
   ibdsPricePos.Open;
   for i:= 0 to ibdsPricePos.FieldCount - 1 do
     try
@@ -340,12 +342,12 @@ begin
     ibsql.Transaction := IBTransaction;
     ibsql.SQL.Text := 'INSERT INTO gd_pricecurr (pricekey, currkey, rate) VALUES (:pk, :ck, :r)';
     ibsql.Prepare;
-    ibsql.ParamByName('pk').AsInteger := FPriceKey;
+    SetTiiD(bsql.ParamByName('pk'), FPriceKey);
     for i:= 0 to CursList.Count - 1 do
     begin
       try
         Value := StrToFloat(TCurs(CursList[i]).Edit.Text);
-        ibsql.ParamByName('ck').AsInteger := TCurs(CursList[i]).CurrKey;
+        SetTID(ibsql.ParamByName('ck'), TCurs(CursList[i]).CurrKey);
         ibsql.ParamByName('r').AsFloat := Value;
         ibsql.ExecQuery;
         ibsql.Close;
@@ -514,9 +516,9 @@ begin
     ibsql.SQL.Text := 'SELECT id FROM gd_pricepos WHERE goodkey = :gk and ' +
       'pricekey = :pk and id <> :id';
     ibsql.Prepare;
-    ibsql.ParamByName('gk').AsInteger := Sender.AsInteger;
-    ibsql.ParamByName('pk').AsInteger := FPriceKey;
-    ibsql.ParamByName('id').AsInteger := ibdsPricePos.FieldByName('id').AsInteger;
+    SetTID(ibsql.ParamByName('gk'), Sender);
+    SetTID(ibsql.ParamByName('pk'), FPriceKey);
+    SetTID(ibsql.ParamByName('id'), ibdsPricePos.FieldByName('id'));
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin
@@ -550,7 +552,7 @@ begin
   
   if not ibsqlGood.Prepared then
     ibsqlGood.Prepare;
-  ibsqlGood.ParamByName('id').AsInteger := Sender.AsInteger;
+  SetTID(ibsqlGood.ParamByName('id'), Sender);
   ibsqlGood.ExecQuery;
   ibdsPricePos.FieldByName('Name').AsString := ibsqlGood.FieldByName('Name').AsString;
   ibdsPricePos.FieldByName('Mes').AsString := ibsqlGood.FieldByName('ValueName').AsString;
@@ -559,8 +561,8 @@ end;
 
 procedure TdlgPrice.ibdsPricePosAfterInsert(DataSet: TDataSet);
 begin
-  ibdsPricePos.FieldByName('id').AsInteger := gdcBaseManager.GetNextID;
-  ibdsPricePos.FieldByName('pricekey').AsInteger := FPriceKey;
+  SetTID(ibdsPricePos.FieldByName('id'), gdcBaseManager.GetNextID);
+  SetTID(ibdsPricePos.FieldByName('pricekey'), FPriceKey);
 end;
 
 procedure TdlgPrice.ibdsPricePosAfterPost(DataSet: TDataSet);

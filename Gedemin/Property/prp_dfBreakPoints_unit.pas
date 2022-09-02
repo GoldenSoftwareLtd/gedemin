@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -92,7 +94,6 @@ var
 begin
   if (csDestroying in ComponentState) or (not Visible) then
     exit;
-
   lvBreakPoints.Items.BeginUpdate;
   try
     lvBreakPoints.Items.Clear;
@@ -106,7 +107,7 @@ begin
         if (F <> nil) and (lvBreakPoints <> nil) then
         try
           LI := lvBreakPoints.Items.Add;
-          Li.Caption := IntToStr(B.FunctionKey);
+          Li.Caption := TID2S(B.FunctionKey);
           Li.SubItems.Add(F.Name);
           Li.SubItems.Add(IntToStr(B.Line));
           Li.SubItems.Add(B.Condition);
@@ -145,7 +146,7 @@ begin
   begin
     if DockForm <> nil then
     begin
-      TfrmGedeminProperty(DockForm).FindAndEdit(StrToInt(
+      TfrmGedeminProperty(DockForm).FindAndEdit(GetTID(
         lvBreakPoints.Selected.Caption),
         StrToInt(lvBreakPoints.Selected.SubItems[1]), 0, False);
     end;
@@ -181,7 +182,7 @@ function TdfBreakPoints.GetSelectedBreakpoint: TBreakPoint;
 begin
   Result := nil;
   if lvBreakPoints.Selected <> nil then
-    Result := BreakPointList.BreakPoint(StrToInt(lvBreakPoints.Selected.Caption),
+    Result := BreakPointList.BreakPoint(GetTID(lvBreakPoints.Selected.Caption),
       StrToInt(lvBreakPoints.Selected.SubItems[1]));
 end;
 

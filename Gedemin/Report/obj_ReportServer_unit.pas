@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019
+
 unit obj_ReportServer_unit;
 
 interface
@@ -9,10 +11,10 @@ uses
 type
   TgdReportServer = class(TAutoObject, IgdReportServer)
   protected
-    function GetReportResult(ReportKey: Integer; var Param: OleVariant;
+    function GetReportResult(ReportKey: TID; var Param: OleVariant;
       out ReportResult: OleVariant): WordBool; safecall;
     function  GetServerName: WideString; safecall;
-    function  GetServerKey: Integer; safecall;
+    function  GetServerKey: TID; safecall;
     procedure ShowProperty; safecall;
     procedure Close; safecall;
     { Protected declarations }
@@ -22,7 +24,7 @@ implementation
 
 uses ComServ, rp_MainForm_unit, rp_BaseReport_unit;
 
-function TgdReportServer.GetReportResult(ReportKey: Integer;
+function TgdReportServer.GetReportResult(ReportKey: TID;
   var Param: OleVariant; out ReportResult: OleVariant): WordBool;
 var
   LocReportResult: TReportResult;
@@ -53,7 +55,7 @@ begin
   Result := rpGetComputerName;
 end;
 
-function TgdReportServer.GetServerKey: Integer;
+function TgdReportServer.GetServerKey: TID;
 begin
   Result := UnvisibleForm.ServerReport1.ServerKey;
 end;

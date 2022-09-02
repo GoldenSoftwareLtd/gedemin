@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019, #4135
+
 unit gdv_frameQuantity_unit;
 
 interface
@@ -16,7 +18,7 @@ type
     procedure SetValues(const Value: string);override;
   public
     { Public declarations }
-    procedure UpdateAvail(IdList: TList); override;
+    procedure UpdateAvail(IdList: TList; Context: String); override;
     function InClause: string;
     procedure ValueList(const ValueList: TStrings; const AccountList: TList; BeginDate,
       EndDate: TDateTime);
@@ -41,7 +43,7 @@ begin
     if Result > '' then
       Result := Result + #13#10;
 
-    Result := Result + IntToStr(Integer(Selected.Objects[I]));
+    Result := Result + TID2S(GetTID(Selected.Objects[I], Name));
   end;
 end;
 
@@ -54,7 +56,7 @@ begin
   begin
     if Result > '' then
       Result := Result + ', ';
-    Result := Result + IntToStr(Integer(Selected.Objects[I]));  
+    Result := Result + TID2S(GetTID(Selected.Objects[I], Name));
   end;
 end;
 
@@ -70,7 +72,7 @@ begin
     FN.Text := Value;
     for I := 0 to FN.Count - 1 do
     begin
-      Index :=  Avail.IndexOfObject(Pointer(StrToInt(FN[I])));
+      Index :=  Avail.IndexOfObject(TID2Pointer(GetTID(FN[I]), Name));
       if Index > - 1 then
       begin
         Selected.AddObject(Avail[Index], Avail.Objects[Index]);
@@ -81,7 +83,7 @@ begin
   end;
 end;
 
-procedure TframeQuantity.UpdateAvail(IdList: TList);
+procedure TframeQuantity.UpdateAvail(IdList: TList; Context: String);
 var
   SQL: TIBSQL;
   I: Integer;
@@ -98,15 +100,15 @@ begin
       '  JOIN ac_accvalue av ON av.accountkey = a.id ' +
       '  JOIN gd_value v ON av.valuekey = v.id ';
       if IDList.Count > 0 then
-        SQL.SQL.Text := SQL.SQL.Text + 'WHERE  a.id IN(' + AcctUtils.IDList(IdList) + ') ';
+        SQL.SQL.Text := SQL.SQL.Text + 'WHERE  a.id IN(' + AcctUtils.IDList(IdList, Context) + ') ';
 
     SQL.ExecQuery;
     Avail.BeginUpdate;
     try
       while not SQl.Eof do
       begin
-        Avail.AddObject(SQl.FieldByName('name').AsString, Pointer(
-          SQL.FieldByName('id').AsInteger));
+        Avail.AddObject(SQl.FieldByName('name').AsString,
+          TID2Pointer(GetTID(SQL.FieldByName('id')), Name));
         SQl.Next;
       end;
     finally
@@ -152,7 +154,7 @@ begin
         '  JOIN ac_quantity q ON q.entrykey = e.id ' +
         '  JOIN gd_value v ON v.id = q.valuekey ' +
         'WHERE ' +
-        '  e.accountkey IN(' + AcctUtils.IdList(AccountList) + ') AND ' +
+        '  e.accountkey IN(' + AcctUtils.IdList(AccountList, Name) + ') AND ' +
         '  e.entrydate <= :enddate AND ' +
         '  r.companykey IN(' + IBLogin.HoldingList + ' ) AND ' +
         '  G_SEC_TEST ( r.aview, ' + IntToStr(IBLogin.InGroup) + ' ) <> 0 AND ' +

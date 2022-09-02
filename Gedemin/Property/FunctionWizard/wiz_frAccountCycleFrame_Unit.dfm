@@ -1,60 +1,55 @@
 inherited frAccountCycleFrame: TfrAccountCycleFrame
-  Width = 442
   Height = 418
   Constraints.MaxHeight = 418
   Constraints.MinHeight = 418
-  Font.Name = 'Tahoma'
-  ParentFont = False
   inherited PageControl: TPageControl
-    Width = 442
     Height = 418
     inherited tsGeneral: TTabSheet
-      inherited Label1: TLabel
-        Width = 77
-      end
       inherited Label2: TLabel
         Top = 298
       end
       object Label3: TLabel [3]
-        Left = 8
+        Left = 4
         Top = 52
         Width = 29
         Height = 13
         Caption = 'Счёт:'
       end
       object Label4: TLabel [4]
-        Left = 8
+        Left = 4
         Top = 227
         Width = 59
         Height = 13
         Caption = 'Аналитика:'
       end
       object Label6: TLabel [5]
-        Left = 8
+        Left = 4
         Top = 251
-        Width = 85
+        Width = 91
         Height = 13
-        Caption = 'Групировать по:'
+        Caption = 'Группировать по:'
       end
       object Label5: TLabel [6]
-        Left = 8
+        Left = 4
         Top = 275
         Width = 42
         Height = 13
         Caption = 'Фильтр:'
       end
       inherited cbName: TComboBox
+        Left = 97
         Width = 324
       end
       inherited mDescription: TMemo
+        Left = 97
         Top = 294
         Width = 324
         TabOrder = 5
       end
       object beAnal: TBtnEdit [9]
-        Left = 95
+        Left = 97
         Top = 222
-        Width = 322
+        Width = 324
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -93,9 +88,9 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
         TabOrder = 2
       end
       object beGroupBy: TBtnEdit [10]
-        Left = 95
+        Left = 97
         Top = 246
-        Width = 322
+        Width = 324
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -134,9 +129,9 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
         TabOrder = 3
       end
       object beFilter: TBtnEdit [11]
-        Left = 95
+        Left = 97
         Top = 270
-        Width = 322
+        Width = 324
         Height = 22
         BtnCaption = 'Вставить'
         BtnCursor = crArrow
@@ -175,12 +170,13 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
         TabOrder = 4
       end
       inherited eLocalName: TEdit
+        Left = 97
         Width = 324
       end
       object Panel1: TPanel
-        Left = 96
+        Left = 97
         Top = 52
-        Width = 325
+        Width = 324
         Height = 165
         BevelOuter = bvNone
         BorderStyle = bsSingle
@@ -188,7 +184,7 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
         object gsIBGrid: TgsIBGrid
           Left = 0
           Top = 26
-          Width = 321
+          Width = 320
           Height = 135
           HelpContext = 3
           Align = alClient
@@ -233,7 +229,7 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
         object TBDock1: TTBDock
           Left = 0
           Top = 0
-          Width = 321
+          Width = 320
           Height = 26
           object TBToolbar1: TTBToolbar
             Left = 0
@@ -420,8 +416,8 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
   end
   object DataSource: TDataSource
     DataSet = IBDataSet
-    Left = 44
-    Top = 280
+    Left = 28
+    Top = 200
   end
   object IBDataSet: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
@@ -445,8 +441,8 @@ inherited frAccountCycleFrame: TfrAccountCycleFrame
   object pmAdd: TPopupMenu
     AutoHotkeys = maManual
     OnPopup = pmAddPopup
-    Left = 76
-    Top = 280
+    Left = 60
+    Top = 200
   end
   object ActionList1: TActionList
     Images = dmImages.il16x16

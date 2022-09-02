@@ -1,6 +1,8 @@
+ // ShlTanya, 20.02.2019, #4135
+
  {++
    Project ADDRESSBOOK
-   Copyright © 2000- by Golden Software
+   Copyright © 2000-2019 by Golden Software
 
    Модуль
 
@@ -28,7 +30,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   IBDatabase, Db, IBCustomDataSet, IBQuery, ComCtrls, ExtCtrls, StdCtrls,
-  Menus, ActnList, gd_security, IBSQL;
+  Menus, ActnList, gd_security, IBSQL, gdcBaseInterface;
 
 const
   TreeLeftBorder = 'LB';
@@ -68,7 +70,6 @@ type
     procedure edNameKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure tvAttrSetDblClick(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
     procedure actNextUpdate(Sender: TObject);
   private
@@ -83,8 +84,9 @@ type
     procedure ShowFind(Qry: Boolean);
     procedure Draw500Item;
   public
+    destructor Destroy; override;
     function GetElement(const NameOfTable, NameOfField,
-     NameOfPrimary: String; var SetName: String): Integer;
+     NameOfPrimary: String; var SetName: String): TID;
   end;
 
 var
@@ -93,6 +95,15 @@ var
 implementation
 
 {$R *.DFM}
+
+destructor TdlgSelectF.Destroy;
+begin
+  FParentList.Free;
+  {$IFDEF ID64}
+  FreeConvertContext(Name); 
+  {$ENDIF}  
+  inherited;
+end;
 
 // Вывод всех атрибутов
 procedure TdlgSelectF.ShowAttrSet;
@@ -106,7 +117,7 @@ begin
   ibqryFind.Open;
 
   // Визуальное отображение
-  
+
   tvAttrSet.Items.BeginUpdate;
   tvAttrSet.Items.Clear;
 
@@ -171,8 +182,8 @@ begin
         FParentList.Clear
       else
         while (FParentList.Count > 0) and
-         (ibqryFind.FieldByName('parent').AsInteger <>
-         Integer(TTreeNode(FParentList.Items[FParentList.Count - 1]).Data)) do
+         (GetTID(ibqryFind.FieldByName('parent')) <>
+         GetTID(TTreeNode(FParentList.Items[FParentList.Count - 1]).Data, Name)) do
           FParentList.Delete(FParentList.Count - 1);
       if FParentList.Count = 0 then
         L := tvAttrSet.Items.Add(nil, ibqryFind.FieldByName(FFieldName).AsString)
@@ -181,7 +192,7 @@ begin
          ibqryFind.FieldByName(FFieldName).AsString);
       FParentList.Add(L);
     end;
-    L.Data := Pointer(ibqryFind.FieldByName(FPrimaryName).AsInteger);
+    L.Data := TID2Pointer(GetTID(ibqryFind.FieldByName(FPrimaryName)), Name);
 
     Inc(I);
     ibqryFind.Next;
@@ -190,7 +201,7 @@ end;
 
 // Основная функция проекта
 function TdlgSelectF.GetElement(const NameOfTable, NameOfField,
- NameOfPrimary: String; var SetName: String): Integer;
+ NameOfPrimary: String; var SetName: String): TID;
 begin
   FIsTree := False;
   Result := -1;
@@ -216,7 +227,7 @@ begin
     begin
       if tvAttrSet.Selected <> nil then
       begin
-        Result := Integer(tvAttrSet.Selected.Data);
+        Result := GetTID(tvAttrSet.Selected.Data, Name);
         SetName := tvAttrSet.Selected.Text;
       end;
     end
@@ -236,7 +247,7 @@ begin
       if (ShowModal = mrOk) then
         if tvAttrSet.Selected <> nil then
         begin
-          Result := Integer(tvAttrSet.Selected.Data);
+          Result := GetTID(tvAttrSet.Selected.Data, Name);
           SetName := tvAttrSet.Selected.Text;
         end;
     end else
@@ -249,12 +260,12 @@ begin
         if (ShowModal = mrOk) then
           if tvAttrSet.Selected <> nil then
           begin
-            Result := Integer(tvAttrSet.Selected.Data);
+            Result := GetTID(tvAttrSet.Selected.Data, Name);
             SetName := tvAttrSet.Selected.Text;
           end;
       // Если найдена одна запись
       end else begin
-        Result := ibqryFind.FieldByName(Trim(FPrimaryName)).AsInteger;
+        Result := GetTID(ibqryFind.FieldByName(Trim(FPrimaryName)));
         SetName := ibqryFind.FieldByName(Trim(FFieldName)).AsString;
       end;
     end;
@@ -301,10 +312,6 @@ begin
   ModalResult := mrOk;
 end;
 
-procedure TdlgSelectF.FormDestroy(Sender: TObject);
-begin
-  FParentList.Free;
-end;
 
 procedure TdlgSelectF.actNextExecute(Sender: TObject);
 begin

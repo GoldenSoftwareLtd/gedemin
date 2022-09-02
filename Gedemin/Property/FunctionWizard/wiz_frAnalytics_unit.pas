@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_frAnalytics_unit;
 
 interface
@@ -16,13 +18,13 @@ type
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   private
     FAvailAnalyticFields: TList;
-    FAccountKey: Integer;
+    FAccountKey: TID;
 
     FAccountAnalyticFields: TList;
     FBlock: TVisualBlock;
     FReadAnalytics: String;
 
-    procedure SetAccountKey(const Value: Integer);
+    procedure SetAccountKey(const Value: TID);
     procedure SetBlock(const Value: TVisualBlock);
   protected
     FAnalyticLines: TObjectList;
@@ -34,7 +36,7 @@ type
     destructor Destroy; override;
     procedure UpdateAnalytics;
     property Analytics: string read GetAnalytics write SetAnalytics;
-    property AccountKey: Integer read FAccountKey write SetAccountKey;
+    property AccountKey: TID read FAccountKey write SetAccountKey;
     property Block: TVisualBlock read FBlock write SetBlock;
     property ReadAnalytics: String read FReadAnalytics write FReadAnalytics;
   end;
@@ -93,7 +95,7 @@ begin
   end;
 end;
 
-procedure TfrAnalytics.SetAccountKey(const Value: Integer);
+procedure TfrAnalytics.SetAccountKey(const Value: TID);
 begin
   FAccountKey := Value;
 end;
@@ -103,7 +105,8 @@ var
   SQL: TIBSQL;
   S: TStrings;
   FieldName: string;
-  Id, I, J: Integer;
+  Id: TID;
+  I, J: Integer;
 begin
   Update;
 
@@ -140,7 +143,7 @@ begin
                 [TfrAnalyticLine(FAnalyticLines[J]).Field.References.ListField.FieldName,
                 TfrAnalyticLine(FAnalyticLines[J]).Field.References.RelationName,
                 TfrAnalyticLine(FAnalyticLines[J]).Field.ReferencesField.FieldName,
-                id]);
+                TID264(id)]);
               SQL.ExecQuery;
               try
                 TfrAnalyticLine(FAnalyticLines[J]).eAnalytic.Text := SQL.Fields[0].AsString;
@@ -227,7 +230,7 @@ begin
         begin
           for I := 0 to SQL.Current.Count - 1 do
           begin
-            if SQL.Current[I].AsInteger > 0 then
+            if GetTID(SQL.Current[I]) > 0 then
             begin
               for J := 0 to FAvailAnalyticFields.Count - 1 do
               begin

@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcFilter;
 
@@ -178,11 +179,11 @@ begin
     if FieldByName('userkey').IsNull then
       Result := Format('SELECT id FROM flt_savedfilter WHERE name=''%s'' AND componentkey = %d AND userkey IS NULL',
         [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
-         FieldByName('componentkey').AsInteger])
+         TID264(FieldByName('componentkey'))])
     else
       Result := Format('SELECT id FROM flt_savedfilter WHERE name=''%s'' AND componentkey = %d AND userkey = %d',
         [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
-         FieldByName('componentkey').AsInteger, FieldByName('userkey').AsInteger]);
+         TID264(FieldByName('componentkey')), TID264(FieldByName('userkey'))]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSAVEDFILTER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

@@ -1,11 +1,12 @@
+// ShlTanya, 20.02.2019
 
 unit gsStorage;
 
 interface
 
 uses
-  Classes, Contnrs, SysUtils, Comctrls, Controls, Forms,
-  IBHeader, IBDatabase, IBSQL, gd_security, extctrls;
+  Classes, Contnrs, SysUtils, Comctrls, Controls, Forms, dialogs,
+  IBHeader, IBDatabase, IBSQL, gd_security, extctrls, gdcBaseInterface;
 
 const
                                   // sh -- storage header
@@ -15,7 +16,9 @@ const
   shNoCompression   = $00000000;  // дадзеныя не запакованыя
   shZLibCompression = $00000001;  // дадзеныя запакованыя
 
-  StreamSignature   = $00001234;  // подпіс плыні
+  //$00001234 - попись потока с числами (TgsIntegerValue) размерности Integer
+  //$00001235 - попись потока с числами (TgsIntegerValue) размерности Int64
+  StreamSignature: array[0..1] of integer = ($00001234, $00001235);  // подпіс плыні
 
 type
   // сохраняя данные хранилища в поток мы предворим их
@@ -67,11 +70,12 @@ type
     FName: String;
     FParent: TgsStorageItem;
     FChanged: Boolean;
+    FSizeOfTID: Integer;
 
     procedure SetName(const Value: String);
 
   protected
-    FID: Integer;
+    FID: TID;
     FModified: TDateTime;
 
     function GetStorage: TgsStorage; virtual;
@@ -107,7 +111,7 @@ type
 
   public
     constructor Create(AParent: TgsStorageItem; const AName: String = '';
-      const AnID: Integer = -1); virtual;
+      const AnID: TID = -1); virtual;
 
     destructor Destroy; override;
 
@@ -127,7 +131,7 @@ type
       const ASearchOptions: TgstSearchOptions;
       const DateFrom: TDate = 0; const DateTo: TDate = 0): Boolean; virtual; abstract;
 
-    property ID: Integer read FID;
+    property ID: TID read FID;
     property Name: String read FName write SetName;
     property Parent: TgsStorageItem read FParent;
     property Path: String read GetPath;
@@ -180,8 +184,8 @@ type
     function ReadString(const AValueName: String; const Default: String = ''): String;
     procedure WriteString(const AValueName: String; const AValue: String = '');
 
-    function ReadInteger(const AValueName: String; const Default: Integer = 0): Integer;
-    procedure WriteInteger(const AValueName: String; const AValue: Integer = 0);
+    function ReadInteger(const AValueName: String; const Default: TID = 0): TID;
+    procedure WriteInteger(const AValueName: String; const AValue: TID = 0);
 
     function ReadCurrency(const AValueName: String; const Default: Currency = 0): Currency;
     procedure WriteCurrency(const AValueName: String; const AValue: Currency = 0);
@@ -242,8 +246,8 @@ type
 
     function GetAsCurrency: Currency; virtual;
     procedure SetAsCurrency(const Value: Currency); virtual;
-    function GetAsInteger: Integer; virtual;
-    procedure SetAsInteger(const Value: Integer); virtual;
+    function GetAsInteger: TID; virtual;
+    procedure SetAsInteger(const Value: TID); virtual;
     function GetAsString: String; virtual;
     procedure SetAsString(const Value: String); virtual;
     function GetAsBoolean: Boolean; virtual;
@@ -265,7 +269,7 @@ type
 
     function ShowEditValueDialog: TModalResult;
 
-    property AsInteger: Integer read GetAsInteger write SetAsInteger;
+    property AsInteger: TID read GetAsInteger write SetAsInteger;
     property AsCurrency: Currency read GetAsCurrency write SetAsCurrency;
     property AsString: String read GetAsString write SetAsString;
     property AsBoolean: Boolean read GetAsBoolean write SetAsBoolean;
@@ -277,15 +281,15 @@ type
 
   TgsIntegerValue = class(TgsStorageValue)
   private
-    FData: Integer;
+    FData: TID;
 
   protected
     procedure Clear; override;
 
     function GetDataSize: Integer; override;
 
-    function GetAsInteger: Integer; override;
-    procedure SetAsInteger(const Value: Integer); override;
+    function GetAsInteger: TID; override;
+    procedure SetAsInteger(const Value: TID); override;
     function GetAsString: String; override;
     procedure SetAsString(const Value: String); override;
     function GetAsBoolean: Boolean; override;
@@ -315,7 +319,7 @@ type
     procedure SetAsCurrency(const Value: Currency); override;
     function GetAsString: String; override;
     procedure SetAsString(const Value: String); override;
-    procedure SetAsInteger(const Value: Integer); override;
+    procedure SetAsInteger(const Value: TID); override;
 
   public
     procedure LoadFromStream(S: TStream); override;
@@ -338,8 +342,8 @@ type
 
     function GetAsString: String; override;
     procedure SetAsString(const Value: String); override;
-    function GetAsInteger: Integer; override;
-    procedure SetAsInteger(const Value: Integer); override;
+    function GetAsInteger: TID; override;
+    procedure SetAsInteger(const Value: TID); override;
     function GetAsBoolean: Boolean; override;
     procedure SetAsBoolean(const Value: Boolean); override;
     function GetAsDateTime: TDateTime; override;
@@ -390,8 +394,8 @@ type
 
     function GetDataSize: Integer; override;
 
-    function GetAsInteger: Integer; override;
-    procedure SetAsInteger(const Value: Integer); override;
+    function GetAsInteger: TID; override;
+    procedure SetAsInteger(const Value: TID); override;
     function GetAsBoolean: Boolean; override;
     procedure SetAsBoolean(const Value: Boolean); override;
     function GetAsString: String; override;
@@ -463,7 +467,7 @@ type
     procedure BeforeOpenFolder; virtual;
     procedure AfterCloseFolder; virtual;
 
-    procedure DeleteStorageItem(const AnID: Integer); virtual;
+    procedure DeleteStorageItem(const AnID: TID); virtual;
     function UpdateName(const Tr: TIBTransaction = nil): String; virtual;
 
   public
@@ -496,7 +500,7 @@ type
     function ReadCurrency(const APath, AValue: String;
       const Default: Currency = 0; const Sync: Boolean = True): Currency;
     function ReadInteger(const APath, AValue: String;
-      const Default: Integer = 0; const Sync: Boolean = True): Integer;
+      const Default: TID = 0; const Sync: Boolean = True): TID;
     function ReadDateTime(const APath, AValue: String;
       const Default: TDateTime; const Sync: Boolean = True): TDateTime;
     function ReadBoolean(const APath, AValue: String;
@@ -507,7 +511,7 @@ type
       const ASync: Boolean = True): Boolean;
 
     procedure WriteString(const APath, AValueName, AValue: String; const Sync: Boolean = True);
-    procedure WriteInteger(const APath, AValueName: String; const AValue: Integer);
+    procedure WriteInteger(const APath, AValueName: String; const AValue: TID);
     procedure WriteCurrency(const APath, AValueName: String; const AValue: Currency);
     procedure WriteBoolean(const APath, AValueName: String; const AValue: Boolean; const Sync: Boolean = True);
     procedure WriteDateTime(const APath, AValueName: String; const AValue: TDateTime);
@@ -522,7 +526,7 @@ type
       const ASearchOptions: TgstSearchOptions; const DateFrom:TDate = 0;
       const DateTo: TDate = 0): Boolean;
 
-    function FindID(const AnID: Integer; out SI: TgsStorageItem): Boolean;
+    function FindID(const AnID: TID; out SI: TgsStorageItem): Boolean;
 
     property Name: String read GetName;
     property IsModified: Boolean read GetModified;
@@ -531,13 +535,13 @@ type
 
   TgsIBStorage = class(TgsStorage)
   private
-    FObjectKey: Integer;
+    FObjectKey: TID;
     FDataType: Char;
 
-    procedure SetObjectKey(const Value: Integer);
+    procedure SetObjectKey(const Value: TID);
 
   protected
-    procedure DeleteStorageItem(const AnID: Integer); override;
+    procedure DeleteStorageItem(const AnID: TID); override;
     function UpdateName(const Tr: TIBTransaction = nil): String; override;
 
     property DataType: Char read FDataType write FDataType;
@@ -550,7 +554,7 @@ type
     procedure SaveToDataBase(const ATr: TIBTransaction = nil); virtual;
     procedure LoadFromDataBase(const ATr: TIBTransaction = nil); virtual;
 
-    property ObjectKey: Integer read FObjectKey write SetObjectKey;
+    property ObjectKey: TID read FObjectKey write SetObjectKey;
   end;
 
   TgsCompanyStorage = class(TgsIBStorage)
@@ -600,7 +604,7 @@ implementation
 uses
   JclSysUtils, ZLib, Windows, st_dlgfolderprop_unit, gd_common_functions,
   st_dlgeditvalue_unit, gsStorage_CompPath, DB, IB, IBErrorCodes,
-  IBBlob, gdcBaseInterface, jclStrings, gdcStorage_Types, gd_ClassList
+  IBBlob, jclStrings, gdcStorage_Types, gd_ClassList
   {$IFDEF GEDEMIN}
   , gd_directories_const, Storages, gdc_frmG_unit
   {$ENDIF}
@@ -949,7 +953,7 @@ begin
 end;
 
 function TgsStorageFolder.ReadInteger(const AValueName: String;
-  const Default: Integer): Integer;
+  const Default: TID): TID;
 var
   V: TgsStorageValue;
 begin
@@ -1015,7 +1019,7 @@ begin
 end;
 
 procedure TgsStorageFolder.WriteInteger(const AValueName: String;
-  const AValue: Integer = 0);
+  const AValue: TID = 0);
 var
   V: TgsStorageValue;
 begin
@@ -1653,7 +1657,6 @@ var
   DS: TZDecompressionStream;
 begin
   Clear;
-
   if not Assigned(S) then
     exit;
 
@@ -1742,7 +1745,7 @@ begin
 end;
 
 function TgsStorage.ReadInteger(const APath, AValue: String;
-  const Default: Integer = 0; const Sync: Boolean = True): Integer;
+  const Default: TID = 0; const Sync: Boolean = True): TID;
 var
   F: TgsStorageFolder;
   V: TgsStorageValue;
@@ -1937,7 +1940,7 @@ begin
 end;
 
 procedure TgsStorage.WriteInteger(const APath, AValueName: String;
-  const AValue: Integer);
+  const AValue: TID);
 var
   F: TgsStorageFolder;
 begin
@@ -2184,7 +2187,7 @@ begin
   Result := Scan(FRootFolder);
 end;
 
-function TgsStorage.FindID(const AnID: Integer;
+function TgsStorage.FindID(const AnID: TID;
   out SI: TgsStorageItem): Boolean;
 
   function DoRecurse(F: TgsStorageFolder): Boolean;
@@ -2224,7 +2227,7 @@ begin
   Result := DoRecurse(FRootFolder);
 end;
 
-procedure TgsStorage.DeleteStorageItem(const AnID: Integer);
+procedure TgsStorage.DeleteStorageItem(const AnID: TID);
 begin
   //
 end;
@@ -2240,7 +2243,7 @@ procedure TgsIBStorage.SaveToDataBase(const ATr: TIBTransaction = nil);
 var
   q, qID: TIBSQL;
   Tr: TIBTransaction;
-  CurrID, LimitID, CutOff: Integer;
+  CutOff: Integer;
   Failed: Boolean;
 
   {$IFDEF DEBUG}
@@ -2257,10 +2260,10 @@ var
       'VALUES (%d, %d, ''%s'', ''F'', ' +
       ' %d) ' +
       'MATCHING (id); ', [
-        q.ParamByName('id').AsInteger,
-        q.ParamByName('parent').AsInteger,
+        TID264(q.ParamByName('id')),
+        TID264(q.ParamByName('parent')),
         q.ParamByName('name').AsString,
-        IBLogin.ContactKey
+        TID264(IBLogin.ContactKey)
       ]);
 
     LogSL.Add(S);
@@ -2268,28 +2271,28 @@ var
   {$ENDIF}
 
 
-  function GetNextID: Integer;
+  function GetNextID: TID;
   begin
-    if ATr = nil then
+    //if ATr = nil then
       Result := gdcBaseManager.GetNextID
-    else
-    begin
-      if CurrID < LimitID then
-        Inc(CurrID)
-      else begin
-        if qID = nil then
-        begin
-          qID := TIBSQL.Create(nil);
-          qID.Transaction := Tr;
-          qID.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 1000) FROM rdb$database';
-        end;
-        qID.ExecQuery;
-        LimitID := qID.Fields[0].AsInteger;
-        CurrID := LimitID - 1000 + 1;
-        qID.Close;
-      end;
-      Result := CurrID;
-    end;
+    //else
+    //begin
+    //  if CurrID < LimitID then
+    //    Inc(CurrID)
+    //  else begin
+    //    if qID = nil then
+    //    begin
+    //      qID := TIBSQL.Create(nil);
+    //      qID.Transaction := Tr;
+    //      qID.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 1000) FROM rdb$database';
+    //    end;
+    //    qID.ExecQuery;
+    //    LimitID := GetTID(qID.Fields[0]);
+    //    CurrID := LimitID - 1000 + 1;
+    //    qID.Close;
+    //  end;
+    //  Result := CurrID;
+    //end;
   end;
 
   procedure ClearParams;
@@ -2299,12 +2302,13 @@ var
     q.ParamByName('datetime_data').Clear;
     q.ParamByName('curr_data').Clear;
     q.ParamByName('blob_data').Clear;
-    q.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
+    SetTID(q.ParamByName('editorkey'), IBLogin.ContactKey);
   end;
 
   procedure DoRecurse(F: TgsStorageFolder);
   var
-    I, P, J, FoundID, FoundCount: Integer;
+    I, P, J, FoundCount: Integer;
+    FoundID: TID;
     V: TgsStorageValue;
   begin
     if F.Changed then
@@ -2312,13 +2316,13 @@ var
       if F.ID = -1 then
         F.FID := GetNextID;
 
-      q.ParamByName('id').AsInteger := F.ID;
+      SetTID(q.ParamByName('id'), F.ID);
       q.ParamByName('name').AsString := F.Name;
       q.ParamByName('editiondate').AsDateTime := F.Modified;
 
       if F.Parent <> nil then
       begin
-        q.ParamByName('parent').AsInteger := F.Parent.ID;
+        SetTID(q.ParamByName('parent'), F.Parent.ID);
         q.ParamByName('data_type').AsString := cStorageFolder;
         ClearParams;
       end else
@@ -2359,7 +2363,7 @@ var
               if FoundID > 0 then
               begin
                 F.FID := FoundID;
-                q.ParamByName('id').AsInteger := F.ID;
+                SetTID(q.ParamByName('id'), F.ID);
                 CutOff := 5;
               end else
               begin
@@ -2389,8 +2393,8 @@ var
         if V.ID = -1 then
           V.FID := GetNextID;
         ClearParams;
-        q.ParamByName('id').AsInteger := V.ID;
-        q.ParamByName('parent').AsInteger := F.ID;
+        SetTID(q.ParamByName('id'), V.ID);
+        SetTID(q.ParamByName('parent'), F.ID);
         q.ParamByName('name').AsString := V.Name;
         q.ParamByName('editiondate').AsDateTime := V.Modified;
         if V is TgsStringValue then
@@ -2408,12 +2412,12 @@ var
         else if V is TgsIntegerValue then
         begin
           q.ParamByName('data_type').AsString := cStorageInteger;
-          q.ParamByName('int_data').AsInteger := V.AsInteger;
+          SetTID(q.ParamByName('int_data'), V.AsInteger);
         end
         else if V is TgsBooleanValue then
         begin
           q.ParamByName('data_type').AsString := cStorageBoolean;
-          q.ParamByName('int_data').AsInteger := V.AsInteger;
+          SetTID(q.ParamByName('int_data'), V.AsInteger);
         end
         else if V is TgsDateTimeValue then
         begin
@@ -2443,7 +2447,8 @@ var
           if FoundCount > 1 then
           begin
             raise EgsStorageError.Create(
-              'Дублируются наименования элементов хранилища'#13#10 +
+              'Дублируются наименования элементов'#13#10 +
+              'хранилища "' + q.ParamByName('name').AsString + '"'#13#10 +
               'в рамках одного родителя (ИД = ' + q.ParamByName('parent').AsString + ').'#13#10 +
               'Обратитесь к системному администратору!');
           end;
@@ -2474,13 +2479,13 @@ var
                   J := P + 5;
                   while (J <= Length(E.Message)) and (E.Message[J] in ['0'..'9']) do
                     Inc(J);
-                  FoundID := StrToIntDef(Copy(E.Message, P + 5, J - P - 5), -1);
+                  FoundID := GetTID(Copy(E.Message, P + 5, J - P - 5), -1);
                 end else
                   FoundID := -1;
                 if FoundID > 0 then
                 begin
                   V.FID := FoundID;
-                  q.ParamByName('id').AsInteger := V.ID;
+                  SetTID(q.ParamByName('id'), V.ID);
 
                   if V is TgsStreamValue then
                   begin
@@ -2530,8 +2535,6 @@ begin
     Tr := ATr;
   q := TIBSQL.Create(nil);
   qID := nil;
-  CurrID := -1;
-  LimitID := -1;
   try
     if ATr = nil then
     begin
@@ -2555,7 +2558,7 @@ begin
 
     q.ParamByName('data_type').AsString := FDataType;
     if FDataType <> cStorageGlobal then
-      q.ParamByName('int_data').AsInteger := FObjectKey;
+      SetTID(q.ParamByName('int_data'), FObjectKey);
 
     try
       DoRecurse(FRootFolder);
@@ -2581,14 +2584,14 @@ var
   procedure DoRecurse(F: TgsStorageFolder);
   var
     V: TgsStorageValue;
-    Prnt: Integer;
+    Prnt: TID;
   begin
-    F.FID := q.FieldByName('id').AsInteger;
+    F.FID := GetTID(q.FieldByName('id'));
     F.FModified := q.FieldByName('editiondate').AsDateTime;
-    Prnt := q.FieldByName('id').AsInteger;
+    Prnt := GetTID(q.FieldByName('id'));
     q.Next;
 
-    while (not q.EOF) and (q.FieldByName('parent').AsInteger = Prnt) do
+    while (not q.EOF) and (GetTID(q.FieldByName('parent')) = Prnt) do
     begin
       if q.FieldByName('data_type').AsString = 'F' then
       begin
@@ -2599,37 +2602,37 @@ var
         case q.FieldByName('data_type').AsString[1] of
         cStorageString:
           begin
-            V := TgsStringValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            V := TgsStringValue.Create(F, q.FieldByName('name').AsString, GetTID(q.FieldByName('id')));
             V.AsString := q.FieldByName('str_data').AsString;
           end;
 
         cStorageInteger:
           begin
-            V := TgsIntegerValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
-            V.AsInteger := q.FieldByName('int_data').AsInteger;
+            V := TgsIntegerValue.Create(F, q.FieldByName('name').AsString, GetTID(q.FieldByName('id')));
+            V.AsInteger := GetTID(q.FieldByName('int_data'));
           end;
 
         cStorageCurrency:
           begin
-            V := TgsCurrencyValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            V := TgsCurrencyValue.Create(F, q.FieldByName('name').AsString, GetTID(q.FieldByName('id')));
             V.AsCurrency := q.FieldByName('curr_data').AsCurrency;
           end;
 
         cStorageBoolean:
           begin
-            V := TgsBooleanValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
-            V.AsInteger := q.FieldByName('int_data').AsInteger;
+            V := TgsBooleanValue.Create(F, q.FieldByName('name').AsString, GetTID(q.FieldByName('id')));
+            V.AsInteger := GetTID(q.FieldByName('int_data'));
           end;
 
         cStorageDateTime:
           begin
-            V := TgsDateTimeValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            V := TgsDateTimeValue.Create(F, q.FieldByName('name').AsString, GetTID(q.FieldByName('id')));
             V.AsDateTime := q.FieldByName('datetime_data').AsDateTime;
           end;
 
         cStorageBlob:
           begin
-            V := TgsStreamValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            V := TgsStreamValue.Create(F, q.FieldByName('name').AsString, GetTID(q.FieldByName('id')));
             if not q.FieldByName('blob_data').IsNull then
               TgsStreamValue(V).AsQUAD := q.FieldByName('blob_data').AsQUAD;
           end;
@@ -2640,7 +2643,7 @@ var
 
         q.Next;
 
-        if (V <> nil) and (not q.EOF) and (q.FieldByName('parent').AsInteger = V.ID) then
+        if (V <> nil) and (not q.EOF) and (GetTID(q.FieldByName('parent')) = V.ID) then
         begin
           MessageBox(0,
             PChar(
@@ -2650,7 +2653,7 @@ var
               'Обратитесь к системному администратору.'),
             'Ошибка данных хранилища',
             MB_ICONEXCLAMATION or MB_OK or MB_TASKMODAL);
-          while (not q.EOF) and (q.FieldByName('parent').AsInteger <> Prnt) do
+          while (not q.EOF) and (GetTID(q.FieldByName('parent')) <> Prnt) do
             q.Next;
         end;
       end;
@@ -2699,7 +2702,7 @@ begin
       'ORDER BY d.lb';}
     q.ParamByName('DT').AsString := FDataType;
     if FDataType <> cStorageGlobal then
-      q.ParamByName('ID').AsInteger := FObjectKey;
+      SetTID(q.ParamByName('ID'), FObjectKey);
     q.ExecQuery;
     FRootFolder.Name := UpdateName(ATr);
     if not q.EOF then
@@ -2713,7 +2716,7 @@ begin
   end;
 end;
 
-procedure TgsIBStorage.DeleteStorageItem(const AnID: Integer);
+procedure TgsIBStorage.DeleteStorageItem(const AnID: TID);
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -2731,7 +2734,7 @@ begin
     repeat
       try
         q.SQL.Text := 'DELETE FROM gd_storage_data WHERE id = :ID';
-        q.Params[0].AsInteger := AnID;
+        SetTID(q.Params[0], AnID);
         q.ExecQuery;
         CutOff := 0;
       except
@@ -2761,7 +2764,7 @@ begin
   end;
 end;
 
-procedure TgsIBStorage.SetObjectKey(const Value: Integer);
+procedure TgsIBStorage.SetObjectKey(const Value: TID);
 begin
   if FDataType <> cStorageGlobal then
   begin
@@ -2830,7 +2833,7 @@ begin
          else
            q.Transaction := Tr;
          q.SQL.Text := 'SELECT name FROM gd_user WHERE id = :ID';
-         q.ParamByName('ID').AsInteger := FObjectKey;
+         SetTID(q.ParamByName('ID'), FObjectKey);
          q.ExecQuery;
          if not q.EOF then
            Result := Result + ' - ' + q.Fields[0].AsTrimString;
@@ -2869,7 +2872,7 @@ begin
          else
            q.Transaction := Tr;
          q.SQL.Text := 'SELECT name FROM gd_contact WHERE id = :ID';
-         q.ParamByName('ID').AsInteger := FObjectKey;
+         SetTID(q.ParamByName('ID'), FObjectKey);
          q.ExecQuery;
          if not q.EOF then
            Result := Result + ' - ' + q.Fields[0].AsTrimString;
@@ -2883,7 +2886,7 @@ end;
 { TgsStorageItem }
 
 constructor TgsStorageItem.Create(AParent: TgsStorageItem; const AName: String = '';
-  const AnID: Integer = -1);
+  const AnID: TID = -1);
 begin
   inherited Create;
   FID := AnID;
@@ -2944,14 +2947,19 @@ var
 begin
   Clear;
   S.ReadBuffer(L, SizeOf(L));
-  if L <> StreamSignature then
-    raise EgsStorageError.Create('Invalidstream format');
+  if L = StreamSignature[0] then
+    FSizeOfTID := SizeOf(Integer)
+  else
+    if L = StreamSignature[1] then
+      FSizeOfTID := SizeOf(Int64)
+    else
+      raise EgsStorageError.Create('Invalidstream format');
   S.ReadBuffer(L, SizeOf(L));
   SetLength(FName, L);
   if L > 0 then
     S.ReadBuffer(FName[1], L)
   else
-    FName := GetFreeName;  
+    FName := GetFreeName;
 { TODO :
 ради совместимости мы делаем это
 позже, когда будет сделано сохранение в текст
@@ -2971,7 +2979,8 @@ var
   St: String;
 begin
   S.ReadBuffer(L, SizeOf(L));
-  if L <> StreamSignature then
+  if (L <> StreamSignature[0])
+    or (L <> StreamSignature[1]) then
     raise EgsStorageError.Create('Invalidstream format');
   S.ReadBuffer(L, SizeOf(L));
   SetLength(St, L);
@@ -3023,7 +3032,12 @@ var
   L: Integer;
   Dummy: TDateTime;
 begin
-  L := StreamSignature;
+  {$IFDEF ID64}
+  L := StreamSignature[1];
+  {$ELSE}
+  L := StreamSignature[0];
+  {$ENDIF}
+
   S.WriteBuffer(L, SizeOf(L));
   L := Length(FName);
   S.WriteBuffer(L, SizeOf(L));
@@ -3150,14 +3164,14 @@ begin
   Result := Boolean(FData);
 end;
 
-function TgsIntegerValue.GetAsInteger: Integer;
+function TgsIntegerValue.GetAsInteger: TID;
 begin
   Result := FData;
 end;
 
 function TgsIntegerValue.GetAsString: String;
 begin
-  Result := IntToStr(FData);
+  Result := TID2S(FData);
 end;
 
 function TgsIntegerValue.GetDataSize: Integer;
@@ -3178,15 +3192,15 @@ end;
 procedure TgsIntegerValue.LoadFromStream(S: TStream);
 begin
   inherited;
-  S.ReadBuffer(FData, SizeOf(FData));
+  S.ReadBuffer(FData, FSizeOfTID);
 end;
 
 class procedure TgsIntegerValue.SkipInStream(S: TStream);
 var
-  I: Integer;
+  I: TID;
 begin
   inherited;
-  S.ReadBuffer(I, SizeOf(I));
+  S.ReadBuffer(I, SizeOf(Integer));
 end;
 
 procedure TgsIntegerValue.SaveToStream(S: TStream);
@@ -3200,7 +3214,7 @@ begin
   SetAsInteger(iff(Value, 1, 0));
 end;
 
-procedure TgsIntegerValue.SetAsInteger(const Value: Integer);
+procedure TgsIntegerValue.SetAsInteger(const Value: TID);
 begin
   if Value <> AsInteger then
   begin
@@ -3213,7 +3227,7 @@ end;
 procedure TgsIntegerValue.SetAsString(const Value: String);
 begin
   try
-    SetAsInteger(StrToInt(Value));
+    SetAsInteger(GetTID(Value));
   except
     on E: EConvertError do
       raise EgsStorageError.Create('Invalid typecast');
@@ -3279,7 +3293,7 @@ begin
  end;
 end;
 
-procedure TgsCurrencyValue.SetAsInteger(const Value: Integer);
+procedure TgsCurrencyValue.SetAsInteger(const Value: TID);
 begin
   SetAsCurrency(Value);
 end;
@@ -3309,9 +3323,9 @@ begin
   FData := '';
 end;
 
-function TgsStringValue.GetAsInteger: Integer;
+function TgsStringValue.GetAsInteger: TID;
 begin
-  Result := StrToInt(AsString);
+  Result := GetTID(AsString);
 end;
 
 function TgsStringValue.GetAsString: String;
@@ -3380,9 +3394,9 @@ begin
     S.WriteBuffer(T[1], L);
 end;
 
-procedure TgsStringValue.SetAsInteger(const Value: Integer);
+procedure TgsStringValue.SetAsInteger(const Value: TID);
 begin
-  AsString := IntToStr(Value);
+  AsString := TID2S(Value);
 end;
 
 procedure TgsStringValue.SetAsString(const Value: String);
@@ -3574,12 +3588,12 @@ begin
   SetAsBoolean(Value = '1');
 end;
 
-function TgsBooleanValue.GetAsInteger: Integer;
+function TgsBooleanValue.GetAsInteger: TID;
 begin
   if FData then Result := 1 else Result := 0;
 end;
 
-procedure TgsBooleanValue.SetAsInteger(const Value: Integer);
+procedure TgsBooleanValue.SetAsInteger(const Value: TID);
 begin
   SetAsBoolean(Boolean(Value));
 end;
@@ -3634,7 +3648,7 @@ begin
   raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
-function TgsStorageValue.GetAsInteger: Integer;
+function TgsStorageValue.GetAsInteger: TID;
 begin
   raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
@@ -3718,7 +3732,7 @@ begin
   raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
-procedure TgsStorageValue.SetAsInteger(const Value: Integer);
+procedure TgsStorageValue.SetAsInteger(const Value: TID);
 begin
   raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
@@ -3772,7 +3786,7 @@ begin
     OldName := Self.Name;
      edName.Text := OldName;
     edValue.Text := AsString;
-    edID.Text := IntToStr(ID);
+    edID.Text := TID2S(ID);
 
     F := False;
     repeat
@@ -3847,36 +3861,52 @@ begin
       bs.Transaction := gdcBaseManager.ReadTransaction;
       bs.BlobID := FQUAD;
       try
-        ReadBLOB;
-      except
-        on E: EIBError do
-        begin
-          if E.IBErrorCode <> isc_random then
-            raise;
-
-          {
-            Если данный БЛОБ обновили из другого конекта, то мы должны перечитать с
-            сервера его ИД.
-          }
-
-          Qry := TIBSQL.Create(nil);
-          Qry.Transaction := gdcBaseManager.ReadTransaction;
-          Qry.SQL.Text := 'SELECT blob_data FROM gd_storage_data WHERE id = :ID';
-          Qry.ParamByName('id').AsInteger := FID;
-          Qry.ExecQuery;
-
-          if Qry.EOF then
-          begin
-            Qry.Free;
-            raise;
-          end;
-
-          FQUAD := Qry.Fields[0].AsQUAD;
-          bs.BlobID := FQUAD;
-
-          Qry.Free;
-
+        try
           ReadBLOB;
+        except
+          on E: EIBError do
+          begin
+            if E.IBErrorCode <> isc_random then
+              raise;
+
+            {
+              Если данный БЛОБ обновили из другого конекта, то мы должны перечитать с
+              сервера его ИД.
+            }
+
+            Qry := TIBSQL.Create(nil);
+            Qry.Transaction := gdcBaseManager.ReadTransaction;
+            Qry.SQL.Text := 'SELECT blob_data FROM gd_storage_data WHERE id = :ID';
+            SetTID(Qry.ParamByName('id'), FID);
+            Qry.ExecQuery;
+
+            if Qry.EOF then
+            begin
+              Qry.Free;
+              raise;
+            end;
+
+            FQUAD := Qry.Fields[0].AsQUAD;
+            bs.BlobID := FQUAD;
+
+            Qry.Free;
+
+            ReadBLOB;
+          end;
+        end;
+      except
+        on E: Exception do
+        begin
+          MessageBox(0,
+            PChar(
+              'Ошибка при считывании BLOB ' + #13#10 +
+              'значения "' + FName + '", ID: ' + IntToStr(FID) + #13#10 +
+              'Сообщение об ошибке: ' + E.Message + #13#10#13#10 +
+              'Возможно, файл базы данных поврежден. ' + #13#10 +
+              'Выполните бэкап-восстановление или сообщите системному администратору.'
+            ),
+            'Хранилище',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL);
         end;
       end;
       FLoaded := True;

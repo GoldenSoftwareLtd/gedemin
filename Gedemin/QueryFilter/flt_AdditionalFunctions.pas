@@ -1,10 +1,12 @@
+// ShlTanya, 10.03.2019
+
 unit flt_AdditionalFunctions;
 
 interface
 
 uses
   Classes, SysUtils, Windows, IBDatabase, IBSQL, flt_sqlfilter_condition_type,
-  flt_sqlFilter, contnrs;
+  flt_sqlFilter, contnrs, gdcBaseInterface;
 
 // Функция для Мишы. Проверка выполнения по значению условий.
 function CheckIncludeCondition(const AnDatabase: TIBDatabase; const AnTransaction: TIBTransaction;
@@ -43,14 +45,15 @@ var
 
   function CheckValueList(const AnValue: String; const AnValueList: TStrings): Boolean;
   var
-    LocI, TempVal: Integer;
+    LocI: Integer;
+    TempVal: TID;
   begin
     Result := False;
     if Trim(AnValue) = '' then
       Exit;
-    TempVal := StrToInt(AnValue);
+    TempVal := GetTID(AnValue);
     for LocI := 0 to AnValueList.Count - 1 do
-      if TempVal = Integer(AnValueList.Objects[LocI]) then
+      if TempVal = GetTID(AnValueList.Objects[LocI], cEmptyContext) then
       begin
         Result := True;
         Exit;
@@ -120,7 +123,7 @@ var
              Prf1 + Pnt + AnCurrentCondition.FieldData.RefField + ' in (';
         end;
         for LocI := 0 to AnCurrentCondition.ValueList.Count - 1 do
-          S := S + IntToStr(Integer(AnCurrentCondition.ValueList.Objects[LocI])) + ',';
+          S := S + TID2S(GetTID(AnCurrentCondition.ValueList.Objects[LocI], cEmptyContext)) + ',';
         S[Length(S)] := ')';
       end;
 
@@ -134,7 +137,7 @@ var
          AnCurrentCondition.FieldData.LinkSourceField + ' = ' + AnFieldValue + ' AND ' +
          AnCurrentCondition.FieldData.LinkTargetField + ' in (';
         for LocI := 0 to AnCurrentCondition.ValueList.Count - 1 do
-          S := S + IntToStr(Integer(AnCurrentCondition.ValueList.Objects[LocI])) + ',';
+          S := S + TID2S(GetTID(AnCurrentCondition.ValueList.Objects[LocI], cEmptyContext)) + ',';
         S[Length(S)] := ')';
       end;
 
@@ -148,7 +151,7 @@ var
           S2 := S2 + GetPrefix(LocI) + '.' + AnCurrentCondition.FieldData.LinkSourceField +
            ' = ' + AnFieldValue + ' AND ';
           S2 := S2 + GetPrefix(LocI) + '.' + AnCurrentCondition.FieldData.LinkTargetField +
-           ' = ' + IntToStr(Integer(AnCurrentCondition.ValueList.Objects[LocI])) + ' AND ';
+           ' = ' + TID2S(GetTID(AnCurrentCondition.ValueList.Objects[LocI], cEmptyContext)) + ' AND ';
         end;
         S[Length(S)] := ' ';
         Delete(S2, Length(S2) - 3, 4);
@@ -445,7 +448,7 @@ begin
         if not DbState then
           AnTransaction.StartTransaction;
         ibsqlWork.ExecQuery;
-        Result := BoolOperation(Result, ibsqlWork.Fields[0].AsInteger <> 0, AnCondition.IsAndCondition);
+        Result := BoolOperation(Result, GetTID(ibsqlWork.Fields[0]) <> 0, AnCondition.IsAndCondition);
       end;
       Result := Result or Coincidence;
     finally

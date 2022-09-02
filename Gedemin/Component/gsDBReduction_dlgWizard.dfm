@@ -1,6 +1,6 @@
 object dlgWizard: TdlgWizard
-  Left = 313
-  Top = 153
+  Left = 556
+  Top = 165
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Объединение записей'
@@ -2241,9 +2241,27 @@ object dlgWizard: TdlgWizard
       C7D6C9C7D6C9C7D6C9C7D6C9C7D6C9C7D6C9C7D6C9C7D6C9C7D6C9C7D6C9C7D6
       C900}
   end
+  object btnHelp: TBitBtn
+    Left = 8
+    Top = 337
+    Width = 75
+    Height = 25
+    Action = actHelp
+    Caption = 'Справка'
+    TabOrder = 4
+    Glyph.Data = {
+      F6000000424DF600000000000000760000002800000010000000100000000100
+      0400000000008000000000000000000000001000000000000000000000000000
+      8000008000000080800080000000800080008080000080808000C0C0C0000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00888888888888
+      888888888F797F888888888BFB999BFB888888BFBF797FBFB8888BFBFBFBFBFB
+      FB888FBFBFB9BFBFBF88FBFBFBF97BFBFBF8BFBFBFB99FBFBFB8FBFBFBFB99FB
+      FBF8BFBF77BF799FBFB8FBFB99FB799BFBF88FBF997F799FBF888BFBF99999FB
+      FB8888BFBF999FBFB888888BFBFBFBFB888888888FBFBF888888}
+  end
   object alNext: TActionList
-    Left = 77
-    Top = 87
+    Left = 382
+    Top = 16
     object actNext: TAction
       Caption = 'Дальше'
       OnExecute = actNextExecute
@@ -2269,10 +2287,14 @@ object dlgWizard: TdlgWizard
       OnExecute = actChangeExecute
       OnUpdate = actChangeUpdate
     end
+    object actHelp: TAction
+      Caption = 'actHelp'
+      OnExecute = actHelpExecute
+    end
   end
   object pmReduction: TPopupMenu
-    Left = 112
-    Top = 91
+    Left = 414
+    Top = 16
     object miSumma: TMenuItem
       Action = actSum
       RadioItem = True

@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019, #4135
 
 unit gdv_frAcctQuantity_unit;
 
@@ -16,6 +17,7 @@ type
   private
     { Private declarations }
     FCheckBoxList: TObjectList;
+    FContext: String;
     procedure SetSelected(const Value: string);
     function GetSelected: string;
     function GetValueCount: Integer;
@@ -36,6 +38,7 @@ type
     // Общее число количественных величин на компоненте
     property ValueCount: Integer read GetValueCount;
     property Selected: string read GetSelected write SetSelected;
+    property Context: String write FContext;
   end;
 
 implementation
@@ -67,7 +70,7 @@ begin
       begin
         if Result > '' then Result := Result + #13#10;
 
-        Result := Result + IntToStr(TCheckBox(FCheckBoxList[I]).Tag);
+        Result := Result + TID2S(GetTID(TCheckBox(FCheckBoxList[I]).Tag, FContext));
       end;  
     end;
   end;
@@ -86,7 +89,7 @@ begin
       begin
         if Result > '' then
           Result := Result + ', ';
-        Result := Result + IntToStr(TCheckBox(FCheckBoxList[I]).Tag);
+        Result := Result + TID2S(GetTID(TCheckBox(FCheckBoxList[I]).Tag, FContext));
       end;  
     end;
   end;
@@ -105,7 +108,7 @@ begin
       for I := 0 to FCheckBoxList.Count - 1 do
       begin
         TCheckBox(FCheckBoxList[I]).Checked :=
-          S.IndexOf(IntToStr(TCheckBox(FCheckBoxList[I]).Tag)) > - 1;
+          S.IndexOf(TID2S(GetTID(TCheckBox(FCheckBoxList[I]).Tag, FContext))) > - 1;
       end;
     finally
       S.Free;
@@ -146,7 +149,7 @@ begin
       if AIdList.Count > 0 then
       begin
         SQL.SQl.Add('WHERE ');
-        SQL.SQl.Add('  a.id IN(' + AcctUtils.IDList(AIdList) + ') ');
+        SQL.SQl.Add('  a.id IN(' + AcctUtils.IDList(AIdList, FContext) + ') ');
       end;
       SQL.SQL.Add('ORDER BY v.name ');
       SQL.ExecQuery;
@@ -175,7 +178,7 @@ begin
         begin
           Cb.Caption := SQL.FieldByName('name').AsString;
         end;
-        Cb.Tag := SQL.FieldByName('id').AsInteger;
+        Cb.Tag := TID2Tag(GetTID(SQL.FieldByName('id')), FContext);
         Cb.Checked := L.IndexOf(Pointer(Cb.Tag)) > - 1;
 
         H := H + Cb.Height;
@@ -215,21 +218,21 @@ procedure TfrAcctQuantity.ValueList(const ValueList: TStrings;
           ibsql.SQL.Text := Format(
             ' SELECT a2.id FROM ac_account a1, ac_account a2 WHERE a1.id in(%s) and ' +
             ' a2.lb >= a1.lb and a2.rb <= a1.rb and a2.ACCOUNTTYPE in (''A'', ''S'')',
-            [AcctUtils.IDList(AccountList)]);
+            [AcctUtils.IDList(AccountList, FContext)]);
           ibsql.ExecQuery;
           while not ibsql.Eof do
           begin
-            if L.IndexOf(Pointer(ibsql.Fields[0].AsInteger)) = -1 then
-              L.Add(Pointer(ibsql.Fields[0].AsInteger));
+            if L.IndexOf(TID2Pointer(GetTID(ibsql.Fields[0]), FContext)) = -1 then
+              L.Add(TID2Pointer(GetTID(ibsql.Fields[0]), FContext));
             ibsql.Next;
           end;
-          Result := AcctUtils.IDList(L);
+          Result := AcctUtils.IDList(L, FContext);
         finally
           ibsql.Free;
           L.Free;
         end;
       end else
-        Result := AcctUtils.IDList(AccountList);
+        Result := AcctUtils.IDList(AccountList, FContext);
     end;
   end;
 

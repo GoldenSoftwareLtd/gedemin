@@ -1,10 +1,12 @@
+// ShlTanya, 10.03.2019
+
 unit flt_dlgViewProcedure_unit;
 
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ActnList, ComCtrls, StdCtrls, Db, IBCustomDataSet, IBSQL;
+  ActnList, ComCtrls, StdCtrls, Db, IBCustomDataSet, IBSQL, gdcBaseInterface;
 
 type
   TdlgViewProcedure = class(TForm)
@@ -25,14 +27,14 @@ type
     procedure btnOkClick(Sender: TObject);
     procedure actEditProcedureUpdate(Sender: TObject);
   private
-    FComponentKey: Integer;
+    FComponentKey: TID;
     FSQLText: String;
 
     // Процедура вывода списка созданных процедур для данной компоненты.
     procedure ShowProcedure;
   public
     // Выбор процедуры
-    function SelectProcedure(const AnSQLText: String; const AnComponentKey: Integer): String;
+    function SelectProcedure(const AnSQLText: String; const AnComponentKey: TID): String;
   end;
 
 var
@@ -77,7 +79,7 @@ begin
   lvProcedure.Items.EndUpdate;
 end;
 
-function TdlgViewProcedure.SelectProcedure(const AnSQLText: String; const AnComponentKey: Integer): String;
+function TdlgViewProcedure.SelectProcedure(const AnSQLText: String; const AnComponentKey: TID): String;
 begin
   // Присваиваем результат по умолчанию
   Result := '';

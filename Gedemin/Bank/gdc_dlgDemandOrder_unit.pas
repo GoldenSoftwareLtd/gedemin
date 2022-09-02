@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit gdc_dlgDemandOrder_unit;
 
 interface
@@ -51,7 +53,7 @@ var
 
 implementation
 
-uses dmDataBase_unit,  gd_ClassList;
+uses dmDataBase_unit,  gd_ClassList, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -83,7 +85,7 @@ procedure Tgdc_dlgDemandOrder.UpdateCargoReceiver;
 var
   CName: String;
 begin
-  CName := gdcCompany.GetListNameByID(gdcObject.FieldByName('CORRCOMPANYKEY').AsInteger);
+  CName := gdcCompany.GetListNameByID(GetTID(gdcObject.FieldByName('CORRCOMPANYKEY')));
 
   with cbCargoSender.Items do
   begin

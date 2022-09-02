@@ -1,3 +1,5 @@
+// ShlTanya, 09.02.2019
+
 unit gdc_dlgQueryDescendant_unit;
 
 interface

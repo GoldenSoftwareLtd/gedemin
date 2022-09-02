@@ -117,11 +117,11 @@ begin
 
   if iblkupDepartment.CurrentKey > '' then
   begin
-    if not EqTID(gdcObject.FieldByName('parent'), iblkupDepartment.CurrentKeyInt) then
+    if GetTID(gdcObject.FieldByName('parent')) <> iblkupDepartment.CurrentKeyInt then
       SetTID(gdcObject.FieldByName('parent'), iblkupDepartment.CurrentKeyInt);
   end else
   begin
-    if (iblkupCompany.CurrentKey > '') and (not EqTID(gdcObject.FieldByName('parent'), iblkupCompany.CurrentKeyInt)) then
+    if (iblkupCompany.CurrentKey > '') and (GetTID(gdcObject.FieldByName('parent')) <> iblkupCompany.CurrentKeyInt) then
       SetTID(gdcObject.FieldByName('parent'), iblkupCompany.CurrentKeyInt);
   end;
 

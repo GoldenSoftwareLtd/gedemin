@@ -326,7 +326,7 @@ type
     FDefaultDatabase    : TIBDatabase;
     FHandle             : TISC_TR_HANDLE;
     FHandleIsShared     : Boolean;
-    FOnIdleTimer          : TNotifyEvent;
+    FOnIdleTimer        : TNotifyEvent;
     FStreamedActive     : Boolean;
     FTPB                : PChar;
     FTPBLength          : Short;
@@ -334,7 +334,12 @@ type
     FDefaultAction      : TTransactionAction;
     FTRParams           : TStrings;
     FTRParamsChanged    : Boolean;
-    FAutoStopAction: TAutoStopAction;
+    FAutoStopAction     : TAutoStopAction;
+    {$IFDEF DEBUG}
+      {$IFDEF WITH_INDY}
+        FID             : Integer;
+      {$ENDIF}
+    {$ENDIF}
     procedure EnsureNotInTransaction;
     procedure EndTransaction(Action: TTransactionAction; Force: Boolean);
     function GetDatabase(Index: Integer): TIBDatabase;
@@ -468,8 +473,13 @@ implementation
 
 uses IBIntf, IBCustomDataSet, IBDatabaseInfo, IBSQL, IBUtils,
      typInfo, DBLogDlg, IBErrorCodes
+     {$IFDEF DEBUG}
+       {$IFDEF WITH_INDY}
+         , gdccClient_unit
+       {$ENDIF}
+     {$ENDIF}
      {$IFDEF GEDEMIN}
-     ,at_classes, IBSQLCache, IBSQLMonitor_Gedemin
+     , at_classes, IBSQLCache, IBSQLMonitor_Gedemin
      {$ELSE}
      , IBSQLMonitor
      {$ENDIF}
@@ -503,7 +513,6 @@ end;
 //!!!!
 
 type
-
   TFieldNode = class(TObject)
   public
     FieldName : String;
@@ -529,6 +538,14 @@ type
     function Get_DEFAULT_VALUE(Relation, Field : String) : String; override;
     //!!!
   end;
+
+{$IFDEF DEBUG}
+  {$IFDEF WITH_INDY}
+    var
+      NextTrID: Integer;
+      TrCnt: Integer;
+  {$ENDIF}
+{$ENDIF}
 
 { TIBDatabase }
 
@@ -1927,6 +1944,11 @@ procedure TIBTransaction.EndTransaction(Action: TTransactionAction;
 var
   status: ISC_STATUS;
   i: Integer;
+  {$IFDEF DEBUG}
+    {$IFDEF WITH_INDY}
+      S: String;
+    {$ENDIF}  
+  {$ENDIF}
 begin
   CheckInTransaction;
   case Action of
@@ -1993,6 +2015,37 @@ begin
         MonitorHook.TRRollbackRetaining(Self);
     end;
   end;
+
+  {$IFDEF DEBUG}
+    {$IFDEF WITH_INDY}
+      case Action of
+        TACommit:
+          begin
+            Dec(TrCnt);
+            S := 'Commit';
+          end;
+
+        TARollback:
+          begin
+            Dec(TrCnt);
+            S := 'Rollback';
+          end;
+
+        TACommitRetaining:
+          begin
+            S := 'CommitRetaining';
+          end;
+
+        TARollbackRetaining:
+          begin
+            S := 'RollbackRetaining';
+          end;
+      end;
+
+      if gdccClient <> nil then
+        gdccClient.AddLogRecord('tr', S + ' #' + IntToStr(FID) + ', active: ' + IntToStr(TrCnt));
+    {$ENDIF}      
+  {$ENDIF}
 end;
 
 function TIBTransaction.GetDatabase(Index: Integer): TIBDatabase;
@@ -2288,6 +2341,16 @@ begin
   finally
     FreeMem(pteb);
   end;
+
+  {$IFDEF DEBUG}
+    {$IFDEF WITH_INDY}
+      Inc(NextTrID);
+      FID := NextTrID;
+      Inc(TrCnt);
+      if gdccClient <> nil then
+        gdccClient.AddLogRecord('tr', 'Started #' + IntToStr(FID) + ', active: ' + IntToStr(TrCnt));
+    {$ENDIF}
+  {$ENDIF}
 end;
 
 function TIBTransaction.MainDatabase: TIBDatabase;
@@ -2877,6 +2940,13 @@ initialization
   GetFieldNamesCache.Sorted := True;
   GetFieldNamesCache.Duplicates := dupError;
   GetFieldNamesCacheDatabaseName := '';}
+
+  {$IFDEF DEBUG}
+    {$IFDEF WITH_INDY}
+      NextTrID := 0;
+      TrCnt := 0;
+    {$ENDIF}
+  {$ENDIF}
 
 finalization
   {ClearGetFieldNamesCache;

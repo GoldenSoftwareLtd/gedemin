@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit AcctStrings;
 
 interface
@@ -333,9 +335,9 @@ const
   cStoredProcedureTemplate =
     '('#13#10 +
     '    L INTEGER,'#13#10 +
-    '    NODEKEY INTEGER)'#13#10 +
+    '    NODEKEY DINTKEY)'#13#10 +
     'RETURNS ('#13#10 +
-    '    ID INTEGER)'#13#10 +
+    '    ID DINTKEY)'#13#10 +
     'AS'#13#10 +
     'DECLARE VARIABLE LB INTEGER;'#13#10 +
     'DECLARE VARIABLE RB INTEGER;'#13#10 +

@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 {
   Единицы измерения
   ViewForm для TgdcValue

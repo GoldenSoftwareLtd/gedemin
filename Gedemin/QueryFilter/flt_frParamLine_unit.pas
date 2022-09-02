@@ -1,3 +1,5 @@
+// ShlTanya, 10.03.2019
+
 unit flt_frParamLine_unit;
 
 interface
@@ -18,7 +20,7 @@ type
     function GetAsDate: TDate;
     function GetAsDateTime: TDateTime;
     function GetAsFloat: Double;
-    function GetAsInteger: Integer;
+    function GetAsInteger: Double;
     function GetAsString: String;
     function GetAsTime: TTime;
     function GetIsNull: Boolean;
@@ -26,7 +28,7 @@ type
     procedure SetAsDate(const Value: TDate);
     procedure SetAsDateTime(const Value: TDateTime);
     procedure SetAsFloat(const Value: Double);
-    procedure SetAsInteger(const Value: Integer);
+    procedure SetAsInteger(const Value: Double);
     procedure SetAsString(const Value: String);
     procedure SetAsTime(const Value: TTime);
     procedure SetIsNull(const Value: Boolean);
@@ -41,7 +43,7 @@ type
 
     property IsNull: Boolean read GetIsNull write SetIsNull;
     property AsCurrency: Currency read GetAsCurrency write SetAsCurrency;
-    property AsInteger: Integer read GetAsInteger write SetAsInteger;
+    property AsInteger: Double read GetAsInteger write SetAsInteger;
     property AsFloat: Double read GetAsFloat write SetAsFloat;
     property AsDate: TDate read GetAsDate write SetAsDate;
     property AsTime: TTime read GetAsTime write SetAsTime;
@@ -52,7 +54,7 @@ type
 implementation
 
 uses
-  xDateEdits, IBHeader, xCalculatorEdit;
+  xDateEdits, IBHeader, xCalculatorEdit, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -156,9 +158,9 @@ begin
   Result := (edValue as TxCalculatorEdit).Value;
 end;
 
-function TfrParamLine.GetAsInteger: Integer;
+function TfrParamLine.GetAsInteger: Double;
 begin
-  Result := Trunc(AsFloat);
+  Result := GetTID(AsFloat);
 end;
 
 function TfrParamLine.GetAsString: String;
@@ -196,9 +198,9 @@ begin
   (edValue as TxCalculatorEdit).Value := Value;
 end;
 
-procedure TfrParamLine.SetAsInteger(const Value: Integer);
+procedure TfrParamLine.SetAsInteger(const Value: Double);
 begin
-  AsFloat := Value;
+  AsFloat := GetTID(Value);
 end;
 
 procedure TfrParamLine.SetAsString(const Value: String);

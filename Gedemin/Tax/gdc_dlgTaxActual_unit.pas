@@ -1,3 +1,4 @@
+// ShlTanya, 12.03.2019
 
 unit gdc_dlgTaxActual_unit;
 
@@ -131,16 +132,16 @@ begin
   gdcObject.FieldByName(fntaxname).AsString := ibcbTax.Text;
 
   if gdcObject.FieldByName(fnreportgroupkey).IsNull then
-    gdcObject.FieldByName(fnreportgroupkey).AsInteger := 0;
+    SetTID(gdcObject.FieldByName(fnreportgroupkey), 0);
 
   Result := inherited TestCorrect;
 
-  if gdcObject.FieldByName(fnreportgroupkey).AsInteger = 0 then
+  if GetTID(gdcObject.FieldByName(fnreportgroupkey)) = 0 then
     gdcObject.FieldByName(fnreportgroupkey).Clear;
 
   if Result then
   begin
-    if gdcTrRecord.FieldByName(fnfunctionkey).AsInteger = 0 then
+    if GetTID(gdcTrRecord.FieldByName(fnfunctionkey)) = 0 then
     begin
       Result := False;
       ShowMessage('Не задана функция расчета налога');
@@ -153,7 +154,7 @@ begin
           [gdcObject.GetKeyField(gdcObject.SubType), gdcObject.GetListTable(gdcObject.SubType),
           gdcObject.FieldByName(fntaxnamekey).AsString,
           gdcObject.FieldByName(fnactualdate).AsString,
-          gdcObject.FieldByName(fnid).AsInteger]);
+          TID264(gdcObject.FieldByName(fnid))]);
         SQL.ExecQuery;
         Result := SQL.RecordCount = 0;
         if not Result then
@@ -251,11 +252,11 @@ begin
   inherited;
   FScriptChanged := False;
   if {(gdcObject.State = dsInsert) or}
-    (gdcObject.FieldByName(fnTrRecordKey).AsInteger = 0) then
+    (GetTID(gdcObject.FieldByName(fnTrRecordKey)) = 0) then
   begin
     gdcTrRecord.Insert;
-    gdcTrRecord.FieldByName(fnid).AsInteger := gdcTrRecord.GetNextID;
-    gdcObject.FieldByName(fntrrecordkey).AsInteger := gdcTrRecord.ID;
+    SetTID(gdcTrRecord.FieldByName(fnid), gdcTrRecord.GetNextID);
+    SetTID(gdcObject.FieldByName(fntrrecordkey), gdcTrRecord.ID);
   end else
     gdcTrRecord.Edit;
 
@@ -334,13 +335,13 @@ begin
       DidActivated := not (gdcFunction.State in [dsEdit, dsInsert]);
       if DidActivated then
       begin
-        if D.FieldByName(fnfunctionkey).AsInteger = 0 then
+        if GetTID(D.FieldByName(fnfunctionkey)) = 0 then
         begin
           gdcFunction.Insert;
-          gdcFunction.FieldByName(fnmodulecode).AsInteger := OBJ_APPLICATION;
+          SetTID(gdcFunction.FieldByName(fnmodulecode), OBJ_APPLICATION);
           gdcFunction.FieldByName(fnmodule).AsString := scrEntryModuleName;
           gdcFunction.FieldByName(fnname).AsString := Format('AutoEntryScript%d_%d',
-            [gdcFunction.FieldByName(fnid).AsInteger, IbLogin.DBID]);
+            [TID264(gdcFunction.FieldByName(fnid)), IbLogin.DBID]);
           gdcFunction.FieldByName(fnLANGUAGE).AsString := DefaultLanguage;
         end else
           gdcFunction.Edit;
@@ -353,11 +354,11 @@ begin
           FunctionCreater.FunctionRUID := RUIDToStr(gdcFunction.GetRUID);
           FunctionCreater.Stream := Str;
           FunctionCreater.FunctionName := gdcFunction.FieldByName(fnName).AsString;
-          FunctionCreater.TaxActualRuid := gdcBaseManager.GetRUIDStringByID(gdcObject.FieldByName(fnid).AsInteger);
-          FunctionCreater.TaxNameRuid := gdcBaseManager.GetRUIDStringByID(gdcObject.FieldByName(fnTaxNameKey).AsInteger);
-          FunctionCreater.TransactionRUID := gdcBaseManager.GetRUIDStringByID(D.FieldByName(fnTransactionKey).AsInteger);
-          FunctionCreater.TrRecordRUID := gdcBaseManager.GetRUIDStringByID(D.FieldByName(fnID).AsInteger);
-          FunctionCreater.CardOfAccountRUID := gdcBaseManager.GetRuidStringById(D.FieldByName(fnAccountKey).AsInteger);
+          FunctionCreater.TaxActualRuid := gdcBaseManager.GetRUIDStringByID(GetTID(gdcObject.FieldByName(fnid)));
+          FunctionCreater.TaxNameRuid := gdcBaseManager.GetRUIDStringByID(GetTID(gdcObject.FieldByName(fnTaxNameKey)));
+          FunctionCreater.TransactionRUID := gdcBaseManager.GetRUIDStringByID(GetTID(D.FieldByName(fnTransactionKey)));
+          FunctionCreater.TrRecordRUID := gdcBaseManager.GetRUIDStringByID(GetTID(D.FieldByName(fnID)));
+          FunctionCreater.CardOfAccountRUID := gdcBaseManager.GetRuidStringById(GetTID(D.FieldByName(fnAccountKey)));
 
           F.CreateNewFunction(FunctionCreater);
         finally
@@ -386,8 +387,7 @@ begin
           finally
             Params.Free;
           end;
-          D.FieldByName(fnfunctionkey).AsInteger :=
-            gdcFunction.FieldByName(fnid).AsInteger;
+          SetTID(D.FieldByName(fnfunctionkey), gdcFunction.FieldByName(fnid));
         end else
         begin
           if DidActivated then
@@ -405,9 +405,9 @@ end;
 procedure Tgdc_dlgTaxActual.actWizardUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled :=
-    (gdcTrRecord.FieldByName(fnTransactionKey).AsInteger > 0) and
-    (gdcObject.FieldByName(fnTaxNameKey).AsInteger > 0) and
-    (gdcTrRecord.FieldByName(fnAccountKey).AsInteger > 0);
+    (GetTID(gdcTrRecord.FieldByName(fnTransactionKey)) > 0) and
+    (GetTID(gdcObject.FieldByName(fnTaxNameKey)) > 0) and
+    (GetTID(gdcTrRecord.FieldByName(fnAccountKey)) > 0);
 end;
 
 procedure Tgdc_dlgTaxActual.ibcbTaxChange(Sender: TObject);
@@ -429,10 +429,10 @@ begin
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
       SQL.SQL.Text := 'SELECT * FROM gd_taxname WHERE id = :id';
-      SQL.ParamByName(fnid).AsInteger := ibcbTax.CurrentKeyInt;
+      SetTID(SQL.ParamByName(fnid), ibcbTax.CurrentKeyInt);
       SQL.ExecQuery;
-      gdcTrRecord.FieldByName(fntransactionkey).AsVariant := SQL.FieldByName(fnTransactionKey).Value;
-      gdcTrRecord.FieldByName(fnAccountKey).AsVariant := SQL.FieldByName(fnAccountKey).Value;
+      SetTID(gdcTrRecord.FieldByName(fntransactionkey), SQL.FieldByName(fnTransactionKey));
+      SetTID(gdcTrRecord.FieldByName(fnAccountKey), SQL.FieldByName(fnAccountKey));
     finally
       SQL.Free;
     end;
@@ -449,7 +449,7 @@ begin
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
       SQL.SQL.Text := 'SELECT * FROM gd_taxname WHERE id = :id';
-      SQL.ParamByName(fnId).AsInteger := ibcbTax.CurrentKeyInt;
+      SetTID(SQL.ParamByName(fnId), ibcbTax.CurrentKeyInt);
       SQL.ExecQuery;
       gdcTrRecord.FieldByName(fnDescription).AsVariant :=
         SQL.FieldByName(fnName).Value +  ' (''' +

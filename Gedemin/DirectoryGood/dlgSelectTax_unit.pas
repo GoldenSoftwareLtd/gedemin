@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgSelectTax_unit;
 
 interface
@@ -48,15 +50,15 @@ type
     procedure actDelTaxUpdate(Sender: TObject);
 
   private
-    FGoodKey: Integer;
+    FGoodKey: TID;
     OldHeight: Integer;
 
     function GetTaxDate: TDate;
 
   public
-    function ActiveDialog(const aGoodKey: Integer; isChoose: Boolean): Boolean;
-    function SetForGroup(const aGroupKey: Integer): Boolean;
-    function DelForGroup(const aGroupKey: Integer): Boolean;
+    function ActiveDialog(const aGoodKey: TID; isChoose: Boolean): Boolean;
+    function SetForGroup(const aGroupKey: TID): Boolean;
+    function DelForGroup(const aGroupKey: TID): Boolean;
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
@@ -76,7 +78,7 @@ uses
 {$R *.DFM}
 
 
-function TdlgSelectTax.SetForGroup(const aGroupKey: Integer): Boolean;
+function TdlgSelectTax.SetForGroup(const aGroupKey: TID): Boolean;
 var
   S: String;
 begin
@@ -109,7 +111,7 @@ begin
             '  gr.rb <= (SELECT rb FROM gd_goodgroup g2 WHERE g2.id = %2:d) AND ' +
             '    not exists (SELECT * FROM gd_goodtax gt WHERE ' +
             '   gt.goodkey = g.id and taxkey = %0:d and datetax = ''%1:S'') ',
-            [ibdsTax.FieldByName('ID').AsInteger, S, aGroupKey]);
+            [TID264(ibdsTax.FieldByName('ID')), S, TID264(aGroupKey)]);
           try
             ibsqlAddNewForGroup.ParamByName('rate').AsFloat := ibdsTax.FieldByName('Rate').AsFloat;
             ibsqlAddNewForGroup.ExecQuery;
@@ -128,7 +130,7 @@ begin
   end;
 end;
 
-function TdlgSelectTax.DelForGroup(const aGroupKey: Integer): Boolean;
+function TdlgSelectTax.DelForGroup(const aGroupKey: TID): Boolean;
 var
   S: String;
 begin
@@ -168,7 +170,7 @@ begin
                 '  gr.lb >= (SELECT lb FROM gd_goodgroup g2 WHERE g2.id = %0:d) ' +
                 '  AND   gr.rb <= (SELECT rb FROM gd_goodgroup g2 WHERE g2.id = %0:d)) ' +
                 '  AND  taxkey = %1:d and datetax = ''%2:s''',
-                [aGroupKey, ibdsTax.FieldByName('ID').AsInteger, S]);
+                [TID264(aGroupKey), TID264(ibdsTax.FieldByName('ID')), S]);
             try
               ibsqlAddNewForGroup.ExecQuery;
             except
@@ -188,7 +190,7 @@ begin
 end;
 
 
-function TdlgSelectTax.ActiveDialog(const aGoodKey: Integer; isChoose: Boolean): Boolean;
+function TdlgSelectTax.ActiveDialog(const aGoodKey: TID; isChoose: Boolean): Boolean;
 begin
   // Инициализация
   Result := False;
@@ -208,8 +210,8 @@ begin
           begin
             if not ibsqlAddNew.Prepared then
               ibsqlAddNew.Prepare;
-            ibsqlAddNew.Params.ByName('goodkey').AsInteger := FGoodKey;
-            ibsqlAddNew.Params.ByName('taxkey').AsInteger := ibdsTax.FieldByName('ID').AsInteger;
+            SetTID(ibsqlAddNew.Params.ByName('goodkey'), FGoodKey);
+            SetTID(ibsqlAddNew.Params.ByName('taxkey'), ibdsTax.FieldByName('ID'));
             ibsqlAddNew.Params.ByName('datetax').AsDateTime := xdeDate.Date;
             ibsqlAddNew.Params.ByName('rate').AsFloat := ibdsTax.FieldByName('Rate').AsFloat;
             try
@@ -251,7 +253,7 @@ begin
   begin
     try
       dsTax.DataSet := ibdsTax;
-      ActiveDialog(ibdsTax.FieldByName('ID').AsInteger);
+      ActiveDialog(GetTID(ibdsTax.FieldByName('ID')));
     finally
       Free;
     end;
@@ -287,7 +289,7 @@ begin
     ibdsTax.First;
     while not ibdsTax.EOF do
     begin
-      gsibgrTax.CheckBox.AddCheck(ibdsTax.FieldByName('ID').AsInteger);
+      gsibgrTax.CheckBox.AddCheck(GetTID(ibdsTax.FieldByName('ID')));
       ibdsTax.Next;
     end;
   finally

@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcLedger;
 
@@ -108,7 +109,7 @@ begin
       gdcExplorer.Transaction := Transaction;
       gdcExplorer.ReadTransaction := ReadTransaction;
       gdcExplorer.SubSet := 'ByID';
-      gdcExplorer.Id := SQL.FieldByName('id').AsInteger;
+      gdcExplorer.Id := GetTID(SQL.FieldByName('id'));
       gdcExplorer.Open;
       gdcExplorer.Edit;
       try
@@ -117,7 +118,7 @@ begin
         if FieldByName('folder').IsNull then
           gdcExplorer.FieldByName('parent').Clear
         else
-          gdcExplorer.FieldByName('parent').AsInteger := FieldByName('folder').AsInteger;
+          SetTID(gdcExplorer.FieldByName('parent'), FieldByName('folder'));
         gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
         gdcExplorer.FieldByName('cmd').AsString := RUIDToStr(SFRUID);
         gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_function;
@@ -181,13 +182,13 @@ begin
         gdcFunction.Transaction := Transaction;
         gdcFunction.ReadTransaction := ReadTransaction;
         gdcFunction.SubSet := 'ByID';
-        gdcFunction.Id := SQL.FieldByName('id').AsInteger;
+        gdcFunction.Id := GetTID(SQL.FieldByName('id'));
         gdcFunction.Open;
         gdcFunction.Edit;
         try
           gdcFunction.FieldByName(fnName).AsString := Format(cFunctionName, [RUIDToStr(GetRUID)]);
           gdcFunction.FieldByName(fnModule).AsString := scrUnkonownModule;
-          gdcFunction.FieldByName(fnModuleCode).AsInteger := OBJ_APPLICATION;
+          SetTID(gdcFunction.FieldByName(fnModuleCode), OBJ_APPLICATION);
           InputParams := '';
           SetParams := '';
           Params := TgsParamList.Create;
@@ -283,7 +284,7 @@ begin
           gdcFunction.Post;
 
           if ScriptFactory <> nil then
-            ScriptFactory.ReloadFunction(gdcFunction.FieldByName(fnID).AsInteger);
+            ScriptFactory.ReloadFunction(GetTID(gdcFunction.FieldByName(fnID)));
         except
           gdcFunction.Cancel;
           raise;
@@ -314,7 +315,7 @@ begin
       gdcExplorer.Transaction := Transaction;
       gdcExplorer.ReadTransaction := ReadTransaction;
       gdcExplorer.SubSet := 'ByID';
-      gdcExplorer.Id := SQL.FieldByName('id').AsInteger;
+      gdcExplorer.Id := GetTID(SQL.FieldByName('id'));
       gdcExplorer.Open;
       if not gdcExplorer.Eof then
         gdcExplorer.Delete;
@@ -344,7 +345,7 @@ begin
         gdcFunction.Transaction := Transaction;
         gdcFunction.ReadTransaction := ReadTransaction;
         gdcFunction.SubSet := 'ByID';
-        gdcFunction.Id := SQL.FieldByName('id').AsInteger;
+        gdcFunction.Id := GetTID(SQL.FieldByName('id'));
         gdcFunction.Open;
         DeleteCommand(gdcFunction.GetRUID);
         gdcFunction.Delete;
@@ -376,7 +377,7 @@ begin
         gdcFunction.Transaction := Transaction;
         gdcFunction.ReadTransaction := ReadTransaction;
         gdcFunction.SubSet := 'ByID';
-        gdcFunction.Id := SQL.FieldByName('Id').AsInteger;
+        gdcFunction.Id := GetTID(SQL.FieldByName('Id'));
         gdcFunction.Open;
 
         SQL.Close;
@@ -389,7 +390,7 @@ begin
             gdcExplorer.Transaction := Transaction;
             gdcExplorer.ReadTransaction := ReadTransaction;
             gdcExplorer.SubSet := 'ByID';
-            gdcExplorer.Id := SQL.FieldByName('id').AsInteger;
+            gdcExplorer.Id := GetTID(SQL.FieldByName('id'));
             gdcExplorer.Open;
             gdcExplorer.Edit;
             if not gdcExplorer.Eof then

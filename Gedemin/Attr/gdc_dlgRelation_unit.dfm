@@ -1,6 +1,6 @@
 inherited gdc_dlgRelation: Tgdc_dlgRelation
-  Left = 689
-  Top = 171
+  Left = 508
+  Top = 128
   Width = 538
   Height = 544
   HelpContext = 84
@@ -43,7 +43,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
   object pcRelation: TPageControl [5]
     Left = 0
     Top = 0
-    Width = 522
+    Width = 514
     Height = 469
     ActivePage = tsCommon
     Align = alTop
@@ -115,14 +115,14 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object Label5: TLabel
         Left = 6
-        Top = 319
+        Top = 348
         Width = 70
         Height = 13
         Caption = 'Бизнес-класс:'
       end
       object Label6: TLabel
         Left = 6
-        Top = 347
+        Top = 376
         Width = 42
         Height = 13
         Caption = 'Подтип:'
@@ -133,6 +133,13 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         Width = 138
         Height = 13
         Caption = 'Семантические категории:'
+      end
+      object Label2: TLabel
+        Left = 6
+        Top = 316
+        Width = 58
+        Height = 13
+        Caption = 'Генератор:'
       end
       object dbedRelationName: TDBEdit
         Left = 256
@@ -243,17 +250,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object lClass: TEdit
         Left = 256
-        Top = 313
-        Width = 241
-        Height = 21
-        TabStop = False
-        Anchors = [akLeft, akTop, akRight]
-        Color = clBtnFace
-        TabOrder = 9
-      end
-      object lSubType: TEdit
-        Left = 256
-        Top = 343
+        Top = 342
         Width = 241
         Height = 21
         TabStop = False
@@ -261,19 +258,29 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         Color = clBtnFace
         TabOrder = 10
       end
+      object lSubType: TEdit
+        Left = 256
+        Top = 372
+        Width = 241
+        Height = 21
+        TabStop = False
+        Anchors = [akLeft, akTop, akRight]
+        Color = clBtnFace
+        TabOrder = 11
+      end
       object Panel8: TPanel
         Left = 0
         Top = 393
-        Width = 514
+        Width = 506
         Height = 48
         Align = alBottom
         BevelOuter = bvNone
         BorderWidth = 4
-        TabOrder = 11
+        TabOrder = 12
         object lblWarn: TLabel
           Left = 4
           Top = 4
-          Width = 506
+          Width = 498
           Height = 40
           Align = alClient
           AutoSize = False
@@ -295,6 +302,17 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         DataField = 'SEMCATEGORY'
         DataSource = dsgdcBase
         TabOrder = 4
+      end
+      object DBEGENERATORNAME: TDBEdit
+        Left = 256
+        Top = 312
+        Width = 241
+        Height = 21
+        Anchors = [akLeft, akTop, akRight]
+        CharCase = ecUpperCase
+        DataField = 'generatorname'
+        DataSource = dsgdcBase
+        TabOrder = 9
       end
     end
     object tsFields: TTabSheet

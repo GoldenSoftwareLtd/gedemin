@@ -57,7 +57,7 @@ const
 
   c_el_procedure_name = '::PREFIX_p_el_::NAME';
   c_el_procedure =
-    '::METANAME (Parent INTEGER, LB2 INTEGER, RB2 INTEGER)'#13#10 +
+    '::METANAME (Parent dparent, LB2 INTEGER, RB2 INTEGER)'#13#10 +
     '  RETURNS (LeftBorder INTEGER, RightBorder INTEGER)'#13#10 +
     'AS'#13#10 +
     '  DECLARE VARIABLE R     INTEGER = NULL;'#13#10 +
@@ -149,10 +149,10 @@ const
 
   c_gchc_procedure_name = '::PREFIX_p_gchc_::NAME';
   c_gchc_procedure =
-    '::METANAME (Parent INTEGER, FirstIndex INTEGER)'#13#10 +
+    '::METANAME (Parent dparent, FirstIndex INTEGER)'#13#10 +
     '  RETURNS (LastIndex INTEGER)'#13#10 +
     'AS'#13#10 +
-    '  DECLARE VARIABLE ChildKey INTEGER;'#13#10 +
+    '  DECLARE VARIABLE ChildKey dforeignkey;'#13#10 +
     'BEGIN'#13#10 +
     '  LastIndex = :FirstIndex + 1;'#13#10 +
     ''#13#10 +
@@ -180,7 +180,7 @@ const
     '::METANAME'#13#10 +
     'AS'#13#10 +
     '  DECLARE VARIABLE CurrentIndex INTEGER;'#13#10 +
-    '  DECLARE VARIABLE ChildKey INTEGER;'#13#10 +
+    '  DECLARE VARIABLE ChildKey dforeignkey;'#13#10 +
     '  DECLARE VARIABLE WasUnlock INTEGER;'#13#10 +
     'BEGIN'#13#10 +
     '  CurrentIndex = 1;'#13#10 +

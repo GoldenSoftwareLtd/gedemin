@@ -1,10 +1,12 @@
+// ShlTanya, 25.02.2019
+
 unit ParentToNull;
 
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  IBSQL, IBDatabase, Db, StdCtrls, IBScript;
+  IBSQL, IBDatabase, Db, StdCtrls, IBScript, gdcBaseInterface;
 
 type
   TForm1 = class(TForm)
@@ -34,7 +36,7 @@ implementation
 
 procedure TForm1.Button1Click(Sender: TObject);
 var
-  Id: Integer;
+  Id: TID;
 begin
   if Edit1.Text = '' then
   begin
@@ -56,18 +58,18 @@ begin
         sqlObject.Params[0].AsString := sqlNameList.Fields[0].AsString;
         sqlObject.ExecQuery;
         //Пропускаем первую запись
-        id := sqlObject.FieldByName('id').AsInteger;
+        id := GetTID(sqlObject.FieldByName('id'));
         sqlObject.Next;
         while not sqlObject.Eof do
         begin
-          sqlDEvent.ParamByName('id').AsInteger := sqlObject.FieldByName('id').AsInteger;
+          SetTID(sqlDEvent.ParamByName('id'), sqlObject.FieldByName('id'));
           sqlDEvent.ExecQuery;
           sqlDEvent.Close;
           sqlObject.Next;
         end;
         sqlObject.Close;
         sqlDObject.Params[0].AsString := sqlNameList.Fields[0].AsString;
-        sqlDObject.Params[1].AsInteger := id;
+        SetTID(sqlDObject.Params[1], id);
         sqlDObject.ExecQuery;
         sqlNameList.Next;
       end;

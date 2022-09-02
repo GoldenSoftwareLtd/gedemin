@@ -1,6 +1,6 @@
 object prp_ScriptComparer: Tprp_ScriptComparer
   Left = 446
-  Top = 100
+  Top = 101
   Width = 865
   Height = 664
   Caption = 'Сравнение содержимого'
@@ -17,8 +17,8 @@ object prp_ScriptComparer: Tprp_ScriptComparer
   TextHeight = 13
   object pnBottom: TPanel
     Left = 0
-    Top = 591
-    Width = 849
+    Top = 598
+    Width = 857
     Height = 35
     Align = alBottom
     BevelOuter = bvNone
@@ -47,8 +47,8 @@ object prp_ScriptComparer: Tprp_ScriptComparer
   object pnMain: TPanel
     Left = 0
     Top = 28
-    Width = 849
-    Height = 563
+    Width = 857
+    Height = 570
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
@@ -56,7 +56,7 @@ object prp_ScriptComparer: Tprp_ScriptComparer
   object pnToolBar: TPanel
     Left = 0
     Top = 0
-    Width = 849
+    Width = 857
     Height = 28
     Align = alTop
     BevelOuter = bvNone
@@ -64,7 +64,7 @@ object prp_ScriptComparer: Tprp_ScriptComparer
     object TBDock1: TTBDock
       Left = 0
       Top = 0
-      Width = 849
+      Width = 857
       Height = 26
       object TBToolbar1: TTBToolbar
         Left = 0

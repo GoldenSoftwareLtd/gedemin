@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgSelectValue_unit;
 
 interface
@@ -43,11 +45,11 @@ type
     procedure actDelValueUpdate(Sender: TObject);
   private
     { Private declarations }
-    FGoodKey: Integer;
+    FGoodKey: TID;
   public
     { Public declarations }
 
-    function ActiveDialog(const aGoodKey: Integer; IsChoose: Boolean): Boolean;
+    function ActiveDialog(const aGoodKey: TID; IsChoose: Boolean): Boolean;
   end;
 
 var
@@ -69,7 +71,7 @@ begin
       begin
         ibdsValues.Close;
         ibdsValues.Open;
-        ibdsValues.Locate('id', IntToStr(ValueKey), []);
+        ibdsValues.Locate('id', TID2V(ValueKey), []);
       end;
     finally
       Free;
@@ -82,7 +84,7 @@ begin
 
   with TdlgAddValue.Create(Self) do
     try
-      ActiveDialog(ibdsValues.FieldByName('id').AsInteger);
+      ActiveDialog(GetTID(ibdsValues.FieldByName('id')));
       if ShowModal = mrOk then
         ibdsValues.Refresh;
     finally
@@ -101,7 +103,7 @@ begin
     ibdsValues.Delete;
 end;
 
-function TdlgSelectValue.ActiveDialog(const aGoodKey: Integer; isChoose: Boolean): Boolean;
+function TdlgSelectValue.ActiveDialog(const aGoodKey: TID; isChoose: Boolean): Boolean;
 begin
   Result := False;
   FGoodKey := aGoodKey;
@@ -119,8 +121,8 @@ begin
         begin
           if not ibsqlAddNew.Prepared then
             ibsqlAddNew.Prepare;
-          ibsqlAddNew.Params.ByName('goodkey').AsInteger := FGoodKey;
-          ibsqlAddNew.Params.ByName('valuekey').AsInteger := ibdsValues.FieldByName('ID').AsInteger;
+          SetTID(ibsqlAddNew.Params.ByName('goodkey'), FGoodKey);
+          SetTID(ibsqlAddNew.Params.ByName('valuekey'), ibdsValues.FieldByName('ID'));
           try
             ibsqlAddNew.ExecQuery;
           except
@@ -148,7 +150,7 @@ begin
     ibdsValues.First;
     while not ibdsValues.EOF do
     begin
-      gsibgrSelValues.CheckBox.AddCheck(ibdsValues.FieldByName('ID').AsInteger);
+      gsibgrSelValues.CheckBox.AddCheck(GetTID(ibdsValues.FieldByName('ID')));
       ibdsValues.Next;
     end;
   finally

@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -24,7 +26,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  tax_frmAvailableTaxFunc_unit, StdCtrls, ComCtrls, ExtCtrls, wiz_FunctionBlock_unit;
+  tax_frmAvailableTaxFunc_unit, StdCtrls, ComCtrls, ExtCtrls, wiz_FunctionBlock_unit,
+  gdcBaseInterface;
 
 type
   TwizfrmAvailableTaxFunc = class(TfrmAvailableTaxFunc)
@@ -42,7 +45,7 @@ type
   public
     { Public declarations }
     constructor CreateWithParams(const Owner: TComponent;
-      const ActualTaxKey: Integer = 0 ; const CurrentFunctionName: String = ''); override;
+      const ActualTaxKey: TID = 0 ; const CurrentFunctionName: String = ''); override;
 
     property Block: TVisualBlock read FBlock write SetBlock;
   end;
@@ -93,7 +96,7 @@ begin
 end;
 
 constructor TwizfrmAvailableTaxFunc.CreateWithParams(
-  const Owner: TComponent; const ActualTaxKey: Integer;
+  const Owner: TComponent; const ActualTaxKey: TID;
   const CurrentFunctionName: String);
 var
   Root, Node: TTreeNode;

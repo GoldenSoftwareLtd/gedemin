@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit dlg_gsResizer_ObjectInspectorFind_unit;
 
 interface

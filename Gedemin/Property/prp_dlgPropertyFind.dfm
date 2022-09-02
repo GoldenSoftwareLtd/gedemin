@@ -1,13 +1,13 @@
 object dlgPropertyFind: TdlgPropertyFind
-  Left = 308
-  Top = 509
+  Left = 464
+  Top = 218
   HelpContext = 328
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   BorderWidth = 5
   Caption = 'Поиск'
-  ClientHeight = 262
-  ClientWidth = 358
+  ClientHeight = 310
+  ClientWidth = 384
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -25,8 +25,8 @@ object dlgPropertyFind: TdlgPropertyFind
   object PC: TPageControl
     Left = 0
     Top = 0
-    Width = 358
-    Height = 233
+    Width = 384
+    Height = 281
     ActivePage = tsFindInDB
     Align = alClient
     TabHeight = 23
@@ -38,7 +38,7 @@ object dlgPropertyFind: TdlgPropertyFind
       Caption = 'Поиск'
       OnShow = tsFindShow
       object Label1: TLabel
-        Left = 0
+        Left = 2
         Top = 0
         Width = 82
         Height = 21
@@ -47,9 +47,9 @@ object dlgPropertyFind: TdlgPropertyFind
         Layout = tlCenter
       end
       object cbText: TComboBox
-        Left = 88
+        Left = 90
         Top = 0
-        Width = 252
+        Width = 278
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         ItemHeight = 13
@@ -58,15 +58,15 @@ object dlgPropertyFind: TdlgPropertyFind
         OnDropDown = cbTextDropDown
       end
       object gbOptions: TGroupBox
-        Left = 0
-        Top = 32
-        Width = 164
-        Height = 73
+        Left = 2
+        Top = 31
+        Width = 168
+        Height = 77
         Caption = ' Параметры '
         TabOrder = 1
         object cbCaseSensitive: TCheckBox
           Left = 8
-          Top = 16
+          Top = 20
           Width = 137
           Height = 17
           Caption = 'С учетом регистра'
@@ -74,7 +74,7 @@ object dlgPropertyFind: TdlgPropertyFind
         end
         object cbWholeWord: TCheckBox
           Left = 8
-          Top = 40
+          Top = 48
           Width = 145
           Height = 17
           Caption = 'Слово целиком'
@@ -82,10 +82,10 @@ object dlgPropertyFind: TdlgPropertyFind
         end
       end
       object rgDirection: TRadioGroup
-        Left = 174
-        Top = 32
-        Width = 164
-        Height = 73
+        Left = 176
+        Top = 31
+        Width = 190
+        Height = 77
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Направление'
         ItemIndex = 0
@@ -95,9 +95,9 @@ object dlgPropertyFind: TdlgPropertyFind
         TabOrder = 2
       end
       object rgScope: TRadioGroup
-        Left = 0
-        Top = 112
-        Width = 164
+        Left = 2
+        Top = 123
+        Width = 168
         Height = 77
         Caption = ' Область '
         ItemIndex = 0
@@ -107,9 +107,9 @@ object dlgPropertyFind: TdlgPropertyFind
         TabOrder = 3
       end
       object rgOrigin: TRadioGroup
-        Left = 174
-        Top = 112
-        Width = 164
+        Left = 176
+        Top = 123
+        Width = 190
         Height = 77
         Anchors = [akLeft, akTop, akRight]
         Caption = ' Начало '
@@ -123,11 +123,11 @@ object dlgPropertyFind: TdlgPropertyFind
     object tsFindInDB: TTabSheet
       HelpContext = 330
       BorderWidth = 5
-      Caption = 'Поиск в базе данных'
+      Caption = 'Поиск и замена в базе данных'
       ImageIndex = 1
       OnShow = tsFindInDBShow
       object Label2: TLabel
-        Left = 0
+        Left = 2
         Top = 0
         Width = 82
         Height = 21
@@ -136,23 +136,23 @@ object dlgPropertyFind: TdlgPropertyFind
         Layout = tlCenter
       end
       object Label3: TLabel
-        Left = 116
-        Top = 171
+        Left = 118
+        Top = 202
         Width = 5
         Height = 13
         Caption = 'с'
       end
       object Label4: TLabel
-        Left = 222
-        Top = 171
+        Left = 224
+        Top = 202
         Width = 12
         Height = 13
         Caption = 'по'
       end
       object cbTextDB: TComboBox
-        Left = 88
+        Left = 92
         Top = 1
-        Width = 251
+        Width = 274
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         ItemHeight = 13
@@ -161,15 +161,15 @@ object dlgPropertyFind: TdlgPropertyFind
         OnDropDown = cbTextDropDown
       end
       object gbOptionsDB: TGroupBox
-        Left = 0
-        Top = 79
+        Left = 2
+        Top = 103
         Width = 171
-        Height = 82
+        Height = 88
         Caption = 'Опции'
-        TabOrder = 3
+        TabOrder = 5
         object cbCaseSensitiveDB: TCheckBox
           Left = 8
-          Top = 16
+          Top = 15
           Width = 137
           Height = 17
           Caption = 'С учетом регистра'
@@ -177,29 +177,46 @@ object dlgPropertyFind: TdlgPropertyFind
         end
         object cbWholeWordDB: TCheckBox
           Left = 8
-          Top = 32
+          Top = 31
           Width = 145
           Height = 17
           Caption = 'Слово целиком'
           TabOrder = 1
         end
+        object cbUseRegExpDB: TCheckBox
+          Left = 8
+          Top = 48
+          Width = 145
+          Height = 17
+          Caption = 'Регулярные выражения'
+          TabOrder = 2
+          OnClick = cbUseRegExpDBClick
+        end
+        object cbSkipCommentsDB: TCheckBox
+          Left = 8
+          Top = 64
+          Width = 156
+          Height = 17
+          Caption = 'Не искать в комментариях'
+          TabOrder = 3
+        end
       end
       object cbByID_DB: TCheckBox
-        Left = 0
-        Top = 32
-        Width = 153
+        Left = 2
+        Top = 56
+        Width = 191
         Height = 17
-        Caption = 'Поиск по ИД или RUID'
-        TabOrder = 1
+        Caption = 'Поиск функции по её ID или RUID'
+        TabOrder = 3
         OnClick = cbByID_DBClick
       end
       object gbScopeDB: TGroupBox
-        Left = 176
-        Top = 32
+        Left = 201
+        Top = 56
         Width = 163
-        Height = 129
+        Height = 135
         Caption = ' Область поиска '
-        TabOrder = 4
+        TabOrder = 6
         object cbInTextDB: TCheckBox
           Left = 8
           Top = 16
@@ -266,72 +283,131 @@ object dlgPropertyFind: TdlgPropertyFind
         end
       end
       object cbCurrentObject: TCheckBox
-        Left = 0
-        Top = 48
+        Left = 2
+        Top = 72
         Width = 169
         Height = 17
         Caption = 'Поиск для текущего объекта'
-        TabOrder = 2
+        TabOrder = 4
       end
       object cbDate: TCheckBox
-        Left = 0
-        Top = 170
+        Left = 2
+        Top = 201
         Width = 108
         Height = 17
         Caption = 'Дата изменения:'
-        TabOrder = 5
+        TabOrder = 7
         OnClick = cbDateClick
       end
       object xdeBeginDate: TxDateEdit
-        Left = 128
-        Top = 168
+        Left = 130
+        Top = 199
         Width = 81
         Height = 21
         Kind = kDate
         EditMask = '!99\.99\.9999;1;_'
         MaxLength = 10
-        TabOrder = 6
+        TabOrder = 8
         Text = '07.03.2003'
       end
       object xdeEndDate: TxDateEdit
-        Left = 242
-        Top = 168
+        Left = 244
+        Top = 199
         Width = 97
         Height = 21
         Kind = kDate
         EditMask = '!99\.99\.9999;1;_'
         MaxLength = 10
-        TabOrder = 7
+        TabOrder = 9
         Text = '07.03.2003'
+      end
+      object cbReplaceText: TComboBox
+        Left = 92
+        Top = 27
+        Width = 274
+        Height = 21
+        Anchors = [akLeft, akTop, akRight]
+        Enabled = False
+        ItemHeight = 13
+        TabOrder = 2
+        OnChange = cbReplaceTextChange
+        OnDropDown = cbReplaceTextDropDown
+      end
+      object cbWithReplace: TCheckBox
+        Left = 2
+        Top = 29
+        Width = 88
+        Height = 17
+        Caption = 'заменить на:'
+        TabOrder = 1
+        OnClick = cbWithReplaceClick
+      end
+      object cbNotLimitResults: TCheckBox
+        Left = 2
+        Top = 218
+        Width = 335
+        Height = 17
+        Caption = 'Не ограничивать количество результатов поиска'
+        TabOrder = 10
+      end
+    end
+    object tsFindIdentifier: TTabSheet
+      Caption = 'Поиск и замена идентификаторов'
+      ImageIndex = 2
+      object mPeriodHelp: TMemo
+        Left = 7
+        Top = 7
+        Width = 345
+        Height = 213
+        TabStop = False
+        Color = clInfoBk
+        Lines.Strings = (
+          'Будет произведен поиск числовых значений '
+          '(идентификаторов), которые необходимо заменить.'
+          ''
+          'В результат поиска НЕ попадают значения:'
+          '- меньше 147 000 000;'
+          '- входящие в конструкции:'
+          '  - GetIDByRUID(..., ...);'
+          '  - GD_P_GETID(...);'
+          '  - <RUID XID = ...DBID = .../>.'
+          ''
+          'Найденные значения можно будет заменить на один '
+          'из вариантов с созданием соответсвующего РУИДа:'
+          '- gdcBaseManager.GetIDByRUID(..., ...);'
+          '- GD_P_GETID(..., ...);'
+          '- <RUID XID = ...DBID = .../>.')
+        ReadOnly = True
+        TabOrder = 0
       end
     end
   end
   object Panel1: TPanel
     Left = 0
-    Top = 233
-    Width = 358
+    Top = 281
+    Width = 384
     Height = 29
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object btnFind: TButton
-      Left = 203
+      Left = 229
       Top = 7
       Width = 75
       Height = 21
       Anchors = [akTop, akRight]
-      Caption = 'ОК'
+      Caption = 'Найти'
       Default = True
       TabOrder = 0
       OnClick = btnFindClick
     end
     object btnCancel: TButton
-      Left = 282
+      Left = 308
       Top = 7
       Width = 75
       Height = 21
       Anchors = [akTop, akRight]
-      Caption = 'Отмена'
+      Caption = 'Закрыть'
       ModalResult = 2
       TabOrder = 1
     end
@@ -345,8 +421,8 @@ object dlgPropertyFind: TdlgPropertyFind
     end
   end
   object ActionList1: TActionList
-    Left = 108
-    Top = 160
+    Left = 140
+    Top = 152
     object WindowClose: TWindowClose
       Category = 'Window'
       Caption = 'C&lose'

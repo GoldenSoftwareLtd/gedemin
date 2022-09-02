@@ -1,3 +1,4 @@
+// ShlTanya, 11.02.2019
 
 {++
 
@@ -30,7 +31,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  DB, Contnrs, IBDatabase, IBCustomDataSet, IBSQL;
+  DB, Contnrs, IBDatabase, IBCustomDataSet, IBSQL, gdcBaseInterface;
 
 type
   TenEntryGridOptions = set of (egoAnalytics, egoEntries, egoTotals);
@@ -71,9 +72,9 @@ type
 
   PRecordData = ^TRecordData;
   TRecordData = record
-    EntryKey: Integer;
-    DocKey: Integer;
-    TrTypeKey: Integer;
+    EntryKey: TID;
+    DocKey: TID;
+    TrTypeKey: TID;
     DocDate: TDateTime;
     DocNumber: String[20];
     DocName: String[60];
@@ -84,7 +85,7 @@ type
 
   PEntryData = ^TEntryData;
   TEntryData = record
-    ID: Integer;
+    ID: TID;
 
     AccountType: TenAccountType;
     AccountCode: String[8];
@@ -543,7 +544,7 @@ type
     function GetAnalyticSourceName(AName: String): TgdAnalyticSource;
 
     procedure SetOptions(const Value: TenEntryGridOptions);
-    function GetEntryKey: Integer;
+    function GetEntryKey: TID;
 
     function GetDataSource: TDataSource;
     procedure SetDataSource(const Value: TDataSource);
@@ -554,9 +555,9 @@ type
     procedure SetParam(AParam: TenParam; const Value: String);
     procedure SetEntryAmount(const Value: TenEntryAmount);
 
-    function GetDocumentKey: Integer;
-    function GetTrTypeKey: Integer;
-    function GetID: Integer;
+    function GetDocumentKey: TID;
+    function GetTrTypeKey: TID;
+    function GetID: TID;
     function GetDocDate: TDateTime;
 
     function GetSelected(Entry: PEntryData): Boolean;
@@ -619,10 +620,10 @@ type
     property Active: Boolean read GetActive write SetActive;
     property Param[AParam: TenParam]: String read GetParam write SetParam;
 
-    property EntryKey: Integer read GetEntryKey;
-    property DocumentKey: Integer read GetDocumentKey;
-    property TrTypeKey: Integer read GetTrTypeKey;
-    property ID: Integer read GetID;
+    property EntryKey: TID read GetEntryKey;
+    property DocumentKey: TID read GetDocumentKey;
+    property TrTypeKey: TID read GetTrTypeKey;
+    property ID: TID read GetID;
     property DocDate: TDateTime read GetDocDate;
 
   published
@@ -1991,7 +1992,7 @@ begin
   end;
 end;
 
-function TgdEntryGrid.GetEntryKey: Integer;
+function TgdEntryGrid.GetEntryKey: TID;
 begin
   if Active and Assigned(FEntryData[GlobalActiveRecord]) then
     Result := FEntryData[GlobalActiveRecord]^.EntryKey
@@ -2170,7 +2171,7 @@ begin
   ParentFont := False;
 end;
 
-function TgdEntryGrid.GetDocumentKey: Integer;
+function TgdEntryGrid.GetDocumentKey: TID;
 begin
   if Active and Assigned(FEntryData[GlobalActiveRecord]) then
     Result := FEntryData[GlobalActiveRecord]^.DocKey
@@ -2178,7 +2179,7 @@ begin
     Result := -1;
 end;
 
-function TgdEntryGrid.GetTrTypeKey: Integer;
+function TgdEntryGrid.GetTrTypeKey: TID;
 begin
   if Active and Assigned(FEntryData[GlobalActiveRecord]) then
     Result := FEntryData[GlobalActiveRecord]^.TrTypeKey
@@ -2186,7 +2187,7 @@ begin
     Result := -1;
 end;
 
-function TgdEntryGrid.GetID: Integer;
+function TgdEntryGrid.GetID: TID;
 begin
   if FMovementKind = mkEntry then
   begin
@@ -2338,7 +2339,7 @@ end;
 function TgdRecordDataList.GetNext: PRecordData;
 var
   Entry: PEntryData;
-  CurrEntryKey: Integer;
+  CurrEntryKey: TID;
   I: Integer;
 begin
   if not FGrid.Active then
@@ -2390,13 +2391,13 @@ begin
           DocNumber := FieldByName('DOCNUMBER').AsString;
           DocName := FieldByName('DOCNAME').AsString;
           TrName := FieldByName('TRNAME').AsString;
-          EntryKey := FieldByName('ENTRYKEY').AsInteger;
-          DocKey := FieldByName('DOCUMENTKEY').AsInteger;
-          TrTypeKey := FieldByName('TRTYPEKEY').AsInteger;
+          EntryKey := GetTID(FieldByName('ENTRYKEY'));
+          DocKey := GetTID(FieldByName('DOCUMENTKEY'));
+          TrTypeKey := GetTID(FieldByName('TRTYPEKEY'));
 
           CurrEntryKey := EntryKey;
         end else
-          if CurrEntryKey <> FieldByName('ENTRYKEY').AsInteger then
+          if CurrEntryKey <> GetTID(FieldByName('ENTRYKEY')) then
             Break;
 
         //
@@ -2405,7 +2406,7 @@ begin
         GetMem(Entry, Sizeof(TEntryData));
         with Entry^ do
         try
-          ID := FieldByName('ID').AsInteger;
+          ID := GetTID(FieldByName('ID'));
           AccountCode := FieldByName('ACCOUNTCODE').AsString;
           AccountName := FieldByName('ACCOUNTNAME').AsString;
           Currency := FieldByName('CURRCODE').AsString;

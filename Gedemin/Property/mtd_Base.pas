@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit mtd_Base;
 
@@ -29,9 +30,9 @@ type
     // указывает подключен метод или нет
     FDisable: Boolean;
     // ИД метода
-    FMethodId: Integer;
+    FMethodId: TID;
     // ключ скрипт-функции данного метода
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
     // имя метода
     FCustomName: String;
 
@@ -46,7 +47,7 @@ type
     function GetResultType(const Index: Integer;
       const LocParams: array of Char): String;
     procedure SetDisable(const Value: Boolean);
-    procedure SetMethodId(const Value: Integer);
+    procedure SetMethodId(const Value: TID);
     procedure SetMethodClass(const Value: TCustomMethodClass);
     procedure Assign(ASource: TMethodItem);
     function  GetComplexParams(const AnLang: TFuncParamLang): String;
@@ -64,11 +65,11 @@ type
     // поле указывает используется скрипт-метод для метода или нет
     property Disable: Boolean read FDisable write SetDisable;
     // ИД метода
-    property MethodId: Integer read FMethodId write SetMethodId;
+    property MethodId: TID read FMethodId write SetMethodId;
     // имя метода
     property Name: String read FCustomName write FCustomName;
     // ключ скрипт-функции
-    property FunctionKey: Integer read FFunctionKey write FFunctionKey default 0;
+    property FunctionKey: TID read FFunctionKey write FFunctionKey default 0;
     // Возвращает шаблон пустой функции в зависимости от языка
     property ComplexParams[const AnLang: TFuncParamLang]: String read GetComplexParams;
   end;
@@ -79,7 +80,7 @@ type
   TCustomMethodClass = class
   private
     FMethodList: TMethodList;
-    FClass_Key: Integer;
+    FClass_Key: TID;
     FName: string;
     FClass_Reference: TClass;
 
@@ -105,7 +106,7 @@ type
     // Кол-во отключенных методов
     property SpecDisableMethod: Integer read FSpecDisableMethod write setSpecDisableMethod;
     // Ключ класса в базе данных (табл. evt_object)
-    property Class_Key: Integer read FClass_Key write FClass_Key;
+    property Class_Key: TID read FClass_Key write FClass_Key;
     // Указатель на класс
     property Class_Reference: TClass read FClass_Reference write FClass_Reference;
     // Имя класса
@@ -124,13 +125,13 @@ type
     function  GetSubTypeItemByIndex(const Index: Integer): TCustomMethodClass;
   public
     constructor Create; overload;
-    constructor Create(AnClassKey: Integer; AnClass: TClass;
+    constructor Create(AnClassKey: TID; AnClass: TClass;
       SubType: string = ''); overload;
     destructor Destroy; override;
 
     // Добавляет инф-цию о подтипе
     function AddSubType(
-      const AnClassKey: Integer; const AFullClassName: TgdcFullClassName;
+      const AnClassKey: TID; const AFullClassName: TgdcFullClassName;
       const AnClassReference: TClass): Integer;
 
     // Возвращает инф-цию о подтипе по имени
@@ -151,7 +152,7 @@ type
     // Добавляет метод
     function Add(const ASource: TMethodItem): Integer; overload;
     function Add(
-      const AName: String; const AFuncKey: Integer; const ADisable: Boolean;
+      const AName: String; const AFuncKey: TID; const ADisable: Boolean;
       const AMethodClass: TCustomMethodClass): Integer; overload;
     function Last: TMethodItem;
     procedure Assign(ASource: TMethodList);
@@ -178,7 +179,7 @@ type
     // Добавляет метод
     function Add(const ASource: TMethodItem): Integer; overload;
     function Add(
-      const AName: String; const AFuncKey: Integer; const ADisable: Boolean;
+      const AName: String; const AFuncKey: TID; const ADisable: Boolean;
       const AMethodClass: TCustomMethodClass): Integer; overload;
     function Find(const AName: String): TMethodItem;
     procedure Assign(ASource: TMethodList);
@@ -201,7 +202,7 @@ type
 
     procedure Clear;
     // Добавляет класс в список
-    function AddClass(const AnClassKey: Integer; const AnFullClassName: TgdcFullClassName;
+    function AddClass(const AnClassKey: TID; const AnFullClassName: TgdcFullClassName;
       const AnClassReference: TClass): TCustomMethodClass;
     // Считывает из базы
     procedure LoadFromDatabase(AnDatabase: TIBDatabase;
@@ -279,7 +280,7 @@ type
     FmtdCacheList: TgdKeyObjectAssoc;
 
     // Методы для организации кэша быстрых вызавов перекрытых методов
-    function  GetmtdCacheIndex(const AnMethodKey: Integer; const AMethodName: String): Integer;
+    function  GetmtdCacheIndex(const AnMethodKey: TID; const AMethodName: String): Integer;
     function  GetmtdCacheByIndex(const Index: Integer): TmtdCache;
     function  GetmtdCacheItem(const ACurrentFullName: TgdcFullClassName;
       const mtdCacheIndex: Integer): TmtdCacheItem;
@@ -299,7 +300,7 @@ type
     // AnParams, AnResult - массивы вариантных параметров для выполнения
     // макроса и результат
     function ExecuteMethodNew(AClassMethodAssoc: TgdKeyIntAndStrAssoc;
-      AgdcBase: TObject; const AClassName, AMethodName: String; const AnMethodKey: Integer;
+      AgdcBase: TObject; const AClassName, AMethodName: String; const AnMethodKey: TID;
       var AnParams, AnResult: Variant): Boolean;
 
     function  FindCustomMethodClass(const AnFullClassName: TgdcFullClassName): TCustomMethodClass;
@@ -307,12 +308,12 @@ type
     procedure PrepareSourceDatabase;
     procedure UnPrepareSourceDatabase;
     procedure SaveDisableFlag(AMethodItem: TMethodItem); overload;
-    procedure SaveDisableFlag(const ID: Integer; const DisableFlag: Boolean); overload;
+    procedure SaveDisableFlag(const ID: TID; const DisableFlag: Boolean); overload;
   protected
     // Инициализация
     procedure LoadLists;
     function  FindMethodClass(const AnFullClassName: TgdcFullClassName): TObject;
-    function AddClass(const AnClassKey: Integer; const AnFullClassName: TgdcFullClassName;
+    function AddClass(const AnClassKey: TID; const AnFullClassName: TgdcFullClassName;
       const AnClassReference: TClass): TObject;// overload;
   public
     constructor Create(AOwner: TComponent); override;
@@ -649,7 +650,7 @@ begin
   FMethodClass := Value;
 end;
 
-procedure TMethodItem.SetMethodId(const Value: Integer);
+procedure TMethodItem.SetMethodId(const Value: TID);
 begin
   FMethodId := Value
 end;
@@ -687,7 +688,7 @@ begin
   inherited;
 end;
 
-constructor TMethodClass.Create(AnClassKey: Integer; AnClass: TClass;
+constructor TMethodClass.Create(AnClassKey: TID; AnClass: TClass;
   SubType: string = '');
 begin
   Create;
@@ -727,7 +728,7 @@ begin
 end;
 
 function TMethodList3.Add(
-  const AName: String; const AFuncKey: Integer;
+  const AName: String; const AFuncKey: TID;
   const ADisable: Boolean; const AMethodClass: TCustomMethodClass): Integer;
 begin
   Result := Add(nil);
@@ -839,7 +840,7 @@ end;
 {TMethodClassList}
 
 function TMethodClassList.AddClass(
-  const AnClassKey: Integer; const AnFullClassName: TgdcFullClassName;
+  const AnClassKey: TID; const AnFullClassName: TgdcFullClassName;
   const AnClassReference: TClass): TCustomMethodClass;
 var
   i: Integer;
@@ -947,18 +948,18 @@ begin
       if LMethodClass = nil then
       begin
         LMethodClass := Self.AddClass(
-          ibsqlClass.FieldByName('id').AsInteger,
+          GetTID(ibsqlClass.FieldByName('id')),
           LFullClassName, nil);
       end;
 
       i := LMethodClass.MethodList.Add(
         ibsqlClass.FieldByName('methodname').AsString,
-        ibsqlClass.FieldByName('FunctionKey').AsInteger,
+        GetTID(ibsqlClass.FieldByName('FunctionKey')),
         (ibsqlClass.FieldByName('Disable').AsInteger <> 0), LMethodClass);
       LMethodItem := LMethodClass.MethodList.Items[i];
       LMethodItem.MethodClass := LMethodClass;
       LMethodItem.MethodId :=
-        ibsqlClass.FieldByName('methodid').AsInteger;
+        GetTID(ibsqlClass.FieldByName('methodid'));
 
       ibsqlClass.Next;
     end;
@@ -975,7 +976,7 @@ end;
 
 function TMethodControl.ExecuteMethodNew(
   AClassMethodAssoc: TgdKeyIntAndStrAssoc; AgdcBase: TObject;
-  const AClassName, AMethodName: String; const AnMethodKey: Integer; var AnParams,
+  const AClassName, AMethodName: String; const AnMethodKey: TID; var AnParams,
   AnResult: Variant): Boolean;
 var
   LMethodClass: TCustomMethodClass;
@@ -1015,7 +1016,6 @@ const
 
 begin
   Result := False;
-
   if (csDesigning in ComponentState) then
     exit;
 
@@ -1210,20 +1210,20 @@ begin
         if AgdcBase is TgdcBase then
           TstID := gdccClient.StartPerfCounter('vbs', AgdcBase.ClassName + ' ' + TgdcBase(AgdcBase).SubType + '.' + LFunction.Name)
         else
-          TstID := -1;  
+          TstID := -1;
         {$ENDIF}
 
         {$IFDEF DEBUG}
         if UseLog then
           Log.LogLn(DateTimeToStr(Now) + ': Запущен метод ' + LFunction.Name +
-            '  ИД функции ' + IntToStr(LFunction.FunctionKey));
+            '  ИД функции ' + TID2S(LFunction.FunctionKey));
         try
         {$ENDIF}
           ScriptFactory.ExecuteFunction(LFunction, AnParams, AnResult);
         {$IFDEF DEBUG}
         except
           Log.LogLn(DateTimeToStr(Now) + ': Ошибка во время выполнения метода ' + LFunction.Name +
-            '  ИД функции ' + IntToStr(LFunction.FunctionKey));
+            '  ИД функции ' + TID2S(LFunction.FunctionKey));
           raise;
         end;
         {$ENDIF}
@@ -1261,7 +1261,7 @@ begin
         LIBSQL.Params[0].AsInteger := 1
       else
         LIBSQL.Params[0].AsInteger := 0;
-      LIBSQL.Params[1].AsInteger := AMethodItem.MethodClass.FClass_Key;
+      SetTID(LIBSQL.Params[1], AMethodItem.MethodClass.FClass_Key);
       LIBSQL.Params[2].AsString := AnsiUpperCase(AMethodItem.Name);
       LIBSQL.ExecQuery;
     finally
@@ -1423,7 +1423,7 @@ begin
 end;
 
 function TMethodControl.GetmtdCacheIndex(
-  const AnMethodKey: Integer; const AMethodName: String): Integer;
+  const AnMethodKey: TID; const AMethodName: String): Integer;
 begin
   Result := FmtdCacheList.IndexOf(AnMethodKey);
   if Result = -1 then
@@ -1458,7 +1458,7 @@ begin
 end;
 
 function TMethodControl.AddClass(
-  const AnClassKey: Integer; const AnFullClassName: TgdcFullClassName;
+  const AnClassKey: TID; const AnFullClassName: TgdcFullClassName;
   const AnClassReference: TClass): TObject;
 begin
   Result := FMethodClassList.AddClass(AnClassKey, AnFullClassName,
@@ -1515,7 +1515,7 @@ begin
   FSubType := Value;
 end;
 
-function TMethodClass.AddSubType(const AnClassKey: Integer;
+function TMethodClass.AddSubType(const AnClassKey: TID;
   const AFullClassName: TgdcFullClassName; const AnClassReference: TClass): Integer;
 var
   LCustomMethodClass: TCustomMethodClass;
@@ -1546,7 +1546,7 @@ begin
   Result := FMethodList.AddObject(ASource.Name, ASource);
 end;
 
-function TMethodList.Add(const AName: String; const AFuncKey: Integer;
+function TMethodList.Add(const AName: String; const AFuncKey: TID;
   const ADisable: Boolean;
   const AMethodClass: TCustomMethodClass): Integer;
 var
@@ -1657,7 +1657,7 @@ begin
 end;
 
 procedure TMethodControl.SaveDisableFlag(
-  const ID: Integer; const DisableFlag: Boolean);
+  const ID: TID; const DisableFlag: Boolean);
 var
   LIBSQL: TIBSQL;
 begin
@@ -1674,7 +1674,7 @@ begin
         LIBSQL.Params[0].AsInteger := 1
       else
         LIBSQL.Params[0].AsInteger := 0;
-      LIBSQL.Params[1].AsInteger := ID;
+      SetTID(LIBSQL.Params[1], ID);
       LIBSQL.ExecQuery;
     finally
       UnPrepareSourceDatabase;

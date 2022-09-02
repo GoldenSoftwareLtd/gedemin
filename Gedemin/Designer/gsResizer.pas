@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 {++
 
@@ -31,7 +32,7 @@ uses controls, classes, windows, contnrs, forms, messages, menus, ActnList,
      dlg_gsResizer_SetSize_unit, dlg_gsResizer_TabOrder_unit,
      dlg_gsResizer_Palette_unit, dlg_gsResizer_ObjectInspector_unit,
      gsCollectionEditor, dlgImageListEditor_unit, ExtCtrls,
-     dlg_gsResizer_Components_unit, gd_messages_const;
+     dlg_gsResizer_Components_unit, gd_messages_const, gdcBaseInterface;
 
 resourcestring
   strCut = 'Вырезать';
@@ -478,7 +479,7 @@ type
     property FormPositionChanged: Boolean read FFormPositionChanged write FFormPositionChanged;
     procedure ApplicationOnMessage(var Msg: TMsg; var Handled: Boolean);
     procedure ComponentNameChanged(AComponent: TComponent; AOldValue, ANewValue: TComponentName);
-    procedure EventFunctionChanged(AComp: TComponent; AEvent: string; ANewID: integer; AName: string);
+    procedure EventFunctionChanged(AComp: TComponent; AEvent: string; ANewID: TID; AName: string);
     procedure CheckForEventChanged(AComp: TComponent; SL: TStringList);
     function  IsCut: boolean;
     function  GetParentControl: TWinControl;
@@ -495,7 +496,7 @@ uses
   gsStorage, gsComponentEmulator, consts, gsDesignerRW, dmDatabase_unit,
   gdc_createable_form, gd_security, gd_createable_form, evt_i_Base, Clipbrd,
   TB2Item, imglist, gsPropertyEditor, prp_frmGedeminProperty_Unit, evt_Base,
-  gdcDelphiObject, gdcConstants, gd_ClassList, gdcBaseInterface
+  gdcDelphiObject, gdcConstants, gd_ClassList
   {$IFDEF WITH_INDY}
   , gdccClient_unit
   {$ENDIF}
@@ -3230,7 +3231,8 @@ var
   EvtObj, EO: TEventObject;
   EvtCtrl: TEventControl;
   EvtItem: TEventItem;
-  i, iID, iTmp: integer;
+  i, iTmp: integer;
+  iID: TID;
   Comp: TComponent;
   q: TIBSQL;
   tr: TIBTransaction;
@@ -3272,7 +3274,7 @@ begin
                 q.Close;
                 q.ParamByName('name').AsString:= EvtObj.ObjectName;
                 q.ParamByName('objname').AsString:= EvtObj.ObjectName;
-                q.ParamByName('objkey').AsInteger:= EvtObj.ObjectKey;
+                SetTID(q.ParamByName('objkey'), EvtObj.ObjectKey);
                 q.ExecQuery;
               end;
             finally
@@ -3371,10 +3373,10 @@ begin
                     q.Close;
                     q.SQL.Text := 'INSERT INTO evt_object(id, objectname, name, parent, achag, afull, aview)' +
                       ' VALUES (:id, :objectname, :name, :parent, -1, -1, -1)';
-                    q.ParamByName('id').AsInteger := iID;
+                    SetTID(q.ParamByName('id'), iID);
                     q.ParamByName('objectname').AsString := FChangedEventList[i].Comp.Name;
                     q.ParamByName('name').AsString:= FChangedEventList[i].Comp.Name;
-                    q.ParamByName('parent').AsInteger := EvtObj.ObjectKey;
+                    SetTID(q.ParamByName('parent'), EvtObj.ObjectKey);
                     q.ExecQuery;
 
                     EO := TEventObject.Create;
@@ -3406,7 +3408,7 @@ begin
                 begin
                   q.Close;
                   q.SQL.Text := 'SELECT id FROM evt_objectevent WHERE objectkey = :objectkey AND eventname = :eventname';
-                  q.ParamByName('objectkey').AsInteger := iID;
+                  SetTID(q.ParamByName('objectkey'), iID);
                   q.ParamByName('eventname').AsString := AnsiUpperCase(FChangedEventList[i].EventName);
                   q.ExecQuery;
 
@@ -3414,8 +3416,8 @@ begin
                   begin
                     q.Close;
                     q.SQL.Text:= 'UPDATE evt_objectevent SET functionkey = :functionkey WHERE objectkey = :objectkey AND eventname = :eventname';
-                    q.ParamByName('functionkey').AsInteger := FChangedEventList[i].NewFunctionID;
-                    q.ParamByName('objectkey').AsInteger := iID;
+                    SetTID(q.ParamByName('functionkey'), FChangedEventList[i].NewFunctionID);
+                    SetTID(q.ParamByName('objectkey'), iID);
                     q.ParamByName('eventname').AsString := AnsiUpperCase(FChangedEventList[i].EventName);
                   end
                   else
@@ -3424,9 +3426,9 @@ begin
                     q.SQL.Text :=
                       'INSERT INTO evt_objectevent(id, objectkey, functionkey, eventname, afull) ' +
                       'VALUES(:id, :objectkey, :functionkey, :eventname, -1)';
-                    q.ParamByName('id').AsInteger := gdcBaseManager.GetNextID;
-                    q.ParamByName('objectkey').AsInteger := iID;
-                    q.ParamByName('functionkey').AsInteger := FChangedEventList[i].NewFunctionID;
+                    SetTID(q.ParamByName('id'), gdcBaseManager.GetNextID);
+                    SetTID(q.ParamByName('objectkey'), iID);
+                    SetTID(q.ParamByName('functionkey'), FChangedEventList[i].NewFunctionID);
                     q.ParamByName('eventname').AsString := AnsiUpperCase(FChangedEventList[i].EventName);
                   end;
                   q.ExecQuery;
@@ -3499,7 +3501,7 @@ begin
 end;
 
 procedure TgsResizeManager.EventFunctionChanged(AComp: TComponent;
-  AEvent: string; ANewID: integer; AName: string);
+  AEvent: string; ANewID: TID; AName: string);
 var
   iIndex: integer;
 begin
@@ -3606,7 +3608,7 @@ begin
         sName:= GetControlOldName(TgsComponentEmulator(Resizers[I].MovedControl).RelatedComponent.Name);
         EvtObj:= TEventControl(EventControl.Get_self).FindRealEventObject(TgsComponentEmulator(Resizers[I].MovedControl).RelatedComponent, sName);
         if Assigned(EvtObj) then
-          FDeletedComponents.Add(IntToStr(EvtObj.ObjectKey));
+          FDeletedComponents.Add(TID2S(EvtObj.ObjectKey));
         TgsComponentEmulator(Resizers[I].MovedControl).RelatedComponent.Free;
         FEmulatorsList.Delete(FEmulatorsList.IndexOf(Resizers[I].MovedControl));
         FResizerList.Delete(I);
@@ -3626,7 +3628,7 @@ begin
         sName:= GetControlOldName(Resizers[I].MovedControl.Name);
         EvtObj:= TEventControl(EventControl.Get_self).FindRealEventObject(Resizers[I].MovedControl, sName);
         if Assigned(EvtObj) then
-          FDeletedComponents.Add(IntToStr(EvtObj.ObjectKey));
+          FDeletedComponents.Add(TID2S(EvtObj.ObjectKey));
       end;
       Resizers[I].MovedControl.Free;
       FResizerList.Delete(I);

@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit gdc_dlgCheckList_unit;
 
 interface
@@ -50,7 +52,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList;
+  gd_ClassList, gdcBaseInterface;
 
 procedure Tgdc_dlgCheckList.BeforePost;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -122,7 +124,7 @@ begin
   FgdcDetailObject := TgdcCheckList(gdcObject).DetailObject;
   dsDetail.DataSet := FgdcDetailObject;
 
-  gsibluOwnAccount.Condition := 'COMPANYKEY = ' + IntToStr(IBLogin.CompanyKey);
+  gsibluOwnAccount.Condition := 'COMPANYKEY = ' + TID2S(IBLogin.CompanyKey);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGCHECKLIST', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally

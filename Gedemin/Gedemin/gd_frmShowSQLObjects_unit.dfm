@@ -1,8 +1,8 @@
 object gd_frmShowSQLObjects: Tgd_frmShowSQLObjects
-  Left = 257
-  Top = 202
+  Left = 367
+  Top = 194
   AutoScroll = False
-  Caption = 'gd_frmShowSQLObjects'
+  Caption = 'SQL מבתוךעû'
   ClientHeight = 438
   ClientWidth = 422
   Color = clBtnFace

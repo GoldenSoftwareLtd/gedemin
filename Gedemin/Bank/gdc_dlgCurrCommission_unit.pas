@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit gdc_dlgCurrCommission_unit;
 
 interface
@@ -76,7 +78,7 @@ var
 
 implementation
 
-uses dmDataBase_unit, gd_ClassList;
+uses dmDataBase_unit, gd_ClassList, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -225,7 +227,7 @@ begin
   inherited;
   FShowingForm := true;
 
-  gsibluOwnAccount.Condition := 'COMPANYKEY = ' + IntToStr(IBLogin.CompanyKey);
+  gsibluOwnAccount.Condition := 'COMPANYKEY = ' + TID2S(IBLogin.CompanyKey);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGCURRCOMMISSION', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally

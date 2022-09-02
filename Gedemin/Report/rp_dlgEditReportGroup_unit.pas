@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019
+
 unit rp_dlgEditReportGroup_unit;
 
 interface
@@ -21,9 +23,9 @@ type
   private
     { Private declarations }
   public
-    function AddGroup(const AnParent: Variant): Boolean;
-    function EditGroup(const AnGroupKey: Integer): Boolean;
-    function DeleteGroup(const AnGroupKey: Integer): Boolean;
+    function AddGroup(const AnParent: TID): Boolean;
+    function EditGroup(const AnGroupKey: TID): Boolean;
+    function DeleteGroup(const AnGroupKey: TID): Boolean;
   end;
 
 var
@@ -36,7 +38,7 @@ uses
 
 {$R *.DFM}
 
-function TdlgEditReportGroup.AddGroup(const AnParent: Variant): Boolean;
+function TdlgEditReportGroup.AddGroup(const AnParent: TID): Boolean;
 begin
   Result := False;
   ibdsReportGroup.Close;
@@ -45,11 +47,11 @@ begin
   ibdsReportGroup.FieldByName('afull').AsInteger := -1;
   ibdsReportGroup.FieldByName('achag').AsInteger := -1;
   ibdsReportGroup.FieldByName('aview').AsInteger := -1;
-  ibdsReportGroup.FieldByName('parent').AsVariant := AnParent;
+  SetTID(ibdsReportGroup.FieldByName('parent'), AnParent);
   if ShowModal = mrOk then
   try
-    ibdsReportGroup.FieldByName('id').AsInteger :=
-     GetUniqueKey(ibdsReportGroup.Database, ibdsReportGroup.Transaction);
+    SetTID(ibdsReportGroup.FieldByName('id'),
+     GetUniqueKey(ibdsReportGroup.Database, ibdsReportGroup.Transaction));
     ibdsReportGroup.Post;
     Result := True;
   except
@@ -63,11 +65,11 @@ begin
     ibdsReportGroup.Cancel;
 end;
 
-function TdlgEditReportGroup.EditGroup(const AnGroupKey: Integer): Boolean;
+function TdlgEditReportGroup.EditGroup(const AnGroupKey: TID): Boolean;
 begin
   Result := False;
   ibdsReportGroup.Close;
-  ibdsReportGroup.Params[0].AsInteger := AnGroupKey;
+  SetTID(ibdsReportGroup.Params[0], AnGroupKey);
   ibdsReportGroup.Open;
   if ibdsReportGroup.Eof then
   begin
@@ -92,11 +94,11 @@ begin
     ibdsReportGroup.Cancel;
 end;
 
-function TdlgEditReportGroup.DeleteGroup(const AnGroupKey: Integer): Boolean;
+function TdlgEditReportGroup.DeleteGroup(const AnGroupKey: TID): Boolean;
 begin
   Result := False;
   ibdsReportGroup.Close;
-  ibdsReportGroup.Params[0].AsInteger := AnGroupKey;
+  SetTID(ibdsReportGroup.Params[0], AnGroupKey);
   ibdsReportGroup.Open;
   if ibdsReportGroup.Eof then
   begin

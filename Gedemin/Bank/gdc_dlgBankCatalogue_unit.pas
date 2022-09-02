@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit gdc_dlgBankCatalogue_unit;
 
 interface
@@ -37,7 +39,7 @@ var
 
 implementation
 
-uses dmDataBase_unit,  gd_ClassList, Storages, Gedemin_TLB;
+uses dmDataBase_unit,  gd_ClassList, Storages, Gedemin_TLB, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -79,7 +81,7 @@ begin
   {END MACRO}
   inherited;
   ActivateTransaction(gdcObject.Transaction);
-  ibcmbAccount.Condition := 'CompanyKey = ' + IntToStr(IBLogin.CompanyKey);
+  ibcmbAccount.Condition := 'CompanyKey = ' + TID2S(IBLogin.CompanyKey);
 
   FgdcDetailObject := nil;
   for I := 0 to gdcObject.DetailLinksCount - 1 do
@@ -201,8 +203,7 @@ begin
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin
-      gdcDetailObject.FieldByName('companykeyline').AsInteger :=
-        ibsql.FieldByName('companykey').AsInteger
+      SetTID(gdcDetailObject.FieldByName('companykeyline'), ibsql.FieldByName('companykey'))
     end;
     ibsql.Close;
   end else if  (Field.FieldName = 'COMPANYKEYLINE') and
@@ -219,7 +220,7 @@ begin
       ' LEFT JOIN gd_companyaccount ca ON c.companyaccountkey = ca.id ' +
       ' LEFT JOIN gd_bank b ON b.bankkey = ca.bankkey ' +
       ' WHERE c.contactkey = :ck ';
-    ibsql.ParamByName('ck').AsInteger := gdcDetailObject.FieldByName('companykeyline').AsInteger;
+    SetTID(ibsql.ParamByName('ck'), gdcDetailObject.FieldByName('companykeyline'));
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin

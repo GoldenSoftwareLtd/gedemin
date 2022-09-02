@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 unit prp_dlgPropertyFind;
 
 interface
@@ -6,6 +8,9 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, ComCtrls, StdActns, ActnList, SuperPageControl, Mask,
   xDateEdits;
+
+CONST
+  cStrSearchIdentifier = '\b[0-9]{9,}\b';
 
 type
   TSOptions = record
@@ -24,6 +29,8 @@ type
     Origin: TSOrigin;
   end;
 
+  TSearchType = (stSearchText, stSearchInDB, stSearchIdentifier);
+
   TWhere = (wInText, wInCaption);
   TSWhere = set of TWhere;
 
@@ -39,13 +46,21 @@ type
     Date: Boolean;
     BeginDate: TDateTime;
     EndDate: TDateTime;
+    UseRegExp: Boolean;
+    SkipComments: Boolean;
+    NotLimitResults: Boolean;
   end;
+
   //Опции поиска
   TSearchOptions = record
     //Искомый текст
     SearchText: string;
     //Список ранее искомых текстов
     SearchTextList: string;
+    SearchIdentifier: boolean;
+    WithReplace: boolean;
+    ReplaceText: string;
+    ReplaceTextList: string;
     SearchInText: TSearchInTextOptions;
     SearchInDb: TSearchInDbOptions;
   end;
@@ -91,6 +106,13 @@ type
     Button1: TButton;
     actHelp: TAction;
     cbInEventName: TCheckBox;
+    cbReplaceText: TComboBox;
+    cbWithReplace: TCheckBox;
+    cbUseRegExpDB: TCheckBox;
+    cbSkipCommentsDB: TCheckBox;
+    tsFindIdentifier: TTabSheet;
+    mPeriodHelp: TMemo;
+    cbNotLimitResults: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure cbTextDropDown(Sender: TObject);
@@ -109,16 +131,21 @@ type
     procedure cbDateClick(Sender: TObject);
     procedure actHelpExecute(Sender: TObject);
     procedure FormActivate(Sender: TObject);
+    procedure cbWithReplaceClick(Sender: TObject);
+    procedure cbReplaceTextDropDown(Sender: TObject);
+    procedure cbReplaceTextChange(Sender: TObject);
+    procedure cbUseRegExpDBClick(Sender: TObject);
 
   private
     FHistorySearch: TStrings;
-    FSearchInDB: Boolean;
-    procedure SetSearchInDB(const Value: Boolean);
+    FHistoryReplace: TStrings;
+    FSearchType: TSearchType;
+    procedure SetSearchType(const Value: TSearchType);
     procedure SetCBEnable;
     procedure SetInNameEnable;
 
   public
-    property SearchInDB: Boolean read FSearchInDB write SetSearchInDB;
+    property SearchType: TSearchType read FSearchType write SetSearchType;
   end;
 
 var
@@ -147,6 +174,8 @@ const
   cSearchTextList = 'SearchTextList';
   cSearchInText = 'SearchInText';
   cSearchInDb = 'SearchInDb';
+  cReplaceText = 'ReplaceText';
+  cReplaceTextList = 'ReplaceTextList';
 
 
 procedure SaveSearchOptions(SO: TSearchOptions);
@@ -163,6 +192,8 @@ begin
     begin
       F.WriteString(cSearchText, SearchText);
       F.WriteString(cSearchTextList, SearchTextList);
+      F.WriteString(cReplaceText, ReplaceText);
+      F.WriteString(cReplaceTextList, ReplaceTextList);
       S := TMemoryStream.Create;
       try
         S.WriteBuffer(SearchInText, SizeOf(SearchInText));
@@ -198,6 +229,8 @@ begin
         begin
           SearchText := F.ReadString(cSearchText, '');
           SearchTextList := F.ReadString(cSearchTextList, '');
+          ReplaceText := F.ReadString(cReplaceText, '');
+          ReplaceTextList := F.ReadString(cReplaceTextList, '');
           S := TMemoryStream.Create;
           try
             F.ReadStream(cSearchInText, S);
@@ -220,6 +253,7 @@ begin
             SearchInDb.Date := False;
             SearchInDb.EndDate := SearchInDb.BeginDate;
           end;
+          SearchInDb.NotLimitResults := False; // по умолчанию ограничиваем результаты
         end;
       finally
         UserStorage.CloseFolder(F);
@@ -250,6 +284,13 @@ begin
     SearchInDb.Date := False;
     SearchInDb.Begindate := Date;
     SearchInDb.Enddate := Date;
+    SearchInDb.SkipComments := False;
+    SearchInDb.UseRegExp := False;
+    SearchInDb.NotLimitResults := False;
+    WithReplace := False;
+    ReplaceText := '';
+    ReplaceTextList := '';
+    SearchIdentifier := False;
   end;
 end;
 
@@ -259,22 +300,31 @@ begin
     Exception.Create('Error');
   inherited;
 
-  SearchOptions := LoadSearchOptions;
-  FHistorySearch := TStringList.Create;
-  FHistorySearch.Text := SearchOptions.SearchTextList;
-  UpdateControls;
   dlgPropertyFind := Self;
-  SetCBEnable;
+
+  FHistorySearch := TStringList.Create;
+  FHistoryReplace := TStringList.Create;
+
+  SearchOptions := LoadSearchOptions;
+
+  FHistorySearch.Text := SearchOptions.SearchTextList;
+  FHistoryReplace.Text := SearchOptions.ReplaceTextList;
   cbTextDropDown(cbText);
   cbTextDropDown(cbTextDB);
+  SearchOptions.WithReplace := False;
 end;
 
 procedure TdlgPropertyFind.FormDestroy(Sender: TObject);
 begin
   dlgPropertyFind := nil;
-  SearchOptions.SearchTextList := FHistorySearch.Text;
-  SaveSearchOptions(SearchOptions);
+  if SearchType <> stSearchIdentifier then
+  begin
+    SearchOptions.SearchTextList := FHistorySearch.Text;
+    SearchOptions.ReplaceTextList := FHistoryReplace.Text;
+    SaveSearchOptions(SearchOptions);
+  end;
   FHistorySearch.Free;
+  FHistoryReplace.Free;
   inherited;
 end;
 
@@ -317,70 +367,128 @@ procedure TdlgPropertyFind.btnFindClick(Sender: TObject);
 var
   Index: Integer;
 begin
-  if (SearchOptions.SearchText = '') and
-    not ((PC.ActivePage = tsFindInDb) and cbDate.Checked) then
+  if SearchType = stSearchIdentifier then
   begin
-    MessageBox(Handle,
-      'Введите текст для поиска!',
-      'Ошибка',
-      MB_ICONERROR or MB_OK or MB_TASKMODAL);
-  end else
+    ModalResult := mrOk;
+  end
+  else
   begin
-    Index := FHistorySearch.IndexOf(SearchOptions.SearchText);
-
-    if Index = -1 then
-      FHistorySearch.Insert(0, SearchOptions.SearchText)
-    else
-      FHistorySearch.Move(Index, 0);
-
-    while FHistorySearch.Count > 20 do
-      FHistorySearch.Delete(FHistorySearch.Count - 1);
-
-    UpdateOptions;
-    SearchOptions.SearchTextList := FHistorySearch.Text;
-    SaveSearchOptions(SearchOptions);
-
-    if (PC.ActivePage = tsFindInDb) and cbByID_DB.Checked then
+    if (SearchOptions.SearchText = '') and
+      not ((PC.ActivePage = tsFindInDb) and cbDate.Checked) then
     begin
-      if Pos('_', cbTextDB.Text) = 0 then
-      begin
-        Index := StrToIntDef(cbTextDB.Text, -1);
+      MessageBox(Handle,
+        'Введите текст для поиска!',
+        'Ошибка',
+        MB_ICONERROR or MB_OK or MB_TASKMODAL);
+    end else
+    begin
+      Index := FHistorySearch.IndexOf(SearchOptions.SearchText);
 
-        if Index >= 0 then
+      if Index = -1 then
+        FHistorySearch.Insert(0, SearchOptions.SearchText)
+      else
+        FHistorySearch.Move(Index, 0);
+
+      while FHistorySearch.Count > 20 do
+        FHistorySearch.Delete(FHistorySearch.Count - 1);
+
+      if (PC.ActivePage = tsFindInDb) and cbWithReplace.Checked and
+         (SearchOptions.ReplaceText <> '') then
+      begin
+        Index := FHistoryReplace.IndexOf(SearchOptions.ReplaceText);
+
+        if Index = -1 then
+          FHistoryReplace.Insert(0, SearchOptions.ReplaceText)
+        else
+          FHistoryReplace.Move(Index, 0);
+
+        while FHistoryReplace.Count > 20 do
+          FHistoryReplace.Delete(FHistoryReplace.Count - 1);
+      end;
+
+      UpdateOptions;
+      SearchOptions.SearchTextList := FHistorySearch.Text;
+      SearchOptions.ReplaceTextList := FHistoryReplace.Text;
+      SaveSearchOptions(SearchOptions);
+
+      if (PC.ActivePage = tsFindInDb) and cbByID_DB.Checked then
+      begin
+        if Pos('_', cbTextDB.Text) = 0 then
         begin
-          ModalResult := mrOk;
-          cbTextDB.Text := IntToStr(Index);
+          Index := GetTID(cbTextDB.Text, -1);
+
+          if Index >= 0 then
+          begin
+            ModalResult := mrOk;
+            cbTextDB.Text := TID2S(Index);
+          end else
+          begin
+            MessageBox(Handle,
+              'Для поиска по ИД необходимо ввести целое положительное число.',
+              'Ошибка',
+              MB_OK or MB_ICONERROR or MB_TASKMODAL);
+            cbTextDB.SetFocus;
+          end;
         end else
         begin
-          MessageBox(Handle,
-            'Для поиска по ИД необходимо ввести целое положительное число.',
-            'Ошибка',
-            MB_OK or MB_ICONERROR or MB_TASKMODAL);
-          cbTextDB.SetFocus;
+          gdcBaseManager.GetIDByRUIDString(cbTextDB.Text);
+          ModalResult := mrOk;
         end;
       end else
-      begin
-        gdcBaseManager.GetIDByRUIDString(cbTextDB.Text);
         ModalResult := mrOk;
-      end;
-    end else
-      ModalResult := mrOk;
+    end;
   end;
 end;
 
-procedure TdlgPropertyFind.SetSearchInDB(const Value: Boolean);
+procedure TdlgPropertyFind.SetSearchType(const Value: TSearchType);
 begin
-  FSearchInDB := Value;
-  if Value then
+  FSearchType := Value;
+  case Value of
+  stSearchInDB:
+    begin
+      tsFind.TabVisible := False;
+      tsFindInDB.TabVisible := True;
+      tsFindIdentifier.TabVisible := False;
+      PC.ActivePage := tsFindInDB;
+      ActiveControl := cbTextDb;
+    end;
+  stSearchText:
+    begin
+      tsFind.TabVisible := True;
+      tsFindInDB.TabVisible := False;
+      tsFindIdentifier.TabVisible := False;
+      PC.ActivePage := tsFind;
+      ActiveControl := cbText;
+    end;
+  stSearchIdentifier:
+    begin
+      SearchOptions := LoadDefault;
+      with SearchOptions do
+      begin
+        SearchInDb.UseRegExp := True;
+        SearchInDb.InNameWhere := [];
+        SearchInDb.SkipComments := True;
+        SearchText := cStrSearchIdentifier;
+        WithReplace := True;
+        SearchIdentifier := True;
+      end;
+      tsFind.TabVisible := False;
+      tsFindInDB.TabVisible := False;
+      tsFindIdentifier.TabVisible := True;
+      PC.ActivePage := tsFindIdentifier;
+    end;
+  end;
+
+  if Value in [stSearchInDB, stSearchText] then
   begin
-    tsFind.TabVisible := False;
-    PC.ActivePage := tsFindInDB;
-    ActiveControl := cbTextDb;
-  end else
-  begin
-    tsFind.TabVisible := True;
-    PC.ActivePage := tsFind;
-    ActiveControl := cbText;
+    SearchOptions := LoadSearchOptions;
+
+    cbText.Text := SearchOptions.SearchText;
+    cbTextDB.Text := SearchOptions.SearchText;
+
+    UpdateControls;
+
+    SetCBEnable;
   end;
 end;
 
@@ -403,27 +511,32 @@ begin
     SearchInText.Origin := TSOrigin(rgOrigin.ItemIndex);
 
     SearchInDb.Options.CaseSensitive := cbCaseSensitiveDB.Checked;
-    SearchInDb.Options.WholeWord := cbWholeWordDB.Checked;
+    SearchInDb.Options.WholeWord := cbWholeWordDB.Checked and cbWholeWordDB.Enabled;
+    SearchInDb.UseRegExp := cbUseRegExpDB.Checked;
+    SearchInDb.SkipComments := cbSkipCommentsDB.Checked;
     SearchInDb.CurrentObject := cbCurrentObject.Checked;
     SearchInDb.Where := [];
-    if cbInTextDB.Checked then
+    if cbInTextDB.Checked  and cbInTextDB.Enabled then
       Include(SearchInDb.Where, wInText);
-    if cbInCaptionDB.Checked then
+    if cbInCaptionDB.Checked and cbInCaptionDB.Enabled then
       Include(SearchInDb.Where, wInCaption);
     SearchInDb.ByID := cbByID_DB.Checked;
     SearchInDb.Date := cbDate.Checked;
     SearchInDb.BeginDate := xdeBeginDate.Date;
     SearchInDb.Enddate := xdeEndDate.Date;
+    SearchInDb.NotLimitResults := cbNotLimitResults.Checked; 
 
     SearchInDb.InNameWhere := [];
-    if cbInMacroName.Checked then
+    if cbInMacroName.Checked and cbInMacroName.Enabled then
       Include(SearchInDb.InNameWhere, nwMacro);
-    if cbInReportName.Checked then
+    if cbInReportName.Checked and cbInReportName.Enabled then
       Include(SearchInDb.InNameWhere, nwReport);
-    if cbInOtherName.Checked then
+    if cbInOtherName.Checked and cbInOtherName.Enabled then
       Include(SearchInDb.InNameWhere, nwOther);
-    if cbInEventName.Checked then
+    if cbInEventName.Checked and cbInEventName.Enabled then
       Include(SearchInDb.InNameWhere, nwEvent);
+
+    WithReplace := cbWithReplace.Checked;
   end;
 end;
 
@@ -444,6 +557,8 @@ begin
 
     cbCaseSensitiveDB.Checked := SearchInDb.Options.CaseSensitive;
     cbWholeWordDB.Checked := SearchInDb.Options.WholeWord;
+    cbUseRegExpDB.Checked := SearchInDb.UseRegExp;
+    cbSkipCommentsDB.Checked := SearchInDb.SkipComments;
     cbInTextDB.Checked := (wInText in SearchInDb.Where);
     cbInCaptionDB.Checked := (wInCaption in SearchInDb.Where);
     cbCurrentObject.Checked := SearchInDb.CurrentObject;
@@ -457,6 +572,8 @@ begin
     cbInReportName.Checked := (nwReport in SearchInDb.InNameWhere);
     cbInOtherName.Checked := (nwOther in SearchInDb.InNameWhere);
     cbInEventName.Checked := (nwEvent in SearchInDb.InNameWhere);
+
+    cbWithReplace.Checked := WithReplace;
   end;
 end;
 
@@ -470,11 +587,14 @@ end;
 procedure TdlgPropertyFind.SetCBEnable;
 begin
   cbCaseSensitiveDB.Enabled := not cbByID_DB.Checked;
-  cbWholeWordDB.Enabled := not cbByID_DB.Checked;
+  cbWholeWordDB.Enabled := (not cbByID_DB.Checked) and (not cbUseRegExpDB.Checked);
+  cbUseRegExpDB.Enabled := not cbByID_DB.Checked;
+  cbSkipCommentsDB.Enabled := not cbByID_DB.Checked;
   cbInTextDB.Enabled := not cbByID_DB.Checked;
-  cbInCaptionDB.Enabled := not cbByID_DB.Checked;
+  cbInCaptionDB.Enabled := (not cbByID_DB.Checked) and (not cbWithReplace.Checked);
   cbCurrentObject.Enabled := not cbByID_DB.Checked;
   cbDate.Enabled := not cbByID_DB.Checked;
+  cbReplaceText.Enabled := cbWithReplace.Checked;
   cbDateClick(nil);
   SetInNameEnable;
 end;
@@ -525,6 +645,32 @@ procedure TdlgPropertyFind.FormActivate(Sender: TObject);
 begin
   cbText.ItemIndex := -1;
   cbTextDB.ItemIndex := -1;
+end;
+
+procedure TdlgPropertyFind.cbWithReplaceClick(Sender: TObject);
+begin
+  SetCBEnable;
+end;
+
+procedure TdlgPropertyFind.cbReplaceTextDropDown(Sender: TObject);
+begin
+  with TComboBox(Sender) do
+  begin
+    Items.Clear;
+    Items.Assign(FHistoryReplace);
+    ItemIndex := Items.IndexOf(Text);
+  end;
+end;
+
+procedure TdlgPropertyFind.cbReplaceTextChange(Sender: TObject);
+begin
+  with TComboBox(Sender) do
+    SearchOptions.ReplaceText := Text;
+end;
+
+procedure TdlgPropertyFind.cbUseRegExpDBClick(Sender: TObject);
+begin
+  SetCBEnable;
 end;
 
 initialization

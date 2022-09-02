@@ -23,7 +23,7 @@ implementation
 uses
   Windows, Forms, SysUtils, IBSQL, gdcBase, gdcBaseInterface,
   gdcClasses, gd_directories_const, gdcTableCalendar,
-  gdcInvMovement, Test_Global_unit, gdcGood, IB, gd_security,
+  gdcInvMovement, gdcGood, IB, gd_security,
   at_frmSQLProcess;
 
 type

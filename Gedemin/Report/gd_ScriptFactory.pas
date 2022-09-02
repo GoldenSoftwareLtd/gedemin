@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 {++
 
   Copyright (c) 2002 - 2016 by Golden Software of Belarus, Ltd
@@ -36,7 +38,7 @@ uses
   ibsql, scktcomp, rp_ReportServer, rp_msgConnectServer_unit, Forms,
   messages, gd_SetDatabase, rp_prgReportCount_unit, rp_msgErrorReport_unit,
   gd_DebugLog, gd_KeyAssoc, gd_ScrException, obj_i_Debugger, prp_PropertySettings,
-  contnrs;
+  contnrs, gdcBaseInterface;
 
 type
   TgsScriptExceptionError = class;
@@ -94,14 +96,14 @@ type
       AnObjectName: String; AFunction: TrpCustomFunction): Boolean;
     // Добавляет сообщение об ошибке AErrMrg в файл ErrScript.Log
     procedure AddErrorMsgInLog(const Name, ErrMsg: String;
-      const FunctionKey, Line: Integer);
+      const FunctionKey: TID; const Line: Integer);
     // Тип исключения.
     // Если истина, то исключение возвращено из Делфи, иначе из VB
     function DelphiException(const RS: TReportScript): Boolean;
     function GetOnVBError: TNotifyEvent;
 
     procedure CreateModuleVBClass(Sender: TObject;
-      const ModuleCode: Integer; VBClassArray: TgdKeyArray);
+      const ModuleCode: TID; VBClassArray: TgdKeyArray);
     function GetOnIsCreated: TNotifyEvent;
     procedure SetOnIsCreated(const Value: TNotifyEvent);
     function GetNonLoadSFList: TgdKeyArray;
@@ -119,7 +121,7 @@ type
     // Добавляет текст скрипт-функции вместе с инклюд-функциями
     // ModuleName - имя модуля (для форм ModuleKey как строка), ModuleKey - ключ модуля
     procedure AddScript(const AnFunction: TrpCustomFunction;
-                          const ModuleKey: Integer = 0; const TestInLoaded: Boolean = True);
+                          const ModuleKey: TID = 0; const TestInLoaded: Boolean = True);
 
     function InputParams(// Передаются данные функции
                          const AFunction: TrpCustomFunction;
@@ -137,7 +139,7 @@ type
 
     procedure ExecuteFunction(const AFunction: TrpCustomFunction;
       var AParamAndResult: Variant; const AErrorEvent: TNotifyEvent); overload;
-    procedure ExecuteFunction(const AFunctionKey: Integer;
+    procedure ExecuteFunction(const AFunctionKey: TID;
      AParams: Variant; out AnResult: Variant); overload;
 
     procedure ExecuteFunction(const AFunction: TrpCustomFunction;
@@ -189,7 +191,7 @@ type
     function  ExecuteMacro(const AName, AObjectName: String;
       const AParams: OleVariant): Variant;
     // Выполнение СФ по ключу
-    function  ExecuteScript(const AFunctionKey: Integer;
+    function  ExecuteScript(const AFunctionKey: TID;
       const AParams: OleVariant): Variant;
     // Выполнение СФ по ее имени и имени объекта, к кот. она принадлежит,
     // с передачей параметров и возвратом результата
@@ -197,7 +199,7 @@ type
       AObjectName: String;  const AParams: OleVariant): Variant;
 
     // Выполняет Statement в модуле выполнения функции с FunctionKey
-    procedure ExecuteStatement(const FunctionKey: Integer; const Statement: WideString);
+    procedure ExecuteStatement(const FunctionKey: TID; const Statement: WideString);
 
     //Вычисление выражения
     function GetScriptEval(const AnScriptText, AnLanguage: String): Variant;
@@ -214,7 +216,7 @@ type
 
     // Вызывается после изменения скрипт-функции
     // Указывает, что СФ изменена и требуется ее перезагрузка в РС
-    procedure ReloadFunction(FunctionKey: Integer);
+    procedure ReloadFunction(FunctionKey: TID);
 
     function  GetExceptionFlags: TExceptionFlags;
     procedure SetExceptionFlags(Value: TExceptionFlags);
@@ -227,7 +229,7 @@ type
     function  VBScriptControl: TReportScript;
     // делает сброс только после обращения к скрипт-контролу
     procedure Reset;
-    procedure ResetVBClasses(const ModuleCode: Integer);
+    procedure ResetVBClasses(const ModuleCode: TID);
 
     // делает немедленный сброс всем скрипт-контролам списка
     procedure ResetNow;
@@ -252,7 +254,7 @@ type
   public
     Line: Integer;
     Description: String;
-    SFKey: Integer;
+    SFKey: TID;
   end;
 
 // Регистрация компоненты
@@ -265,7 +267,7 @@ uses
   Controls, evt_i_Base, IBCustomDataSet, gs_Exception, IB, gd_Security,
   gd_security_operationconst, MSScriptControl_TLB, gd_frmErrorInScript,
   prp_MessageConst, prp_methods, gdcOLEClassList, gd_Createable_Form,
-  ActiveX, gdcBaseInterface, gdcJournal
+  ActiveX, gdcJournal
   {$IFDEF WITH_INDY}
     , gd_WebClientControl_unit
   {$ENDIF}
@@ -583,14 +585,14 @@ begin
         TempSQL.Database := Database;
         TempSQL.Transaction := Transaction;
         TempSQL.SQL.Text := 'SELECT * FROM Evt_MacrosList WHERE FunctionKey = :FunctionKey';
-        TempSQL.Params[0].AsInteger := AFunctionKey;
+        SetTID(TempSQL.Params[0], AFunctionKey);
         TempSQL.ExecQuery;
         if TempSQL.Eof then
-          raise Exception.Create(Format('Запись макроса с функцией %d не найдена.', [AFunctionKey]));
+          raise Exception.Create(Format('Запись макроса с функцией %d не найдена.', [TID264(AFunctionKey)]));
 
         AMacros.FunctionKey := AFunctionKey;
         AMacros.Name := TempSQL.FieldByName('Name').AsString;
-        AMacros.ServerKey := TempSQL.FieldByName('ServerKey').AsInteger;
+        AMacros.ServerKey := GetTID(TempSQL.FieldByName('ServerKey'));
 
         Result := True;
       finally
@@ -645,7 +647,7 @@ begin
         glbFunctionList.ReleaseFunction(LocFunction);
       end;
     end else
-      MessageBox(0, PChar(Format('Функция, соответствующая макросу %s (ID = %d), не найдена!', [LMacros.Name, LMacros.ID])), 'Ошибка',
+      MessageBox(0, PChar(Format('Функция, соответствующая макросу %s (ID = %d), не найдена!', [LMacros.Name, TID264(LMacros.ID)])), 'Ошибка',
         MB_OK or MB_ICONERROR or MB_TOPMOST or MB_TASKMODAL)
   end else
     MessageBox(0, 'Макрос отсутствует!', 'Ошибка',
@@ -769,18 +771,18 @@ begin
         {$IFDEF DEBUG}
         if UseLog then
           Log.LogLn(DateTimeToStr(Now) + ': Запущен макрос ' + LocFunction.Name +
-            '  ИД функции ' + IntToStr(LocFunction.FunctionKey));
+            '  ИД функции ' + TID2S(LocFunction.FunctionKey));
         try
         {$ENDIF}
           ExecuteFunction(LocFunction, LocParams, Result);
         {$IFDEF DEBUG}
           if UseLog then
             Log.LogLn(DateTimeToStr(Now) + ': Ошибка во время выполнения макроса ' + LocFunction.Name +
-              '  ИД функции ' + IntToStr(LocFunction.FunctionKey));
+              '  ИД функции ' + TID2S(LocFunction.FunctionKey));
         except
           if UseLog then
             Log.LogLn(DateTimeToStr(Now) + ': Удачное выполнение макроса ' + LocFunction.Name +
-              '  ИД функции ' + IntToStr(LocFunction.FunctionKey));
+              '  ИД функции ' + TID2S(LocFunction.FunctionKey));
           raise;
         end;
         {$ENDIF}
@@ -814,9 +816,9 @@ begin
         if TempSQL.Eof then
           raise Exception.Create(Format('Макрос %s не найден в базе данных.', [AName]));
 
-        AMacros.FunctionKey := TempSQL.FieldByName('FunctionKey').AsInteger;
+        AMacros.FunctionKey := GetTID(TempSQL.FieldByName('FunctionKey'));
         AMacros.Name := AName;
-        AMacros.ServerKey := TempSQL.FieldByName('ServerKey').AsInteger;
+        AMacros.ServerKey := GetTID(TempSQL.FieldByName('ServerKey'));
 
         Result := True;
         TempSQL.Close;
@@ -829,7 +831,7 @@ begin
   end;
 end;
 
-function TgdScriptFactory.ExecuteScript(const AFunctionKey: Integer;
+function TgdScriptFactory.ExecuteScript(const AFunctionKey: TID;
   const AParams: OleVariant): Variant;
 var
   LocFunction: TrpCustomFunction;
@@ -838,7 +840,7 @@ begin
   Result := '';
   LocFunction := glbFunctionList.FindFunction(AFunctionKey);
   if not Assigned(LocFunction) then
-    raise Exception.Create('Скрипт-функция с ключем ' + IntToStr(AFunctionKey) +
+    raise Exception.Create('Скрипт-функция с ключем ' + TID2S(AFunctionKey) +
       ' не найдена.');
 
   try
@@ -850,13 +852,13 @@ begin
       if not InputParams(LocFunction, LocParams) then
       begin
         Raise Exception.Create('Не удалось ввести параметры для скрипт-функции с ключем ' +
-          IntToStr(AFunctionKey));
+          TID2S(AFunctionKey));
       end;
     end else
     begin
       if (FVBReportScript.GetParamsCount(LocFunction) - 1) <>
         (VarArrayHighBound(LocParams, 1) - VarArrayLowBound(LocParams, 1)) then
-        Raise Exception.Create('В скрипт-функцию с ключем ' + IntToStr(AFunctionKey) +
+        Raise Exception.Create('В скрипт-функцию с ключем ' + TID2S(AFunctionKey) +
           ' необходимо передать массив из ' +
           IntToStr(FVBReportScript.GetParamsCount(LocFunction)) + ' параметров.');
       if VarArrayDimCount(LocParams) > 1 then
@@ -892,7 +894,7 @@ begin
             'FROM gd_function f '#13#10 +
             'WHERE f.ModuleCode = :ObjectCode and '#13#10 +
             ' upper(f.Name) = :FuncName';
-          TempSQL.Params[0].AsInteger := OBJ_APPLICATION;
+          SetTID(TempSQL.Params[0], OBJ_APPLICATION);
           TempSQL.Params[1].AsString := AnsiUpperCase(AFuncName);
         end else
         begin
@@ -998,7 +1000,7 @@ begin
 end;
 
 procedure TgdScriptFactory.AddErrorMsgInLog(
-  const Name, ErrMsg: String; const FunctionKey, Line: Integer);
+  const Name, ErrMsg: String; const FunctionKey: TID; const Line: Integer);
 var
   LStrings: TStrings;
   i: Integer;
@@ -1013,7 +1015,7 @@ begin
     Exit;
 
   LMsg := Format('СФ: %s, ИД: %d. Строка: %d.'#13#10 + 'Ошибка: %s',
-    [Name, FunctionKey, Line, ErrMsg]);
+    [Name, TID264(FunctionKey), Line, ErrMsg]);
 
   // Если возникла ошибка, игнорируем ее
   try
@@ -1053,7 +1055,7 @@ begin
   AParamAndResult := LResult;
 end;
 
-procedure TgdScriptFactory.ExecuteFunction(const AFunctionKey: Integer;
+procedure TgdScriptFactory.ExecuteFunction(const AFunctionKey: TID;
   AParams: Variant; out AnResult: Variant);
 var
   LEvent: TNotifyEvent;
@@ -1062,7 +1064,7 @@ begin
   ExecuteFunctionEx(AFunctionKey, AParams, AnResult, LEvent);
 end;
 
-procedure TgdScriptFactory.ReloadFunction(FunctionKey: Integer);
+procedure TgdScriptFactory.ReloadFunction(FunctionKey: TID);
 var
   i: Integer;
 begin
@@ -1097,7 +1099,7 @@ begin
             ' WHERE Upper(m.Name) = :MacroName and m.functionkey IN'#13#10 +
             '   (SELECT f.id FROM gd_function f WHERE f.modulecode = :ApplicationCode)';
           TempSQL.Params[0].AsString := AnsiUpperCase(AName);
-          TempSQL.Params[1].AsInteger := OBJ_APPLICATION;
+          SetTID(TempSQL.Params[1], OBJ_APPLICATION);
         end else
           begin
             TempSQL.SQL.Text :=
@@ -1112,9 +1114,9 @@ begin
         if TempSQL.Eof then
           raise Exception.Create(Format('Макрос %s не найден в базе данных.', [AName]));
 
-        AMacros.FunctionKey := TempSQL.FieldByName('FunctionKey').AsInteger;
+        AMacros.FunctionKey := GetTID(TempSQL.FieldByName('FunctionKey'));
         AMacros.Name := AName;
-        AMacros.ServerKey := TempSQL.FieldByName('ServerKey').AsInteger;
+        AMacros.ServerKey := GetTID(TempSQL.FieldByName('ServerKey'));
 
         Result := True;
       finally
@@ -1137,10 +1139,10 @@ var
   ModuleName: String;
   tmpVar: Variant;
   FinallyRec: TFinallyRec;
-  ErrorHanlderScriptKey: Integer;
+  ErrorHanlderScriptKey: TID;
   ScriptModule: IScriptModule;
   ExcFuncPresent: Boolean;
-  LastFunctionKey: Integer;
+  LastFunctionKey: TID;
   Msg: TMsg;
 const
   cError = 'Ошибка';
@@ -1460,7 +1462,7 @@ begin
 end;
 
 procedure TgdScriptFactory.CreateModuleVBClass(Sender: TObject;
-  const ModuleCode: Integer; VBClassArray: TgdKeyArray);
+  const ModuleCode: TID; VBClassArray: TgdKeyArray);
 var
   ibDatasetWork: TIBSQL;
   SF: TrpCustomFunction;
@@ -1476,7 +1478,7 @@ begin
       ibDatasetWork.SQL.Text :=
         'SELECT id FROM gd_function WHERE module = ''' +
         scrVBClasses + ''' AND modulecode = :MC';
-      ibDatasetWork.ParamByName('MC').AsInteger := ModuleCode;
+      SetTID(ibDatasetWork.ParamByName('MC'), ModuleCode);
       ibDatasetWork.ExecQuery;
 
       VBClassArray.Clear;
@@ -1488,7 +1490,7 @@ begin
 
         while not ibDatasetWork.Eof do
         begin
-          SF := glbFunctionList.FindFunction(ibDatasetWork.FieldByName('id').AsInteger);
+          SF := glbFunctionList.FindFunction(GetTID(ibDatasetWork.FieldByName('id')));
           if Assigned(SF) then
           begin
             VBClassArray.Add(SF.FunctionKey);
@@ -1508,7 +1510,7 @@ begin
     SF := glbFunctionList.FindFunction(VBClassArray.Keys[i]);
     try
       try
-        (Sender as TReportScript).AddScript(SF, IntToStr(ModuleCode), ModuleCode);
+        (Sender as TReportScript).AddScript(SF, TID2S(ModuleCode), ModuleCode);
         Inc(i);
       except
         VBClassArray.Delete(I);
@@ -1520,7 +1522,7 @@ begin
   end;
 end;
 
-procedure TgdScriptFactory.ResetVBClasses(const ModuleCode: Integer);
+procedure TgdScriptFactory.ResetVBClasses(const ModuleCode: TID);
 var
   i: Integer;
 begin
@@ -1560,7 +1562,7 @@ begin
 end;
 
 procedure TgdScriptFactory.AddScript(const AnFunction: TrpCustomFunction;
-  const ModuleKey: Integer; const TestInLoaded: Boolean);
+  const ModuleKey: TID; const TestInLoaded: Boolean);
 begin
   try
     FVBReportScript.AddScript(AnFunction,
@@ -1591,7 +1593,7 @@ begin
   FVBReportScript.NonLoadSFList := Value;
 end;
 
-procedure TgdScriptFactory.ExecuteStatement(const FunctionKey: Integer;
+procedure TgdScriptFactory.ExecuteStatement(const FunctionKey: TID;
   const Statement: WideString);
 var
   tmpFunction: TrpCustomFunction;
@@ -1599,7 +1601,7 @@ var
 begin
   tmpFunction := glbFunctionList.FindFunction(FunctionKey);
   if tmpFunction = nil then
-    raise Exception.Create('Функция с ID = ' + IntToStr(FunctionKey) + ' не найдена.');
+    raise Exception.Create('Функция с ID = ' + TID2S(FunctionKey) + ' не найдена.');
 
   tmpModuleName :=
     FVBReportScript.GetModuleNameWithIndex(tmpFunction.ModuleCode, tmpFunction.Module);

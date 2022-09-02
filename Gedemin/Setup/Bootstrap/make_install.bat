@@ -75,9 +75,11 @@ echo **  %1
 echo **                                             **
 echo *************************************************
 
+cd ..\..\exe
 set params=/sn "%server_name%:%database_path%\%2.fdb" /user Administrator /password Administrator /sp %setting_path% /rd /q /sl %8
-..\..\exe\gedemin.exe %params% /sfn "%~1" /ns
+gedemin.exe %params% /sfn "%~1" /ns
 if not errorlevel 0 goto Error
+cd ..\setup\bootstrap
 
 echo *************************************************
 echo **                                             **
@@ -126,12 +128,20 @@ echo *************************************************
 
 move /y "%~dp6%5" ./%5
 
+rem Пропускаем FTP, грузим через PHP скрипт
+
+goto SkipFTP
+
 if exist ftp.txt del ftp.txt
 copy ftp_commands.txt ftp.txt
 echo send %5 %5 >> ftp.txt
 echo quit >> ftp.txt
 
 ftp -s:ftp.txt
+
+:SkipFTP
+
+curl -F data=@"./%5" http://gsbelarus.com/gs/content/upload.php
 
 if not errorlevel 0 goto Error
 
@@ -171,12 +181,18 @@ del Gedemin\PDComWriter.DLL > nul
 
 "c:\program files\winrar\winrar.exe" a -ibck %2_portable.rar Gedemin
 
+goto SkipPortableFTP
+
 if exist ftp.txt del ftp.txt
 copy ftp_commands.txt ftp.txt
 echo send %2_portable.rar %2_portable.rar >> ftp.txt
 echo quit >> ftp.txt
 
 ftp -s:ftp.txt
+
+:SkipPortableFTP
+
+curl -F data=@"./%2_portable.rar" http://gsbelarus.com/gs/content/upload.php
 
 if not errorlevel 0 goto Error
 

@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 {++
   Copyright (c) 2002 by Golden Software of Belarus
 
@@ -22,7 +24,7 @@ interface
 
 uses
   Windows, Classes, ComCtrls, Forms, gsObjectInspector, StdCtrls,
-  Controls, ExtCtrls, gsResizerInterface, Menus, Buttons;
+  Controls, ExtCtrls, gsResizerInterface, Menus, Buttons, gdcBaseInterface;
 type
 
   Tdlg_gsResizer_ObjectInspector = class(TForm, IgsObjectInspectorForm)
@@ -77,7 +79,7 @@ type
     destructor Destroy; override;
     function GetSelf: TComponent;
     procedure EventSync(const AnObjectName, AnEventName: String);
-    function  GetChangedEventFunctionID(AComp: TComponent; AEventName: string): integer;
+    function  GetChangedEventFunctionID(AComp: TComponent; AEventName: string): TID;
   end;
 
 var
@@ -458,7 +460,7 @@ begin
 end;
 
 function Tdlg_gsResizer_ObjectInspector.GetChangedEventFunctionID(
-  AComp: TComponent; AEventName: string): integer;
+  AComp: TComponent; AEventName: string): TID;
 var
   CEL: TChangedEventList;
   i: integer;

@@ -1,3 +1,4 @@
+// ShlTanya, 02.02.2019
 
 unit at_dlgToSetting_unit;
 
@@ -152,7 +153,8 @@ procedure TdlgToSetting.Setup(FromStorage: Boolean; ABranchName, AValueName: Str
   AgdcObject: TgdcBase; BL: TBookmarkList);
 
 var
-  FXID, FDBID: TID;
+  FXID: TID;
+  FDBID: Integer;
 
 begin
   Assert(FromStorage = False, 'Работа с элементами хранилища должна осуществляться через б/о.');
@@ -184,7 +186,7 @@ begin
  //вычисляем руид для записи(ей) переданного объекта
   qrySetting.Close;
   qrySetting.SQL.Text := GetSettingSQLByPosRUID;
-  qrySetting.ParamByName('xid').AsInteger := FXID;
+  SetTID(qrySetting.ParamByName('xid'), FXID);
   qrySetting.ParamByName('dbid').AsInteger := FDBID;
   qrySetting.Open;
 
@@ -195,22 +197,22 @@ end;
 
 procedure TdlgToSetting.actAddToSettingExecute(Sender: TObject);
 var
-  NewID: Integer;
+  NewID: TID;
   //WithDetail: Boolean;
-  OldID: Integer;
+  OldID: TID;
 begin
   FWasChange := True;
-  OldID := qrySetting.FieldByName('id').AsInteger;
+  OldID := GetTID(qrySetting.FieldByName('id'));
   NewID := ibluSetting.CurrentKeyInt;//gdcSetting.SelectObject;
   if NewID > 0 then
   begin
     qrySetting.DisableControls;
     try
-      if not qrySetting.Locate('id', NewID, []) then
+      if not qrySetting.Locate('id', TID2V(NewID), []) then
       begin
         FgdcSettingObject.Close;
         FgdcSettingObject.SubSet := 'BySetting';
-        FgdcSettingObject.ParamByName('settingkey').AsInteger := NewID;
+        SetTID(FgdcSettingObject.ParamByName('settingkey'), NewID);
         FgdcSettingObject.Open;
         if FgdcSettingObject is TgdcSettingPos then
         begin
@@ -228,7 +230,7 @@ begin
       qrySetting.Close;
       qrySetting.Open;
       if OldID > 0 then
-        qrySetting.Locate('id', OldID, []);
+        qrySetting.Locate('id', TID2V(OldID), []);
       qrySetting.EnableControls;
     end;
   end;
@@ -237,12 +239,13 @@ end;
 procedure TdlgToSetting.actDelFromSettingExecute(Sender: TObject);
 var
   I: Integer;
-  FXID, FDBID: TID;
-  OldID: Integer;
+  FXID: TID;
+  FDBID: Integer;
+  OldID: TID;
   WithDetail: Boolean;
 begin
   FWasChange := True;
-  OldID := qrySetting.FieldByName('id').AsInteger;
+  OldID := GetTID(qrySetting.FieldByName('id'));
   try
     qrySetting.DisableControls;
 
@@ -251,7 +254,7 @@ begin
     begin
       FgdcSettingObject.SubSet := 'BySetting,ByRUID';
       gdcBaseManager.GetRUIDByID(FgdcObject.ID, FXID, FDBID, SelfTransaction);
-      FgdcSettingObject.ParamByName('xid').AsInteger := FXID;
+      SetTID(FgdcSettingObject.ParamByName('xid'), FXID);
       FgdcSettingObject.ParamByName('dbid').AsInteger := FDBID;
     end else if FgdcSettingObject is TgdcSettingStorage then
     begin
@@ -271,14 +274,13 @@ begin
 
     if ibgrSetting.SelectedRows.Count = 0 then
     begin
-      FgdcSettingObject.ParamByName('settingkey').AsInteger :=
-        qrySetting.FieldByName('id').AsInteger;
+      SetTID(FgdcSettingObject.ParamByName('settingkey'), qrySetting.FieldByName('id'));
       FgdcSettingObject.Open;
       if FgdcSettingObject is TgdcSettingPos then
       begin
         WithDetail := FgdcSettingObject.FieldByName('WITHDETAIL').AsInteger = 1;
         FgdcSettingObject.Delete;
-        DeleteBindedObjects(qrySetting.FieldByName('id').AsInteger, WithDetail);
+        DeleteBindedObjects(GetTID(qrySetting.FieldByName('id')), WithDetail);
       end
       else
         FgdcSettingObject.Delete;
@@ -288,14 +290,13 @@ begin
       begin
         qrySetting.Bookmark := ibgrSetting.SelectedRows[I];
         FgdcSettingObject.Close;
-        FgdcSettingObject.ParamByName('settingkey').AsInteger :=
-          qrySetting.FieldByName('id').AsInteger;
+        SetTID(FgdcSettingObject.ParamByName('settingkey'), qrySetting.FieldByName('id'));
         FgdcSettingObject.Open;
         if FgdcSettingObject is TgdcSettingPos then
         begin
           WithDetail := FgdcSettingObject.FieldByName('WITHDETAIL').AsInteger = 1;
           FgdcSettingObject.Delete;
-          DeleteBindedObjects(qrySetting.FieldByName('id').AsInteger, WithDetail);
+          DeleteBindedObjects(GetTID(qrySetting.FieldByName('id')), WithDetail);
         end
         else
           FgdcSettingObject.Delete;
@@ -305,7 +306,7 @@ begin
     qrySetting.Close;
     qrySetting.Open;
     if OldID > 0 then
-      qrySetting.Locate('id', OldID, []);
+      qrySetting.Locate('id', TID2V(OldID), []);
     qrySetting.EnableControls;
   end;
 end;
@@ -335,7 +336,8 @@ procedure TdlgToSetting.actOkExecute(Sender: TObject);
 var
   I: Integer;
   StID: String; //Строка идентификаторов
-  XID, DBID: TID;
+  XID: TID;
+  DBID: Integer;
   ASettingPos: TgdcSettingPos;
 begin
   if not FWasChange then
@@ -382,7 +384,7 @@ begin
               if FgdcSettingObject is TgdcSettingPos then
               begin
                 FgdcSettingObject.SubSet := 'ByRUID';
-                FgdcSettingObject.ParamByName('xid').AsInteger := XID;
+                SetTID(FgdcSettingObject.ParamByName('xid'), XID);
                 FgdcSettingObject.ParamByName('dbid').AsInteger := DBID;
               end else if FgdcSettingObject is TgdcSettingStorage then
               begin
@@ -402,15 +404,14 @@ begin
               qrySetting.First;
               while not qrySetting.Eof do
               begin
-                if not FgdcSettingObject.Locate('settingkey', qrySetting.FieldByName('id').AsInteger, []) then
+                if not FgdcSettingObject.Locate('settingkey', TID2V(qrySetting.FieldByName('id')), []) then
                 begin
                  {Если мы не нашли вхождение нашей записи в настройку, то мы добавим
                  ее в эту настройку, используя дополнительный б-о типа TgdcSettingPos}
                   if FgdcSettingObject is TgdcSettingPos then
                   begin
                     ASettingPos.Close;
-                    ASettingPos.ParamByName('settingkey').AsInteger :=
-                      qrySetting.FieldByName('id').AsInteger;
+                    SetTID(ASettingPos.ParamByName('settingkey'), qrySetting.FieldByName('id'));
                     ASettingPos.Open;
                     ASettingPos.AddPos(FgdcObject, chbxWithDetail.Checked);
                   end else if FgdcSettingObject is TgdcSettingStorage then
@@ -472,7 +473,7 @@ begin
       begin
         if StID > '' then
           StID := StID + ',';
-        StID := StID + IntToStr(ASettingStorage.ID);
+        StID := StID + TID2S(ASettingStorage.ID);
       end;
       ASettingStorage.Next;
     end;
@@ -523,20 +524,21 @@ end;
 procedure TdlgToSetting.DeleteBindedObjects(const ASettingKey: TID; const WithDetail: Boolean = false);
 var
   I: Integer;
-  AXID, ADBID: TID;
+  AXID: TID;
+  ADBID: Integer;
   ibsql: TIBSQL;
   DL: TObjectList;
   C: TgdcFullClass;
   Obj: TgdcBase;
 begin
   // если удаляется событие или метод, то удалим также и функцию
-  if (FgdcObject is TgdcEvent) and (FgdcObject.FieldByName('functionkey').AsInteger > 0) then
+  if (FgdcObject is TgdcEvent) and (GetTID(FgdcObject.FieldByName('functionkey')) > 0) then
   begin
-    gdcBaseManager.GetRUIDByID(FgdcObject.FieldByName('functionkey').AsInteger, AXID, ADBID, SelfTransaction);
+    gdcBaseManager.GetRUIDByID(GetTID(FgdcObject.FieldByName('functionkey')), AXID, ADBID, SelfTransaction);
     FgdcSettingObject.Close;
-    FgdcSettingObject.ParamByName('xid').AsInteger := AXID;
+    SetTID(FgdcSettingObject.ParamByName('xid'), AXID);
     FgdcSettingObject.ParamByName('dbid').AsInteger := ADBID;
-    FgdcSettingObject.ParamByName('settingkey').AsInteger := ASettingKey;
+    SetTID(FgdcSettingObject.ParamByName('settingkey'), ASettingKey);
     FgdcSettingObject.Open;
     if not FgdcSettingObject.IsEmpty then
       FgdcSettingObject.Delete;
@@ -577,7 +579,7 @@ begin
             begin
               //Создаем его экземпляр с одной записью
               Obj := C.gdClass.CreateSingularByID(nil, gdcBaseManager.Database, SelfTransaction,
-                ibsql.Fields[0].AsInteger, C.SubType);
+                GetTID(ibsql.Fields[0]), C.SubType);
               try
                 Obj.Open;
                 //Находим класс для записи
@@ -596,7 +598,7 @@ begin
                 Obj.Transaction := SelfTransaction;
                 while not ibsql.Eof do
                 begin
-                  Obj.ID := ibsql.Fields[0].AsInteger;
+                  Obj.ID := GetTID(ibsql.Fields[0]);
                   Obj.Open;
                   if (Obj.RecordCount > 0) and (Obj is TgdcMetaBase) and
                     (TgdcMetaBase(Obj).IsUserDefined)
@@ -605,9 +607,9 @@ begin
                     //Мы будем удалять из настройки только пользовательские мета-данные
                     gdcBaseManager.GetRUIDByID(Obj.ID, AXID, ADBID, SelfTransaction);
                     FgdcSettingObject.Close;
-                    FgdcSettingObject.ParamByName('xid').AsInteger := AXID;
+                    SetTID(FgdcSettingObject.ParamByName('xid'), AXID);
                     FgdcSettingObject.ParamByName('dbid').AsInteger := ADBID;
-                    FgdcSettingObject.ParamByName('settingkey').AsInteger := ASettingKey;
+                    SetTID(FgdcSettingObject.ParamByName('settingkey'), ASettingKey);
                     FgdcSettingObject.Open;
                     if not FgdcSettingObject.IsEmpty then
                       FgdcSettingObject.Delete;

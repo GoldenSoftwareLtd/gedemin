@@ -1,10 +1,11 @@
+// ShlTanya, 09.03.2019
 
 unit AcctUtils;
 
 interface
 
 uses
-  Classes, Windows, stdctrls, Forms, Controls, Dialogs, gd_KeyAssoc;
+  Classes, Windows, stdctrls, Forms, Controls, Dialogs, gd_KeyAssoc, gdcBaseInterface;
 
 type
   TgdvSumInfo = record
@@ -21,11 +22,11 @@ function GetSQLForDateParam(const AFieldName: String; const ADateParam: String):
 //Возвращает кол-во дес. знаков в сист. установках
 function LocateDecDigits: Integer;
 
-function GetNCUKey: Integer;
+function GetNCUKey: TID;
 function GetNCUDecDigits: Integer;
 function GetCurrDecDigits(const ACurrCode: String): Integer;
 procedure ResetNCUCache;
-function GetEqKey: Integer;
+function GetEqKey: TID;
 
 function DisplayFormat(DecDig: Integer): string;
 //заполняет список полей аналитик
@@ -35,24 +36,24 @@ procedure GetAnalyticsFieldsWithoutAddAnaliseLines(const List: TList);
 //проверяет список аналитик на присутствие в БД
 procedure CheckAnalyticsList(const List: TStringList);
 //Возвращает ид счета по алиасу для астивного плана счетов
-function GetAccountKeyByAlias(const AnAlias: String): Integer; overload;
+function GetAccountKeyByAlias(const AnAlias: String): TID; overload;
 //Тоже самое, только для указанного плана счетов
-function GetAccountKeyByAlias(const AnAlias: string; const AnAccountCardKey: Integer): Integer; overload;
-function GetAlias(Id: Integer): string;
+function GetAccountKeyByAlias(const AnAlias: string; const AnAccountCardKey: TID): TID; overload;
+function GetAlias(Id: TID): string;
 function GetAccountRUIDStringByAlias(Alias: string): string;
 function GetAliasByRUIDString(RUID: string): string;
 
-function GetCurrNameById(Id: Integer): string;
+function GetCurrNameById(Id: TID): string;
 
-function IDList(List: TList): string; overload;
+function IDList(List: TList; Context: string): string; overload;
 function IDList(List: TgdKeyArray): string; overload;
 
-function AccountDialog(ComboBox: TCustomComboBox; ActiveAccount: Integer): Boolean;
+function AccountDialog(ComboBox: TCustomComboBox; ActiveAccount: TID): Boolean;
 procedure SetAccountIDs(AccountsComboBox: TCustomComboBox; var AccountIds: TList;
-  AIncSubAccounts: Boolean; ShowMessage: Boolean = True);
+  AIncSubAccounts: Boolean; Context: String; ShowMessage: Boolean = True);
 procedure SaveHistory(ComboBox: TCustomComboBox);
 //Возвращает ключ активного плана счетов для указанной компании
-function GetActiveAccount(CompanyKey: Integer): Integer;
+function GetActiveAccount(CompanyKey: TID): TID;
 //Возвращает список счетов активного плана счетов
 function GetAccounts: String;
 
@@ -65,8 +66,8 @@ function GetDontBalanceAnalyticList: String;
 // Заполняет поля сальдо в Карте и Анализе счета
 procedure SetSaldoValue(AValue: Currency; ADebit, ACredit: TEdit; ADecDigits: Integer);
 
-function CheckActiveAccount(CompanyKey: Integer; AShowMessage: Boolean = True): Boolean;
-function GetGeneralAnalyticField(const AnAccountID: Integer): String;
+function CheckActiveAccount(CompanyKey: TID; AShowMessage: Boolean = True): Boolean;
+function GetGeneralAnalyticField(const AnAccountID: TID): String;
 
 function GetCurrRate(ForDate: TDateTime; ValidDays: Integer; RegulatorKey: OleVariant;
   FromCurrKey: OleVariant; ToCurrKey: OleVariant; CrossCurrKey: OleVariant; Amount: Currency;
@@ -83,7 +84,7 @@ uses
   at_classes, gdv_dlgAccounts_unit,
   {$ENDIF}
   AcctStrings, SysUtils, IBSQL, gd_security, gdcConstants,
-  IBDatabase, gdcBaseInterface
+  IBDatabase
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -94,7 +95,7 @@ const
   cMaxHistoryQuantity = 30;
 
 var
-  FNCUKey: Integer;
+  FNCUKey: TID;
   FCurrCode: String;
   FNCUDecDigits, FCurrDecDigits: Integer;
 
@@ -132,7 +133,7 @@ begin
   Result := StrToInt(PChar(@B));
 end;
 
-function GetNCUKey: Integer;
+function GetNCUKey: TID;
 var
   q: TIBSQL;
 begin
@@ -148,7 +149,7 @@ begin
       q.ExecQuery;
       if not q.EOF then
       begin
-        FNCUKey := q.FieldByName('id').AsInteger;
+        FNCUKey := GetTID(q.FieldByName('id'));
         FNCUDecDigits := q.FieldByName('decdigits').AsInteger;
         FCurrCode := q.FieldByName('code').AsString;
         FCurrDecDigits := q.FieldByName('decdigits').AsInteger;
@@ -160,7 +161,7 @@ begin
   Result := FNCUKey;
 end;
 
-function GetEqKey: Integer;
+function GetEqKey: TID;
 var
   q: TIBSQL;
 begin
@@ -175,7 +176,7 @@ begin
     if q.EOF then
       Result := -1
     else
-      Result := q.FieldByName('id').AsInteger;
+      Result := GetTID(q.FieldByName('id'));
   finally
     q.Free;
   end;
@@ -366,7 +367,7 @@ begin
 {$ENDIF}
 end;
 
-function GetAccountKeyByAlias(const AnAlias: string): Integer;
+function GetAccountKeyByAlias(const AnAlias: string): TID;
 var
   SQL: TIBSQL;
 begin
@@ -384,20 +385,20 @@ begin
         'FROM ac_companyaccount ca JOIN ac_account a ' +
         '  ON a.id = ca.accountkey JOIN ac_account a1 ON a1.lb > a.lb AND ' +
         '    a1.rb <= a.rb ' +
-        'WHERE ca.companykey = :companykey AND ca.IsActive = 1 AND a1.alias = :alias';
+        'WHERE ca.companykey = :companykey AND ca.IsActive = 1 AND a1.alias = :alias ';
 
       SQL.ParamByName(fnAlias).AsString := AnAlias;
-      SQL.ParamByName(fnCompanyKey).AsInteger := IBLogin.CompanyKey;
+      SetTID(SQL.ParamByName(fnCompanyKey), IBLogin.CompanyKey);
       SQL.ExecQuery;
       if not SQL.EOF then
-        Result := SQL.FieldByName(fnId).AsInteger;
+        Result := GettID(SQL.FieldByName(fnId));
     finally
       SQL.Free;
     end;
   end;
 end;
 
-function GetAccountKeyByAlias(const AnAlias: string; const AnAccountCardKey: Integer): Integer;
+function GetAccountKeyByAlias(const AnAlias: string; const AnAccountCardKey: TID): TID;
 var
   SQL: TIBSQL;
 begin
@@ -415,17 +416,17 @@ begin
         'a1.rb <= a.rb AND a1.alias = :alias WHERE a.id = :id';
 
       SQL.ParamByName(fnAlias).AsString := AnAlias;
-      SQL.ParamByName(fnId).AsInteger := AnAccountCardKey;
+      SetTID(SQL.ParamByName(fnId), AnAccountCardKey);
       SQL.ExecQuery;
       if not SQL.EOF then
-        Result := SQL.FieldByName(fnId).AsInteger;
+        Result := GetTID(SQL.FieldByName(fnId));
     finally
       SQL.Free;
     end;
   end;
 end;
 
-function GetAlias(Id: Integer): string;
+function GetAlias(Id: TID): string;
 var
   SQL: TIBSQL;
 begin
@@ -434,7 +435,7 @@ begin
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQL.SQL.Text := 'SELECT a.alias FROM ac_account a ' +
       'WHERE a.id = :id';
-    SQL.ParamByName('id').AsInteger := Id;
+    SetTID(SQL.ParamByName('id'), Id);
     SQl.ExecQuery;
     Result := SQl.FieldByName('alias').AsString;
   finally
@@ -442,7 +443,7 @@ begin
   end;
 end;
 
-function GetGeneralAnalyticField(const AnAccountID: Integer): String;
+function GetGeneralAnalyticField(const AnAccountID: TID): String;
 var
   q: TIBSQL;
 begin
@@ -458,7 +459,7 @@ begin
       'WHERE aa.accountkey = :id ' +
       'GROUP BY aa.accountkey  ';
 
-    q.ParamByName('id').AsInteger := AnAccountID;
+    SetTID(q.ParamByName('id'), AnAccountID);
     q.ExecQuery;
     if not q.Eof then
       Result := q.FieldByName('fieldname').AsString
@@ -471,7 +472,7 @@ end;
 
 function GetAccountRUIDStringByAlias(Alias: string): string;
 var
-  Id: Integer;
+  Id: TID;
 begin
   Result := '';
   Id := GetAccountKeyByAlias(Alias);
@@ -483,7 +484,7 @@ end;
 
 function GetAliasByRUIDString(RUID: string): string;
 var
-  Id: Integer;
+  Id: TID;
 begin
   Result := '';
   Id := gdcBaseManager.GetIDByRUIDString(RUID);
@@ -493,7 +494,7 @@ begin
   end;
 end;
 
-function GetCurrNameById(Id: Integer): string;
+function GetCurrNameById(Id: TID): string;
 var
   SQL: TIBSQL;
 begin
@@ -502,7 +503,7 @@ begin
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQL.SQL.Text := 'SELECT name FROM gd_curr WHERE id = :id';
-    SQL.ParamByName(fnId).AsInteger := Id;
+    SetTID(SQL.ParamByName(fnId), Id);
     SQL.ExecQuery;
     if SQl.RecordCount > 0 then
       Result := SQL.FieldByName(fnName).AsString;
@@ -511,7 +512,7 @@ begin
   end;
 end;
 
-function IDList(List: TList): string;
+function IDList(List: TList; Context: string): string;
 var
   I: Integer;
 begin
@@ -522,7 +523,7 @@ begin
     begin
       if Result > '' then
         Result := Result + ', ';
-      Result := Result + IntToStr(Integer(List[I]));
+      Result := Result + TID2S(GetTID(List[I], Context));
     end;
   end;
 end;
@@ -538,12 +539,12 @@ begin
     begin
       if Result > '' then
         Result := Result + ', ';
-      Result := Result + IntToStr(List.Keys[I]);
+      Result := Result + TID2S(List.Keys[I]);
     end;
   end;
 end;
 
-function AccountDialog(ComboBox: TCustomComboBox; ActiveAccount: Integer): Boolean;
+function AccountDialog(ComboBox: TCustomComboBox; ActiveAccount: TID): Boolean;
 {$IFDEF GEDEMIN}
 var
   F: Tgdv_dlgAccounts;
@@ -571,11 +572,11 @@ begin
 end;
 
 procedure SetAccountIDs(AccountsComboBox: TCustomComboBox; var AccountIds: TList;
-  AIncSubAccounts: Boolean; ShowMessage: Boolean = True);
+  AIncSubAccounts: Boolean; Context: string; ShowMessage: Boolean = True);
 var
   S: TStrings;
   I: Integer;
-  ID: Integer;
+  ID: TID;
 begin
   Assert(AccountIds <> nil, 'Список не инициализирован');
 
@@ -599,11 +600,10 @@ begin
         end;
         if AccountsComboBox.CanFocus then
           AccountsComboBox.SetFocus;
-        AccountIDs.Clear;
         Abort;
       end else
-        if AccountIDs.IndexOf(Pointer(Id)) = - 1 then
-          AccountIDs.Add(Pointer(Id));
+        if AccountIDs.IndexOf(TID2Pointer(Id, Context)) = - 1 then
+          AccountIDs.Add(TID2Pointer(Id, Context));
     end;
   finally
     S.Free;
@@ -655,7 +655,7 @@ begin
   end;
 end;
 
-function GetActiveAccount(CompanyKey: Integer): Integer;
+function GetActiveAccount(CompanyKey: TID): TID;
 var
   SQL: TIBSQL;
 begin
@@ -665,10 +665,10 @@ begin
     SQL.SQL.Text :=
       'SELECT ca.accountkey FROM ac_companyaccount ca ' +
       'WHERE ca.companykey = :companykey AND ca.IsActive = 1';
-    SQL.ParamByName(fnCompanyKey).AsInteger := CompanyKey;
+    SetTID(SQL.ParamByName(fnCompanyKey), CompanyKey);
     SQL.ExecQuery;
     if not SQL.EOF then
-      Result := SQl.FieldByName(fnAccountKey).AsInteger
+      Result := GetTID(SQl.FieldByName(fnAccountKey))
     else
       Result := -1;
   finally
@@ -694,7 +694,7 @@ begin
       '    ON a.lb >= aparent.lb AND a.rb <= aparent.rb '#13#10 +
       'WHERE '#13#10 +
       '  a.accounttype IN (''A'', ''S'')';
-    SQL.ParamByName('companykey').AsInteger := IBLogin.CompanyKey;
+    SetTID(SQL.ParamByName('companykey'), IBLogin.CompanyKey);
     SQL.ExecQuery;
     if not SQL.EOF then
       Result := SQL.Fields[0].AsString
@@ -705,11 +705,11 @@ begin
   end;
 end;
 
-function CheckActiveAccount(CompanyKey: Integer; AShowMessage: Boolean = True): Boolean;
+function CheckActiveAccount(CompanyKey: TID; AShowMessage: Boolean = True): Boolean;
 var
   SQL, q: TIBSQL;
   Tr: TIBTransaction;
-  ChartID: Integer;
+  ChartID: TID;
 begin
   if CompanyKey > -1 then
   begin
@@ -718,7 +718,7 @@ begin
       Result := True;
       exit;
     end;
-    
+
     try
       q := TIBSQL.Create(nil);
       Tr := TIBTransaction.Create(nil);
@@ -729,7 +729,7 @@ begin
         Tr.StartTransaction;
 
         q.SQL.Text := 'SELECT * FROM ac_companyaccount WHERE companykey=' +
-          IntToStr(CompanyKey);
+          TID2S(CompanyKey);
         q.ExecQuery;
 
         if q.EOF then
@@ -743,12 +743,12 @@ begin
 
           if not q.EOF then
           begin
-            ChartID := q.Fields[0].AsInteger;
+            ChartID := GetTID(q.Fields[0]);
             q.Close;
 
             q.SQL.Text := 'INSERT INTO ac_companyaccount (companykey, accountkey, isactive) VALUES (:CK, :AK, 1) ';
-            q.ParamByName('CK').AsInteger := CompanyKey;
-            q.ParamByName('AK').AsInteger := ChartID;
+            SetTID(q.ParamByName('CK'), CompanyKey);
+            SetTID(q.ParamByName('AK'), ChartID);
             q.ExecQuery;
           end;
         end;
@@ -773,7 +773,7 @@ begin
       try
         SQL.Transaction := gdcBaseManager.ReadTransaction;
         SQL.SQL.Text := 'SELECT name FROM gd_contact WHERE id = :id';
-        SQL.ParamByName(fnId).AsInteger := CompanyKey;
+        SetTID(SQL.ParamByName(fnId), CompanyKey);
         SQL.ExecQuery;
         MessageBox(0,
           PChar(Format(MSG_NOACTIVEACCOUTN, [SQL.FieldByName(fnName).AsString])),
@@ -896,9 +896,9 @@ function GetCurrRate(ForDate: TDateTime; ValidDays: Integer; RegulatorKey: OleVa
     else if (VarType(K) = varOleStr) or (VarType(K) = varString) then
     begin
       if CheckRUID(K) then
-        K := gdcBaseManager.GetIDByRUIDString(K)
+        K := TID2V(gdcBaseManager.GetIDByRUIDString(K))
       else if K = 'NCU' then
-        K := GetNCUKey
+        K := TID2V(GetNCUKey)
       else begin
         q := TIBSQL.Create(nil);
         try
@@ -911,7 +911,7 @@ function GetCurrRate(ForDate: TDateTime; ValidDays: Integer; RegulatorKey: OleVa
           if q.EOF then
             K := -1
           else begin
-            K := q.FieldByName('id').AsInteger;
+            K := TID2V(q.FieldByName('id'));
 
             q.Next;
             if not q.EOF then
@@ -921,17 +921,17 @@ function GetCurrRate(ForDate: TDateTime; ValidDays: Integer; RegulatorKey: OleVa
           q.Free;
         end;
       end;
-    end else if not (VarType(K) = varInteger) then
+    end else if not (VarType(K) = (varInteger)) then
       K := -1;
   end;
 
-  function CalcRate(q: TIBSQL; const FC, TC: Integer; const V: Double;
+  function CalcRate(q: TIBSQL; const FC, TC: TID; const V: Double;
     const CanInvert: Boolean; var Output: Double): Boolean;
   begin
     Result := False;
     try
-      q.ParamByName('fc').AsInteger := FC;
-      q.ParamByName('tc').AsInteger := TC;
+      SetTID(q.ParamByName('fc'), FC);
+      SetTID(q.ParamByName('tc'), TC);
       q.ExecQuery;
 
       if q.EOF then
@@ -939,8 +939,8 @@ function GetCurrRate(ForDate: TDateTime; ValidDays: Integer; RegulatorKey: OleVa
         if CanInvert then
         begin
           q.Close;
-          q.ParamByName('fc').AsInteger := TC;
-          q.ParamByName('tc').AsInteger := FC;
+          SetTID(q.ParamByName('fc'), TC);
+          SetTID(q.ParamByName('tc'), FC);
           q.ExecQuery;
 
           if not q.EOF then
@@ -987,7 +987,7 @@ begin
         q.SQL.Add('ORDER BY fordate DESC, regulatorkey NULLS FIRST')
       else begin
         q.SQL.Add('AND regulatorkey = :rk ORDER BY fordate DESC');
-        q.ParamByName('rk').AsInteger := RegulatorKey;
+        SetTID(q.ParamByName('rk'), GetTID(RegulatorKey));
       end;
 
       q.ParamByName('fd').AsDateTime := ForDate;
@@ -1004,15 +1004,15 @@ begin
               (CrossCurrKey = -1)
             )
             and
-            CalcRate(q, FromCurrKey, ToCurrKey, Amount, UseInverted, Result)
+            CalcRate(q, GetTID(FromCurrKey), GetTID(ToCurrKey), Amount, UseInverted, Result)
           )
           or
           (
             (CrossCurrKey <> -1)
             and
-            CalcRate(q, FromCurrKey, CrossCurrKey, Amount, UseInverted, Result)
+            CalcRate(q, GetTID(FromCurrKey), GetTID(CrossCurrKey), Amount, UseInverted, Result)
             and
-            CalcRate(q, CrossCurrKey, ToCurrKey, Result, UseInverted, Result)
+            CalcRate(q, GetTID(CrossCurrKey), GetTID(ToCurrKey), Result, UseInverted, Result)
           )
         ) then
       begin

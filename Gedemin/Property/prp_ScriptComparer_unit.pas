@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 unit prp_ScriptComparer_unit;
 
 interface
@@ -64,7 +66,7 @@ implementation
 {$R *.DFM}
 
 uses
-  FileView;
+  FileView, gd_ClassList;
 
 { Tprp_ScriptComparer }
 
@@ -184,9 +186,8 @@ begin
 end;
 
 initialization
-  RegisterClass(Tprp_ScriptComparer);
+  RegisterFrmClass(Tprp_ScriptComparer, 'Форма сравнения двух скриптов');
 
 finalization
-  UnRegisterClass(Tprp_ScriptComparer);
-
+  UnRegisterFrmClass(Tprp_ScriptComparer);
 end.

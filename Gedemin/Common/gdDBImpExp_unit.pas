@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdDBImpExp_unit;
 
@@ -28,7 +29,7 @@ type
     constructor Create(const AgdDBImpExp: TgdDBImpExp; const ATableName: String);
     destructor Destroy; override;
 
-    procedure SaveRecord(const AnID: Integer);
+    procedure SaveRecord(const AnID: TID);
     procedure SaveToStream(S: TStream);
 
     property TableName: String read FTableName;
@@ -45,12 +46,12 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure SaveRecord(const AnID: Integer; const ATableName: String);
+    procedure SaveRecord(const AnID: TID; const ATableName: String);
     function CheckFieldName(const AFieldName: String): Boolean;
     function GetTable(const ATableName: String): TgdDBImpExpTable;
     procedure LogRecord(const ATable: TgdDBImpExpTable);
     procedure SaveToStream(S: TStream);
-    function GetRUID(const AnID: Integer): String;
+    function GetRUID(const AnID: TID): String;
 
     property IDS: TgdKeyStringAssoc read FIDS;
   end;
@@ -91,7 +92,7 @@ begin
   inherited;
 end;
 
-function TgdDBImpExp.GetRUID(const AnID: Integer): String;
+function TgdDBImpExp.GetRUID(const AnID: TID): String;
 begin
   if qRUID = nil then
   begin
@@ -101,7 +102,7 @@ begin
     qRUID.Prepare;
   end;
 
-  qRUID.ParamByName('ID').AsInteger := AnID;
+  SetTID(qRUID.ParamByName('ID'), AnID);
   qRUID.ExecQuery;
   try
     if qRUID.EOF then
@@ -115,14 +116,14 @@ begin
         qRUIDInsert.SQL.Text :=
           'INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) VALUES (:id, :xid, :dbid, :mod, :ek) ';
       end;
-      qRUIDInsert.ParamByName('id').AsInteger := AnID;
-      qRUIDInsert.ParamByName('xid').AsInteger := AnID;
+      SetTID(qRUIDInsert.ParamByName('id'), AnID);
+      SetTID(qRUIDInsert.ParamByName('xid'), AnID);
       if AnID < cstUserIDStart then
         qRUIDInsert.ParamByName('dbid').AsInteger := cstEtalonDBID
       else
         qRUIDInsert.ParamByName('dbid').AsInteger := IBLogin.DBID;
       qRUIDInsert.ParamByName('mod').AsDateTime := Now;
-      qRUIDInsert.ParamByName('ek').AsInteger := IBLogin.ContactKey;
+      SetTID(qRUIDInsert.ParamByName('ek'), IBLogin.ContactKey);
       Result := qRUIDInsert.ParamByName('XID').AsString + '_' + qRUIDInsert.ParamByName('DBID').AsString;
       qRUIDInsert.ExecQuery;
       { TODO : надо обрабатывать ситуацию, когда такой РУИД уже есть в базе. }
@@ -162,7 +163,7 @@ begin
   FJournal.Add(ATable);
 end;
 
-procedure TgdDBImpExp.SaveRecord(const AnID: Integer;
+procedure TgdDBImpExp.SaveRecord(const AnID: TID;
   const ATableName: String);
 begin
   GetTable(ATableName).SaveRecord(AnID);
@@ -217,7 +218,7 @@ begin
   inherited;
 end;
 
-procedure TgdDBImpExpTable.SaveRecord(const AnID: Integer);
+procedure TgdDBImpExpTable.SaveRecord(const AnID: TID);
 var
   I, J: Integer;
   FieldAliasName, RelationName, FieldName: String;
@@ -411,7 +412,7 @@ begin
   end else
     qTemp := nil;
 
-  q.ParamByName('ID').AsInteger := AnID;
+  SetTID(q.ParamByName('ID'), AnID);
   q.ExecQuery;
   try
     while not q.EOF do // несколько записей у нас будет только для элементов множества!
@@ -441,7 +442,7 @@ begin
             end;
             if RefArray[I] <> nil then
             begin
-              RefID[I] := F.AsInteger;
+             RefID[I] := GetTID(F);
             end;
           end;
         end;

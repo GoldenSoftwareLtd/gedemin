@@ -1,6 +1,6 @@
 object gdc_frmG: Tgdc_frmG
-  Left = 218
-  Top = 121
+  Left = 681
+  Top = 96
   Width = 1059
   Height = 695
   HelpContext = 116
@@ -26,8 +26,8 @@ object gdc_frmG: Tgdc_frmG
   TextHeight = 13
   object sbMain: TStatusBar
     Left = 0
-    Top = 638
-    Width = 1043
+    Top = 645
+    Width = 1051
     Height = 19
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
@@ -49,7 +49,7 @@ object gdc_frmG: Tgdc_frmG
   object TBDockTop: TTBDock
     Left = 0
     Top = 0
-    Width = 1043
+    Width = 1051
     Height = 51
     object tbMainToolbar: TTBToolbar
       Left = 0
@@ -311,35 +311,35 @@ object gdc_frmG: Tgdc_frmG
     Left = 0
     Top = 51
     Width = 9
-    Height = 578
+    Height = 585
     Position = dpLeft
   end
   object TBDockRight: TTBDock
-    Left = 1034
+    Left = 1042
     Top = 51
     Width = 9
-    Height = 578
+    Height = 585
     Position = dpRight
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 629
-    Width = 1043
+    Top = 636
+    Width = 1051
     Height = 9
     Position = dpBottom
   end
   object pnlWorkArea: TPanel
     Left = 9
     Top = 51
-    Width = 1025
-    Height = 578
+    Width = 1033
+    Height = 585
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 5
     object spChoose: TSplitter
       Left = 0
-      Top = 475
-      Width = 1025
+      Top = 482
+      Width = 1033
       Height = 4
       Cursor = crVSplit
       Align = alBottom
@@ -348,8 +348,8 @@ object gdc_frmG: Tgdc_frmG
     object pnlMain: TPanel
       Left = 0
       Top = 0
-      Width = 1025
-      Height = 475
+      Width = 1033
+      Height = 482
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -359,7 +359,7 @@ object gdc_frmG: Tgdc_frmG
         Left = 0
         Top = 0
         Width = 160
-        Height = 475
+        Height = 482
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -371,7 +371,7 @@ object gdc_frmG: Tgdc_frmG
           Left = 0
           Top = 27
           Width = 160
-          Height = 448
+          Height = 455
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -421,8 +421,8 @@ object gdc_frmG: Tgdc_frmG
     end
     object pnChoose: TPanel
       Left = 0
-      Top = 479
-      Width = 1025
+      Top = 486
+      Width = 1033
       Height = 99
       Align = alBottom
       BevelOuter = bvNone
@@ -430,7 +430,7 @@ object gdc_frmG: Tgdc_frmG
       TabOrder = 1
       Visible = False
       object pnButtonChoose: TPanel
-        Left = 920
+        Left = 928
         Top = 18
         Width = 105
         Height = 81
@@ -467,7 +467,7 @@ object gdc_frmG: Tgdc_frmG
       object ibgrChoose: TgsIBGrid
         Left = 0
         Top = 18
-        Width = 920
+        Width = 928
         Height = 81
         HelpContext = 3
         Align = alClient
@@ -493,7 +493,7 @@ object gdc_frmG: Tgdc_frmG
       object pnlChooseCaption: TPanel
         Left = 0
         Top = 0
-        Width = 1025
+        Width = 1033
         Height = 18
         Align = alTop
         Alignment = taLeftJustify
@@ -644,6 +644,7 @@ object gdc_frmG: Tgdc_frmG
       Caption = 'Свойства...'
       Hint = 'Свойства'
       ImageIndex = 28
+      ShortCut = 122
       OnExecute = actPropertiesExecute
       OnUpdate = actPropertiesUpdate
     end
@@ -721,8 +722,8 @@ object gdc_frmG: Tgdc_frmG
     end
     object actDeleteChoose: TAction
       Category = 'Choose'
-      Caption = 'Удалить'
-      Hint = 'Удалить из выбранных'
+      Caption = 'Исключить'
+      Hint = 'Исключить запись из выбранных'
       OnExecute = actDeleteChooseExecute
       OnUpdate = actDeleteChooseUpdate
     end
@@ -793,6 +794,12 @@ object gdc_frmG: Tgdc_frmG
       ImageIndex = 5
       OnExecute = actAddToSelectedFromClipboardExecute
     end
+    object actCopyMasterIDToClipboard: TAction
+      Category = 'Commands'
+      Caption = 'Скопировать ИД записи в буфер'
+      OnExecute = actCopyMasterIDToClipboardExecute
+      OnUpdate = actEditUpdate
+    end
   end
   object pmMain: TPopupMenu
     Left = 124
@@ -817,6 +824,9 @@ object gdc_frmG: Tgdc_frmG
     end
     object nSeparator1_OLD: TMenuItem
       Caption = '-'
+    end
+    object nCopyMasterIDToClipboard: TMenuItem
+      Action = actCopyMasterIDToClipboard
     end
     object actCopy1_OLD: TMenuItem
       Action = actCopy

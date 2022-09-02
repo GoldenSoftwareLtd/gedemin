@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdHelp_Body;
 
@@ -241,7 +242,7 @@ begin
     q.ParamByName('o').AsString := AnObjClass + AnObjSubType;
     q.ExecQuery;
     if not q.EOF then
-      Result := q.FieldByName('id').AsInteger;
+      Result := GetTID(q.FieldByName('id'));
   finally
     q.Free;
   end;

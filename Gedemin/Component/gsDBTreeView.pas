@@ -1,4 +1,9 @@
-
+// ShlTanya, 17.02.2019, #4135
+// Метод AddItem работает с Pointer, в который передаем Int64.
+// В результате получаем неверные данные. Метод Find не находит данные.
+// The size of a pointer depends on the operating system and/or the processor.
+// On 32-bit platforms, a pointer is stored on 4 bytes as a 32-bit address.
+// On 64-bit platforms, a pointer is stored on 8 bytes as a 64-bit address.
  {++
 
    Project COMPONENTS
@@ -32,7 +37,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, DB, DBCtrls, Contnrs, DBGrids, ActnList, Menus, gd_KeyAssoc,
-  CommCtrl;
+  CommCtrl, gdcBaseInterface;
 
 const
   Def_KeyField          =       'ID';
@@ -56,7 +61,7 @@ type
     FOldAfterPost: TDataSetNotifyEvent;
     FOldBeforeDelete: TDataSetNotifyEvent;
     FOldDataSet: TDataSet;
-    FDeletingID: Integer;
+    FDeletingID: TID;
     FForecast: TTreeNode;
 
     procedure OnBeforeDelete(Sender: TDataSet);
@@ -76,7 +81,7 @@ type
   //
   // данный класс предназначен для сохранения состояния дерева
   // (открытые ветви и текущий элемент)
-  TIntArray = array of Integer;
+  TIntArray = array of TID;
 
   TTVState = class(TObject)
   private
@@ -87,7 +92,7 @@ type
     FExpanded, FChecked: TgdKeyArray;
 
     // ИД выделенного элемента
-    FSelectedID: Integer;
+    FSelectedID: TID;
 
     //
     FBookmarks: TgdKeyStringAssoc;
@@ -117,13 +122,13 @@ type
     procedure SaveTreeState;
 
     //
-    procedure NodeExpanded(const AnID: Integer);
-    procedure NodeCollapsed(const AnID: Integer);
-    procedure NodeChecked(const AnID: Integer);
-    procedure NodeUnChecked(const AnID: Integer);
+    procedure NodeExpanded(const AnID: TID);
+    procedure NodeCollapsed(const AnID: TID);
+    procedure NodeChecked(const AnID: TID);
+    procedure NodeUnChecked(const AnID: TID);
 
     //
-    property SelectedID: Integer read FSelectedID write FSelectedID;
+    property SelectedID: TID read FSelectedID write FSelectedID;
 
     //
     property Bookmarks: TgdKeyStringAssoc read FBookmarks;
@@ -148,6 +153,9 @@ type
     FMainFolderHead: Boolean;
     FBuilding: Boolean;
     FInRefresh: Boolean;
+    // контекст для преобразования Pointer в ID64
+    // строка типа: имя_компонента_родителя
+    FContext: String;
 
     FDataLink: TgsDBTreeViewDataLink;
     FKeyField: String;
@@ -155,7 +163,7 @@ type
     FDisplayField: String;
     FDisplayFields: TStringList;
     FImageField: String;
-    FTopKey: Integer;
+    FTopKey: TID;
     FCutNode: TTreeNode;
     FMainFolder: Boolean;
     FMainFolderCaption: String;
@@ -185,9 +193,9 @@ type
     procedure SetImageValueList(Value: TStringList);
     procedure SetMainFolderCaption(Value: String);
     procedure SetWithCheckBox(Value: Boolean);
-    function GetID: Integer;
-    function GetParentID: Integer;
-    procedure SetTopKey(const Value: Integer);
+    function GetID: TID;
+    function GetParentID: TID;
+    procedure SetTopKey(const Value: TID);
     function GetAfterCheckEvent: TAfterCheckTVEvent;
     function GetCheckBoxEvent: TCheckBoxTVEvent;
     procedure SetAfterCheckEvent(const Value: TAfterCheckTVEvent);
@@ -211,7 +219,7 @@ type
     procedure Loaded; override;
     procedure KeyPress(var Key: Char); override;
     procedure SetCheck(Node: TTreeNode; Check: Boolean); virtual;
-    function NodeByKeyField(const KeyValue: Integer): TTreeNode;
+    function NodeByKeyField(const KeyValue: TID): TTreeNode;
     function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
     function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
     procedure Edit(const Item: TTVItem); override;
@@ -231,10 +239,10 @@ type
     destructor Destroy; override;
 
     procedure Refresh;
-    function GoToID(const AnID: Integer): Boolean;
-    procedure DeleteID(const AnID: Integer);
+    function GoToID(const AnID: TID): Boolean;
+    procedure DeleteID(const AnID: TID);
     procedure Cut;
-    function Find(const AnID: Integer): TTreeNode;
+    function Find(const AnID: TID): TTreeNode;
     procedure DisableActions;
 
     // две процедуры, сохраняют и восстанавливают состояние дерева
@@ -248,7 +256,7 @@ type
     property DisplayField: String read FDisplayField write SetDisplayField;
     property ImageField: String read FImageField write FImageField;
     // ключ верхнего уровня
-    property TopKey: Integer read FTopKey write SetTopKey default -1;
+    property TopKey: TID read FTopKey write SetTopKey default -1;
     property CutNode: TTreeNode read FCutNode;
     property MainFolder: Boolean read FMainFolder write FMainFolder;
     property MainFolderHead: Boolean read FMainFolderHead write FMainFolderHead;
@@ -259,18 +267,19 @@ type
 
     // Идентификатор текущего элемента, -1, если нет элемента
     // или у него нет идентификатора
-    property ID: Integer read GetID;
-    property ParentID: Integer read GetParentID;
+    property ID: TID read GetID;
+    property ParentID: TID read GetParentID;
 
     //
     property TVState: TTVState read FTVState;
     property OnFilterRecord: TFilterRecordEvent read FOnFilterRecord write FOnFilterRecord;
     property OnPostProcess: TNotifyEvent read FOnPostProcess write FOnPostProcess;
 
-    procedure AddCheck(AnID: Integer);
-    procedure DeleteCheck(AnID: Integer);
+    procedure AddCheck(AnID: TID);
+    procedure DeleteCheck(AnID: TID);
 
     property MaxWidth: Integer read FMaxWidth;
+    property Context: String write FContext;
   end;
 
   TgsDBTreeView = class(TgsCustomDBTreeView)
@@ -413,7 +422,7 @@ const
 type
   PInternalTreeNode = ^TInternalTreeNode;
   TInternalTreeNode = record
-    ID: Integer;
+    ID: TID;
     Parent: PInternalTreeNode;
     Items: TList;
     Name: String;
@@ -424,14 +433,14 @@ type
   TInternalTree = class(TObject)
   private
     Root: TInternalTreeNode;
-
+    FContext: String;
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure Clear;
-    procedure Add(const AnID, AParent: Integer; const AName: String);
-    function Find(const AnID: Integer): PInternalTreeNode;
+    procedure Add(const AnID, AParent: TID; const AName: String);
+    function Find(const AnID: TID): PInternalTreeNode;
     procedure BuildTreeView(TV: TgsCustomDBTreeView);
   end;
 
@@ -445,6 +454,7 @@ begin
   FDeletingID := -1;
   FForecast := nil;
   FOldDataSet := nil;
+
 end;
 
 procedure TgsDBTreeViewDataLink.ActiveChanged;
@@ -495,7 +505,7 @@ begin
     // калі паменялі назву аб'екту -- паменяем тэкст
     // у нода дрэва
     if Assigned(FDBTreeView) and
-       (FDBTreeView.ID = {DataSet.}FieldByName(FDBTreeView.KeyField).AsInteger) and
+       (FDBTreeView.ID = {DataSet.}GetTID(FieldByName(FDBTreeView.KeyField))) and
        (FDBTreeView.Selected.Text <> GetDisplayString(Sender as TDataSet)) then
       FDBTreeView.Selected.Text := GetDisplayString(Sender as TDataSet);
 
@@ -504,7 +514,7 @@ begin
     try
       N := nil;
       try
-        N := FDBTreeView.Find(FieldByName(FDBTreeView.KeyField).AsInteger);
+        N := FDBTreeView.Find(GetTID(FieldByName(FDBTreeView.KeyField)));
       except
         on ETreeViewError do
           Abort;
@@ -512,11 +522,10 @@ begin
 
       if N = nil then
       begin
-        if (FTopKey = 0) or (FieldByName(FDBTreeView.KeyField).AsInteger <> FTopKey) then
+        if (FTopKey = 0) or (GetTID(FieldByName(FDBTreeView.KeyField)) <> FTopKey) then
         begin
-          N := FDBTreeView.Find(FieldByName(FDBTreeView.ParentField).AsInteger);
-          N := FDBTreeView.Items.AddChildObject(N, '',
-            Pointer(FieldByName(FDBTreeView.KeyField).AsInteger));
+          N := FDBTreeView.Find(getTID(FieldByName(FDBTreeView.ParentField)));
+          N := FDBTreeView.Items.AddChildObject(N, '', TID2Pointer(GetTID(FieldByName(FDBTreeView.KeyField)), FDBTreeView.FContext));
 
           N.ImageIndex := {GetImageIndex(ImageField)}0;
           N.SelectedIndex := N.ImageIndex;
@@ -548,9 +557,9 @@ begin
              for I := 0 to FTVState.Bookmarks.Count - 1 do
              begin
                S := FTVState.Bookmarks.ValuesByIndex[I];
-               if pInteger(S)^ >= pInteger(B)^ then
+               if PID(S)^ >= PID(B)^ then
                begin
-                 pInteger(S)^ := pInteger(S)^ + 1;
+                 PID(S)^ := PID(S)^ + 1;
                  FTVState.Bookmarks.ValuesByIndex[I] := S;
                end;
              end;
@@ -558,7 +567,7 @@ begin
             {$ENDIF}
 
             FTVState.Bookmarks.ValuesByIndex[
-             FTVState.Bookmarks.Add(FieldByName(FDBTreeView.KeyField).AsInteger)] := DataSet.Bookmark;
+             FTVState.Bookmarks.Add(GetTID(FieldByName(FDBTreeView.KeyField)))] := DataSet.Bookmark;
           end else
           begin
             FTVState.Bookmarks.Clear;
@@ -568,13 +577,13 @@ begin
       end else
       begin
         if ((N.Parent = nil) and (not FieldByName(FDBTreeView.ParentField).IsNull))
-          or ((N.Parent <> nil) and (Integer(N.Parent.Data) <> FieldByName(FDBTreeView.ParentField).AsInteger)) then
+          or ((N.Parent <> nil) and (GetTID(N.Parent.Data, FDBTreeView.FContext) <> GetTID(FieldByName(FDBTreeView.ParentField)))) then
         begin
           if FieldByName(FDBTreeView.ParentField).IsNull then
             N.MoveTo(nil, naAddChild)
           else begin
             N.MoveTo(FDBTreeView.Find(
-              FieldByName(FDBTreeView.ParentField).AsInteger), naAddChild);
+              GetTID(FieldByName(FDBTreeView.ParentField))), naAddChild);
           end;
         end;
       end;
@@ -679,7 +688,9 @@ begin
   FTVState.Free;
   FSImages.Free;
   FDisplayFields.Free;
-
+  {$IFDEF ID64}
+  FreeConvertContext(FContext); 
+  {$ENDIF}  
   inherited;
 end;
 
@@ -881,7 +892,7 @@ begin
   FMainFolderCaption := Value;
   if FMainFolder then
     for I := 0 to Items.Count - 1 do
-      if Integer(Items[I].Data) = TopKey then
+      if (FContext <> '') and (GetTID(Items[I].Data, FContext) = TopKey) then
         Items[I].Text := Value;
 end;
 
@@ -1037,7 +1048,7 @@ begin
   end;
 end;
 
-function TgsCustomDBTreeView.GoToID(const AnID: Integer): Boolean;
+function TgsCustomDBTreeView.GoToID(const AnID: TID): Boolean;
 var
   I: Integer;
 begin
@@ -1046,7 +1057,7 @@ begin
   begin
     for I := 0 to Items.Count - 1 do
     try
-      if Integer(Items[I].Data) = AnID then
+      if GetTID(Items[I].Data, FContext) = AnID then
       begin
         Items[I].Selected := True;
         Result := True;
@@ -1084,7 +1095,7 @@ var
   OldBookmark: String;
   Accept: Boolean;
   IT: TInternalTree;
-  ParentID: Integer;
+  ParentID: TID;
 begin
   FBuilding := True;
   try
@@ -1099,6 +1110,7 @@ begin
       and (not (csDestroying in ComponentState)) then
     begin
       IT := TInternalTree.Create;
+      IT.FContext := FContext;
       Items.BeginUpdate;
       FDataLink.DataSet.DisableControls;
       try
@@ -1123,16 +1135,16 @@ begin
                 end;
               end;
 
-              ParentID := FieldByName(FParentField).AsInteger;
+              ParentID := GetTID(FieldByName(FParentField));
               if ParentID = FTopKey then
                 ParentID := 0;
 
-              IT.Add(FieldByName(FKeyField).AsInteger,
+              IT.Add(GetTID(FieldByName(FKeyField)),
                 ParentID,
                 GetDisplayString(FDataLink.DataSet));
 
               with FTVState.Bookmarks do
-                ValuesByIndex[Add(FieldByName(FKeyField).AsInteger)] := Bookmark;
+                ValuesByIndex[Add(GetTID(FieldByName(FKeyField)))] := Bookmark;
 
               Next;
             end;
@@ -1165,13 +1177,13 @@ begin
           SetScrollPos(Self.Handle, SB_HORZ, 0, True);
 
           if Selected <> nil then
-            FDataLink.DataSet.Bookmark := FTVState.Bookmarks.ValuesByKey[Integer(Selected.Data)]
+            FDataLink.DataSet.Bookmark := FTVState.Bookmarks.ValuesByKey[GetTID(Selected.Data, FContext)]
           else if OldBookmark > '' then
             FDataLink.DataSet.Bookmark := OldBookmark;
         end else if OldBookmark > '' then
         begin
           FDataLink.DataSet.Bookmark := OldBookmark;
-          FTVState.SelectedID := FDataLink.DataSet.FieldByName(FKeyField).AsInteger;
+          FTVState.SelectedID := GetTID(FDataLink.DataSet.FieldByName(FKeyField));
           Selected := PInternalTreeNode(IT.Find(FTVState.SelectedID))^.N;
         end;
 
@@ -1206,7 +1218,7 @@ end;
 
 procedure TgsCustomDBTreeView.Refresh;
 var
-  OldID: Integer;
+  OldID: TID;
 begin
   if (FDataLink.DataSet <> nil) and (FDataLink.DataSet.Active) then
   begin
@@ -1250,22 +1262,22 @@ begin
     if (Node <> nil) and (Node.Data <> nil)
       and (not (csDesigning in ComponentState)) then
     begin
-      if Integer(Node.Data) > -1 then
+      if GetTID(Node.Data, FContext) > -1 then
       begin
-        if FTVState.Bookmarks.IndexOf(Integer(Node.Data)) <> -1 then
+        if FTVState.Bookmarks.IndexOf(GetTID(Node.Data, FContext)) <> -1 then
         begin
-          if FDataLink.DataSet.Bookmark <> FTVState.Bookmarks.ValuesByKey[Integer(Node.Data)] then
-            FDataLink.DataSet.Bookmark := FTVState.Bookmarks.ValuesByKey[Integer(Node.Data)];
+          if FDataLink.DataSet.Bookmark <> FTVState.Bookmarks.ValuesByKey[GetTID(Node.Data, FContext)] then
+            FDataLink.DataSet.Bookmark := FTVState.Bookmarks.ValuesByKey[GetTID(Node.Data, FContext)];
         end else
         begin
-          if FDataLink.DataSet.Locate(FKeyField, Integer(Node.Data), []) then
+          if FDataLink.DataSet.Locate(FKeyField, TID2V(GetTID(Node.Data, FContext)), []) then
           begin
             FTVState.Bookmarks.ValuesByIndex[
-              FTVState.Bookmarks.Add(Integer(Node.Data))] := FDataLink.DataSet.Bookmark;
+              FTVState.Bookmarks.Add(GetTID(Node.Data, FContext))] := FDataLink.DataSet.Bookmark;
           end;
         end;
 
-        FTVState.SelectedID := Integer(Node.Data);
+        FTVState.SelectedID := GetTID(Node.Data, FContext);
 
         if (Node.Text <> GetDisplayString(FDataLink.DataSet))
           and (not ((Node.Text = '<Пусто>') and (GetDisplayString(FDataLink.DataSet) = ''))) then
@@ -1327,14 +1339,14 @@ procedure TgsCustomDBTreeView.Collapse(Node: TTreeNode);
 begin
   inherited;
   if (Node.Data <> nil) then
-    FTVState.NodeCollapsed(Integer(Node.Data));
+    FTVState.NodeCollapsed(GetTID(Node.Data, FContext));
 end;
 
 procedure TgsCustomDBTreeView.Expand(Node: TTreeNode);
 begin
   inherited;
   if (Node.Data <> nil) then
-    FTVState.NodeExpanded(Integer(Node.Data));
+    FTVState.NodeExpanded(GetTID(Node.Data, FContext));
 end;
 
 procedure TgsCustomDBTreeView.SetCheck(Node: TTreeNode; Check: Boolean);
@@ -1342,7 +1354,7 @@ procedure TgsCustomDBTreeView.SetCheck(Node: TTreeNode; Check: Boolean);
   procedure SetChecked(N: TTreeNode);
   begin
     N.StateIndex := 1;
-    FTVState.NodeChecked(Integer(N.Data));
+    FTVState.NodeChecked(GetTID(N.Data, FContext));
 
     N := N.Parent;
     while (N <> nil) and (N.StateIndex <> 1) do
@@ -1361,7 +1373,7 @@ procedure TgsCustomDBTreeView.SetCheck(Node: TTreeNode; Check: Boolean);
       for I := 0 to _N.Count - 1 do
       begin
         _N.Item[I].StateIndex := siUnchecked;
-        FTVState.NodeUnChecked(Integer(_N.Item[I].Data));
+        FTVState.NodeUnChecked(GetTID(_N.Item[I].Data, FContext));
         DoRecurs(_N.Item[I]);
       end;
     end;
@@ -1389,14 +1401,14 @@ procedure TgsCustomDBTreeView.SetCheck(Node: TTreeNode; Check: Boolean);
       NN := NN.GetPrevSibling;
     end;
     N.StateIndex := siUnchecked;
-    FTVState.NodeUnChecked(Integer(N.Data));
+    FTVState.NodeUnChecked(GetTID(N.Data, FContext));
     N := N.Parent;
     while (N <> nil) and (N.StateIndex <> siUnchecked) do
     begin
       if B then
       begin
         N.StateIndex := siUnchecked;
-        FTVState.NodeUnChecked(Integer(N.Data));
+        FTVState.NodeUnChecked(GetTID(N.Data, FContext));
       end else
         N.StateIndex := siGrayed;
       N := N.Parent;
@@ -1466,7 +1478,7 @@ begin
             N := N.GetNextSibling;
           end;
         end;
-      end;  
+      end;
     end else
       SetCheck(Node, Node.StateIndex <> siChecked);
   end;
@@ -1476,6 +1488,9 @@ procedure TgsCustomDBTreeView.Loaded;
 begin
   inherited;
 
+  if FContext = '' then
+    FContext := Owner.Name;
+    
   // убираем элементы, которые пользователь
   // мог ввести в дизайн режиме
   if (not FDataLink.Active) and (Items.Count > 0) then
@@ -1494,7 +1509,7 @@ end;
 
 { TTVState }
 
-procedure TTVState.NodeUnChecked(const AnID: Integer);
+procedure TTVState.NodeUnChecked(const AnID: TID);
 var
   Checked: Boolean;
 begin
@@ -1502,7 +1517,7 @@ begin
   begin
     Checked := False;
     if Assigned(FCheckBoxEvent) then
-      FCheckBoxEvent(FTreeView, IntToStr(AnID), Checked);
+      FCheckBoxEvent(FTreeView, TID2S(AnID), Checked);
 
     if not Checked then
     begin
@@ -1511,11 +1526,11 @@ begin
     end;
 
     if Assigned(FAfterCheckEvent) then
-      FAfterCheckEvent(FTreeView, IntToStr(AnID), Checked);
+      FAfterCheckEvent(FTreeView, TID2S(AnID), Checked);
   end;
 end;
 
-procedure TTVState.NodeCollapsed(const AnID: Integer);
+procedure TTVState.NodeCollapsed(const AnID: TID);
 begin
   FExpanded.Remove(AnID);
 end;
@@ -1538,7 +1553,7 @@ begin
   inherited;
 end;
 
-procedure TTVState.NodeChecked(const AnID: Integer);
+procedure TTVState.NodeChecked(const AnID: TID);
 var
   Checked: Boolean;
 begin
@@ -1546,7 +1561,7 @@ begin
   begin
     Checked := True;
     if Assigned(FCheckBoxEvent) then
-      FCheckBoxEvent(FTreeView, IntToStr(AnID), Checked);
+      FCheckBoxEvent(FTreeView, TID2S(AnID), Checked);
 
     if Checked then
     begin
@@ -1555,11 +1570,11 @@ begin
     end;
 
     if Assigned(FAfterCheckEvent) then
-      FAfterCheckEvent(FTreeView, IntToStr(AnID), Checked);
+      FAfterCheckEvent(FTreeView, TID2S(AnID), Checked);
   end;
 end;
 
-procedure TTVState.NodeExpanded(const AnID: Integer);
+procedure TTVState.NodeExpanded(const AnID: TID);
 begin
   if FExpanded.IndexOf(AnID) = -1 then
     FExpanded.Add(AnID);
@@ -1568,7 +1583,7 @@ end;
 procedure TTVState.InitTree;
 var
   //I: Integer;
-  Data_ID: Integer;
+  Data_ID: TID;
   N, S: TTreeNode;
 begin
   if FTreeView.Items.Count > 0 then
@@ -1584,7 +1599,7 @@ begin
         begin
           if (N.Data <> nil) then
           begin
-            Data_ID := Integer(N.Data);
+            Data_ID := GetTID(N.Data, FContext);
             N.Expanded := FExpanded.IndexOf(Data_ID) <> -1;
             if FSelectedID = Data_ID then
               S := N;
@@ -1628,13 +1643,17 @@ end;
 
 procedure TTVState.LoadFromStream(S: TStream);
 var
-  Sign: Integer;
+  Sign, Len: Integer;
 begin
   FSelectedID := -1;
   try
     S.ReadBuffer(Sign, SizeOf(Sign));
     if Sign <> StreamSign then exit;
-    S.ReadBuffer(FSelectedID, SizeOf(FSelectedID));
+
+    {метка сохранения ID в Int64}
+    Len := GetLenIDinStream(@S);
+
+    S.ReadBuffer(FSelectedID, Len);
     FExpanded.LoadFromStream(S);
     FChecked.LoadFromStream(S);
   except
@@ -1645,11 +1664,15 @@ end;
 
 procedure TTVState.SaveToStream(S: TStream);
 var
-  Sign: Integer;
+  Sign, Len: Integer;
 begin
   Sign := StreamSign;
   S.Write(Sign, SizeOf(Sign));
-  S.Write(FSelectedID, SizeOf(FSelectedID));
+
+  {метка сохранения ID в Int64}
+  Len := SetLenIDinStream(@S);
+
+  S.Write(FSelectedID, Len);
   FExpanded.SaveToStream(S);
   FChecked.SaveToStream(S);
 end;
@@ -1671,9 +1694,9 @@ begin
         if N.Data <> nil then
         begin
           if N.Expanded then
-            FExpanded.Add(Integer(N.Data));
+            FExpanded.Add(GetTID(N.Data, FContext));
           if N.StateIndex = 1 then
-            FChecked.Add(Integer(N.Data));
+            FChecked.Add(GetTID(N.Data, FContext));
         end;
         N := N.GetNext;
       end;
@@ -1692,23 +1715,23 @@ begin
 end;
 
 function TgsCustomDBTreeView.NodeByKeyField(
-  const KeyValue: Integer): TTreeNode;
+  const KeyValue: TID): TTreeNode;
 var
   I: Integer;
 begin
   Result := nil;
   for I := 0 to Items.Count - 1 do
-    if Integer(Items[I].Data) = KeyValue then
+    if GetTID(Items[I].Data, FContext) = KeyValue then
     begin
       Result := Items[I];
       Break;
     end;
 end;
 
-function TgsCustomDBTreeView.GetID: Integer;
+function TgsCustomDBTreeView.GetID: TID;
 begin
   if Selected <> nil then
-    Result := Integer(Selected.Data)
+    Result := GetTID(Selected.Data, FContext)
   else
     Result := -1;
 end;
@@ -1727,15 +1750,15 @@ begin
   Result := True;
 end;
 
-function TgsCustomDBTreeView.GetParentID: Integer;
+function TgsCustomDBTreeView.GetParentID: TID;
 begin
   if (Selected <> nil) and (Selected.Parent <> nil) then
-    Result := Integer(Selected.Parent.Data)
+    Result := GetTID(Selected.Parent.Data, FContext)
   else
     Result := -1;
 end;
 
-procedure TgsCustomDBTreeView.SetTopKey(const Value: Integer);
+procedure TgsCustomDBTreeView.SetTopKey(const Value: TID);
 begin
   Assert((FTopKey = -1) or (FTopKey > 0), 'Invalid top key');
   FTopKey := Value;
@@ -1748,8 +1771,8 @@ begin
     if (DataSet <> nil) and (not (DataSet.State in dsEditModes)) then
     begin
       if FForecast = nil then
-        FDBTreeView.GoToID(DataSet.FieldByName(FDBTreeView.KeyField).AsInteger);
-    end;    
+        FDBTreeView.GoToID(GetTID(DataSet.FieldByName(FDBTreeView.KeyField)));
+    end;
   end;
 end;
 
@@ -1757,7 +1780,7 @@ procedure TgsDBTreeViewDataLink.OnBeforeDelete(Sender: TDataSet);
 begin
   if Assigned(DataSet) and (DataSet = Sender) then
   begin
-    FDeletingID := DataSet.FieldByName(FDBTreeView.KeyField).AsInteger;
+    FDeletingID := GetTID(DataSet.FieldByName(FDBTreeView.KeyField));
 
     if FDBTreeView <> nil then
       with FDBTreeView do
@@ -1776,14 +1799,14 @@ begin
   end;
 end;
 
-procedure TgsCustomDBTreeView.DeleteID(const AnID: Integer);
+procedure TgsCustomDBTreeView.DeleteID(const AnID: TID);
 var
   I: Integer;
 begin
   if ID <> AnID then
   begin
     for I := 0 to Items.Count - 1 do
-      if Integer(Items[I].Data) = AnID then
+      if GetTID(Items[I].Data, FContext) = AnID then
       begin
         Items.Delete(Items[I]);
         exit;
@@ -1793,17 +1816,19 @@ begin
   FTVState.Bookmarks.Remove(AnID);
 end;
 
-function TgsCustomDBTreeView.Find(const AnID: Integer): TTreeNode;
+function TgsCustomDBTreeView.Find(const AnID: TID): TTreeNode;
 var
   I: Integer;
 begin
   Result := nil;
   for I := 0 to Items.Count - 1 do
-    if AnID = Integer(Items[I].Data) then
+  begin
+    if AnID = GetTID(Items[I].Data, FContext) then
     begin
       Result := Items[I];
       exit;
     end;
+  end;
 end;
 
 function TgsCustomDBTreeView.GetAfterCheckEvent: TAfterCheckTVEvent;
@@ -1828,7 +1853,7 @@ begin
   FTVState.CheckBoxEvent := Value;
 end;
 
-procedure TgsCustomDBTreeView.AddCheck(AnID: Integer);
+procedure TgsCustomDBTreeView.AddCheck(AnID: TID);
 var
   tn: TTreeNode;
 begin
@@ -1837,7 +1862,7 @@ begin
     SetCheck(Find(AnID), True);
 end;
 
-procedure TgsCustomDBTreeView.DeleteCheck(AnID: Integer);
+procedure TgsCustomDBTreeView.DeleteCheck(AnID: TID);
 var
   tn: TTreeNode;
 begin
@@ -1953,7 +1978,7 @@ end;
 
 { TInternalTree }
 
-procedure TInternalTree.Add(const AnID, AParent: Integer;
+procedure TInternalTree.Add(const AnID, AParent: TID;
   const AName: String);
 var
   P: PInternalTreeNode;
@@ -1965,7 +1990,7 @@ var
     begin
       New(P^.Parent);
       P^.Parent^.ID := AParent;
-      P^.Parent^.Name := '<' + IntToStr(AParent) + '>';
+      P^.Parent^.Name := '<' + TID2S(AParent) + '>';
       P^.Parent^.Items := TList.Create;
       P^.Parent^.Virt := True;
       P^.Parent^.Parent := @Root;
@@ -2019,7 +2044,7 @@ var
         if not T^.Virt then
         begin
           if P^.N = nil then
-            T^.N := TV.Items.AddObject(nil, T^.Name, Pointer(T^.ID))
+            T^.N := TV.Items.AddObject(nil, T^.Name, TID2Pointer(T^.ID, FContext))
           else
           begin
             Q := P;
@@ -2028,9 +2053,9 @@ var
               Q := Q^.Parent;
             end;
             if (Q = nil) or (Q^.N = nil) then
-              T^.N := TV.Items.AddObject(nil, T^.Name, Pointer(T^.ID))
+              T^.N := TV.Items.AddObject(nil, T^.Name, TID2Pointer(T^.ID, FContext))
             else
-              T^.N := TV.Items.AddChildObject(Q^.N, T^.Name, Pointer(T^.ID));
+              T^.N := TV.Items.AddChildObject(Q^.N, T^.Name, TID2Pointer(T^.ID, FContext));
           end;
           if T^.N.Text = '' then
             T^.N.Text := '<Пусто>';
@@ -2126,7 +2151,7 @@ begin
   inherited;
 end;
 
-function TInternalTree.Find(const AnID: Integer): PInternalTreeNode;
+function TInternalTree.Find(const AnID: TID): PInternalTreeNode;
 
   function _Scan(P: PInternalTreeNode): PInternalTreeNode;
   var

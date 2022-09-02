@@ -1,6 +1,6 @@
 inherited dlgInvDocumentLine: TdlgInvDocumentLine
-  Left = 398
-  Top = 170
+  Left = 333
+  Top = 143
   Width = 621
   Height = 463
   BorderStyle = bsSizeable

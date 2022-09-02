@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdc_frmUserComplexDocument_unit;
 
@@ -43,7 +44,8 @@ uses
   gd_ClassList,
   gdcAcctEntryRegister,
   gdc_frmTransaction_unit,
-  gd_resourcestring
+  gd_resourcestring,
+  gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -124,7 +126,7 @@ end;
 
 procedure Tgdc_frmUserComplexDocument.actDetailNewExecute(Sender: TObject);
 var
-  OldID: Integer;
+  OldID: TID;
   C: TgdcFullClass;
 begin
   if not gdcDetailObject.IsEmpty then

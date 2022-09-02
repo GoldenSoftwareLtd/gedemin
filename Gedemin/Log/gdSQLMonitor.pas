@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdSQLMonitor;
 
@@ -145,7 +146,7 @@ begin
             q2.ParamByName('pcrc').AsInteger := ParamsCRC
           else
             q2.ParamByName('pcrc').IsNull := True;
-          q2.ParamByName('ck').AsInteger := IBLogin.ContactKey;
+          SetTID(q2.ParamByName('ck'), IBLogin.ContactKey);
           q2.ParamByName('st').AsDateTime := StartTime;
           q2.ParamByName('d').AsInteger := Duration;
           q2.ExecQuery;

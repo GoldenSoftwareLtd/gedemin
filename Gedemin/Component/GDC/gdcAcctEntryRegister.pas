@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 {++
 
@@ -63,18 +64,18 @@ type
 
   TgdcAcctBaseEntryRegister = class(TgdcBase)
   private
-    FRecordKey: Integer;
+    FRecordKey: TID;
     FRecordAdded: Boolean;
     FDocument: TgdcDocument;
     FDescription: String;
     FgdcQuantity: TgdcAcctQuantity;
-    FTrRecordKey: Integer;
+    FTrRecordKey: TID;
     {$IFDEF DEBUGMOVE}
     FT: LongWord;
     FTI: LongWord;
     {$ENDIF}
 
-    function GetRecordKey: Integer;
+    function GetRecordKey: TID;
     procedure SetDocument(const Value: TgdcDocument);
 
   protected
@@ -108,7 +109,9 @@ type
     destructor Destroy; override;
 
     function GetCurrRecordClass: TgdcFullClass; override;
-
+    {$IFDEF NEW_ENTRY_GEN}
+    function GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): TID; override;
+    {$ENDIF}
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -119,7 +122,7 @@ type
 
     procedure CreateReversalEntry(const AReversalEntryDate: TDateTime; const ATransactionKey: TID; const AllDocEntry: Boolean);
 
-    property RecordKey: Integer read GetRecordKey;
+    property RecordKey: TID read GetRecordKey;
     property Document: TgdcDocument read GetDocument write SetDocument;
     property Description: String read FDescription write FDescription;
     property gdcQuantity: TgdcAcctQuantity read FgdcQuantity;
@@ -127,7 +130,7 @@ type
 
   TgdcAcctEntryRegister = class(TgdcAcctBaseEntryRegister)
   private
-    FCurrNCUKey: Integer;
+    FCurrNCUKey: TID;
     FEntrySQL, FRecordSQL, FEntryDocumentSQL: TIBSQL;
 
   protected
@@ -192,7 +195,7 @@ type
 
   TgdcAcctEntryLine = class(TgdcBase)
   private
-    FRecordKey: Integer;
+    FRecordKey: TID;
     FAccountPart: String;
     FgdcQuantity: TgdcAcctQuantity;
     function Get_gdcQuantity: TgdcAcctQuantity;
@@ -216,11 +219,15 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
+    {$IFDEF NEW_ENTRY_GEN}
+    function GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): TID; override;
+    {$ENDIF}
+
 
     procedure DataEvent(Event: TDataEvent; Info: Longint); override;
 
     property AccountPart: String read FAccountPart write FAccountPart;
-    property RecordKey: Integer read FRecordKey write FRecordKey;
+    property RecordKey: TID read FRecordKey write FRecordKey;
     property gdcQuantity: TgdcAcctQuantity read Get_gdcQuantity;
   end;
 
@@ -229,8 +236,8 @@ type
     FDocument: TgdcDocument;
     FDebitEntryLine: TgdcAcctEntryLine;
     FCreditEntryLine: TgdcAcctEntryLine;
-    FTransactionKey: Integer;
-    FCurrNCUKey: Integer;
+    FTransactionKey: TID;
+    FCurrNCUKey: TID;
     FAmountNCU, FAmountCurr: Currency;
 
     procedure SetupEntryLine;
@@ -274,7 +281,7 @@ type
     property DebitEntryLine: TgdcAcctEntryLine read FDebitEntryLine;
     property CreditEntryLine: TgdcAcctEntryLine read FCreditEntryLine;
     property Document: TgdcDocument read GetDocument write FDocument;
-    property TransactionKey: Integer read FTransactionKey write FTransactionKey;
+    property TransactionKey: TID read FTransactionKey write FTransactionKey;
   end;
 
   TAcctEntryLines = class(TObjectList)
@@ -287,9 +294,9 @@ type
   TgdcAcctComplexRecord = class(TgdcBase)
   private
     FEntryLines: TAcctEntryLines;
-    FTransactionKey: Integer;
+    FTransactionKey: TID;
     FDocument: TgdcDocument;
-    FCurrNCUKey: Integer;
+    FCurrNCUKey: TID;
 
     function GetEntryLines: TAcctEntryLines;
     function GetDocument: TgdcDocument;
@@ -318,6 +325,10 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
+    {$IFDEF NEW_ENTRY_GEN}
+    function GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): TID; override;
+    {$ENDIF}
+
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
     function GetDialogDefaultsFields: String; override;
     function AppendLine: TgdcAcctEntryLine;
@@ -334,7 +345,7 @@ type
 
     property EntryLines: TAcctEntryLines read GetEntryLines;
     property Document: TgdcDocument read GetDocument write FDocument;
-    property TransactionKey: Integer read FTransactionKey write FTransactionKey;
+    property TransactionKey: TID read FTransactionKey write FTransactionKey;
   end;
 
   TgdcAcctQuantity = class(TgdcBase)
@@ -346,6 +357,9 @@ type
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
+    {$IFDEF NEW_ENTRY_GEN}
+    function GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): TID; override;
+    {$ENDIF}
 
     class function GetSubSetList: String; override;
 
@@ -463,7 +477,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if FieldByName('DOCUMENTTYPEKEY').AsInteger <> DefaultDocumentTypeKey then
+  if GetTID(FieldByName('DOCUMENTTYPEKEY')) <> DefaultDocumentTypeKey then
     CustomExecQuery('DELETE FROM ac_record WHERE ID = :OLD_recordkey', Buff)
   else
     CustomExecQuery('DELETE FROM gd_document WHERE id = :OLD_documentkey', Buff);
@@ -509,7 +523,7 @@ begin
     if not FRecordAdded then
     begin
       if FieldByName('trrecordkey').IsNull then
-        FieldByName('trrecordkey').AsInteger := FTrRecordKey;
+        SetTID(FieldByName('trrecordkey'), FTrRecordKey);
 
       CustomExecQuery(
         'INSERT INTO ac_record ( ' +
@@ -608,7 +622,7 @@ begin
 
   if RecordKey <= 0 then
     FRecordKey := GetNextID;
-  FieldByName(fnrecordkey).AsInteger := RecordKey;
+  SetTID(FieldByName(fnrecordkey), RecordKey);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTBASEENTRYREGISTER', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -742,12 +756,12 @@ begin
   {END MACRO}
 end;
 
-function TgdcAcctBaseEntryRegister.GetRecordKey: Integer;
+function TgdcAcctBaseEntryRegister.GetRecordKey: TID;
 begin
   if not Active or FieldByName('recordkey').IsNull then
     Result := FRecordKey
   else
-    Result := FieldByName('recordkey').AsInteger;
+    Result := GetTID(FieldByName('recordkey'));
 end;
 
 function TgdcAcctBaseEntryRegister.GetSelectClause: String;
@@ -1047,7 +1061,7 @@ var
   RC: TID;
   I: Integer;
 begin
-  RC := FieldByName('recordkey').AsInteger;
+  RC := GetTID(FieldByName('recordkey'));
   inherited;
   for I := 0 to FRecordCount - 1 do
   begin
@@ -1056,7 +1070,7 @@ begin
 
       if PRecordData(FPeekBuffer)^.rdUpdateStatus <> usDeleted then
       begin
-        if FieldByName('recordkey').AsInteger = RC then
+        if GetTID(FieldByName('recordkey')) = RC then
         begin
           PRecordData(FPeekBuffer)^.rdUpdateStatus := usDeleted;
         end;
@@ -1096,7 +1110,7 @@ begin
 
   inherited;
   if FieldByName('recordkey').IsNull then
-    FieldByName('recordkey').AsInteger := RecordKey;
+    SetTID(FieldByName('recordkey'), RecordKey);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTBASEENTRYREGISTER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1123,13 +1137,13 @@ var
   begin
     // заполнение части сторнирующей проводки
     ibsqlInsertEntry.Close;
-    ReversalEntryKey := gdcBaseManager.GetNextID;
-    ibsqlInsertEntry.ParamByName('ID').AsInteger := ReversalEntryKey;
-    ibsqlInsertEntry.ParamByName('RECORDKEY').AsInteger := ReversalRecordKey;
+    ReversalEntryKey := GetNextID;
+    SetTID(ibsqlInsertEntry.ParamByName('ID'), ReversalEntryKey);
+    SetTID(ibsqlInsertEntry.ParamByName('RECORDKEY'), ReversalRecordKey);
     ibsqlInsertEntry.ParamByName('ENTRYDATE').AsDateTime := AReversalEntryDate;
-    ibsqlInsertEntry.ParamByName('TRANSACTIONKEY').AsInteger := ATransactionKey;
-    ibsqlInsertEntry.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
-    ibsqlInsertEntry.ParamByName('ACCOUNTKEY').AsInteger := CurrentEntry.FieldByName('ACCOUNTKEY').AsInteger;
+    SetTID(ibsqlInsertEntry.ParamByName('TRANSACTIONKEY'), ATransactionKey);
+    SetTID(ibsqlInsertEntry.ParamByName('COMPANYKEY'), CompanyKey);
+    SetTID(ibsqlInsertEntry.ParamByName('ACCOUNTKEY'), CurrentEntry.FieldByName('ACCOUNTKEY'));
     ibsqlInsertEntry.ParamByName('ACCOUNTPART').AsString := AEntryPart;
     ibsqlInsertEntry.ParamByName('DEBITNCU').AsCurrency := - CurrentEntry.FieldByName('DEBITNCU').AsCurrency;
     ibsqlInsertEntry.ParamByName('DEBITCURR').AsCurrency := - CurrentEntry.FieldByName('DEBITCURR').AsCurrency;
@@ -1137,13 +1151,13 @@ var
     ibsqlInsertEntry.ParamByName('CREDITNCU').AsCurrency := - CurrentEntry.FieldByName('CREDITNCU').AsCurrency;
     ibsqlInsertEntry.ParamByName('CREDITCURR').AsCurrency := - CurrentEntry.FieldByName('CREDITCURR').AsCurrency;
     ibsqlInsertEntry.ParamByName('CREDITEQ').AsCurrency := - CurrentEntry.FieldByName('CREDITEQ').AsCurrency;
-    ibsqlInsertEntry.ParamByName('CURRKEY').AsVariant := CurrentEntry.FieldByName('CURRKEY').AsVariant;
+    SetTID(ibsqlInsertEntry.ParamByName('CURRKEY'), CurrentEntry.FieldByName('CURRKEY'));
     // Присвоение значения аналитик части сторнирующей проводки
     for Counter := 0 to AcEntryRelation.RelationFields.Count - 1 do
       if AcEntryRelation.RelationFields.Items[Counter].IsUserDefined then
       begin
         TempString := AcEntryRelation.RelationFields.Items[Counter].FieldName;
-        ibsqlInsertEntry.ParamByName(TempString).AsVariant := CurrentEntry.FieldByName(TempString).AsVariant;
+        SetVar2Param(ibsqlInsertEntry.ParamByName(TempString), GetFieldAsVar(CurrentEntry.FieldByName(TempString)));
       end;
     ibsqlInsertEntry.ExecQuery;
 
@@ -1151,10 +1165,10 @@ var
     CurrentEntry.gdcQuantity.First;
     while not CurrentEntry.gdcQuantity.Eof do
     begin
-      ReversalEntryQtyKey := gdcBaseManager.GetNextID;
-      ibsqlInsertEntryQty.ParamByName('ID').AsInteger := ReversalEntryQtyKey;
-      ibsqlInsertEntryQty.ParamByName('ENTRYKEY').AsInteger := ReversalEntryKey;
-      ibsqlInsertEntryQty.ParamByName('VALUEKEY').AsInteger := CurrentEntry.gdcQuantity.FieldByName('VALUEKEY').AsInteger;
+      ReversalEntryQtyKey := GetNextID;
+      SetTID(ibsqlInsertEntryQty.ParamByName('ID'), ReversalEntryQtyKey);
+      SetTID(ibsqlInsertEntryQty.ParamByName('ENTRYKEY'), ReversalEntryKey);
+      SetTID(ibsqlInsertEntryQty.ParamByName('VALUEKEY'), CurrentEntry.gdcQuantity.FieldByName('VALUEKEY'));
       ibsqlInsertEntryQty.ParamByName('QUANTITY').AsCurrency := - CurrentEntry.gdcQuantity.FieldByName('QUANTITY').AsCurrency;
       ibsqlInsertEntryQty.ExecQuery;
       CurrentEntry.gdcQuantity.Next;
@@ -1220,8 +1234,8 @@ begin
       ibsqlInsertEntryQty.Prepare;
 
       // Ключ типовой проводки
-      TRRecordKey := Self.FieldByName('TRRECORDKEY').AsInteger;
-      CompanyKey := Self.FieldByName('COMPANYKEY').AsInteger;
+      TRRecordKey := GetTID(Self.FieldByName('TRRECORDKEY'));
+      CompanyKey := GetTID(Self.FieldByName('COMPANYKEY'));
 
       CurrentEntry := TgdcAcctEntryRegister.Create(nil);
       try
@@ -1236,7 +1250,7 @@ begin
 
         // Добавим документ
         ReversalDocumentKey := gdcBaseManager.GetNextID;
-        ibsqlInsertDocument.ParamByName('ID').AsInteger := ReversalDocumentKey;
+        SetTID(ibsqlInsertDocument.ParamByName('ID'), ReversalDocumentKey);
         // Формирование номера документа
         if Trim(CurrentEntry.FieldByName('NUMBER').AsString) <> '' then
         begin
@@ -1249,28 +1263,28 @@ begin
             CurrentEntry.FieldByName('DOCUMENTKEY').AsString + '_СТРН';
         end;    
         ibsqlInsertDocument.ParamByName('DOCUMENTDATE').AsDateTime := AReversalEntryDate;
-        ibsqlInsertDocument.ParamByName('DOCUMENTTYPEKEY').AsInteger := DefaultDocumentTypeKey;
-        ibsqlInsertDocument.ParamByName('TRANSACTIONKEY').AsInteger := ATransactionKey;
-        ibsqlInsertDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
-        ibsqlInsertDocument.ParamByName('CURRKEY').AsVariant := Self.FieldByName('CURRKEY').AsVariant;
-        ibsqlInsertDocument.ParamByName('CREATORKEY').AsInteger := IBLogin.Contactkey;
-        ibsqlInsertDocument.ParamByName('CREATIONDATE').AsDateTime := Time;
+        SetTID(ibsqlInsertDocument.ParamByName('DOCUMENTTYPEKEY'), DefaultDocumentTypeKey);
+        SetTID(ibsqlInsertDocument.ParamByName('TRANSACTIONKEY'), ATransactionKey);
+        SetTID(ibsqlInsertDocument.ParamByName('COMPANYKEY'), CompanyKey);
+        SetTID(ibsqlInsertDocument.ParamByName('CURRKEY'), Self.FieldByName('CURRKEY'));
+        SetTID(ibsqlInsertDocument.ParamByName('CREATORKEY'), IBLogin.Contactkey);
+        ibsqlInsertDocument.ParamByName('CREATIONDATE').AsDateTime := Now;
         ibsqlInsertDocument.ExecQuery;
 
         CurrentRecordKey := -1;
         while not CurrentEntry.Eof do
         begin
-          if CurrentRecordKey <> CurrentEntry.FieldByName('RECORDKEY').AsInteger then
+          if CurrentRecordKey <> GetTID(CurrentEntry.FieldByName('RECORDKEY')) then
           begin
             // Добавим шапку проводки
-            ReversalRecordKey := gdcBaseManager.GetNextID;
+            ReversalRecordKey := GetNextID;
             ibsqlInsertEntryRecord.Close;
-            ibsqlInsertEntryRecord.ParamByName('RECORDKEY').AsInteger := ReversalRecordKey;
+            SetTID(ibsqlInsertEntryRecord.ParamByName('RECORDKEY'), ReversalRecordKey);
             ibsqlInsertEntryRecord.ParamByName('RECORDDATE').AsDateTime := AReversalEntryDate;
-            ibsqlInsertEntryRecord.ParamByName('TRANSACTIONKEY').AsInteger := ATransactionKey;
-            ibsqlInsertEntryRecord.ParamByName('TRRECORDKEY').AsInteger := TRRecordKey;
-            ibsqlInsertEntryRecord.ParamByName('DOCUMENTKEY').AsInteger := ReversalDocumentKey;
-            ibsqlInsertEntryRecord.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+            SetTID(ibsqlInsertEntryRecord.ParamByName('TRANSACTIONKEY'), ATransactionKey);
+            SetTID(ibsqlInsertEntryRecord.ParamByName('TRRECORDKEY'), TRRecordKey);
+            SetTID(ibsqlInsertEntryRecord.ParamByName('DOCUMENTKEY'), ReversalDocumentKey);
+            SetTID(ibsqlInsertEntryRecord.ParamByName('COMPANYKEY'), CompanyKey);
             TempString := CurrentEntry.FieldByName('DESCRIPTION').AsString +
               ' Сторнирование проводок документа № ' +
               CurrentEntry.FieldByName('NUMBER').AsString + ' от ' +
@@ -1281,7 +1295,7 @@ begin
             else
               ibsqlInsertEntryRecord.ParamByName('DESCRIPTION').AsString := CurrentEntry.FieldByName('DESCRIPTION').AsString;
             ibsqlInsertEntryRecord.ExecQuery;
-            CurrentRecordKey := CurrentEntry.FieldByName('RECORDKEY').AsInteger;
+            CurrentRecordKey := GetTID(CurrentEntry.FieldByName('RECORDKEY'));
           end;
 
           // Добавим часть проводки
@@ -1352,7 +1366,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if FieldByName('DOCUMENTTYPEKEY').AsInteger <> DefaultDocumentTypeKey then
+  if GetTID(FieldByName('DOCUMENTTYPEKEY')) <> DefaultDocumentTypeKey then
   begin
     MessageBox(ParentHandle,
       'Нельзя удалять проводку, созданную по документу.',
@@ -1369,6 +1383,27 @@ begin
   {M}  end;
   {END MACRO}
 end;
+
+{$IFDEF NEW_ENTRY_GEN}
+function TgdcAcctBaseEntryRegister.GetNextID(const Increment,
+  ResetCache: Boolean): TID;
+var
+  q: TIBSQL;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ReadTransaction;
+    if Increment then
+      q.SQL.Text := 'SELECT GEN_ID(gd_g_entry, 1) FROM rdb$database'
+    else
+      q.SQL.Text := 'SELECT GEN_ID(gd_g_entry, 0) FROM rdb$database';
+    q.ExecQuery;
+    Result := GetTID(q.Fields[0]);
+  finally
+    q.Free;
+  end;
+end;
+{$ENDIF}
 
 { TgdcAcctEntryRegister }
 
@@ -1397,7 +1432,7 @@ begin
    T := GetTickCount;
   {$ENDIF}
   if not Document.FieldByName(fnid).IsNull then
-    ExecSingleQuery('DELETE FROM ac_record WHERE documentkey = :DK', Document.FieldByName(fnid).AsInteger);
+    ExecSingleQuery('DELETE FROM ac_record WHERE documentkey = :DK', TID2V(Document.FieldByName(fnid)));
   {$IFDEF DEBUGMOVE}
   DeleteOldEntry := DeleteOldEntry + GetTickCount - T;
   {$ENDIF}
@@ -1437,12 +1472,11 @@ begin
     {$IFDEF DEBUGMOVE}
      T := GetTickCount;
     {$ENDIF}
-    if not TransactionCache.Find(Document.FieldByName(fnTransactionKey).AsInteger, Index) then
+    if not TransactionCache.Find(GetTID(Document.FieldByName(fnTransactionKey)), Index) then
     begin
 
       CIs := TTransactionCacheItems.Create;
-      Index := TransactionCache.AddObject(Document.FieldByName(fnTransactionKey).AsInteger,
-        CIs);
+      Index := TransactionCache.AddObject(GetTID(Document.FieldByName(fnTransactionKey)), CIs);
 
       if FEntryDocumentSQL = nil then
       begin
@@ -1456,24 +1490,24 @@ begin
       if FEntryDocumentSQL.Transaction <> Transaction then
         FEntryDocumentSQL.Transaction := Transaction;
 
-      FEntryDocumentSQL.ParamByName(fnTransactionKey).AsInteger :=
-        Document.FieldByName(fnTransactionKey).AsInteger;
+      SetTID(FEntryDocumentSQL.ParamByName(fnTransactionKey),
+        Document.FieldByName(fnTransactionKey));
 
       FEntryDocumentSQL.ExecQuery;
       try
         while not FEntryDocumentSQL.Eof do
         begin
           if FEntryDocumentSQL.FieldByName(fnDocumentPart).AsString = 'позиция' then
-            CIs.Add(FEntryDocumentSQL.FieldByName(fnId).AsInteger,
-              FEntryDocumentSQL.FieldByName(fnFunctionKey).AsInteger,
-              FEntryDocumentSQL.FieldByName(fnDocumentTypeKey).AsInteger,
+            CIs.Add(GetTID(FEntryDocumentSQL.FieldByName(fnId)),
+              GetTID(FEntryDocumentSQL.FieldByName(fnFunctionKey)),
+              GetTID(FEntryDocumentSQL.FieldByName(fnDocumentTypeKey)),
               FEntryDocumentSQL.FieldByName('dbegin').AsDateTime,
               FEntryDocumentSQL.FieldByName('dend').AsDateTime,
               dcpLine)
           else
-            CIs.Add(FEntryDocumentSQL.FieldByName(fnId).AsInteger,
-              FEntryDocumentSQL.FieldByName(fnFunctionKey).AsInteger,
-              FEntryDocumentSQL.FieldByName(fnDocumentTypeKey).AsInteger,
+            CIs.Add(GetTID(FEntryDocumentSQL.FieldByName(fnId)),
+              GetTID(FEntryDocumentSQL.FieldByName(fnFunctionKey)),
+              GetTID(FEntryDocumentSQL.FieldByName(fnDocumentTypeKey)),
               FEntryDocumentSQL.FieldByName('dbegin').AsDateTime,
               FEntryDocumentSQL.FieldByName('dend').AsDateTime,
               dcpHeader);
@@ -1488,7 +1522,7 @@ begin
    OpenTypeEntry := OpenTypeEntry + GetTickCount - T;
   {$ENDIF}
 
-  CIs := TransactionCache.CacheItemsByKey[Document.FieldByName(fnTransactionKey).AsInteger];
+  CIs := TransactionCache.CacheItemsByKey[GetTID(Document.FieldByName(fnTransactionKey))];
 
   for I := 0 to CIs.Count - 1 do
   begin
@@ -1567,10 +1601,10 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if FRecordKey <> FieldByName(fnRecordKey).AsInteger then
+  if FRecordKey <> GetTID(FieldByName(fnRecordKey)) then
   begin
     if FieldByName(fntrrecordkey).IsNull then
-      FieldByName(fntrrecordkey).AsInteger := FTrRecordKey;
+      SetTID(FieldByName(fntrrecordkey), FTrRecordKey);
 
     if FRecordSQL = nil then
     begin
@@ -1690,7 +1724,7 @@ begin
 
   inherited;
 
-  FRecordKey := FieldByName(fnRecordKey).AsInteger;
+  FRecordKey := GetTID(FieldByName(fnRecordKey));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTENTRYREGISTER', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1736,7 +1770,7 @@ begin
   inherited;
 
   if HasSubSet(ByDocument) then
-    ParamByName(fnDocumentKey).AsInteger := Document.FieldByName(fnid).AsInteger;
+    SetTID(ParamByName(fnDocumentKey), Document.FieldByName(fnid));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTENTRYREGISTER', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1782,15 +1816,15 @@ begin
     begin
       if not FRecordAdded then
       begin
-        FieldByName(fndocumentkey).AsInteger := Document.FieldByName(fnid).AsInteger;
+        SetTID(FieldByName(fndocumentkey), Document.FieldByName(fnid));
         if Document.FieldByName(fnparent).IsNull then
-          FieldByName(fnmasterdockey).AsInteger := Document.FieldByName(fnid).AsInteger
+          SetTID(FieldByName(fnmasterdockey), Document.FieldByName(fnid))
         else
-          FieldByName(fnmasterdockey).AsInteger := Document.FieldByName(fnparent).AsInteger;
+          SetTID(FieldByName(fnmasterdockey), Document.FieldByName(fnparent));
         if FieldByName(fncompanykey).IsNull then
-          FieldByName(fncompanykey).AsInteger := Document.FieldByName(fncompanykey).AsInteger;
+          SetTID(FieldByName(fncompanykey), Document.FieldByName(fncompanykey));
         if FieldByName(fntransactionkey).IsNull then
-          FieldByName(fntransactionkey).AsInteger := Document.FieldByName(fntransactionkey).AsInteger;
+          SetTID(FieldByName(fntransactionkey), Document.FieldByName(fntransactionkey));
 
         FieldByName(fnafull).AsInteger := Document.FieldByName(fnafull).AsInteger;
         FieldByName(fnachag).AsInteger := Document.FieldByName(fnachag).AsInteger;
@@ -1808,7 +1842,7 @@ begin
     end;
 
     if FieldByName(fnCurrKey).IsNull then
-      FieldByName(fnCurrKey).AsInteger := GetNCUKey;
+      SetTID(FieldByName(fnCurrKey), GetNCUKey);
    end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTENTRYREGISTER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
@@ -1929,13 +1963,13 @@ begin
   try
     gdcAcctComplexRecord.Transaction := Transaction;
     gdcAcctComplexRecord.SubSet := 'ByID';
-    gdcAcctComplexRecord.ID := FieldByName('recordkey').AsInteger;
+    gdcAcctComplexRecord.ID := GetTID(FieldByName('recordkey'));
     gdcAcctComplexRecord.Open;
     if Active and not FieldByName('transactionkey').IsNull then
-      gdcAcctComplexRecord.TransactionKey := FieldByName('transactionkey').AsInteger
+      gdcAcctComplexRecord.TransactionKey := GetTID(FieldByName('transactionkey'))
     else
       if Assigned(MasterSource) and Assigned(MasterSource.DataSet) then
-        gdcAcctComplexRecord.TransactionKey := MasterSource.DataSet.FieldByName('id').AsInteger;
+        gdcAcctComplexRecord.TransactionKey := GetTID(MasterSource.DataSet.FieldByName('id'));
     Result := gdcAcctComplexRecord.CopyDialog;
     if Result then
     begin
@@ -2013,10 +2047,10 @@ begin
       gdcAcctComplexRecord.SubSet := 'ByID';
       gdcAcctComplexRecord.Open;
       if Active and not FieldByName('transactionkey').IsNull then
-        gdcAcctComplexRecord.TransactionKey := FieldByName('transactionkey').AsInteger
+        gdcAcctComplexRecord.TransactionKey := GetTID(FieldByName('transactionkey'))
       else
         if Assigned(MasterSource) and Assigned(MasterSource.DataSet) then
-          gdcAcctComplexRecord.TransactionKey := MasterSource.DataSet.FieldByName('id').AsInteger;
+          gdcAcctComplexRecord.TransactionKey := GetTID(MasterSource.DataSet.FieldByName('id'));
       Result := gdcAcctComplexRecord.CreateDialog;
       if Result and Active then
       begin
@@ -2047,33 +2081,33 @@ begin
       if not gdcAcctComplexRecord.EntryLines[i].FieldByName('accountkey').IsNull then
       begin
         V := VarArrayCreate([0, 2], varVariant);
-        V[0] := gdcAcctComplexRecord.EntryLines[i].FieldByName('id').AsInteger;
-        V[1] := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountkey').AsInteger;
+        V[0] := TID2V(gdcAcctComplexRecord.EntryLines[i].FieldByName('id'));
+        V[1] := TID2V(gdcAcctComplexRecord.EntryLines[i].FieldByName('accountkey'));
         V[2] := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountpart').AsString;
 
         if Locate('id;accountkey;accountpart', V, []) then
           Edit
         else
           Insert;
-          
+
         try
-          FieldByName('id').AsInteger := gdcAcctComplexRecord.EntryLines[i].FieldByName('id').AsInteger;
+          SetTID(FieldByName('id'), gdcAcctComplexRecord.EntryLines[i].FieldByName('id'));
           FieldByName('alias').AsString := gdcAcctComplexRecord.EntryLines[i].FieldByName('alias').AsString;
           FieldByName('name').AsString := gdcAcctComplexRecord.EntryLines[i].FieldByName('name').AsString;
-          FieldByName('recordkey').AsInteger := gdcAcctComplexRecord.FieldByName('id').AsInteger;
-          FieldByName('accountkey').AsInteger := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountkey').AsInteger;
+          SetTID(FieldByName('recordkey'), gdcAcctComplexRecord.FieldByName('id'));
+          SetTID(FieldByName('accountkey'), gdcAcctComplexRecord.EntryLines[i].FieldByName('accountkey'));
           FieldByName('accountpart').AsString := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountpart').AsString;
           FieldByName('debitncu').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('debitncu').AsCurrency;
           FieldByName('debitcurr').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('debitcurr').AsCurrency;
           FieldByName('debiteq').AsCurrency := 0;
           FieldByName('creditncu').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('creditncu').AsCurrency;
           FieldByName('creditcurr').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('creditcurr').AsCurrency;
-          FieldByName('currkey').AsInteger := gdcAcctComplexRecord.EntryLines[i].FieldByName('currkey').AsInteger;
-          FieldByName('trrecordkey').AsInteger := gdcAcctComplexRecord.FieldByName('trrecordkey').AsInteger;
-          FieldByName('transactionkey').AsInteger := gdcAcctComplexRecord.FieldByName('transactionkey').AsInteger;
+          SetTID(FieldByName('currkey'), gdcAcctComplexRecord.EntryLines[i].FieldByName('currkey'));
+          SetTID(FieldByName('trrecordkey'), gdcAcctComplexRecord.FieldByName('trrecordkey'));
+          SetTID(FieldByName('transactionkey'), gdcAcctComplexRecord.FieldByName('transactionkey'));
           FieldByName('recorddate').AsDateTime := gdcAcctComplexRecord.FieldByName('recorddate').AsDateTime;
-          FieldByName('masterdockey').AsInteger := gdcAcctComplexRecord.FieldByName('masterdockey').AsInteger;
-          FieldByName('companykey').AsInteger := gdcAcctComplexRecord.FieldByName('companykey').AsInteger;
+          SetTID(FieldByName('masterdockey'), gdcAcctComplexRecord.FieldByName('masterdockey'));
+          SetTID(FieldByName('companykey'), gdcAcctComplexRecord.FieldByName('companykey'));
           FieldByName('afull').AsInteger := gdcAcctComplexRecord.FieldByName('afull').AsInteger;
           FieldByName('achag').AsInteger := gdcAcctComplexRecord.FieldByName('achag').AsInteger;
           FieldByName('aview').AsInteger := gdcAcctComplexRecord.FieldByName('aview').AsInteger;
@@ -2084,19 +2118,19 @@ begin
           FieldByName('rcreditncu').AsCurrency := gdcAcctComplexRecord.FieldByName('creditncu').AsCurrency;
           FieldByName('rcreditcurr').AsCurrency := gdcAcctComplexRecord.FieldByName('creditcurr').AsCurrency;
           FieldByName('number').AsString := gdcAcctComplexRecord.FieldByName('number').AsString;
-          FieldByName('documenttypekey').AsInteger := gdcAcctComplexRecord.FieldByName('documenttypekey').AsInteger;
+          SetTID(FieldByName('documenttypekey'), gdcAcctComplexRecord.FieldByName('documenttypekey'));
           FieldByName('documentdate').AsDateTime := gdcAcctComplexRecord.FieldByName('recorddate').AsDateTime;
           FieldByName('description').AsString := gdcAcctComplexRecord.FieldByName('description').AsString;
 
           if FindField('documentkey') <> nil then
-            FieldByName('documentkey').AsInteger := gdcAcctComplexRecord.FieldByName('documentkey').AsInteger;
+            SetTID(FieldByName('documentkey'), gdcAcctComplexRecord.FieldByName('documentkey'));
 
           for j:= 0 to gdcAcctComplexRecord.EntryLines[i].FieldCount - 1 do
             if (Pos(UserPrefix, gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName) > 0) and
                (FindField(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName) <> nil)
             then
-              FieldByName(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName).AsVariant :=
-                gdcAcctComplexRecord.EntryLines[i].Fields[j].AsVariant;
+              SetVar2Field(FieldByName(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName),
+                GetFieldAsVar(gdcAcctComplexRecord.EntryLines[i].Fields[j]));
           Post;
           UpdateCursorPos;
           Resync([]);
@@ -2147,15 +2181,15 @@ begin
     begin
       if FieldByName('recorddate').IsNull then
         FieldByName('recorddate').AsDateTime := Document.FieldByName('documentdate').AsDateTime;
-      FieldByName('documentkey').AsInteger := Document.FieldByName('id').AsInteger;
+      SetTID(FieldByName('documentkey'), Document.FieldByName('id'));
 
       if Document.FieldByName('parent').IsNull then
-        FieldByName('masterdockey').AsInteger := Document.FieldByName('id').AsInteger
+        SetTID(FieldByName('masterdockey'), Document.FieldByName('id'))
       else
-        FieldByName('masterdockey').AsInteger := Document.FieldByName('parent').AsInteger;
+        SetTID(FieldByName('masterdockey'), Document.FieldByName('parent'));
 
-      FieldByName('companykey').AsInteger := Document.FieldByName('companykey').AsInteger;
-      FieldByName('transactionkey').AsInteger := Document.FieldByName('transactionkey').AsInteger;
+      SetTID(FieldByName('companykey'), Document.FieldByName('companykey'));
+      SetTID(FieldByName('transactionkey'), Document.FieldByName('transactionkey'));
 
       FieldByName('afull').AsInteger := Document.FieldByName('afull').AsInteger;
       FieldByName('achag').AsInteger := Document.FieldByName('achag').AsInteger;
@@ -2188,9 +2222,9 @@ var
     S: String;
   begin
     Edit;
-    FieldByName('currkey').AsInteger := gdcacctComplexRecord.FieldByName('currkey').AsInteger;
-    FieldByName('trrecordkey').AsInteger := gdcacctComplexRecord.FieldByName('trrecordkey').AsInteger;
-    FieldByName('transactionkey').AsInteger := gdcacctComplexRecord.FieldByName('transactionkey').AsInteger;
+    SetTID(FieldByName('currkey'), gdcacctComplexRecord.FieldByName('currkey'));
+    SetTID(FieldByName('trrecordkey'), gdcacctComplexRecord.FieldByName('trrecordkey'));
+    SetTID(FieldByName('transactionkey'), gdcacctComplexRecord.FieldByName('transactionkey'));
     FieldByName('recorddate').AsDateTime := gdcacctComplexRecord.FieldByName('recorddate').AsDateTime;
     FieldByName('afull').AsInteger := gdcacctComplexRecord.FieldByName('afull').AsInteger;
     FieldByName('achag').AsInteger := gdcacctComplexRecord.FieldByName('achag').AsInteger;
@@ -2202,18 +2236,18 @@ var
     FieldByName('rcreditncu').AsCurrency := gdcacctComplexRecord.FieldByName('creditncu').AsCurrency;
     FieldByName('rcreditcurr').AsCurrency := gdcacctComplexRecord.FieldByName('creditcurr').AsCurrency;
     FieldByName('number').AsString := gdcacctComplexRecord.FieldByName('number').AsString;
-    FieldByName('documenttypekey').AsInteger := gdcacctComplexRecord.FieldByName('documenttypekey').AsInteger;
+    SetTID(FieldByName('documenttypekey'), gdcacctComplexRecord.FieldByName('documenttypekey'));
     FieldByName('documentdate').AsDateTime := gdcacctComplexRecord.FieldByName('recorddate').AsDateTime;
     FieldByName('description').AsString := gdcacctComplexRecord.FieldByName('description').AsString;
 
     for j := 0 to gdcAcctComplexRecord.EntryLines.Count - 1 do
     begin
-      if FieldByName('id').AsInteger = gdcAcctComplexRecord.EntryLines[J].FieldByName('id').AsInteger then
+      if GetTID(FieldByName('id')) = GetTID(gdcAcctComplexRecord.EntryLines[J].FieldByName('id')) then
       begin
-        FieldByName('id').AsInteger := gdcacctComplexRecord.EntryLines[J].FieldByName('id').AsInteger;
+        SetTID(FieldByName('id'), gdcacctComplexRecord.EntryLines[J].FieldByName('id'));
         FieldByName('alias').AsString := gdcacctComplexRecord.EntryLines[J].FieldByName('alias').AsString;
         FieldByName('name').AsString := gdcacctComplexRecord.EntryLines[J].FieldByName('name').AsString;
-        FieldByName('accountkey').AsInteger := gdcacctComplexRecord.EntryLines[J].FieldByName('accountkey').AsInteger;
+        SetTID(FieldByName('accountkey'), gdcacctComplexRecord.EntryLines[J].FieldByName('accountkey'));
         FieldByName('creditncu').AsCurrency := gdcacctComplexRecord.EntryLines[J].FieldByName('creditncu').AsCurrency;
         FieldByName('creditcurr').AsCurrency := gdcacctComplexRecord.EntryLines[J].FieldByName('creditcurr').AsCurrency;
         FieldByName('debitncu').AsCurrency := gdcacctComplexRecord.EntryLines[J].FieldByName('debitncu').AsCurrency;
@@ -2229,8 +2263,8 @@ var
             else
               S := gdcAcctComplexRecord.EntryLines[J].Fields[i].FieldName;
             if FindField(S) <> nil then
-              FieldByName(S).AsVariant :=
-                gdcAcctComplexRecord.EntryLines[J].Fields[i].AsVariant;
+              SetVar2Field(FieldByName(S),
+                GetFieldAsVar(gdcAcctComplexRecord.EntryLines[J].Fields[i]));
           end;
         end;
         Break;
@@ -2272,7 +2306,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if FieldByName('documenttypekey').AsInteger <> DefaultDocumentTypeKey then
+  if GetTID(FieldByName('documenttypekey')) <> DefaultDocumentTypeKey then
   begin
     tmpDocument := TgdcDocument.Create(Self);
     try
@@ -2281,7 +2315,7 @@ begin
       if FEntryGroup = egAll then
       begin
         isParent := False;
-        if FieldByName('masterdockey').AsInteger <>  FieldByName('documentkey').AsInteger then
+        if GetTID(FieldByName('masterdockey')) <>  GetTID(FieldByName('documentkey')) then
         begin
           isParent := MessageBox(ParentHandle, 'Просмотреть весь документ?', 'Внимание',
             mb_YesNo or mb_IconQuestion) = idYes;
@@ -2291,9 +2325,9 @@ begin
         isParent := True;
 
       if not isParent then
-        tmpDocument.ParamByName('id').AsInteger := FieldByName('documentkey').AsInteger
+        SetTID(tmpDocument.ParamByName('id'), FieldByName('documentkey'))
       else
-        tmpDocument.ParamByName('id').AsInteger := FieldByName('masterdockey').AsInteger;
+        SetTID(tmpDocument.ParamByName('id'), FieldByName('masterdockey'));
       tmpDocument.Open;
 
       if tmpDocument.RecordCount > 0 then
@@ -2313,8 +2347,8 @@ begin
       gdcAcctComplexRecord.Transaction := Transaction;
       gdcAcctComplexRecord.ReadTransaction := ReadTransaction;
       gdcAcctComplexRecord.SubSet := 'ByID';
-      gdcAcctComplexRecord.ID := FieldByName('recordkey').AsInteger;
-      gdcAcctComplexRecord.TransactionKey := FieldByName('transactionkey').AsInteger;
+      gdcAcctComplexRecord.ID := GetTID(FieldByName('recordkey'));
+      gdcAcctComplexRecord.TransactionKey := GetTID(FieldByName('transactionkey'));
 
       gdcAcctComplexRecord.Open;
       Result := gdcAcctComplexRecord.EditDialog(ADlgClassName);
@@ -2323,7 +2357,7 @@ begin
         FDataTransfer := True;
         try
           // т.к. используется InternalDeleteRecord(который удаляет все записи по recordkey), достаточно удалить 1 запись
-          Locate('recordkey',gdcAcctComplexRecord.FieldByName('id').AsInteger,[]);
+          Locate('recordkey',TID2V(gdcAcctComplexRecord.FieldByName('id')),[]);
           Delete;
 
           DataTransfer(gdcAcctComplexRecord);
@@ -2640,7 +2674,7 @@ begin
     for I := 0 to SelectedID.Count - 1 do
     begin
       if Length(Str) >= 8192 then break;
-      Str := Str + IntToStr(SelectedID[I]) + ',';
+      Str := Str + TID2S(SelectedID[I]) + ',';
     end;
     if Str = '' then
       Str := '-1'
@@ -2738,12 +2772,12 @@ begin
     FieldByName('number').AsString := 'б/н';
 
   if FieldByName('currkey').IsNull then
-    FieldByName('currkey').AsInteger := GetNCUKey;
+    SetTID(FieldByName('currkey'), GetNCUKey);
 
   if FieldByName('documentkey').IsNull then
   begin
-    FieldByName('documentkey').AsInteger := GetNextID;
-    FieldByName('masterdockey').AsInteger := FieldByName('documentkey').AsInteger;
+    SetTID(FieldByName('documentkey'), gdcBaseManager.GetNextID);
+    SetTID(FieldByName('masterdockey'), FieldByName('documentkey'));
 
     ExecSingleQuery(
       'INSERT INTO GD_DOCUMENT ' +
@@ -2755,20 +2789,21 @@ begin
       '   :CURRKEY, :COMPANYKEY, :AVIEW, :ACHAG, :AFULL, ' +
       '   :CREATORKEY, :CREATIONDATE, :EDITORKEY, :EDITIONDATE, :TRANSACTIONKEY) ',
       VarArrayOf([
-        FieldByName('documentkey').AsInteger,
-        DefaultDocumentTypeKey,
+        TID2V(FieldByName('documentkey')),
+        TID2V(DefaultDocumentTypeKey),
         FieldByName('NUMBER').AsString,
         FieldByName('DESCRIPTION').AsString,
         FieldByName('RECORDDATE').AsDateTime,
-        FieldByName('CURRKEY').AsInteger,
-        IBLogin.CompanyKey,
+        TID2V(FieldByName('CURRKEY')),
+        TID2V(IBLogin.CompanyKey),
         FieldByName('AVIEW').AsInteger,
         FieldByName('ACHAG').AsInteger,
         FieldByName('AFULL').AsInteger,
-        IBLogin.ContactKey,
+        TID2V(IBLogin.ContactKey),
         Now,
-        IBLogin.ContactKey,
-        Now, FieldByName('transactionkey').AsInteger
+        TID2V(IBLogin.ContactKey),
+        Now,
+        TID2V(FieldByName('transactionkey'))
       ])
     );
   end
@@ -2783,13 +2818,14 @@ begin
         FieldByName('NUMBER').AsString,
         FieldByName('DESCRIPTION').AsString,
         FieldByName('RECORDDATE').AsDateTime,
-        FieldByName('CURRKEY').AsInteger,
+        TID2V(FieldByName('CURRKEY')),
         FieldByName('AVIEW').AsInteger,
         FieldByName('ACHAG').AsInteger,
         FieldByName('AFULL').AsInteger,
-        IBLogin.ContactKey,
-        Now, FieldByName('transactionkey').AsInteger,
-        FieldByName('documentkey').AsInteger
+        TID2V(IBLogin.ContactKey),
+        Now,
+        TID2V(FieldByName('transactionkey')),
+        TID2V(FieldByName('documentkey'))
       ])
     );
 
@@ -2835,19 +2871,19 @@ begin
     if not (DebitEntryLine.State in [dsEdit, dsInsert]) then
       DebitEntryLine.Edit;
     try
-      DebitEntryLine.FieldByName('recordkey').AsInteger := FieldByName('id').AsInteger;
+      SetTID(DebitEntryLine.FieldByName('recordkey'), FieldByName('id'));
       DebitEntryLine.FieldByName('accountpart').AsString := 'D';
       DebitEntryLine.FieldByName('debitncu').AsCurrency := FAmountNCU;
       DebitEntryLine.FieldByName('entrydate').AsDateTime := FieldByName('recorddate').AsDateTime;
       if DebitEntryLine.FieldByName('currkey').IsNull then
       begin
         if not FieldByName('currkey').IsNull then
-          DebitEntryLine.FieldByName('currkey').AsVariant := FieldByName('currkey').AsVariant
+          SetTID(DebitEntryLine.FieldByName('currkey'), FieldByName('currkey'))
         else
-          DebitEntryLine.FieldByName('currkey').AsInteger := GetNCUKey;
+          SetTID(DebitEntryLine.FieldByName('currkey'), GetNCUKey);
       end;
       if (DebitEntryLine.FieldByName('debitcurr').AsCurrency = 0)
-        and (DebitEntryLine.FieldByName('currkey').AsInteger <> GetNCUKey) then
+        and (GetTID(DebitEntryLine.FieldByName('currkey')) <> GetNCUKey) then
       begin
         DebitEntryLine.FieldByName('debitcurr').AsCurrency := FAmountCurr;
       end;
@@ -2864,17 +2900,17 @@ begin
       CreditEntryLine.Edit;
     try
       CreditEntryLine.FieldByName('entrydate').AsDateTime := FieldByName('recorddate').AsDateTime;
-      CreditEntryLine.FieldByName('recordkey').AsInteger := FieldByName('id').AsInteger;
+      SetTID(CreditEntryLine.FieldByName('recordkey'), FieldByName('id'));
       CreditEntryLine.FieldByName('accountpart').AsString := 'C';
       CreditEntryLine.FieldByName('creditncu').AsCurrency := FAmountNCU;
       if CreditEntryLine.FieldByName('currkey').IsNull then
       begin
         if not FieldByName('currkey').IsNull then
-          CreditEntryLine.FieldByName('currkey').AsVariant := FieldByName('currkey').AsVariant
+          SetTID(CreditEntryLine.FieldByName('currkey'), FieldByName('currkey'))
         else
-          CreditEntryLine.FieldByName('currkey').AsVariant := GetNCUKey;
+          SetTID(CreditEntryLine.FieldByName('currkey'), GetNCUKey);
       end;
-      if (CreditEntryLine.FieldByName('creditcurr').AsCurrency = 0) and  (CreditEntryLine.FieldByName('currkey').AsInteger <> GetNCUKey) then
+      if (CreditEntryLine.FieldByName('creditcurr').AsCurrency = 0) and (GetTID(CreditEntryLine.FieldByName('currkey')) <> GetNCUKey) then
         CreditEntryLine.FieldByName('creditcurr').AsCurrency := FAmountCurr;
       CreditEntryLine.Post;
     except
@@ -3124,12 +3160,12 @@ begin
   inherited;
 
   if TransactionKey <> -1 then
-    FieldByName('transactionkey').AsInteger := TransactionKey
+    SetTID(FieldByName('transactionkey'), TransactionKey)
   else
-    FieldByName('transactionkey').AsInteger := DefaultTransactionKey;
+    SetTID(FieldByName('transactionkey'), DefaultTransactionKey);
 
-  FieldByName('trrecordkey').AsInteger := DefaultEntryKey;
-  FieldByName('companykey').AsInteger := IBLogin.CompanyKey;
+  SetTID(FieldByName('trrecordkey'), DefaultEntryKey);
+  SetTID(FieldByName('companykey'), IBLogin.CompanyKey);
 
   SetupEntryLine;
 
@@ -3193,11 +3229,11 @@ begin
   CreditEntryLine.SubSet := 'ByRecord,ByAccountPart';
 
   DebitEntryLine.AccountPart := 'D';
-  DebitEntryLine.RecordKey := FieldByName('id').AsInteger;
+  DebitEntryLine.RecordKey := GetTID(FieldByName('id'));
   DebitEntryLine.Open;
 
   CreditEntryLine.AccountPart := 'C';
-  CreditEntryLine.RecordKey := FieldByName('id').AsInteger;
+  CreditEntryLine.RecordKey := GetTID(FieldByName('id'));
   CreditEntryLine.Open;
 
 end;
@@ -3370,11 +3406,11 @@ begin
 
   SetLength(DebitV, DebitEntryLine.FieldCount);
   for I := 0 to DebitEntryLine.FieldCount - 1 do
-    DebitV[I] := DebitEntryLine.Fields[I].AsVariant;
+    DebitV[I] := GetFieldAsVar(DebitEntryLine.Fields[I]);
 
   SetLength(CreditV, CreditEntryLine.FieldCount);
   for I := 0 to CreditEntryLine.FieldCount - 1 do
-    CreditV[I] := CreditEntryLine.Fields[I].AsVariant;
+    CreditV[I] := GetFieldAsVar(CreditEntryLine.Fields[I]);
 
   inherited Copy(aFields, aValues, aCopyDetail, aPost, AnAppend);
 
@@ -3388,9 +3424,9 @@ begin
     if (UpperCase(DebitEntryLine.Fields[i].FieldName) <> 'RECORDKEY') and
        (UpperCase(DebitEntryLine.Fields[i].FieldName) <> 'ID')
     then
-      DebitEntryLine.Fields[i].Value := DebitV[i];
+      SetVar2Field(DebitEntryLine.Fields[i], DebitV[i]);
 
-  DebitEntryLine.FieldByName('recordkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(DebitEntryLine.FieldByName('recordkey'), FieldByName('id'));
 
   if AnAppend then
     CreditEntryLine.Append
@@ -3401,9 +3437,9 @@ begin
     if (UpperCase(CreditEntryLine.Fields[i].FieldName) <> 'RECORDKEY') and
        (UpperCase(CreditEntryLine.Fields[i].FieldName) <> 'ID')
     then
-      CreditEntryLine.Fields[i].Value := CreditV[i];
+      SetVar2Field(CreditEntryLine.Fields[i], CreditV[i]);
 
-  CreditEntryLine.FieldByName('recordkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(CreditEntryLine.FieldByName('recordkey'), FieldByName('id'));
 
   Result := True;
 end;
@@ -3636,7 +3672,7 @@ begin
   inherited;
 
   if HasSubSet('ByRecord') and (RecordKey <> -1) then
-    ParamByName('recordkey').AsInteger := RecordKey;
+    SetTID(ParamByName('recordkey'), RecordKey);
 
   if HasSubSet('ByAccountPart') and (AccountPart <> '') then
     ParamByName('accountpart').AsString := AccountPart;
@@ -3753,6 +3789,27 @@ class function TgdcAcctEntryLine.GetListTable(
 begin
   Result := 'ac_entry';
 end;
+
+{$IFDEF NEW_ENTRY_GEN}
+function TgdcAcctEntryLine.GetNextID(const Increment,
+  ResetCache: Boolean): TID;
+var
+  q: TIBSQL;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ReadTransaction;
+    if Increment then
+      q.SQL.Text := 'SELECT GEN_ID(gd_g_entry, 1) FROM rdb$database'
+    else
+      q.SQL.Text := 'SELECT GEN_ID(gd_g_entry, 0) FROM rdb$database';
+    q.ExecQuery;
+    Result := GetTID(q.Fields[0]);
+  finally
+    q.Free;
+  end;
+end;
+{$ENDIF}
 
 function TgdcAcctEntryLine.GetSelectClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -3916,7 +3973,7 @@ begin
     Result := inherited CheckTheSameStatement
   else
     Result := Format('SELECT id FROM ac_quantity WHERE entrykey = %d AND valuekey = %d',
-      [FieldByName('entrykey').AsInteger, FieldByName('valuekey').AsInteger]);
+      [TID264(FieldByName('entrykey')), TID264(FieldByName('valuekey'))]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTQUANTITY', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
@@ -3986,6 +4043,27 @@ begin
   Result := 'ac_quantity';
 end;
 
+{$IFDEF NEW_ENTRY_GEN}
+function TgdcAcctQuantity.GetNextID(const Increment,
+  ResetCache: Boolean): TID;
+var
+  q: TIBSQL;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ReadTransaction;
+    if Increment then
+      q.SQL.Text := 'SELECT GEN_ID(gd_g_entry, 1) FROM rdb$database'
+    else
+      q.SQL.Text := 'SELECT GEN_ID(gd_g_entry, 0) FROM rdb$database';
+    q.ExecQuery;
+    Result := GetTID(q.Fields[0]);
+  finally
+    q.Free;
+  end;
+end;
+{$ENDIF}
+
 function TgdcAcctQuantity.GetSelectClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -4045,7 +4123,7 @@ begin
     S.Add('entrykey = :entrykey');
 end;
 
-{ TgdcAcctComplexRecord }   
+{ TgdcAcctComplexRecord }
 
 function TgdcAcctComplexRecord.AppendLine: TgdcAcctEntryLine;
 begin
@@ -4058,7 +4136,7 @@ begin
   Result.Transaction := Transaction;
   Result.ReadTransaction := ReadTransaction;
   Result.SubSet := 'ByID';
-  Result.ParamByName('id').AsInteger := - 1;
+  SetTID(Result.ParamByName('id'), - 1);
   Result.Open;
 end;
 
@@ -4068,13 +4146,13 @@ var
   Rec: array of TEntryAttr;
   I, J, K, Index: Integer;
   L: TgdcAcctEntryLine;
-begin  
+begin
   Setlength(Rec, EntryLines.Count);
   for I := 0 to EntryLines.Count - 1 do
   begin
     Rec[I].Fields := VarArrayCreate([0, EntryLines[I].Fields.Count - 1], varVariant);
     for J := 0 to EntryLines[I].Fields.Count - 1 do
-      Rec[I].Fields[J] := EntryLines[I].Fields[J].Value;  
+      Rec[I].Fields[J] := GetFieldAsVar(EntryLines[I].Fields[J]);
 
     while not EntryLines[I].gdcQuantity.Eof do
     begin
@@ -4082,7 +4160,8 @@ begin
       Index := High(Rec[I].Quantity);
       Rec[I].Quantity[Index] := VarArrayCreate([0, EntryLines[I].gdcQuantity.Fields.Count - 1], varVariant);
       for J := 0 to EntryLines[I].gdcQuantity.Fields.Count - 1 do
-        Rec[I].Quantity[Index][J] := EntryLines[I].gdcQuantity.Fields[J].Value;
+        Rec[I].Quantity[Index][J] := GetFieldAsVar(EntryLines[I].gdcQuantity.Fields[J]);
+
       EntryLines[I].gdcQuantity.Next;
     end;
   end;
@@ -4099,9 +4178,10 @@ begin
       for J := 0 to L.Fields.Count -1 do
       begin
         if L.Fields[J].FieldName <> 'ID' then
-          L.Fields[J].Value := Rec[I].Fields[J];
+          SetVar2Field(L.Fields[J], Rec[I].Fields[J]);
+
       end;
-      L.FieldByName('recordkey').AsInteger := Self.ID;
+      SetTID(L.FieldByName('recordkey'), Self.ID);
       if APost then L.Post;
 
       if High(Rec[I].Quantity) = -1 then
@@ -4114,9 +4194,9 @@ begin
         for J := 0 to L.gdcQuantity.Fields.Count -1 do
         begin
           if L.gdcQuantity.Fields[J].FieldName <> 'ID' then
-            L.gdcQuantity.Fields[J].Value := Rec[I].Quantity[K][J];
+            SetVar2Field(L.gdcQuantity.Fields[J], Rec[I].Quantity[K][J]);
         end;
-        L.gdcQuantity.FieldByName('entrykey').AsInteger := L.ID;
+        SetTID(L.gdcQuantity.FieldByName('entrykey'), L.ID);
         if APost then L.gdcQuantity.Post;  
       end;
     end;
@@ -4182,7 +4262,7 @@ begin
   begin
     for I := 0 to FEntryLines.Count - 1 do
     begin
-      if Id = FEntryLines[i].FieldByName('id').AsInteger then
+      if Id = GetTID(FEntryLines[i].FieldByName('id')) then
       begin
         FEntryLines[I].Delete;
         FEntryLines.Delete(i);
@@ -4236,13 +4316,13 @@ begin
     begin
       if (not (FEntryLines[I].State in [dsInsert, dsEdit])) and
         (FEntryLines[I].RecordCount > 0) and
-        (FEntryLines[I].FieldByName('accountkey').AsInteger > 0) then
+        (GetTID(FEntryLines[I].FieldByName('accountkey')) > 0) then
         FEntryLines[I].Edit;
       try
-        FEntryLines[I].FieldByName('recordkey').AsInteger := FieldByName('id').AsInteger;
+        SetTID(FEntryLines[I].FieldByName('recordkey'), FieldByName('id'));
         FEntryLines[i].FieldByName('entrydate').AsDateTime := FieldByName('recorddate').AsDateTime;
         if FEntryLines[I].FieldByName('currkey').IsNull then
-          FEntryLines[I].FieldByName('currkey').Value := FieldByName('currkey').Value;
+          SetTID(FEntryLines[I].FieldByName('currkey'), FieldByName('currkey'));
         FEntryLines[i].Post;
       except
         FEntryLines[i].Cancel;
@@ -4271,7 +4351,7 @@ begin
   try
     SQL.Transaction := ReadTransaction;
     SQl.SQL.Text := 'SELECT id FROM ac_entry WHERE recordkey = :recordkey';
-    SQL.ParamByName('recordkey').AsInteger := FieldByName('id').AsInteger;
+    SetTID(SQL.ParamByName('recordkey'), FieldByName('id'));
     SQL.ExecQuery;
     while not SQL.Eof do
     begin
@@ -4283,7 +4363,7 @@ begin
       L.Transaction := Transaction;
       L.ReadTransaction := ReadTransaction;
       L.SubSet := 'ByID';
-      L.ParamByName('Id').AsInteger := SQL.FieldByName('id').AsInteger;
+      SetTID(L.ParamByName('Id'), SQL.FieldByName('id'));
       L.Open;
       EntryLines.Add(L);
       SQL.Next;
@@ -4395,15 +4475,15 @@ begin
     FieldByName('number').AsString := 'б/н';
 
   if FieldByName('currkey').IsNull then
-    FieldByName('currkey').AsInteger := GetNCUKey;
+    SetTID(FieldByName('currkey'), GetNCUKey);
 
   if FieldByName('TransactionKey').IsNull then
-    FieldByName('TransactionKey').AsInteger := FTransactionKey;
+    SetTID(FieldByName('TransactionKey'), FTransactionKey);
 
   if FieldByName('documentkey').IsNull then
   begin
-    FieldByName('documentkey').AsInteger := GetNextID;
-    FieldByName('masterdockey').AsInteger := FieldByName('documentkey').AsInteger;
+    SetTID(FieldByName('documentkey'), gdcBaseManager.GetNextID);
+    SetTID(FieldByName('masterdockey'), FieldByName('documentkey'));
 
     ExecSingleQuery(
       'INSERT INTO GD_DOCUMENT ' +
@@ -4415,19 +4495,20 @@ begin
       '   :CURRKEY, :COMPANYKEY, :AVIEW, :ACHAG, :AFULL, ' +
       '   :CREATORKEY, :CREATIONDATE, :EDITORKEY, :EDITIONDATE, :TRANSACTIONKEY) ',
       VarArrayOf([
-        FieldByName('documentkey').AsInteger,
-        DefaultDocumentTypeKey,
+        TID2V(FieldByName('documentkey')),
+        TID2V(DefaultDocumentTypeKey),
         FieldByName('NUMBER').AsString,
         FieldByName('RECORDDATE').AsDateTime,
-        FieldByName('CURRKEY').AsInteger,
-        IBLogin.CompanyKey,
+        TID2V(FieldByName('CURRKEY')),
+        TID2V(IBLogin.CompanyKey),
         FieldByName('AVIEW').AsInteger,
         FieldByName('ACHAG').AsInteger,
         FieldByName('AFULL').AsInteger,
-        IBLogin.ContactKey,
+        TID2V(IBLogin.ContactKey),
         Now,
-        IBLogin.ContactKey,
-        Now, FieldByName('transactionkey').AsInteger
+        TID2V(IBLogin.ContactKey),
+        Now,
+        TID2V(FieldByName('transactionkey'))
       ])
     );
   end
@@ -4441,13 +4522,14 @@ begin
       VarArrayOf([
         FieldByName('NUMBER').AsString,
         FieldByName('RECORDDATE').AsDateTime,
-        FieldByName('CURRKEY').AsInteger,
+        TID2V(FieldByName('CURRKEY')),
         FieldByName('AVIEW').AsInteger,
         FieldByName('ACHAG').AsInteger,
         FieldByName('AFULL').AsInteger,
-        IBLogin.ContactKey,
-        Now, FieldByName('transactionkey').AsInteger,
-        FieldByName('documentkey').AsInteger
+        TID2V(IBLogin.ContactKey),
+        Now,
+        TID2V(FieldByName('transactionkey')),
+        TID2V(FieldByName('documentkey'))
       ])
     );
 
@@ -4597,6 +4679,27 @@ class function TgdcAcctComplexRecord.GetListTable(
 begin
   Result := 'ac_record';
 end;
+
+{$IFDEF NEW_ENTRY_GEN}
+function TgdcAcctComplexRecord.GetNextID(const Increment,
+  ResetCache: Boolean): TID;
+var
+  q: TIBSQL;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ReadTransaction;
+    if Increment then
+      q.SQL.Text := 'SELECT GEN_ID(gd_g_entry, 1) FROM rdb$database'
+    else
+      q.SQL.Text := 'SELECT GEN_ID(gd_g_entry, 0) FROM rdb$database';
+    q.ExecQuery;
+    Result := GetTID(q.Fields[0]);
+  finally
+    q.Free;
+  end;
+end;
+{$ENDIF}
 
 function TgdcAcctComplexRecord.GetNotCopyField: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -4786,12 +4889,12 @@ begin
   inherited;
 
   if TransactionKey <> -1 then
-    FieldByName('transactionkey').AsInteger := TransactionKey
+    SetTID(FieldByName('transactionkey'), TransactionKey)
   else
-    FieldByName('transactionkey').AsInteger := DefaultTransactionKey;  
+    SetTID(FieldByName('transactionkey'), DefaultTransactionKey);
 
-  FieldByName('trrecordkey').AsInteger := DefaultEntryKey;
-  FieldByName('companykey').AsInteger := IBLogin.CompanyKey;
+  SetTID(FieldByName('trrecordkey'), DefaultEntryKey);
+  SetTID(FieldByName('companykey'), IBLogin.CompanyKey);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTCOMPLEXRECORD', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally

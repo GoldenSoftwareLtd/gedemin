@@ -1,8 +1,9 @@
+// ShlTanya, 10.02.2019, #4135
 
  {++
 
    Project ADDRESSBOOK
-   Copyright © 2000-2017 by Golden Software of Belarus, Ltd
+   Copyright © 2000-2019 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -31,7 +32,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   IBDatabase, Db, IBCustomDataSet, IBQuery, ComCtrls, ExtCtrls, StdCtrls,
-  Menus, ActnList, gd_security, IBSQL, ImgList;
+  Menus, ActnList, gd_security, IBSQL, ImgList, gdcBaseInterface, Buttons;
 
 const
   TreeLeftBorder = 'LB';
@@ -72,6 +73,14 @@ type
     actFromAll: TAction;
     Button2: TButton;
     Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    ibsqlSimpleTree: TIBSQL;
+    actExpand: TAction;
+    actCollapse: TAction;
+    BitBtn1: TBitBtn;
+    BitBtn2: TBitBtn;
+    lblSelCount: TLabel;
     procedure btnAllClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
@@ -93,9 +102,17 @@ type
     procedure FormActivate(Sender: TObject);
     procedure edNameEnter(Sender: TObject);
     procedure edNameExit(Sender: TObject);
+    procedure actFindUpdate(Sender: TObject);
+    procedure actExpandExecute(Sender: TObject);
+    procedure actCollapseExecute(Sender: TObject);
+    procedure tvAttrSetKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure tvTargetKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
 
   private
-    FIsTree: Boolean;
+    FIsIntervalTree: Boolean;
+    FIsSimpleTree: Boolean;
     FTableName: String;
     FFieldName: String;
     FPrimaryName: String;
@@ -106,28 +123,31 @@ type
     procedure ShowAttrSet;
     procedure ShowFind(Qry: Boolean);
     procedure ShowTargetList(SL: TStrings);
-    function CheckValue(StartP, EndP, Value: Integer): Integer;
+    function CheckValue(StartP, EndP, Value: TID): Integer;
     procedure Draw500Item;
     function SetAliasPrefix(AnCondition, AnAlias: String): String;
     function FieldWithAlias(AFieldName, AAlias: String): String;
-    function FindInTreeView(TreeView: TTreeView; Value: Integer): Integer;
+    function FindInTreeView(TreeView: TTreeView; Value: TID): Integer;
 
   public
     function GetElements(var SetList: TStrings; const TableName, FieldName,
-     PrimaryName, ACondition, ASortField, ASortOrder: String): Boolean;
+     PrimaryName, ACondition, ASortField, ASortOrder, AContext: String): Boolean;
   end;
 
 var
   dlgSelectFSet: TdlgSelectFSet;
+  //FreeConvertContext вызывается из формы-родителя gd_AttrComboBox
+  FContext: string;
 
   function ValueListCompare(List: TStringList; Index1, Index2: Integer): Integer;
 
 implementation
 
 uses
-  at_Classes, gdcBaseInterface;
+  at_Classes;
 
 {$R *.DFM}
+
 
 procedure TdlgSelectFSet.Draw500Item;
 var
@@ -137,32 +157,45 @@ begin
   I := 0;
   while not ibqryFind.Eof and (I < ViewCount) do
   begin
-    if not FIsTree then
+    if not (FIsIntervalTree or FIsSimpleTree ) then
     begin
       L := tvAttrSet.Items.Add(nil, ibqryFind.FieldByName(FFieldName).AsString);
       L.ImageIndex := 1;
-      L.SelectedIndex := 1;
+      L.SelectedIndex := 3;
     end else
     begin
       if ibqryFind.FieldByName('parent').IsNull then
         FParentList.Clear
       else
         while (FParentList.Count > 0) and
-         (ibqryFind.FieldByName('parent').AsInteger <>
-         Integer(TTreeNode(FParentList.Items[FParentList.Count - 1]).Data)) do
+         (GetTID(ibqryFind.FieldByName('parent')) <>
+         GetTID(TTreeNode(FParentList.Items[FParentList.Count - 1]).Data, FContext)) do
           FParentList.Delete(FParentList.Count - 1);
       if FParentList.Count = 0 then
-        L := tvAttrSet.Items.Add(nil, ibqryFind.FieldByName(FFieldName).AsString)
+      begin
+        L := tvAttrSet.Items.Add(nil, ibqryFind.FieldByName(FFieldName).AsString);
+        L.ImageIndex := 1;
+        L.SelectedIndex := 3;
+      end
       else
+      begin
         L := tvAttrSet.Items.AddChild(TTreeNode(FParentList.Items[FParentList.Count - 1]),
          ibqryFind.FieldByName(FFieldName).AsString);
+        L.ImageIndex := 1;
+        L.SelectedIndex := 3;
+        if TTreeNode(FParentList.Items[FParentList.Count - 1]).ImageIndex <> 4 then
+        begin
+          TTreeNode(FParentList.Items[FParentList.Count - 1]).ImageIndex := 0;
+          TTreeNode(FParentList.Items[FParentList.Count - 1]).SelectedIndex := 2;
+        end;
+      end;
 
       FParentList.Add(L);
     end;
-    L.Data := Pointer(ibqryFind.FieldByName(FPrimaryName).AsInteger);
+    L.Data := TID2Pointer(GetTID(ibqryFind.FieldByName(FPrimaryName)), FContext);
 
     if CheckValue(0, FValueList.Count - 1,
-      ibqryFind.FieldByName(FPrimaryName).AsInteger) <> -1 then begin
+        GetTID(ibqryFind.FieldByName(FPrimaryName))) <> -1 then begin
         L.ImageIndex := 4;
         L.SelectedIndex := 4;
     end;
@@ -171,8 +204,9 @@ begin
     ibqryFind.Next;
   end;
 
-  if FIsTree or ((FSortField = '') and (FSortOrder = '')) then
+  if (FIsIntervalTree) or ((FSortField = '') and (FSortOrder = '') and (not FIsSimpleTree)) then
     tvAttrSet.AlphaSort;
+
 end;
 
 procedure TdlgSelectFSet.ShowTargetList(SL: TStrings);
@@ -190,7 +224,6 @@ begin
     tvTarget.Items.EndUpdate;
     Exit;
   end;
-
   // Визуадьное отображение начального списка
   ibsqlTarget.Close;
   ibsqlTarget.SQL.Clear;
@@ -202,25 +235,56 @@ begin
 
   // JKL: !!!Классно!!! Только результат не правильный возвращает в принципе.
   // Востановлен старый
-  if not FIsTree then
-    ibsqlTarget.SQL.Text := 'SELECT gg1.*, 0 isinclude FROM ' + FTableName + ' gg1'
-  else
-    ibsqlTarget.SQL.Text := 'SELECT gg2.' + FPrimaryName +
-     ', 1 isinclude, gg2.lb, gg2.parent, gg2.rb, gg2.' +
-     FFieldName + ' FROM ' + FTableName + ' gg1, ' + FTableName + ' gg2 ';
 
-  ibsqlTarget.SQL.Add('WHERE gg1.' + FPrimaryName + ' IN(');
   TempList := TStringList.Create;
   try
     for I := 0 to SL.Count - 1 do
     begin
-      TempList.Add(IntToStr(Integer(SL.Objects[I])));
+      TempList.Add(TID2S(GetTID(SL.Objects[I], FContext)));
       TempList.Add(',');
     end;
     TempList.Strings[TempList.Count - 1] := ')';
-    ibsqlTarget.SQL.AddStrings(TempList);
 
-    if FIsTree then
+    if FIsIntervalTree then
+    begin
+      ibsqlTarget.SQL.Text := 'SELECT gg2.' + FPrimaryName +
+       ', CASE WHEN gg2.Id IN ( ';
+       ibsqlTarget.SQL.AddStrings(TempList);
+       ibsqlTarget.SQL.Text := ibsqlTarget.SQL.Text +
+       ' THEN 0 ELSE 1 END as isinclude, gg2.lb, gg2.parent, gg2.rb, gg2.' +
+       FFieldName + ' FROM ' + FTableName + ' gg1, ' + FTableName + ' gg2 ';
+    end
+    else if FIsSimpleTree then
+      begin
+        ibsqlTarget.SQL.Text := 'SELECT gg1.*, CASE WHEN gg1.Id IN ( ';
+        ibsqlTarget.SQL.AddStrings(TempList);
+        ibsqlTarget.SQL.Text := ibsqlTarget.SQL.Text +
+          ' THEN 0 ELSE 1 END as isinclude FROM ' + FTableName + ' gg1 ' +
+          ' JOIN (WITH RECURSIVE INTERNAL_TREE AS ' +
+          ' ( SELECT Id,Parent FROM ' + FTableName + ' WHERE ' + FPrimaryName + ' IN(';
+        ibsqlTarget.SQL.AddStrings(TempList);
+        ibsqlTarget.SQL.Text := ibsqlTarget.SQL.Text +
+          '   UNION ALL ' +
+          '   SELECT Z.Id,Z.Parent FROM ' + FTableName +' Z ' +
+          '   JOIN INTERNAL_TREE IT ON IT.Parent = Z.Id) ' +
+          ' SELECT distinct Id FROM INTERNAL_TREE) Z2 ON gg1.Id  =  Z2.ID ' +
+          ' JOIN ( WITH RECURSIVE INTERNAL_TREE (Id, level) AS ' +
+          ' (SELECT ID, 0 as level FROM ' + FTableName+' WHERE ID IN (SELECT ID FROM '+FTableName+' WHERE Parent is null) '+
+          '   UNION ALL ' +
+          '   SELECT Z.ID, level+1 as level FROM ' + FTableName +' Z '+
+          '   JOIN INTERNAL_TREE IT  ON IT.Id = Z.Parent) ' +
+          ' SELECT ID, level FROM INTERNAL_TREE ) Z1 ON gg1.ID  =  Z1.ID WHERE (1=1) ';
+      end
+    else
+      ibsqlTarget.SQL.Text := 'SELECT gg1.*, 0 isinclude FROM ' + FTableName + ' gg1';
+
+    if not FIsSimpleTree then
+    begin
+      ibsqlTarget.SQL.Add('WHERE gg1.' + FPrimaryName + ' IN(');
+      ibsqlTarget.SQL.AddStrings(TempList);
+    end;
+
+    if FIsIntervalTree then
     begin
       ibsqlTarget.SQL.Add('AND gg2.lb <= gg1.lb AND gg2.rb >= gg1.rb');
 // Кусок старого запроса <--
@@ -258,7 +322,8 @@ begin
        ', gg2.' + FFieldName);
       ibsqlTarget.SQL.Add(' ORDER BY gg2.lb');}
 // -->
-    end else
+    end
+    else if not FIsSimpleTree then
       ibsqlTarget.SQL.Add(' ORDER BY gg1.' + FFieldName);
   finally
     TempList.Free;
@@ -274,47 +339,55 @@ begin
 
     while not ibsqlTarget.Eof do
     begin
-      if not FIsTree then
-        L := tvTarget.Items.Add(nil, ibsqlTarget.FieldByName(FFieldName).AsString)
+      if not (FIsIntervalTree or FIsSimpleTree) then
+      begin
+        L := tvTarget.Items.Add(nil, ibsqlTarget.FieldByName(FFieldName).AsString);
+        L.ImageIndex := 1;
+        L.SelectedIndex := 3;
+      end
       else
       begin
         if ibsqlTarget.FieldByName('parent').IsNull then
           TargetParentList.Clear
         else
           while (TargetParentList.Count > 0) and
-           (ibsqlTarget.FieldByName('parent').AsInteger <>
-           Integer(TTreeNode(TargetParentList.Items[TargetParentList.Count - 1]).Data)) do
+           (GetTID(ibsqlTarget.FieldByName('parent')) <>
+           GetTID(TTreeNode(TargetParentList.Items[TargetParentList.Count - 1]).Data, FContext)) do
             TargetParentList.Delete(TargetParentList.Count - 1);
         if TargetParentList.Count = 0 then
-          L := tvTarget.Items.Add(nil, ibsqlTarget.FieldByName(FFieldName).AsString)
+        begin
+          L := tvTarget.Items.Add(nil, ibsqlTarget.FieldByName(FFieldName).AsString);
+          L.ImageIndex := 1;
+          L.SelectedIndex := 3;
+        end
         else
+        begin
           L := tvTarget.Items.AddChild(TTreeNode(TargetParentList.Items[TargetParentList.Count - 1]),
            ibsqlTarget.FieldByName(FFieldName).AsString);
+          L.ImageIndex := 1;
+          L.SelectedIndex := 3;
+          TTreeNode(TargetParentList.Items[TargetParentList.Count - 1]).ImageIndex := 0;
+          TTreeNode(TargetParentList.Items[TargetParentList.Count - 1]).SelectedIndex := 2;
+        end;
         TargetParentList.Add(L);
       end;
-      L.Data := Pointer(ibsqlTarget.FieldByName(FPrimaryName).AsInteger);
-      if ibsqlTarget.FieldByName('isinclude').AsInteger = 0 then
-      begin
-        L.ImageIndex := 1;
-        L.SelectedIndex := 3;
-      end else
-      begin
-        L.ImageIndex := 0;
-        L.SelectedIndex := 2;
-      end;
+      L.Data := TID2Pointer(GetTID(ibsqlTarget.FieldByName(FPrimaryName)), FContext);
+
       if ibsqlTarget.FieldByName('isinclude').AsInteger = 0 then
         SL.AddObject(ibsqlTarget.FieldByName(FFieldName).AsString,
-         Pointer(ibsqlTarget.FieldByName(FPrimaryName).AsInteger));
+         TID2TObject(GetTID(ibsqlTarget.FieldByName(FPrimaryName)), FContext));
 
       ibsqlTarget.Next;
     end;
 
     (SL as TStringList).CustomSort(ValueListCompare);
-    tvTarget.AlphaSort;
+    if not FIsSimpleTree then
+      tvTarget.AlphaSort;
   finally
     TargetParentList.Free;
     tvTarget.FullExpand;
     tvTarget.Items.EndUpdate;
+    lblSelCount.Caption := '(' + inttostr(SL.Count) + ')';
   end;
 end;
 
@@ -324,22 +397,33 @@ begin
   // Запрос
   ibqryFind.Close;
   ibqryFind.SQL.Clear;
-  ibqryFind.SQL.Text := 'SELECT * FROM ' + FTableName + ' gg1 ';
+
+  if FIsIntervalTree then
+    {ibqryFind.SQL.Text := 'SELECT DISTINCT(gg2.' + FPrimaryName + '), gg2.* FROM ' + FTableName + ' gg1, '
+      + FTableName + ' gg2 WHERE (1=1) ' }
+     ibqryFind.SQL.Text := 'SELECT * FROM ' + FTableName + ' gg1 WHERE (1=1)'
+  else if FIsSimpleTree then
+    ibqryFind.SQL.Text := 'SELECT gg1.* FROM ' + FTableName + ' gg1 ' +
+      ' JOIN ( WITH RECURSIVE INTERNAL_TREE (Id, level) AS ' +
+      ' (SELECT ID, 0 as level FROM ' + FTableName+' WHERE ID in (SELECT ID FROM '+FTableName+' WHERE Parent is null) '+
+      '   UNION ALL ' +
+      '   SELECT Z.ID, level+1 as level FROM ' + FTableName +' Z '+
+      '   JOIN INTERNAL_TREE IT  ON IT.Id  =  Z.Parent) ' +
+      'SELECT ID, level FROM INTERNAL_TREE ) Z1 ON gg1.ID  =  Z1.ID WHERE (1=1) '
+  else
+    ibqryFind.SQL.Text := 'SELECT gg1.* FROM ' + FTableName + ' gg1 WHERE (1=1) ';
 
   if Trim(FCondition) > '' then
-  begin
-    ibqryFind.SQL.Add(' WHERE ' +
-      StringReplace(FCondition,       // FB2 не позволяет использовать имя
-        FTableName + '.',             // таблицы, если у нее есть алиас
-        'gg1.', [rfReplaceAll, rfIgnoreCase]));
-  end;
+    ibqryFind.SQL.Add(' AND ' + SetAliasPrefix(FCondition, 'gg1'));
 
-  if FIsTree then
-    ibqryFind.SQL.Add(' ORDER BY gg1.lb')
-  else if FSortField > '' then
-    ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FSortField, 'gg1'))
-  else if FSortOrder > '' then
-    ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FFieldName, 'gg1') + FSortOrder);
+  if FIsIntervalTree then
+    ibqryFind.SQL.Add(' ORDER BY gg1.lb');
+    //ibqryFind.SQL.Add(' AND gg2.lb <= gg1.lb AND gg2.rb >= gg1.rb ORDER BY gg2.lb');
+  if not (FIsSimpleTree or FIsIntervalTree) then
+    if FSortField > '' then
+      ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FSortField, 'gg1'))
+    else if FSortOrder > '' then
+      ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FFieldName, 'gg1') + FSortOrder);
 
   ibqryFind.Open;
 
@@ -352,7 +436,10 @@ begin
     Draw500Item;
 
     if (tvAttrSet.Selected = nil) and (tvAttrSet.Items.Count > 0) then
+    begin
+      tvAttrSet.Items[0].Expand(False);
       tvAttrSet.Items[0].Selected := True;
+    end;
 
   finally
     tvAttrSet.Items.EndUpdate;
@@ -361,7 +448,7 @@ end;
 
 procedure TdlgSelectFSet.ShowFind(Qry: Boolean);
 var
-  Pref, Post: String;
+  Pref, Post, strFind: String;
 begin
   // Вывод поиска
   // Выполнение запроса
@@ -369,11 +456,6 @@ begin
   begin
     ibqryFind.Close;
     ibqryFind.SQL.Clear;
-    if not FIsTree then
-      ibqryFind.SQL.Text := 'SELECT gg1.* FROM ' + FTableName + ' gg1 WHERE '
-    else
-      ibqryFind.SQL.Text := 'SELECT DISTINCT(gg2.' + FPrimaryName + '), gg2.* FROM ' + FTableName + ' gg1, '
-        + FTableName + ' gg2 WHERE ';
 
     Pref := '%';
     Post := '%';
@@ -381,19 +463,41 @@ begin
     0: Pref := '';
     2: Post := '';
     end;
-    ibqryFind.SQL.Add(
-      'UPPER(gg1.' + FFieldName + ') LIKE '''
-      + Pref
-      + AnsiUpperCase(edName.Text)
-      + Post + '''');
+    strFind := 'UPPER(';
+    if not FIsSimpleTree then
+      strFind := strFind + 'gg1.';
+    strFind := strFind + FFieldName + ') LIKE ''' + Pref + AnsiUpperCase(edName.Text) + Post + '''';
+
+    if FIsIntervalTree then
+      ibqryFind.SQL.Text := 'SELECT DISTINCT(gg2.' + FPrimaryName + '), gg2.* FROM ' + FTableName + ' gg1, '
+        + FTableName + ' gg2 WHERE ' + strFind
+    else if FIsSimpleTree then
+      ibqryFind.SQL.Text := 'SELECT gg1.* FROM ' + FTableName + ' gg1 ' +
+        ' JOIN (WITH RECURSIVE INTERNAL_TREE AS ' +
+        ' ( SELECT Id,Parent FROM ' + FTableName + ' where ' + strFind +
+        '   UNION ALL ' +
+        '   SELECT Z.Id, Z.Parent FROM ' + FTableName +' Z ' +
+        '   JOIN INTERNAL_TREE IT ON IT.Parent  =  Z.Id) ' +
+        ' SELECT distinct Id FROM INTERNAL_TREE) Z2 ON gg1.Id  =  Z2.ID ' +
+        ' JOIN ( WITH RECURSIVE INTERNAL_TREE (Id, level) AS ' +
+        ' (SELECT ID, 0 as level FROM ' + FTableName+' WHERE ID in (SELECT ID FROM '+FTableName+' WHERE Parent is null) '+
+        '   UNION ALL ' +
+        '   SELECT Z.ID, level+1 as level FROM ' + FTableName +' Z '+
+        '   JOIN INTERNAL_TREE IT  ON IT.Id  =  Z.Parent) ' +
+        ' SELECT ID, level FROM INTERNAL_TREE ) Z1 ON gg1.ID  =  Z1.ID WHERE (1=1) '
+    else
+      ibqryFind.SQL.Text := 'SELECT gg1.* FROM ' + FTableName + ' gg1 WHERE ' + strFind;
+
     if Trim(FCondition) > '' then
       ibqryFind.SQL.Add(' AND ' + SetAliasPrefix(FCondition, 'gg1'));
-    if FIsTree then
-      ibqryFind.SQL.Add(' AND gg2.lb <= gg1.lb AND gg2.rb >= gg1.rb ORDER BY gg2.lb')
-    else if FSortField > '' then
-      ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FSortField, 'gg1'))
-    else if FSortOrder > '' then
-      ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FFieldName, 'gg1') + FSortOrder);
+      
+    if FIsIntervalTree then
+      ibqryFind.SQL.Add(' AND gg2.lb <= gg1.lb AND gg2.rb >= gg1.rb ORDER BY gg2.lb');
+    if not (FIsSimpleTree or FIsIntervalTree) then
+      if FSortField > '' then
+        ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FSortField, 'gg1'))
+      else if FSortOrder > '' then
+        ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FFieldName, 'gg1') + FSortOrder);
     ibqryFind.Open;
   end;
 
@@ -401,7 +505,7 @@ begin
   tvAttrSet.Items.BeginUpdate;
   try
     tvAttrSet.Items.Clear;
-
+    FParentList.Clear;
     ibqryFind.First;
     Draw500Item;
 
@@ -411,30 +515,32 @@ begin
   end;  
 end;
 
-function TdlgSelectFSet.CheckValue(StartP, EndP, Value: Integer): Integer;
+function TdlgSelectFSet.CheckValue(StartP, EndP, Value: TID): Integer;
 var
   Posit: Integer;
+  Diff: TID;
 begin
   // Функция двоичного поиска в списке
+  Result := -1;  
   if StartP > EndP then
   begin
     Result := -1;
     Exit;
   end;
   Posit := StartP + (EndP - StartP) div 2;
-  Result := Value - Integer(FValueList.Objects[Posit]);
-  if Result = 0 then
+  Diff := Value - GetTID(FValueList.Objects[Posit], FContext);
+  if Diff = 0 then
     Result := Posit
   else
-    if Result > 0 then
+    if Diff > 0 then
       Result := CheckValue(Posit + 1, EndP, Value)
     else
-      if Result < 0 then
+      if Diff < 0 then
         Result := CheckValue(StartP, Posit - 1, Value);
 end;
 
 function TdlgSelectFSet.GetElements(var SetList: TStrings; const TableName,
- FieldName, PrimaryName, ACondition, ASortField, ASortOrder: String): Boolean;
+ FieldName, PrimaryName, ACondition, ASortField, ASortOrder, AContext: String): Boolean;
 begin
   Assert(((ASortOrder > '') xor (ASortField > ''))
     or ((ASortField = '') and (ASortOrder = '')));
@@ -445,20 +551,36 @@ begin
   FCondition := ACondition;
   FSortField := ASortField;
   FSortOrder := ASortOrder;
+  FContext := AContext;
 
-  FIsTree := False;
+  FIsIntervalTree := False;
+  FIsSimpleTree := False;
   // Основная функция формы
   // Выводим начальный список
 
+  // проверяем - это интервальное дерево
   ibsqlTree.Close;
   ibsqlTree.Params[0].AsString := AnsiUpperCase(FTableName);
   try
     ibsqlTree.ExecQuery;
-    FIsTree := ibsqlTree.Fields[0].AsInteger = 1;
+    FIsIntervalTree := ibsqlTree.Fields[0].AsInteger = 1;
   except
   end;
-  tvAttrSet.ShowLines := FIsTree;
-  tvTarget.ShowLines := FIsTree;
+
+  // если не интервальное, проверяем может это простое дерево
+  if not FIsIntervalTree and (AnsiUpperCase(FTableName) <> 'GD_DOCUMENT') then
+  begin
+    ibsqlSimpleTree.Close;
+    ibsqlSimpleTree.Params[0].AsString := AnsiUpperCase(FTableName);
+    try
+      ibsqlSimpleTree.ExecQuery;
+      FIsSimpleTree := ibsqlSimpleTree.Fields[0].AsInteger = 1;
+    except
+    end;
+  end;
+
+  tvAttrSet.ShowLines := FIsIntervalTree or FIsSimpleTree;
+  tvTarget.ShowLines := FIsIntervalTree or FIsSimpleTree;
 
   FValueList.Assign(SetList);
   FValueList.CustomSort(ValueListCompare);
@@ -475,6 +597,7 @@ end;
 
 procedure TdlgSelectFSet.btnAllClick(Sender: TObject);
 begin
+  FParentList.Clear;
   ShowAttrSet;
   edName.Text := '';
 end;
@@ -487,6 +610,7 @@ begin
   FValueList := TStringList.Create;
   ibsqlTarget.Transaction := gdcBaseManager.ReadTransaction;
   ibsqlTree.Transaction := gdcBaseManager.ReadTransaction;
+  ibsqlSimpleTree.Transaction := gdcBaseManager.ReadTransaction;
   ibqryFind.Transaction := gdcBaseManager.ReadTransaction;
 end;
 
@@ -521,7 +645,7 @@ begin
   for I := 0 to tvAttrSet.Items.Count - 1 do
     if tvAttrSet.Items[I].Selected then
       if CheckValue(0, FValueList.Count - 1,
-       Integer(tvAttrSet.Items[I].Data)) = -1 then
+       GetTID(tvAttrSet.Items[I].Data, FContext)) = -1 then
       begin
         FValueList.AddObject(tvAttrSet.Items[I].Text, tvAttrSet.Items[I].Data);
         tvAttrSet.Items[I].ImageIndex := 4;
@@ -538,8 +662,7 @@ end;
 
 function ValueListCompare(List: TStringList; Index1, Index2: Integer): Integer;
 begin
-  // Функция сортировки
-  Result := Integer(List.Objects[Index1]) - Integer(List.Objects[Index2]);
+  Result := GetTID(List.Objects[Index1], FContext) - GetTID(List.Objects[Index2], FContext);
 end;
 
 procedure TdlgSelectFSet.actFromExecute(Sender: TObject);
@@ -552,16 +675,23 @@ begin
   for I := tvTarget.Items.Count - 1 downto 0 do
     if tvTarget.Items[I].Selected then
     begin
-      J := CheckValue(0, FValueList.Count - 1, Integer(tvTarget.Items[I].Data));
+      J := CheckValue(0, FValueList.Count - 1, GetTID(tvTarget.Items[I].Data, FContext));
       if J <> -1 then
       begin
         FValueList.Delete(J);
         Flag := True;
-        f := FindInTreeView(tvAttrSet, Integer(tvTarget.Items[I].Data));
+        f := FindInTreeView(tvAttrSet, GetTID(tvTarget.Items[I].Data, FContext));
         if f <> -1 then
         begin
-          tvAttrSet.Items[f].ImageIndex := 0;
-          tvAttrSet.Items[f].SelectedIndex := 0;
+          if not tvAttrSet.Items[f].HasChildren then
+          begin
+            tvAttrSet.Items[f].ImageIndex := 1;
+            tvAttrSet.Items[f].SelectedIndex := 3;
+          end else
+          begin
+            tvAttrSet.Items[f].ImageIndex := 0;
+            tvAttrSet.Items[f].SelectedIndex := 2;
+          end;
         end;
       end;
     end;
@@ -605,7 +735,7 @@ const
 var
   LastWord, CurrWord: String;
   LastSeparator: Char;
-  I, J: Integer;
+  I, J, p: Integer;
 begin
   Result := FCondition;
   if Assigned(atDatabase) and (Result > '') then
@@ -625,8 +755,21 @@ begin
         CurrWord := Copy(Result, J, I - J);
         if Assigned(atDatabase.FindRelationField(FTableName, CurrWord)) and (LastSeparator <> '.') then
         begin
-          Insert(AnAlias + '.', Result, J);
-          I := I + Length(AnAlias + '.');
+          // делаем проверку на теги
+          if (LastSeparator = '<')  then
+          begin
+            p := pos('/>', copy(Result, j, Length(Result)));
+            if not ((p > 0) and  (pos('<', copy(Result, J + 1, p - 1)) = 0)) then
+            begin
+              Insert(AnAlias + '.', Result, J);
+              I := I + Length(AnAlias + '.');
+            end;
+          end
+          else
+          begin
+              Insert(AnAlias + '.', Result, J);
+              I := I + Length(AnAlias + '.');
+          end;
         end;
         J := I + 1;
         LastSeparator := Result[I];
@@ -655,7 +798,7 @@ begin
   Flag := False;
   for I := 0 to tvAttrSet.Items.Count - 1 do
     if CheckValue(0, FValueList.Count - 1,
-     Integer(tvAttrSet.Items[I].Data)) = -1 then
+     GetTID(tvAttrSet.Items[I].Data, FContext)) = -1 then
     begin
       FValueList.AddObject(tvAttrSet.Items[I].Text, tvAttrSet.Items[I].Data);
       tvAttrSet.Items[I].ImageIndex := 4;
@@ -684,16 +827,23 @@ begin
   // Удаление из правой части
   for I := tvTarget.Items.Count - 1 downto 0 do
   begin
-    J := CheckValue(0, FValueList.Count - 1, Integer(tvTarget.Items[I].Data));
+    J := CheckValue(0, FValueList.Count - 1, GetTID(tvTarget.Items[I].Data, FContext));
     if J <> -1 then
     begin
       FValueList.Delete(J);
       Flag := True;
-      f := FindInTreeView(tvAttrSet, Integer(tvTarget.Items[I].Data));
+      f := FindInTreeView(tvAttrSet, GetTID(tvTarget.Items[I].Data, FContext));
       if f <> -1 then
       begin
-        tvAttrSet.Items[f].ImageIndex := 0;
-        tvAttrSet.Items[f].SelectedIndex := 0;
+        if not tvAttrSet.Items[f].HasChildren then
+          begin
+            tvAttrSet.Items[f].ImageIndex := 1;
+            tvAttrSet.Items[f].SelectedIndex := 3;
+          end else
+          begin
+            tvAttrSet.Items[f].ImageIndex := 0;
+            tvAttrSet.Items[f].SelectedIndex := 2;
+          end;
       end;
     end;
   end;
@@ -780,18 +930,47 @@ begin
 end;
 
 function TdlgSelectFSet.FindInTreeView(TreeView: TTreeView;
-  Value: Integer): Integer;
+  Value: TID): Integer;
 var i: integer;
 begin
   Result := -1;
   for i := 0 to TreeView.Items.Count - 1 do
   begin
-    if integer(TreeView.Items[i].Data) = Value then
+    if GetTID(TreeView.Items[i].Data, FContext) = Value then
     begin
       Result := i;
       break;
     end;
   end;
+end;
+
+procedure TdlgSelectFSet.actFindUpdate(Sender: TObject);
+begin
+  actFind.Enabled := edName.Text <> '';
+end;
+
+procedure TdlgSelectFSet.actExpandExecute(Sender: TObject);
+begin
+    tvAttrSet.FullExpand;
+end;
+
+procedure TdlgSelectFSet.actCollapseExecute(Sender: TObject);
+begin
+    tvAttrSet.FullCollapse;
+end;
+
+procedure TdlgSelectFSet.tvAttrSetKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = 32 then // пробел
+    actTo.Execute;
+end;
+
+procedure TdlgSelectFSet.tvTargetKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = 32 then // пробел
+    actFrom.Execute;
 end;
 
 end.

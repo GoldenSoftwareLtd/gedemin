@@ -1,3 +1,5 @@
+// ShlTanya, 17.02.2019
+
 unit gsDBReduction_dlgErrorRecord;
 
 interface

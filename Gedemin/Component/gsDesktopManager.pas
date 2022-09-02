@@ -1,3 +1,4 @@
+// ShlTanya, 17.02.2019
 
 {++
 
@@ -424,10 +425,10 @@ begin
 
     if ADesktopName > '' then
       IBSQL.SQL.Text := Format('SELECT dtdata, name FROM gd_desktop WHERE userkey = %d AND name = ''%s'' AND ((screenres IS NULL) OR (screenres = %d))',
-        [IBLogin.UserKey, ADesktopName, GetScreenRes])
+        [TID264(IBLogin.UserKey), ADesktopName, GetScreenRes])
     else
       IBSQL.SQL.Text := Format('SELECT dtdata, name FROM gd_desktop WHERE userkey = %d AND ((screenres IS NULL) OR (screenres = %d)) ORDER BY saved DESC',
-        [IBLogin.UserKey, GetScreenRes]);
+        [TID264(IBLogin.UserKey), GetScreenRes]);
     IBSQL.ExecQuery;
 
     if IBSQL.EOF then exit;
@@ -580,20 +581,20 @@ begin
       ADesktopName := 'Стандартный';
 
     IBSQL.SQL.Text := Format('SELECT * FROM gd_desktop WHERE userkey = %d AND name = ''%s'' AND ((screenres IS NULL) OR (screenres = %d))',
-      [IBLogin.UserKey, ADesktopName, GetScreenRes]);
+      [TID264(IBLogin.UserKey), ADesktopName, GetScreenRes]);
     IBSQL.ExecQuery;
 
     if IBSQL.EOF then
     begin
       IBSQL.Close;
       IBSQL.SQL.Text := Format('INSERT INTO gd_desktop (userkey, screenres, name) VALUES (%d,%d,''%s'')',
-        [IBLogin.UserKey, GetScreenRes, ADesktopName]);
+        [TID264(IBLogin.UserKey), GetScreenRes, ADesktopName]);
       IBSQL.ExecQuery;
     end;
 
     IBSQL.Close;
     IBSQL.SQL.Text := Format('UPDATE gd_desktop SET dtdata = :D, saved=''NOW'' WHERE userkey = %d AND name = ''%s'' AND ((screenres IS NULL) OR (screenres = %d))',
-      [IBLogin.UserKey, ADesktopName, GetScreenRes]);
+      [TID264(IBLogin.UserKey), ADesktopName, GetScreenRes]);
     IBSQL.Prepare;
 
     // создаем переменную типа поток в сторедже
@@ -673,7 +674,7 @@ begin
       FTransaction.StartTransaction;
 
     IBSQL.SQL.Text := Format('DELETE FROM gd_desktop WHERE userkey = %d AND name = ''%s'' AND ((screenres IS NULL) OR (screenres = %d))',
-      [IBLogin.UserKey, ADesktopName, GetScreenRes]);
+      [TID264(IBLogin.UserKey), ADesktopName, GetScreenRes]);
     IBSQL.ExecQuery;
 
     if FTransaction.InTransaction then
@@ -713,7 +714,7 @@ begin
   try
     IBSQL.Transaction := gdcBaseManager.ReadTransaction;
     IBSQL.SQL.Text := Format('SELECT name FROM gd_desktop WHERE userkey=%d AND ((screenres IS NULL) OR (screenres=%d))',
-      [IBLogin.UserKey, GetScreenRes]);
+      [TID264(IBLogin.UserKey), GetScreenRes]);
     IBSQL.ExecQuery;
     while not IBSQL.EOF do
     begin
@@ -793,7 +794,7 @@ begin
       FTransaction.StartTransaction;
 
     IBSQL.SQL.Text := Format('UPDATE gd_desktop SET saved = ''NOW'' WHERE userkey = %d AND name = ''%s'' AND ((screenres IS NULL) OR (screenres = %d))',
-      [IBLogin.UserKey, ADesktopName, GetScreenRes]);
+      [TID264(IBLogin.UserKey), ADesktopName, GetScreenRes]);
     IBSQL.ExecQuery;
 
     if FTransaction.InTransaction then

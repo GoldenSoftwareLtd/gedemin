@@ -1,11 +1,10 @@
 inherited frmGedeminProperty: TfrmGedeminProperty
-  Left = 525
-  Top = 352
+  Left = 495
+  Top = 199
   Width = 592
   Height = 401
   HelpContext = 300
   Caption = 'Редактор скрипт-объектов'
-  Font.Name = 'Tahoma'
   OldCreateOrder = True
   OnCloseQuery = FormCloseQuery
   PixelsPerInch = 96
@@ -119,6 +118,10 @@ inherited frmGedeminProperty: TfrmGedeminProperty
         end
         object TBItem3: TTBItem
           Action = actFindInDB
+          Images = dmImages.il16x16
+        end
+        object TBItem67: TTBItem
+          Action = actFindIdentifier
           Images = dmImages.il16x16
         end
         object TBSeparatorItem7: TTBSeparatorItem
@@ -258,6 +261,9 @@ inherited frmGedeminProperty: TfrmGedeminProperty
         end
         object TBItem46: TTBItem
           Action = actShowBreakPoints
+        end
+        object TBItem66: TTBItem
+          Action = actShowSearch
         end
       end
       object TBSubmenuItem6: TTBSubmenuItem
@@ -725,6 +731,19 @@ inherited frmGedeminProperty: TfrmGedeminProperty
       ImageIndex = 140
       OnExecute = actGoToLineNumberExecute
       OnUpdate = actGoToLineNumberUpdate
+    end
+    object actShowSearch: TAction
+      Category = 'View'
+      Caption = 'Результаты поиска'
+      Hint = 'Результаты поиска по базе данных'
+      ShortCut = 49224
+      OnExecute = actShowSearchExecute
+    end
+    object actFindIdentifier: TAction
+      Category = 'Find'
+      Caption = 'Поиск и замена &идентификаторов...'
+      ImageIndex = 259
+      OnExecute = actFindIdentifierExecute
     end
   end
   object imFunction: TImageList

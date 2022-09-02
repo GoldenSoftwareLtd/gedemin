@@ -1,3 +1,5 @@
+// ShlTanya, 11.02.2019, #4135
+
 {++
 
   Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
@@ -33,6 +35,7 @@ type
   private
     FMacrosList: TscrMacrosList;
     FActionList: TActionList;
+    FContext: String;
 
     procedure DoOnMenuClick(Sender: TObject);
     procedure DoOnMacrosListClick(Sender: TObject);
@@ -68,7 +71,9 @@ end;
 destructor TgdMacrosMenu.Destroy;
 begin
   FMacrosList.Free;
-
+  {$IFDEF ID64}
+  FreeConvertContext(FContext);
+  {$ENDIF}
   inherited;
 end;
 
@@ -112,7 +117,7 @@ var
   FE: TgdFormEntry;
   GroupIDs, S: String;
   CurrMenu: TComponent;
-  FormRootID: Integer;
+  FormRootID: TID;
 
   Action: TAction;
 
@@ -124,7 +129,7 @@ var
       IterateForms(AFE.Parent as TgdFormEntry);
 
     if not AFE.AbstractBaseForm then
-      GroupIDs := GroupIDs + IntToStr(AFE.MacrosGroupID) + ',';
+      GroupIDs := GroupIDs + TID2S(AFE.MacrosGroupID) + ',';
   end;
 
   procedure AddFolder(F, M: TMenuItem);
@@ -181,6 +186,8 @@ begin
 
   Items.Clear;
 
+  FContext := Owner.Name;
+
   if Assigned(GlobalStorage) and Assigned(IBLogin)
     and ((GlobalStorage.ReadInteger('Options\Policy',
       GD_POL_RUN_MACRO_ID, GD_POL_RUN_MACRO_MASK, False) and IBLogin.InGroup) = 0) then
@@ -227,8 +234,8 @@ begin
           q.ExecQuery;
           if not q.EOF then
           begin
-            FormRootID := q.Fields[0].AsInteger;
-            GroupIDs := GroupIDs + IntToStr(FormRootID) + ',';
+            FormRootID := GetTID(q.Fields[0]);
+            GroupIDs := GroupIDs + TID2S(FormRootID) + ',';
           end;
         end else
         begin
@@ -270,22 +277,22 @@ begin
 
     while not q.EOF do
     begin
-      if CurrMenu.Tag <> q.FieldByName('groupid').AsInteger then
+      if (GetTID(CurrMenu.Tag, FContext) <> GetTID(q.FieldByName('groupid'))) then
       begin
         if q.FieldbyName('groupparent').IsNull
-          or (q.FieldByName('groupid').AsInteger = FormRootID) then
+          or (GetTID(q.FieldByName('groupid')) = FormRootID) then
         begin
           CurrMenu := Self;
         end else
         begin
           MenuItem := TMenuItem.Create(Self);
           MenuItem.Caption := q.FieldbyName('groupname').AsString;
-          MenuItem.Tag := q.FieldByName('groupid').AsInteger;
+          MenuItem.Tag := TID2Tag(GetTID(q.FieldByName('groupid')), FContext);
           MenuItem.ImageIndex := idxFolder;
 
           if CurrMenu is TMenuItem then
           begin
-            if CurrMenu.Tag = q.FieldByName('groupparent').AsInteger then
+            if GetTID(CurrMenu.Tag, FContext) = GetTID(q.FieldByName('groupparent')) then
               AddFolder(CurrMenu as TMenuItem, MenuItem)
             else if (CurrMenu as TMenuItem).Parent is TMenuItem then
               AddFolder((CurrMenu as TMenuItem).Parent, MenuItem)
@@ -298,7 +305,7 @@ begin
         end;
       end;
 
-      if q.FieldByName('id').AsInteger > 0 then
+      if GetTID(q.FieldByName('id')) > 0 then
       begin
         if FMacrosList = nil then
           FMacrosList :=  TscrMacrosList.Create(True);
@@ -318,7 +325,7 @@ begin
 
         MenuItem := TMenuItem.Create(Self);
         MenuItem.Action := Action;
-        MenuItem.Tag := q.FieldByName('id').AsInteger;
+        MenuItem.Tag := TID2Tag(GetTID(q.FieldByName('id')), FContext);
         MenuItem.ImageIndex := idxMacros;
 
         if CurrMenu = Self then

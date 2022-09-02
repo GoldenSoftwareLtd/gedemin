@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_TrPosEntryEditFrame_Unit;
 
 interface
@@ -50,12 +52,12 @@ type
     { Private declarations }
     FDocumentHead: TDocumentInfo;
     FDocumentLine: TDocumentLineInfo;
-    FAccountKey: Integer;
+    FAccountKey: TID;
     FAvailAnalyticFields: TList;
     FAccountAnalyticFields: TList;
     FAnalyticLines: TObjectList;
     FLoadBlock: Boolean;
-    FCurrKey: Integer;
+    FCurrKey: TID;
   protected
     procedure ClickAccount(Sender: TObject);
     procedure ClickAccountCicle(Sender: TObject);
@@ -258,7 +260,7 @@ end;
 
 procedure TfrTrPosEntryEditFrame.SetBlock(const Value: TVisualBlock);
 var
-  ID: Integer;
+  ID: TID;
   LocalName: string;
   A: string;
 begin

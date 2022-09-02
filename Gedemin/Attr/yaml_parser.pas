@@ -1,3 +1,4 @@
+// ShlTanya, 03.02.2019
 
 unit yaml_parser;
 
@@ -515,7 +516,7 @@ end;
 
 function TyamlScalar.GetAsInt64: Int64;
 begin
-  Result := AsInteger;
+  ConvertToInt64(AsString, Result);
 end;
 
 function TyamlScalar.GetAsString: AnsiString;

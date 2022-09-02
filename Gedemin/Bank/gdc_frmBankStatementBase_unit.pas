@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit gdc_frmBankStatementBase_unit;
 
 interface
@@ -80,7 +82,7 @@ begin
         '  ON doc.id = s.documentkey ' +
         'WHERE s.accountkey = :accountkey ' +
         '  AND doc.documentdate <= :ForDate ';
-      ibsqlSaldo.ParamByName('accountkey').AsInteger := ibcmbAccount.CurrentKeyInt;
+      SetTID(ibsqlSaldo.ParamByName('accountkey'), ibcmbAccount.CurrentKeyInt);
       ibsqlSaldo.ParamByName('fordate').AsDate := xdeForDate.Date;
       ibsqlSaldo.ExecQuery;
       if ibsqlSaldo.FieldByName('Credit').AsCurrency = ibsqlSaldo.FieldByName('Debet').AsCurrency then

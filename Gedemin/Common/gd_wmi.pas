@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 // as discussed here http://stackoverflow.com/questions/10199531/how-can-i-improve-the-wmi-performance-using-delphi
 
 unit gd_wmi;

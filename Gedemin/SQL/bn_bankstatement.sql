@@ -49,7 +49,7 @@ CREATE TABLE bn_bankstatement
   csumcurr             dcurrency DEFAULT 0 NOT NULL,
 
   linecount            dinteger DEFAULT 0 NOT NULL,
-  rate                 dcurrency, /* курс валютной выписки */ 
+  rate                 DCURRRATE_NULL, /* курс валютной выписки */ 
 
   CHECK(linecount >= 0)
 );
@@ -264,9 +264,9 @@ END
   ƒанна€ процедура пересчитывает суммарные значени€ дл€ всех выписок.
 
 */
-CREATE PROCEDURE bn_p_update_all_bankstatements
+CREATE OR ALTER PROCEDURE bn_p_update_all_bankstatements
 AS
-  DECLARE VARIABLE DK INTEGER;
+  DECLARE VARIABLE DK DFOREIGNKEY;
 BEGIN
   FOR
     SELECT documentkey FROM bn_bankstatement INTO :DK

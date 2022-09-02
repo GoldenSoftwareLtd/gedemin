@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019, #4135
 
 unit gdv_frmAcctCirculationList_unit;
 
@@ -223,8 +224,8 @@ begin
       SQL.ExecQuery;
       while not SQl.Eof do
       begin
-        if FAccountIDs.IndexOf(Pointer(SQL.FieldByName(fnId).AsInteger)) = -1 then
-          FAccountIDs.Add(Pointer(SQL.FieldByName(fnId).AsInteger));
+        if FAccountIDs.IndexOf(TID2Pointer(GetTID(SQL.FieldByName(fnId)), Name)) = -1 then
+          FAccountIDs.Add(TID2Pointer(GetTID(SQL.FieldByName(fnId)), Name));
         SQL.Next;  
       end;
     finally
@@ -304,6 +305,7 @@ begin
         begin
           DateBegin := Self.DateBegin;
           DateEnd := Self.DateEnd;
+          ActiveControl := ibgrMain;
 
           Show;
           Execute(C);
@@ -314,6 +316,7 @@ begin
         begin
           DateBegin := Self.DateBegin;
           DateEnd := Self.DateEnd;
+          ActiveControl := ibgrMain;
 
           Show;
           Execute(C);
@@ -393,7 +396,7 @@ begin
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
       ibsql.SQL.Text := 'SELECT * FROM ac_accanalyticsext aa JOIN at_relation_fields rf ' +
         ' ON aa.valuekey = rf.id and aa.accountkey = :id';
-      ibsql.ParamByName('id').AsInteger := gdvObject.FieldByName('id').AsInteger;
+      SetTID(ibsql.ParamByName('id'), gdvObject.FieldByName('id'));
       ibsql.ExecQuery;
 
       while not ibsql.eof do
@@ -407,7 +410,7 @@ begin
       begin
 
         ibsql.SQL.Text := 'SELECT * FROM ac_account a WHERE a.id = :id';
-        ibsql.ParamByName('id').AsInteger := gdvObject.FieldByName('id').AsInteger;
+        SetTID(ibsql.ParamByName('id'), gdvObject.FieldByName('id'));
         ibsql.ExecQuery;
         for I:= 0 to ibsql.Current.Count - 1 do
           if ((Pos(UserPrefix, ibsql.Fields[i].Name) = 1) and (ibsql.Fields[i].AsInteger = 1)) then
@@ -480,7 +483,7 @@ begin
   begin
     gdvObject.Accounts.Clear;
     if Assigned(tvGroup.Selected) then
-      gdvObject.AddAccount(Integer(tvGroup.Selected.Data));
+      gdvObject.AddAccount(GetTID(tvGroup.Selected.Data, Name));
     gdvObject.AllHolding := frAcctCompany.cbAllCompanies.Checked and frAcctCompany.cbAllCompanies.Enabled;
     gdvObject.WithSubAccounts := False;
   end; 
@@ -557,11 +560,11 @@ begin
         while not gdvObject.Eof do
         begin
           q.Close;
-          q.ParamByName('id').AsInteger:= gdvObject.FieldByName('id').AsInteger;
+          SetTID(q.ParamByName('id'), gdvObject.FieldByName('id'));
           q.ExecQuery;
           while not q.Eof do
           begin
-            sTmp := IntToStr(q.FieldByName('id').AsInteger);
+            sTmp := TID2S(q.FieldByName('id'));
             i := sl.IndexOfName(sTmp);
             if i = -1 then
             begin
@@ -570,7 +573,11 @@ begin
               begin
                 sName:= gdvObject.Fields[i].FieldName;
                 case gdvObject.Fields[i].DataType of
-                  ftInteger, ftLargeInt:
+                  {$IFDEF ID64}
+                  ftLargeInt:
+                  {$ELSE}
+                  ftInteger:
+                  {$ENDIF}
                   begin
                     if (sName = 'ID') then
                       slFields.Add(sName + '=' + q.FieldByName('id').AsString)
@@ -631,14 +638,14 @@ begin
         for i := 0 to sl.Count - 1 do
         begin
           sTmp := sl.Names[i];
-          if gdvObject.Locate('id', StrToInt(sTmp), []) then
+          if gdvObject.Locate('id', TID2V(GetTID(sTmp)), []) then
           begin
             gdvObject.Edit;
           end
           else
           begin
             sTmp := sl.Values[sl.Names[i]];
-            gdvObject.Locate('id', StrToInt(sTmp), []);
+            gdvObject.Locate('id', TID2V(GetTID(sTmp)), []);
             gdvObject.Insert;
           end;
           if cbDisplaceSaldo.Checked then
@@ -725,8 +732,13 @@ begin
           else
           begin
             for j:= 0 to (sl.Objects[i] as TStringList).Count - 1 do begin
-              gdvObject.FieldByName((sl.Objects[i] as TStringList).Names[j]).AsString :=
-                (sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]]
+              if (Pos('NCU_', (sl.Objects[i] as TStringList).Names[j]) > 0) or (Pos('CURR_', (sl.Objects[i] as TStringList).Names[j]) > 0) or
+                 (Pos('EQ_', (sl.Objects[i] as TStringList).Names[j]) > 0) then
+                gdvObject.FieldByName((sl.Objects[i] as TStringList).Names[j]).AsCurrency :=
+                  gdvObject.FieldByName((sl.Objects[i] as TStringList).Names[j]).AsCurrency + StrToFloat((sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]])
+              else
+                gdvObject.FieldByName((sl.Objects[i] as TStringList).Names[j]).AsString :=
+                  (sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]]
             end;
           end;
           gdvObject.Post;
@@ -749,7 +761,7 @@ begin
           while not gdvObject.Eof do
           begin
             q.Close;
-            q.ParamByName('id').AsInteger:= gdvObject.FieldByName('id').AsInteger;
+            SetTID(q.ParamByName('id'), gdvObject.FieldByName('id'));
             q.ExecQuery;
             if q.Eof then
               gdvObject.Delete

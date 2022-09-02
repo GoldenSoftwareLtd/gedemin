@@ -1,4 +1,4 @@
-//
+// ShlTanya, 21.02.2019
 
 { generic form }
 
@@ -179,6 +179,8 @@ type
     miRemoveFromSearch: TMenuItem;
     actAddToSelectedFromClipboard: TAction;
     actAddToSelectedFromClipboard1: TMenuItem;
+    actCopyMasterIDToClipboard: TAction;
+    nCopyMasterIDToClipboard: TMenuItem;
 
     procedure actFilterExecute(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
@@ -261,6 +263,7 @@ type
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure miRemoveFromSearchClick(Sender: TObject);
     procedure actAddToSelectedFromClipboardExecute(Sender: TObject);
+    procedure actCopyMasterIDToClipboardExecute(Sender: TObject);
 
   private
     FFieldOrigin: TStringList;
@@ -286,6 +289,7 @@ type
     FgdcLink: TgdcLink;
 
     function OnInvoker(const Name: WideString; AnParams: OleVariant): OleVariant; override;
+    procedure SetupOnlySelected(Obj: TgdcBase);
 
     procedure DoOnFilterChanged(Sender: TObject); virtual;
 
@@ -315,12 +319,12 @@ type
     procedure SetLocalizeListName(AGrid: TgsIBGrid);
 
     //Добавляет в selectedid объекта для выбранных записей
-    procedure AddToChooseObject(AnID: Integer);
+    procedure AddToChooseObject(AnID: TID);
     //Удаляет из selectedid объекта для выбранных записей
-    procedure DeleteFromChooseObject(AnID: Integer);
+    procedure DeleteFromChooseObject(AnID: TID);
 
     //Удаляет из выбранных записей
-    procedure DeleteChoose(AnID: Integer); virtual;
+    procedure DeleteChoose(AnID: TID); virtual;
 
     //
     function CanStartDrag(Obj: TgdcBase): Boolean; virtual;
@@ -671,7 +675,6 @@ end;
 constructor Tgdc_frmG.Create(AnOwner: TComponent);
 begin
   inherited;
-
   ShowSpeedButton := True;
   FInChoose := False;
   FChooseControl := nil;
@@ -1105,7 +1108,12 @@ begin
            and (Grid.Columns[k].Visible)
            and (SL.IndexOfName(Grid.Columns[k].FieldName) <> -1) then
            begin
-              if (Grid.Columns[k].Field.DataType = ftInteger) and (Grid.Columns[k].FieldName <> 'ID') then
+              {$IFDEF ID64}
+              if (Grid.Columns[k].Field.DataType in [ftLargeInt])
+              {$ELSE}
+              if (Grid.Columns[k].Field.DataType in [ftInteger])
+              {$ENDIF}
+                and (Grid.Columns[k].FieldName <> 'ID') then
                 continue;
 
               ColL.Add(Grid.Columns[k].FieldName);
@@ -1124,7 +1132,12 @@ begin
           (Fld.Visible or (copy(SL.Names[I], 1, 31) = 'ID')) then
         begin
           // Из целочисленных полей будем показывать только ID
-          if (Fld.DataType = ftInteger) and (copy(SL.Names[I], 1, 31) <> 'ID') then
+          {$IFDEF ID64}
+          if (Fld.DataType in [ftLargeint])
+          {$ELSE}
+          if (Fld.DataType in [ftInteger])
+          {$ENDIF}
+            and (copy(SL.Names[I], 1, 31) <> 'ID') then
             continue;
 
           if not ShowAllFields then
@@ -1625,6 +1638,28 @@ begin
   end;
 end;
 
+procedure Tgdc_frmG.SetupOnlySelected(Obj: TgdcBase);
+begin
+  if UserStorage.ReadBoolean(BuildComponentPath(Obj, 'Selected'), 'OnlySelected', False) then
+  begin
+    if MessageBox(Handle, PChar(
+      'На форме "' + GetFormCaption + '"' + #13#10 +
+      'включен режим отображения отмеченных записей.' + #10#13#10#13 +
+      'Показать только отмеченные записи?'),
+      PChar('Внимание'),
+      MB_ICONEXCLAMATION or MB_YESNO or MB_TASKMODAL) = IDYES then
+    begin
+      Obj.AddSubSet('OnlySelected');
+    end else
+    begin
+      Obj.RemoveSubSet('OnlySelected');
+    end;
+  end else
+  begin
+    Obj.RemoveSubSet('OnlySelected');
+  end;
+end;
+
 procedure Tgdc_frmG.DoCreate;
 begin
   inherited;
@@ -1647,7 +1682,6 @@ begin
     LocalizeListName.Add(AGrid.Columns[I].FieldName + '=' +
       AGrid.Columns[I].Title.Caption);
 end;
-
 
 procedure Tgdc_frmG.actQExportExecute(Sender: TObject);
 {$IFDEF QEXPORT}
@@ -1711,8 +1745,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Path: String;
-  B: Boolean;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMG', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
   {M}  try
@@ -1739,15 +1771,7 @@ begin
   if Assigned(gdcObject) and Assigned(UserStorage) then
   begin
     UserStorage.LoadComponent(gdcObject, gdcObject.LoadSelectedFromStream, 'Selected', False);
-    Path := BuildComponentPath(gdcObject, 'Selected');
-    B := UserStorage.ReadBoolean(Path, 'OnlySelected', False);
-    if B xor gdcObject.HasSubSet('OnlySelected') then
-    begin
-      if B then
-        gdcObject.AddSubSet('OnlySelected')
-      else
-        gdcObject.RemoveSubSet('OnlySelected');
-    end;
+    SetupOnlySelected(gdcObject);
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMG', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
@@ -1758,22 +1782,22 @@ begin
   {END MACRO}
 end;
 
-procedure Tgdc_frmG.AddToChooseObject(AnID: Integer);
+procedure Tgdc_frmG.AddToChooseObject(AnID: TID);
 begin
   FgdcChooseObject.AddToSelectedID(AnID);
   if FgdcChooseObject.Active then
     FgdcChooseObject.CloseOpen;
 
-  FChosenIDInOrder.Add(IntToStr(AnID));
+  FChosenIDInOrder.Add(TID2S(AnID));
 end;
 
-procedure Tgdc_frmG.DeleteFromChooseObject(AnID: Integer);
+procedure Tgdc_frmG.DeleteFromChooseObject(AnID: TID);
 begin
   FgdcChooseObject.RemoveFromSelectedID(AnID);
   if FgdcChooseObject.Active then
     FgdcChooseObject.CloseOpen;
 
-  FChosenIDInOrder.Delete(FChosenIDInOrder.IndexOf(IntToStr(AnID)));
+  FChosenIDInOrder.Delete(FChosenIDInOrder.IndexOf(TID2S(AnID)));
 end;
 
 procedure Tgdc_frmG.actDeleteChooseExecute(Sender: TObject);
@@ -1788,15 +1812,15 @@ begin
       for I := 0 to ibgrChoose.SelectedRows.Count - 1 do
       begin
         FgdcChooseObject.Bookmark := ibgrChoose.SelectedRows[I];
-        slID.Add(IntToStr(FgdcChooseObject.ID));
+        slID.Add(TID2S(FgdcChooseObject.ID));
       end
     else
-      slID.Add(IntToStr(FgdcChooseObject.ID));
+      slID.Add(TID2S(FgdcChooseObject.ID));
 
     FgdcChooseObject.Close;
 
     for I := 0 to slID.Count - 1 do
-      DeleteChoose(StrToInt(slID[I]));
+      DeleteChoose(GetTID(slID[I]));
 
     FgdcChooseObject.Open;
     FgdcChooseObject.EnableControls;
@@ -1811,7 +1835,7 @@ begin
     (FgdcChooseObject.RecordCount > 0);
 end;
 
-procedure Tgdc_frmG.DeleteChoose(AnID: Integer);
+procedure Tgdc_frmG.DeleteChoose(AnID: TID);
 begin
 
 end;
@@ -1882,7 +1906,6 @@ begin
       IsTree := True
     else
       IsTree := False;
-
 
   gdcLinkChoose.DisableControls;
   gdcChooseObject.DisableControls;
@@ -2062,7 +2085,7 @@ begin
     V := VarArrayCreate([0, FChosenIDInOrder.Count - 1], varVariant);
     for I := 0 to FChosenIDInOrder.Count - 1 do
     begin
-      V[I] := StrToInt(FChosenIDInOrder[I]);
+      V[I] := TID2V(GetTID(FChosenIDInOrder[I]));
     end;
   end else
     V := VarArrayOf([]);
@@ -2420,6 +2443,11 @@ begin
     end;
   finally
   end;
+end;
+
+procedure Tgdc_frmG.actCopyMasterIDToClipboardExecute(Sender: TObject);
+begin
+  Clipboard.AsText := IntToStr(gdcObject.ID);
 end;
 
 procedure Tgdc_frmG.actDistributeSettingsExecute(Sender: TObject);

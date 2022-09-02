@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 {++
 
@@ -32,7 +33,8 @@ uses
   {$ENDIF}
   controls, Graphics, Windows, Classes, Messages, Math, Forms, menus, Sysutils,
   wiz_FunctionsParams_unit, IBSQL, gd_common_functions, Dialogs, clipbrd,
-  wiz_Strings_unit, BtnEdit, AcctUtils, gdcConstants, ActnList, contnrs;
+  wiz_Strings_unit, BtnEdit, AcctUtils, gdcConstants, ActnList, contnrs,
+  gdcBaseInterface;
 
 type
   TBlockSetMember = (bsSimple, bsCycle, bsEntry, bsTax);
@@ -54,8 +56,8 @@ type
     procedure SetBlock(const Value: TVisualBlock); virtual;
     procedure beClick(Sender: TObject; PopupMenu: TPopupMenu);
 
-    function SetAccount(Account: string; out AccountID: Integer): string;
-    function GetAccount(Account: string; AccountId: Integer): string;
+    function SetAccount(Account: string; out AccountID: TID): string;
+    function GetAccount(Account: string; AccountId: TID): string;
   public
     function CheckOk: Boolean; virtual;
     procedure SaveChanges; virtual;
@@ -449,7 +451,7 @@ type
     procedure InitFinalScript; virtual;
     function EditExpression(Expression: string; Sender: TVisualBlock): string; override;
     function CanRun: Boolean; virtual;
-    function CheckAccount(Account: string; var AccountId: Integer): boolean; virtual;
+    function CheckAccount(Account: string; var AccountId: TID): boolean; virtual;
     //Обравотчик события по выбору фикс. значения счета
     function OnClickAccount(var Account: string; var AccountRUID: string): boolean;
 
@@ -590,7 +592,7 @@ type
     function EditExpression(Expression: string; Sender: TVisualBlock): string; override;
     function CanSave: Boolean; override;
     function CanRun: Boolean; override;
-    function CheckAccount(Account: string; var AccountId: Integer): boolean; override;
+    function CheckAccount(Account: string; var AccountId: TID): boolean; override;
     procedure GetVars(const Strings: TStrings); override;
 
     property DocumentRUID: string read FDocumentRUID write SetDocumentRUID;
@@ -934,7 +936,7 @@ type
   private
     FSumCurr: String;
     FSum: String;
-    FCurr: Integer;
+    FCurr: TID;
     FCredit: string;
     FDebit: string;
     FAnalDebit: string;
@@ -951,7 +953,7 @@ type
     procedure SetAnalCredit(const Value: string);
     procedure SetAnalDebit(const Value: string);
     procedure SetCredit(const Value: string);
-    procedure SetCurr(const Value: Integer);
+    procedure SetCurr(const Value: TID);
     procedure SetDebit(const Value: string);
     procedure SetSum(const Value: string);
     procedure SetSumCurr(const Value: string);
@@ -992,7 +994,7 @@ type
     property AnalDebit: string read FAnalDebit write SetAnalDebit;
     property AnalCredit: string read FAnalCredit write SetAnalCredit;
     property Sum: String read FSum write SetSum;
-    property Curr: Integer read FCurr write SetCurr;
+    property Curr: TID read FCurr write SetCurr;
     property SumCurr: String read FSumCurr write SetSumCurr;
     property SumEQ: String read FSumEq write SetSumEq;
     property BeginDate: string read FBeginDate write SetBeginDate;
@@ -1318,7 +1320,7 @@ uses
   wiz_frSelectEditFrame_unit, wiz_frCaseEditFrame_unit, wiz_frDocumentTransactionEditFrame_unit,
   wiz_frSQLCycleEditFrame_unit, wiz_EntryFunctionEditFrame_Unit, wiz_frBalanceOffTrEntry_unit,
   {$ENDIF}
-  wiz_Utils_unit, FlatSB, gdcBaseInterface, Commctrl, wiz_dlgEditForm_unit,
+  wiz_Utils_unit, FlatSB, Commctrl, wiz_dlgEditForm_unit,
   wiz_frEditFrame_unit, gd_directories_const, DB;
 
 const
@@ -1334,6 +1336,7 @@ var
   IncludeList: TStrings;
   _CheckMaster: Boolean;
   BlockList: TList;
+  NoDeleteLast: Boolean;
 
 const
   txNameChars =
@@ -1768,7 +1771,7 @@ procedure GetNameAndValue(const S: string; out Name, Value: string);
 var
   P: Integer;
   V: string;
-  Id: Integer;
+  Id: TID;
 const
   cError = 'Неверный формат аналитики';
 begin
@@ -1782,7 +1785,7 @@ begin
       Value := 'CStr(gdcBaseManager.GetIdByRUIDString("' + V + '"))'
     else
     begin
-      id := StrToIntDef(V, 0);
+      id := GetTID(V, 0);
       if id > 0 then
         Value := V
       else
@@ -3512,34 +3515,18 @@ begin
       S.Add(Format(lS + 'Function %s%s', [FBlockName,  GetParamsString]))
     else
       S.Add(Format(lS + 'Sub %s%s', [FBlockName,  GetParamsString]));
-
-
+  
     Inc(Paragraph, 2);
     try
       _DoBeforeGenerate(S, Paragraph);
 
-      Str := TStringList.Create;
-      try
-        Str.Text := FInitScript;
-        ls := StringOfChar(' ',Paragraph);
-        if Str.Count > 0 then
-        begin
-          S.Add(lS + '''Скрипт инициализации процедуры');
-          for I := 0 to Str.Count -1 do
-          begin
-            S.Add(lS + Str[I]);
-          end;
-        end;
-      finally
-        Str.Free;
-      end;
       inherited DoGenerate(S, Paragraph);
 
       Str := TStringList.Create;
       try
         Str.Text := FFinalScript;
         ls := StringOfChar(' ',Paragraph);
-        if Str.Count > 0 then
+        if Trim(Str.Text) <> '' then
         begin
           S.Add(lS + '''Скрипт финализации процедуры');
           for I := 0 to Str.Count -1 do
@@ -3760,7 +3747,7 @@ begin
 end;
 
 function TFunctionBlock.CheckAccount(Account: string;
-  var AccountId: Integer): boolean;
+  var AccountId: TID): boolean;
 var
   SQL: TIBSQL;
   I: Integer;
@@ -3774,12 +3761,12 @@ begin
       SQL.SQL.Text := Format('SELECT a.id FROM ac_account a JOIN ac_account c ' +
         ' ON c.lb <= a.lb AND c.rb >= c.rb AND c.accounttype = ''C'' WHERE UPPER(a.alias) = ''%s'' '+
         ' AND c.id = %d', [UpperCase(Account),
-        gdcBaseManager.GetIdByRUIDString(MainFunction.CardOfAccountsRUID)]);
+        TID264(gdcBaseManager.GetIdByRUIDString(MainFunction.CardOfAccountsRUID))]);
       SQL.ExecQuery;
       Result := SQL.RecordCount > 0;
       if Result then
       begin
-        AccountId := SQL.Fields[0].AsInteger;
+        AccountId := GetTID(SQL.Fields[0]);
         Exit;
       end;
     finally
@@ -3839,7 +3826,7 @@ function TFunctionBlock.OnClickAccount(var Account: string;
 {$IFDEF GEDEMIN}
 var
   F: TatRelationField;
-  Id: Integer;
+  Id: TID;
 {$ENDIF}
 begin
 {$IFDEF GEDEMIN}
@@ -3859,7 +3846,7 @@ begin
       begin
         ibcbAnalytics.ListTable := 'ac_account z JOIN ac_account c ON c.lb <= z.lb AND c.rb >= z.rb ';
         Condition := Format('c.id = %d AND z.accounttype IN (''A'', ''S'')',
-          [gdcBaseManager.GetIdByRUIDString(MainFunction.CardOfAccountsRUID)]);
+          [TID264(gdcBaseManager.GetIdByRUIDString(MainFunction.CardOfAccountsRUID))]);
       end;
       ibcbAnalytics.ListField := fnAlias;
 
@@ -3870,7 +3857,7 @@ begin
         else
         begin
           try
-            Id := StrToInt(AccountRuid);
+            Id := GetTID(AccountRuid);
           except
             Id := 0;
           end;
@@ -3944,7 +3931,7 @@ begin
 end;
 
 function TdlgBaseEditForm.GetAccount(Account: string;
-  AccountId: Integer): string;
+  AccountId: TID): string;
 begin
   if AccountId > 0 then
     Result := gdcBaseManager.GetRUIDStringById(AccountId)
@@ -3959,7 +3946,7 @@ begin
 end;
 
 function TdlgBaseEditForm.SetAccount(Account: string;
-  out AccountID: Integer): string;
+  out AccountID: TID): string;
 begin
   if CheckRUID(Account) then
     AccountId := gdcBaseManager.GetIDByRUIDString(Account)
@@ -4789,11 +4776,11 @@ begin
     begin
       if Result > '' then Result := Result + '& ", " & ';
   {$IFDEF GEDEMIN}
-      if StrToInt(S[I]) < cstUserIDStart then
+      if GetTID(S[I]) < cstUserIDStart then
         Result := Result + '"' + S[I] + '" '
       else
         Result := Result + '_'#13#10 + lS + 'CStr(gdcBaseManager.GetIdByRUIDString("' +
-          gdcBaseManager.GetRUIDStringByID(StrToInt(S[I])) + '")) ';
+          gdcBaseManager.GetRUIDStringByID(GetTID(S[I])) + '")) ';
     {$ENDIF}
     end;
   finally
@@ -4978,7 +4965,7 @@ begin
   FCredit := Value;
 end;
 
-procedure TEntryBlock.SetCurr(const Value: Integer);
+procedure TEntryBlock.SetCurr(const Value: TID);
 begin
   FCurr := Value;
 end;
@@ -5095,7 +5082,7 @@ const
   var
     P: Integer;
     Name: string;
-    Id: Integer;
+    Id: TID;
   begin
     Result := '';
     P := Pos('.ACCOUNT', UpperCase(Alias));
@@ -5118,7 +5105,7 @@ const
 
           Result := '-1 '' Неправильный РУИД ' + Alias;
         end else if Id < cstUserIDStart then
-          Result := IntToStr(Id)
+          Result := TID2S(Id)
         else
           Result := Format('gdcBaseManager.GetIdByRUIDString("%s")',
             [Alias]);
@@ -5336,30 +5323,33 @@ begin
       S.Add(lS + Format('%s.Post', [gdcSRName]));
 
       S.Add(lS + '');
-      S.Add(lS + '''Заносим информацию во вспомогательную таблицу');
-      S.Add('');
-      S.Add(lS + Format('%s.ParamByName("trrecordkey").AsInteger = TrRecordKey',
-        [SQLName]));
-      S.Add(lS + Format('%s.ParamByName("begindate").AsDateTime = %s',
-        [SQLName, GenerateExpression(BeginDate)]));
-      S.Add(lS + Format('%s.ParamByName("enddate").AsDateTime = %s',
-        [SQLName, GenerateExpression(EndDate)]));
-      S.Add('');
-      S.Add(lS + Format('%s.ParamByName("entrykey").AsInteger = %s.DebitEntryLine.FieldByName("id").AsInteger',
-        [SQLName, gdcSRName]));
-      S.Add(lS + Format('%s.ParamByName("debit").AsInteger = %s',
-        [SQLName, GetAccount(FDebit)]));
-      S.Add(lS + Format('%s.ParamByName("credit").AsInteger = %s',
-        [SQLName, GetAccount(FCredit)]));
+      if not NoDeleteLast then
+      begin
+        S.Add(lS + '''Заносим информацию во вспомогательную таблицу');
+        S.Add('');
+        S.Add(lS + Format('%s.ParamByName("trrecordkey").AsInteger = TrRecordKey',
+          [SQLName]));
+        S.Add(lS + Format('%s.ParamByName("begindate").AsDateTime = %s',
+          [SQLName, GenerateExpression(BeginDate)]));
+        S.Add(lS + Format('%s.ParamByName("enddate").AsDateTime = %s',
+          [SQLName, GenerateExpression(EndDate)]));
+        S.Add('');
+        S.Add(lS + Format('%s.ParamByName("entrykey").AsInteger = %s.DebitEntryLine.FieldByName("id").AsInteger',
+          [SQLName, gdcSRName]));
+        S.Add(lS + Format('%s.ParamByName("debit").AsInteger = %s',
+          [SQLName, GetAccount(FDebit)]));
+        S.Add(lS + Format('%s.ParamByName("credit").AsInteger = %s',
+          [SQLName, GetAccount(FCredit)])); 
 
-      S.Add(lS + 'SimpleRecordSQL.ExecQuery');
-      S.Add(lS + 'SimpleRecordSQL.Close');
+        S.Add(lS + 'SimpleRecordSQL.ExecQuery');
+        S.Add(lS + 'SimpleRecordSQL.Close');
 
-      S.Add(lS + Format('%s.ParamByName("entrykey").AsInteger = %s.CreditEntryLine.FieldByName("id").AsInteger',
-        [SQLName, gdcSRName]));
-      S.Add(lS + 'SimpleRecordSQL.ExecQuery');
-      S.Add(lS + 'SimpleRecordSQL.Close');
-
+  {      S.Add(lS + Format('%s.ParamByName("entrykey").AsInteger = %s.CreditEntryLine.FieldByName("id").AsInteger',
+          [SQLName, gdcSRName]));
+        S.Add(lS + 'SimpleRecordSQL.ExecQuery');
+        S.Add(lS + 'SimpleRecordSQL.Close'); }
+      end;
+      
       if not FSaveEmpty then
       begin
         Dec(Paragraph, 2);
@@ -6440,9 +6430,9 @@ begin
     S.Add(lS + Format('Set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
     S.Add(lS + Format('%s.Transaction = %s', [SQLName, 'Transaction']));
 
-    S.Add(lS + Format('%s.SQL.Text = "execute block (begindate DATE = :begindate, enddate DATE = :enddate, trrecordkey INTEGER = :trrecordkey)" & vbCrLf & _', [SQLName]));
+    S.Add(lS + Format('%s.SQL.Text = "execute block (begindate DATE = :begindate, enddate DATE = :enddate, trrecordkey DINTKEY = :trrecordkey)" & vbCrLf & _', [SQLName]));
     S.Add(lS + '  "as " & vbCrLf & _');
-    S.Add(lS + '  "  declare id integer;" & vbCrLf & _');
+    S.Add(lS + '  "  declare id DINTKEY;" & vbCrLf & _');
     S.Add(lS + '  "begin" & vbCrLf & _');
     S.Add(lS + '  "  for" & vbCrLf & _');
     S.Add(lS + '  "    SELECT e.documentkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey" & vbCrLf & _');
@@ -6474,7 +6464,8 @@ begin
 
   if FStreamVersion > 13 then
   begin
-    FNoDeleteLastResults := ReadBooleanFromStream(Stream)
+    FNoDeleteLastResults := ReadBooleanFromStream(Stream);
+    NoDeleteLast := FNoDeleteLastResults;
   end;
 end;
 
@@ -6565,7 +6556,7 @@ begin
     S.Add(lS + Format('usrg_gdcAcctEntryRegister1.Transaction = %s', ['Transaction']));
     S.Add(lS + Format('usrg_gdcAcctEntryRegister1.ReadTransaction = %s', ['Transaction']));
     S.Add(lS + 'usrg_gdcAcctEntryRegister1.ExtraConditions.Clear');
-    S.Add(lS + 'usrg_gdcAcctEntryRegister1.ExtraConditions.Add("z.delayed = 1 AND r.id IN (SELECT entrykey FROM ac_autoentry WHERE trrecordkey = :trrecordkey)")');
+    S.Add(lS + 'usrg_gdcAcctEntryRegister1.ExtraConditions.Add("z.delayed = 1 AND z.trrecordkey = :trrecordkey")');
     S.Add(lS + 'usrg_gdcAcctEntryRegister1.QueryFiltered = False');
     S.Add(lS + 'usrg_gdcAcctEntryRegister1.ParamByName("trrecordkey").AsInteger = trrecordkey');
     S.Add(lS + 'usrg_gdcAcctEntryRegister1.Open');
@@ -7039,6 +7030,7 @@ end;
 procedure TEntryFunctionBlock.SetNoDeleteLastResults(const Value: Boolean);
 begin
   FNoDeleteLastResults := Value;
+  NoDeleteLast := Value;
 end;
 
 procedure TEntryFunctionBlock.SetTransactionRUID(const Value: string);
@@ -7069,9 +7061,10 @@ begin
       S.Add(lS + 'If Result Then');
       S.Add(lS + Format('  Set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
       S.Add(lS + Format('  %s.Transaction = %s', [SQLName, 'Transaction']));
-      S.Add(lS + Format('  %s.SQL.Text = "execute block (trrecordkey INTEGER = :trrecordkey, begindate DATE = :begindate, enddate DATE = :enddate)" & _', [SQLName]));
+      S.Add(lS + Format('  %s.SQL.Text = "update ac_record set delayed = 0 where delayed = 1 and TRRECORDKEY = :trrecordkey " ', [SQLName]));
+{    S.Add(lS + Format('  %s.SQL.Text = "execute block (trrecordkey DINTKEY = :trrecordkey, begindate DATE = :begindate, enddate DATE = :enddate)" & _', [SQLName]));
       S.Add(lS + '    "as " & _');
-      S.Add(lS + '    "  declare id integer; " & _');
+      S.Add(lS + '    "  declare id DINTKEY; " & _');
       S.Add(lS + '    "begin " & _');
       S.Add(lS + '    "  for " & _');
       S.Add(lS + '    "    SELECT e.recordkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey " & _');
@@ -7081,10 +7074,10 @@ begin
       S.Add(lS + '    "    into :id " & _');
       S.Add(lS + '    "  do " & _');
       S.Add(lS + '    "    UPDATE ac_record SET delayed = 0 WHERE id = :id; " & _');
-      S.Add(lS + '    "end " ');
+      S.Add(lS + '    "end " ');}
       S.Add(lS + Format('  %s.ParamByName("trrecordkey").AsInteger = TrRecordKey', [SQLName]));
-      S.Add(lS + Format('  %s.ParamByName("begindate").AsDateTime = %s', [SQLName, 'BeginDate']));
-      S.Add(lS + Format('  %s.ParamByName("enddate").AsDateTime = %s', [SQLName, 'EndDate']));
+{      S.Add(lS + Format('  %s.ParamByName("begindate").AsDateTime = %s', [SQLName, 'BeginDate']));
+      S.Add(lS + Format('  %s.ParamByName("enddate").AsDateTime = %s', [SQLName, 'EndDate']));}
       S.Add(lS + Format('  %s.ExecQuery', [SQLName]));
       S.Add(lS + Format('  Creator.DestroyObject(%s)', [SQLName]));
       S.Add(lS + 'End If');
@@ -7109,6 +7102,8 @@ procedure TEntryFunctionBlock._DoBeforeGenerate(S: TStrings;
 var
   lS: string;
   BS: TBlockSet;
+  Str: TStringList;
+  I: integer;
 begin
   lS := StringOfChar(' ', Paragraph );
 
@@ -7124,6 +7119,22 @@ begin
 
 
   DoGenearteCallExceptFunction(S, Paragraph);
+
+  Str := TStringList.Create;
+  try
+    Str.Text := FInitScript;
+    ls := StringOfChar(' ',Paragraph);
+    if Trim(Str.Text) <> '' then
+    begin
+      S.Add(lS + '''Скрипт инициализации процедуры');
+      for I := 0 to Str.Count -1 do
+      begin
+        S.Add(lS + Str[I]);
+      end;
+    end;
+  finally
+    Str.Free;
+  end;
 
   if not NoDeleteLastResults then
     DeleteOldEntry(S, Paragraph);
@@ -7211,10 +7222,28 @@ procedure TTrEntryFunctionBlock._DoBeforeGenerate(S: TStrings;
   Paragraph: Integer);
 var
   lS: string;
+  Str: TStringList;
+  I: integer;
 begin
   _CheckMaster := False;
 
   lS := StringOfChar(' ', Paragraph );
+  Str := TStringList.Create;
+  try
+    Str.Text := FInitScript;
+    lS := StringOfChar(' ',Paragraph);
+    if Trim(Str.Text) <> '' then
+    begin
+      S.Add(lS + '''Скрипт инициализации процедуры');
+      for I := 0 to Str.Count -1 do
+      begin
+        S.Add(lS + Str[I]);
+      end;
+    end;
+  finally
+    Str.Free;
+  end;
+
   S.Add(lS + 'Dim IsZero, Result, BeginDate, EndDate, EntryDate, Transaction, Creator');
   S.Add(lS + '');
   S.Add(lS + 'IsZero = True');
@@ -7436,7 +7465,7 @@ begin
 end;
 
 function TTrEntryFunctionBlock.CheckAccount(Account: string;
-  var AccountId: Integer): boolean;
+  var AccountId: TID): boolean;
 {$IFDEF GEDEMIN}
 var
   I: Integer;
@@ -7521,7 +7550,7 @@ begin
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
       SQl.SQl.Text := 'SELECT offbalance FROM ac_account WHERE id = :id';
-      SQL.ParamByName(fnId).AsInteger := gdcBaseManager.GetIdByRuidString(Account);
+      SetTID(SQL.ParamByName(fnId), gdcBaseManager.GetIdByRuidString(Account));
       SQl.ExecQuery;
       Result := SQL.Fields[0].AsInteger > 0;
     finally
@@ -9156,7 +9185,8 @@ initialization
   BlockList := TList.Create;
   NameList := TStringList.Create;
   IncludeList := TStringList.Create;
-  
+  NoDeleteLast := False;
+
 finalization
   BlockList.Free;
   NameList.Free;

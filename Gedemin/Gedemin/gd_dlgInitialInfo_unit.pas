@@ -1,3 +1,5 @@
+// ShlTanya, 08.03.2019
+
 unit gd_dlgInitialInfo_unit;
 
 interface
@@ -103,7 +105,7 @@ implementation
 {$R *.DFM}
 
 uses
-  AcctUtils, gd_security, gd_common_functions;
+  AcctUtils, gd_security, gd_common_functions, gdcBaseInterface;
 
 procedure Tgd_dlgInitialInfo.actOkExecute(Sender: TObject);
 
@@ -116,7 +118,7 @@ procedure Tgd_dlgInitialInfo.actOkExecute(Sender: TObject);
   end;
 
 var
-  UserID, AccID: Integer;
+  UserID, AccID: TID;
   SL: TStringList;
 begin
   ibtr.StartTransaction;
@@ -131,13 +133,13 @@ begin
 
       gdcCompany.Open;
       gdcCompany.Insert;
-      gdcCompany.FieldByName('parent').AsInteger := 650001;
+      SetTID(gdcCompany.FieldByName('parent'), 650001);
       SetFieldValue(gdcCompany.FieldByName('name'), edName.Text, '<Название не указано>');
       gdcCompany.FieldByName('fullname').AsString := gdcCompany.FieldByName('name').AsString;
       SetFieldValue(gdcCompany.FieldByName('phone'), edPhone.Text, '<Номер не указан>');
       SetFieldValue(gdcCompany.FieldByName('taxid'), edTaxID.Text, '<УНП не указан>');
       if not q.EOF then
-        gdcCompany.FieldByName('placekey').AsInteger := q.FieldByName('id').AsInteger;
+        SetTID(gdcCompany.FieldByName('placekey'), q.FieldByName('id'));
       SetFieldValue(gdcCompany.FieldByName('zip'), edZip.Text, '<Индекс не указан>');
       SetFieldValue(gdcCompany.FieldByName('country'), cbCountry.Text, '<Не указано>');
       SetFieldValue(gdcCompany.FieldByName('district'), edDistrict.Text, '<Не указано>');
@@ -148,7 +150,7 @@ begin
 
       gdcDepartment.Open;
       gdcDepartment.Insert;
-      gdcDepartment.FieldByName('parent').AsInteger := gdcCompany.ID;
+      SetTID(gdcDepartment.FieldByName('parent'), gdcCompany.ID);
       gdcDepartment.FieldByName('name').AsString := 'Офис';
       gdcDepartment.Post;
 
@@ -162,7 +164,7 @@ begin
             ' ', #13#10, [rfReplaceAll]);
 
         gdcEmployee.Insert;
-        gdcEmployee.FieldByName('parent').AsInteger := gdcDepartment.ID;
+        SetTID(gdcEmployee.FieldByName('parent'), gdcDepartment.ID);
         SetFieldValue(gdcEmployee.FieldByName('surname'), SL[0], '');
         if SL.Count > 1 then
           SetFieldValue(gdcEmployee.FieldByName('firstname'), SL[1], '');
@@ -171,7 +173,7 @@ begin
         gdcEmployee.Post;
 
         gdcCompany.Edit;
-        gdcCompany.FieldByName('directorkey').AsInteger := gdcEmployee.ID;
+        SetTID(gdcCompany.FieldByName('directorkey'), gdcEmployee.ID);
         gdcCompany.Post;
       end;
 
@@ -183,7 +185,7 @@ begin
             ' ', #13#10, [rfReplaceAll]);
 
         gdcEmployee.Insert;
-        gdcEmployee.FieldByName('parent').AsInteger := gdcDepartment.ID;
+        SetTID(gdcEmployee.FieldByName('parent'), gdcDepartment.ID);
         SetFieldValue(gdcEmployee.FieldByName('surname'), SL[0], '');
         if SL.Count > 1 then
           SetFieldValue(gdcEmployee.FieldByName('firstname'), SL[1], '');
@@ -192,7 +194,7 @@ begin
         gdcEmployee.Post;
 
         gdcCompany.Edit;
-        gdcCompany.FieldByName('chiefaccountantkey').AsInteger := gdcEmployee.ID;
+        SetTID(gdcCompany.FieldByName('chiefaccountantkey'), gdcEmployee.ID);
         gdcCompany.Post;
       end;
 
@@ -211,10 +213,10 @@ begin
           q.ExecQuery;
 
           if not q.EOF then
-            UserID := q.FieldByName('contactkey').AsInteger
+            UserID := GetTID(q.FieldByName('contactkey'))
           else begin
             gdcEmployee.Insert;
-            gdcEmployee.FieldByName('parent').AsInteger := gdcDepartment.ID;
+            SetTID(gdcEmployee.FieldByName('parent'), gdcDepartment.ID);
             SetFieldValue(gdcEmployee.FieldByName('surname'), SL[0], '');
             if SL.Count > 1 then
               SetFieldValue(gdcEmployee.FieldByName('firstname'), SL[1], '');
@@ -230,7 +232,7 @@ begin
         gdcUser.Insert;
         SetFieldValue(gdcUser.FieldByName('name'), Trim(edLogin.Text), '');
         SetFieldValue(gdcUser.FieldByName('passw'), edPassword.Text, '');
-        gdcUser.FieldByName('contactkey').AsInteger := UserID;
+        SetTID(gdcUser.FieldByName('contactkey'), UserID);
         gdcUser.Post;
       end;
 
@@ -245,7 +247,7 @@ begin
 
         if not q.EOF then
         begin
-          gdcBank.ID := q.FieldByName('bankkey').AsInteger;
+          gdcBank.ID := GetTID(q.FieldByName('bankkey'));
           gdcBank.Open;
           if gdcBank.EOF then
             gdcBank.Insert
@@ -269,11 +271,11 @@ begin
         q.ParamByName('N').AsString := AnsiUpperCase(cbBankCountry.Text);
         q.ExecQuery;
 
-        gdcBank.FieldByName('parent').AsInteger := 650001;
+        SetTID(gdcBank.FieldByName('parent'), 650001);
         SetFieldValue(gdcBank.FieldByName('name'), edBankName.Text, '<Название не указано>');
         gdcBank.FieldByName('fullname').AsString := gdcBank.FieldByName('name').AsString;
         if not q.EOF then
-          gdcBank.FieldByName('placekey').AsInteger := q.FieldByName('id').AsInteger;
+          SetTID(gdcBank.FieldByName('placekey'), q.FieldByName('id'));
         SetFieldValue(gdcBank.FieldByName('zip'), edBankZip.Text, '<Индекс не указан>');
         SetFieldValue(gdcBank.FieldByName('country'), cbBankCountry.Text, '<Не указано>');
         SetFieldValue(gdcBank.FieldByName('district'), edBankDistrict.Text, '<Не указано>');
@@ -286,15 +288,15 @@ begin
         begin
           gdcAccount.Open;
           gdcAccount.Insert;
-          gdcAccount.FieldByName('companykey').AsInteger := gdcCompany.ID;
-          gdcAccount.FieldByName('bankkey').AsInteger := gdcBank.ID;
+          SetTID(gdcAccount.FieldByName('companykey'), gdcCompany.ID);
+          SetTID(gdcAccount.FieldByName('bankkey'), gdcBank.ID);
           gdcAccount.FieldByName('account').AsString := Trim(edAccount.Text);
           if iblkupCurr.CurrentKey > '' then
-            gdcAccount.FieldByName('currkey').AsInteger := iblkupCurr.CurrentKeyInt;
+            SetTID(gdcAccount.FieldByName('currkey'), iblkupCurr.CurrentKeyInt);
           gdcAccount.Post;
 
           gdcCompany.Edit;
-          gdcCompany.FieldByName('companyaccountkey').AsInteger := gdcAccount.ID;
+          SetTID(gdcCompany.FieldByName('companyaccountkey'), gdcAccount.ID);
           gdcCompany.Post;
         end;
 
@@ -302,7 +304,7 @@ begin
         begin
           q.Close;
           q.SQL.Text := 'UPDATE gd_curr SET isncu = 1 WHERE id = :ID';
-          q.ParamByName('ID').AsInteger := iblkupCurr.CurrentKeyInt;
+          SetTID(q.ParamByName('ID'), iblkupCurr.CurrentKeyInt);
           q.ExecQuery;
           ResetNCUCache;
         end;
@@ -310,7 +312,7 @@ begin
 
       q.Close;
       q.SQL.Text :=
-        'EXECUTE BLOCK (oldk INTEGER = :oldk, newk INTEGER = :newk)'#13#10 +
+        'EXECUTE BLOCK (oldk DINTKEY = :oldk, newk DINTKEY = :newk)'#13#10 +
         'AS'#13#10 +
         '  DECLARE VARIABLE S VARCHAR(1024);'#13#10 +
         'BEGIN'#13#10 +
@@ -338,8 +340,8 @@ begin
         '    EXECUTE STATEMENT :S;'#13#10 +
         '  END'#13#10 +
         'END';
-      q.ParamByName('oldk').AsInteger := IBLogin.CompanyKey;
-      q.ParamByName('newk').AsInteger := gdcCompany.ID;
+      SetTID(q.ParamByName('oldk'), IBLogin.CompanyKey);
+      SetTID(q.ParamByName('newk'), gdcCompany.ID);
       q.ExecQuery;
 
       q.SQL.Text := 'UPDATE gd_contact SET disabled = 1 WHERE id IN (650002, 650010, 650015)';
@@ -349,14 +351,14 @@ begin
       q.ExecQuery;
       if not q.EOF then
       begin
-        AccID := q.FieldByName('id').AsInteger;
+        AccID := GetTID(q.FieldByName('id'));
 
         q.Close;
         q.SQL.Text :=
           'UPDATE OR INSERT INTO ac_companyaccount (accountkey, companykey, isactive) ' +
           'VALUES (:ac, :ck, 1) MATCHING (accountkey)';
-        q.ParamByName('ac').AsInteger := AccID;
-        q.ParamByName('ck').AsInteger := gdcCompany.ID;
+        SetTID(q.ParamByName('ac'), AccID);
+        SetTID(q.ParamByName('ck'), gdcCompany.ID);
         q.ExecQuery;
       end;
 
@@ -365,7 +367,7 @@ begin
 
       ibtr.StartTransaction;
       q.SQL.Text := 'DELETE FROM gd_ourcompany WHERE companykey = :CK';
-      q.ParamByName('CK').AsInteger := IBLogin.CompanyKey;
+      SetTID(q.ParamByName('CK'), IBLogin.CompanyKey);
       q.ExecQuery;
       ibtr.Commit;
 

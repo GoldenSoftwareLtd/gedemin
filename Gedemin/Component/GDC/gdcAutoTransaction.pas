@@ -1,3 +1,5 @@
+// ShlTanya, 09.02.2019
+
 unit gdcAutoTransaction;
 
 interface
@@ -146,10 +148,10 @@ begin
       gdcExplorer.Transaction := Transaction;
       gdcExplorer.ReadTransaction := ReadTransaction;
       gdcExplorer.SubSet := 'ByID';
-      gdcExplorer.Id := SQL.FieldByName(fnId).AsInteger;
+      gdcExplorer.Id := GetTID(SQL.FieldByName(fnId));
       gdcExplorer.Open;
       gdcExplorer.Edit;
-      gdcExplorer.FieldByName(fnParent).AsInteger := FieldByName(fnFolderKey).AsInteger;
+      SetTID(gdcExplorer.FieldByName(fnParent), FieldByName(fnFolderKey));
       gdcExplorer.FieldByName(fnName).AsString := FieldByName(fnDescription).AsString;
       gdcExplorer.FieldByName(fnCmd).AsString := FunctionRUID;
       gdcExplorer.FieldByName(fnCmdType).AsInteger := cst_expl_cmdtype_function;
@@ -170,7 +172,7 @@ procedure TgdcAutoTrRecord.CustomDelete(Buff: Pointer);
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
 var
-  FunctionKey: Integer;
+  FunctionKey: TID;
   gdcFunction: TgdcFunction;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCAUTOTRRECORD', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
@@ -194,7 +196,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  FunctionKey := FieldByName('functionkey').AsInteger;
+  FunctionKey := GetTID(FieldByName('functionkey'));
 
   CustomExecQuery(
     'DELETE FROM ac_autotrrecord ' +
@@ -329,7 +331,7 @@ var
   SQL: TIBSQL;
   gdcExplorer: TgdcExplorer;
 begin
-  if FieldByName('functionkey').AsInteger > 0 then
+  if GetTID(FieldByName('functionkey')) > 0 then
   begin
     SQL := TIBSQL.Create(nil);
     try
@@ -342,7 +344,7 @@ begin
         gdcExplorer.Transaction := Transaction;
         gdcExplorer.ReadTransaction := ReadTransaction;
         gdcExplorer.SubSet := 'ByID';
-        gdcExplorer.Id := SQL.FieldByName(fnId).AsInteger;
+        gdcExplorer.Id := GetTID(SQL.FieldByName(fnId));
         gdcExplorer.Open;
         if not gdcExplorer.Eof then
           gdcExplorer.Delete;
@@ -392,7 +394,7 @@ begin
   else
   begin
     if (FieldByName(fnShowInexplorer).AsInteger = 1) and
-      (FieldByName(fnFolderkey).AsInteger > 0)
+      (GetTID(FieldByName(fnFolderkey)) > 0)
     then
       CreateCommand
     else
@@ -409,8 +411,8 @@ end;
 
 function TgdcAutoTrRecord.FunctionRUID: String;
 begin
-  if FieldByname(fnFunctionkey).AsInteger > 0 then
-    Result := gdcBaseManager.GetRUIDStringByID(FieldByName(fnFunctionkey).AsInteger, Transaction)
+  if GetTID(FieldByname(fnFunctionkey)) > 0 then
+    Result := gdcBaseManager.GetRUIDStringByID(GetTID(FieldByName(fnFunctionkey)), Transaction)
   else
     Result := '';  
 end;

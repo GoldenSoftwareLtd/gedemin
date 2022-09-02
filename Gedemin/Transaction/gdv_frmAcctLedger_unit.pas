@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_frmAcctLedger_unit;
 
 interface
@@ -157,6 +159,7 @@ begin
   inherited;
   FNeedUpdateControls:= True;
   UpdateControls;
+  frAcctAnalyticsGroup.Context := Name;
   frAcctAnalyticsGroup.OnSelect := OnAnalyticGroupSelect;
   OnAnalyticGroupSelect(frAcctAnalyticsGroup);
 end;
@@ -685,6 +688,7 @@ begin
         begin
           DateBegin := dtBegin;
           DateEnd := dtEnd;
+          ActiveControl := ibgrMain;
 
           Show;
           Execute(C);
@@ -695,6 +699,7 @@ begin
         begin
           DateBegin := dtBegin;
           DateEnd := dtEnd;
+          ActiveControl := ibgrMain;
 
           Show;
           Execute(C);
@@ -757,7 +762,7 @@ begin
       AnalyticFilter := ' AND '#13#10 + AnalyticFilter + #13#10;
 
     if frAcctSum.InCurr and (frAcctSum.CurrKey > 0) then
-      CurrId := Format('  AND e.currkey = %d'#13#10, [frAcctSum.CurrKey])
+      CurrId := Format('  AND e.currkey = %d'#13#10, [TID264(frAcctSum.CurrKey)])
     else
       CurrId := '';
 
@@ -950,7 +955,7 @@ begin
 
       AccountKeys := '';
       if FAccountIDs.Count > 0 then
-        AccountKeys := IDList(FAccountIDs)
+        AccountKeys := IDList(FAccountIDs, Name)
       else
         AccountKeys := GetAccounts;
 
@@ -1730,6 +1735,7 @@ begin
   inherited;
   CheckShowCorrSubAccount;
 end;
+
 
 initialization
   RegisterFrmClass(Tgdv_frmAcctLedger);

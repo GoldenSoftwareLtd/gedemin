@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgAddGoodGroup_unit;
 
 interface
@@ -62,21 +64,21 @@ begin
     // Инициализация Д.О.
     // Проверка на режим. Если редактирование
     ibqryGroup.Insert;
-    ibqryGroup.FieldByName('id').AsInteger := GenUniqueID;
+    SetTID(ibqryGroup.FieldByName('id'), GenUniqueID);
     ibqryGroup.FieldByName('disabled').AsInteger := 0;
     ibqryGroup.FieldByName('lb').Required := False;
     ibqryGroup.FieldByName('rb').Required := False;
-    ibqryGroup.FieldByName('afull').AsInteger := GroupData.AFull;
+    ibqryGroup.FieldByName('afull').AsInteger := GroupData.AFull
     ibqryGroup.FieldByName('achag').AsInteger := GroupData.AChag;
     ibqryGroup.FieldByName('aview').AsInteger := GroupData.AView;
 
     if GroupData.GroupKey <> 0 then
-      ibqryGroup.FieldByName('parent').AsInteger := GroupData.GroupKey;
+      SetTID(ibqryGroup.FieldByName('parent'), GroupData.GroupKey);
 
     if ShowModal = mrOk then
     try
       ibqryGroup.Post;
-      GroupData.GroupKey := ibqryGroup.FieldByName('id').AsInteger;
+      GroupData.GroupKey := GetTID(ibqryGroup.FieldByName('id'));
       GroupData.Name := ibqryGroup.FieldByName('name').AsString;
       GroupData.AFull := ibqryGroup.FieldByName('afull').AsInteger;
       GroupData.AChag := ibqryGroup.FieldByName('achag').AsInteger;
@@ -114,7 +116,7 @@ begin
       ibtrGroup.StartTransaction;
     // Вытягиваем запись
     ibqryGroup.Close;
-    ibqryGroup.ParamByName('id').AsInteger := GroupData.GroupKey;
+    SetTID(ibqryGroup.ParamByName('id'), GroupData.GroupKey);
     ibqryGroup.Open;
     // Установка возможности редактирования группы товаров
     ibqryGroup.Edit;

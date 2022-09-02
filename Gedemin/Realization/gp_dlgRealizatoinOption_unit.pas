@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019
+
 unit gp_dlgRealizatoinOption_unit;
 
 interface
@@ -25,13 +27,6 @@ type
     cbAutoMakeTransaction: TCheckBox;
     cbCheckNumber: TCheckBox;
     ibdsDocRealPosOption: TIBDataSet;
-    ibdsDocRealPosOptionFIELDNAME: TIBStringField;
-    ibdsDocRealPosOptionNAME: TIBStringField;
-    ibdsDocRealPosOptionINCLUDETAX: TSmallintField;
-    ibdsDocRealPosOptionISCURRENCY: TSmallintField;
-    ibdsDocRealPosOptionROUNDING: TIBBCDField;
-    ibdsDocRealPosOptionEXPRESSION: TIBStringField;
-    ibdsDocRealPosOptionTAXKEY: TIntegerField;
     dsDocRealPosOption: TDataSource;
     IBTransaction: TIBTransaction;
     dsGroup: TDataSource;
@@ -42,10 +37,8 @@ type
     gsiblcTax: TgsIBLookupComboBox;
     dbcbIncludeTax: TDBCheckBox;
     dbcbIsCurrency: TDBCheckBox;
-    ibdsDocRealPosOptionRELATIONNAME: TIBStringField;
     gsiblcRelationName: TgsIBLookupComboBox;
     gsiblcFieldName: TgsIBLookupComboBox;
-    ibdsDocRealPosOptionRATE: TIBBCDField;
     tsPrint: TTabSheet;
     Label4: TLabel;
     sgrGroupSelect: TStringGrid;
@@ -159,7 +152,8 @@ end;
 
 procedure TdlgRealizatoinOption.SetupDialog;
 var
-  GroupKey, i, j: Integer;
+  GroupKey: TID;
+  i, j: Integer;
   F: TgsStorageFolder;
   GK, LB, RB, Dist: Integer;
   ibsql: TIBSQL;
@@ -190,7 +184,7 @@ begin
     F := GlobalStorage.OpenFolder('realzaitionoption');
     with F do
     try
-      gsiblcValue.CurrentKey := IntToStr(ReadInteger('weightkey', 0));
+      gsiblcValue.CurrentKey := TID22S(ReadInteger('weightkey', 0));
       cbPriceWithContact.Checked := ReadInteger('pricewithcontact', 0) = 1;
       cbMakeEntryOnSave.Checked := ReadInteger('makeentryonsave', 0) = 1;
       cbAutoMakeTransaction.Checked := ReadInteger('automaketransaction', 0) = 1;
@@ -259,7 +253,7 @@ begin
   with F do
   try
     if gsiblcValue.CurrentKey > '' then
-      WriteInteger('weightkey', StrToInt(gsiblcValue.CurrentKey))
+      WriteInteger('weightkey', GetTID(gsiblcValue.CurrentKey))
     else
       WriteInteger('weightkey', 0);
     WriteInteger('pricewithcontact', Integer(cbPriceWithContact.Checked));
@@ -415,7 +409,8 @@ end;
 procedure TdlgRealizatoinOption.ReadPrintGroup;
 var
   i, CountGroup: Integer;
-  GroupKey, Seq: Integer;
+  GroupKey: TID;
+  Seq: Integer;
   NameGroup, Variable: String;
   ibsql: TIBSQL;
   F: TgsStorageFolder;
@@ -438,7 +433,7 @@ begin
           Seq := ReadInteger(Format('printgroupseq%d', [i]), 0);
           Variable := ReadString(Format('printgroupvariable%d', [i]), '');
 
-          ibsql.ParamByName('gk').AsInteger := GroupKey;
+          SetTID(ibsql.ParamByName('gk'), GroupKey);
           ibsql.ExecQuery;
           if ibsql.RecordCount = 1 then
             NameGroup := ibsql.Fields[0].AsString
@@ -541,7 +536,8 @@ end;
 procedure TdlgRealizatoinOption.SaveNaturalLossInfo;
 var
   i, j, Dist: Integer;
-  RB, LB, GK: Integer;
+  RB, LB: Integer;
+  GK: TID;
   S: String;
   F: TgsStorageFolder;
 begin
@@ -563,7 +559,7 @@ begin
     for i:= 1 to sgNaturalLoss.RowCount - 1 do
     begin
       S := LossGroupList[i - 1];
-      GK := StrToInt(copy(S, 1, Pos(';', S) - 1));
+      GK := GetTID(copy(S, 1, Pos(';', S) - 1));
       WriteInteger(Format('lossgroupkey%d', [i]), GK);
       S := copy(S, Pos(';', S) + 1, Length(S));
       LB := StrToInt(copy(S, 1, Pos(';', S) - 1));

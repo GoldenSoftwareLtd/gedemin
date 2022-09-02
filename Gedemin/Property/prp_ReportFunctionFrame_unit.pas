@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019, #4135
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -63,7 +65,7 @@ type
     function GetCanPrepare: Boolean; override;
     procedure DoOnCreate; override;
     procedure GetNamesList(const SL: TStrings); override;
-    function GetReportId: Integer;
+    function GetReportId: TID;
 
     procedure SetUseInReport;
 
@@ -134,12 +136,12 @@ begin
     SQL.SQl.Text := 'SELECT ' + fnName + ', ' + fnId + ' FROM gd_function WHERE module = :module and ' +
       ' modulecode = :modulecode';
     SQL.Params[0].AsString := GetModule;
-    SQL.Params[1].AsInteger := gdcFunction.FieldByName(fnModuleCode).AsInteger;
+    SetTID(SQL.Params[1], gdcFunction.FieldByName(fnModuleCode));
     SQL.ExecQuery;
     while not SQl.Eof do
     begin
       SL.AddObject(SQL.FieldByName(fnName).AsString,
-        Pointer(SQL.FieldByName(fnId).AsInteger));
+        TID2Pointer(GetTID(SQL.FieldByName(fnId)), Name));
       SQL.Next;
     end;
   finally
@@ -147,11 +149,11 @@ begin
   end;
 end;
 
-function TReportFunctionFrame.GetReportId: Integer;
+function TReportFunctionFrame.GetReportId: TID;
 begin
   Result := - 1;
   if gdcFunction.MasterSource <> nil then
-    Result := gdcFunction.MasterSource.DataSet.FieldByName(fnId).AsInteger;
+    Result := GetTID(gdcFunction.MasterSource.DataSet.FieldByName(fnId));
 end;
 
 procedure TReportFunctionFrame.gdcFunctionAfterOpen(DataSet: TDataSet);
@@ -192,18 +194,18 @@ begin
       '   or paramformulakey = :fk ' +
       '   or eventformulakey = :fk ';
 
-    ibsql.ParamByName('fk').AsInteger := gdcFunction.ID;
+    SetTID(ibsql.ParamByName('fk'), gdcFunction.ID);
     ibsql.ExecQuery;
 
     lbReport.Sorted := False;
     while not ibsql.EOF do
     begin
-      if ibsql.FieldByName('id').AsInteger = GetReportID then
+      if GetTID(ibsql.FieldByName('id')) = GetReportID then
         lbReport.Items.AddObject(cst_prp_Current,
-          Pointer(ibsql.FieldByName('id').AsInteger))
+          TID2Pointer(GetTID(ibsql.FieldByName('id')), Name))
       else
         lbReport.Items.AddObject(ibsql.FieldByName('name').AsString,
-          Pointer(ibsql.FieldByName('id').AsInteger));
+          TID2Pointer(GetTID(ibsql.FieldByName('id')), Name));
       ibsql.Next;
     end;
     lbReport.Sorted := True;
@@ -216,9 +218,9 @@ procedure TReportFunctionFrame.lbReportDblClick(Sender: TObject);
 begin
   if lbReport.Items.Count > 0 then
   begin
-    if Integer(lbReport.Items.Objects[lbReport.ItemIndex]) = GetReportId then Exit;
+    if GetTID(lbReport.Items.Objects[lbReport.ItemIndex], Name) = GetReportId then Exit;
     TfrmGedeminProperty(GetParentForm(Self)).EditReport(
-      Integer(lbReport.Items.Objects[lbReport.ItemIndex]));
+      GetTID(lbReport.Items.Objects[lbReport.ItemIndex], Name));
   end;
 end;
 

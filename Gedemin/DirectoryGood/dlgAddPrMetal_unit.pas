@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgAddPrMetal_unit;
 
 interface
@@ -20,9 +22,9 @@ type
     { Private declarations }
   public
     { Public declarations }
-    function AddPrMetal(var PrMetalKey: Integer): Boolean;
-    function EditPrMetal(const PrMetalKey: Integer): Boolean;
-    function DeletePrMetal(const PrMetalKey: Integer): Boolean;
+    function AddPrMetal(var PrMetalKey: TID): Boolean;
+    function EditPrMetal(const PrMetalKey: TID): Boolean;
+    function DeletePrMetal(const PrMetalKey: TID): Boolean;
   end;
 
 var
@@ -34,7 +36,7 @@ uses gd_security_OperationConst;
 
 {$R *.DFM}
 
-function TdlgAddPrMetal.AddPrMetal(var PrMetalKey: Integer): Boolean;
+function TdlgAddPrMetal.AddPrMetal(var PrMetalKey: TID): Boolean;
 begin
   Result := False;
   try
@@ -53,8 +55,8 @@ begin
 
     ibqryPrMetalID.Close;
     ibqryPrMetalID.Open;
-    ibqryEditPrMetal.FieldByName('id').AsInteger := ibqryPrMetalID.Fields[0].AsInteger;
-    PrMetalKey := ibqryPrMetalID.Fields[0].AsInteger;
+    SetTID(ibqryEditPrMetal.FieldByName('id'), ibqryPrMetalID.Fields[0]);
+    PrMetalKey := GetTID(ibqryPrMetalID.Fields[0]);
 
     if ShowModal = mrOk then
     try
@@ -84,7 +86,7 @@ begin
   end;
 end;
 
-function TdlgAddPrMetal.EditPrMetal(const PrMetalKey: Integer): Boolean;
+function TdlgAddPrMetal.EditPrMetal(const PrMetalKey: TID): Boolean;
 begin
   Result := False;
   try
@@ -99,7 +101,7 @@ begin
     end;
 
     ibqryEditPrMetal.Close;
-    ibqryEditPrMetal.Params[0].AsInteger := PrMetalKey;
+    SetTID(ibqryEditPrMetal.Params[0], PrMetalKey);
     ibqryEditPrMetal.Open;
     ibqryEditPrMetal.Edit;
 
@@ -131,7 +133,7 @@ begin
   end;
 end;
 
-function TdlgAddPrMetal.DeletePrMetal(const PrMetalKey: Integer): Boolean;
+function TdlgAddPrMetal.DeletePrMetal(const PrMetalKey: TID): Boolean;
 var
   OldName: String;
 begin
@@ -152,7 +154,7 @@ begin
      'Внимание', MB_YESNO or MB_ICONQUESTION) = IDYES) then
     begin
       ibqryEditPrMetal.Close;
-      ibqryEditPrMetal.Params[0].AsInteger := PrMetalKey;
+      SetTID(ibqryEditPrMetal.Params[0], PrMetalKey);
       ibqryEditPrMetal.Open;
       OldName := ibqryEditPrMetal.FieldByName('name').AsString;
       try

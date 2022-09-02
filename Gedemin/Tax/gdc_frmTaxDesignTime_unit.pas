@@ -1,3 +1,5 @@
+// ShlTanya, 12.03.2019
+
 {++
 
 
@@ -102,10 +104,10 @@ procedure Tgdc_frmTaxDesignTime.actCalculateExecute(Sender: TObject);
 var
 //  EDate: TDate;
   IBSQL: TIBSQL;
-  TaxNameKey: Integer;
+  TaxNameKey: TID;
   ResultExist: Boolean;
   TaxIndex: Integer;
-  TypeKey, TaxActualKey: Integer;
+  TypeKey, TaxActualKey: TID;
   Params, Results: Variant;
 begin
   if ScriptFactory = nil then
@@ -138,7 +140,7 @@ begin
       gdcTaxName.First;
       for TaxIndex := 0 to ibgrTax.CheckBox.CheckList.Count - 1 do
       begin
-        TaxNameKey := StrToInt(ibgrTax.CheckBox.CheckList[TaxIndex]);
+        TaxNameKey := GetTID(ibgrTax.CheckBox.CheckList[TaxIndex]);
 
         IBSQL.Close;
         IBSQL.SQL.Text :=
@@ -149,20 +151,20 @@ begin
           'ORDER BY ' +
           '  ta.actualdate  DESC';
         IBSQL.ParamByName('eperiod').AsDate := EPeriod;
-        IBSQL.ParamByName('taxnameid').AsInteger := TaxNameKey;
+        SetTID(IBSQL.ParamByName('taxnameid'), TaxNameKey);
 
         IBSQL.ExecQuery;
-        if IBSQL.Eof or (IBSQL.FieldByName('typekey').AsInteger <> TypeKey) then
+        if IBSQL.Eof or (GetTID(IBSQL.FieldByName('typekey')) <> TypeKey) then
           Continue;
 
         FActDate := IBSQL.FieldByName('actualdate').AsDateTime;
-        TaxActualKey := IBSQL.FieldByName('id').AsInteger;
+        TaxActualKey := GetTID(IBSQL.FieldByName('id'));
         IBSQL.Close;
         IBSQL.SQL.Text :=
           'SELECT tr.functionkey ' +
           'FROM gd_taxactual ta LEFT JOIN ac_trrecord tr ON tr.id = ta.trrecordkey ' +
           'WHERE ta.id = :taxactualkey ';
-        IBSQL.ParamByName('taxactualkey').AsInteger := TaxActualKey;
+        SetTID(IBSQL.ParamByName('taxactualkey'), TaxActualKey);
         IBSQL.ExecQuery;
         if IBSQL.RecordCount > 0 then
         begin
@@ -172,7 +174,7 @@ begin
             Params := VarArrayOf([VarAsType(BPeriod, varDate), VarAsType(EPeriod, varDate)]);
           Results := VarArrayOf([]);
           try
-            ScriptFactory.ExecuteFunction(IBSQL.FieldByName('functionkey').AsInteger, Params, Results);
+            ScriptFactory.ExecuteFunction(GetTID(IBSQL.FieldByName('functionkey')), Params, Results);
             ResultExist := True;
           except
             ResultExist := False;

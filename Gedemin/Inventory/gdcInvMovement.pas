@@ -1,4 +1,4 @@
-
+// ShlTanya, 07.10.2019
 {++
 
   Copyright (c) 2001-2015 by Golden Software of Belarus
@@ -49,7 +49,7 @@ const
 type
 // Структура для хранения выбранных карточек
   TgdcChooseCard = record
-    ccCardKey: Integer;                            // Код карточки
+    ccCardKey: TID;                            // Код карточки
     ccQuantity: Currency;                          // Количество
   end;
 
@@ -57,7 +57,9 @@ type
   TgdcInvCardFeature = record
     optFieldName: String;                          // Наименование поля атрибутов
     optValue: Variant;                             // Значение атрибута
-    isInteger: Boolean;
+    optID: TID;
+    isID: Boolean;
+    isNull: Boolean;
   end;
 
   TgdcArrInvFeatures = array of TgdcInvCardFeature;
@@ -65,14 +67,14 @@ type
 // Структура для хранения значений карточки
 //  PgdcCardValue = ^TgdcCardValue;
   TgdcCardValue = record
-    cvalFirstDocumentKey: Integer;                   // Код первого движения
-    cvalDocumentKey: Integer;                        // Код движения, который создал карточку
+    cvalFirstDocumentKey: TID;                   // Код первого движения
+    cvalDocumentKey: TID;                        // Код движения, который создал карточку
     cvalFirstDate: TDate;                            // Дата первого появления карточки
-    cvalCardKey: Integer;                            // Код карточки
-    cvalGoodKey: Integer;                            // Код товара
+    cvalCardKey: TID;                            // Код карточки
+    cvalGoodKey: TID;                            // Код товара
     cvalQuantity: Currency;                          // Количество
     cvalQuantPack: Currency;                         // Количество упаковок
-    cvalContactKey: Integer;                         // Контакт
+    cvalContactKey: TID;                         // Контакт
     cvalInvCardFeatures: array of TgdcInvCardFeature;  // Список атрибутов карточки
   end;
 
@@ -81,13 +83,13 @@ type
 
 // Структура для хранения значений позиций документа
   TgdcInvPosition = record
-    ipDocumentKey: Integer;                        // Код позиции документа
+    ipDocumentKey: TID;                        // Код позиции документа
     ipDocumentDate: TDate;                         // Дата движения
-    ipGoodKey: Integer;                            // Код товара
+    ipGoodKey: TID;                            // Код товара
     ipQuantity: Currency;                          // Количество
-    ipBaseCardKey: Integer;                        // Базовая карточка
-    ipSourceContactKey: Integer;                   // Контакт источник
-    ipDestContactKey: Integer;                     // Контакт получатель
+    ipBaseCardKey: TID;                        // Базовая карточка
+    ipSourceContactKey: TID;                   // Контакт источник
+    ipDestContactKey: TID;                     // Контакт получатель
     ipCheckRemains: TgdcTypeChecksRemains;         // Тип контроля остатков
     ipMovementDirection: TgdcInvMovementDirection; // Тип списания позиции
     ipOneRecord: Boolean;                          // Позиция требует одной записи в движении
@@ -104,14 +106,14 @@ type
     ipInvMinusCardFeatures: array of TgdcInvCardFeature;  // Список свойств для выбора из
                                                           // минусовых остатков
 
-    ipSubSourceContactKey: Integer;                // Контакт ограничивающий список источников
-    ipSubDestContactKey: Integer;                  // Контакт ограничивающий список получателей
+    ipSubSourceContactKey: TID;                // Контакт ограничивающий список источников
+    ipSubDestContactKey: TID;                  // Контакт ограничивающий список получателей
 
-    ipPredefinedSourceContact: array of Integer;   // Список предустановленных источников
-    ipPredefinedDestContact: array of Integer;     // Список предустановленных получателей
+    ipPredefinedSourceContact: array of TID;   // Список предустановленных источников
+    ipPredefinedDestContact: array of TID;     // Список предустановленных получателей
 
-    ipSubPredefinedSourceContact: array of Integer;   // Список предустановленных ограничений источников
-    ipSubPredefinedDestContact: array of Integer;     // Список предустановленных ограничений получателей
+    ipSubPredefinedSourceContact: array of TID;   // Список предустановленных ограничений источников
+    ipSubPredefinedDestContact: array of TID;     // Список предустановленных ограничений получателей
 
   end;
 
@@ -121,6 +123,7 @@ type
   TgdcChangeMovements = set of TgdcChangeMovement;
   TInvRemainsSQLType = (irstSubSelect, irstSimpleSum);
   TIntegerArr = array of Integer;
+  TIDArr = array of TID;
   TTypePosition = (tpAll, tpDebit, tpCredit);
 
 type
@@ -154,53 +157,53 @@ type
 // aCardKey - карточка по которой проверяется движение
 // aExcludeDocumentKey - код документа, который исключается из проверки
    function IsMovementExists(const aContactKey, aCardKey,
-     aExcludeDocumentKey: Integer; const aDocumentDate: TDateTime = 0): Boolean;
+     aExcludeDocumentKey: TID; const aDocumentDate: TDateTime = 0): Boolean;
 
 // Функции для подсчета количественных показателей
 
 // Функции возвращает количество по позиции документа
 // aDocumentKey - код текущей позиции
-    function GetQuantity(const aDocumentKey: Integer; TypePosition: TTypePosition): Currency;
+    function GetQuantity(const aDocumentKey: TID; TypePosition: TTypePosition): Currency;
 
 // Функция возвращает текущий остаток по карточке и контакту
 // aCardKey - Код карточки
 // aContactKey - Код клиента
-    function GetLastRemains(const aCardKey, aContactKey: Integer): Currency;
+    function GetLastRemains(const aCardKey, aContactKey: TID): Currency;
 
 // Функция возвращает остаток по карточке на указанную дату
 // aCardKey - Код карточки
 // aContactKey - Код контакта
 // aDate - Дата
-    function GetRemainsOnDate(const aCardKey, aContactKey: Integer;
+    function GetRemainsOnDate(const aCardKey, aContactKey: TID;
        aDate: TDateTime): Currency;
 
 // Функция возвращает значение карточки
 // Если переданная карточка не неайдена то возвращается False
-    function GetCardInfo(const aCardKey: Integer): Boolean;
+    function GetCardInfo(const aCardKey: TID): Boolean;
 
 //  Функция сравнивает параметры исходной карточки карточки, с передаваемыми параметрами
 //  aSourceCardKey - Код исходной карточки
 //  aDestGoodKey - Сравниваемый товар
 //  aDestInvCardFeatures - Сравниваемые параметры
-    function CompareCard(const aSourceCardKey, aDestGoodKey: Integer;
+    function CompareCard(const aSourceCardKey, aDestGoodKey: TID;
       var aDestInvCardFeatures: array of TgdcInvCardFeature): Boolean;
 
 // Создание новой карточки AddInvCard
 //    SourceCardKey - Код карты источник
 //    InvPosition   - Структура для хранения значений позиции
-    function AddInvCard(SourceCardKey: Integer; var InvPosition: TgdcInvPosition;
-      const isDestCard: Boolean = True): Integer;
+    function AddInvCard(SourceCardKey: TID; var InvPosition: TgdcInvPosition;
+      const isDestCard: Boolean = True): TID;
 
 // Изменение свойств карточки ModifyInvCard
 //    SourceCardKey - Код изменяемой карточки
 //    CardFeatures   - Список изменяемых атрибутов
-    function ModifyInvCard(SourceCardKey: Integer;
+    function ModifyInvCard(SourceCardKey: TID;
       var CardFeatures: array of TgdcInvCardFeature; const ChangeAll: Boolean = False): Boolean;
 
 // Изменения 1-го поступления карточки
 //   CardKey - Код карточки
 //   InvPosition - Информация о позиции
-    function ModifyFirstMovement(const CardKey: Integer;
+    function ModifyFirstMovement(const CardKey: TID;
        var InvPosition: TgdcInvPosition): Boolean;
        
 // Добавляем позицию в движение
@@ -216,7 +219,7 @@ type
 //     SourceCardKey - код карты источник (если нет то -1)
 //     Quantity - количество
 //     invPosition - информация о позиции документа
-    function AddOneMovement(aSourceCardKey: Integer; aQuantity: Currency;
+    function AddOneMovement(aSourceCardKey: TID; aQuantity: Currency;
       var invPosition: TgdcInvPosition): Boolean;
 
 //  EditMovement - функция редактирует уже существующее движение
@@ -256,11 +259,11 @@ type
     function ShowRemains(var InvPosition: TgdcInvPosition; const isPosition: Boolean): Boolean;
 
 //  SetEnableMovement - устанавливает disabled
-    function SetEnableMovement(const aDocumentKey: Integer;
+    function SetEnableMovement(const aDocumentKey: TID;
       const isEnabled: Boolean): Boolean;
 
 // DeleteEnableMovement - удаляет движение исходя из disabled
-    function DeleteEnableMovement(const aDocumentKey: Integer;
+    function DeleteEnableMovement(const aDocumentKey: TID;
       const isEnabled: Boolean): Boolean;
 // CheckMovement - проверка на движение с учетом изменения свойств
 
@@ -274,7 +277,7 @@ type
 
 // InvPosition - значения текущей записи документа
 // aCardKey - код текущей карточки
-    function CheckMovementOnCard(const aCardKey: Integer;
+    function CheckMovementOnCard(const aCardKey: TID;
       var InvPosition: TgdcInvPosition): Boolean;
 
 // MakeMovementLine - Создает новое движение на переданное количество
@@ -286,9 +289,9 @@ type
       const gdcInvPositionSaveMode: TgdcInvPositionSaveMode): Boolean;
     function GetIsGetRemains: Boolean;
     procedure SetIsGetRemains(const Value: Boolean);
-    function GetCardDocumentKey(const CardKey: Integer): Integer;
+    function GetCardDocumentKey(const CardKey: TID): TID;
 
-    function IsReplaceDestFeature(ContactKey, CardKey, DocumentKey: Integer;
+    function IsReplaceDestFeature(ContactKey, CardKey, DocumentKey: TID;
                 ChangedField: TStringList; var InvPosition: TgdcInvPosition): Boolean;
 
     // Формируют запрос для функции GetRemains, в зависимости от версии сервера
@@ -460,14 +463,14 @@ type
 
   TgdcInvRemains = class(TgdcInvBaseRemains)
   private
-    FGroupKey: Integer;
-    FGoodKey: Integer;
+    FGroupKey: TID;
+    FGoodKey: TID;
     FChooseFeatures: TgdcArrInvFeatures;
     FIsDest: Boolean;
 
     FCheckRemains: Boolean;
-    FDepartmentKeys: TIntegerArr;
-    FSubDepartmentKeys: TIntegerArr;
+    FDepartmentKeys: TIDArr;
+    FSubDepartmentKeys: TIDArr;
     FIncludeSubDepartment: Boolean;
     FContactType: Integer;
     FgdcDocumentLine: TgdcDocument;
@@ -502,8 +505,8 @@ type
 
     procedure RemovePosition;
 
-    procedure SetDepartmentKeys(const Value: array of Integer);
-    procedure SetSubDepartmentKeys(const Value: array of Integer);
+    procedure SetDepartmentKeys(const Value: array of TID);
+    procedure SetSubDepartmentKeys(const Value: array of TID);
 
 // Функиция для вывода окна с остатками и выбора
 // Количество выбранных позиций
@@ -513,13 +516,13 @@ type
     property ChooseFeatures: TgdcArrInvFeatures read FChooseFeatures;
 
 // Код товара по которому выводятся остатки (елси -1 то по всем ТМЦ)
-    property GoodKey: Integer read FGoodKey write FGoodKey;
+    property GoodKey: TID read FGoodKey write FGoodKey;
 // Код группы по которой выводятся остатки (если -1 то по всем группам)
-    property GroupKey: Integer read FGroupKey write FGroupKey;
+    property GroupKey: TID read FGroupKey write FGroupKey;
 // Коды подразделений по которым выводятся остатки
-    property DepartmentKeys: TIntegerArr read FDepartmentKeys;
+    property DepartmentKeys: TIDArr read FDepartmentKeys;
 // Коды главных подразделений по которым выводятся остатки
-    property SubDepartmentKeys: TIntegerArr read FSubDepartmentKeys;
+    property SubDepartmentKeys: TIDArr read FSubDepartmentKeys;
 // Включать вложенные подразделения
     property IncludeSubDepartment: Boolean read FIncludeSubDepartment write FIncludeSubDepartment;
 // Тип контакта по которому выводятся остатки
@@ -543,7 +546,7 @@ type
     FIgnoryFeatures: TStringList;
     FieldPrefix: String;
     FIsHolding: Integer;
-    FContactKey: Integer;
+    FContactKey: TID;
     procedure SetViewFeatures(const Value: TStringList);
     procedure SetRemainsFeatures(const Value: TStringList);
     procedure SetIgnoryFeatures(const Value: TStringList);
@@ -579,7 +582,7 @@ type
     property IgnoryFeatures: TStringList read FIgnoryFeatures write SetIgnoryFeatures;
     property gdcInvRemains: TgdcInvBaseRemains read FgdcInvRemains write FgdcInvRemains;
     property gdcInvDocumentLine: TgdcDocument read FgdcInvDocumentLine write FgdcInvDocumentLine;
-    property ContactKey: Integer read FContactKey write FContactKey;
+    property ContactKey: TID read FContactKey write FContactKey;
 
   end;
 
@@ -594,7 +597,7 @@ type
     procedure UpdateExplorerCommandData(
       MainBranchName, CMD, CommandName, DocumentID, ClassName: String;
       const ShouldUpdateData: Boolean = False;
-      const MainBranchKey: Integer = -1);
+      const MainBranchKey: TID = -1);
 
   protected
     procedure _DoOnNewRecord; override;
@@ -662,6 +665,18 @@ type
   EgdcInvMovement = class(Exception);
 
 procedure Register;
+procedure SetFieldValue(Field: TField; CardFeature: TgdcInvCardFeature); overload;
+procedure SetFieldValue(Field: TParam; CardFeature: TgdcInvCardFeature); overload;
+procedure SetFieldValue(Field: TIBXSQLVAR; CardFeature: TgdcInvCardFeature); overload;
+procedure SetFieldValue(Field: TParam; CardFeature: TgdcInvCardFeature; FromField: TField); overload;
+procedure SetFieldValue(Field: TIBXSQLVAR; CardFeature: TgdcInvCardFeature; FromField: TField); overload;
+procedure SetFieldValue(Field: TIBXSQLVAR; FromField: TIBXSQLVAR); overload;
+
+function CompareOptValue(Field: TField; CardFeature: TgdcInvCardFeature): boolean; overload;
+function CompareOptValue(Field: TIBXSQLVAR; CardFeature: TgdcInvCardFeature): boolean; overload;
+
+
+procedure SetOptValue(var CardFeature: TgdcInvCardFeature; Field: TField);
 
 implementation
 
@@ -685,6 +700,155 @@ begin
   RegisterComponents('gdc', [TgdcInvCard]);
   RegisterComponents('gdc', [TgdcInvRemainsOption]);
   RegisterComponents('gdc', [TgdcInvCardConfig]);
+end;
+
+procedure SetFieldValue(Field: TField; CardFeature: TgdcInvCardFeature); overload;
+begin
+  if CardFeature.IsID then
+  begin
+    if not CardFeature.isNull then
+      SetTID(Field, CardFeature.optID)
+    else
+      Field.Clear;
+  end
+  else
+    SetVar2Field(Field, CardFeature.optValue);
+end;
+
+procedure SetFieldValue(Field: TParam; CardFeature: TgdcInvCardFeature); overload;
+begin
+  if CardFeature.IsID then
+  begin
+    if not CardFeature.IsNull then
+      SetTID(Field, CardFeature.optID)
+    else
+      Field.Clear;
+  end
+  else
+    SetVar2Param(Field, CardFeature.optValue);
+end;
+
+procedure SetFieldValue(Field: TIBXSQLVAR; CardFeature: TgdcInvCardFeature); overload;
+begin
+  if CardFeature.IsID then
+  begin
+    if not CardFeature.IsNull then
+      SetTID(Field, CardFeature.optID)
+    else
+      Field.Clear;
+  end
+  else
+    SetVar2Param(Field, CardFeature.optValue);
+end;
+
+procedure SetFieldValue(Field: TParam; CardFeature: TgdcInvCardFeature; FromField: TField); overload;
+begin
+  if CardFeature.IsID then
+  begin
+    if not CardFeature.IsNull then
+      SetTID(Field, GetTID(FromField))
+    else
+      Field.Clear;
+  end
+  else
+    SetVar2Param(Field, GetFieldAsVar(FromField));
+end;
+
+procedure SetFieldValue(Field: TIBXSQLVAR; CardFeature: TgdcInvCardFeature; FromField: TField); overload;
+begin
+  if CardFeature.IsID then
+  begin
+    if not CardFeature.IsNull then
+      SetTID(Field, GetTID(FromField))
+    else
+      Field.Clear;
+  end
+  else
+    SetVar2Param(Field, GetFieldAsVar(FromField));
+end;
+
+procedure SetFieldValue(Field: TIBXSQLVAR; FromField: TIBXSQLVAR); overload;
+var
+  F: TatRelationField;
+begin
+
+  F := atDatabase.FindRelationField('INV_CARD', FromField.Name);
+  if Assigned(F.References) then
+  begin
+    if not FromField.IsNull then
+      SetTID(Field, GetTID(FromField))
+    else
+      Field.Clear;
+  end      
+  else
+    SetVar2Param(Field, GetFieldAsVar(FromField));
+
+end;
+
+
+function CompareOptValue(Field: TField; CardFeature: TgdcInvCardFeature): boolean; overload;
+begin
+  if CardFeature.IsID then
+  begin
+    if CardFeature.IsNull then
+      Result := Field.IsNull
+    else
+      Result := (GetTID(Field) = CardFeature.optID)
+  end
+  else
+    if CardFeature.IsNull then
+      Result := Field.IsNull
+    else
+      Result := (GetFieldAsVar(Field) = CardFeature.optValue);
+end;
+
+function CompareOptValue(Field: TIBXSQLVAR; CardFeature: TgdcInvCardFeature): boolean; overload;
+begin
+  if CardFeature.IsID then
+  begin
+    if CardFeature.IsNull then
+      Result := Field.IsNull
+    else
+      Result := (GetTID(Field) = CardFeature.optID)
+  end
+  else
+    if CardFeature.IsNull then
+      Result := Field.IsNull
+    else
+      Result := (GetFieldAsVar(Field) = CardFeature.optValue);
+end;
+
+
+
+procedure SetOptValue(var CardFeature: TgdcInvCardFeature; Field: TField);
+var
+  F: TatRelationField;
+  S: String;
+begin
+  S := Field.FieldName;
+  if Pos(INV_SOURCEFEATURE_PREFIX, Field.FieldName) > 0 then
+    S := copy(s, Pos(INV_SOURCEFEATURE_PREFIX, Field.FieldName) + length(INV_SOURCEFEATURE_PREFIX), 31)
+  else
+    if Pos(INV_DESTFEATURE_PREFIX, Field.FieldName) > 0 then
+      S := copy(s, Pos(INV_DESTFEATURE_PREFIX, Field.FieldName) + length(INV_DESTFEATURE_PREFIX), 31);
+
+  CardFeature.optFieldName := S;
+  F := atDatabase.FindRelationField('INV_CARD', S);
+
+  Assert(Assigned(F), 'Не найдено признак в таблице INV_CARD');
+
+  CardFeature.IsNull := Field.IsNull;
+  if Assigned(F.References) then
+  begin
+    CardFeature.IsID := True;
+    CardFeature.optID := GetTID(Field);
+  end
+  else
+  begin
+    CardFeature.IsID := False;
+    CardFeature.optValue := GetFieldAsVar(Field);
+  end;
+
 end;
 
 { TgdcInvMovement }
@@ -751,28 +915,27 @@ end;
 
 { Методы для удаления, добавления и редактирования движения }
 
-function TgdcInvMovement.CompareCard(const aSourceCardKey, aDestGoodKey: Integer;
+function TgdcInvMovement.CompareCard(const aSourceCardKey, aDestGoodKey: TID;
       var aDestInvCardFeatures: array of TgdcInvCardFeature): Boolean;
 var
   i: Integer;
 begin
   Result := False;
 
-  if not FibsqlCardInfo.Open or (FibsqlCardInfo.ParamByName('id').AsInteger <> aSourceCardKey) then
+  if not FibsqlCardInfo.Open or (GetTID(FibsqlCardInfo.ParamByName('id')) <> aSourceCardKey) then
   begin
     FibsqlCardInfo.Close;
-    FibsqlCardInfo.ParamByName('id').AsInteger := aSourceCardKey;
+    SetTID(FibsqlCardInfo.ParamByName('id'), aSourceCardKey);
     FibsqlCardInfo.ExecQuery;
   end;
 
   if not FibsqlCardInfo.EOF then
   begin
-    Result := FibsqlCardInfo.FieldByName('GOODKEY').AsInteger = aDestGoodKey;
+    Result := (GetTID(FibsqlCardInfo.FieldByName('GOODKEY')) = aDestGoodKey);
     if Result then
       for i := Low(aDestInvCardFeatures) to High(aDestInvCardFeatures) do
       begin
-        Result := FibsqlCardInfo.FieldByName(aDestInvCardFeatures[i].optFieldName).AsVariant =
-           aDestInvCardFeatures[i].optValue;
+        Result := CompareOptValue(FibsqlCardInfo.FieldByName(aDestInvCardFeatures[i].optFieldName), aDestInvCardFeatures[i]);
         if not Result then
           break;
       end;
@@ -789,8 +952,8 @@ end;
   Затем из переданной cтруктуры заполняютcя оcтавшиеcя атрибуты.
 *)
 
-function TgdcInvMovement.AddInvCard(SourceCardKey: Integer; var InvPosition: TgdcInvPosition;
-  const isDestCard: Boolean = True): Integer;
+function TgdcInvMovement.AddInvCard(SourceCardKey: TID; var InvPosition: TgdcInvPosition;
+  const isDestCard: Boolean = True): TID;
 var
   i: Integer;
   isOk: Boolean;
@@ -818,35 +981,32 @@ begin
   // Заполняем предопределеннык поля
 
     Result := GetNextID(True);
-    FibsqlAddCard.ParamByName('ID').AsInteger := Result;
+    SetTID(FibsqlAddCard.ParamByName('ID'), Result);
 
     if isOK then
     begin
-      FibsqlAddCard.ParamByName('Parent').AsInteger := SourceCardKey;
-      FibsqlAddCard.ParamByName('FirstDocumentKey').AsInteger := FibsqlCardInfo.FieldByName('FirstDocumentkey').AsInteger;
-      FibsqlAddCard.ParamByName('DocumentKey').AsInteger := InvPosition.ipDocumentKey;
+      SetTID(FibsqlAddCard.ParamByName('Parent'), SourceCardKey);
+      SetTID(FibsqlAddCard.ParamByName('FirstDocumentKey'), GetTID(FibsqlCardInfo.FieldByName('FirstDocumentkey')));
+      SetTID(FibsqlAddCard.ParamByName('DocumentKey'), InvPosition.ipDocumentKey);
       FibsqlAddCard.ParamByName('FirstDate').AsDateTime := FibsqlCardInfo.FieldByName('FirstDate').AsDateTime;
-      FibsqlAddCard.ParamByName('GoodKey').AsInteger := FibsqlCardInfo.FieldByName('goodkey').AsInteger;
-      FibsqlAddCard.ParamByName('CompanyKey').AsInteger :=
-        gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey').AsInteger;
+      SetTID(FibsqlAddCard.ParamByName('GoodKey'), GetTID(FibsqlCardInfo.FieldByName('goodkey')));
+      SetTID(FibsqlAddCard.ParamByName('CompanyKey'), GetTID(gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey')));
 
       for i:= 0 to FibsqlCardInfo.Current.Count - 1 do
       begin
         if Pos(UserPrefix, FibsqlCardInfo.Fields[i].Name) > 0 then
         begin
-          FibsqlAddCard.ParamByName(FibsqlCardInfo.Fields[i].Name).AsVariant :=
-            FibsqlCardInfo.FieldByName(FibsqlCardInfo.Fields[i].Name).AsVariant;
+          SetFieldValue(FibsqlAddCard.ParamByName(FibsqlCardInfo.Fields[i].Name),
+            FibsqlCardInfo.FieldByName(FibsqlCardInfo.Fields[i].Name));
         end;
       end;
       // Заменяем значения атрибутов из карточки иcточника на новые значения атрибутов
       if isDestCard then
         for i:= Low(ipInvDestCardFeatures) to High(ipInvDestCardFeatures) do
-          FibsqlAddCard.ParamByName(ipInvDestCardFeatures[i].optFieldName).AsVariant :=
-            ipInvDestCardFeatures[i].optValue
+          SetFieldValue(FibsqlAddCard.ParamByName(ipInvDestCardFeatures[i].optFieldName), ipInvDestCardFeatures[i])
       else
         for i:= Low(ipInvSourceCardFeatures) to High(ipInvSourceCardFeatures) do
-          FibsqlAddCard.ParamByName(ipInvSourceCardFeatures[i].optFieldName).AsVariant :=
-            ipInvSourceCardFeatures[i].optValue;
+          SetFieldValue(FibsqlAddCard.ParamByName(ipInvSourceCardFeatures[i].optFieldName), ipInvSourceCardFeatures[i]);
     end
     else  // Еcли нет карточки иcточника
     begin
@@ -854,12 +1014,12 @@ begin
       // Уcтанавливаем значения по умолчанию
 
       FibsqlAddCard.ParamByName('Parent').Clear;
-      FibsqlAddCard.ParamByName('FirstDocumentKey').AsInteger := InvPosition.ipDocumentKey;
-      FibsqlAddCard.ParamByName('DocumentKey').AsInteger := InvPosition.ipDocumentKey;
+      SetTID(FibsqlAddCard.ParamByName('FirstDocumentKey'), InvPosition.ipDocumentKey);
+      SetTID(FibsqlAddCard.ParamByName('DocumentKey'), InvPosition.ipDocumentKey);
       FibsqlAddCard.ParamByName('FirstDate').AsDateTime := InvPosition.ipDocumentDate;
-      FibsqlAddCard.ParamByName('GoodKey').AsInteger := ipGoodKey;
-      FibsqlAddCard.ParamByName('CompanyKey').AsInteger :=
-        gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey').AsInteger;
+      SetTID(FibsqlAddCard.ParamByName('GoodKey'), ipGoodKey);
+      SetTID(FibsqlAddCard.ParamByName('CompanyKey'),
+        GetTID(gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey')));
 
       // Переноcим значения атрибутов
 
@@ -867,16 +1027,14 @@ begin
       begin
         for i:= Low(ipInvDestCardFeatures) to High(ipInvDestCardFeatures) do
         begin
-          FibsqlAddCard.ParamByName(ipInvDestCardFeatures[i].optFieldName).AsVariant :=
-            ipInvDestCardFeatures[i].optValue;
+          SetFieldValue(FibsqlAddCard.ParamByName(ipInvDestCardFeatures[i].optFieldName), ipInvDestCardFeatures[i]);
         end;
       end
       else
       begin
         for i:= Low(ipInvSourceCardFeatures) to High(ipInvSourceCardFeatures) do
         begin
-          FibsqlAddCard.ParamByName(ipInvSourceCardFeatures[i].optFieldName).AsVariant :=
-            ipInvSourceCardFeatures[i].optValue;
+          SetFieldValue(FibsqlAddCard.ParamByName(ipInvSourceCardFeatures[i].optFieldName), ipInvSourceCardFeatures[i]);
         end;
       end;
 
@@ -896,7 +1054,7 @@ begin
 
 end;
 
-function TgdcInvMovement.ModifyFirstMovement(const CardKey: Integer;
+function TgdcInvMovement.ModifyFirstMovement(const CardKey: TID;
   var InvPosition: TgdcInvPosition): Boolean;
 var
   ibsql: TIBSQL;
@@ -913,12 +1071,12 @@ begin
       begin
         if ipQuantity > 0 then
         begin
-          FieldByName('contactkey').AsInteger := ipDestContactKey;
+          SetTID(FieldByName('contactkey'), ipDestContactKey);
           FieldByName('debit').AsCurrency := ipQuantity;
         end
         else
         begin
-          FieldByName('contactkey').AsInteger := ipSourceContactKey;
+          SetTID(FieldByName('contactkey'), ipSourceContactKey);
           FieldByName('credit').AsCurrency := abs(ipQuantity);
         end;
         Post;
@@ -927,7 +1085,7 @@ begin
       end
       else
       begin
-        FieldByName('contactkey').AsInteger := ipSourceContactKey;
+        SetTID(FieldByName('contactkey'), ipSourceContactKey);
         FieldByName('credit').AsCurrency := ipQuantity;
         Post;
 
@@ -938,7 +1096,7 @@ begin
           Append;
 
         FieldByName('movementdate').AsDateTime := ipDocumentDate;
-        FieldByName('contactkey').AsInteger := ipDestContactKey;
+        SetTID(FieldByName('contactkey'), ipDestContactKey);
         FieldByName('debit').AsCurrency := ipQuantity;
         Post;
       end;
@@ -949,8 +1107,8 @@ begin
 
       ibsql.Prepare;
       ibsql.ParamByName('firstdate').AsDateTime := ipDocumentDate;
-      ibsql.ParamByName('goodkey').AsInteger := ipGoodKey;
-      ibsql.ParamByName('id').AsInteger := CardKey;
+      SetTID(ibsql.ParamByName('goodkey'), ipGoodKey);
+      SetTID(ibsql.ParamByName('id'), CardKey);
       ibsql.ExecQuery;
       ibsql.Close;
 
@@ -966,7 +1124,7 @@ end;
    Для указанной карточки уcтанавливаютcя значения переданные в CardFeatures значения
 }
 
-function TgdcInvMovement.ModifyInvCard(SourceCardKey: Integer;
+function TgdcInvMovement.ModifyInvCard(SourceCardKey: TID;
   var CardFeatures: array of TgdcInvCardFeature; const ChangeAll: Boolean = False): Boolean;
 var
   ibsql: TIBSQL;
@@ -1003,16 +1161,16 @@ begin
 
     ibsql.SQL.Text := S + ' WHERE id = :SourceCardKey ';
     ibsql.Prepare;
-    ibsql.paramByName('SourceCardKey').AsInteger := SourceCardKey;
+    SetTID(ibsql.paramByName('SourceCardKey'), SourceCardKey);
 
     for i:= Low(CardFeatures) to High(CardFeatures) do
-      ibsql.ParamByName(CardFeatures[i].optFieldName).AsVariant := CardFeatures[i].optValue;
+      SetFieldValue(ibsql.ParamByName(CardFeatures[i].optFieldName), CardFeatures[i]);
 
-    ibsql.ParamByName('goodkey').AsInteger := gdcDocumentLine.FieldByName('goodkey').AsInteger;
+    SetTID(ibsql.ParamByName('goodkey'), GetTID(gdcDocumentLine.FieldByName('goodkey')));
 
     if ChangeAll then
     begin
-      ibsql.ParamByName('documentkey').AsInteger := gdcDocumentLine.FieldByName('id').AsInteger;
+      SetTID(ibsql.ParamByName('documentkey'), GetTID(gdcDocumentLine.FieldByName('id')));
       ibsql.ParamByName('firstdate').AsDateTime := gdcDocumentLine.FieldByName('documentdate').AsDateTime;
     end;
 
@@ -1128,14 +1286,14 @@ begin
     Features := '';
 
     for i:= Low(InvCardFeatures) to High(InvCardFeatures) do
-      if InvCardFeatures[i].isInteger then
-        if InvCardFeatures[i].optValue = Null then
+      if InvCardFeatures[i].isID then
+        if InvCardFeatures[i].IsNull then
           Features := Features + ' AND (' + InvCardFeatures[i].optFieldName + ' + 0) IS NULL '
         else
           Features := Features + ' AND (' + InvCardFeatures[i].optFieldName + ' + 0) = :' +
             InvCardFeatures[i].optFieldName
       else
-        if InvCardFeatures[i].optValue = Null then
+        if InvCardFeatures[i].IsNull then
           Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' IS NULL '
         else
           Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' = :' +
@@ -1169,7 +1327,7 @@ begin
     try
       ibsql.Transaction := ReadTransaction;
       ibsql.SQL.Text := 'SELECT discipline FROM gd_good WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := gdcDocumentLine.FieldByName('goodkey').AsInteger;
+      SetTID(ibsql.ParamByName('id'), GetTID(gdcDocumentLine.FieldByName('goodkey')));
       ibsql.ExecQuery;
       if ibsql.FieldByName('discipline').IsNull then
         MovementDirection := imdFIFO
@@ -1204,14 +1362,14 @@ begin
   begin
     Features := '';
     for i:= Low(InvCardFeatures) to High(InvCardFeatures) do
-      if InvCardFeatures[i].isInteger then
-        if InvCardFeatures[i].optValue = Null then
+      if InvCardFeatures[i].isID then
+        if InvCardFeatures[i].IsNull then
           Features := Features + ' AND (c.' + InvCardFeatures[i].optFieldName + ' + 0) IS NULL '
         else
           Features := Features + ' AND (c.' + InvCardFeatures[i].optFieldName + ' + 0) = :' +
             InvCardFeatures[i].optFieldName
       else
-        if InvCardFeatures[i].optValue = Null then
+        if InvCardFeatures[i].IsNull then
           Features := Features + ' AND c.' + InvCardFeatures[i].optFieldName + ' IS NULL '
         else
           Features := Features + ' AND c.' + InvCardFeatures[i].optFieldName + ' = :' +
@@ -1300,7 +1458,7 @@ begin
     try
       ibsql.Transaction := ReadTransaction;
       ibsql.SQL.Text := 'SELECT discipline FROM gd_good WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := gdcDocumentLine.FieldByName('goodkey').AsInteger;
+      SetTID(ibsql.ParamByName('id'), GetTID(gdcDocumentLine.FieldByName('goodkey')));
       ibsql.ExecQuery;
       if ibsql.FieldByName('discipline').IsNull then
         MovementDirection := imdFIFO
@@ -1326,10 +1484,10 @@ begin
       Result := Result + ' ORDER BY mm.firstdate DESC ';
 end;
 
-function TgdcInvMovement.AddOneMovement(aSourceCardKey: Integer; aQuantity: Currency;
+function TgdcInvMovement.AddOneMovement(aSourceCardKey: TID; aQuantity: Currency;
   var invPosition: TgdcInvPosition): Boolean;
 
-  function IsExistsCardKey(const aCardKey: Integer): Boolean;
+  function IsExistsCardKey(const aCardKey: TID): Boolean;
   var
     ibsql: TIBSQL;
   begin
@@ -1340,8 +1498,8 @@ function TgdcInvMovement.AddOneMovement(aSourceCardKey: Integer; aQuantity: Curr
         ibsql.Transaction := ReadTransaction;
         ibsql.SQL.Text := 'SELECT id FROM inv_movement WHERE documentkey = :documentkey AND ' +
           ' cardkey = :cardkey ';
-        ibsql.ParamByName('documentkey').AsInteger := invPosition.ipDocumentKey;
-        ibsql.ParamByName('cardkey').AsInteger := aCardKey;
+        SetTID(ibsql.ParamByName('documentkey'), invPosition.ipDocumentKey);
+        SetTID(ibsql.ParamByName('cardkey'), aCardKey);
         ibsql.ExecQuery;
         Result := not ibsql.EOF;
       finally
@@ -1353,11 +1511,11 @@ function TgdcInvMovement.AddOneMovement(aSourceCardKey: Integer; aQuantity: Curr
   end;
 
 var
-  SourceCardKey: Integer;
-  DestCardKey: Integer;
-  MovementKey: Integer;
+  SourceCardKey: TID;
+  DestCardKey: TID;
+  MovementKey: TID;
   ibsql: TIBSQL;
-  TempCardKey: Integer;
+  TempCardKey: TID;
   Flag: Boolean;
   isDestCard: Boolean;
   {$IFDEF DEBUGMOVE}
@@ -1402,25 +1560,25 @@ begin
           ' contactkey, cardkey, debit, credit, disabled) VALUES (:movementkey, :movementdate, ' +
           ' :documentkey, :contactkey, :cardkey, :debit, :credit, 0)';
         MovementKey := GetNextID(True);
-        ibsql.ParamByName('movementkey').AsInteger := MovementKey;
+        SetTID(ibsql.ParamByName('movementkey'), MovementKey);
         ibsql.ParamByName('movementdate').AsDateTime := ipDocumentDate;
-        ibsql.ParamByName('documentkey').AsInteger := ipDocumentKey;
+        SetTID(ibsql.ParamByName('documentkey'), ipDocumentKey);
 
         if not ipOneRecord or not ipMinusRemains then
         begin
-          ibsql.ParamByName('cardkey').AsInteger := SourceCardKey;
+          SetTID(ibsql.ParamByName('cardkey'), SourceCardKey);
           ibsql.ParamByName('debit').AsCurrency := 0;
           ibsql.ParamByName('credit').AsCurrency := 0;
           if (ipOneRecord and (aQuantity < 0)) or not ipOneRecord or (aSourceCardKey > 0) then
           begin
             if ipOneRecord then
               aQuantity := abs(aQuantity);
-            ibsql.ParamByName('contactkey').AsInteger := ipSourceContactKey;
+            SetTID(ibsql.ParamByName('contactkey'), ipSourceContactKey);
             ibsql.ParamByName('credit').AsCurrency := aQuantity;
           end
           else
           begin
-            ibsql.ParamByName('contactkey').AsInteger := ipDestContactKey;
+            SetTID(ibsql.ParamByName('contactkey'), ipDestContactKey);
             ibsql.ParamByName('debit').AsCurrency := abs(aQuantity);
           end;
 
@@ -1456,7 +1614,7 @@ begin
         begin
           if not (gdcDocumentLine.State in [dsEdit, dsInsert]) then
             gdcDocumentLine.Edit;
-          gdcDocumentLine.FieldByName('fromcardkey').AsInteger := SourceCardKey;
+          SetTID(gdcDocumentLine.FieldByName('fromcardkey'), SourceCardKey);
         end;
 
     // Еcли движение cоcтоит из двух запиcей добавляем запиcь по дебету получателю
@@ -1466,9 +1624,8 @@ begin
 
     // Еcли параметры карточки в документе изменилиcь и это не было первоначальным поcтуплением
     // то cоздаем новую карточку, в противном cлучае иcпользуем карточку иcточник
-
-          if (High(ipInvDestCardFeatures) >= 0) and
-             not CompareCard(SourceCardKey, ipGoodKey, ipInvDestCardFeatures)
+          if ((gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtSimple) and ((High(ipInvDestCardFeatures) >= 0) and
+             not CompareCard(SourceCardKey, ipGoodKey, ipInvDestCardFeatures))
           then
           begin
             if not ipMinusRemains then
@@ -1482,8 +1639,8 @@ begin
           else
             DestCardKey := SourceCardKey;
 
-          ibsql.ParamByName('contactkey').AsInteger := ipDestContactKey;
-          ibsql.ParamByName('cardkey').AsInteger := DestCardKey;
+          SetTID(ibsql.ParamByName('contactkey'), ipDestContactKey);
+          SetTID(ibsql.ParamByName('cardkey'), DestCardKey);
           ibsql.ParamByName('debit').AsCurrency := aQuantity;
           ibsql.ParamByName('credit').AsCurrency := 0;
 
@@ -1513,12 +1670,12 @@ begin
           ibsql.Close;
 
           if (gdcDocumentLine.FindField('tocardkey') <> nil) and
-             (gdcDocumentLine.FieldByName('tocardkey').AsInteger <> DestCardKey)
+             (GetTID(gdcDocumentLine.FieldByName('tocardkey')) <> DestCardKey)
           then
           begin
             if not (gdcDocumentLine.State in [dsEdit, dsInsert]) then
               gdcDocumentLine.Edit;
-            gdcDocumentLine.FieldByName('tocardkey').AsInteger := DestCardKey;
+            SetTID(gdcDocumentLine.FieldByName('tocardkey'), DestCardKey);
           end;
         end;
       end
@@ -1530,27 +1687,27 @@ begin
         begin
           if not (gdcDocumentLine.State in [dsEdit, dsInsert]) then
             gdcDocumentLine.Edit;
-          gdcDocumentLine.FieldByName('fromcardkey').AsInteger := SourceCardKey;
+          SetTID(gdcDocumentLine.FieldByName('fromcardkey'), SourceCardKey);
         end;
         if (gdcDocumentLine.FindField('tocardkey') <> nil) then
         begin
           if gdcDocumentLine.FieldByName('tocardkey').IsNull or
-             (gdcDocumentLine.FieldByName('tocardkey').AsInteger =
-              gdcDocumentLine.FieldByName('fromcardkey').AsInteger)
+             (GetTID(gdcDocumentLine.FieldByName('tocardkey')) =
+              GetTID(gdcDocumentLine.FieldByName('fromcardkey')))
           then
           begin
-             if not CompareCard(gdcDocumentLine.FieldByName('fromcardkey').AsInteger,
-               gdcDocumentLine.FieldByName('goodkey').AsInteger,
+             if not CompareCard(GetTID(gdcDocumentLine.FieldByName('fromcardkey')),
+               GetTID(gdcDocumentLine.FieldByName('goodkey')),
                ipInvDestCardFeatures)
              then
-               gdcDocumentLine.FieldByName('tocardkey').AsInteger := AddInvCard(
-                 gdcDocumentLine.FieldByName('fromcardkey').AsInteger, InvPosition)
+               SetTID(gdcDocumentLine.FieldByName('tocardkey'), AddInvCard(
+                 GetTID(gdcDocumentLine.FieldByName('fromcardkey')), InvPosition))
              else
-               gdcDocumentLine.FieldByName('tocardkey').AsInteger :=
-                 gdcDocumentLine.FieldByName('fromcardkey').AsInteger
+               SetTID(gdcDocumentLine.FieldByName('tocardkey'),
+                 GetTID(gdcDocumentLine.FieldByName('fromcardkey')))
           end
           else
-            ModifyInvCard(gdcDocumentLine.FieldByName('tocardkey').AsInteger,
+            ModifyInvCard(GetTID(gdcDocumentLine.FieldByName('tocardkey')),
                ipInvDestCardFeatures);
         end;
       end;
@@ -1572,15 +1729,15 @@ end;
 
 type
   TinvTempRemains = record
-    MovementKey: Integer;
+    MovementKey: TID;
     Quantity: Currency;
   end;
 
 function TgdcInvMovement.EditMovement(ChangeMove: TgdcChangeMovements;
        var InvPosition: TgdcInvPosition; const gdcInvPositionSaveMode: TgdcInvPositionSaveMode): Boolean;
 var
-  SourceCardKey, CardKey: Integer;
-  MovementKey, i: Integer;
+  MovementKey, SourceCardKey, CardKey: TID;
+  i: Integer;
   Quantity, CurQuantity, PerQuantity: Currency;
   CountTempRemains: Integer;
   invTempRemains: array of TinvTempRemains;
@@ -1606,13 +1763,13 @@ var
                (cmDestContact in ChangeMove) or
                (
                 (gdcDocumentLine as TgdcInvDocumentLine).isCheckDestFeatures and
-                (cmDestFeature in ChangeMove) and (MovementKey = FieldByName('movementkey').AsInteger)
-                 and (SourceCardKey = FieldByName('cardkey').AsInteger) and
-                 (FieldByName('FirstDocumentKey').AsInteger <> ipDocumentKey)
+                (cmDestFeature in ChangeMove) and (MovementKey = GetTID(FieldByName('movementkey')))
+                 and (SourceCardKey = GetTID(FieldByName('cardkey'))) and
+                 (GetTID(FieldByName('FirstDocumentKey')) <> ipDocumentKey)
                 )
              )
              and
-             (GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger) <
+             (GetLastRemains(GetTID(FieldByName('cardkey')), GetTID(FieldByName('contactkey'))) <
               FieldByName('debit').AsCurrency)
           then
           begin
@@ -1626,8 +1783,8 @@ var
 
           if (gdcDocumentLine as TgdcInvDocumentLine).isCheckDestFeatures and
             (cmDestFeature in ChangeMove) and
-            (FieldByName('CardDocumentKey').AsInteger = ipDocumentKey) and
-             not CheckMovementOnCard(FieldByName('cardkey').AsInteger, InvPosition)
+            (GetTID(FieldByName('CardDocumentKey')) = ipDocumentKey) and
+             not CheckMovementOnCard(GetTID(FieldByName('cardkey')), InvPosition)
           then
           begin
             Result := False;
@@ -1638,8 +1795,8 @@ var
         end
         else
         begin
-          MovementKey := FieldByName('movementkey').AsInteger;
-          SourceCardKey := FieldByName('cardkey').AsInteger;
+          MovementKey := GetTID(FieldByName('movementkey'));
+          SourceCardKey := GetTID(FieldByName('cardkey'));
         end;
         Next;
       end;
@@ -1694,7 +1851,7 @@ begin
               if ((FieldByName('debit').AsCurrency > 0) and (ipQuantity >= 0)) then
               begin
                 if not (ipCheckRemains = [])  then
-                  PerQuantity := GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger)
+                  PerQuantity := GetLastRemains(GetTID(FieldByName('cardkey')), GetTID(FieldByName('contactkey')))
                 else
                   PerQuantity := FieldByName('debit').AsCurrency;
 
@@ -1704,7 +1861,7 @@ begin
                 begin
                   Inc(CountTempRemains);
                   SetLength(invTempRemains, CountTempRemains);
-                  invTempRemains[High(invTempRemains)].MovementKey := FieldByName('MovementKey').AsInteger;
+                  invTempRemains[High(invTempRemains)].MovementKey := GetTID(FieldByName('MovementKey'));
                   invTempRemains[High(invTempRemains)].Quantity := PerQuantity;
                   CurQuantity := CurQuantity + PerQuantity;
                   if CurQuantity - Quantity > 0 then
@@ -1723,7 +1880,7 @@ begin
                     PerQuantity := Quantity;
                   Inc(CountTempRemains);
                   SetLength(invTempRemains, CountTempRemains);
-                  invTempRemains[High(invTempRemains)].MovementKey := FieldByName('MovementKey').AsInteger;
+                  invTempRemains[High(invTempRemains)].MovementKey := GetTID(FieldByName('MovementKey'));
                   invTempRemains[High(invTempRemains)].Quantity := PerQuantity;
                   Quantity := Quantity - PerQuantity;
                   if Quantity = 0 then
@@ -1740,16 +1897,16 @@ begin
 
               for i:= Low(invTempRemains) to High(invTempRemains) do
               begin
-                Locate('MOVEMENTKEY', invTempRemains[i].MovementKey, []);
-                if FieldByName('movementkey').AsInteger = invTempRemains[i].MovementKey then
+                Locate('MOVEMENTKEY', TID2V(invTempRemains[i].MovementKey), []);
+                if GetTID(FieldByName('movementkey')) = invTempRemains[i].MovementKey then
                 begin
                   if invTempRemains[i].Quantity = FieldByName('debit').AsCurrency + FieldByName('credit').AsCurrency then
                   begin
-                    while not EOF and (FieldByName('movementkey').AsInteger = invTempRemains[i].MovementKey) do
+                    while not EOF and (GetTID(FieldByName('movementkey')) = invTempRemains[i].MovementKey) do
                       Delete;
                   end
                   else
-                    while not EOF and (FieldByName('movementkey').AsInteger = invTempRemains[i].MovementKey) do
+                    while not EOF and (GetTID(FieldByName('movementkey')) = invTempRemains[i].MovementKey) do
                     begin
                       Edit;
                       if FieldByName('credit').AsCurrency > 0 then
@@ -1782,8 +1939,8 @@ begin
             begin
               if Quantity < FieldByName('debit').AsCurrency + FieldByName('credit').AsCurrency then
               begin
-                MovementKey := FieldByName('movementkey').AsInteger;
-                while not BOF and (FieldByName('movementkey').AsInteger = MovementKey) do
+                MovementKey := GetTID(FieldByName('movementkey'));
+                while not BOF and (GetTID(FieldByName('movementkey')) = MovementKey) do
                 begin
                   Edit;
                   if FieldByName('debit').AsCurrency > 0 then
@@ -1799,8 +1956,8 @@ begin
               else
               begin
                 Quantity := Quantity - (FieldByName('debit').AsCurrency + FieldByName('credit').AsCurrency);
-                MovementKey := FieldByName('movementkey').AsInteger;
-                while not BOF and (FieldByName('movementkey').AsInteger = MovementKey) do
+                MovementKey := GetTID(FieldByName('movementkey'));
+                while not BOF and (GetTID(FieldByName('movementkey')) = MovementKey) do
                 begin
                   Edit;
                   FieldByName('debit').AsCurrency := 0;
@@ -1808,7 +1965,7 @@ begin
                   Post;
                   Prior;
                 end;
-                if MovementKey <> FieldByName('movementkey').AsInteger then
+                if MovementKey <> GetTID(FieldByName('movementkey')) then
                   Continue;
               end;
               Prior;
@@ -1884,7 +2041,7 @@ begin
             begin
               if (FieldByName('debit').AsCurrency > 0) then
               begin
-                PerQuantity := GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger);
+                PerQuantity := GetLastRemains(GetTID(FieldByName('cardkey')), GetTID(FieldByName('contactkey')));
                 if PerQuantity <= FieldByName('debit').AsCurrency then
                 begin
                   PerQuantity := 0;
@@ -1947,33 +2104,33 @@ begin
         begin
           if FieldByName('debit').AsCurrency <> 0 then
           begin
-            if (cmDestFeature in ChangeMove) and (MovementKey = FieldByName('movementkey').AsInteger)
+            if (cmDestFeature in ChangeMove) and (MovementKey = GetTID(FieldByName('movementkey')))
             then
             begin
-              if (SourceCardKey = FieldByName('cardkey').AsInteger) and
-                (FieldByName('FirstDocumentKey').AsInteger <> ipDocumentKey)
+              if (SourceCardKey = GetTID(FieldByName('cardkey'))) and
+                (GetTID(FieldByName('FirstDocumentKey')) <> ipDocumentKey)
               then
               begin
                 CardKey := AddInvCard(SourceCardKey, InvPosition);
                 Edit;
-                FieldByName('cardkey').AsInteger := CardKey;
+                SetTID(FieldByName('cardkey'), CardKey);
                 Post;
                 if gdcDocumentLine.FindField('TOCARDKEY') <> nil then
                 begin
                   if not (gdcDocumentLine.State in [dsEdit, dsInsert]) then
                     gdcDocumentLine.Edit;
-                  gdcDocumentLine.FieldByName('TOCARDKEY').AsInteger := CardKey;
+                  SetTID(gdcDocumentLine.FieldByName('TOCARDKEY'), CardKey);
                 end;
               end
               else
-                ModifyInvCard(FieldByName('cardkey').AsInteger,
+                ModifyInvCard(GetTID(FieldByName('cardkey')),
                     ipInvDestCardFeatures);
             end
           end
           else
           begin
-            MovementKey := FieldByName('movementkey').AsInteger;
-            SourceCardKey := FieldByName('cardkey').AsInteger;
+            MovementKey := GetTID(FieldByName('movementkey'));
+            SourceCardKey := GetTID(FieldByName('cardkey'));
           end;
           Next;
         end;
@@ -1998,7 +2155,7 @@ begin
       while not EOF do
       begin
         if (FieldByName('debit').AsCurrency > 0) and
-           (GetRemainsOnDate(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger,
+           (GetRemainsOnDate(GetTID(FieldByName('cardkey')), GetTID(FieldByName('contactkey')),
                 InvPosition.ipDocumentDate - 1) < FieldByName('debit').AsCurrency)
         then
         begin
@@ -2019,7 +2176,7 @@ begin
       First;
       while not EOF do
       begin
-        if (FieldByName('credit').AsCurrency > 0) and (GetRemainsOnDate(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger,
+        if (FieldByName('credit').AsCurrency > 0) and (GetRemainsOnDate(GetTID(FieldByName('cardkey')), GetTID(FieldByName('contactkey')),
               InvPosition.ipDocumentDate) < FieldByName('credit').AsCurrency)
         then
         begin
@@ -2039,7 +2196,7 @@ begin
       ibsql.Transaction := Transaction;
       ibsql.SQL.Text := 'UPDATE inv_movement SET movementdate = :movementdate WHERE documentkey = :documentkey';
       ibsql.ParamByName('movementdate').AsDateTime := InvPosition.ipDocumentDate;
-      ibsql.ParamByName('documentkey').AsInteger := InvPosition.ipDocumentKey;
+      SetTID(ibsql.ParamByName('documentkey'), InvPosition.ipDocumentKey);
       ibsql.ExecQuery;
       ibsql.Close;
     finally
@@ -2052,7 +2209,8 @@ end;
 function TgdcInvMovement.MakeMovementLine(Quantity: Currency; var InvPosition: TgdcInvPosition;
   const gdcInvPositionSaveMode: TgdcInvPositionSaveMode): Boolean;
 var
-  tempCardKey, i: Integer;
+  i: Integer;
+  tempCardKey: TID;
   isChangeBaseCardKey: Boolean;
   Times: LongWord;
   tmpRemains: Currency;
@@ -2068,14 +2226,14 @@ begin
   if MovementDirection = imdDefault then exit;
 
   for i:= Low(InvCardFeatures) to High(InvCardFeatures) do
-    if InvCardFeatures[i].isInteger then
-      if InvCardFeatures[i].optValue = Null then
+    if InvCardFeatures[i].isID then
+      if InvCardFeatures[i].isNull then
         Features := Features + ' AND (' + InvCardFeatures[i].optFieldName + ' + 0) IS NULL '
       else
         Features := Features + ' AND (' + InvCardFeatures[i].optFieldName + ' + 0) = :' +
           InvCardFeatures[i].optFieldName
     else
-      if InvCardFeatures[i].optValue = Null then
+      if InvCardFeatures[i].IsNull then
         Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' IS NULL '
       else
         Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' = :' +
@@ -2135,12 +2293,12 @@ begin
 
             // Уcтанавливаем параметры
             if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
-              ibsqlCardList.ParamByName('companykey').AsInteger := gdcDocumentLine.FieldByName('companykey').AsInteger;
-            ibsqlCardList.ParamByName('goodkey').AsInteger := ipGoodKey;
+              SetTID(ibsqlCardList.ParamByName('companykey'), GetTID(gdcDocumentLine.FieldByName('companykey')));
+            SetTID(ibsqlCardList.ParamByName('goodkey'), ipGoodKey);
             if not ipMinusRemains then
-              ibsqlCardList.ParamByName('contactkey').AsInteger := ipSourceContactKey
+              SetTID(ibsqlCardList.ParamByName('contactkey'), ipSourceContactKey)
             else
-              ibsqlCardList.ParamByName('contactkey').AsInteger := ipDestContactKey;
+              SetTID(ibsqlCardList.ParamByName('contactkey'), ipDestContactKey);
 
             if (not CurrentRemains) and not ipMinusRemains then
             begin
@@ -2158,18 +2316,16 @@ begin
               if not ipMinusRemains then
               begin
                 for i:= Low(ipInvSourceCardFeatures) to High(ipInvSourceCardFeatures) do
-                  if ipInvSourceCardFeatures[i].optValue <> Null then
-                    ibsqlCardList.ParamByName(ipInvSourceCardFeatures[i].optFieldName).AsVariant :=
-                      ipInvSourceCardFeatures[i].optValue
+                  if not ipInvSourceCardFeatures[i].IsNull then
+                    SetFieldValue(ibsqlCardList.ParamByName(ipInvSourceCardFeatures[i].optFieldName), ipInvSourceCardFeatures[i])
               end
               else
                 for i:= Low(ipInvMinusCardFeatures) to High(ipInvMinusCardFeatures) do
-                  if ipInvMinusCardFeatures[i].optValue <> Null then
-                    ibsqlCardList.ParamByName(ipInvMinusCardFeatures[i].optFieldName).AsVariant :=
-                      ipInvMinusCardFeatures[i].optValue;
+                  if not ipInvMinusCardFeatures[i].IsNull then
+                    SetFieldValue(ibsqlCardList.ParamByName(ipInvMinusCardFeatures[i].optFieldName), ipInvMinusCardFeatures[i]);
             end
             else
-              ibsqlCardList.ParamByName('cardkey').AsInteger := ipBaseCardKey;
+              SetTID(ibsqlCardList.ParamByName('cardkey'), ipBaseCardKey);
 
 
             ibsqlCardList.ExecQuery;
@@ -2188,7 +2344,7 @@ begin
            // Еcли оcтатки формируютcя на дату документа, то выбираетcя минимальный оcтаток
            // из оcтатка на дату документа и на дату поcледнего документа
               tmpRemains := Min(ibsqlCardList.FieldByName('Quantity').AsCurrency,
-                GetLastRemains(ibsqlCardList.FieldByName('id').AsInteger, ipSourceContactKey));
+                GetLastRemains(GetTID(ibsqlCardList.FieldByName('id')), ipSourceContactKey));
 
           // Количcтво по документ больше чем оcтаток по выбранной карточке, то формируем
           // движение на величину оcтатка, в противном cлучае на количеcтво по документу
@@ -2196,14 +2352,14 @@ begin
               then
               begin
                 if tmpRemains > 0 then
-                  Result := AddOneMovement(ibsqlCardList.FieldByName('id').AsInteger,
+                  Result := AddOneMovement(GetTID(ibsqlCardList.FieldByName('id')),
                     tmpRemains, InvPosition)
                 else
                   Result := True;
               end
               else
               begin
-                Result := AddOneMovement(ibsqlCardList.FieldByName('id').AsInteger,
+                Result := AddOneMovement(GetTID(ibsqlCardList.FieldByName('id')),
                   Quantity, InvPosition);
               end;
               if not Result then
@@ -2211,21 +2367,21 @@ begin
 
          // Попутно cохраняем код карточки, из полученной выборки
               if (tmpRemains > 0) and (tempCardKey = -1) then
-                tempCardKey := ibsqlCardList.FieldByName('id').AsInteger;
+                tempCardKey := GetTID(ibsqlCardList.FieldByName('id'));
 
               if gdcDocumentLine.FieldByName('fromcardkey').IsNull then
               begin
                 if not (gdcDocumentLine.State in [dsEdit, dsInsert]) then
                   gdcDocumentLine.Edit;
-                gdcDocumentLine.FieldByName('fromcardkey').AsInteger :=
-                  ibsqlCardList.FieldByName('id').AsInteger;
+                SetTID(gdcDocumentLine.FieldByName('fromcardkey'),
+                  GetTID(ibsqlCardList.FieldByName('id')));
                 isChangeBaseCardKey := False
               end
               else
 // Еcли карточка была приcвоена на вcякий cлучай проверяем ее на вхождение в выбранный маccив карточек
 
-                if gdcDocumentLine.FieldByName('fromcardkey').AsInteger =
-                   ibsqlCardList.FieldByName('id').AsInteger
+                if GetTID(gdcDocumentLine.FieldByName('fromcardkey')) =
+                   GetTID(ibsqlCardList.FieldByName('id'))
                 then
                   isChangeBaseCardKey := False;
 
@@ -2249,8 +2405,7 @@ begin
             begin
               if not (gdcDocumentLine.State in [dsEdit, dsInsert]) then
                 gdcDocumentLine.Edit;
-              gdcDocumentLine.FieldByName('fromcardkey').AsInteger :=
-                tempCardKey;
+              SetTID(gdcDocumentLine.FieldByName('fromcardkey'), tempCardKey);
             end;
           finally
           end;
@@ -2346,7 +2501,7 @@ var
   tmpQuantity, oldQuantity: Currency;
   i: Integer;
   ChangeMove: TgdcChangeMovements;
-  MovementKey: Integer;
+  MovementKey: TID;
   ChangedField: TStringList;
   FSavePoint: String;
   isEdit: Boolean;
@@ -2365,7 +2520,7 @@ begin
 
     FInvErrorCode := iecNoErr;
     Close;
-    ParamByName('documentkey').AsInteger := ipDocumentKey;
+    SetTID(ParamByName('documentkey'), ipDocumentKey);
     Open;
 
 {
@@ -2423,15 +2578,14 @@ begin
 
       try
 
-        MovementKey := FieldByName('MovementKey').AsInteger;
+        MovementKey := GetTID(FieldByName('MovementKey'));
 
         if ipDocumentDate <> FieldByName('movementdate').AsDateTime then
           ChangeMove := ChangeMove + [cmDate];
 
   // Изменилиcь cвойcтва выбора карточки
         for i:= Low(ipInvSourceCardFeatures) to High(ipInvSourceCardFeatures) do
-          if FieldByName(ipInvSourceCardFeatures[i].optFieldName).AsVariant <>
-             ipInvSourceCardFeatures[i].optValue
+          if not CompareOptValue(FieldByName(ipInvSourceCardFeatures[i].optFieldName), ipInvSourceCardFeatures[i])
           then
           begin
             ChangeMove := ChangeMove + [cmSourceFeature];
@@ -2455,10 +2609,10 @@ begin
         if abs(ipQuantity) <> OldQuantity then    // Изменилоcь количеcтво
           ChangeMove := ChangeMove + [cmQuantity];
 
-        if FieldByName('goodkey').AsInteger <> ipGoodKey then // Изменилcя товар
+        if GetTID(FieldByName('goodkey')) <> ipGoodKey then // Изменилcя товар
           ChangeMove := ChangeMove + [cmGood];
 
-        if (FieldByName('credit').AsCurrency <> 0) and (FieldByName('contactkey').AsInteger <>
+        if (FieldByName('credit').AsCurrency <> 0) and (GetTID(FieldByName('contactkey')) <>
            ipSourceContactKey) // Изменилcя контакт-иcточник товара
         then
           ChangeMove := ChangeMove + [cmSourceContact];
@@ -2466,16 +2620,15 @@ begin
         if (FieldByName('credit').AsCurrency <> 0) and not ipOneRecord then
           Next;
 
-        if FieldByName('MovementKey').AsInteger = MovementKey then
+        if GetTID(FieldByName('MovementKey')) = MovementKey then
         begin
-          if (FieldByName('debit').AsCurrency <> 0) and (FieldByName('contactkey').AsInteger <>
+          if (FieldByName('debit').AsCurrency <> 0) and (GetTID(FieldByName('contactkey')) <>
               ipDestContactKey) // Изменилcя получатель
           then
             ChangeMove := ChangeMove + [cmDestContact];
 
           for i:= Low(ipInvDestCardFeatures) to High(ipInvDestCardFeatures) do
-            if FieldByName(ipInvDestCardFeatures[i].optFieldName).AsVariant <>
-               ipInvDestCardFeatures[i].optValue       // Изменилиcь cвойcтва получаемой карточки
+            if not CompareOptValue(FieldByName(ipInvDestCardFeatures[i].optFieldName), ipInvDestCardFeatures[i])       // Изменилиcь cвойcтва получаемой карточки
             then
             begin
               ChangeMove := ChangeMove + [cmDestFeature];
@@ -2493,8 +2646,8 @@ begin
            (ChangeMove = [cmQuantity]) and (ipQuantity > 0) and ipOneRecord
         then
         begin
-          tmpQuantity := GetLastRemains(FieldByName('cardkey').AsInteger,
-             FieldByName('ContactKey').AsInteger) - FieldByName('debit').AsCurrency +
+          tmpQuantity := GetLastRemains(GetTID(FieldByName('cardkey')),
+             GetTID(FieldByName('ContactKey'))) - FieldByName('debit').AsCurrency +
              abs(ipQuantity);
 
           if tmpQuantity >= 0 then
@@ -2519,16 +2672,16 @@ begin
        Еcли изменялоcь первоначальное движение то оcущеcтвялем отдельную проверку
   }
         Next;
-        if ((FieldByName('FirstDocumentKey').AsInteger = ipDocumentKey)) and
+        if ((GetTID(FieldByName('FirstDocumentKey')) = ipDocumentKey)) and
              FieldByName('Parent').IsNull and (RecordCount <= 2) and
              not (cmSourceFeature in ChangeMove)
         then
         begin
           if (ipDocumentDate > FieldByName('movementdate').AsDateTime) and not FCurrentRemains and
-             (GetRemainsOnDate(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger,
+             (GetRemainsOnDate(GetTID(FieldByName('cardkey')), GetTID(FieldByName('contactkey')),
                 ipDocumentDate - 1) < (FieldByName('debit').AsCurrency + FieldByName('credit').AsCurrency)) and
-             IsMovementExists(FieldByName('contactkey').AsInteger, FieldByName('cardkey').AsInteger,
-             FieldByName('documentkey').AsInteger, ipDocumentDate - 1) and not (sLoadFromStream in gdcDocumentLine.BaseState)
+             IsMovementExists(GetTID(FieldByName('contactkey')), GetTID(FieldByName('cardkey')),
+             GetTID(FieldByName('documentkey')), ipDocumentDate - 1) and not (sLoadFromStream in gdcDocumentLine.BaseState)
           then
           begin
           // Изменилаcь дата документа и она больше чем раньше и теперь оcтатка не хватает для отпуcка
@@ -2547,7 +2700,7 @@ begin
 //            Result := True
           else
           begin
-            tmpQuantity := GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger) +
+            tmpQuantity := GetLastRemains(GetTID(FieldByName('cardkey')), GetTID(FieldByName('contactkey'))) +
                tmpQuantity + ipQuantity;
 
             if (tmpQuantity < 0)
@@ -2560,8 +2713,8 @@ begin
             end;
           end;
           if ((cmDestContact in ChangeMove) or (cmGood in ChangeMove)) and
-            IsMovementExists(FieldByName('contactkey').AsInteger,
-              FieldByName('cardkey').AsInteger, FieldByName('documentkey').AsInteger)
+            IsMovementExists(GetTID(FieldByName('contactkey')),
+              GetTID(FieldByName('cardkey')), GetTID(FieldByName('documentkey')))
           then
           begin
           // Изменили товар а cтарый уже где-то иcпользовалcя
@@ -2571,7 +2724,7 @@ begin
           end;
 
           if (cmDestFeature in ChangeMove) and (gdcDocumentLine as TgdcInvDocumentLine).isCheckDestFeatures and
-             not CheckMovementOnCard(FieldByName('cardkey').AsInteger, InvPosition)
+             not CheckMovementOnCard(GetTID(FieldByName('cardkey')), InvPosition)
           then
           begin
           // Изменили признаки получаемой карточки и это привело к неопределенноcти
@@ -2581,11 +2734,11 @@ begin
           end;
 
           if (cmDestFeature in ChangeMove) and
-              IsMovementExists(FieldByName('contactkey').AsInteger,
-              FieldByName('cardkey').AsInteger, FieldByName('documentkey').AsInteger)
+              IsMovementExists(GetTID(FieldByName('contactkey')),
+              GetTID(FieldByName('cardkey')), GetTID(FieldByName('documentkey')))
               and (gdcDocumentLine as TgdcInvDocumentLine).isCheckDestFeatures and
-              not IsReplaceDestFeature(FieldByName('contactkey').AsInteger,
-                FieldByName('cardkey').AsInteger, FieldByName('documentkey').AsInteger,
+              not IsReplaceDestFeature(GetTID(FieldByName('contactkey')),
+                GetTID(FieldByName('cardkey')), GetTID(FieldByName('documentkey')),
                 ChangedField, InvPosition)
           then
           begin
@@ -2597,7 +2750,7 @@ begin
 
 
           // Вcе проверки прошли можно изменить движение
-          Result := ModifyFirstMovement(FieldByName('cardkey').AsInteger, InvPosition);
+          Result := ModifyFirstMovement(GetTID(FieldByName('cardkey')), InvPosition);
           exit;
         end
         else
@@ -2623,9 +2776,13 @@ begin
             if Result and (cmDate in ChangeMove) then
               Result := EditDateMovement(invPosition, gdcInvPositionSaveMode);
           except
-            Transaction.RollBackToSavePoint(FSavepoint);
-            FInvErrorCode := iecOtherIBError;
-            Result := False;
+            on E: Exception do
+            begin
+              Transaction.RollBackToSavePoint(FSavepoint);
+              FInvErrorCode := iecOtherIBError;
+              FInvErrorMessage := E.Message;
+              Result := False;
+            end;
           end;
           Transaction.ReleaseSavePoint(FSavepoint);
 
@@ -2660,40 +2817,40 @@ begin
     begin
       if gdcDocumentLine.State in [dsEdit, dsInsert] then
       begin
-        gdcDocumentLine.FieldByName('fromcardkey').AsInteger := AddInvCard(-1, invPosition);
+        SetTID(gdcDocumentLine.FieldByName('fromcardkey'),  AddInvCard(-1, invPosition));
         if gdcDocumentLine.FindField('tocardkey') <> nil then
-          gdcDocumentLine.FieldByName('tocardkey').AsInteger := gdcDocumentLine.FieldByName('fromcardkey').AsInteger;
+          SetTID(gdcDocumentLine.FieldByName('tocardkey'), GetTID(gdcDocumentLine.FieldByName('fromcardkey')));
         exit;
       end;
     end
     else
       if (ipQuantity = 0) then
       begin
-        if FieldByName('GoodKey').AsInteger = ipGoodKey then
+        if GetTID(FieldByName('GoodKey')) = ipGoodKey then
         begin
           if gdcDocumentLine.FindField('tocardkey') = nil then
           begin
-            ModifyInvCard(gdcDocumentLine.FieldByName('fromcardkey').AsInteger, ipInvDestCardFeatures)
+            ModifyInvCard(GetTID(gdcDocumentLine.FieldByName('fromcardkey')), ipInvDestCardFeatures)
           end
           else
           begin
-            if gdcDocumentLine.FieldByName('tocardkey').AsInteger <> gdcDocumentLine.FieldByName('fromcardkey').AsInteger then
-              ModifyInvCard(gdcDocumentLine.FieldByName('tocardkey').AsInteger, ipInvDestCardFeatures)
+            if GetTID(gdcDocumentLine.FieldByName('tocardkey')) <> GetTID(gdcDocumentLine.FieldByName('fromcardkey')) then
+              ModifyInvCard(GetTID(gdcDocumentLine.FieldByName('tocardkey')), ipInvDestCardFeatures)
             else
-              gdcDocumentLine.FieldByName('tocardkey').AsInteger := AddInvCard(
-                gdcDocumentLine.FieldByName('fromcardkey').AsInteger, invPosition);
+              SetTID(gdcDocumentLine.FieldByName('tocardkey'), AddInvCard(
+                GetTID(gdcDocumentLine.FieldByName('fromcardkey')), invPosition));
           end;
         end
         else
         begin
-          if gdcDocumentLine.FieldByName('id').AsInteger =
-            GetCardDocumentKey(gdcDocumentLine.FieldByName('fromcardkey').AsInteger)
+          if GetTID(gdcDocumentLine.FieldByName('id')) =
+            GetCardDocumentKey(GetTID(gdcDocumentLine.FieldByName('fromcardkey')))
           then
           begin
-            ModifyInvCard(gdcDocumentLine.FieldByName('fromcardkey').AsInteger,
+            ModifyInvCard(GetTID(gdcDocumentLine.FieldByName('fromcardkey')),
               ipInvSourceCardFeatures, True);
             if gdcDocumentLine.FindField('tocardkey') <> nil then
-              ModifyInvCard(gdcDocumentLine.FieldByName('tocardkey').AsInteger, ipInvDestCardFeatures, True);
+              ModifyInvCard(GetTID(gdcDocumentLine.FieldByName('tocardkey')), ipInvDestCardFeatures, True);
           end
           else
           begin
@@ -2701,16 +2858,16 @@ begin
             if not isEdit then
               gdcDocumentLine.Edit;
             if gdcDocumentLine.FieldByName('fromcardkey').IsNull then
-              gdcDocumentLine.FieldByName('fromcardkey').AsInteger :=
-                AddInvCard(-1, InvPosition, False)
+              SetTID(gdcDocumentLine.FieldByName('fromcardkey'),
+                AddInvCard(-1, InvPosition, False))
             else
               if not (gdcDocumentLine as TgdcInvDocumentLine).IsSetFeaturesFromRemains and
                 ((gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtInventorization) then
-                gdcDocumentLine.FieldByName('fromcardkey').AsInteger :=
-                  AddInvCard(-1, InvPosition);
+                SetTID(gdcDocumentLine.FieldByName('fromcardkey'),
+                  AddInvCard(-1, InvPosition));
             if gdcDocumentLine.FindField('tocardkey') <> nil then
-              gdcDocumentLine.FieldByName('tocardkey').AsInteger := AddInvCard(
-                gdcDocumentLine.FieldByName('fromcardkey').AsInteger, invPosition);
+              SetTID(gdcDocumentLine.FieldByName('tocardkey'), AddInvCard(
+                GetTID(gdcDocumentLine.FieldByName('fromcardkey')), invPosition));
           end
         end;
         exit;
@@ -2725,66 +2882,69 @@ begin
       Result := MakeMovementLine(tmpQuantity, InvPosition, gdcInvPositionSaveMode)
     else
     begin
-      if gdcDocumentLine.FieldByName('fromcardkey').IsNull then
+      if (gdcDocumentLine.State = dsInsert) or (gdcDocumentLine.State = dsEdit) then
       begin
-        if (gdcDocumentLine.FindField('tocardkey') <> nil) or
-            (Length(ipInvDestCardFeatures) = 0)
-        then
-          gdcDocumentLine.FieldByName('fromcardkey').AsInteger :=
-            AddInvCard(-1, InvPosition, False)
-        else
-          gdcDocumentLine.FieldByName('fromcardkey').AsInteger :=
-            AddInvCard(-1, InvPosition, True)
-      end
-      else
-        if (gdcDocumentLine.FindField('tocardkey') <> nil) or
-            (Length(ipInvDestCardFeatures) = 0)
-        then
+        if gdcDocumentLine.FieldByName('fromcardkey').IsNull then
         begin
-          if not CompareCard(gdcDocumentLine.FieldByName('fromcardkey').AsInteger,
-                 gdcDocumentLine.FieldByName('goodkey').AsInteger,
-               ipInvSourceCardFeatures)
+          if (gdcDocumentLine.FindField('tocardkey') <> nil) or
+              (Length(ipInvDestCardFeatures) = 0)
           then
-          begin
-            if gdcDocumentLine.FieldByName('id').AsInteger =
-              GetCardDocumentKey(gdcDocumentLine.FieldByName('fromcardkey').AsInteger)
-            then
-              ModifyInvCard(gdcDocumentLine.FieldByName('fromcardkey').AsInteger,
-                ipInvSourceCardFeatures)
-            else
-              gdcDocumentLine.FieldByName('fromcardkey').AsInteger :=
-                AddInvCard(-1, InvPosition);
-          end;
+            SetTID(gdcDocumentLine.FieldByName('fromcardkey'),
+              AddInvCard(-1, InvPosition, False))
+          else
+            SetTID(gdcDocumentLine.FieldByName('fromcardkey'),
+              AddInvCard(-1, InvPosition, True))
         end
         else
-          if not CompareCard(gdcDocumentLine.FieldByName('fromcardkey').AsInteger,
-                 gdcDocumentLine.FieldByName('goodkey').AsInteger,
-               ipInvDestCardFeatures)
+          if (gdcDocumentLine.FindField('tocardkey') <> nil) or
+              (Length(ipInvDestCardFeatures) = 0)
           then
           begin
-            if gdcDocumentLine.FieldByName('id').AsInteger =
-              GetCardDocumentKey(gdcDocumentLine.FieldByName('fromcardkey').AsInteger)
+            if not CompareCard(GetTID(gdcDocumentLine.FieldByName('fromcardkey')),
+                   GetTID(gdcDocumentLine.FieldByName('goodkey')),
+                 ipInvSourceCardFeatures)
             then
-              ModifyInvCard(gdcDocumentLine.FieldByName('fromcardkey').AsInteger,
-                ipInvDestCardFeatures)
-            else
-              gdcDocumentLine.FieldByName('fromcardkey').AsInteger :=
-                AddInvCard(-1, InvPosition, True);
-          end;
+            begin
+              if GetTID(gdcDocumentLine.FieldByName('id')) =
+                GetCardDocumentKey(GetTID(gdcDocumentLine.FieldByName('fromcardkey')))
+              then
+                ModifyInvCard(GetTID(gdcDocumentLine.FieldByName('fromcardkey')),
+                  ipInvSourceCardFeatures)
+              else
+                SetTID(gdcDocumentLine.FieldByName('fromcardkey'),
+                  AddInvCard(-1, InvPosition));
+            end;
+          end
+          else
+            if not CompareCard(GetTID(gdcDocumentLine.FieldByName('fromcardkey')),
+                   GetTID(gdcDocumentLine.FieldByName('goodkey')),
+                 ipInvDestCardFeatures)
+            then
+            begin
+              if GetTID(gdcDocumentLine.FieldByName('id')) =
+                GetCardDocumentKey(GetTID(gdcDocumentLine.FieldByName('fromcardkey')))
+              then
+                ModifyInvCard(GetTID(gdcDocumentLine.FieldByName('fromcardkey')),
+                  ipInvDestCardFeatures)
+              else
+                SetTID(gdcDocumentLine.FieldByName('fromcardkey'),
+                  AddInvCard(-1, InvPosition, True));
+            end;
 
-      if gdcDocumentLine.FindField('tocardkey') <> nil then
-      begin
-        if gdcDocumentLine.FieldByName('tocardkey').IsNull then
-          gdcDocumentLine.FieldByName('tocardkey').AsInteger :=
-            AddInvCard(gdcDocumentLine.FieldByName('fromcardkey').AsInteger, InvPosition)
-        else
-          if not CompareCard(gdcDocumentLine.FieldByName('tocardkey').AsInteger,
-                 gdcDocumentLine.FieldByName('goodkey').AsInteger,
-               ipInvDestCardFeatures)
-          then
-            ModifyInvCard(gdcDocumentLine.FieldByName('tocardkey').AsInteger,
-              ipInvDestCardFeatures);
+        if gdcDocumentLine.FindField('tocardkey') <> nil then
+        begin
+          if gdcDocumentLine.FieldByName('tocardkey').IsNull then
+            SetTID(gdcDocumentLine.FieldByName('tocardkey'),
+              AddInvCard(GetTID(gdcDocumentLine.FieldByName('fromcardkey')), InvPosition))
+          else
+            if not CompareCard(GetTID(gdcDocumentLine.FieldByName('tocardkey')),
+                   GetTID(gdcDocumentLine.FieldByName('goodkey')),
+                 ipInvDestCardFeatures)
+            then
+              ModifyInvCard(GetTID(gdcDocumentLine.FieldByName('tocardkey')),
+                ipInvDestCardFeatures);
 
+        end;
       end;
     end;
   end;
@@ -3155,7 +3315,7 @@ end;
 
 
 function TgdcInvMovement.IsMovementExists(const aContactKey, aCardKey,
-  aExcludeDocumentKey: Integer; const aDocumentDate: TDateTime = 0): Boolean;
+  aExcludeDocumentKey: TID; const aDocumentDate: TDateTime = 0): Boolean;
 var
   ibsql: TIBSQL;
 begin
@@ -3173,11 +3333,11 @@ begin
       ibsql.SQL.Text := ibsql.SQL.Text + ' and  contactkey = :contactkey ';
     ibsql.Prepare;
     if aContactKey > 0 then
-      ibsql.ParamByName('contactkey').AsInteger := aContactKey;
+      SetTID(ibsql.ParamByName('contactkey'), aContactKey);
     if aDocumentDate > 0 then
       ibsql.ParamByName('movementdate').AsDateTime := aDocumentDate;
-    ibsql.ParamByName('cardkey').AsInteger := aCardKey;
-    ibsql.ParamByName('documentkey').AsInteger := aExcludeDocumentKey;
+    SetTID(ibsql.ParamByName('cardkey'), aCardKey);
+    SetTID(ibsql.ParamByName('documentkey'), aExcludeDocumentKey);
     ibsql.ExecQuery;
     Result := not ibsql.EOF;
   finally
@@ -3185,7 +3345,7 @@ begin
   end;
 end;
 
-function TgdcInvMovement.GetQuantity(const aDocumentKey: Integer;
+function TgdcInvMovement.GetQuantity(const aDocumentKey: TID;
   TypePosition: TTypePosition): Currency;
 var
   ibsql: TIBSQL;
@@ -3200,7 +3360,7 @@ begin
     ibsql.SQL.Text := 'SELECT SUM(debit) as Debit, SUM(credit) as Credit FROM inv_movement WHERE ' +
                       ' documentkey = :documentkey';
     ibsql.Prepare;
-    ibsql.ParamByName('documentkey').AsInteger := aDocumentKey;
+    SetTID(ibsql.ParamByName('documentkey'), aDocumentKey);
     ibsql.ExecQuery;
     if not ibsql.EOF then
     begin
@@ -3219,19 +3379,19 @@ begin
   end;
 end;
 
-function TgdcInvMovement.GetCardInfo(const aCardKey: Integer): Boolean;
+function TgdcInvMovement.GetCardInfo(const aCardKey: TID): Boolean;
 begin
-  if not FibsqlCardInfo.Open or  (FibsqlCardInfo.ParamByName('id').AsInteger <> aCardKey) then
+  if not FibsqlCardInfo.Open or  (GetTID(FibsqlCardInfo.ParamByName('id')) <> aCardKey) then
   begin
     FibsqlCardInfo.Close;
-    FibsqlCardInfo.ParamByName('id').AsInteger := aCardKey;
+    SetTID(FibsqlCardInfo.ParamByName('id'), aCardKey);
     FibsqlCardInfo.ExecQuery;
   end;  
   Result := not FibsqlCardInfo.EOF;
 end;
 
 function TgdcInvMovement.GetLastRemains(const aCardKey,
-  aContactKey: Integer): Currency;
+  aContactKey: TID): Currency;
 begin
   Result := 0;
   try
@@ -3243,8 +3403,8 @@ begin
       ibsqlLastRemains.SQL.Text := 'SELECT balance FROM inv_balance WHERE contactkey = :contactkey AND ' +
           ' cardkey = :cardkey ';
     end;
-    ibsqlLastRemains.ParamByName('contactkey').AsInteger := aContactKey;
-    ibsqlLastRemains.ParamByName('cardkey').AsInteger := aCardKey;
+    SetTID(ibsqlLastRemains.ParamByName('contactkey'), aContactKey);
+    SetTID(ibsqlLastRemains.ParamByName('cardkey'), aCardKey);
     ibsqlLastRemains.ExecQuery;
     if not ibsqlLastRemains.EOF then
       Result := ibsqlLastRemains.FieldByName('balance').AsCurrency;
@@ -3254,7 +3414,7 @@ begin
 end;
 
 function TgdcInvMovement.GetRemainsOnDate(const aCardKey,
-  aContactKey: Integer; aDate: TDateTime): Currency;
+  aContactKey: TID; aDate: TDateTime): Currency;
 var
   ibsql: TIBSQL;
 begin
@@ -3269,8 +3429,8 @@ begin
        ' WHERE m.cardkey = :cardkey and m.contactkey = :contactkey and ' +
        ' m.movementdate <= :movementdate';
     ibsql.Prepare;
-    ibsql.ParamByName('cardkey').AsInteger := aCardKey;
-    ibsql.ParamByName('contactkey').AsInteger := aContactKey;
+    SetTID(ibsql.ParamByName('cardkey'), aCardKey);
+    SetTID(ibsql.ParamByName('contactkey'), aContactKey);
     ibsql.ParamByName('movementdate').AsDateTime := aDate;
     ibsql.ExecQuery;
     if not ibsql.EOF then
@@ -3447,8 +3607,8 @@ begin
   // Ограничение по используемым признакам карточки
   AdditionalFeatureClause := '';
   for I := Low(InvPosition.ipInvSourceCardFeatures) to High(InvPosition.ipInvSourceCardFeatures) do
-    if InvPosition.ipInvSourceCardFeatures[i].isInteger then
-      if InvPosition.ipInvSourceCardFeatures[i].optValue = Null then
+    if InvPosition.ipInvSourceCardFeatures[i].isID then
+      if InvPosition.ipInvSourceCardFeatures[i].IsNull then
         AdditionalFeatureClause := AdditionalFeatureClause +
           ' AND (C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' + 0) IS NULL '
       else
@@ -3456,7 +3616,7 @@ begin
           ' AND (C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' + 0) = :' +
           InvPosition.ipInvSourceCardFeatures[i].optFieldName
     else
-      if InvPosition.ipInvSourceCardFeatures[i].optValue = Null then
+      if InvPosition.ipInvSourceCardFeatures[i].IsNull then
         AdditionalFeatureClause := AdditionalFeatureClause +
           ' AND C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' IS NULL '
       else
@@ -3466,7 +3626,7 @@ begin
 
   if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
     AdditionalFeatureClause := AdditionalFeatureClause +
-      ' AND c.companykey + 0 = ' + IntToStr(gdcDocumentLine.FieldByName('companykey').AsInteger);
+      ' AND c.companykey + 0 = ' + TID2S(GetTID(gdcDocumentLine.FieldByName('companykey')));
 
   // Если нужны неотрицательные и не текущие остатки
   if not CurrentRemains and not InvPosition.ipMinusRemains then
@@ -3558,7 +3718,7 @@ begin
           '    AND m.documentkey <> :documentkey' + #13#10 +
           '    AND m.disabled = 0';
     if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
-      S := S + ' AND c.companykey + 0 = ' + IntToStr(gdcDocumentLine.FieldByName('companykey').AsInteger);
+      S := S + ' AND c.companykey + 0 = ' + TID2S(GetTID(gdcDocumentLine.FieldByName('companykey')));
   end
   else
   begin
@@ -3587,18 +3747,18 @@ begin
           '    AND b.contactkey = :contactkey' +
           #13#10;
     if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
-      S := S + ' AND c.companykey + 0 = ' + IntToStr(gdcDocumentLine.FieldByName('companykey').AsInteger);
+      S := S + ' AND c.companykey + 0 = ' + TID2S(GetTID(gdcDocumentLine.FieldByName('companykey')));
   end;
 
   for i:= Low(InvPosition.ipInvSourceCardFeatures) to High(InvPosition.ipInvSourceCardFeatures) do
-    if InvPosition.ipInvSourceCardFeatures[i].isInteger then
-      if InvPosition.ipInvSourceCardFeatures[i].optValue = Null then
+    if InvPosition.ipInvSourceCardFeatures[i].isID then
+      if InvPosition.ipInvSourceCardFeatures[i].IsNull then
         S := S + ' AND (C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' + 0) IS NULL '
       else
         S := S + ' AND (C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' + 0) = :' +
           InvPosition.ipInvSourceCardFeatures[i].optFieldName
     else
-      if InvPosition.ipInvSourceCardFeatures[i].optValue = Null then
+      if InvPosition.ipInvSourceCardFeatures[i].IsNull then
         S := S + ' AND C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' IS NULL '
       else
         S := S + ' AND C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' = :' +
@@ -3658,7 +3818,7 @@ begin
     if not CurrentRemains and not InvPosition.ipMinusRemains then
     begin
       DocQuantity := 0;
-      ibsql.ParamByName('documentkey').AsInteger := InvPosition.ipDocumentKey;
+      SetTID(ibsql.ParamByName('documentkey'), InvPosition.ipDocumentKey);
 
       if FEndMonthRemains then
       begin
@@ -3676,27 +3836,26 @@ begin
         DocQuantity := 0;
     end;
 
-    ibsql.ParamByName('goodkey').AsInteger := InvPosition.ipGoodKey;
-    ibsql.ParamByName('ContactKey').AsInteger := InvPosition.ipSourceContactKey;
+    SetTID(ibsql.ParamByName('goodkey'), InvPosition.ipGoodKey);
+    SetTID(ibsql.ParamByName('ContactKey'), InvPosition.ipSourceContactKey);
 
     for i:= Low(InvPosition.ipInvSourceCardFeatures) to High(InvPosition.ipInvSourceCardFeatures) do
-      if InvPosition.ipInvSourceCardFeatures[i].optValue <> Null then
-        ibsql.ParamByName(InvPosition.ipInvSourceCardFeatures[i].optFieldName).AsVariant :=
-          InvPosition.ipInvSourceCardFeatures[i].optValue;
+      if not InvPosition.ipInvSourceCardFeatures[i].IsNull then
+        SetFieldValue(ibsql.ParamByName(InvPosition.ipInvSourceCardFeatures[i].optFieldName), InvPosition.ipInvSourceCardFeatures[i]);
 
     ibsql.ExecQuery;
-    if (not ibsql.EOF) and (ibsql.FieldByName('cardkey').AsInteger > 0) then
+    if (not ibsql.EOF) and (GetTID(ibsql.FieldByName('cardkey')) > 0) then
     begin
       Result := ibsql.FieldByName('remains').AsCurrency;
       if not (gdcDocumentLine.State in [dsEdit, dsInsert]) then
         gdcDocumentLine.Edit;
-      gdcDocumentLine.FieldByName('FromCardKey').AsInteger :=
-        ibsql.FieldByName('cardkey').AsInteger;
+      SetTID(gdcDocumentLine.FieldByName('FromCardKey'),
+        GetTID(ibsql.FieldByName('cardkey')));
       if (gdcDocumentLine.FindField('tocardkey') <> nil) and
          gdcDocumentLine.FieldByName('tocardkey').IsNull
       then
-        gdcDocumentLine.FieldByName('tocardkey').AsInteger :=
-          ibsql.FieldByName('cardkey').AsInteger;
+        SetTID(gdcDocumentLine.FieldByName('tocardkey'),
+          GetTID(ibsql.FieldByName('cardkey')));
       if gdcDocumentLine.FindField('remains') <> nil then
       begin
         gdcDocumentLine.FieldByName('remains').ReadOnly := False;
@@ -3961,11 +4120,11 @@ begin
         begin
           DidActivate := ActivateTransaction;
           MasterDataSet.ReadTransaction := gdcDocumentLine.Transaction;
-          MasterDataSet.ID := gdcDocumentLine.FieldByName('parent').AsInteger;
+          MasterDataSet.ID := GetTID(gdcDocumentLine.FieldByName('parent'));
           MasterDataSet.Open;
         end;
 
-        ipDocumentKey := gdcDocumentLine.FieldByName('documentkey').AsInteger;
+        ipDocumentKey := GetTID(gdcDocumentLine.FieldByName('documentkey'));
         ipDocumentDate := MasterDataSet.FieldByName('documentdate').AsDateTime;
 
         ipQuantity := gdcDocumentLine.FieldByName('quantity').AsCurrency;
@@ -3984,14 +4143,14 @@ begin
               gdcDocumentLine.FieldByName('FROMQUANTITY').AsCurrency
           end;
 
-        ipGoodKey := gdcDocumentLine.FieldByName('goodkey').AsInteger;
+        ipGoodKey := GetTID(gdcDocumentLine.FieldByName('goodkey'));
         if (gdcDocumentLine.State = dsEdit) and ((gdcDocumentLine.FieldByName('QUANTITY').OldValue = Null) or
            (gdcDocumentLine.FieldByName('QUANTITY').OldValue = 0)) and
            not (irsRemainsRef in (gdcDocumentLine as TgdcInvDocumentLine).Sources)
         then
           ipBaseCardKey := -1
         else
-          ipBaseCardKey := gdcDocumentLine.FieldByName('fromcardkey').AsInteger;
+          ipBaseCardKey := GetTID(gdcDocumentLine.FieldByName('fromcardkey'));
 
         FCurrentRemains := (gdcDocumentLine as TgdcInvDocumentLine).LiveTimeRemains;
         FEndMonthRemains := (gdcDocumentLine as TgdcInvDocumentLine).EndMonthRemains;
@@ -4009,22 +4168,22 @@ begin
             (AnsiCompareText(MovementSource.RelationName, TgdDocumentEntry(CE).HeaderRelName) = 0)
                and (MovementSource.SourceFieldName > '')
           then
-            ipSourceContactKey := MasterDataSet.
-              FieldByName(MovementSource.SourceFieldName).AsInteger
+            ipSourceContactKey := GetTID(MasterDataSet.
+              FieldByName(MovementSource.SourceFieldName))
           else
 
           if (MovementSource.SourceFieldName > '') then
-            ipSourceContactKey := FieldByName(MovementSource.SourceFieldName).AsInteger;
+            ipSourceContactKey := GetTID(FieldByName(MovementSource.SourceFieldName));
 
           if (AnsiCompareText(MovementTarget.RelationName, TgdDocumentEntry(CE).HeaderRelName) = 0) and
              (MovementTarget.SourceFieldName > '')
           then
-            ipDestContactKey := MasterDataSet.
-              FieldByName(MovementTarget.SourceFieldName).AsInteger
+            ipDestContactKey := GetTID(MasterDataSet.
+              FieldByName(MovementTarget.SourceFieldName))
           else
 
           if (MovementTarget.SourceFieldName > '') then
-            ipDestContactKey := FieldByName(MovementTarget.SourceFieldName).AsInteger;
+            ipDestContactKey := GetTID(FieldByName(MovementTarget.SourceFieldName));
 
     // Уcтанавливаем значения контактов ограничителей
 
@@ -4035,22 +4194,22 @@ begin
             (AnsiCompareText(MovementSource.SubRelationName, TgdDocumentEntry(CE).HeaderRelName) = 0) and
             (MovementSource.SubSourceFieldName > '')
           then
-            ipSubSourceContactKey := MasterDataSet.
-              FieldByName(MovementSource.SubSourceFieldName).AsInteger
+            ipSubSourceContactKey := GetTID(MasterDataSet.
+              FieldByName(MovementSource.SubSourceFieldName))
           else
 
           if (MovementSource.SubSourceFieldName > '') then
-            ipSubSourceContactKey := FieldByName(MovementSource.SubSourceFieldName).AsInteger;
+            ipSubSourceContactKey := GetTID(FieldByName(MovementSource.SubSourceFieldName));
 
           if (AnsiCompareText(MovementTarget.SubRelationName, TgdDocumentEntry(CE).HeaderRelName) = 0) and
              (MovementTarget.SubSourceFieldName > '')
           then
-            ipSubDestContactKey := MasterDataSet.
-              FieldByName(MovementTarget.SubSourceFieldName).AsInteger
+            ipSubDestContactKey := GetTID(MasterDataSet.
+              FieldByName(MovementTarget.SubSourceFieldName))
           else
 
           if (MovementTarget.SubSourceFieldName > '') then
-            ipSubDestContactKey := FieldByName(MovementTarget.SubSourceFieldName).AsInteger;
+            ipSubDestContactKey := GetTID(FieldByName(MovementTarget.SubSourceFieldName));
 
           SetLength(ipPredefinedSourceContact,
             High(MovementSource.Predefined) - Low(MovementSource.Predefined) + 1);
@@ -4092,7 +4251,7 @@ begin
         else
           ipDelayed := False;
 
-        SetLength(ipInvSourceCardFeatures, 0);  
+        SetLength(ipInvSourceCardFeatures, 0);
 
         if ((gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtTransformation) or
            ((gdcDocumentLine as TgdcInvDocumentLine).ViewMovementPart = impExpense) or
@@ -4107,18 +4266,11 @@ begin
 
           for i:= Low((gdcDocumentLine as TgdcInvDocumentLine).SourceFeatures) to
             High((gdcDocumentLine as TgdcInvDocumentLine).SourceFeatures) do
-          begin
-            ipInvSourceCardFeatures[i].optFieldName :=
-              (gdcDocumentLine as TgdcInvDocumentLine).SourceFeatures[i];
-            ipInvSourceCardFeatures[i].optValue :=
-              gdcDocumentLine.FieldByName(
-                INV_SOURCEFEATURE_PREFIX +
-                (gdcDocumentLine as TgdcInvDocumentLine).SourceFeatures[i]).AsVariant;
-            if gdcDocumentLine.FieldByName(
-                 INV_SOURCEFEATURE_PREFIX +
-                 (gdcDocumentLine as TgdcInvDocumentLine).SourceFeatures[i]).DataType in [ftSmallint, ftBCD, ftInteger, ftLargeInt] then
-              ipInvSourceCardFeatures[i].isInteger := True;
-          end;
+
+            SetOptValue(ipInvSourceCardFeatures[i], gdcDocumentLine.FieldByName(
+                  INV_SOURCEFEATURE_PREFIX +
+                  (gdcDocumentLine as TgdcInvDocumentLine).SourceFeatures[i]));
+
         end;
 
         SetLength(ipInvMinusCardFeatures, 0);
@@ -4130,27 +4282,18 @@ begin
 
           for i:= Low((gdcDocumentLine as TgdcInvDocumentLine).MinusFeatures) to
             High((gdcDocumentLine as TgdcInvDocumentLine).MinusFeatures) do
-          begin
-            ipInvMinusCardFeatures[i].optFieldName :=
-              (gdcDocumentLine as TgdcInvDocumentLine).MinusFeatures[i];
-            ipInvMinusCardFeatures[i].optValue :=
-              gdcDocumentLine.FieldByName(
+            SetOptValue(ipInvMinusCardFeatures[i], gdcDocumentLine.FieldByName(
                 INV_DESTFEATURE_PREFIX +
-                (gdcDocumentLine as TgdcInvDocumentLine).MinusFeatures[i]).AsVariant;
-            if gdcDocumentLine.FieldByName(
-                INV_DESTFEATURE_PREFIX +
-                (gdcDocumentLine as TgdcInvDocumentLine).MinusFeatures[i]).DataType in [ftSmallint, ftBCD, ftInteger, ftLargeInt] then
-              ipInvMinusCardFeatures[i].isInteger := True;
-          end;
+                (gdcDocumentLine as TgdcInvDocumentLine).MinusFeatures[i]));
 
         end;
 
         SetLength(ipInvDestCardFeatures, 0);
 
-        if ((gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtTransformation) or
+        if (((gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtTransformation) or
            ((gdcDocumentLine as TgdcInvDocumentLine).ViewMovementPart = impIncome) or
            (((gdcDocumentLine as TgdcInvDocumentLine).FindField('INQUANTITY') <> nil) and
-           ((gdcDocumentLine as TgdcInvDocumentLine).FieldByName('INQUANTITY').AsCurrency > 0))
+           ((gdcDocumentLine as TgdcInvDocumentLine).FieldByName('INQUANTITY').AsCurrency > 0))) 
 
         then
         begin
@@ -4162,18 +4305,11 @@ begin
 
           for i:= Low((gdcDocumentLine as TgdcInvDocumentLine).DestFeatures) to
             High((gdcDocumentLine as TgdcInvDocumentLine).DestFeatures) do
-          begin
-            ipInvDestCardFeatures[i].optFieldName :=
-              (gdcDocumentLine as TgdcInvDocumentLine).DestFeatures[i];
-            ipInvDestCardFeatures[i].optValue :=
-              gdcDocumentLine.FieldByName(
+
+            SetOptValue(ipInvDestCardFeatures[i], gdcDocumentLine.FieldByName(
                 INV_DESTFEATURE_PREFIX +
-                (gdcDocumentLine as TgdcInvDocumentLine).DestFeatures[i]).AsVariant;
-            if gdcDocumentLine.FieldByName(
-                INV_DESTFEATURE_PREFIX +
-                (gdcDocumentLine as TgdcInvDocumentLine).DestFeatures[i]).DataType in [ftSmallint, ftBCD, ftInteger, ftLargeInt] then
-              ipInvDestCardFeatures[i].isInteger := True;
-          end;
+                (gdcDocumentLine as TgdcInvDocumentLine).DestFeatures[i]));
+
 
         end;
 
@@ -4206,7 +4342,7 @@ begin
     FgdcDocumentLine := nil;
 end;
 
-function TgdcInvMovement.SetEnableMovement(const aDocumentKey: Integer;
+function TgdcInvMovement.SetEnableMovement(const aDocumentKey: TID;
   const isEnabled: Boolean): Boolean;
 begin
   Close;
@@ -4216,7 +4352,7 @@ begin
   Result := True;
 end;
 
-function TgdcInvMovement.DeleteEnableMovement(const aDocumentKey: Integer;
+function TgdcInvMovement.DeleteEnableMovement(const aDocumentKey: TID;
   const isEnabled: Boolean): Boolean;
 begin
   ExecSingleQuery(Format('DELETE FROM inv_movement WHERE disabled = %d AND documentkey = %d',
@@ -4224,7 +4360,7 @@ begin
   Result := True;
 end;
 
-function TgdcInvMovement.CheckMovementOnCard(const aCardKey: Integer;
+function TgdcInvMovement.CheckMovementOnCard(const aCardKey: TID;
   var InvPosition: TgdcInvPosition): Boolean;
 var
   ibsqlGetCards: TIBSQL;
@@ -4246,8 +4382,7 @@ begin
     GetCardInfo(aCardKey);
 
     for i:= Low(InvPosition.ipInvDestCardFeatures) to High(InvPosition.ipInvDestCardFeatures) do
-      if FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).AsVariant <>
-         InvPosition.ipInvDestCardFeatures[i].optValue
+      if not CompareOptValue(FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName), InvPosition.ipInvDestCardFeatures[i])
       then
         FieldList.Add(InvPosition.ipInvDestCardFeatures[i].optFieldName);
 
@@ -4266,13 +4401,12 @@ begin
       ' WHERE c.id = :id  ';
     S := '';
     for i:= Low(InvPosition.ipInvDestCardFeatures) to High(InvPosition.ipInvDestCardFeatures) do
-      if FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).AsVariant <>
-         InvPosition.ipInvDestCardFeatures[i].optValue
+      if not CompareOptValue(FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName), InvPosition.ipInvDestCardFeatures[i])
       then
       begin
         if S > '' then
           S := S + ' OR ';
-        if InvPosition.ipInvDestCardFeatures[i].isInteger then
+        if InvPosition.ipInvDestCardFeatures[i].isID then
           if FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).IsNull then
             S := S + ' (C.' + InvPosition.ipInvDestCardFeatures[i].optFieldName + ' + 0) IS NULL '
           else
@@ -4292,12 +4426,13 @@ begin
     ibsqlCardMovement.SQL.Text := ibsqlCardMovement.SQL.Text + ' AND m.documentkey <> c.firstdocumentkey ';
 
     for i:= Low(InvPosition.ipInvDestCardFeatures) to High(InvPosition.ipInvDestCardFeatures) do
-      if (FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).AsVariant <>
-         InvPosition.ipInvDestCardFeatures[i].optValue) and
+      if   not CompareOptValue(FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName),
+         InvPosition.ipInvDestCardFeatures[i]) and
          not FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).IsNull
       then
-        ibsqlCardMovement.ParamByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).AsVariant :=
-           FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).AsVariant;
+        SetFieldValue(ibsqlCardMovement.ParamByName(InvPosition.ipInvDestCardFeatures[i].optFieldName),
+           InvPosition.ipInvDestCardFeatures[i],
+           FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName));
 
     ibsqlGetCards.Transaction := Transaction;
     ibsqlGetCards.SQL.Text := 'SELECT ID FROM inv_p_GetCards( ' + IntToStr(aCardKey) + ') ';
@@ -4309,9 +4444,9 @@ begin
       ibsqlCardMovement.Close;
 
       if isFirst then
-        ibsqlCardMovement.ParamByName('id').AsInteger := aCardKey
+        SetTID(ibsqlCardMovement.ParamByName('id'), aCardKey)
       else
-        ibsqlCardMovement.ParamByName('id').AsInteger := ibsqlGetCards.FieldByName('ID').AsInteger;
+        SetTID(ibsqlCardMovement.ParamByName('id'), GetTID(ibsqlGetCards.FieldByName('ID')));
       ibsqlCardMovement.ExecQuery;
 
       if not ibsqlCardMovement.EOF then
@@ -4337,8 +4472,8 @@ begin
             begin
               IndexField :=
                 FieldList.IndexOf((InvDocument as TgdcInvDocumentLine).SourceFeatures[i]);
-              if (IndexField >= 0) and (FibsqlCardInfo.FieldByName(FieldList[IndexField]).AsVariant =
-                ibsqlCardMovement.FieldByName(FieldList[IndexField]).AsVariant)
+              if (IndexField >= 0) and (GetFieldAsVar(FibsqlCardInfo.FieldByName(FieldList[IndexField])) =
+                GetFieldAsVar(ibsqlCardMovement.FieldByName(FieldList[IndexField])))
               then
               begin
                 isChange := True;
@@ -4353,8 +4488,8 @@ begin
                 ibsqlCard.Transaction := Transaction;
                 ibsqlCard.SQL.Text := 'SELECT id FROM inv_movement WHERE documentkey = :dk and ' +
                   ' credit > 0 and cardkey <> :ck';
-                ibsqlCard.ParamByName('dk').AsInteger := ibsqlCardMovement.FieldByName('dockey').AsInteger;
-                ibsqlCard.ParamByName('ck').AsInteger := ibsqlCardMovement.FieldByName('id').AsInteger;
+                SetTID(ibsqlCard.ParamByName('dk'), GetTID(ibsqlCardMovement.FieldByName('dockey')));
+                SetTID(ibsqlCard.ParamByName('ck'), GetTID(ibsqlCardMovement.FieldByName('id')));
                 ibsqlCard.ExecQuery;
                 Result := ibsqlCard.EOF;
               finally
@@ -4444,7 +4579,7 @@ begin
 end;
 
 function TgdcInvMovement.GetCardDocumentKey(
-  const CardKey: Integer): Integer;
+  const CardKey: TID): TID;
 var
   ibsql: TIBSQL;
 begin
@@ -4452,10 +4587,10 @@ begin
   try
     ibsql.Transaction := ReadTransaction;
     ibsql.SQL.Text := 'SELECT documentkey FROM inv_card WHERE id = :id';
-    ibsql.ParamByName('id').AsInteger := cardkey;
+    SetTID(ibsql.ParamByName('id'), cardkey);
     ibsql.ExecQuery;
     if not ibsql.EOF then
-      Result := ibsql.FieldByName('documentkey').AsInteger
+      Result := GetTID(ibsql.FieldByName('documentkey'))
     else
       Result := -1;
   finally
@@ -4464,7 +4599,7 @@ begin
 end;
 
 function TgdcInvMovement.IsReplaceDestFeature(ContactKey, CardKey,
-  DocumentKey: Integer; ChangedField: TStringList;
+  DocumentKey: TID; ChangedField: TStringList;
   var InvPosition: TgdcInvPosition): Boolean;
 begin
   if FShowMovementDlg then
@@ -4909,8 +5044,8 @@ begin
   inherited;
 
   if IsUseCompanyKey then
-    S.Add('Cast(C.COMPANYKEY + 0 AS Integer) = :companykey');
-    
+    S.Add('C.COMPANYKEY + 0 = :companykey');
+
   if not (CurrentRemains or UseSelectFromSelect) then
   begin
     if not FIsNewDateRemains then
@@ -5917,13 +6052,13 @@ begin
   else
   begin
     if isUseCompanyKey then
-      S.Add('CAST(C.COMPANYKEY + 0 as INTEGER) = :companykey');
+      S.Add('C.COMPANYKEY + 0 = :companykey');
   end;
 
   if High(FChooseFeatures) >= Low(FChooseFeatures) then
     for i:= Low(FChooseFeatures) to High(FChooseFeatures) do
-      if FChooseFeatures[i].optValue <> NULL then
-        if FChooseFeatures[i].isInteger then
+      if not FChooseFeatures[i].IsNull then
+        if FChooseFeatures[i].isID then
           S.Add('  (C.' + FChooseFeatures[i].optFieldName + ' + 0) = :' +
                     FChooseFeatures[i].optFieldName)
         else
@@ -5966,22 +6101,16 @@ begin
       cvalDocumentKey := -1;
       cvalFirstDate := -1;
 
-      cvalGoodKey := FieldByName('goodkey').AsInteger;
-      cvalCardKey := FieldByName('id').AsInteger;
+      cvalGoodKey := GetTID(FieldByName('goodkey'));
+      cvalCardKey := GetTID(FieldByName('id'));
       cvalQuantity := FieldByName('choosequantity').AsCurrency;
       cvalQuantPack := FieldByName('choosequantpack').AsCurrency;
       SetLength(cvalInvCardFeatures, ViewFeatures.Count);
       for i:= 0 to ViewFeatures.Count - 1 do
-      begin
-        cvalInvCardFeatures[i].optFieldName := ViewFeatures[i];
-        if not FieldByName(ViewFeatures[i]).IsNull then
-          cvalInvCardFeatures[i].optValue := FieldByName(ViewFeatures[i]).Value
-        else
-          cvalInvCardFeatures[i].optValue := NULL;
-        cvalInvCardFeatures[i].isInteger := (FieldByName(ViewFeatures[i]).DataType in [ftSmallint, ftBCD, ftInteger, ftLargeInt]);
-      end;
+        SetOptValue(cvalInvCardFeatures[i], FieldByName(ViewFeatures[i]));
+        
       if FindField('ContactKey') <> nil then
-        cvalContactKey := FieldByName('ContactKey').AsInteger
+        cvalContactKey := GetTID(FieldByName('ContactKey'))
       else
         cvalContactKey := -1;
 
@@ -5997,11 +6126,11 @@ begin
         ChangeField := GetTickCount;
         {$ENDIF}
 
-        cvalDocumentKey := gdcDocumentLine.FieldByName('documentkey').AsInteger;
+        cvalDocumentKey := GetTID(gdcDocumentLine.FieldByName('documentkey'));
 
-        gdcDocumentLine.FieldByName('goodkey').AsInteger := cvalGoodKey;
+        SetTID(gdcDocumentLine.FieldByName('goodkey'), cvalGoodKey);
         if not FisDest then
-          gdcDocumentLine.FieldByName('fromcardkey').AsInteger := cvalCardKey;
+          SetTID(gdcDocumentLine.FieldByName('fromcardkey'), cvalCardKey);
 
         if gdcDocumentLine.FindField('remains') <> nil then
         begin
@@ -6029,17 +6158,15 @@ begin
         begin
           F := gdcDocumentLine.FindField(INV_SOURCEFEATURE_PREFIX +
                cvalInvCardFeatures[j].optFieldName);
-          if (F <> nil) and (F.AsVariant <> cvalInvCardFeatures[j].optValue)
+          if (F <> nil) and not CompareOptValue(F, cvalInvCardFeatures[j])
           then
-            F.AsVariant :=
-              cvalInvCardFeatures[j].optValue;
+            SetFieldValue(F, cvalInvCardFeatures[j]);
 
           F := gdcDocumentLine.FindField(INV_DESTFEATURE_PREFIX +
                cvalInvCardFeatures[j].optFieldName);
-          if (F <> nil) and (F.IsNull or (F.DefaultExpression > '')) and (F.AsVariant <> cvalInvCardFeatures[j].optValue)
+          if (F <> nil) and (F.IsNull or (F.DefaultExpression > '')) and (not CompareOptValue(F, cvalInvCardFeatures[j]))
           then
-            F.AsVariant :=
-              cvalInvCardFeatures[j].optValue;
+            SetFieldValue(F, cvalInvCardFeatures[j]);
 
         end;
 
@@ -6061,7 +6188,7 @@ begin
           gdcDocumentLine.FieldByName('InQuantity').AsCurrency := cvalQuantity;
 
         if gdcDocumentLine.FindField('goodkey1') <> nil then
-          gdcDocumentLine.FieldByName('goodkey1').AsInteger := cvalGoodKey;
+          SetTID(gdcDocumentLine.FieldByName('goodkey1'), cvalGoodKey);
 
 
         if (AnsiCompareText((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.RelationName,
@@ -6069,9 +6196,9 @@ begin
            ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.SourceFieldName > '') and
            (cvalContactKey > 0)
         then
-          gdcDocumentLine.FieldByName(
-            (gdcDocumentLine as TgdcInvDocumentLine).MovementSource.SourceFieldName).AsInteger :=
-            cvalContactKey;
+          SetTID(gdcDocumentLine.FieldByName(
+            (gdcDocumentLine as TgdcInvDocumentLine).MovementSource.SourceFieldName),
+            cvalContactKey);
         {$IFDEF DEBUGMOVE}
         ChangeField := GetTickCount - ChangeField;
         {$ENDIF}
@@ -6240,22 +6367,22 @@ begin
   {END MACRO}
   inherited;
   if GoodKey <> -1 then
-    ParamByName('goodkey').AsInteger := GoodKey;
+    SetTID(ParamByName('goodkey'), GoodKey);
 
   if isUseCompanyKey then
   begin
     if Assigned(gdcDocumentLine) and Assigned(gdcDocumentLine.MasterSource) and Assigned(gdcDocumentLine.MasterSource.DataSet) then
     begin
-      ParamByName('companykey').AsInteger := gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey').AsInteger
+      SetTID(ParamByName('companykey'), GetTID(gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey')))
     end
     else
-      if ParamByName('companykey').AsInteger <= 0 then
-        ParamByName('companykey').AsInteger := IBLogin.CompanyKey;
+      if GetTID(ParamByName('companykey')) = 0 then
+        SetTID(ParamByName('companykey'), IBLogin.CompanyKey);
   end;
   
   if (Length(DepartmentKeys) = 1) then
     try
-      ParamByName('DepartmentKey').AsInteger := DepartmentKeys[Low(DepartmentKeys)]
+      SetTID(ParamByName('DepartmentKey'), DepartmentKeys[Low(DepartmentKeys)]);
     except
       // в запросе может не быть параметра с именем DepartmentKey
       on E: EIBClientError do ;
@@ -6269,7 +6396,7 @@ begin
         try
           ibsql.Transaction := ReadTransaction;
           ibsql.SQL.Text := 'SELECT LB, RB, contacttype FROM gd_contact WHERE id = :ID';
-          ibsql.ParamByName('id').AsInteger := SubDepartmentKeys[Low(SubDepartmentKeys)];
+          SetTID(ibsql.ParamByName('id'), SubDepartmentKeys[Low(SubDepartmentKeys)]);
           ibsql.ExecQuery;
           if not ibsql.EOF then
           begin
@@ -6284,13 +6411,13 @@ begin
         end;
       end
       else
-        ParamByName('holdingkey').AsInteger := SubDepartmentKeys[Low(SubDepartmentKeys)];
+        SetTID(ParamByName('holdingkey'), SubDepartmentKeys[Low(SubDepartmentKeys)]);
     end;
 
   for i:= Low(FChooseFeatures) to High(FChooseFeatures) do
-    if FChooseFeatures[i].optValue <> NULL then
+    if not FChooseFeatures[i].IsNull then
       try
-        ParamByName(FChooseFeatures[i].optFieldName).AsVariant := FChooseFeatures[i].optValue;
+        SetFieldValue(ParamByName(FChooseFeatures[i].optFieldName), FChooseFeatures[i]);
       except
         // TODO: Пустое исключение
       end;
@@ -6324,7 +6451,7 @@ begin
 end;
 
 
-procedure TgdcInvRemains.SetDepartmentKeys(const Value: array of Integer);
+procedure TgdcInvRemains.SetDepartmentKeys(const Value: array of TID);
 var
   i: Integer;
 begin
@@ -6333,7 +6460,7 @@ begin
     FDepartmentKeys[i] := Value[i];
 end;
 
-procedure TgdcInvRemains.SetSubDepartmentKeys(const Value: array of Integer);
+procedure TgdcInvRemains.SetSubDepartmentKeys(const Value: array of TID);
 var
   i: Integer;
 begin
@@ -6346,7 +6473,7 @@ procedure TgdcInvRemains.SetOptions_New;
 var
   i: Integer;
   MovementContactType: TgdcInvMovementContactType;
-  ipDestContactKey: Integer;
+  ipDestContactKey: TID;
   MasterDataSet: TDataSet;
 begin
   Assert(Assigned(gdcDocumentLine), 'Не задан объект позиции документа');
@@ -6378,7 +6505,7 @@ begin
         (MovementSource.SourceFieldName > '')
       then
       begin
-        SetDepartmentKeys([MasterDataSet.FieldByName(MovementSource.SourceFieldName).AsInteger]);
+        SetDepartmentKeys([GetTID(MasterDataSet.FieldByName(MovementSource.SourceFieldName))]);
         IncludeSubDepartment := False;
       end
       else
@@ -6393,15 +6520,15 @@ begin
           (MovementSource.SubSourceFieldName > '')
         then
         begin
-          if MasterDataSet.FieldByName(MovementSource.SubSourceFieldName).AsInteger > 0 then
-            SetSubDepartmentKeys([MasterDataSet.FieldByName(MovementSource.SubSourceFieldName).AsInteger])
+          if GetTID(MasterDataSet.FieldByName(MovementSource.SubSourceFieldName)) > 0 then
+            SetSubDepartmentKeys([GetTID(MasterDataSet.FieldByName(MovementSource.SubSourceFieldName))])
           else
-            SetSubDepartmentKeys([MasterDataSet.FieldByName('companykey').AsInteger]);
+            SetSubDepartmentKeys([GetTID(MasterDataSet.FieldByName('companykey'))]);
         end
         else
 
         if (MovementSource.SubSourceFieldName > '') then
-          SetSubDepartmentKeys([FieldByName(MovementSource.SubSourceFieldName).AsInteger])
+          SetSubDepartmentKeys([GetTID(FieldByName(MovementSource.SubSourceFieldName))])
         else
           if High(MovementSource.Predefined) >= Low(MovementSource.Predefined) then
           begin
@@ -6421,8 +6548,8 @@ begin
       if (AnsiCompareText(MovementTarget.RelationName, RelationName) = 0) and
          (MovementTarget.SourceFieldName > '')
       then
-        ipDestContactKey := MasterDataSet.
-          FieldByName(MovementTarget.SourceFieldName).AsInteger
+        ipDestContactKey := GetTID(MasterDataSet.
+          FieldByName(MovementTarget.SourceFieldName))
       else
         ipDestContactKey := -1;
 
@@ -6442,15 +6569,15 @@ begin
            (MovementTarget.SubSourceFieldName > '')
         then
         begin
-          SetSubDepartmentKeys([MasterDataSet.
-            FieldByName(MovementTarget.SubSourceFieldName).AsInteger]);
+          SetSubDepartmentKeys([GetTID(MasterDataSet.
+            FieldByName(MovementTarget.SubSourceFieldName))]);
           IncludeSubDepartment := True;
         end
         else
 
         if (MovementTarget.SubSourceFieldName > '') then
         begin
-          SetSubDepartmentKeys([FieldByName(MovementTarget.SubSourceFieldName).AsInteger]);
+          SetSubDepartmentKeys([GetTID(FieldByName(MovementTarget.SubSourceFieldName))]);
           IncludeSubDepartment := True;
         end
         else
@@ -6485,7 +6612,7 @@ begin
            (High(DepartmentKeys) < Low(DepartmentKeys))
         then
         begin
-          SetSubDepartmentKeys([gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey').AsInteger]);
+          SetSubDepartmentKeys([GetTID(gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey'))]);
           IncludeSubDepartment := True;
         end;
         if MovementSource.ContactType = imctOurPeople
@@ -6650,7 +6777,7 @@ begin
            (High(DepartmentKeys) < Low(DepartmentKeys))
         then
         begin
-          SetSubDepartmentKeys([gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey').AsInteger]);
+          SetSubDepartmentKeys([GetTID(gdcDocumentLine.MasterSource.DataSet.FieldByName('companykey'))]);
           IncludeSubDepartment := True;
         end;
         if (InvMovement.gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople
@@ -6689,8 +6816,10 @@ begin
       for i:= Low(ipInvSourceCardFeatures) to High(ipInvSourceCardFeatures) do
       begin
         FChooseFeatures[i].optFieldName := ipInvSourceCardFeatures[i].optFieldName;
+        FChooseFeatures[i].IsNull := ipInvSourceCardFeatures[i].IsNull;
         FChooseFeatures[i].optValue := ipInvSourceCardFeatures[i].optValue;
-        FChooseFeatures[i].isInteger := ipInvSourceCardFeatures[i].isInteger;
+        FChooseFeatures[i].optID := ipInvSourceCardFeatures[i].optID;
+        FChooseFeatures[i].isID := ipInvSourceCardFeatures[i].isID;
       end;
 
       SubSet := cst_ByGoodKey;
@@ -6852,8 +6981,8 @@ begin
     for i:= 0 to CountPosition - 1 do
     begin
       if (PositionList[i].cvalDocumentKey > 0) and (PositionList[i].cvalCardKey > 0) then
-        if gdcDocumentLine.Locate('documentkey', PositionList[i].cvalDocumentKey, []) and
-           (gdcDocumentLine.FieldByName('documentkey').AsInteger = PositionList[i].cvalDocumentKey)
+        if gdcDocumentLine.Locate('documentkey', TID2V(PositionList[i].cvalDocumentKey), []) and
+           (GetTID(gdcDocumentLine.FieldByName('documentkey')) = PositionList[i].cvalDocumentKey)
         then
           gdcDocumentLine.Delete;
     end;
@@ -7297,7 +7426,7 @@ begin
     end;
 
     // Заполняем параметры ТОВАР и КОНТАКТЫ
-    ibsql.ParamByName('goodkey').AsInteger := DataSet.FieldByName('goodkey').AsInteger;
+    SetTID(ibsql.ParamByName('goodkey'), GetTID(DataSet.FieldByName('goodkey')));
     if HasSubSet('ByLBRBDepot') then
     begin
       ibsql.ParamByName('LB').AsInteger := ParamByName('LB').AsInteger;
@@ -7308,9 +7437,9 @@ begin
       if not HasSubSet('ByGoodDetail') and not HasSubSet('ByHolding') then
       begin
         if ContactKey > 0 then
-          ibsql.ParamByName('contactkey').AsInteger := ContactKey
+          SetTID(ibsql.ParamByName('contactkey'), ContactKey)
         else
-          ibsql.ParamByName('contactkey').AsInteger := ParamByName('contactkey').AsInteger;
+          SetTID(ibsql.ParamByName('contactkey'), GetTID(ParamByName('contactkey')));
       end;
     end;
     // Заполняем параметр ДАТА
@@ -7321,8 +7450,8 @@ begin
       for i:= 0 to RemainsFeatures.Count - 1 do
       begin
         if not DataSet.FieldByName(Prefix + RemainsFeatures[i]).IsNull then
-          ibsql.ParamByName(RemainsFeatures[i]).AsVariant :=
-            DataSet.FieldByName(Prefix + RemainsFeatures[i]).AsVariant;
+          SetVar2Param(ibsql.ParamByName(RemainsFeatures[i]),
+            GetFieldAsVar(DataSet.FieldByName(Prefix + RemainsFeatures[i])));
       end;
 
     ibsql.ExecQuery;
@@ -7482,8 +7611,8 @@ begin
       begin
         if not DataSet.FieldByName(Prefix + Features[i]).IsNull then
         begin
-          ParamByName(Features[i]).AsVariant :=
-            DataSet.FieldByName(Prefix + Features[i]).AsVariant;
+          SetVar2Param(ParamByName(Features[i]),
+            GetFieldAsVar(DataSet.FieldByName(Prefix + Features[i])));
         end;
       end;
     end;
@@ -7497,7 +7626,7 @@ begin
   if Assigned(gdcInvDocumentLine) then
   begin
 
-    ParamByName('goodkey').AsInteger := gdcInvDocumentLine.FieldByName('goodkey').AsInteger;
+    SetTID(ParamByName('goodkey'), GetTID(gdcInvDocumentLine.FieldByName('goodkey')));
 
     RemainsFeatures.Clear;
 
@@ -7522,7 +7651,7 @@ begin
       if not HasSubSet('ByHolding') then
       begin
         if FContactKey > 0 then
-          ParamByName('contactkey').AsInteger := FContactKey
+          SetTID(ParamByName('contactkey'), FContactKey)
         else
         begin
           if
@@ -7532,8 +7661,8 @@ begin
           begin
             if (gdcInvDocumentLine.MasterSource <> nil) and (gdcInvDocumentLine.MasterSource.DataSet <> nil)
             then
-              ParamByName('contactkey').AsInteger := gdcInvDocumentLine.MasterSource.DataSet.
-                FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.SourceFieldName).AsInteger
+              SetTID(ParamByName('contactkey'), GetTID(gdcInvDocumentLine.MasterSource.DataSet.
+                FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.SourceFieldName)))
             else
             begin
               ibsql := TIBSQL.Create(nil);
@@ -7543,7 +7672,7 @@ begin
                   ' WHERE documentkey = ' + gdcInvDocumentLine.FieldByName('parent').AsString;
                 ibsql.Transaction := gdcInvDocumentLine.ReadTransaction;
                 ibsql.ExecQuery;
-                ParamByName('contactkey').AsInteger := ibsql.FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.SourceFieldName).AsInteger;
+                SetTID(ParamByName('contactkey'), GetTID(ibsql.FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.SourceFieldName)));
               finally
                 ibsql.Free;
               end;
@@ -7551,7 +7680,7 @@ begin
           end
           else
             if ((gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.SourceFieldName > '') then
-              ParamByName('contactkey').AsInteger := gdcInvDocumentLine.FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.SourceFieldName).AsInteger;
+              SetTID(ParamByName('contactkey'), GetTID(gdcInvDocumentLine.FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.SourceFieldName)));
         end;
       end;
     end
@@ -7563,7 +7692,7 @@ begin
       if not HasSubSet('ByHolding') then
       begin
         if FContactKey > 0 then
-          ParamByName('contactkey').AsInteger := FContactKey
+          SetTID(ParamByName('contactkey'), FContactKey)
         else
         begin
           if
@@ -7573,8 +7702,8 @@ begin
           begin
             if (gdcInvDocumentLine.MasterSource <> nil) and (gdcInvDocumentLine.MasterSource.DataSet <> nil)
             then
-              ParamByName('contactkey').AsInteger := gdcInvDocumentLine.MasterSource.DataSet.
-                FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementTarget.SourceFieldName).AsInteger
+              SetTID(ParamByName('contactkey'), GetTID(gdcInvDocumentLine.MasterSource.DataSet.
+                FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementTarget.SourceFieldName)))
             else
             begin
               ibsql := TIBSQL.Create(nil);
@@ -7584,7 +7713,7 @@ begin
                   ' WHERE documentkey = ' + gdcInvDocumentLine.FieldByName('parent').AsString;
                 ibsql.Transaction := gdcInvDocumentLine.ReadTransaction;
                 ibsql.ExecQuery;
-                ParamByName('contactkey').AsInteger := ibsql.FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementTarget.SourceFieldName).AsInteger;
+                SetTID(ParamByName('contactkey'), GetTID(ibsql.FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementTarget.SourceFieldName)));
               finally
                 ibsql.Free;
               end;
@@ -7592,7 +7721,7 @@ begin
           end
           else
             if ((gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.SourceFieldName > '') then
-              ParamByName('contactkey').AsInteger := gdcInvDocumentLine.FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementTarget.SourceFieldName).AsInteger;
+              SetTID(ParamByName('contactkey'), GetTID(gdcInvDocumentLine.FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementTarget.SourceFieldName)));
         end;
       end;
     end;
@@ -7628,21 +7757,21 @@ begin
       end;
     end;
 
-    ParamByName('goodkey').AsInteger :=
-      gdcInvRemains.FieldByName('goodkey').AsInteger;
+    SetTID(ParamByName('goodkey'),
+      GetTID(gdcInvRemains.FieldByName('goodkey')));
     if not HasSubSet('ByHolding') then
     begin
       if FContactKey <= 0 then
       begin
         if gdcInvRemains.FindField('contactkey') <> nil then
-          ParamByName('contactkey').AsInteger :=
-            gdcInvRemains.FieldByName('contactkey').AsInteger
+          SetTID(ParamByName('contactkey'),
+            GetTID(gdcInvRemains.FieldByName('contactkey')))
         else
-          ParamByName('contactkey').AsInteger :=
-            gdcInvRemains.ParamByName('departmentkey').AsInteger;
+          SetTID(ParamByName('contactkey'),
+            GetTID(gdcInvRemains.ParamByName('departmentkey')));
       end
       else
-        ParamByName('contactkey').AsInteger := FContactKey;
+        SetTID(ParamByName('contactkey'), FContactKey);
     end;
 
     if not HasSubSet('ByGoodOnly') then
@@ -7652,8 +7781,14 @@ begin
         if IgnoryFeatures.IndexOf(gdcInvRemains.ViewFeatures[i]) < 0 then
         begin
           if not gdcInvRemains.FieldByName(gdcInvRemains.ViewFeatures[i]).IsNull then
-            ParamByName(gdcInvRemains.ViewFeatures[i]).AsVariant :=
-            gdcInvRemains.FieldByName(gdcInvRemains.ViewFeatures[i]).AsVariant;
+            SetVar2Param(ParamByName(gdcInvRemains.ViewFeatures[i]), GetFieldAsVar(gdcInvRemains.FieldByName(gdcInvRemains.ViewFeatures[i])));
+{          if not gdcInvRemains.FieldByName(gdcInvRemains.ViewFeatures[i]).IsNull then
+            if gdcInvRemains.FieldByName(gdcInvRemains.ViewFeatures[i]).DataType = ftLargeint then
+              SetTID(ParamByName(gdcInvRemains.ViewFeatures[i]), gdcInvRemains.FieldByName(gdcInvRemains.ViewFeatures[i]))
+            else
+              ParamByName(gdcInvRemains.ViewFeatures[i]).AsVariant :=
+                gdcInvRemains.FieldByName(gdcInvRemains.ViewFeatures[i]).AsVariant}
+
         end;
       end;
     end;  
@@ -7791,7 +7926,7 @@ begin
   UpdateExplorerCommandData(
     'cкладcкой учет', 'inventory'
     FieldByName('NAME').AsString, FieldByName('ruid').AsString,
-    TgdcInvRemains.ClassName, False, FieldByName('branchkey').AsInteger
+    TgdcInvRemains.ClassName, False, GetTID(FieldByName('branchkey'))
   );
 
   gdClassList.Add(TgdcInvRemains, FieldByName('RUID').AsString, '',
@@ -7847,7 +7982,7 @@ begin
     'cкладcкой учет', 'inventory',
     FieldByName('NAME').AsString, FieldByName('ruid').AsString,
     TgdcInvRemains.ClassName,
-    True, FieldByName('branchkey').AsInteger
+    True, GetTID(FieldByName('branchkey'))
   );
 
   if FieldChanged('name') then
@@ -7920,7 +8055,7 @@ begin
 
       ibsql.SQL.Text := 'SELECT id FROM INV_BALANCEOPTION WHERE UPPER(name) = :name and id <> :id';
       ibsql.ParamByName('name').AsString := AnsiUpperCase(FieldByName('name').AsString);
-      ibsql.ParamByName('id').AsInteger := ID;
+      SetTID(ibsql.ParamByName('id'), ID);
       ibsql.ExecQuery;
 
       if not ibsql.EOF then
@@ -8115,10 +8250,10 @@ end;
 
 procedure TgdcInvRemainsOption.UpdateExplorerCommandData(MainBranchName,
   CMD, CommandName, DocumentID, ClassName: String;
-  const ShouldUpdateData: Boolean; const MainBranchKey: Integer);
+  const ShouldUpdateData: Boolean; const MainBranchKey: TID);
 var
   ibsql: TIBSQL;
-  BranchID: Integer;
+  BranchID: TID;
   DidActivate: Boolean;
 begin
   DidActivate := False;
@@ -8160,7 +8295,7 @@ begin
       ibsql.Close;
       ibsql.SQL.Text :=
         'SELECT ID, NAME FROM GD_COMMAND WHERE ID = :ID';
-      ibsql.ParamByName('ID').AsInteger := MainBranchKey;
+      SetTID(ibsql.ParamByName('ID'), MainBranchKey);
       ibsql.ExecQuery;
 
       if ibsql.RecordCount = 0 then
@@ -8176,16 +8311,16 @@ begin
           'VALUES ' +
           '  (:ID, :Parent, :NAME, :CMD, 0, 0) ';
 
-        ibsql.ParamByName('ID').AsInteger := GetNextID(True);
-        ibsql.ParamByName('PARENT').AsInteger := 710000;
+        SetTID(ibsql.ParamByName('ID'), GetNextID(True));
+        SetTID(ibsql.ParamByName('PARENT'), 710000);
         ibsql.ParamByName('NAME').AsString := MainBranchName;
         ibsql.ParamByName('CMD').AsString := CMD;
 
         ibsql.ExecQuery;
 
-        BranchID := ibsql.ParamByName('ID').AsInteger;
+        BranchID := GetTID(ibsql.ParamByName('ID'));
       end else
-        BranchID := ibsql.FieldByName('ID').AsInteger;
+        BranchID := GetTID(ibsql.FieldByName('ID'));
 
       //
       // Оcущеcтвляем добавление команды
@@ -8197,8 +8332,8 @@ begin
         'VALUES ' +
         '  (:ID, :PARENT, :NAME, :CMD, 0, :CLASSNAME, :SUBTYPE, 17) ';
 
-      ibsql.ParamByName('ID').AsInteger := GetNextID(True);
-      ibsql.ParamByName('PARENT').AsInteger := BranchID;
+      SetTID(ibsql.ParamByName('ID'), GetNextID(True));
+      SetTID(ibsql.ParamByName('PARENT'), BranchID);
       ibsql.ParamByName('NAME').AsString := CommandName;
       ibsql.ParamByName('CMD').AsString := DocumentID;
       ibsql.ParamByName('CLASSNAME').AsString := ClassName;
@@ -8221,7 +8356,7 @@ begin
 
       ibsql.ParamByName('NAME').AsString := CommandName;
       if MainBranchKey > 0 then
-        ibsql.ParamByName('PARENT').AsInteger := MainBranchKey;
+        SetTID(ibsql.ParamByName('PARENT'), MainBranchKey);
       ibsql.ParamByName('CLASSNAME').AsString := ClassName;
       ibsql.ParamByName('SUBTYPE').AsString := DocumentID;
       ibsql.ExecQuery;
@@ -8482,14 +8617,14 @@ begin
       gdcExplorer.Transaction := Transaction;
       gdcExplorer.ReadTransaction := ReadTransaction;
       gdcExplorer.SubSet := 'ByID';
-      gdcExplorer.Id := SQL.FieldByName('id').AsInteger;
+      gdcExplorer.Id := GetTID(SQL.FieldByName('id'));
       gdcExplorer.Open;
       gdcExplorer.Edit;
       try
         if FieldByName('folder').IsNull then
           gdcExplorer.FieldByName('parent').Clear
         else
-          gdcExplorer.FieldByName('parent').AsInteger := FieldByName('folder').AsInteger;
+          SetTID(gdcExplorer.FieldByName('parent'), GetTID(FieldByName('folder')));
         gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
         gdcExplorer.FieldByName('cmd').AsString := RUIDToStr(SFRUID);
         gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_function;
@@ -8524,7 +8659,7 @@ begin
       gdcExplorer.Transaction := Transaction;
       gdcExplorer.ReadTransaction := ReadTransaction;
       gdcExplorer.SubSet := 'ByID';
-      gdcExplorer.Id := SQL.FieldByName('id').AsInteger;
+      gdcExplorer.Id := GetTID(SQL.FieldByName('id'));
       gdcExplorer.Open;
       if not gdcExplorer.Eof then
         gdcExplorer.Delete;
@@ -8566,7 +8701,7 @@ begin
         gdcFunction.Transaction := Transaction;
         gdcFunction.ReadTransaction := ReadTransaction;
         gdcFunction.SubSet := 'ByID';
-        gdcFunction.Id := SQL.FieldByName('Id').AsInteger;
+        gdcFunction.Id := GetTID(SQL.FieldByName('Id'));
         gdcFunction.Open;
         gdcFunction.Edit;
         try
@@ -8581,7 +8716,7 @@ begin
           gdcFunction.Post;
 
           if ScriptFactory <> nil then
-            ScriptFactory.ReloadFunction(gdcFunction.FieldByName(fnID).AsInteger);
+            ScriptFactory.ReloadFunction(GetTID(gdcFunction.FieldByName(fnID)));
         except
           gdcFunction.Cancel;
           raise;
@@ -8607,13 +8742,13 @@ begin
     SQl.SQl.Text := 'SELECT id FROM gd_function WHERE name = ''' +
       Format(cFunctionName, [RUIDToStr(GetRUID)]) + '''';
     SQL.ExecQuery;
-    if SQL.FieldByName('id').AsInteger > 0 then begin
+    if GetTID(SQL.FieldByName('id')) > 0 then begin
       gdcFunction := TgdcFunction.Create(nil);
       try
         gdcFunction.Transaction := Transaction;
         gdcFunction.ReadTransaction := ReadTransaction;
         gdcFunction.SubSet := 'ByID';
-        gdcFunction.Id := SQL.FieldByName('Id').AsInteger;
+        gdcFunction.Id := GetTID(SQL.FieldByName('Id'));
         gdcFunction.Open;
         DeleteCommand(gdcFunction.GetRUID);
         gdcFunction.Delete;
@@ -8721,4 +8856,5 @@ finalization
   UnregisterGdcClass(TgdcInvRemainsOption);
   UnregisterGdcClass(TgdcInvCardConfig);
 end.
+
 

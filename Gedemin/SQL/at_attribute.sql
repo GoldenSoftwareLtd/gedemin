@@ -4,6 +4,9 @@ CREATE DOMAIN drelationtype
   NOT NULL
   CHECK (VALUE IN ('T', 'V'));
 
+CREATE DOMAIN dgeneratorname 
+  AS VARCHAR(31);
+
 COMMIT;
 
 /*
@@ -25,6 +28,8 @@ CREATE TABLE at_relations (
   lname           dname,                            /* локализованное им€                    */
   lshortname      dname,                            /* локализованное короткое им€           */
   description     dtext180,                         /* описание                              */
+  semcategory     dtext60,
+  generatorname   dgeneratorname,
 
   afull           dsecurity,                        /* права доступа                         */
   achag           dsecurity,
@@ -188,6 +193,7 @@ CREATE TABLE at_relation_fields(
   lname           dname,                            /* локализованное наименование пол€       */
   lshortname      dtext20,                          /* локализованное наименование пол€       */
   description     dtext180,                         /* описание назначени€ пол€               */
+  semcategory     dtext60,
 
   /* ¬изуальные настройки дл€ пол€ */
 
@@ -1520,6 +1526,68 @@ AS
 BEGIN
   IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'REF_CONSTRAINT_UNLOCK') IS DISTINCT FROM '1') THEN
     EXCEPTION gd_e_fkmanager 'Constraint data is locked';
+END
+^
+
+CREATE OR ALTER PROCEDURE gd_p_find_dupl_id
+  RETURNS(id DFOREIGNKEY, relationkey DFOREIGNKEY)
+AS
+  DECLARE VARIABLE rn VARCHAR(31);
+  DECLARE VARIABLE fn VARCHAR(31);
+  DECLARE VARIABLE rid DFOREIGNKEY;
+BEGIN
+  FOR
+    SELECT
+      rf.rdb$relation_name, atr.id, LIST(TRIM(rf.rdb$field_name))
+    FROM
+      rdb$relation_fields rf
+      JOIN rdb$relations r ON r.rdb$relation_name = rf.rdb$relation_name
+      JOIN rdb$index_segments idxs ON idxs.rdb$field_name = rf.rdb$field_name
+      JOIN rdb$indices idx ON idx.rdb$index_name = idxs.rdb$index_name
+      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = idx.rdb$index_name
+        AND rc.rdb$relation_name = rf.rdb$relation_name
+      JOIN at_relations atr ON atr.relationname = r.rdb$relation_name
+    WHERE
+      rc.rdb$constraint_type = 'PRIMARY KEY'
+      AND
+      rf.rdb$relation_name <> 'GD_RUID'
+      /*
+
+      “ут должно быть условие на таблицы, в которых не соблюдаетс€
+      уникальность »ƒ.
+
+      */
+      AND
+      r.rdb$system_flag = 0
+      AND
+      COALESCE(r.rdb$relation_type, 0) = 0
+      AND
+      NOT EXISTS(
+        SELECT *
+        FROM
+          rdb$index_segments idxs_fk
+          JOIN rdb$indices idx_fk ON idxs_fk.rdb$index_name = idx_fk.rdb$index_name
+        WHERE
+          idxs_fk.rdb$field_name = rf.rdb$field_name
+          AND
+          idx_fk.rdb$relation_name = rf.rdb$relation_name
+          AND
+          idx_fk.rdb$index_name <> idx.rdb$index_name
+      )
+    GROUP BY
+      1, 2
+    HAVING
+      LIST(TRIM(rf.rdb$field_name)) = 'ID'
+  INTO
+    :rn, :rid, :fn
+  DO BEGIN
+    relationkey = :rid;
+    FOR
+      EXECUTE STATEMENT 'SELECT id FROM ' || :rn || ' WHERE id >= 147000000'
+      INTO :id
+    DO
+      SUSPEND;
+  END
 END
 ^
 

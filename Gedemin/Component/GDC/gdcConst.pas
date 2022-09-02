@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 {++
 
@@ -38,8 +39,8 @@ uses
 type
   TgdcConst = class(TgdcBase)
   private
-    class function _QGetValue(const AnID: Integer; const AName: String;
-      ADate: TDateTime; AUserKey, ACompanyKey: Integer): Variant;
+    class function _QGetValue(const AnID: TID; const AName: String;
+      ADate: TDateTime; AUserKey, ACompanyKey: TID): Variant;
 
   public
     function CheckTheSameStatement: String; override;
@@ -93,12 +94,12 @@ type
     // если указать -1 для идентификатора пользователя или
     // компании, будут взяты соответствующие ключи из
     // глобальной компоненты IBLogin
-    class function QGetValueByName2(const AName: String; ADate: TDateTime; AUserKey, ACompanyKey: Integer): Variant;
+    class function QGetValueByName2(const AName: String; ADate: TDateTime; AUserKey, ACompanyKey: TID): Variant;
 
     ///////////////////////////////////////////////////////
     // все аналогично предыдущей функции, только константа
     // задается идентификатором
-    class function QGetValueByID2(const AnID: Integer; ADate: TDateTime; AUserKey, ACompanyKey: Integer): Variant;
+    class function QGetValueByID2(const AnID: TID; ADate: TDateTime; AUserKey, ACompanyKey: TID): Variant;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -214,14 +215,14 @@ begin
   Result := QGetValueByID2(AnID, ADate, -1, -1);
 end;
 
-class function TgdcConst.QGetValueByID2(const AnID: Integer;
-  ADate: TDateTime; AUserKey, ACompanyKey: Integer): Variant;
+class function TgdcConst.QGetValueByID2(const AnID: TID;
+  ADate: TDateTime; AUserKey, ACompanyKey: TID): Variant;
 begin
   Result := _QGetValue(AnID, '', ADate, AUserKey, ACompanyKey);
 end;
 
 class function TgdcConst.QGetValueByName2(const AName: String;
-  ADate: TDateTime; AUserKey, ACompanyKey: Integer): Variant;
+  ADate: TDateTime; AUserKey, ACompanyKey: TID): Variant;
 begin
   Result := _QGetValue(-1, AName, ADate, AUserKey, ACompanyKey);
 end;
@@ -286,9 +287,9 @@ begin
   Result := 'Tgdc_dlgConst';
 end;
 
-class function TgdcConst._QGetValue(const AnID: Integer;
+class function TgdcConst._QGetValue(const AnID: TID;
   const AName: String; ADate: TDateTime; AUserKey,
-  ACompanyKey: Integer): Variant;
+  ACompanyKey: TID): Variant;
 var
   q: TIBSQL;
   S, DT: String;
@@ -304,7 +305,7 @@ begin
     if AnID > -1 then
     begin
       q.SQL.Text := 'SELECT * FROM gd_const WHERE id=:id';
-      q.ParamByName('id').AsInteger := AnID;
+      SetTID(q.ParamByName('id'), AnID);
     end else
     begin
       q.SQL.Text := 'SELECT * FROM gd_const WHERE UPPER(name)=:name';
@@ -324,13 +325,13 @@ begin
       if AUserKey = -1 then
         AUserKey := IBLogin.ContactKey;
 
-      S := Format('%s AND userkey = %d ', [S, AUserKey]);
+      S := Format('%s AND userkey = %d ', [S, TID264(AUserKey)]);
     end;
 
     if (q.FieldByName('consttype').AsInteger and 4) <> 0 then
     begin
       if ACompanyKey <> -1 then
-        S := Format('%s AND companykey = %d ', [S, ACompanyKey])
+        S := Format('%s AND companykey = %d ', [S, TID264(ACompanyKey)])
       else
         S := Format('%s AND companykey IN (%s) ', [S, IBLogin.HoldingList]);
     end;
@@ -549,12 +550,12 @@ begin
     with MasterSource.DataSet as TgdcConst do
   begin
     if IsUser then
-      Self.FieldByName('userkey').AsInteger := IBLogin.ContactKey
+      SetTID(Self.FieldByName('userkey'), IBLogin.ContactKey)
     else
       Self.FieldByName('userkey').Clear;
 
     if IsCompany then
-      Self.FieldByName('companykey').AsInteger := IBLogin.CompanyKey
+      SetTID(Self.FieldByName('companykey'), IBLogin.CompanyKey)
     else
       Self.FieldByName('companykey').Clear;
 
@@ -583,7 +584,7 @@ begin
 
   if not ((IBLogin <> nil) and IBLogin.IsUserAdmin) then
   begin
-    S.Add(' (z.userkey = ' + IntToStr(IBLogin.ContactKey) + ' or z.userkey IS NULL) ');
+    S.Add(' (z.userkey = ' + TID2S(IBLogin.ContactKey) + ' or z.userkey IS NULL) ');
     S.Add(' (z.companykey IN (' + IBLogin.HoldingList + ') or z.companykey IS NULL) ');
   end;
 end;

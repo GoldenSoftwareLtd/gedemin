@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgAddGood_unit;
 
 interface
@@ -133,8 +135,8 @@ type
     procedure ibdsSelTaxAfterInsert(DataSet: TDataSet);
   private
     { Private declarations }
-    FGoodKey: Integer;
-    FGroupKey: Integer;
+    FGoodKey: TID;
+    FGroupKey: TID;
     isOk: Boolean;
 
     FNewGoodTax: Boolean;
@@ -147,16 +149,16 @@ type
     procedure OpenPrMetal;
     procedure OpenBarCode;
 
-    procedure PrepareNewGood(const aGroupKey: Integer);   // Подготовка для ввода нового товара
+    procedure PrepareNewGood(const aGroupKey: TID);   // Подготовка для ввода нового товара
     procedure ClearFlag;
     procedure TAXKEYChange(Sender: TField);
     function SaveGood(IsNext: Boolean): Boolean;
   public
     { Public declarations }
-    function AddGood(const aGroupKey: Integer): Boolean; // Добавляем товар
-    function EditGood(const aGoodKey: Integer): Boolean;     // Редактируем товар
+    function AddGood(const aGroupKey: TID): Boolean; // Добавляем товар
+    function EditGood(const aGoodKey: TID): Boolean;     // Редактируем товар
 
-    property GoodKey: Integer read FGoodKey;
+    property GoodKey: TID read FGoodKey;
   end;
 
 var
@@ -174,9 +176,9 @@ uses
      dlgChooseGroup_unit, dlgAddValue_unit;
 
 
-procedure TdlgAddGood.PrepareNewGood(const aGroupKey: Integer);
+procedure TdlgAddGood.PrepareNewGood(const aGroupKey: TID);
 var
-  ValKey: Integer;
+  ValKey: TID;
   ibsql: TIBSQL;
 begin
   // Процедура подготовки нового товара
@@ -214,7 +216,7 @@ begin
       ibsql.SQL.Text := 'SELECT MIN(id) FROM gd_value';
       ibsql.ExecQuery;
       if ibsql.RecordCount > 0 then
-        ValKey := ibsql.Fields[0].AsInteger;
+        ValKey := GetTID(ibsql.Fields[0]);
     finally
       ibsql.Free;
     end;
@@ -242,11 +244,11 @@ begin
   ibsqlNewGood.SQL.Clear;
   ibsqlNewGood.SQL.Add(Format('INSERT INTO gd_good(id, groupkey, name, valuekey, isassembly) ' +
     'VALUES(%d, %d, '''', %d, 0)',
-    [FGoodKey, FGroupKey, ValKey]));
+    [TID264(FGoodKey), TID264(FGroupKey), TID264(ValKey)]));
   ibsqlNewGood.ExecQuery;
   ibsqlNewGood.Close;
 
-  ibdsGood.Params.ByName('ID').AsInteger := FGoodKey;
+  SetTID(ibdsGood.Params.ByName('ID'), FGoodKey);
   ibdsGood.Open;
 
   ClearFlag;
@@ -255,7 +257,7 @@ begin
   pcGood.ActivePage := tsOption;
 end;
 
-function TdlgAddGood.AddGood(const aGroupKey: Integer): Boolean;
+function TdlgAddGood.AddGood(const aGroupKey: TID): Boolean;
 begin
   // Добавление нового товара
   FGroupKey := aGroupKey;
@@ -263,7 +265,7 @@ begin
   Result := (ShowModal = mrOk) or isOk;
 end;
 
-function TdlgAddGood.EditGood(const aGoodKey: Integer): Boolean;
+function TdlgAddGood.EditGood(const aGoodKey: TID): Boolean;
 begin
   // Редактирование товара
   btnNew.Visible := False;
@@ -278,7 +280,7 @@ begin
 
   ibdsGood.Close;
   ibdsGood.Prepare;
-  ibdsGood.Params.ByName('id').AsInteger := FGoodKey;
+  SetTID(ibdsGood.Params.ByName('id'), FGoodKey);
   ibdsGood.Open;
   Caption := 'ТМЦ: ' + dbeName.Text;
 
@@ -367,8 +369,8 @@ begin
       if ShowModal = mrOk then
       begin
         ibdsBarCode.Insert;
-        ibdsBarCode.FieldByName('ID').AsInteger := GenUniqueID;
-        ibdsBarCode.FieldByName('goodkey').AsInteger := FGoodKey;
+        SetTID(ibdsBarCode.FieldByName('ID'), GenUniqueID);
+        SetTID(ibdsBarCode.FieldByName('goodkey'), FGoodKey);
         ibdsBarCode.FieldByName('BarCode').AsString := ParamName;
         ibdsBarCode.FieldByName('Description').AsString := Description;
         ibdsBarCode.Post;
@@ -677,7 +679,7 @@ begin
   if not ibdsSelTax.Active then
   begin
     ibdsSelTax.Prepare;
-    ibdsSelTax.Params.ByName('goodkey').AsInteger := FGoodKey;
+    SetTID(ibdsSelTax.Params.ByName('goodkey'), FGoodKey);
     ibdsSelTax.Open;
     ibdsSelTax.FieldByName('taxkey').OnChange := TAXKEYChange; 
   end;
@@ -692,7 +694,7 @@ begin
   if not ibdsSelValue.Active then
   begin
     ibdsSelValue.Prepare;
-    ibdsSelValue.Params.ByName('goodkey').AsInteger := FGoodKey;
+    SetTID(ibdsSelValue.Params.ByName('goodkey'), FGoodKey);
     ibdsSelValue.Open;
   end;
   FNewGoodValue := False;
@@ -706,7 +708,7 @@ begin
   if not ibdsGoodPrMetal.Active then
   begin
     ibdsGoodPrMetal.Prepare;
-    ibdsGoodPrMetal.Params.ByName('goodkey').AsInteger := FGoodKey;
+    SetTID(ibdsGoodPrMetal.Params.ByName('goodkey'), FGoodKey);
     ibdsGoodPrMetal.Open;
   end;
   FNewGoodPrMetal := False;
@@ -720,7 +722,7 @@ begin
   if not ibdsBarCode.Active then
   begin
     ibdsBarCode.Prepare;
-    ibdsBarCode.Params.ByName('goodkey').AsInteger := FGoodKey;
+    SetTID(ibdsBarCode.Params.ByName('goodkey'), FGoodKey);
     ibdsBarCode.Open;
   end;
   FNewGoodBarCode := False;
@@ -741,7 +743,7 @@ begin
     try
       ActiveDialog(-1);
       if ShowModal = mrOk then
-        dblcbValue.CurrentKey := IntToStr(ValueKey);
+        dblcbValue.CurrentKey := TID2S(ValueKey);
     finally
       Free;
     end;
@@ -842,7 +844,7 @@ begin
       ibsql.Transaction := ibtrGood;
       ibsql.SQL.Text := 'SELECT name, rate FROM gd_tax WHERE id = :id';
       ibsql.Prepare;
-      ibsql.ParamByName('id').AsInteger := Sender.AsInteger;
+      SetTID(ibsql.ParamByName('id'), GetTID(Sender));
       ibsql.ExecQuery;
       ibdsSelTax.FieldByName('rate').AsCurrency := ibsql.FieldByName('rate').AsCurrency;
       ibdsSelTax.FieldByName('name').AsString := ibsql.FieldByName('name').AsString;
@@ -855,7 +857,7 @@ end;
 
 procedure TdlgAddGood.ibdsSelTaxAfterInsert(DataSet: TDataSet);
 begin
-  ibdsSelTax.FieldByName('GOODKEY').AsInteger := FGoodKey;
+  SetTID(ibdsSelTax.FieldByName('GOODKEY'), FGoodKey);
 end;
 
 end.

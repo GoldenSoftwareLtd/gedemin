@@ -1,3 +1,4 @@
+// ShlTanya, 25.02.2019
 
 {++
 
@@ -31,12 +32,12 @@ uses
   ComCtrls, StdCtrls, DBCtrls, Mask, Db, gdcBase, Menus, prp_TreeItems,
   ActnList, prp_dfPropertyTree_Unit, gd_createable_form, prp_dlgEvaluate_unit,
   SuperPageControl, prpDBComboBox, extctrls, StdActns, TB2Item, TB2Dock,
-  TB2Toolbar, IBSQL, TB2MDI, TB2Common;
+  TB2Toolbar, IBSQL, TB2MDI, TB2Common, gdcBaseInterface;
 
 type
  //Тип события вызываемого при изменении положения курсора
   TCaretPosChange = procedure (Sender: TObject; const X, Y: Integer) of object;
-  TChangeTreeItem = procedure (Sender: TObject; const ObjectID: Integer) of object;
+  TChangeTreeItem = procedure (Sender: TObject; const ObjectID: TID) of object;
   TDestroyFrame = procedure (Sender: TObject; ShowNext: Boolean) of  object;
 
   TBaseFrame = class;
@@ -112,8 +113,8 @@ type
     procedure SetCaretXY(const Value: TPoint); virtual;
     function GetMasterObject: TgdcBase;virtual; abstract;
     function GetDetailObject: TgdcBase; virtual;
-    function GetObjectID: Integer;
-    procedure SetObjectId(const Value: Integer); virtual;
+    function GetObjectID: TID;
+    procedure SetObjectId(const Value: TID); virtual;
     procedure SetNode(const Value: TTreeNode);
     procedure SetModify(const Value: Boolean); virtual;
     procedure DoOnCreate; virtual;
@@ -130,7 +131,7 @@ type
     function GetCanRun: Boolean; virtual;
     function GetCanPrepare: Boolean; virtual;
     function GetForm(Name: string): TCreateableForm;
-    function GetFunctionID: Integer; virtual;
+    function GetFunctionID: TID; virtual;
     procedure SetMessageListView(const Value: TListView); virtual;
     procedure SetOnCaretPosChange(const Value: TCaretPosChange); virtual;
     // Используется для обработки нового имени
@@ -155,7 +156,7 @@ type
     procedure BuildReport(const OwnerForm: OleVariant); virtual;
     function CanBuildReport: Boolean; virtual;
     procedure Prepare; virtual;
-    procedure EditFunction(ID: Integer); virtual;
+    procedure EditFunction(ID: TID); virtual;
     procedure InvalidateFrame; virtual;
     procedure Evaluate; virtual;
     procedure ShowTypeInfo; virtual;
@@ -195,7 +196,7 @@ type
     //Вставить СКЛ
     procedure PasteSQL; virtual;
     function CanPasteSQL: Boolean; virtual;
-    function IsFunction(Id: Integer): Boolean; virtual;
+    function IsFunction(Id: TID): Boolean; virtual;
 
     procedure Activate; virtual;
     procedure AddTosetting; virtual;
@@ -214,10 +215,10 @@ type
     // Помещает объект в буфер
     procedure CopyObject; virtual;
     // ***
-    function GetUniCopyname(BaseName: String; IDNewObject: Integer): String;
+    function GetUniCopyname(BaseName: String; IDNewObject: TID): String;
 
-    class function GetNameById(Id: Integer): string; virtual; abstract;
-    class function GetFunctionIdEx(Id: Integer): integer; virtual; abstract;
+    class function GetNameById(Id: TID): string; virtual; abstract;
+    class function GetFunctionIdEx(Id: TID): TID; virtual; abstract;
 
     //Указывает на то что скрипт был запущен из данного фрайма
     property Running: Boolean read GetRunning;
@@ -225,8 +226,8 @@ type
     property MasterObject: TgdcBase read GetMasterObject;
     property DetailObject: TgdcBase read GetDetailObject;
     //Ид объекта
-    property ObjectId: Integer read GetObjectID write SetObjectId;
-    property FunctionId: Integer read GetFunctionID;
+    property ObjectId: TID read GetObjectID write SetObjectId;
+    property FunctionId: TID read GetFunctionID;
     //Нод в дереве для которого идет редактирование
     property Node: TTreeNode read FNode write SetNode;
     property SpeedButton: TTBCustomItem read FSpeedButton write SetSpeedButton;
@@ -283,7 +284,6 @@ uses
   obj_i_Debugger,
   mtd_i_Base,
   gd_ClassList,
-  gdcBaseInterface,
   gdcCustomFunction,
   rp_report_const,
   gd_security
@@ -342,7 +342,7 @@ end;
 function TBaseFrame.Delete: Boolean;
 var
   Value: Variant;
-  FunctionKey: Integer;
+  FunctionKey: TID;
   LocGdcBase: TgdcBase;
   CE: TgdClassEntry;
 begin
@@ -422,7 +422,7 @@ begin
       try
         LocGdcBase.Transaction := MasterObject.Transaction;
         LocGdcBase.SubSet := 'ByID';
-        LocGdcBase.Params[0].AsInteger := FunctionKey;
+        SetTID(LocGdcBase.Params[0], FunctionKey);
         LocGdcBase.Open;
         if not LocGdcBase.Eof then
         try
@@ -442,7 +442,7 @@ begin
   Free;
 end;
 
-function TBaseFrame.GetObjectID: Integer;
+function TBaseFrame.GetObjectID: TID;
 begin
   Result := MasterObject.ID;
 end;
@@ -511,7 +511,7 @@ begin
   FNode := Value;
 end;
 
-procedure TBaseFrame.SetObjectId(const Value: Integer);
+procedure TBaseFrame.SetObjectId(const Value: TID);
 begin
   if MasterObject.ID <> Value then
   begin
@@ -648,6 +648,10 @@ begin
   if Assigned(FEvaluate) then
     FEvaluate.Free;
 
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
+
   inherited;
 end;
 
@@ -751,12 +755,12 @@ begin
 
 end;
 
-procedure TBaseFrame.EditFunction(ID: Integer);
+procedure TBaseFrame.EditFunction(ID: TID);
 begin
 
 end;
 
-function TBaseFrame.GetFunctionID: Integer;
+function TBaseFrame.GetFunctionID: TID;
 begin
   Result := 0;
 end;
@@ -1178,7 +1182,7 @@ begin
 
 end;
 
-function TBaseFrame.IsFunction(Id: Integer): Boolean;
+function TBaseFrame.IsFunction(Id: TID): Boolean;
 begin
   Result := id = GetFunctionID;
 end;
@@ -1237,7 +1241,7 @@ begin
 end;
 
 function TBaseFrame.GetUniCopyname(BaseName: String;
-  IDNewObject: Integer): String;
+  IDNewObject: TID): String;
 var
   RUIDStr: String;
   RUID: TRUID;

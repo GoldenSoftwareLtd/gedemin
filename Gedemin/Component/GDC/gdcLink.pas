@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019, #4135
 
 unit gdcLink;
 
@@ -11,7 +12,7 @@ type
   TgdcLink = class(TgdcBase)
   private
     FLinkedObjectsMenu: TPopupMenu;
-    FObjectKey: Integer;
+    FObjectKey: TID;
 
     procedure OnMenuClick(Sender: TObject);
 
@@ -35,9 +36,9 @@ type
     procedure PopupMenu(const X, Y: Integer);
     procedure AddLinkedObjectDialog;
     function CreateLinkedObject(const AClassName, ASubType: String;
-      const AnObjectKey, ALinkedKey: Integer): TgdcBase;
+      const AnObjectKey, ALinkedKey: TID): TgdcBase;
 
-    property ObjectKey: Integer read FObjectKey write FObjectKey;
+    property ObjectKey: TID read FObjectKey write FObjectKey;
   end;
 
 procedure Register;
@@ -100,14 +101,14 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text := 'SELECT * FROM gd_link WHERE objectkey = :OK ORDER BY linkedorder, linkedname';
-    q.ParamByName('OK').AsInteger := FObjectKey;
+    SetTID(q.ParamByName('OK'), FObjectKey);
     q.ExecQuery;
     while not q.EOF do
     begin
       MI := TMenuItem.Create(Self);
       MI.Caption := q.FieldByName('linkedname').AsString;
       MI.OnClick := OnMenuClick;
-      MI.Tag := q.FieldByName('id').AsInteger;
+      MI.Tag := TID2Tag(GetTID(q.FieldByName('id')), cEmptyContext);
       AMenu.Items.Add(MI);
 
       q.Next;
@@ -144,7 +145,8 @@ var
   q: TIBSQL;
   Obj: TgdcBase;
   F: TForm;
-  I, R: Integer;
+  I: TID;
+  R: Integer;
 begin
   Assert(FObjectKey > 0);
 
@@ -160,7 +162,7 @@ begin
         'Выберите прикрепление для удаления',
         'Выбор прикрепления',
         0,
-        'objectkey=' + IntToStr(FObjectKey),
+        'objectkey=' + TID2S(FObjectKey),
         -1);
       if I > 0 then
       begin
@@ -176,14 +178,14 @@ begin
           try
             q.Transaction := gdcBaseManager.ReadTransaction;
             q.SQL.Text := 'SELECT * FROM gd_link WHERE id = :AnID';
-            q.ParamByName('AnID').AsInteger := I;
+            SetTID(q.ParamByName('AnID'), I);
             q.ExecQuery;
             if not q.EOF then
             begin
               Obj := CreateLinkedObject(q.FieldByName('linkedclass').AsString,
                 q.FieldByName('linkedsubtype').AsString,
                 I,
-                q.FieldByName('linkedkey').AsInteger);
+                GetTID(q.FieldByName('linkedkey')));
 
               try
                 if Obj <> nil then
@@ -199,7 +201,7 @@ begin
 
         if R <> IDCANCEL then
           gdcBaseManager.ExecSingleQuery(
-            'DELETE FROM gd_link WHERE id = ' + IntToStr(I));
+            'DELETE FROM gd_link WHERE id = ' + TID2S(I));
       end;
     end
     else if (Sender as TMenuItem).Tag = -20 then
@@ -208,7 +210,7 @@ begin
       (F.FindComponent('gdcLink') as TgdcLink).Close;
       (F.FindComponent('gdcLink') as TgdcLink).ObjectKey := FObjectKey;
       (F.FindComponent('gdcLink') as TgdcLink).SubSet := 'ByObjectKey';
-      (F.FindComponent('gdcLink') as TgdcLink).ParamByName('ObjectKey').AsInteger := FObjectKey;
+      SetTID((F.FindComponent('gdcLink') as TgdcLink).ParamByName('ObjectKey'), FObjectKey);
       (F.FindComponent('gdcLink') as TgdcLink).Open;
       F.Show;
     end
@@ -218,14 +220,14 @@ begin
       try
         q.Transaction := gdcBaseManager.ReadTransaction;
         q.SQL.Text := 'SELECT * FROM gd_link WHERE id = :AnID';
-        q.ParamByName('AnID').AsInteger := (Sender as TMenuItem).Tag;
+        SetTID(q.ParamByName('AnID'), GetTID((Sender as TMenuItem).Tag, cEmptyContext));
         q.ExecQuery;
         if not q.EOF then
         begin
           Obj := CreateLinkedObject(q.FieldByName('linkedclass').AsString,
             q.FieldByName('linkedsubtype').AsString,
-            (Sender as TMenuItem).Tag,
-            q.FieldByName('linkedkey').AsInteger);
+            GetTID((Sender as TMenuItem).Tag, cEmptyContext),
+            GetTID(q.FieldByName('linkedkey')));
 
           try
             if Obj <> nil then
@@ -270,7 +272,7 @@ begin
   if FObjectKey <= 0 then
   begin
     if HasSubSet('ByObjectKey') then
-      FObjectKey := ParamByName('ObjectKey').AsInteger;
+      FObjectKey := GetTID(ParamByName('ObjectKey'));
     if FObjectKey <= 0 then
       raise Exception.Create('Прикрепление нельзя создавать само по себе.'#13#10
         + 'Используйте команду Прикрепить в просмотровой форме бизнес-объекта.');  
@@ -285,10 +287,10 @@ begin
         Open;
         Insert;
         try
-          FieldByName('objectkey').AsInteger := FObjectKey;
+          SetTID(FieldByName('objectkey'), FObjectKey);
           if pc.ActivePage = tsObject then
           begin
-            FieldByName('linkedkey').AsInteger := iblkupObject.CurrentKeyInt;
+            SetTID(FieldByName('linkedkey'), iblkupObject.CurrentKeyInt);
             FieldByName('linkedclass').AsString := iblkupObject.gdClassName;
             FieldByName('linkedsubtype').AsString := iblkupObject.SubType;
           end else
@@ -299,12 +301,12 @@ begin
               Obj.Insert;
               Obj.LoadDataFromFile(edFileName.Text, True);
               if iblkupFolder.CurrentKey > '' then
-                Obj.FieldByName('parent').AsInteger := iblkupFolder.CurrentKeyInt
+                SetTID(Obj.FieldByName('parent'), iblkupFolder.CurrentKeyInt)
               else
                 Obj.FieldByName('parent').Clear;  
               Obj.Post;
 
-              FieldByName('linkedkey').AsInteger := Obj.ID;
+              SetTID(FieldByName('linkedkey'), Obj.ID);
               FieldByName('linkedclass').AsString := Obj.ClassName;
               FieldByName('linkedsubtype').AsString := Obj.SubType;
             finally
@@ -365,7 +367,7 @@ begin
   inherited;
 
   if FObjectKey > 0 then
-    FieldByName('objectkey').AsInteger := FObjectKey;
+    SetTID(FieldByName('objectkey'), FObjectKey);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCLINK', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
@@ -376,7 +378,7 @@ begin
 end;
 
 function TgdcLink.CreateLinkedObject(const AClassName, ASubType: String;
-  const AnObjectKey, ALinkedKey: Integer): TgdcBase;
+  const AnObjectKey, ALinkedKey: TID): TgdcBase;
 var
   CE: TgdClassEntry;
 begin
@@ -396,7 +398,7 @@ begin
         MB_YESNO or MB_ICONEXCLAMATION) = IDYES then
       begin
         gdcBaseManager.ExecSingleQuery(
-          'DELETE FROM gd_link WHERE id = ' + IntToStr(AnObjectKey));
+          'DELETE FROM gd_link WHERE id = ' + TID2S(AnObjectKey));
       end;
     end;
   end;
@@ -464,3 +466,5 @@ initialization
 finalization
   UnregisterGdcClass(TgdcLink);
 end.
+
+

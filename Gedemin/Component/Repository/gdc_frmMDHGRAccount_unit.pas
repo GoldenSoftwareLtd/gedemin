@@ -1,4 +1,4 @@
-//
+// ShlTanya, 21.02.2019
 
 unit gdc_frmMDHGRAccount_unit;
 
@@ -53,7 +53,7 @@ begin
   begin
     if (ibcmbAccount.CurrentKey > '')
       and (gdcObject.HasSubSet('ByAccount'))
-      and (gdcObject.ParamByName('accountkey').AsInteger = ibcmbAccount.CurrentKeyInt) then
+      and (GetTID(gdcObject.ParamByName('accountkey')) = ibcmbAccount.CurrentKeyInt) then
     begin
       exit;
     end;
@@ -69,7 +69,7 @@ begin
     if ibcmbAccount.CurrentKey > '' then
     begin
       gdcObject.AddSubSet('ByAccount');
-      gdcObject.ParamByName('accountkey').AsInteger := ibcmbAccount.CurrentKeyInt;
+      SetTID(gdcObject.ParamByName('accountkey'), ibcmbAccount.CurrentKeyInt);
     end else
     begin
       gdcObject.RemoveSubSet('ByAccount');
@@ -207,10 +207,10 @@ begin
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
       q.SQL.Text := 'SELECT companyaccountkey FROM gd_company WHERE contactkey = :CK';
-      q.ParamByName('CK').AsInteger := ibcmbComp.CurrentKeyInt;
+      SetTID(q.ParamByName('CK'), ibcmbComp.CurrentKeyInt);
       q.ExecQuery;
       if (not q.EOF) and (not q.Fields[0].IsNull) then
-        ibcmbAccount.CurrentKeyInt := q.Fields[0].AsInteger;
+        ibcmbAccount.CurrentKeyInt := GetTID(q.Fields[0]);
     finally
       q.Free;
     end;
@@ -221,7 +221,7 @@ procedure Tgdc_frmMDHGRAccount.ibcmbAccountCreateNewObject(Sender: TObject;
   ANewObject: TgdcBase);
 begin
   if ibcmbComp.CurrentKeyInt > 0 then
-    ANewObject.FieldByName('companykey').AsInteger := ibcmbComp.CurrentKeyInt;
+    SetTID(ANewObject.FieldByName('companykey'), ibcmbComp.CurrentKeyInt);
 end;
 
 initialization

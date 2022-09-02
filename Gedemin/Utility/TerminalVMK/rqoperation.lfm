@@ -1,63 +1,64 @@
 inherited OperationRQ: TOperationRQ
-  Left = 350
+  Left = 927
   Height = 319
-  Top = 370
-  Width = 423
+  Top = 412
+  Width = 376
   Caption = 'Form1'
   ClientHeight = 319
-  ClientWidth = 423
+  ClientWidth = 376
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
+  OnKeyUp = FormKeyUp
   inherited mTP: TMemo
     Height = 75
-    Width = 413
+    Width = 366
   end
   inherited lEnter: TLabel
     Top = 297
-    Width = 413
+    Width = 366
     Caption = 'Label2'
   end
   inherited lExit: TLabel
     Top = 263
-    Width = 413
+    Width = 366
     Caption = 'Label2'
   end
   inherited Panel1: TPanel
     Height = 173
     Top = 85
-    Width = 413
+    Width = 366
     ChildSizing.EnlargeVertical = crsHomogenousSpaceResize
     ChildSizing.ControlsPerLine = 0
     ClientHeight = 173
-    ClientWidth = 413
+    ClientWidth = 366
     Visible = False
     inherited lWeight: TLabel
       Height = 24
       Top = 75
-      Width = 118
+      Width = 113
     end
     inherited eWeight: TEdit
-      Left = 118
+      Left = 113
       Top = 75
-      Width = 85
+      Width = 80
     end
     inherited lWeight1: TLabel
-      Left = 203
+      Left = 193
       Height = 24
       Top = 75
-      Width = 126
+      Width = 121
     end
     inherited eGoods: TEdit
-      Left = 329
+      Left = 314
       Top = 75
-      Width = 84
+      Width = 80
       Text = 'eGoods'
     end
   end
   inherited lDelete: TLabel
     Top = 280
-    Width = 413
+    Width = 366
     Caption = 'Delete'
   end
 end

@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019, #4135
 
 unit gdcTree;
 
@@ -219,7 +220,7 @@ end;
 function TgdcTree.GetParent: TID;
 begin
   if Active and (not FieldByName(GetParentField(SubType)).IsNull) then
-    Result := FieldByName(GetParentField(SubType)).AsInteger
+    Result := GetTID(FieldByName(GetParentField(SubType)))
   else
     Result := FParent;
 end;
@@ -268,7 +269,7 @@ begin
   inherited;
 
   if FCurrentParent > 0 then
-    FieldByName(GetParentField(SubType)).AsInteger := FCurrentParent;
+    SetTID(FieldByName(GetParentField(SubType)), FCurrentParent);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTREE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
@@ -288,12 +289,12 @@ begin
     if Value = -1 then
       FieldByName(GetParentField(SubType)).Clear
     else
-      FieldByName(GetParentField(SubType)).AsInteger := Value
+      SetTID(FieldByName(GetParentField(SubType)), Value)
   end else if HasSubSet('ByParent') then
   begin
     WasActive := Active;
     Close;
-    ParamByName(GetParentField(SubType)).AsInteger := Value;
+    SetTID(ParamByName(GetParentField(SubType)), Value);
     Active := WasActive;
   end;
   FParent := Value;
@@ -350,7 +351,7 @@ begin
       else if AnsiCompareText(TField(L[I]).FieldName, GetKeyField(SubType)) = 0 then
         raise EgdcException.CreateObj('key field specified', Self)
       else
-        A[I] := TField(L[I]).AsVariant;
+        A[I] := GetFieldAsVar(TField(L[I]));
     S := 'UPDATE ' + GetListTable(SubType) + ' SET ';
     for I := 0 to L.Count - 1 do
       S := S + TField(L[I]).FieldName + '=:' + TField(L[I]).FieldName + ',';
@@ -365,7 +366,7 @@ begin
       q.SQL.Text := S;
       q.Prepare;
       for I := 0 to L.Count - 1 do
-        q.ParamByName(TField(L[I]).FieldName).AsVariant := A[I];
+        SetVar2Param(q.ParamByName(TField(L[I]).FieldName), A[I]);
       q.ExecQuery;
     finally
       q.Free;
@@ -379,7 +380,7 @@ begin
         Database, Transaction, SubType);
       try
         Obj.SubSet := 'ByParent';
-        Obj.ParamByName(GetParentField(SubType)).AsInteger := Self.ID;
+        SetTID(Obj.ParamByName(GetParentField(SubType)), Self.ID);
         Obj.Open;
         while not Obj.EOF do
         begin
@@ -474,15 +475,15 @@ begin
 
     for I := 0 to CD.ObjectCount - 1 do
     begin
-      if not Locate(GetKeyField(SubType), CD.ObjectArr[I].ID, []) then
+      if not Locate(GetKeyField(SubType), TID2V(CD.ObjectArr[I].ID), []) then
         continue;
 
       if CD.Cut then
       begin
-        if CurrID <> FieldByName(GetKeyField(SubType)).AsInteger then
+        if CurrID <> GetTID(FieldByName(GetKeyField(SubType))) then
         begin
           Edit;
-          FieldByName(GetParentField(SubType)).AsInteger := CurrID;
+          SetTID(FieldByName(GetParentField(SubType)), CurrID);
           try
             Post;
           except
@@ -492,7 +493,7 @@ begin
         end;
       end else
         Copy(GetParentField(SubType) + ';' + GetListField(SubType),
-          VarArrayOf([CurrID, CD.ObjectArr[I].ObjectName + ' (Копия)']),
+          VarArrayOf([TID2V(CurrID), CD.ObjectArr[I].ObjectName + ' (Копия)']),
           False, True, True);
 
       // пасля змену пэрэнта, альбо ўстаўцы копіі запісу
@@ -552,7 +553,7 @@ begin
           end else
           begin
             O.Close;
-            O.ParamByName('ID').AsInteger := CD.ObjectArr[I].ID;
+            SetTID(O.ParamByName('ID'), CD.ObjectArr[I].ID);
           end;
 
           CopyEventHandlers(O, Self);
@@ -567,7 +568,7 @@ begin
                 begin
                   O.Edit;
                   try
-                    O.FieldByName(O.GetParentField(O.SubType)).Assign(
+                    AssignField64(O.FieldByName(O.GetParentField(O.SubType)),
                       Self.FieldByName(Self.GetKeyField(Self.SubType)));
                     O.Post;
                   except
@@ -577,7 +578,7 @@ begin
                 end;
               end else
                 O.Copy(O.GetParentField(O.SubType) + ';' + O.GetListField(O.SubType),
-                  VarArrayOf([Self.ID, CD.ObjectArr[I].ObjectName + ' (Копия)']));
+                  VarArrayOf([TID2V(Self.ID), CD.ObjectArr[I].ObjectName + ' (Копия)']));
               Result := True;
 
               if Result and Active and O.Active
@@ -591,7 +592,7 @@ begin
                   begin
                     F := O.FindField(Fields[J].FieldName);
                     if Assigned(F) then
-                      Fields[J].Assign(F);
+                      AssignField64(Fields[J], F);
                   end;
                   Post;
                 finally
@@ -621,35 +622,35 @@ var
   qs, qu: TIBSQL;
   DidActivate: Boolean;
 
-  procedure DoRecurs(const I: Integer);
+  procedure DoRecurs(const I: TID);
   var
-    L: TList;
+    KA: TgdKeyArray;
     J: Integer;
   begin
-    L := TList.Create;
+    KA := TgdKeyArray.Create;
     try
-      qs.ParamByName('P').AsInteger := I;
+      SetTID(qs.ParamByName('P'), I);
       qs.ExecQuery;
       while not qs.EOF do
       begin
-        L.Add(Pointer(qs.Fields[0].AsInteger));
+        KA.Add(GetTID(qs.Fields[0]));
         qs.Next;
       end;
       qs.Close;
 
-      if L.Count > 0 then
+      if KA.Count > 0 then
       begin
-        qu.ParamByName('P').AsInteger := I;
+        SetTID(qu.ParamByName('P'), I);
         qu.ExecQuery;
         qu.Close;
       end;
 
-      for J := 0 to L.Count - 1 do
+      for J := 0 to KA.Count - 1 do
       begin
-        DoRecurs(Integer(L[J]));
+        DoRecurs(KA[J]);
       end;
     finally
-      L.Free;
+      KA.Free;
     end;
   end;
 
@@ -885,10 +886,18 @@ begin
   try
     q.Transaction := ReadTransaction;
     q.SQL.Text :=
+      {$IFDEF ID64}
+      'EXECUTE BLOCK (ID BIGINT = :ID)'#13#10 +
+      {$ELSE}
       'EXECUTE BLOCK (ID INTEGER = :ID)'#13#10 +
+      {$ENDIF}
       '  RETURNS(Path VARCHAR(8192))'#13#10 +
       'AS'#13#10 +
+      {$IFDEF ID64}
+      '  DECLARE VARIABLE NewID BIGINT = NULL;'#13#10 +
+      {$ELSE}
       '  DECLARE VARIABLE NewID INTEGER = NULL;'#13#10 +
+      {$ENDIF}
       'BEGIN'#13#10 +
       '  Path = '''';'#13#10 +
       '  WHILE (:ID IS DISTINCT FROM NULL) DO'#13#10 +
@@ -898,20 +907,27 @@ begin
       '    WHERE id = :ID'#13#10 +
       '    INTO :Path, :NewID;'#13#10 +
       '    ID = :NewID;'#13#10 +
+      ''#13#10 +
+      '    IF (CHARACTER_LENGTH(:Path) > 7936) THEN'#13#10 +
+      '    BEGIN'#13#10 +
+      '      Path = ''Зациклена ветвь. Проверьте вложенность элементов. '';'#13#10 +
+      '      LEAVE;'#13#10 +
+      '    END'#13#10 +
       '  END'#13#10 +
       '  IF (:Path <> '''') THEN'#13#10 +
       '    Path = SUBSTRING(:Path FROM 1 FOR CHARACTER_LENGTH(:Path) - 1);'#13#10 +
       '  SUSPEND;'#13#10 +
       'END';
+
     if AnIncludeSelf then
-      q.ParamByName('ID').AsInteger := ID
+      SetTID(q.ParamByName('ID'), ID)
     else
-      q.ParamByName('ID').AsInteger := Parent;
+      SetTID(q.ParamByName('ID'), Parent);
     q.ExecQuery;
     if q.EOF then
       Result := ''
     else
-      Result := q.Fields[0].AsString;  
+      Result := q.Fields[0].AsString;
   finally
     q.Free;
   end;
@@ -935,7 +951,7 @@ begin
   if Parent = -1 then
     ASL.Add(AddSpaces('Родитель') + 'NULL')
   else
-    ASL.Add(AddSpaces('Родитель') + IntToStr(Parent));
+    ASL.Add(AddSpaces('Родитель') + TID2S(Parent));
 end;
 
 { TgdcLBRBTree }

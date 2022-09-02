@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 unit prp_MethodFrame_Unit;
 
 interface
@@ -38,7 +40,7 @@ type
     function GetCanRun: Boolean; override;
     function GetCanPrepare: Boolean; override;
 
-    class function GetNameFromDb(Id: Integer): string; override;
+    class function GetNameFromDb(Id: TID): string; override;
     class function GetTypeName: string; override;
   public
     { Public declarations }
@@ -46,7 +48,7 @@ type
     procedure Setup(const FunctionName: String = ''); override;
     function Delete: Boolean; override;
     procedure AddTosetting; override;
-    class function GetFunctionIdEx(Id: Integer): integer; override;
+    class function GetFunctionIdEx(Id: TID): TID; override;
     property MethodTreeItem: TMethodTreeItem read GetMethodTreeItem
       write SetMethodTreeItem;
   end;
@@ -112,10 +114,10 @@ procedure TMethodFrame.Setup(const FunctionName: String = '');
 begin
   if Assigned(CustomTreeItem) then
   begin
-    gdcEvent.FieldByName(fnFunctionKey).AsInteger := gdcEvent.GetNextID(True);
-    gdcFunction.FieldByName(fnId).AsInteger := gdcEvent.FieldByName(fnFunctionKey).AsInteger;
+    SetTID(gdcEvent.FieldByName(fnFunctionKey), gdcEvent.GetNextID(True));
+    SetTID(gdcFunction.FieldByName(fnId), gdcEvent.FieldByName(fnFunctionKey));
     gdcEvent.FieldByName(fnEventName).AsString := UpperCase(TEventTreeItem(CustomTreeItem).Name);
-    gdcEvent.FieldByName(fnObjectKey).AsInteger := TEventTreeItem(CustomTreeItem).OwnerId;
+    SetTID(gdcEvent.FieldByName(fnObjectKey), TEventTreeItem(CustomTreeItem).OwnerId);
   end;
 
   //!!! перенесено из prp_FunctionFrame_unit т.к. там к CustomTreeItem.Name добавляется руид
@@ -124,7 +126,7 @@ begin
   begin
     with gdcFunction do
     begin
-      FieldByName(fnModuleCode).AsInteger := CustomTreeItem.OwnerId;
+      SetTID(FieldByName(fnModuleCode), CustomTreeItem.OwnerId);
       FieldByName(fnModule).AsString := GetModule;
       FieldByName(fnLanguage).AsString := dbcbLang.Items[1];
     end;
@@ -279,7 +281,7 @@ begin
     MessageBox(Application.Handle, 'Перед добавлением в пространство имен метод необходимо сохранить.',
       MSG_WARNING, MB_OK or MB_ICONWARNING or MB_TASKMODAL);
 end;
-class function TMethodFrame.GetNameFromDb(Id: Integer): string;
+class function TMethodFrame.GetNameFromDb(Id: TID): string;
 var
   SQL: TIBSQL;
 begin
@@ -287,7 +289,7 @@ begin
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQl.SQL.Text := 'SELECT f.name FROM evt_objectevent e JOIN gd_function f ON f.id = e.functionkey WHERE e.id = :id';
-    SQL.ParamByName('id').AsInteger := id;
+    SetTID(SQL.ParamByName('id'), id);
     SQL.ExecQuery;
     Result := SQL.FieldByName('name').AsString;
   finally
@@ -300,7 +302,7 @@ begin
   Result := 'Метод '
 end;
 
-class function TMethodFrame.GetFunctionIdEx(Id: Integer): integer;
+class function TMethodFrame.GetFunctionIdEx(Id: TID): TID;
 var
   SQL: TIBSQL;
 begin
@@ -308,9 +310,9 @@ begin
   try
     SQl.Transaction := gdcBaseManager.ReadTransaction;
     SQl.SQl.Text := 'SELECT functionkey FROM evt_objectevent WHERE id = :id';
-    SQL.ParamByName('id').AsInteger := Id;
+    SetTID(SQL.ParamByName('id'), Id);
     SQL.ExecQuery;
-    Result := SQL.FieldByName('functionkey').AsInteger;
+    Result := GetTID(SQL.FieldByName('functionkey'));
   finally
     SQl.Free;
   end;

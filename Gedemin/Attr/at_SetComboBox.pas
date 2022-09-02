@@ -1,3 +1,4 @@
+// ShlTanya, 31.01.2019
 
 {++
 
@@ -38,7 +39,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, Buttons, DB, Menus, Grids, DBGrids, gsDBGrid, gsIBGrid,
   IBDatabase, IBCustomDataSet, IBQuery, IBUpdateSQL, at_Classes, at_sql_parser,
-  Comctrls, gsIBLargeTreeView;
+  Comctrls, gsIBLargeTreeView, gdcBaseInterface;
 
 type
   TatSetLookupComboBox = class;
@@ -187,7 +188,7 @@ type
 
     FTableName: String;
     FRelation: TatRelation;
-    FOldKey: Integer;
+    FOldKey: TID;
 
     procedure AdjustChildren;
     procedure ButtonClick(Sender: TObject);
@@ -1510,8 +1511,8 @@ begin
 
         FEditor.Text := '';
 
-        FDataLink.DataSet.FieldByName(DataField).Assign(FDataLink.DataSet.
-          FieldByName(DataField));
+        AssignField64(FDataLink.DataSet.FieldByName(DataField),
+          FDataLink.DataSet.FieldByName(DataField));
       end;
     end;
   end;
@@ -1601,8 +1602,8 @@ begin
 
   if FList.ShowModal = mrOk then
   begin
-    FDataLink.DataSet.FieldByName(DataField).Assign(FDataLink.DataSet.
-      FieldByName(DataField));
+    AssignField64(FDataLink.DataSet.FieldByName(DataField),
+      FDataLink.DataSet.FieldByName(DataField));
   end;    
 end;
 

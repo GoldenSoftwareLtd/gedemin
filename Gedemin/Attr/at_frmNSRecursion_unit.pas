@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019, #4135
+
 unit at_frmNSRecursion_unit;
 
 interface
@@ -36,7 +38,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gdcNamespace;
+  gdcNamespace, gdcBaseInterface;
 
 procedure Tat_frmNSRecursion.FormCreate(Sender: TObject);
 begin
@@ -63,7 +65,7 @@ begin
     for I := 0 to Sl.Count - 2 do // last item will repeat
     begin
       TBI := TTBItem.Create(nil);
-      TBI.Tag := StrToInt(SL.Names[I]);
+      TBI.Tag := TID2Tag(GetTID(SL.Names[I]), Name);
       TBI.Caption := SL.Values[SL.Names[I]];
       TBI.OnClick := DoOnClick;
       tb.Items.Add(TBI);
@@ -80,7 +82,7 @@ begin
   Obj := TgdcNamespace.Create(nil);
   try
     Obj.SubSet := 'ByID';
-    Obj.ID := (Sender as TComponent).Tag;
+    Obj.ID := GetTID((Sender as TComponent).Tag, Name);
     Obj.Open;
     if not Obj.EOF then
       Obj.EditDialog;

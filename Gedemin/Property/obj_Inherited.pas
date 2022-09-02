@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 unit obj_Inherited;
 
 interface

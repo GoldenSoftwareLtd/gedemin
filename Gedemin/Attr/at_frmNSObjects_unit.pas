@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019, #4135
+
 unit at_frmNSObjects_unit;
 
 interface
@@ -150,7 +152,7 @@ begin
     for I := 0 to Sl.Count - 1 do
     begin
       TBI := TTBItem.Create(nil);
-      TBI.Tag := StrToInt(SL.Names[I]);
+      TBI.Tag := TID2Tag(GetTID(SL.Names[I]), Name);
       TBI.Caption := SL.Values[SL.Names[I]];
       TBI.OnClick := DoOnClick;
       tb.Items.Add(TBI);
@@ -167,7 +169,7 @@ begin
   Obj := TgdcNamespace.Create(nil);
   try
     Obj.SubSet := 'ByID';
-    Obj.ID := (Sender as TComponent).Tag;
+    Obj.ID := GetTID((Sender as TComponent).Tag, Name);
     Obj.Open;
     if not Obj.EOF then
       Obj.EditDialog;
@@ -199,7 +201,7 @@ begin
     Result := TgdBaseEntry(CE).gdcClass.Create(nil);
     Result.SubType := CE.SubType;
     Result.SubSet := 'ByID';
-    Result.ID := gdcBaseManager.GetIDByRUID(ibds.FieldByName('xid').AsInteger,
+    Result.ID := gdcBaseManager.GetIDByRUID(GetTID(ibds.FieldByName('xid')),
       ibds.FieldByName('dbid').AsInteger);
     Result.Open;
     if Result.EOF then

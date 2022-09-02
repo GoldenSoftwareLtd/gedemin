@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gdc_frmDocumentType_unit;
 
 interface
@@ -47,6 +49,8 @@ type
     actRefreshOption: TAction;
     TBSeparatorItem3: TTBSeparatorItem;
     TBItem8: TTBItem;
+    actFullDublicate: TAction;
+    TBItem9: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actNewSubExecute(Sender: TObject);
     procedure actNewSubUpdate(Sender: TObject);
@@ -72,6 +76,7 @@ type
     procedure actEditOptionExecute(Sender: TObject);
     procedure actEditOptionUpdate(Sender: TObject);
     procedure actRefreshOptionExecute(Sender: TObject);
+    procedure actFullDublicateExecute(Sender: TObject);
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
@@ -153,7 +158,7 @@ begin
     N := N.Parent;
   actAddInvDocument.Enabled := actDetailNew.Enabled
     and (N <> nil)
-    and (gdcBaseManager.GetRUIDStringByID(Integer(N.Data)) = '804000_17');
+    and (gdcBaseManager.GetRUIDStringByID(GetTID(N.Data, Name)) = '804000_17');
 end;
 
 procedure Tgdc_frmDocumentType.actAddInvPriceListUpdate(Sender: TObject);
@@ -165,7 +170,7 @@ begin
     N := N.Parent;
   actAddInvPriceList.Enabled := actDetailNew.Enabled
     and (N <> nil)
-    and (gdcBaseManager.GetRUIDStringByID(Integer(N.Data)) = '805000_17');
+    and (gdcBaseManager.GetRUIDStringByID(GetTID(N.Data, Name)) = '805000_17');
 end;
 
 procedure Tgdc_frmDocumentType.actAddUserDocUpdate(Sender: TObject);
@@ -177,8 +182,8 @@ begin
     N := N.Parent;
   actAddUserDoc.Enabled := actDetailNew.Enabled
     and (N <> nil)
-    and (gdcBaseManager.GetRUIDStringByID(Integer(N.Data)) <> '805000_17')
-    and (gdcBaseManager.GetRUIDStringByID(Integer(N.Data)) <> '804000_17');
+    and (gdcBaseManager.GetRUIDStringByID(GetTID(N.Data, Name)) <> '805000_17')
+    and (gdcBaseManager.GetRUIDStringByID(GetTID(N.Data, Name)) <> '804000_17');
 end;
 
 procedure Tgdc_frmDocumentType.tbsmNewClick(Sender: TObject);
@@ -205,7 +210,7 @@ procedure Tgdc_frmDocumentType.tvGroupGetImageIndex(Sender: TObject;
 var
   V: Variant;
 begin
-  V := gdcObject.GetFieldValueForID(Integer(Node.Data), 'documenttype');
+  V := gdcObject.GetFieldValueForID(GetTID(Node.Data, Name), 'documenttype');
   if (VarType(V) = varString) and (V = 'D') then
     Node.ImageIndex := 3
   else
@@ -256,14 +261,14 @@ end;
 
 procedure Tgdc_frmDocumentType.actNewOptionExecute(Sender: TObject);
 var
-  ID: Integer;
+  ID: TID;
 begin
   if gdcInvDocumentTypeOptions.CreateDialog then
   begin
     ID := gdcInvDocumentTypeOptions.ID;
     ibdsDocumentOptions.Close;
     ibdsDocumentOptions.Open;
-    ibdsDocumentOptions.Locate('id', ID, []);
+    ibdsDocumentOptions.Locate('id', TID2V(ID), []);
   end;
 end;
 
@@ -287,6 +292,12 @@ procedure Tgdc_frmDocumentType.actRefreshOptionExecute(Sender: TObject);
 begin
   ibdsDocumentOptions.Close;
   ibdsDocumentOptions.Open;
+end;
+
+procedure Tgdc_frmDocumentType.actFullDublicateExecute(Sender: TObject);
+begin
+  inherited;
+  gdcDocumentType.FullCopyDocument;
 end;
 
 initialization

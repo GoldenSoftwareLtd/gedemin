@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gsPropertyEditor;
 
 interface

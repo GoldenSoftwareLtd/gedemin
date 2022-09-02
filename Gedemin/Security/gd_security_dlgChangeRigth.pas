@@ -1,3 +1,5 @@
+// ShlTanya, 06.02.2019, #4135
+
 unit gd_security_dlgChangeRigth;
 
 interface
@@ -35,6 +37,7 @@ type
     AChag: Integer;
     AView: Integer;
     ARight: Byte;
+    destructor Destroy; override;    
   end;
 
 var
@@ -43,6 +46,8 @@ var
 implementation
 
 {$R *.DFM}
+
+uses gdcBaseInterface;
 
 procedure TdlgChangeRight.actShowExecute(Sender: TObject);
 var
@@ -61,23 +66,23 @@ begin
   while not ibqryWork.Eof do
   begin
     II := clbFull.Items.AddObject(ibqryWork.FieldByName('name').AsString,
-     Pointer(ibqryWork.FieldByName('id').AsInteger));
-    clbFull.Checked[II] := (AFull and (1 shl (ibqryWork.FieldByName('id').AsInteger - 1)) <> 0);
+     TID2Pointer(GetTID(ibqryWork.FieldByName('id')), Name));
+    clbFull.Checked[II] := (AFull and (1 shl (GetTID(ibqryWork.FieldByName('id')) - 1)) <> 0);
 
     II := clbChag.Items.AddObject(ibqryWork.FieldByName('name').AsString,
-     Pointer(ibqryWork.FieldByName('id').AsInteger));
-    clbChag.ItemEnabled[II] := (AFull and (1 shl (ibqryWork.FieldByName('id').AsInteger - 1)) = 0);
+     TID2Pointer(GetTID(ibqryWork.FieldByName('id')), Name));
+    clbChag.ItemEnabled[II] := (AFull and (1 shl (GetTID(ibqryWork.FieldByName('id')) - 1)) = 0);
     if not clbChag.Enabled or clbChag.ItemEnabled[II] then
-      clbChag.Checked[II] := (AChag and (1 shl (ibqryWork.FieldByName('id').AsInteger - 1)) <> 0)
+      clbChag.Checked[II] := (AChag and (1 shl (GetTID(ibqryWork.FieldByName('id')) - 1)) <> 0)
     else
       clbChag.Checked[II] := True;
 
     II := clbView.Items.AddObject(ibqryWork.FieldByName('name').AsString,
-     Pointer(ibqryWork.FieldByName('id').AsInteger));
-    clbView.ItemEnabled[II] := ((AFull and (1 shl (ibqryWork.FieldByName('id').AsInteger - 1)))
+     TID2Pointer(GetTID(ibqryWork.FieldByName('id')), Name));
+    clbView.ItemEnabled[II] := ((AFull and (1 shl (GetTID(ibqryWork.FieldByName('id')) - 1)))
      or (AChag and (1 shl (ibqryWork.FieldByName('id').AsInteger - 1))) = 0);
     if not clbView.Enabled or clbView.ItemEnabled[II] then
-      clbView.Checked[II] := (AView and (1 shl (ibqryWork.FieldByName('id').AsInteger - 1)) <> 0)
+      clbView.Checked[II] := (AView and (1 shl (GetTID(ibqryWork.FieldByName('id')) - 1)) <> 0)
     else
       clbView.Checked[II] := True;
 
@@ -93,15 +98,15 @@ begin
     AFull := 0;
     for I := 0 to clbFull.Items.Count - 1 do
       if clbFull.Checked[I] then
-        AFull := AFull or (1 shl (Integer(clbFull.Items.Objects[I]) - 1));
+        AFull := AFull or (1 shl (GetTID(clbFull.Items.Objects[I], Name) - 1));
     AChag := 0;
     for I := 0 to clbChag.Items.Count - 1 do
       if clbChag.Checked[I] then
-        AChag := AChag or (1 shl (Integer(clbChag.Items.Objects[I]) - 1));
+        AChag := AChag or (1 shl (GetTID(clbChag.Items.Objects[I], Name) - 1));
     AView := 0;
     for I := 0 to clbView.Items.Count - 1 do
       if clbView.Checked[I] then
-        AView := AView or (1 shl (Integer(clbView.Items.Objects[I]) - 1));
+        AView := AView or (1 shl (GetTID(clbView.Items.Objects[I], Name) - 1));
     {if AFull = 0 then
     begin
       ShowMessage('Полный доступ должен быть присвоен хотя бы одной группе');
@@ -148,6 +153,14 @@ begin
   end;
   if clbView.Enabled then
     clbView.ItemEnabled[clbChag.ItemIndex] := not clbChag.Checked[clbChag.ItemIndex];
+end;
+
+destructor TdlgChangeRight.Destroy;
+begin
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
+  inherited;
 end;
 
 end.

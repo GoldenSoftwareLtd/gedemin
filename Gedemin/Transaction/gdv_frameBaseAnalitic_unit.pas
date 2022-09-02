@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_frameBaseAnalitic_unit;
 
 interface
@@ -48,13 +50,16 @@ type
     procedure SetValues(const Value: string);virtual;
   public
     { Public declarations }
-    procedure UpdateAvail(IdList: TList); virtual;
+    procedure UpdateAvail(IdList: TList; Context: String); virtual;
     property Avail: TStrings read GetAvail;
     property Selected: TStrings read GetSelected;
     property Values: string read GetValues write SetValues;
+    destructor Destroy; override;
   end;
   
 implementation
+
+uses gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -203,7 +208,7 @@ begin
   Result := '';
 end;
 
-procedure TframeBaseAnalitic.UpdateAvail(IdList: TList);
+procedure TframeBaseAnalitic.UpdateAvail(IdList: TList; Context: String);
 begin
   if Avail.Count = 0 then
     Selected.Clear;
@@ -227,6 +232,14 @@ end;
 procedure TframeBaseAnalitic.actExcludeAllUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := Selected.Count > 0;
+end;
+
+destructor TframeBaseAnalitic.Destroy;
+begin
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
+  inherited;
 end;
 
 end.

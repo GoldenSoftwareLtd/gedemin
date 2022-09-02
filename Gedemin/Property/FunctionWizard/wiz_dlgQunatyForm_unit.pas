@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_dlgQunatyForm_unit;
 
 interface
@@ -32,16 +34,16 @@ type
   private
     FDocumentHead: TDocumentInfo;
     FDocumentLine: TDocumentLineInfo;
-    FAccountKey: Integer;
+    FAccountKey: TID;
 
     procedure SetQuantity(const Value: string);
     procedure SetQUnit(const Value: string);
     function GetQUnit: string;
     function GetQuantity: string;
     function GetQUnitName: string;
-    procedure SetAccountKey(const Value: Integer);
+    procedure SetAccountKey(const Value: TID);
   protected
-    FUnitKey: Integer;
+    FUnitKey: TID;
 
     procedure CheckDocumentInfo;
     procedure ClickUnit(Sender: TObject);
@@ -52,7 +54,7 @@ type
     property QUnit: string read GetQUnit write SetQUnit;
     property UnitName: string read GetQUnitName;
     property Quantity: string read GetQuantity write SetQuantity;
-    property AccountKey: Integer read FAccountKey write SetAccountKey;
+    property AccountKey: TID read FAccountKey write SetAccountKey;
   end;
 
 var
@@ -201,7 +203,7 @@ end;
 procedure TdlgQuantiyForm.SetQUnit(const Value: string);
 var
   SQL: TIBSQL;
-  ID: Integer;
+  ID: TID;
 begin
   beUnit.Text := '';
   try
@@ -215,7 +217,7 @@ begin
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
       SQl.SQl.Text := 'SELECT name FROM gd_value WHERE id = :id';
-      SQL.ParamByName(fnId).AsInteger := ID;
+      SetTID(SQL.ParamByName(fnId), ID);
       SQL.ExecQuery;
       if SQL.RecordCount > 0 then
         beUnit.Text := SQL.FieldByName(fnName).AsString;
@@ -261,7 +263,7 @@ begin
   beUnit.Text := FBlock.EditExpression(beUnit.Text, FBlock);
 end;
 
-procedure TdlgQuantiyForm.SetAccountKey(const Value: Integer);
+procedure TdlgQuantiyForm.SetAccountKey(const Value: TID);
 begin
   FAccountKey := Value;
 end;

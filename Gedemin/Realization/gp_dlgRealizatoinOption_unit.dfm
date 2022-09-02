@@ -51,14 +51,14 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
       object Label1: TLabel
         Left = 8
         Top = 12
-        Width = 129
+        Width = 125
         Height = 13
         Caption = 'Единица измерения веса'
       end
       object Label3: TLabel
         Left = 8
         Top = 220
-        Width = 226
+        Width = 229
         Height = 13
         Caption = 'Группа ТМЦ - по умолчанию для добавления'
       end
@@ -67,6 +67,7 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
         Top = 8
         Width = 145
         Height = 21
+        HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
         Transaction = IBTransaction
         ListTable = 'GD_VALUE'
@@ -94,7 +95,6 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
         KeyField = 'ID'
         ParentField = 'PARENT'
         DisplayField = 'NAME'
-        HideSelection = False
         Images = dmImages.ilTree
         Indent = 19
         TabOrder = 7
@@ -179,7 +179,7 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
       object Label2: TLabel
         Left = 4
         Top = 7
-        Width = 262
+        Width = 263
         Height = 13
         Caption = 'Поля по позиции накладной отвечающие за налоги'
       end
@@ -195,6 +195,7 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
         Expands = <>
         ExpandsActive = False
         ExpandsSeparate = False
+        TitlesExpanding = False
         Conditions = <>
         ConditionsActive = False
         CheckBox.Visible = False
@@ -281,6 +282,7 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
         Top = 49
         Width = 145
         Height = 21
+        HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
         Transaction = IBTransaction
         DataSource = dsDocRealPosOption
@@ -324,6 +326,7 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
         Top = 80
         Width = 145
         Height = 21
+        HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
         Transaction = IBTransaction
         DataSource = dsDocRealPosOption
@@ -342,6 +345,7 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
         Top = 112
         Width = 145
         Height = 21
+        HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
         Transaction = IBTransaction
         DataSource = dsDocRealPosOption
@@ -370,7 +374,7 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
       object Label4: TLabel
         Left = 8
         Top = 8
-        Width = 326
+        Width = 333
         Height = 13
         Caption = 'Выделять при печати следующие группы (в указанном порядке)'
       end
@@ -408,7 +412,7 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
       object Label5: TLabel
         Left = 8
         Top = 8
-        Width = 361
+        Width = 363
         Height = 13
         Caption = 
           'Нормы естественной убыли при доставки продукции (в разрезе групп' +
@@ -466,7 +470,6 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
   object ibdsDocRealPosOption: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
     Transaction = IBTransaction
-    BufferChunks = 1000
     CachedUpdates = True
     DeleteSQL.Strings = (
       'delete from gd_docrealposoption'
@@ -509,61 +512,9 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
       'where'
       '  FIELDNAME = :OLD_FIELDNAME and'
       '  RELATIONNAME = :OLD_RELATIONNAME')
+    ReadTransaction = IBTransaction
     Left = 304
     Top = 249
-    object ibdsDocRealPosOptionRELATIONNAME: TIBStringField
-      DisplayLabel = 'Таблица'
-      FieldName = 'RELATIONNAME'
-      Required = True
-      OnChange = ibdsDocRealPosOptionRELATIONNAMEChange
-      Size = 31
-    end
-    object ibdsDocRealPosOptionFIELDNAME: TIBStringField
-      DisplayLabel = 'Поле'
-      FieldName = 'FIELDNAME'
-      Required = True
-      Size = 31
-    end
-    object ibdsDocRealPosOptionNAME: TIBStringField
-      DisplayLabel = 'Налог'
-      DisplayWidth = 10
-      FieldName = 'NAME'
-      Size = 60
-    end
-    object ibdsDocRealPosOptionRATE: TIBBCDField
-      DisplayLabel = 'Ставка'
-      DisplayWidth = 6
-      FieldName = 'RATE'
-      Precision = 18
-      Size = 4
-    end
-    object ibdsDocRealPosOptionINCLUDETAX: TSmallintField
-      DisplayLabel = 'Вкл. в цену'
-      FieldName = 'INCLUDETAX'
-    end
-    object ibdsDocRealPosOptionISCURRENCY: TSmallintField
-      DisplayLabel = 'Валют'
-      DisplayWidth = 6
-      FieldName = 'ISCURRENCY'
-    end
-    object ibdsDocRealPosOptionROUNDING: TIBBCDField
-      DisplayLabel = 'Округлять'
-      DisplayWidth = 8
-      FieldName = 'ROUNDING'
-      Precision = 18
-      Size = 4
-    end
-    object ibdsDocRealPosOptionEXPRESSION: TIBStringField
-      DisplayLabel = 'Формула'
-      DisplayWidth = 30
-      FieldName = 'EXPRESSION'
-      Visible = False
-      Size = 180
-    end
-    object ibdsDocRealPosOptionTAXKEY: TIntegerField
-      FieldName = 'TAXKEY'
-      Visible = False
-    end
   end
   object dsDocRealPosOption: TDataSource
     DataSet = ibdsDocRealPosOption
@@ -589,11 +540,10 @@ object dlgRealizatoinOption: TdlgRealizatoinOption
   object ibdsGroup: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
     Transaction = IBTransaction
-    BufferChunks = 1000
-    CachedUpdates = False
     SelectSQL.Strings = (
       'SELECT * FROM gd_goodgroup'
       'ORDER  BY parent DESC')
+    ReadTransaction = IBTransaction
     Left = 312
     Top = 345
   end

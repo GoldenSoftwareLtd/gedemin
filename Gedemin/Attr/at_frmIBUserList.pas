@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit at_frmIBUserList;
 
 interface
@@ -84,7 +86,7 @@ var
   ListItem: TListItem;
   q: TIBSQL;
   Tr: TIBTransaction;
-  S: String;
+  S, S1, CompName: String;
 begin
   if (lvUser.Items.Count > 0) and Assigned(lvUser.Selected) then
     K := lvUser.Selected.Index
@@ -101,14 +103,37 @@ begin
     Tr.DefaultDatabase := gdcBaseManager.Database;
     Tr.StartTransaction;
 
+    //TODO
+    //мы проверяем на системные учетные записи просто сравнивая по имени в запросе
+    //потому что в ФБ 2.5 нет поля MON$SYSTEM_FLAG в таблице MON$ATTACHMENTS
+    //по правильному будет добавить в IBLogin версию сервера и исходя из нее
+    //добавлять проверку в запрос
+
     q.Transaction := Tr;
     q.SQL.Text :=
-      'SELECT A.MON$USER, U.NAME, U.FULLNAME, A.MON$REMOTE_ADDRESS, A.MON$TIMESTAMP, ' +
-      '  A.MON$ATTACHMENT_ID ' +
-      'FROM MON$ATTACHMENTS A LEFT JOIN GD_USER U ' +
-      '  ON A.MON$USER = U.IBNAME ' +
-      'WHERE A.MON$STATE = 1 ' +
-      'ORDER BY A.MON$USER ';
+      'SELECT '#13#10 +
+      '  A.MON$USER, '#13#10 +
+      '  U.NAME, '#13#10 +
+      '  U.FULLNAME, '#13#10 +
+      '  A.MON$REMOTE_ADDRESS, '#13#10 +
+      '  A.MON$TIMESTAMP, '#13#10 +
+      '  A.MON$ATTACHMENT_ID, '#13#10 +
+      '  ( '#13#10 +
+      '    SELECT FIRST 1 TR.MON$TIMESTAMP '#13#10 +
+      '    FROM MON$TRANSACTIONS TR '#13#10 +
+      '    WHERE TR.MON$ATTACHMENT_ID = A.MON$ATTACHMENT_ID '#13#10 +
+      '      AND TR.MON$READ_ONLY = 0 '#13#10 +
+      '      AND TR.MON$TRANSACTION_ID <> CURRENT_TRANSACTION '#13#10 +
+      '    ORDER BY TR.MON$TIMESTAMP DESC '#13#10 +
+      '  ) AS TR_TIMESTAMP '#13#10 +
+      'FROM '#13#10 +
+      '  MON$ATTACHMENTS A '#13#10 +
+      '  LEFT JOIN GD_USER U ON A.MON$USER = U.IBNAME '#13#10 +
+      'WHERE '#13#10 +
+      '  A.MON$USER <> ''Cache Writer'' AND A.MON$USER <> ''Garbage Collector'''#13#10 +
+      'ORDER BY '#13#10 +
+      '  U.NAME';
+
     q.ExecQuery;
 
     while not q.EOF do
@@ -123,10 +148,18 @@ begin
 
       S := q.FieldByName('MON$REMOTE_ADDRESS').AsTrimString;
       if chbxShowNames.Checked then
-        S := ALIPAddrToName(S) + ' (' + S + ')';
+      begin
+        S1 := S;
+        if pos('/', S) > 0 then
+          S1 := copy(S, 1, pos('/', S) - 1);
+        CompName := ALIPAddrToName(S1);
+        if (CompName > '') and (S1 <> '127.0.0.1') then
+          S := CompName + ' (' + S + ')';
+      end;
       ListItem.SubItems.Add(S);
 
       ListItem.SubItems.Add(q.FieldByName('MON$TIMESTAMP').AsString);
+      ListItem.SubItems.Add(q.FieldByName('TR_TIMESTAMP').AsString);
 
       Inc(I);
       q.Next;

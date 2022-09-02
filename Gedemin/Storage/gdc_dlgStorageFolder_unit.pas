@@ -1,3 +1,5 @@
+// ShlTanya, 12.03.2019
+
 unit gdc_dlgStorageFolder_unit;
 
 interface
@@ -32,14 +34,15 @@ uses
   gdcUser,
   gdcContacts,
   gd_ClassList,
-  gdcStorage_Types;
+  gdcStorage_Types,
+  gdcBaseInterface;
 
 procedure Tgdc_dlgStorageFolder.actOpenObjectUpdate(Sender: TObject);
 var
   F: Boolean;
 begin
   F := (gdcObject <> nil)
-    and (gdcObject.FieldByName('int_data').AsInteger > 0)
+    and (GetTID(gdcObject.FieldByName('int_data')) > 0)
     and (
       (gdcObject.FieldByName('data_type').AsString = cStorageUser) or
       (gdcObject.FieldByName('data_type').AsString = cStorageCompany));
@@ -67,7 +70,7 @@ begin
     Obj := TgdcCompany.Create(Self);
   try
     Obj.SubSet := 'ByID';
-    Obj.ID := gdcObject.FieldByName('int_data').AsInteger;
+    Obj.ID := GetTID(gdcObject.FieldByName('int_data'));
     Obj.Open;
     if not Obj.IsEmpty then
       Obj.EditDialog;

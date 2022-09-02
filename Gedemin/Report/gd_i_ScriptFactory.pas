@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 {++
 
   Copyright (c) 2002-2016 by Golden Software of Belarus, Ltd
@@ -28,14 +30,14 @@ interface
 
 uses
   Classes,
-  rp_BaseReport_unit,
+  rp_BaseReport_unit, gdcBaseInterface,
   {$IFDEF GEDEMIN}
   rp_ReportScriptControl,
   {$ENDIF} IBDataBase,
   contnrs, gd_ScrException, sysutils;
 
 type
-  TPrimaryKey = Integer;
+  TPrimaryKey = TID;
 
 type
   TProcProcess = procedure(const AnFunctionKey: TPrimaryKey; const AnParams, AnResult: Variant);
@@ -53,12 +55,12 @@ type
     FPos: Integer;
     FLine: Integer;
     FMsg: String;
-    FSFID: Integer;
+    FSFID: TID;
     FText: string;
     procedure SetLine(const Value: Integer);
     procedure SetMsg(const Value: String);
     procedure SetPos(const Value: Integer);
-    procedure SetSFID(const Value: Integer);
+    procedure SetSFID(const Value: TID);
     procedure SetText(const Value: string);
   public
     // сообщение об ошибке
@@ -68,7 +70,7 @@ type
     // позиция в сктроке
     property Pos: Integer read FPos write SetPos;
     // ID скрипт-функции
-    property SFID: Integer read FSFID write SetSFID;
+    property SFID: TID read FSFID write SetSFID;
     //Текст ошибки
     property Text: string read FText write SetText;
   end;
@@ -76,13 +78,13 @@ type
   // Используется для добавления ошибок компиляции
   TgdCompileItem = class(TgdErrorItem)
   private
-    FReferenceToSF: Integer;
+    FReferenceToSF: TID;
     FAutoClear: Boolean;
-    procedure SetReferenceToSF(const Value: Integer);
+    procedure SetReferenceToSF(const Value: TID);
     procedure SetAutoClear(const Value: Boolean);
   public
     // ИД СФ, на кот. ссылка в ошибке или предупреждении
-    property ReferenceToSF: Integer read FReferenceToSF write SetReferenceToSF;
+    property ReferenceToSF: TID read FReferenceToSF write SetReferenceToSF;
     // Удалять
     property AutoClear: Boolean read FAutoClear write SetAutoClear default False;
   end;
@@ -97,7 +99,7 @@ type
     destructor  Destroy; override;
 
     function  Add(const ErrorItem: TgdErrorItem): Integer; overload;
-    function  Add(const Msg: String; const Line, Pos, SFID: Integer): Integer; overload;
+    function  Add(const Msg: String; const Line, Pos: Integer; const SFID: TID): Integer; overload;
     procedure Clear;
 
     property  Count: Integer read GetCount;
@@ -134,7 +136,7 @@ type
     // Добавляет текст скрипт-функции вместе с инклюд-функциями
     // ModuleKey - ключ модуля
     procedure AddScript(const AnFunction: TrpCustomFunction;
-                        const ModuleKey: Integer = 0; const TestInLoaded: Boolean = True);
+                        const ModuleKey: TID = 0; const TestInLoaded: Boolean = True);
 
     // Запрос параметров
     function InputParams(const AnFunction: TrpCustomFunction; out AnParamResult: Variant): Boolean; overload;
@@ -157,7 +159,7 @@ type
       var AParamAndResult: Variant); overload;
     procedure ExecuteFunction(const AFunction: TrpCustomFunction;
       AParams: Variant; out AnResult: Variant); overload;
-    procedure ExecuteFunction(const AFunctionKey: Integer;
+    procedure ExecuteFunction(const AFunctionKey: TID;
       AParams: Variant; out AnResult: Variant); overload;
 
     // Метод служит для выполнения скрипт-функции. При этом входные параметры и результат выполнения передаются разными переменными.
@@ -209,13 +211,13 @@ type
     function  ExecuteMacro(const AName, AObjectName: String;
       const AParams: OleVariant): Variant;
     // Выполнение скрипт-функции по ключу
-    function  ExecuteScript(const AFunctionKey: Integer;
+    function  ExecuteScript(const AFunctionKey: TID;
       const AParams: OleVariant): Variant;
     function  ExecuteObjectScript(const AFunctionName,
       AObjectName: String;  const AParams: OleVariant): Variant;
 
     // Выполняет Statement в модуле выполнения функции с FunctionKey
-    procedure ExecuteStatement(const FunctionKey: Integer; const Statement: WideString);
+    procedure ExecuteStatement(const FunctionKey: TID; const Statement: WideString);
 
     // инициализация VB классов
     function  GetCreateVBClasses: TOnCreateObject;
@@ -228,7 +230,7 @@ type
     property Transaction: TIBTransaction read GetTransaction write SetTransaction;
 
     procedure Reset;
-    procedure ResetVBClasses(const ModuleCode: Integer);
+    procedure ResetVBClasses(const ModuleCode: TID);
     //Вычисление выражения
 //    function GetScriptEval(const AnScriptText, AnLanguage: String): Variant;
     function Eval(const Expression: String): Variant;
@@ -239,7 +241,7 @@ type
     property scrException: EScrException read GetScrException;
 
     //Вызывается после изменения скрипт-функции
-    procedure ReloadFunction(FunctionKey: Integer);
+    procedure ReloadFunction(FunctionKey: TID);
 
     function GetErrorList: TgdErrorlList;
 
@@ -266,8 +268,8 @@ begin
   Result := FErrorList.Add(ErrorItem);
 end;
 
-function TgdErrorlList.Add(const Msg: String; const Line, Pos,
-  SFID: Integer): Integer;
+function TgdErrorlList.Add(const Msg: String; const Line, Pos: Integer;
+  const SFID: TID): Integer;
 var
   LErrorItem: TgdErrorItem;
 begin
@@ -325,7 +327,7 @@ begin
   FPos := Value;
 end;
 
-procedure TgdErrorItem.SetSFID(const Value: Integer);
+procedure TgdErrorItem.SetSFID(const Value: TID);
 begin
   FSFID := Value;
 end;
@@ -342,7 +344,7 @@ begin
   FAutoClear := Value;
 end;
 
-procedure TgdCompileItem.SetReferenceToSF(const Value: Integer);
+procedure TgdCompileItem.SetReferenceToSF(const Value: TID);
 begin
   FReferenceToSF := Value;
 end;

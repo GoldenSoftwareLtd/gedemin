@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_frAcctSum_unit;
 
 interface
@@ -5,7 +7,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gsIBLookupComboBox, StdCtrls, ExtCtrls, gdvParamPanel, gd_common_functions,
-  AcctUtils;
+  AcctUtils, gdcBaseInterface;
 
 type
   TfrAcctSum = class(TFrame)
@@ -41,7 +43,7 @@ type
     procedure gsiblCurrKeyChange(Sender: TObject);
   private
     function GetCurrDecDigits: Integer;
-    function GetCurrkey: Integer;
+    function GetCurrkey: TID;
     function GetCurrScale: Integer;
     function GetInCurr: Boolean;
     function GetInNcu: Boolean;
@@ -53,7 +55,7 @@ type
     function GetQuantityDecDigits: Integer;
     function GetQuantityScale: Integer;
     procedure SetCurrDecDigits(const Value: Integer);
-    procedure SetCurrkey(const Value: Integer);
+    procedure SetCurrkey(const Value: TID);
     procedure SetCurrScale(const Value: Integer);
     procedure SetInCurr(const Value: Boolean);
     procedure SetInNcu(const Value: Boolean);
@@ -82,7 +84,7 @@ type
     property CurrScale: Integer read GetCurrScale write SetCurrScale;
     property EQScale: Integer read GetEQScale write SetEQScale;
     property QuantityScale: Integer read GetQuantityScale write SetQuantityScale;
-    property Currkey: Integer read GetCurrkey write SetCurrkey;
+    property Currkey: TID read GetCurrkey write SetCurrkey;
     procedure SetEQVisible(bV: boolean);
     procedure SetQuantityVisible(bV: boolean);
   end;
@@ -101,7 +103,7 @@ begin
   Result := LocalStrToInt(cbCurrDecDigits.Text, 4);
 end;
 
-function TfrAcctSum.GetCurrkey: Integer;
+function TfrAcctSum.GetCurrkey: TID;
 begin
   Result := gsiblCurrKey.CurrentKeyInt;
 end;
@@ -140,7 +142,7 @@ begin
   cbCurrDecDigits.Text := IntToStr(Value);
 end;
 
-procedure TfrAcctSum.SetCurrkey(const Value: Integer);
+procedure TfrAcctSum.SetCurrkey(const Value: TID);
 begin
   gsiblCurrKey.CurrentKeyInt := Value;
 end;
@@ -201,7 +203,8 @@ end;
 procedure TfrAcctSum.LoadFromStream(const Stream: TStream);
 var
   SV: Byte;
-  OldPosition: Integer;
+  OldPosition, LenID: Integer;
+  CK: TID;
 begin
   OldPosition := Stream.Position;
   Stream.Read(SV, Sizeof(SV));
@@ -217,12 +220,14 @@ begin
     Currkey := ReadIntegerFromStream(Stream);
   end else
   begin
+    LenID := GetLenIDinStream(@Stream);
     InCurr := ReadBooleanFromStream(Stream);
     NcuDecDigits := ReadIntegerFromStream(Stream);
     CurrDecDigits := ReadIntegerFromStream(Stream);
     NcuScale := ReadIntegerFromStream(Stream);
     CurrScale := ReadIntegerFromStream(Stream);
-    Currkey := ReadIntegerFromStream(Stream);
+    Stream.ReadBuffer(CK, LenID);
+    CurrKey := CK;
     InEQ := ReadBooleanFromStream(Stream);
     EQDecDigits := ReadIntegerFromStream(Stream);
     EQScale := ReadIntegerFromStream(Stream);
@@ -235,15 +240,19 @@ end;
 procedure TfrAcctSum.SaveToStream(const Stream: TStream);
 var
   SV: Byte;
+  LenID: Integer;
+  CK: TID;
 begin
   SV := StreamVersion4;
   Stream.Write(SV, SizeOf(SV));
+  LenID := SetLenIDinStream(@Stream);
   SaveBooleanToStream(InCurr, Stream);
   SaveIntegerToStream(NcuDecDigits, Stream);
   SaveIntegerToStream(CurrDecDigits, Stream);
   SaveIntegerToStream(NcuScale, Stream);
   SaveIntegerToStream(CurrScale, Stream);
-  SaveIntegerToStream(Currkey, Stream);
+  CK := Currkey;
+  Stream.WriteBuffer(CK, LenID);
   SaveBooleanToStream(InEQ, Stream);
   SaveIntegerToStream(EQDecDigits, Stream);
   SaveIntegerToStream(EQScale, Stream);

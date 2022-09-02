@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 unit gd_main_form;
 
@@ -182,8 +183,6 @@ type
     tbiReload: TTBItem;
     actDBTriggers: TAction;
     TBItem30: TTBItem;
-    TBItem31: TTBItem;
-    TBItem32: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -305,8 +304,7 @@ type
     //procedure actPrepareIBANExecute(Sender: TObject);
     //procedure actPrepareIBANUpdate(Sender: TObject);
     procedure actDBTriggersExecute(Sender: TObject);
-    procedure TBItem31Click(Sender: TObject);
-    procedure TBItem32Click(Sender: TObject);
+    procedure actDBTriggersUpdate(Sender: TObject);
 
   private
     FCanClose: Boolean;
@@ -982,7 +980,7 @@ begin
       'Автоматическое архивное копирование теперь настраивается через Исследователь/Сервис/Администратор/Автозадачи.',
       'Внимание',
       MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-    GlobalStorage.DeleteFolder('Options\Arch');
+    GlobalStorage.DeleteFolder('Options\Arch');  
   end;
 
   (*
@@ -2631,164 +2629,11 @@ begin
   ViewFormByClass('TgdcDBTrigger', '', False);
 end;
 
-const
-  cnt = 750;
-
-procedure TfrmGedeminMain.TBItem31Click(Sender: TObject);
-var
-  db: TIBDatabase;
-  Tr: TIBTransaction;
-  q: TIBDataSet;
-  I, T, J: Integer;
-  SL: TStringList;
+procedure TfrmGedeminMain.actDBTriggersUpdate(Sender: TObject);
 begin
-  db := TIBDatabase.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-  SL := TStringList.Create;
-  try
-    db.LoginPrompt := False;
-    db.SQLDialect := 3;
-    db.Params.Clear;
-    db.Params.Add('user_name=SYSDBA');
-    db.Params.Add('password=masterkey');
-    db.DatabaseName := '192.168.0.34/3053:k:\bases\broiler\GDBASE_2018_01_03.FDB';
-    db.Connected := True;
-
-    Tr.DefaultDatabase := db;
-    Tr.StartTransaction;
-
-    T := GetTickCount;
-
-    for I := 1 to cnt do
-    begin
-      q := TIBDataSet.Create(nil);
-      q.Transaction := Tr;
-      q.ReadTransaction := Tr;
-      q.SelectSQL.Text := 'SELECT * FROM GD_CONTACT';
-      q.Open;
-      for J := 1 to 1000 do
-      begin
-        q.Next;
-      end;
-      //if not q.EOF then
-      //begin
-        SL.Add(q.FieldByName('name').AsString);
-      //end;
-      q.Close;
-      q.Free;
-    end;
-
-    MessageBox(0,
-      PChar(IntToStr(Round(cnt / (GetTickCount - T) * 1000)) + ' req/sec'),
-      'Внимание',
-      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-
-    Tr.Commit;
-  finally
-    SL.Free;
-    Tr.Free;
-    db.Free;
-  end;
-end;
-
-type
-  TDBThread = class(TThread)
-  public
-    tr: TIBTransaction;
-    SL: TStringList;
-
-    constructor Create;
-    destructor Destroy; override;
-
-    procedure Execute; override;
-  end;
-
-constructor TDBThread.Create;
-begin
-  inherited Create(True);
-  SL := TSTRingList.Create;
-end;
-
-destructor TDBThread.Destroy;
-begin
-  SL.Free;
-  inherited;
-end;
-
-procedure TDBThread.Execute;
-var
-  q: TIBDataSet;
-  J: Integer;
-begin
-  q := TIBDataSet.Create(nil);
-  try
-    q.Transaction := Tr;
-    q.ReadTransaction := Tr;
-    q.SelectSQL.Text := 'SELECT FIRST 1 name FROM GD_CONTACT';
-    q.Open;
-    if not q.EOF then
-    begin
-      SL.Add(q.FieldByName('name').AsString);
-    end;
-    q.Close;
-  finally
-    q.Free;
-  end;
-end;
-
-procedure TfrmGedeminMain.TBItem32Click(Sender: TObject);
-var
-  db: TIBDatabase;
-  Tr: TIBTransaction;
-  I, T, J: Integer;
-  OL: TObjectList;
-  Thread: TDBThread;
-begin
-  db := TIBDatabase.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-  OL := TObjectList.Create(True);
-  try
-    db.LoginPrompt := False;
-    db.SQLDialect := 3;
-    db.Params.Clear;
-    db.Params.Add('user_name=SYSDBA');
-    db.Params.Add('password=masterkey');
-    db.DatabaseName := '192.168.0.34/3053:k:\bases\broiler\GDBASE_2018_01_03.FDB';
-    db.Connected := True;
-
-    Tr.DefaultDatabase := db;
-    Tr.StartTransaction;
-
-    for I := 1 to cnt do
-    begin
-      Thread := TDBThread.Create;
-      Thread.tr := tr;
-      OL.Add(Thread);
-    end;
-
-    T := GetTickCount;
-
-    for I := 0 to cnt - 1 do
-    begin
-      (OL.Items[I] as TDBThread).Resume;
-    end;
-
-    for I := 0 to cnt - 1 do
-    begin
-      (OL.Items[I] as TDBThread).WaitFor;
-    end;
-
-    MessageBox(0,
-      PChar(IntToStr(Round(cnt / (GetTickCount - T) * 1000)) + ' req/sec'),
-      'Внимание',
-      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-
-    Tr.Commit;
-  finally
-    OL.Free;
-    Tr.Free;
-    db.Free;
-  end;
+  actDBTriggers.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 end.

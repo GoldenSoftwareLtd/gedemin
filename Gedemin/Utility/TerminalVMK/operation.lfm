@@ -1,4 +1,45 @@
 inherited OperationTP: TOperationTP
-  Left = 512
+  Left = 919
+  Height = 467
+  Top = 213
+  Width = 401
+  ClientHeight = 467
+  ClientWidth = 401
   OnKeyDown = FormKeyDown
+  OnKeyUp = FormKeyUp
+  inherited mTP: TMemo
+    Width = 391
+  end
+  inherited lEnter: TLabel
+    Top = 445
+    Width = 391
+  end
+  inherited lExit: TLabel
+    Top = 411
+    Width = 391
+  end
+  inherited Panel1: TPanel
+    Height = 268
+    Width = 391
+    ClientHeight = 268
+    ClientWidth = 391
+    inherited lWeight: TLabel
+      Width = 192
+    end
+    inherited eWeight: TEdit
+      Width = 192
+    end
+    inherited lWeight1: TLabel
+      Left = 192
+      Width = 199
+    end
+    inherited eGoods: TEdit
+      Left = 192
+      Width = 199
+    end
+  end
+  inherited lDelete: TLabel
+    Top = 428
+    Width = 391
+  end
 end

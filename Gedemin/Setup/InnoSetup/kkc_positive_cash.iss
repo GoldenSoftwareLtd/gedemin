@@ -4,10 +4,10 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define public GedAppID "POSitiveCash25"
-#define public URL "http://kkc.by"
+;#define public URL "http://kkc.by"
 #define public DefDir "\KKC\POSitive Cash"
 #define public DefGroup "KKC"
-#define public SupportPhone "+375-17-32-111-32"
+;#define public SupportPhone "+375-17-32-111-32"
 
 #define public GedAppName "POSitive: Cash"
 #define public GedAppVerName "POSitive: Cash"

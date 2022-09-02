@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgAddValue_unit;
 
 interface
@@ -26,12 +28,12 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
-    FValueKey: Integer;    
+    FValueKey: TID;
     New: Boolean;
   public
     { Public declarations }
-    procedure ActiveDialog(const aValueKey: Integer);
-    property ValueKey: Integer read FValueKey;
+    procedure ActiveDialog(const aValueKey: TID);
+    property ValueKey: TID read FValueKey;
   end;
 
 var
@@ -44,7 +46,7 @@ uses
 
 {$R *.DFM}
 
-procedure TdlgAddValue.ActiveDialog(const aValueKey: Integer);
+procedure TdlgAddValue.ActiveDialog(const aValueKey: TID);
 begin
   if not ibtrValue.InTransaction then
     ibtrValue.StartTransaction;
@@ -53,7 +55,7 @@ begin
   New := False;
   // Выполнение запроса
   ibqryEditValue.Close;
-  ibqryEditValue.ParamByName('id').AsInteger := FValueKey;
+  SetTID(ibqryEditValue.ParamByName('id'), FValueKey);
   ibqryEditValue.Open;
   ibqryEditValue.First;
   // Если записей не найдено создаем новую
@@ -62,7 +64,7 @@ begin
     // Получаем ID новой записи
     New := True;
     ibqryEditValue.Insert;
-    ibqryEditValue.FieldByName('id').AsInteger := GenUniqueID;
+    SetTID(ibqryEditValue.FieldByName('id'), GenUniqueID);
   // Иначе редактируем существующую
   end else
     ibqryEditValue.Edit;
@@ -79,7 +81,7 @@ begin
     Exit;
   end;
   // Сохранение изменений
-  FValueKey := ibqryEditValue.FieldByName('id').AsInteger;
+  FValueKey := GetTID(ibqryEditValue.FieldByName('id'));
   ibqryEditValue.Post;
   if ibtrValue.InTransaction then
     ibtrValue.Commit;

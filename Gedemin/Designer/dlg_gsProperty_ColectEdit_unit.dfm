@@ -1,8 +1,8 @@
 object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
   Left = 481
   Top = 247
-  Width = 165
-  Height = 233
+  Width = 265
+  Height = 348
   HelpContext = 26150
   HorzScrollBar.Increment = 10
   VertScrollBar.Increment = 11
@@ -16,11 +16,11 @@ object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
-  TextHeight = 14
+  TextHeight = 13
   object Splitter1: TSplitter
     Left = 0
     Top = 29
-    Width = 157
+    Width = 249
     Height = 5
     Cursor = crVSplit
     Align = alTop
@@ -28,7 +28,7 @@ object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
   object ToolBar1: TToolBar
     Left = 0
     Top = 0
-    Width = 157
+    Width = 249
     Height = 29
     EdgeBorders = [ebLeft, ebTop]
     Images = ImageList1
@@ -61,20 +61,36 @@ object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
       Top = 2
       Action = MoveDownCmd
     end
+    object btn1: TToolButton
+      Left = 100
+      Top = 2
+      Width = 8
+      Caption = 'btn1'
+      ImageIndex = 4
+      Style = tbsSeparator
+    end
+    object edSearch: TEdit
+      Left = 108
+      Top = 2
+      Width = 121
+      Height = 22
+      TabOrder = 0
+      OnKeyDown = edSearchKeyDown
+    end
   end
   object Panel3: TPanel
     Left = 0
     Top = 34
-    Width = 157
-    Height = 168
+    Width = 249
+    Height = 275
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object ListView1: TListView
       Left = 0
       Top = 0
-      Width = 157
-      Height = 168
+      Width = 249
+      Height = 275
       Align = alClient
       Columns = <>
       ColumnClick = False

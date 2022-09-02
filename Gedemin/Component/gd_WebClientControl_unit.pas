@@ -1,3 +1,4 @@
+// ShlTanya, 11.02.2019
 
 unit gd_WebClientControl_unit;
 
@@ -6,7 +7,7 @@ interface
 uses
   Classes, Windows, Messages, SyncObjs, SysUtils, idHTTP, idURI, idComponent,
   idThreadSafe, gdMessagedThread, gd_FileList_unit, gd_ProgressNotifier_unit,
-  IdSSLOpenSSL, Contnrs, gd_messages_const;
+  IdSSLOpenSSL, Contnrs, gd_messages_const, gdcBaseInterface;
 
 type
   TgdEmailMessageState = (emsReady, emsSending, emsSent, emsError);
@@ -82,7 +83,7 @@ type
     FSkipNextException: Boolean;
     FEmailCS: TCriticalSection;
     FEmails: TObjectList;
-    FEmailLastID: Integer;
+    FEmailLastID: TID;
     FEmailErrorMsg: String;
 
     function LoadWebServerURL: Boolean;
@@ -103,7 +104,7 @@ type
     procedure DoSendError;
 
     procedure DoSendEMail;
-    function GetSMTPSettings(const ASMTPKey: Integer; out ASenderEMail: String;
+    function GetSMTPSettings(const ASMTPKey: TID; out ASenderEMail: String;
       out AHost: String; out APort: Integer; out ALogin: String;
       out APassw: String; out AIPSec: String): Boolean;
     function GetEmailCount: Integer;
@@ -131,17 +132,17 @@ type
       const AWipeDirectory: Boolean = False;
       const Sync: Boolean = False;
       const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word; overload;
-    function SendEMail(const ASMTPKey: Integer;
+    function SendEMail(const ASMTPKey: TID;
       const ARecipients: String;
       const ASubject: String; const ABodyText: String;
       const AFileName: String = ''; const AWipeFile: Boolean = False;
       const AWipeDirectory: Boolean = False;
       const Sync: Boolean = False;
       const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word; overload;
-    function SendEMail(const ASMTPKey: Integer;
+    function SendEMail(const ASMTPKey: TID;
       const ARecipients: String;
       const ASubject: String; const ABodyText: String;
-      const AReportKey: Integer; const AnExportType: String;
+      const AReportKey: TID; const AnExportType: String;
       const Sync: Boolean = False;
       const AWndHandle: THandle = 0; const AThreadID: THandle = 0): Word; overload;
 
@@ -169,7 +170,7 @@ var
 implementation
 
 uses
-  gdcJournal, gd_security, gdcBaseInterface, gdNotifierThread_unit,
+  gdcJournal, gd_security, gdNotifierThread_unit,
   gd_directories_const, JclFileUtils, Forms, gd_CmdLineParams_unit,
   gd_GlobalParams_unit, jclSysInfo, IdSMTP, IdMessage, IBSQL,
   gd_encryption, rp_i_ReportBuilder_unit, rp_ReportClient, IdCoderMIME,
@@ -586,15 +587,10 @@ end;
 procedure TgdWebClientControl.SyncFinishUpdate;
 begin
   gd_GlobalParams.NeedRestartForUpdate := True;
-  if not FQuietMode then
+  if gdNotifierThread <> nil then
   begin
-    MessageBox(0,
-      PChar(
-        'Для завершения процесса обновления необходимо'#13#10 +
-        'перезапустить приложение.'#13#10#13#10 +
-        'Прежние версии файлов сохранены с расширением .BAK'),
-      'Обновление файлов',
-      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    gdNotifierThread.Add('Для завершения процесса обновления необходимо перезапустить приложение.', 0, 600000); // 10 минут
+    gdNotifierThread.Add('Прежние версии файлов сохранены с расширением .BAK', 0, 2000);
   end;
 end;
 
@@ -829,9 +825,14 @@ begin
       try
         IdSMTP.Port := _Port;
         IdSMTP.Host := _Host;
-        IdSMTP.AuthenticationType := atLogin;
-        IdSMTP.Username := _Login;
-        IdSMTP.Password := _Passw;
+        if _Login = '<empty login>' then
+          IdSMTP.AuthenticationType := atNone
+        else
+        begin
+          IdSMTP.AuthenticationType := atLogin;
+          IdSMTP.Username := _Login;
+          IdSMTP.Password := _Passw;
+        end;
 
         if _IPSec > '' then
         begin
@@ -844,7 +845,8 @@ begin
 
         if IdSMTP.Connected then
         begin
-          if IdSMTP.Authenticate then
+          if ((IdSMTP.AuthenticationType = atLogin) and IdSMTP.Authenticate) or
+          (IdSMTP.AuthenticationType = atNone) then
           begin
             Msg := TIdMessage.Create(nil);
             Attachments := nil;
@@ -957,7 +959,7 @@ begin
   end;
 end;
 
-function TgdWebClientControl.GetSMTPSettings(const ASMTPKey: Integer; out ASenderEMail: String;
+function TgdWebClientControl.GetSMTPSettings(const ASMTPKey: TID; out ASenderEMail: String;
   out AHost: String; out APort: Integer; out ALogin: String;
   out APassw: String; out AIPSec: String): Boolean;
 var
@@ -982,7 +984,7 @@ begin
 
       q.SQL.Text :=
         'SELECT * FROM gd_smtp s WHERE s.id = :id';
-      q.ParamByName('id').AsInteger := ASMTPKey;
+      SetTID(q.ParamByName('id'), ASMTPKey);
       q.ExecQuery;
 
       if q.EOF then
@@ -1102,7 +1104,7 @@ begin
   end;
 end;
 
-function TgdWebClientControl.SendEMail(const ASMTPKey: Integer;
+function TgdWebClientControl.SendEMail(const ASMTPKey: TID;
   const ARecipients, ASubject, ABodyText, AFileName: String;
   const AWipeFile, AWipeDirectory, Sync: Boolean; const AWndHandle,
   AThreadID: THandle): Word;
@@ -1126,9 +1128,9 @@ begin
     AWndHandle, AThreadID);
 end;
 
-function TgdWebClientControl.SendEMail(const ASMTPKey: Integer;
+function TgdWebClientControl.SendEMail(const ASMTPKey: TID;
   const ARecipients, ASubject, ABodyText: String;
-  const AReportKey: Integer; const AnExportType: String;
+  const AReportKey: TID; const AnExportType: String;
   const Sync: Boolean;
   const AWndHandle, AThreadID: THandle): Word;
 var

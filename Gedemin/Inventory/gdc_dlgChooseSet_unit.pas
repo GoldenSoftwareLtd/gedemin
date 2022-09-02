@@ -128,7 +128,13 @@ implementation
 procedure Tdlg_ChooseSet.FormCreate(Sender: TObject);
 begin
   ibdsMain.Transaction:= gdcBaseManager.ReadTransaction;
-  cdsChoose.CreateDataSet; 
+  cdsChoose.FieldDefs.Add('Name', ftString, 80, False);
+  {$IFDEF ID64}
+  cdsChoose.FieldDefs.Add('ID', ftLargeInt, 0, False);
+  {$ELSE}
+  cdsChoose.FieldDefs.Add('ID', ftInteger, 0, False);
+  {$ENDIF}
+  cdsChoose.CreateDataSet;
 end;
 
 procedure Tdlg_ChooseSet.actChooseOkExecute(Sender: TObject);
@@ -264,20 +270,20 @@ procedure Tdlg_ChooseSet.ibgrMainClickedCheck(Sender: TObject;
   CheckID: String; Checked: Boolean);
 begin
   if dbtvMain.Visible then
-    ibdsMain.Locate('id', StrToInt(CheckID), []);
+    ibdsMain.Locate('id', CheckID, []);
   if Checked then begin
     if Sender is TgsDBTreeView then
-      ibgrMain.CheckBox.AddCheck(ibdsMain.FieldByName('id').AsInteger)
+      ibgrMain.CheckBox.AddCheck(GetTID(ibdsMain.FieldByName('id')))
     else if IsTree then
-      dbtvMain.AddCheck(ibdsMain.FieldByName('id').AsInteger);
-    if cdsChoose.Locate('id', CheckID, []) then Exit;
+      dbtvMain.AddCheck(GetTID(ibdsMain.FieldByName('id')));
+    if DatasetLocate(TDataset(cdsChoose), 'id', CheckID, []) then Exit;
     cdsChoose.Insert;
-    cdsChoose.FieldByName('id').AsInteger:= ibdsMain.FieldByName('id').AsInteger;
+    SetTID(cdsChoose.FieldByName('id'), GetTID(ibdsMain.FieldByName('id')));
     cdsChoose.FieldByName('name').AsString:= ibdsMain.FieldByName('name').AsString;
     cdsChoose.Post;
   end
   else begin
-    if cdsChoose.Locate('id', ibdsMain.FieldByName('id').AsInteger, []) then
+    if DatasetLocate(TDataset(cdsChoose), 'id', TID2V(ibdsMain.FieldByName('id')), []) then
       cdsChoose.Delete;
   end;
 end;
@@ -297,7 +303,8 @@ end;
 procedure Tdlg_ChooseSet.SetIDs(const Value: string);
 var
   s: string;
-  ID, iRec: integer;
+  ID: TID;
+  iRec: integer;
 begin
   iRec:= ibdsMain.RecNo;
   ibdsMain.DisableControls;
@@ -305,10 +312,10 @@ begin
     if Value <> '' then
       s:= Value + ',';
     while (Pos(',', s) > 0) and (s <> '') do begin
-      ID:= StrToInt(Copy(s, 1, Pos(',', s) - 1));
+      ID:= GetTID(Copy(s, 1, Pos(',', s) - 1));
       System.Delete(s, 1, Pos(',', s));
       s:= TrimLeft(s);
-      if not ibdsMain.Locate('id', ID, []) then
+      if not ibdsMain.Locate('id', TID2V(ID), []) then
         Continue;
       ibgrMain.CheckBox.AddCheck(ID);
       if IsTree then
@@ -354,7 +361,7 @@ begin
   iRec:= ibdsMain.RecNo;
   ibdsMain.DisableControls;
   try
-    dbtvMain.AddCheck(integer(dbtvMain.Selected.Data));
+    dbtvMain.AddCheck(GetTID(dbtvMain.Selected.Data, Name));
     SelectAllChild(dbtvMain.Selected.GetFirstChild, True);
     ibdsMain.RecNo:= iRec;
   finally
@@ -369,7 +376,7 @@ begin
   iRec:= ibdsMain.RecNo;
   ibdsMain.DisableControls;
   try
-    dbtvMain.AddCheck(integer(dbtvMain.Selected.Data));
+    dbtvMain.AddCheck(GetTID(dbtvMain.Selected.Data, Name));
     SelectAllChild(dbtvMain.Selected.GetFirstChild, False);
     ibdsMain.RecNo:= iRec;
   finally
@@ -412,9 +419,9 @@ procedure Tdlg_ChooseSet.SelectAllChild(Node: TTreeNode; bSel: boolean);
 begin
   if Node <> nil then begin
     if bSel then
-      dbtvMain.AddCheck(integer(Node.Data))
+      dbtvMain.AddCheck(GetTID(Node.Data, Name))
     else
-      dbtvMain.DeleteCheck(integer(Node.Data));
+      dbtvMain.DeleteCheck(GetTID(Node.Data, Name));
     if Node.HasChildren then
       SelectAllChild(Node.getFirstChild, bSel);
     SelectAllChild(Node.Parent.getNextChild(Node), bSel);
@@ -467,8 +474,8 @@ begin
   Event:= ibgrMain.OnClickedCheck;
   ibgrMain.OnClickedCheck:= nil;
   dbtvMain.OnClickedCheck:= nil;
-  ibgrMain.CheckBox.DeleteCheck(cdsChoose.FieldByName('id').AsInteger);
-  dbtvMain.DeleteCheck(cdsChoose.FieldByName('id').AsInteger);
+  ibgrMain.CheckBox.DeleteCheck(GetTID(cdsChoose.FieldByName('id')));
+  dbtvMain.DeleteCheck(GetTID(cdsChoose.FieldByName('id')));
   ibgrMain.OnClickedCheck:= Event;
   dbtvMain.OnClickedCheck:= Event;
 end;

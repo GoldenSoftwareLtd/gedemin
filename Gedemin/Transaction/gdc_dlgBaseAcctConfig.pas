@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_dlgBaseAcctConfig;
 
 interface
@@ -8,7 +10,7 @@ uses
   gdv_frameBaseAnalitic_unit, gdv_frameQuantity_unit, gdv_frameSum_unit,
   Mask, DBCtrls, ComCtrls, AcctUtils, gdv_AcctConfig_unit, AcctStrings,
   gdv_frameAnalyticValue_unit, gd_ClassList, gd_common_functions, IBSQL,
-  gsIBLookupComboBox, dmImages_unit, Storages, gsStorage_CompPath;
+  gsIBLookupComboBox, dmImages_unit, Storages, gsStorage_CompPath, gdcBaseInterface;
 
 type
   TdlgBaseAcctConfig = class(Tgdc_dlgTR)
@@ -54,7 +56,7 @@ type
     class function ConfigClassName: string; virtual;
     procedure FillImageList;
     class function DefImageIndex: Integer; virtual;
-    class function DefFolderKey: Integer; virtual;
+    class function DefFolderKey: TID; virtual;
   public
     { Public declarations }
     procedure SetupRecord; override;
@@ -86,9 +88,9 @@ procedure TdlgBaseAcctConfig.UpdateControls;
 begin
   if FAccountIds = nil then
     FAccountIds := TList.Create;
-  SetAccountIDs(cbAccounts, FAccountIDs, cbSubAccounts.Checked);
-  frQuantity.UpdateAvail(FAccountIDs);
-  frAnalytics.UpdateAnalytic(FAccountIDs);
+  SetAccountIDs(cbAccounts, FAccountIDs, cbSubAccounts.Checked, Name);
+  frQuantity.UpdateAvail(FAccountIDs, Name);
+  frAnalytics.UpdateAnalytic(FAccountIDs, Name);
 end;
 
 procedure TdlgBaseAcctConfig.FormDestroy(Sender: TObject);
@@ -212,7 +214,7 @@ begin
   begin
     gdcObject.FieldByName('showinexplorer').AsInteger := 0; 
     gdcObject.FieldByName('imageindex').AsInteger := DefImageIndex;
-    gdcObject.FieldByName('folder').AsInteger := DefFolderKey;
+    SetTID(gdcObject.FieldByName('folder'), DefFolderKey);
   end;
   cbImage.ItemIndex := gdcObject.FieldByName('imageindex').AsInteger;
   UpdateControls;
@@ -271,7 +273,7 @@ begin
         ' id <>  :id';
       SQL.ParamByName('name').AsString := UpperCase(gdcObject.FieldByName('name').AsString);
       SQL.ParamByName('classname').AsString := UpperCase(ConfigClassName);
-      SQL.ParamByName('id').AsInteger := gdcObject.FieldByName('id').AsInteger;
+      SetTID(SQL.ParamByName('id'), gdcObject.FieldByName('id'));
       SQL.ExecQuery;
       if SQL.RecordCount > 0 then
       begin
@@ -433,7 +435,7 @@ begin
   Result := iiGreenCircle;
 end;
 
-class function TdlgBaseAcctConfig.DefFolderKey: Integer;
+class function TdlgBaseAcctConfig.DefFolderKey: TID;
 begin
   Result := AC_ACCOUNTANCY;
 end;

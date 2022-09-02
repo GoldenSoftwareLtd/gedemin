@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+// ??LocaleID
 unit AutoImpl;
 
 interface

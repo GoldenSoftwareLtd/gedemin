@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019, #4135
+
 unit gdv_dlgAccounts_unit;
 
 interface
@@ -34,19 +36,19 @@ type
     procedure actSelectAllExecute(Sender: TObject);
     procedure actDeselectAllExecute(Sender: TObject);
   private
-    FActiveAccountKey: Integer;
+    FActiveAccountKey: TID;
     procedure SetAccounts(const Value: string);
     procedure DeselectAll;
     procedure SelectAll;
     procedure Collapse;
     procedure Expand(Node: TTreeNode);
     function GetAccounts: string;
-    procedure SetActiveAccountKey(const Value: Integer);
+    procedure SetActiveAccountKey(const Value: TID);
     { Private declarations }
   public
     { Public declarations }
     property Accounts: string read GetAccounts write SetAccounts;
-    property ActiveAccountKey: Integer read FActiveAccountKey write SetActiveAccountKey;
+    property ActiveAccountKey: TID read FActiveAccountKey write SetActiveAccountKey;
   end;
 
 var
@@ -78,10 +80,10 @@ var
   S: TStrings;
   Str: string;
   I: Integer;
-  ID: Integer;
+  ID: TID;
   N: TTreeNode;
 
-  function GetAccountKeyByAlias(Alias: string): Integer;
+  function GetAccountKeyByAlias(Alias: string): TID;
   var
     SQl: TIBSQL;
   begin
@@ -92,9 +94,9 @@ var
         'ON a.id = ca.accountkey LEFT JOIN ac_account a1 ON a1.lb >= a.lb AND ' +
         'a1.rb <= a.rb AND a1.alias = :alias WHERE ca.companykey = :companykey';
       SQL.ParamByName('alias').AsString := Alias;
-      SQL.ParamByName('companykey').AsInteger := IBLogin.CompanyKey;
+      SetTID(SQL.ParamByName('companykey'), IBLogin.CompanyKey);
       SQl.ExecQuery;
-      Result := SQl.FieldByName('id').AsInteger;
+      Result := GetTID(SQl.FieldByName('id'));
     finally
       SQL.Free;
     end;
@@ -135,7 +137,7 @@ begin
   try
     for I := 0 to gsDBTreeView.Items.Count - 1 do
     begin
-      gsDBTreeView.DeleteCheck(Integer(gsDBTreeView.Items[i].Data));
+      gsDBTreeView.DeleteCheck(GetTID(gsDBTreeView.Items[i].Data, Name));
     end;
   finally
     gsDBTreeView.Items.EndUpdate;
@@ -146,7 +148,7 @@ function Tgdv_dlgAccounts.GetAccounts: string;
 var
   I: Integer;
   Index: Integer;
-  function CheckAccountId(Id: Integer): Boolean;
+  function CheckAccountId(Id: TID): Boolean;
   var
     SQl: TIBSQl;
   begin
@@ -154,7 +156,7 @@ var
     try
       SQl.Transaction := gdcBaseManager.ReadTransaction;
       SQl.Sql.Add('SELECT * FROM ac_account WHERE id = :id AND accounttype IN (''A'', ''S'')');
-      SQl.ParamByName('id').AsInteger := Id;
+      SetTID(SQl.ParamByName('id'), Id);
       SQl.ExecQuery;
 
       Result := SQl.recordCount > 0;
@@ -167,9 +169,9 @@ begin
   Result := '';
   for I := 0 to gsDBTreeView.Items.Count - 1 do
   begin
-    if CheckAccountId(Integer(gsDBTreeView.Items[I].Data)) then
+    if CheckAccountId(GetTID(gsDBTreeView.Items[I].Data, Name)) then
     begin
-      Index := gsDBTreeView.TVState.Checked.IndexOf(Integer(gsDBTreeView.Items[I].Data));
+      Index := gsDBTreeView.TVState.Checked.IndexOf(GetTID(gsDBTreeView.Items[I].Data, Name));
       if Index > - 1 then
       begin
         if Result > '' then
@@ -189,7 +191,7 @@ begin
   try
     for I := 0 to gsDBTreeView.Items.Count - 1 do
     begin
-      gsDBTreeView.AddCheck(Integer(gsDBTreeView.Items[i].Data));
+      gsDBTreeView.AddCheck(GetTID(gsDBTreeView.Items[i].Data, Name));
     end;
   finally
     gsDBTreeView.Items.EndUpdate;
@@ -233,7 +235,7 @@ begin
   DeselectAll;
 end;
 
-procedure Tgdv_dlgAccounts.SetActiveAccountKey(const Value: Integer);
+procedure Tgdv_dlgAccounts.SetActiveAccountKey(const Value: TID);
 begin
   FActiveAccountKey := Value;
   if gdcAcctAccountChart.Active then
@@ -241,7 +243,7 @@ begin
 
   gdcAcctAccountChart.ExtraConditions.Add(
     Format(' exists (SELECT lb FROM ac_account c1 ' +
-    'WHERE z.LB >= c1.lb AND z.rb <= c1.rb AND c1.id = %d ) ', [FActiveAccountKey]));
+    'WHERE z.LB >= c1.lb AND z.rb <= c1.rb AND c1.id = %d ) ', [TID264(FActiveAccountKey)]));
   gdcAcctAccountChart.Open;
 end;
 

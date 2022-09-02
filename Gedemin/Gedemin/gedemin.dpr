@@ -6,18 +6,12 @@ program gedemin;
 
 uses
   FastMM4,
-  {$IFNDEF DEBUG}
   FastMove,
   RTLVCLOptimize,
-  {$ENDIF}
-  {$IFDEF EXCMAGIC_GEDEMIN}
   ExcMagic_Gedemin,
-  {$ENDIF}
   Classes,
   Forms,
-  {$IFDEF WITH_INDY}
   gdccClient_unit,
-  {$ENDIF}
   gd_main_form in 'gd_main_form.pas' {frmGedeminMain},
   dmDataBase_unit in '..\GAdmin\dmDataBase_unit.pas' {dmDatabase: TDataModule},
   dmLogin_unit in '..\GAdmin\dmLogin_unit.pas' {dmLogin: TDataModule},
@@ -27,12 +21,12 @@ uses
   SysUtils,
   gd_directories_const,
   Dialogs,
-  Registry,  
+  Registry,
   IBIntf,
   IBServices,
-  IBDatabase,                   
+  IBDatabase,
   IBSQL,
-  gd_regionalsettings_dlgEdit,               
+  gd_regionalsettings_dlgEdit,
   gd_security,
   gd_CmdLineParams_unit,
   gdcRUID,
@@ -133,7 +127,9 @@ uses
   gd_frmErrorInScript in '..\Report\gd_frmErrorInScript.pas' {frmErrorInScript},
   prp_frmRuntimeScript in '..\Property\prp_frmRuntimeScript.pas' {frmRuntimeScript},
   gdc_attr_frmRelationField_unit in '..\Attr\gdc_attr_frmRelationField_unit.pas' {gdc_attr_frmRelationField},
-  AppEvnts, ComObj, ComServ,
+  AppEvnts,
+  ComObj,
+  ComServ,
   gdApplicationEventsHandler in 'gdApplicationEventsHandler.pas',
   flt_frmSQLEditorSyn_unit in '..\queryfilter\flt_frmSQLEditorSyn_unit.pas' {frmSQLEditorSyn},
   gdcCustomFunction in '..\Component\GDC\gdcCustomFunction.pas',
@@ -289,34 +285,34 @@ uses
   gd_dlgRestoreWarning_unit in 'gd_dlgRestoreWarning_unit.pas' {gd_dlgRestoreWarning},
   IBSQL_WaitWindow in '..\IBX\IBSQL_WaitWindow.pas',
   gdcStreamSaver in '..\Component\GDC\gdcStreamSaver.pas',
-  gd_dlgStreamSaverOptions in '..\Attr\gd_dlgStreamSaverOptions.pas'
-  {$IFDEF FR4}
-  ,rp_StreamFR4 in '..\Report\rp_StreamFR4.pas',
-  rp_FR4Functions in '..\Report\rp_FR4Functions.pas'
-  {$ENDIF}
-  , gdv_frmCalculateBalance in '..\Transaction\gdv_frmCalculateBalance.pas'
-  , gdc_frmClosePeriod in '..\Attr\gdc_frmClosePeriod.pas'
-  , gdvAcctBase in '..\Transaction\gdvAcctBase.pas'
-  , gdvAcctAccCard in '..\Transaction\gdvAcctAccCard.pas'
-  , gdvAcctAccReview in '..\Transaction\gdvAcctAccReview.pas'
-  , gdvAcctLedger in '..\Transaction\gdvAcctLedger.pas'
-  , gdvAcctGeneralLedger in '..\Transaction\gdvAcctGeneralLedger.pas'
-  , gdvAcctCirculationList in '..\Transaction\gdvAcctCirculationList.pas'
-  , gdv_frmAcctCirculationList_unit in '..\Transaction\gdv_frmAcctCirculationList_unit.pas'
-  , gdv_frmAcctGeneralLedger_unit in '..\Transaction\gdv_frmAcctGeneralLedger_unit.pas'
-  , gdv_frmAcctBaseForm_unit in '..\Transaction\gdv_frmAcctBaseForm_unit.pas'
-  , gdv_frmAcctAccCard_unit in '..\Transaction\gdv_frmAcctAccCard_unit.pas'
-  , gdv_frmAcctLedger_unit in '..\Transaction\gdv_frmAcctLedger_unit.pas'
-  , gdv_frmAcctAccReview_unit in '..\Transaction\gdv_frmAcctAccReview_unit.pas'
-  , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring}
-  , gd_GlobalParams_unit
-  , gdcBlockRule
-  , gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas'
-  , gd_AutoTaskThread in '..\Component\gd_AutoTaskThread.pas'
-  , gdcSMTP in '..\Component\GDC\gdcSMTP.pas'
-  {$IFDEF FR4}, dlgSendReport_unit in '..\Report\dlgSendReport_unit.pas'{$ENDIF}
-  , dbf
-  ;
+  gd_dlgStreamSaverOptions in '..\Attr\gd_dlgStreamSaverOptions.pas' {$IFDEF FR4},
+  rp_StreamFR4 in '..\Report\rp_StreamFR4.pas',
+  rp_FR4Functions in '..\Report\rp_FR4Functions.pas',
+  frxpngimage in '..\FastReport 4\Source\frxpngimage.pas' {$ENDIF},
+  gdv_frmCalculateBalance in '..\Transaction\gdv_frmCalculateBalance.pas',
+  gdc_frmClosePeriod in '..\Attr\gdc_frmClosePeriod.pas',
+  gdvAcctBase in '..\Transaction\gdvAcctBase.pas',
+  gdvAcctAccCard in '..\Transaction\gdvAcctAccCard.pas',
+  gdvAcctAccReview in '..\Transaction\gdvAcctAccReview.pas',
+  gdvAcctLedger in '..\Transaction\gdvAcctLedger.pas',
+  gdvAcctGeneralLedger in '..\Transaction\gdvAcctGeneralLedger.pas',
+  gdvAcctCirculationList in '..\Transaction\gdvAcctCirculationList.pas',
+  gdv_frmAcctCirculationList_unit in '..\Transaction\gdv_frmAcctCirculationList_unit.pas',
+  gdv_frmAcctGeneralLedger_unit in '..\Transaction\gdv_frmAcctGeneralLedger_unit.pas',
+  gdv_frmAcctBaseForm_unit in '..\Transaction\gdv_frmAcctBaseForm_unit.pas',
+  gdv_frmAcctAccCard_unit in '..\Transaction\gdv_frmAcctAccCard_unit.pas',
+  gdv_frmAcctLedger_unit in '..\Transaction\gdv_frmAcctLedger_unit.pas',
+  gdv_frmAcctAccReview_unit in '..\Transaction\gdv_frmAcctAccReview_unit.pas',
+  gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring},
+  gd_GlobalParams_unit,
+  gdcBlockRule,
+  gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas',
+  gd_AutoTaskThread in '..\Component\gd_AutoTaskThread.pas',
+  gdcSMTP in '..\Component\GDC\gdcSMTP.pas',
+  JvDBImage {$IFDEF FR4},
+  dlgSendReport_unit in '..\Report\dlgSendReport_unit.pas' {$ENDIF},
+  dbf,
+  mdf_ID64_proc_trig in '..\Setup\mdf_ID64_proc_trig.pas';
 
 {$R Gedemin.TLB}
 {$R GEDEMIN.RES}
@@ -660,9 +656,17 @@ begin
     // Шмат дзе нашая праграма робіць дапушчэньне, што
     // памер цэлага раўняецца памеру ўказальніка
 
+    {$IFDEF ID64}
+    Assert(SizeOf(TID) = SizeOf(Int64));
+    {$ELSE}
     Assert(SizeOf(TID) = SizeOf(Integer));
+    {$ENDIF}
     Assert(SizeOf(Integer) = SizeOf(Pointer));
     Assert(SizeOf(AnsiChar) = SizeOf(Byte));
+
+    {$IFDEF FR4}
+    RegisterGraphicSignature([$89, $50, $4E, $47], 0, frxpngimage.TPngObject);
+    {$ENDIF}
 
     ///////////////////
     // Создание мютекса
@@ -703,7 +707,7 @@ begin
           {$IFDEF SPLASH}
           Application.ShowMainForm := False;
           Application.CreateForm(TfrmSplashHidden, frmSplashHidden);
-          if gd_CmdLineParams.CouldShowSplash and (not GridStripeProh) then
+  if gd_CmdLineParams.CouldShowSplash and (not GridStripeProh) then
             try
               Application.CreateForm(TfrmSplash, frmSplash);
             except

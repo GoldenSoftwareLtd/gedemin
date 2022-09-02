@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 {
   Налоги
   ViewForm для TgdcTax

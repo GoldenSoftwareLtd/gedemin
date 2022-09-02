@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit frAcctEntrySimpleLineQuantity_unit;
 
 interface
@@ -14,6 +16,7 @@ type
 
   private
     FAnalyticsLineList: TObjectList;
+    FContext: String;
 
     FOnValueChange: TNotifyEvent;
     function GetQuantityLine(Index: Integer): TfrAcctQuantityLine;
@@ -32,6 +35,7 @@ type
     property Quantities[Index: Integer]: TfrAcctQuantityLine read GetQuantityLine; default;
     property Values: string read GetValues write SetValues;
     property OnValueChange: TNotifyEvent read FOnValueChange write SetOnValueChange;
+    property Context: String write FContext;
   end;
 
 implementation
@@ -71,7 +75,7 @@ begin
       begin
         if Result > '' then
           Result := Result + #13#10;
-        Result := Result + IntToStr(L.ValueId) + '=' + FloatToStr(L.Value);
+        Result := Result + TID2S(L.ValueId) + '=' + FloatToStr(L.Value);
       end;
     end;
   end;
@@ -108,7 +112,7 @@ begin
       begin
         L := TfrAcctQuantityLine(FAnalyticsLineList[i]);
         L.Value := 0;
-        N := IntToStr(L.ValueId);
+        N := TID2S(L.ValueId);
         if S.IndexOfName(N) > - 1 then
         begin
           L.Value := StrToFloat(S.Values[N]);
@@ -159,7 +163,7 @@ var
   P: Integer;
   LAnaliseLines: TObjectList;
 
-  function IndexOf(id: Integer): Integer;
+  function IndexOf(id: TID): Integer;
   var
     I: Integer;
   begin
@@ -191,11 +195,11 @@ begin
       P := ppMain.ClientRect.Top;
       SQL.SQL.Text := 'SELECT v.id, v.name FROM AC_ACCVALUE av LEFT JOIN gd_value v ON v.id = av.valuekey ';
       if AIDList.Count > 0 then
-         SQL.SQL.Add(Format(' WHERE av.accountkey IN (%s)', [AcctUtils.IdList(AIdList)]));
+         SQL.SQL.Add(Format(' WHERE av.accountkey IN (%s)', [AcctUtils.IdList(AIdList, FContext)]));
       SQL.ExecQuery;
       while not SQL.Eof do
       begin
-        Index := IndexOf(SQL.FieldByName('id').AsInteger);
+        Index := IndexOf(GetTID(SQL.FieldByName('id')));
         if Index = - 1 then
         begin
           Line := TfrAcctQuantityLine.Create(Self);
@@ -207,7 +211,7 @@ begin
             Color := ppMain.FillColor;
             Align := alTop;
             lName.Caption := SQL.FieldByName('name').AsString;
-            ValueId := SQL.FieldByName('id').AsInteger;
+            ValueId := GetTID(SQL.FieldByName('id'));
           end;
           Line.OnValueChange := OnValueChange;
         end else

@@ -1,7 +1,8 @@
+// ShlTanya, 11.02.2019
 
 {++
 
-  Copyright (c) 2012-2016 by Golden Software of Belarus, Ltd
+  Copyright (c) 2012-2022 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -26,7 +27,8 @@ interface
 uses
   Classes, Windows, Contnrs, SyncObjs, evt_i_Base, gd_FileList_unit, IBDatabase,
   IdURI, IdHTTPServer, IdCustomHTTPServer, IdTCPServer, idThreadSafe, JclStrHashMap,
-  gdMessagedThread, idHTTP, idComponent, IdHTTPHeaderInfo, IdHeaderList, gd_OData;
+  gdMessagedThread, idHTTP, idComponent, IdHTTPHeaderInfo, IdHeaderList, gd_OData,
+  gdcBaseInterface;
 
 type
   TgdHiddenServer = class(TgdMessagedThread)
@@ -85,7 +87,7 @@ type
   TgdRelayServer = class(TObject)
   private
     FEvent, FResultReady: TEvent;
-    FID: Integer;
+    FID: TID;
     FAliases: TStringList;
     FState: Integer;
     FDataStream: TStream;
@@ -100,7 +102,7 @@ type
     property Event: TEvent read FEvent;
     property ResultReady: TEvent read FResultReady;
     property Aliases: TStringList read FAliases write FAliases;
-    property ID: Integer read FID;
+    property ID: TID read FID;
     property State: Integer read FState write FState;
     property DataStream: TStream read FDataStream write FDataStream;
   end;
@@ -108,7 +110,7 @@ type
   TgdRelayServers = class(TgdLockedList)
   public
     function AddAndLock: TgdRelayServer;
-    function FindAndLock(const AnID: Integer): TgdRelayServer; overload;
+    function FindAndLock(const AnID: TID): TgdRelayServer; overload;
     function FindAndLock(const AnAlias: String): TgdRelayServer; overload;
   end;
 
@@ -161,6 +163,7 @@ type
     procedure DoneRelayServers;
     procedure ServerOnCreatePostStream(ASender: TIdPeerThread;
       var VPostStream: TStream);
+    procedure RereadFileVersion(FC: TFLCollection);
 
     class procedure SaveHeaderInfoToStream(AHeader: TIdEntityHeaderInfo; S: TStream);
     class procedure ReadHeaderInfoFromStream(AHeader: TIdEntityHeaderInfo; S: TStream);
@@ -217,23 +220,23 @@ implementation
 
 uses
   SysUtils, Forms, IBSQL, IdSocketHandle, gdcOLEClassList, gd_common_functions,
-  gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit, gdcBaseInterface,
+  gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit, IdException,
   prp_methods, Gedemin_TLB, Storages, WinSock, ComObj, JclSimpleXML, jclSysInfo,
   gd_directories_const, ActiveX, FileCtrl, gd_GlobalParams_unit, gdcJournal,
-  gdNotifierThread_unit, gd_security, gd_messages_const, IdException;
+  gdNotifierThread_unit, gd_security, gd_messages_const, jclFileUtils;
 
 type
   TgdHttpHandler = class(TObject)
   public
     Component: TComponent;
     Token: String;
-    FunctionKey: Integer;
+    FunctionKey: TID;
   end;
 
   TRelayServerResponseHeader = record
     Signature: Integer;
     Version: Integer;
-    ID: Integer;
+    ID: TID;
     Cmd: Integer;
     Size: Integer;
   end;
@@ -259,7 +262,7 @@ const
   rssData                    = 3;
 
 var
-  _RelayServersID: Integer;
+  _RelayServersID: TID;
 
 { TgdWebServerControl }
 
@@ -301,7 +304,7 @@ end;
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
   const AToken, AFunctionName: String);
 
-  function GetFunctionKey: Integer;
+  function GetFunctionKey: TID;
   var
     q: TIBSQL;
   begin
@@ -322,7 +325,7 @@ procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
         q.ParamByName('FN').AsString := AFunctionName;
         q.ExecQuery;
         if not q.Eof then
-          Result := q.FieldByName('id').AsInteger;
+          Result := GetTID(q.FieldByName('id'));
       end;
 
       if Result = -1 then
@@ -331,7 +334,7 @@ procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
         q.ParamByName('FN').AsString := AFunctionName;
         q.ExecQuery;
         if not q.Eof then
-          Result := q.FieldByName('id').AsInteger;
+          Result := GetTID(q.FieldByName('id'));
       end;
 
       if Result = -1 then
@@ -345,7 +348,7 @@ var
   HandlerCounter: Integer;
   Found: Boolean;
   Handler: TgdHttpHandler;
-  FunctionKey: Integer;
+  FunctionKey: TID;
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
@@ -399,7 +402,7 @@ end;
 procedure TgdWebServerControl.ServerOnCommandGet(AThread: TIdPeerThread;
   ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
 
-  procedure SendResponse(const ACmd, AnID: Integer; AData: TStream);
+  procedure SendResponse(const ACmd: Integer; const AnID: TID; AData: TStream);
   var
     HDR: TRelayServerResponseHeader;
     MS: TMemoryStream;
@@ -425,7 +428,7 @@ var
   RelayAlias, CompanyRuid: String;
   RS: TgdRelayServer;
   Evt: TEvent;
-  RSID: Integer;
+  RSID: TID;
   HDR: TRelayServerResponseHeader;
 begin
   if ARequestInfo.Document = '/relay/ready' then
@@ -726,12 +729,13 @@ begin
         end else}
         begin
           S := 'Gedemin Web Server.';
-          S := S + '<br/>Copyright (c) 2016 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
+          S := S + '<br/>Copyright (c) 2016-2022 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
           S := S + '<br/>All rights reserved.';
 
           S := S + '<br/><br/>Now serving tokens:<ol>';
           for I := 0 to FFileList.Count - 1 do
           begin
+            RereadFileVersion(FFileList[I] as TFLCollection);
             if (FFileList[I] as TFLCollection).FindItem('gedemin.exe') <> nil then
             begin
               S := S + '<li/>';
@@ -949,7 +953,8 @@ begin
         FC.RootPath := UP;
         FC.BuildEtalonFileSet;
         FFileList.Add(FC);
-      end;
+      end else
+        RereadFileVersion(FC);
 
       FI := FC.FindItem('gedemin.exe');
       if FI <> nil then
@@ -1037,7 +1042,8 @@ procedure TgdWebServerControl.Log(const AnIPAddress: String;
 var
   Tr: TIBTransaction;
   q: TIBSQL;
-  I, ID: Integer;
+  I: Integer;
+  ID: TID;
 begin
   Assert(Low(Names) = Low(Values));
   Assert(High(Names) = High(Values));
@@ -1055,7 +1061,7 @@ begin
     q.SQL.Text :=
       'INSERT INTO gd_weblog (id, ipaddress, op) ' +
       'VALUES (:id, :ipaddress, :op)';
-    q.ParamByName('id').AsInteger := ID;
+    SetTID(q.ParamByName('id'), ID);
     if AnIPAddress = '' then
       q.ParamByName('ipaddress').AsString := '0.0.0.0'
     else
@@ -1066,7 +1072,7 @@ begin
     q.SQL.Text :=
       'INSERT INTO gd_weblogdata (logkey, valuename, valuestr, valueblob) ' +
       'VALUES (:logkey, :vn, :vs, :vb)';
-    q.ParamByName('logkey').AsInteger := ID;
+    SetTID(q.ParamByName('logkey'), ID);
 
     for I := Low(Names) to High(Names) do
     begin
@@ -1112,6 +1118,7 @@ begin
     FResponseInfo.ResponseNo := 200;
     FResponseInfo.ContentType := 'application/octet-stream;';
     FResponseInfo.ContentStream := TMemoryStream.Create;
+    RereadFileVersion(FC);
     FC.GetYAML(FResponseInfo.ContentStream);
   end;
 end;
@@ -1135,7 +1142,7 @@ begin
       'SELECT ' + FRequestInfo.Params.Values['field'] +
       ' FROM ' + FRequestInfo.Params.Values['table'] +
       ' WHERE id=' +
-      IntToStr(gdcBaseManager.GetIDByRUIDString(FRequestInfo.Params.Values['ruid']));
+      TID2S(gdcBaseManager.GetIDByRUIDString(FRequestInfo.Params.Values['ruid']));
     q.ExecQuery;
     if not q.EOF then
     begin
@@ -1308,14 +1315,8 @@ begin
   SaveStringToStream(ARequest.Host, S);
   SaveStringToStream(ARequest.ProxyConnection, S);
 
-  //  FAuthentication: TIdAuthentication;
-
-  //  FCookies: TIdServerCookies;
-
   SaveStringToStream(ARequest.Params.CommaText, S);
   SaveStreamToStream(ARequest.PostStream, S);
-
-  // FSession
 
   SaveStringToStream(ARequest.Document, S);
   SaveStringToStream(ARequest.UnparsedParams, S);
@@ -1346,14 +1347,8 @@ begin
   ARequest.Host := ReadStringFromStream(S);
   ARequest.ProxyConnection := ReadStringFromStream(S);
 
-  //  FAuthentication: TIdAuthentication;
-
-  //  FCookies: TIdServerCookies;
-
   ARequest.Params.CommaText := ReadStringFromStream(S);
   ReadStreamFromStream(ARequest.PostStream, S);
-
-  // FSession
 
   ARequest.Document := ReadStringFromStream(S);
   ARequest.UnparsedParams := ReadStringFromStream(S);
@@ -1473,6 +1468,24 @@ procedure TgdWebServerControl.ServerOnCreatePostStream(
   ASender: TIdPeerThread; var VPostStream: TStream);
 begin
   VPostStream := TStringStream.Create('');
+end;
+
+procedure TgdWebServerControl.RereadFileVersion(FC: TFLCollection);
+var
+  FI: TFLItem;
+begin
+  FI := FC.FindItem('gedemin.exe');
+  if FI <> nil then
+  begin
+    if VersionResourceAvailable(FI.FullName) then
+      with TjclFileVersionInfo.Create(FI.FullName) do
+      try
+        if FI.Version <> BinFileVersion then
+          FI.Version := BinFileVersion;
+      finally
+        Free;
+      end;
+  end;    
 end;
 
 procedure TgdWebServerControl.ProcessODataRoot;
@@ -1891,7 +1904,7 @@ begin
   Add(Result);
 end;
 
-function TgdRelayServers.FindAndLock(const AnID: Integer): TgdRelayServer;
+function TgdRelayServers.FindAndLock(const AnID: TID): TgdRelayServer;
 var
   J: Integer;
 begin

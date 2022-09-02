@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgCompleteGoodSet_unit;
 
 interface
@@ -43,8 +45,8 @@ type
     { Private declarations }
   public
     { Public declarations }
-    SetKey: Integer;
-    function ActiveDialog(const aSetKey: Integer): Boolean;
+    SetKey: TID;
+    function ActiveDialog(const aSetKey: TID): Boolean;
   end;
 
 var
@@ -74,7 +76,7 @@ begin
     end;
 end;
 
-function TdlgCompleteGoodSet.ActiveDialog(const aSetKey: Integer): Boolean;
+function TdlgCompleteGoodSet.ActiveDialog(const aSetKey: TID): Boolean;
 begin
   if not IBTransaction.InTransaction then
     IBTransaction.StartTransaction;
@@ -83,7 +85,7 @@ begin
     
   Result := False;
   ibsqlSetName.Close;
-  ibsqlSetName.SQL.Text := 'SELECT * FROM gd_good WHERE id = ' + IntToStr(SetKey);
+  ibsqlSetName.SQL.Text := 'SELECT * FROM gd_good WHERE id = ' + TID2S(SetKey);
   ibsqlSetName.ExecQuery;
   if ibsqlSetName.FieldByName('isassembly').AsInteger = 1 then
     Result := True
@@ -94,7 +96,7 @@ begin
   // Инициализация Д.О.
   // Выбираем товары принадлежащие данному комплекту
   ibdsGoodSet.Close;
-  ibdsGoodSet.Params.ByName('setkey').AsInteger := SetKey;
+  SetTID(ibdsGoodSet.Params.ByName('setkey'), SetKey);
   ibdsGoodSet.Open;
 end;
 

@@ -1,3 +1,5 @@
+// ShlTanya, 09.02.2019
+
 {
   Контакты
 
@@ -113,6 +115,7 @@ type
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     procedure _DoOnNewRecord; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
+    procedure DoBeforeDelete; override;
 
     procedure SyncField(Field: TField); override;
 
@@ -156,7 +159,7 @@ type
   TgdcGroup = class(TgdcBaseContact)
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
-
+    procedure DoBeforeDelete;override;
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -230,7 +233,7 @@ type
     class function Class_TestUserRights(const SS: TgdcTableInfos;
       const ST: String): Boolean; override;
 
-    class procedure SaveOurCompany(const ACompanyKey: Integer);
+    class procedure SaveOurCompany(const ACompanyKey: TID);
 
     function CheckTheSameStatement: String; override;
     procedure _DoOnNewRecord; override;
@@ -843,15 +846,15 @@ begin
     try
       ibsql.Transaction := Transaction;
       ibsql.SQL.Text := 'SELECT * FROM gd_company WHERE contactkey = :ck';
-      ibsql.ParamByName('ck').AsInteger := FieldByName('companykey').AsInteger;
+      SetTID(ibsql.ParamByName('ck'), FieldByName('companykey'));
       ibsql.ExecQuery;
       if (not ibsql.EOF) and ibsql.FieldByName('companyaccountkey').IsNull then
       begin
         ibsql.Close;
         ibsql.SQL.Text := 'UPDATE gd_company SET companyaccountkey = :cak ' +
           ' WHERE contactkey = :ck ';
-        ibsql.ParamByName('ck').AsInteger := FieldByName('companykey').AsInteger;
-        ibsql.ParamByName('cak').AsInteger := ID;
+        SetTID(ibsql.ParamByName('ck'), FieldByName('companykey'));
+        SetTID(ibsql.ParamByName('cak'), ID);
         ibsql.ExecQuery;
       end;
     finally
@@ -951,7 +954,7 @@ begin
       ' WHERE cm.contactkey = :id ';
     q.Prepare;
 
-    q.ParamByName('id').AsInteger := FieldByName('id').AsInteger;
+    SetTID(q.ParamByName('id'), FieldByName('id'));
     q.ExecQuery;
     if q.RecordCount > 0 then
       Result := 'Р/С ' + q.FieldByName('account').AsString +
@@ -997,9 +1000,17 @@ begin
       q := TIBSQL.Create(nil);
       try
         q.Transaction := ReadTransaction;
-        q.SQL.Text := 'SELECT contacttype FROM gd_contact WHERE id = ' + FieldByName('parent').AsString;
+        q.SQL.Text :=
+          'SELECT c.contacttype ' +
+          'FROM ' +
+          '  gd_contact c ' +
+          '    JOIN gd_contact p ON p.id = c.parent AND p.contacttype IN (3, 4, 5) ' +
+          '    JOIN gd_employee e ON e.contactkey = c.id ' +
+          'WHERE ' +
+          '  c.id = :ID';
+        SetTID(q.ParamByName('ID'), FieldByName('id'));
         q.ExecQuery;
-        if q.Fields[0].AsInteger in [3, 4, 5] then
+        if not q.EOF then
           Result.gdClass := TgdcEmployee;
       finally
         q.Free;
@@ -1045,6 +1056,49 @@ begin
   {M}  end;
   {END MACRO}
 end;
+
+procedure TgdcBaseContact.DoBeforeDelete;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASECONTACT', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASECONTACT', KEYDOBEFOREDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASECONTACT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASECONTACT',
+  {M}          'DOBEFOREDELETE', KEYDOBEFOREDELETE, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASECONTACT' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FDataTransfer then
+    exit;
+
+  ExecSingleQuery('DELETE FROM gd_contactlist WHERE contactkey= :id ', TID2V(ID));
+
+  inherited;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASECONTACT', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCBASECONTACT', 'DOBEFOREDELETE', KEYDOBEFOREDELETE);
+  {M}  end;
+  {END MACRO}
+end;
+
 
 class function TgdcBaseContact.GetListField(
   const ASubType: TgdcSubType): String;
@@ -1274,9 +1328,9 @@ procedure TgdcBaseContact.SyncField(Field: TField);
             if q.Open then
             begin
               q.Close;
-              q.Params[0].AsInteger := q.Fields[0].AsInteger;
+              SetTID(q.Params[0], q.Fields[0]);
             end else
-              q.Params[0].AsInteger := Field.AsInteger;
+              SetTID(q.Params[0], Field);
             q.ExecQuery;
             if q.EOF then
               break;
@@ -1323,7 +1377,7 @@ begin
   begin
     S := '';
     for I := 0 to CD.ObjectCount - 1 do
-      S := S + IntToStr(CD.ObjectArr[I].ID) + ',';
+      S := S + TID2S(CD.ObjectArr[I].ID) + ',';
     gdcBaseManager.ExecSingleQueryResult(
       'SELECT c.id FROM gd_contact c JOIN gd_contact p ON c.parent = p.id ' +
       'WHERE c.contacttype=2 AND p.contacttype=4 AND c.id IN (' + System.Copy(S, 1, Length(S) - 1) + ')',
@@ -1401,7 +1455,7 @@ begin
         Obj.ReadTransaction := Transaction;
         ibsql.Transaction := Transaction;
         ibsql.SQL.Text := 'SELECT * FROM gd_ourcompany WHERE companykey = :id';
-        ibsql.ParamByName('id').AsInteger := ParamByName('MASTER_RECORD_ID').AsInteger;
+        SetTID(ibsql.ParamByName('id'), ParamByName('MASTER_RECORD_ID'));
         ibsql.ExecQuery;
         if ibsql.RecordCount > 0 then
         begin
@@ -1412,7 +1466,7 @@ begin
           begin
             ibsql.Close;
             ibsql.SQL.Text := (Format('INSERT INTO gd_ourcompany(companykey) ' +
-              ' VALUES (%d)', [AnID]));
+              ' VALUES (%d)', [TID264(AnID)]));
             ibsql.ExecQuery;
           end;
         end;
@@ -1457,6 +1511,48 @@ end;
 
 { TgdcGroup }
 
+procedure TgdcGroup.DoBeforeDelete;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCGROUP', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCGROUP', KEYDOBEFOREDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCGROUP') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCGROUP',
+  {M}          'DOBEFOREDELETE', KEYDOBEFOREDELETE, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCGROUP' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FDataTransfer then
+    exit;
+
+  ExecSingleQuery('DELETE FROM gd_contactlist WHERE groupkey= :id ', TID2V(ID));
+
+  inherited;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGROUP', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCGROUP', 'DOBEFOREDELETE', KEYDOBEFOREDELETE);
+  {M}  end;
+  {END MACRO}
+end;
+
 class function TgdcGroup.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -1496,11 +1592,11 @@ begin
   begin
     for I := 0 to CD.ObjectCount - 1 do
     begin
-      if CD.Obj.Locate('ID', CD.ObjectArr[I].ID, []) then
+      if CD.Obj.Locate('ID', TID2V(CD.ObjectArr[I].ID), []) then
       begin
         CD.Obj.Edit;
         try
-          CD.Obj.FieldByName('parent').AsInteger := Self.ID;
+          SetTID(CD.Obj.FieldByName('parent'), Self.ID);
           CD.Obj.Post;
         except
           CD.Obj.Cancel;
@@ -1522,7 +1618,7 @@ begin
           begin
             LocalObj.Edit;
             try
-              LocalObj.FieldByName('parent').AsInteger := Self.ID;
+              SetTID(LocalObj.FieldByName('parent'), Self.ID);
               LocalObj.Post;
             except
               LocalObj.Cancel;
@@ -1931,7 +2027,7 @@ begin
 
   inherited;
 
-  FieldByName('contactkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('contactkey'), FieldByName('id'));
   
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCONTACT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
@@ -2347,8 +2443,8 @@ begin
   {END MACRO}
   inherited;
 
-  FieldByName('contactkey').AsInteger := FieldByName('id').AsInteger;
-  FieldByName('companykey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('contactkey'), FieldByName('id'));
+  SetTID(FieldByName('companykey'), FieldByName('id'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCOMPANY', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2359,7 +2455,7 @@ end;
 
 {TgdcOurCompany -----------------------------------------}
 
-class procedure TgdcOurCompany.SaveOurCompany(const ACompanyKey: Integer);
+class procedure TgdcOurCompany.SaveOurCompany(const ACompanyKey: TID);
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -2373,8 +2469,8 @@ begin
     q.SQL.Text :=
       'UPDATE OR INSERT INTO gd_usercompany (userkey, companykey) ' +
       'VALUES (:uk, :ck) MATCHING (userkey)';
-    q.ParamByName('uk').AsInteger := IBLogin.UserKey;
-    q.ParamByName('ck').AsInteger := ACompanyKey;
+    SetTID(q.ParamByName('uk'), IBLogin.UserKey);
+    SetTID(q.ParamByName('ck'), ACompanyKey);
     q.ExecQuery;
     Tr.Commit;
   finally
@@ -2467,7 +2563,7 @@ begin
     try
       q.Transaction := Transaction;
       q.SQL.Text := 'SELECT contactkey FROM gd_company WHERE contactkey = :ID';
-      q.ParamByName('id').AsInteger := ID;
+      SetTID(q.ParamByName('id'), ID);
       q.ExecQuery;
 
       if q.EOF then
@@ -2491,7 +2587,7 @@ begin
         'UPDATE OR INSERT INTO gd_usercompany(userkey, companykey) ' +
         '  VALUES (RDB$GET_CONTEXT(''USER_SESSION'', ''GD_USERKEY''), :ID) ' +
         '  MATCHING (userkey)';
-      q.ParamByName('id').AsInteger := ID;
+      SetTID(q.ParamByName('id'), ID);
       q.ExecQuery;
     finally
       q.Free;
@@ -2535,7 +2631,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if FieldByName(GetKeyField(Subset)).AsInteger = IbLogin.Companykey then
+  if GetTID(FieldByName(GetKeyField(Subset))) = IbLogin.Companykey then
     raise Exception.Create('Нельзя удалить текущую рабочую организацию!');
 
   try
@@ -2603,7 +2699,7 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  FieldByName('CompanyKey').AsInteger := FieldByName('ID').AsInteger;
+  SetTID(FieldByName('CompanyKey'), FieldByName('ID'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCOURCOMPANY', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2688,7 +2784,7 @@ begin
         q.Database := Database;
         q.Transaction := ReadTransaction;
         q.SQL.Text := 'SELECT * FROM gd_ourcompany WHERE companykey=:id';
-        q.Params[0].AsInteger := ID;
+        SetTID(q.Params[0], ID);
         q.ExecQuery;
         if not q.EOF then
           Result.gdClass := TgdcOurCompany;
@@ -2786,7 +2882,7 @@ begin
     for I := 0 to SelectedID.Count - 1 do
     begin
       if Length(Str) >= 8192 then break;
-      Str := Str + IntToStr(SelectedID[I]) + ',';
+      Str := Str + TID2S(SelectedID[I]) + ',';
     end;
     if Str = '' then
       Str := '-1'
@@ -3263,7 +3359,7 @@ begin
   {END MACRO}
   inherited;
 
-  FieldByName('bankkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('bankkey'), FieldByName('id'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANK', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3450,19 +3546,18 @@ begin
     try
       Obj.SubSet := 'ByParent';
       Obj.Transaction := Transaction;
-      Obj.ParamByName('Parent').AsInteger := FieldByName('wcompanykey').AsInteger;
+      SetTID(Obj.ParamByName('Parent'), FieldByName('wcompanykey'));
       Obj.Open;
 
       if Obj.EOF then
       begin
         Obj.Insert;
-        Obj.FieldByName('parent').AsInteger :=
-          FieldByName('wcompanykey').AsInteger;
+        SetTID(Obj.FieldByName('parent'), FieldByName('wcompanykey'));
         Obj.FieldByName('name').AsString := 'Офис';
         Obj.Post;
       end;
 
-      FieldByName('parent').AsInteger := Obj.ID;
+      SetTID(FieldByName('parent'), Obj.ID);
     finally
       Obj.Free;
     end;
@@ -3552,7 +3647,7 @@ var
   ibsql: TIBSQL;
 begin
   Assert(State in dsEditModes);
-  if (FieldByName('parent').AsInteger > 0) and FieldByName('wcompanykey').IsNull then
+  if (GetTID(FieldByName('parent')) > 0) and FieldByName('wcompanykey').IsNull then
   begin
     ibsql := TIBSQL.Create(nil);
     try
@@ -3571,11 +3666,11 @@ begin
         ' AND cc.contacttype in (3,5) ' +
         ' ORDER BY cc.lb DESC ';
 
-      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+      SetTID(ibsql.ParamByName('id'), FieldByName('parent'));
       ibsql.ExecQuery;
 
       if not ibsql.EOF then
-        FieldByName('wcompanykey').AsInteger := ibsql.FieldByName('id').AsInteger;
+        SetTID(FieldByName('wcompanykey'), ibsql.FieldByName('id'));
     finally
       ibsql.Free;
     end;

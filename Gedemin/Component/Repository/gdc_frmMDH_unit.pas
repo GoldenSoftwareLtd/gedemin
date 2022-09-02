@@ -1,4 +1,4 @@
-//
+// ShlTanya, 21.02.2019
 
 unit gdc_frmMDH_unit;
 
@@ -87,6 +87,8 @@ type
     tbiDetailLinkObject: TTBItem;
     tbi_mm_DetailNew: TTBItem;
     tbiDetailNew: TTBItem;
+    actCopyDetailIDToClipboard: TAction;
+    nCopyDetailIDToClipboard: TMenuItem;
     procedure actDetailEditExecute(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actDetailNewUpdate(Sender: TObject);
@@ -147,6 +149,7 @@ type
     procedure sbSearchDetailMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure miRemoveFromSearchClick(Sender: TObject);
+    procedure actCopyDetailIDToClipboardExecute(Sender: TObject);
 
   private
     FgdcDetailObject: TgdcBase;
@@ -203,7 +206,7 @@ uses
   VExportDlg,
   {$ENDIF}
   gd_security, Storages, gd_ClassList, at_AddToSetting,
-  prp_methods, Contnrs
+  prp_methods, Contnrs, Clipbrd
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -692,8 +695,6 @@ procedure Tgdc_frmMDH.LoadSettingsAfterCreate;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Path: String;
-  B: Boolean;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMMDH', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
   {M}  try
@@ -727,15 +728,7 @@ begin
     if Assigned(gdcDetailObject) then
     begin
       UserStorage.LoadComponent(gdcDetailObject, gdcDetailObject.LoadSelectedFromStream, 'Selected', False);
-      Path := BuildComponentPath(gdcDetailObject, 'Selected');
-      B := UserStorage.ReadInteger(Path, 'OnlySelected', 0) <> 0;
-      if B xor gdcDetailObject.HasSubSet('OnlySelected') then
-      begin
-        if B then
-          gdcDetailObject.AddSubSet('OnlySelected')
-        else
-          gdcDetailObject.RemoveSubSet('OnlySelected');
-      end;
+      SetupOnlySelected(gdcDetailObject);
     end;
   end;
 
@@ -772,12 +765,12 @@ begin
   if (MGr = nil) or (DGr = nil) then
   begin
     if gdcObject.Active and (gdcObject.RecordCount > 0) then
-      M := VarArrayOf([gdcObject.ID])
+      M := VarArrayOf([TID2V(gdcObject.ID)])
     else
       M := VarArrayOf([]);
 
     if gdcDetailObject.Active and (gdcDetailObject.RecordCount > 0) then
-      D := VarArrayOf([gdcDetailObject.ID])
+      D := VarArrayOf([TID2V(gdcDetailObject.ID)])
     else
       D := VarArrayOf([]);
 
@@ -801,17 +794,17 @@ begin
   finally
     ed.free;
   end;
-  {$ENDIF}
+ {$ENDIF}
 end;
 
 procedure Tgdc_frmMDH.actDetailQExportUpdate(Sender: TObject);
 begin
   {$IFDEF QEXPORT}
-  actQExport.Visible := True;
-  actQExport.Enabled := Assigned(gdcDetailObject)
+  actDetailQExport.Visible := True;
+  actDetailQExport.Enabled := Assigned(gdcDetailObject)
     and (gdcDetailObject.State = dsBrowse);
   {$ELSE}
-  actQExport.Visible := False;
+  actDetailQExport.Visible := False;
   {$ENDIF}
 end;
 
@@ -1401,6 +1394,11 @@ begin
   end else
     inherited;
 
+end;
+
+procedure Tgdc_frmMDH.actCopyDetailIDToClipboardExecute(Sender: TObject);
+begin
+  Clipboard.AsText := IntToStr(gdcDetailObject.ID);
 end;
 
 initialization

@@ -1,3 +1,4 @@
+// ShlTanya, 11.02.2019
 
 {++
 
@@ -93,7 +94,7 @@ type
     property ParentFolder: String read GetParentFolder;
     property Exists: Boolean read FExists;
     property Date: TDateTime read FDate;
-    property Version: String read FVersion;
+    property Version: String read FVersion write FVersion;
     property Size: Int64 read FSize;
     property Flags: TFLFlags read FFlags;
   end;

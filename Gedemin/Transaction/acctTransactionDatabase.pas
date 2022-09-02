@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 {++
 
@@ -30,7 +31,7 @@ unit acctTransactionDatabase;
 interface
 
 uses
-  Classes, DB, IBSQL, IBDatabase, Contnrs;
+  Classes, DB, IBSQL, IBDatabase, Contnrs, gdcBaseInterface;
 
 type
   TAcctAccountPart = (apDebit, apCredit, apNone);
@@ -67,7 +68,7 @@ type
     constructor Create(ADatabase: TAcctDatabase);
     destructor Destroy; override;
 
-    function FindTransaction(TransactionKey: Integer): TAcctTransaction;
+    function FindTransaction(TransactionKey: TID): TAcctTransaction;
 
     property Database: TAcctDatabase read FDatabase;
 
@@ -81,7 +82,7 @@ type
 
   TAcctTransaction = class(TObject)
   private
-    FID: Integer; // Идентификатор операции
+    FID: TID; // Идентификатор операции
     FName: String; // Наименование операции
 
     FTransactionList: TAcctTransactionList; // Список операций
@@ -97,7 +98,7 @@ type
     constructor Create(ATransactionList: TAcctTransactionList);
     destructor Destroy; override;
 
-    property ID: Integer read FID;
+    property ID: TID read FID;
     property Name: String read FName;
 
     property TransactionList: TAcctTransactionList read FTransactionList;
@@ -129,7 +130,7 @@ type
     constructor Create(ATransaction: TAcctTransaction);
     destructor Destroy; override;
 
-    function FindRecord(const RecordKey: Integer): TAcctRecord;
+    function FindRecord(const RecordKey: TID): TAcctRecord;
 
     property Transaction: TAcctTransaction read FTransaction;
 
@@ -145,7 +146,7 @@ type
 
   TAcctRecord = class(TObject)
   private
-    FID: Integer; // Идентификатор проводки
+    FID: TID; // Идентификатор проводки
     FDescription: String; // Описание проводки
 
     FRecordList: TAcctRecordList; // Список проводок
@@ -161,7 +162,7 @@ type
     constructor Create(ARecordList: TAcctRecordList);
     destructor Destroy; override;
 
-    property ID: Integer read FID;
+    property ID: TID read FID;
     property Description: String read FDescription;
 
     property RecordList: TAcctRecordList read FRecordList;
@@ -204,9 +205,9 @@ type
 
   TAcctEntry = class(TObject)
   private
-    FID: Integer; // Идентификатор проводки
+    FID: TID; // Идентификатор проводки
 
-    FAccountKey: Integer; // Ключ счета
+    FAccountKey: TID; // Ключ счета
     FAccountName: String; // Наименование счета
     FAccountAlias: String; // Код счета
 
@@ -228,9 +229,9 @@ type
 
     property EntryList: TAcctEntryList read FEntryList;
 
-    property ID: Integer read FID;
+    property ID: TID read FID;
 
-    property AccountKey: Integer read FAccountKey;
+    property AccountKey: TID read FAccountKey;
     property AccountName: String read FAccountName;
     property AccountAlias: String read FAccountAlias;
 
@@ -267,7 +268,7 @@ type
     constructor Create(ADatabase: TAcctDatabase);
     destructor Destroy; override;
 
-    function FindDocument(const DocumentKey: Integer): TAcctDocument;
+    function FindDocument(const DocumentKey: TID): TAcctDocument;
 
     property Database: TAcctDatabase read FDatabase;
 
@@ -281,7 +282,7 @@ type
 
   TAcctDocument = class(TObject)
   private
-    FID: Integer; // Идентификатор типового документа
+    FID: TID; // Идентификатор типового документа
     FName: String; // Наименвоание документа
     FDescription: String; // Описание документа
 
@@ -299,7 +300,7 @@ type
     constructor Create(ADocumentList: TAcctDocumentList);
     destructor Destroy; override;
 
-    property ID: Integer read FID;
+    property ID: TID read FID;
     property Name: String read FName;
     property Description: String read FDescription;
 
@@ -402,7 +403,7 @@ type
     constructor Create(ADocTransaction: TAcctDocTransaction);
     destructor Destroy; override;
 
-    function FindRecord(const RecordKey: Integer): TAcctDocRecord;
+    function FindRecord(const RecordKey: TID): TAcctDocRecord;
 
     property DocTransaction: TAcctDocTransaction read FDocTransaction;
 
@@ -474,7 +475,7 @@ type
     constructor Create(ADocRecord: TAcctDocRecord);
     destructor Destroy; override;
 
-    function FindEntry(const EntryKey: Integer): TAcctDocEntry;
+    function FindEntry(const EntryKey: TID): TAcctDocEntry;
 
     property DocRecord: TAcctDocRecord read FDocRecord;
 
@@ -571,8 +572,6 @@ type
 
 
 implementation
-
-uses gdcBaseInterface;
 
 { TAcctDatabase }
 
@@ -710,7 +709,7 @@ begin
 end;
 
 function TAcctTransactionList.FindTransaction(
-  TransactionKey: Integer): TAcctTransaction;
+  TransactionKey: TID): TAcctTransaction;
 var
   I: Integer;
 begin
@@ -730,7 +729,7 @@ begin
     with TransactionSQL do
     begin
       Close;
-      ParamByName('id').AsInteger := TransactionKey;
+      SetTID(ParamByName('id'), TransactionKey);
       ExecQuery;
 
       if RecordCount > 0 then
@@ -814,7 +813,7 @@ begin
   begin
     UpdateTransactionSQL(True);
 
-    TransactionSQL.ParamByName('id').AsInteger := ID;
+    SetTID(TransactionSQL.ParamByName('id'), ID);
     TransactionSQL.ExecQuery;
 
     if TransactionSQL.RecordCount > 0 then
@@ -833,7 +832,7 @@ end;
 
 procedure TAcctTransaction.Refresh(Current: TIBXSQLDA);
 begin
-  FID := Current.ByName('id').AsInteger;
+  FID := GetTID(Current.ByName('id'));
   FName := Current.ByName('name').AsString;
 
   FRecordList.Refresh;
@@ -851,7 +850,7 @@ begin
   inherited;
 end;
 
-function TAcctRecordList.FindRecord(const RecordKey: Integer): TAcctRecord;
+function TAcctRecordList.FindRecord(const RecordKey: TID): TAcctRecord;
 var
   I: Integer;
 begin
@@ -871,7 +870,7 @@ begin
     with RecordSQL do
     begin
       Close;
-      ParamByName('id').AsInteger := RecordKey;
+      SetTID(ParamByName('id'), RecordKey);
       ExecQuery;
 
       if RecordCount > 0 then
@@ -910,7 +909,7 @@ begin
   with RecordSQL do
   begin
     Close;
-    ParamByName('TransactionKey').AsInteger := FTransaction.ID;
+    SetTID(ParamByName('TransactionKey'), FTransaction.ID);
     ExecQuery;
 
     while not EOF do
@@ -962,7 +961,7 @@ end;
 
 procedure TAcctRecord.Refresh(Current: TIBXSQLDA);
 begin
-  FID := Current.ByName('id').AsInteger;
+  FID := GetTID(Current.ByName('id'));
   FDescription := Current.ByName('description').AsString; 
 end;
 
@@ -973,7 +972,7 @@ begin
     UpdateRecordSQL(True);
 
     RecordSQL.Close;
-    RecordSQL.ParamByName('id').AsInteger := Self.ID;
+    SetTID(RecordSQL.ParamByName('id'), Self.ID);
     RecordSQL.ExecQuery;
 
     if RecordSQL.RecordCount > 0 then
@@ -1085,7 +1084,7 @@ begin
     UpdateEntrySQL(True);
 
     EntrySQL.Close;
-    EntrySQL.ParamByName('id').AsInteger := ID;
+    SetTID(EntrySQL.ParamByName('id'), ID);
     EntrySQL.ExecQuery;
 
     if EntrySQL.RecordCount > 0 then
@@ -1109,8 +1108,8 @@ end;
 
 procedure TAcctEntry.Refresh(Current: TIBXSQLDA);
 begin
-  FID := Current.ByName('id').AsInteger;
-  FAccountKey := Current.ByName('AccountKey').AsInteger;
+  FID := GetTID(Current.ByName('id'));
+  FAccountKey := GetTID(Current.ByName('AccountKey'));
 
   FAccountName := Current.ByName('name').AsString;
   FAccountAlias := Current.ByName('alias').AsString;
@@ -1136,7 +1135,7 @@ begin
 end;
 
 function TAcctDocumentList.FindDocument(
-  const DocumentKey: Integer): TAcctDocument;
+  const DocumentKey: TID): TAcctDocument;
 var
   I: Integer;
 begin
@@ -1161,7 +1160,7 @@ begin
     with DocumentSQL do
     begin
       Close;
-      ParamByName('id').AsInteger := DocumentKey;
+      SetTID(ParamByName('id'), DocumentKey);
       ExecQuery;
 
       if RecordCount > 0 then
@@ -1221,7 +1220,7 @@ begin
     UpdateDocumentSQL(True);
 
     DocumentSQL.Close;
-    DocumentSQL.ParamByName('id').AsInteger := ID;
+    SetTID(DocumentSQL.ParamByName('id'), ID);
     DocumentSQL.ExecQuery;
 
     if DocumentSQL.RecordCount > 0 then
@@ -1241,7 +1240,7 @@ end;
 
 procedure TAcctDocument.Refresh(Current: TIBXSQLDA);
 begin
-  FID := Current.ByName('id').AsInteger;
+  FID := GetTID(Current.ByName('id'));
   FName := Current.ByName('name').AsString;
   FDescription := Current.ByName('description').AsString;
 
@@ -1291,7 +1290,7 @@ begin
   with TransactionSQL do
   begin
     Close;
-    ParamByName('ID').AsInteger := FDocument.ID;
+    SetTID(ParamByName('ID'), FDocument.ID);
     ExecQuery;
 
     while not EOF do
@@ -1343,7 +1342,7 @@ end;
 procedure TAcctDocTransaction.Refresh(Current: TIBXSQLDA);
 begin
   FTransaction := Database.TransactionList.FindTransaction(
-    Current.ByName('transactionkey').AsInteger);
+    GettID(Current.ByName('transactionkey')));
 
   FDocRecordList.Refresh;
 end;
@@ -1367,7 +1366,7 @@ begin
 end;
 
 function TAcctDocRecordList.FindRecord(
-  const RecordKey: Integer): TAcctDocRecord;
+  const RecordKey: TID): TAcctDocRecord;
 var
   I: Integer;
 begin
@@ -1407,8 +1406,7 @@ begin
   with RecordSQL do
   begin
     Close;
-    ParamByName('transactionkey').AsInteger :=
-      FDocTransaction.Transaction.ID;
+    SetTID(ParamByName('transactionkey'), FDocTransaction.Transaction.ID);
     ExecQuery;
 
     while not EOF do
@@ -1490,7 +1488,7 @@ begin
 end;
 
 function TAcctDocEntryList.FindEntry(
-  const EntryKey: Integer): TAcctDocEntry;
+  const EntryKey: TID): TAcctDocEntry;
 var
   I: Integer;
 begin
@@ -1534,8 +1532,7 @@ begin
   with RecordSQL do
   begin
     Close;
-    ParamByName('trrecordkey').AsInteger :=
-      FDocRecord.AcctRecord.ID;
+    SetTID(ParamByName('trrecordkey'), FDocRecord.AcctRecord.ID);
     ExecQuery;
 
     while not EOF do
@@ -1564,12 +1561,12 @@ begin
   with EntrySQL do
   begin
     Close;
-    ParamByName('recordkey').AsInteger := FDocRecord.AcctRecord.ID;
+    SetTID(ParamByName('recordkey'), FDocRecord.AcctRecord.ID);
     ExecQuery;
 
     while not EOF do
     begin
-      CurrEntry := FindEntry(Current.ByName('trentrykey').AsInteger);
+      CurrEntry := FindEntry(GetTID(Current.ByName('trentrykey')));
       CurrEntry.Refresh(Current);
 
       Next;
@@ -1628,7 +1625,7 @@ begin
     UpdateEntrySQL(True);
 
     Close;
-    ParamByName('entrykey').AsInteger := Entry.ID;
+    SetTID(ParamByName('entrykey'), Entry.ID);
     ExecQuery;
 
     if RecordCount > 0 then

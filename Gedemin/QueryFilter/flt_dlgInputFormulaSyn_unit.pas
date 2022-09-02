@@ -1,3 +1,5 @@
+// ShlTanya, 10.03.2019
+
 unit flt_dlgInputFormulaSyn_unit;
 
 interface
@@ -5,7 +7,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, ActnList, IBSQL, gsComboElements, IBDatabase,
-  SynEditHighlighter, SynHighlighterSQL, SynEdit;
+  SynEditHighlighter, SynHighlighterSQL, SynEdit, gdcBaseInterface;
 
 type
   TdlgInputFormulaSyn = class(TForm)
@@ -31,7 +33,7 @@ type
     procedure btnSQLEditorClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
-    FComponentKey: Integer;
+    FComponentKey: TID;
     procedure UpdateSyncs;
   public
     // Ёти параметры необходимо присваивать перед вызовом процедуры
@@ -39,7 +41,7 @@ type
     PIBTransaction: TIBTransaction;
 
     // ƒаем пользователю написать свои услови€ или отредактировать запрос
-    function InputFormula(var TextFormula: String; const AnSortList, AnFunctionList: TStrings; const AnComponentKey: Integer): Boolean;
+    function InputFormula(var TextFormula: String; const AnSortList, AnFunctionList: TStrings; const AnComponentKey: TID): Boolean;
   end;
 
 var
@@ -58,7 +60,7 @@ uses
 
 {$R *.DFM}
 
-function TdlgInputFormulaSyn.InputFormula(var TextFormula: String; const AnSortList, AnFunctionList: TStrings; const AnComponentKey: Integer): Boolean;
+function TdlgInputFormulaSyn.InputFormula(var TextFormula: String; const AnSortList, AnFunctionList: TStrings; const AnComponentKey: TID): Boolean;
 begin
   // ѕрисваиваем локальные переменные
   Result := False;

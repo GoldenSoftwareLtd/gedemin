@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 unit obj_Designer;
 
 interface
@@ -61,13 +63,24 @@ var
 implementation
 
 uses
-  prp_Methods, controls, sysutils,
-  gsResizerInterface, Windows, obj_WrapperDelphiClasses,
-  gd_createable_form, Storages, gd_directories_const, gdc_createable_form,
-  gd_DebugLog, Graphics, obj_WrapperIBXClasses;
+  prp_Methods, controls, sysutils, gsResizerInterface, Windows,
+  obj_WrapperDelphiClasses, gd_createable_form, Storages, gd_directories_const,
+  gdc_createable_form, gd_DebugLog, Graphics, obj_WrapperIBXClasses
+  {$IFDEF DEBUG}
+    {$IFDEF WITH_INDY}
+      , gdccClient_unit
+    {$ENDIF}
+  {$ENDIF}
+  ;
 
 var
   IDesigner: IgsDesigner;
+
+{$IFDEF DEBUG}
+  {$IFDEF WITH_INDY}
+    ObjCnt: Integer;
+  {$ENDIF}
+{$ENDIF}
 
 { TwrpDesigner }
 
@@ -78,7 +91,7 @@ begin
   Result := CreateObject(Owner, ClassName, Name);
 end;
 
-function  TobjDesigner.CreateObject
+function TobjDesigner.CreateObject
   (Owner: OleVariant; const ClassName: WideString; const Name: WideString): IgsObject;
 var
   LObjectClass: TClass;
@@ -165,6 +178,14 @@ begin
           LObject := LObjectClass.Create;
       end;
       Result := GetRegisterObject(LObject);
+
+      {$IFDEF DEBUG}
+        {$IFDEF WITH_INDY}
+          Inc(ObjCnt);
+          if gdccClient <> nil then
+            gdccClient.AddLogRecord('dsgn', 'Created ' + ClassName + Name + ', total: ' + IntToStr(ObjCnt));
+        {$ENDIF}
+      {$ENDIF}
     except
       on E: Exception do
       begin
@@ -212,7 +233,15 @@ begin
     begin
       if LObject.InheritsFrom(TComponent) then
         TComponent(LObject).Name := Name;
-      Result := GetRegisterObject(LObject)
+      Result := GetRegisterObject(LObject);
+
+      {$IFDEF DEBUG}
+        {$IFDEF WITH_INDY}
+          Inc(ObjCnt);
+          if gdccClient <> nil then
+            gdccClient.AddLogRecord('dsgn', 'Created ' + ClassName + Name + ', total: ' + IntToStr(ObjCnt));
+        {$ENDIF}
+      {$ENDIF}
     end else
       raise Exception.Create('Метод не поддерживает класс "' + ClassName + '".');
   except
@@ -238,7 +267,17 @@ end;
 procedure TobjDesigner.DestroyObject(const AObject: IgsObject);
 begin
   if Assigned(AObject) then
+  begin
+    {$IFDEF DEBUG}
+      {$IFDEF WITH_INDY}
+        Dec(ObjCnt);
+        if gdccClient <> nil then
+          gdccClient.AddLogRecord('dsgn', 'Destroyed ' + AObject.ClassName + ', total: ' + IntToStr(ObjCnt));
+      {$ENDIF}
+    {$ENDIF}
+
     AObject.DestroyObject;
+  end;
 end;
 
 function TobjDesigner.FindObject(const Name: WideString): IgsObject;
@@ -368,6 +407,12 @@ initialization
   Designer := TobjDesigner.Create;
   IDesigner := Designer;
   AuxiliaryDesigner := Designer;
+
+  {$IFDEF DEBUG}
+    {$IFDEF WITH_INDY}
+      ObjCnt := 0;
+    {$ENDIF}
+  {$ENDIF}
 
 finalization
   IDesigner := nil;

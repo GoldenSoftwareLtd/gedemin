@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgSetParamPrMetal_unit;
 
 interface
@@ -23,7 +25,7 @@ type
     { Private declarations }
   public
     { Public declarations }
-    function SetParams(const GoodKey, PrMetalKey: Integer): Boolean;
+    function SetParams(const GoodKey, PrMetalKey: TID): Boolean;
   end;
 
 var
@@ -35,7 +37,7 @@ uses gd_security_OperationConst;
 
 {$R *.DFM}
 
-function TdlgSetParamPrMetal.SetParams(const GoodKey, PrMetalKey: Integer): Boolean;
+function TdlgSetParamPrMetal.SetParams(const GoodKey, PrMetalKey: TID): Boolean;
 begin
   Result := False;
   try
@@ -47,8 +49,8 @@ begin
     end;
 
     ibqryEditGoodPrMetal.Close;
-    ibqryEditGoodPrMetal.ParamByName('goodkey').AsInteger := GoodKey;
-    ibqryEditGoodPrMetal.ParamByName('prmetalkey').AsInteger := PrMetalKey;
+    SetTID(ibqryEditGoodPrMetal.ParamByName('goodkey'), GoodKey);
+    SetTID(ibqryEditGoodPrMetal.ParamByName('prmetalkey'), PrMetalKey);
     ibqryEditGoodPrMetal.Open;
     if ibqryEditGoodPrMetal.Eof then
     begin

@@ -1,18 +1,24 @@
 inherited gdc_frmInvCard: Tgdc_frmInvCard
-  Left = 283
-  Top = 330
+  Left = 955
+  Top = 238
   Width = 889
   Height = 556
   Caption = 'Карточка по ТМЦ'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 489
+    Top = 490
     Width = 873
   end
   inherited TBDockTop: TTBDock
     Width = 873
     Height = 111
+    inherited tbMainToolbar: TTBToolbar
+      object TBItem4: TTBItem [2]
+        Action = actListDocument
+        Caption = 'Перейти в журнал документов'
+      end
+    end
     inherited tbMainCustom: TTBToolbar
       Left = 0
       Top = 51
@@ -102,7 +108,7 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
       end
     end
     inherited tbMainInvariant: TTBToolbar
-      Left = 235
+      Left = 258
       Caption = '`'
       DockPos = 184
       object TBItem2: TTBItem
@@ -113,7 +119,7 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
       end
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 352
+      Left = 366
       DockPos = 352
     end
     object tbGoodInfo: TTBToolbar
@@ -244,41 +250,41 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
   end
   inherited TBDockLeft: TTBDock
     Top = 111
-    Height = 378
+    Height = 379
   end
   inherited TBDockRight: TTBDock
     Left = 864
     Top = 111
-    Height = 378
+    Height = 379
   end
   inherited TBDockBottom: TTBDock
-    Top = 508
+    Top = 509
     Width = 873
   end
   inherited pnlWorkArea: TPanel
     Top = 111
     Width = 855
-    Height = 378
+    Height = 379
     inherited spChoose: TSplitter
-      Top = 275
+      Top = 276
       Width = 855
     end
     inherited pnlMain: TPanel
       Width = 855
-      Height = 275
+      Height = 276
       inherited pnlSearchMain: TPanel
-        Height = 275
+        Height = 276
         inherited sbSearchMain: TScrollBox
-          Height = 248
+          Height = 249
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 695
-        Height = 275
+        Height = 276
       end
     end
     inherited pnChoose: TPanel
-      Top = 279
+      Top = 280
       Width = 855
       inherited pnButtonChoose: TPanel
         Left = 750
@@ -331,8 +337,20 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
       OnExecute = actSetCurrentExecute
       OnUpdate = actSetCurrentUpdate
     end
+    object actListDocument: TAction
+      Category = 'Commands'
+      Caption = 'actListDocument'
+      Hint = 'Перейти в журнал документов'
+      ImageIndex = 7
+      ShortCut = 16458
+      OnExecute = actListDocumentExecute
+    end
   end
   inherited pmMain: TPopupMenu
+    object nListDocument: TMenuItem [2]
+      Action = actListDocument
+      Caption = 'Журнал документов'
+    end
     inherited nDel_OLD: TMenuItem
       Enabled = False
     end

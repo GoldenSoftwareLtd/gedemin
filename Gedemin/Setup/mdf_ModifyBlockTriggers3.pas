@@ -29,7 +29,7 @@ begin
         ParamCheck := False;
 
         SQL.Text :=
-          'CREATE OR ALTER PROCEDURE gd_p_exclude_block_dt(DT INTEGER)'#13#10 +
+          'CREATE OR ALTER PROCEDURE gd_p_exclude_block_dt(DT DFOREIGNKEY)'#13#10 +
           '  RETURNS(F INTEGER)'#13#10 +
           'AS'#13#10 +
           'BEGIN'#13#10 +

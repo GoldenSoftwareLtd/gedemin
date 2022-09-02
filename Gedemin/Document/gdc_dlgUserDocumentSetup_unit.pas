@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 {++
 
@@ -55,7 +56,8 @@ var
 implementation
 
 uses
-  dmImages_unit, at_classes, dmDatabase_unit,  gd_ClassList, gdcClasses_interface;
+  dmImages_unit, at_classes, dmDatabase_unit,  gd_ClassList, gdcClasses_interface,
+  gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -68,7 +70,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  rpgroupkey: Integer;
+  rpgroupkey: TID;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGUSERDOCUMENTSETUP', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}  try
@@ -90,7 +92,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  rpgroupkey := gdcObject.FieldByName('reportgroupkey').AsInteger;
+  rpgroupkey := GetTID(gdcObject.FieldByName('reportgroupkey'));
   if not (gdcObject as TgdcBaseDocumentType).UpdateReportGroup(
     'Документы пользователя',
     gdcObject.FieldByName('name').AsString,
@@ -98,7 +100,7 @@ begin
   then
     raise EgdcIBError.Create('Невозможно создать группу отчетов!');
 
-  gdcObject.FieldByName('reportgroupkey').AsInteger := rpgroupkey;
+  SetTID(gdcObject.FieldByName('reportgroupkey'), rpgroupkey);
 
   inherited;
 

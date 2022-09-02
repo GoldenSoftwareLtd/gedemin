@@ -1,3 +1,4 @@
+// ShlTanya, 06.02.2019
 
 unit gd_GlobalParams_unit;
 

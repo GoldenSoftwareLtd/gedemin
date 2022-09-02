@@ -1,3 +1,5 @@
+// ShlTanya, 10.03.2019
+
 unit flt_dlgCreateProcedure_unit;
 
 interface
@@ -5,7 +7,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, IBSQL, IBDatabase, IBExtract, IBDatabaseInfo, IBHeader,
-  gd_security;
+  gd_security, gdcBaseInterface;
 
 const
   msgAdminOnly = 'Вы не являетесь Администратором системы.';
@@ -29,9 +31,9 @@ type
   private
     LocView: Integer;
     procedure GetProcedureArgs(const Proc: String; const AnMetaData: TStrings);
-    function GetUserKey: Integer;
+    function GetUserKey: TID;
   public
-    function AddProcedure(const AnSQLText: String; const AnComponentKey: Integer): Boolean;
+    function AddProcedure(const AnSQLText: String; const AnComponentKey: TID): Boolean;
     function EditProcedure(const AnProcedureName: String): Boolean;
     function DeleteProcedure(const AnProcedureName: String): Boolean;
   end;
@@ -51,7 +53,7 @@ uses
 
 {$R *.DFM}
 
-function TdlgCreateProcedure.GetUserKey: Integer;
+function TdlgCreateProcedure.GetUserKey: TID;
 begin
   if IBLogin <> nil then
     Result := IBLogin.UserKey
@@ -214,7 +216,7 @@ begin
 end;
 
 // Процедура для создания новой процедуры
-function TdlgCreateProcedure.AddProcedure(const AnSQLText: String; const AnComponentKey: Integer): Boolean;
+function TdlgCreateProcedure.AddProcedure(const AnSQLText: String; const AnComponentKey: TID): Boolean;
 var
   LocProcedureName: String;
   LocTableList: TfltStringList;
@@ -232,7 +234,7 @@ begin
     ibtrCreateProcedure.StartTransaction;
   // Создаем начальный текст запроса
   mmProcedureText.Lines.Text := 'create procedure New_Procedure ';
-  mmProcedureText.Lines.Add('returns (id INTEGER)');
+  mmProcedureText.Lines.Add('returns (id DINTKEY)');
   mmProcedureText.Lines.Add('as');
   mmProcedureText.Lines.Add('begin');
   mmProcedureText.Lines.Add('  FOR');
@@ -273,7 +275,7 @@ begin
     // Регистрируем ее в нашей таблице
     ibsqlCreate.Close;
     ibsqlCreate.SQL.Text := 'INSERT INTO flt_procedurefilter (name, componentkey, description, aview) ' +
-     'VALUES(''' + AnsiUpperCase(LocProcedureName) + ''', ' + IntToStr(AnComponentKey) +
+     'VALUES(''' + AnsiUpperCase(LocProcedureName) + ''', ' + TID2S(AnComponentKey) +
      ', ''' + edDescription.Text + ''',' + IntToStr(LocView) + ')';
     try
       ibsqlCreate.ExecQuery;

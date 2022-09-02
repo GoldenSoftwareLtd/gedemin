@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019
+
 unit gp_dlgChooseBill_unit;
 
 interface
@@ -32,12 +34,12 @@ type
     procedure FormDestroy(Sender: TObject);
   private
     function GetBillCount: Integer;
-    function GetBillKey(Index: Integer): Integer;
+    function GetBillKey(Index: Integer): TID;
     { Private declarations }
   public
     { Public declarations }
     property BillCount: Integer read GetBillCount;
-    property BillKey[Index: Integer]: Integer read GetBillKey; 
+    property BillKey[Index: Integer]: TID read GetBillKey; 
   end;
 
 var
@@ -64,8 +66,8 @@ procedure Tgp_dlgChooseBill.FormCreate(Sender: TObject);
 begin
   IBTransaction.StartTransaction;
   
-  ibdsMain.ParamByName('dt').AsInteger := GD_DOC_BILL;
-  ibdsMain.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
+  SetTID(ibdsMain.ParamByName('dt'), GD_DOC_BILL);
+  SetTID(ibdsMain.ParamByName('ck'), IBLogin.CompanyKey);
   ibdsMain.Open;
 
   UserStorage.LoadComponent(gsibgrMain, gsibgrMain.LoadFromStream);
@@ -76,7 +78,7 @@ begin
   Result := gsibgrMain.CheckBox.CheckCount;
 end;
 
-function Tgp_dlgChooseBill.GetBillKey(Index: Integer): Integer;
+function Tgp_dlgChooseBill.GetBillKey(Index: Integer): TID;
 begin
   if Index < BillCount then
     Result := gsibgrMain.CheckBox.IntCheck[Index]

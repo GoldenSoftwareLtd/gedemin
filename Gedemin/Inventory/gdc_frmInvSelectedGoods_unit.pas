@@ -1,3 +1,5 @@
+// ShlTanya, 07.10.2019
+
 unit gdc_frmInvSelectedGoods_unit;
 
 interface
@@ -7,7 +9,7 @@ uses
   gdc_frmG_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
   ComCtrls, gsDBTreeView, gdcGood, IBCustomDataSet, gdcBase, gdcTree,
-  DBClient;
+  DBClient, gdcBaseInterface;
 
 type
   Tgdc_frmInvSelectedGoods = class(Tgdc_frmG)
@@ -30,7 +32,7 @@ type
     FAssignList: TStrings;
     FEditedFieldList: TStrings;
     FgdcSelectedGoods: TgdcSelectedGood;
-    FLastDelGoodKey: Integer;
+    FLastDelGoodKey: TID;
     FOldOnGetSelectClause: TgdcOnGetSQLClause;
 
     procedure AllowEditColumns;
@@ -157,7 +159,7 @@ begin
           FgdcSelectedGoods.First;
           while not FgdcSelectedGoods.Eof do
           begin
-            if FgdcSelectedGoods.FieldByName('ID').AsInteger = gdcObject.ID then
+            if GetTID(FgdcSelectedGoods.FieldByName('ID')) = gdcObject.ID then
               FgdcSelectedGoods.Delete
             else
               FgdcSelectedGoods.Next;
@@ -391,8 +393,8 @@ begin
         begin
           SelectedField := FgdcSelectedGoods.FieldByName(Copy(FAssignList[I], SepPos + 1, Length(FAssignList[I])));
           if not SelectedField.IsNull then
-            gdcObject.FieldByName(Copy(FAssignList[I], 1, SepPos - 1)).AsVariant  :=
-              SelectedField.AsVariant;
+            SetVar2Field(gdcObject.FieldByName(Copy(FAssignList[I], 1, SepPos - 1)),
+              GetFieldAsVar(SelectedField));
         end;
       end;
       gdcObject.Post;
@@ -431,8 +433,8 @@ begin
       FgdcSelectedGoods.Append;
       for I := 0 to gdcObject.Fields.Count - 1 do
       begin
-        FgdcSelectedGoods.FieldByName(gdcObject.Fields[I].FieldName).Value :=
-          gdcObject.Fields[I].Value;
+        SetVar2Field(FgdcSelectedGoods.FieldByName(gdcObject.Fields[I].FieldName),
+          GetFieldAsVar(gdcObject.Fields[I]));
       end;
 
       FgdcSelectedGoods.Post;

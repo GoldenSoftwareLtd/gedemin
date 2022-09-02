@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit gdc_dlgNamespacePos_unit;
 
 interface
@@ -53,7 +55,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList;
+  gd_ClassList, gdcBaseInterface;
 
 procedure Tgdc_dlgNamespacePos.FormCreate(Sender: TObject);
 begin
@@ -80,7 +82,7 @@ begin
     if gdcObject <> nil then
     begin
       ibdsNS.Close;
-      ibdsNS.ParamByName('xid').AsInteger := gdcObject.FieldByName('xid').AsInteger;
+      SetTID(ibdsNS.ParamByName('xid'), gdcObject.FieldByName('xid'));
       ibdsNS.ParamByName('dbid').AsInteger := gdcObject.FieldByName('dbid').AsInteger;
       ibdsNS.Open;
     end;
@@ -93,7 +95,7 @@ begin
     and (not gdcObject.EOF)
     and ibdsNS.Active
     and (not ibdsNS.EOF)
-    and (ibdsNS.FieldByName('objectid').AsInteger <> gdcObject.ID);
+    and (GetTID(ibdsNS.FieldByName('objectid')) <> gdcObject.ID);
 end;
 
 procedure Tgdc_dlgNamespacePos.actDeleteFromNSExecute(Sender: TObject);

@@ -1,10 +1,10 @@
 object frmIBUserList: TfrmIBUserList
-  Left = 414
-  Top = 179
+  Left = 489
+  Top = 269
   BorderStyle = bsDialog
   Caption = 'Пользователи'
   ClientHeight = 366
-  ClientWidth = 552
+  ClientWidth = 754
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -18,7 +18,7 @@ object frmIBUserList: TfrmIBUserList
   object lblCapt: TLabel
     Left = 8
     Top = 8
-    Width = 537
+    Width = 739
     Height = 17
     Anchors = [akLeft, akTop, akRight]
     AutoSize = False
@@ -44,7 +44,7 @@ object frmIBUserList: TfrmIBUserList
   object lvUser: TgsListView
     Left = 7
     Top = 31
-    Width = 539
+    Width = 741
     Height = 263
     Anchors = [akLeft, akTop, akRight]
     Columns = <
@@ -62,7 +62,11 @@ object frmIBUserList: TfrmIBUserList
       end
       item
         AutoSize = True
-        Caption = 'Время подключения'
+        Caption = 'Подключено с'
+      end
+      item
+        Caption = 'Пишущая тр.'
+        Width = 120
       end>
     FlatScrollBars = True
     GridLines = True
@@ -74,7 +78,7 @@ object frmIBUserList: TfrmIBUserList
   object pnlButtons: TPanel
     Left = 0
     Top = 327
-    Width = 552
+    Width = 754
     Height = 39
     Align = alBottom
     BevelOuter = bvNone
@@ -82,12 +86,12 @@ object frmIBUserList: TfrmIBUserList
     object Bevel1: TBevel
       Left = 0
       Top = 0
-      Width = 552
+      Width = 754
       Height = 2
       Align = alTop
     end
     object btnCancel: TButton
-      Left = 374
+      Left = 576
       Top = 10
       Width = 82
       Height = 21
@@ -98,7 +102,7 @@ object frmIBUserList: TfrmIBUserList
       TabOrder = 0
     end
     object btnOk: TButton
-      Left = 463
+      Left = 665
       Top = 10
       Width = 82
       Height = 21

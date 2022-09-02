@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit gdc_dlgBaseStatementLine_unit;
 
 interface
@@ -207,7 +209,7 @@ begin
 
   inherited;
 
-  if gdcObject.FieldByName('documentkey').AsInteger > 0 then
+  if GetTID(gdcObject.FieldByName('documentkey')) > 0 then
     edDoc.Text := '№ ' + gdcObject.FieldByName('docnumberlink').AsString +
       ' от ' + gdcObject.FieldByName('documentdatelink').AsString
   else
@@ -230,7 +232,7 @@ begin
       'SELECT com.name ' +
       'FROM gd_contact com  ' +
       'WHERE com.id = :DK ',
-      gdcObject.FieldByName('companykey').AsInteger,
+      TID2V(gdcObject.FieldByName('companykey')),
       R);
 
     if not VarIsEmpty(R) then
@@ -247,7 +249,7 @@ begin
       'JOIN gd_document d ON d.id = bs.documentkey ' +
       'JOIN gd_contact com ON ac.companykey = com.id ' +
       'WHERE bs.documentkey = :DK ',
-      gdcObject.FieldByName('bankstatementkey').AsInteger,
+      TID2V(gdcObject.FieldByName('bankstatementkey')),
       R);
 
     if not VarIsEmpty(R) then
@@ -350,8 +352,7 @@ begin
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin
-      gdcObject.FieldByName('companykeyline').AsInteger :=
-        ibsql.FieldByName('companykey').AsInteger
+      SetTID(gdcObject.FieldByName('companykeyline'), ibsql.FieldByName('companykey'))
     end;
     ibsql.Close;
   end else if  (Field.FieldName = 'COMPANYKEYLINE') and
@@ -368,7 +369,7 @@ begin
       ' LEFT JOIN gd_companyaccount ca ON c.companyaccountkey = ca.id ' +
       ' LEFT JOIN gd_bank b ON b.bankkey = ca.bankkey ' +
       ' WHERE c.contactkey = :ck ';
-    ibsql.ParamByName('ck').AsInteger := gdcObject.FieldByName('companykeyline').AsInteger;
+    SetTID(ibsql.ParamByName('ck'), gdcObject.FieldByName('companykeyline'));
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin
@@ -397,7 +398,7 @@ begin
       begin
         WasCreated := True;
         MO := TgdcBankStatement.CreateSingularByID(Self, gdcObject.Database,
-           gdcObject.ReadTransaction, gdcObject.FieldByName('parent').AsInteger, '');
+           gdcObject.ReadTransaction, GetTID(gdcObject.FieldByName('parent')), '');
       end;
 
       if MO.FieldByName('rate').AsCurrency > 0 then

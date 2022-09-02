@@ -1,3 +1,4 @@
+// ShlTanya, 31.01.2019
 
 unit at_AddToSetting;
 
@@ -12,8 +13,9 @@ procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
 implementation
 
 uses
-  Windows, Forms, Controls, DB, IBDatabase, IBSQL, gdcBaseInterface, at_dlgToSetting_unit,
-  at_dlgToNamespace_unit, gdcNamespace, gdcNamespaceController;
+  Windows, Forms, Controls, Classes, SysUtils, DB, IBDatabase, IBSQL,
+  gdcBaseInterface, at_dlgToSetting_unit, at_dlgToNamespace_unit, gdcNamespace,
+  gdcNamespaceController;
 
 procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
   AgdcObject: TgdcBase; BL: TBookmarkList);
@@ -59,8 +61,10 @@ begin
           else
             S := 'Объект входит в ПИ: ';
 
+          S := S + #13#10 + StringReplace(FgdcNamespaceController.PrevNSName, ', ', #13#10, [rfReplaceAll]);
+
           MessageBox(0,
-            PChar(S + FgdcNamespaceController.PrevNSName + #13#10#13#10 +
+            PChar(S + #13#10#13#10 +
             'Измените указанные ПИ так, чтобы объект входил только в одно из них.'),
             'Внимание',
             MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);

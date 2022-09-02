@@ -1,3 +1,4 @@
+// ShlTanya, 30.01.2019
 
 unit bn_dlgCurrCommissSell_unit;
 
@@ -49,17 +50,17 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_Security, gdcBase, gd_ClassList;
+  gd_Security, gdcBase, gd_ClassList, gdcBaseInterface;
 
 { Tgd_dlgCurrCommissSell }
 
 procedure Tgd_dlgCurrCommissSell.iblcBankChange(Sender: TObject);
 begin
   if iblcBank.CurrentKey > '' then
-    iblcAccountKey.Condition := 'companykey = ' + IntToStr(IBLogin.CompanyKey) +
+    iblcAccountKey.Condition := 'companykey = ' + TID2S(IBLogin.CompanyKey) +
       ' AND bankkey = ' + iblcBank.CurrentKey
   else
-    iblcAccountKey.Condition := 'companykey = ' + IntToStr(IBLogin.CompanyKey);
+    iblcAccountKey.Condition := 'companykey = ' + TID2S(IBLogin.CompanyKey);
 end;
 
 initialization

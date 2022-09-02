@@ -1,3 +1,5 @@
+// ShlTanya, 11.02.2019, #4135
+
 unit gd_dlgQuantityEntryEdit;
 
 interface
@@ -234,7 +236,7 @@ begin
         cbStandart.Items.Add(Format(csUnit,
           [FieldByName('name').AsString,
           FieldByName('description').AsString]));
-        FValueKeyList.Add(Pointer(FieldByName('id').AsInteger));
+        FValueKeyList.Add(TID2Pointer(GetTID(FieldByName('id')), Name));
         ibsql.Next;
       end;
   finally
@@ -275,7 +277,7 @@ begin
     case TQuantObject(QuantList[I]).UnitType of
       utRUID:
       begin
-        K := FValueKeyList.IndexOf(Pointer(gdcBaseManager.GetIDByRUIDString(TQuantObject(QuantList[I]).UnitStr)));
+        K := FValueKeyList.IndexOf(TID2Pointer(gdcBaseManager.GetIDByRUIDString(TQuantObject(QuantList[I]).UnitStr)), Name);
         if K = -1 then
         begin
           Recovery := False;
@@ -332,7 +334,7 @@ begin
       I := cbStandart.Items.IndexOf(cbStandart.Text);
       if I > -1 then
       begin
-        Str := gdcBaseManager.GetRUIDStringByID(Integer(FValueKeyList[I]));
+        Str := gdcBaseManager.GetRUIDStringByID(GetTID(FValueKeyList[I], Name));
         if Str <> '' then
           TQuantObject(lvQuantity.Selected.Data).UnitStr := Str
         else

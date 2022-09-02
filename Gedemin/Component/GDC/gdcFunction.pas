@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcFunction;
 
 interface
@@ -44,8 +46,8 @@ type
     class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
 
     function CheckTheSameStatement: String; override;
-    function GetUniqueName(PrefName, Name: string; modulecode: integer): string;
-    function CheckFunction(const Name: string; modulecode: integer): Boolean;
+    function GetUniqueName(PrefName, Name: string; modulecode: TID): string;
+    function CheckFunction(const Name: string; modulecode: TID): Boolean;
 
     //Проверяет наличие ссылок на данную запись
     function RecordUsed: Integer;
@@ -113,7 +115,7 @@ begin
   FieldByName('aview').AsInteger := -1;
   FieldByName('inheritedrule').AsInteger := 0;
   FieldByName('publicfunction').AsInteger := 1;
-  FieldByName('modulecode').AsInteger := OBJ_APPLICATION;
+  SetTID(FieldByName('modulecode'), OBJ_APPLICATION);
   
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFUNCTION', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
@@ -265,7 +267,7 @@ begin
      '(UPPER(z.module) = ''' + scrConst + '''))');
 end;
 
-function TgdcFunction.GetUniqueName(PrefName, Name: string; modulecode: integer): string;
+function TgdcFunction.GetUniqueName(PrefName, Name: string; modulecode: TID): string;
 var
   I: Integer;
   q: TIBSQL;
@@ -287,7 +289,7 @@ begin
       q.Close;
       q.ParamByName('N').AsString := AnsiUpperCase(Result);
       if ModuleCode <> 0 then
-        q.ParamByName('MC').AsInteger := ModuleCode;
+        SetTID(q.ParamByName('MC'), ModuleCode);
       q.ExecQuery;
       Inc(I);
     until q.EOF;
@@ -296,7 +298,7 @@ begin
   end;
 end;
 
-function TgdcFunction.CheckFunction(const Name: string; modulecode: integer): Boolean;
+function TgdcFunction.CheckFunction(const Name: string; modulecode: TID): Boolean;
 var
   DataSet: TIBSQL;
 begin
@@ -305,7 +307,7 @@ begin
     DataSet.Transaction := ReadTransaction;
     DataSet.SQl.Text := 'SELECT ' + fnName + ' FROM gd_function WHERE modulecode = :ModuleCode ' +
        ' AND UPPER(' + fnName + ') = :Name';
-    DataSet.ParamByName('ModuleCode').AsInteger := ModuleCode;
+    SetTID(DataSet.ParamByName('ModuleCode'), ModuleCode);
     DataSet.ParamByName('Name').AsString := AnsiUpperCase(Name);
     DataSet.ExecQuery;
     Result := DataSet.EOF;
@@ -387,7 +389,8 @@ begin
       begin
         sql.Close;
         sql.SQL.Text := 'SELECT * FROM ' + FK.Relation.RelationName +
-          ' WHERE ' + FK.ConstraintFields[0].FieldName + '=' + IntToStr(Self.ID);
+          ' WHERE ' + FK.ConstraintFields[0].FieldName + '=:ID';
+        SetTID(sql.ParamByName('ID'), Self.ID);
         sql.ExecQuery;
         if not sql.EOF then
         begin
@@ -412,7 +415,7 @@ procedure TgdcFunction._SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
   WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True);
 var
   SQL: TIBSQL;
-  LocID: Integer;
+  LocID: TID;
   LocSubSet: string;
 begin
   // если объект с заданным ИД уже сохранен в потоке или уже есть в списке,
@@ -436,13 +439,13 @@ begin
       SQL.SQL.Text := 'SELECT * FROM rp_additionalfunction WHERE mainfunctionkey = ' +
          FieldByName('id').AsString;
       SQL.ExecQuery;
-      LocID := FieldByName('Id').AsInteger;
+      LocID := GetTID(FieldByName('Id'));
       LocSubSet := SubSet;
       SubSet := ssByID;
       Open;
       while not SQL.Eof do
       begin
-        ID := SQL.FieldByName('addfunctionkey').AsInteger;
+        ID := GetTID(SQL.FieldByName('addfunctionkey'));
         _SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
         SQL.Next;
       end;
@@ -507,7 +510,7 @@ begin
     Result := Format(
       'SELECT id FROM gd_function WHERE UPPER(name) = UPPER(''%s'') AND modulecode = %d',
       [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
-       FieldByName('modulecode').AsInteger]);
+       TID264(FieldByName('modulecode'))]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFUNCTION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

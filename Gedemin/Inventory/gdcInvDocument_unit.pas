@@ -1,7 +1,7 @@
-
+// ShlTanya, 07.10.2019
 {++
 
-  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2022 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -122,7 +122,7 @@ type
     property RelationLine: TatRelation read GetRelationLine;
     property RelationType: TgdcInvRelationType read GetRelationType;
     property CurrentStreamVersion: String read FCurrentStreamVersion;
-    property BranchKey: Integer read FBranchKey;
+    property BranchKey: TID read FBranchKey;
   end;
 
 
@@ -313,7 +313,7 @@ type
     procedure UpdateContactList(lv: TListView; const AName: String; V: TgdcMCOPredefined);
     procedure UpdateFeatures(const AFeature: TgdInvDocumentEntryFeature; SL: TStrings);
 
-    class function InvDocumentTypeBranchKey: Integer;
+    class function InvDocumentTypeBranchKey: TID;
     class function GetHeaderDocumentClass: CgdcBase; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -341,6 +341,14 @@ uses
     , gd_localization_stub
   {$ENDIF}
   ;
+
+type
+  TgdcInvShortField = record
+    FieldName: String;
+    AliasName: String;
+  end;
+
+  TgdcInvShortFieldArray = array of TgdcInvShortField;
 
 procedure Register;
 begin
@@ -773,10 +781,10 @@ var
       (Length(M.SubPredefined) > 0)
     then begin
       CreateContactSQL;
-      FieldByName(M.SubSourceFieldName).AsInteger := M.SubPredefined[0];
+      SetTID(FieldByName(M.SubSourceFieldName), M.SubPredefined[0]);
 
       FContact.Close;
-      FContact.ParamByName('id').AsInteger := M.SubPredefined[0];
+      SetTID(FContact.ParamByName('id'), M.SubPredefined[0]);
       FContact.ExecQuery;
 
       if (FContact.RecordCount > 0) and
@@ -796,10 +804,10 @@ var
       (Length(M.SubPredefined) = 0)
     then begin
       CreateContactSQL;
-      FieldByName(M.SourceFieldName).AsInteger := M.Predefined[0];
+      SetTID(FieldByName(M.SourceFieldName), M.Predefined[0]);
 
       FContact.Close;
-      FContact.ParamByName('id').AsInteger := M.Predefined[0];
+      SetTID(FContact.ParamByName('id'), M.Predefined[0]);
       FContact.ExecQuery;
 
       if FContact.RecordCount > 0 then
@@ -1084,8 +1092,8 @@ begin
 
   if SubType > '' then
   begin
-    if FieldByName('id').AsInteger <> FieldByName('documentkey').AsInteger then
-      FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+    if GetTID(FieldByName('id')) <> GetTID(FieldByName('documentkey')) then
+      SetTID(FieldByName('documentkey'), GetTID(FieldByName('id')));
       
     CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
     CustomExecQuery(
@@ -1195,7 +1203,7 @@ begin
   {END MACRO}
   inherited;
 
-  FieldByName('DOCUMENTKEY').AsInteger := FieldByName('ID').AsInteger;
+  SetTID(FieldByName('DOCUMENTKEY'), GetTID(FieldByName('ID')));
   FieldByName('DELAYED').AsInteger := 0;
 
   UpdatePredefinedFields;
@@ -1490,11 +1498,13 @@ procedure TgdcInvDocument.InternalSetFieldData(Field: TField;
   Buffer: Pointer);
 var
   DocumentLine: TgdcInvDocumentLine;
-  OldValue: Variant;
 {$IFNDEF NEWDEPOT}
   dsMain: TDataSource;
   i: Integer;
-{$ENDIF}  
+  IsNullOld: Boolean;
+  OldValue: String;
+  
+{$ENDIF}
   DidActivate: Boolean;
 
   function MakeMovementOnLine: boolean;
@@ -1502,7 +1512,7 @@ var
     FLSavePoint: String;
   begin
     MakeMovementOnLine := True;
-    if DocumentLine.FieldByName('masterkey').AsInteger = FieldByName('id').AsInteger then
+    if GetTID(DocumentLine.FieldByName('masterkey')) =  GetTID(FieldByName('id')) then
     begin
       FLSavePoint := '';
       if not Transaction.Active then
@@ -1577,7 +1587,20 @@ var
 
 begin
 
-  OldValue := Field.Value;
+{$IFNDEF NEWDEPOT}
+
+  if Field.IsNull then
+  begin
+    OldValue := '';
+    IsNullOld := True;
+  end
+  else
+  begin
+    OldValue := Field.AsString;
+    IsNullOld := False;
+  end;
+{$ENDIF}
+
   inherited;
 
   if FIsLocalChange or FDataTransfer then
@@ -1632,7 +1655,10 @@ begin
                 if not MakeMovementOnLine then
                 begin
                   FIsLocalChange := True;
-                  Field.Value := OldValue;
+                  if not isNullOld then
+                    Field.AsString := OldValue
+                  else
+                    Field.Clear;
                 end;
             end;
         end
@@ -1651,7 +1677,10 @@ begin
             if not MakeMovementOnLine then
             begin
               FIsLocalChange := True;
-              Field.Value := OldValue;
+              if not isNullOld then
+                Field.AsString := OldValue
+              else
+                Field.Clear;
             end;
           finally
             DocumentLine.Free;
@@ -1926,11 +1955,11 @@ begin
             begin
               with Tgdc_dlgViewMovement.Create(ParentForm) do
                 try
-                  DocumentKey := FieldByName('documentkey').AsInteger;
+                  DocumentKey := GetTID(FieldByName('documentkey'));
                   if CompareText(FMovementTarget.RelationName, RelationLineName) = 0 then
-                    ContactKey := FieldByName(FMovementTarget.SourceFieldName).AsInteger
+                    ContactKey := GetTID(FieldByName(FMovementTarget.SourceFieldName))
                   else
-                    ContactKey := MasterSource.DataSet.FieldByName(FMovementTarget.SourceFieldName).AsInteger;
+                    ContactKey := GetTID(MasterSource.DataSet.FieldByName(FMovementTarget.SourceFieldName));
                   GoodName := FieldByName('goodname').AsString;
                   Transaction := Self.ReadTransaction;
                   ShowModal;
@@ -2020,7 +2049,7 @@ begin
   FSavePoint := '';
   DataSet := nil;
   aDataSource := nil;
-  isCreate := False;  
+  isCreate := False;
 
   if Transaction.InTransaction then
   begin
@@ -2040,8 +2069,8 @@ begin
 
     inherited;
 
-    if FieldByName('id').AsInteger <> FieldByName('documentkey').AsInteger then
-      FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+    if GetTID(FieldByName('id')) <> GetTID(FieldByName('documentkey')) then
+      SetTID(FieldByName('documentkey'), GetTID(FieldByName('id')));
     {$IFDEF DEBUGMOVE}
     TimeCustomInsertDoc := GetTickCount - TimeTmp;
     {$ENDIF}
@@ -2057,19 +2086,25 @@ begin
       else
         DataSet := nil;
 
+
       {$IFNDEF NEWDEPOT}
       //Для загружаемого из потока объекта обязательно должен быть мастер!!!
       if (sLoadFromStream in BaseState) and (not Assigned(DataSet)) then
       begin
         ADataSource := TDataSource.Create(Self);
         DataSet := TgdcInvDocument.CreateWithID(Self, Database, Transaction,
-          FieldByName('parent').AsInteger, SubType);
+          GetTID(FieldByName('parent')), SubType);
         DataSet.ReadTransaction := ReadTransaction;
         DataSet.Open;
         ADataSource.DataSet := DataSet;
         Self.MasterSource := ADataSource;
         isCreate := True;
       end;
+
+      if FControlRemains then
+        ExecSingleQuery('select rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', 1) from rdb$database')
+      else
+        ExecSingleQuery('select rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', 0) from rdb$database');
 
       if Assigned(DataSet) and (sDialog in DataSet.BaseState) and not CachedUpdates
       then
@@ -2232,7 +2267,7 @@ begin
       begin
         ADataSource := TDataSource.Create(Self);
         DataSet := TgdcInvDocument.CreateWithID(Self, Database, Transaction,
-          FieldByName('parent').AsInteger, SubType);
+          GetTID(FieldByName('parent')), SubType);
         DataSet.ReadTransaction := ReadTransaction;
         DataSet.Open;
         ADataSource.DataSet := DataSet;
@@ -2241,6 +2276,11 @@ begin
       end;
 
       {$IFNDEF NEWDEPOT}
+      if FControlRemains then
+        ExecSingleQuery('select rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', 1) from rdb$database')
+      else
+        ExecSingleQuery('select rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', 0) from rdb$database');
+
       if Assigned(DataSet) and (sDialog in DataSet.BaseState) and not CachedUpdates
       then
         FMovement.CreateMovement(ipsmPosition)
@@ -2323,8 +2363,10 @@ begin
 end;
 
 procedure TgdcInvDocumentLine.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
+VAR
+  F: TField;
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
@@ -2356,7 +2398,7 @@ begin
   if sLoadFromStream in BaseState then
     isCheckDestFeatures := False;
 
-  if FieldByName('GOODKEY').IsNull or (FieldByName('GOODKEY').AsInteger = 0) then
+  if FieldByName('GOODKEY').IsNull or (GetTID(FieldByName('GOODKEY')) = 0) then
   begin
     if not (sLoadFromStream in BaseState) then
       MessageBox(ParentHandle, PChar(s_InvChooseGood), PChar(sAttention),
@@ -2364,8 +2406,26 @@ begin
     abort;
   end;
 
+  if (RelationType = irtTransformation) then
+  begin
+    F := FindField('INQUANTITY');
+    if Assigned(F) and (FieldByName('INQUANTITY').AsCurrency > 0) then
+      FieldByName('VIEWMOVEMENTPART').AsString := 'I'
+    else
+    begin
+      F := FindField('OUTQUANTITY');
+      if Assigned(F) and (FieldByName('OUTQUANTITY').AsCurrency > 0) then
+        FieldByName('VIEWMOVEMENTPART').AsString := 'E';
+    end;    
+  end;
+
   inherited;
 
+  if FControlRemains then
+    FieldByName('checkremains').AsInteger := 1
+  else
+    FieldByName('checkremains').AsInteger := 0;
+    
   if not (sMultiple in BaseState) then
   begin
     if
@@ -2465,8 +2525,8 @@ begin
 
   inherited;
 
-  FieldByName('MASTERKEY').AsInteger := FieldByName('Parent').AsInteger;
-  FieldByName('DOCUMENTKEY').AsInteger := FieldByName('ID').AsInteger;
+  SetTID(FieldByName('MASTERKEY'), GetTID(FieldByName('Parent')));
+  SetTID(FieldByName('DOCUMENTKEY'), GetTID(FieldByName('ID')));
 
   case RelationType of
     irtFeatureChange:
@@ -2483,10 +2543,16 @@ begin
       FieldByName('FROMCARDKEY').Required := False;
 
       if (ViewMovementPart = impIncome) then
-        FieldByName('INQUANTITY').AsCurrency := 0
+      begin
+        FieldByName('INQUANTITY').AsCurrency := 0;
+        FieldByName('VIEWMOVEMENTPART').AsString := 'I';
+      end
       else
+      begin
         FieldByName('OUTQUANTITY').AsCurrency := 0;
+        FieldByName('VIEWMOVEMENTPART').AsString := 'E';
     end;
+  end;
   end;
 
   UpdatePredefinedFields;
@@ -2872,10 +2938,10 @@ begin
   if RelationType = irtTransformation then
   begin
     if ViewMovementPart = impIncome then
-      S.Add(' INVLINE.INQUANTITY <> 0 AND INVLINE.INQUANTITY IS NOT NULL')
+      S.Add(' INVLINE.VIEWMOVEMENTPART = ''I'' ')
 
     else if ViewMovementPart = impExpense then
-      S.Add(' INVLINE.OUTQUANTITY <> 0 AND INVLINE.OUTQUANTITY IS NOT NULL');
+      S.Add(' INVLINE.VIEWMOVEMENTPART = ''E'' ');
   end;
 
   S.Add('INVLINE.documentkey IS NOT NULL');
@@ -3059,7 +3125,7 @@ begin
 
   FGoodSQL.Transaction := ReadTransaction;
 
-  FGoodSQL.ParamByName('ID').AsInteger := FieldByName('GoodKey').AsInteger;
+  SetTID(FGoodSQL.ParamByName('ID'), GetTID(FieldByName('GoodKey')));
   FGoodSQL.ExecQuery;
 
   if FGoodSQL.RecordCount > 0 then
@@ -3171,13 +3237,13 @@ begin
       try
         ibsql.Transaction := ReadTransaction;
         ibsql.SQL.Text := 'SELECT * FROM inv_card WHERE id = :id';
-        ibsql.ParamByName('id').AsInteger := FieldByName('fromcardkey').AsInteger;
+        SetTID(ibsql.ParamByName('id'), GetTID(FieldByName('fromcardkey')));
         ibsql.ExecQuery;
         if ibsql.RecordCount > 0 then
         begin
           for i:= Low(FSourceFeatures) to High(FSourceFeatures) do
-            FieldByName('FROM_' + FSourceFeatures[i]).AsVariant :=
-              ibsql.FieldByName(FSourceFeatures[i]).AsVariant;
+            SetVar2Field(FieldByName('FROM_' + FSourceFeatures[i]),
+              GetFieldAsVar(ibsql.FieldByName(FSourceFeatures[i])));
         end;
       finally
         ibsql.Free;
@@ -3187,8 +3253,8 @@ begin
     begin
       for i:= Low(FSourceFeatures) to High(FSourceFeatures) do
         if Assigned(FindField('TO_' + FSourceFeatures[i])) then
-          FieldByName('TO_' + FSourceFeatures[i]).AsVariant :=
-             FieldByName('FROM_' + FSourceFeatures[i]).AsVariant;
+          SetVar2Field(FieldByName('TO_' + FSourceFeatures[i]),
+             GetFieldAsVar(FieldByName('FROM_' + FSourceFeatures[i])));
     end;
   finally
     FisSetFeaturesFromRemains := False;
@@ -3210,18 +3276,18 @@ begin
 {Перед сохранением документа необходимо сохранить ссылки из карточки}
   for I := 0 to FieldCount - 1 do
   begin
-    if (AnsiPos('"INV_CARD".', Fields[I].Origin) = 1) and (Fields[I].DataType = ftInteger)
+    if (AnsiPos('"INV_CARD".', Fields[I].Origin) = 1) {and (Fields[I].DataType = ftInteger)}
       and not Fields[I].IsNull then
     begin
       fld := atDatabase.FindRelationField('INV_CARD',
         System.Copy(Fields[I].Origin, 13, Length(Fields[I].Origin) - 13));
-      if Assigned(fld) and Assigned(fld.References) and (Fields[I].AsInteger <> ID) then
+      if Assigned(fld) and Assigned(fld.References) and (GetTID(Fields[I]) <> ID) then
       begin
-        FC := GetBaseClassForRelationByID(fld.References.RelationName, Fields[I].AsInteger, Transaction);
+        FC := GetBaseClassForRelationByID(fld.References.RelationName, GetTID(Fields[I]), Transaction);
         if Assigned(FC.gdClass) then
         begin
           Obj := FC.gdClass.CreateWithID(nil, Database, Transaction,
-            Fields[I].AsInteger, FC.SubType);
+            GetTID(Fields[I]), FC.SubType);
           try
             if Transaction.InTransaction then
               Obj.ReadTransaction := Transaction
@@ -3427,7 +3493,7 @@ begin
 
     ibsql.Transaction := Transaction;
     ibsql.SQL.Text := 'DELETE FROM usr$' + SubType + ' WHERE documentkey = :documentkey';
-    ibsql.ParamByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+    SetTID(ibsql.ParamByName('documentkey'), GetTID(FieldByName('id')));
     ibsql.ExecQuery;
 
     if (Length(FSourceFeatures) > 0) and ((RelationType <> irtTransformation) or
@@ -3444,19 +3510,19 @@ begin
         ValueList := ValueList + ':' + FSourceFeatures[i];
       end;
       ibsql.SQL.Text :=
-        ' INSERT INTO usr$' + SubType + ' (documentkey, goodkey, typevalue, checkremains, minusremains, ischeckdestfeatures, ' + FieldList + ') ' +
-        ' VALUES (:documentkey, :goodkey, ''F'', :checkremains, :minusremains, :ischeckdestfeatures, ' + ValueList + ') ';
+        ' INSERT INTO usr$' + SubType + ' (documentkey, goodkey, typevalue, minusremains, ischeckdestfeatures, ' + FieldList + ') ' +
+        ' VALUES (:documentkey, :goodkey, ''F'', :minusremains, :ischeckdestfeatures, ' + ValueList + ') ';
       ibsql.Prepare;
-      ibsql.ParamByName('documentkey').AsInteger := FieldByName('id').AsInteger;
-      ibsql.ParamByName('goodkey').AsInteger := FieldByName('goodkey').AsInteger;
-      ibsql.ParamByName('checkremains').AsInteger := Integer(ControlRemains);
+      SetTID(ibsql.ParamByName('documentkey'), GetTID(FieldByName('id')));
+      SetTID(ibsql.ParamByName('goodkey'), GetTID(FieldByName('goodkey')));
+//      ibsql.ParamByName('checkremains').AsInteger := Integer(ControlRemains);
       ibsql.ParamByName('ischeckdestfeatures').AsInteger := Integer(IsCheckDestFeatures);
       if isMinusRemains and isChooseRemains then
         ibsql.ParamByName('minusremains').AsInteger := 1
       else
         ibsql.ParamByName('minusremains').AsInteger :=  0;
       for i := 0 to Length(FSourceFeatures) - 1 do
-        ibsql.ParamByName(FSourceFeatures[i]).AsVariant := FieldByName('FROM_' + FSourceFeatures[i]).AsVariant;
+        SetVar2Param(ibsql.ParamByName(FSourceFeatures[i]), GetFieldAsVar(FieldByName('FROM_' + FSourceFeatures[i])));
       ibsql.ExecQuery
     end;
 
@@ -3474,19 +3540,19 @@ begin
         ValueList := ValueList + ':' + FDestFeatures[i];
       end;
       ibsql.SQL.Text :=
-        ' INSERT INTO usr$' + SubType + ' (documentkey, goodkey, typevalue, checkremains, minusremains, ischeckdestfeatures, ' + FieldList + ') ' +
-        ' VALUES (:documentkey, :goodkey, ''T'', :checkremains, :minusremains, :ischeckdestfeatures, ' + ValueList + ') ';
+        ' INSERT INTO usr$' + SubType + ' (documentkey, goodkey, typevalue, minusremains, ischeckdestfeatures, ' + FieldList + ') ' +
+        ' VALUES (:documentkey, :goodkey, ''T'', :minusremains, :ischeckdestfeatures, ' + ValueList + ') ';
       ibsql.Prepare;
-      ibsql.ParamByName('documentkey').AsInteger := FieldByName('id').AsInteger;
-      ibsql.ParamByName('goodkey').AsInteger := FieldByName('goodkey').AsInteger;
-      ibsql.ParamByName('checkremains').AsInteger := Integer(ControlRemains);
+      SetTID(ibsql.ParamByName('documentkey'), GetTID(FieldByName('id')));
+      SetTID(ibsql.ParamByName('goodkey'), GetTID(FieldByName('goodkey')));
+//      ibsql.ParamByName('checkremains').AsInteger := Integer(ControlRemains);
       ibsql.ParamByName('ischeckdestfeatures').AsInteger := Integer(ischeckdestfeatures);
       if isMinusRemains and isChooseRemains then
         ibsql.ParamByName('minusremains').AsInteger := 1
       else
         ibsql.ParamByName('minusremains').AsInteger :=  0;
       for i := 0 to Length(FDestFeatures) - 1 do
-        ibsql.ParamByName(FDestFeatures[i]).AsVariant := FieldByName('TO_' + FDestFeatures[i]).AsVariant;
+        SetVar2Param(ibsql.ParamByName(FDestFeatures[i]), GetFieldAsVar(FieldByName('TO_' + FDestFeatures[i])));
       ibsql.ExecQuery
 
     end;
@@ -3647,10 +3713,9 @@ begin
 
   NameTable := 'usr$' + FieldByName('ruid').AsString;
   head := 'CREATE global TEMPORARY TABLE ' + NameTable + '(' + #13#10 +
-    '  documentkey INT NOT NULL,' + #13#10 +
-    '  goodkey INT NOT NULL,' + #13#10 +
+    '  documentkey DINTKEY,' + #13#10 +
+    '  goodkey DINTKEY,' + #13#10 +
     '  typevalue CHAR(1),' + #13#10 +
-    '  checkremains DBOOLEAN, ' + #13#10 +
     '  ischeckdestfeatures DBOOLEAN, ' + #13#10 +
     '  minusremains DBOOLEAN ' + #13#10;
 
@@ -3731,21 +3796,22 @@ var
   NameTrigger: String;
   R: TatRelation;
   RelType: TgdcInvRelationType;
+  srcFieldArray: TgdcInvShortFieldArray;
 
 const
   FixedVariableList =
     'AS ' + #13#10 +
     '  declare variable ruid druid; ' + #13#10 +
     '  declare variable documentdate date; ' + #13#10 +
-    '  declare variable id integer; ' + #13#10 +
-    '  declare variable cardkey integer; ' + #13#10 +
-    '  declare variable newcardkey integer; ' + #13#10 +
-    '  declare variable companykey integer; ' + #13#10 +
-    '  declare variable goodkey integer; ' + #13#10 +
-    '  declare variable fromcontactkey integer; ' + #13#10 +
-    '  declare variable tocontactkey integer; ' + #13#10 +
-    '  declare variable movementkey integer; ' + #13#10 +
-    '  declare variable delayed integer; ' + #13#10 +
+    '  declare variable id DFOREIGNKEY; ' + #13#10 +
+    '  declare variable cardkey dforeignkey; ' + #13#10 +
+    '  declare variable newcardkey dforeignkey; ' + #13#10 +
+    '  declare variable companykey dforeignkey; ' + #13#10 +
+    '  declare variable goodkey dforeignkey; ' + #13#10 +
+    '  declare variable fromcontactkey dforeignkey; ' + #13#10 +
+    '  declare variable tocontactkey dforeignkey; ' + #13#10 +
+    '  declare variable movementkey dforeignkey; ' + #13#10 +
+    '  declare variable delayed DBOOLEAN; ' + #13#10 +
     '  declare variable checkremains DBOOLEAN; ' + #13#10 +
     '  declare variable minusremains DBOOLEAN; ' + #13#10 +
     '  declare variable ischeckdestfeatures DBOOLEAN; ' + #13#10 +
@@ -3756,8 +3822,8 @@ const
     '  declare variable firstdate DATE; ' + #13#10 +
     '  declare variable movementquantity numeric(15, 4); ' + #13#10 +
     '  declare variable olddocumentdate date; ' + #13#10 +
-    '  declare variable isdeletemovement INTEGER; ' + #13#10 +
-    '  declare variable firstdocumentkey INTEGER; ' + #13#10;
+    '  declare variable isdeletemovement DBOOLEAN; ' + #13#10 +
+    '  declare variable firstdocumentkey DFOREIGNKEY; ' + #13#10;
 
 
   ConstTriggerText =
@@ -3769,18 +3835,51 @@ const
     '  into :ruid, :companykey, :documentdate, :delayed; ' + #13#10 +
     '  isdeletemovement = 0; ' + #13#10;
 
+procedure InitFieldArray;
+var
+  i: Integer;
+  CountFields: Integer;
+  R: TatRelation;
+begin
+
+  R := atDatabase.Relations.ByRelationName('INV_CARD');
+  CountFields := R.RelationFields.Count;
+  SetLength(srcFieldArray, CountFields);
+  for i := 0 to CountFields - 1 do
+  begin
+    srcFieldArray[i].FieldName := R.RelationFields[i].FieldName;
+    srcFieldArray[i].AliasName := 'F' + IntToStr(i);
+  end;
+
+end;
+
+function GetFieldAlias(FieldName: String): String;
+var
+  i: Integer;
+begin
+  for i:= 1 to Length(srcFieldArray) do
+    if srcFieldArray[i].FieldName = FieldName then
+    begin
+      Result := srcFieldArray[i].AliasName;
+      exit;
+    end;
+end;
+
 
 function MakeFieldList(ftType: TgdInvDocumentEntryFeature; Prefix: String): String;
 var
   i: Integer;
+  CountFields: Integer;
   F: TatRelationField;
 begin
   Result := '';
-  for i := 0 to FIE.GetFeaturesCount(ftType) - 1 do
+  CountFields := FIE.GetFeaturesCount(ftType);
+
+  for i := 0 to CountFields - 1 do
   begin
     F := atDatabase.FindRelationField('INV_CARD', FIE.GetFeature(ftType, i));
     if Assigned(F) then
-      Result := Result + '  declare variable ' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', Prefix, [rfIgnoreCase]) + ' ' + F.Field.FieldName + ';' + #13#10;
+      Result := Result + '  declare variable ' + Prefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' ' + F.Field.FieldName + ';' + #13#10;
   end;
 end;
 
@@ -3792,7 +3891,7 @@ begin
   for i := 0 to FIE.GetFeaturesCount(ftType) - 1 do
   begin
     if Result <> '' then Result := Result + ',';
-    Result := Result + ':' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', Prefix, [rfIgnoreCase]);
+    Result := Result + ':' + Prefix + GetFieldAlias(FIE.GetFeature(ftType, i));
   end;
 end;
 
@@ -3842,7 +3941,8 @@ begin
   for i:= 0 to FIE.GetFeaturesCount(ftType) - 1 do
   begin
     if s <> '' then s := s + ' AND ';
-    s := s + ' (c.' + FIE.GetFeature(ftType, i) + ' = :' + FIE.GetFeature(ftType, i) + ' or (c.' + FIE.GetFeature(ftType, i) + ' is NULL and :' + FIE.GetFeature(ftType, i) + ' is NULL)) ' + #13#10;
+    s := s + ' (c.' + FIE.GetFeature(ftType, i) + ' = :' + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' or (c.' + FIE.GetFeature(ftType, i) + ' is NULL and :' +
+       GetFieldAlias(FIE.GetFeature(ftType, i)) + ' is NULL)) ' + #13#10;
   end;
 
   if s <> '' then s := ' where ' + #13#10 + s + #13#10;
@@ -3898,7 +3998,7 @@ begin
 
   Result := '';
   for i:= 0 to FIE.GetFeaturesCount(ftType) - 1 do
-    Result := Result + ', ' + FIE.GetFeature(ftType, i) + ' = :' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', Prefix, [rfIgnoreCase])  + #13#10;
+    Result := Result + '            , ' + FIE.GetFeature(ftType, i) + ' = :' + Prefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + #13#10;
 
   Result :=
     '          update inv_card set ' + #13#10 +
@@ -3932,7 +4032,7 @@ begin
   s := '';
   s1 := '';
   s2 := 'NEW.documentkey';
-  if (Prefix = 'new$') and (RelType <> irtTransformation) then
+  if (Prefix = 'n') and (RelType <> irtTransformation) then
   begin
     s := 'parent, ';
     s1 := ':cardkey, ';
@@ -3945,7 +4045,7 @@ begin
       Result :=
         Format('/* создаем новую карточку */ ' + #13#10 +
                ' ' + #13#10 +
-               '    id = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+               '    EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :id; ' + #13#10 +
                '    insert into inv_card (id, firstdate, ' + s + 'companykey, goodkey, documentkey, firstdocumentkey, %0:s) ' + #13#10 +
                '    values (:id, :documentdate, ' + s1 + ':companykey, :goodkey, NEW.documentkey, %2:s, %1:s); ' + #13#10,
                [FIE.GetFeaturesText(ftType), GetIntoFieldList(ftType, Prefix), s2])
@@ -3953,14 +4053,14 @@ begin
       Result :=
         Format('/* создаем новую карточку */ ' + #13#10 +
                ' ' + #13#10 +
-               '    id = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+               '    EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :id; ' + #13#10 +
                '    insert into inv_card (id, firstdate, ' + s + 'companykey, goodkey, documentkey, firstdocumentkey) ' + #13#10 +
                '    values (:id, :documentdate, ' + s1 + ':companykey, :goodkey, NEW.documentkey, %0:s); ' + #13#10,
                [s2]);
   end
   else
     Result :=  ' ' + #13#10 +
-               '    id = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+               '    EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :id; ' + #13#10 +
                '    EXECUTE PROCEDURE INV_INSERT_CARD (:ID, :CARDKEY); ' + #13#10 +
                GetUpdateCardSQL(ftType, Prefix);
 
@@ -3973,7 +4073,7 @@ var
   s: String;
 begin
 
-  if NewPrefix = 'new$' then
+  if NewPrefix = 'n' then
     s:= 'istochange'
   else
     s:= 'ischange';
@@ -3984,12 +4084,12 @@ begin
     for i:= 0 to FIE.GetFeaturesCount(ftType) - 1 do
     begin
       if Result <> '' then Result := Result + ' OR ';
-      Result := Result + '(' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' <> ' +
-          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + #13#10 +
-        ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is null and '  +
-          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is not null) ' + #13#10 +
-        ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is not null and '  +
-          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is null)) ' + #13#10;
+      Result := Result + '(' + NewPrefix + GetFieldAlias(FIE.GetFeature(ftType, i))  + ' <> ' +
+          OldPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + #13#10 +
+        ' or (' + NewPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' is null and '  +
+          OldPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' is not null) ' + #13#10 +
+        ' or (' + NewPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' is not null and '  +
+          OldPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' is null)) ' + #13#10;
     end;
     if Result <> '' then Result := Result + ' or ';
     Result :=
@@ -4002,18 +4102,19 @@ begin
     Result := '  changefields = ''''; ' + #13#10;
     for i := 0 to FIE.GetFeaturesCount(ftType) - 1 do
     begin
-      Result := Result + ' if (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' <> ' +
-          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + #13#10 +
-        ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is null and '  +
-          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is not null) ' + #13#10 +
-        ' or (' + StringReplace(FIE.GetFeature(ftType, i), 'usr$', NewPrefix, [rfIgnoreCase]) + ' is not null and '  +
-          StringReplace(FIE.GetFeature(ftType, i), 'usr$', OldPrefix, [rfIgnoreCase]) + ' is null)) then ' + #13#10 +
+      Result := Result + ' if (' +
+          NewPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' <> ' +
+          OldPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + #13#10 +
+        ' or (' + NewPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' is null and '  +
+          OldPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' is not null) ' + #13#10 +
+        ' or (' + NewPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' is not null and '  +
+          OldPrefix + GetFieldAlias(FIE.GetFeature(ftType, i)) + ' is null)) then ' + #13#10 +
         '    begin ' + #13#10 +
         '      select id from AT_RELATION_FIELDS where FIELDNAME = ''' + FIE.GetFeature(ftType, i) + ''' and RelationName = ''INV_CARD''' + #13#10 +
         '      into :fieldkey; ' + #13#10 +
         '      if (changefields <> '''') then ' + #13#10 +
         '       changefields = changefields || '','';' + #13#10 +
-        '      changefields = changefields || CAST(fieldkey as VARCHAR(10)); ' + #13#10 +
+        '      changefields = changefields || CAST(fieldkey as VARCHAR(20)); ' + #13#10 +
         '      ' + s + ' = 1; ' + #13#10 +
         '    end ' + #13#10;
 
@@ -4024,11 +4125,14 @@ begin
       '      select LIST(DISTINCT cardkey) from inv_movement ' + #13#10 +
       '      WHERE documentkey = NEW.DOCUMENTKEY ' + #13#10 +
       '      INTO :cardstring; ' + #13#10 +
-      '      sqlstatement = ''select FIRST(1) m.documentkey from inv_movement m ' +
-      '      where m.cardkey in ('' || cardstring || '') and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(10)); ' + #13#10 +
+      '      if (cardstring is not null) then ' + #13#10 +
+      '      begin ' + #13#10 +
+      '        sqlstatement = ''select FIRST(1) m.documentkey from inv_movement m ' + #13#10 +
+      '      where m.cardkey in ('' || cardstring || '') and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(20)); ' + #13#10 +
       '      EXECUTE STATEMENT sqlstatement INTO :dockey; ' + #13#10 +
       '      if (dockey is not null) then ' + #13#10 +
       '        EXCEPTION INV_E_CANNTCHANGEGOODKEY; ' + #13#10 +
+      '    end ' + #13#10 +
       '    end ' + #13#10 +
       '    if (changefields <> '''') then ' + #13#10 +
       '    begin ' + #13#10 +
@@ -4045,26 +4149,25 @@ begin
       '         inner join tree prior ON prior.id = c.parent) ' + #13#10 +
       '      select LIST(tr.id) from tree tr ' + #13#10 +
       '      INTO :cardstring; ' + #13#10 +
+      '      if (dtstring is not null and cardstring is not null ) then ' + #13#10 +
+      '      begin ' + #13#10 +
       '      if (ischeckdestfeatures = 1) then ' + #13#10 +
       '      begin ' + #13#10 +
-      '        if (dtstring is not null) then ' + #13#10 +
-      '        begin ' + #13#10 +
       '          sqlstatement = ''select FIRST(1) m.documentkey, m1.id from inv_movement m join gd_document doc ON ' +
       'm.documentkey = doc.id  LEFT JOIN inv_movement m1 ON m.documentkey = m1.documentkey and ' +
       'm1.credit <> 0 and    not (m1.CARDKEY in ('' || cardstring || '')) where  m.cardkey in ('' || cardstring || '') ' +
-      'and doc.documenttypekey in ('' || dtstring || '') and  m.credit <> 0 and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(10)); ' + #13#10 +
+      'and doc.documenttypekey in ('' || dtstring || '') and  m.credit <> 0 and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(20)); ' + #13#10 +
       '          EXECUTE STATEMENT sqlstatement INTO :dockey, :badmovekey; ' + #13#10 +
       '          if (badmovekey is not null) then ' + #13#10 +
       '            EXCEPTION INV_E_CANNTCHANGEFEATURE; ' + #13#10 +
       '        end ' + #13#10 +
-      '      end ' + #13#10 +
-      '      sqlstatement = ''INSERT INTO GD_CHANGEDDOC (changedfields, sourcedockey, destdockey, editiondate, editorkey) select DISTINCT '''''' || changefields || '''''''' || '','' ' +
-      ' || CAST(NEW.documentkey as VARCHAR(10)) || '', m.documentkey, doc.editiondate, doc.editorkey from inv_movement m join gd_document doc ON ' +
-      'm.documentkey = doc.id  ' +
-      'where  m.cardkey in ('' || cardstring || '') ' +
-      'and doc.documenttypekey in ('' || dtstring || '') and  m.credit <> 0 and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(10)) || '' ' +
-      'and (NOT EXISTS (SELECT * FROM gd_changeddoc WHERE destdockey = m.documentkey AND sourcedockey = '' || CAST(NEW.documentkey as VARCHAR(10)) || ''))''; ' + #13#10 +
+      '        sqlstatement = ''INSERT INTO GD_CHANGEDDOC (changedfields, sourcedockey, destdockey, editiondate, editorkey) select DISTINCT '''''' || changefields || '''''''' || '','' ' + #13#10 +
+      '                       || CAST(NEW.documentkey as VARCHAR(20)) || '', m.documentkey, doc.editiondate, doc.editorkey from inv_movement m join gd_document doc ON m.documentkey = doc.id  ' + #13#10 +
+      '                       where  m.cardkey in ('' || cardstring || '') ' + #13#10 +
+      '                       and doc.documenttypekey in ('' || dtstring || '') and  m.credit <> 0 and m.documentkey <> '' || CAST(NEW.documentkey as VARCHAR(20)) || '' ' + #13#10 +
+      'and (NOT EXISTS (SELECT * FROM gd_changeddoc WHERE destdockey = m.documentkey AND sourcedockey = '' || CAST(NEW.documentkey as VARCHAR(20)) || ''))''; ' + #13#10 +
       '      EXECUTE STATEMENT sqlstatement; ' + #13#10 +
+      '      end ' + #13#10 +
       '    end ' + #13#10
 
 
@@ -4096,9 +4199,9 @@ begin
     if not OnlyFeatures then
     begin
       if s <> '' then s := s + ',';
-      s:= s + 'goodkey, checkremains, minusremains, ischeckdestfeatures';
+      s:= s + 'goodkey, minusremains, ischeckdestfeatures';
       if s1 <> '' then s1 := s1 + ',';
-      s1 := s1 + ':goodkey, :checkremains, :minusremains, :ischeckdestfeatures';
+      s1 := s1 + ':goodkey, :minusremains, :ischeckdestfeatures';
     end;
     if s <> '' then
       Result :=
@@ -4107,12 +4210,12 @@ begin
           '    where documentkey = NEW.documentkey  ' + Result + #13#10 +
           '    into ' + s1 + '; ' + #13#10 +
           '    if (ROW_COUNT = 0) then '  + #13#10 +
-          '      select ' + StringReplace(StringReplace(StringReplace(s, 'checkremains', 'CAST(' + IntToStr(Integer(FIE.GetFlag(efControlRemains))) +
-                ' as INTEGER) as checkremains', [rfIgnoreCase]),
+          '      select ' + StringReplace(StringReplace(s,
                'minusremains', 'CAST(0 as INTEGER) as minusremains', [rfIgnoreCase]), 'ischeckdestfeatures', 'CAST(1 as INTEGER) as ischeckdestfeatures', [rfIgnoreCase])  + ' from ' + #13#10 +
           '      inv_card ' + #13#10 +
           '      where id = NEW.' + FieldName + #13#10 +
-          '      into ' + s1 + ';' + #13#10
+          '      into ' + s1 + ';' + #13#10 +
+          '     checkremains = NEW.checkremains; '
 
     else
       Result := '';
@@ -4214,17 +4317,17 @@ begin
     ftWhat := ftSource;
 
   Result :=
-    FixedVariableList + #13#10 + MakeFieldList(ftWhat, 'usr$') + ConstTriggerText +
+    FixedVariableList + #13#10 + MakeFieldList(ftWhat, '') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
-          '  begin ' + #13#10 + GetReadFeatureSQL(ftWhat, #0, True, False, 'usr$'),
+          '  begin ' + #13#10 + GetReadFeatureSQL(ftWhat, #0, True, False, ''),
           [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(FIE.GetMovement(emCredit), True) +
           GetMovementContactSQL(FIE.GetMovement(emDebit), False);
 
   if FIE.GetFeaturesCount(ftSource) > 0 then
     Result := Result +
-        '    if (delayed = 0) then ' + #13#10 +
+        '    if (delayed = 0 and coalesce(NEW.quantity, 0) <> 0) then ' + #13#10 +
         '    begin ' + #13#10 +
         '      tmpquantity = NEW.quantity; ' + #13#10 +
         GetChooseRemainsSQL(ftSource) +
@@ -4234,7 +4337,7 @@ begin
         '         else ' + #13#10 +
         '           quant = tmpquantity; ' + #13#10 +
         '         NEW.fromcardkey = :id; ' + #13#10 +
-        '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '         EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
@@ -4244,10 +4347,10 @@ begin
         ' ' + #13#10 +
         '         tmpquantity = tmpquantity - quant; ' + #13#10 +
         '       end ' + #13#10 +
-        '       if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '       if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
         '       begin ' + #13#10 +
-        GetNewCardSQL(ftSource, 'usr$') +
-        '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        GetNewCardSQL(ftSource, '') +
+        '         EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -4261,24 +4364,24 @@ begin
         '    end ' + #13#10 +
         '    else ' + #13#10 +
         '    begin ' + #13#10 +
-        GetNewCardSQL(ftSource, 'usr$') +
+        GetNewCardSQL(ftSource, '') +
         '      NEW.fromcardkey = :id; ' + #13#10 +
         '    end ' + #13#10 +
         '  end ' + #13#10
    else
      Result := Result +
           '                                         ' + #13#10 +
-          ' ' + #13#10 + GetNewCardSQL(ftWhat, 'usr$') +
+          ' ' + #13#10 + GetNewCardSQL(ftWhat, '') +
           '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
           '    NEW.fromcardkey = :id; ' + #13#10 +
           ' ' + #13#10 +
-          '    if (delayed = 0) then ' + #13#10 +
+          '    if (delayed = 0 and coalesce(NEW.quantity, 0) <> 0) then ' + #13#10 +
           '    begin ' + #13#10 +
           '/* если документ не отложенный создаем движение */ ' + #13#10 +
           '/* из шапки документа достаем значение откуда и куда */ ' + #13#10 +
           '      if (minusremains = 0) then ' + #13#10 +
           '      begin ' + #13#10 +
-          '        movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          '        EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
           ' ' + #13#10 +
           '  /* добавляем значения в inv_movememt */ ' + #13#10 +
           ' ' + #13#10 +
@@ -4298,7 +4401,7 @@ begin
           '         else ' + #13#10 +
           '           quant = tmpquantity; ' + #13#10 +
           '         NEW.fromcardkey = :id; ' + #13#10 +
-          '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          '         EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
           ' ' + #13#10 +
           '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
           '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
@@ -4330,28 +4433,28 @@ begin
 
   Result :=
     FixedVariableList + #13#10 +
-    '  declare variable oldgoodkey integer; ' + #13#10 +
-    '  declare variable oldfromcontactkey integer; ' + #13#10 +
-    '  declare variable oldtocontactkey integer; ' + #13#10 +
+    '  declare variable oldgoodkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable oldfromcontactkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable oldtocontactkey DFOREIGNKEY; ' + #13#10 +
     '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
     '  declare variable ischange dboolean; ' + #13#10 +
-    '  declare variable sqlstatement VARCHAR(1024); ' + #13#10 +
-    '  declare variable changefields VARCHAR(1024); ' + #13#10 +
+    '  declare variable sqlstatement VARCHAR(4096); ' + #13#10 +
+    '  declare variable changefields VARCHAR(4096); ' + #13#10 +
     '  declare variable dtstring VARCHAR(1024); ' + #13#10 +
     '  declare variable cardstring VARCHAR(1024); ' + #13#10 +
-    '  declare variable fieldkey INTEGER; ' + #13#10 +
-    '  declare variable dockey INTEGER; ' + #13#10 +
-    '  declare variable badmovekey INTEGER; ' + #13#10 +
-    MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') + ConstTriggerText +
+    '  declare variable fieldkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable dockey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable badmovekey DFOREIGNKEY; ' + #13#10 +
+    MakeFieldList(Features, '') + MakeFieldList(Features, 'o') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
-          '  begin ' + #13#10 + GetReadFeatureSQL(Features, #0, True, False, 'usr$'),
-          [FieldByName('ruid').AsString]) + GetReadFeatureSQL(Features, #0, False, False, 'old$') +
+          '  begin ' + #13#10 + GetReadFeatureSQL(Features, #0, True, False, ''),
+          [FieldByName('ruid').AsString]) + GetReadFeatureSQL(Features, #0, False, False, 'o') +
         GetMovementContactSQL(FIE.GetMovement(emCredit), True) +
         GetMovementContactSQL(FIE.GetMovement(emDebit), False) +
         GetOldMovementContactSQL(FIE.GetMovement(emCredit), True) +
         GetOldMovementContactSQL(FIE.GetMovement(emDebit), False) +
-        GetCheckFeaturesSQL(Features, 'usr$', 'old$') +
+        GetCheckFeaturesSQL(Features, '', 'o') +
         GetOldDocumentDateSQL;
 
     if FIE.GetFlag(efLiveTimeRemains) then
@@ -4369,7 +4472,7 @@ begin
            '        begin ' + #13#10 +
            '        if (olddocumentdate <> documentdate) then ' + #13#10 +
            '        begin ' + #13#10 +
-           '          if (checkremains = 1 and olddocumentdate > documentdate) then ' + #13#10 +
+           '          if (NEW.checkremains = 1 and olddocumentdate > documentdate) then ' + #13#10 +
            '          begin ' + #13#10 +  GetCheckRemainsOnDateSQL(True) +
            '          end ' + #13#10 +
            '          if (olddocumentdate < documentdate) then ' + #13#10 +
@@ -4384,7 +4487,7 @@ begin
         '      DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
         '    else ' + #13#10 +
         '    begin ' + #13#10 +
-        '      rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', :checkremains); ' + #13#10 +
+        '      rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', NEW.checkremains); ' + #13#10 +
         '      if ((ischange = 1) or (oldfromcontactkey <> fromcontactkey) or (olddocumentdate IS NULL) or (NOT EXISTS (select id from inv_movement where documentkey = NEW.documentkey))) then ' + #13#10 +
         '      begin ' + #13#10 +
         '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
@@ -4397,7 +4500,7 @@ begin
         '           else ' + #13#10 +
         '             quant = tmpquantity; ' + #13#10 +
         '           NEW.fromcardkey = :id; ' + #13#10 +
-        '           movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '           EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '           INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '           VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
@@ -4407,10 +4510,10 @@ begin
         ' ' + #13#10 +
         '           tmpquantity = tmpquantity - quant; ' + #13#10 +
         '         end ' + #13#10 +
-        '         if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '         if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
         '         begin ' + #13#10 +
-        GetNewCardSQL(Features, 'USR$') +
-        '           movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        GetNewCardSQL(Features, '') +
+        '           EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '           INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '           VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -4440,7 +4543,7 @@ begin
         '             quant = remains; ' + #13#10 +
         '           else ' + #13#10 +
         '             quant = tmpquantity; ' + #13#10 +
-        '           movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '           EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '           INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '           VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
@@ -4450,10 +4553,10 @@ begin
         ' ' + #13#10 +
         '           tmpquantity = tmpquantity - quant; ' + #13#10 +
         '         end ' + #13#10 +
-        '         if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '         if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
         '         begin ' + #13#10 +
-        GetNewCardSQL(Features, 'usr$') +
-        '           movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        GetNewCardSQL(Features, '') +
+        '           EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '           INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '           VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -4510,7 +4613,7 @@ begin
           '                                         ' + #13#10 +
           '    rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', 0); ' + #13#10 +
           '      if (ischange = 1) then ' + #13#10 +
-          '      begin ' + #13#10 + GetMakeUpdateCardSQL(Features, 'usr$') + #13#10 +
+          '      begin ' + #13#10 + GetMakeUpdateCardSQL(Features, '') + #13#10 +
           '      end ' + #13#10 +
           '    if (delayed = 1) then ' + #13#10 +
           '      DELETE FROM inv_movement WHERE documentkey = NEW.documentkey;' + #13#10 +
@@ -4519,7 +4622,7 @@ begin
           '/* если документ не отложенный создаем движение */ ' + #13#10 +
           '      if (not exists(select id from inv_movement where documentkey = NEW.documentkey)) then ' + #13#10 +
           '      begin ' + #13#10 +
-          '        movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          '        EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
           ' ' + #13#10 +
           '  /* добавляем значения в inv_movememt */ ' + #13#10 +
           ' ' + #13#10 +
@@ -4613,15 +4716,15 @@ function CreateInsertTrigger_ChangeFeatureDoc: String;
 begin
 
   Result :=
-    FixedVariableList + #13#10 + MakeFieldList(ftSource, 'usr$') + MakeFieldList(ftDest, 'new$') + ConstTriggerText +
+    FixedVariableList + #13#10 + MakeFieldList(ftSource, '') + MakeFieldList(ftDest, 'n') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
-          '  begin ' + #13#10 + GetReadFeatureSQL(ftSource, 'F', True, False, 'usr$') +
-          GetReadFeatureSQL(ftDest, 'T', True, True, 'new$'),
+          '  begin ' + #13#10 + GetReadFeatureSQL(ftSource, 'F', True, False, '') +
+          GetReadFeatureSQL(ftDest, 'T', True, True, 'n'),
           [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(FIE.GetMovement(emCredit), True) +
           GetMovementContactSQL(FIE.GetMovement(emDebit), False) +
-        '    if (delayed = 0) then ' + #13#10 +
+        '    if (delayed = 0 and coalesce(NEW.quantity, 0) <> 0) then ' + #13#10 +
         '    begin ' + #13#10 +
         '      tmpquantity = NEW.quantity; ' + #13#10;
      if not FIE.GetFlag(efWithoutSearchRemains) then
@@ -4634,9 +4737,9 @@ begin
           '           quant = tmpquantity; ' + #13#10 +
           '         NEW.fromcardkey = :id; ' + #13#10 +
           '         cardkey = :id; ' + #13#10 +
-          GetNewCardSQL(ftDest, 'new$') +
+          GetNewCardSQL(ftDest, 'n') +
           '      NEW.tocardkey = :id; ' + #13#10 +
-          '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          '         EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
           ' ' + #13#10 +
           '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
           '         VALUES (:movementkey, NEW.documentkey, :goodkey, NEW.fromcardkey, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
@@ -4647,15 +4750,15 @@ begin
           '         tmpquantity = tmpquantity - quant; ' + #13#10 +
           '       end ' + #13#10;
       Result := Result +
-        '       if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '       if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
         '       begin ' + #13#10 +
-        GetNewCardSQL(ftSource, 'usr$') +
+        GetNewCardSQL(ftSource, '') +
         '         NEW.fromcardkey = :id; ' + #13#10 +
         '         cardkey = :id; ' + #13#10 +
         '         firstdocumentkey = NEW.documentkey; ' + #13#10 +
-        GetNewCardSQL(ftDest, 'new$') +
+        GetNewCardSQL(ftDest, 'n') +
         '         NEW.tocardkey = :id; ' + #13#10 +
-        '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '         EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '         VALUES (:movementkey, NEW.documentkey, :goodkey, NEW.fromcardkey, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -4669,11 +4772,11 @@ begin
         '    end ' + #13#10 +
         '    else ' + #13#10 +
         '    begin ' + #13#10 +
-        GetNewCardSQL(ftSource, 'usr$') +
+        GetNewCardSQL(ftSource, '') +
         '      NEW.fromcardkey = :id; ' + #13#10 +
         '      cardkey = :id; ' + #13#10 +
         '      firstdocumentkey = NEW.documentkey; ' + #13#10 +
-        GetNewCardSQL(ftDest, 'new$') +
+        GetNewCardSQL(ftDest, 'n') +
         '      NEW.tocardkey = :id; ' + #13#10 +
         '    end ' + #13#10 +
         '  end ' + #13#10 +
@@ -4697,7 +4800,7 @@ begin
     else
       s := '        if (isdeletemovement = 0 and olddocumentdate <> documentdate) then ' + #13#10 +
            '        begin ' + #13#10 +
-           '          if (checkremains = 1 and olddocumentdate > documentdate) then ' + #13#10 +
+           '          if (NEW.checkremains = 1 and olddocumentdate > documentdate) then ' + #13#10 +
            '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(True) +
            '          end ' + #13#10 +
            '          if (olddocumentdate < documentdate) then ' + #13#10 +
@@ -4707,40 +4810,40 @@ begin
 
   Result :=
     FixedVariableList + #13#10 +
-    MakeFieldList(ftSource, 'usr$') +
-    MakeFieldList(ftDest, 'new$') +
-    MakeFieldList(ftSource, 'old$') +
-    '  declare variable oldgoodkey integer; ' + #13#10 +
-    '  declare variable oldfromcontactkey integer; ' + #13#10 +
-    '  declare variable oldtocontactkey integer; ' + #13#10 +
+    MakeFieldList(ftSource, '') +
+    MakeFieldList(ftDest, 'n') +
+    MakeFieldList(ftSource, 'o') +
+    '  declare variable oldgoodkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable oldfromcontactkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable oldtocontactkey DFOREIGNKEY; ' + #13#10 +
     '  declare variable ischange DBOOLEAN; ' + #13#10 +
     '  declare variable istochange DBOOLEAN; ' + #13#10 +
     '  declare variable oldquantity DQUANTITY; ' + #13#10 +
-    '  declare variable sqlstatement VARCHAR(1024); ' + #13#10 +
-    '  declare variable changefields VARCHAR(1024); ' + #13#10 +
+    '  declare variable sqlstatement VARCHAR(4096); ' + #13#10 +
+    '  declare variable changefields VARCHAR(4096); ' + #13#10 +
     '  declare variable dtstring VARCHAR(1024); ' + #13#10 +
     '  declare variable cardstring VARCHAR(1024); ' + #13#10 +
-    '  declare variable fieldkey INTEGER; ' + #13#10 +
-    '  declare variable dockey INTEGER; ' + #13#10 +
-    '  declare variable badmovekey INTEGER; ' + #13#10 +
+    '  declare variable fieldkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable dockey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable badmovekey DFOREIGNKEY; ' + #13#10 +
     MakeFieldList(ftDest, 'to$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-          GetReadFeatureSQL(ftSource, 'F', True, False, 'usr$') +
-          GetReadFeatureSQL(ftDest, 'T', True, True, 'new$'),
+          GetReadFeatureSQL(ftSource, 'F', True, False, '') +
+          GetReadFeatureSQL(ftDest, 'T', True, True, 'n'),
                     [FieldByName('ruid').AsString]) +
-          GetReadFeatureSQL(ftSource, 'F', False, False, 'old$') +
+          GetReadFeatureSQL(ftSource, 'F', False, False, 'o') +
           GetReadFeatureSQL(ftDest, 'T', False, False, 'to$') +
       GetMovementContactSQL(FIE.GetMovement(emCredit), True) +
       GetMovementContactSQL(FIE.GetMovement(emDebit), False) +
       GetOldMovementContactSQL(FIE.GetMovement(emCredit), True) +
       GetOldMovementContactSQL(FIE.GetMovement(emDebit), False) +
-      GetCheckFeaturesSQL(ftSource, 'usr$', 'old$') +
-      GetCheckFeaturesSQL(ftDest, 'new$', 'to$') +
+      GetCheckFeaturesSQL(ftSource, '', 'o') +
+      GetCheckFeaturesSQL(ftDest, 'n', 'to$') +
       GetOldDocumentDateSQL +
-        '    rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', :checkremains); ' + #13#10 +
-        '    if (delayed = 0) then ' + #13#10 +
+        '    rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', NEW.checkremains); ' + #13#10 +
+        '    if (delayed = 0 and coalesce(NEW.quantity, 0) <> 0) then ' + #13#10 +
         '    begin ' + #13#10 +
         '      if (not exists(select id from inv_movement where documentkey = NEW.documentkey)) then ' + #13#10 +
         '        isdeletemovement = 1; ' + #13#10 +
@@ -4771,9 +4874,9 @@ begin
           '             quant = tmpquantity; ' + #13#10 +
           '           NEW.fromcardkey = :id; ' + #13#10 +
           '           cardkey = :id; ' + #13#10 +
-          GetNewCardSQL(ftDest, 'new$') +
+          GetNewCardSQL(ftDest, 'n') +
           '           NEW.tocardkey = :id; ' + #13#10 +
-          '           movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          '           EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
           ' ' + #13#10 +
           '           INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
           '           VALUES (:movementkey, NEW.documentkey, :goodkey, NEW.fromcardkey, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
@@ -4784,15 +4887,15 @@ begin
           '           tmpquantity = tmpquantity - quant; ' + #13#10 +
           '         end ' + #13#10;
       Result := Result +
-        '         if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '         if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
         '         begin ' + #13#10 +
-        GetNewCardSQL(ftSource, 'usr$') +
+        GetNewCardSQL(ftSource, '') +
         '           NEW.fromcardkey = :id; ' + #13#10 +
         '           cardkey = :id; ' + #13#10 +
         '           firstdocumentkey = NEW.documentkey; ' + #13#10 +
-        GetNewCardSQL(ftDest, 'new$') +
+        GetNewCardSQL(ftDest, 'n') +
         '           NEW.tocardkey = :id; ' + #13#10 +
-        '           movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '           EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '           INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '           VALUES (:movementkey, NEW.documentkey, :goodkey, NEW.fromcardkey, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -4849,17 +4952,17 @@ begin
         '           end ' + #13#10 +
         '         end ' + #13#10 + S +
         '      if (istochange = 1 and ischange = 0 and fromcontactkey = oldfromcontactkey) then ' + #13#10 +
-        '      begin ' + #13#10 + GetMakeUpdateCardSQL(ftDest, 'new$') +
+        '      begin ' + #13#10 + GetMakeUpdateCardSQL(ftDest, 'n') +
         '      end ' + #13#10 +
         '    end ' + #13#10 +
         '    else ' + #13#10 +
         '    begin ' + #13#10 +
         '      DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
-        GetNewCardSQL(ftSource, 'usr$') +
+        GetNewCardSQL(ftSource, '') +
         '      NEW.fromcardkey = :id; ' + #13#10 +
         '      cardkey = :id; ' + #13#10 +
         '      firstdocumentkey = NEW.documentkey; ' + #13#10 +
-        GetNewCardSQL(ftDest, 'new$') +
+        GetNewCardSQL(ftDest, 'n') +
         '      NEW.tocardkey = :id; ' + #13#10 +
         '    end ' + #13#10 +
         '  end ' + #13#10 +
@@ -4875,13 +4978,13 @@ begin
   Features := ftSource;
 
   Result :=
-    FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') +
-    ' declare variable oldgoodkey integer; ' + #13#10 +
-    ' declare variable ischange integer; ' + #13#10 + ConstTriggerText +
+    FixedVariableList + #13#10 + MakeFieldList(Features, '') + MakeFieldList(Features, 'o') +
+    ' declare variable oldgoodkey DFOREIGNKEY; ' + #13#10 +
+    ' declare variable ischange dboolean; ' + #13#10 + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-               GetReadFeatureSQL(Features, 'F', True, False, 'usr$'),
+               GetReadFeatureSQL(Features, 'F', True, False, ''),
           [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(FIE.GetMovement(emCredit), True) +
         '    tocontactkey = fromcontactkey; ' + #13#10 +
@@ -4897,17 +5000,17 @@ begin
         '         else ' + #13#10 +
         '           quant = tmpquantity; ' + #13#10 +
         '         NEW.fromcardkey = :id; ' + #13#10 +
-        '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '         EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
         ' ' + #13#10 +
         '         tmpquantity = tmpquantity - quant; ' + #13#10 +
         '       end ' + #13#10 +
-        '       if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '       if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
         '       begin ' + #13#10 +
-        GetNewCardSQL(Features, 'usr$') +
-        '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        GetNewCardSQL(Features, '') +
+        '         EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -4918,7 +5021,7 @@ begin
         '    end ' + #13#10 +
         '    else ' + #13#10 +
         '    begin ' + #13#10 +
-        GetNewCardSQL(Features, 'usr$') +
+        GetNewCardSQL(Features, '') +
         '      NEW.fromcardkey = :id; ' + #13#10 +
         '    end ' + #13#10 +
         '    end ' + #13#10 +
@@ -4926,26 +5029,26 @@ begin
         '    begin ' + #13#10 +
         '      if (NEW.fromcardkey is NULL) then ' + #13#10 +
         '      begin ' + #13#10 +
-        '   ' + #13#10 + GetNewCardSQL(Features, 'usr$') +
+        '   ' + #13#10 + GetNewCardSQL(Features, '') +
         '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
         '        NEW.fromcardkey = :id; ' + #13#10 +
         '      end ' + #13#10 +
         '      else '  + #13#10 +
-        '      begin '  + #13#10 + GetReadFeatureSQL(Features, 'N', False, False, 'old$') +
-             GetCheckFeaturesSQL(Features, 'usr$', 'old$') +
+        '      begin '  + #13#10 + GetReadFeatureSQL(Features, 'N', False, False, 'o') +
+             GetCheckFeaturesSQL(Features, '', 'o') +
         '        if (ischange = 1) then ' + #13#10 +
         '        begin ' + #13#10 +
-        '   ' + #13#10 + GetNewCardSQL(Features, 'usr$') +
+        '   ' + #13#10 + GetNewCardSQL(Features, '') +
         '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
         '          NEW.fromcardkey = :id; ' + #13#10 +
         '        end ' + #13#10 +
         '      end '  + #13#10 +
         ' ' + #13#10 +
-        '    if (delayed = 0) then ' + #13#10 +
+        '    if (delayed = 0 and coalesce(NEW.toquantity, 0) - coalesce(NEW.fromquantity, 0) <> 0) then ' + #13#10 +
         '    begin ' + #13#10 +
         '/* если документ не отложенный создаем движение */ ' + #13#10 +
         '/* из шапки документа достаем значение откуда и куда */ ' + #13#10 +
-        '      movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '      EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '  /* добавляем значения в inv_movememt */ ' + #13#10 +
         ' ' + #13#10 +
@@ -4967,21 +5070,21 @@ begin
   Features := ftSource;
 
   Result :=
-    FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') +
-    '  declare variable oldgoodkey integer; ' + #13#10 +
-    '  declare variable oldfromcontactkey integer; ' + #13#10 +
-    '  declare variable oldtocontactkey integer; ' + #13#10 +
+    FixedVariableList + #13#10 + MakeFieldList(Features, '') + MakeFieldList(Features, 'o') +
+    '  declare variable oldgoodkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable oldfromcontactkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable oldtocontactkey DFOREIGNKEY; ' + #13#10 +
     '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
-    '  declare variable ischange integer; ' + #13#10 + ConstTriggerText +
+    '  declare variable ischange dboolean; ' + #13#10 + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-               GetReadFeatureSQL(Features, 'F', True, False, 'usr$'),
+               GetReadFeatureSQL(Features, 'F', True, False, ''),
           [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(FIE.GetMovement(emCredit), True) +
           GetOldMovementContactSQL(FIE.GetMovement(emCredit), True) +
-          GetReadFeatureSQL(Features, 'F', False, False, 'old$') +
-             GetCheckFeaturesSQL(Features, 'usr$', 'old$') +
+          GetReadFeatureSQL(Features, 'F', False, False, 'o') +
+             GetCheckFeaturesSQL(Features, '', 'o') +
              GetOldDocumentDateSQL +
         '    tocontactkey = fromcontactkey; ' + #13#10 +
         '    oldtocontactkey = oldfromcontactkey; ' + #13#10 +
@@ -5002,17 +5105,17 @@ begin
         '            else ' + #13#10 +
         '              quant = tmpquantity; ' + #13#10 +
         '            NEW.fromcardkey = :id; ' + #13#10 +
-        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '            EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
         ' ' + #13#10 +
         '            tmpquantity = tmpquantity - quant; ' + #13#10 +
         '          end ' + #13#10 +
-        '          if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '          if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
         '          begin ' + #13#10 +
-        GetNewCardSQL(Features, 'usr$') +
-        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        GetNewCardSQL(Features, '') +
+        '            EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -5025,7 +5128,7 @@ begin
         '       begin ' + #13#10 +
         '         if (ischange = 1 or NEW.fromcardkey is null) then ' + #13#10 +
         '         begin ' + #13#10 +
-        GetNewCardSQL(Features, 'usr$') +
+        GetNewCardSQL(Features, '') +
         '         NEW.fromcardkey = :id; ' + #13#10 +
         '         end ' + #13#10 +
         '       end ' + #13#10 +
@@ -5034,7 +5137,7 @@ begin
         '      begin ' + #13#10 +
         '        if (NEW.fromcardkey is NULL) then ' + #13#10 +
         '        begin ' + #13#10 +
-        '      ' + #13#10 + GetNewCardSQL(Features, 'usr$') +
+        '      ' + #13#10 + GetNewCardSQL(Features, '') +
         '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
         '           NEW.fromcardkey = :id; ' + #13#10 +
         '        end ' + #13#10 +
@@ -5042,17 +5145,17 @@ begin
         '        begin '  + #13#10 +
         '          if (ischange = 1) then ' + #13#10 +
         '          begin ' + #13#10 +
-        '   ' + #13#10 + GetNewCardSQL(Features, 'usr$') +
+        '   ' + #13#10 + GetNewCardSQL(Features, '') +
         '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
         '            NEW.fromcardkey = :id; ' + #13#10 +
         '          end ' + #13#10 +
         '        end '  + #13#10 +
         ' ' + #13#10 +
-        '        if (delayed = 0) then ' + #13#10 +
+        '        if (delayed = 0 and coalesce(NEW.toquantity, 0) - coalesce(NEW.fromquantity, 0) <> 0) then ' + #13#10 +
         '        begin ' + #13#10 +
         '/* если документ не отложенный создаем движение */ ' + #13#10 +
         '/* из шапки документа достаем значение откуда и куда */ ' + #13#10 +
-        '          movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '          EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '  /* добавляем значения в inv_movememt */ ' + #13#10 +
         ' ' + #13#10 +
@@ -5077,17 +5180,17 @@ begin
         '            else ' + #13#10 +
         '              quant = tmpquantity; ' + #13#10 +
         '            NEW.fromcardkey = :id; ' + #13#10 +
-        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '            EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
         ' ' + #13#10 +
         '            tmpquantity = tmpquantity - quant; ' + #13#10 +
         '          end ' + #13#10 +
-        '          if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '          if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
         '          begin ' + #13#10 +
-        GetNewCardSQL(Features, 'usr$') +
-        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        GetNewCardSQL(Features, '') +
+        '            EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -5098,7 +5201,7 @@ begin
         '        end ' + #13#10 +
         '        else ' + #13#10 +
         '        begin ' + #13#10 +
-        '           rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', :checkremains); ' + #13#10 +
+        '           rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', NEW.checkremains); ' + #13#10 +
         '           tmpquantity = abs(oldquantity); ' + #13#10 +
         '           for ' + #13#10 +
         '             select m.movementkey, SUM(m.credit) ' + #13#10 +
@@ -5139,7 +5242,7 @@ begin
         '      end   ' + #13#10 +
         '      if (olddocumentdate <> documentdate) then ' + #13#10 +
         '      begin ' + #13#10 +
-        '          if (checkremains = 1 and olddocumentdate > documentdate and NEW.fromquantity > NEW.toquantity) then ' + #13#10 +
+        '          if (NEW.checkremains = 1 and olddocumentdate > documentdate and NEW.fromquantity > NEW.toquantity) then ' + #13#10 +
         '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(True) +
         '          end ' + #13#10 +
         '          if (olddocumentdate < documentdate and NEW.fromquantity < NEW.toquantity) then ' + #13#10 +
@@ -5156,30 +5259,30 @@ function CreateInsertTrigger_TransformationDoc: String;
 begin
 
   Result :=
-    FixedVariableList + #13#10 + MakeFieldList(ftSource, 'usr$') + MakeFieldList(ftDest, 'new$') + ConstTriggerText +
+    FixedVariableList + #13#10 + MakeFieldList(ftSource, '') + MakeFieldList(ftDest, 'n') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-          '    if (coalesce(NEW.outquantity, 0) <> 0) then ' + #13#10 +
+          '    if (NEW.viewmovementpart = ''I'') then ' + #13#10 +
           '    begin ' + #13#10 +
-                 GetReadFeatureSQL(ftSource, 'F', True, False, 'usr$') +
+                 GetReadFeatureSQL(ftSource, 'F', True, False, '') +
           '    end ' + #13#10 +
           '    else '  + #13#10 +
           '    begin '  + #13#10 +
-                 GetReadFeatureSQL(ftDest, 'T', True, False, 'new$') +
+                 GetReadFeatureSQL(ftDest, 'T', True, False, 'n') +
           '    end ' + #13#10,
           [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(FIE.GetMovement(emCredit), True) +
           GetMovementContactSQL(FIE.GetMovement(emDebit), False) +
-          '    if (delayed = 0) then ' + #13#10 +
+          '    if (delayed = 0 and (coalesce(NEW.inquantity, 0) <> 0 or coalesce(NEW.outquantity, 0) <> 0)) then ' + #13#10 +
           '    begin ' + #13#10 +
-          '      if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
+          '      if (NEW.viewmovementpart = ''I'') then ' + #13#10 +
           '      begin ' + #13#10 +
           '        firstdocumentkey = NEW.documentkey; ' + #13#10 +
-          ' ' + #13#10 + GetNewCardSQL(ftDest, 'new$') +
+          ' ' + #13#10 + GetNewCardSQL(ftDest, 'n') +
           '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
           '    NEW.fromcardkey = :id; ' + #13#10 +
-          '        movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          '        EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
           ' ' + #13#10 +
           '  /* добавляем значения в inv_movememt */ ' + #13#10 +
           ' ' + #13#10 +
@@ -5196,17 +5299,17 @@ begin
           '         else ' + #13#10 +
           '           quant = tmpquantity; ' + #13#10 +
           '         NEW.fromcardkey = :id; ' + #13#10 +
-          '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          '         EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
           ' ' + #13#10 +
           '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
           '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
           ' ' + #13#10 +
           '         tmpquantity = tmpquantity - quant; ' + #13#10 +
           '       end ' + #13#10 +
-          '       if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+          '       if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
           '       begin ' + #13#10 +
-          GetNewCardSQL(ftSource, 'usr$') +
-          '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          GetNewCardSQL(ftSource, '') +
+          '         EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
           ' ' + #13#10 +
           '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
           '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -5219,14 +5322,14 @@ begin
           '    else  ' + #13#10 +
           '  /* Если документ отложенный то не формируем движение */  ' + #13#10 +
           '    begin ' + #13#10 +
-          '      if (coalesce(NEW.outquantity, 0) <> 0) then ' + #13#10 +
+          '      if (NEW.viewmovementpart = ''E'') then ' + #13#10 +
           '      begin ' + #13#10 +
-                 GetNewCardSQL(ftSource, 'usr$') + #13#10 +
+                 GetNewCardSQL(ftSource, '') + #13#10 +
           '      end ' + #13#10 +
           '      else ' + #13#10 +
           '      begin ' + #13#10 +
           '        firstdocumentkey = NEW.documentkey; ' + #13#10 +
-          GetNewCardSQL(ftDest, 'new$') + #13#10 +
+          GetNewCardSQL(ftDest, 'n') + #13#10 +
           '      end ' + #13#10 +
           '      NEW.fromcardkey = :id; '  + #13#10 +
           '    end ' + #13#10 +
@@ -5240,34 +5343,34 @@ begin
 
   Result :=
     FixedVariableList + #13#10 +
-    MakeFieldList(ftSource, 'usr$') +
-    MakeFieldList(ftDest, 'new$') +
-    MakeFieldList(ftSource, 'old$') +
-    '  declare variable oldgoodkey integer; ' + #13#10 +
-    '  declare variable oldfromcontactkey integer; ' + #13#10 +
-    '  declare variable oldtocontactkey integer; ' + #13#10 +
+    MakeFieldList(ftSource, '') +
+    MakeFieldList(ftDest, 'n') +
+    MakeFieldList(ftSource, 'o') +
+    '  declare variable oldgoodkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable oldfromcontactkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable oldtocontactkey DFOREIGNKEY; ' + #13#10 +
     '  declare variable ischange DBOOLEAN; ' + #13#10 +
     '  declare variable istochange DBOOLEAN; ' + #13#10 +
     '  declare variable oldquantity DQUANTITY; ' + #13#10 +
-    '  declare variable sqlstatement VARCHAR(1024); ' + #13#10 +
-    '  declare variable changefields VARCHAR(1024); ' + #13#10 +
+    '  declare variable sqlstatement VARCHAR(4096); ' + #13#10 +
+    '  declare variable changefields VARCHAR(4096); ' + #13#10 +
     '  declare variable dtstring VARCHAR(1024); ' + #13#10 +
     '  declare variable cardstring VARCHAR(1024); ' + #13#10 +
-    '  declare variable fieldkey INTEGER; ' + #13#10 +
-    '  declare variable dockey INTEGER; ' + #13#10 +
-    '  declare variable badmovekey INTEGER; ' + #13#10 +
+    '  declare variable fieldkey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable dockey DFOREIGNKEY; ' + #13#10 +
+    '  declare variable badmovekey DFOREIGNKEY; ' + #13#10 +
     MakeFieldList(ftDest, 'to$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
           '    if (coalesce(NEW.outquantity, 0) <> 0 or coalesce(OLD.outquantity, 0) <> 0) then ' + #13#10 +
           '    begin '  + #13#10 +
-               GetReadFeatureSQL(ftSource, 'F', True, False, 'usr$') +
-               GetReadFeatureSQL(ftSource, 'F', False, False, 'old$') +
+               GetReadFeatureSQL(ftSource, 'F', True, False, '') +
+               GetReadFeatureSQL(ftSource, 'F', False, False, 'o') +
           '    end '  + #13#10 +
           '    else '  + #13#10 +
           '    begin '  + #13#10 +
-               GetReadFeatureSQL(ftDest, 'T', True, False, 'new$') +
+               GetReadFeatureSQL(ftDest, 'T', True, False, 'n') +
                GetReadFeatureSQL(ftDest, 'T', False, False, 'to$') +
           '    end ' + #13#10,
           [FieldByName('ruid').AsString]) +
@@ -5275,10 +5378,10 @@ begin
       GetMovementContactSQL(FIE.GetMovement(emDebit), False) +
       GetOldMovementContactSQL(FIE.GetMovement(emCredit), True) +
       GetOldMovementContactSQL(FIE.GetMovement(emDebit), False) +
-      GetCheckFeaturesSQL(ftSource, 'usr$', 'old$') +
-      GetCheckFeaturesSQL(ftDest, 'new$', 'to$') +
+      GetCheckFeaturesSQL(ftSource, '', 'o') +
+      GetCheckFeaturesSQL(ftDest, 'n', 'to$') +
       GetOldDocumentDateSQL +
-        '    if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
+        '    if (NEW.viewmovementpart = ''I'') then ' + #13#10 +
         '    begin '  + #13#10 +
         '      if (delayed = 1) then '  + #13#10 +
         '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; '  + #13#10 +
@@ -5289,9 +5392,9 @@ begin
         '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; '  + #13#10 +
         '        isdeletemovement = 1; ' + #13#10 +
         '      end ' + #13#10 +
-        '    if (delayed = 0) then ' + #13#10 +
+        '    if (delayed = 0 and (coalesce(NEW.inquantity, 0) <> 0 or coalesce(NEW.outquantity, 0) <> 0)) then ' + #13#10 +
         '    begin ' + #13#10 +
-        '      if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
+        '      if (NEW.viewmovementpart = ''I'') then ' + #13#10 +
         '      begin ' + #13#10 +
         '        if (delayed = 0) then ' + #13#10 +
         '        begin ' + #13#10 +
@@ -5301,7 +5404,7 @@ begin
         '        end ' + #13#10 +
         '        if (istochange = 1) then '  + #13#10 +
         '        begin '   + #13#10 +
-        GetMakeUpdateCardSQL(ftDest, 'new$') + #13#10 +
+        GetMakeUpdateCardSQL(ftDest, 'n') + #13#10 +
         '        end '   + #13#10 +
         '        if (isdeletemovement = 0 and olddocumentdate <> documentdate) then ' + #13#10 +
         '        begin ' + #13#10 +
@@ -5312,9 +5415,9 @@ begin
         '      end ' + #13#10 +
         '      else ' + #13#10 +
         '      begin ' + #13#10 +
-        '        if (delayed = 0) then ' + #13#10 +
+        '        if (delayed = 0 and (coalesce(NEW.inquantity, 0) <> 0 or coalesce(NEW.outquantity, 0) <> 0)) then ' + #13#10 +
         '        begin ' + #13#10 +
-        '        rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', :checkremains); ' + #13#10 +
+        '        rdb$set_context(''USER_TRANSACTION'', ''CONTROLREMAINS'', NEW.checkremains); ' + #13#10 +
         '        if (isdeletemovement = 1) then ' + #13#10 +
         '          oldquantity = NEW.outquantity;' + #13#10 +
         '        else '  + #13#10 +
@@ -5329,17 +5432,17 @@ begin
         '            else ' + #13#10 +
         '              quant = tmpquantity; ' + #13#10 +
         '            NEW.fromcardkey = :id; ' + #13#10 +
-        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        '            EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
         ' ' + #13#10 +
         '            tmpquantity = tmpquantity - quant; ' + #13#10 +
         '          end ' + #13#10 +
-        '          if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '          if (tmpquantity > 0 and NEW.checkremains = 0) then ' + #13#10 +
         '          begin ' + #13#10 +
-        GetNewCardSQL(ftSource, 'usr$') +
-        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        GetNewCardSQL(ftSource, '') +
+        '            EXECUTE PROCEDURE gd_p_getnextid_ex RETURNING_VALUES :movementkey; ' + #13#10 +
         ' ' + #13#10 +
         '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
         '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :tmpquantity); ' + #13#10 +
@@ -5394,19 +5497,19 @@ begin
         '    end ' + #13#10 +
         '    else '  + #13#10 +
         '    begin ' + #13#10 +
-        '      if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
+        '      if (NEW.viewmovementpart = ''I'') then ' + #13#10 +
         '      begin ' + #13#10 +
         '        if (istochange = 1) then ' + #13#10 +
         '        begin ' + #13#10 +
         '          firstdocumentkey = NEW.documentkey; ' + #13#10 +
-        GetNewCardSQL(ftDest, 'new$') +
+        GetNewCardSQL(ftDest, 'n') +
         '         NEW.fromcardkey = :id; ' + #13#10 +
         '        end ' + #13#10 +
         '      end ' + #13#10 +
         '      else ' + #13#10 +
         '        if (ischange = 1) then ' + #13#10 +
         '        begin ' + #13#10 +
-        GetNewCardSQL(ftSource, 'usr$') +
+        GetNewCardSQL(ftSource, '') +
         '         NEW.fromcardkey = :id; ' + #13#10 +
         '        end ' + #13#10 +
         '    end '  + #13#10 +
@@ -5416,12 +5519,15 @@ end;
 
 var
   sqlText: String;
+  StringList: TStringList;
 
 begin
-  R := atDatabase.Relations.ByID(FieldByName('linerelkey').AsInteger);
+  R := atDatabase.Relations.ByID(GetTID(FieldByName('linerelkey')));
   if Assigned(R) then
   begin
     RelType := RelationTypeByRelation(R);
+
+    InitFieldArray;
 
     gdcTrigger := TgdcTrigger.Create(Self);
     try
@@ -5435,7 +5541,7 @@ begin
       gdcTrigger.Open;
       gdcTrigger.Edit;
       gdcTrigger.FieldByName('triggername').AsString := NameTrigger;
-      gdcTrigger.FieldByName('relationkey').AsInteger := atDatabase.Relations.ByRelationName(DocLineRelationName).ID;
+      SetTID(gdcTrigger.FieldByName('relationkey'), atDatabase.Relations.ByRelationName(DocLineRelationName).ID);
       gdcTrigger.FieldByName('rdb$trigger_sequence').AsInteger := 0;
       gdcTrigger.FieldByName('rdb$trigger_name').AsString := gdcTrigger.FieldByName('triggername').AsString;
       gdcTrigger.FieldByName('trigger_inactive').AsInteger := 0;
@@ -5444,13 +5550,33 @@ begin
 
       case RelType of
         irtSimple:
+  {          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_SimpleDoc;}
+          begin
+            StringList := TStringList.Create;
+            try
+              StringList.Text := CreateInsertTrigger_SimpleDoc;
+              StringList.SaveToFile('c:\bases\111.sql');
           gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_SimpleDoc;
+            finally
+              StringList.Free;
+            end;
+          end;
         irtFeatureChange:
           gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_ChangeFeatureDoc;
         irtInventorization:
           gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_InventDoc;
         irtTransformation:
+{          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_TransformationDoc;}
+          begin
+            StringList := TStringList.Create;
+            try
+              StringList.Text := CreateInsertTrigger_SimpleDoc;
+              StringList.SaveToFile('c:\bases\111.sql');
           gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_TransformationDoc;
+            finally
+              StringList.Free;
+            end;
+          end;
       end;
 
       gdcTrigger.Post;
@@ -5462,7 +5588,7 @@ begin
       gdcTrigger.Open;
       gdcTrigger.Edit;
       gdcTrigger.FieldByName('triggername').AsString := NameTrigger;
-      gdcTrigger.FieldByName('relationkey').AsInteger := atDatabase.Relations.ByRelationName(DocLineRelationName).ID;
+      SetTID(gdcTrigger.FieldByName('relationkey'), atDatabase.Relations.ByRelationName(DocLineRelationName).ID);
       gdcTrigger.FieldByName('rdb$trigger_sequence').AsInteger := 0;
       gdcTrigger.FieldByName('rdb$trigger_name').AsString := gdcTrigger.FieldByName('triggername').AsString;
       gdcTrigger.FieldByName('trigger_inactive').AsInteger := 0;
@@ -5478,6 +5604,16 @@ begin
           gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateUpdateTrigger_InventDoc;
         irtTransformation:
           gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateUpdateTrigger_TransformationDoc;
+{          begin
+            StringList := TStringList.Create;
+            try
+              StringList.Text := CreateUpdateTrigger_TransformationDoc;
+              StringList.SaveToFile('c:\bases\111.sql');
+              gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateUpdateTrigger_TransformationDoc;
+            finally
+              StringList.Free;
+      end;
+          end;  }
       end;
 
       gdcTrigger.Post;
@@ -5501,7 +5637,7 @@ begin
         gdcTrigger.Open;
         gdcTrigger.Edit;
         gdcTrigger.FieldByName('triggername').AsString := NameTrigger;
-        gdcTrigger.FieldByName('relationkey').AsInteger := atDatabase.Relations.ByRelationName(DocRelationName).ID;
+        SetTID(gdcTrigger.FieldByName('relationkey'), atDatabase.Relations.ByRelationName(DocRelationName).ID);
         gdcTrigger.FieldByName('rdb$trigger_sequence').AsInteger := 0;
         gdcTrigger.FieldByName('rdb$trigger_name').AsString := gdcTrigger.FieldByName('triggername').AsString;
         gdcTrigger.FieldByName('trigger_inactive').AsInteger := 0;
@@ -5523,7 +5659,7 @@ begin
       gdcTrigger.Open;
       gdcTrigger.Edit;
       gdcTrigger.FieldByName('triggername').AsString := NameTrigger;
-      gdcTrigger.FieldByName('relationkey').AsInteger := atDatabase.Relations.ByRelationName('GD_DOCUMENT').ID;
+      SetTID(gdcTrigger.FieldByName('relationkey'), atDatabase.Relations.ByRelationName('GD_DOCUMENT').ID);
       gdcTrigger.FieldByName('rdb$trigger_sequence').AsInteger := 100;
       gdcTrigger.FieldByName('rdb$trigger_name').AsString := gdcTrigger.FieldByName('triggername').AsString;
       gdcTrigger.FieldByName('trigger_inactive').AsInteger := 0;
@@ -5610,10 +5746,10 @@ begin
   end;
 
   {$IFDEF NEWDEPOT}
-  {
+
   if not FieldByName('OPTIONS').IsNull then
   begin
-    Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
+{    Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
     try
       ReadOptions(Stream);
     finally
@@ -5626,8 +5762,8 @@ begin
     CreateTriggers;
     
     DoneOpt;
-{  end;
-  }
+  end;
+  
   {$ENDIF}
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
@@ -5722,7 +5858,7 @@ begin
     raise EgdcInvDocumentType.Create('Not an inventory document type');
 end;
 
-class function TgdcInvDocumentType.InvDocumentTypeBranchKey: Integer;
+class function TgdcInvDocumentType.InvDocumentTypeBranchKey: TID;
 begin
   Result := INV_DOC_INVENTBRANCH;
 end;
@@ -5993,12 +6129,13 @@ end;
 procedure TgdcInvDocumentType.UpdateContactList(lv: TListView;
   const AName: String; V: TgdcMCOPredefined);
 var
-  I, J, K, OptID: Integer;
+  I, J: Integer;
+  OptID, K: TID;
   Found: Boolean;
 begin
   for I := 0 to lv.Items.Count - 1 do
   begin
-    K := StrToInt(lv.Items[I].SubItems[0]);
+    K := GetTID(lv.Items[I].SubItems[0]);
     Found := False;
     for J := Low(V) to High(V) do
       if V[J] = K then
@@ -6014,10 +6151,10 @@ begin
       Fq.SQL.Text :=
         'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, contactkey) ' +
         'VALUES (:id, :dtkey, :option_name, NULL, :ck)';
-      Fq.ParamByName('id').AsInteger := OptID;
-      Fq.ParamByName('dtkey').AsInteger := ID;
+      SetTID(Fq.ParamByName('id'), OptID);
+      SetTID(Fq.ParamByName('dtkey'), ID);
       Fq.ParamByName('option_name').AsString := AName;
-      Fq.ParamByName('ck').AsInteger := K;
+      SetTID(Fq.ParamByName('ck'), K);
       Fq.ExecQuery;
 
       AddNSObject(OptID, AName + '.' + lv.Items[I].Caption, K);
@@ -6028,7 +6165,7 @@ begin
   begin
     Found := False;
     for I := 0 to lv.Items.Count - 1 do
-      if StrToInt(lv.Items[I].SubItems[0]) = V[J] then
+      if GetTID(lv.Items[I].SubItems[0]) = V[J] then
       begin
         Found := True;
         break;
@@ -6039,9 +6176,9 @@ begin
       Fq.SQL.Text :=
         'DELETE FROM gd_documenttype_option ' +
         'WHERE dtkey = :dtkey AND option_name = :option_name AND contactkey = :ck';
-      Fq.ParamByName('dtkey').AsInteger := ID;
+      SetTID(Fq.ParamByName('dtkey'), ID);
       Fq.ParamByName('option_name').AsString := AName;
-      Fq.ParamByname('ck').AsInteger := V[J];
+      SetTID(Fq.ParamByname('ck'), V[J]);
       Fq.ExecQuery;
     end;
   end;
@@ -6050,7 +6187,7 @@ end;
 procedure TgdcInvDocumentType.UpdateContactTypeOption(
   const AValue: TgdcInvMovementContactType; const APrefix: String);
 var
-  OptID: Integer;
+  OptID: TID;
 begin
   if GetOptID(APrefix + '.CT.', OptID) then
   begin
@@ -6058,7 +6195,7 @@ begin
     Fq.SQL.Text :=
       'UPDATE gd_documenttype_option SET bool_value = 1, option_name = :option_name, editiondate = CURRENT_TIMESTAMP(0) ' +
       'WHERE id = :id';
-    Fq.ParamByName('id').AsInteger := OptID;
+    SetTID(Fq.ParamByName('id'), OptID);
     Fq.ParamByName('option_name').AsString := APrefix + '.CT.' + gdcInvMovementContactTypeNames[AValue];
     Fq.ExecQuery;
   end else
@@ -6067,8 +6204,8 @@ begin
     Fq.SQL.Text :=
       'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value) ' +
       'VALUES (:id, :dtkey, :option_name, 1)';
-    Fq.ParamByName('id').AsInteger := OptID;
-    Fq.ParamByName('dtkey').AsInteger := ID;
+    SetTID(Fq.ParamByName('id'), OptID);
+    SetTID(Fq.ParamByName('dtkey'), ID);
     Fq.ParamByName('option_name').AsString := APrefix + '.CT.' + gdcInvMovementContactTypeNames[AValue];
     Fq.ExecQuery;
 
@@ -6079,7 +6216,8 @@ end;
 procedure TgdcInvDocumentType.UpdateFeatures(
   const AFeature: TgdInvDocumentEntryFeature; SL: TStrings);
 var
-  I, J, OptID: Integer;
+  I, J: Integer;
+  OptID: TID;
   Found: Boolean;
   RF: TatRelationField;
 begin
@@ -6112,10 +6250,10 @@ begin
       Fq.SQL.Text :=
         'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey) ' +
         'VALUES (:id, :dtkey, :option_name, NULL, :rfk)';
-      Fq.ParamByName('id').AsInteger := OptID;
-      Fq.ParamByName('dtkey').AsInteger := ID;
+      SetTID(Fq.ParamByName('id'), OptID);
+      SetTID(Fq.ParamByName('dtkey'), ID);
       Fq.ParamByName('option_name').AsString := InvDocumentFeaturesNames[AFeature];
-      Fq.ParamByName('rfk').AsInteger := RF.ID;
+      SetTID(Fq.ParamByName('rfk'), RF.ID);
       Fq.ExecQuery;
 
       AddNSObject(OptID, InvDocumentFeaturesNames[AFeature] + '.' + RF.FieldName, RF.ID);
@@ -6147,9 +6285,9 @@ begin
         Fq.SQL.Text :=
           'DELETE FROM gd_documenttype_option ' +
           'WHERE dtkey = :dtk AND option_name = :option_name AND relationfieldkey = :rfk ';
-        Fq.ParamByName('dtk').AsInteger := ID;
+        SetTID(Fq.ParamByName('dtk'), ID);
         Fq.ParamByName('option_name').AsString := InvDocumentFeaturesNames[AFeature];
-        Fq.ParamByname('rfk').AsInteger := RF.ID;
+        SetTID(Fq.ParamByname('rfk'), RF.ID);
         Fq.ExecQuery;
       end;
     end;
@@ -6159,7 +6297,8 @@ end;
 procedure TgdcInvDocumentType.UpdateFlag(const AFlag: TgdInvDocumentEntryFlag;
   const AValue, ACheckValue: Boolean);
 var
-  OptID, P: Integer;
+  OptID: TID;
+  P: Integer;
   N: String;
 begin
   if ACheckValue and ((FIE <> nil) and (FIE.GetFlag(AFlag) = AValue)) then
@@ -6185,7 +6324,7 @@ begin
       'UPDATE gd_documenttype_option SET option_name = :option_name, bool_value = 1, editiondate = CURRENT_TIMESTAMP(0) ' +
       'WHERE id = :id';
     Fq.ParamByName('option_name').AsString := InvDocumentEntryFlagNames[AFlag];
-    Fq.ParamByName('id').AsInteger := OptID;
+    SetTID(Fq.ParamByName('id'), OptID);
     Fq.ExecQuery;
   end;
 
@@ -6195,7 +6334,7 @@ begin
     Fq.SQL.Text :=
       'UPDATE gd_documenttype_option SET option_name = :option_name, bool_value = :v, editiondate = CURRENT_TIMESTAMP(0) ' +
       'WHERE id = :id';
-    Fq.ParamByName('id').AsInteger := OptID;
+    SetTID(Fq.ParamByName('id'), OptID);
     Fq.ParamByName('option_name').AsString := InvDocumentEntryFlagNames[AFlag];
     if AValue then
       Fq.ParamByName('v').AsInteger := 1
@@ -6208,8 +6347,8 @@ begin
     Fq.SQL.Text :=
       'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value) ' +
       'VALUES (:id, :dtkey, :option_name, :v)';
-    Fq.ParamByName('id').AsInteger := OptID;
-    Fq.ParamByName('dtkey').AsInteger := ID;
+    SetTID(Fq.ParamByName('id'), OptID);
+    SetTID(Fq.ParamByName('dtkey'), ID);
     Fq.ParamByName('option_name').AsString := InvDocumentEntryFlagNames[AFlag];
     if AValue then
       Fq.ParamByName('v').AsInteger := 1
@@ -6226,7 +6365,7 @@ end;
 
 procedure TgdcInvDocumentType.UpdateRF(const ARF: TatRelationField; const AName: String);
 var
-  OptID: Integer;
+  OptID: TID;
 begin
   if ARF = nil then
     DelOpt(AName)
@@ -6238,8 +6377,8 @@ begin
       Fq.SQL.Text :=
         'UPDATE gd_documenttype_option SET relationfieldkey = :rfk, editiondate = CURRENT_TIMESTAMP(0) ' +
         'WHERE id = :id';
-      Fq.ParamByName('id').AsInteger := OptID;
-      Fq.ParamByName('rfk').AsInteger := ARF.ID;
+      SetTID(Fq.ParamByName('id'), OptID);
+      SetTID(Fq.ParamByName('rfk'), ARF.ID);
       Fq.ExecQuery;
     end else
     begin
@@ -6247,10 +6386,10 @@ begin
       Fq.SQL.Text :=
         'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey) ' +
         'VALUES (:id, :dtkey, :option_name, NULL, :rfk)';
-      Fq.ParamByName('id').AsInteger := OptID;
-      Fq.ParamByName('dtkey').AsInteger := ID;
+      SetTID(Fq.ParamByName('id'), OptID);
+      SetTID(Fq.ParamByName('dtkey'), ID);
       Fq.ParamByName('option_name').AsString := AName;
-      Fq.ParamByName('rfk').AsInteger := ARF.ID;
+      SetTID(Fq.ParamByName('rfk'), ARF.ID);
       Fq.ExecQuery;
 
       AddNSObject(OptID, AName, ARF.ID);

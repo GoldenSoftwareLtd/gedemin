@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit dlg_gsProperty_ColectEdit_unit;
                        
@@ -27,6 +28,8 @@ type
     MoveDownCmd: TAction;
     SelectAllCmd: TAction;
     N2: TMenuItem;
+    edSearch: TEdit;
+    btn1: TToolButton;
     procedure AddClick(Sender: TObject);
     procedure DeleteClick(Sender: TObject);
     procedure MoveUpClick(Sender: TObject);
@@ -41,6 +44,8 @@ type
     procedure SelectAll1Click(Sender: TObject);
     procedure SelectAllCommandUpdate(Sender: TObject);
     procedure SelectionUpdate(Sender: TObject);
+    procedure edSearchKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
   private
     FCollectionPropertyName: string;
     FStateLock: Integer;
@@ -211,8 +216,6 @@ var
   Item: TCollectionItem;
   //List: TDesignerSelectionList;
 begin
-
-
   LockState;
   try
     ListView1.Selected := nil;
@@ -637,6 +640,35 @@ end;
 function Tdlg_gsProperty_ColectEdit.CanAdd(Index: Integer): Boolean;
 begin
   Result := True;
+end;
+
+procedure Tdlg_gsProperty_ColectEdit.edSearchKeyDown(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
+var
+  I: Integer;
+  First: Boolean;
+  S1,S2: string;
+begin
+  S1 := Trim(edSearch.Text);
+  if (Key = VK_RETURN) and (S1 <> '') then
+  begin
+    First := True;
+    for i := 0 to ListView1.Items.Count -1 do
+    begin
+      S2 := ListView1.Items.Item[i].Caption;
+      Delete(S2, 1, Pos(' - ', S2)+2);
+      if AnsiPos(AnsiUpperCase(S1), AnsiUpperCase(S2)) = 1 then
+      begin
+        ListView1.Items.Item[i].Selected := True;
+        if First then
+        begin
+          ListView1.Items.Item[i].MakeVisible(False);
+          First := False;
+        end;  
+      end
+      else ListView1.Items.Item[i].Selected := False;
+    end;
+  end;
 end;
 
 initialization

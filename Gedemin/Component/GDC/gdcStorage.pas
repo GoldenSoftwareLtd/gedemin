@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 {
 
@@ -84,7 +85,7 @@ type
     function GetCurrRecordClass: TgdcFullClass; override;
 
     function FindStorageItem(out SI: TgsStorageItem): Boolean; overload;
-    function FindStorageItem(const AnID: Integer; out SI: TgsStorageItem): Boolean; overload;
+    function FindStorageItem(const AnID: TID; out SI: TgsStorageItem): Boolean; overload;
   end;
 
   TgdcStorageFolder = class(TgdcStorage)
@@ -94,6 +95,7 @@ type
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
   end;
 
   TgdcStorageValue = class(TgdcStorage)
@@ -102,6 +104,7 @@ type
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
   end;
 
   CgdcStorage = class of TgdcStorage;
@@ -109,7 +112,7 @@ type
   CgdcStorageValue = class of TgdcStorageValue;
 
 procedure Register;
-procedure ConvertStorageRecords(const ASettingKey: Integer; AnDatabase: TIBDatabase);
+procedure ConvertStorageRecords(const ASettingKey: TID; AnDatabase: TIBDatabase);
 
 implementation
 
@@ -134,7 +137,7 @@ begin
   RegisterComponents('gdc', [TgdcStorage, TgdcStorageFolder, TgdcStorageValue]);
 end;
 
-procedure ConvertStorageRecords(const ASettingKey: Integer; AnDatabase: TIBDatabase);
+procedure ConvertStorageRecords(const ASettingKey: TID; AnDatabase: TIBDatabase);
 
   function AdjustName(const SI: TgsStorageItem): String;
   const
@@ -166,7 +169,8 @@ var
   Tr: TIBTransaction;
   S: String;
   P: Integer;
-  XID, DBID: TID;
+  XID: TID;
+  DBID: Integer;
   F: TgsStorageFolder;
   V: TgsStorageValue;
 
@@ -181,7 +185,7 @@ begin
     q.Transaction := Tr;
     q.SQL.Text :=
       'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
-    q.ParamByName('settingkey').AsInteger := ASettingKey;
+    SetTID(q.ParamByName('settingkey'), ASettingKey);
     q.ExecQuery;
 
     qPos.Transaction := Tr;
@@ -247,11 +251,11 @@ begin
             AddText('Конвертация в БО значения ' + S + '\' + V.Name);
           end;
 
-          qPos.ParamByName('SK').AsInteger := ASettingKey;
+          SetTID(qPos.ParamByName('SK'), ASettingKey);
           qPos.ParamByName('WD').AsInteger := 1;
           qPos.ParamByName('NM').AsInteger := 1;
           qPos.ParamByName('AA').AsInteger := 0;
-          qPos.ParamByName('XID').AsInteger := XID;
+          SetTID(qPos.ParamByName('XID'), XID);
           qPos.ParamByName('DBID').AsInteger := DBID;
           qPos.ParamByName('CAT').AsString := TgdcStorage.GetListTable('');
 
@@ -279,7 +283,7 @@ begin
     q.SQL.Text :=
       'UPDATE at_setting_storage SET branchname = ''#'' || branchname ' +
       '  WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
-    q.ParamByName('settingkey').AsInteger := ASettingKey;
+    SetTID(q.ParamByName('settingkey'), ASettingKey);
     q.ExecQuery;
 
     Tr.Commit;
@@ -321,10 +325,19 @@ begin
   Result := 'Tgdc_dlgStorageValue';
 end;
 
+class function TgdcStorageValue.GetRestrictCondition(const ATableName,
+  ASubType: String): String;
+begin
+  if AnsiCompareText(ATableName, GetListTable(ASubType)) = 0 then
+    Result := Format('%s.data_type IN (''S'', ''I'', ''C'', ''D'', ''L'', ''B'')', [GetListTableAlias])
+  else
+    Result := inherited GetRestrictCondition(ATableName, ASubType);
+end;
+
 procedure TgdcStorageValue.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  S.Add(Format('%s.data_type IN (''S'', ''I'', ''C'', ''D'', ''L'', ''B'')', [GetListTableAlias]));
+  S.Add(GetRestrictCondition(GetListTable(SubType), SubType));
 end;
 
 { TgdcStorageFolder }
@@ -340,10 +353,19 @@ begin
   Result := 'Tgdc_dlgStorageFolder';
 end;
 
+class function TgdcStorageFolder.GetRestrictCondition(const ATableName,
+  ASubType: String): String;
+begin
+  if AnsiCompareText(ATableName, GetListTable(ASubType)) = 0 then
+    Result := Format('%s.data_type IN (''F'', ''G'', ''U'', ''O'', ''T'')', [GetListTableAlias])
+  else
+    Result := inherited GetRestrictCondition(ATableName, ASubType);
+end;
+
 procedure TgdcStorageFolder.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  S.Add(Format('%s.data_type IN (''F'', ''G'', ''U'', ''O'', ''T'')', [GetListTableAlias]));
+  S.Add(GetRestrictCondition(GetListTable(SubType), SubType));
 end;
 
 function TgdcStorage.GetCurrRecordClass: TgdcFullClass;
@@ -507,7 +529,7 @@ begin
 
   LockStorage(True);
   try
-    if FieldByName('parent').IsNull or (not FindStorageItem(FieldByName('parent').AsInteger, SIParent)) then
+    if FieldByName('parent').IsNull or (not FindStorageItem(GetTID(FieldByName('parent')), SIParent)) then
       SIParent := nil;
 
     if FindStorageItem(SI) then
@@ -526,8 +548,8 @@ begin
       if SI is TgsStorageValue then
       try
         case T1 of
-          cStorageInteger:  TgsStorageValue(SI).AsInteger   := FieldByName('int_data').AsInteger;
-          cStorageBoolean:  TgsStorageValue(SI).AsBoolean   := FieldByName('int_data').AsInteger <> 0;
+          cStorageInteger:  TgsStorageValue(SI).AsInteger   := GetTID(FieldByName('int_data'));
+          cStorageBoolean:  TgsStorageValue(SI).AsBoolean   := GetTID(FieldByName('int_data')) <> 0;
           cStorageCurrency: TgsStorageValue(SI).AsCurrency  := FieldByName('curr_data').AsCurrency;
           cStorageDateTime: TgsStorageValue(SI).AsDateTime  := FieldByName('datetime_data').AsDateTime;
           cStorageString:   TgsStorageValue(SI).AsString    := FieldByName('str_data').AsString;
@@ -553,16 +575,16 @@ begin
             TgsStorageFolder.Create(SIParent, FieldByName('name').AsString, ID);
           cStorageInteger:
             TgsIntegerValue.Create(SIParent, FieldByName('name').AsString, ID).AsInteger :=
-              FieldByName('int_data').AsInteger;
+              GetTID(FieldByName('int_data'));
           cStorageBoolean:
             TgsBooleanValue.Create(SIParent, FieldByName('name').AsString, ID).AsBoolean :=
-              FieldByName('int_data').AsInteger <> 0;
+              GetTID(FieldByName('int_data')) <> 0;
           cStorageCurrency:
             TgsCurrencyValue.Create(SIParent, FieldByName('name').AsString, ID).AsCurrency :=
               FieldByName('curr_data').AsCurrency;
           cStorageDateTime:
             TgsDateTimeValue.Create(SIParent, FieldByName('name').AsString, ID).AsDateTime :=
-              FieldByName('datettime_data').AsDateTime;
+              FieldByName('datetime_data').AsDateTime;
           cStorageString:
             TgsStringValue.Create(SIParent, FieldByName('name').AsString, ID).AsString :=
               FieldByName('str_data').AsString;
@@ -593,7 +615,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcStorage.FindStorageItem(const AnID: Integer;
+function TgdcStorage.FindStorageItem(const AnID: TID;
   out SI: TgsStorageItem): Boolean;
 begin
   Result :=
@@ -693,12 +715,12 @@ begin
       Result := Format(
         'SELECT id FROM gd_storage_data WHERE UPPER(name)=UPPER(''%0:s'') AND parent=%1:d',
         [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
-         FieldByName('parent').AsInteger])
+         TID264(FieldByName('parent'))])
     else begin
       if FieldByName('data_type').AsString = cStorageUser then
-        S := 'AND int_data=' + IntToStr(IBLogin.UserKey)
+        S := 'AND int_data=' + TID2S(IBLogin.UserKey)
       else if FieldByName('data_type').AsString = cStorageCompany then
-        S := 'AND int_data=' + IntToStr(IBLogin.CompanyKey)
+        S := 'AND int_data=' + TID2S(IBLogin.CompanyKey)
       else if FieldByName('data_type').AsString = cStorageDesktop then
         S := 'AND name=''' + FieldByName('name').AsString + ''''
       else if FieldByName('data_type').AsString = cStorageGlobal then

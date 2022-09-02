@@ -1,3 +1,5 @@
+// ShlTanya, 20.02.2019
+
 unit rp_frmManagerForm_unit;
 
 interface
@@ -37,7 +39,7 @@ type
     procedure actEditExecute(Sender: TObject);
     procedure actDeleteExecute(Sender: TObject);
   private
-    FGroupID: Integer;
+    FGroupID: TID;
     FIsQuick: Integer;
 
   protected
@@ -45,7 +47,7 @@ type
     procedure SaveSettings; override;
     
   public
-    procedure ShowForm(AGroupID: Integer);
+    procedure ShowForm(AGroupID: TID);
   end;
 
 var
@@ -58,17 +60,17 @@ implementation
 uses
   rp_dlgRegistryForm_unit, gsDesktopManager, dmDatabase_unit;
 
-procedure TfrmManagerForm.ShowForm(AGroupID: Integer);
+procedure TfrmManagerForm.ShowForm(AGroupID: TID);
 begin
   FGroupID := AGroupID;
   IBTransaction.StartTransaction;
-  IBSQL.ParamByName('ID').AsInteger := FGroupID;
+  SetTID(IBSQL.ParamByName('ID'), FGroupID);
   IBSQL.ExecQuery;
 
   Assert(IBSQL.RecordCount > 0, 'Такой группы не существует.');
   FIsQuick := IBSQL.FieldByName('ISQUICK').AsInteger;
 
-  qryReportRegistry.ParamByName('parent').AsInteger := AGroupID;
+  SetTID(qryReportRegistry.ParamByName('parent'), AGroupID);
   qryReportRegistry.Open;
   ShowModal;
 end;
@@ -108,7 +110,7 @@ procedure TfrmManagerForm.actEditExecute(Sender: TObject);
 begin
   with TdlgRegistryForm.Create(Self) do
   try
-    if Edit(qryReportRegistry.FieldByName('ID').AsInteger) then
+    if Edit(GetTID(qryReportRegistry.FieldByName('ID'))) then
       qryReportRegistry.Refresh;
   finally
     Free;

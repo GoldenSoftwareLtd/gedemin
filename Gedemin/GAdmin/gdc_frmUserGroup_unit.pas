@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdc_frmUserGroup_unit;
 
@@ -46,7 +47,7 @@ implementation
 {$R *.DFM}
 
 uses
-  Storages, gsStorage_CompPath,  gd_ClassList;
+  Storages, gsStorage_CompPath,  gd_ClassList, gdcBaseInterface;
   
 class function Tgdc_frmUserGroup.CreateAndAssign(AnOwner: TComponent): TForm;
 begin
@@ -63,7 +64,7 @@ begin
     gdcObject.SubSet := 'All'
   else begin
     gdcObject.SubSet := 'ByUser';
-    gdcObject.ParamByName('USERID').AsInteger := ibcbUser.CurrentKeyInt;
+    SetTID(gdcObject.ParamByName('USERID'), ibcbUser.CurrentKeyInt);
   end;
   gdcObject.Open;
   DoOnFilterChanged(Self);
@@ -77,7 +78,7 @@ begin
       gdcObject.SubSet := 'All'
     else begin
       gdcObject.Subset := 'ByUser';
-      gdcObject.ParamByName('USERID').AsInteger := ibcbUser.CurrentKeyInt;
+      SetTID(gdcObject.ParamByName('USERID'), ibcbUser.CurrentKeyInt);
     end;
     gdcObject.Open;
     DoOnFilterChanged(Self);
@@ -93,7 +94,7 @@ begin
       gdcObject.SubSet := 'All'
     else begin
       gdcObject.SubSet := 'ByUser';
-      gdcObject.ParamByName('USERID').AsInteger := ibcbUser.CurrentKeyInt;
+      SetTID(gdcObject.ParamByName('USERID'), ibcbUser.CurrentKeyInt);
     end;
     gdcObject.Open;
     DoOnFilterChanged(Self);

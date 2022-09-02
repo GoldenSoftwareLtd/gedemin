@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_frAnalyticLine_unit;
 
 interface
@@ -5,7 +7,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, BtnEdit, at_Classes, wiz_FunctionBlock_unit, Menus, wiz_DocumentInfo_unit,
-  gdc_frmAnalyticsSel_unit, ExtCtrls;
+  gdc_frmAnalyticsSel_unit, ExtCtrls, gdcBaseInterface;
 
 type
   TfrAnalyticLine = class(TFrame)
@@ -19,20 +21,20 @@ type
   private
     FField: TatRelationField;
     FBlock: TVisualBlock;
-    FAnalyticKey: Integer;
+    FAnalyticKey: TID;
     FActiveEdit: TEditSButton;
     procedure SetField(const Value: TatRelationField);
     procedure SetBlock(const Value: TVisualBlock);
     procedure ClickAnalytics(Sender: TObject);
     procedure ClickDocumentField(Sender: TObject);
-    procedure SetAnalyticKey(const Value: Integer);
+    procedure SetAnalyticKey(const Value: TID);
     procedure ClickExpression(Sender: TObject);
     { Private declarations }
   public
     { Public declarations }
     property Field: TatRelationField read FField write SetField;
     property Block: TVisualBlock read FBlock write SetBlock;
-    property AnalyticKey: Integer read FAnalyticKey write SetAnalyticKey;
+    property AnalyticKey: TID read FAnalyticKey write SetAnalyticKey;
   end;
 
 implementation
@@ -169,7 +171,7 @@ begin
   end;
 end;
 
-procedure TfrAnalyticLine.SetAnalyticKey(const Value: Integer);
+procedure TfrAnalyticLine.SetAnalyticKey(const Value: TID);
 begin
   FAnalyticKey := Value;
 end;

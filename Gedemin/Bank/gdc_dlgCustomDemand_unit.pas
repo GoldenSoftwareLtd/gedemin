@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 {
              01-11-2001  sai     Переделаны методы выбоки
 }
@@ -58,7 +60,7 @@ var
 
 implementation
 
-uses dmDataBase_unit,  gd_ClassList;
+uses dmDataBase_unit,  gd_ClassList, gdcBaseInterface;
 
 {$R *.DFM}
 procedure Tgdc_dlgCustomDemand.dbeCorrCompanyChange(Sender: TObject);
@@ -127,7 +129,7 @@ procedure Tgdc_dlgCustomDemand.UpdateCargoReceiver;
 var
   CName: String;
 begin
-  CName := gdcCompany.GetListNameByID(gdcObject.FieldByName('CORRCOMPANYKEY').AsInteger);
+  CName := gdcCompany.GetListNameByID(GetTID(gdcObject.FieldByName('CORRCOMPANYKEY')));
 
   with cbCargoSender.Items do
   begin

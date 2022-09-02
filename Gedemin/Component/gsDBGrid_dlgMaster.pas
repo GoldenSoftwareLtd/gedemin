@@ -1,7 +1,8 @@
+// ShlTanya, 17.02.2019
 
 {++
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus
+  Copyright (c) 2000-2022 by Golden Software of Belarus
 
   Module
 
@@ -2617,7 +2618,7 @@ end;
 
 procedure TdlgMaster.actConditionsActiveExecute(Sender: TObject);
 begin
-  EnableConditions(cbConditionActive.Checked, True);
+  EnableConditions(cbConditionActive.Checked and (lbConditions.Items.Count > 0), True);
 end;
 
 {
@@ -3068,7 +3069,7 @@ begin
       FNewColumns[I].Visible :=
         Assigned(TheField)
           and
-        (TheField.DataType in [ftCurrency, ftFloat, ftBCD, ftInteger, ftSmallInt]);
+        (TheField.DataType in [ftCurrency, ftFloat, ftBCD, ftInteger, ftSmallInt, ftLargeInt]);
     end;
   end;
   end;

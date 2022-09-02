@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gsMethodInfo;
 
 interface
@@ -7,7 +9,7 @@ uses sysutils, TypInfo, contnrs;
 type
   PMethodInfo = ^TMethodInfo;
   TMethodInfo = packed record
-    MethodID: Integer;
+    MethodID: TID;
     MethodKind: TMethodKind;
     ParamCount: Byte;
     ParamList: array[0..1023] of Char;
@@ -27,14 +29,14 @@ type
   private
     FMethodName: ShortString;
 
-    MethodID: Integer;
+    MethodID: TID;
     MethodKind: TMethodKind;
     ParamCount: Byte;
     ParamList: array[0..1023] of Char;
 
     procedure ParseMethod(const aFullMethodStr: String);
   public
-    constructor Create(const aFullMethodStr: String; aMethodID: Integer);
+    constructor Create(const aFullMethodStr: String; aMethodID: TID);
   end;
 
   TgsMethodList = class(TObjectList)
@@ -48,7 +50,7 @@ implementation
 
 { TgsMethodClass }
 
-constructor TgsMethodClass.Create(const aFullMethodStr: String; aMethodID: Integer);
+constructor TgsMethodClass.Create(const aFullMethodStr: String; aMethodID: TID);
 begin
   MethodID := aMethodID;
   ParseMethod(aFullMethodStr);

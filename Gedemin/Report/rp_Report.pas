@@ -1,9 +1,11 @@
+// ShlTanya, 27.02.2019
+
 unit rp_Report;
 
 interface
 
 uses
-  Classes, rp_BaseReport_unit, IBDatabase;
+  Classes, rp_BaseReport_unit, IBDatabase, gdcBaseInterface;
 
 type
   TgsReport = class(TComponent)
@@ -23,8 +25,8 @@ type
     destructor Destroy; override;
 
     function Add: Boolean;
-    function Edit(const AnReportKey: Integer): Boolean;
-    function Delete(const AnReportKey: Integer): Boolean;
+    function Edit(const AnReportKey: TID): Boolean;
+    function Delete(const AnReportKey: TID): Boolean;
 
     procedure Execute;
 
@@ -98,7 +100,7 @@ begin
   end;
 end;
 
-function TgsReport.Edit(const AnReportKey: Integer): Boolean;
+function TgsReport.Edit(const AnReportKey: TID): Boolean;
 begin
   with TdlgEditReport.Create(Self) do
   try
@@ -110,7 +112,7 @@ begin
   end;
 end;
 
-function TgsReport.Delete(const AnReportKey: Integer): Boolean;
+function TgsReport.Delete(const AnReportKey: TID): Boolean;
 begin
   with TdlgEditReport.Create(Self) do
   try

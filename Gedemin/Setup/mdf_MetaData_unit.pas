@@ -113,7 +113,10 @@ function GenId(Db: TIBdatabase): integer;
 function GetRUIDRecByID(const AnID: Integer; Transaction: TIBTransaction): TRUIDRec;
 function GetRUIDStringByID(const ID: Integer; const Tr: TIBTransaction): TRUIDString;
 procedure AddFinVersion(const ID: Integer; const NumVersion, Comment, DateOper: String;
-  const Tr: TIBTransaction);
+  const Tr: TIBTransaction); overload;
+
+procedure AddFinVersion(const ID: Integer; const NumVersion, Comment, DateOper: String; IBDB: TIBDatabase); overload;
+
 
 function FunctionExist2(const AFunctionName: String; ATr: TIBTransaction): Boolean;
 function HasDependencies(const AName: String; ATr: TIBTransaction): Boolean;
@@ -1309,7 +1312,7 @@ begin
 end;
 
 procedure AddFinVersion(const ID: Integer; const NumVersion, Comment, DateOper: String;
-  const Tr: TIBTransaction);
+  const Tr: TIBTransaction); overload;
 var
   ibsql: TIBSQL;
 begin
@@ -1322,6 +1325,31 @@ begin
     ibsql.ExecQuery;
   finally
     ibsql.Free;
+  end;
+end;
+
+procedure AddFinVersion(const ID: Integer; const NumVersion, Comment, DateOper: String; IBDB: TIBDatabase); overload;
+var
+  ibsql: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := Tr;
+      ibsql.SQL.Text := Format('UPDATE OR INSERT INTO fin_versioninfo ' +
+        'VALUES (%d, ''%s'', ''%s'', ''%s'') MATCHING (id) ',
+        [ID, NumVersion, DateOper, Comment]);
+      ibsql.ExecQuery;
+    finally
+      ibsql.Free;
+    end;
+    Tr.Commit;
+  finally
+    Tr.Free;
   end;
 end;
 

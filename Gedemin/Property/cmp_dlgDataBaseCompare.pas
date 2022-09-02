@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit cmp_dlgDataBaseCompare;
 
 interface
@@ -7,7 +9,7 @@ uses
   SuperPageControl, ExtCtrls, ComCtrls, gdc_createable_form, Db, Grids,
   DBGrids, gsDBGrid, gsIBGrid, IBCustomDataSet, IBDatabase, contnrs,
   SynEditHighlighter, SynHighlighterSQL, SynEdit, SynMemo, gsIBCtrlGrid,
-  StdCtrls;
+  StdCtrls, gdcBaseInterface;
 
 type
   TTriggerInfo = class
@@ -15,12 +17,12 @@ type
     FTriggerName: String;
     FTriggerBody: String;
     FTriggerType: Integer;
-    FID: Integer;
+    FID: TID;
   public
-    constructor Create(const anID: Integer; const aTriggerName, aTriggerBody: String;
+    constructor Create(const AnID: TID; const aTriggerName, aTriggerBody: String;
       const aTriggerType: Integer);
 
-    property ID: Integer read FID;
+    property ID: TID read FID;
     property TriggerName: String read FTriggerName write FTriggerName;
     property TriggerType: Integer read FTriggerType write FTriggerType;
     property TriggerBody: String read FTriggerBody write FTriggerBody;
@@ -112,8 +114,8 @@ type
       Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
   private
     FMiddleWidth: Integer; //при изменении размера экрана устанавливаем ширину панели
-    FID: Integer;          //ID таблицы из AT_RELATION
-    FExtID: Integer;       //ID внешней таблицы
+    FID: TID;          //ID таблицы из AT_RELATION
+    FExtID: TID;       //ID внешней таблицы
     TriggerList: TObjectList;
     FileView: TFrame;
 
@@ -123,12 +125,12 @@ type
     procedure FillRelationsData;
     {заполенение дерева триггеров}
     procedure FillTriggerTree;
-    procedure AddTriggerName(const AnID: Integer; const TriggerName, TriggerBody: String; const TriggerType: Integer;
+    procedure AddTriggerName(const AnID: TID;  const TriggerName, TriggerBody: String; const TriggerType: Integer;
       const TriggerInactive: Integer; var tvTriggers: TTreeView);
-    function GetTypeTriggerFromTree(TreeNode: TTreeNode): Integer;  
+    function GetTypeTriggerFromTree(TreeNode: TTreeNode): Integer;
   public
 
-    procedure InitDlg(const ID, ExtID: Integer; DB, ExtDB: TIBDatabase);
+    procedure InitDlg(const ID, ExtID: TID; DB, ExtDB: TIBDatabase);
     procedure LoadSettings; override;
     procedure SaveSettings; override;
   end;
@@ -139,7 +141,7 @@ var
 implementation
 
 uses
-  gdcBaseInterface, Storages, IBSQL, dmImages_unit, FileView;
+  Storages, IBSQL, dmImages_unit, FileView;
 
 {$R *.DFM}
 
@@ -172,7 +174,7 @@ end;
 
 
 
-procedure Tdlg_DataBaseCompare.InitDlg(const ID, ExtID: Integer; DB, ExtDB: TIBDatabase);
+procedure Tdlg_DataBaseCompare.InitDlg(const ID, ExtID: TID; DB, ExtDB: TIBDatabase);
 begin
   FID := ID;
   FExtID := ExtID;
@@ -185,11 +187,11 @@ begin
   {Поля}
   ibdsFieldLeft.Database := DB;
   ibdsFieldLeft.ReadTransaction := gdcBaseManager.ReadTransaction;
-  ibdsFieldLeft.Params[0].AsInteger := FID;
+  SetTID(ibdsFieldLeft.Params[0], FID);
   ibdsFieldLeft.Open;
 
   ibdsFieldRight.Database := ExtDB;
-  ibdsFieldRight.Params[0].AsInteger := FExtID;
+  SetTID(ibdsFieldRight.Params[0], FExtID);
   ibdsFieldRight.Open;
 
   {триггеры}
@@ -197,21 +199,21 @@ begin
   {ограничения}
   ibdsCheckLeft.Database := DB;
   ibdsCheckLeft.ReadTransaction := gdcBaseManager.ReadTransaction;
-  ibdsCheckLeft.Params[0].AsInteger := FID;
+  SetTID(ibdsCheckLeft.Params[0], FID);
   ibdsCheckLeft.Open;
 
   ibdsCheckRight.Database := ExtDB;
-  ibdsCheckRight.Params[0].AsInteger := FExtID;
+  SetTID(ibdsCheckRight.Params[0], FExtID);
   ibdsCheckRight.Open;
 
   {индексы}
   ibdsIndicesLeft.Database := DB;
   ibdsIndicesLeft.ReadTransaction := gdcBaseManager.ReadTransaction;
-  ibdsIndicesLeft.Params[0].AsInteger := FID;
+  SetTID(ibdsIndicesLeft.Params[0], FID);
   ibdsIndicesLeft.Open;
 
   ibdsIndicesRight.Database := ExtDB;
-  ibdsIndicesRight.Params[0].AsInteger := FExtID;
+  SetTID(ibdsIndicesRight.Params[0], FExtID);
   ibdsIndicesRight.Open;
 
   FillRelationsData;
@@ -256,16 +258,16 @@ end;
 
 { TTriggerInfo }
 
-constructor TTriggerInfo.Create(const anID: Integer; const aTriggerName,
+constructor TTriggerInfo.Create(const AnID: TID; const aTriggerName,
   aTriggerBody: String; const aTriggerType: Integer);
 begin
-  FID := anID;
+  FID := AnID;
   FTriggerName := aTriggerName;
   FTriggerBody := aTriggerBody;
   FTriggerType := aTriggerType;
 end;
 
-procedure Tdlg_DataBaseCompare.AddTriggerName(const AnID: Integer;
+procedure Tdlg_DataBaseCompare.AddTriggerName(const AnID: TID;
   const TriggerName, TriggerBody: String; const TriggerType,
   TriggerInactive: Integer; var tvTriggers: TTreeView);
 var
@@ -426,19 +428,19 @@ begin
   FSQL := TIBSQL.Create(nil);
   FSQL.Transaction := gdcBaseManager.ReadTransaction;
   FSQL.SQL.Text := S;
-  FSQL.Params[0].AsInteger := FID;
+  SetTID(FSQL.Params[0], FID);
   //внешняя БД
   FExtSQL := TIBSQL.Create(nil);
   FExtSQL.Transaction := ExtTr;
   FExtSQL.SQL.Text := S;
-  FExtSQL.Params[0].AsInteger := FExtID;
+  SetTID(FExtSQL.Params[0], FExtID);
   try
     FSQL.ExecQuery;
     FExtSQL.ExecQuery;
 
     while not FSQL.Eof do
     begin
-      AddTriggerName(FSQL.FieldByName('id').AsInteger,
+      AddTriggerName(GetTID(FSQL.FieldByName('id')),
         FSQL.FieldByName('triggername').AsString,
         FSQL.FieldByName('rdb$trigger_source').AsString,
         FSQL.FieldByName('rdb$trigger_type').AsInteger,
@@ -450,7 +452,7 @@ begin
 
     while not FExtSQL.Eof do
     begin
-      AddTriggerName(FExtSQL.FieldByName('id').AsInteger,
+      AddTriggerName(GetTID(FExtSQL.FieldByName('id')),
         FExtSQL.FieldByName('triggername').AsString,
         FExtSQL.FieldByName('rdb$trigger_source').AsString,
         FExtSQL.FieldByName('rdb$trigger_type').AsInteger,
@@ -521,12 +523,12 @@ begin
   FSQL := TIBSQL.Create(nil);
   FSQL.Transaction := gdcBaseManager.ReadTransaction;
   FSQL.SQL.Text := S;
-  FSQL.Params[0].AsInteger := FID;
+  SetTID(FSQL.Params[0], FID);
   //внешняя БД
   FExtSQL := TIBSQL.Create(nil);
   FExtSQL.Transaction := ExtTr;
   FExtSQL.SQL.Text := S;
-  FExtSQL.Params[0].AsInteger := FExtID;
+  SetTID(FExtSQL.Params[0], FExtID);
   try
     FSQL.ExecQuery;
     FExtSQL.ExecQuery;

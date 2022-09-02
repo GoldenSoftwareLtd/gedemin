@@ -1,3 +1,4 @@
+// ShlTanya, 27.02.2019
 
 {++
 
@@ -879,7 +880,8 @@ procedure TgsGedeminApplication.SetEventHandler(
 var
   sl: TStringList;
   comp: TComponent;
-  Index, FunctionKey: Integer;
+  Index: Integer;
+  FunctionKey: TID;
   EvtObj: TEventObject;
   EvtCtrl: TEventControl;
   EvtItem: TEventItem;
@@ -927,7 +929,7 @@ begin
       q.ParamByName('FN').AsString := FunctionName;
       q.ExecQuery;
       if not q.EOF then
-        FunctionKey := q.FieldByName('id').AsInteger;
+        FunctionKey := GetTID(q.FieldByName('id'));
     end;
 
     if FunctionKey = -1 then
@@ -937,7 +939,7 @@ begin
       q.ParamByName('FN').AsString := FunctionName;
       q.ExecQuery;
       if not q.EOF then
-        FunctionKey := q.FieldByName('id').AsInteger;
+        FunctionKey := GetTID(q.FieldByName('id'));
     end;
 
     if FunctionKey = -1 then

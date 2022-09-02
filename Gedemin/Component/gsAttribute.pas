@@ -1,9 +1,11 @@
-  // Еоличечтвенные показатели аналитики
+// ShlTanya, 11.02.2019
+
+  // Kоличечтвенные показатели аналитики
   TDimensionList = class(TStringList)
   private
-    FID: Integer;
+    FID: TID;
 
-    function GetID: Integer;
+    function GetID: TID;
   public
     procedure Assign(ADimensionAttr: TDimensionAttr);
     procedure Add(AnID: Integer; AName: String);
@@ -30,7 +32,7 @@
   // Атрибут справочника
   TAttribute = class
   private
-    Fid: Integer;               // Ключ
+    Fid: TID;               // Ключ
     Fhotkey: Integer;           // Горячая клавиша
     Fnumber: Integer;           // Важность атрибута
     FName: String;              // Метка атрибута
@@ -49,7 +51,7 @@
       const AAttrType: TAttrType;
       const AMandatory, AisLong: Boolean);
 
-    property id: Integer read FID;
+    property id: TID read FID;
       // Ключ
     property hotkey: Integer read Fhotkey write Fhotkey;
       // Горячая клавиша
@@ -74,7 +76,7 @@
   // Справочник
   TReference = class(TStringList)
   private
-    Fid: Integer;
+    Fid: TID;
     FName: String;
     FTableName: String;
     FMayAttr: Boolean;
@@ -86,7 +88,7 @@
     procedure SetDimensionList(Value: TDimensionList);
     function GetAttribute: TAttribute;
   public
-    constructor Create(const AnID: Integer;
+    constructor Create(const AnID: TID;
       const ATableName, AKeyFieldName, AListFieldName: String;
       const ACanBeAttr, AllowAttr, AnIsTree: Boolean); virtual;
     destructor Destroy; override;
@@ -104,7 +106,7 @@
     // Удаление
     procedure Delete(Index: Integer); override;
 
-    property id: Integer read FID write FID;
+    property id: TID read FID write FID;
     // Ключ справочника
     property Name: String read FName write FName;
     // Наименование
@@ -136,17 +138,17 @@
     procedure Clear; override;
     procedure Delete(const Index: Integer); override;
 
-    function IndexOf(const ID: Integer): Integer; overload;
+    function IndexOf(const ID: TID): Integer; overload;
     function IndexOf(const AName: String): Integer; overload;
 
     property Reference[Index: Integer]: TReference read GetReference;
 
-    procedure AddVariables(const ID: Integer; VariableList: TVariableList;
+    procedure AddVariables(const ID: TID; VariableList: TVariableList;
       IBQuery: TIBQuery); overload;
     // Добаление в список переменных списка атрибутов
-    procedure SetAttributeName(const ID: Integer; IBQuery: TIBQuery);
+    procedure SetAttributeName(const ID: TID; IBQuery: TIBQuery);
     function Add(const AReference: TReference): Integer; override; overload;
-    function Add(const AnID: Integer;
+    function Add(const AnID: TID;
       const ATableName, AKeyFieldName, AListFieldName: String;
       const ACanBeAttr, AllowAttr, AnIsTree: Boolean); override; overload;
   end;

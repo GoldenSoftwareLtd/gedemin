@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 617
+  Left = 788
   Height = 328
-  Top = 158
+  Top = 296
   Width = 364
   BorderStyle = bsNone
   Caption = 'MainForm'
@@ -18,10 +18,10 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
   OnShow = FormShow
-  LCLVersion = '1.0.8.0'
+  LCLVersion = '1.4.2.0'
   object lTitle: TLabel
     Left = 5
-    Height = 18
+    Height = 17
     Top = 5
     Width = 354
     Align = alTop
@@ -38,12 +38,12 @@ object MainForm: TMainForm
   end
   object pMenu: TPanel
     Left = 5
-    Height = 295
-    Top = 28
+    Height = 296
+    Top = 27
     Width = 354
     Align = alClient
     ChildSizing.VerticalSpacing = 5
-    ClientHeight = 295
+    ClientHeight = 296
     ClientWidth = 354
     Color = clWindow
     ParentColor = False
@@ -51,8 +51,8 @@ object MainForm: TMainForm
     TabOrder = 0
     object lSOFP: TLabel
       Left = 1
-      Height = 18
-      Top = 47
+      Height = 17
+      Top = 45
       Width = 352
       Align = alTop
       Caption = 'lSOFP'
@@ -68,8 +68,8 @@ object MainForm: TMainForm
     end
     object lID: TLabel
       Left = 1
-      Height = 18
-      Top = 24
+      Height = 17
+      Top = 23
       Width = 352
       Align = alTop
       Caption = 'lID'
@@ -85,8 +85,8 @@ object MainForm: TMainForm
     end
     object lSOFPE: TLabel
       Left = 1
-      Height = 18
-      Top = 93
+      Height = 17
+      Top = 89
       Width = 352
       Align = alTop
       Caption = 'lSOFPE'
@@ -102,8 +102,8 @@ object MainForm: TMainForm
     end
     object lFR: TLabel
       Left = 1
-      Height = 18
-      Top = 139
+      Height = 17
+      Top = 133
       Width = 352
       Align = alTop
       Caption = 'lFR'
@@ -119,7 +119,7 @@ object MainForm: TMainForm
     end
     object lSWP: TLabel
       Left = 1
-      Height = 18
+      Height = 17
       Top = 1
       Width = 352
       Align = alTop
@@ -136,8 +136,8 @@ object MainForm: TMainForm
     end
     object lExit: TLabel
       Left = 1
-      Height = 18
-      Top = 276
+      Height = 17
+      Top = 278
       Width = 352
       Align = alBottom
       Caption = 'lExit'
@@ -153,8 +153,8 @@ object MainForm: TMainForm
     end
     object lFRFree: TLabel
       Left = 1
-      Height = 18
-      Top = 70
+      Height = 17
+      Top = 67
       Width = 352
       Align = alTop
       Caption = 'lFRFree'
@@ -170,8 +170,8 @@ object MainForm: TMainForm
     end
     object lSOFPEFree: TLabel
       Left = 1
-      Height = 18
-      Top = 116
+      Height = 17
+      Top = 111
       Width = 352
       Align = alTop
       Caption = 'lSOFPEFree'
@@ -187,8 +187,8 @@ object MainForm: TMainForm
     end
     object lIN: TLabel
       Left = 1
-      Height = 18
-      Top = 162
+      Height = 17
+      Top = 155
       Width = 352
       Align = alTop
       Caption = 'lIN'
@@ -204,8 +204,8 @@ object MainForm: TMainForm
     end
     object lVT: TLabel
       Left = 1
-      Height = 18
-      Top = 185
+      Height = 17
+      Top = 177
       Width = 352
       Align = alTop
       Caption = 'lVT'
@@ -222,7 +222,7 @@ object MainForm: TMainForm
     object bSend: TButton
       Left = 1
       Height = 33
-      Top = 238
+      Top = 240
       Width = 352
       Align = alBottom
       Caption = 'Передать файлы '

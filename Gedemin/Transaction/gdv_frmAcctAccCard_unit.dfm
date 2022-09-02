@@ -1,6 +1,6 @@
 inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
-  Left = 371
-  Top = 124
+  Left = 441
+  Top = 157
   Width = 1042
   Height = 755
   HelpContext = 30
@@ -8,10 +8,10 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
   PixelsPerInch = 96
   TextHeight = 13
   inherited sLeft: TSplitter
-    Height = 604
+    Height = 597
   end
   inherited TBDock1: TTBDock
-    Width = 1034
+    Width = 1026
     inherited tbMainToolbar: TTBToolbar
       object TBSeparatorItem5: TTBSeparatorItem [4]
       end
@@ -21,13 +21,17 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
       object tbiEditDocumentLine: TTBItem [6]
         Action = actEditDocumentLine
       end
+      object TBItem7: TTBItem [7]
+        Action = actListDocument
+        Caption = 'Перейти в журнал документов'
+      end
     end
     inherited TBToolbar2: TTBToolbar
-      Left = 247
+      Left = 270
       DockPos = 184
     end
     inherited TBToolbar1: TTBToolbar
-      Left = 486
+      Left = 509
       inherited pCofiguration: TPanel
         inherited iblConfiguratior: TgsIBLookupComboBox
           gdClassName = 'TgdcAcctAccConfig'
@@ -36,31 +40,32 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
     end
   end
   inherited Panel1: TPanel
-    Width = 764
-    Height = 604
+    Width = 756
+    Height = 597
     TabOrder = 2
     inherited ibgrMain: TgsIBGrid
-      Width = 764
-      Height = 604
+      Width = 756
+      Height = 597
     end
   end
   inherited TBDock2: TTBDock
-    Height = 604
+    Height = 597
   end
   inherited TBDock3: TTBDock
-    Left = 1025
-    Height = 604
+    Left = 1017
+    Height = 597
   end
   inherited TBDock4: TTBDock
-    Top = 634
-    Width = 1034
+    Top = 627
+    Width = 1026
   end
   inherited pLeft: TPanel
-    Height = 604
+    Height = 597
     TabOrder = 1
     inherited ScrollBox: TScrollBox
-      Height = 587
+      Height = 580
       inherited Panel5: TPanel
+        Width = 246
         Height = 81
         inherited bAccounts: TButton
           Left = 235
@@ -79,17 +84,40 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
       end
       inherited frAcctQuantity: TfrAcctQuantity
         Top = 202
+        Width = 246
+        inherited ppMain: TgdvParamPanel
+          Width = 246
+        end
       end
       inherited frAcctSum: TfrAcctSum
         Top = 243
+        Width = 246
+        inherited ppMain: TgdvParamPanel
+          Width = 246
+          inherited pnlEQ: TPanel
+            Width = 234
+          end
+          inherited pnlQuantity: TPanel
+            Width = 234
+          end
+          inherited pnlTop: TPanel
+            Width = 234
+          end
+        end
       end
       inherited frAcctAnalytics: TfrAcctAnalytics
         Top = 161
+        Width = 246
+        inherited ppAnalytics: TgdvParamPanel
+          Width = 246
+        end
       end
       inherited frAcctCompany: TfrAcctCompany
         Top = 464
+        Width = 246
         TabOrder = 5
         inherited ppMain: TgdvParamPanel
+          Width = 246
           inherited cbAllCompanies: TCheckBox
             Width = 205
           end
@@ -105,6 +133,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
       end
       inherited ppAppear: TgdvParamPanel
         Top = 524
+        Width = 246
         TabOrder = 4
       end
       object ppCorrAccount: TgdvParamPanel
@@ -133,7 +162,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
         object Label3: TLabel
           Left = 14
           Top = 24
-          Width = 59
+          Width = 62
           Height = 13
           Caption = 'Корр.счета:'
           FocusControl = cbCorrAccounts
@@ -241,8 +270,8 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
   end
   object Panel3: TPanel [7]
     Left = 0
-    Top = 643
-    Width = 1034
+    Top = 636
+    Width = 1026
     Height = 81
     Align = alBottom
     BevelOuter = bvNone
@@ -251,7 +280,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
     object Bevel2: TBevel
       Left = 0
       Top = 0
-      Width = 1034
+      Width = 1026
       Height = 4
       Align = alTop
       Shape = bsBottomLine
@@ -571,6 +600,15 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
       ImageIndex = 121
       ShortCut = 16460
       OnExecute = actEditDocumentLineExecute
+      OnUpdate = actEditDocumentLineUpdate
+    end
+    object actListDocument: TAction
+      Caption = 'actListDocument'
+      Hint = 'Перейти в журнал документов'
+      ImageIndex = 7
+      ShortCut = 16458
+      OnExecute = actListDocumentExecute
+      OnUpdate = actListDocumentUpdate
     end
   end
   inherited ppMain: TPopupMenu
@@ -579,6 +617,10 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
     end
     object nEditDocumentLine: TMenuItem
       Action = actEditDocumentLine
+    end
+    object actListDocument1: TMenuItem
+      Action = actListDocument
+      Caption = 'Перейти в журнал документов'
     end
   end
   object ibdsMain: TgdvAcctAccCard

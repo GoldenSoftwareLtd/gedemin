@@ -61,7 +61,8 @@ uses
 
 procedure Tgdc_bug_dlgBugBase.DBEdit1Exit(Sender: TObject);
 begin
-  if DBEdit2.Text = '' then DBEdit2.Text := DBEdit1.Text;
+  if DBEdit2.Text = '' then 
+    DBEdit2.Text := DBEdit1.Text;
 end;
 
 procedure Tgdc_bug_dlgBugBase.SetupDialog;

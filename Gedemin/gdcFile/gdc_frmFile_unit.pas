@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gdc_frmFile_unit;
 
 interface
@@ -81,7 +83,8 @@ procedure Tgdc_frmFile.actRootDirectoryExecute(Sender: TObject);
 var
   S: String;
 begin
-  S := lblRootDirectory.Caption;
+  if not DirectoryExists(S) then
+    S := GetCurrentDir;
   if SelectDirectory(S, [sdAllowCreate, sdPerformCreate, sdPrompt], 0) then
   begin
     lblRootDirectory.Caption := S;

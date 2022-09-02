@@ -2,7 +2,7 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
   Left = 499
   Top = 244
   Width = 468
-  Height = 343
+  Height = 493
   HelpContext = 17
   BorderIcons = [biSystemMenu, biMaximize, biHelp]
   BorderWidth = 5
@@ -19,28 +19,30 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
   Position = poScreenCenter
   OnCanResize = FormCanResize
   OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 450
-    Height = 276
+    Width = 442
+    Height = 419
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object Splitter1: TSplitter
       Left = 0
-      Top = 128
-      Width = 450
+      Top = 271
+      Width = 442
       Height = 3
       Cursor = crVSplit
       Align = alBottom
     end
     object pnlHelp: TPanel
       Left = 0
-      Top = 131
-      Width = 450
+      Top = 274
+      Width = 442
       Height = 145
       Align = alBottom
       BevelOuter = bvLowered
@@ -49,7 +51,7 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
       object pnlDecr: TPanel
         Left = 1
         Top = 1
-        Width = 448
+        Width = 440
         Height = 143
         Align = alClient
         BevelOuter = bvNone
@@ -57,7 +59,7 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
         object mmDescription: TMemo
           Left = 0
           Top = 18
-          Width = 448
+          Width = 440
           Height = 125
           TabStop = False
           Align = alClient
@@ -72,14 +74,14 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
         object pnlFuncParam: TPanel
           Left = 0
           Top = 0
-          Width = 448
+          Width = 440
           Height = 18
           Align = alTop
           TabOrder = 1
           object lblFuncParam: TLabel
             Left = 1
             Top = 1
-            Width = 446
+            Width = 438
             Height = 16
             Align = alClient
             Color = clBtnFace
@@ -97,24 +99,64 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
     object Panel1: TPanel
       Left = 0
       Top = 0
-      Width = 450
-      Height = 128
+      Width = 442
+      Height = 271
       Align = alClient
       BevelOuter = bvNone
       Caption = 'Panel1'
       TabOrder = 1
       object Splitter2: TSplitter
         Left = 233
-        Top = 0
+        Top = 45
         Width = 3
-        Height = 128
+        Height = 226
         Cursor = crHSplit
+      end
+      object Panel6: TPanel
+        Left = 0
+        Top = 0
+        Width = 442
+        Height = 45
+        Align = alTop
+        BevelOuter = bvNone
+        TabOrder = 2
+        object Label2: TLabel
+          Left = 2
+          Top = 4
+          Width = 48
+          Height = 13
+          Caption = ' ‘ильтр: '
+        end
+        object lblFunctionCount: TLabel
+          Left = 267
+          Top = 4
+          Width = 48
+          Height = 13
+          Caption = '‘ункций:'
+        end
+        object edFilter: TEdit
+          Left = 50
+          Top = 0
+          Width = 214
+          Height = 21
+          TabOrder = 0
+          OnChange = edFilterChange
+        end
+        object cbSearchWithRegExp: TCheckBox
+          Left = 49
+          Top = 24
+          Width = 392
+          Height = 17
+          Caption = 'использовать регул€рные выражени€'
+          TabOrder = 1
+          OnClick = cbSearchWithRegExpClick
+        end
       end
       object Panel2: TPanel
         Left = 0
-        Top = 0
+        Top = 45
         Width = 233
-        Height = 128
+        Height = 226
         Align = alLeft
         BevelOuter = bvNone
         Caption = 'Panel2'
@@ -141,7 +183,7 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
           Left = 0
           Top = 17
           Width = 233
-          Height = 111
+          Height = 209
           Align = alClient
           Images = dmImages.ilTree
           Indent = 19
@@ -156,9 +198,9 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
       end
       object Panel3: TPanel
         Left = 236
-        Top = 0
-        Width = 214
-        Height = 128
+        Top = 45
+        Width = 206
+        Height = 226
         Align = alClient
         BevelOuter = bvNone
         Caption = 'Panel3'
@@ -166,7 +208,7 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
         object Panel5: TPanel
           Left = 0
           Top = 0
-          Width = 214
+          Width = 206
           Height = 17
           Align = alTop
           Alignment = taLeftJustify
@@ -184,8 +226,8 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
         object lvFunction: TListView
           Left = 0
           Top = 17
-          Width = 214
-          Height = 111
+          Width = 206
+          Height = 209
           Align = alClient
           Columns = <
             item
@@ -208,14 +250,14 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
   end
   object pnlButton: TPanel
     Left = 0
-    Top = 276
-    Width = 450
+    Top = 419
+    Width = 442
     Height = 26
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object btnOk: TButton
-      Left = 282
+      Left = 273
       Top = 5
       Width = 80
       Height = 21
@@ -226,7 +268,7 @@ object frmAvailableTaxFunc: TfrmAvailableTaxFunc
       TabOrder = 0
     end
     object btnCancel: TButton
-      Left = 368
+      Left = 359
       Top = 5
       Width = 81
       Height = 21

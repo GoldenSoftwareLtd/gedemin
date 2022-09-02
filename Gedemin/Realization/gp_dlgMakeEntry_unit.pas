@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019
+
 unit gp_dlgMakeEntry_unit;
 
 interface
@@ -32,12 +34,12 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-    FDocumentTypeKey: Integer;
-    procedure SetDocumentTypeKey(const Value: Integer);
+    FDocumentTypeKey: TID;
+    procedure SetDocumentTypeKey(const Value: TID);
     { Private declarations }
   public
     { Public declarations }
-    property DocumentTypeKey: Integer read FDocumentTypeKey write SetDocumentTypeKey; 
+    property DocumentTypeKey: TID read FDocumentTypeKey write SetDocumentTypeKey; 
   end;
 
 var
@@ -67,7 +69,7 @@ begin
 
     ibdsDocReal.Prepare;
     ibdsDocReal.ParamByName('DateBegin').AsDateTime := xdeDateBegin.Date;
-    ibdsDocReal.ParamByName('DT').AsInteger := DocumentTypeKey;
+    SetTID(ibdsDocReal.ParamByName('DT'), DocumentTypeKey);
     ibdsDocReal.ParamByName('DateEnd').AsDateTime := xdeDateEnd.Date;
 
     ibsqlRecordCount.Prepare;
@@ -107,7 +109,7 @@ begin
       while not ibdsDocReal.EOF do
       begin
         gsTransaction.CreateTransactionOnDataSet(
-          ibdsDocReal.FieldByName('currkey').AsInteger,
+          GetTID(ibdsDocReal.FieldByName('currkey')),
           ibdsDocReal.FieldByName('documentdate').AsDateTime,
           nil, nil, cbCheckTransaction.Checked);
         ibdsDocReal.Next;
@@ -123,7 +125,7 @@ begin
       gsTransaction.DocumentOnly := True;
       gsTransaction.DataSource := dsDocReal;
       gsTransaction.SetStartTransactionInfo(False);
-      gsTransaction.CreateTransactionOnDataSet(ibdsDocReal.FieldByName('currkey').AsInteger,
+      gsTransaction.CreateTransactionOnDataSet(GetTID(ibdsDocReal.FieldByName('currkey')),
         ibdsDocReal.FieldByName('documentdate').AsDateTime,
         nil, nil, cbCheckTransaction.Checked);
       gsTransaction.DocumentOnly := False;
@@ -146,7 +148,7 @@ begin
 
 end;
 
-procedure TdlgMakeEntry.SetDocumentTypeKey(const Value: Integer);
+procedure TdlgMakeEntry.SetDocumentTypeKey(const Value: TID);
 begin
   FDocumentTypeKey := Value;
   gsTransaction.DocumentType := FDocumentTypeKey;

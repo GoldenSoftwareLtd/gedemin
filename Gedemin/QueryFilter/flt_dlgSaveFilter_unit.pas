@@ -1,3 +1,5 @@
+// ShlTanya, 10.03.2019
+
 unit flt_dlgSaveFilter_unit;
 
 interface
@@ -24,16 +26,16 @@ type
     ibsqlGetID: TIBSQL;
     procedure aRightsUpdate(Sender: TObject);
   private
-    function GetUserKey: Integer;
+    function GetUserKey: TID;
     function GetIngroup: Integer;
-    function SaveFilter(const AnFilterData: TFilterData): Integer;
+    function SaveFilter(const AnFilterData: TFilterData): TID;
     procedure RemoveDataSet;
     procedure SetDataSet;
   public
-    function SaveWithOutName(const AnFilterData: TFilterData; const AnComponentKey: Integer): Integer;
-    function AddFilter(const AnFilterData: TFilterData; const AnComponentKey: Integer): Integer;
-    function EditFilter(const FilterKey: Integer): Boolean;
-    function DeleteFilter(const FilterKey: Integer): Boolean;
+    function SaveWithOutName(const AnFilterData: TFilterData; const AnComponentKey: TID): TID;
+    function AddFilter(const AnFilterData: TFilterData; const AnComponentKey: TID): Integer;
+    function EditFilter(const FilterKey: TID): Boolean;
+    function DeleteFilter(const FilterKey: tid): Boolean;
   end;
 
 var
@@ -48,7 +50,7 @@ begin
   aRights.Enabled := not cbFilterForMe.Checked;
 end;
 
-function TdlgSaveFilter.GetUserKey: Integer;
+function TdlgSaveFilter.GetUserKey: TID;
 begin
   if IBLogin <> nil then
     Result := IBLogin.UserKey
@@ -76,14 +78,14 @@ begin
   dbeDescription.DataSource := dsFilter;
 end;
 
-function TdlgSaveFilter.SaveFilter(const AnFilterData: TFilterData): Integer;
+function TdlgSaveFilter.SaveFilter(const AnFilterData: TFilterData): TID;
 var
   BlobStream: TIBDSBlobStream;
 begin
   Result := 0;
   try
     if cbFilterForMe.Checked then
-      ibdsAddFilter.FieldByName('userkey').AsInteger := GetUserKey;
+      SetTID(ibdsAddFilter.FieldByName('userkey'), GetUserKey);
     BlobStream := ibdsAddFilter.CreateBlobStream(ibdsAddFilter.FieldByName('data'), bmWrite) as TIBDSBlobStream;
     try
       AnFilterData.WriteToStream(BlobStream);
@@ -92,10 +94,10 @@ begin
     end;
     ibsqlGetID.Close;
     ibsqlGetID.ExecQuery;
-    ibdsAddFilter.FieldByName('id').AsInteger := ibsqlGetID.Fields[0].AsInteger;
+    SetTID(ibdsAddFilter.FieldByName('id'), ibsqlGetID.Fields[0]);
     ibdsAddFilter.FieldByName('lastextime').AsDateTime := 0;
     ibdsAddFilter.Post;
-    Result := ibdsAddFilter.FieldByName('id').AsInteger;
+    Result := GetTID(ibdsAddFilter.FieldByName('id'));
   except
     on E: exception do
     begin
@@ -105,7 +107,7 @@ begin
   end
 end;
 
-function TdlgSaveFilter.SaveWithOutName(const AnFilterData: TFilterData; const AnComponentKey: Integer): Integer;
+function TdlgSaveFilter.SaveWithOutName(const AnFilterData: TFilterData; const AnComponentKey: TID): TID;
 begin
   ibdsAddFilter.Close;
   ibdsAddFilter.Open;
@@ -113,14 +115,14 @@ begin
   ibdsAddFilter.FieldByName('afull').AsInteger := GetIngroup;
   ibdsAddFilter.FieldByName('achag').AsInteger := GetIngroup;
   ibdsAddFilter.FieldByName('aview').AsInteger := -1;
-  ibdsAddFilter.FieldByName('componentkey').AsInteger := AnComponentKey;
+  SetTID(ibdsAddFilter.FieldByName('componentkey'), AnComponentKey);
   ibdsAddFilter.FieldByName('name').AsString := 'Без имени';
   RemoveDataSet;
   Result := SaveFilter(AnFilterData);
   SetDataSet;
 end;
 
-function TdlgSaveFilter.AddFilter(const AnFilterData: TFilterData; const AnComponentKey: Integer): Integer;
+function TdlgSaveFilter.AddFilter(const AnFilterData: TFilterData; const AnComponentKey: TID): TID;
 begin
   Result := 0;
   ibdsAddFilter.Close;
@@ -129,18 +131,18 @@ begin
   ibdsAddFilter.FieldByName('afull').AsInteger := GetIngroup;
   ibdsAddFilter.FieldByName('achag').AsInteger := GetIngroup;
   ibdsAddFilter.FieldByName('aview').AsInteger := -1;
-  ibdsAddFilter.FieldByName('componentkey').AsInteger := AnComponentKey;
+  SetTID(ibdsAddFilter.FieldByName('componentkey'), AnComponentKey);
   if ShowModal = mrOk then
     Result := SaveFilter(AnFilterData)
   else
     ibdsAddFilter.Cancel;
 end;
 
-function TdlgSaveFilter.EditFilter(const FilterKey: Integer): Boolean;
+function TdlgSaveFilter.EditFilter(const FilterKey: TID): Boolean;
 begin
   Result := False;
   ibdsAddFilter.Close;
-  ibdsAddFilter.Params[0].AsInteger := FilterKey;
+  SetTID(ibdsAddFilter.Params[0], FilterKey);
   ibdsAddFilter.Open;
   if ibdsAddFilter.Eof then
   begin
@@ -152,7 +154,7 @@ begin
   if ShowModal = mrOk then
   try
     if cbFilterForMe.Checked then
-      ibdsAddFilter.FieldByName('userkey').AsInteger := GetUserKey
+      SetTID(ibdsAddFilter.FieldByName('userkey'), GetUserKey)
     else
       ibdsAddFilter.FieldByName('userkey').AsVariant := null;
     ibdsAddFilter.Post;
@@ -167,11 +169,11 @@ begin
     ibdsAddFilter.Cancel;
 end;
 
-function TdlgSaveFilter.DeleteFilter(const FilterKey: Integer): Boolean;
+function TdlgSaveFilter.DeleteFilter(const FilterKey: TID): Boolean;
 begin
   Result := False;
   ibdsAddFilter.Close;
-  ibdsAddFilter.Params[0].AsInteger := FilterKey;
+  SetTID(ibdsAddFilter.Params[0], FilterKey);
   ibdsAddFilter.Open;
   if ibdsAddFilter.Eof then
   begin

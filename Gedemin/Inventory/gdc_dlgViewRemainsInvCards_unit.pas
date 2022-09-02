@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Grids, DBGrids, gsDBGrid, gsIBGrid, ActnList, Db, IBCustomDataSet,
-  ExtCtrls, StdCtrls, gdc_createable_form, gdcInvDocument_unit;
+  ExtCtrls, StdCtrls, gdc_createable_form, gdcBaseInterface, gdcInvDocument_unit;
 
 type
   Tgdc_dlgViewRemainsInvCards = class(TgdcCreateableForm)
@@ -28,7 +28,7 @@ type
     FInvDocLine: TgdcInvDocumentLine;
     procedure SetInvDocLine(const Value: TgdcInvDocumentLine);
   public
-    procedure OpenDataSet(ADocLine: TgdcInvDocumentLine; AContactKey: integer; const ABalance: integer = 0);
+    procedure OpenDataSet(ADocLine: TgdcInvDocumentLine; AContactKey: TID; const ABalance: integer = 0);
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
@@ -161,13 +161,13 @@ begin
 end;
 
 procedure Tgdc_dlgViewRemainsInvCards.OpenDataSet(
-  ADocLine: TgdcInvDocumentLine; AContactKey: integer; const ABalance: integer);
+  ADocLine: TgdcInvDocumentLine; AContactKey: TID; const ABalance: integer);
 begin
   InvDocumentLine:= ADocLine;
-  ibdsInvCardList.ParamByName('contactkey').AsInteger:= AContactKey;
+  SetTID(ibdsInvCardList.ParamByName('contactkey'), AContactKey);
   ibdsInvCardList.ParamByName('count').AsInteger:= ABalance;
-  ibdsInvCardList.ParamByName('cardkey').AsInteger:= ADocLine.FieldByName('fromcardkey').AsInteger;
-  ibdsInvCardList.ParamByName('gid').AsInteger:= ADocLine.FieldByName('goodkey').AsInteger;
+  SetTID(ibdsInvCardList.ParamByName('cardkey'), GetTID(ADocLine.FieldByName('fromcardkey')));
+  SetTID(ibdsInvCardList.ParamByName('gid'), GetTID(ADocLine.FieldByName('goodkey')));
   ibgrInvCardList.CheckBox.FieldName:= 'id';
   ibdsInvCardList.Open;
 end;

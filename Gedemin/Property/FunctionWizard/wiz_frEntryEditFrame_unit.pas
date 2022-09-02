@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_frEntryEditFrame_unit;
 
 interface
@@ -60,8 +62,8 @@ type
     FAccountPopupMenu: TAccountPopupMenu;
     FAnalPopupMenu: TAnalPopupMenu;
 
-    FDebit, FCredit: Integer;
-    FCurrKey: Integer;
+    FDebit, FCredit: TID;
+    FCurrKey: TID;
     procedure ClickCurrency(Sender: TObject);
     procedure ClickExpression(Sender: TObject);
   protected
@@ -242,7 +244,7 @@ end;
 
 procedure TfrEntryEditFrame.SetBlock(const Value: TVisualBlock);
 var
-  Id: Integer;
+  Id: TID;
 begin
   inherited;
   with FBlock as TEntryBlock do

@@ -207,7 +207,8 @@ uses
   gdcInvConsts_unit,              dmDatabase_unit,        gdcContacts,
   dmImages_unit,                  gdc_inv_dlgPredefinedField_unit,
   gdc_inv_dlgViewFieldEvent_unit, gdcClasses_interface,
-  gd_strings,                     gd_security
+  gd_strings,                     gd_security,
+  gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -313,7 +314,7 @@ begin
       begin
         Item := ListView.Items.Add;
         Item.Caption := Contact.FieldByName('name').AsString;
-        Item.SubItems.Add(IntToStr(Contact.ID));
+        Item.SubItems.Add(TID2S(Contact.ID));
         Contact.Next;
       end;
     end;
@@ -878,13 +879,13 @@ begin
     for I := Low(V) to High(V) do
     begin
       q.Close;
-      q.ParamByName('ID').AsInteger := V[I];
+      SetTID(q.ParamByName('ID'), V[I]);
       q.ExecQuery;
       if q.EOF then
         continue;
       Item := lvDebitMovementValues.Items.Add;
       Item.Caption := q.FieldByName('NAME').AsTrimString;
-      Item.SubItems.Add(IntToStr(V[I]));
+      Item.SubItems.Add(TID2S(V[I]));
     end;
 
     IDE.GetMCOSubPredefined(emDebit, V);
@@ -892,13 +893,13 @@ begin
     for I := Low(V) to High(V) do
     begin
       q.Close;
-      q.ParamByName('ID').AsInteger := V[I];
+      SetTID(q.ParamByName('ID'), V[I]);
       q.ExecQuery;
       if q.EOF then
         continue;
       Item := lvSubDebitMovementValues.Items.Add;
       Item.Caption := q.FieldByName('NAME').AsTrimString;
-      Item.SubItems.Add(IntToStr(V[I]));
+      Item.SubItems.Add(TID2S(V[I]));
     end;
 
     cbDebitMovementChange(cbDebitMovement);
@@ -932,13 +933,13 @@ begin
     for I := Low(V) to High(V) do
     begin
       q.Close;
-      q.ParamByName('ID').AsInteger := V[I];
+      SetTID(q.ParamByName('ID'), V[I]);
       q.ExecQuery;
       if q.EOF then
         continue;
       Item := lvCreditMovementValues.Items.Add;
       Item.Caption := q.FieldByName('NAME').AsTrimString;
-      Item.SubItems.Add(IntToStr(V[I]));
+      Item.SubItems.Add(TID2S(V[I]));
     end;
 
     IDE.GetMCOSubPredefined(emCredit, V);
@@ -946,13 +947,13 @@ begin
     for I := Low(V) to High(V) do
     begin
       q.Close;
-      q.ParamByName('ID').AsInteger := V[I];
+      SetTID(q.ParamByName('ID'), V[I]);
       q.ExecQuery;
       if q.EOF then
         continue;
       Item := lvSubCreditMovementValues.Items.Add;
       Item.Caption := q.FieldByName('NAME').AsTrimString;
-      Item.SubItems.Add(IntToStr(V[I]));
+      Item.SubItems.Add(TID2S(V[I]));
     end;
 
     cbDebitMovementChange(cbCreditMovement);
@@ -1571,7 +1572,7 @@ begin
   // Осуществляем перенос полей, если берется копия таблицы
 
   if Assigned(R) then
-    Document.FieldByName('headerrelkey').AsInteger := R.ID;
+    SetTID(Document.FieldByName('headerrelkey'), R.ID);
 
   //
   // Нижняя таблица
@@ -1592,7 +1593,7 @@ begin
   // Осуществляем перенос полей, если берется копия таблицы
 
   if Assigned(RL) then
-    Document.FieldByName('linerelkey').AsInteger := RL.ID;
+    SetTID(Document.FieldByName('linerelkey'), RL.ID);
 end;
 
 procedure Tgdc_dlgSetupInvDocument.WriteOptions(Stream: TStream);
@@ -1605,9 +1606,9 @@ var
   I: Integer;
 
   var
-    rpgroupkey: Integer;
+    rpgroupkey: TID;
 begin
-  rpgroupkey := Document.FieldByName('reportgroupkey').AsInteger;
+  rpgroupkey := GetTID(Document.FieldByName('reportgroupkey'));
 
   Movement := nil;
   with TWriter.Create(Stream, 1024) do
@@ -1632,7 +1633,7 @@ begin
     then
       raise EdlgSetupInvDocument.Create('Report Group Key not created!');
 
-    Document.FieldByName('reportgroupkey').AsInteger := rpgroupkey;
+    SetTID(Document.FieldByName('reportgroupkey'), rpgroupkey);
 
     // Ключ записи в списке отчетов
     WriteInteger(rpgroupkey);
@@ -1673,13 +1674,13 @@ begin
 
     WriteListBegin;
       for I := 0 to lvDebitMovementValues.Items.Count - 1 do
-        WriteInteger(StrToInt(lvDebitMovementValues.Items[I].SubItems[0]));
+        WriteInteger(GetTID(lvDebitMovementValues.Items[I].SubItems[0]));
     WriteListEnd;
 
     WriteListBegin;
       if cbUseIncomeSub.Checked then
         for I := 0 to lvSubDebitMovementValues.Items.Count - 1 do
-          WriteInteger(StrToInt(lvSubDebitMovementValues.Items[I].SubItems[0]));
+          WriteInteger(GetTID(lvSubDebitMovementValues.Items[I].SubItems[0]));
     WriteListEnd;
 
     // Расход
@@ -1715,13 +1716,13 @@ begin
 
     WriteListBegin;
       for I := 0 to lvCreditMovementValues.Items.Count - 1 do
-        WriteInteger(StrToInt(lvCreditMovementValues.Items[I].SubItems[0]));
+        WriteInteger(GetTID(lvCreditMovementValues.Items[I].SubItems[0]));
     WriteListEnd;
 
     WriteListBegin;
       if cbUseOutlaySub.Checked then
         for I := 0 to lvSubCreditMovementValues.Items.Count - 1 do
-          WriteInteger(StrToInt(lvSubCreditMovementValues.Items[I].SubItems[0]));
+          WriteInteger(GetTID(lvSubCreditMovementValues.Items[I].SubItems[0]));
     WriteListEnd;
 
     // Настройки признаков
@@ -1842,9 +1843,9 @@ begin
   else
     cbTemplate.ItemIndex := -1;
 
-  Document.FieldByName('headerrelkey').AsInteger :=
-    TatRelation(cbDocument.Items.Objects[cbDocument.ItemIndex]).ID;
-  Document.FieldByName('linerelkey').AsInteger := RL.ID;  
+  SetTID(Document.FieldByName('headerrelkey'),
+    TatRelation(cbDocument.Items.Objects[cbDocument.ItemIndex]).ID);
+  SetTID(Document.FieldByName('linerelkey'), RL.ID);  
 
   UpdateTabs;
 end;
@@ -2122,7 +2123,7 @@ begin
   cbDocument.ItemIndex := -1;
 
   DE := gdClassList.FindDocByTypeID(gdcObject.ID, dcpHeader, True);
-  DEParent := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader, True);
+  DEParent := gdClassList.FindDocByTypeID(GetTID(gdcObject.FieldByName('parent')), dcpHeader, True);
 
   if (DE <> nil) then
     FIDE := DE as TgdInvDocumentEntry
@@ -2235,7 +2236,7 @@ procedure Tgdc_dlgSetupInvDocument.Post;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  RGKey: Integer;
+  RGKey: TID;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSETUPINVDOCUMENT', 'POST', KEYPOST)}
   {M}  try
@@ -2259,11 +2260,11 @@ begin
 
   Assert(gdcObject.Transaction.InTransaction);
 
-  RGKey := gdcObject.FieldByName('reportgroupkey').AsInteger;
+  RGKey := GetTID(gdcObject.FieldByName('reportgroupkey'));
   if not Document.UpdateReportGroup('Складской учет', gdcObject.FieldByName('name').AsString, RGKey, True) then
     raise EgdcInvDocumentType.Create('Report Group Key has not been created!');
 
-  gdcObject.FieldByName('reportgroupkey').AsInteger := RGKey;
+  SetTID(gdcObject.FieldByName('reportgroupkey'), RGKey);
 
   inherited;                      
 

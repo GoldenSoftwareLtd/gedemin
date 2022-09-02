@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 unit scr_InheritedObject;
 
 interface
@@ -14,7 +16,7 @@ type
 type
   PExecuteFunction = ^TExecuteFunction;
   TExecuteFunction = record
-    Id: Integer;
+    Id: TID;
     Executed: Boolean;
     Sender: TClass;
   end;
@@ -1049,15 +1051,14 @@ begin
             begin
               if dsObjectEvent.Active then
                 dsObjectEvent.Close;
-              dsObjectEvent.ParamByName('objectkey').AsInteger :=
-                DataSet.FieldByName(fnId).AsInteger;
+              SetTID(dsObjectEvent.ParamByName('objectkey'), DataSet.FieldByName(fnId));
               dsObjectEvent.ParamByName('name').AsString := Name;
               dsObjectEvent.Open;
               if  not dsObjectEvent.IsEmpty then
               begin
                 New(TmpExecuteFunction);
                 TmpExecuteFunction^.Executed := False;
-                TmpExecuteFunction^.Id := dsObjectEvent.FieldByName(fnFunctionKey).AsInteger;
+                TmpExecuteFunction^.Id := GetTID(dsObjectEvent.FieldByName(fnFunctionKey));
                 TmpExecuteFunction^.Sender := TmpClass;
                 FExecuteFunction.Add(TmpExecuteFunction);
                 dsObjectEvent.Next

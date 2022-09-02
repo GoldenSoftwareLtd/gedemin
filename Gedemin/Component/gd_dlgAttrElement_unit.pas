@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019, #4135
+
 {++
    Project GDReference
    Copyright © 2000- by Golden Software
@@ -28,7 +30,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, Mask, DBCtrls, ExtCtrls, IBCustomDataSet, IBUpdateSQL, Db,
-  IBQuery, IBSQL, ActnList, gd_security, IBDatabase;
+  IBQuery, IBSQL, ActnList, gd_security, IBDatabase, gdcBaseInterface;
 
 type
   Tgd_dlgAttrElement = class(TForm)
@@ -56,18 +58,19 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-    FParent: Integer;
-    FAttrKey: Integer;
+    FParent: TID;
+    FAttrKey: TID;
     procedure CheckDatabase;
   public
     KeyList: TStringList;
     Text: String;
+    destructor Destroy; override;
     procedure SetDatabase(const Database: TIBDatabase; const Transaction: TIBTransaction);
-    function AddElement(const AnAttrKey: Integer): Boolean; overload;
-    function AddElement(const AnAttrKey: Integer; const AParent: Integer): Boolean; overload;
-    function EditElement(const AKey: Integer): Boolean;
+    function AddElement(const AnAttrKey: TID): Boolean; overload;
+    function AddElement(const AnAttrKey: TID; const AParent: TID): Boolean; overload;
+    function EditElement(const AKey: TID): Boolean;
 //    function EditElement(const ARefValueKey: Integer; const AnAttrKey: Integer): Boolean; overload;
-    function DeleteElement(const AKey: Integer): Boolean; overload;
+    function DeleteElement(const AKey: TID): Boolean; overload;
 //    function DeleteElement(const ARefValueKey: Integer; const AnAttrKey: Integer): Boolean; overload;
     procedure AddNextElement;
   end;
@@ -88,15 +91,15 @@ begin
   //Добавляем новую запись
   qryAttrSet.Open;
   qryAttrSet.Insert;
-  qryAttrSet.FieldByName('attrkey').AsInteger := FAttrKey;
+  SetTID(qryAttrSet.FieldByName('attrkey'), FAttrKey);
   qryAttrSet.FieldByName('afull').AsInteger := -1;
   qryAttrSet.FieldByName('achag').AsInteger := -1;
   qryAttrSet.FieldByName('aview').AsInteger := -1;
   ibsqlGenUniqueID.ExecQuery; // Не подключать dmDatabase
-  qryAttrSet.FieldByName('id').AsInteger := ibsqlGenUniqueID.Fields[0].AsInteger;
+  SetTID(qryAttrSet.FieldByName('id'), ibsqlGenUniqueID.Fields[0]);
 
   if FParent > -1 then
-    qryAttrSet.FieldByName('parent').AsInteger := FParent
+    SetTID(qryAttrSet.FieldByName('parent'), FParent)
   else
     qryAttrSet.FieldByName('parent').Clear;
 
@@ -110,12 +113,12 @@ begin
   if not Self.Visible then
   if ShowModal = mrOk then
   begin
-    KeyList.AddObject(dbeName.Text,Pointer(qryAttrSet.FieldByName('ID').AsInteger));
+    KeyList.AddObject(dbeName.Text, TID2Pointer(GetTID(qryAttrSet.FieldByName('ID')), Name));
   end;
 end;
 
 //Добавление подэлемента множества
-function Tgd_dlgAttrElement.AddElement(const AnAttrKey: Integer; const AParent: Integer): Boolean;
+function Tgd_dlgAttrElement.AddElement(const AnAttrKey: TID; const AParent: TID): Boolean;
 begin
   CheckDatabase;
   FParent := AParent;
@@ -124,7 +127,7 @@ begin
   if not qryAttrSet.Transaction.InTransaction then
     qryAttrSet.Transaction.StartTransaction;
   qryAttribute.Close;
-  qryAttribute.ParamByName('Key').AsInteger := AnAttrKey;
+  SetTID(qryAttribute.ParamByName('Key'), AnAttrKey);
   qryAttribute.Open;
   if qryAttribute.RecordCount > 0 then
   if qryAttribute.FieldByName('refkey').IsNull then
@@ -179,7 +182,7 @@ begin
 end;
 
 //Добавление элемента множества
-function Tgd_dlgAttrElement.AddElement(const AnAttrKey: Integer): Boolean;
+function Tgd_dlgAttrElement.AddElement(const AnAttrKey: TID): Boolean;
 begin
   Result := AddElement(AnAttrKey, -1);
 end;
@@ -199,7 +202,7 @@ begin
 end;}
 
 //Редактирование элемента множества
-function Tgd_dlgAttrElement.EditElement(const AKey: Integer): Boolean;
+function Tgd_dlgAttrElement.EditElement(const AKey: TID): Boolean;
 begin
   CheckDatabase;
   aNew.Visible := False;
@@ -208,11 +211,11 @@ begin
     qryAttrSet.Transaction.StartTransaction;
 
   qryAttrSet.Close;
-  qryAttrSet.ParamByName('id').AsInteger := AKey;
+  SetTID(qryAttrSet.ParamByName('id'), AKey);
   qryAttrSet.Open;
 
   qryAttribute.Close;
-  qryAttribute.ParamByName('Key').AsInteger := qryAttrSet.FieldByName('attrkey').AsInteger;
+  SetTID(qryAttribute.ParamByName('Key'), qryAttrSet.FieldByName('attrkey'));
   qryAttribute.Open;
   if qryAttribute.RecordCount > 0 then
   begin
@@ -257,7 +260,7 @@ begin
 end;}
 
 //Удаление элемента множества
-function Tgd_dlgAttrElement.DeleteElement(const AKey: Integer): Boolean;
+function Tgd_dlgAttrElement.DeleteElement(const AKey: TID): Boolean;
 begin
   CheckDatabase;
 
@@ -271,12 +274,12 @@ begin
       qryAttrSet.Transaction.StartTransaction;
 
     qryAttrSet.Close;
-    qryAttrSet.ParamByName('id').AsInteger := AKey;
+    SetTID(qryAttrSet.ParamByName('id'), AKey);
     qryAttrSet.Open;
 
     qryChildren.Close;
-    qryChildren.ParamByName('akey').AsInteger := qryAttrSet.FieldByName('attrkey').AsInteger;
-    qryChildren.ParamByName('id').AsInteger := AKey;
+    SetTID(qryChildren.ParamByName('akey'), qryAttrSet.FieldByName('attrkey'));
+    SetTID(qryChildren.ParamByName('id'), AKey);
     qryChildren.Open;
     if qryChildren.RecordCount > 0 then
     begin
@@ -284,7 +287,7 @@ begin
       Exit;
     end;
     qryAttribute.Close;
-    qryAttribute.ParamByName('Key').AsInteger := qryAttrSet.FieldByName('attrkey').AsInteger;
+    SetTID(qryAttribute.ParamByName('Key'), qryAttrSet.FieldByName('attrkey'));
     qryAttribute.Open;
 
     if qryAttribute.RecordCount > 0 then
@@ -295,7 +298,7 @@ begin
       try
         ibsqlDelete.Close;
         ibsqlDelete.SQL.Text := 'DELETE FROM gd_attrset ' +
-                                ' WHERE id = ' + IntToStr(AKey);
+                                ' WHERE id = ' + TID2S(AKey);
         ibsqlDelete.ExecQuery;
         ibsqlDelete.Transaction.CommitRetaining;
         Result := True;
@@ -329,7 +332,7 @@ end;
 
 procedure Tgd_dlgAttrElement.aNewExecute(Sender: TObject);
 begin
-  KeyList.AddObject(dbeName.Text,Pointer(qryAttrSet.FieldByName('ID').AsInteger));
+  KeyList.AddObject(dbeName.Text, TID2Pointer(GetTID(qryAttrSet.FieldByName('ID')), Name));
   ModalResult := mrOk;
   btnOkClick(btnOk);
   ModalResult := mrNone;
@@ -343,7 +346,15 @@ end;
 
 procedure Tgd_dlgAttrElement.FormDestroy(Sender: TObject);
 begin
-    KeyList.Free;
+  KeyList.Free;
+end;
+
+destructor Tgd_dlgAttrElement.Destroy;
+begin
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
+  inherited;
 end;
 
 end.

@@ -1,7 +1,7 @@
 inherited gdc_dlgFKManager: Tgdc_dlgFKManager
-  Left = 350
-  Top = 202
-  Caption = 'gdc_dlgFKManager'
+  Left = 393
+  Top = 126
+  Caption = 'Внешний ключ'
   ClientHeight = 431
   ClientWidth = 372
   Font.Charset = DEFAULT_CHARSET
@@ -194,7 +194,8 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         ItemHeight = 13
         Items.Strings = (
           'ORIGINAL'
-          'TRIGGER')
+          'TRIGGER'
+          'CHECK')
         TabOrder = 0
       end
       object gbStat: TGroupBox
@@ -283,6 +284,44 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         end
       end
     end
+    object TabSheet1: TTabSheet [1]
+      Caption = 'Список значений идентификаторов'
+      ImageIndex = 2
+      object dbmmCheckIdList: TDBMemo
+        Left = 0
+        Top = 32
+        Width = 355
+        Height = 334
+        Align = alClient
+        DataField = 'CHECK_ID'
+        DataSource = dsgdcBase
+        ScrollBars = ssVertical
+        TabOrder = 0
+      end
+      object Panel1: TPanel
+        Left = 0
+        Top = 0
+        Width = 355
+        Height = 32
+        Align = alTop
+        BevelOuter = bvNone
+        TabOrder = 1
+        object Button1: TButton
+          Left = 1
+          Top = 4
+          Width = 353
+          Height = 21
+          Action = actFillCheckIdFromTable
+          TabOrder = 0
+        end
+      end
+    end
+    inherited tbsAttr: TTabSheet
+      inherited atcMain: TatContainer
+        Width = 355
+        Height = 366
+      end
+    end
   end
   inherited alBase: TActionList
     Left = 310
@@ -303,6 +342,11 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
       Caption = 'Показать текущие значения'
       OnExecute = actShowActiveValuesExecute
       OnUpdate = actShowActiveValuesUpdate
+    end
+    object actFillCheckIdFromTable: TAction
+      Caption = 'Заполнить список идентификаторов из таблицы'
+      OnExecute = actFillCheckIdFromTableExecute
+      OnUpdate = actFillCheckIdFromTableUpdate
     end
   end
   inherited dsgdcBase: TDataSource

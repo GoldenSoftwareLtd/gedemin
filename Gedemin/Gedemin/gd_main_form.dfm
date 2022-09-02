@@ -1,6 +1,6 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 472
-  Top = 143
+  Left = 317
+  Top = 200
   Width = 969
   Height = 85
   HelpContext = 76
@@ -9,7 +9,7 @@ object frmGedeminMain: TfrmGedeminMain
   Caption = 'Gedemin'
   Color = clBtnFace
   Constraints.MaxHeight = 85
-  Constraints.MaxWidth = 2000
+  Constraints.MaxWidth = 8000
   Constraints.MinHeight = 80
   Constraints.MinWidth = 400
   Font.Charset = RUSSIAN_CHARSET
@@ -26,7 +26,7 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockMain: TTBDock
     Left = 0
     Top = 0
-    Width = 961
+    Width = 953
     Height = 26
     LimitToOneRow = True
     object tbMainMenu: TTBToolbar
@@ -328,30 +328,22 @@ object frmGedeminMain: TfrmGedeminMain
       object TBControlItem6: TTBControlItem
         Control = lblDatabase
       end
-      object TBItem31: TTBItem
-        Caption = 'aaa'
-        OnClick = TBItem31Click
-      end
-      object TBItem32: TTBItem
-        Caption = 'bbb'
-        OnClick = TBItem32Click
-      end
       object Label1: TLabel
-        Left = 235
+        Left = 236
         Top = 4
         Width = 32
         Height = 13
         Caption = 'Стол: '
       end
       object Label2: TLabel
-        Left = 488
+        Left = 489
         Top = 4
         Width = 73
         Height = 13
         Caption = 'Организация: '
       end
       object lblDatabase: TLabel
-        Left = 735
+        Left = 736
         Top = 4
         Width = 3
         Height = 13
@@ -360,7 +352,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnDblClick = actCopyExecute
       end
       object cbDesktop: TComboBox
-        Left = 267
+        Left = 268
         Top = 0
         Width = 146
         Height = 21
@@ -373,7 +365,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnChange = cbDesktopChange
       end
       object gsiblkupCompany: TgsIBLookupComboBox
-        Left = 561
+        Left = 562
         Top = 0
         Width = 145
         Height = 21
@@ -395,8 +387,8 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object TBDockForms: TTBDock
     Left = 0
-    Top = 27
-    Width = 961
+    Top = 26
+    Width = 953
     Height = 27
     BoundLines = [blTop]
     Color = clWindow
@@ -425,8 +417,8 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object ActionList: TActionList
     Images = dmImages.il16x16
-    Left = 606
-    Top = 30
+    Left = 845
+    Top = 16
     object actAbout: TAction
       Category = 'Справка'
       Caption = 'О системе...'
@@ -541,7 +533,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actShowSQLObjects: TAction
       Category = 'Actions'
-      Caption = 'actShowSQLObjects'
+      Caption = 'SQL объекты'
       OnExecute = actShowSQLObjectsExecute
       OnUpdate = actShowSQLObjectsUpdate
     end
@@ -801,6 +793,7 @@ object frmGedeminMain: TfrmGedeminMain
       Caption = 'Триггеры БД'
       ImageIndex = 0
       OnExecute = actDBTriggersExecute
+      OnUpdate = actDBTriggersUpdate
     end
   end
   object IBTransaction: TIBTransaction
@@ -816,8 +809,8 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object pmForms: TPopupMenu
     Images = dmImages.il16x16
-    Left = 344
-    Top = 24
+    Left = 909
+    Top = 16
     object N1: TMenuItem
       Action = actHideForm
     end
@@ -836,8 +829,8 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object pmlblDataBase: TPopupMenu
     Images = dmImages.il16x16
-    Left = 424
-    Top = 24
+    Left = 877
+    Top = 16
     object N6: TMenuItem
       Action = actCopy
     end

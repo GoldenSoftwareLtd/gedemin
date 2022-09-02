@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 unit gdc_frmAcctAccount_unit;
 
@@ -59,7 +60,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gdc_acct_dlgAnalysis_unit, gd_ClassList, gd_security;
+  gdc_acct_dlgAnalysis_unit, gd_ClassList, gd_security, gdcBaseInterface;
 
 procedure Tgdc_frmAcctAccount.FormCreate(Sender: TObject);
 begin
@@ -92,12 +93,12 @@ begin
     Obj.SubSet := 'ByID';
     Obj.Open;
     Obj.Insert;
-    Obj.FieldByName('parent').AsInteger := gdcObject.ID;
+    SetTID(Obj.FieldByName('parent'), gdcObject.ID);
     if Obj.CreateDialog then
     begin
       gdcObject.Close;
       gdcObject.Open;
-      gdcObject.Locate('ID', Obj.ID, []);
+      gdcObject.Locate('ID', TID2V(Obj.ID), []);
     end;
     Obj.Close;
   finally

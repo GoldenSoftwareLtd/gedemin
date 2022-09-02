@@ -1,29 +1,31 @@
+// ShlTanya, 11.03.2019
+
 unit gp_common_real_unit;
 
 interface
 
-uses DB;
+uses DB, gdcBaseInterface;
 
 type
 // Объект для хранения полей прайс-листа
   TPriceField = class
     FieldName: String; // Название поля
     ShortName: String; // Крактое наименование
-    CurrKey: Integer;  // Код валюты
-    constructor Create(const aFieldName, aShortName: String; const aCurrKey: Integer);
+    CurrKey: TID;  // Код валюты
+    constructor Create(const aFieldName, aShortName: String; const aCurrKey: TID);
   end;
 
 // Объект для хранения полей налогов
   TTaxField = class
     RelationName: String; // Наименование таблицы
     FieldName: String;    // Наименование пояя
-    TaxKey: Integer;      // Код налога
+    TaxKey: TID;      // Код налога
     Expression: String;   // Формула расчета налога
     Rate: Currency;       // Ставка
     IsInclude: Boolean;   // Налог в цене или нет
     IsCurrency: Boolean;  // Налог валютный или нет
     Rounding: Currency;   // До какой суммы округлять
-    constructor Create(const aRelationName, aFieldName, aExpression: String; const aTaxKey: Integer;
+    constructor Create(const aRelationName, aFieldName, aExpression: String; const aTaxKey: TID;
       const aisInclude, aIsCurrency: Boolean; const aRounding, aRate: Currency);
   end;
 
@@ -42,7 +44,7 @@ implementation
 
 { TPriceField }
 
-constructor TPriceField.Create(const aFieldName, aShortName: String; const aCurrKey: Integer);
+constructor TPriceField.Create(const aFieldName, aShortName: String; const aCurrKey: TID);
 begin
   FieldName := aFieldName;
   ShortName := aShortName;
@@ -51,7 +53,7 @@ end;
 
 { TTaxField }
 
-constructor TTaxField.Create(const aRelationName, aFieldName, aExpression: String; const aTaxKey: Integer;
+constructor TTaxField.Create(const aRelationName, aFieldName, aExpression: String; const aTaxKey: TID;
       const aIsInclude, aIsCurrency: Boolean; const aRounding, aRate: Currency);
 begin
   RelationName := aRelationName;

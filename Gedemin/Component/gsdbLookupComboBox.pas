@@ -1,3 +1,4 @@
+// ShlTanya, 17.02.2019
 
 unit gsDBLookupComboBox;
 
@@ -6,7 +7,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Controls, Forms, Dialogs,
   StdCtrls, DB, IBHeader, IBDatabase, IBSQL, IBCustomDataSet,
-  gsdbLookupComboboxInterface, gsdbLookupCombobox_dlgDropDown, DBCtrls;
+  gsdbLookupComboboxInterface, gsdbLookupCombobox_dlgDropDown, DBCtrls,
+  gdcBaseInterface;
 
 type
   TgsSortOrder = (soNone, soAsc, soDesc);
@@ -83,8 +85,8 @@ type
 
     procedure SetCurrentKey(const Value: String);
     procedure SetListTable(const Value: String);
-    function GetCurrentKeyInt: Integer;
-    procedure SetCurrentKeyInt(const Value: Integer);
+    function GetCurrentKeyInt: TID;
+    procedure SetCurrentKeyInt(const Value: TID);
     function GetValidObject: Boolean;
     procedure SetFields(const Value: String);
     procedure SetListField(const Value: String);
@@ -152,7 +154,7 @@ type
     procedure SaveToStream(S: TStream);
 
     property CurrentKey: String read FCurrentKey write SetCurrentKey;
-    property CurrentKeyInt: Integer read GetCurrentKeyInt write SetCurrentKeyInt;
+    property CurrentKeyInt: TID read GetCurrentKeyInt write SetCurrentKeyInt;
 
     {interface}
     property DropDownDialogWidth: Integer read GetDropDownDialogWidth
@@ -1070,14 +1072,14 @@ begin
   inherited;
 end;
 
-function TgsdbLookupCombobox.GetCurrentKeyInt: Integer;
+function TgsdbLookupCombobox.GetCurrentKeyInt: TID;
 begin
-  Result := StrToIntDef(FCurrentKey, -1);
+  Result := GetTID(FCurrentKey, -1);
 end;
 
-procedure TgsdbLookupCombobox.SetCurrentKeyInt(const Value: Integer);
+procedure TgsdbLookupCombobox.SetCurrentKeyInt(const Value: TID);
 begin
-  CurrentKey := IntToStr(Value);
+  CurrentKey := TID2S(Value);
 end;
 
 function TgsdbLookupCombobox.GetValidObject: Boolean;
@@ -1415,8 +1417,6 @@ end;
 procedure TgsdbLookupCombobox.DblClick;
 begin
   inherited;
-
-  raise Exception.Create('Test exception');
 end;
 {$ENDIF}
 

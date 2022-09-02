@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 unit gdcBugBase;
 
@@ -293,7 +294,7 @@ begin
   FieldByName('decision').AsString := '¿ƒ –€“¿';
   FieldByName('raised').AsDateTime := Now;
   FieldByName('priority').AsInteger := 3;
-  FieldByName('founderkey').AsInteger := IBLogin.ContactKey;
+  SetTID(FieldByName('founderkey'), IBLogin.ContactKey);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBUGBASE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

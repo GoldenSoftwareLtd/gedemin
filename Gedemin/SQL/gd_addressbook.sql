@@ -380,7 +380,7 @@ CREATE OR ALTER TRIGGER gd_biu_bank FOR gd_bank
   POSITION 32000
 AS
   DECLARE VARIABLE d_name VARCHAR(60);
-  DECLARE VARIABLE d_id INTEGER;
+  DECLARE VARIABLE d_id DFOREIGNKEY;
 BEGIN
   IF (INSERTING OR NEW.bankcode <> OLD.bankcode) THEN
   BEGIN
@@ -501,8 +501,8 @@ CREATE OR ALTER TRIGGER gd_biu_companyaccount FOR gd_companyaccount
   BEFORE INSERT OR UPDATE
   POSITION 30000
 AS
-  DECLARE VARIABLE hc INTEGER = NULL;
-  DECLARE VARIABLE c_id INTEGER = NULL;
+  DECLARE VARIABLE hc DFOREIGNKEY = NULL;
+  DECLARE VARIABLE c_id DFOREIGNKEY = NULL;
   DECLARE VARIABLE c_name dtext180 = NULL;
 BEGIN
   IF (INSERTING OR NEW.account <> OLD.account) THEN
@@ -598,9 +598,9 @@ COMMIT;
 SET TERM ^ ;
 
 
-CREATE PROCEDURE gd_p_SetCompanyToPeople(Department INTEGER)
+CREATE PROCEDURE gd_p_SetCompanyToPeople(Department DFOREIGNKEY)
 AS
-  DECLARE VARIABLE companykey INTEGER;
+  DECLARE VARIABLE companykey DFOREIGNKEY;
 BEGIN
 
   SELECT MIN(comp.id)
@@ -694,10 +694,10 @@ END
  *
  */
 
-CREATE PROCEDURE gd_p_getfolderelement(parent Integer)
+CREATE PROCEDURE gd_p_getfolderelement(parent DFOREIGNKEY)
 RETURNS
 (
-  id          INTEGER,
+  id          DFOREIGNKEY,
   contacttype INTEGER,
   name        VARCHAR(60),
   phone       VARCHAR(60),
@@ -709,7 +709,7 @@ RETURNS
   aview       INTEGER
 )
 AS
-  DECLARE VARIABLE N INTEGER;
+  DECLARE VARIABLE N DFOREIGNKEY;
 BEGIN
   FOR SELECT id, contacttype, name, phone, address, email, afull, achag, aview
     FROM gd_contact

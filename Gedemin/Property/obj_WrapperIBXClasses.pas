@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 unit obj_WrapperIBXClasses;
 
 interface
@@ -107,8 +109,8 @@ type
     procedure Set_AsDate(Value: TDateTime); safecall;
     function  Get_AsDateTime: TDateTime; safecall;
     procedure Set_AsDateTime(Value: TDateTime); safecall;
-    function  Get_AsInteger: Integer; safecall;
-    procedure Set_AsInteger(Value: Integer); safecall;
+    function  Get_AsInteger: ATID; safecall;
+    procedure Set_AsInteger(Value: ATID); safecall;
     function  Get_AsFloat: Double; safecall;
     procedure Set_AsFloat(Value: Double); safecall;
 
@@ -173,8 +175,8 @@ type
     procedure Set_AsDateTime(Value: TDateTime); safecall;
     function  Get_AsFloat: Double; safecall;
     procedure Set_AsFloat(Value: Double); safecall;
-    function  Get_AsInteger: Integer; safecall;
-    procedure Set_AsInteger(Value: Integer); safecall;
+    function  Get_AsInteger: ATID; safecall;
+    procedure Set_AsInteger(Value: ATID); safecall;
     function  Get_AsMemo: WideString; safecall;
     procedure Set_AsMemo(const Value: WideString); safecall;
     function  Get_AsSmallInt: Integer; safecall;
@@ -209,8 +211,8 @@ type
   protected
     function  Get_AsString: WideString; safecall;
     procedure Set_AsString(const Value: WideString); safecall;
-    function  Get_AsInteger: Integer; safecall;
-    procedure Set_AsInteger(Value: Integer); safecall;
+    function  Get_AsInteger: ATID; safecall;
+    procedure Set_AsInteger(Value: ATID); safecall;
     function  Get_AsVariant: OleVariant; safecall;
     procedure Set_AsVariant(Value: OleVariant); safecall;
     function  Get_FieldType: WideString; safecall;
@@ -303,6 +305,7 @@ type
     function  IsValidChar(InputChar: Shortint): WordBool; safecall;
     procedure RefreshLookupList; safecall;
     procedure SetFieldType(Value: TgsFieldType); safecall;
+    procedure Assign_(const Source: IgsPersistent); safecall;
 
     function  Get_LookupList: IgsLookupList; safecall;
     function  Get_ParentField: IgsObjectField; safecall;
@@ -335,7 +338,7 @@ procedure ErrorClassName(const ClassName: String);
 implementation
 
 uses
-  prp_methods, ComServ, SysUtils, Forms, TypInfo;
+  prp_methods, ComServ, SysUtils, Forms, TypInfo, gdcBaseInterface, IBHeader, gdcBase;
 
 const
   // Error messages
@@ -657,9 +660,9 @@ begin
   Result := GetField.AsFloat;
 end;
 
-function TwrpField.Get_AsInteger: Integer;
+function TwrpField.Get_AsInteger: ATID;
 begin
-  Result := GetField.AsInteger;
+  Result := GetTID(GetField.AsFloat);
 end;
 
 function TwrpField.Get_AsString: WideString;
@@ -707,9 +710,9 @@ begin
   GetField.AsFloat := Value;
 end;
 
-procedure TwrpField.Set_AsInteger(Value: Integer);
+procedure TwrpField.Set_AsInteger(Value: ATID);
 begin
-  GetField.AsInteger := Value;
+  GetField.AsFloat := Value;
 end;
 
 procedure TwrpField.Set_AsString(const Value: WideString);
@@ -719,7 +722,7 @@ end;
 
 procedure TwrpField.Set_AsVariant(Value: OleVariant);
 begin
-  GetField.AsVariant := Value;
+  SetVar2Field(GetField, Value);
 end;
 
 function TwrpField.Get_Alignment: TgsAlignment;
@@ -909,7 +912,7 @@ end;
 
 function TwrpField.Get_NewValue: OleVariant;
 begin
- Result := GetField.NewValue;
+ Result := Get_Value;
 end;
 
 function TwrpField.Get_Offset: Integer;
@@ -919,7 +922,17 @@ end;
 
 function TwrpField.Get_OldValue: OleVariant;
 begin
- Result := GetField.OldValue;
+ if GetField.DataSet is TgdcBase then
+ begin
+   {$IFDEF VER130}
+   if (GetField.DataType = ftLargeInt) and not GetField.IsNull then
+     Result := StrToFloat((GetField.DataSet as TgdcBase).GetOldFieldValue_Str(GetField.FieldName))
+   else
+  {$ENDIF}
+     Result := GetField.OldValue
+ end    
+ else
+   Result := GetField.OldValue;
 end;
 
 function TwrpField.Get_Origin: WideString;
@@ -1090,7 +1103,7 @@ end;
 
 procedure TwrpField.Set_Value(Value: OleVariant);
 begin
-  GetField.Value := Value;
+  SetVar2Field(GetField, Value);
 end;
 
 procedure TwrpField.Set_Visible(Value: WordBool);
@@ -1163,6 +1176,18 @@ begin
   GetField.Required := Value;
 end;
 
+procedure TwrpField.Assign_(const Source: IgsPersistent);
+begin
+  {$IFDEF ID64}
+   if (GetField.DataType = ftLargeInt) and not (InterfaceToObject(Source) as TField).IsNull then
+     GetField.AsFloat := (InterfaceToObject(Source) as TField).AsFloat
+   else
+     GetField.Assign(InterfaceToObject(Source) as TPersistent);
+  {$ELSE}
+    GetField.Assign(InterfaceToObject(Source) as TPersistent)
+  {$ENDIF}
+end;
+
 { TwrpIBXSQLVAR }
 
 function TwrpIBXSQLVAR.Get_AsCurrency: Currency;
@@ -1197,6 +1222,11 @@ end;
 
 function TwrpIBXSQLVAR.Get_AsVariant: OleVariant;
 begin
+{$IFDEF VER130}
+ if (GetIBXSQLVAR.SQLType = SQL_INT64) and not GetIBXSQLVAR.IsNull then
+   Result := GetIBXSQLVAR.AsDouble
+ else
+{$ENDIF}
   Result := GetIBXSQLVAR.AsVariant;
 end;
 
@@ -1237,6 +1267,11 @@ end;
 
 function TwrpIBXSQLVAR.Get_Value: OleVariant;
 begin
+{$IFDEF VER130}
+ if (GetIBXSQLVAR.SQLType = SQL_INT64) and not GetIBXSQLVAR.IsNull then
+   Result := GetIBXSQLVAR.AsDouble
+ else
+{$ENDIF}
   Result := GetIBXSQLVAR.Value;
 end;
 
@@ -1277,7 +1312,7 @@ end;
 
 procedure TwrpIBXSQLVAR.Set_AsVariant(Value: OleVariant);
 begin
-  GetIBXSQLVAR.AsVariant := Value;
+  SetVar2Param(GetIBXSQLVAR, Value);
 end;
 
 procedure TwrpIBXSQLVAR.Set_IsNull(Value: WordBool);
@@ -1297,17 +1332,17 @@ end;
 
 procedure TwrpIBXSQLVAR.Set_Value(Value: OleVariant);
 begin
-  GetIBXSQLVAR.Value := Value;
+  SetVar2Param(GetIBXSQLVAR, Value);
 end;
 
-function TwrpIBXSQLVAR.Get_AsInteger: Integer;
+function TwrpIBXSQLVAR.Get_AsInteger: ATID;
 begin
-  Result := GetIBXSQLVAR.AsInteger;
+  Result := GetTID(GetIBXSQLVAR.AsDouble);
 end;
 
-procedure TwrpIBXSQLVAR.Set_AsInteger(Value: Integer);
+procedure TwrpIBXSQLVAR.Set_AsInteger(Value: ATID);
 begin
-  GetIBXSQLVAR.AsInteger := Value;
+  SetTID(GetIBXSQLVAR, Trunc(Value));
 end;
 
 function TwrpIBXSQLVAR.Get_AsFloat: Double;
@@ -1540,9 +1575,9 @@ begin
   Result := GetParam.AsFloat;
 end;
 
-function TwrpParam.Get_AsInteger: Integer;
+function TwrpParam.Get_AsInteger: ATID;
 begin
-  Result := GetParam.AsInteger;
+  Result := GetTID(GetParam.AsFloat);
 end;
 
 function TwrpParam.Get_AsMemo: WideString;
@@ -1605,9 +1640,9 @@ begin
   GetParam.AsFloat := Value;
 end;
 
-procedure TwrpParam.Set_AsInteger(Value: Integer);
+procedure TwrpParam.Set_AsInteger(Value: ATID);
 begin
-  GetParam.AsInteger := Value;
+  GetParam.AsFloat := Value;
 end;
 
 procedure TwrpParam.Set_AsMemo(const Value: WideString);

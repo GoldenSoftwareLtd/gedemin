@@ -53,14 +53,14 @@ SET TERM ^ ;
 /**   и раздвигает его если он мал                 **/
 /**                                                **/
 /****************************************************/
-CREATE PROCEDURE tst_p_expandlimit_treetbl (Parent INTEGER, Delta INTEGER,
+CREATE PROCEDURE tst_p_expandlimit_treetbl (Parent DFOREIGNKEY, Delta INTEGER,
   LB2 INTEGER, RB2 INTEGER)
 RETURNS (LeftBorder INTEGER)
 AS
   DECLARE VARIABLE R INTEGER;
   DECLARE VARIABLE L INTEGER;
   DECLARE VARIABLE R2 INTEGER;
-  DECLARE VARIABLE MKey INTEGER;
+  DECLARE VARIABLE MKey DFOREIGNKEY;
   DECLARE VARIABLE MultiDelta INTEGER;
 BEGIN
   /* ѕолучаем границы родител€ */
@@ -230,10 +230,10 @@ END
 /**   по ѕаренту родител€                          **/
 /**                                                **/
 /****************************************************/
-CREATE PROCEDURE tst_p_getchildcount_treetbl (Parent INTEGER, FirstIndex INTEGER)
+CREATE PROCEDURE tst_p_getchildcount_treetbl (Parent DFOREIGNKEY, FirstIndex INTEGER)
   RETURNS (LastIndex INTEGER)
 AS
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey DFOREIGNKEY;
 BEGIN
   /* ѕрисваиваем начальное значение */
   LastIndex = :FirstIndex + 1;
@@ -267,7 +267,7 @@ END
 CREATE PROCEDURE tst_p_restruct_treetbl 
 AS
   DECLARE VARIABLE CurrentIndex INTEGER;
-  DECLARE VARIABLE ChildKey INTEGER;
+  DECLARE VARIABLE ChildKey DFOREIGNKEY;
 BEGIN
   /* ”станавливаем начало свободного пространства */
   /* ћы не ищем свободного пространства, по причине */

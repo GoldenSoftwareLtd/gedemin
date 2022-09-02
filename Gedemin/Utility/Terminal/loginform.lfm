@@ -1,7 +1,7 @@
 inherited LoginForm: TLoginForm
-  Left = 348
+  Left = 821
   Height = 413
-  Top = 198
+  Top = 307
   Width = 471
   ClientHeight = 413
   ClientWidth = 471
@@ -16,8 +16,8 @@ inherited LoginForm: TLoginForm
   end
   object lInfoMsg: TLabel[2]
     Left = 5
-    Height = 19
-    Top = 75
+    Height = 18
+    Top = 74
     Width = 461
     Align = alTop
     Caption = 'InfoMSG'

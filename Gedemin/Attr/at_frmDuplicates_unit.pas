@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019, #4135
+
 unit at_frmDuplicates_unit;
 
 interface
@@ -80,7 +82,7 @@ begin
     try
       Obj.SubType := CE.SubType;
       Obj.SubSet := 'ByID';
-      Obj.ID := gdcBaseManager.GetIDByRUID(ibds.FieldByName('xid').AsInteger,
+      Obj.ID := gdcBaseManager.GetIDByRUID(GetTID(ibds.FieldByName('xid')),
         ibds.FieldByName('dbid').AsInteger);
       Obj.Open;
       if not Obj.EOF then
@@ -115,7 +117,7 @@ begin
     for I := 0 to Sl.Count - 1 do
     begin
       TBI := TTBItem.Create(nil);
-      TBI.Tag := StrToInt(SL.Names[I]);
+      TBI.Tag := TID2Tag(GetTID(SL.Names[I]), Name);
       TBI.Caption := 'x ' + SL.Values[SL.Names[I]];
       TBI.Hint := 'Удалить объект из пространства имен ' + SL.Values[SL.Names[I]];
       TBI.OnClick := DoOnClick;
@@ -137,8 +139,8 @@ begin
     q.SQL.Text :=
       'DELETE FROM at_object WHERE namespacekey = :ns ' +
       '  AND xid = :xid AND dbid = :dbid';
-    q.ParamByName('ns').AsInteger := (Sender as TComponent).Tag;
-    q.ParamByName('xid').AsInteger := ibds.FieldByName('xid').AsInteger;
+    SetTID(q.ParamByName('ns'), GetTID((Sender as TComponent).Tag, Name));
+    SetTID(q.ParamByName('xid'), ibds.FieldByName('xid'));
     q.ParamByName('dbid').AsInteger := ibds.FieldByName('dbid').AsInteger;
     q.ExecQuery;
   finally
@@ -173,7 +175,7 @@ begin
       q.SQL.Text :=
         'EXECUTE BLOCK'#13#10 +
         'AS'#13#10 +
-        '  DECLARE VARIABLE id INTEGER;'#13#10 +
+        '  DECLARE VARIABLE id DINTKEY;'#13#10 +
         'BEGIN'#13#10 +
         '  FOR SELECT id FROM at_namespace INTO :id'#13#10 +
         '  DO EXECUTE PROCEDURE at_p_del_duplicates(:id, :id, '''');'#13#10 +

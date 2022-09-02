@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcEvent;
 
 interface
@@ -77,7 +79,7 @@ begin
 
   FieldByName('afull').AsInteger := -1;
   if HasSubSet(cByObjectKey) then
-    FieldByName('objectkey').AsInteger := ParamByName('objectkey').AsInteger;
+    SetTID(FieldByName('objectkey'), ParamByName('objectkey'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEVENT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -232,12 +234,12 @@ begin
     q.SQL.Text :=
       'SELECT functionkey FROM evt_objectevent ' +
       'WHERE objectkey = :OK AND eventname = :EN';
-    q.ParamByName('OK').AsInteger := OK;
+    SetTID(q.ParamByName('OK'), OK);
     q.ParamByName('EN').AsString := EN;
     q.ExecQuery;
     if not q.Eof then
     begin
-      Result := q.FieldByName('functionkey').AsInteger = FK;
+      Result := GetTID(q.FieldByName('functionkey')) = FK;
 
       if Result then
         exit;
@@ -245,7 +247,7 @@ begin
       q.Close;
       q.SQL.Text :=
         'DELETE FROM evt_objectevent WHERE objectkey = :OK AND eventname = :EN';
-      q.ParamByName('OK').AsInteger := OK;
+      SetTID(q.ParamByName('OK'), OK);
       q.ParamByName('EN').AsString := EN;
       q.ExecQuery;
     end;
@@ -256,9 +258,9 @@ begin
       q.SQL.Text :=
         'INSERT INTO evt_objectevent(id, objectkey, functionkey, eventname) ' +
         'VALUES(:id, :objectkey, :functionkey, :eventname)';
-      q.ParamByName('id').AsInteger := GetNextID;
-      q.ParamByName('objectkey').AsInteger := OK;
-      q.ParamByName('functionkey').AsInteger := FK;
+      SetTID(q.ParamByName('id'), GetNextID);
+      SetTID(q.ParamByName('objectkey'), OK);
+      SetTID(q.ParamByName('functionkey'), FK);
       q.ParamByName('eventname').AsString := EN;
       q.ExecQuery;
     end;
@@ -322,7 +324,7 @@ begin
   else
     Result := Format('SELECT id FROM evt_objectevent WHERE objectkey = %d AND ' +
       'eventname = ''%s''',
-      [FieldByName('objectkey').AsInteger, FieldByName('eventname').AsString]);
+      [TID264(FieldByName('objectkey')), FieldByName('eventname').AsString]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEVENT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

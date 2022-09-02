@@ -839,6 +839,33 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (269, '0000.0001.0000.0300', '22.11.2017', 'relationname field in the at_triggers table fixed');
 
+INSERT INTO fin_versioninfo
+  VALUES (270, '0000.0001.0000.0301', '19.12.2017', 'Added GD_AVAILABLE_ID procs.');
+
+INSERT INTO fin_versioninfo
+  VALUES (271, '0000.0001.0000.0302', '27.12.2017', 'Add new table for new inventory system');
+
+INSERT INTO fin_versioninfo
+  VALUES (272, '0000.0001.0000.0303', '29.12.2017', 'Added trigger to AC_AUTOENTRY');
+
+INSERT INTO fin_versioninfo
+  VALUES (273, '0000.0001.0000.0304', '10.01.2018', 'Fixed rare situation with duplicated id');
+
+INSERT INTO fin_versioninfo
+  VALUES (274, '0000.0001.0000.0305', '04.06.2018', 'Added semantic category field to at_relation_fields');
+
+INSERT INTO fin_versioninfo
+  VALUES (275, '0000.0001.0000.0306', '05.06.2018', 'Added semantic category field to at_relations');
+  
+INSERT INTO fin_versioninfo
+  VALUES (277, '0000.0001.0000.0309', '14.02.2019', 'Added generator name field to at_relations');  
+
+INSERT INTO fin_versioninfo
+  VALUES (278, '0000.0001.0000.0310', '07.02.2019', 'trigger inv_bu_movement changed');  
+
+INSERT INTO fin_versioninfo
+  VALUES (279, '0000.0001.0000.0311', '14.03.2019', 'Corrected procs for interval id table');  
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

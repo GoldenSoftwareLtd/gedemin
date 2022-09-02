@@ -1,10 +1,11 @@
+// ShlTanya, 24.02.2019
 
 unit gd_common_functions;
 
 interface
 
 uses
-  Classes, Windows;
+  Classes, Windows, Controls;
 
 function GetCurEXEVersion: String;
 procedure SaveStringToStream(const Str: String; Stream: TStream);
@@ -41,6 +42,7 @@ function WideStringToStringEx(const WS: WideString; out CharReplace: LongBool): 
 function NameCase(const S: String): String;
 function GEOString2Coord(const S: String; out Lat, Lon: Double): Boolean;
 function GEOCoord2String(const Lat, Lon: Double; const Sep: Char = ','): String;
+procedure DoubleBufferControls(Root: TWinControl);
 
 implementation
 
@@ -84,7 +86,7 @@ end;
 function NameCase(const S: String): String;
 begin
   if Length(S) > 1 then
-    Result := AnsiUpperCase(Copy(S, 1, 1)) + AnsiLowerCase(Copy(S, 2, MAXINT))
+    Result := AnsiUpperCase(Copy(S, 1, 1)) + {AnsiLowerCase}(Copy(S, 2, MAXINT))
   else
     Result := AnsiLowerCase(S);
 end;
@@ -535,6 +537,18 @@ begin
     end;
   end;
   SetLength(Result, ResultLength);
+end;
+
+procedure DoubleBufferControls(Root: TWinControl);
+var
+  I: Integer;
+begin
+  Root.DoubleBuffered := True;
+  for I := 0 to Root.ControlCount - 1 do
+  begin
+    if Root.Controls[i] is TWinControl then
+      DoubleBufferControls(TWinControl(Root.Controls[I]));
+  end;
 end;
 
 end.

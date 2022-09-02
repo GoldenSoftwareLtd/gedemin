@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_frmAutoTransaction_unit;
 
 interface
@@ -34,7 +36,7 @@ var
 
 
 implementation
-uses gd_i_ScriptFactory;
+uses gd_i_ScriptFactory, gdcBaseInterface;
 {$R *.DFM}
 procedure Tgdc_frmAutoTransaction.FormCreate(Sender: TObject);
 begin
@@ -47,7 +49,7 @@ end;
 procedure Tgdc_frmAutoTransaction.actExecOperationUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := (gdcAutoTrRecord.Active) and
-    (gdcAutoTrRecord.FieldByName('functionkey').AsInteger > 0)
+    (GetTID(gdcAutoTrRecord.FieldByName('functionkey')) > 0)
 end;
 
 procedure Tgdc_frmAutoTransaction.actExecOperationExecute(Sender: TObject);
@@ -59,9 +61,9 @@ begin
     Params := VarArrayOf([]);
     Result := VarArrayOf([]);
     try
-      if  ScriptFactory.InputParams(gdcAutoTrRecord.FieldByName('functionkey').AsInteger,
+      if  ScriptFactory.InputParams(GetTID(gdcAutoTrRecord.FieldByName('functionkey')),
         Params)  then
-        ScriptFactory.ExecuteFunction(gdcAutoTrRecord.FieldByName('functionkey').AsInteger,
+        ScriptFactory.ExecuteFunction(GetTID(gdcAutoTrRecord.FieldByName('functionkey')),
           Params, Result);
     except
     end;

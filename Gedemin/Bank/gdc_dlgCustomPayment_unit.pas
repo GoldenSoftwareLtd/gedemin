@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit gdc_dlgCustomPayment_unit;
 
 interface
@@ -83,7 +85,7 @@ var
 implementation
 
 uses
-  Storages, gd_ClassList;
+  Storages, gd_ClassList, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -171,8 +173,8 @@ procedure Tgdc_dlgCustomPayment.FormShow(Sender: TObject);
 begin
   inherited;
   if gdcObject.State = dsEdit then
-    FgsTransaction.ReadTransactionOnPosition(gdcObject.FieldByName('ID').AsInteger,
-     gdcObject.FieldByName('ID').AsInteger, -1);
+    FgsTransaction.ReadTransactionOnPosition(GetTID(gdcObject.FieldByName('ID')),
+     GetTID(gdcObject.FieldByName('ID')), -1);
 
 end;
 
@@ -309,13 +311,13 @@ begin
   if Assigned(FgsTransaction) then
   begin
     FgsTransaction.AddConditionDataSet([(gdcObject as TgdcBaseBank)]);
-    FgsTransaction.ReadTransactionOnPosition((gdcObject as TgdcBaseBank).FieldByName('id').AsInteger,
+    FgsTransaction.ReadTransactionOnPosition(GetTID((gdcObject as TgdcBaseBank).FieldByName('id')),
       -1, -1);
   end;
 
   inherited;
 
-  gsibluOwnAccount.Condition := 'COMPANYKEY = ' + IntToStr(IBLogin.CompanyKey);
+  gsibluOwnAccount.Condition := 'COMPANYKEY = ' + TID2S(IBLogin.CompanyKey);
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGCUSTOMPAYMENT', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then

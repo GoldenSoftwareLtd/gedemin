@@ -1,4 +1,4 @@
-//
+// ShlTanya, 21.02.2019
 
 unit gdc_frmSGRAccount_unit;
 
@@ -36,7 +36,7 @@ implementation
 {$R *.DFM}
 
 uses
-  Storages, gd_security, gd_ClassList;
+  Storages, gd_security, gd_ClassList, gdcBaseInterface;
 
 procedure Tgdc_frmSGRAccount.LoadSettings;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -124,7 +124,7 @@ begin
     begin
       if not gdcObject.HasSubSet('ByAccount') then
         gdcObject.AddSubSet('ByAccount');
-      gdcObject.ParamByName('AccountKey').AsInteger := ibcmbAccount.CurrentKeyInt;
+      SetTID(gdcObject.ParamByName('AccountKey'), ibcmbAccount.CurrentKeyInt);
     end
     else begin
       if gdcObject.HasSubSet('ByAccount') then
@@ -155,7 +155,7 @@ end;
 procedure Tgdc_frmSGRAccount.ibcmbAccountCreateNewObject(Sender: TObject;
   ANewObject: TgdcBase);
 begin
-  ANewObject.FieldByName('companykey').AsInteger := IBLogin.CompanyKey;
+  SetTID(ANewObject.FieldByName('companykey'), IBLogin.CompanyKey);
 end;
 
 initialization

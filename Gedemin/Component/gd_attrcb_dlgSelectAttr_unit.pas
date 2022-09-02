@@ -1,6 +1,8 @@
+// ShlTanya, 10.02.2019
+
  {++
    Project ADDRESSBOOK
-   Copyright © 2000- by Golden Software
+   Copyright © 2000-2019 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -28,7 +30,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   IBDatabase, Db, IBCustomDataSet, IBQuery, ComCtrls, ExtCtrls, StdCtrls,
-  Menus, ActnList, gd_security, IBSQL;
+  Menus, ActnList, gd_security, IBSQL, gdcBaseInterface;
 
 const
   TreeLeftBorder = 'LB';
@@ -82,14 +84,16 @@ type
     procedure actEditUpdate(Sender: TObject);
   private
     FIsTree: Boolean;
-    FAttrKey: Integer;
+    FAttrKey: TID;
     FParentList: TList;
 
     procedure ShowAttrSet;
     procedure ShowFind(Qry: Boolean);
     procedure Draw500Item;
+
   public
-    function GetElement(const AnAttrKey: Integer; var SetName: String): Integer;
+    destructor Destroy; override;
+    function GetElement(const AnAttrKey: TID; var SetName: String): TID;
   end;
 
 var
@@ -102,13 +106,21 @@ uses
 
 {$R *.DFM}
 
+destructor TdlgSelectAttr.Destroy;
+begin
+  {$IFDEF ID64}
+  FreeConvertContext(Name); 
+  {$ENDIF}
+  inherited;
+end; 
+
 // Вывод всех атрибутов
 procedure TdlgSelectAttr.ShowAttrSet;
 begin
   // Выполнение запроса
   ibqryFind.Close;
   ibqryFind.SQL.Clear;
-  ibqryFind.SQL.Text := 'SELECT * FROM gd_attrset WHERE attrkey = ' + IntToStr(FAttrKey);
+  ibqryFind.SQL.Text := 'SELECT * FROM gd_attrset WHERE attrkey = ' + TID2S(FAttrKey);
   ibqryFind.SQL.Add('ORDER BY lb');
   ibqryFind.Open;
 
@@ -133,8 +145,8 @@ begin
     ibqryFind.Close;
     ibqryFind.SQL.Clear;
     ibqryFind.SQL.Text := 'SELECT DISTINCT(gg2.id), gg2.* FROM gd_attrset gg1, '
-     + 'gd_attrset gg2 WHERE gg1.attrkey = ' + IntToStr(FAttrKey)
-     + 'AND gg2.attrkey = ' + IntToStr(FAttrKey) + ' AND ';
+     + 'gd_attrset gg2 WHERE gg1.attrkey = ' + TID2S(FAttrKey)
+     + 'AND gg2.attrkey = ' + TID2S(FAttrKey) + ' AND ';
 
     case cbCondition.ItemIndex of
     0: ibqryFind.SQL.Add('UPPER(gg1.name) LIKE '''
@@ -173,8 +185,8 @@ begin
       FParentList.Clear
     else
       while (FParentList.Count > 0) and
-       (ibqryFind.FieldByName('parent').AsInteger <>
-       Integer(TTreeNode(FParentList.Items[FParentList.Count - 1]).Data)) do
+       (GetTID(ibqryFind.FieldByName('parent')) <>
+       GetTID(TTreeNode(FParentList.Items[FParentList.Count - 1]).Data, Name)) do
         FParentList.Delete(FParentList.Count - 1);
     if FParentList.Count = 0 then
       L := tvAttrSet.Items.Add(nil, ibqryFind.FieldByName('name').AsString)
@@ -185,7 +197,7 @@ begin
       FIsTree := True;
     end;
     FParentList.Add(L);
-    L.Data := Pointer(ibqryFind.FieldByName('id').AsInteger);
+    L.Data := TID2Pointer(GetTID(ibqryFind.FieldByName('id')), Name);
 
     Inc(I);
     ibqryFind.Next;
@@ -193,7 +205,7 @@ begin
 end;
 
 // Основная функция проекта
-function TdlgSelectAttr.GetElement(const AnAttrKey: Integer; var SetName: String): Integer;
+function TdlgSelectAttr.GetElement(const AnAttrKey: TID; var SetName: String): TID;
 begin
   FIsTree := False;
   Result := -1;
@@ -210,7 +222,7 @@ begin
     begin
       if tvAttrSet.Selected <> nil then
       begin
-        Result := Integer(tvAttrSet.Selected.Data);
+        Result := GetTID(tvAttrSet.Selected.Data, Name);
         SetName := tvAttrSet.Selected.Text;
       end;
     end
@@ -219,7 +231,7 @@ begin
     // , то поиск
     cbCondition.ItemIndex := 1;
     ibqryFind.Close;
-    ibqryFind.SQL.Text := 'SELECT * FROM gd_attrset WHERE attrkey = ' + IntToStr(FAttrKey);
+    ibqryFind.SQL.Text := 'SELECT * FROM gd_attrset WHERE attrkey = ' + TID2S(FAttrKey);
     ibqryFind.SQL.Add('AND name CONTAINING ''' + edName.Text + '''');
     ibqryFind.Open;
 
@@ -230,7 +242,7 @@ begin
       if (ShowModal = mrOk) then
         if tvAttrSet.Selected <> nil then
         begin
-          Result := Integer(tvAttrSet.Selected.Data);
+          Result := GetTID(tvAttrSet.Selected.Data, Name);
           SetName := tvAttrSet.Selected.Text;
         end;
     end else
@@ -243,12 +255,12 @@ begin
         if (ShowModal = mrOk) then
           if tvAttrSet.Selected <> nil then
           begin
-            Result := Integer(tvAttrSet.Selected.Data);
+            Result := GetTID(tvAttrSet.Selected.Data, Name);
             SetName := tvAttrSet.Selected.Text;
           end;
       // Если найдена одна запись
       end else begin
-        Result := ibqryFind.FieldByName('id').AsInteger;
+        Result := GetTID(ibqryFind.FieldByName('id'));
         SetName := ibqryFind.FieldByName('name').AsString;
       end;
     end;
@@ -328,7 +340,7 @@ begin
   with Tgd_dlgAttrElement.Create(Self) do
   try
     SetDatabase(ibqryFind.Database, ibqryFind.Transaction);
-    if EditElement(Integer(tvAttrSet.Selected.Data)) then
+    if EditElement(GetTID(tvAttrSet.Selected.Data, Name)) then
       tvAttrSet.Selected.Text := dbeName.Text;
   finally
     Free;
@@ -342,7 +354,7 @@ begin
   with Tgd_dlgAttrElement.Create(Self) do
   try
     SetDatabase(ibqryFind.Database, ibqryFind.Transaction);
-    if DeleteElement(Integer(tvAttrSet.Selected.Data)) then
+    if DeleteElement(GetTID(tvAttrSet.Selected.Data, Name)) then
       tvAttrSet.Selected.Delete;
   finally
     Free;

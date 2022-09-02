@@ -1,3 +1,4 @@
+// ShlTanya, 20.02.2019
 
 {*******************************************************}
 {                                                       }
@@ -1798,8 +1799,12 @@ end;
 
 function TColumn.GetDisplayName: string;
 begin
-  Result := FFieldName;
-  if Result = '' then Result := inherited GetDisplayName;
+  if FFieldName = '' then
+    Result := inherited GetDisplayName
+  else if Title.Caption = '' then
+    Result := '(' + FFieldName + ')'
+  else
+    Result := Title.Caption + ' - ' + FFieldName;
 end;
 
 function TColumn.GetImeMode: TImeMode;

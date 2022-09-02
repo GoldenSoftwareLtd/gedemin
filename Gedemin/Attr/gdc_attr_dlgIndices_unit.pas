@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit gdc_attr_dlgIndices_unit;
 
 interface
@@ -92,7 +94,7 @@ begin
   gdcTableField.ReadTransaction := gdcObject.Transaction;
   gdcTableField.Transaction := gdcObject.Transaction;
   gdcTableField.SubSet := 'ByRelation';
-  gdcTableField.ParamByName('relationkey').AsInteger := gdcObject.FieldByName('relationkey').AsInteger;
+  SetTID(gdcTableField.ParamByName('relationkey'), gdcObject.FieldByName('relationkey'));
   gdcTableField.Open;
 
   lbFields.Clear;

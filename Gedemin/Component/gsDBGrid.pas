@@ -1,7 +1,8 @@
+// ShlTanya, 17.02.2019
 
 {++
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus
+  Copyright (c) 2000-2022 by Golden Software of Belarus
 
   Module
 
@@ -31,13 +32,12 @@
 
 unit gsDBGrid;
 
-
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Grids, DBGrids, StdCtrls, ComCtrls, Menus, ActnList, DB, xCalc, Imglist,
-  ExtCtrls, ContNrs, gd_messages_const,
+  ExtCtrls, ContNrs, gd_messages_const, gdcBaseInterface,
   {$IFDEF GEDEMIN}
   gdcBase,
   {$ENDIF}
@@ -191,7 +191,7 @@ type
 
     function GetCheckCount: Integer;
     function GetStrCheck(AnIndex: Integer): String;
-    function GetIntCheck(AnIndex: Integer): Integer;
+    function GetIntCheck(AnIndex: Integer): TID;
 
     procedure SetDisplayField(const Value: String);
     procedure SetFieldName(const Value: String);
@@ -219,10 +219,10 @@ type
     function GetNamePath: string; override;
 
     procedure AddCheck(const Value: String); overload;
-    procedure AddCheck(const Value: Integer); overload;
+    procedure AddCheck(const Value: TID); overload;
 
     procedure DeleteCheck(const Value: String); overload;
-    procedure DeleteCheck(const Value: Integer); overload;
+    procedure DeleteCheck(const Value: TID); overload;
 
     procedure Clear;
 
@@ -237,7 +237,7 @@ type
     // Идентификатор в виде строки по индексу
     property StrCheck[Index: Integer]: String read GetStrCheck;
     // Идентификатор в виде числа по индексу
-    property IntCheck[Index: Integer]: Integer read GetIntCheck; default;
+    property IntCheck[Index: Integer]: TID read GetIntCheck; default;
     // Отмечена ли запись (сохранен ли ее идентификатор)
     property RecordChecked: Boolean read GetRecordChecked;
 
@@ -643,7 +643,7 @@ type
     FMasterAct, FRefreshAct, FFindAct, FFindNextAct, FPanelAct,
     FHideColAct, FGroupAct, FInputCaptionAct, FFrozeColumnAct, FCancelAutoFilterAct,
     FFirst, FLast, FNext, FPrior, FPageUp, FPageDown, FExportAct,
-    FCopyToClipboardAct, FCopyTotalToClipboardAct: TAction;
+    FCopyToClipboardAct, FCopyTotalToClipboardAct, FObjectPropertiesAct: TAction;
 
     FSelectedFont: TFont;                 // Шрифт выделенного текста
     FSelectedColor: TColor;               // Цвет выдлеленного текста
@@ -787,6 +787,7 @@ type
       const ColumnTitle: Boolean);
 
     procedure DoShowMaster(Sender: TObject);
+    procedure DoOnObjectProperties(Sender: TObject);
     {$IFDEF GEDEMIN}
     procedure DoApplyMaster(Sender: TObject);
     {$ENDIF}
@@ -1257,6 +1258,7 @@ type
 
 const
   MENU_MASTER = 'Мастер установок...';
+  MENU_OBJECTPROPERTIES = 'Свойства объекта...';
   MENU_REFRESH = 'Обновить данные';
   MENU_FIND = 'Найти...';
   MENU_FINDNEXT = 'Найти следующее';
@@ -1520,20 +1522,20 @@ end;
   Добавление идентификатора в виде числа.
 }
 
-procedure TGridCheckBox.AddCheck(const Value: Integer);
+procedure TGridCheckBox.AddCheck(const Value: TID);
 var
   Checked: Boolean;
 begin
-  if FCheckList.IndexOf(IntToStr(Value)) = -1 then
+  if FCheckList.IndexOf(TID2S(Value)) = -1 then
   begin
     Checked := True;
 
     if Assigned(FCheckBoxEvent) then
-      FCheckBoxEvent(TGridCheckBox(Self).Grid, IntToStr(Value), Checked);
-    if Checked and (FCheckList.IndexOf(IntToStr(Value)) = -1) then
-      FCheckList.Add(IntToStr(Value));
+      FCheckBoxEvent(TGridCheckBox(Self).Grid, TID2S(Value), Checked);
+    if Checked and (FCheckList.IndexOf(TID2S(Value)) = -1) then
+      FCheckList.Add(TID2S(Value));
     if Assigned(FAfterCheckEvent) then
-      FAfterCheckEvent(TGridCheckBox(Self).Grid, IntToStr(Value), Checked);
+      FAfterCheckEvent(TGridCheckBox(Self).Grid, TID2S(Value), Checked);
 
   end;
 end;
@@ -1569,25 +1571,25 @@ end;
   Удаление идентификатора в виде числа.
 }
 
-procedure TGridCheckBox.DeleteCheck(const Value: Integer);
+procedure TGridCheckBox.DeleteCheck(const Value: TID);
 var
   I: Integer;
   Checked: Boolean;
 begin
-  I := FCheckList.IndexOf(IntToStr(Value));
+  I := FCheckList.IndexOf(TID2S(Value));
   if I <> -1 then
   begin
     Checked := False;
 
     if Assigned(FCheckBoxEvent) then
-      FCheckBoxEvent(TGridCheckBox(Self).Grid, IntToStr(Value), Checked);
+      FCheckBoxEvent(TGridCheckBox(Self).Grid, TID2S(Value), Checked);
 
-    I := FCheckList.IndexOf(IntToStr(Value));
+    I := FCheckList.IndexOf(TID2S(Value));
     if not Checked and (I > -1)then
       FCheckList.Delete(I);
 
     if Assigned(FAfterCheckEvent) then
-      FAfterCheckEvent(TGridCheckBox(Self).Grid, IntToStr(Value), Checked);
+      FAfterCheckEvent(TGridCheckBox(Self).Grid, TID2S(Value), Checked);
 
   end;
 end;
@@ -1659,11 +1661,12 @@ end;
   Возвращает идентификатор в виде числа.
 }
 
-function TGridCheckBox.GetIntCheck(AnIndex: Integer): Integer;
-var
-  err: Integer;
+function TGridCheckBox.GetIntCheck(AnIndex: Integer): TID;
+//var
+//  err: Integer;
 begin
-  Val(FCheckList[AnIndex], Result, err);
+  Result := GetTID(FCheckList[AnIndex]);
+  //Val(FCheckList[AnIndex], Result, err);
 end;
 
 {
@@ -3732,6 +3735,7 @@ begin
   FCopyToClipboardAct := nil;
   FCopyTotalToClipboardAct := nil;
   FExportAct := nil;
+  FObjectPropertiesAct := nil;
 
   FSelectedFont := TFont.Create;
   FSelectedFont.Color := clHighlightText;
@@ -4429,9 +4433,9 @@ procedure TgsCustomDBGrid.DrawCell(ACol, ARow: Longint; ARect: TRect;
   AState: TGridDrawState);
 const
   GRow: Integer = -1;
-  GKey: Integer = -1;
+  GKey: TID = -1;
   GColor: TColor = -1;
-  GDDKey: Integer = -1;
+  GDDKey: TID = -1;
 
 var
   OldActive: LongInt; // Сохраненный № пп в таблице
@@ -4789,7 +4793,7 @@ begin
             begin
               FOddKeys := TgdKeyArray.Create;
               FEvenKeys := TgdKeyArray.Create;
-              GKey := FGroup.AsInteger;
+              GKey := GetTID(FGroup);
               if Odd(GKey) then
               begin
                 GColor := FStripeOdd;
@@ -4801,9 +4805,9 @@ begin
               end;
             end else
             begin
-              if GKey <> FGroup.AsInteger then
+              if GKey <> GetTID(FGroup) then
               begin
-                GKey := FGroup.AsInteger;
+                GKey := GetTID(FGroup);
                 if FOddKeys.IndexOf(GKey) <> -1 then
                   GColor := FStripeOdd
                 else if FEvenKeys.IndexOf(GKey) <> -1 then
@@ -5207,7 +5211,7 @@ procedure TgsCustomDBGrid.RowHeightsChanged;
 begin
   inherited RowHeightsChanged;
 
-  if not FBlockSettings then
+  if not FBlockSettings and Assigned(Parent) then
   begin
     FBlockSettings := True;
     try
@@ -5342,6 +5346,11 @@ begin
   begin
     if (FInternalMenuKind <> imkNone) and Assigned(FMasterAct) then
       FMasterAct.Execute;
+  end
+  else if (Key = VK_F11) and (Shift = []) then
+  begin
+    if (FInternalMenuKind <> imkNone) and Assigned(FObjectPropertiesAct) then
+      FObjectPropertiesAct.Execute;
   end
   else if (Key = VK_TAB) and ([ssCtrl] = Shift) and (Owner is TWinControl) then
   begin
@@ -5484,7 +5493,7 @@ begin
         if DataSource.DataSet.InheritsFrom(TgdcBase) and
           not (DataSource.DataSet as TgdcBase).HasSubSet('OnlySelected') then
         begin
-          (DataSource.DataSet as TgdcBase).RemoveFromSelectedID(DataField.AsInteger);
+          (DataSource.DataSet as TgdcBase).RemoveFromSelectedID(GetTID(DataField));
         end;
         {$ENDIF}
       end else
@@ -5494,7 +5503,7 @@ begin
         if DataSource.DataSet.InheritsFrom(TgdcBase) and
           not (DataSource.DataSet as TgdcBase).HasSubSet('OnlySelected') then
         begin
-          (DataSource.DataSet as TgdcBase).AddToSelectedID(DataField.AsInteger);
+          (DataSource.DataSet as TgdcBase).AddToSelectedID(GetTID(DataField));
         end;
         {$ENDIF}
       end;
@@ -6912,6 +6921,14 @@ begin
   FRefreshAct.ImageIndex := 17;
   FRefreshAct.Hint := MENU_REFRESH;
 
+  // Пункт Обновить данные
+  FObjectPropertiesAct := NewAction;
+  FObjectPropertiesAct.OnExecute := DoOnObjectProperties;
+  FObjectPropertiesAct.ShortCut := VK_F11;
+  FObjectPropertiesAct.Caption := MENU_OBJECTPROPERTIES;
+  FObjectPropertiesAct.ImageIndex := -1;
+  FObjectPropertiesAct.Hint := MENU_OBJECTPROPERTIES;
+
   // Пункт Найти
   FFindAct := NewAction;
   FFindAct.OnExecute := DoOnFindExecute;
@@ -7037,6 +7054,8 @@ procedure TgsCustomDBGrid.FullFillMenu(PopupColumn: TColumn;
 
 var
   MenuItem: TMenuItem;
+  I: Integer;
+  Found: Boolean;
 
   // Добавляем элемент в меню
   function AddItem(Group: TMenuItem; S: String): TMenuItem;
@@ -7101,6 +7120,31 @@ begin
       MenuItem.Action := FMasterAct;
       Items.Add(MenuItem);
     end;
+
+    {$IFDEF GEDEMIN}
+    if (Self.GetGDObject <> nil) and (Self.GetGDObject.State = dsBrowse)
+      and (not Self.GetGDObject.IsEmpty) then
+    begin
+      Found := False;
+
+      for I := 0 to APopupMenu.Items.Count - 1 do
+      begin
+        if APopupMenu.Items[I].ShortCut = VK_F11 then
+        begin
+          Found := True;
+          break;
+        end;
+      end;
+
+      // Пункт Свойства объекта
+      if not Found then
+      begin
+        MenuItem := AddItem(APopupMenu.Items, '');
+        MenuItem.Action := FObjectPropertiesAct;
+        Items.Add(MenuItem);
+      end;
+    end;
+    {$ENDIF}
 
     if DataLink.Active
       and (FCopyToClipboardAct <> nil) then
@@ -7183,6 +7227,25 @@ begin
       if Assigned(AdminStorage) then AdminStorage.SaveToDatabase;
     finally
       Master.Free;
+    end;
+  end;
+end;
+{$ELSE}
+begin
+end;
+{$ENDIF}
+
+procedure TgsCustomDBGrid.DoOnObjectProperties(Sender: TObject);
+{$IFDEF GEDEMIN}
+var
+  Obj: TgdcBase;
+begin
+  if not (csDesigning in ComponentState) then
+  begin
+    Obj := Self.GetGDObject;
+    if (Obj <> nil) and (Obj.State = dsBrowse) and (not Obj.IsEmpty) and Obj.CanView then
+    begin
+      Obj.EditDialog('Tgdc_dlgObjectProperties');
     end;
   end;
 end;
@@ -7476,7 +7539,7 @@ var
   SL: TStringList;
   I: Integer;
   {$IFDEF GEDEMIN}
-  ID: Integer;
+  ID: TID;
   {$ENDIF}
   BM: TBookmarkStr;
   RC: Integer;
@@ -7583,7 +7646,7 @@ begin
             {$IFDEF GEDEMIN}
             if ID <> -1 then
             begin
-              if not GDObject.Locate(GDObject.GetKeyField(GDObject.SubType), ID, []) then
+              if not GDObject.Locate(GDObject.GetKeyField(GDObject.SubType), TID2V(ID), []) then
               begin
                 if Assigned(UserStorage)
                   and (UserStorage.ReadBoolean('Options\Confirmations', 'Other', True, False)) then
@@ -7800,7 +7863,7 @@ begin
         if DataSource.DataSet.InheritsFrom(TgdcBase) and
           not (DataSource.DataSet as TgdcBase).HasSubSet('OnlySelected') then
         begin
-          (DataSource.DataSet as TgdcBase).RemoveFromSelectedID(DataField.AsInteger);
+          (DataSource.DataSet as TgdcBase).RemoveFromSelectedID(GetTID(DataField));
         end;
         {$ENDIF}
       end else
@@ -7809,7 +7872,7 @@ begin
         {$IFDEF GEDEMIN}
         if DataSource.DataSet.InheritsFrom(TgdcBase) and
           not (DataSource.DataSet as TgdcBase).HasSubSet('OnlySelected') then
-          (DataSource.DataSet as TgdcBase).AddToSelectedID(DataField.AsInteger);
+          (DataSource.DataSet as TgdcBase).AddToSelectedID(GetTID(DataField));
         {$ENDIF}
       end;
 
@@ -9827,11 +9890,11 @@ begin
         SR := 1;
 
       if DataSource.DataSet.Filtered and (DataSource.DataSet.RecordCount > 100) then
-        S := Format('Извлечено записей: %d, Выделено записей: %d',
-          [DataSource.DataSet.RecordCount, SR])
+        S := Format('Извлечено записей: %s, Выделено записей: %s',
+          [FormatFloat('#,##0', DataSource.DataSet.RecordCount), FormatFloat('#,##0', SR)])
       else
-        S := Format('Извлечено записей: %d, Выделено записей: %d, Текущая запись: %d',
-          [DataSource.DataSet.RecordCount, SR, DataSource.DataSet.RecNo]);
+        S := Format('Извлечено записей: %s, Выделено записей: %s, Текущая запись: %s',
+          [FormatFloat('#,##0', DataSource.DataSet.RecordCount), FormatFloat('#,##0', SR), FormatFloat('#,##0', DataSource.DataSet.RecNo)]);
 
       if DataSource.DataSet is TIBCustomDataSet then
       begin

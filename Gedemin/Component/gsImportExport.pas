@@ -1,3 +1,4 @@
+// ShlTanya, 20.02.2019
 
 unit gsImportExport;
 
@@ -5,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  IBDataBase, IBCustomDataSet, DB;
+  IBDataBase, IBCustomDataSet, DB, gdcBaseInterface;
 
 type
   TgsImportExport = class(TComponent)
@@ -39,7 +40,7 @@ type
 
     function ImportStatement(const FileName: String; const Date: TDate): Boolean; overload;
     procedure ImportStatement; overload;
-    procedure ExportPayment(const ID: Integer);
+    procedure ExportPayment(const ID: TID);
     procedure Options;
     procedure ClearPayment;
     procedure AddPayment(Q: TIBDataSet);
@@ -140,7 +141,8 @@ procedure TgsImportExport.AddPayment(Q: TIBDataSet);
 
   procedure AddPayment;
   var
-    I, L, K: Integer;
+    I, K: Integer;
+    L: TID;
     F: TField;
     S: String;
 
@@ -168,7 +170,7 @@ procedure TgsImportExport.AddPayment(Q: TIBDataSet);
         S := StringReplace(S, #10, ' ', [rfReplaceAll]);
       end;
 
-      L := Integer(FTempPayment.Objects[I]);
+      L := GetTID(FTempPayment.Objects[I], Name);
 
       if Length(S) > L then
         S := Copy(S, 0, L)
@@ -306,7 +308,7 @@ begin
   end;
 end;
 
-procedure TgsImportExport.ExportPayment(const ID: Integer);
+procedure TgsImportExport.ExportPayment(const ID: TID);
 begin
   Assert(FDataBase <> nil, 'Не подключен DataBase.');
   Assert(FTransaction <> nil, 'Не подключен Transaction.');
@@ -475,29 +477,30 @@ var
   procedure MakeStatement;
   var
     S, TmpS: String;
-    I, Key, K: Integer;
+    I, K: Integer;
+    Key: TID;
     NewList: TStringList;
     AccountList: TStringList;
     TemList: TStringList;
 
-    function GetBSKey(const Account: String): Integer;
+    function GetBSKey(const Account: String): TID;
     begin
       Result := AccountList.IndexOf(Account);
       if Result <> -1 then
-        Result := Integer(AccountList.Objects[Result]);
+        Result := GetTID(AccountList.Objects[Result], Name);
     end;
 
-    function MakeNewStatement(const Account: String): Integer;
+    function MakeNewStatement(const Account: String): TID;
     var
-      A: Integer;
+      A: TID;
     begin
       ibsql.Close;
       ibsql.sql.Text := Format(
         ' SELECT id FROM gd_companyaccount ' +
-        ' WHERE companykey = %d and account = ' + Account, [IBLogin.CompanyKey]);
+        ' WHERE companykey = %d and account = ' + Account, [TID264(IBLogin.CompanyKey)]);
       ibsql.ExecQuery;
       if ibsql.RecordCount > 0 then
-        Result := ibsql.FieldByName('id').AsInteger
+        Result := GetTID(ibsql.FieldByName('id'))
       else
         Result := -1;
 
@@ -509,7 +512,7 @@ var
           ' SELECT d.id FROM bn_bankstatement bs, gd_document d where bs.accountkey = %d and ' +
           ' bs.documentkey = d.id ' +
           ' and d.documentdate = :documentdate',
-          [Result]);
+          [TID264(Result)]);
 
         ibsql.Prepare;
         ibsql.ParamByName('documentdate').AsDateTime := Date;
@@ -526,10 +529,10 @@ var
           end
           else
           begin
-            Result := ibsql.FieldByName('id').AsInteger;
+            Result := GetTID(ibsql.FieldByName('id'));
             ibsql.Close;
             ibsql.sql.Text := Format(
-              ' DELETE FROM GD_DOCUMENT WHERE ID = %d', [Result]);
+              ' DELETE FROM GD_DOCUMENT WHERE ID = %d', [TID264(Result)]);
             ibsql.ExecQuery;
           end;
 
@@ -540,7 +543,8 @@ var
           ' INSERT INTO gd_document(id, number, documentdate, editiondate, creationdate, ' +
           ' editorkey, creatorkey, companykey, documenttypekey) ' +
           ' VALUES(%d, ''б/н'', :date1, :date2, :date3, %d, %d, %d, %d)' ,
-          [Result, IBLogin.ContactKey, IBLogin.ContactKey, IBLogin.CompanyKey, BN_DOC_BANKSTATEMENT]);
+          [TID264(Result), TID264(IBLogin.ContactKey), TID264(IBLogin.ContactKey),
+            TID264(IBLogin.CompanyKey), BN_DOC_BANKSTATEMENT]);
 
         ibsql.Prepare;
 
@@ -554,7 +558,7 @@ var
         ibsql.sql.Text := Format(
           ' INSERT INTO bn_bankstatement(documentkey, accountkey) ' +
           ' VALUES(%d, %d)' ,
-          [Result, A]);
+          [TID264(Result), TID264(A)]);
         ibsql.ExecQuery;
       end;
 
@@ -574,7 +578,7 @@ var
     var
       Comp, CompKey, Sum, SumValue, CorrAccount, BankCode, Number, ISO,
       DocNumber, DocNumberField, DocNumberKey: String;
-      CKey, BSKey: Integer;
+      CKey, BSKey: TID;
       SValue, SCurrValue, Rate: Double;
     begin
       CorrAccount := GetValue('CORRACCOUNT');
@@ -592,7 +596,7 @@ var
       begin
         Comp := ', COMPANYKEY';
         CompKey := ', ' + ibsql.FieldByName('companykey').AsString;
-        CKey := ibsql.FieldByName('companykey').AsInteger;
+        CKey := GetTID(ibsql.FieldByName('companykey'));
       end
       else
         CKey := -1;
@@ -684,7 +688,7 @@ var
         ') VALUES(%d, %d, ' + SumValue + ', ''' + CorrAccount + ''', ''' + BankCode +
         ''', ''' + DocNumber + ''', ''' + Trim(GetValue('OPERATION')) + ''', ''' +
         Trim(GetValue('COMMENT')) + '''' + DocNumberKey + CompKey +')',
-        [BSKey, Key]
+        [TID264(BSKey), TID264(Key)]
         );
       ibsql.ExecQuery;
 
@@ -695,7 +699,7 @@ var
         ibsql.SQL.Text :=
           ' SELECT t.documentkey FROM GD_DOCUMENT D, dp_transfer t ' +
           ' WHERE d.id = t.inventorykey and t.companykey = ' +
-          IntToStr(Ckey) + ' and d.number LIKE ''%' +
+          TID2S(Ckey) + ' and d.number LIKE ''%' +
           Number + ''' and (d.disabled IS NULL OR d.disabled = 0)';
         ibsql.ExecQuery;
 
@@ -707,13 +711,13 @@ var
               ' р/с: ' + CorrAccount + ' код:' + BankCode), 'Внимание!', MB_OK or MB_ICONEXCLAMATION)
           else
           begin
-            CKey := ibsql.FieldByName('documentkey').AsInteger;
+            CKey := GetTID(ibsql.FieldByName('documentkey'));
 
             ibsql.Close;
             ibsql.SQL.Text := Format(
               ' INSERT INTO BN_BSLineDocument(BSLINEKEY, DOCUMENTKEY, SUMNCU) ' +
               ' VALUES(%d, %d, :sumncu) ',
-              [BSKey, Ckey]
+              [TID264(BSKey), TID264(Ckey)]
               );
             ibsql.Prepare;
             ibsql.ParamByName('sumncu').AsCurrency := SValue;
@@ -736,10 +740,10 @@ var
           begin
             if S > '' then
             begin
-              TmpS := Copy(S, 0, Integer(TemplateList.Objects[I]));
+              TmpS := Copy(S, 0, GetTID(TemplateList.Objects[I], Name));
               if (TmpS > '') and (TmpS[1] <> Chr(VK_RETURN)) then
                 DataList.Add(TmpS);
-              S := Copy(S, Integer(TemplateList.Objects[I]) + 1, Length(S));
+              S := Copy(S, GetTID(TemplateList.Objects[I], Name) + 1, Length(S));
             end
             else
               DataList.Add('');

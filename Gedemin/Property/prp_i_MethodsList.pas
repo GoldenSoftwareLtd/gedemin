@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 unit prp_i_MethodsList;
 
 interface
@@ -9,7 +11,7 @@ type
   IMethodsList = interface
   ['{6E7822E8-D843-11D5-B62A-00C0DF0E09D1}']
     function Get_Count: Integer;
-    function AddProcedure(Name: String): Integer;
+    function AddProcedure(Name: String): integer;
     procedure Delete(const Index: Integer);
     procedure Clear;
     property Count: Integer read Get_Count;

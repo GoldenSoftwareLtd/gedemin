@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcMacros;
 
 interface
@@ -38,7 +40,7 @@ type
 type
   TgdcMacros = class(TgdcBase)
   private
-    FLastInsertID: Integer;
+    FLastInsertID: TID;
     FOnlyDisplaying: Boolean;
     procedure SetOnlyDisplaying(const Value: Boolean);
   protected
@@ -64,12 +66,12 @@ type
     // проверяет существование в базе макрос с таким именем
     // возвращает Истину, если есть и Ложь в противном
     // случае
-    function  CheckMacros(const AName: String; MacrosGroupId: Integer): Boolean;
+    function  CheckMacros(const AName: String; MacrosGroupId: TID): Boolean;
     // Возвращает униканое имя в базе.
     //
-    function GetUniqueName(PrefName, Name: string; MacrosGroupId: Integer): string;
+    function GetUniqueName(PrefName, Name: string; MacrosGroupId: TID): string;
 
-    property LastInsertID: Integer read FLastInsertID;
+    property LastInsertID: TID read FLastInsertID;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -99,7 +101,7 @@ end;
 
 function TgdcMacrosGroup.AcceptClipboard(CD: PgdcClipboardData): Boolean;
 var
-  LocId: Integer;
+  LocId: TID;
   IsGlobal: Boolean;
   gdcFunction: TgdcFunction;
 begin
@@ -117,10 +119,10 @@ begin
     CD^.Obj.SubSet := ssById;
     CD^.Obj.ID := CD^.ObjectArr[0].ID;
     CD^.Obj.Open;
-    LocId := FieldByName(fnId).AsInteger;
+    LocId := GetTID(FieldByName(fnId));
     IsGlobal := Boolean(FieldByName(fnIsGlobal).AsInteger);
     Close;
-    ID := CD^.Obj.FieldByName(fnMacrosGroupKey).AsInteger;
+    ID := GetTID(CD^.Obj.FieldByName(fnMacrosGroupKey));
     Open;
     if IsGlobal = Boolean(FieldByName(fnIsGlobal).AsInteger) then
     begin
@@ -131,23 +133,23 @@ begin
           gdcFunction.Transaction := Transaction;
           gdcFunction.DataBase := DataBase;
           gdcFunction.SubSet := ssById;
-          gdcFunction.ParamByName(fnId).AsInteger :=
-            TgdcMacros(CD^.Obj).FieldByName(fnFunctionKey).AsInteger;
+          SetTID(gdcFunction.ParamByName(fnId),
+            TgdcMacros(CD^.Obj).FieldByName(fnFunctionKey));
           gdcFunction.Open;
-          gdcFunction.Copy('id;name', VarArrayOf([GetUniqueKey(DataBase, Transaction),
+          gdcFunction.Copy('id;name', VarArrayOf([TID2V(GetUniqueKey(DataBase, Transaction)),
             gdcFunction.GetUniqueName('copy', gdcFunction.FieldByName(fnName).AsString,
-              gdcFunction.FieldByName('modulecode').AsInteger)]));
+              GetTID(gdcFunction.FieldByName('modulecode')))]));
 
           CD^.Obj.Edit;
 
-          CD^.Obj.Copy('id;name;functionkey', VarArrayOf([GetUniqueKey(Database, Transaction),
+          CD^.Obj.Copy('id;name;functionkey', VarArrayOf([TID2V(GetUniqueKey(Database, Transaction)),
             TgdcMacros(CD^.Obj).GetUniqueName('копия', CD^.Obj.FieldByName(fnName).AsString,
-              FieldByName(fnId).AsInteger), gdcFunction.FieldByName(fnId).AsInteger]));
-          TgdcMacros(CD^.Obj).FLastInsertID := TgdcMacros(CD^.Obj).FieldByName(fnId).AsInteger;
+              GetTID(FieldByName(fnId))), TID2V(gdcFunction.FieldByName(fnId))]));
+          TgdcMacros(CD^.Obj).FLastInsertID := GetTID(TgdcMacros(CD^.Obj).FieldByName(fnId));
         end;
         CD^.Obj.Edit;
         try
-          CD^.Obj.FieldByName(fnMacrosGroupKey).AsInteger := LocId;
+          SetTID(CD^.Obj.FieldByName(fnMacrosGroupKey), LocId);
 
           CD^.Obj.Post;
         except
@@ -162,7 +164,7 @@ begin
   begin
     try
       IsGlobal := Boolean(FieldByName(fnIsGlobal).AsInteger);
-      LocId := FieldByName(fnId).AsInteger;
+      LocId := GetTID(FieldByName(fnId));
       Close;
       SubSet := ssById;
       Id := CD^.ObjectArr[0].ID;
@@ -170,7 +172,7 @@ begin
       if IsGlobal = Boolean(FieldByName(fnIsGlobal).AsInteger) then
       begin
         Edit;
-        FieldByName(fnParent).AsInteger := LocId;
+        SetTID(FieldByName(fnParent), LocId);
         Post;
       end;
     except
@@ -208,7 +210,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  ParentIndex: Integer;
+  ParentIndex: TID;
 begin
   {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCMACROSGROUP', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  try
@@ -258,7 +260,7 @@ begin
     if FieldByName('parent').IsNull then
       ParentIndex := 1
     else
-      ParentIndex := FieldByName('parent').AsInteger;
+      ParentIndex := GetTID(FieldByName('parent'));
 
     Result := Format('SELECT mg.id FROM evt_macrosgroup mg ' +
       ' LEFT JOIN evt_object o ON o.macrosgroupkey = mg.id ' +
@@ -269,7 +271,7 @@ begin
       ' (UPPER(o.subtype) = UPPER(''%s''))',
       [StringReplace(FieldByName('objectname').AsString, '''', '''''', [rfReplaceAll]),
        FieldByName('classname').AsString,
-       ParentIndex,
+       TID264(ParentIndex),
        FieldByName('subtype').AsString]);
   end;
 
@@ -483,13 +485,13 @@ begin
   ibsql := CreateReadIBSQL;
   try
     ibsql.SQL.Text := 'SELECT * FROM evt_object WHERE macrosgroupkey = :mgk';
-    ibsql.ParamByName('mgk').AsInteger := ID;
+    SetTID(ibsql.ParamByName('mgk'), ID);
     ibsql.ExecQuery;
     if (ibsql.RecordCount > 0) and
-      ((not Assigned(BindedList)) or (BindedList.Find(ibsql.FieldByName('id').AsInteger) = -1)) then
+      ((not Assigned(BindedList)) or (BindedList.Find(GetTID(ibsql.FieldByName('id'))) = -1)) then
     begin
       DelphiObject := TgdcDelphiObject.CreateSingularByID(nil,
-        ibsql.FieldByName('id').AsInteger, '') as TgdcDelphiObject;
+        GetTID(ibsql.FieldByName('id')), '') as TgdcDelphiObject;
       try
         DelphiObject.Open;
         DelphiObject._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
@@ -504,7 +506,7 @@ end;
 
 { TgdcMacros }
 
-function TgdcMacros.CheckMacros(const AName: String; MacrosGroupId: Integer): Boolean;
+function TgdcMacros.CheckMacros(const AName: String; MacrosGroupId: TID): Boolean;
 var
   SQL: TIBSQL;
 begin
@@ -514,10 +516,10 @@ begin
     if Active then
       SQL.SQL.Text := Format('SELECT * FROM evt_macroslist WHERE UPPER(NAME) = :name ' +
         ' and macrosgroupkey = %d and id <> %d', [MacrosGroupId,
-          FieldByName(fnId).AsInteger])
+          TID264(FieldByName(fnId))])
     else
       SQL.SQL.Text := Format('SELECT * FROM evt_macroslist WHERE UPPER(NAME) = :name ' +
-        ' and macrosgroupkey = %d', [MacrosGroupId]);
+        ' and macrosgroupkey = %d', [TID264(MacrosGroupId)]);
 
     SQL.ParamByName('name').AsString := AnsiUpperCase(AName);    
     SQL.ExecQuery;
@@ -689,7 +691,7 @@ begin
     ssMacrosGroup + ';';
 end;
 
-function TgdcMacros.GetUniqueName(PrefName, Name: string; MacrosGroupId: Integer): string;
+function TgdcMacros.GetUniqueName(PrefName, Name: string; MacrosGroupId: TID): string;
 var
   I: Integer;
   SQL: TIBSQL;
@@ -700,10 +702,10 @@ begin
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     if Active then
       SQL.SQL.Text := Format('SELECT * FROM evt_macroslist WHERE Upper(Name) = :name '+
-        ' and macrosgroupkey = %d and id <> %d', [MacrosGroupId, FieldByName(fnId).AsInteger])
+        ' and macrosgroupkey = %d and id <> %d', [TID264(MacrosGroupId), TID264(FieldByName(fnId))])
     else
       SQL.SQL.Text := Format('SELECT * FROM evt_macroslist WHERE Upper(Name) = :name '+
-        ' and macrosgroupkey = %d', [MacrosGroupId]);
+        ' and macrosgroupkey = %d', [TID264(MacrosGroupId)]);
 
     SQL.Prepare;
     I := 1;
@@ -936,10 +938,10 @@ begin
   if sLoadFromStream in BaseState then
   begin
     if CheckMacros(FieldByName(fnName).AsString,
-      FieldByName(fnMacrosGroupKey).AsInteger) then
+      GetTID(FieldByName(fnMacrosGroupKey))) then
       FieldByName(fnName).AsString := GetUniqueName('renamed',
         FieldByName(fnName).AsString,
-        FieldByName(fnMacrosGroupKey).AsInteger);
+        GetTID(FieldByName(fnMacrosGroupKey)));
   end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMACROS', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally

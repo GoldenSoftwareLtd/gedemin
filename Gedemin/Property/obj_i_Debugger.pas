@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -27,12 +29,12 @@
 unit obj_i_Debugger;
 
 interface
-uses rp_BaseReport_unit, Classes, sysutils, contnrs, Forms;
+uses rp_BaseReport_unit, Classes, sysutils, contnrs, Forms, gdcBaseInterface, Gedemin_TLB;
 
 type
   TRuntimeRec = record
     FunctionName: ShortString;
-    FunctionKey: Integer;
+    FunctionKey: TID;
     RuntimeTicks: LongWord;
     BeginTime:  TDateTime;
     PerfCounter: Integer;
@@ -159,13 +161,13 @@ type
   TBreakPoint = class
   private
     FLine: Integer;
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
     FPassCount: Integer;
     FCondition: string;
     FValidPassCount: Integer;
     FEnabled: Boolean;
     procedure SetCondition(const Value: string);
-    procedure SetFunctionKey(const Value: Integer);
+    procedure SetFunctionKey(const Value: TID);
     procedure SetLine(const Value: Integer);
     procedure SetPassCount(const Value: Integer);
     procedure SetEnabled(const Value: Boolean);
@@ -177,7 +179,7 @@ type
     procedure Reset;
     procedure IncPass;
 
-    property FunctionKey: Integer read FFunctionKey write SetFunctionKey;
+    property FunctionKey: TID read FFunctionKey write SetFunctionKey;
     property Line: Integer read FLine write SetLine;
     property Condition: string read FCondition write SetCondition;
     property PassCount: Integer read FPassCount write SetPassCount;
@@ -193,8 +195,8 @@ type
     function GetBreakPoints(Index: Integer): TBreakPoint;
     procedure SetBreakPoints(Index: Integer; const Value: TBreakPoint);
   public
-    function IndexByIdAndLine(Id, Line: Integer): Integer;
-    function BreakPoint(Id, Line: Integer): TBreakPoint;
+    function IndexByIdAndLine(Id: TID; Line: Integer): Integer;
+    function BreakPoint(Id: TID; Line: Integer): TBreakPoint;
 
     procedure SaveToStream(Stream: TStream);
     procedure LoadFromStream(Stream: TStream);
@@ -214,7 +216,7 @@ type
     FScript: TrpCustomFunction;
     procedure SetForm(const Value: TForm);
     function GetScript: TrpCustomFunction;
-    function GetFunctionKey: Integer;
+    function GetFunctionKey: TID;
   protected
     procedure DoRun; virtual;
   public
@@ -233,7 +235,7 @@ type
     procedure OnDebuggerStateChange(Sender: TObject;
       OldState, NewState: TDebuggerState);
 
-    property FunctionKey: Integer read GetFunctionKey;
+    property FunctionKey: TID read GetFunctionKey;
     property Form: TForm read FForm write SetForm;
     property Script: TrpCustomFunction read GetScript;
     property IsRuning: Boolean read FRun;
@@ -264,10 +266,10 @@ type
     function GetOnStateChange: TDebuggerStateChangeEvent;
     function GetOnYield: TNotifyEvent;
     function GetExecuteDebugLines: TDebugLines;
-    function GetExecuteScriptFunction: Integer;
+    function GetExecuteScriptFunction: TID;
     function GetInDebugger: Boolean;
     function GetFunctionRun: Boolean;
-    function GetLastScriptFunction: Integer;
+    function GetLastScriptFunction: TID;
     function GetLastFinallyParams: TFinallyRec;//OleVariant;
     function GetFinallyParams(const Index: Integer): TFinallyRec;
     function GetCurrentFinallyParams: TFinallyRec;
@@ -280,7 +282,7 @@ type
     procedure ClearDebugVars(Index: Integer);
 
     procedure DecKeyIndex;
-    function  GetCurrentKey: Integer;
+    function  GetCurrentKey: TID;
     function  GetCurrentKeyIndex: Integer;
 
 //    procedure SetLastFinallyParams(const Value: OleVariant);
@@ -327,7 +329,7 @@ type
     procedure Stop;
     procedure Reset;
     procedure WantPause;
-    procedure GotoToLine(SFID, Line: Integer);
+    procedure GotoToLine(SFID: TID; Line: Integer);
 
     procedure ToggleBreakPoint(ALine: Integer; DL: TDebugLines); overload;
     procedure ToggleExecuteBreakpoint(ALine: Integer);
@@ -350,7 +352,7 @@ type
     function GetVariable(const VarName: WideString): OleVariant; safecall;
     function Eval(Str: String; Extend: Boolean = True): Variant;
 
-    procedure ProcBegin(sfid: Integer; const FunctionName: WideString); safecall;
+    procedure ProcBegin(sfid: ATID; const FunctionName: WideString); safecall;
     procedure ProcEnd; safecall;
 
     property DebugLines: TDebugLines read GetDebugLines;
@@ -358,7 +360,7 @@ type
 
     property Self: TObject read Get_Self;
     property CurrentLine: Integer read GetCurrentLine write SetCurrentLine;
-    property ExecuteScriptFunction: Integer read GetExecuteScriptFunction;
+    property ExecuteScriptFunction: TID read GetExecuteScriptFunction;
     //Указывает на то что сейчас идет обработка точки прерывания
     property InDebugger: Boolean read GetInDebugger write SetInDebugger;
     //Указывает на то что скрипт-контрол выполняет функцию
@@ -366,7 +368,7 @@ type
     //присваивается фолсе в момент выхода из с-ф
     property FunctionRun: Boolean read GetFunctionRun write SetFunctionRun;
     //Ид последней скрипт-функции. Используется при возникновении ошибки
-    property LastScriptFunction: Integer read GetLastScriptFunction;
+    property LastScriptFunction: TID read GetLastScriptFunction;
     //Финалли-скрипт последней скрипт-функции.
     property LastFinallyParams: TFinallyRec read GetLastFinallyParams;
 
@@ -413,7 +415,7 @@ implementation
 uses prp_MessageConst, Windows, gd_i_ScriptFactory, prp_PropertySettings,
   scr_i_FunctionList, prp_dlgEvaluate_unit
   {$IFDEF GEDEMIN}
-  ,Storages, gdcCustomFunction, gdcBaseInterface
+  ,Storages, gdcCustomFunction
   {$ENDIF}
   ;
 
@@ -981,11 +983,14 @@ end;
 
 procedure TBreakPoint.loadFromStream(Stream: TStream);
 var
-  L: Integer;
+  L, Len: Integer;
 begin
+  {метка сохранения ID в Int64}
+  Len := GetLenIDinStream(@Stream);
+
   Stream.ReadBuffer(FEnabled, SizeOf(FEnabled));
   Stream.ReadBuffer(FLine, SizeOf(FLine));
-  Stream.ReadBuffer(FFunctionKey, SizeOf(FFunctionKey));
+  Stream.ReadBuffer(FFunctionKey, Len);
   Stream.ReadBuffer(FPassCount, SizeOf(PassCount));
   Stream.ReadBuffer(L, sizeOf(L));
   if L > 0 then
@@ -1003,11 +1008,14 @@ end;
 
 procedure TBreakPoint.SaveToStream(Stream: TStream);
 var
-  L: Integer;
+  L, Len: Integer;
 begin
+  {метка сохранения ID в Int64}
+  Len := SetLenIDinStream(@Stream);
+
   Stream.Write(FEnabled, SizeOf(FEnabled));
   Stream.Write(FLine, SizeOf(FLine));
-  Stream.write(FFunctionKey, SizeOf(FFunctionKey));
+  Stream.write(FFunctionKey, Len);
   Stream.Write(FPassCount, SizeOf(FPassCount));
   L := Length(FCondition);
   Stream.Write(L, sizeOf(L));
@@ -1025,7 +1033,7 @@ begin
   FEnabled := Value;
 end;
 
-procedure TBreakPoint.SetFunctionKey(const Value: Integer);
+procedure TBreakPoint.SetFunctionKey(const Value: TID);
 begin
   FFunctionKey := Value;
 end;
@@ -1042,7 +1050,7 @@ end;
 
 { TBreakPointList }
 
-function TBreakPointList.BreakPoint(Id, Line: Integer): TBreakPoint;
+function TBreakPointList.BreakPoint(Id: TID; Line: Integer): TBreakPoint;
 var
   I: Integer;
 begin
@@ -1058,7 +1066,7 @@ begin
   Result := TBreakPoint(Items[Index]);
 end;
 
-function TBreakPointList.IndexByIdAndLine(Id, Line: Integer): Integer;
+function TBreakPointList.IndexByIdAndLine(Id: TID; Line: Integer): Integer;
 var
   I: Integer;
 begin
@@ -1111,7 +1119,6 @@ var
 begin
   if Stream = nil then
     raise Exception.Create(MSG_STREAM_DO_NOT_INIT);
-
   Clear;
   Stream.ReadBuffer(LCount, SizeOf(LCount));
   for I := 0 to LCount -1 do
@@ -1239,7 +1246,7 @@ begin
           Script.IncludingList.Clear;
           for I := 0 to SL.Count - 1 do
           begin
-            Script.IncludingList.Add(Integer(SL.Objects[I]));
+            Script.IncludingList.Add(GetTID(SL.Objects[I], cEmptyContext));
           end;
         finally
           SL.Free;
@@ -1278,7 +1285,7 @@ begin
   end;
 end;
 
-function TCustomDebugLink.GetFunctionKey: Integer;
+function TCustomDebugLink.GetFunctionKey: TID;
 begin
   Result := Script.FunctionKey;
 end;

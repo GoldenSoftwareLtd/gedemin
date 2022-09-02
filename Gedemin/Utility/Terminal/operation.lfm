@@ -1,3 +1,8 @@
 inherited OperationTP: TOperationTP
+  Left = 492
+  Top = 376
   OnKeyDown = FormKeyDown
+  inherited Panel1: TPanel
+    OnClick = Panel1Click
+  end
 end

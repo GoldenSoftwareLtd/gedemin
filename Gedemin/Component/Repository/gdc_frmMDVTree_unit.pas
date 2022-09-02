@@ -1,4 +1,4 @@
-//
+// ShlTanya, 21.02.2019
 
 unit gdc_frmMDVTree_unit;
 
@@ -9,7 +9,8 @@ uses
   gdc_frmMDH_unit, IBDatabase, Db, gsReportManager, flt_sqlFilter, Menus,
   ActnList,  ComCtrls, ToolWin, ExtCtrls, Grids, DBGrids, gsDBGrid,
   gsIBGrid, gsDBTreeView, gdc_frmMDV_unit, gdcBase, IBCustomDataSet,
-  gdcConst, ImgList, TB2Item, TB2Dock, TB2Toolbar, StdCtrls, gd_MacrosMenu;
+  gdcConst, ImgList, TB2Item, TB2Dock, TB2Toolbar, StdCtrls, gd_MacrosMenu,
+  gdcBaseInterface;
              
 type
   Tgdc_frmMDVTree = class(Tgdc_frmMDV)
@@ -40,7 +41,7 @@ type
     procedure actShowSubGroupsUpdate(Sender: TObject);
     procedure ibgrDetailClickCheck(Sender: TObject; CheckID: String;
       var Checked: Boolean);
-    procedure tvGroupClickCheck(Sender: TObject; CheckID: Integer;
+    procedure tvGroupClickCheck(Sender: TObject; CheckID: TID;
       var Checked: Boolean);
     procedure FormCreate(Sender: TObject);
     procedure tvGroupStartDrag(Sender: TObject;
@@ -74,7 +75,7 @@ type
     ByLBRBDetailField, ByLBRBMasterField: String;
     ByParentDetailField, ByParentMasterField: String;
 
-    procedure DeleteChoose(AnID: Integer); override;
+    procedure DeleteChoose(AnID: TID); override;
 //    function OnInvoker(const Name: WideString; AnParams: OleVariant): OleVariant; override;
 
   public
@@ -100,7 +101,7 @@ implementation
 
 uses
   gdcTree, gd_security, dmDataBase_unit, gsStorage_CompPath,
-  Storages,  gd_ClassList, gdcBaseInterface, Contnrs, prp_methods
+  Storages,  gd_ClassList, Contnrs, prp_methods
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -125,7 +126,7 @@ begin
     begin
       if tvGroup.Items[I].StateIndex = 1 then
       begin
-        MasterA[K] := Integer(tvGroup.Items[I].Data);
+        MasterA[K] := TID2V(GetTID(tvGroup.Items[I].Data, Name));
         Inc(K);
       end;
     end;  
@@ -399,7 +400,7 @@ end;
 
 procedure Tgdc_frmMDVTree.actDetailNewExecute(Sender: TObject);
 var
-  OldID: Integer;
+  OldID: TID;
 begin
   if not gdcDetailObject.IsEmpty then
     OldID := gdcDetailObject.ID
@@ -540,15 +541,15 @@ begin
   if FInChoose and (FgdcLinkChoose = gdcDetailObject) then
     try
       if Checked then
-        AddToChooseObject(StrToInt(CheckID))
+        AddToChooseObject(GetTID(CheckID))
       else
-        DeleteFromChooseObject(StrToInt(CheckID));
+        DeleteFromChooseObject(GetTID(CheckID));
     except
       raise Exception.Create('Ошибка при выборе записи. Неверный id: '+ CheckID);
     end;
 end;
 
-procedure Tgdc_frmMDVTree.DeleteChoose(AnID: Integer);
+procedure Tgdc_frmMDVTree.DeleteChoose(AnID: TID);
 begin
   if FgdcLinkChoose = gdcObject then
   begin
@@ -562,7 +563,7 @@ begin
 end;
 
 procedure Tgdc_frmMDVTree.tvGroupClickCheck(Sender: TObject;
-  CheckID: Integer; var Checked: Boolean);
+  CheckID: TID; var Checked: Boolean);
 begin
   inherited;
   if FInChoose and (FgdcLinkChoose = gdcObject) then
@@ -572,7 +573,7 @@ begin
       else
         DeleteFromChooseObject(CheckID);
     except
-      raise Exception.Create('Ошибка при выборе записи. Неверный id: '+ IntToStr(CheckID));
+      raise Exception.Create('Ошибка при выборе записи. Неверный id: '+ TID2S(CheckID));
     end;
 end;
 
@@ -907,9 +908,9 @@ begin
   begin
     try
       if Checked then
-        AddToChooseObject(StrToInt(CheckID))
+        AddToChooseObject(GetTID(CheckID))
       else
-        DeleteFromChooseObject(StrToInt(CheckID));
+        DeleteFromChooseObject(GetTID(CheckID));
     except
       raise Exception.Create('Ошибка при выборе записи. Неверный id: '+ CheckID);
     end;

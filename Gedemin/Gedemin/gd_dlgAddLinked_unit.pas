@@ -1,3 +1,5 @@
+// ShlTanya, 08.03.2019
+
 unit gd_dlgAddLinked_unit;
 
 interface
@@ -208,7 +210,7 @@ begin
       try
         q.Transaction := gdcBaseManager.ReadTransaction;
         q.SQL.Text := 'SELECT id FROM gd_file WHERE parent=:P and UPPER(name)=:N';
-        q.ParamByName('P').AsInteger := iblkupFolder.CurrentKeyInt;
+        SetTID(q.ParamByName('P'), iblkupFolder.CurrentKeyInt);
         q.ParamByName('N').AsString := AnsiUpperCase(ExtractFileName(edFileName.Text));
         q.ExecQuery;
         if not q.EOF then

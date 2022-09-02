@@ -18,7 +18,7 @@ type
 implementation
 
 uses
-  gd_KeyAssoc;
+  gd_KeyAssoc, gdcBaseInterface;
 
 { TgsKeyArrayTest }
 
@@ -43,8 +43,8 @@ begin
         KA1.Add(V);
     end;
 
-    KA1.Add(High(Integer));
-    KA1.Add(Low(Integer));
+    KA1.Add(High(TID));
+    KA1.Add(Low(TID));
     if not KA1.Find(0, K) then
       KA1.Add(0);
 

@@ -31,6 +31,21 @@
 */
 
 CREATE EXCEPTION INV_E_INVALIDMOVEMENT 'The movement was made incorrect!';
+CREATE EXCEPTION INV_E_CANNTCHANGEFEATURE 'Нельзя изменять признаки, т.к. они влияют на дальнейшее движение';
+CREATE EXCEPTION INV_E_CANNTCHANGEGOODKEY 'Нельзя изменять товар в позиции, т.к. по позиции было дальнейшее движение!';
+CREATE EXCEPTION INV_E_DONTCHANGEBENEFICIARY 'Нельзя изменить получателя';
+CREATE EXCEPTION INV_E_DONTCHANGESOURCE 'Нельзя изменить источник!';
+CREATE EXCEPTION INV_E_DONTREDUCEAMOUNT 'Нельзя уменьшить количество по позиции';
+CREATE EXCEPTION INV_E_INCORRECTQUANTITY 'Количество по документу не соответсвует созданному движению!';
+CREATE EXCEPTION INV_E_INSUFFICIENTBALANCE 'Недостаточно остатков на указанную дату';
+CREATE EXCEPTION INV_E_NOPRODUCT 'На указанную дату нет остатка товара!';
+
+CREATE DOMAIN DVIEWMOVEMENTPART AS VARCHAR(1) CHECK ((VALUE IN ('I', 'E') or VALUE is NULL));
+
+
+CREATE GENERATOR gd_g_movement;
+SET GENERATOR gd_g_movement TO 0;
+
 
 COMMIT;
 
@@ -197,14 +212,43 @@ CREATE INDEX INV_X_BALANCE_CB ON INV_BALANCE (
 
 COMMIT;
 
+CREATE TABLE GD_CHANGEDDOC (
+    ID             DINTKEY,
+    SOURCEDOCKEY   DFOREIGNKEY,
+    DESTDOCKEY     DFOREIGNKEY,
+    EDITORKEY      DFOREIGNKEY,
+    EDITIONDATE    DTIMESTAMP,
+    CHANGEDFIELDS  DTEXT1024
+);
+
+COMMIT;
+
+ALTER TABLE GD_CHANGEDDOC ADD CONSTRAINT PK_GD_CHANGEDDOC PRIMARY KEY (ID);
+ALTER TABLE GD_CHANGEDDOC ADD CONSTRAINT FK_GD_CHANGEDDOC_SK FOREIGN KEY (SOURCEDOCKEY) 
+  REFERENCES GD_DOCUMENT (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE GD_CHANGEDDOC ADD CONSTRAINT FK_GD_CHANGEDDOC_DK FOREIGN KEY (DESTDOCKEY) 
+  REFERENCES GD_DOCUMENT (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+
+COMMIT;
 
 SET TERM ^ ;
 
+CREATE trigger gd_changeddoc_bi0 FOR gd_changeddoc
+ACTIVE BEFORE INSERT position 0
+AS
+BEGIN
+  IF (NEW.id is NULL) THEN
+    NEW.ID = GEN_ID(gd_g_movement, 1);
+END
+^
+
+
+
 CREATE PROCEDURE inv_makerest                               
 AS                                               
-  DECLARE VARIABLE CONTACTKEY INTEGER;           
-  DECLARE VARIABLE CARDKEY INTEGER;              
-  DECLARE VARIABLE GOODKEY INTEGER;
+  DECLARE VARIABLE CONTACTKEY DFOREIGNKEY;           
+  DECLARE VARIABLE CARDKEY DFOREIGNKEY;              
+  DECLARE VARIABLE GOODKEY DFOREIGNKEY;
   DECLARE VARIABLE BALANCE NUMERIC(15, 4);       
 BEGIN                                            
   DELETE FROM INV_BALANCE;                      
@@ -219,6 +263,31 @@ BEGIN
     INSERT INTO inv_balance (contactkey, goodkey, cardkey, balance)  
       VALUES (:contactkey, :goodkey, :cardkey, :balance);             
 END 
+^
+
+CREATE PROCEDURE INV_INSERT_CARD (
+    ID DFOREIGNKEY,
+    PARENT DFOREIGNKEY)
+AS
+  declare variable SQLTEXT varchar(32000);
+  declare variable FIELDNAME varchar(32000);
+BEGIN 
+  SELECT LIST(fieldname, ',') 
+  FROM AT_RELATION_FIELDS 
+  WHERE 
+    relationname = 'INV_CARD' 
+    AND fieldname <> 'ID' 
+    AND fieldname <> 'PARENT' 
+  INTO :fieldname; 
+ 
+  sqltext = 
+    'INSERT INTO inv_card (id, parent, ' || :fieldname || ')' || 
+    'SELECT ' || :id || ',' || :parent || ',' || 
+    :fieldname || ' ' || 
+    'FROM inv_card WHERE id =' || :parent; 
+ 
+  EXECUTE STATEMENT :sqltext; 
+END
 ^
 
 SET TERM ; ^
@@ -263,7 +332,6 @@ CREATE TRIGGER inv_bi_balanceoption FOR inv_balanceoption
   BEFORE INSERT
   POSITION 0
 AS
-  DECLARE VARIABLE id INTEGER;
 BEGIN
   /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
@@ -292,7 +360,7 @@ CREATE TRIGGER inv_bu_card FOR inv_card
   BEFORE UPDATE
   POSITION 0
 AS
-  DECLARE VARIABLE firstdocumentkey INTEGER;
+  DECLARE VARIABLE firstdocumentkey DFOREIGNKEY;
   DECLARE VARIABLE firstdate DATE;
 BEGIN
 
@@ -352,7 +420,7 @@ AS
   DECLARE VARIABLE D DATE;
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF (GEN_ID(gd_g_block, 0) > 0) THEN
@@ -396,7 +464,7 @@ AS
   DECLARE VARIABLE D DATE;
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF (GEN_ID(gd_g_block, 0) > 0) THEN
@@ -440,7 +508,7 @@ AS
   DECLARE VARIABLE D DATE;
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF (GEN_ID(gd_g_block, 0) > 0) THEN
@@ -622,7 +690,7 @@ AS
   DECLARE VARIABLE balance NUMERIC(15, 4);
 BEGIN
   IF (NEW.id IS NULL) THEN
-    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+    NEW.id = GEN_ID(gd_g_movement, 1) + GEN_ID(gd_g_offset, 0);
 
   IF (NEW.debit IS NULL) THEN
     NEW.debit = 0;
@@ -658,55 +726,61 @@ BEGIN
 END;
 ^
 
-CREATE TRIGGER INV_BU_MOVEMENT FOR INV_MOVEMENT
-  ACTIVE
-  BEFORE UPDATE
-  POSITION 0
-AS
-  DECLARE VARIABLE balance NUMERIC(15, 4);
-BEGIN
-  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'GD_MERGING_RECORDS') IS NULL) THEN
-  BEGIN
-    IF (NEW.documentkey <> OLD.documentkey) THEN
-      EXCEPTION inv_e_movementchange;
-
-    IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN
-    BEGIN
-      IF (OLD.debit > 0) THEN
-      BEGIN
-        SELECT balance FROM inv_balance
-        WHERE contactkey = OLD.contactkey
-          AND cardkey = OLD.cardkey
-        INTO :balance;
-        IF (COALESCE(:balance, 0) < OLD.debit) THEN
-          EXCEPTION INV_E_INVALIDMOVEMENT;
-      END
-    END ELSE
-    BEGIN
-      IF (OLD.debit > NEW.debit) THEN
-      BEGIN
-        SELECT balance FROM inv_balance
-        WHERE contactkey = OLD.contactkey
-          AND cardkey = OLD.cardkey
-        INTO :balance;
-        balance = COALESCE(:balance, 0);
-        IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN
-          EXCEPTION INV_E_INVALIDMOVEMENT;
-      END ELSE
-      BEGIN
-        IF (NEW.credit > OLD.credit) THEN
-        BEGIN
-          SELECT balance FROM inv_balance
-          WHERE contactkey = OLD.contactkey
-            AND cardkey = OLD.cardkey
-          INTO :balance;
-          balance = COALESCE(:balance, 0);
-          IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN
-            EXCEPTION INV_E_INVALIDMOVEMENT;
-        END
-      END
-    END
-  END
+CREATE trigger inv_bu_movement for inv_movement
+active before update position 0
+AS 
+  DECLARE VARIABLE balance NUMERIC(15, 4); 
+  DECLARE VARIABLE controlremains INTEGER; 
+BEGIN 
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'GD_MERGING_RECORDS') IS NULL) THEN 
+  BEGIN 
+    IF (NEW.documentkey <> OLD.documentkey) THEN 
+      EXCEPTION inv_e_movementchange; 
+ 
+    IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN 
+    BEGIN 
+      IF (OLD.debit <> 0) THEN 
+      BEGIN 
+        SELECT balance FROM inv_balance 
+        WHERE contactkey = OLD.contactkey 
+          AND cardkey = OLD.cardkey 
+        INTO :balance; 
+        IF (COALESCE(:balance, 0) < OLD.debit) THEN 
+          EXCEPTION INV_E_INVALIDMOVEMENT; 
+      END 
+    END ELSE 
+    BEGIN 
+      IF (OLD.debit > NEW.debit) THEN 
+      BEGIN 
+        SELECT balance FROM inv_balance 
+        WHERE contactkey = OLD.contactkey 
+          AND cardkey = OLD.cardkey 
+        INTO :balance; 
+        balance = COALESCE(:balance, 0); 
+        IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN 
+          EXCEPTION INV_E_DONTREDUCEAMOUNT; 
+      END ELSE 
+      BEGIN 
+        IF (NEW.credit > OLD.credit) THEN 
+        BEGIN 
+          SELECT balance FROM inv_balance 
+          WHERE contactkey = OLD.contactkey 
+            AND cardkey = OLD.cardkey 
+          INTO :balance; 
+          balance = COALESCE(:balance, 0); 
+          controlremains = RDB$GET_CONTEXT('USER_TRANSACTION', 'CONTROLREMAINS'); 
+          IF (:controlremains IS NULL) THEN 
+          BEGIN 
+            IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN 
+              EXCEPTION INV_E_INSUFFICIENTBALANCE; 
+          END 
+          ELSE 
+            IF ((:controlremains <> 0) and (:balance < NEW.credit - OLD.credit)) THEN 
+              EXCEPTION INV_E_INSUFFICIENTBALANCE; 
+        END 
+      END 
+    END 
+  END 
 END;
 ^
 
@@ -725,8 +799,8 @@ END;
 CREATE TRIGGER INV_BD_MOVEMENT FOR INV_MOVEMENT
 BEFORE DELETE POSITION 0
 AS
-  DECLARE VARIABLE DOCKEY INTEGER;
-  DECLARE VARIABLE FIRSTDOCKEY INTEGER;
+  DECLARE VARIABLE DOCKEY DFOREIGNKEY;
+  DECLARE VARIABLE FIRSTDOCKEY DFOREIGNKEY;
   DECLARE VARIABLE CONTACTTYPE INTEGER;
   DECLARE VARIABLE BALANCE NUMERIC(15, 4);
 BEGIN
@@ -769,9 +843,9 @@ END;
 ^
 
 CREATE PROCEDURE INV_P_GETCARDS (
-    PARENT INTEGER)
+    PARENT DFOREIGNKEY)
 RETURNS (
-    ID INTEGER)
+    ID DFOREIGNKEY)
 AS
 BEGIN
 
@@ -791,8 +865,8 @@ END;
 ^
 
 CREATE OR ALTER PROCEDURE INV_GETCARDMOVEMENT (
-    CARDKEY INTEGER,
-    CONTACTKEY INTEGER,
+    CARDKEY DFOREIGNKEY,
+    CONTACTKEY DFOREIGNKEY,
     DATEEND DATE)
 RETURNS (
     REMAINS NUMERIC(15, 4))
@@ -874,7 +948,7 @@ CREATE TRIGGER inv_bi_movement_block FOR inv_movement
 AS
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF ((NEW.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
@@ -914,7 +988,7 @@ CREATE TRIGGER inv_bu_movement_block FOR inv_movement
 AS
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF (((NEW.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) 
@@ -955,7 +1029,7 @@ CREATE TRIGGER inv_bd_movement_block FOR inv_movement
 AS
   DECLARE VARIABLE IG INTEGER;
   DECLARE VARIABLE BG INTEGER;
-  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE DT DFOREIGNKEY;
   DECLARE VARIABLE F INTEGER;
 BEGIN
   IF ((OLD.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN

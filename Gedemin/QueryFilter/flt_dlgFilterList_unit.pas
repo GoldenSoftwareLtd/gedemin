@@ -1,3 +1,5 @@
+// ShlTanya, 10.03.2019, #4135
+
 unit flt_dlgFilterList_unit;
 
 interface
@@ -5,7 +7,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ActnList, StdCtrls, ComCtrls, gd_security, Db, IBCustomDataSet, IBQuery,
-  flt_dlgShowFilter_unit, IBSQL, Menus, ExtCtrls;
+  flt_dlgShowFilter_unit, IBSQL, Menus, ExtCtrls, gdcBaseInterface;
 
 type
   TdlgFilterList = class(TForm)
@@ -41,14 +43,15 @@ type
     procedure actNewExecute(Sender: TObject);
     procedure actNewUpdate(Sender: TObject);
   private
-    FComponentKey: Integer;
+    FComponentKey: TID;
     FChange: Boolean;
     FDialogFilter: TdlgShowFilter;
     FSQLText: String;
-    procedure ShowFilter(SelKey: Integer);
+    procedure ShowFilter(SelKey: TID);
     function GetUserKey: String;
   public
-    function ViewFilterList(const ComponentKey: Integer; var ChangeFlag: Boolean; const AnSQLText: String): Integer;
+    destructor Destroy; override;
+    function ViewFilterList(const ComponentKey: TID; var ChangeFlag: Boolean; const AnSQLText: String): Integer;
   end;
 
 var
@@ -71,21 +74,21 @@ uses
 function TdlgFilterList.GetUserKey: String;
 begin
   if IBLogin <> nil then
-    Result := IntToStr(IBLogin.UserKey)
+    Result := TID2S(IBLogin.UserKey)
   else
     Result := IntToStr(ADMIN_KEY);
 end;
 
 // Выводим список фильтров
-procedure TdlgFilterList.ShowFilter(SelKey: Integer);
+procedure TdlgFilterList.ShowFilter(SelKey: TID);
 var
   L: TListItem;
   Flag: Boolean;
 begin
   // Вытягиваем список
   ibsqlFilter.Close;
-  ibsqlFilter.Params.ByName('componentkey').AsInteger := FComponentKey;
-  ibsqlFilter.Params.ByName('userkey').AsString := GetUserKey;
+  SetTID(ibsqlFilter.Params.ByName('componentkey'), FComponentKey);
+  SetTID(ibsqlFilter.Params.ByName('userkey'), GetTID(GetUserKey));
   ibsqlFilter.ExecQuery;
   lvFilter.Items.BeginUpdate;
   lvFilter.Items.Clear;
@@ -97,8 +100,8 @@ begin
     L.Caption := ibsqlFilter.FieldByName('name').AsString;
     L.SubItems.Add(ibsqlFilter.FieldByName('lastextime').AsString);
     L.SubItems.Add(ibsqlFilter.FieldByName('readcount').AsString);
-    L.Data := Pointer(ibsqlFilter.FieldByName('id').AsInteger);
-    if SelKey = Integer(L.Data) then
+    L.Data := TID2Pointer(GetTID(ibsqlFilter.FieldByName('id')), Name);
+    if SelKey = GetTID(ibsqlFilter.FieldByName('id')) then
     begin
       L.Selected := True;
       Flag := True;
@@ -110,7 +113,7 @@ begin
     lvFilter.Items[0].Selected := True;
 end;
 
-function TdlgFilterList.ViewFilterList(const ComponentKey: Integer; var ChangeFlag: Boolean; const AnSQLText: String): Integer;
+function TdlgFilterList.ViewFilterList(const ComponentKey: TID; var ChangeFlag: Boolean; const AnSQLText: String): Integer;
 begin
   // Присваиваем локальные переменные
   FChange := False;
@@ -120,7 +123,7 @@ begin
   ShowFilter(0);
   // Присваиваем результат
   if (ShowModal = mrOk) and (lvFilter.Selected <> nil) then
-    Result := Integer(lvFilter.Selected.Data)
+    Result := GetTID(lvFilter.Selected.Data, Name)
   else
     Result := 0;
   ChangeFlag := FChange;
@@ -136,10 +139,10 @@ begin
   FDialogFilter.Database := ibsqlFilter.Database;
   FDialogFilter.Transaction := ibsqlFilter.Transaction;
   // Вызываем редактирование фильтра
-  FDialogFilter.EditFilter(Integer(lvFilter.Selected.Data), FSQLText, nil, True, LocRes);
+  FDialogFilter.EditFilter(GetTID(lvFilter.Selected.Data, Name), FSQLText, nil, True, LocRes);
   if LocRes then
   begin
-    ShowFilter(Integer(lvFilter.Selected.Data));
+    ShowFilter(GetTID(lvFilter.Selected.Data, Name));
     FChange := True;
   end;
 end;
@@ -152,7 +155,7 @@ begin
   FDialogFilter.Database := ibsqlFilter.Database;
   FDialogFilter.Transaction := ibsqlFilter.Transaction;
   // Вызываем удаление фильтра
-  if FDialogFilter.DeleteFilter(Integer(lvFilter.Selected.Data)) then
+  if FDialogFilter.DeleteFilter(GetTID(lvFilter.Selected.Data, Name)) then
   begin
     ShowFilter(0);
     FChange := True;
@@ -219,6 +222,14 @@ end;
 procedure TdlgFilterList.actNewUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := Self.Owner is TgsQueryFilter;
+end;
+
+destructor TdlgFilterList.Destroy;
+begin
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
+  inherited;
 end;
 
 end.

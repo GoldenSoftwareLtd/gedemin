@@ -1,3 +1,4 @@
+// ShlTanya, 08.03.2019
 
 {++
 
@@ -27,13 +28,13 @@ interface
 
 uses
   ComObj, ActiveX, AxCtrls, Gedemin_TLB, IBDatabase, SysUtils,
-  prm_ParamFunctions_unit;
+  prm_ParamFunctions_unit, gdcBaseInterface;
 
 type
   TgsParamWindow = class(TAutoObject, IgsParamWindow)
   private
     FParamList: TgsParamList;
-    FExternalKey: Integer;
+    FExternalKey: TID;
 
     function  VariantIsArray(const Value: OleVariant): Boolean;
   protected
@@ -54,7 +55,7 @@ type
                                    const LinkLanguage: WideString; const Comment: WideString): OleVariant; safecall;
     function ExecuteWithParamList(const AParamList: IgsParamList): OleVariant; safecall;
   public
-    constructor Create(const AnExternalKey: Integer);
+    constructor Create(const AnExternalKey: TID);
     destructor Destroy; override;
   end;
 
@@ -80,7 +81,7 @@ begin
   FParamList.AddParam(ParamName, ParamName, StringToParamType(ParamType), Comment);
 end;
 
-constructor TgsParamWindow.Create(const AnExternalKey: Integer);
+constructor TgsParamWindow.Create(const AnExternalKey: TID);
 begin
   inherited Create;
 

@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 {++
 
 
@@ -28,7 +30,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gd_Createable_Form, dmImages_unit, ComCtrls, ExtCtrls, StdCtrls, contnrs,
-  ActnList;
+  ActnList, gdcBaseInterface;
 
 const
   // В массиве описаны стандартные функции VB доступные в списке
@@ -101,6 +103,11 @@ type
     tvTypeFunction: TTreeView;
     lvFunction: TListView;
     Splitter1: TSplitter;
+    Panel6: TPanel;
+    Label2: TLabel;
+    edFilter: TEdit;
+    lblFunctionCount: TLabel;
+    cbSearchWithRegExp: TCheckBox;
     procedure tvTypeFunctionChange(Sender: TObject; Node: TTreeNode);
     procedure lvFunctionSelectItem(Sender: TObject; Item: TListItem;
       Selected: Boolean);
@@ -108,6 +115,10 @@ type
       NewHeight: Integer; var Resize: Boolean);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure lvFunctionDblClick(Sender: TObject);
+    procedure edFilterChange(Sender: TObject);
+    procedure cbSearchWithRegExpClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     FVBFuncArray: TTaxFuncArray;// array of TFuncDescr;
     FGSFuncArray: TTaxFuncArray;// array of TFuncDescr;
@@ -116,7 +127,7 @@ type
     FSFGlFuncArray: TTaxFuncArray;// array of TFuncDescr;
     FSFLocFuncArray: TTaxFuncArray;// array of TFuncDescr;
 
-    FActualTaxKey: Integer;
+    FActualTaxKey: TID;
     FCurrentFunctionName: String;
     FSelectedFunction: String;
     FOtherFunc: String;
@@ -136,7 +147,7 @@ type
     procedure CreateCFFuncArray;
     procedure CreateSFFuncArray;
 
-    procedure SetActualTaxKey(const Value: Integer);
+    procedure SetActualTaxKey(const Value: TID);
     procedure SetCurrentFunctionName(const Value: String);
   protected
     procedure AddCFFunctions; virtual;
@@ -146,10 +157,10 @@ type
     procedure AddFunctions(const FuncArray: array of TFuncDescr; const NameListStr: String = '');
   public
     constructor CreateWithParams(const Owner: TComponent;
-      const ActualTaxKey: Integer = 0 ; const CurrentFunctionName: String = ''); virtual;
+      const ActualTaxKey: TID = 0 ; const CurrentFunctionName: String = ''); virtual;
 
     property  SelectedFunction: String read FSelectedFunction;
-    property  ActualTaxKey: Integer read FActualTaxKey write SetActualTaxKey;
+    property  ActualTaxKey: TID read FActualTaxKey write SetActualTaxKey;
     property  CurrentFunctionName: String read FCurrentFunctionName write SetCurrentFunctionName;
   end;
 
@@ -160,8 +171,8 @@ var
 implementation
 
 uses
-  gdcTaxFunction, prp_frmClassesInspector_unit, IBSQL, gdcBaseInterface,
-  gd_security_operationconst, gd_ClassList, gdc_Createable_Form,
+  gdcTaxFunction, prp_frmClassesInspector_unit, IBSQL, jclStrings,
+  gd_security_operationconst, gd_ClassList, gdc_Createable_Form, ComObj,
   scr_i_FunctionList, rp_BaseReport_unit, IBQuery, rp_report_const, tax_frmAddParamsFunc_unit;
 
 const
@@ -196,8 +207,7 @@ const
     'NG'#13#10;
 
 
-
-
+var RegExp: Variant;
 
 {$R *.DFM}
 
@@ -377,6 +387,8 @@ var
   I: Integer;
   LI: TListItem;
   NameList: TStrings;
+  ToAdd: boolean;
+  Matches: Variant;
 begin
   NameList := nil;
   if NameListStr > '' then  NameList := TStringList.Create;
@@ -386,14 +398,36 @@ begin
     begin
       if (NameList = nil) or ((NameList <> nil) and (NameList.IndexOf(FuncArray[I].Name) > -1)) then
       begin
-        LI := lvFunction.Items.Add;
-        LI.Caption := FuncArray[I].Name;
-        LI.ImageIndex := 4;
-        LI.Data := @FuncArray[I];
+        ToAdd := false;
+        if edFilter.Text = '' then
+          ToAdd := true
+        else
+          if cbSearchWithRegExp.Checked then
+          begin
+            RegExp.Pattern := edFilter.Text;
+            try
+              Matches := RegExp.Execute(FuncArray[I].Name);
+              ToAdd := (Matches.Count > 0);
+            except
+              ToAdd := false;
+            end
+          end
+          else
+            if StrIPos(edFilter.Text, FuncArray[I].Name) > 0 then
+              ToAdd := true;
+
+        if ToAdd then
+        begin
+            LI := lvFunction.Items.Add;
+            LI.Caption := FuncArray[I].Name;
+            LI.ImageIndex := 4;
+            LI.Data := @FuncArray[I];
+        end;
       end;
     end;
   finally
     NameList.Free;
+    lblFunctionCount.Caption := 'Функций: ' + IntToStr(lvFunction.Items.Count);
   end;
 end;
 
@@ -411,7 +445,7 @@ begin
   try
     IBSQL.Transaction := gdcBaseManager.ReadTransaction;
     IBSQL.SQL.Text :=
-      'SELECT * FROM gd_taxfunction WHERE taxactualkey = ' + IntToStr(FActualTaxKey);
+      'SELECT * FROM gd_taxfunction WHERE taxactualkey = ' + TID2S(FActualTaxKey);
     IBSQL.ExecQuery;
 
     while not IBSQL.Eof do
@@ -440,7 +474,7 @@ begin
   end;
 end;
 
-procedure TfrmAvailableTaxFunc.SetActualTaxKey(const Value: Integer);
+procedure TfrmAvailableTaxFunc.SetActualTaxKey(const Value: TID);
 begin
   FActualTaxKey := Value;
 end;
@@ -465,7 +499,7 @@ var
     with FuncArray[Length(FuncArray) - 1] do
     begin
       CustomFunction :=
-        glbFunctionList.FindFunctionWithoutDB(DataSet.FieldByName('id').AsInteger);
+        glbFunctionList.FindFunctionWithoutDB(GetTID(DataSet.FieldByName('id')));
       if CustomFunction = nil then
       begin
         CustomFunction := TrpCustomFunction.Create;
@@ -545,7 +579,7 @@ begin
 end;
 
 constructor TfrmAvailableTaxFunc.CreateWithParams(const Owner: TComponent;
-  const ActualTaxKey: Integer = 0; const CurrentFunctionName: String = '');
+  const ActualTaxKey: TID = 0; const CurrentFunctionName: String = '');
 var
   RootNode, ChildNode, Node: TTreeNode;
 begin
@@ -598,7 +632,7 @@ begin
     ChildNode := tvTypeFunction.Items.AddChild(Node, 'Прочие');
     ChildNode.Data := Pointer(ftGSOther);
     ChildNode.ImageIndex := 0;
-    ChildNode.SelectedIndex := 0;      
+    ChildNode.SelectedIndex := 0;
   end;
 
   Node := tvTypeFunction.Items.AddChild(RootNode, '(SF) Скрипт-функции');
@@ -701,6 +735,52 @@ procedure TfrmAvailableTaxFunc.AddSubGSFunctions(
   const NameListStr: String);
 begin
   AddFunctions(FGSFuncArray, NameListStr);
+end;
+
+procedure TfrmAvailableTaxFunc.edFilterChange(Sender: TObject);
+begin
+  lvFunction.Items.Clear;
+  if edFilter.Text > '' then
+  begin
+    lvFunction.Color := clInfoBk;
+    edFilter.Color := clInfoBk;
+  end else
+  begin
+    lvFunction.Color := clWindow;
+    edFilter.Color := clWindow;
+  end;
+  case tnFuncType(tvTypeFunction.Selected.Data) of
+    ftAll:     AddAllFunctions;
+    ftVB:      AddVBFunctions;
+    ftCF:      AddCFFunctions;
+    ftSFGl:    AddSFGlFunctions;
+    ftSF:      AddSFFunctions;
+    ftSFLoc:   AddSFLocFunctions;
+    ftGS:      AddGSFunctions;
+    ftGSNCU:   AddSubGSFunctions(cNCUFunc);
+    ftGSCur:   AddSubGSFunctions(cCurFunc);
+    ftGSQuant: AddSubGSFunctions(cQuantFunc);
+    ftGSDate:  AddSubGSFunctions(cDateFunc);
+    ftGSOther: AddSubGSFunctions(FOtherFunc);
+  end;
+end;
+
+procedure TfrmAvailableTaxFunc.cbSearchWithRegExpClick(Sender: TObject);
+begin
+  edFilterChange(nil);
+end;
+
+procedure TfrmAvailableTaxFunc.FormDestroy(Sender: TObject);
+begin
+    RegExp := Unassigned;
+end;
+
+procedure TfrmAvailableTaxFunc.FormCreate(Sender: TObject);
+begin
+    RegExp := CreateOleObject('VBScript.RegExp');
+    RegExp.IgnoreCase := True;
+    RegExp.Global := True;
+    RegExp.Multiline := True;
 end;
 
 end.

@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit bn_frmCurrConvContract_unit;
 
 interface

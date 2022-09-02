@@ -1,4 +1,4 @@
-//
+// ShlTanya, 21.02.2019
 
 unit gdc_frmMDHGR_unit;
 
@@ -9,7 +9,7 @@ uses
   gdc_frmMDH_unit, ExtCtrls, IBDatabase, Db, flt_sqlFilter,
   Menus, ActnList,  ComCtrls, ToolWin, Grids, DBGrids, gsDBGrid, gsIBGrid,
   FrmPlSvr, IBCustomDataSet, gdcBase, gdcConst, TB2Item, TB2Dock,
-  TB2Toolbar, StdCtrls, gd_MacrosMenu;
+  TB2Toolbar, StdCtrls, gd_MacrosMenu, gdcBaseInterface;
 
 type
   Tgdc_frmMDHGR = class(Tgdc_frmMDH)
@@ -52,7 +52,7 @@ type
     procedure actDetailNewExecute(Sender: TObject);
 
   protected
-    procedure DeleteChoose(AnID: Integer); override;
+    procedure DeleteChoose(AnID: TID); override;
 
   public
     function GetMainBookmarkList: TBookmarkList; override;
@@ -374,9 +374,9 @@ begin
   if FInChoose and (FgdcLinkChoose = gdcObject) then
     try
       if Checked then
-        AddToChooseObject(StrToInt(CheckID))
+        AddToChooseObject(GetTID(CheckID))
       else
-        DeleteFromChooseObject(StrToInt(CheckID));
+        DeleteFromChooseObject(GetTID(CheckID));
     except
       raise Exception.Create('Ошибка при выборе записи. Неверный id: '+ CheckID);
     end;
@@ -389,16 +389,16 @@ begin
   if FInChoose and (FgdcLinkChoose = gdcDetailObject) then
     try
       if Checked then
-        AddToChooseObject(StrToInt(CheckID))
+        AddToChooseObject(GetTID(CheckID))
       else
-        DeleteFromChooseObject(StrToInt(CheckID));
+        DeleteFromChooseObject(GetTID(CheckID));
     except
       raise Exception.Create('Ошибка при выборе записи. Неверный id: '+ CheckID);
     end;
 
 end;
 
-procedure Tgdc_frmMDHGR.DeleteChoose(AnID: Integer);
+procedure Tgdc_frmMDHGR.DeleteChoose(AnID: TID);
 begin
   if FgdcLinkChoose = gdcObject then
   begin
@@ -533,7 +533,7 @@ end;
 
 procedure Tgdc_frmMDHGR.actNewExecute(Sender: TObject);
 var
-  OldID: Integer;
+  OldID: TID;
 begin
   if not gdcObject.IsEmpty then
     OldID := gdcObject.ID
@@ -551,7 +551,7 @@ end;
 
 procedure Tgdc_frmMDHGR.actDetailNewExecute(Sender: TObject);
 var
-  OldID: Integer;
+  OldID: TID;
 begin
   if not gdcDetailObject.IsEmpty then
     OldID := gdcDetailObject.ID

@@ -1,3 +1,4 @@
+// ShlTanya, 25.02.2019, #4135
 
 {++
 
@@ -46,9 +47,9 @@ type
   TDebugSupportPlugin = class(TSynEditPlugin)
   private
     FDebugLines: TDebugLines;
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
     procedure SetDebugLines(const Value: TDebugLines);
-    procedure SetFunctionKey(const Value: Integer);
+    procedure SetFunctionKey(const Value: TID);
   protected
     procedure AfterPaint(ACanvas: TCanvas; AClip: TRect;
       FirstLine, LastLine: integer); override;
@@ -57,15 +58,15 @@ type
     function IsExecuteScript: Boolean;
   public
     property DebugLines: TDebugLines read FDebugLines write SetDebugLines;
-    property FunctionKey: Integer read FFunctionKey write SetFunctionKey;
+    property FunctionKey: TID read FFunctionKey write SetFunctionKey;
   end;
 
   TErrorListSuppurtPlugin = class(TSynEditPlugin)
   private
     FErrorListView: TListView;
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
     procedure SetErrorListView(const Value: TListView);
-    procedure SetFunctionKey(const Value: Integer);
+    procedure SetFunctionKey(const Value: TID);
   protected
     procedure AfterPaint(ACanvas: TCanvas; AClip: TRect;
       FirstLine, LastLine: integer); override;
@@ -73,7 +74,7 @@ type
     procedure LinesDeleted(FirstLine, Count: integer); override;
   public
     property ErrorListView: TListView read FErrorListView write SetErrorListView;
-    property FunctionKey: Integer read FFunctionKey write SetFunctionKey;
+    property FunctionKey: TID read FFunctionKey write SetFunctionKey;
   end;
 
 const
@@ -256,7 +257,7 @@ type
     FBreakPoint: TBreakPoint;
     FOldName: string;
     HistoryFrame: TFrame;
-    FOldFunctionKey: Integer;
+    FOldFunctionKey: TID;
     //FHint: THintWindow;
 
     procedure CMVisibleChanged(var Message: TMessage); message CM_VISIBLECHANGED;
@@ -293,10 +294,10 @@ type
     function GetStatament(var Str: String; Pos: Integer): String;
     function GetCompliteStatament(var Str: String; Pos: Integer;
       out BeginPos, EndPos: Integer): String;
-    function GetFunctionID: Integer; override;
+    function GetFunctionID: TID; override;
     function CheckDestroing: Boolean;
     procedure ParserInit; virtual;
-    procedure SetObjectId(const Value: Integer); override;
+    procedure SetObjectId(const Value: TID); override;
     // Проверка имени функции
     function CheckFunctionName(AnFunctionName: string;
       AnScriptText: TStrings): Boolean;
@@ -324,7 +325,7 @@ type
 //Заполянет списки зависимостей
     procedure SetDependencies(Flag: TprpDepend);
 
-    class function GetNameFromDb(Id: Integer): string; virtual;
+    class function GetNameFromDb(Id: TID): string; virtual;
     class function GetTypeName: string; virtual;
   public
     { Public declarations }
@@ -336,7 +337,7 @@ type
     procedure Cancel; override;
     function Run(const SFType: sfTypes): Variant; override;
     procedure Prepare; override;
-    procedure EditFunction(ID: Integer); override;
+    procedure EditFunction(ID: TID); override;
     procedure InvalidateFrame; override;
     procedure Evaluate; override;
     procedure ShowTypeInfo; override;
@@ -386,8 +387,8 @@ type
     procedure UpdateBreakPoints; override;
     procedure InsertCodeTemplate;
 
-    class function GetNameById(Id: Integer): string; override;
-    class function GetFunctionIdEx(Id: Integer): Integer; override;
+    class function GetNameById(Id: TID): string; override;
+    class function GetFunctionIdEx(Id: TID): TID; override;
 
     property FunctionParams: TgsParamList read FFunctionParams;
     property CurrentFunctionName: String read FCurrentFunctionName write SetCurrentFunctionName;
@@ -420,7 +421,7 @@ uses
 type
   TCrackDBSynEdit = class(TDBSynEdit);
 
-function _IsExecutedScript(FunctionKey: Integer): Boolean;
+function _IsExecutedScript(FunctionKey: TID): Boolean;
 begin
   Result := (Debugger <> nil) and
     ((Debugger.ExecuteScriptFunction = FunctionKey) or
@@ -436,14 +437,13 @@ end;
 procedure TFunctionFrame.Setup(const FunctionName: String = '');
 begin
   inherited;
-
   if (gdcFunction.State = dsInsert) and Assigned(CustomTreeItem) then
   begin
     with gdcFunction do
     begin
       CustomTreeItem.Name := CustomTreeItem.Name + RUIDToStr(GetRUID);
       FieldByName(fnName).AsString := CustomTreeItem.Name;
-      FieldByName(fnModuleCode).AsInteger := CustomTreeItem.OwnerId;
+      SetTID(FieldByName(fnModuleCode), CustomTreeItem.OwnerId);
       FieldByName(fnModule).AsString := GetModule;
       FieldByName(fnLanguage).AsString := dbcbLang.Items[1];
     end;
@@ -525,7 +525,7 @@ begin
       HistoryFrame.Parent := tsHistory;
       Tprp_FunctionHistoryFrame(HistoryFrame).S := gdcFunction.FieldByName('script').AsString;
 
-      Tprp_FunctionHistoryFrame(HistoryFrame).ibdsLog.ParamByName('ID').AsInteger := gdcFunction.ID;
+      SetTID(Tprp_FunctionHistoryFrame(HistoryFrame).ibdsLog.ParamByName('ID'), gdcFunction.ID);
       Tprp_FunctionHistoryFrame(HistoryFrame).ibdsLog.Open;
     end;
 end;
@@ -702,7 +702,7 @@ begin
       Result := System.Copy(Str, BeginPos, EndPos - BeginPos)
     else
       Result := '';
-  end;    
+  end;
 end;
 
 function TFunctionFrame.GetStatament(var Str: String;
@@ -827,10 +827,9 @@ begin
   end;
 end;
 
-procedure TFunctionFrame.SetObjectId(const Value: Integer);
+procedure TFunctionFrame.SetObjectId(const Value: TID);
 begin
   inherited;
-
   //Инициализируем парсер
   ParserInit;
   gsFunctionSynEdit.CaretX := 1;
@@ -872,6 +871,7 @@ begin
       TfrmGedeminProperty(GetParentForm(Self)).UpdateErrors;
     end;
   end;
+
 end;
 
 function TFunctionFrame.Run(const SFType: sfTypes): Variant;
@@ -1022,6 +1022,7 @@ begin
   end
   else if FOldName <> AnFunctionName then
     FOldName:= AnFunctionName;
+
 end;
 
 procedure TFunctionFrame.UpDataFunctionParams(
@@ -1083,24 +1084,23 @@ begin
   end;
 end;
 
-procedure TFunctionFrame.EditFunction(ID: Integer);
+procedure TFunctionFrame.EditFunction(ID: TID);
 begin
   if gdcFunction.Id = id then
     gsFunctionSynEdit.Show
   else
-    raise Exception.Create(Format('Функция с id = %d не обнаружена', [id]));
+    raise Exception.Create(Format('Функция с id = %d не обнаружена', [TID264(id)]));
 end;
 
 procedure TFunctionFrame.ToggleBreakpoint(Line: Integer);
 var
   BreakPoint: TBreakPoint;
 begin
-  BreakPoint := BreakPointList.BreakPoint(gdcFunction.fieldByname(fnId).AsInteger,
-    Line);
+  BreakPoint := BreakPointList.BreakPoint(GetTID(gdcFunction.fieldByname(fnId)), Line);
   if BreakPoint = nil then
   begin
     BreakPoint := TBreakPoint.Create;
-    BreakPoint.FunctionKey := gdcFunction.fieldByname(fnId).AsInteger;
+    BreakPoint.FunctionKey := GetTID(gdcFunction.fieldByname(fnId));
     BreakPoint.Line := Line;
     BreakPointlist.Add(BreakPoint);
   end else
@@ -1131,7 +1131,7 @@ begin
   end;
 end;
 
-function TFunctionFrame.GetFunctionID: Integer;
+function TFunctionFrame.GetFunctionID: TID;
 begin
   Result := gdcFunction.Id;
 end;
@@ -1200,9 +1200,9 @@ begin
     SQL.Transaction := gdcFunction.ReadTransaction;
     SQL.SQL.Text := 'SELECT COUNT(*) FROM gd_function WHERE id <> :id AND ' +
       'UPPER(name) = UPPER(:name) AND modulecode = :modulecode';
-    SQL.Params[0].AsInteger := gdcFunction.FieldByName(fnId).AsInteger;
+    SetTID(SQL.Params[0], gdcFunction.FieldByName(fnId));
     SQL.Params[1].AsString := dbeName.Text;
-    SQL.Params[2].AsInteger := gdcFunction.FieldByName(fnModuleCode).AsInteger;
+    SetTID(SQL.Params[2], gdcFunction.FieldByName(fnModuleCode));
     SQL.ExecQuery;
     if SQL.Fields[0].AsInteger > 0 then
       dbeName.Color := clRed
@@ -1290,7 +1290,7 @@ begin
 
   if dlgPropertyFind <> nil then
   begin
-    dlgPropertyFind.SearchInDB := False;
+    dlgPropertyFind.SearchType := stSearchText;
     if gsFunctionSynEdit.SelAvail then
       SearchOptions.SearchText := gsFunctionSynEdit.SelText
     else
@@ -1416,12 +1416,12 @@ begin
     SQL.SQl.Text := 'SELECT g.id FROM gd_function g, rp_additionalfunction a ' +
       'WHERE a.mainfunctionkey = :id and g.id = a.addfunctionkey and Upper(g.name) = :name';
     SQL.Prepare;
-    SQL.Params[0].AsInteger := gdcFunction.FieldByName(fnId).AsInteger;
+    SetTID(SQL.Params[0], gdcFunction.FieldByName(fnId));
     SQl.Params[1].AsString := CurrentWord;
     SQL.ExecQuery;
     if not SQL.Eof then
     begin
-      TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(SQL.Fields[0].AsInteger);
+      TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(GetTID(SQL.Fields[0]));
     end else
     begin
       E := TCodeExplorerParser.Create(nil);
@@ -1455,7 +1455,7 @@ begin
           Modify := True;
           gsFunctionSynEdit.Modified := True;
         end;
-        TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(SQL.Fields[0].AsInteger);
+        TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(GetTID(SQL.Fields[0]));
       end else
       begin
         Msg := 'Функция ' + CurrentWord + ' не найдена.';
@@ -1911,14 +1911,14 @@ begin
         ' LEFT JOIN gd_function f ON f.id = a.mainfunctionkey ' +
         ' WHERE a.addfunctionkey = :fk ' ;
 
-      ibsql.ParamByName('fk').AsInteger := gdcFunction.ID;
+      SetTID(ibsql.ParamByName('fk'), gdcFunction.ID);
       ibsql.ExecQuery;
 
       lbDependent.Sorted := False;
       while not ibsql.EOF do
       begin
         lbDependent.Items.AddObject(ibsql.FieldByName('name').AsString,
-          Pointer(ibsql.FieldByName('id').AsInteger));
+          TID2Pointer(GetTID(ibsql.FieldByName('id')), Name));
         ibsql.Next;
       end;
       lbDependent.Sorted := True;
@@ -1933,14 +1933,14 @@ begin
         ' LEFT JOIN gd_function f ON f.id = a.addfunctionkey ' +
         ' WHERE a.mainfunctionkey = :fk ' ;
 
-      ibsql.ParamByName('fk').AsInteger := gdcFunction.ID;
+      SetTID(ibsql.ParamByName('fk'), gdcFunction.ID);
       ibsql.ExecQuery;
 
       lbDependedFrom.Sorted := False;
       while not ibsql.EOF do
       begin
         lbDependedFrom.Items.AddObject(ibsql.FieldByName('name').AsString,
-          Pointer(ibsql.FieldByName('id').AsInteger));
+          TID2Pointer(GetTID(ibsql.FieldByName('id')), Name));
         ibsql.Next;
       end;
       lbDependedFrom.Sorted := True;
@@ -1950,7 +1950,7 @@ begin
   end;
 end;
 
-class function TFunctionFrame.GetNameById(Id: Integer): string;
+class function TFunctionFrame.GetNameById(Id: TID): string;
 var
   S: string;
 begin
@@ -1961,7 +1961,7 @@ begin
     Result := '';
 end;
 
-class function TFunctionFrame.GetNameFromDb(Id: Integer): string;
+class function TFunctionFrame.GetNameFromDb(Id: TID): string;
 var
   SQL: TIBSQL;
 begin
@@ -1969,7 +1969,7 @@ begin
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQl.SQL.Text := 'SELECT name FROM gd_function WHERE id = :id';
-    SQL.ParamByName('id').AsInteger := id;
+    SetTID(SQL.ParamByName('id'), id);
     SQL.ExecQuery;
     Result := SQL.FieldByName('name').AsString;
   finally
@@ -1982,7 +1982,7 @@ begin
   Result := 'Функция ';
 end;
 
-class function TFunctionFrame.GetFunctionIdEx(ID: Integer): Integer;
+class function TFunctionFrame.GetFunctionIdEx(ID: TID): TID;
 begin
   Result := ID;
 end;
@@ -2114,7 +2114,7 @@ begin
   FDebugLines := Value;
 end;
 
-procedure TDebugSupportPlugin.SetFunctionKey(const Value: Integer);
+procedure TDebugSupportPlugin.SetFunctionKey(const Value: TID);
 begin
   FFunctionKey := Value;
 end;
@@ -2221,7 +2221,7 @@ begin
 
   FDebugLines.CheckSize(gsFunctionSynEdit.Lines.Count);
   LI := FDebugLines[Line - 1];
-  BreakPoint := BreakPointList.BreakPoint(gdcFunction.FieldByName(fnId).asInteger,
+  BreakPoint := BreakPointList.BreakPoint(GetTID(gdcFunction.FieldByName(fnId)),
     Line);
   if (Debugger.CurrentLine = Line - 1) and IsExecuteScript then
   begin
@@ -2317,8 +2317,8 @@ var
   Str: TStream;
 begin
   inherited;
-  FDebugPlugin.FunctionKey := gdcFunction.FieldByName(fnId).AsInteger;
-  FErrorListSuppurtPlugin.FunctionKey := gdcFunction.FieldByName(fnId).AsInteger;
+  FDebugPlugin.FunctionKey := GetTID(gdcFunction.FieldByName(fnId));
+  FErrorListSuppurtPlugin.FunctionKey := GetTID(gdcFunction.FieldByName(fnId));
   edtRUIDFunction.Text:= gdcBaseManager.GetRUIDStringByID(gdcFunction.ID);
 //  LoadBreakPoints;
 //  UpdateEdidor;
@@ -2365,7 +2365,7 @@ begin
       if (Debugger.CurrentLine = FirstLine - 1) and
         IsExecuteScript then
       begin
-        BreakPoint := BreakpointList.BreakPoint(gdcFunction.FieldByName(fnid).AsInteger,
+        BreakPoint := BreakpointList.BreakPoint(GetTID(gdcFunction.FieldByName(fnid)),
           FirstLine);
         if BreakPoint <> nil then
           ImgIndex := 2
@@ -2374,7 +2374,7 @@ begin
       end else
       if dlExecutableLine in LI then
       begin
-        BreakPoint := BreakpointList.BreakPoint(gdcFunction.FieldByName(fnid).AsInteger,
+        BreakPoint := BreakpointList.BreakPoint(GetTID(gdcFunction.FieldByName(fnid)),
           FirstLine);
         if BreakPoint <> nil then
           if (PropertySettings.DebugSet.UseDebugInfo) and
@@ -2388,7 +2388,7 @@ begin
           ImgIndex := 0;
       end else
       begin
-        BreakPoint := BreakpointList.BreakPoint(gdcFunction.FieldByName(fnid).AsInteger,
+        BreakPoint := BreakpointList.BreakPoint(GetTID(gdcFunction.FieldByName(fnid)),
           FirstLine);
         if BreakPoint <> nil then
         begin
@@ -2459,7 +2459,7 @@ begin
   end;
 end;
 
-procedure TErrorListSuppurtPlugin.SetFunctionKey(const Value: Integer);
+procedure TErrorListSuppurtPlugin.SetFunctionKey(const Value: TID);
 begin
   FFunctionKey := Value;
 end;
@@ -2547,8 +2547,8 @@ end;
 procedure TFunctionFrame.gdcFunctionAfterInsert(DataSet: TDataSet);
 begin
   inherited;
-  FDebugPlugin.FunctionKey := gdcFunction.FieldByName(fnId).AsInteger;
-  FErrorListSuppurtPlugin.FunctionKey := gdcFunction.FieldByName(fnId).AsInteger;
+  FDebugPlugin.FunctionKey := GetTID(gdcFunction.FieldByName(fnId));
+  FErrorListSuppurtPlugin.FunctionKey := GetTID(gdcFunction.FieldByName(fnId));
   FFunctionParams.Clear;
 //  UpdateEdidor;
 end;
@@ -2609,7 +2609,7 @@ begin
 
   P := gsFunctionSynEdit.ScreenToClient(TCreckPopupMenu(Sender).PopupPoint);
   Line := gsFunctionSynEdit.PixelsToRowColumn(P).Y;
-  FBreakPoint := BreakPointList.BreakPoint(gdcFunction.FieldByName(fnId).AsInteger,
+  FBreakPoint := BreakPointList.BreakPoint(GetTID(gdcFunction.FieldByName(fnId)),
      Line);
   B := (P.x < gsFunctionSynEdit.Gutter.Width) and (FBreakPoint <> nil);
   miSeparator.Visible := B;
@@ -2725,7 +2725,7 @@ begin
       (P.X > 0) and (P.Y < gsFunctionSynEdit.Height) then
     begin
       Line := gsFunctionSynEdit.PixelsToRowColumn(P).Y;
-      B := BreakPointList.BreakPoint(gdcFunction.FieldByName(fnId).AsInteger,
+      B := BreakPointList.BreakPoint(GetTID(gdcFunction.FieldByName(fnId)),
          Line);
       CanShow := B <> nil;
       if CanShow then
@@ -2799,7 +2799,7 @@ begin
   if lbDependent.Items.Count > 0 then
   begin
     TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(
-      Integer(lbDependent.Items.Objects[lbDependent.ItemIndex]));
+      GetTID(lbDependent.Items.Objects[lbDependent.ItemIndex], Name));
   end;
 end;
 
@@ -2814,7 +2814,7 @@ begin
   if lbDependedFrom.Items.Count > 0 then
   begin
     TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(
-      Integer(lbDependedFrom.Items.Objects[lbDependedFrom.ItemIndex]));
+      GetTID(lbDependedFrom.Items.Objects[lbDependedFrom.ItemIndex], Name));
   end;
 end;
 
@@ -2822,7 +2822,6 @@ procedure TFunctionFrame.gdcFunctionAfterOpen(DataSet: TDataSet);
 begin
   inherited;
   SetDependencies(sdAll);
-
 end;
 
 procedure TFunctionFrame.actRefreshDependentExecute(Sender: TObject);
@@ -2855,7 +2854,7 @@ var
   F: TdlgFunctionWisard;
   ScriptChanged: Boolean;
   Module: TModule;
-  Id: Integer;
+  Id: TID;
   DidActivate: Boolean;
   Params: TgsParamList;
 const
@@ -2872,46 +2871,46 @@ begin
     SQL.Transaction := gdcFunction.ReadTransaction;
     aSQL.Transaction := gdcFunction.ReadTransaction;
     SQL.SQl.text := 'SELECT * FROM ac_trrecord WHERE functionkey = :functionkey';
-    SQL.ParamByName('functionkey').AsInteger := gdcFunction.Id;
+    SetTID(SQL.ParamByName('functionkey'), gdcFunction.Id);
     SQL.ExecQuery;
     if SQL.RecordCount > 0 then
     begin
       //Похоже это тип операция
       aSQL.SQL.text := 'SELECT id FROM ac_autotrrecord WHERE id = :id';
-      aSQL.ParamByname(fnid).AsInteger := SQL.FieldByName(fnId).AsInteger;
+      SetTID(aSQL.ParamByname(fnid), SQL.FieldByName(fnId));
       aSQL.ExecQuery;
       if aSQL.RecordCount > 0 then
       begin
         aSQL.Close;
         aSQL.SQl.text := 'SELECT * FROM gd_taxactual WHERE trrecordkey = :id';
-        aSQL.ParamByName(fnid).AsInteger := SQL.FieldByName(fnId).AsInteger;
+        SetTID(aSQL.ParamByName(fnid), SQL.FieldByName(fnId));
         aSQL.ExecQuery;
         if aSQL.RecordCount > 0 then
         begin
           //Похоже это налоги
           FunctionCreator := TNewTaxFunctionCreater.Create;
 
-          TNewTaxFunctionCreater(FunctionCreator).TaxActualRuid := gdcBaseManager.GetRUIDStringByID(aSQL.FieldByName(fnid).AsInteger);
-          TNewTaxFunctionCreater(FunctionCreator).TaxNameRuid := gdcBaseManager.GetRUIDStringByID(aSQL.FieldByName(fnTaxNameKey).AsInteger);
-          TNewTaxFunctionCreater(FunctionCreator).TransactionRUID := gdcBaseManager.GetRUIDStringByID(SQL.FieldByName(fnTransactionKey).AsInteger);
-          TNewTaxFunctionCreater(FunctionCreator).TrRecordRUID := gdcBaseManager.GetRUIDStringByID(SQL.FieldByName(fnID).AsInteger);
-          TNewTaxFunctionCreater(FunctionCreator).CardOfAccountRUID := gdcBaseManager.GetRuidStringById(SQL.FieldByName(fnAccountKey).AsInteger);
+          TNewTaxFunctionCreater(FunctionCreator).TaxActualRuid := gdcBaseManager.GetRUIDStringByID(GetTID(aSQL.FieldByName(fnid)));
+          TNewTaxFunctionCreater(FunctionCreator).TaxNameRuid := gdcBaseManager.GetRUIDStringByID(GetTID(aSQL.FieldByName(fnTaxNameKey)));
+          TNewTaxFunctionCreater(FunctionCreator).TransactionRUID := gdcBaseManager.GetRUIDStringByID(GetTID(SQL.FieldByName(fnTransactionKey)));
+          TNewTaxFunctionCreater(FunctionCreator).TrRecordRUID := gdcBaseManager.GetRUIDStringByID(GetTID(SQL.FieldByName(fnID)));
+          TNewTaxFunctionCreater(FunctionCreator).CardOfAccountRUID := gdcBaseManager.GetRuidStringById(GetTID(SQL.FieldByName(fnAccountKey)));
         end else
         begin
           FunctionCreator := TNewEntryFunctionCreater.Create;
 
-          TNewEntryFunctionCreater(FunctionCreator).TransactionRUID := gdcBaseManager.GetRUIDStringByID(SQL.FieldByName(fnTransactionKey).AsInteger);
-          TNewEntryFunctionCreater(FunctionCreator).TrRecordRUID := gdcBaseManager.GetRUIDStringByID(SQL.FieldByName(fnID).AsInteger);
-          TNewEntryFunctionCreater(FunctionCreator).CardOfAccountRUID := gdcBaseManager.GetRuidStringById(SQL.FieldByName(fnAccountKey).AsInteger);
+          TNewEntryFunctionCreater(FunctionCreator).TransactionRUID := gdcBaseManager.GetRUIDStringByID(GetTID(SQL.FieldByName(fnTransactionKey)));
+          TNewEntryFunctionCreater(FunctionCreator).TrRecordRUID := gdcBaseManager.GetRUIDStringByID(GetTID(SQL.FieldByName(fnID)));
+          TNewEntryFunctionCreater(FunctionCreator).CardOfAccountRUID := gdcBaseManager.GetRuidStringById(GetTID(SQL.FieldByName(fnAccountKey)));
         end;
       end else
       begin
         FunctionCreator := TNewTrEntryFunctionCreater.Create;
 
-        TNewTrEntryFunctionCreater(FunctionCreator).TransactionRUID := gdcBaseManager.GetRUIDStringByID(SQL.FieldByName(fnTransactionkey).AsInteger);
-        TNewTrEntryFunctionCreater(FunctionCreator).TrRecordRUID := gdcBaseManager.GetRUIDStringByID(SQL.FieldByName(fnId).AsInteger);
-        TNewTrEntryFunctionCreater(FunctionCreator).CardOfAccountRUID := gdcBaseManager.GetRuidStringById(SQL.FieldByName(fnAccountKey).AsInteger);
-        TNewTrEntryFunctionCreater(FunctionCreator).DocumentRUID := gdcBaseManager.GetRUIDStringByID(SQL.FieldByName(fnDocumentTypeKey).AsInteger);
+        TNewTrEntryFunctionCreater(FunctionCreator).TransactionRUID := gdcBaseManager.GetRUIDStringByID(GetTID(SQL.FieldByName(fnTransactionkey)));
+        TNewTrEntryFunctionCreater(FunctionCreator).TrRecordRUID := gdcBaseManager.GetRUIDStringByID(GetTID(SQL.FieldByName(fnId)));
+        TNewTrEntryFunctionCreater(FunctionCreator).CardOfAccountRUID := gdcBaseManager.GetRuidStringById(GetTID(SQL.FieldByName(fnAccountKey)));
+        TNewTrEntryFunctionCreater(FunctionCreator).DocumentRUID := gdcBaseManager.GetRUIDStringByID(GetTID(SQL.FieldByName(fnDocumentTypeKey)));
         TNewTrEntryFunctionCreater(FunctionCreator).SaveEmpty := SQL.FieldByName(fnIsSaveNull).AsInteger = 1;
         if SQL.FieldByName(fnDocumentPart).AsString = cwHeader then
           TNewTrEntryFunctionCreater(FunctionCreator).DocumentPart := dcpHeader
@@ -2921,18 +2920,18 @@ begin
 
       SQL.FieldByName(fnFunctionTemplate).SaveToStream(Str);
       Module := mTrrecord;
-      Id := SQL.FieldByName(fnId).AsInteger;
+      Id := GetTID(SQL.FieldByName(fnId));
     end else
     begin
       aSQl.SQL.text := 'SELECT id, headerfunctiontemplate as Templ, CAST(''header'' as VarChar(10)) as doctype FROM gd_documenttype WHERE headerfunctionkey = :functionkey ' +
         'UNION ALL SELECT id, linefunctiontemplate as Templ, CAST(''line''as VarChar(10)) as doctype FROM gd_documenttype WHERE linefunctionkey = :functionkey ';
-      aSQL.ParamByName('functionkey').AsInteger := gdcFunction.id;
+      SetTID(aSQL.ParamByName('functionkey'), gdcFunction.id);
       aSQL.ExecQuery;
       if aSQl.RecordCount > 0 then
       begin
         FunctionCreator := TNewDocumentTransactioCreater.Create;
         TNewDocumentTransactioCreater(FunctionCreator).DocumentTypeRUID :=
-          gdcBaseManager.GetRUIDStringById(aSQL.FieldByName(fnId).AsInteger);
+          gdcBaseManager.GetRUIDStringById(GetTID(aSQL.FieldByName(fnId)));
         if aSQL.FieldByName('doctype').AsString = 'header' then
         begin
           TNewDocumentTransactioCreater(FunctionCreator).DocumentPart := dcpHeader;
@@ -2944,7 +2943,7 @@ begin
         end;
 
         aSQL.FieldByName('templ').SaveToStream(Str);
-        Id := aSQL.FieldByName(fnID).AsInteger;
+        Id := GetTID(aSQL.FieldByName(fnID));
       end;
     end;
 
@@ -2989,7 +2988,7 @@ begin
             Str.Position := 0;
 
             SQL.ParamByName(fnFunctionTemplate).LoadFromStream(Str);
-            SQL.ParamByName(fnId).AsInteger := Id;
+            SetTID(SQL.ParamByName(fnId), Id);
 
             SQl.ExecQuery;
 

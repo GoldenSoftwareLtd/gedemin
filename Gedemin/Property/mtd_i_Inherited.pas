@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit mtd_i_Inherited;
 
 interface
@@ -24,5 +26,4 @@ initialization
 
 finalization
   InheritedMethodInvoker := nil;
-
 end.

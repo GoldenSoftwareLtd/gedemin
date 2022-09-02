@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit GroupType_unit;
 
 interface
@@ -11,7 +13,7 @@ type
   PGroupData = ^TGroupData;
 
   TGroupData = Record
-    GroupKey: Integer;
+    GroupKey: TID;
     Name: String[60];
     AFull: Integer;
     AChag: Integer;

@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcFKManager;
 
@@ -205,32 +206,44 @@ const
     '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''0'');'#13#10 +
     'END';
 
-  c_bi_ref_rel_name = 'gd_bi_ref_rel_<constraint_key>';
+  //c_bi_ref_rel_name = 'gd_bi_ref_rel_<constraint_key>';
 
-  c_bi_ref_rel =
-    'CREATE OR ALTER TRIGGER <trigger_name> FOR <ref_rel>'#13#10 +
-    '  BEFORE INSERT'#13#10 +
-    '  POSITION 32000'#13#10 +
-    'AS'#13#10 +
-    'BEGIN'#13#10 +
-    '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''1'');'#13#10 +
-    '  INSERT INTO gd_ref_constraint_data (constraintkey, value_data) '#13#10 +
-    '    VALUES (<constraint_key>, NEW.<ref_field>);'#13#10 +
-    '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''0'');'#13#10 +
-    'END';
+  //c_bi_ref_rel =
+  //  'CREATE OR ALTER TRIGGER <trigger_name> FOR <ref_rel>'#13#10 +
+  //  '  BEFORE INSERT'#13#10 +
+  //  '  POSITION 32000'#13#10 +
+  //  'AS'#13#10 +
+  //  'BEGIN'#13#10 +
+  //  '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''1'');'#13#10 +
+  //  '  INSERT INTO gd_ref_constraint_data (constraintkey, value_data) '#13#10 +
+  //  '    VALUES (<constraint_key>, NEW.<ref_field>);'#13#10 +
+  //  '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''0'');'#13#10 +
+  //  'END';
 
   c_drop_constraint =
     'ALTER TABLE <constraint_rel> DROP CONSTRAINT <constraint_name>';
 
-  c_update =
+  c_update_trigger =
     'UPDATE gd_ref_constraints SET ref_state = ''TRIGGER'' WHERE constraint_name = ''<constraint_name>'' ';
 
   c_create_constraint =
     'ALTER TABLE <constraint_rel> ADD CONSTRAINT <constraint_name> ' +
     'FOREIGN KEY (<constraint_field>) REFERENCES <ref_rel> (<ref_field>) ';
 
-  c_update2 =
+  c_update_original =
     'UPDATE gd_ref_constraints SET ref_state = ''ORIGINAL'' WHERE constraint_name = ''<constraint_name>'' ';
+
+  c_create_check =
+    'ALTER TABLE <constraint_rel> ADD CONSTRAINT <check_constraint_name> CHECK ( <constraint_field> IN (<id_list>))';
+
+  c_drop_constraint_check =
+    'ALTER TABLE <constraint_rel> DROP CONSTRAINT <check_constraint_name>';
+
+  c_update_check =
+    'UPDATE gd_ref_constraints SET ref_state = ''CHECK'' WHERE constraint_name = ''<constraint_name>'' ';
+
+  c_update_checkid =
+    'UPDATE gd_ref_constraints SET check_id = null where Id = <ID>';
 
 var
   Tr: TIBTransaction;
@@ -257,6 +270,16 @@ var
       qList.FieldByName('update_rule').AsTrimString, [rfIgnoreCase, rfReplaceAll]);
     Result := StringReplace(Result, '<delete_rule>',
       qList.FieldByName('delete_rule').AsTrimString, [rfIgnoreCase, rfReplaceAll]);
+    Result := StringReplace(Result, '<id_list>',
+      qList.FieldByName('check_id').AsTrimString, [rfIgnoreCase, rfReplaceAll]);
+    if (qList.FieldByName('ref_next_state').AsTrimString = 'CHECK') or
+      (qList.FieldByName('ref_state').AsTrimString = 'CHECK') then
+    begin
+      Result := StringReplace(Result, '<check_constraint_name>',
+        'gd_ref_' + gdcBaseManager.GetRUIDStringByID(GetTID(qList.FieldByName('id'))), [rfIgnoreCase, rfReplaceAll]);
+    end;
+    Result := StringReplace(Result, '<ID>', TID2S(qList.FieldByName('ID')), [rfIgnoreCase, rfReplaceAll]);
+
   end;
 
   procedure InsertScript(const S: String);
@@ -333,19 +356,29 @@ var
       ExpandMetaVariables(c_ad_ref_rel_name), [rfReplaceAll, rfIgnoreCase]);
     InsertScript(TriggerCode);
 
-    TriggerCode := StringReplace(ExpandMetaVariables(c_bi_ref_rel), '<trigger_name>',
-      ExpandMetaVariables(c_bi_ref_rel_name), [rfReplaceAll, rfIgnoreCase]);
-    InsertScript(TriggerCode);
+    //TriggerCode := StringReplace(ExpandMetaVariables(c_bi_ref_rel), '<trigger_name>',
+    //  ExpandMetaVariables(c_bi_ref_rel_name), [rfReplaceAll, rfIgnoreCase]);
+    //InsertScript(TriggerCode);
 
     InsertScript(ExpandMetaVariables(c_drop_constraint));
-    InsertScript(ExpandMetaVariables(c_update));
+    InsertScript(ExpandMetaVariables(c_update_trigger));
+    InsertScript(ExpandMetaVariables(c_update_checkid));
   end;
 
-  procedure ConvertToFK;
+  procedure ConvertToCheck;
+  begin
+    if qList.FieldByName('check_id').AsTrimString <> '' then
+      InsertScript(ExpandMetaVariables(c_create_check));
+
+    InsertScript(ExpandMetaVariables(c_drop_constraint));
+    InsertScript(ExpandMetaVariables(c_update_check));
+  end;
+
+  procedure ConvertToFKFromTrigger;
   var
     UpdateRule, DeleteRule: String;
   begin
-    InsertScript('DROP TRIGGER ' + ExpandMetaVariables(c_bi_ref_rel_name));
+    //InsertScript('DROP TRIGGER ' + ExpandMetaVariables(c_bi_ref_rel_name));
     InsertScript('DROP TRIGGER ' + ExpandMetaVariables(c_ad_ref_rel_name));
     InsertScript('DROP TRIGGER ' + ExpandMetaVariables(c_au_ref_rel_name));
     InsertScript('DROP TRIGGER ' + ExpandMetaVariables(c_au_constraint_rel_name));
@@ -362,7 +395,29 @@ var
       DeleteRule := ExpandMetaVariables('ON DELETE <delete_rule> ');
 
     InsertScript(ExpandMetaVariables(c_create_constraint) + UpdateRule + DeleteRule);
-    InsertScript(ExpandMetaVariables(c_update2));
+    InsertScript(ExpandMetaVariables(c_update_original));
+  end;
+
+  procedure ConvertToFKFromCheck;
+  var
+    UpdateRule, DeleteRule: String;
+  begin
+    if qList.FieldByName('check_id').AsTrimString <> '' then
+      InsertScript(ExpandMetaVariables(c_drop_constraint_check));
+    InsertScript(ExpandMetaVariables(c_update_checkid));
+
+    if qList.FieldByName('update_rule').AsTrimString = 'RESTRICT' then
+      UpdateRule := ''
+    else
+      UpdateRule := ExpandMetaVariables('ON UPDATE <update_rule> ');
+
+    if qList.FieldByName('delete_rule').AsTrimString = 'RESTRICT' then
+      DeleteRule := ''
+    else
+      DeleteRule := ExpandMetaVariables('ON DELETE <delete_rule> ');
+
+    InsertScript(ExpandMetaVariables(c_create_constraint) + UpdateRule + DeleteRule);
+    InsertScript(ExpandMetaVariables(c_update_original));
   end;
 
 begin
@@ -397,14 +452,20 @@ begin
     qScript.SQL.Text :=
       'INSERT INTO at_transaction (trkey, numorder, script, successfull) ' +
       'VALUES (:trkey, :numorder, :script, 1)';
-    qScript.ParamByName('trkey').AsInteger := GetNextID;
+    SetTID(qScript.ParamByName('trkey'), GetNextID);
 
     while not qList.EOF do
     begin
       if qList.FieldByName('ref_next_state').AsTrimString = 'TRIGGER' then
-        ConvertToTrigger
-      else
-        ConvertToFK;
+        ConvertToTrigger;
+      if qList.FieldByName('ref_next_state').AsTrimString = 'CHECK' then
+        ConvertToCheck;
+      if (qList.FieldByName('ref_next_state').AsTrimString = 'ORIGINAL')
+        and (qList.FieldByName('ref_state').AsTrimString = 'TRIGGER')  then
+        ConvertToFKFromTrigger;
+      if (qList.FieldByName('ref_next_state').AsTrimString = 'ORIGINAL')
+        and (qList.FieldByName('ref_state').AsTrimString = 'CHECK')  then
+        ConvertToFKFromCheck;
 
       qList.Next;
     end;
@@ -510,49 +571,59 @@ end;
 
 procedure TgdcFKManager.SyncWithSystemMetadata;
 var
-  Tr: TIBTransaction;
-  q: TIBSQL;
+  Tr, Tr_ins: TIBTransaction;
+  q, q_ins: TIBSQL;
 begin
   Tr := TIBTransaction.Create(nil);
+  Tr_ins := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
+  q_ins := TIBSQL.Create(nil);
   try
+    Tr.Params.Text := 'concurrency'#13#10'nowait';
     Tr.DefaultDatabase := gdcBaseManager.Database;
+
+    Tr_ins.Params.Text := 'concurrency'#13#10'nowait';
+    Tr_ins.DefaultDatabase := gdcBaseManager.Database;
+
     Tr.StartTransaction;
 
     q.Transaction := Tr;
-
     q.SQL.Text :=
       'DELETE FROM gd_ref_constraints WHERE constraint_rel NOT IN ' +
       '  (SELECT rdb$relation_name FROM rdb$relations) ';
     q.ExecQuery;
 
+    q.Close;
     q.SQL.Text :=
       'DELETE FROM gd_ref_constraints WHERE ref_rel NOT IN ' +
       '  (SELECT rdb$relation_name FROM rdb$relations) ';
     q.ExecQuery;
 
+    q.Close;
     q.SQL.Text :=
       'DELETE FROM gd_ref_constraints WHERE constraint_name NOT IN ' +
       '  (SELECT rdb$constraint_name FROM rdb$ref_constraints) AND ref_state = ''ORIGINAL'' ';
     q.ExecQuery;
 
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    q.Close;
     q.SQL.Text :=
-      'INSERT INTO gd_ref_constraints (constraint_name, const_name_uq, match_option, ' +
-      '  update_rule, delete_rule, constraint_rel, constraint_field, ref_rel, ref_field, ' +
-      '  ref_state, ref_next_state) '#13#10 +
-      'SELECT '#13#10 +
-      '  r.rdb$constraint_name, '#13#10 +
-      '  r.rdb$const_name_uq, '#13#10 +
-      '  r.rdb$match_option, '#13#10 +
-      '  r.rdb$update_rule, '#13#10 +
-      '  r.rdb$delete_rule, '#13#10 +
-      '  fk_i.rdb$relation_name, '#13#10 +
-      '  fk_is.rdb$field_name, '#13#10 +
-      '  pk_i.rdb$relation_name, '#13#10 +
-      '  pk_is.rdb$field_name, '#13#10 +
-      '  ''ORIGINAL'', ''ORIGINAL'' '#13#10 +
-      'FROM '#13#10 +
-      '  rdb$ref_constraints r '#13#10 +
+      '    SELECT '#13#10 +
+      '      r.rdb$constraint_name CONSTRAINT_NAME, '#13#10 +
+      '      r.rdb$const_name_uq CONST_NAME_UQ, '#13#10 +
+      '      r.rdb$match_option MATCH_OPTION, '#13#10 +
+      '      r.rdb$update_rule UPDATE_RULE, '#13#10 +
+      '      r.rdb$delete_rule DELETE_RULE, '#13#10 +
+      '      fk_i.rdb$relation_name CONSTRAINT_REL, '#13#10 +
+      '      fk_is.rdb$field_name CONSTRAINT_FIELD, '#13#10 +
+      '      pk_i.rdb$relation_name REF_REL, '#13#10 +
+      '      pk_is.rdb$field_name REF_FIELD, '#13#10 +
+      '      ''ORIGINAL'' REF_STATE,'#13#10 +
+      '      ''ORIGINAL'' REF_NEXT_STATE'#13#10 +
+      '    FROM '#13#10 +
+      '      rdb$ref_constraints r '#13#10 +
       '    JOIN rdb$relation_constraints fk ON r.rdb$constraint_name = fk.rdb$constraint_name '#13#10 +
       '    JOIN rdb$relation_constraints pk ON r.rdb$const_name_uq = pk.rdb$constraint_name '#13#10 +
       '    JOIN rdb$indices pk_i ON pk_i.rdb$index_name = pk.rdb$index_name '#13#10 +
@@ -560,25 +631,59 @@ begin
       '    JOIN rdb$index_segments pk_is ON pk_is.rdb$index_name = pk_i.rdb$index_name '#13#10 +
       '    JOIN rdb$index_segments fk_is ON fk_is.rdb$index_name = fk_i.rdb$index_name '#13#10 +
       '    JOIN rdb$relation_fields pk_rf ON pk_rf.rdb$relation_name = pk_i.rdb$relation_name '#13#10 +
-      '      AND pk_rf.rdb$field_name = pk_is.rdb$field_name '#13#10 +
+      '          AND pk_rf.rdb$field_name = pk_is.rdb$field_name '#13#10 +
       '    JOIN rdb$fields pk_f ON pk_f.rdb$field_name = pk_rf.rdb$field_source '#13#10 +
       '    JOIN rdb$relations fk_r ON fk_r.rdb$relation_name = fk_i.rdb$relation_name '#13#10 +
       '    JOIN rdb$relations pk_r ON pk_r.rdb$relation_name = pk_i.rdb$relation_name '#13#10 +
-      'WHERE '#13#10 +
-      '  pk_i.rdb$segment_count = 1 AND '#13#10 +
-      '  fk_i.rdb$segment_count = 1 AND '#13#10 +
-      '  pk_f.rdb$field_type = 8 AND '#13#10 +
-      '  fk_r.rdb$relation_name <> ''GD_REF_CONSTRAINT_DATA'' AND '#13#10 +
-      '  COALESCE(fk_r.rdb$system_flag, 0) <> 1 AND  '#13#10 +
-      '  COALESCE(pk_r.rdb$system_flag, 0) <> 1 AND  '#13#10 +
-      '  r.rdb$update_rule <> ''SET DEFAULT'' AND '#13#10 +
-      '  r.rdb$delete_rule <> ''SET DEFAULT'' AND '#13#10 +
+      '    WHERE '#13#10 +
+      '      pk_i.rdb$segment_count = 1 AND '#13#10 +
+      '      fk_i.rdb$segment_count = 1 AND '#13#10 +
+      '      pk_f.rdb$field_type = 8 AND '#13#10 +
+      '      fk_r.rdb$relation_name <> ''GD_REF_CONSTRAINT_DATA'' AND '#13#10 +
+      '      COALESCE(fk_r.rdb$system_flag, 0) <> 1 AND '#13#10 +
+      '      COALESCE(pk_r.rdb$system_flag, 0) <> 1 AND '#13#10 +
+      '      r.rdb$update_rule <> ''SET DEFAULT'' AND '#13#10 +
+      '      r.rdb$delete_rule <> ''SET DEFAULT'' AND '#13#10 +
       '  r.rdb$constraint_name NOT IN (SELECT constraint_name FROM gd_ref_constraints) ';
     q.ExecQuery;
 
+    q_ins.Transaction := Tr_ins;
+    q_ins.SQL.Text :=
+      'INSERT INTO GD_REF_CONSTRAINTS ( '#13#10 +
+      ' ID, CONSTRAINT_NAME, CONST_NAME_UQ, MATCH_OPTION, '#13#10 +
+      ' UPDATE_RULE, DELETE_RULE, CONSTRAINT_REL, CONSTRAINT_FIELD, '#13#10 +
+      ' REF_REL, REF_FIELD, REF_STATE, REF_NEXT_STATE ) '#13#10 +
+      'VALUES ( '#13#10 +
+      ' :ID, :CONSTRAINT_NAME, :CONST_NAME_UQ, :MATCH_OPTION, '#13#10 +
+      ' :UPDATE_RULE, :DELETE_RULE, :CONSTRAINT_REL, :CONSTRAINT_FIELD, '#13#10 +
+      ' :REF_REL, :REF_FIELD, :REF_STATE, :REF_NEXT_STATE )';
+
+    while not q.eof do
+    begin
+      Tr_ins.StartTransaction;
+      SetTID(q_ins.ParamByName('ID'), GetNextID);
+      q_ins.ParamByName('CONSTRAINT_NAME').Value := q.FieldByName('CONSTRAINT_NAME').Value;
+      q_ins.ParamByName('CONST_NAME_UQ').Value := q.FieldByName('CONST_NAME_UQ').Value;
+      q_ins.ParamByName('MATCH_OPTION').Value := q.FieldByName('MATCH_OPTION').Value;
+      q_ins.ParamByName('UPDATE_RULE').Value := q.FieldByName('UPDATE_RULE').Value;
+      q_ins.ParamByName('DELETE_RULE').Value := q.FieldByName('DELETE_RULE').Value;
+      q_ins.ParamByName('CONSTRAINT_REL').Value := q.FieldByName('CONSTRAINT_REL').Value;
+      q_ins.ParamByName('CONSTRAINT_FIELD').Value := q.FieldByName('CONSTRAINT_FIELD').Value;
+      q_ins.ParamByName('REF_REL').Value := q.FieldByName('REF_REL').Value;
+      q_ins.ParamByName('REF_FIELD').Value := q.FieldByName('REF_FIELD').Value;
+      q_ins.ParamByName('REF_STATE').Value := q.FieldByName('REF_STATE').Value;
+      q_ins.ParamByName('REF_NEXT_STATE').Value := q.FieldByName('REF_NEXT_STATE').Value;
+      q_ins.ExecQuery;
+      Tr_ins.Commit;
+
+      q.Next;
+    end;
+
     Tr.Commit;
   finally
+    q_ins.Free;
     q.Free;
+    Tr_ins.Free;
     Tr.Free;
   end;
 end;

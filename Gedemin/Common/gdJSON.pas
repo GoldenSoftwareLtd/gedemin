@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gdJSON;
 
 interface
@@ -92,7 +94,10 @@ begin
       end;
 
     else
-      Result[J] := S[I];
+      if Ord(S[I]) < 32 then
+        Result[J] := ' '
+      else
+        Result[J] := S[I];
       Inc(J);
     end;
   end;

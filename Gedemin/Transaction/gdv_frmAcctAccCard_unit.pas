@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdv_frmAcctAccCard_unit;
 
 interface             
@@ -64,6 +66,9 @@ type
     tbiEditDocumentLine: TTBItem;
     nEditDocumentLine: TMenuItem;
     ibdsMain: TgdvAcctAccCard;
+    actListDocument: TAction;
+    TBItem7: TTBItem;
+    actListDocument1: TMenuItem;
     procedure actEditDocumentExecute(Sender: TObject);
     procedure actEditDocumentUpdate(Sender: TObject);
     procedure ibgrMainKeyDown(Sender: TObject; var Key: Word;
@@ -74,6 +79,9 @@ type
     procedure cbCorrAccountsChange(Sender: TObject);
     procedure cbCorrAccountsExit(Sender: TObject);
     procedure cbShowCorrSubAccountsClick(Sender: TObject);
+    procedure actListDocumentExecute(Sender: TObject);
+    procedure actListDocumentUpdate(Sender: TObject);
+    procedure actEditDocumentLineUpdate(Sender: TObject);
   private
     procedure EditDocument(ALine: boolean);
   protected    
@@ -102,7 +110,8 @@ var
 implementation
 
 uses
-  at_classes, gdcAcctEntryRegister, gdcClasses, gd_resourcestring;
+  at_classes, gdcAcctEntryRegister, gdcClasses, gd_resourcestring,
+  gdcBase, gdcClasses_interface, gdc_createable_form;
 
 {$R *.DFM}
 
@@ -207,7 +216,7 @@ begin
     FCorrAccountIDs.Clear;
 
   if not FMakeEmpty then
-    SetAccountIDs(cbCorrAccounts, FCorrAccountIDs, cbShowCorrSubAccounts.Checked);
+    SetAccountIDs(cbCorrAccounts, FCorrAccountIDs, cbShowCorrSubAccounts.Checked, Name);
 
   SaveHistory(cbCorrAccounts);
 
@@ -278,7 +287,7 @@ begin
         try
           SQL.Transaction := gdcBaseManager.ReadTransaction;
           SQL.SQL.Text := 'SELECT alias FROM ac_account WHERE id = :id';
-          SQL.ParamByName('id').AsInteger := StrToInt(Value);
+          SetTID(SQL.ParamByName('id'), GetTID(Value));
           SQL.ExecQuery;
           cbAccounts.Text := SQl.FieldByName('alias').AsString;
           cbAccountsChange(Self);
@@ -291,7 +300,7 @@ begin
 
       if (Value > '') and (pos(',',Value) = 0) then
       begin
-        frAcctSum.Currkey := StrToInt(Value);
+        frAcctSum.Currkey := GetTID(Value);
         frAcctSum.InCurr := True;
       end;  
 
@@ -331,7 +340,7 @@ begin
   if not gdvObject.MakeEmpty then
   begin
     for I := 0 to FCorrAccountIDs.Count - 1 do
-      gdvObject.AddCorrAccount(Integer(FCorrAccountIDs.Items[I]));
+      gdvObject.AddCorrAccount(GetTID(FCorrAccountIDs.Items[I], Name));
 
     TgdvAcctAccCard(gdvObject).CorrDebit := rbDebit.Checked;
     TgdvAcctAccCard(gdvObject).WithCorrSubAccounts := cbShowCorrSubAccounts.Checked;
@@ -347,13 +356,13 @@ begin
 
   if not NewWindow or (F = nil) then
   begin
-    with Tgdc_frmTransaction.CreateAndAssignWithID(Application, gdvObject.FieldByName('id').AsInteger, esRecordKey) as Tgdc_frmTransaction do
+    with Tgdc_frmTransaction.CreateAndAssignWithID(Application, GetTID(gdvObject.FieldByName('id')), esRecordKey) as Tgdc_frmTransaction do
     begin
       cbGroupByDocument.Checked := False;
-      if tvGroup.GoToID(gdvObject.FieldByName('transactionkey').AsInteger) and
+      if tvGroup.GoToID(GetTID(gdvObject.FieldByName('transactionkey'))) and
         gdcAcctViewEntryRegister.Active and
-        gdcAcctViewEntryRegister.Locate('RECORDKEY', gdvObject.FieldByName('id').AsInteger, []) then
-        Show 
+        gdcAcctViewEntryRegister.Locate('RECORDKEY', TID2V(gdvObject.FieldByName('id')), []) then
+        Show
       else
         MessageBox(Handle, PChar(sEntryNotFound), PChar(sAttention), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
     end;
@@ -362,9 +371,10 @@ begin
     with Tgdc_frmTransaction.Create(Application) as Tgdc_frmTransaction do
     begin
       cbGroupByDocument.Checked := False;
-      if tvGroup.GoToID(gdvObject.FieldByName('transactionkey').AsInteger) and
+      ActiveControl := ibgrDetail;
+      if tvGroup.GoToID(GetTID(gdvObject.FieldByName('transactionkey'))) and
         gdcAcctViewEntryRegister.Active and
-        gdcAcctViewEntryRegister.Locate('RECORDKEY', gdvObject.FieldByName('id').AsInteger, []) then
+        gdcAcctViewEntryRegister.Locate('RECORDKEY', TID2V(gdvObject.FieldByName('id')), []) then
         Show
       else
         MessageBox(Handle, PChar(sEntryNotFound), PChar(sAttention), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
@@ -381,7 +391,7 @@ begin
   if Result then
   begin
     F := gdvObject.FindField('id');
-    Result := (F <> nil) and (F.AsInteger > 0);
+    Result := (F <> nil) and (GetTID(F) > 0);
   end;
 end;
 
@@ -403,16 +413,16 @@ begin
   EntryRegister := TgdcAcctViewEntryRegister.Create(nil);
   try
     EntryRegister.SubSet := 'ByID';
-    EntryRegister.Id := gdvObject.FieldByName('id').AsInteger;
+    EntryRegister.Id := GetTID(gdvObject.FieldByName('id'));
     EntryRegister.Open;
     if (EntryRegister.RecordCount > 0) then begin
       tmpDocument := TgdcDocument.Create(Self);
       try
         tmpDocument.SubSet := 'ByID';
         if ALine then
-          tmpDocument.ParamByName('id').AsInteger := EntryRegister.FieldByName('documentkey').AsInteger
+          SetTID(tmpDocument.ParamByName('id'), EntryRegister.FieldByName('documentkey'))
         else
-          tmpDocument.ParamByName('id').AsInteger := EntryRegister.FieldByName('masterdockey').AsInteger;
+          SetTID(tmpDocument.ParamByName('id'), EntryRegister.FieldByName('masterdockey'));
         tmpDocument.Open;
 
         if tmpDocument.RecordCount > 0 then
@@ -435,13 +445,21 @@ procedure Tgdv_frmAcctAccCard.actEditDocumentExecute(Sender: TObject);
 var
   EntryRegister: TgdcAcctViewEntryRegister;
 begin
+  if (ibgrMain.SelectedRows.Count > 1) then
+  begin
+    MessageBox(Handle,
+      PChar('Множественное редактирование записей не поддерживается.'), 'Внимание!',
+      MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+    Exit;
+  end;
+
   EntryRegister := TgdcAcctViewEntryRegister.Create(nil);
   try
     EntryRegister.SubSet := 'ByID';
-    EntryRegister.Id := gdvObject.FieldByName('id').AsInteger;
+    EntryRegister.Id := GetTID(gdvObject.FieldByName('id'));
     EntryRegister.Open;
     if (EntryRegister.RecordCount > 0) then begin
-      if EntryRegister.FieldByName('documenttypekey').AsInteger <> DefaultDocumentTypeKey then
+      if GetTID(EntryRegister.FieldByName('documenttypekey')) <> DefaultDocumentTypeKey then
         EditDocument(False)
       else
         EntryRegister.EditDialog('');
@@ -539,6 +557,56 @@ begin
     SetSaldoValue(TgdvAcctAccCard(gdvObject).SaldoEndEQ, edEndSaldoDebitEQ,
       edEndSaldoCreditEQ, frAcctSum.EQDecDigits);
   end; 
+end;
+
+procedure Tgdv_frmAcctAccCard.actListDocumentExecute(Sender: TObject);
+var
+  Cl: TPersistentClass;
+  F: TgdcFullClass;
+  EntryRegister: TgdcAcctViewEntryRegister;
+  FormList: TgdcCreateableForm;
+begin
+  EntryRegister := TgdcAcctViewEntryRegister.Create(nil);
+  try
+    EntryRegister.SubSet := 'ByID';
+    EntryRegister.Id := GetTID(gdvObject.FieldByName('id'));
+    EntryRegister.Open;
+    if (EntryRegister.RecordCount > 0) then begin
+      if GetTID(EntryRegister.FieldByName('documenttypekey')) <> DefaultDocumentTypeKey then
+      begin
+        F := TgdcDocument.GetDocumentClass(GetTID(EntryRegister.FieldByName('documenttypekey')), dcpHeader);
+        Cl := Classes.GetClass(F.gdClass.ClassName);
+        FormList := CgdcBase(Cl).CreateViewForm(Application, '', F.SubType, False) as TgdcCreateableForm;
+        if Assigned(FormList) and Assigned(FormList.gdcObject) and Assigned(FormList.gdcObject.FindField('ID')) then
+        begin
+          if Assigned(FormList.gdcObject.Filter) and (GetTID(FormList.gdcObject.Filter.CurrentFilter) > 0)
+            and (FormList.gdcObject.Filter.FilterData.FilterText <> '') then
+            MessageBox(Handle, 'Внимание! На форме включена фильтрация данных.', PChar(sAttention), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
+          FormList.gdcObject.Locate('ID', TID2V(EntryRegister.FieldByName('masterdockey')),[]);
+         end;
+        if FormList <> nil then
+          FormList.Show;
+      end;
+    end
+    else
+      MessageDlg('Документ не выбран.', mtInformation, [mbOk], -1)
+  finally
+    EntryRegister.Free;
+  end;
+
+  inherited;
+end;
+
+procedure Tgdv_frmAcctAccCard.actListDocumentUpdate(Sender: TObject);
+begin
+  inherited;
+  TAction(Sender).Enabled := CanGo_to;
+end;
+
+procedure Tgdv_frmAcctAccCard.actEditDocumentLineUpdate(Sender: TObject);
+begin
+  inherited;
+  TAction(Sender).Enabled := CanGo_to;
 end;
 
 initialization

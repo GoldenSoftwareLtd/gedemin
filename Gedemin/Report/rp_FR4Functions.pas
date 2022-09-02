@@ -1,14 +1,16 @@
+// ShlTanya, 27.02.2019
+
 unit rp_FR4Functions;
 
 interface
 
 uses
-  SysUtils, Classes, Windows, Forms, fs_iinterpreter;
+  SysUtils, Classes, Windows, Forms, fs_iinterpreter, gdcBaseInterface;
 
 type
   TFR4Functions = class(TfsRTTIModule)
   private
-    FCompanyCachedKey, FCompanyCachedDBID: Integer;
+    FCompanyCachedKey, FCompanyCachedDBID: TID;
     FCompanyCachedTime: DWORD;
 
     FCompanyName, FCompanyFullName, FCompanyAddress,
@@ -22,9 +24,9 @@ type
   public
     //Константы
     function GetConstByName(const AName: String): Variant;
-    function GetConstByID(const AnID: Integer): Variant;
+    function GetConstByID(const AnID: TID): Variant;
     function GetConstByNameForDate(const AName: String; const ADate: String): Variant;
-    function GetConstByIDForDate(const AnID: Integer; const ADate: String): Variant;
+    function GetConstByIDForDate(const AnID: TID; const ADate: String): Variant;
 
     //Денежные
     function GetSumCurr(D1, D2, D3: Variant; D4: Boolean = False): String;
@@ -64,8 +66,7 @@ type
 implementation
 
 uses
-  gdcConst, IBSQL, gd_security, gdcBaseInterface, gsMorph, gd_convert,
-  NumConv;
+  gdcConst, IBSQL, gd_security, gsMorph, gd_convert, NumConv;
 
 const
   MonthNames: array[1..12] of String = (
@@ -99,20 +100,22 @@ end;
 
 function TFR4Functions.AdvString: String;
 begin
-  Result := 'Подготовлено в системе Гедымин. Тел.: +375-17-2561759, 2562783. http://gsbelarus.com © 1994-2016 Golden Software of Belarus, Ltd. ';
+  Result := 'Подготовлено в системе Гедымин. Тел.: +375-17-2561759, 2562783. http://gsbelarus.com © 1994-2022 by Golden Software';
 end;
 
 function TFR4Functions.CallMethod(Instance: TObject; ClassType: TClass;
   const MethodName: String; var Params: Variant): Variant;
+var
+  MiddleName: String;
 begin
   if MethodName = 'ADVSTRING' then
     Result := AdvString
   else if MethodName = 'GETVALUEBYID' then
-    Result := GetConstByID(Params[0])
+    Result := GetConstByID(GetTID(Params[0]))
   else if MethodName = 'GETVALUEBYNAME' then
     Result := GetConstByName(Params[0])
   else if MethodName = 'GETVALUEBYIDFORDATE' then
-    Result := GetConstByIDForDate(Params[0], Params[1])
+    Result := GetConstByIDForDate(GetTID(Params[0]), Params[1])
   else if MethodName = 'GETVALUEBYNAMEFORDATE' then
     Result := GetConstByNameForDate(Params[0], Params[1])
   else if MethodName = 'SUMCURRSTR' then
@@ -130,8 +133,14 @@ begin
   else if MethodName = 'DATESTR' then
     Result := DateStr(Params[0])
   else if MethodName = 'GETFIOCASE' then
-    Result := FIOCase(Params[0], Params[1], Params[2], Params[3], Params[4])
-  else if MethodName = 'GETCOMPLEXCASE' then
+  begin
+    // issue 4277
+    if (VarType(Params[2]) = varString) or (VarType(Params[2]) = varOleStr) then
+      MiddleName := Params[2]
+    else
+      MiddleName := '';
+    Result := FIOCase(Params[0], Params[1], MiddleName, Params[3], Params[4]);
+  end else if MethodName = 'GETCOMPLEXCASE' then
     Result := ComplexCase(Params[0], Params[1])
   else if MethodName = 'GETNUMERICWORDFORM' then
     Result := gsMorph.GetNumericWordForm(Params[0], Params[1], Params[2], Params[3])
@@ -166,7 +175,7 @@ begin
   else if MethodName = 'GETNUMERAL' then
     Result := GetNumeral(Params[0], Params[1], Params[2], Params[3], Params[4], Params[5], Params[6])
   else if MethodName = 'GETCURRNUMERAL' then
-    Result := GetCurrNumeral(Params[0], Params[1], Params[2], Params[3], Params[4], Params[5], Params[6], Params[7], Params[8])
+    Result := GetCurrNumeral(GetTID(Params[0]), Params[1], Params[2], Params[3], Params[4], Params[5], Params[6], Params[7], Params[8])
   else if MethodName = 'MULDIV' then
     Result := gd_convert.MulDiv(Params[0], Params[1], Params[2], Params[3], Params[4]);
 end;
@@ -255,9 +264,9 @@ begin
   with AScript do
   begin
     AddMethod('function AdvString: String', CallMethod, 'Golden Software', 'ADVSTRING()/');
-    AddMethod('function GETVALUEBYID(AnID: Integer): Variant', CallMethod, 'Golden Software', 'GETVALUEBYID(<Идентификатор>)/Возвращает значение константы по идентификатору');
+    AddMethod('function GETVALUEBYID(AnID: TID): Variant', CallMethod, 'Golden Software', 'GETVALUEBYID(<Идентификатор>)/Возвращает значение константы по идентификатору');
     AddMethod('function GETVALUEBYNAME(AName: String): Variant', CallMethod, 'Golden Software', 'GETVALUEBYNAME(<Наименование>)/Возвращает значение константы по наименованию');
-    AddMethod('function GETVALUEBYIDFORDATE(AnID: Integer; ADate: String): Variant', CallMethod, 'Golden Software',
+    AddMethod('function GETVALUEBYIDFORDATE(AnID: TID; ADate: String): Variant', CallMethod, 'Golden Software',
       'GETVALUEBYIDFORDATE(<Идентификатор>, <Дата>)/Возвращает значение периодической константы по идентификатору на указанную дату');
     AddMethod('function GETVALUEBYNAMEFORDATE(AName: String; ADate: String): Variant', CallMethod, 'Golden Software',
       'GETVALUEBYNAMEFORDATE(<Наименование>, <Дата>)/Возвращает значение периодической константы по наименованию на указанную дату');
@@ -300,7 +309,7 @@ begin
     AddMethod('function GetNumeral(const AFormat: String; AValue: Double; const ARounding: Double; const AFracBase: Integer; const ACase: Integer; const AParts: Integer; const ANames: String): String',
       CallMethod, 'Golden Software',
       'GETNUMERAL(<Формат>, <Значение>, <Округление>, <База дробной величины, дес. знаков>, <Регистр>, <Флаги>, <Названия>)/Возвращает числительное.');
-    AddMethod('function GetCurrNumeral(const ACurrKey: Integer; const AFormat: String; AValue: Double; const ARounding: Double; const ACase: Integer; const AParts: Integer; const ASubst: String; const ADecimalSeparator: String; const AThousandSeparator: String): String',
+    AddMethod('function GetCurrNumeral(const ACurrKey: TID; const AFormat: String; AValue: Double; const ARounding: Double; const ACase: Integer; const AParts: Integer; const ASubst: String; const ADecimalSeparator: String; const AThousandSeparator: String): String',
       CallMethod, 'Golden Software',
       'GETCURRNUMERAL(<ИД валюты>, <Формат>, <Значение>, <Регистр>, <Флаги>, <Подстановка 0>, <Дес. разделитель>, <Разделитель тысяч>)/Возвращает денежную величину как числительное.');
     AddMethod('function MulDiv(const Number: Double; const ANumerator: Double; const ADenominator: Double; const ARoundMethod: Integer; const ADecPlaces: Integer): Double',
@@ -323,12 +332,12 @@ begin
   end;
 end;
 
-function TFR4Functions.GetConstByID(const AnID: Integer): Variant;
+function TFR4Functions.GetConstByID(const AnID: TID): Variant;
 begin
   Result := TgdcConst.QGetValueByID(AnID);
 end;
 
-function TFR4Functions.GetConstByIDForDate(const AnID: Integer;
+function TFR4Functions.GetConstByIDForDate(const AnID: TID;
   const ADate: String): Variant;
 begin
   Result := TgdcConst.QGetValueByIDAndDate(AnID, StrToDate(ADate));
@@ -366,9 +375,9 @@ end;
 function TFR4Functions.GetSumCurr(D1, D2, D3: Variant; D4: Boolean): String;
 begin
   if VarType(D3) = varBoolean then
-    Result := gd_convert.GetSumCurr(D1, D2, D3, D4)
+    Result := gd_convert.GetSumCurr(GetTID(D1), D2, D3, D4)
   else
-    Result := gd_convert.GetSumCurr(D1, D2, D3 <> 0, D4);
+    Result := gd_convert.GetSumCurr(GetTID(D1), D2, D3 <> 0, D4);
 end;
 
 function TFR4Functions.GetSumStr(D1: Variant; D2: Byte): String;
@@ -433,7 +442,7 @@ begin
         '  LEFT JOIN GD_PEOPLE BUHEMPL ON BUHEMPL.CONTACTKEY = BUH.ID ' +
         '  LEFT JOIN WG_POSITION BUHPOS ON BUHPOS.ID = BUHEMPL.WPOSITIONKEY ' +
         'WHERE C.ID = :ID ';
-      q.ParamByName('ID').AsInteger := IBLogin.CompanyKey;
+      SetTID(q.ParamByName('ID'), IBLogin.CompanyKey);
       q.ExecQuery;
       if not q.EOF then
       begin

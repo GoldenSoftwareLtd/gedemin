@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcNamespaceLoader;
 
@@ -63,13 +64,13 @@ type
     FNeedClearObjectCache: Boolean;
 
     procedure FlushStorages;
-    procedure LoadAtObjectCache(const ANamespaceKey: Integer);
+    procedure LoadAtObjectCache(const ANamespaceKey: TID);
     procedure LoadObject(AMapping: TYAMLMapping; const ANamespaceKey: TID;
       const AFileTimeStamp: TDateTime; const ASecondPass: Boolean);
     function CopyRecord(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings): Boolean;
     procedure CopyField(AField: TField; N: TyamlScalar; const SelfRUID: TRUID; const SelfID: TID);
     procedure CopySetAttributes(AnObj: TgdcBase; const AnObjID: TID; ASequence: TYAMLSequence);
-    procedure OverwriteRUID(const AnID, AXID, ADBID: TID);
+    procedure OverwriteRUID(const AnID, AXID: TID; const ADBID: Integer);
     function Iterate_RemoveGDCObjects(AUserData: PUserData; const AStr: string; var APtr: PData): Boolean;
     function CacheObject(const AClassName: String; const ASubtype: String): TgdcBase;
     procedure UpdateUses(ASequence: TYAMLSequence; const ANamespaceKey: TID);
@@ -126,7 +127,7 @@ var
 type
   TAtObjectRecord = class(TObject)
   public
-    ID: Integer;
+    ID: TID;
     ObjectName: String;
     ObjectClass: CgdcBase;
     ObjectSubType: String;
@@ -134,7 +135,7 @@ type
     CurrModified: TDateTime;
     AlwaysOverwrite: Boolean;
     DontRemove: Boolean;
-    HeadObjectKey: Integer;
+    HeadObjectKey: TID;
     Loaded: Boolean;
   end;
 
@@ -253,8 +254,12 @@ begin
     exit;
   end;
 
-  if (AField.DataType = ftInteger) and (AField.Origin > '')
-    and (N is TYAMLString) then
+  {$IFDEF ID64}
+  if (AField.DataType in [ftLargeInt])
+  {$ELSE}
+  if (AField.DataType in [ftInteger])
+  {$ENDIF}
+    and (AField.Origin > '') and (N is TYAMLString) then
   begin
     ParseFieldOrigin(AField.Origin, RelationName, FieldName);
     R := atDatabase.Relations.ByRelationName(RelationName);
@@ -266,6 +271,7 @@ begin
         and (R.PrimaryKey.ConstraintFields.Count > 0)
         and (R.PrimaryKey.ConstraintFields[0] <> RF) then
       begin
+
         TgdcNamespace.ParseReferenceString(N.AsString, RefRUID, RefName);
 
         if (RefRUID.XID = SelfRUID.XID) and (RefRUID.DBID = SelfRUID.DBID) then
@@ -299,7 +305,7 @@ begin
               q.ExecQuery;
               if not q.EOF then
               begin
-                AField.AsInteger := q.Fields[0].AsInteger;
+                SetTID(AField, q.Fields[0]);
                 ExtraCondition := '';
                 AddWarning('Для поля ' + FieldName + ' использовано временное значение ' + q.Fields[0].AsString);
               end;
@@ -310,15 +316,15 @@ begin
 
           FDelayedUpdate.Add('UPDATE ' + RelationName + ' SET ' +
             FieldName + ' = (SELECT id FROM gd_ruid WHERE xid = ' +
-            IntToStr(RefRUID.XID) + ' AND dbid = ' +
+            TID2S(RefRUID.XID) + ' AND dbid = ' +
             IntToStr(RefRUID.DBID) + ') ' +
             'WHERE ' + R.PrimaryKey.ConstraintFields[0].FieldName + ' = ' +
-            IntToStr((AField.DataSet as TgdcBase).ID) +
+            TID2S((AField.DataSet as TgdcBase).ID) +
             ExtraCondition);
           exit;
         end else
         begin
-          AField.AsInteger := RefID;
+          SetTID(AField, RefID);
           exit;
         end;
       end;
@@ -326,9 +332,10 @@ begin
   end;
 
   case AField.DataType of
-    ftInteger:
+    {$IFDEF ID64}
+    ftLargeInt:
       try
-        AField.AsInteger := N.AsInteger;
+        SetTID(AField, N.AsString);
       except
         on E: EConvertError do
         begin
@@ -340,18 +347,40 @@ begin
           if RefID = -1 then
             raise;
 
-          AField.AsInteger := RefID;
+          SetTID(AField, RefID);
           AddWarning('Поле ' + AField.Origin + ' не является внешним ключем.');
           AddWarning('Значение в файле: ' + N.AsString);
         end;
       end;
+      ftInteger: AField.AsInteger := N.AsInteger;
+    {$ELSE}
+    ftInteger:
+      try
+        SetTID(AField, N.AsString);
+      except
+        on E: EConvertError do
+        begin
+          if not (N is TYAMLString) then
+            raise;
+
+          TgdcNamespace.ParseReferenceString(N.AsString, RefRUID, RefName);
+          RefID := gdcBaseManager.GetIDByRUID(RefRUID.XID, RefRUID.DBID, FTr);
+          if RefID = -1 then
+            raise;
+
+          SetTID(AField, RefID);
+          AddWarning('Поле ' + AField.Origin + ' не является внешним ключем.');
+          AddWarning('Значение в файле: ' + N.AsString);
+        end;
+      end;
+    ftLargeInt: (AField as TLargeIntField).AsLargeInt := N.AsInt64;
+    {$ENDIF}
     ftSmallint: AField.AsInteger := N.AsInteger;
     ftCurrency, ftBCD: AField.AsCurrency := N.AsCurrency;
     ftTime, ftDateTime: AField.AsDateTime := N.AsDateTime;
     ftDate: AField.AsDateTime := N.AsDate;
     ftFloat: AField.AsFloat := N.AsFloat;
     ftBoolean: AField.AsBoolean := N.AsBoolean;
-    ftLargeInt: (AField as TLargeIntField).AsLargeInt := N.AsInt64;
     ftBlob, ftGraphic:
       if (N is TyamlBinary) and (AField is TBlobField) then
         TBlobField(AField).LoadFromStream(TyamlBinary(N).AsStream)
@@ -596,7 +625,7 @@ begin
 
         FTr.StartTransaction;
         try
-          FqFindNS.ParamByName('xid').AsInteger := NSRUID.XID;
+          SetTID(FqFindNS.ParamByName('xid'), NSRUID.XID);
           FqFindNS.ParamByName('dbid').AsInteger := NSRUID.DBID;
           FqFindNS.ParamByName('name').AsString := AnsiUpperCase(NSName);
           FqFindNS.ExecQuery;
@@ -614,7 +643,7 @@ begin
             FgdcNamespace.FieldByName('dbversion').AsString := Mapping.ReadString('Properties\DBversion', 20);
             FgdcNamespace.FieldByName('optional').AsInteger := Mapping.ReadInteger('Properties\Optional', 0);
             FgdcNamespace.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
-            FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', 21);
+            FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', SizeOf(TRUIDString));
             FgdcNamespace.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
             FgdcNamespace.FieldByName('md5').AsString := Mapping.ReadString('Properties\MD5');
             FgdcNamespace.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AList[I]);
@@ -627,7 +656,7 @@ begin
             NewNS := True;
           end else
           begin
-            FgdcNamespace.ID := FqFindNS.FieldByName('id').AsInteger;
+            FgdcNamespace.ID := GetTID(FqFindNS.FieldByName('id'));
             FgdcNamespace.Open;
             if FgdcNamespace.EOF then
               raise EgdcNamespaceLoader.Create('Internal consistency check');
@@ -647,7 +676,7 @@ begin
           TgdcNamespace.UpdateCurrModified(FTr, NSID);
           LoadAtObjectCache(NSID);
 
-          FqClearAtObject.ParamByName('nk').AsInteger := NSID;
+          SetTID(FqClearAtObject.ParamByName('nk'), NSID);
           FqClearAtObject.ExecQuery;
 
           if Mapping.FindByName('Objects') is TYAMLSequence then
@@ -692,7 +721,7 @@ begin
             FgdcNamespace.FieldByName('dbversion').AsString := Mapping.ReadString('Properties\DBversion', 20);
             FgdcNamespace.FieldByName('optional').AsInteger := Mapping.ReadInteger('Properties\Optional', 0);
             FgdcNamespace.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
-            FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', 21);
+            FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', SizeOf(TRUIDString));
             FgdcNamespace.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
             FgdcNamespace.FieldByName('md5').AsString := Mapping.ReadString('Properties\MD5');
             FgdcNamespace.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AList[I]);
@@ -815,7 +844,7 @@ begin
           else
             q.ParamByName('changed').AsInteger := 1;
           q.ParamByName('md5').AsString := HashString;
-          q.ParamByName('id').AsInteger := FNSList.Keys[T];
+          SetTID(q.ParamByName('id'), FNSList.Keys[T]);
           q.ExecQuery;
         end;
       end;
@@ -851,18 +880,18 @@ begin
   Assert(not FNeedRelogin);
 end;
 
-procedure TgdcNamespaceLoader.LoadAtObjectCache(const ANamespaceKey: Integer);
+procedure TgdcNamespaceLoader.LoadAtObjectCache(const ANamespaceKey: TID);
 var
   AR: TAtObjectRecord;
   ObjectRUID: String;
   C: TPersistentClass;
 begin
-  FqLoadAtObject.ParamByName('nk').AsInteger := ANamespaceKey;
+  SetTID(FqLoadAtObject.ParamByName('nk'), ANamespaceKey);
   FqLoadAtObject.ExecQuery;
   try
     while not FqLoadAtObject.EOF do
     begin
-      ObjectRUID := RUIDToStr(RUID(FqLoadAtObject.FieldByName('xid').AsInteger,
+      ObjectRUID := RUIDToStr(RUID(GetTID(FqLoadAtObject.FieldByName('xid')),
         FqLoadAtObject.FieldByName('dbid').AsInteger));
 
       Assert(not FAtObjectRecordCache.Has(ObjectRUID));
@@ -871,11 +900,11 @@ begin
       if (C <> nil) and C.InheritsFrom(TgdcBase) then
       begin
         AR := TatObjectRecord.Create;
-        AR.ID := FqLoadAtObject.FieldByName('id').AsInteger;
+        AR.ID := GetTID(FqLoadAtObject.FieldByName('id'));
         AR.ObjectName := FqLoadAtObject.FieldByName('objectname').AsString;
         AR.ObjectClass := CgdcBase(C);
         AR.ObjectSubType := FqLoadAtObject.FieldByName('subtype').AsString;
-        AR.HeadObjectKey := FqLoadAtObject.FieldByName('headobjectkey').AsInteger;
+        AR.HeadObjectKey := GetTID(FqLoadAtObject.FieldByName('headobjectkey'));
         AR.AlwaysOverwrite := FqLoadAtObject.FieldByName('alwaysoverwrite').AsInteger <> 0;
         AR.DontRemove := FqLoadAtObject.FieldByName('dontremove').AsInteger <> 0;
         AR.Modified := FqLoadAtObject.FieldByName('modified').AsDateTime;
@@ -971,7 +1000,7 @@ begin
           raise EgdcNamespaceLoader.Create('Internal error. CandidateID not found.');
         SWarn :=
           'При попытке загрузки стандартного объекта типа ' + Obj.GetDisplayName(Obj.SubType) + #13#10 +
-          'РУИД = ' + ObjRUIDString + ' в базе данных обнаружен объект с ИД = ' + IntToStr(CandidateID) + '.'#13#10#13#10 +
+          'РУИД = ' + ObjRUIDString + ' в базе данных обнаружен объект с ИД = ' + TID2S(CandidateID) + '.'#13#10#13#10 +
           'Существующий объект необходимо отредактировать для устранения неоднозначности.';
         if not gd_CmdLineParams.QuietMode then
         begin
@@ -993,7 +1022,7 @@ begin
         Obj.Insert;
         Obj.ID := RUIDID;
         AddText('Стандартный объект ' + Obj.GetDisplayName(Obj.SubType) +
-          ' ИД = ' + IntToStr(RUIDID) + '. Отсутствует в БД. Будет добавлен.');
+          ' ИД = ' + TID2S(RUIDID) + '. Отсутствует в БД. Будет добавлен.');
       end else
         Obj.Edit;
     end else
@@ -1012,8 +1041,8 @@ begin
         begin
           gdcBaseManager.DeleteRUIDByID(RUIDID, FTr);
           AddWarning('РУИД ' + ObjRUIDString + ' перенаправлен с ИД ' +
-            IntToStr(RUIDID) + ' на ИД ' +
-            IntToStr(CandidateID));
+            TID2S(RUIDID) + ' на ИД ' +
+            TID2S(CandidateID));
         end;
       end
       else if RUIDID > -1 then
@@ -1080,7 +1109,7 @@ begin
       S := 'Изменен объект: ';
     end;
 
-    S := S + Obj.ObjectName + ' (' + Obj.ClassName + Obj.SubType + ', ' + IntToStr(Obj.ID) + ')';
+    S := S + Obj.ObjectName + ' (' + Obj.ClassName + Obj.SubType + ', ' + TID2S(Obj.ID) + ')';
 
     Obj.Post;
     if (Obj.GetRUID.XID <> ObjRUID.XID) or (Obj.GetRUID.DBID <> ObjRUID.DBID) then
@@ -1172,11 +1201,11 @@ begin
     if not FgdcNamespaceObject.Active then
       FgdcNamespaceObject.Open;
     FgdcNamespaceObject.Insert;
-    FgdcNamespaceObject.FieldByName('namespacekey').AsInteger := ANamespaceKey;
+    SetTID(FgdcNamespaceObject.FieldByName('namespacekey'), ANamespaceKey);
     FgdcNamespaceObject.FieldByName('objectname').AsString := ObjName;
     FgdcNamespaceObject.FieldByName('objectclass').AsString := AMapping.ReadString('Properties\Class');
     FgdcNamespaceObject.FieldByName('subtype').AsString := AMapping.ReadString('Properties\Subtype');
-    FgdcNamespaceObject.FieldByName('xid').AsInteger := ObjRUID.XID;
+    SetTID(FgdcNamespaceObject.FieldByName('xid'), ObjRUID.XID);
     FgdcNamespaceObject.FieldByName('dbid').AsInteger := ObjRUID.DBID;
     if AMapping.ReadBoolean('Properties\AlwaysOverwrite', False) then
       FgdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
@@ -1213,16 +1242,16 @@ begin
     FgdcNamespaceObject.Post;
   end;
 
-  HeadObjectRUID := StrToRUID(AMapping.ReadString('Properties\HeadObject', 21, ''));
+  HeadObjectRUID := StrToRUID(AMapping.ReadString('Properties\HeadObject', SizeOf(TRUIDString), ''));
   if HeadObjectRUID.XID > -1 then
   begin
     FDelayedUpdate.Add(
       'UPDATE at_object SET headobjectkey = ' +
-      '  (SELECT id FROM at_object WHERE namespacekey = ' + IntToStr(ANamespaceKey) +
-      '     AND xid = ' + IntToStr(HeadObjectRUID.XID) +
+      '  (SELECT id FROM at_object WHERE namespacekey = ' + TID2S(ANamespaceKey) +
+      '     AND xid = ' + TID2S(HeadObjectRUID.XID) +
       '     AND dbid = ' + IntToStr(HeadObjectRUID.DBID) +
       '  ) ' +
-      'WHERE id = ' + IntToStr(FgdcNamespaceObject.ID)
+      'WHERE id = ' + TID2S(FgdcNamespaceObject.ID)
     );
   end;
 
@@ -1242,7 +1271,7 @@ begin
   end;
 end;
 
-procedure TgdcNamespaceLoader.OverwriteRUID(const AnID, AXID, ADBID: TID);
+procedure TgdcNamespaceLoader.OverwriteRUID(const AnID, AXID: TID; const ADBID: Integer);
 var
   AtObjectRecord: TAtObjectRecord;
 begin
@@ -1252,29 +1281,29 @@ begin
     ((AnID < cstUserIDStart) and (ADBID = cstEtalonDBID) and (AnID = AXID))
   );
 
-  FqFindRUID.ParamByName('id').AsInteger := AnID;
+  SetTID(FqFindRUID.ParamByName('id'), AnID);
   FqFindRUID.ExecQuery;
   try
     if FqFindRUID.EOF then
     begin
-      FqInsertNSRUID.ParamByName('id').AsInteger := AnID;
-      FqInsertNSRUID.ParamByName('xid').AsInteger := AXID;
+      SetTID(FqInsertNSRUID.ParamByName('id'), AnID);
+      SetTID(FqInsertNSRUID.ParamByName('xid'), AXID);
       FqInsertNSRUID.ParamByName('dbid').AsInteger := ADBID;
-      FqInsertNSRUID.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
+      SetTID(FqInsertNSRUID.ParamByName('editorkey'), IBLogin.ContactKey);
       FqInsertNSRUID.ExecQuery;
     end
-    else if (FqFindRUID.FieldByName('xid').AsInteger <> AXID)
+    else if (GetTID(FqFindRUID.FieldByName('xid')) <> AXID)
       or (FqFindRUID.FieldByName('dbid').AsInteger <> ADBID) then
     begin
-      gdcBaseManager.ChangeRUID(FqFindRUID.FieldByName('xid').AsInteger,
+      gdcBaseManager.ChangeRUID(GetTID(FqFindRUID.FieldByName('xid')),
         FqFindRUID.FieldByName('dbid').AsInteger, AXID, ADBID, FTr, False);
 
       AddWarning('Изменился РУИД объекта ' +
-        RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger, FqFindRUID.FieldByName('dbid').AsInteger) +
+        RUIDToStr(GetTID(FqFindRUID.FieldByName('xid')), FqFindRUID.FieldByName('dbid').AsInteger) +
         ' -> ' +
         RUIDToStr(AXID, ADBID));
         
-      if FAtObjectRecordCache.Find(RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger,
+      if FAtObjectRecordCache.Find(RUIDToStr(GetTID(FqFindRUID.FieldByName('xid')),
         FqFindRUID.FieldByName('dbid').AsInteger), AtObjectRecord) then
       begin
         AtObjectRecord.Loaded := True;
@@ -1382,7 +1411,7 @@ begin
 
           q.SQL.Text := 'DELETE FROM ' + R.RelationName +
             ' WHERE ' + R.PrimaryKey.ConstraintFields[0].FieldName +
-            '=' + IntToStr(AnObjID);
+            '=' + TID2S(AnObjID);
           q.ExecQuery;
 
           q.SQL.Text := AnObj.SetAttributes[J].InsertSQL;
@@ -1398,9 +1427,10 @@ begin
               Param := q.ParamByName(FieldName);
 
               if (R.PrimaryKey.ConstraintFields[0] = R.RelationFields[T]) then
-                Param.AsInteger := AnObjID
+                SetTID(Param, AnObjID)
               else
                 LoadParam(Param, FieldName, Items[K] as TYAMLMapping, AnObj.Transaction);
+
             end;
 
             try
@@ -1429,7 +1459,7 @@ begin
         'UPDATE ' + AnObj.GetListTable(AnObj.SubType) +
         '  SET ' + KF + ' = :id' +
         '  WHERE ' + KF + ' = :id';
-      q.ParamByName('id').AsInteger := AnObjID;
+      SetTID(q.ParamByName('id'), AnObjID);
       q.ExecQuery;
     end;
   finally
@@ -1455,7 +1485,7 @@ begin
 
     q.SQL.Text :=
       'DELETE FROM at_namespace_link WHERE namespacekey = :nk';
-    q.ParamByName('nk').AsInteger := ANamespaceKey;
+    SetTID(q.ParamByName('nk'), ANamespaceKey);
     q.ExecQuery;
 
     for I := 0 to ASequence.Count - 1 do
@@ -1471,7 +1501,7 @@ begin
         'SELECT n.id FROM at_namespace n JOIN gd_ruid r ' +
         '  ON r.id = n.id ' +
         'WHERE r.xid = :xid AND r.dbid = :dbid';
-      q.ParamByName('xid').AsInteger := NSRUID.XID;
+      SetTID(q.ParamByName('xid'), NSRUID.XID);
       q.ParamByName('dbid').AsInteger := NSRUID.DBID;
       q.ExecQuery;
 
@@ -1487,7 +1517,7 @@ begin
 
       if not q.EOF then
       begin
-        NSID := q.FieldByName('id').AsInteger;
+        NSID := GetTID(q.FieldByName('id'));
         q.Close;
       end else
       begin
@@ -1497,7 +1527,7 @@ begin
         q.SQL.Text :=
           'INSERT INTO at_namespace (id, name) ' +
           'VALUES (:id, :name)';
-        q.ParamByName('id').AsInteger := NSID;
+        SetTID(q.ParamByName('id'), NSID);
         q.ParamByName('name').AsString := NSName;
         q.ExecQuery;
 
@@ -1505,18 +1535,18 @@ begin
           'UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
           'VALUES (:id, :xid, :dbid, CURRENT_TIMESTAMP, :editorkey) ' +
           'MATCHING (xid, dbid)';
-        q.ParamByName('id').AsInteger := NSID;
-        q.ParamByName('xid').AsInteger := NSRUID.XID;
+        SetTID(q.ParamByName('id'), NSID);
+        SetTID(q.ParamByName('xid'), NSRUID.XID);
         q.ParamByName('dbid').AsInteger := NSRUID.DBID;
-        q.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
+        SetTID(q.ParamByName('editorkey'), IBLogin.ContactKey);
         q.ExecQuery;
       end;
 
       q.SQL.Text :=
         'INSERT INTO at_namespace_link (namespacekey, useskey) ' +
         'VALUES (:namespacekey, :useskey)';
-      q.ParamByName('namespacekey').AsInteger := ANamespaceKey;
-      q.ParamByName('useskey').AsInteger := NSID;
+      SetTID(q.ParamByName('namespacekey'), ANamespaceKey);
+      SetTID(q.ParamByName('useskey'), NSID);
       try
         q.ExecQuery;
       except
@@ -1601,18 +1631,42 @@ begin
   V := AMapping.FindByName(AFieldName) as TYAMLScalar;
 
   case AParam.SQLType of
-  SQL_LONG, SQL_SHORT:
+  {$IFDEF ID64}
+  SQL_INT64:
     if (V is TYAMLString) and ParseReferenceString(V.AsString, RefRUID, RefName) then
     begin
-      AParam.AsInteger := gdcBaseManager.GetIDByRUIDString(RefRUID, ATr);
-      if AParam.AsInteger = -1 then
+      SetTID(AParam, gdcBaseManager.GetIDByRUIDString(RefRUID, ATr));
+      if GetTID(AParam) = -1 then
       begin
         AParam.Clear;
         AddWarning('Не найден объект для параметра ' + AParam.Name + ', "' + V.AsString + '"');
         AddWarning('Возможно, следует поменять порядок объектов в ПИ.');
         Result := False;
       end;
-    end else if AParam.AsXSQLVAR.sqlscale = 0 then
+    end else
+    if AParam.AsXSQLVAR.sqlscale = 0 then
+      AParam.AsInt64 := V.AsInt64
+    else
+      AParam.AsCurrency := V.AsCurrency;
+  SQL_LONG, SQL_SHORT:
+    if AParam.AsXSQLVAR.sqlscale = 0 then
+      AParam.AsInteger := V.AsInteger
+    else
+      AParam.AsCurrency := V.AsCurrency;
+  {$ELSE}
+  SQL_LONG, SQL_SHORT:
+    if (V is TYAMLString) and ParseReferenceString(V.AsString, RefRUID, RefName) then
+    begin
+      SetTID(AParam, gdcBaseManager.GetIDByRUIDString(RefRUID, ATr));
+      if GetTID(AParam) = -1 then
+      begin
+        AParam.Clear;
+        AddWarning('Не найден объект для параметра ' + AParam.Name + ', "' + V.AsString + '"');
+        AddWarning('Возможно, следует поменять порядок объектов в ПИ.');
+        Result := False;
+      end;
+    end else
+    if AParam.AsXSQLVAR.sqlscale = 0 then
       AParam.AsInteger := V.AsInteger
     else
       AParam.AsCurrency := V.AsCurrency;
@@ -1621,6 +1675,7 @@ begin
       AParam.AsInt64 := V.AsInt64
     else
       AParam.AsCurrency := V.AsCurrency;
+  {$ENDIF}
   SQL_FLOAT, SQL_D_FLOAT, SQL_DOUBLE:
     AParam.AsFloat := V.AsFloat;
   SQL_TYPE_DATE, SQL_TIMESTAMP, SQL_TYPE_TIME:
@@ -1662,7 +1717,7 @@ begin
 
       if not FqCheckTheSame.EOF then
       begin
-        Result := FqCheckTheSame.Fields[0].AsInteger;
+        Result := GetTID(FqCheckTheSame.Fields[0]);
 
         for I := 0 to FqCheckTheSame.Params.Count - 1 do
         begin
@@ -1710,7 +1765,7 @@ begin
   begin
     RR := FRemoveList[I] as TatRemoveRecord;
 
-    FqFindAtObject.ParamByName('xid').AsInteger := RR.RUID.XID;
+    SetTID(FqFindAtObject.ParamByName('xid'), RR.RUID.XID);
     FqFindAtObject.ParamByName('dbid').AsInteger := RR.RUID.DBID;
     FqFindAtObject.ExecQuery;
 
@@ -1820,7 +1875,7 @@ begin
     q.ExecQuery;
     while not q.EOF do
     begin
-      FOurCompanies.Add(q.Fields[0].AsInteger);
+      FOurCompanies.Add(GetTID(q.Fields[0]));
       q.Next;
     end;
   finally

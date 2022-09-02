@@ -1,3 +1,5 @@
+// ShlTanya, 11.02.2019
+
 unit gd_dlgCountCopy_unit;
 
 interface

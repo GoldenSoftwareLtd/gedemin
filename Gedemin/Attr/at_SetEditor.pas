@@ -1,3 +1,5 @@
+// ShlTanya, 31.01.2019
+
 unit at_SetEditor;
 
 interface
@@ -612,8 +614,8 @@ begin
       FDataLink.DataSet.Edit;
 
     if Choose then
-      FDataLink.DataSet.FieldByName(DataField).
-        Assign(FDataLink.DataSet.FieldByName(DataField));
+      AssigneField64(FDataLink.DataSet.FieldByName(DataField),
+        FDataLink.DataSet.FieldByName(DataField));
   end;
 end;
 

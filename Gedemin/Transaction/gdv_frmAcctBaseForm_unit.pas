@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019, #4135
 
 {++
 
@@ -117,6 +118,8 @@ type
     procedure cbAccountsKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure cbAccountsClick(Sender: TObject);
+    procedure cbAccountsKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
   private
     function GetIncSubAccounts: Boolean;
     procedure SetIncSubAccounts(const Value: Boolean);
@@ -438,7 +441,7 @@ begin
     FAccountIDs := TList.Create;
 
   // Перенесем строку выбранных счетов в список, опционально с субсчетами
-  SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts);
+  SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts, Name);
 
   // Получим список выбранных количественных показателей из панели формы
   frAcctQuantity.ValueList(FValueList, FAccountIDs, Self.DateBegin, Self.DateEnd, IncSubAccounts);
@@ -618,13 +621,13 @@ begin
     FAccountIDs.Clear;
 {  AccountDelayTimer.Enabled := False;
   AccountDelayTimer.Enabled := True;}
-end;              
+end;
 
 procedure Tgdv_frmAcctBaseForm.UpdateControls;
 begin
   if not Assigned(FAccountIDs) then
     FAccountIDs := TList.Create;
-  SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts, FShowMessage);
+  SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts, Name, FShowMessage);
   frAcctAnalytics.UpdateAnalyticsList(FAccountIDs);
   frAcctQuantity.UpdateQuantityList(FAccountIDs);
 
@@ -654,7 +657,8 @@ begin
   gdvObject.Transaction := IBReadTr;
 
   iblConfiguratior.Condition := Format('CLASSNAME = ''%s''', [ConfigClassName]);
-
+  frAcctAnalytics.Context := Name;
+  frAcctQuantity.Context := Name;
   // Настройки вывода сумм
   DefaultDecDigits := LocateDecDigits;
   frAcctSum.NcuDecDigits := GetNCUDecDigits;
@@ -894,7 +898,7 @@ begin
       try
         SQL.Transaction := gdcBaseManager.ReadTransaction;
         SQL.SQL.Text := 'SELECT config FROM ac_acct_config WHERE id = :id';
-        SQL.ParamByName('id').AsInteger := iblConfiguratior.CurrentKeyInt;
+        SetTID(SQL.ParamByName('id'), iblConfiguratior.CurrentKeyInt);
         SQl.ExecQuery;
         if SQL.RecordCount > 0 then
         begin
@@ -950,7 +954,7 @@ begin
 
     // Передадим счета
     for I := 0 to FAccountIDs.Count - 1 do
-      gdvObject.AddAccount(Integer(FAccountIDs.Items[I]));
+      gdvObject.AddAccount(GetTID(FAccountIDs.Items[I], Name));
 
     // если список счетов пуст, сформирем его из активного плана счетов
     if FAccountIDs.Count = 0 then
@@ -960,7 +964,7 @@ begin
         S.CommaText := GetAccounts;
         for I := 0 to S.Count - 1 do
         begin
-          gdvObject.AddAccount(StrToInt(Trim(S[I])));
+          gdvObject.AddAccount(GetTID(Trim(S[I])));
         end;
       finally
         S.Free;
@@ -984,7 +988,7 @@ begin
 
     // Количественные показатели
     for I := 0 to FValueList.Count - 1 do
-      gdvObject.AddValue(StrToInt(FValueList.Names[I]), FValueList.Values[FValueList.Names[I]]);
+      gdvObject.AddValue(GetTID(FValueList.Names[I]), FValueList.Values[FValueList.Names[I]]);
 
     // Параметры вывода сумм
     gdvObject.ShowInNcu(frAcctSum.InNcu, frAcctSum.NcuDecDigits, frAcctSum.NcuScale);
@@ -1102,7 +1106,7 @@ var
   D: TdlgConfigName;
   Str: TStream;
   SQL: TIBSQL;
-  Id: Integer;
+  Id: TID;
   Tr: TIBTransaction;
 begin
   D := TdlgConfigName.Create(nil);
@@ -1137,7 +1141,7 @@ begin
               end;
 
               SQL.SQL.Text := 'UPDATE ac_acct_config SET name = :name, config = :config WHERE id = :id';
-              SQL.ParamByName(fnId).AsInteger := D.iblName.CurrentKeyInt;
+              SetTID(SQL.ParamByName(fnId), D.iblName.CurrentKeyInt);
               id := D.iblName.CurrentKeyInt;
             end else
             begin
@@ -1147,10 +1151,10 @@ begin
                 'imageindex, folder, showinexplorer, classname) VALUES (:id, ' +
                 ' :name, :config, :imageindex, :folder, :showinexplorer, :classname)';
               SQL.ParamByName(fnImageIndex).AsInteger := iiGreenCircle;
-              SQL.ParamByName(fnFolder).AsInteger := AC_ACCOUNTANCY;
+              SetTID(SQL.ParamByName(fnFolder), AC_ACCOUNTANCY);
               SQL.ParamByName(fnShowInExplorer).AsInteger := 0;
               SQL.ParamByName(fnClassName).AsString := ConfigClassName;
-              SQL.ParamByName(fnId).AsInteger := Id;
+              SetTID(SQL.ParamByName(fnId), Id);
             end;
 
             SQL.ParamByName(fnName).AsString := D.ConfigName;
@@ -1239,7 +1243,7 @@ begin
 
     SQL.Transaction := Tr;
     SQL.SQL.text := 'SELECT * FROM ac_acct_config WHERE id = :id';
-    SQL.ParamByName(fnId).AsInteger := iblConfiguratior.CurrentKeyInt;
+    SetTID(SQL.ParamByName(fnId), iblConfiguratior.CurrentKeyInt);
     SQL.ExecQuery;
 
     if SQL.RecordCount > 0 then
@@ -1260,7 +1264,7 @@ begin
           SQL.Close;
           SQL.SQL.Text := 'UPDATE ac_acct_config SET config = :config WHERE id = :id';
 
-          SQL.ParamByName(fnId).asInteger := iblConfiguratior.CurrentKeyInt;
+          SetTID(SQL.ParamByName(fnId), iblConfiguratior.CurrentKeyInt);
           Str.Size := 0;
           SaveConfigToStream(Config, Str);
 
@@ -1298,7 +1302,7 @@ begin
     SQL.Transaction := Tr;
 
     SQL.SQL.text := 'SELECT * FROM ac_acct_config WHERE id = :id';
-    SQL.ParamByName(fnId).AsInteger := iblConfiguratior.CurrentKeyInt;
+    SetTID(SQL.ParamByName(fnId), iblConfiguratior.CurrentKeyInt);
     SQL.ExecQuery;
 
     if SQL.RecordCount > 0 then
@@ -1319,7 +1323,7 @@ begin
           SQL.Close;
           SQL.SQL.Text := 'UPDATE ac_acct_config SET config = :config WHERE id = :id';
 
-          SQL.ParamByName(fnId).asInteger := iblConfiguratior.CurrentKeyInt;
+          SetTID(SQL.ParamByName(fnId), iblConfiguratior.CurrentKeyInt);
           Str.Size := 0;
           SaveConfigToStream(Config, Str);
 
@@ -1410,7 +1414,21 @@ begin
   end;
 end;
 
+procedure Tgdv_frmAcctBaseForm.cbAccountsKeyUp(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+  if (not (key in [VK_TAB,VK_RETURN,16..20,33..45,VK_NUMLOCK,112..123]))
+    and CheckActiveAccount(frAcctCompany.CompanyKey, False) then
+  begin
+    FShowMessage := False;
+    UpdateControls;
+  end;
+end;
+
 initialization
+
+
   RegisterFrmClass(Tgdv_frmAcctBaseForm);
 
 finalization

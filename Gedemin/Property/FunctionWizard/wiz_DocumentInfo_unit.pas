@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit wiz_DocumentInfo_unit;
 
 interface
@@ -95,7 +97,7 @@ uses
 procedure TCustomDocumntInfo.CheckDocument;
 var
   gdcFullClass: TgdcFullClass;
-  Key: Integer;
+  Key: TID;
 begin
   if FDocument = nil then
   begin

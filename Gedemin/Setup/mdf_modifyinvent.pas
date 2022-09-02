@@ -8,6 +8,8 @@ uses
 procedure CreateNewException(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CreateNewInvTable(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddSemanticCategory(IBDB: TIBDatabase; Log: TModifyLog);
+procedure ModifyMovementTrigger(IBDB: TIBDatabase; Log: TModifyLog);
+procedure CorrectIntervalIDProcs(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -43,7 +45,6 @@ const
 
 procedure CreateNewException(IBDB: TIBDatabase; Log: TModifyLog);
 var
-  i: Integer;
   FTr: TIBTransaction;
   q: TIBSQL;
 begin
@@ -52,7 +53,8 @@ begin
   try
     FTr.DefaultDatabase := IBDB;
     FTr.StartTransaction;
-
+    q.Transaction := FTr;
+    {
     for i := 1 to 9 do
       CreateException2(Exceptions[i].ExceptionName, Exceptions[i].Message, FTr);
 
@@ -91,7 +93,7 @@ begin
       '          AND cardkey = OLD.cardkey '#13#10 +
       '        INTO :balance; '#13#10 +
       '        balance = COALESCE(:balance, 0); '#13#10 +
-      '        IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN '#13#10 +
+      '        IF ((:balance < OLD.debit - NEW.debit)) THEN '#13#10 +
       '          EXCEPTION INV_E_DONTREDUCEAMOUNT; '#13#10 +
       '      END ELSE '#13#10 +
       '      BEGIN '#13#10 +
@@ -117,6 +119,7 @@ begin
       '  END '#13#10 +
       'END';
     q.ExecQuery;
+    }
 
     q.SQL.Text :=
       'CREATE OR ALTER PROCEDURE INV_INSERT_CARD '#13#10 +
@@ -188,82 +191,6 @@ begin
     q.ExecQuery;
 
     q.SQL.Text :=
-      'CREATE OR ALTER PROCEDURE gd_p_getnextid_ex '#13#10 +
-      '  RETURNS(id INTEGER) '#13#10 +
-      'AS '#13#10 +
-      '  DECLARE VARIABLE id_from INTEGER; '#13#10 +
-      '  DECLARE VARIABLE id_to INTEGER; '#13#10 +
-      '  DECLARE VARIABLE limit_id INTEGER; '#13#10 +
-      '  DECLARE VARIABLE rc INTEGER = 0; '#13#10 +
-      'BEGIN '#13#10 +
-      '  id = COALESCE(RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID''), 0); '#13#10 +
-      '  limit_id = COALESCE(RDB$GET_CONTEXT(''USER_SESSION'', ''GD_LIMIT_ID''), 0); '#13#10 +
-      ' '#13#10 +
-      '  IF (:id > 0 AND :id <= :limit_id) THEN '#13#10 +
-      '    RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID'', :id + 1); '#13#10 +
-      '  ELSE BEGIN '#13#10 +
-      '    id = -1; '#13#10 +
-      ' '#13#10 +
-      '    FOR '#13#10 +
-      '      SELECT id_from, id_to '#13#10 +
-      '      FROM gd_available_id '#13#10 +
-      '      INTO :id_from, :id_to '#13#10 +
-      '    DO BEGIN '#13#10 +
-      '      IF (:id_to - :id_from < 100) THEN '#13#10 +
-      '        IN AUTONOMOUS TRANSACTION DO '#13#10 +
-      '        BEGIN '#13#10 +
-      '          DELETE FROM gd_available_id WHERE id_from = :id_from AND id_to = :id_to; '#13#10 +
-      '          rc = ROW_COUNT; '#13#10 +
-      '        END '#13#10 +
-      '      ELSE BEGIN '#13#10 +
-      '        IN AUTONOMOUS TRANSACTION DO '#13#10 +
-      '        BEGIN '#13#10 +
-      '          UPDATE gd_available_id SET id_from = :id_from + 100 WHERE id_from = :id_from AND id_to = :id_to; '#13#10 +
-      '          rc = ROW_COUNT; '#13#10 +
-      '        END '#13#10 +
-      '        id_to = :id_from + 99; '#13#10 +
-      '      END '#13#10 +
-      ' '#13#10 +
-      '      IF (:rc = 1) THEN '#13#10 +
-      '      BEGIN '#13#10 +
-      '        id = :id_from; '#13#10 +
-      ' '#13#10 +
-      '        RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID'', :id + 1); '#13#10 +
-      '        RDB$SET_CONTEXT(''USER_SESSION'', ''GD_LIMIT_ID'', :id_to); '#13#10 +
-      ' '#13#10 +
-      '        LEAVE; '#13#10 +
-      '      END '#13#10 +
-      ' '#13#10 +
-      '      WHEN ANY DO '#13#10 +
-      '      BEGIN '#13#10 +
-      '        id = -1; '#13#10 +
-      '      END '#13#10 +
-      '    END '#13#10 +
-      ' '#13#10 +
-      '    IF (id = -1) THEN '#13#10 +
-      '    BEGIN '#13#10 +
-      '      id_to = GEN_ID(gd_g_unique, 100); '#13#10 +
-      '      id = :id_to - 100 + 1; '#13#10 +
-      '      RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID'', :id + 1); '#13#10 +
-      '      RDB$SET_CONTEXT(''USER_SESSION'', ''GD_LIMIT_ID'', :id_to); '#13#10 +
-      '    END '#13#10 +
-      '  END '#13#10 +
-      'END';
-    q.ExecQuery;
-
-    q.SQL.Text :=
-      'CREATE OR ALTER PROCEDURE gd_p_getnextid '#13#10 +
-      '  RETURNS(id INTEGER) '#13#10 +
-      'AS '#13#10 +
-      'BEGIN '#13#10 +
-      '  EXECUTE PROCEDURE gd_p_getnextid_ex '#13#10 +
-      '    RETURNING_VALUES :id; '#13#10 +
-      ' '#13#10 +
-      '  SUSPEND; '#13#10 +
-      'END';
-    q.ExecQuery;
-
-    q.SQL.Text :=
       'CREATE OR ALTER PROCEDURE gd_p_find_dupl_id '#13#10 +
       '  RETURNS(id INTEGER, relationkey INTEGER) '#13#10 +
       'AS '#13#10 +
@@ -326,44 +253,7 @@ begin
       'END';
     q.ExecQuery;
 
-    q.SQL.Text :=
-      'CREATE OR ALTER TRIGGER gd_db_disconnect_save_id '#13#10 +
-      '  ACTIVE '#13#10 +
-      '  ON DISCONNECT '#13#10 +
-      '  POSITION 32000 '#13#10 +
-      'AS '#13#10 +
-      '  DECLARE VARIABLE id_from INTEGER; '#13#10 +
-      '  DECLARE VARIABLE id_to INTEGER; '#13#10 +
-      'BEGIN '#13#10 +
-      '  id_from = COALESCE(RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID''), 0); '#13#10 +
-      '  id_to = COALESCE(RDB$GET_CONTEXT(''USER_SESSION'', ''GD_LIMIT_ID''), 0); '#13#10 +
-      ' '#13#10 +
-      '  IF (:id_from > 0 AND :id_from <= :id_to) THEN '#13#10 +
-      '    IN AUTONOMOUS TRANSACTION DO '#13#10 +
-      '      INSERT INTO gd_available_id (id_from, id_to) VALUES (:id_from, :id_to); '#13#10 +
-      'END';
-    q.ExecQuery;
-
-    q.SQL.Text := 'GRANT EXECUTE ON PROCEDURE  gd_p_getnextid TO ADMINISTRATOR';
-    q.ExecQuery;
-
-    q.SQL.Text := 'GRANT EXECUTE ON PROCEDURE  gd_p_getnextid_ex TO ADMINISTRATOR';
-    q.ExecQuery;
-
-    q.SQL.Text := 'GRANT EXECUTE ON PROCEDURE  gd_p_find_dupl_id TO ADMINISTRATOR';
-    q.ExecQuery;
-
-    q.SQL.Text :=
-      'CREATE OR ALTER TRIGGER ac_bi_autoentry FOR ac_autoentry '#13#10 +
-      '  ACTIVE '#13#10 +
-      '  BEFORE INSERT '#13#10 +
-      '  POSITION 0 '#13#10 +
-      'AS '#13#10 +
-      'BEGIN '#13#10 +
-      '  IF (NEW.id IS NULL) THEN '#13#10 +
-      '    EXECUTE PROCEDURE gd_p_getnextid_ex '#13#10 +
-      '      RETURNING_VALUES NEW.id; '#13#10 +
-      'END';
+    q.SQL.Text := 'GRANT EXECUTE ON PROCEDURE gd_p_find_dupl_id TO ADMINISTRATOR';
     q.ExecQuery;
 
     q.SQL.Text :=
@@ -453,6 +343,319 @@ begin
     q.SQL.Text :=
       'UPDATE OR INSERT INTO fin_versioninfo ' +
       '  VALUES (275, ''0000.0001.0000.0306'', ''05.06.2018'', ''Added semantic category field to at_relations'') ' +
+      '  MATCHING (id)';
+    q.ExecQuery;
+
+    FTr.Commit;
+  finally
+    q.Free;
+    Ftr.Free;
+  end;
+end;
+
+procedure ModifyMovementTrigger(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTr: TIBTransaction;
+  q, q1: TIBSQL;
+  i: Integer;
+begin
+  FTr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  q1 := TIBSQL.Create(nil);
+  try
+    FTr.DefaultDatabase := IBDB;
+    FTr.StartTransaction;
+
+    for i := Low(Exceptions) to High(Exceptions) do
+      CreateException2(Exceptions[i].ExceptionName, Exceptions[i].Message, FTr);
+
+    DropException2('INV_E_CANNTCHANGEFEATURCE', FTr);
+
+    q.Transaction := FTr;
+    q.SQL.Text :=
+      'CREATE OR ALTER TRIGGER INV_BU_MOVEMENT FOR INV_MOVEMENT '#13#10 +
+      'ACTIVE BEFORE UPDATE POSITION 0 '#13#10 +
+      'AS '#13#10 +
+      '  DECLARE VARIABLE balance NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE controlremains INTEGER; '#13#10 +
+      'BEGIN '#13#10 +
+      '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''GD_MERGING_RECORDS'') IS NULL) THEN '#13#10 +
+      '  BEGIN '#13#10 +
+      '    IF (NEW.documentkey <> OLD.documentkey) THEN '#13#10 +
+      '      EXCEPTION inv_e_movementchange; '#13#10 +
+      ' '#13#10 +
+      '    IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN '#13#10 +
+      '    BEGIN '#13#10 +
+      '      IF (OLD.debit <> 0) THEN '#13#10 +
+      '      BEGIN '#13#10 +
+      '        SELECT balance FROM inv_balance '#13#10 +
+      '        WHERE contactkey = OLD.contactkey '#13#10 +
+      '          AND cardkey = OLD.cardkey '#13#10 +
+      '        INTO :balance; '#13#10 +
+      '        IF (COALESCE(:balance, 0) < OLD.debit) THEN '#13#10 +
+      '          EXCEPTION INV_E_INVALIDMOVEMENT; '#13#10 +
+      '      END '#13#10 +
+      '    END ELSE '#13#10 +
+      '    BEGIN '#13#10 +
+      '      IF (OLD.debit > NEW.debit) THEN '#13#10 +
+      '      BEGIN '#13#10 +
+      '        SELECT balance FROM inv_balance '#13#10 +
+      '        WHERE contactkey = OLD.contactkey '#13#10 +
+      '          AND cardkey = OLD.cardkey '#13#10 +
+      '        INTO :balance; '#13#10 +
+      '        balance = COALESCE(:balance, 0); '#13#10 +
+      '        IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN '#13#10 +
+      '          EXCEPTION INV_E_DONTREDUCEAMOUNT; '#13#10 +
+      '      END ELSE '#13#10 +
+      '      BEGIN '#13#10 +
+      '        IF (NEW.credit > OLD.credit) THEN '#13#10 +
+      '        BEGIN '#13#10 +
+      '          SELECT balance FROM inv_balance '#13#10 +
+      '          WHERE contactkey = OLD.contactkey '#13#10 +
+      '            AND cardkey = OLD.cardkey '#13#10 +
+      '          INTO :balance; '#13#10 +
+      '          balance = COALESCE(:balance, 0); '#13#10 +
+      '          controlremains = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''CONTROLREMAINS''); '#13#10 +
+      '          IF (:controlremains IS NULL) THEN '#13#10 +
+      '          BEGIN '#13#10 +
+      '            IF ((:balance < NEW.credit - OLD.credit)) THEN '#13#10 +
+      '              EXCEPTION INV_E_INSUFFICIENTBALANCE; '#13#10 +
+      '          END '#13#10 +
+      '          ELSE '#13#10 +
+      '            IF ((:controlremains <> 0) and (:balance < NEW.credit - OLD.credit)) THEN '#13#10 +
+      '              EXCEPTION INV_E_INSUFFICIENTBALANCE; '#13#10 +
+      '        END '#13#10 +
+      '      END '#13#10 +
+      '    END '#13#10 +
+      '  END '#13#10 +
+      'END';
+    q.ExecQuery;
+
+    Log('ƒобавление пол€ viewmovementpart в складские документы');
+
+    if not DomainExist2('DVIEWMOVEMENTPART', Ftr) then
+    begin
+      q.Close;
+      q.SQL.Text := 'CREATE DOMAIN DVIEWMOVEMENTPART AS VARCHAR(1) CHECK ((VALUE IN (''I'', ''E'') or VALUE is NULL))';
+      q.ExecQuery;
+    end;
+
+    q1.Transaction := Ftr;
+    q.Close;
+    q.SQL.Text :=
+      ' select r.relationname, dt.ruid from gd_documenttype dt join at_relations r ON dt.linerelkey = r.id where dt.classname = ''TgdcInvDocumentType''' +
+      '   and EXISTS (select * from at_relation_fields f WHERE r.relationname = f.relationname and f.fieldname = ''INQUANTITY'') ';
+    q.ExecQuery;
+    while not q.EOF do
+    begin
+      AddField2(q.FieldByName('relationname').AsString, 'VIEWMOVEMENTPART', 'DVIEWMOVEMENTPART', Ftr);
+
+      if TriggerExist2('USR$BU_' + q.FieldByName('ruid').AsString, Ftr) then
+      begin
+        q1.Close;
+        q1.SQL.Text := 'ALTER TRIGGER USR$BU_' + q.FieldByName('ruid').AsString + ' INACTIVE ';
+        q1.ExecQuery;
+      end;
+
+      q.Next;
+    end;
+
+    FTr.Commit;
+    Ftr.StartTransaction;
+
+    q.ExecQuery;
+    while not q.EOF do
+    begin
+      q1.Close;
+      q1.SQL.Text := 'UPDATE ' + q.FieldByName('relationname').AsString + ' SET VIEWMOVEMENTPART = case when inquantity <> 0 then ''I'' else ''E'' end ';
+      q1.ExecQuery;
+
+      if TriggerExist2('USR$BU_' + q.FieldByName('ruid').AsString, Ftr) then
+      begin
+        q1.Close;
+        q1.SQL.Text := 'ALTER TRIGGER USR$BU_' + q.FieldByName('ruid').AsString + ' ACTIVE ';
+        q1.ExecQuery;
+      end;
+      q.Next;
+    end;
+     FTr.Commit;
+     FTr.StartTransaction;
+
+     Log('ƒобавление пол€ checkremains в складские документы');
+
+     q1.Close;
+     q1.SQL.Text :=
+       ' select r.relationname from gd_documenttype dt join at_relations r ON dt.linerelkey = r.id ' +
+       ' where dt.classname = ''TgdcInvDocumentType'' ';
+     q1.ExecQuery;
+     while not q1.EOF do
+     begin
+       AddField2(q1.FieldByName('relationname').AsString, 'CHECKREMAINS', 'DBOOLEAN', Ftr);
+       q1.Next;
+     end;
+
+    q.Close;
+    q.SQL.Text :=
+      'UPDATE OR INSERT INTO fin_versioninfo ' +
+      '  VALUES (278, ''0000.0001.0000.0310'', ''07.02.2019'', ''trigger inv_bu_movement changed'') ' +
+      '  MATCHING (id)';
+    q.ExecQuery;
+
+    Ftr.Commit;
+  finally
+    q.Free;
+    q1.Free;
+    Ftr.Free;
+  end;
+end;
+
+procedure CorrectIntervalIDProcs(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  Ftr: TIBTransaction;
+  q: TIBSQL;
+begin
+  FTr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    FTr.DefaultDatabase := IBDB;
+    FTr.StartTransaction;
+
+    q.Transaction := FTr;
+    q.SQL.Text :=
+      'CREATE OR ALTER PROCEDURE gd_p_getnextid_ex '#13#10 +
+      '  RETURNS(id INTEGER) '#13#10 +
+      'AS '#13#10 +
+      '  DECLARE VARIABLE id_from INTEGER; '#13#10 +
+      '  DECLARE VARIABLE id_to INTEGER; '#13#10 +
+      '  DECLARE VARIABLE limit_id INTEGER; '#13#10 +
+      '  DECLARE VARIABLE rc INTEGER = 0; '#13#10 +
+      '  DECLARE VARIABLE delta DFOREIGNKEY = 10; '#13#10 +
+      'BEGIN '#13#10 +
+      '  id = COALESCE(RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID''), 0); '#13#10 +
+      '  limit_id = COALESCE(RDB$GET_CONTEXT(''USER_SESSION'', ''GD_LIMIT_ID''), 0); '#13#10 +
+      ' '#13#10 +
+      '  IF (:id > 0 AND :id <= :limit_id) THEN '#13#10 +
+      '    RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID'', :id + 1); '#13#10 +
+      '  ELSE BEGIN '#13#10 +
+      '    id = -1; '#13#10 +
+      ' '#13#10 +
+      '    FOR '#13#10 +
+      '      SELECT id_from, id_to '#13#10 +
+      '      FROM gd_available_id '#13#10 +
+      '      INTO :id_from, :id_to '#13#10 +
+      '    DO BEGIN '#13#10 +
+      '      IF (:id_to - :id_from < :delta) THEN '#13#10 +
+      '        IN AUTONOMOUS TRANSACTION DO '#13#10 +
+      '        BEGIN '#13#10 +
+      '          DELETE FROM gd_available_id WHERE id_from = :id_from AND id_to = :id_to; '#13#10 +
+      '          rc = ROW_COUNT; '#13#10 +
+      '        END '#13#10 +
+      '      ELSE BEGIN '#13#10 +
+      '        IN AUTONOMOUS TRANSACTION DO '#13#10 +
+      '        BEGIN '#13#10 +
+      '          UPDATE gd_available_id SET id_from = :id_from + :delta WHERE id_from = :id_from AND id_to = :id_to; '#13#10 +
+      '          rc = ROW_COUNT; '#13#10 +
+      '        END '#13#10 +
+      '        id_to = :id_from + (:delta - 1); '#13#10 +
+      '      END '#13#10 +
+      ' '#13#10 +
+      '      IF (:rc = 1) THEN '#13#10 +
+      '      BEGIN '#13#10 +
+      '        id = :id_from; '#13#10 +
+      ' '#13#10 +
+      '        RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID'', :id + 1); '#13#10 +
+      '        RDB$SET_CONTEXT(''USER_SESSION'', ''GD_LIMIT_ID'', :id_to); '#13#10 +
+      ' '#13#10 +
+      '        LEAVE; '#13#10 +
+      '      END '#13#10 +
+      ' '#13#10 +
+      '      WHEN ANY DO '#13#10 +
+      '      BEGIN '#13#10 +
+      '        id = -1; '#13#10 +
+      '      END '#13#10 +
+      '    END '#13#10 +
+      ' '#13#10 +
+      '    IF (id = -1) THEN '#13#10 +
+      '    BEGIN '#13#10 +
+      '      id_to = GEN_ID(gd_g_unique, 1); '#13#10 +
+      '      /* '#13#10 +
+      '      id = :id_to - 100 + 1; '#13#10 +
+      '      RDB$SET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID'', :id + 1); '#13#10 +
+      '      RDB$SET_CONTEXT(''USER_SESSION'', ''GD_LIMIT_ID'', :id_to); '#13#10 +
+      '      */ '#13#10 +
+      '    END '#13#10 +
+      '  END '#13#10 +
+      'END';
+    q.ExecQuery;
+
+    q.SQL.Text :=
+      'CREATE OR ALTER PROCEDURE gd_p_getnextid '#13#10 +
+      '  RETURNS(id INTEGER) '#13#10 +
+      'AS '#13#10 +
+      'BEGIN '#13#10 +
+      '  EXECUTE PROCEDURE gd_p_getnextid_ex '#13#10 +
+      '    RETURNING_VALUES :id; '#13#10 +
+      ' '#13#10 +
+      '  SUSPEND; '#13#10 +
+      'END';
+    q.ExecQuery;
+
+    DropTrigger2('gd_db_disconnect_save_id', FTr);
+    {
+    q.SQL.Text :=
+      'CREATE OR ALTER TRIGGER gd_db_disconnect_save_id '#13#10 +
+      '  ACTIVE '#13#10 +
+      '  ON DISCONNECT '#13#10 +
+      '  POSITION 32000 '#13#10 +
+      'AS '#13#10 +
+      '  DECLARE VARIABLE id_from INTEGER; '#13#10 +
+      '  DECLARE VARIABLE id_to INTEGER; '#13#10 +
+      'BEGIN '#13#10 +
+      '  id_from = COALESCE(RDB$GET_CONTEXT(''USER_SESSION'', ''GD_CURRENT_ID''), 0); '#13#10 +
+      '  id_to = COALESCE(RDB$GET_CONTEXT(''USER_SESSION'', ''GD_LIMIT_ID''), 0); '#13#10 +
+      ' '#13#10 +
+      '  IF (:id_from > 0 AND :id_from <= :id_to) THEN '#13#10 +
+      '    IN AUTONOMOUS TRANSACTION DO '#13#10 +
+      '      INSERT INTO gd_available_id (id_from, id_to) VALUES (:id_from, :id_to); '#13#10 +
+      'END';
+    q.ExecQuery;
+    }
+
+    q.SQL.Text :=
+      'CREATE OR ALTER TRIGGER ac_bi_autoentry FOR ac_autoentry '#13#10 +
+      '  ACTIVE '#13#10 +
+      '  BEFORE INSERT '#13#10 +
+      '  POSITION 0 '#13#10 +
+      'AS '#13#10 +
+      'BEGIN '#13#10 +
+      '  IF (NEW.id IS NULL) THEN '#13#10 +
+      '    EXECUTE PROCEDURE gd_p_getnextid_ex '#13#10 +
+      '      RETURNING_VALUES NEW.id; '#13#10 +
+      'END';
+    q.ExecQuery;
+
+    q.SQL.Text := 'GRANT EXECUTE ON PROCEDURE  gd_p_getnextid TO ADMINISTRATOR';
+    q.ExecQuery;
+
+    q.SQL.Text := 'GRANT EXECUTE ON PROCEDURE  gd_p_getnextid_ex TO ADMINISTRATOR';
+    q.ExecQuery;
+
+    if not DomainExist2('DGENERATORNAME', FTr) then
+    begin
+      q.SQL.Text := 'CREATE DOMAIN DGENERATORNAME AS VARCHAR(31)';
+      q.ExecQuery;
+      FTr.Commit;
+      FTr.StartTransaction;
+    end;
+
+    AddField2('AT_RELATIONS', 'GENERATORNAME', 'DGENERATORNAME', FTr);
+
+    FTr.Commit;
+    FTr.StartTransaction;
+
+    q.SQL.Text :=
+      'UPDATE OR INSERT INTO fin_versioninfo ' +
+      '  VALUES (279, ''0000.0001.0000.0311'', ''14.03.2019'', ''Corrected procs for interval id table'') ' +
       '  MATCHING (id)';
     q.ExecQuery;
 

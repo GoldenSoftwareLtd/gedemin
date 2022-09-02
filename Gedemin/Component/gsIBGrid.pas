@@ -1,3 +1,4 @@
+// ShlTanya, 17.02.2019
 
 {++
 
@@ -46,7 +47,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Grids, DBGrids, StdCtrls, ComCtrls, Menus, ActnList, DB, IBDatabase,
   IBCustomDataSet, IBQuery, IBSQL, gsDBGrid, Contnrs, at_classes, dbctrls,
-  gdcBase, JclStrHashMap, gd_messages_const;
+  gdcBase, JclStrHashMap, gd_messages_const, gdcBaseInterface;
 
 type
   TgsSortOrder = (soNone, soAsc, soDesc);
@@ -261,7 +262,7 @@ type
     function GetSetDatasource: TDataSource;
 
 
-    function CreateGDClassInstance(const AnID: Integer): TgdcBase;
+    function CreateGDClassInstance(const AnID: TID): TgdcBase;
     function GetFullCondtion: String;
     procedure SetEditorStyle(const Value: TgsIBColumnEditorStyle);
     procedure DropDown(const Match: String = ''; const UseExisting: Boolean = False);
@@ -274,13 +275,13 @@ type
     property SetDatasource: TDataSource read GetSetDatasource;
     procedure RefreshDataset;
     function DoLookup(const Exact: Boolean = False; const ShowMsg: Boolean = True): boolean;
-    function CreateNew: Integer;
-    procedure ObjectProperties(const Value: Integer);
-    function ViewForm: Integer;
-    function Edit(const Value: Integer): Boolean;
-    function Delete(const Value: Integer): Boolean;
+    function CreateNew: TID;
+    procedure ObjectProperties(const Value: TID);
+    function ViewForm: TID;
+    function Edit(const Value: TID): Boolean;
+    function Delete(const Value: TID): Boolean;
 
-    function Reduce(var Value: Integer): Boolean;
+    function Reduce(var Value: TID): Boolean;
 
     property FullCondition: String read GetFullCondtion;
   public
@@ -580,7 +581,7 @@ implementation
 uses
   gsDBGrid_dlgMaster, DsgnIntf, mask, extctrls, jclSysUtils, gd_security,
   gsDBReduction, gsDBTreeView, dlgPictureDialog_unit, buttons, gdc_frmG_unit,
-  gdcTree, gdcClasses, gdcBaseInterface, gdc_frmMDH_unit, gdv_dlgSelectDocument_unit
+  gdcTree, gdcClasses, gdc_frmMDH_unit, gdv_dlgSelectDocument_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -728,9 +729,9 @@ type
     FbtnMerge: TSpeedButton;
     FTree: Boolean;
 
-    function GetKeyValue: Variant;
+    function GetKeyValue: String;
     function GetListValue: Variant;
-    procedure SetKeyValue(Value: Variant);
+    procedure SetKeyValue(Value: String);
     procedure SetListSource(Value: TDataSource);
     procedure NewExecute(Sender: TObject);
     procedure DeleteExecute(Sender: TObject);
@@ -751,7 +752,7 @@ type
   public
     constructor Create(Owner: TComponent); override;
     destructor Destroy; override;
-    property KeyValue: Variant read GetKeyValue write SetKeyValue;
+    property KeyValue: String read GetKeyValue write SetKeyValue;
     property ListValue: Variant read GetListValue;
     property KeyField: String read FKeyField write SetKeyField;
     property ListField: String read FListField write SetListField;
@@ -764,7 +765,7 @@ type
   private
     FSetGrid: TgsDBGrid;
     FMenu: TPopupMenu;
-    FCurrentKey: Variant;
+    FCurrentKey: String;
     FSetState: Boolean;
 
     procedure GridKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -803,7 +804,7 @@ type
     FLoading: Boolean;
     FList, FNames: TStringList;
     FMenu: TPopupMenu;
-    FCurrentKey: Integer;
+    FCurrentKey: TID;
 
     procedure SelectAll(Sender: TObject);
     procedure RemoveAll(Sender: TObject);
@@ -1043,15 +1044,15 @@ begin
   if SysLocale.FarEast then
     SetImeCompositionWindow(Font, R.Left, R.Top);
 
-  CloseUp(False);  
+  CloseUp(False);
 end;
 
 procedure TgsIBGridInplaceEdit.CloseUp(Accept: Boolean; const AHideEditor: boolean);
 var
   MasterField: TField;
-  ListValue, KeyValue: Variant;
+  ListValue: Variant;
+  KeyValue: String;
 begin
-
   if FListVisible then
   begin
     if GetCapture <> 0 then SendMessage(GetCapture, WM_CANCELMODE, 0, 0);
@@ -1115,7 +1116,7 @@ begin
             MasterField := DataSet.FieldByName(FCurrentEditor.FieldName);
             try
               if MasterField.CanModify and DataLink.Edit then
-                MasterField.Value := KeyValue;
+                MasterField.AsString := KeyValue;
               if DataSet.State in [dsEdit, dsInsert] then
                 if not VarIsNULL(ListValue) then
                   Text := ListValue
@@ -1317,9 +1318,9 @@ begin
         else
           FCurrentEditor.DropDown;
 
-        FDataList.KeyValue :=
-          TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(
-          FCurrentEditor.FieldName).Value;
+          FDataList.KeyValue :=
+            TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(FCurrentEditor.FieldName).AsString;
+
       end else
         FCurrentEditor.FLookuped := False;
         
@@ -1329,7 +1330,7 @@ begin
     if FActiveList = FPopupSetGrid then
     with Column.Field do
     begin
-      if VarIsNull(TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(FCurrentEditor.FSet.KeyField).Value) then
+      if VarIsNull(GetFieldAsVar(TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(FCurrentEditor.FSet.KeyField))) then
       begin
         if TgsCustomIbGrid(Grid).Datasource.DataSet.Eof then
           TgsCustomIbGrid(Grid).Datasource.DataSet.Edit;
@@ -1339,14 +1340,14 @@ begin
           SetActiveList;
       end;
       FPopupSetGrid.FSetGrid.DataSource := FCurrentEditor.SetDatasource;
-      FPopupSetGrid.FCurrentKey := TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(FCurrentEditor.FSet.KeyField).Value;
+      FPopupSetGrid.FCurrentKey := TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(FCurrentEditor.FSet.KeyField).AsString;
       FPopupSetGrid.SetupCheckBoxes;
     end
     else
     if FActiveList = FPopupSetTree then
     with Column.Field do
     begin
-      if VarIsNull(TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(FCurrentEditor.FSet.KeyField).Value) then
+      if VarIsNull(GetFieldAsVar(TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(FCurrentEditor.FSet.KeyField))) then
       begin
         if TgsCustomIbGrid(Grid).Datasource.DataSet.Eof then
           TgsCustomIbGrid(Grid).Datasource.DataSet.Edit;
@@ -1355,7 +1356,7 @@ begin
         if not(Assigned(FActiveList)) then
           SetActiveList;
       end;
-      FPopupSetTree.FCurrentKey := TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(FCurrentEditor.FSet.KeyField).Value;
+      FPopupSetTree.FCurrentKey := GetTID(TgsCustomIbGrid(Grid).Datasource.DataSet.FieldByName(FCurrentEditor.FSet.KeyField));
       FPopupSetTree.FSetTree.DisplayField := FCurrentEditor.FSet.FSourceListField;
       FPopupSetTree.FSetTree.KeyField := FCurrentEditor.FSet.FSourceKeyField;
       FPopupSetTree.FSetTree.ParentField := FCurrentEditor.FSet.FSourceParentField;
@@ -1453,7 +1454,7 @@ end;
 
 procedure TgsIBGridInplaceEdit.KeyDown(var Key: Word; Shift: TShiftState);
 var
-  V: Integer;
+  V: TID;
   MasterField: TField;
   F: TdlgSelectDocument;
 begin
@@ -1546,16 +1547,16 @@ begin
       begin
         IF Key = Ord('R') then
         begin
-          V := (Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName).AsVariant;
+          V := GetTID((Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName));
           if FCurrentEditor.Reduce(V) then
           begin
             if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
             (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
 
-            (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsVariant := V;
+            SetTID((Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName), V);
             FCurrentEditor.RefreshDataSet;
 
-            if FCurrentEditor.LookupDataSource.DataSet.Locate(FCurrentEditor.FLookup.LookupKeyField, V, []) then
+            if FCurrentEditor.LookupDataSource.DataSet.Locate(FCurrentEditor.FLookup.LookupKeyField, TID2V(V), []) then
               Text := FCurrentEditor.LookupDataSource.DataSet.FieldByName(FCurrentEditor.FLookup.LookupListField).AsString;
           end;
         end
@@ -1573,10 +1574,10 @@ begin
               if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
               (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
 
-              (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsVariant := F.SelectedId;
+              SetTID((Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName), F.SelectedId);
               FCurrentEditor.RefreshDataSet;
 
-              if FCurrentEditor.LookupDataSource.DataSet.Locate(FCurrentEditor.FLookup.LookupKeyField, F.SelectedId, []) then
+              if FCurrentEditor.LookupDataSource.DataSet.Locate(FCurrentEditor.FLookup.LookupKeyField, TID2V(F.SelectedId), []) then
                 Text := FCurrentEditor.LookupDataSource.DataSet.FieldByName(FCurrentEditor.FLookup.LookupListField).AsString;
             end;
           finally
@@ -1598,7 +1599,7 @@ begin
                 begin
                   if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
                     (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
-                  (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsInteger := V;
+                  SetTID((Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName), V);
                   (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.DisplayField).AsString := FCurrentEditor.Text;
                   if FCurrentEditor.FLookupPrepared then
                     FCurrentEditor.FLookupDataSet.Close;
@@ -1612,7 +1613,7 @@ begin
               end;
               VK_F4:
               begin
-                if FCurrentEditor.Edit((Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName).AsInteger) then
+                if FCurrentEditor.Edit(GetTID((Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName))) then
                 begin
                   Text := FCurrentEditor.Text;
                   if FCurrentEditor.FLookupPrepared then
@@ -1633,7 +1634,7 @@ begin
               end;
               VK_F8:
               begin
-                if FCurrentEditor.Delete((Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName).AsInteger) then
+                if FCurrentEditor.Delete(GetTID((Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName))) then
                 begin
                   if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
                     (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
@@ -1648,7 +1649,7 @@ begin
                 begin
                   if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
                     (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
-                  (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsInteger := V;
+                  SetTID((Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName), V);
                   Text := FCurrentEditor.Text;
                   Modified := True;
                   if FCurrentEditor.FLookupPrepared then
@@ -1659,7 +1660,7 @@ begin
               end;
               VK_F11:
               begin
-                FCurrentEditor.ObjectProperties((Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName).AsInteger);
+                FCurrentEditor.ObjectProperties(GetTID((Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName)));
               end;
             end;
             Key := 0;
@@ -1681,7 +1682,6 @@ begin
   end
   else
     inherited KeyDown(Key, Shift);
-
 end;
 
 procedure TgsIBGridInplaceEdit.MouseDown(Button: TMouseButton; Shift: TShiftState;
@@ -3049,7 +3049,7 @@ begin
   FListFieldIsBlob := False;
 end;
 
-function TgsIBColumnEditor.CreateGDClassInstance(const AnID: Integer): TgdcBase;
+function TgsIBColumnEditor.CreateGDClassInstance(const AnID: TID): TgdcBase;
 var
   C: TPersistentClass;
 begin
@@ -3077,7 +3077,7 @@ begin
     Result := nil;
 end;
 
-function TgsIBColumnEditor.CreateNew: Integer;
+function TgsIBColumnEditor.CreateNew: TID;
 var
   T, obj: TgdcBase;
   C: TgdcFullClass;
@@ -3119,7 +3119,7 @@ begin
   end;
 end;
 
-function TgsIBColumnEditor.Delete(const Value: Integer): boolean;
+function TgsIBColumnEditor.Delete(const Value: TID): boolean;
 var
   T: TgdcBase;
 begin
@@ -3168,7 +3168,8 @@ function TgsIBColumnEditor.DoLookup(const Exact: Boolean = False; const ShowMsg:
 var
   S, SText: String;
   StrFields: String;
-  V, MessageBoxResult: Integer;
+  V :TID;
+  MessageBoxResult: Integer;
   I, J: Integer;
   SelectCondition: String;
   SL: TStringList;
@@ -3331,7 +3332,7 @@ begin
             begin
               if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
                 (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
-              (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FieldName).AsInteger := V;
+              SetTID((Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FieldName), V);
               Grid.InplaceEditor.Text := Text;
               Grid.InplaceEditor.Modified := True;
               if FLookupPrepared then
@@ -3439,7 +3440,7 @@ begin
         S := S + ' AND ';
 
       S := S + Format('(BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ',
-        [FLookup.MainTableAlias, IBLogin.InGroup])
+        [FLookup.MainTableAlias, TID264(IBLogin.InGroup)])
     end;
 
     //if (FgdClass <> nil) and (AnsiCompareText(FLookup.FLookupTable, FgdClass.GetListTable(FLookup.SubType)) = 0)
@@ -3496,7 +3497,7 @@ begin
 
 end;
 
-function TgsIBColumnEditor.Edit(const Value: Integer): Boolean;
+function TgsIBColumnEditor.Edit(const Value: TID): Boolean;
 var
   T: TgdcBase;
 begin
@@ -3579,7 +3580,7 @@ begin
   Result := FSourceDataSource;
 end;
 
-procedure TgsIBColumnEditor.ObjectProperties(const Value: Integer);
+procedure TgsIBColumnEditor.ObjectProperties(const Value: TID);
 var
   T2: TgdcBase;
 begin
@@ -3723,7 +3724,7 @@ begin
   end;
 end;
 
-function TgsIBColumnEditor.Reduce(var Value: Integer): boolean;
+function TgsIBColumnEditor.Reduce(var Value: TID): boolean;
 begin
   Result := False;
   if (Value <> -1) then
@@ -3738,13 +3739,13 @@ begin
       Condition := Self.FLookup.Condition;
       Database := TibDataSet(Grid.Datasource.DataSet).Database;
       ListField := Self.FLookup.LookupListField;
-      MasterKey := IntToStr(Value);
+      MasterKey := TID2S(Value);
       Table := Self.FLookup.LookupTable;
       Transaction := TibDataSet(Grid.Datasource.DataSet).Transaction;
       TransferData := True;
       Result := Wizard;
       if Result then
-        Value := StrToInt(MasterKey);
+        Value := GetTID(MasterKey);
     finally
       Free;
     end;
@@ -3894,7 +3895,7 @@ begin
     FRevertValueList.Add(Copy(FValueList[I], Pos('=', FValueList[I]) + 1, Length(FValueList[I])) + '=' + FValueList.Names[I]);
 end;
 
-function TgsIBColumnEditor.ViewForm: Integer;
+function TgsIBColumnEditor.ViewForm: TID;
 var
   C: TPersistentClass;
   F: TForm;
@@ -4633,6 +4634,7 @@ begin
   FTV.Enabled := False;
   FTV.Width := 0;
   FTV.Parent:= Self;
+  FTV.Context := Owner.Owner.Owner.Name;
 
   FTV.HideSelection := False;
   FTV.OnKeyDown := GridKeyDown;
@@ -4685,15 +4687,15 @@ begin
   SEndMessage(Handle, WM_KEYDOWN, VK_F4, 0);
 end;
 
-function TPopUpLookup.GetKeyValue: Variant;
+function TPopUpLookup.GetKeyValue: String;
 var
   I: Integer;
 begin
   I := Pos('.', KeyField);
   if I > 0 then
-    Result := FListSource.DataSet.FieldByName(Copy(KeyField, I + 1, Length(KeyField))).AsVariant
+    Result := FListSource.DataSet.FieldByName(Copy(KeyField, I + 1, Length(KeyField))).AsString
   else
-    Result := FListSource.DataSet.FieldByName(KeyField).AsVariant;
+    Result := FListSource.DataSet.FieldByName(KeyField).AsString;
 end;
 
 function TPopUpLookup.GetListValue: Variant;
@@ -4702,9 +4704,9 @@ var
 begin
   I := Pos('.', ListField);
   if I > 0 then
-    Result := FListSource.DataSet.FieldByName(Copy(ListField, I + 1, Length(ListField))).AsVariant
+    Result := GetFieldAsVar(FListSource.DataSet.FieldByName(Copy(ListField, I + 1, Length(ListField))))
   else
-    Result := FListSource.DataSet.FieldByName(ListField).AsVariant;
+    Result := GetFieldAsVar(FListSource.DataSet.FieldByName(ListField));
 end;
 
 procedure TPopupLookup.GridCellClick(Column: TColumn);
@@ -4754,7 +4756,7 @@ begin
   end;
 end;
 
-procedure TPopUpLookup.SetKeyValue(Value: Variant);
+procedure TPopUpLookup.SetKeyValue(Value: String);
 begin
   if (not VarIsNull(Value)) and (not VarIsEmpty(Value)) then FListSource.DataSet.Locate(FKeyField, Value, [])
     else FListSource.DataSet.First;
@@ -4883,8 +4885,8 @@ begin
   begin
     try
       FCrossDataset.Insert;
-      FCrossDataset.FieldByName(FSet.CrossDestField).AsVariant := FCurrentKey;
-      FCrossDataset.FieldByName(FSet.CrossSourceField).AsVariant := FSourceDataset.FieldByName(FSet.SourceKeyField).AsVariant;
+      FCrossDataset.FieldByName(FSet.CrossDestField).AsString := FCurrentKey;
+      FCrossDataset.FieldByName(FSet.CrossSourceField).AsString := FSourceDataset.FieldByName(FSet.SourceKeyField).AsString;
       FCrossDataset.Post;
     except
       FCrossDataset.Cancel;
@@ -5031,7 +5033,7 @@ begin
     CheckBox.Visible := True;
     FCrossDataset.Close;
     FCrossDataset.CachedUpdates := True;
-    FCrossDataSet.ParamByName('Key').AsInteger := Integer(FCurrentKey);
+    SetTID(FCrossDataSet.ParamByName('Key'), GetTID(FCurrentKey));
     FCrossDataSet.Open;
     FSetState := True;
     try
@@ -5493,8 +5495,8 @@ begin
     begin
       try
         FCrossDataset.Insert;
-        FCrossDataset.FieldByName(FSet.CrossDestField).AsVariant := FCurrentKey;
-        FCrossDataset.FieldByName(FSet.CrossSourceField).AsVariant := Integer(Node.Data);
+        SetTID(FCrossDataset.FieldByName(FSet.CrossDestField), FCurrentKey);
+        SetTID(FCrossDataset.FieldByName(FSet.CrossSourceField), GetTID(Node.Data, Name));
         FCrossDataset.Post;
       except
         FCrossDataset.Cancel;
@@ -5505,7 +5507,7 @@ begin
         FCrossDataset.Locate
         (
           FSet.CrossDestField + ';' + FSet.CrossSourceField,
-          VarArrayOf([FCurrentKey, Integer(Node.Data)]),
+          VarArrayOf([TID2V(FCurrentKey), TID2V(GetTID(Node.Data, Name))]),
           []
         )
       then
@@ -5530,12 +5532,12 @@ begin
 
         FCrossDataset.Close;
         FCrossDataset.CachedUpdates := True;
-        FCrossDataSet.ParamByName('Key').AsInteger := FCurrentKey;
+        SetTID(FCrossDataSet.ParamByName('Key'), FCurrentKey);
         FCrossDataSet.Open;
 
         while not FCrossDataset.EOF do
         begin
-          N := FSetTree.NodeByKeyField(FCrossDataSet.FieldByName(FSet.CrossSourceField).AsInteger);
+          N := FSetTree.NodeByKeyField(GetTID(FCrossDataSet.FieldByName(FSet.CrossSourceField)));
           if Assigned(N) then
             FSetTree.SetCheck(N, True);
           FCrossDataset.Next;

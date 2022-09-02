@@ -1,3 +1,4 @@
+// ShlTanya, 10.03.2019, #4135
 
 {++
 
@@ -33,7 +34,7 @@ unit flt_sqlfilter_condition_type;
 interface
 
 uses
-  Classes, StdCtrls, SysUtils;
+  Classes, StdCtrls, SysUtils, gdcBaseInterface, dialogs;
 
 const
   // Строка идентефикатора
@@ -242,8 +243,8 @@ type
     RefField: TRelationName;		// Поле для выбора элемента(ов)
     IsReference: Boolean;		// Таблица множества является справочником
     IsTree: Boolean;                    // Таблица множества является интервальным деревом
-    AttrKey: Integer;			// Ключ атрибута
-    AttrRefKey: Integer;		// Ключ привязанного атрибута
+    AttrKey: TID;			// Ключ атрибута
+    AttrRefKey: TID;		// Ключ привязанного атрибута
 
     constructor Create;
 
@@ -260,6 +261,7 @@ type
   // Запись условия
   TFilterCondition = class(TObject)
   protected
+    FContext: String;
     FTempVariant: Variant;
   public
     FieldData: TfltFieldData;           // Данные поля
@@ -281,6 +283,7 @@ type
 
     procedure ReadFromStream(S: TStream);       // Читать из потока
     procedure WriteToStream(S: TStream);        // Запись в поток
+    property Context: String write FContext;
   end;
 
   // Список условий
@@ -288,6 +291,8 @@ type
   private
     FIsAndCondition: Boolean;                   // Условие объединения
     FIsDistinct: Boolean;                       // Уникальность записей в выборке
+    FContext: String;
+    procedure SetContext(AContext: String);
 
     function GetFilterText: String;             // Текст фильтра
     function GetCondition(const AnIndex: Integer): TFilterCondition;
@@ -303,6 +308,7 @@ type
     procedure Assign(Source: TFilterConditionList);
 
     property Conditions[const AnIndex: Integer]: TFilterCondition read GetCondition;
+    property Context: String write SetContext;
 
     function AddCondition(const AnConditionData: TFilterCondition): Integer; overload;
     function AddCondition(const AnFieldData: TfltFieldData; const AnConditionType: TFilterConditionType;
@@ -320,8 +326,10 @@ type
   // Тип данных для фильтра
   TFilterData = class
   private
+    FContext: String;
     function GetFilterText: String;
     function GetOrderText: String;
+    procedure SetContext(AContext: String);
   public
     ConditionList: TFilterConditionList;        // Список условий фильтрации
     OrderByList: TFilterOrderByList;            // Список условий сортировки
@@ -337,6 +345,8 @@ type
 
     procedure ReadFromStream(S: TStream);       // Читать из потока
     procedure WriteToStream(S: TStream);        // Запись в поток
+
+    property Context: String write SetContext;
   end;
 
 type
@@ -352,7 +362,7 @@ type
 type
   TIndexEvent = procedure(const AnIndexField: Boolean) of object;
   TConditionChanged = procedure(Sender: TObject) of object;
-  TFilterChanged = procedure(Sender: TObject; const AnCurrentFilter: Integer) of object;
+  TFilterChanged = procedure(Sender: TObject; const AnCurrentFilter: TID) of object;
 
 { МЕНЯТЬ НЕЛЬЗЯ }
 
@@ -378,7 +388,7 @@ procedure FillComboCond(const DataType: Integer; var cbCond: TComboBox;
 // Выводит название условия по ее типу
 function GetConditionName(ConditionType: Integer): String;
 // Преобразует TConditionList в TgsParamList
-procedure QueryParamsForConditions(const AnFilterComponent, AnFilterKey: Integer;
+procedure QueryParamsForConditions(const AnFilterComponent, AnFilterKey: TID;
  const AnConditionList: TFilterConditionList; var AnResult: Boolean; out VarResult: Variant;
  const AShowDlg: Boolean = True; const AFormName: string = ''; const AFilterName: string = '');
 
@@ -395,7 +405,7 @@ procedure QueryParamsForConditions(const AnFilterComponent, AnFilterKey: Integer
 //- AnCurrentFilter      - Ключ текущего фильтра
 function CreateCustomSQL(AnFilterData: TFilterData; AnSelectText, AnFromText,
   AnWhereText, AnOtherText, AnOrderText, AnQueryText: TStrings;
-  AnTableList: TStringList; AnComponentKey, AnCurrentFilter: Integer;
+  AnTableList: TStringList; AnComponentKey, AnCurrentFilter: TID;
   const AnRequeryParam: Boolean; var AnSilentParams: Variant;
   const AShowDlg: Boolean = True; const AFormName: string = '';
   const AFilterName: string = ''): Boolean;
@@ -548,10 +558,10 @@ begin
                                     IsReference := PBoolean(@Buffer)^
                                   else
                                     if LblStr = GD_LBL_ATTRKEY then
-                                      AttrKey := PInteger(@Buffer)^
+                                      AttrKey := PID(@Buffer)^
                                     else
                                       if LblStr = GD_LBL_ATTRREFKEY then
-                                        AttrRefKey := PInteger(@Buffer)^;
+                                        AttrRefKey := PID(@Buffer)^;
     // Читаем следующий лэйбл
     S.ReadBuffer(LblStr, LblSize);
   end;
@@ -869,6 +879,7 @@ begin
   ValueList := TStringList.Create;
   SubFilter := TFilterConditionList.Create;
   FieldData := TfltFieldData.Create;
+  Context := cEmptyContext;
 end;
 
 constructor TFilterCondition.Create(const AnFieldData: TfltFieldData; const AnConditionType: Integer;
@@ -878,6 +889,7 @@ begin
   ValueList := TStringList.Create;
   SubFilter := TFilterConditionList.Create;
   FieldData := TfltFieldData.Create;
+  Context := cEmptyContext;
 
   ConditionType := AnConditionType;
   Value1 := AnValue1;
@@ -944,20 +956,22 @@ var
   // Чтение списка значений
   procedure LoadValueList;
   var
-    TempInt1, TempInt2: Integer;
+    TempInt2, Len: Integer;
     TempLbl: TLabelStream;
     TempStr: String;
+    ID: TID;
   begin
+    Len := GetLenIDInStream(@S);
     S.ReadBuffer(TempLbl, LblSize);
     while TempLbl <> GD_LBL_END_VALUELIST do
     begin
       if TempLbl = GD_LBL_VALUELISTITEM then
       begin
-        S.ReadBuffer(TempInt1, IntSize);
+        S.ReadBuffer(ID, Len);
         S.ReadBuffer(TempInt2, IntSize);
         SetLength(TempStr, TempInt2);
         S.ReadBuffer(Pointer(TempStr)^, TempInt2);
-        ValueList.AddObject(TempStr, Pointer(TempInt1));
+        ValueList.AddObject(TempStr, TID2Pointer(ID, FContext));
       end else
         raise Exception.Create(GD_LBL_ERROR_MESSAGE);
 
@@ -1026,16 +1040,18 @@ var
   // Сохраняем список значений
   procedure SaveValueList;
   var
-    I, Temp: Integer;
+    I, Temp, Len: Integer;
+    ID: TID;
   begin
     if ValueList.Count > 0 then
     begin
       S.Write(GD_LBL_BGN_VALUELIST, LblSize);
+      Len := SetLenIDInStream(@S);
       for I := 0 to ValueList.Count - 1 do
       begin
         S.Write(GD_LBL_VALUELISTITEM, LblSize);
-        Temp := Integer(ValueList.Objects[I]);
-        S.Write(Temp, IntSize);
+        ID := GetTID(ValueList.Objects[I], FContext);
+        S.Write(ID, Len);
         Temp := Length(ValueList.Strings[I]) * CharSize;
         S.Write(Temp, IntSize);
         S.Write(Pointer(ValueList.Strings[I])^, Temp);
@@ -1112,6 +1128,7 @@ begin
   Result := Self.Add(TFilterCondition.Create);
   if AnConditionData <> nil then
     TFilterCondition(Items[Result]).Assign(AnConditionData);
+  Conditions[Result].Context := FContext;
 end;
 
 function TFilterConditionList.AddCondition(const AnFieldData: TfltFieldData; const AnConditionType: TFilterConditionType;
@@ -1119,6 +1136,7 @@ function TFilterConditionList.AddCondition(const AnFieldData: TfltFieldData; con
 begin
   Result := Self.Add(TFilterCondition.Create(AnFieldData, AnConditionType, AnValue1,
    AnValue2, AnSubFilter, AnValueList));
+  Conditions[Result].Context := FContext;  
 end;
 
 // Проверка условия на корректность параметров
@@ -1387,6 +1405,7 @@ begin
   ConditionList := TFilterConditionList.Create;
   ConditionList.IsAndCondition := True;
   OrderByList := TFilterOrderByList.Create;
+  Context := cEmptyContext;
 end;
 
 destructor TFilterData.Destroy;
@@ -2491,7 +2510,7 @@ begin
     end;
 end;
 
-procedure QueryParamsForConditions(const AnFilterComponent, AnFilterKey: Integer;
+procedure QueryParamsForConditions(const AnFilterComponent, AnFilterKey: TID;
  const AnConditionList: TFilterConditionList; var AnResult: Boolean; out VarResult: Variant;
  const AShowDlg: Boolean = True; const AFormName: string = ''; const AFilterName: string = '');
 var
@@ -2521,7 +2540,7 @@ end;
 // Функция создающая SQL
 function CreateCustomSQL(AnFilterData: TFilterData; AnSelectText, AnFromText,
   AnWhereText, AnOtherText, AnOrderText, AnQueryText: TStrings;
-  AnTableList: TStringList; AnComponentKey, AnCurrentFilter: Integer;
+  AnTableList: TStringList; AnComponentKey, AnCurrentFilter: TID;
   const AnReQueryParam: Boolean; var AnSilentParams: Variant;
   const AShowDlg: Boolean = True; const AFormName: string = ''; const AFilterName: string = ''): Boolean;
 const
@@ -2625,7 +2644,7 @@ var
           // Добавляем условия
           WhereStr.Add('(' + AnPrefixName + FieldName + ' = ' + NetN + 'id' + Sand);
           WhereStr.Add(NetN + 'attrrefkey = '
-           + IntToStr(AnConditionData.FieldData.AttrRefKey) + Sand);
+           + TID2S(AnConditionData.FieldData.AttrRefKey) + Sand);
           WhereStr.Add(NetN + 'attrsetkey ' + AnConfluenceSign + S + ')' + MergeSign);
         end;
       end;
@@ -2650,7 +2669,7 @@ var
             WhereStr.Add(AnPrefixName + FieldName + ' = '
              + NetN + AnConditionData.FieldData.LinkSourceField + Sand);
             WhereStr.Add(NetN + AnConditionData.FieldData.LinkTargetField + ' = '
-             + IntToStr(Integer(AnConditionData.ValueList.Objects[L])) + Sand);
+             + TID2S(GetTID(AnConditionData.ValueList.Objects[L], AnConditionData.FContext)) + Sand);
           end;
           if AnConditionData.ValueList.Count > 0 then
             WhereStr.Strings[WhereStr.Count - 1] :=
@@ -2668,9 +2687,9 @@ var
             // Добавляем условия
             WhereStr.Add(AnPrefixName + FieldName + ' = ' + NetN + 'id' + Sand);
             WhereStr.Add(NetN + 'attrrefkey = '
-             + IntToStr(AnConditionData.FieldData.AttrRefKey) + Sand);
+             + TID2S(AnConditionData.FieldData.AttrRefKey) + Sand);
             WhereStr.Add(NetN + 'attrsetkey = '
-             + IntToStr(Integer(AnConditionData.ValueList.Objects[L])) + Sand);
+             + TID2S(GetTID(AnConditionData.ValueList.Objects[L], AnConditionData.FContext)) + Sand);
           end;
           if AnConditionData.ValueList.Count > 0 then
             WhereStr.Strings[WhereStr.Count - 1] :=
@@ -3065,7 +3084,7 @@ var
       begin
         S := '(';
         for J := 0 to AnConditionData.ValueList.Count - 1 do
-          S := S + IntToStr(Integer(AnConditionData.ValueList.Objects[J])) + ',';
+          S := S + TID2S(GetTID(AnConditionData.ValueList.Objects[J], AnConditionData.FContext)) + ',';
         S[Length(S)] := ')';
 
         case FieldType of
@@ -3136,7 +3155,7 @@ var
       begin
         S := '(';
         for J := 0 to AnConditionData.ValueList.Count - 1 do
-          S := S + IntToStr(Integer(AnConditionData.ValueList.Objects[J])) + ',';
+          S := S + TID2S(GetTID(AnConditionData.ValueList.Objects[J], AnConditionData.FContext)) + ',';
         S[Length(S)] := ')';
 
         case FieldType of
@@ -3192,7 +3211,7 @@ var
       begin
         S := '(';
         for J := 0 to AnConditionData.ValueList.Count - 1 do
-          S := S + IntToStr(Integer(AnConditionData.ValueList.Objects[J])) + ',';
+          S := S + TID2S(GetTID(AnConditionData.ValueList.Objects[J], AnConditionData.FContext)) + ',';
         S[Length(S)] := ')';
 
         DoActuates(' NOT IN ');
@@ -3203,7 +3222,7 @@ var
       begin
         S := '(';
         for J := 0 to AnConditionData.ValueList.Count - 1 do
-          S := S + IntToStr(Integer(AnConditionData.ValueList.Objects[J])) + ',';
+          S := S + TID2S(GetTID(AnConditionData.ValueList.Objects[J], AnConditionData.FContext)) + ',';
         S[Length(S)] := ')';
 
         DoActuates(' IN ');
@@ -3271,7 +3290,6 @@ var
   L: Integer;
 begin
   Result := False;
-
   // Создаем необходимые списки
   SelectStr := TStringList.Create;
   FromStr := TStringList.Create;
@@ -3332,7 +3350,6 @@ begin
             OldTime := GetTickCount;
           end;
         end;
-
         // Создаем список условий фильтрации
         for I := 0 to AnFilterData.ConditionList.Count - 1 do
         begin
@@ -3413,6 +3430,20 @@ begin
 
     PrefixList.Free;
   end;
+end;
+
+procedure TFilterConditionList.SetContext(AContext: String);
+var i: Integer;
+begin
+  FContext := AContext;
+  for i:= 0 to Count - 1 do
+    Conditions[i].Context := AContext;
+end;
+
+procedure TFilterData.SetContext(AContext: String);
+begin
+  FContext := AContext;
+  ConditionList.Context := AContext;
 end;
 
 end.

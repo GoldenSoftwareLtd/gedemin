@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_frmTransaction_unit;
 
 interface
@@ -7,7 +9,7 @@ uses
   gdc_frmMDVTree_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, ComCtrls, gsDBTreeView, StdCtrls, ExtCtrls, TB2Item,
   TB2Dock, TB2Toolbar, IBCustomDataSet, gdcBase, gdcTree,
-  gdcAcctTransaction, gdcAcctEntryRegister;
+  gdcAcctTransaction, gdcAcctEntryRegister, gdcBaseInterface;
 
 type
   Tgdc_frmTransaction = class(Tgdc_frmMDVTree)
@@ -33,6 +35,8 @@ type
     TBItem2: TTBItem;
     tbiShowAllEntries: TTBItem;
     actShowAllEntries: TAction;
+    actDetailListDocument: TAction;
+    tbiDetailListDocument: TTBItem;
 
     procedure FormCreate(Sender: TObject);
     procedure cbGroupByDocumentClick(Sender: TObject);
@@ -46,6 +50,9 @@ type
     procedure actDoReversalEntryUpdate(Sender: TObject);
     procedure actShowAllEntriesExecute(Sender: TObject);
     procedure actShowAllEntriesUpdate(Sender: TObject);
+    procedure actDetailListDocumentExecute(Sender: TObject);
+    procedure actDetailListDocumentUpdate(Sender: TObject);
+    procedure actDetailDuplicateExecute(Sender: TObject);
 
   private
     procedure ShowQuantity;
@@ -61,7 +68,7 @@ type
     procedure SaveSettings; override;
 
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-    class function CreateAndAssignWithID(AnOwner: TComponent; AnID: Integer; AnEntrySelect: TEntrySelect): TForm;
+    class function CreateAndAssignWithID(AnOwner: TComponent; AnID: TID; AnEntrySelect: TEntrySelect): TForm;
 
     class procedure GoToEntries(AForm: TCustomForm; AnObj: TgdcBase);
   end;
@@ -73,7 +80,8 @@ implementation
 
 uses
   gd_ClassList, Storages, gsStorage_CompPath, gdv_frmAcctBaseForm_unit, gdcClasses,
-  flt_ScriptInterface, prm_ParamFunctions_unit, gd_resourcestring, gdcBaseInterface;
+  flt_ScriptInterface, prm_ParamFunctions_unit, gd_resourcestring, gdcClasses_interface,
+  gdc_createable_form;
 
 const
   DefaultColor = clBtnFace;
@@ -92,7 +100,7 @@ begin
   Result := gdc_frmTransaction;
 end;
 
-class function Tgdc_frmTransaction.CreateAndAssignWithID(AnOwner: TComponent; AnID: Integer; AnEntrySelect: TEntrySelect): TForm;
+class function Tgdc_frmTransaction.CreateAndAssignWithID(AnOwner: TComponent; AnID: TID; AnEntrySelect: TEntrySelect): TForm;
 begin
   CreateAndAssign(AnOwner);
   if AnEntrySelect <> esAll then
@@ -110,12 +118,13 @@ begin
 
     gdc_frmTransaction.gdcAcctViewEntryRegister.Close;
     if AnEntrySelect = esDocumentKey then
-      gdc_frmTransaction.gdcAcctViewEntryRegister.ParamByName('dk').AsInteger := AnID
+      SetTID(gdc_frmTransaction.gdcAcctViewEntryRegister.ParamByName('dk'), AnID)
     else
-      gdc_frmTransaction.gdcAcctViewEntryRegister.ParamByName('rk').AsInteger := AnID;
+      SetTID(gdc_frmTransaction.gdcAcctViewEntryRegister.ParamByName('rk'), AnID);
     gdc_frmTransaction.gdcAcctViewEntryRegister.Open;
   end;
-
+  gdc_frmTransaction.ActiveControl := gdc_frmTransaction.ibgrDetail;
+  
   Result := gdc_frmTransaction;
 end;
 
@@ -277,9 +286,9 @@ begin
   try
     tmpDocument.SubSet := 'ByID';
     if ALine then
-      tmpDocument.ParamByName('id').AsInteger := gdcAcctViewEntryRegister.FieldByName('documentkey').AsInteger
+      SetTID(tmpDocument.ParamByName('id'), gdcAcctViewEntryRegister.FieldByName('documentkey'))
     else
-      tmpDocument.ParamByName('id').AsInteger := gdcAcctViewEntryRegister.FieldByName('masterdockey').AsInteger;
+      SetTID(tmpDocument.ParamByName('id'), gdcAcctViewEntryRegister.FieldByName('masterdockey'));
     tmpDocument.Open;
 
     if tmpDocument.RecordCount > 0 then
@@ -302,7 +311,7 @@ end;
 
 procedure Tgdc_frmTransaction.actDetailEditLineExecute(Sender: TObject);
 begin
-  if gdcAcctViewEntryRegister.FieldByName('documenttypekey').AsInteger <> DefaultDocumentTypeKey then
+  if GetTID(gdcAcctViewEntryRegister.FieldByName('documenttypekey')) <> DefaultDocumentTypeKey then
     EditDocument(True);
 end;
 
@@ -317,7 +326,7 @@ begin
       MB_YESNO or MB_ICONWARNING or MB_TASKMODAL) = IDNO) then
     exit;
 
-  if gdcAcctViewEntryRegister.FieldByName('documenttypekey').AsInteger <> DefaultDocumentTypeKey then
+  if GetTID(gdcAcctViewEntryRegister.FieldByName('documenttypekey')) <> DefaultDocumentTypeKey then
     EditDocument(False)
   else
     inherited;
@@ -326,8 +335,8 @@ end;
 procedure Tgdc_frmTransaction.actDetailEditLineUpdate(Sender: TObject);
 begin
   actDetailEditLine.Enabled :=
-      (gdcAcctViewEntryRegister.FieldByName('documenttypekey').AsInteger <> DefaultDocumentTypeKey) and
-      (gdcAcctViewEntryRegister.FieldByName('id').AsInteger > 0) and
+      (GetTID(gdcAcctViewEntryRegister.FieldByName('documenttypekey')) <> DefaultDocumentTypeKey) and
+      (GetTID(gdcAcctViewEntryRegister.FieldByName('id')) > 0) and
       (not cbGroupByDocument.Checked);
 end;
 
@@ -350,7 +359,7 @@ begin
         'AC_TRANSACTION', 'NAME', 'ID', '', '', '');
       ParamList.Params[1].Required := True;
       ParamList.Params[1].ResultValue :=
-        VarArrayOf([gdcAcctViewEntryRegister.FieldByName('TRANSACTIONKEY').AsInteger]);
+        VarArrayOf([TID2V(gdcAcctViewEntryRegister.FieldByName('TRANSACTIONKEY'))]);
       ParamList.Params[1].SortField := 'NAME';
       ParamList.Params[1].SortOrder:=1;
 
@@ -367,7 +376,7 @@ begin
           if (ParamResult[0] > 0) and (ParamResult[1][0] > 0) then
           begin
             // Если параметры введены - сторнируем выбранную проводку
-            gdcAcctViewEntryRegister.CreateReversalEntry(ParamResult[0], ParamResult[1][0], ParamResult[2]);
+            gdcAcctViewEntryRegister.CreateReversalEntry(ParamResult[0], GetTID(ParamResult[1][0]), ParamResult[2]);
             gdcAcctViewEntryRegister.CloseOpen;
             Application.MessageBox('Проводка сторнирована', PChar(Self.Caption),
               MB_OK + MB_ICONINFORMATION + MB_SYSTEMMODAL);
@@ -388,12 +397,12 @@ end;
 
 procedure Tgdc_frmTransaction.actDoReversalEntryUpdate(Sender: TObject);
 begin
-  actDoReversalEntry.Enabled := (gdcAcctViewEntryRegister.FieldByName('id').AsInteger > 0);
+  actDoReversalEntry.Enabled := (GetTID(gdcAcctViewEntryRegister.FieldByName('id')) > 0);
 end;
 
 procedure Tgdc_frmTransaction.actShowAllEntriesExecute(Sender: TObject);
 var
-  Temp: Integer;
+  Temp: TID;
 begin
   LockWindowUpdate(Handle);
   try
@@ -407,7 +416,7 @@ begin
     Temp := gdcAcctViewEntryRegister.RecordKey;
     gdcAcctViewEntryRegister.EntrySelect := esAll;
     Invalidate;
-    gdcAcctViewEntryRegister.Locate('RECORDKEY', Temp, []);
+    gdcAcctViewEntryRegister.Locate('RECORDKEY', TID2V(Temp), []);
   finally
     LockWindowUpdate(0);
   end;
@@ -432,7 +441,7 @@ begin
   Assert(AnObj <> nil);
   Assert(AForm <> nil);
 
-  if AnObj.FieldByName('transactionkey').AsInteger > 0 then
+  if GetTID(AnObj.FieldByName('transactionkey')) > 0 then
   begin
     Old_Global_DisableQueryFilter := Global_DisableQueryFilter;
     Global_DisableQueryFilter := True;
@@ -440,9 +449,9 @@ begin
       with Tgdc_frmTransaction.CreateAndAssignWithID(Application, AnObj.ID, esDocumentKey) as Tgdc_frmTransaction do
       begin
         cbGroupByDocument.Checked := False;
-        if tvGroup.GoToID(AnObj.FieldByName('transactionkey').AsInteger) and
+        if tvGroup.GoToID(GetTID(AnObj.FieldByName('transactionkey'))) and
           gdcAcctViewEntryRegister.Active and
-          gdcAcctViewEntryRegister.Locate('DOCUMENTKEY', AnObj.ID, []) then
+          gdcAcctViewEntryRegister.Locate('DOCUMENTKEY', TID2V(AnObj.ID), []) then
         begin
           Show;
         end else
@@ -455,6 +464,51 @@ begin
   end else
     MessageBox(AForm.Handle, 'По данной позиции не установлена операция.', PChar(sAttention),
       MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+end;
+
+procedure Tgdc_frmTransaction.actDetailListDocumentExecute(
+  Sender: TObject);
+var
+  Cl: TPersistentClass;
+  F: TgdcFullClass;
+  FormList: TgdcCreateableForm;
+begin
+  if GetTID(gdcAcctViewEntryRegister.FieldByName('documenttypekey')) <> DefaultDocumentTypeKey then
+  begin
+    F := TgdcDocument.GetDocumentClass(GetTID(gdcAcctViewEntryRegister.FieldByName('documenttypekey')), dcpHeader);
+    Cl := Classes.GetClass(F.gdClass.ClassName);
+    FormList := CgdcBase(Cl).CreateViewForm(Application, '', F.SubType, False) as TgdcCreateableForm;
+    if Assigned(FormList) and Assigned(FormList.gdcObject) and Assigned(FormList.gdcObject.FindField('ID')) then
+    begin
+      if Assigned(FormList.gdcObject.Filter) and (GetTID(FormList.gdcObject.Filter.CurrentFilter) > 0)
+        and (FormList.gdcObject.Filter.FilterData.FilterText <> '') then
+        MessageBox(Handle, 'Внимание! На форме включена фильтрация данных.', PChar(sAttention), mb_OK or MB_ICONWARNING or MB_TASKMODAL);
+      FormList.gdcObject.Locate('ID', TID2V(gdcAcctViewEntryRegister.FieldByName('masterdockey')),[]);
+     end;
+    if FormList <> nil then
+      FormList.Show;
+  end;
+
+end;
+
+procedure Tgdc_frmTransaction.actDetailListDocumentUpdate(Sender: TObject);
+begin
+  actDetailListDocument.Enabled :=
+      (GetTID(gdcAcctViewEntryRegister.FieldByName('documenttypekey')) <> DefaultDocumentTypeKey) and
+      (GetTID(gdcAcctViewEntryRegister.FieldByName('id')) > 0);
+     // and (not cbGroupByDocument.Checked);
+end;
+
+procedure Tgdc_frmTransaction.actDetailDuplicateExecute(Sender: TObject);
+begin
+  if (ibgrDetail.SelectedRows.Count > 1) then
+  begin
+    MessageBox(Handle,
+      PChar('Множественное дублирование записей не поддерживается.'),
+      'Внимание!',
+      MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+    exit;
+  end;
 end;
 
 initialization

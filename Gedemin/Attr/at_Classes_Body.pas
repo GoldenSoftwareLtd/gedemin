@@ -1,3 +1,4 @@
+// ShlTanya, 31.01.2019
 
 {++
 
@@ -35,11 +36,16 @@ interface
 
 uses
   Classes,           Contnrs,           Comctrls,          SysUtils,
-  IBDatabase,        DB,                Forms,             IBSQL,
-  at_Classes;
+  IBDatabase,        DB,                Forms,             IBSQL, dialogs,
+  at_Classes,        gdcBaseInterface;
 
 const
+  {$IFDEF ID64}
+  ATTR_FILE_NAME = 'g.64.%s.atr';
+  {$ELSE}
   ATTR_FILE_NAME = 'g%s.atr';
+  {$ENDIF}
+
   //Изменилась версия!!!
   _DATABASE_STREAM_VERSION = '1.7v';
 
@@ -128,7 +134,7 @@ type
 
     function Add(atField: TatField): Integer; override;
     function ByFieldName(const AFieldName: String): TatField; override;
-    function ByID(const AID: Integer): TatField; override;
+    function ByID(const AID: TID): TatField; override;
     procedure Delete(const Index: Integer); override;
     function FindFirst(const AFieldName: String): TatField; override;
     function IndexOf(AObject: TObject): Integer; override;
@@ -213,7 +219,7 @@ type
     function Remove(atRelation: TatRelation): Integer; override;
 
     function ByRelationName(const ARelationName: String): TatRelation; override;
-    function ByID(const aID: Integer): TatRelation; override;
+    function ByID(const aID: TID): TatRelation; override;
     function FindFirst(const ARelationName: String): TatRelation; override;
 
     procedure NotifyUpdateObject(const ARelationName: String); override;
@@ -282,7 +288,7 @@ type
     function Add(atRelationField: TatRelationField): Integer; override;
     function AddRelationField(const AFieldName: String): TatRelationField; override;
     function ByFieldName(const AName: String): TatRelationField; override;
-    function ByID(const aID: Integer): TatRelationField; override;
+    function ByID(const aID: TID): TatRelationField; override;
 
     function ByPos(const APosition: Integer): TatRelationField; override;
     procedure Delete(const Index: Integer); override;
@@ -445,7 +451,7 @@ type
     procedure SaveToCacheFile; override;
 
     function FindRelationField(const ARelationName, ARelationFieldName: String): TatRelationField; overload; override;
-    function FindRelationField(const AnID: Integer): TatRelationField; overload; override;
+    function FindRelationField(const AnID: TID): TatRelationField; overload; override;
 
     procedure NotifyMultiConnectionTransaction; override;
     procedure CancelMultiConnectionTransaction(const All: Boolean = False); override;
@@ -644,13 +650,14 @@ begin
   FListField := SQLRecord.ByName('listfield').AsString;
   FExtendedFields := SQLRecord.ByName('extendedfields').AsString;
 
-  FID := SQLRecord.ByName('id').AsInteger;
+  FID := GetTID(SQLRecord.ByName('id'));
 
   FHasRecord := not SQLRecord.ByName('relationname').IsNull;
 
   FRelationFormat := SQLRecord.ByName('rdb$format').AsInteger;
   FRelationID := SQLRecord.ByName('rdb$relation_id').AsInteger;
-  FBranchKey := SQLRecord.ByName('branchkey'). AsInteger;
+  FBranchKey := GetTID(SQLRecord.ByName('branchkey'));
+  FGeneratorName := SQLRecord.ByName('generatorname').AsString;
 
   if SQLRecord.ByName('rdb$view_blr').IsNull then
     FRelationType := rtTable
@@ -1078,6 +1085,7 @@ begin
 
   FListField := '';
   FExtendedFields := '';
+  FGeneratorName := '';
 
   FPrimaryKey := nil;
 end;
@@ -1094,7 +1102,7 @@ begin
     FHasRecord := ReadBoolean;
 
     FRelationFormat := ReadInteger;
-    FRelationID := ReadInteger;
+    FRelationID := ReadTID(Reader);
 
     FaFull := ReadInteger;
     FaChag := ReadInteger;
@@ -1103,13 +1111,15 @@ begin
     Read(FRelationType, SizeOf(TatRelationType));
 
     TatBodyRelationFields(FRelationFields).Read(Reader);
-    FID := ReadInteger;
+
+    FID := ReadTID(Reader);
 
     //FIsCreateCommand := ReadInteger;
-    FBranchKey := ReadInteger;
+    FBranchKey := ReadTID(Reader);
     //С версии 1.2v
     FListField := ReadString;
     FExtendedFields := ReadString;
+    FGeneratorName := ReadString;
   end;
 end;
 
@@ -1140,6 +1150,7 @@ begin
     //С версии 1.2v
     WriteString(FListField);
     WriteString(FExtendedFields);
+    WriteString(FGeneratorName);
   end;
 end;
 
@@ -1436,7 +1447,7 @@ begin
   FUpdateList.Add(ARelationName);
 end;
 
-function TatBodyRelations.ByID(const aID: Integer): TatRelation;
+function TatBodyRelations.ByID(const aID: TID): TatRelation;
 var
   i: Integer;
 begin
@@ -1730,7 +1741,7 @@ begin
 end;
 
 function TatBodyRelationFields.ByID(
-  const aID: Integer): TatRelationField;
+  const aID: TID): TatRelationField;
 var
   i: Integer;
 begin
@@ -1981,7 +1992,7 @@ begin
     TatBodyField(Items[I]).UpdateData;
 end;
 
-function TatBodyFields.ByID(const AID: Integer): TatField;
+function TatBodyFields.ByID(const AID: TID): TatField;
 var
   i: Integer;
 begin
@@ -2117,7 +2128,7 @@ begin
   FColWidth := SQLRecord.ByName('COLWIDTH').AsShort;
   FDisabled := Boolean(SQLRecord.ByName('DISABLED').AsShort);
 
-  FID := SQLRecord.ByName('ID').AsInteger;
+  FID := GetTID(SQLRecord.ByName('ID'));
 
   FReadOnly := Boolean(SQLRecord.ByName('READONLY').AsShort);
 
@@ -2346,7 +2357,7 @@ begin
         FgdClassName := '';
     end else
       FgdClass := nil;    
-    FID := ReadInteger;
+    FID := ReadTID(Reader);
     S := ReadString;
     MakeNumerationFromString(S);
   end;
@@ -2754,7 +2765,7 @@ begin
       'SELECT '#13#10 +
       '  A.RELATIONNAME, R.RDB$RELATION_NAME, A.LNAME, A.LSHORTNAME, A.DESCRIPTION, '#13#10 +
       '  A.AFULL, A.ACHAG, A.AVIEW, A.LISTFIELD, A.EXTENDEDFIELDS, A.ID, R.RDB$FORMAT, '#13#10 +
-      '  R.RDB$RELATION_ID, A.BRANCHKEY, R.RDB$VIEW_BLR '#13#10 +
+      '  R.RDB$RELATION_ID, A.BRANCHKEY, R.RDB$VIEW_BLR, A.GENERATORNAME '#13#10 +
       'FROM '#13#10 +
       '  rdb$relations r LEFT JOIN at_relations a '#13#10 +
       '    ON r.rdb$relation_name = a.relationname '#13#10 +
@@ -3629,7 +3640,7 @@ begin
 end;
 
 function TatBodyDatabase.FindRelationField(
-  const AnID: Integer): TatRelationField;
+  const AnID: TID): TatRelationField;
 var
   I: Integer;
 begin
@@ -3832,7 +3843,7 @@ begin
   FaChag := SQLRecord.ByName('achag').AsInteger;
   FaView := SQLRecord.ByName('aview').AsInteger;
 
-  FID := SQLRecord.ByName('id').AsInteger;
+  FID := GetTID(SQLRecord.ByName('id'));
 
   FFieldPosition := SQLRecord.ByName('rdb$field_position').AsInteger;
 
@@ -4015,7 +4026,7 @@ begin
       FgdClass := nil;
 
     FgdSubType := ReadString;
-    FID := ReadInteger;
+    FID := ReadTID(Reader);
     FIsComputed := ReadBoolean;
 
     S := ReadString;

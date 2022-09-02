@@ -1,3 +1,4 @@
+// ShlTanya, 03.02.2019
 
 {++
 
@@ -597,7 +598,7 @@ begin
       //
       //  Целое числовое поле
 
-      blr_long, blr_int64:
+      blr_long:
       begin
         pcDataType.ActivePage := tsNumeric;
 
@@ -609,6 +610,23 @@ begin
           edScale.Text := IntToStr(Abs(gdcObject.FieldByName('fscale').AsInteger));
         end else
           rgNumeric.ItemIndex := 0;
+      end;
+
+      //
+      //  Целое числовое поле (64-битное)
+
+      blr_int64:
+      begin
+        pcDataType.ActivePage := tsNumeric;
+
+        if (gdcObject.FieldByName('fprecision').AsInteger > 0) or
+         (gdcObject.FieldByName('fscale').AsInteger < 0) then
+        begin
+          rgNumeric.ItemIndex := 2;
+          edPrecision.Text := gdcObject.FieldByName('fprecision').AsString;
+          edScale.Text := IntToStr(Abs(gdcObject.FieldByName('fscale').AsInteger));
+        end else
+          rgNumeric.ItemIndex := 4;
       end;
 
       //
@@ -1142,6 +1160,7 @@ begin
       1: gdcObject.FieldByName('ffieldtype').AsInteger := blr_short;
       2: gdcObject.FieldByName('ffieldtype').AsInteger := blr_int64;
       3: gdcObject.FieldByName('ffieldtype').AsInteger := blr_double;
+      4: gdcObject.FieldByName('ffieldtype').AsInteger := blr_int64;
       else
         gdcObject.FieldByName('ffieldtype').Clear;
     end;
@@ -1337,7 +1356,7 @@ begin
           'format = :format, alignment = :alignment, readonly = :readonly, ' +
           'gdclassname = :gdclassname, gdsubtype = :gdsubtype ' +
           ' WHERE fieldsourcekey = :fieldsourcekey';
-        ibsql.ParamByName('fieldsourcekey').AsInteger := gdcObject.ID;
+        SetTID(ibsql.ParamByName('fieldsourcekey'), gdcObject.ID);
 
         ibsql.ParamByName('colwidth').AsString :=
           gdcObject.FieldByName('colwidth').AsString;
@@ -1365,7 +1384,7 @@ begin
           'UPDATE at_relation_fields SET colwidth = :colwidth WHERE ' +
           'fieldsourcekey = :fieldsourcekey AND colwidth = :oldcolwidth';
 
-        ibsql.ParamByName('fieldsourcekey').AsInteger := gdcObject.ID;
+        SetTID(ibsql.ParamByName('fieldsourcekey'), gdcObject.ID);
         ibsql.ParamByName('colwidth').AsString :=
           gdcObject.FieldByName('colwidth').AsString;
         ibsql.ParamByName('oldcolwidth').AsString :=
@@ -1380,7 +1399,7 @@ begin
           'UPDATE at_relation_fields SET visible = :visible WHERE ' +
           'fieldsourcekey = :fieldsourcekey AND visible = :oldvisible';
 
-        ibsql.ParamByName('fieldsourcekey').AsInteger := gdcObject.ID;
+        SetTID(ibsql.ParamByName('fieldsourcekey'), gdcObject.ID);
         ibsql.ParamByName('visible').AsString :=
           gdcObject.FieldByName('visible').AsString;
         ibsql.ParamByName('oldvisible').AsString :=
@@ -1395,7 +1414,7 @@ begin
           'UPDATE at_relation_fields SET format = :format WHERE ' +
           'fieldsourcekey = :fieldsourcekey AND format = :oldformat';
 
-        ibsql.ParamByName('fieldsourcekey').AsInteger := gdcObject.ID;
+        SetTID(ibsql.ParamByName('fieldsourcekey'), gdcObject.ID);
         ibsql.ParamByName('format').AsString :=
           gdcObject.FieldByName('format').AsString;
         ibsql.ParamByName('oldformat').AsString :=
@@ -1410,7 +1429,7 @@ begin
           'UPDATE at_relation_fields SET alignment = :alignment WHERE ' +
           'fieldsourcekey = :fieldsourcekey AND alignment = :oldalignment';
 
-        ibsql.ParamByName('fieldsourcekey').AsInteger := gdcObject.ID;
+        SetTID(ibsql.ParamByName('fieldsourcekey'), gdcObject.ID);
         ibsql.ParamByName('alignment').AsString :=
           gdcObject.FieldByName('alignment').AsString;
         ibsql.ParamByName('oldalignment').AsString :=
@@ -1425,7 +1444,7 @@ begin
           'UPDATE at_relation_fields SET readonly = :readonly WHERE ' +
           'fieldsourcekey = :fieldsourcekey AND readonly = :oldreadonly';
 
-        ibsql.ParamByName('fieldsourcekey').AsInteger := gdcObject.ID;
+        SetTID(ibsql.ParamByName('fieldsourcekey'), gdcObject.ID);
         ibsql.ParamByName('readonly').AsString :=
           gdcObject.FieldByName('readonly').AsString;
         ibsql.ParamByName('oldreadonly').AsString :=
@@ -1442,7 +1461,7 @@ begin
           ' WHERE fieldsourcekey = :fieldsourcekey AND UPPER(gdclassname) = :oldgdclassname ' +
           ' AND UPPER(gdsubtype) = :oldgdsubtype ';
 
-        ibsql.ParamByName('fieldsourcekey').AsInteger := gdcObject.ID;
+        SetTID(ibsql.ParamByName('fieldsourcekey'), gdcObject.ID);
         ibsql.ParamByName('gdclassname').AsString :=
           gdcObject.FieldByName('gdclassname').AsString;
         ibsql.ParamByName('gdsubtype').AsString :=
@@ -1630,13 +1649,13 @@ begin
     gdcObject.FieldByName('reftablekey').AsString := luRefRelation.CurrentKey;
     gdcObject.FieldByName('reflistfieldkey').AsString := luRefListField.CurrentKey;
     Relation := atDatabase.Relations.ByID(
-      gdcObject.FieldByName('reftablekey').AsInteger);
+      GetTID(gdcObject.FieldByName('reftablekey')));
     if Assigned(Relation) then
     begin
       gdcObject.FieldByName('reftable').AsString := Relation.RelationName;
       RelationField :=
         Relation.RelationFields.ByID(
-          gdcObject.FieldByName('reflistfieldkey').AsInteger);
+          GetTID(gdcObject.FieldByName('reflistfieldkey')));
       if Assigned(RelationField) then
         gdcObject.FieldByName('reflistfield').AsString := RelationField.FieldName;
     end;
@@ -1655,12 +1674,12 @@ begin
     gdcObject.FieldByName('setlistfieldkey').AsString := luSetListField.CurrentKey;
     Relation :=
       atDatabase.Relations.ByID(
-        gdcObject.FieldByName('settablekey').AsInteger);
+        GetTID(gdcObject.FieldByName('settablekey')));
     if Assigned(Relation) then
     begin
       gdcObject.FieldByName('settable').AsString := Relation.RelationName;
       RelationField :=
-        Relation.RelationFields.ByID(gdcObject.FieldByName('setlistfieldkey').AsInteger);
+        Relation.RelationFields.ByID(GetTID(gdcObject.FieldByName('setlistfieldkey')));
       if Assigned(RelationField) then
         gdcObject.FieldByName('setlistfield').AsString := RelationField.FieldName;
     end;

@@ -1,22 +1,23 @@
+// ShlTanya, 10.03.2019
 
 unit flt_sqlFilterCache;
 
 interface
 
 uses
-  gd_KeyAssoc;
+  gd_KeyAssoc, gdcBaseInterface;
 
-function GetLastFilterKey(const AComponentKey: Integer): Integer;
-procedure SetLastFilterKey(const AComponentKey, AFilterKey: Integer);
+function GetLastFilterKey(const AComponentKey: TID): TID;
+procedure SetLastFilterKey(const AComponentKey, AFilterKey: TID);
 procedure SaveCacheToDatabase(const AClear: Boolean = False);
 
 implementation
 
 uses
-  SysUtils, IBDatabase, IBSQL, gd_security, gdcBaseInterface;
+  SysUtils, IBDatabase, IBSQL, gd_security;
 
 var
-  sqlFilterCache_UserKey: Integer;
+  sqlFilterCache_UserKey: TID;
   Cache: TgdKeyIntAssoc;
   Changed: Boolean;
 
@@ -39,12 +40,12 @@ begin
       'SELECT componentkey, lastfilter ' +
       'FROM flt_lastfilter ' +
       'WHERE userkey = :UK';
-    q.ParamByName('UK').AsInteger := sqlFilterCache_UserKey;
+    SetTID(q.ParamByName('UK'), sqlFilterCache_UserKey);
     q.ExecQuery;
     while not q.EOF do
     begin
-      Cache.ValuesByIndex[Cache.Add(q.FieldByName('componentkey').AsInteger)] :=
-        q.FieldByName('lastfilter').AsInteger;
+      Cache.ValuesByIndex[Cache.Add(GetTID(q.FieldByName('componentkey')))] :=
+        GetTID(q.FieldByName('lastfilter'));
       q.Next;
     end;
   finally
@@ -74,20 +75,20 @@ begin
 
       q.Transaction := Tr;
       q.SQL.Text := 'DELETE FROM flt_lastfilter WHERE userkey = :UK';
-      q.ParamByName('UK').AsInteger := sqlFilterCache_UserKey;
+      SetTID(q.ParamByName('UK'), sqlFilterCache_UserKey);
       q.ExecQuery;
 
       q.SQL.Text :=
         'INSERT INTO flt_lastfilter (userkey, componentkey, lastfilter) ' +
         'VALUES (:UK, :CK, :LF) ';
-      q.ParamByName('UK').AsInteger := sqlFilterCache_UserKey;
+      SetTID(q.ParamByName('UK'), sqlFilterCache_UserKey);
 
       for I := Cache.Count - 1 downto 0 do
       try
         if Cache.ValuesByIndex[I] > 0 then
         begin
-          q.ParamByName('CK').AsInteger := Cache[I];
-          q.ParamByName('LF').AsInteger := Cache.ValuesByIndex[I];
+          SetTID(q.ParamByName('CK'), Cache[I]);
+          SetTID(q.ParamByName('LF'), Cache.ValuesByIndex[I]);
           q.ExecQuery;
         end;
       except
@@ -127,7 +128,7 @@ begin
   end;
 end;
 
-function GetLastFilterKey(const AComponentKey: Integer): Integer;
+function GetLastFilterKey(const AComponentKey: TID): TID;
 begin
   CheckIt;
 
@@ -144,7 +145,7 @@ begin
   end;
 end;
 
-procedure SetLastFilterKey(const AComponentKey, AFilterKey: Integer);
+procedure SetLastFilterKey(const AComponentKey, AFilterKey: TID);
 var
   Idx: Integer;
 begin

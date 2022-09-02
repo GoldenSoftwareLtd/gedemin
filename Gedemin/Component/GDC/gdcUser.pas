@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcUser;
 
@@ -119,7 +120,7 @@ type
     property Groups: Integer read GetGroups write SetGroups;
 
     procedure CopySettings(ibtr: TIBTransaction);
-    procedure CopySettingsByUser(U: Integer; ibtr: TIBTRansaction);
+    procedure CopySettingsByUser(U: TID; ibtr: TIBTRansaction);
   end;
 
   TgdcUserGroup = class(TgdcBase)
@@ -153,11 +154,11 @@ type
     function CheckTheSameStatement: String; override;
 
     // добавить пользователя, заданного идентификатором в группу
-    procedure AddUser(const AnID: Integer); overload;
+    procedure AddUser(const AnID: TID); overload;
     procedure AddUser(AUser: TgdcUser); overload;
 
     //
-    procedure RemoveUser(const AnID: Integer); overload;
+    procedure RemoveUser(const AnID: TID); overload;
     procedure RemoveUser(AUser: TgdcUser); overload;
 
     function GetGroupMask: Integer; overload;
@@ -168,7 +169,7 @@ type
     // номер. Если свободных номеров нет, выдает исключение.
     // Increment в данном случае не играет роли.
     function GetNextID(const Increment: Boolean = True;
-      const ResetCache: Boolean = False): Integer; override;
+      const ResetCache: Boolean = False): TID; override;
 
     //
     property Mask: Integer read FMask write SetMask;
@@ -247,7 +248,7 @@ begin
   begin
     if not (State in dsEditModes) then
       Edit;
-    FieldByName('contactkey').AsInteger := CD^.ObjectArr[0].ID;
+    SetTID(FieldByName('contactkey'), CD^.ObjectArr[0].ID);
     Post;
   end else
     Result := False;
@@ -806,7 +807,7 @@ begin
         try
           q.Transaction := ReadTransaction;
           q.SQL.Text := 'SELECT phone FROM gd_contact WHERE id=:ID';
-          q.ParamByName('id').AsInteger := Field.AsInteger;
+          SetTID(q.ParamByName('id'), Field);
           q.ExecQuery;
           if q.EOF or q.Fields[0].IsNull then
             FieldByName('phone').Clear
@@ -898,7 +899,7 @@ procedure TgdcUser.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
   if HasSubSet('ByUserGroup') then
-    S.Add(Format('BIN_AND(z.ingroup, %d) <> 0', [FGroups]));
+    S.Add(Format('BIN_AND(z.ingroup, %d) <> 0', [TID264(FGroups)]));
 end;
 
 procedure TgdcUser.CustomInsert(Buff: Pointer);
@@ -932,8 +933,8 @@ begin
   CreateIBUser;
   ExecSingleQuery(
     'INSERT INTO gd_usercompany(userkey, companykey) VALUES (' +
-      IntToStr(Self.ID) + ',' +
-      IntToStr(IBLogin.CompanyKey) + ') ');
+      TID2S(Self.ID) + ',' +
+      TID2S(IBLogin.CompanyKey) + ') ');
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSER', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1062,7 +1063,7 @@ end;
 
 procedure TgdcUser.CopySettings(ibtr: TIBTRansaction);
 var
-  U: Integer;
+  U: TID;
 begin
   U := SelectObject;
   if (U <> -1) and (U <> ID) then
@@ -1071,7 +1072,7 @@ begin
   end;
 end;
 
-procedure TgdcUser.CopySettingsByUser(U: Integer; ibtr: TIBTransaction);
+procedure TgdcUser.CopySettingsByUser(U: TID; ibtr: TIBTransaction);
 var
   DidActivate: Boolean;
   SelfTr: TIBTransaction;
@@ -1116,7 +1117,7 @@ begin
         q.SQL.Text := 'DELETE FROM gd_storage_data WHERE parent IS NULL ' +
           'AND data_type = :DT AND int_data = :ID';
         q.ParamByName('DT').AsString := cStorageUser;
-        q.ParamByName('ID').AsInteger := ID;
+        SetTID(q.ParamByName('ID'), ID);
         q.ExecQuery;
 
         if UserStorage.ObjectKey = ID then
@@ -1138,14 +1139,14 @@ begin
         q.SQL.Text :=
           'DELETE FROM gd_desktop WHERE userkey=:TK AND name IN ' +
           '(SELECT name FROM gd_desktop WHERE userkey=:FK) ';
-        q.ParamByName('FK').AsInteger := U;
-        q.ParamByName('TK').AsInteger := ID;
+        SetTID(q.ParamByName('FK'), U);
+        SetTID(q.ParamByName('TK'), ID);
         q.ExecQuery;
 
         q.SQL.Text :=
           'INSERT INTO gd_desktop (userkey, screenres, name, saved, dtdata, reserved) ' +
-          'SELECT ' + IntToStr(ID) + ', screenres, name, saved, dtdata, reserved FROM gd_desktop WHERE userkey=:FK';
-        q.ParamByName('FK').AsInteger := U;
+          'SELECT ' + TID2S(ID) + ', screenres, name, saved, dtdata, reserved FROM gd_desktop WHERE userkey=:FK';
+        SetTID(q.ParamByName('FK'), U);
         q.ExecQuery;
       finally
         q.Free;
@@ -1171,7 +1172,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  UserID: Integer;
+  UserID: TID;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCUSER', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -1366,11 +1367,11 @@ begin
   Result := True;
 end;
 
-procedure TgdcUserGroup.AddUser(const AnID: Integer);
+procedure TgdcUserGroup.AddUser(const AnID: TID);
 begin
   ExecSingleQuery(Format(
       'UPDATE gd_user SET ingroup=BIN_OR(ingroup, %d) WHERE id=%d',
-      [GetGroupMask(ID), AnID]));
+      [GetGroupMask(ID), TID264(AnID)]));
   FDSModified := True;
 
   if Assigned(IBLogin) and (IBLogin.UserKey = AnId) then
@@ -1386,7 +1387,7 @@ begin
   AUser.FieldByName('ingroup').AsInteger :=
     AUser.FieldByName('ingroup').AsInteger or GetGroupMask(ID);
 
-  if Assigned(IBLogin) and (IBLogin.UserKey = AUser.FieldByName('ID').AsInteger) then
+  if Assigned(IBLogin) and (IBLogin.UserKey = GetTID(AUser.FieldByName('ID'))) then
     IBLogin.Ingroup := AUser.FieldByName('ingroup').AsInteger;
 
 end;
@@ -1494,8 +1495,8 @@ begin
     'achag=BIN_OR(achag, ' + M + '),' +
     'afull=BIN_OR(afull, ' + M + ')';
   ExecSingleQuery('UPDATE gd_command SET ' + S + ' WHERE id IN (740000, 740920)');
-  ExecSingleQuery('UPDATE gd_contact SET ' + S + ' WHERE id = ' + IntToStr(IBLogin.CompanyKey));
-  ExecSingleQuery('UPDATE gd_ourcompany SET ' + S + ' WHERE companykey = ' + IntToStr(IBLogin.CompanyKey));
+  ExecSingleQuery('UPDATE gd_contact SET ' + S + ' WHERE id = ' + TID2S(IBLogin.CompanyKey));
+  ExecSingleQuery('UPDATE gd_ourcompany SET ' + S + ' WHERE companykey = ' + TID2S(IBLogin.CompanyKey));
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERGROUP', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -1606,7 +1607,7 @@ begin
 end;
 
 function TgdcUserGroup.GetNextID(const Increment: Boolean = True;
-  const ResetCache: Boolean = False): Integer;
+  const ResetCache: Boolean = False): TID;
 var
   q: TIBSQL;
 begin
@@ -1636,7 +1637,7 @@ begin
     q.ExecQuery;
     if q.EOF then
       raise Exception.Create('Достигнут лимит количества групп пользователей');
-    Result := q.Fields[0].AsInteger;
+    Result := GetTID(q.Fields[0]);
   finally
     q.Free;
   end;
@@ -1766,7 +1767,7 @@ begin
     S.Add(Format('WHERE BIN_AND(%d, BIN_SHL(1, z.id - 1)) <> 0 ', [FMask]));
 end;
 
-procedure TgdcUserGroup.RemoveUser(const AnID: Integer);
+procedure TgdcUserGroup.RemoveUser(const AnID: TID);
 var
   R: OleVariant;
 begin
@@ -1778,13 +1779,13 @@ begin
 
   ExecSingleQueryResult(Format(
       'SELECT BIN_AND(ingroup, %d) FROM gd_user WHERE id=%d',
-      [not GetGroupMask(ID), AnID]), varNull, R);
+      [not GetGroupMask(ID), TID264(AnID)]), varNull, R);
 
   if VarIsEmpty(R) or (R[0, 0] <> 0) then
   begin
     ExecSingleQuery(Format(
         'UPDATE gd_user SET ingroup=BIN_AND(ingroup, %d) WHERE id=%d',
-        [not GetGroupMask(ID), AnID]));
+        [not GetGroupMask(ID), TID264(AnID)]));
 
     if Assigned(IBLogin) and (IBLogin.UserKey = AnId) then
       IBLogin.Ingroup := IBLogin.InGroup and (not GetGroupMask(ID));
@@ -1802,7 +1803,7 @@ begin
     begin
       ExecSingleQuery(Format(
           'UPDATE gd_user SET ingroup=%d WHERE id=%d',
-          [GD_UG_USERS, AnID]));
+          [GD_UG_USERS, TID264(AnID)]));
 
       if Assigned(IBLogin) and (IBLogin.UserKey = AnId) then
         IBLogin.Ingroup := GD_UG_USERS;
@@ -1827,7 +1828,7 @@ begin
   AUser.FieldByName('ingroup').AsInteger :=
     AUser.FieldByName('ingroup').AsInteger and (not GetGroupMask(ID));
 
-  if Assigned(IBLogin) and (IBLogin.UserKey = AUser.FieldByName('ID').AsInteger) then
+  if Assigned(IBLogin) and (IBLogin.UserKey = GetTID(AUser.FieldByName('ID'))) then
     IBLogin.Ingroup := AUser.FieldByName('ingroup').AsInteger;
 end;
 

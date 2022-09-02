@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gdLogClient;
 
 interface
@@ -49,7 +51,7 @@ type
 
     procedure InitClient;
     procedure DoneClient;
-    procedure Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: Integer);
+    procedure Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: TID);
 
     procedure GetCRCSQL(const AText, AnObjectClassName: String);
 
@@ -210,7 +212,7 @@ begin
   end;
 end;
 
-procedure TgdLogClient.Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: Integer);
+procedure TgdLogClient.Log(const AMsg, ASource, AnObjectName: String; const AnObjectID: TID);
 var
   P, L, i: Integer;
   f: Boolean;

@@ -1,10 +1,12 @@
+// ShlTanya, 27.02.2019
+
 unit rp_dlgReportOptions_unit;
 
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, Mask, DBCtrls, StdCtrls, Db, ExtCtrls, IBCustomDataSet;
+  ComCtrls, Mask, DBCtrls, StdCtrls, Db, ExtCtrls, IBCustomDataSet, gdcBaseInterface;
 
 type
   TdlgReportOptions = class(TForm)
@@ -44,7 +46,7 @@ type
     procedure CheckGDB;
     procedure SetEnabledChild(const AnControl: TWinControl; const AnEnabled: Boolean);
   public
-    function ViewOptions(const AnReportKey: Integer): Boolean;
+    function ViewOptions(const AnReportKey: TID): Boolean;
   end;
 
 function CheckGDBFile(const AnFileName: String): Boolean;
@@ -99,11 +101,11 @@ begin
   end;
 end;
 
-function TdlgReportOptions.ViewOptions(const AnReportKey: Integer): Boolean;
+function TdlgReportOptions.ViewOptions(const AnReportKey: TID): Boolean;
 begin
   Result := False;
   ibdsReportServer.Close;
-  ibdsReportServer.Params[0].AsInteger := AnReportKey;
+  SetTID(ibdsReportServer.Params[0], AnReportKey);
   ibdsReportServer.Open;
   if ibdsReportServer.Eof then
   begin

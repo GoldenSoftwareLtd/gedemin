@@ -1,3 +1,4 @@
+// ShlTanya, 31.01.2019
 
 unit at_SettingWalker;
 
@@ -319,7 +320,7 @@ begin
         begin
           Obj := StreamDataObject.gdcObject[OrderElement.DSIndex];
           CDS := StreamDataObject.ClientDS[OrderElement.DSIndex];
-          if CDS.Locate(Obj.GetKeyField(Obj.SubType), OrderElement.RecordID, []) then
+          if DatasetLocate(CDS, Obj.GetKeyField(Obj.SubType), TID2V(OrderElement.RecordID), []) then
             FObjectLoadNew(Self, Obj.ClassName, Obj.SubType, CDS)
           else
             raise Exception.Create('TatSettingWalker.ParseStream: В клиент-датасете не найден необходимый ID');

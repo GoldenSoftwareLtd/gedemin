@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019
+
 unit gp_dlgMakeDemand_unit;
 
 interface
@@ -47,7 +49,7 @@ type
   private
     { Private declarations }
     ListDemandField: TObjectList;
-    function MakeDemandForBill(const aCodeBill, aCodeGroup: Integer): Boolean;
+    function MakeDemandForBill(const aCodeBill, aCodeGroup: TID): Boolean;
     procedure MakeTaxField;
     procedure Prepare;
   public
@@ -114,15 +116,15 @@ end;
 
 { TdlgMakeDemand }
 
-function TdlgMakeDemand.MakeDemandForBill(const aCodeBill, aCodeGroup: Integer): Boolean;
+function TdlgMakeDemand.MakeDemandForBill(const aCodeBill, aCodeGroup: TID): Boolean;
 var
   F: TgsStorageFolder;
   i: Integer;
   FDestName: String;
   FAccountName: String;
   R: TatRelationField;
-  FAccount: Integer;
-  FDest: Integer;
+  FAccount: TID;
+  FDest: TID;
 
 procedure MakeFormatText(aText: String);
 var
@@ -233,7 +235,7 @@ begin
       /////////////////////////
       //  Данные по плательщику
 
-      sqlCompanyData.Params.ByName('ID').AsInteger := IBLogin.CompanyKey;;
+      SetTID(sqlCompanyData.Params.ByName('ID'), IBLogin.CompanyKey);
       sqlCompanyData.ExecQuery;
 
       FieldByName('OWNTAXID').AsString :=
@@ -245,7 +247,7 @@ begin
 
       sqlCompanyData.Close;
 
-      sqlBankData.Params.ByName('ID').AsInteger := FAccount;
+      SetTID(sqlBankData.Params.ByName('ID'), FAccount);
       sqlBankData.ExecQuery;
       FieldByName('OWNBANKTEXT').AsString :=
         sqlBankData.FieldByName('FULLNAME').AsString;
@@ -291,14 +293,14 @@ begin
         sqlCompanyData.Close;
       end;
 
-      ibsqlCompanyAccount.ParamByName('ck').AsInteger := FieldByName('CORRCOMPANYKEY').AsInteger;
+      SetTID(ibsqlCompanyAccount.ParamByName('ck'), FieldByName('CORRCOMPANYKEY'));
       ibsqlCompanyAccount.ExecQuery;
 
-      FieldByName('CORRACCOUNTKEY').AsInteger :=
-        ibsqlCompanyAccount.FieldByName('companyaccountkey').AsInteger;
+      SetTID(FieldByName('CORRACCOUNTKEY'),
+        ibsqlCompanyAccount.FieldByName('companyaccountkey'));
 
-      sqlBankData.Params.ByName('ID').AsInteger :=
-        ibsqlCompanyAccount.FieldByName('companyaccountkey').AsInteger;
+      SetTID(sqlBankData.Params.ByName('ID'),
+        ibsqlCompanyAccount.FieldByName('companyaccountkey'));
 
       sqlBankData.ExecQuery;
 
@@ -336,10 +338,10 @@ begin
   try
     ListDemandField.Clear;
 
-    ibsqlDocument.ParamByName('billkey').AsInteger := aCodeBill;
-    ibsqlDocRealization.ParamByName('billkey').AsInteger := aCodeBill;
-    ibsqlDocRealInfo.ParamByName('billkey').AsInteger := aCodeBill;
-    ibsqlDocRealPos.ParamByName('billkey').AsInteger := aCodeBill;
+    SetTID(ibsqlDocument.ParamByName('billkey'), aCodeBill);
+    SetTID(ibsqlDocRealization.ParamByName('billkey'), aCodeBill);
+    SetTID(ibsqlDocRealInfo.ParamByName('billkey'), aCodeBill);
+    SetTID(ibsqlDocRealPos.ParamByName('billkey'), aCodeBill);
 
     for i:= 0 to F.ValuesCount - 1 do
       MakeFormatText(F.Values[i].AsString);
@@ -365,11 +367,11 @@ begin
       ibdsDemandPayment.Open;
 
       ibdsDocument.Insert;
-      ibdsDocument.FieldByName('ID').AsInteger := GenUniqueID;
+      SetTID(ibdsDocument.FieldByName('ID'), GenUniqueID);
 
       ibdsDemandPayment.Insert;
-      ibdsDemandPayment.FieldByName('DocumentKey').AsInteger :=
-        ibdsDocument.FieldByName('ID').AsInteger;
+      SetTID(ibdsDemandPayment.FieldByName('DocumentKey'),
+        ibdsDocument.FieldByName('ID'));
 
       for i:= 0 to ListDemandField.Count - 1 do
       begin
@@ -389,16 +391,16 @@ begin
         end;
       end;
 
-      ibdsDemandPayment.FieldByName('AccountKey').AsInteger := FAccount;
+      SetTID(ibdsDemandPayment.FieldByName('AccountKey'), FAccount);
       if FDest <> -1 then
-        ibdsDemandPayment.FieldByName('DESTCODEKEY').AsInteger := FDest;
+        SetTID(ibdsDemandPayment.FieldByName('DESTCODEKEY'), FDest);
 
       SetTextDemandField;
 
       try
         ibsqlInsert.Prepare;
-        ibsqlInsert.ParamByName('sk').AsInteger := aCodeBill;
-        ibsqlInsert.ParamByName('dk').AsInteger := ibdsDocument.FieldByName('id').AsInteger;
+        SetTID(ibsqlInsert.ParamByName('sk'), aCodeBill);
+        SetTID(ibsqlInsert.ParamByName('dk'), ibdsDocument.FieldByName('id'));
         ibsqlInsert.ExecQuery;
 
         ibsqlInsert.Close;

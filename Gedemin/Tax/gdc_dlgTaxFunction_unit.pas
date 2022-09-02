@@ -1,3 +1,5 @@
+// ShlTanya, 12.03.2019
+
 {++
 
 
@@ -83,7 +85,7 @@ uses
 procedure Tgdc_dlgTaxFunction.actAddFunctionExecute(Sender: TObject);
 begin
   with TfrmAvailableTaxFunc.CreateWithParams(Self,
-    gdcObject.FieldByName('taxactualkey').AsInteger,
+    GetTID(gdcObject.FieldByName('taxactualkey')),
     gdcObject.FieldByName('name').AsString) do
   try
     if ShowModal = idOk then
@@ -200,7 +202,7 @@ procedure Tgdc_dlgTaxFunction.mmTaxFunctionChange(Sender: TObject);
 begin
   inherited;
   if gdcObject.FieldByName('taxfunction').AsString <> mmTaxFunction.Lines.Text then
-    gdcObject.FieldByName('id').AsInteger := gdcObject.ID;
+    SetTID(gdcObject.FieldByName('id'), gdcObject.ID);
 end;
 
 procedure Tgdc_dlgTaxFunction.LoadSettings;

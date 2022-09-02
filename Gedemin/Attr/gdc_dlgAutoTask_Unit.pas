@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit gdc_dlgAutoTask_unit;
 
 interface
@@ -100,7 +102,7 @@ implementation
 
 uses
   gd_ClassList, gd_security, gd_common_functions, gd_AutoTaskThread,
-  jclSysInfo;
+  jclSysInfo, gdcBaseInterface;
 
 procedure Tgdc_dlgAutoTask.OnWebClientThreadNotify(var Msg : TMessage);
 var
@@ -157,7 +159,7 @@ begin
     pcTask.ActivePage := tsCmd
   else if gdcObject.FieldByName('backupfile').AsString > '' then
     pcTask.ActivePage := tsBackup
-  else if gdcObject.FieldByName('reportkey').AsInteger > 0 then
+  else if GetTID(gdcObject.FieldByName('reportkey')) > 0 then
     pcTask.ActivePage := tsReport
   else if gdcObject.FieldByName('reload').AsInteger <> 0 then
     pcTask.ActivePage := tsReload

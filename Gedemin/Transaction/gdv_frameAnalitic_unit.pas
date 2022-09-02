@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019, #4135
+
 unit gdv_frameAnalitic_unit;
 
 interface
@@ -16,7 +18,7 @@ type
     procedure SetValues(const Value: string);override;
   public
     { Public declarations }
-    procedure UpdateAvail(IdList: TList); override;
+    procedure UpdateAvail(IdList: TList; Context: String); override;
   end;
 
 var
@@ -81,7 +83,7 @@ begin
   end;
 end;
 
-procedure TframeAnalitic.UpdateAvail(IdList: TList);
+procedure TframeAnalitic.UpdateAvail(IdList: TList; Context: String);
 var
   I: Integer;
   SQL: TIBSQl;
@@ -103,7 +105,7 @@ begin
         for I := 0 to FFields.Count - 1 do
         begin
           SQL.SQL.Text := Format('SELECT COUNT(*) FROM AC_ACCOUNT WHERE (id IN ' +
-            '(%s)) AND (%s = 1)', [AcctUtils.IdList(IdList), TatRelationField(FFields[i]).FieldName]);
+            '(%s)) AND (%s = 1)', [AcctUtils.IdList(IdList, Context), TatRelationField(FFields[i]).FieldName]);
           SQL.ExecQuery;
           try
             if SQl.Fields[0].AsInteger = IDList.Count then

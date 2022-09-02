@@ -1,3 +1,4 @@
+// ShlTanya, 21.02.2019
 
 unit gdc_framSetControl_unit;
 
@@ -184,6 +185,7 @@ var
   P: TatPrimaryKey;
   I: Integer;
   C: TgsIBColumnEditor;
+  ExistsVisCol: boolean;
 begin
   Assert(DS.DataSet is TgdcBase);
   Assert(Assigned(atDatabase));
@@ -217,15 +219,27 @@ begin
       end;
     end;
 
-    if not Gr.SettingsLoaded then
+    ExistsVisCol := false;
+    if Gr.SettingsLoaded then
+    begin
+      for I := 0 to Gr.Columns.Count - 1 do
+      begin
+        if Gr.Columns[I].Visible then
+        begin
+          ExistsVisCol := true;
+          break;
+        end;
+      end;
+    end;
+
+    if not ExistsVisCol then
     begin
       for I := 0 to Gr.Columns.Count - 1 do
       begin
         if AnsiCompareText(Gr.Columns[I].Field.FieldName,
           (DS.DataSet as TgdcBase).GetListField((DS.DataSet as TgdcBase).SubType)) <> 0 then
-        begin
-          Gr.Columns[I].Visible := False;
-        end;
+          Gr.Columns[I].Visible := False
+        else Gr.Columns[I].Visible := True;
       end;
     end;
   end;

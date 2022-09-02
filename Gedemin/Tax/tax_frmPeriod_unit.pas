@@ -1,3 +1,5 @@
+// ShlTanya, 12.03.2019
+
 {++
 
 
@@ -105,7 +107,8 @@ var
 implementation
 
 uses
-  Storages, gdc_frmTaxDesignTime_unit, gd_directories_const, gsStorage_CompPath
+  Storages, gdc_frmTaxDesignTime_unit, gd_directories_const, gsStorage_CompPath,
+  gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -264,7 +267,7 @@ begin
   gdcTaxName.First;
   while not gdcTaxName.Eof do
   begin
-    ibgrTax.CheckBox.AddCheck(gdcTaxName.FieldByName('id').AsInteger);
+    ibgrTax.CheckBox.AddCheck(GetTID(gdcTaxName.FieldByName('id')));
     gdcTaxName.Next;
   end;
   gdcTaxName.GotoBookmark(BM);

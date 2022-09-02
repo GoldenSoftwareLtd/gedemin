@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgSelectPrMetal_unit;
 
 interface
@@ -24,9 +26,6 @@ type
     dsPrMetal: TDataSource;
     gsibgrPrMetal: TgsIBGrid;
     ibdsPrMetal: TIBDataSet;
-    ibdsPrMetalID: TIntegerField;
-    ibdsPrMetalNAME: TIBStringField;
-    ibdsPrMetalDESCRIPTION: TIBStringField;
     ibsqlAddNew: TIBSQL;
     Button3: TButton;
     actDelPrMetal: TAction;
@@ -40,10 +39,10 @@ type
     procedure actDelPrMetalUpdate(Sender: TObject);
   private
     { Private declarations }
-    FGoodKey: Integer;
+    FGoodKey: TID;
   public
     { Public declarations }
-    function ActiveDialog(const aGoodKey: Integer; isChoose: Boolean): Boolean;
+    function ActiveDialog(const aGoodKey: TID; isChoose: Boolean): Boolean;
   end;
 
 var
@@ -56,7 +55,7 @@ uses
 
 {$R *.DFM}
 
-function TdlgSelectPrMetal.ActiveDialog(const aGoodKey: Integer; isChoose: Boolean): Boolean;
+function TdlgSelectPrMetal.ActiveDialog(const aGoodKey: TID; isChoose: Boolean): Boolean;
 begin
   Result := False;
 
@@ -76,8 +75,8 @@ begin
         begin
           if not ibsqlAddNew.Prepared then
             ibsqlAddNew.Prepare;
-          ibsqlAddNew.Params.ByName('goodkey').AsInteger := FGoodKey;
-          ibsqlAddNew.Params.ByName('prmetalkey').AsInteger := ibdsPrMetal.FieldByName('ID').AsInteger;
+          SetTID(ibsqlAddNew.Params.ByName('goodkey'), FGoodKey);
+          SetTID(ibsqlAddNew.Params.ByName('prmetalkey'), ibdsPrMetal.FieldByName('ID'));
           try
             ibsqlAddNew.ExecQuery;
           except
@@ -101,7 +100,7 @@ begin
     if ShowModal = mrOK then
     begin
       ibdsPrMetal.Insert;
-      ibdsPrMetal.FieldByName('ID').AsInteger := GenUniqueID;
+      SetTID(ibdsPrMetal.FieldByName('ID'), GenUniqueID);
       ibdsPrMetal.FieldByName('Name').AsString := ParamName;
       ibdsPrMetal.FieldByName('Description').AsString := Description;
       ibdsPrMetal.Post;

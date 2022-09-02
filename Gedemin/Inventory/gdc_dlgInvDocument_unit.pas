@@ -32,7 +32,7 @@ uses
   gdc_dlgTR_unit, Db, ActnList, StdCtrls, ExtCtrls, at_Container,
   gdcInvDocument_unit, DBGrids, gsDBGrid, gsIBGrid, IBDatabase, IBSQL,
   Mask, xDateEdits, DBCtrls, gdcBase, gdcContacts, TB2Dock, TB2Toolbar,
-  TB2Item, contnrs, Menus, gsIBLookupComboBox, gd_MacrosMenu, Grids;
+  TB2Item, contnrs, Menus, gsIBLookupComboBox, gd_MacrosMenu, Grids, gdcBaseInterface;
 
 type
   TdlgInvDocument = class(Tgdc_dlgTR)
@@ -120,7 +120,7 @@ type
     procedure actOkUpdate(Sender: TObject);
 
     procedure SetCardFieldCondition(CurrDocLine: TgdcInvDocumentLine;
-                GoodKey: Integer);
+                GoodKey: TID);
     procedure actCommitExecute(Sender: TObject);
     procedure actNewUpdate(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
@@ -234,7 +234,7 @@ implementation
 
 uses
   gdcInvConsts_unit, gdcInvMovement, at_classes, gdcGood,
-  gd_Security, Storages, evt_i_Base,  gd_ClassList, gdcBaseInterface,
+  gd_Security, Storages, evt_i_Base,  gd_ClassList, 
   gsStorage_CompPath, gdc_frmInvSelectedGoods_unit, JclStrings,
   ComCtrls, gdc_frmInvCard_unit
   {must be placed after Windows unit!}
@@ -266,7 +266,7 @@ begin
   Field.OnChange := OldEvent;
 end;
 
-function GetArrAsCommaText(Ar: array of Integer): String;
+function GetArrAsCommaText(Ar: array of TID): String;
 var
   I: Integer;
 begin
@@ -598,17 +598,17 @@ begin
       for I := 0 to VarArrayHighBound(V, 1) do
       begin
         CurrDocLine.Append;
-        CurrDocLine.FieldByName('goodkey').AsInteger := V[I];
+        SetTID(CurrDocLine.FieldByName('goodkey'), GetTID(V[I]));
 
         if Documentline.RelationType = irtTransformation then
         begin
           if CurrDocLine.ViewMovementPart = impIncome then
-            CurrDocLine.FieldByName('inquantity').AsInteger := 1
+            CurrDocLine.FieldByName('inquantity').AsCurrency := 1
           else
-            CurrDocLine.FieldByName('outquantity').AsInteger := 1
+            CurrDocLine.FieldByName('outquantity').AsCurrency := 1
         end
         else
-          CurrDocLine.FieldByName('quantity').AsInteger := 1;
+          CurrDocLine.FieldByName('quantity').AsCurrency := 1;
 
         CurrDocLine.UpdateGoodNames;
         CurrDocLine.Post;
@@ -1627,7 +1627,7 @@ begin
       CE := gdClassList.Get(TgdDocumentEntry, DocumentLine.ClassName, DocumentLine.SubType).GetRootSubType;
 
       ibsql.SQL.Text := Format('SELECT documentkey FROM %s WHERE disabled = 1 and masterkey = %d',
-        [TgdDocumentEntry(CE).DistinctRelation, Document.FieldByName('id').AsInteger]);
+        [TgdDocumentEntry(CE).DistinctRelation, GetTID(Document.FieldByName('id'))]);
       ibsql.ExecQuery;
       if ibsql.RecordCount > 0 then
       begin
@@ -2422,7 +2422,7 @@ begin
 end;
 
 procedure TdlgInvDocument.SetCardFieldCondition(CurrDocLine: TgdcInvDocumentLine;
-  GoodKey: Integer);
+  GoodKey: TID);
 var
   I, J: Integer;
   R: TatRelation;
@@ -2448,7 +2448,6 @@ begin
       4) поле не пользовательское,
       то переходим к следующему полю}
     if CurrDocLine.Fields[I].Calculated or
-      (CurrDocLine.Fields[I].DataType <> ftInteger) or
       (StrIPos('FROM_', CurrDocLine.Fields[I].FieldName) <> 1) or
       (StrIPos(UserPrefix, CurrDocLine.FieldNameByAliasName(
         CurrDocLine.Fields[I].FieldName)) <> 1)
@@ -2517,7 +2516,7 @@ procedure TdlgInvDocument.OnGoodKeyFieldChange(Field: TField);
 begin
   {¬ызываем старое событие на поле}
   RunOldOnChange(Field);
-  SetCardFieldCondition((Field.DataSet as TgdcInvDocumentLine), Field.AsInteger);
+  SetCardFieldCondition((Field.DataSet as TgdcInvDocumentLine), GetTID(Field));
 end;
 
 procedure TdlgInvDocument.actCommitExecute(Sender: TObject);
@@ -2615,7 +2614,7 @@ begin
         ibsql.SQL.Text := 'SELECT id FROM gd_documenttype dt WHERE dt.id = :id and ' +
         ' dt.headerfunctionkey is not null and ' +
         ' dt.linefunctionkey is null ';
-        ibsql.ParamByName('id').AsInteger := Document.FieldByName('documenttypekey').AsInteger;
+        SetTID(ibsql.ParamByName('id'), GetTID(Document.FieldByName('documenttypekey')));
         ibsql.ExecQuery;
         if ibsql.RecordCount > 0 then
           Document.CreateEntry;
@@ -2659,7 +2658,7 @@ procedure TdlgInvDocument.DoCreateNewObject(Sender: TObject;
   ANewObject: TgdcBase);
 var
   ContactType: TgdcInvMovementContactType;
-  SubContactKey: Integer;
+  SubContactKey: TID;
   isSourceTarget: Boolean;
 begin
   isSourceTarget := False;
@@ -2681,7 +2680,7 @@ begin
         and
       (Document.MovementSource.SubSourceFieldName <> '')
     then
-      SubContactKey := gdcObject.FieldByName(Document.MovementSource.SubSourceFieldName).AsInteger
+      SubContactKey := GetTID(gdcObject.FieldByName(Document.MovementSource.SubSourceFieldName))
   end
   else
     if
@@ -2700,7 +2699,7 @@ begin
           and
         (Document.MovementTarget.SubSourceFieldName <> '')
       then
-        SubContactKey := gdcObject.FieldByName(Document.MovementTarget.SubSourceFieldName).AsInteger
+        SubContactKey := GetTID(gdcObject.FieldByName(Document.MovementTarget.SubSourceFieldName))
     end;
 
 
@@ -2708,11 +2707,11 @@ begin
   begin
     case ContactType of
       imctOurDepartment:
-        aNewObject.FieldByName('parent').AsInteger := IbLogin.CompanyKey;
+        SetTID(aNewObject.FieldByName('parent'), IbLogin.CompanyKey);
       imctOurDepartAndPeople:
-        aNewObject.FieldByName('parent').AsInteger := IbLogin.CompanyKey;
+        SetTID(aNewObject.FieldByName('parent'), IbLogin.CompanyKey);
       imctCompanyDepartment:
-        aNewObject.FieldByName('parent').AsInteger := SubContactKey;
+        SetTID(aNewObject.FieldByName('parent'), SubContactKey);
     end;
   end;
 
@@ -3061,12 +3060,12 @@ begin
   {ѕо-хорошему, если определен FBottomGrid, то определен и FTopGrid}
   if Assigned(FBottomGrid) then
   begin
-    Result := VarArrayOf([VarArrayOf([gdcObject.ID]),
+    Result := VarArrayOf([VarArrayOf([TID2V(gdcObject.ID)]),
       CreateSelectedArr(DocumentLine, ibgrdTop.SelectedRows),
       CreateSelectedArr(DocumentLine, FBottomGrid.SelectedRows)]);
   end else
   begin
-    Result := VarArrayOf([VarArrayOf([gdcObject.ID]),
+    Result := VarArrayOf([VarArrayOf([TID2V(gdcObject.ID)]),
       CreateSelectedArr(DocumentLine, ibgrdTop.SelectedRows)]);
   end;
 end;

@@ -1,3 +1,4 @@
+// ShlTanya, 26.02.2019
 
 {++
 
@@ -39,7 +40,7 @@ type
 type
   TscrCustomItem = class(TObject)
   protected
-    FId: Integer;
+    FId: TID;
     FName: ShortString;
     FItemType: TscrItemType;
 
@@ -47,7 +48,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    property Id: Integer read FId write FId;
+    property Id: TID read FId write FId;
     property Name: ShortString read FName write FName;
     property ItemType: TscrItemType read FItemType;
   end;
@@ -123,12 +124,12 @@ type
 type
   TscrMacrosItem = class(TscrCustomItem)
   private
-    FFunctionKey: Integer;
-    FGroupKey: Integer;
+    FFunctionKey: TID;
+    FGroupKey: TID;
     FIsGlobal: boolean;
     FIsRebuild: Boolean;
 //    FIsLocalExecute: Boolean;
-    FServerKey: Integer;
+    FServerKey: TID;
     FExecuteDate: ShortString;
     FShortCut: Word;
 
@@ -143,10 +144,10 @@ type
     procedure SaveToStream(AStream: TStream);
     procedure LoadFromStream(AStream: TStream);
 
-    property GroupKey: Integer read FGroupKey write FGroupKey;
-    property FunctionKey: Integer read FFunctionKey write FFunctionKey;
+    property GroupKey: TID read FGroupKey write FGroupKey;
+    property FunctionKey: TID read FFunctionKey write FFunctionKey;
     property IsGlobal: Boolean read FIsGlobal write SetIsGlobal;
-    property ServerKey: Integer read FServerKey write FServerKey;
+    property ServerKey: TID read FServerKey write FServerKey;
     property IsRebuild: Boolean read FIsRebuild write FIsrebuild;
 //    property IsLocalExecute: Boolean read FIsLocalExecute write FIsLocalExecute;
     property ExecuteDate: ShortString read FExecuteDate write FExecutedate;
@@ -166,15 +167,15 @@ type
     function GetCount: Integer;
     procedure SetMacros(Index: Integer; const Value: TscrMacrosItem);
     procedure SetMacrosByName(AName: ShortString; const Value: TscrMacrosItem);
-    function GetMacrosByID(AId: Integer): TscrMacrosItem;
-    procedure SetMacrosByID(AId: Integer; const Value: TscrMacrosItem);
+    function GetMacrosByID(AId: TID): TscrMacrosItem;
+    procedure SetMacrosByID(AId: TID; const Value: TscrMacrosItem);
   public
     constructor Create(const AnUseScriptMethod: Boolean);
     destructor Destroy; override;
 
     function IndexOfByName(AName: ShortString): Integer;
     function IndexOf(MacrosItem: TscrMacrosItem): Integer;
-    function IndexOfByID(AID: Integer): Integer;
+    function IndexOfByID(AID: TID): Integer;
     //Запись информации в поток.
     procedure SaveToStream(AStream: Tstream);
     //Чтение информации из потока.
@@ -183,10 +184,10 @@ type
     function Add(const AMacrosItem: TscrMacrosItem): Integer;
     //Загрузка макросов из базы данных. Данные должны выбираться в зависимости от ключа объекта и значения поля MODULE = MACROS
     //Загружаются макросы хранящиеся только в группе с ID = AGroupKey
-    procedure Load(const AGroupKey: Integer);
+    procedure Load(const AGroupKey: TID);
     //Загрузка макросов из базы данных. Данные должны выбираться в зависимости от ключа объекта и значения поля MODULE = MACROS
     //Загружаются макросы хранящиеся в группе с ID = AGroupKey и её подгруппах
-    procedure LoadWithSubGroup(const AGroupKey: Integer);
+    procedure LoadWithSubGroup(const AGroupKey: TID);
     function Last: TscrMacrosItem;
     procedure Assign(ASource: TscrMacrosList);
 
@@ -194,7 +195,7 @@ type
     property Macros[Index: Integer]: TscrMacrosItem read GetMacros write SetMacros; default;
     //Возвращает данные макроса по имени
     property MacrosByName[AName: ShortString]: TscrMacrosItem read GetMacrosByName write SetMacrosByName;
-    property MacrosByID[AId: Integer]: TscrMacrosItem read GetMacrosByID write SetMacrosByID;
+    property MacrosByID[AId: TID]: TscrMacrosItem read GetMacrosByID write SetMacrosByID;
     property Transaction: TIBTransaction read FTransaction write FTransaction;
     property Count: Integer read GetCount;
   end;
@@ -204,14 +205,14 @@ type
   TscrMacrosGroupItem = class(TscrCustomItem)
   private
     FIsGlobal: Boolean;
-    FParent: Integer;
+    FParent: TID;
     FIsSaved: Boolean;
     FChildIsRead: Boolean;
     FMacrosList: TscrMacrosList;
 
     function GetIsRoot: Boolean;
     procedure SetIsGlobal(const Value: Boolean);
-    procedure SetParent(const Value: Integer);
+    procedure SetParent(const Value: TID);
 
   public
     constructor Create(const AnUseScriptMethod: Boolean);
@@ -223,7 +224,7 @@ type
     procedure ReadFromDataSet(ADataSet: TIBCustomDataSet);
     procedure ReadFromSQL(ASQL: TIBSQL);
 
-    property Parent: Integer read FParent write SetParent;
+    property Parent: TID read FParent write SetParent;
     property IsGlobal: Boolean read FIsGlobal write SetIsGlobal;
     property IsRoot: Boolean read GetIsRoot;
     property IsSaved: Boolean read FIsSaved write FIsSaved;
@@ -246,8 +247,8 @@ type
     function GetGroupByName(AName: ShortString): TscrMacrosGroupItem;
     procedure SetGroupByName(AName: ShortString;
       const Value: TscrMacrosGroupItem);
-    function GetGroupItemsByID(AID: Integer): TscrMacrosGroupItem;
-    procedure SetGroupItemsByID(AID: Integer;
+    function GetGroupItemsByID(AID: TID): TscrMacrosGroupItem;
+    procedure SetGroupItemsByID(AID: TID;
       const Value: TscrMacrosGroupItem);
     procedure SetTransaction(const Value: TIBTransaction);
     
@@ -257,7 +258,7 @@ type
 
     function IndexOfByName(AName: ShortString): Integer;
     function IndexOf(GroupItem: TscrMacrosGroupItem): Integer;
-    function IndexOfByID(AID: Integer): Integer;
+    function IndexOfByID(AID: TID): Integer;
     //Запись информации в поток.
     procedure SaveToStream(AStream: Tstream);
     //Чтение информации из потока.
@@ -265,7 +266,7 @@ type
     procedure Clear;
     function Add(const AGroupItem: TscrMacrosGroupItem): Integer;
     //Загрузка папки из базы данных. Данные должны выбираться в зависимости от ключа
-    procedure Load(const AId: Integer; const AnUseScriptMethod: Boolean = True);
+    procedure Load(const AId: TID; const AnUseScriptMethod: Boolean = True);
     function Last: TscrMacrosGroupItem;
     procedure Sort;
 
@@ -274,7 +275,7 @@ type
     //Возвращает данные папки по имени
     property GroupItemsByName[AName: ShortString]: TscrMacrosGroupItem read GetGroupByName write SetGroupByName;
     //Возвращает данные папки по ID
-    property GroupItemsByID[AID: Integer]: TscrMacrosGroupItem read GetGroupItemsByID write SetGroupItemsByID;
+    property GroupItemsByID[AID: TID]: TscrMacrosGroupItem read GetGroupItemsByID write SetGroupItemsByID;
     property Transaction: TIBTransaction read FTransaction write SetTransaction;
     property Count: Integer read GetCount;
   end;
@@ -353,12 +354,12 @@ end;
 procedure TscrMacrosItem.ReadFromDataSet(ADataSet: TIBCustomDataSet);
 begin
   try
-    FId := ADataSet.FieldByName(fnId).AsInteger;
-    FGroupKey := ADataSet.FieldByName(fnMacrosGroupKey).AsInteger;
-    FunctionKey := ADataSet.FieldByName(fnFunctionKey).AsInteger;
+    FId := GetTID(ADataSet.FieldByName(fnId));
+    FGroupKey := GetTID(ADataSet.FieldByName(fnMacrosGroupKey));
+    FunctionKey := GetTID(ADataSet.FieldByName(fnFunctionKey));
     FIsRebuild := Boolean(ADataSet.FieldByName(fnIsRebuild).AsInteger);
 //    FIsLocalExecute := Boolean(ADataSet.FieldByName(fnIsLocalExecute).AsInteger);
-    FServerKey := ADataSet.FieldByName(fnServerKey).AsInteger;
+    FServerKey := GetTID(ADataSet.FieldByName(fnServerKey));
     FExecuteDate := ADataSet.FieldByName(fnExecuteDate).AsString;
     FShortCut := ADataSet.FieldByName(fnShortCut).AsInteger;
     Name := ADataSet.FieldByName(fnName).AsString;
@@ -368,31 +369,39 @@ begin
 end;
 
 procedure TscrMacrosItem.LoadFromStream(AStream: TStream);
+var Len: integer;
 begin
-  AStream.ReadBuffer(Fid, SizeOf(FId));
-  AStream.ReadBuffer(FGroupKey, SizeOf(FGroupKey));
+  {метка сохранения ID в Int64}
+  Len := GetLenIDinStream(@AStream);
+
+  AStream.ReadBuffer(Fid, Len);
+  AStream.ReadBuffer(FGroupKey, Len);
   AStream.ReadBuffer(FName, SizeOf(FName));
-  AStream.ReadBuffer(FFunctionKey, SizeOf(FFunctionKey));
+  AStream.ReadBuffer(FFunctionKey, Len);
   AStream.ReadBuffer(FIsGlobal, SizeOf(FIsGlobal));
   AStream.ReadBuffer(FIsRebuild, SizeOf(FIsRebuild));
 //  AStream.Read(FIsLocalExecute, SizeOf(FIsLocalExecute));
-  AStream.ReadBuffer(FServerKey, SizeOf(FServerKey));
+  AStream.ReadBuffer(FServerKey, Len);
   AStream.ReadBuffer(FExecuteDate, SizeOf(FExecuteDate));
   AStream.ReadBuffer(FShortCut, SizeOf(FShortCut));
 end;
 
 procedure TscrMacrosItem.SaveToStream(AStream: TStream);
+var Len: integer;
 begin
-  AStream.Write(FId, SizeOf(FId));
-  AStream.Write(FGroupKey, SizeOf(FGroupKey));
+  {метка сохранения ID в Int64}
+  Len := SetLenIDinStream(@AStream);
+
+  AStream.Write(FId, Len);
+  AStream.Write(FGroupKey, Len);
   AStream.Write(FName, SizeOf(FName));
-  AStream.Write(FFunctionKey, SizeOf(FFunctionKey));
+  AStream.Write(FFunctionKey, Len);
   AStream.Write(FIsGlobal, SizeOf(FIsGlobal));
   AStream.Write(FIsRebuild, SizeOf(FIsRebuild));
 //  AStream.Write(FIsLocalExecute, SizeOf(FIsLocalExecute));
-  AStream.Write(FServerKey, SizeOf(FServerKey));
+  AStream.Write(FServerKey, Len);
   AStream.Write(FExecuteDate, SizeOf(FExecuteDate));
-   AStream.Write(FShortCut, SizeOf(FShortCut));
+  AStream.Write(FShortCut, SizeOf(FShortCut));
 end;
 
 
@@ -405,11 +414,11 @@ end;
 procedure TscrMacrosItem.ReadFromSQL(ASQL: TIBSQL);
 begin
   try
-    FId := ASQL.FieldByName(fnId).AsInteger;
-    FGroupKey := ASQL.FieldByName(fnMacrosGroupKey).AsInteger;
-    FunctionKey := ASQL.FieldByName(fnFunctionKey).AsInteger;
+    FId := GetTID(ASQL.FieldByName(fnId));
+    FGroupKey := GetTID(ASQL.FieldByName(fnMacrosGroupKey));
+    FunctionKey := GetTID(ASQL.FieldByName(fnFunctionKey));
     FIsRebuild := Boolean(ASQL.FieldByName(fnIsRebuild).AsInteger);
-    FServerKey := ASQL.FieldByName(fnServerKey).AsInteger;
+    FServerKey := GetTID(ASQL.FieldByName(fnServerKey));
     FExecuteDate := ASQL.FieldByName(fnExecuteDate).AsString;
     FShortCut := ASQL.FieldByName(fnShortCut).AsInteger;
     Name := ASQL.FieldByName(fnName).AsString;
@@ -481,7 +490,7 @@ begin
   Result := TscrMacrosItem(FList.Items[Index]);
 end;
 
-function TscrMacrosList.GetMacrosByID(AId: Integer): TscrMacrosItem;
+function TscrMacrosList.GetMacrosByID(AId: TID): TscrMacrosItem;
 var
   Index: Integer;
 begin
@@ -512,7 +521,7 @@ begin
     Result := -1;
 end;
 
-function TscrMacrosList.IndexOfByID(AID: Integer): Integer;
+function TscrMacrosList.IndexOfByID(AID: TID): Integer;
 begin
   Result := 0;
   while (Result < FList.Count) and (Macros[Result].Id <> AID) do
@@ -535,7 +544,7 @@ begin
   Result := TscrMacrosItem(FList.Last);
 end;
 
-procedure TscrMacrosList.Load(const AGroupKey: integer);
+procedure TscrMacrosList.Load(const AGroupKey: TID);
 var
   gdcMacros: TgdcMacros;
   Flag: Boolean;
@@ -551,7 +560,7 @@ begin
         FTransaction.StartTransaction;
       gdcMacros.Transaction := FTransaction;
       gdcMacros.SubSet := ssMacrosGroup;
-      gdcMacros.ParamByName('macrosgroupkey').AsInteger := AGroupKey;
+      SetTID(gdcMacros.ParamByName('macrosgroupkey'), AGroupKey);
       gdcMacros.OnlyDisplaying := True;
       gdcMacros.Open;
       Clear;
@@ -586,7 +595,7 @@ begin
     raise Exception.Create(STREAM_ERROR);
 end;
 
-procedure TscrMacrosList.LoadWithSubGroup(const AGroupKey: Integer);
+procedure TscrMacrosList.LoadWithSubGroup(const AGroupKey: TID);
 var
   SQL: TIBSQL;
 begin
@@ -597,7 +606,7 @@ begin
       'MG2 ON MG1.LB  <=  MG2.LB AND MG1.RB  >=  MG2.RB JOIN EVT_MACROSLIST Z ' +
       'ON z.displayinmenu = 1 AND Z.MACROSGROUPKEY  =  MG2.ID WHERE (MG1.ID  =  :id) AND ' +
       'G_SEC_TEST(Z.AVIEW,  :ingroup)  <>  0 ORDER BY MG2.LB, Z.NAME';
-    SQL.ParamByName('id').AsInteger := AGroupKey;
+    SetTID(SQL.ParamByName('id'), AGroupKey);
     SQL.ParamByName('ingroup').AsInteger := IBLogin.Ingroup;
     SQL.ExecQuery;
     Clear;
@@ -627,7 +636,7 @@ begin
   TscrMacrosItem(FList.Items[Index]).Assign(Value);
 end;
 
-procedure TscrMacrosList.SetMacrosByID(AId: Integer;
+procedure TscrMacrosList.SetMacrosByID(AId: TID;
   const Value: TscrMacrosItem);
 var
   Index: Integer;
@@ -636,7 +645,7 @@ begin
   if Index <> -1 then
     TscrMacrosItem(FList.Items[Index]).Assign(Value)
   else
-   raise Exception.CreateFmt('Значение %d ненайдено',[AId]);
+   raise Exception.CreateFmt('Значение %d ненайдено',[TID264(AId)]);
 end;
 
 procedure TscrMacrosList.SetMacrosByName(AName: ShortString;
@@ -689,8 +698,8 @@ end;
 procedure TscrMacrosGroupItem.ReadFromDataSet(ADataSet: TIBCustomDataSet);
 begin
   try
-    Id := ADataSet.FieldByName(fnId).AsInteger;
-    Parent := ADataSet.FieldByName(fnParent).AsInteger;
+    Id := GetTID(ADataSet.FieldByName(fnId));
+    Parent := GetTID(ADataSet.FieldByName(fnParent));
     IsGlobal := Boolean(ADataSet.FieldByName(fnIsGlobal).AsInteger);
     Name := ADataSet.FieldByName(fnName).AsString;
     FIsSaved := True;
@@ -701,17 +710,25 @@ begin
 end;
 
 procedure TscrMacrosGroupItem.LoadFromStream(AStream: TStream);
+var Len: Integer;
 begin
-  AStream.ReadBuffer(Fid, SizeOf(FId));
-  AStream.ReadBuffer(FParent, SizeOf(FParent));
+  {метка сохранения ID в Int64}
+  Len := GetLenIDinStream(@AStream);
+
+  AStream.ReadBuffer(Fid, Len);
+  AStream.ReadBuffer(FParent, Len);
   AStream.ReadBuffer(FName, SizeOf(FName));
   AStream.ReadBuffer(FIsGlobal, SizeOf(FIsGlobal));
 end;
 
 procedure TscrMacrosGroupItem.SaveToStream(AStream: TStream);
+var Len: Integer;
 begin
-  AStream.Write(FId, SizeOf(FId));
-  AStream.Write(FParent, SizeOf(FParent));
+  {метка сохранения ID в Int64}
+  Len := SetLenIDinStream(@AStream);
+
+  AStream.Write(FId, Len);
+  AStream.Write(FParent, Len);
   AStream.Write(FName, SizeOf(FName));
   AStream.Write(FIsGlobal, SizeOf(FIsGlobal));
 end;
@@ -778,7 +795,7 @@ begin
 end;
 
 function TscrMacrosGroup.GetGroupItemsByID(
-  AID: Integer): TscrMacrosGroupItem;
+  AID: TID): TscrMacrosGroupItem;
 var
   Index: Integer;
 begin
@@ -799,7 +816,7 @@ begin
     Result := -1;
 end;
 
-function TscrMacrosGroup.IndexOfByID(AID: Integer): Integer;
+function TscrMacrosGroup.IndexOfByID(AID: TID): Integer;
 begin
   Result := 0;
   while (Result < FGroupItems.Count) and (GroupItems[Result].Id <> AID) do
@@ -822,7 +839,7 @@ begin
   Result := TscrMacrosGroupItem(FGroupItems.Last);
 end;
 
-procedure TscrMacrosGroup.Load(const AId: Integer; const AnUseScriptMethod: Boolean = True);
+procedure TscrMacrosGroup.Load(const AId: TID; const AnUseScriptMethod: Boolean = True);
 var
   SQL: TIBSQL;
   MacrosList: TscrMacrosList;
@@ -835,7 +852,7 @@ begin
     SQL.SQL.Text := 'SELECT z.* FROM evt_macrosgroup z JOIN evt_macrosgroup z1 ON ' +
       ' z.lb >= z1.lb and z.rb <= z1.rb WHERE z1.id = :id ' +
       ' ORDER BY Z.LB, Z.NAME ';
-    SQL.ParamByName('id').AsInteger := AId;
+    SetTID(SQL.ParamByName('id'), AId);
     SQL.ExecQuery;
     Clear;
     while not SQL.Eof do
@@ -921,7 +938,7 @@ begin
   end;
 end;
 
-procedure TscrMacrosGroup.SetGroupItemsByID(AID: Integer;
+procedure TscrMacrosGroup.SetGroupItemsByID(AID: TID;
   const Value: TscrMacrosGroupItem);
 var
   Index: Integer;
@@ -956,7 +973,7 @@ begin
   FIsSaved := False;
 end;
 
-procedure TscrMacrosGroupItem.SetParent(const Value: Integer);
+procedure TscrMacrosGroupItem.SetParent(const Value: TID);
 begin
   FParent := Value;
   FIsSaved := False;
@@ -1004,7 +1021,7 @@ end;
 
 procedure TscrCustomScriptFunction.ReadFromDataSet(ADataSet: TIBCustomDataSet);
 begin
-  FId := ADataSet.FieldByName(fnId).AsInteger;
+  FId := GetTID(ADataSet.FieldByName(fnId));
   Name := ADataSet.FieldByName(fnName).AsString;
   Module := ADataSet.FieldByName('module').AsString;
 end;
@@ -1012,7 +1029,7 @@ end;
 
 procedure TscrCustomScriptFunction.ReadFromSQL(SQL: TIBSQL);
 begin
-  FId := SQL.FieldByName(fnId).AsInteger;
+  FId := GetTID(SQL.FieldByName(fnId));
   Name := SQL.FieldByName(fnName).AsString;
   Module := SQL.FieldByName('module').AsString;
 end;
@@ -1090,8 +1107,8 @@ end;
 procedure TscrMacrosGroupItem.ReadFromSQL(ASQL: TIBSQL);
 begin
   try
-    Id := ASQL.FieldByName(fnId).AsInteger;
-    Parent := ASQL.FieldByName(fnParent).AsInteger;
+    Id := GetTID(ASQL.FieldByName(fnId));
+    Parent := GetTID(ASQL.FieldByName(fnParent));
     IsGlobal := Boolean(ASQL.FieldByName(fnIsGlobal).AsInteger);
     Name := ASQL.FieldByName(fnName).AsString;
     FIsSaved := True;

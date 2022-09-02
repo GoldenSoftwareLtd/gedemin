@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcMessage;
 
@@ -106,11 +107,11 @@ begin
   begin
     for I := 0 to CD.ObjectCount - 1 do
     begin
-      if CD.Obj.Locate('ID', CD.ObjectArr[I].ID, []) then
+      if CD.Obj.Locate('ID', TID2V(CD.ObjectArr[I].ID), []) then
       begin
         CD.Obj.Edit;
         try
-          CD.Obj.FieldByName('boxkey').AsInteger := Self.ID;
+          SetTID(CD.Obj.FieldByName('boxkey'), Self.ID);
           CD.Obj.Post;
         except
           CD.Obj.Cancel;
@@ -133,7 +134,7 @@ begin
           begin
             LocalObj.Edit;
             try
-              LocalObj.FieldByName('boxkey').AsInteger := Self.ID;
+              SetTID(LocalObj.FieldByName('boxkey'), Self.ID);
               LocalObj.Post;
             except         
               LocalObj.Cancel;
@@ -179,7 +180,7 @@ begin
   if (CD.Obj is TgdcMessageBox) and (CD.ObjectCount = 1) then
   begin
     Edit;
-    FieldByName('boxkey').AsInteger := CD.ObjectArr[0].ID;
+    SetTID(FieldByName('boxkey'), CD.ObjectArr[0].ID);
     Post;
     Result := True;
   end else
@@ -555,12 +556,12 @@ begin
   inherited;
   with FgdcDataLink do
     if (DataSet is TgdcMessageBox) and DataSet.Active and FieldByName('boxkey').IsNull then
-      FieldByName('boxkey').AsInteger := (DataSet as TgdcBase).ID;
+      SetTID(FieldByName('boxkey'), (DataSet as TgdcBase).ID);
   if GetMessageType <> #0 then
     FieldByName('msgtype').AsString := GetMessageType
   else
     raise EgdcException.CreateObj('Abstract base class!', Self);
-  FieldByName('operatorkey').AsInteger := IBLogin.ContactKey;
+  SetTID(FieldByName('operatorkey'), IBLogin.ContactKey);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEMESSAGE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

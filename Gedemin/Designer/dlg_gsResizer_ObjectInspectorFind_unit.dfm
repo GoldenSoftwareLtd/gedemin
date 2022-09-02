@@ -3,8 +3,8 @@ object dlg_gsResizer_ObjectInspectorFind: Tdlg_gsResizer_ObjectInspectorFind
   Top = 195
   BorderStyle = bsDialog
   Caption = 'Поиск объекта'
-  ClientHeight = 221
-  ClientWidth = 305
+  ClientHeight = 512
+  ClientWidth = 431
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -21,15 +21,17 @@ object dlg_gsResizer_ObjectInspectorFind: Tdlg_gsResizer_ObjectInspectorFind
   object gbResult: TGroupBox
     Left = 3
     Top = 48
-    Width = 298
-    Height = 140
+    Width = 424
+    Height = 431
+    Anchors = [akLeft, akTop, akRight, akBottom]
     Caption = ' Результаты поиска '
     TabOrder = 1
     object lbResult: TListBox
       Left = 7
       Top = 16
-      Width = 284
-      Height = 116
+      Width = 410
+      Height = 407
+      Anchors = [akLeft, akTop, akRight, akBottom]
       Enabled = False
       ItemHeight = 13
       TabOrder = 0
@@ -38,49 +40,54 @@ object dlg_gsResizer_ObjectInspectorFind: Tdlg_gsResizer_ObjectInspectorFind
     end
   end
   object btnGoTo: TButton
-    Left = 147
-    Top = 195
+    Left = 273
+    Top = 486
     Width = 75
     Height = 21
     Action = actGoTo
+    Anchors = [akRight, akBottom]
     TabOrder = 2
   end
   object btnCancel: TButton
-    Left = 226
-    Top = 195
+    Left = 352
+    Top = 486
     Width = 75
     Height = 21
     Action = actCancel
+    Anchors = [akRight, akBottom]
     TabOrder = 3
   end
   object gbFind: TGroupBox
     Left = 3
     Top = 0
-    Width = 298
+    Width = 424
     Height = 46
+    Anchors = [akLeft, akTop, akRight]
     Caption = ' Параметры поиска '
     TabOrder = 0
     object lblName: TLabel
       Left = 8
       Top = 19
-      Width = 53
+      Width = 52
       Height = 13
       Caption = 'Название:'
     end
     object edtText: TEdit
       Left = 64
       Top = 17
-      Width = 152
+      Width = 278
       Height = 21
+      Anchors = [akLeft, akTop, akRight]
       TabOrder = 0
       OnKeyPress = edtTextKeyPress
     end
     object btnFind: TButton
-      Left = 220
+      Left = 328
       Top = 17
       Width = 71
       Height = 21
       Action = actFind
+      Anchors = [akTop, akBottom]
       Default = True
       TabOrder = 1
     end

@@ -1,3 +1,5 @@
+// ShlTanya, 20.02.2019
+
 unit gsProcessTimeCalculator;
 
 interface

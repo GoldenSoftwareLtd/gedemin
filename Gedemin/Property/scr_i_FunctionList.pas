@@ -1,9 +1,11 @@
+// ShlTanya, 24.02.2019
+
 unit scr_i_FunctionList;
 
 interface
 
 uses
-  Classes, rp_BaseReport_unit;
+  Classes, rp_BaseReport_unit, gdcBaseInterface;
 
 type
   IScriptFunctions = interface
@@ -12,15 +14,15 @@ type
     function Get_Function(Index: Integer): TrpCustomFunction;
 
     // Поиск функции в списке и БД
-    function FindFunction(const AnFunctionKey: Integer): TrpCustomFunction;
-    function FindFunctionWithoutDB(const AnFunctionKey: Integer): TrpCustomFunction;
+    function FindFunction(const AnFunctionKey: TID): TrpCustomFunction;
+    function FindFunctionWithoutDB(const AnFunctionKey: TID): TrpCustomFunction;
 //    function IndexOf(const AnFunctionKey: Integer): Integer;
 //    function IndexOf(F: TrpCustomFunction): Integer;
     function ReleaseFunction(AnFunction: TrpCustomFunction): Integer;
     // Перечитывает данные для функций, содержащихся в списке.
     function  UpdateList: Boolean;
     // Удаляет ф-цию, чистит файл кэша
-    procedure RemoveFunction(const AnFunctionKey: Integer);
+    procedure RemoveFunction(const AnFunctionKey: TID);
     // Добавляет в гл. список ф-цию
     procedure AddFunction(const AnFunction: TrpCustomFunction);
     procedure Clear;

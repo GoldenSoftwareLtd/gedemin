@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit gdc_frmStreamSaver;
 
 interface
@@ -631,7 +633,6 @@ begin
           S.ReadBuffer(stRecord.StreamVersion, SizeOf(stRecord.StreamVersion));
           if stRecord.StreamVersion >= 1 then
             S.ReadBuffer(stRecord.StreamDBID, SizeOf(stRecord.StreamDBID));
-
           TargetBaseKey := -1;
           SourceBaseKey := -1;
           S.Position := 0;
@@ -649,22 +650,22 @@ begin
               if RPLDatabase.Name <> '' then
                 eLoadingSourceBase.Text := RPLDatabase.Name
               else
-                eLoadingSourceBase.Text := IntToStr(RPLDatabase.ID);
+                eLoadingSourceBase.Text := TID2S(RPLDatabase.ID);
 
               // Целевая база
               RPLDatabase.ID := TargetBaseKey;
               if RPLDatabase.Name <> '' then
                 eLoadingTargetBase.Text := RPLDatabase.Name
               else
-                eLoadingTargetBase.Text := IntToStr(RPLDatabase.ID);
+                eLoadingTargetBase.Text := TID2S(RPLDatabase.ID);
             finally
               RPLDatabase.Free;
             end;
           end
           else
           begin
-            eLoadingSourceBase.Text := IntToStr(SourceBaseKey);
-            eLoadingTargetBase.Text := IntToStr(TargetBaseKey);
+            eLoadingSourceBase.Text := TID2S(SourceBaseKey);
+            eLoadingTargetBase.Text := TID2S(TargetBaseKey);
           end;
           lblLoadingIncremented.Caption := 'Да';
         end;

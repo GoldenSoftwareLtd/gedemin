@@ -1,3 +1,4 @@
+// ShlTanya, 25.02.2019
 
 unit obj_WrapperDelphiClasses;
 
@@ -11,7 +12,7 @@ uses
   IBQuery, IBStoredProc, IBTable, IBUpdateSQL, imglist, Outline, filectrl,
   ColorGrd, toolwin, Gauges, Spin, obj_WrapperIBXClasses, dbgrids, contnrs,
   printers, gdv_frAcctAnalytics_unit, shdocvw, JvDBImage, gsMorph, gsPeriodEdit,
-  gsPanel, gdccGlobal, dbf, dbf_fields;
+  gsPanel, gdccGlobal, dbf, dbf_fields, gdClientSocket, ScktComp;
 
 type
   TPointArray = array of TPoint;
@@ -552,7 +553,7 @@ type
     function  ReadCurrency: Currency; safecall;
     function  ReadDate: TDateTime; safecall;
     function  ReadIdent: WideString; safecall;
-    function  ReadInt64: Int64; safecall;
+    function  ReadInt64: ATID; safecall;
     function  ReadInteger: Integer; safecall;
     procedure ReadListBegin; safecall;
     procedure ReadListEnd; safecall;
@@ -580,7 +581,7 @@ type
     procedure WriteCurrency(Value: Currency); safecall;
     procedure WriteDate(Value: TDateTime); safecall;
     procedure WriteDescendent(const Root: IgsComponent; const AAncestor: IgsComponent); safecall;
-    procedure WriteInteger(Value: Integer); safecall;
+    procedure WriteInteger(Value: ATID); safecall;
     procedure WriteRootComponent(const Value: IgsComponent); safecall;
     procedure WriteStr(const Value: WideString); safecall;
     procedure WriteListBegin; safecall;
@@ -775,13 +776,13 @@ type
     procedure WriteDescendent(const Instance: IgsComponent; const Ancestor: IgsComponent); safecall;
     procedure WriteDescendentRes(const ResName: WideString; const Instance, Ancestor: IgsComponent); safecall;
     procedure WriteResourceHeader(const ResName: WideString; out FixupInfo: OleVariant); safecall;
-    function  ReadInteger: Integer; safecall;
+    function  ReadInteger: ATID; safecall;
     function  ReadSingle: Single; safecall;
     function  ReadCurrency: Currency; safecall;
     function  ReadDate: TDateTime; safecall;
     function  ReadStr(Count: Integer): WideString; safecall;
     function  ReadBoolean: WordBool; safecall;
-    function  WriteInteger(Buffer: Integer): Integer; safecall;
+    function  WriteInteger(Buffer: ATID): Integer; safecall;
     function  WriteSingle(Buffer: Single): Integer; safecall;
     function  WriteCurrency(Buffer: Currency): Integer; safecall;
     function  WriteDate(Buffer: TDateTime): Integer; safecall;
@@ -796,13 +797,13 @@ type
     function  GetHandleStream: THandleStream;
   protected
     function  Get_Handle: Integer; safecall;
-    function  ReadInteger: Integer; safecall;
+    function  ReadInteger: ATID; safecall;
     function  ReadSingle: Single; safecall;
     function  ReadCurrency: Currency; safecall;
     function  ReadDate: TDateTime; safecall;
     function  ReadString(Count: Integer): WideString; safecall;
     function  ReadBoolean: WordBool; safecall;
-    function  WriteInteger(Buffer: Integer): Integer; safecall;
+    function  WriteInteger(Buffer: ATID): Integer; safecall;
     function  WriteSingle(Buffer: Single): Integer; safecall;
     function  WriteCurrency(Buffer: Currency): Integer; safecall;
     function  WriteDate(Buffer: TDateTime): Integer; safecall;
@@ -832,7 +833,7 @@ type
   protected
     procedure SaveToStream(const Stream: IgsStream); safecall;
     procedure SaveToFile(const FileName: WideString); safecall;
-    function  ReadInteger: Integer; safecall;
+    function  ReadInteger: ATID; safecall;
     function  ReadSingle: Single; safecall;
     function  ReadCurrency: Currency; safecall;
     function  ReadDate: TDateTime; safecall;
@@ -848,7 +849,7 @@ type
     procedure LoadFromStream(const Stream: IgsStream); safecall;
     procedure LoadFromFile(const FileName: WideString); safecall;
     procedure SetSize(NewSize: Integer); safecall;
-    function  WriteInteger(Buffer: Integer): Integer; safecall;
+    function  WriteInteger(Buffer: ATID): Integer; safecall;
     function  WriteSingle(Buffer: Single): Integer; safecall;
     function  WriteCurrency(Buffer: Currency): Integer; safecall;
     function  WriteDate(Buffer: TDateTime): Integer; safecall;
@@ -4536,11 +4537,30 @@ type
     function  Get_WorkStarted: WordBool; safecall;
   end;
 
+  TwrpClientSocket = class(TwrpComponent, IgsClientSocket)
+  private
+    function GetClientSocket: TgdClientSocket;
+    function  Get_Connected: WordBool; safecall;
+    function  Get_LineTerm: WideString; safecall;
+    procedure Set_LineTerm(const Value: WideString); safecall;
+  protected
+    procedure ClearReadBuffer; safecall;
+    procedure Connect(const Host: WideString; Port: SYSINT; TimeOut: SYSINT); safecall;
+    procedure Disconnect; safecall;
+    function  ReadLn(TimeOut: Integer): WideString; safecall;
+    function  ReadByte(TimeOut: Integer): Shortint; safecall;
+    function  ReadBytesAsString(TimeOut: Integer): WideString; safecall;
+    function  ReadCurrentBuffer(TimeOut: Integer): WideString; safecall;
+    procedure WriteLn(const Msg: WideString); safecall;
+    property Connected: WordBool read Get_Connected;
+    property LineTerm: WideString read Get_LineTerm write Set_LineTerm;
+  end;
+
 implementation
 
 uses
   IBHeader, gdcOLEClassList, ComServ, prp_Methods, obj_VarParam, obj_QueryList,
-  OleCtrls, jpeg, TypInfo, JclMime, gsCSV
+  OleCtrls, jpeg, TypInfo, JclMime, gsCSV, gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -5479,13 +5499,15 @@ function TwrpDataSet.Locate(const KeyFields: WideString;
   KeyValues: OleVariant; const Options: WideString): WordBool;
 var
   LO: TLocateOptions;
+  DS: TDataset;
 begin
   LO := [];
   if Pos('CASEINSENSITIVE', AnsiUpperCase(Options)) > 0 then
     include(LO, loCaseInsensitive);
   if Pos('PARTIALKEY', AnsiUpperCase(Options)) > 0 then
     include(LO, loPartialKey);
-  Result := GetDataSet.Locate(KeyFields, KeyValues, LO)
+  DS := GetDataSet;
+  Result := DatasetLocate(DS, KeyFields, KeyValues, LO)
 end;
 
 procedure TwrpDataSet.Resync(const Mode: WideString);
@@ -17215,9 +17237,9 @@ begin
   FixupInfo := fi;
 end;
 
-function  TwrpStream.ReadInteger: Integer; safecall;
+function  TwrpStream.ReadInteger: ATID; safecall;
 begin
-  GetStream.Read(Result, SizeOf(Result));
+  GetStream.Read(Result, SizeOf(ATID));
 end;
 
 function TwrpStream.ReadBoolean: WordBool;
@@ -17267,9 +17289,9 @@ begin
   Result := GetStream.Write(Buffer, SizeOf(TDateTime));
 end;
 
-function TwrpStream.WriteInteger(Buffer: Integer): Integer;
+function TwrpStream.WriteInteger(Buffer: ATID): Integer;
 begin
-  Result := GetStream.Write(Buffer, SizeOf(Integer));
+  Result := GetStream.Write(Buffer, SizeOf(ATID));
 end;
 
 function TwrpStream.WriteSingle(Buffer: Single): Integer;
@@ -18860,7 +18882,7 @@ begin
   Result := GetReader.ReadIdent;
 end;
 
-function TwrpReader.ReadInt64: Int64;
+function TwrpReader.ReadInt64: ATID;
 begin
   Result := GetReader.ReadInt64;
 end;
@@ -19007,9 +19029,9 @@ begin
   GetWriter.WriteDescendent(InterfaceToObject(Root) as TComponent, InterfaceToObject(AAncestor) as TComponent);
 end;
 
-procedure TwrpWriter.WriteInteger(Value: Integer);
+procedure TwrpWriter.WriteInteger(Value: ATID);
 begin
-  GetWriter.WriteInteger(Value);
+  GetWriter.WriteInteger(GetTID(Value));
 end;
 
 procedure TwrpWriter.WriteListBegin;
@@ -21543,9 +21565,9 @@ begin
   Result := GetObject as THandleStream;
 end;
 
-function  TwrpHandleStream.ReadInteger: Integer; safecall;
+function  TwrpHandleStream.ReadInteger: ATID; safecall;
 begin
-  GetHandleStream.Read(Result, SizeOf(Result));
+  GetHandleStream.Read(Result, SizeOf(ATID));
 end;
 
 function TwrpHandleStream.ReadBoolean: WordBool;
@@ -21595,9 +21617,9 @@ begin
   Result := GetHandleStream.Write(Buffer, SizeOf(TDateTime));
 end;
 
-function TwrpHandleStream.WriteInteger(Buffer: Integer): Integer;
+function TwrpHandleStream.WriteInteger(Buffer: ATID): Integer;
 begin
-  Result := GetHandleStream.Write(Buffer, SizeOf(Integer));
+  Result := GetHandleStream.Write(Buffer, SizeOf(ATID));
 end;
 
 function TwrpHandleStream.WriteSingle(Buffer: Single): Integer;
@@ -21718,9 +21740,9 @@ begin
   GetCustomMemoryStream.Read(Result, SizeOf(Result));
 end;
 
-function TwrpCustomMemoryStream.ReadInteger: Integer;
+function TwrpCustomMemoryStream.ReadInteger: ATID;
 begin
-  GetCustomMemoryStream.Read(Result, SizeOf(Result));
+  GetCustomMemoryStream.Read(Result, SizeOf(ATID));
 end;
 
 function TwrpCustomMemoryStream.ReadSingle: Single;
@@ -22022,7 +22044,7 @@ begin
   Result := GetMemoryStream.Write(Buffer, SizeOf(Buffer));
 end;
 
-function TwrpMemoryStream.WriteInteger(Buffer: Integer): Integer;
+function TwrpMemoryStream.WriteInteger(Buffer: ATID): Integer;
 begin
   Result := GetMemoryStream.Write(Buffer, SizeOf(Buffer));
 end;
@@ -23228,6 +23250,69 @@ begin
   GetColorDialog.CustomColors.Assign(IgsStringsToTStrings(Value));
 end;
 
+{ TwrpClientSocket }
+
+procedure TwrpClientSocket.ClearReadBuffer;
+begin
+  GetClientSocket.ClearReadBuffer;
+end;
+
+procedure TwrpClientSocket.Connect(const Host: WideString; Port,
+  TimeOut: SYSINT);
+begin
+  GetClientSocket.Connect(Host, Port, TimeOut);
+end;
+
+procedure TwrpClientSocket.Disconnect;
+begin
+  GetClientSocket.Disconnect;
+end;
+
+function TwrpClientSocket.GetClientSocket: TgdClientSocket;
+begin
+  Result := GetObject as TgdClientSocket;
+end;
+
+function TwrpClientSocket.Get_Connected: WordBool;
+begin
+  Result := GetClientSocket.Connected;
+end;
+
+function TwrpClientSocket.Get_LineTerm: WideString;
+begin
+  Result := GetClientSocket.LineTerm;
+end;
+
+function TwrpClientSocket.ReadByte(TimeOut: Integer): shortint;
+begin
+  Result := GetClientSocket.ReadByte(TimeOut);
+end;
+
+function TwrpClientSocket.ReadBytesAsString(TimeOut: Integer): WideString;
+begin
+  Result := GetClientSocket.ReadBytesAsString(TimeOut);
+end;
+
+function TwrpClientSocket.ReadCurrentBuffer(TimeOut: Integer): WideString;
+begin
+  Result := GetClientSocket.ReadCurrentBuffer(TimeOut);
+end;
+
+function TwrpClientSocket.ReadLn(TimeOut: Integer): WideString;
+begin
+  Result := GetClientSocket.ReadLn(TimeOut);
+end;
+
+procedure TwrpClientSocket.Set_LineTerm(const Value: WideString);
+begin
+  GetClientSocket.LineTerm := Value;
+end;
+
+procedure TwrpClientSocket.WriteLn(const Msg: WideString);
+begin
+  GetClientSocket.WriteLn(Msg);
+end;
+
 initialization
 (*  TAutoObjectFactory.Create(ComServer, TwrpObject, CLASS_gs_Object,
     ciMultiInstance, tmApartment);
@@ -23668,4 +23753,6 @@ initialization
   RegisterGdcOLEClass(TCommonCalendar, TwrpCommonCalendar, ComServer.TypeLib, IID_IgsCommonCalendar);
   RegisterGdcOLEClass(TgsPeriodEdit, TwrpPeriodEdit, ComServer.TypeLib, IID_IgsPeriodEdit);
   RegisterGdcOLEClass(TgdccProgress, TwrpgdccProgress, ComServer.TypeLib, IID_IgsgdccProgress);
+  RegisterGdcOLEClass(TgdClientSocket, TwrpClientSocket, ComServer.TypeLib, IID_IgsClientSocket);
+
 end.

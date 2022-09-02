@@ -31,7 +31,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgG_unit, Db, ActnList, StdCtrls, ExtCtrls, at_Container,
   gdcInvDocument_unit, Mask, DBCtrls, gsIBLookupComboBox, gdc_dlgTR_unit,
-  IBDatabase, IBSQL, gdcContacts, Menus, ComCtrls;
+  IBDatabase, IBSQL, gdcContacts, Menus, ComCtrls, gdcBaseInterface;
 
 type
   TdlgInvDocumentLine = class(Tgdc_dlgTR)
@@ -94,7 +94,7 @@ uses
   gdcInvConsts_unit, at_classes, Storages, gd_security, gdcGood, gdcBase,
   gd_ClassList;
 
-function GetArrAsCommaText(Ar: array of Integer): String;
+function GetArrAsCommaText(Ar: array of TID): String;
 var
   I: Integer;
 begin
@@ -199,12 +199,12 @@ begin
       begin
       {„тобы добавление шло по пор€дку делаем Append, а не Insert}
         DocumentLine.Append;
-        DocumentLine.FieldByName('GOODKEY').AsInteger := V[I];
+        SetTID(DocumentLine.FieldByName('GOODKEY'), GetTID(V[I]));
 
         if DocumentLine.RelationType = irtTransformation then
-          DocumentLine.FieldByName('INQUANTITY').AsInteger := 1
+          DocumentLine.FieldByName('INQUANTITY').AsCurrency := 1
         else
-          DocumentLine.FieldByName('QUANTITY').AsInteger := 1;
+          DocumentLine.FieldByName('QUANTITY').AsCurrency := 1;
 
         DocumentLine.UpdateGoodNames;
         DocumentLine.Post;
@@ -436,8 +436,8 @@ begin
           begin
             CreateContactSQL;
             FContactSQL.Close;
-            FContactSQL.ParamByName('ID').AsInteger :=
-              Document.FieldByName(M.SubSourceFieldName).AsInteger;
+            SetTID(FContactSQL.ParamByName('ID'),
+              GetTID(Document.FieldByName(M.SubSourceFieldName)));
             FContactSQL.ExecQuery;
 
             LB := FContactSQL.FieldByName('LB').AsInteger;
@@ -472,8 +472,8 @@ begin
           begin
             CreateContactSQL;
             FContactSQL.Close;
-            FContactSQL.ParamByName('ID').AsInteger :=
-              Document.FieldByName(M.SubSourceFieldName).AsInteger;
+            SetTID(FContactSQL.ParamByName('ID'),
+              GetTID(Document.FieldByName(M.SubSourceFieldName)));
             FContactSQL.ExecQuery;
 
             LB := FContactSQL.FieldByName('LB').AsInteger;
@@ -514,8 +514,8 @@ begin
         begin
           CreateContactSQL;
           FContactSQL.Close;
-          FContactSQL.ParamByName('ID').AsInteger :=
-            Document.FieldByName(M.SubSourceFieldName).AsInteger;
+          SetTID(FContactSQL.ParamByName('ID'),
+            GetTID(Document.FieldByName(M.SubSourceFieldName)));
           FContactSQL.ExecQuery;
 
           LB := FContactSQL.FieldByName('LB').AsInteger;
@@ -543,8 +543,8 @@ begin
         begin
           CreateContactSQL;
           FContactSQL.Close;
-          FContactSQL.ParamByName('ID').AsInteger :=
-            Document.FieldByName(M.SubSourceFieldName).AsInteger;
+          SetTID(FContactSQL.ParamByName('ID'),
+            GetTID(Document.FieldByName(M.SubSourceFieldName)));
           FContactSQL.ExecQuery;
 
           LB := FContactSQL.FieldByName('LB').AsInteger;
@@ -593,8 +593,8 @@ var
     C := atAttributes.ControlByFieldName[MovementOption.SourceFieldName] as
       TgsIBLookupComboBox;
 
-    FContactSQL.ParamByName('ID').AsInteger :=
-      DocumentLine.FieldByName(MovementOption.SubSourceFieldName).AsInteger;
+    SetTID(FContactSQL.ParamByName('ID'),
+      GetTID(DocumentLine.FieldByName(MovementOption.SubSourceFieldName)));
 
     FContactSQL.ExecQuery;
 
@@ -682,7 +682,7 @@ begin
       FDocument := TgdcInvDocument.Create(Self);
       FDocument.SubType := DocumentLine.SubType;
       FDocument.SubSet := 'ByID';
-      FDocument.ID := DocumentLine.FieldByName('parent').AsInteger;
+      FDocument.ID := GetTID(DocumentLine.FieldByName('parent'));
       FDocument.Open;
     end;
     Result := FDocument;

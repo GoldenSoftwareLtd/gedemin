@@ -1,9 +1,11 @@
+// ShlTanya, 24.02.2019
+
 unit gsIBLogin;
 
 interface
 
 uses
-  Classes, ComServ, ComObj, Gedemin_TLB;
+  Classes, ComServ, ComObj, Gedemin_TLB, gdcBaseInterface;
 
 type
   TgsIBLogin = class(TAutoObject, IgsBoLogin)
@@ -12,17 +14,17 @@ type
     function  Get_Database: IgsIBDatabase; safecall;
     function  Get_DBID: Integer; safecall;
     function  Get_CompanyName: WideString; safecall;
-    function  Get_CompanyKey: Integer; safecall;
+    function  Get_CompanyKey: ATID; safecall;
     function  Get_ContactName: WideString; safecall;
-    function  Get_ContactKey: Integer; safecall;
+    function  Get_ContactKey: ATID safecall;
     function  Get_UserName: WideString; safecall;
-    function  Get_UserKey: Integer; safecall;
+    function  Get_UserKey: ATID; safecall;
     function  Get_AllowUserAudit: WordBool; safecall;
     function  Get_AuditMaxDays: Integer; safecall;
     function  Get_AuditCache: Integer; safecall;
     function  Get_AuditLevel: TgsAuditLevel; safecall;
     function  Get_DBVersionComment: WideString; safecall;
-    function  Get_DBVersionID: Integer; safecall;
+    function  Get_DBVersionID: ATID; safecall;
     function  Get_DBReleaseDate: TDateTime; safecall;
     function  Get_DBVersion: WideString; safecall;
     function  Get_DatabaseName: WideString; safecall;
@@ -33,7 +35,7 @@ type
     function  Get_IsUserAdmin: WordBool; safecall;
     function  Get_GroupName: WideString; safecall;
     function  Get_Ingroup: Integer; safecall;
-    function  Get_SessionKey: Integer; safecall;
+    function  Get_SessionKey: ATID; safecall;
     function  Get_StartTime: TDateTime; safecall;
     function  Get_SessionDuration: TDateTime; safecall;
     function  Get_IBPassword: WideString; safecall;
@@ -62,10 +64,10 @@ type
     procedure ConnectionLostMessage; safecall;
     function  LoginSilent(const AnUserName: WideString; const APassword: WideString): WordBool; safecall;
     procedure AddEvent(const AData: WideString; const ASource: WideString; const AnObjectName: WideString;
-                       AnObjectID: Integer; const ATransaction: IgsIBTransaction); safecall;
+                       AnObjectID: ATID; const ATransaction: IgsIBTransaction); safecall;
     function  LoginWithParams(ReadParams: WordBool; ReLogin: WordBool): WordBool; safecall;
     procedure ClearHoldingListCache; safecall;
-    procedure ChangeUser(AUserKey: Integer; ACheckMultipleConnections: WordBool); safecall;
+    procedure ChangeUser(AUserKey: ATID; ACheckMultipleConnections: WordBool); safecall;
 
   end;
 
@@ -101,7 +103,7 @@ begin
   Result := IBLogin.AuditMaxDays;
 end;
 
-function TgsIBLogin.Get_CompanyKey: Integer;
+function TgsIBLogin.Get_CompanyKey: ATID;
 begin
   Result := IBLogin.CompanyKey
 end;
@@ -121,7 +123,7 @@ begin
   Result := IBLogin.ComputerName;
 end;
 
-function TgsIBLogin.Get_ContactKey: Integer;
+function TgsIBLogin.Get_ContactKey: ATID;
 begin
   Result := IBLogin.ContactKey;
 end;
@@ -161,7 +163,7 @@ begin
   Result := IBLogin.DBVersionComment;
 end;
 
-function TgsIBLogin.Get_DBVersionID: Integer;
+function TgsIBLogin.Get_DBVersionID: ATID;
 begin
   Result := IBLogin.DBVersionID;
 end;
@@ -222,7 +224,7 @@ begin
   Result := IBLogin.SessionDuration;
 end;
 
-function TgsIBLogin.Get_SessionKey: Integer;
+function TgsIBLogin.Get_SessionKey: ATID;
 begin
   Result := IBLogin.SessionKey;
 end;
@@ -252,7 +254,7 @@ begin
   Result := IBLogin.SubSystemName;
 end;
 
-function TgsIBLogin.Get_UserKey: Integer;
+function TgsIBLogin.Get_UserKey: ATID;
 begin
   Result := IBLogin.UserKey;
 end;
@@ -298,9 +300,9 @@ begin
 end;
 
 procedure TgsIBLogin.AddEvent(const AData, ASource, AnObjectName: WideString;
-  AnObjectID: Integer; const ATransaction: IgsIBTransaction);
+  AnObjectID: ATID; const ATransaction: IgsIBTransaction);
 begin
-  IBLogin.AddEvent(AData, ASource, AnObjectName, AnObjectID, InterfaceToObject(ATransaction))
+  IBLogin.AddEvent(AData, ASource, AnObjectName, GetTID(AnObjectID), InterfaceToObject(ATransaction))
 end;
 
 function TgsIBLogin.BringOnLine: WordBool;
@@ -353,9 +355,9 @@ begin
   IBLogin.ClearHoldingListCache;
 end;
 
-procedure TgsIBLogin.ChangeUser(AUserKey: Integer; ACheckMultipleConnections: WordBool);
+procedure TgsIBLogin.ChangeUser(AUserKey: ATID; ACheckMultipleConnections: WordBool);
 begin
-  IBLogin.ChangeUser(AUserKey, ACheckMultipleConnections);
+  IBLogin.ChangeUser(GetTID(AUserKey), ACheckMultipleConnections);
 end;
 
 initialization

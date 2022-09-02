@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit gdc_dlgSMTP_Unit;
 
 interface
@@ -30,7 +32,9 @@ type
     actCheckConnect: TAction;
     edPassw: TEdit;
     dbcbPrincipal: TDBCheckBox;
+    chbServerAuthenticate: TDBCheckBox;
     procedure actCheckConnectExecute(Sender: TObject);
+    procedure chbServerAuthenticateClick(Sender: TObject);
 
   protected
     procedure BeforePost; override;
@@ -91,6 +95,11 @@ begin
   if edPassw.Text <> '<not changed>' then
     gdcObject.FieldByName('passw').AsString := EncryptString(edPassw.Text, 'PASSW');
 
+  if not chbServerAuthenticate.Checked then
+  begin
+    gdcObject.FieldByName('login').AsString := '<empty login>';
+  end;
+
   inherited;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSMTP', 'BEFOREPOST', KEYBEFOREPOST)}
@@ -112,14 +121,19 @@ begin
   try
     IdSMTP.Port := StrToInt(dbePort.Text);
     IdSMTP.Host := dbeServer.Text;
-    IdSMTP.AuthenticationType := atLogin;
-    IdSMTP.Username := dbeLogin.Text;
-    if edPassw.Text <> '<not changed>' then
-      IdSMTP.Password := edPassw.Text
-    else if gdcObject.FieldByName('passw').AsString = '' then
-      IdSMTP.Password := ''
+    if chbServerAuthenticate.Checked then
+    begin
+      IdSMTP.AuthenticationType := atLogin;
+      IdSMTP.Username := dbeLogin.Text;
+      if edPassw.Text <> '<not changed>' then
+        IdSMTP.Password := edPassw.Text
+      else if gdcObject.FieldByName('passw').AsString = '' then
+        IdSMTP.Password := ''
+      else
+        IdSMTP.Password := DecryptString(gdcObject.FieldByName('passw').AsString, 'PASSW');
+    end
     else
-      IdSMTP.Password := DecryptString(gdcObject.FieldByName('passw').AsString, 'PASSW');
+      IdSMTP.AuthenticationType := atNone;
 
     if dbcbIPSec.Text > '' then
     begin
@@ -132,7 +146,8 @@ begin
 
     if IdSMTP.Connected then
     begin
-      if IdSMTP.Authenticate then
+      if ((IdSMTP.AuthenticationType = atLogin) and IdSMTP.Authenticate) or
+      (IdSMTP.AuthenticationType = atNone) then
       begin
         MessageBox(Handle, 'Соединение установлено.', 'Тест соединения',
           MB_OK + MB_ICONINFORMATION);
@@ -175,6 +190,12 @@ begin
   inherited;
 
   edPassw.Text := '<not changed>';
+  chbServerAuthenticate.Checked := true;
+  if gdcObject.FieldByName('login').AsString = '<empty login>' then
+  begin
+    chbServerAuthenticate.Checked := false;
+    chbServerAuthenticateClick(nil);
+  end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -182,6 +203,24 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGSMTP', 'SETUPRECORD', KEYSETUPRECORD);
   {M}end;
   {END MACRO}
+end;
+
+procedure Tgdc_dlgSMTP.chbServerAuthenticateClick(Sender: TObject);
+begin
+  inherited;
+  dbeLogin.Enabled := chbServerAuthenticate.Checked;
+  edPassw.Enabled := chbServerAuthenticate.Checked;
+  if not chbServerAuthenticate.Checked then
+  begin
+    dbeLogin.Text := '<empty login>';
+    edPassw.Text := '';
+  end
+  else
+    if dbeLogin.Text = '<empty login>' then
+    begin
+      ActiveControl := dbeLogin;
+      dbeLogin.Text := '';
+    end;
 end;
 
 initialization

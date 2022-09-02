@@ -1,3 +1,5 @@
+// ShlTanya, 20.02.2019
+
 unit rp_frmRegistryForm_unit;
 
 interface
@@ -6,7 +8,8 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Menus, Db, IBCustomDataSet, IBQuery, at_sql_setup, 
   IBDatabase, ActnList, Grids, DBGrids, gsDBGrid, gsIBGrid, ExtCtrls,
-  ComCtrls, ToolWin, gd_security, IBUpdateSQL, IBSQL, gd_createable_form;
+  ComCtrls, ToolWin, gd_security, IBUpdateSQL, IBSQL, gd_createable_form,
+  gdcBaseInterface;
 
 type
   TfrmRegistryForm = class(TCreateableForm)
@@ -38,11 +41,11 @@ type
     procedure actDeleteExecute(Sender: TObject);
 
   private
-    FGroupID: Integer;
+    FGroupID: TID;
     FIsQuick: Integer;
 
   public
-    procedure ShowForm(AGroupID: Integer);
+    procedure ShowForm(AGroupID: TID);
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
@@ -64,17 +67,17 @@ uses
   {$ENDIF}
   ;
 
-procedure TfrmRegistryForm.ShowForm(AGroupID: Integer);
+procedure TfrmRegistryForm.ShowForm(AGroupID: TID);
 begin
   FGroupID := AGroupID;
   IBTransaction.StartTransaction;
-  IBSQL.ParamByName('ID').AsInteger := FGroupID;
+  SetTID(IBSQL.ParamByName('ID'), FGroupID);
   IBSQL.ExecQuery;
 
   Assert(IBSQL.RecordCount > 0, 'Такой группы не существует.');
   FIsQuick := IBSQL.FieldByName('ISQUICK').AsInteger;
 
-  qryReportRegistry.ParamByName('parent').AsInteger := AGroupID;
+  SetTID(qryReportRegistry.ParamByName('parent'), AGroupID);
   qryReportRegistry.Open;
   ShowModal;
 end;
@@ -113,7 +116,7 @@ procedure TfrmRegistryForm.actEditExecute(Sender: TObject);
 begin
   with TdlgRegistryForm.Create(Self) do
   try
-    if Edit(qryReportRegistry.FieldByName('ID').AsInteger) then
+    if Edit(GetTID(qryReportRegistry.FieldByName('ID'))) then
       qryReportRegistry.Refresh;
   finally
     Free;

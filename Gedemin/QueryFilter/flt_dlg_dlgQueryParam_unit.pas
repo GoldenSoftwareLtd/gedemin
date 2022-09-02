@@ -1,3 +1,4 @@
+// ShlTanya, 10.03.2019
 
 {++
 
@@ -63,6 +64,7 @@ type
     FTransaction: TIBTransaction;
 
     function QueryParams(const AnParamList: TgsParamList): Boolean;
+    destructor Destroy; override; 
   end;
 
 var
@@ -73,7 +75,7 @@ implementation
 uses
   flt_ScriptInterface, flt_EnumComboBox, gsPeriodEdit, gsRadioButtons,
   gsIBLookupComboBox, xCalculatorEdit, Mask, xDateEdits, 
-  gd_AttrComboBox
+  gd_AttrComboBox, gdcBaseInterface
   {$IFDEF GEDEMIN}
   , Storages, gd_security
   {$ENDIF}
@@ -104,7 +106,7 @@ var
 
   function CreateWinControl(C: CWinControl): TWinControl;
   begin
-    Result := C.Create(nil);
+    Result := C.Create(self);
   end;
 
   function GetLinesHeight: Integer;
@@ -118,14 +120,15 @@ var
 
   procedure SetValues(const AnList: TStrings; AnSource: Variant);
   var
-    K, Tmp: Integer;
+    K: Integer;
+    Tmp: TID;
   begin
     AnList.Clear;
     if VarIsArray(AnSource) then
       for K := VarArrayLowBound(AnSource, 1) to VarArrayHighBound(AnSource, 1) do
       try
-        Tmp := AnSource[K];
-        AnList.AddObject('', Pointer(Tmp));
+        Tmp := GetTID(AnSource[K]);
+        AnList.AddObject('', TID2Pointer(Tmp, Name));
       except
       end;
   end;
@@ -316,7 +319,7 @@ var
                   TgsIBLookupComboBox(FWinCtrl).Condition := LocParamList.Params[I].LinkConditionFunction;
               end;
               if VarIsArray(LocParamList.Params[I].ResultValue) then
-                TgsIBLookupComboBox(FWinCtrl).CurrentKeyInt := LocParamList.Params[I].ResultValue[0];
+                TgsIBLookupComboBox(FWinCtrl).CurrentKeyInt := GetTID(LocParamList.Params[I].ResultValue[0]);
             except
             end;
           end;
@@ -484,6 +487,7 @@ var
   DateParamCount: Integer;
   FirstDateValue: TDate;
   TempDateTime: TDateTime;
+  CanClose: boolean;
 
   function DaysCount(nMonth: Word; nYear: Word): Integer;
   begin
@@ -590,13 +594,13 @@ var
     else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TfltDBEnumSetComboBox then
        Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TfltDBEnumSetComboBox).QuoteSelected
     else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsIBLookupComboBox then
-       Result := VarArrayOf([(Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsIBLookupComboBox).CurrentKeyInt])
+       Result := VarArrayOf([TID2V((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsIBLookupComboBox).CurrentKeyInt)])
     else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsComboBoxAttrSet then
     begin
        Result := VarArrayCreate([0,
          (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsComboBoxAttrSet).ValueID.Count - 1], varVariant);
        for I := 0 to VarArrayHighBound(Result, 1) do
-         Result[I] := Integer((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsComboBoxAttrSet).ValueID.Objects[I]);
+         Result[I] := TID2V(GetTID((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsComboBoxAttrSet).ValueID.Objects[I], Name));
     end else
        raise Exception.Create('Invalid param type.');
   end;
@@ -663,9 +667,19 @@ var
   end;
 
 begin
+  CanClose := true;
   Assert(FParamList <> nil);
-  SetResultFromLine(FParamList);
-  ModalResult := mrOk;
+  try
+    SetResultFromLine(FParamList);
+  except
+    on E: Exception do begin
+      MessageBox(0, PChar(E.Message),
+        'Внимание',
+        MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+      CanClose := false;
+    end;
+  end;
+  if CanClose then ModalResult := mrOk;
 end;
 
 procedure TdlgQueryParam.CalcDialogWidth;
@@ -684,6 +698,14 @@ begin
   end;
 
   Self.Width := MaxWidth;
+end;
+
+destructor TdlgQueryParam.Destroy;
+begin
+  inherited;
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
 end;
 
 end.

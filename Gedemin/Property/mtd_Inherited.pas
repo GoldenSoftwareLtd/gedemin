@@ -1,15 +1,17 @@
+// ShlTanya, 24.02.2019
+
 unit mtd_Inherited;
 
 interface
 
 uses
   Gedemin_TLB, obj_ObjectEvent, ActiveX, Classes, mtd_i_Inherited,
-  obj_Inherited, SysUtils;
+  obj_Inherited, SysUtils, gdcBaseInterface;
 
 type
   PExecuteFunction = ^TExecuteFunction;
   TExecuteFunction = record
-    Id: Integer;
+    Id: TID;
     Executed: Boolean;
     Sender: TClass;
   end;
@@ -18,6 +20,10 @@ type
   TTwoPointer = Record
     ObjectPointer: TObject;
     EventPointer: TMethodInvoker;
+    {$IFDEF DEBUG}
+    ClassName: array[0..255] of AnsiChar;
+    ComponentName: array[0..255] of AnsiChar;
+    {$ENDIF}
   end;
 
   TTwoPointerList = class(TList)
@@ -31,26 +37,27 @@ type
     function FindMethodInvoker(AnSender: TObject): TMethodInvoker;
     function FindObjectIndex(AnSender: TObject): Integer;
     procedure Clear; override;
+
+    {$IFDEF DEBUG}
+    function GetClassNames: String;
+    {$ENDIF}
   end;
 
 type
   TMethodInherited = class(TComponent, IgsInheritedMethodInvoker)
   private
     FInheritedObject: IgsInherited;
-
     FRegistredEventList: TTwoPointerList;
-
     FExecuteFunction: TList;
-//    FFunctionListFilled: Boolean;
-//    FClassName: String;
-//    FMethodName: String;
 
     function InvokeMethod(const AnObject: IgsObject; const AnName: WideString;
       var AnParams: OleVariant): OleVariant;
+
   protected
     procedure RegisterMethodInvoker(AnSender: TObject; AnMethodInvoker: TMethodInvoker);
     procedure UnRegisterMethodInvoker(AnSender: TObject);
     function Get_Self: TObject;
+
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -61,8 +68,8 @@ type
 implementation
 
 uses
-  ComObj, {SysUtils, }Windows, gdcDelphiObject, IBCustomDataSet,
-  IBDataBase, gdcBaseInterface, gdcConstants, mtd_i_Base,{ IB,}
+  ComObj, Windows, gdcDelphiObject, IBCustomDataSet,
+  IBDataBase, gdcConstants, mtd_i_Base,
   gd_ScrException, DB, gd_DebugLog, obj_GedeminApplication
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -70,13 +77,10 @@ uses
   {$ENDIF}
   ;
 
-//type
-//  CException = class of Exception;
-
 function CompareItems(Item1, Item2: Pointer): Integer;
 begin
   Result := Integer(TTwoPointer(Item1^).ObjectPointer) -
-   Integer(TTwoPointer(Item2^).ObjectPointer);
+    Integer(TTwoPointer(Item2^).ObjectPointer);
 end;
 
 { TMethodInherited }
@@ -101,19 +105,16 @@ end;
 
 destructor TMethodInherited.Destroy;
 begin
-//  if Assigned(GedeminApplication) then
-//    GedeminApplication.FreeAllDesignerObject;
   if Assigned(FRegistredEventList) then
   begin
     {$IFDEF DEBUG}
     // Проверка. Этого предупреждения возникать не должно
     // Если оно возникает значит в каком-то классе не вызывается UnRegisterMethodInvoker
     if FRegistredEventList.Count > 0 then
-      MessageBox(0, PChar(Format('Не освобождено %d обработчиков методов для класса TMethodInherited',
-        [FRegistredEventList.Count])), 'Внимание', MB_OK or MB_ICONWARNING);
+      MessageBox(0, PChar(Format('Не освобождено %d обработчиков методов для класса TMethodInherited. %s',
+        [FRegistredEventList.Count, FRegistredEventList.GetClassNames])), 'Внимание', MB_OK or MB_ICONWARNING);
     {$ENDIF}
     FreeAndNil(FRegistredEventList);
-
   end;
 
   if (InheritedMethodInvoker <> nil) and (InheritedMethodInvoker.Get_Self = Self) then
@@ -136,7 +137,6 @@ var
   LDisp: IDispatch;
   LObj: TObject;
 begin
-//  LMethodInvoker := nil;
   try
     LDisp := AnObject;
     LObj := TObject((LDisp as IgsObject).Get_Self);
@@ -167,7 +167,6 @@ begin
       if not Assigned(gdScrException) then
         gdScrException := ExceptionCopier(E);
       Abort;
-//      raise;
     end
   end;
 end;
@@ -201,6 +200,13 @@ begin
   GetMem(LRec, SizeOf(TTwoPointer));
   LRec.ObjectPointer := AnSender;
   LRec.EventPointer := AnMethodInvoker;
+  {$IFDEF DEBUG}
+  StrPCopy(LRec.ClassName, AnSender.ClassName);
+  if AnSender.InheritsFrom(TComponent) then
+    StrPCopy(LRec.ComponentName, TComponent(AnSender).Name)
+  else
+    LRec.ComponentName[0] := #0;
+  {$ENDIF}
 
   Result := inherited Add(LRec);
 
@@ -284,5 +290,22 @@ begin
         Result := CurInd;
   end;
 end;
+
+{$IFDEF DEBUG}
+function TTwoPointerList.GetClassNames: String;
+var
+  I: Integer;
+  S: String;
+begin
+  S := '';
+  for I := 0 to Count - 1 do
+  begin
+    S := S + TTwoPointer(Items[I]^).ClassName + '/' + TTwoPointer(Items[I]^).ComponentName + ', ';
+  end;
+  if Length(S) > 1 then
+    SetLength(S, Length(S) - 2);
+  Result := S;
+end;
+{$ENDIF}
 
 end.

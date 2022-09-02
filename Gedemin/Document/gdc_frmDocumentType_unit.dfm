@@ -7,11 +7,11 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 484
-    Width = 779
+    Top = 492
+    Width = 787
   end
   inherited TBDockTop: TTBDock
-    Width = 779
+    Width = 787
     inherited tbMainToolbar: TTBToolbar
       inherited tbiNew: TTBItem
         Visible = False
@@ -32,66 +32,66 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 424
+    Height = 432
   end
   inherited TBDockRight: TTBDock
-    Left = 770
-    Height = 424
+    Left = 778
+    Height = 432
   end
   inherited TBDockBottom: TTBDock
-    Top = 475
-    Width = 779
+    Top = 483
+    Width = 787
   end
   inherited pnlWorkArea: TPanel
-    Width = 761
-    Height = 424
+    Width = 769
+    Height = 432
     inherited sMasterDetail: TSplitter
-      Height = 319
+      Height = 327
     end
     inherited spChoose: TSplitter
-      Top = 319
-      Width = 761
+      Top = 327
+      Width = 769
     end
     inherited pnlMain: TPanel
-      Height = 319
+      Height = 327
       inherited pnlSearchMain: TPanel
-        Height = 319
+        Height = 327
         inherited sbSearchMain: TScrollBox
-          Height = 292
+          Height = 300
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 319
+        Height = 327
         Images = dmImages.ilTree
         OnGetImageIndex = tvGroupGetImageIndex
       end
     end
     inherited pnChoose: TPanel
-      Top = 325
-      Width = 761
+      Top = 333
+      Width = 769
       inherited pnButtonChoose: TPanel
-        Left = 656
+        Left = 664
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 656
+        Width = 664
       end
       inherited pnlChooseCaption: TPanel
-        Width = 761
+        Width = 769
       end
     end
     inherited pnlDetail: TPanel
-      Width = 589
-      Height = 319
+      Width = 597
+      Height = 327
       object splDocumentOptions: TSplitter [0]
         Left = 0
-        Top = 172
-        Width = 589
+        Top = 180
+        Width = 597
         Height = 6
         Cursor = crVSplit
         Align = alBottom
       end
       inherited TBDockDetail: TTBDock
-        Width = 589
+        Width = 597
         inherited tbDetailToolbar: TTBToolbar
           object tbsmNew: TTBSubmenuItem [0]
             Caption = 'Добавить'
@@ -109,25 +109,28 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
               Action = actAddInvPriceList
             end
           end
+          object TBItem9: TTBItem [16]
+            Action = actFullDublicate
+          end
         end
         inherited tbDetailCustom: TTBToolbar
-          Left = 286
+          Left = 309
         end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 146
+        Height = 154
         inherited sbSearchDetail: TScrollBox
-          Height = 119
+          Height = 127
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 429
-        Height = 146
+        Width = 437
+        Height = 154
       end
       object pnlDocumentOptions: TPanel
         Left = 0
-        Top = 178
-        Width = 589
+        Top = 186
+        Width = 597
         Height = 141
         Align = alBottom
         BevelOuter = bvNone
@@ -135,7 +138,7 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
         object tbdDTOptions: TTBDock
           Left = 0
           Top = 0
-          Width = 589
+          Width = 597
           Height = 25
           object tbDTOptions: TTBToolbar
             Left = 0
@@ -170,7 +173,7 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
         object ibgrOptions: TgsIBGrid
           Left = 0
           Top = 25
-          Width = 589
+          Width = 597
           Height = 116
           Align = alClient
           BorderStyle = bsNone
@@ -197,6 +200,7 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     end
   end
   inherited alMain: TActionList
+    Images = dmImages.il16x16
     Top = 135
     object actNewSub: TAction [1]
       Category = 'Main'
@@ -268,6 +272,12 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       Category = 'Option'
       Caption = 'Обновить'
       OnExecute = actRefreshOptionExecute
+    end
+    object actFullDublicate: TAction
+      Category = 'Detail'
+      Caption = 'Полная копия документа'
+      ImageIndex = 202
+      OnExecute = actFullDublicateExecute
     end
   end
   inherited pmMain: TPopupMenu

@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdc_dlgAddUserToGroup_unit;
 
@@ -24,8 +25,6 @@ type
     btnInclude: TButton;
     gbUser: TGroupBox;
     DBText1: TDBText;
-    gdcUserGroupID: TIntegerField;
-    gdcUserGroupNAME: TIBStringField;
     Label1: TLabel;
     Label2: TLabel;
     procedure actAddGroupExecute(Sender: TObject);

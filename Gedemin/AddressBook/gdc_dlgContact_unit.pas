@@ -250,7 +250,7 @@ end;
 
 procedure Tgdc_dlgContact.actMakeEmployeeExecute(Sender: TObject);
 var
-  ID, Dep: Integer;
+  ID, Dep: TID;
 begin
   if MessageBox(Handle,
     'Сделать данное физическое лицо сотрудником организации?',
@@ -269,8 +269,8 @@ begin
       begin
         Dep := TgdcDepartment.SelectObject('Подразделение:', 'Выбор подразделения',
           0,
-          Format('lb > (SELECT c.lb FROM gd_contact c WHERE c.id = %s) ' +
-            'AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id = %s) ', [TID2S(ID), TID2S(ID)]));
+          Format('lb > (SELECT c.lb FROM gd_contact c WHERE c.id = %d) ' +
+            'AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id = %d) ', [TID264(ID), TID264(ID)]));
 
         if Dep <> -1 then
         begin

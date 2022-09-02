@@ -1,7 +1,7 @@
 inherited OperationRQ: TOperationRQ
-  Left = 350
+  Left = 860
   Height = 319
-  Top = 370
+  Top = 211
   Width = 423
   Caption = 'Form1'
   ClientHeight = 319
@@ -14,49 +14,49 @@ inherited OperationRQ: TOperationRQ
     Width = 413
   end
   inherited lEnter: TLabel
-    Top = 297
+    Top = 298
     Width = 413
     Caption = 'Label2'
   end
   inherited lExit: TLabel
-    Top = 263
+    Top = 266
     Width = 413
     Caption = 'Label2'
   end
   inherited Panel1: TPanel
-    Height = 173
+    Height = 176
     Top = 85
     Width = 413
     ChildSizing.EnlargeVertical = crsHomogenousSpaceResize
     ChildSizing.ControlsPerLine = 0
-    ClientHeight = 173
+    ClientHeight = 176
     ClientWidth = 413
     Visible = False
     inherited lWeight: TLabel
       Height = 24
-      Top = 75
+      Top = 76
       Width = 118
     end
     inherited eWeight: TEdit
       Left = 118
-      Top = 75
-      Width = 85
+      Top = 76
+      Width = 86
     end
     inherited lWeight1: TLabel
-      Left = 203
+      Left = 204
       Height = 24
-      Top = 75
+      Top = 76
       Width = 126
     end
     inherited eGoods: TEdit
-      Left = 329
-      Top = 75
-      Width = 84
+      Left = 330
+      Top = 76
+      Width = 83
       Text = 'eGoods'
     end
   end
   inherited lDelete: TLabel
-    Top = 280
+    Top = 282
     Width = 413
     Caption = 'Delete'
   end

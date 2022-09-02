@@ -1,10 +1,12 @@
+// ShlTanya, 24.02.2019
+
 unit gsPLClient;
 
 interface
 
 uses
   Windows, Classes, SysUtils, IBDatabase, IBSQL, IBHeader, dbclient, DB,
-  gdcBase, PLHeader, PLIntf;
+  gdcBase, PLHeader, PLIntf, gdcBaseInterface;
 
 type
   TgsPL = class(TObject)
@@ -104,7 +106,7 @@ type
     function InternalMakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
       const APredicateName: String; const AStream: TStream = nil): Integer;
 
-    function GetScriptIDByName(const Name: String): Integer;
+    function GetScriptIDByName(const Name: String): TID;
   public
     constructor Create;
     destructor Destroy; override;
@@ -122,7 +124,7 @@ type
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
     procedure SavePredicatesToFile(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
 
-    function LoadScript(AScriptID: Integer): Boolean;
+    function LoadScript(AScriptID: TID): Boolean;
     function LoadScriptByName(const AScriptName: String): Boolean;
 
     property Debug: Boolean read FDebug write FDebug;
@@ -142,7 +144,7 @@ var
 implementation
 
 uses
-  jclStrings, gd_GlobalParams_unit, Forms, gdcBaseInterface, rp_report_const,
+  jclStrings, gd_GlobalParams_unit, Forms, rp_report_const,
   FileCtrl;
 
 constructor EgsPLClientException.CreatePLError(const AnExpected: String);
@@ -492,7 +494,7 @@ begin
   end;
 end;
 
-function TgsPLClient.LoadScript(AScriptID: Integer): Boolean;
+function TgsPLClient.LoadScript(AScriptID: TID): Boolean;
 
   procedure LoadUsesScript(const S: String);
   const
@@ -540,7 +542,7 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text := 'SELECT * FROM gd_function WHERE id = :id';
-    q.ParamByName('id').AsInteger := AScriptID;
+    SetTID(q.ParamByName('id'), AScriptID);
     q.ExecQuery;
 
     if not q.Eof then
@@ -967,7 +969,7 @@ begin
     Result := InternalMakePredicatesOfSQLSelect(ASQL, ATr, APredicateName, nil);
 end;
 
-function TgsPLClient.GetScriptIDByName(const Name: String): Integer;
+function TgsPLClient.GetScriptIDByName(const Name: String): TID;
   var
     q: TIBSQL;
 begin
@@ -985,7 +987,7 @@ begin
         q.ExecQuery;
 
         if not q.Eof then
-          Result := q.FieldByName('id').AsInteger;
+          Result := GetTID(q.FieldByName('id'));
       finally
         q.Free;
       end;

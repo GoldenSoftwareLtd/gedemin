@@ -1,3 +1,4 @@
+// ShlTanya, 10.03.2019
 
 {++
 
@@ -28,7 +29,7 @@ interface
 
 uses
   Classes, flt_ScriptInterface, MSScriptControl_TLB, SysUtils, Windows,
-  rp_ReportScriptControl, prm_ParamFunctions_unit;
+  rp_ReportScriptControl, prm_ParamFunctions_unit, gdcBaseInterface;
 
 type
   TfltGlobalScript = class(TComponent, IFilterScript)
@@ -52,7 +53,7 @@ type
   end;
 
 type
-  TCreateFilterDlg = procedure(const AnFirstKey, AnSecondKey: Integer;
+  TCreateFilterDlg = procedure(const AnFirstKey, AnSecondKey: TID;
    const AnParamList: TgsParamList; var AnResult: Boolean; const AShowDlg: Boolean = True;
    const AFormName: string = ''; const AFilterName: string = '') of object;
 
@@ -61,7 +62,7 @@ type
   private
     FOnDlgCreate: TCreateFilterDlg;
 
-    procedure QueryParams(const AnFirstKey, AnSecondKey: Integer;
+    procedure QueryParams(const AnFirstKey, AnSecondKey: TID;
      const AnParamList: TgsParamList; var AnResult: Boolean;
      const AShowDlg: Boolean = True;
      const AFormName: string = ''; const AFilterName: string = '');
@@ -82,7 +83,7 @@ procedure Register;
 implementation
 
 uses
-  gd_i_ScriptFactory, IBSQL, rp_BaseReport_unit, gdcBaseInterface,
+  gd_i_ScriptFactory, IBSQL, rp_BaseReport_unit,
   scr_i_FunctionList, JclStrings, gd_security_operationconst
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -201,7 +202,7 @@ begin
 
       while not q.Eof do
       begin
-        F := glbFunctionList.FindFunction(q.FieldByName('id').AsInteger);
+        F := glbFunctionList.FindFunction(GetTID(q.FieldByName('id')));
         if Assigned(F) then
           ScriptFactory.AddScript(F, OBJ_APPLICATION, False);
         q.Next;
@@ -261,7 +262,7 @@ begin
   Result := Assigned(FOnDlgCreate);
 end;
 
-procedure TprmGlobalDlg.QueryParams(const AnFirstKey, AnSecondKey: Integer;
+procedure TprmGlobalDlg.QueryParams(const AnFirstKey, AnSecondKey: TID;
    const AnParamList: TgsParamList; var AnResult: Boolean;
    const AShowDlg: Boolean = True;
    const AFormName: string = ''; const AFilterName: string = '');

@@ -1,4 +1,4 @@
-//
+// ShlTanya, 21.02.2019
 
 unit gdc_frmSGR_unit;
 
@@ -9,7 +9,7 @@ uses
   gdc_frmG_unit, Grids, DBGrids, gsDBGrid, gsIBGrid, IBDatabase, Db,
   gsReportManager, flt_sqlFilter, Menus, ActnList,
   ComCtrls, ToolWin, ExtCtrls, FrmPlSvr, IBCustomDataSet, gdcBase, gdcConst,
-  TB2Item, TB2Dock, TB2Toolbar, StdCtrls, gd_MacrosMenu;
+  TB2Item, TB2Dock, TB2Toolbar, StdCtrls, gd_MacrosMenu, gdcBaseInterface;
 
 type
   Tgdc_frmSGR = class(Tgdc_frmG)
@@ -40,7 +40,7 @@ type
     procedure actNewExecute(Sender: TObject);
 
   protected
-    procedure DeleteChoose(AnID: Integer); override;    
+    procedure DeleteChoose(AnID: TID); override;
 
   public
     function GetMainBookmarkList: TBookmarkList; override;
@@ -58,7 +58,7 @@ implementation
 {$R *.DFM}
 
 uses
-  Storages, gdcClasses, gd_ClassList, gdcBaseInterface
+  Storages, gdcClasses, gd_ClassList
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -301,15 +301,15 @@ begin
   if FInChoose then
     try
       if Checked then
-        AddToChooseObject(StrToInt(CheckID))
+        AddToChooseObject(GetTID(CheckID))
       else
-        DeleteFromChooseObject(StrToInt(CheckID));
+        DeleteFromChooseObject(GetTID(CheckID));
     except
       raise Exception.Create('Ошибка при выборе записи. Неверный id: '+ CheckID);
     end;
 end;
 
-procedure Tgdc_frmSGR.DeleteChoose(AnID: Integer);
+procedure Tgdc_frmSGR.DeleteChoose(AnID: TID);
 begin
   ibgrMain.CheckBox.DeleteCheck(AnID);
   gdcObject.RemoveFromSelectedID(AnID);
@@ -383,7 +383,7 @@ end;
 
 procedure Tgdc_frmSGR.actNewExecute(Sender: TObject);
 var
-  OldID: Integer;
+  OldID: TID;
 begin
   if not gdcObject.IsEmpty then
     OldID := gdcObject.ID

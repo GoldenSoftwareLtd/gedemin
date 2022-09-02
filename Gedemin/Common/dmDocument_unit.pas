@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
  {++
    Project TRANSACTION
    Copyright © 2000- by Golden Software
@@ -39,16 +41,16 @@ type
     QRY: TIBSQL;
 
   protected
-    function DeleteDoc(DocumentKey: Integer): Boolean;
+    function DeleteDoc(DocumentKey: TID): Boolean;
 
   public
     // Номер документа
-    function GetNewNumber(DocumentType: Integer): String;
-    function GetNewPaymentNumber(DocumentType, AccountKey: Integer): String;
+    function GetNewNumber(DocumentType: TID): String;
+    function GetNewPaymentNumber(DocumentType, AccountKey: TID): String;
     // Новый ключ документа
-    function GetNewKey: Integer;
+    function GetNewKey: TID;
     // Тип документа
-    function GetDocumentType(DocumentKey: Integer): Integer;
+    function GetDocumentType(DocumentKey: TID): TID;
   end;
 
 var
@@ -58,10 +60,10 @@ implementation
 
 {$R *.DFM}
 
-function TdmDocument.DeleteDoc(DocumentKey: Integer): Boolean;
+function TdmDocument.DeleteDoc(DocumentKey: TID): Boolean;
 begin
   try
-    QRY.SQL.Text := 'DELETE FROM gd_document WHERE id = ' + IntToStr(DocumentKey);
+    QRY.SQL.Text := 'DELETE FROM gd_document WHERE id = ' + TID2S(DocumentKey);
     QRY.ExecQuery;
     Result := True;
   except
@@ -70,13 +72,13 @@ begin
 end;
 
 // Номер документа
-function TdmDocument.GetNewPaymentNumber(DocumentType, AccountKey: Integer): String;
+function TdmDocument.GetNewPaymentNumber(DocumentType, AccountKey: TID): String;
 var
   N: Integer;
 begin
   qryNewPaymentNumber.Close;
-  qryNewPaymentNumber.Params.ByName('doctypekey').AsInteger := DocumentType;
-  qryNewPaymentNumber.Params.ByName('accountkey').AsInteger := AccountKey;
+  SetTID(qryNewPaymentNumber.Params.ByName('doctypekey'), DocumentType);
+  SetTID(qryNewPaymentNumber.Params.ByName('accountkey'), AccountKey);
   qryNewPaymentNumber.ExecQuery;
   if qryNewPaymentNumber.RecordCount = 0 then
     Result := '1'
@@ -90,13 +92,13 @@ begin
 end;
 
 // Номер документа
-function TdmDocument.GetNewNumber(DocumentType: Integer): String;
+function TdmDocument.GetNewNumber(DocumentType: TID): String;
 var
   N: Integer;
 begin
   qryNewNumber.Close;
-  qryNewNumber.Params.ByName('doctypekey').AsInteger := DocumentType;
-  qryNewNumber.Params.ByName('companykey').AsInteger := IBLogin.CompanyKey;
+  SetTID(qryNewNumber.Params.ByName('doctypekey'), DocumentType);
+  SetTID(qryNewNumber.Params.ByName('companykey'), IBLogin.CompanyKey);
   qryNewNumber.ExecQuery;
   if qryNewNumber.RecordCount = 0 then
     Result := '1'
@@ -110,23 +112,23 @@ begin
 end;
 
 // Новый ключ документа
-function TdmDocument.GetNewKey: Integer;
+function TdmDocument.GetNewKey: TID;
 begin
   qryNewDocument.Close;
   qryNewDocument.ExecQuery;
-  Result := qryNewDocument.FieldByName('v').AsInteger;
+  Result := GetTID(qryNewDocument.FieldByName('v'));
   qryNewDocument.Close;
 end;
 
-function TdmDocument.GetDocumentType(DocumentKey: Integer): Integer;
+function TdmDocument.GetDocumentType(DocumentKey: TID): TID;
 begin
   qryGetDocumentType.Close;
-  qryGetDocumentType.Params.ByName('id').AsInteger := DocumentKey;
+  SetTID(qryGetDocumentType.Params.ByName('id'), DocumentKey);
   qryGetDocumentType.ExecQuery;
   if qryGetDocumentType.RecordCount = 0 then
     Result := -1
   else
-    Result := qryGetDocumentType.FieldByName('documenttypekey').AsInteger;
+    Result := GetTID(qryGetDocumentType.FieldByName('documenttypekey'));
 end;
 
 end.

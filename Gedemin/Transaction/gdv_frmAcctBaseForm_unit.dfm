@@ -1,8 +1,8 @@
 inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
-  Left = 244
-  Top = 156
-  Width = 900
-  Height = 656
+  Left = 384
+  Top = 192
+  Width = 798
+  Height = 558
   Caption = 'gdv_frmAcctBaseForm'
   OldCreateOrder = True
   OnDestroy = FormDestroy
@@ -12,11 +12,11 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
     Left = 255
     Top = 30
     Width = 6
-    Height = 586
+    Height = 481
     Cursor = crHSplit
   end
   inherited TBDock1: TTBDock
-    Width = 892
+    Width = 782
     inherited tbMainToolbar: TTBToolbar
       DockMode = dmCannotFloat
       DockPos = 0
@@ -125,13 +125,13 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
   end
   inherited Panel1: TPanel
     Left = 261
-    Width = 622
-    Height = 586
+    Width = 512
+    Height = 481
     object ibgrMain: TgsIBGrid
       Left = 0
       Top = 0
-      Width = 622
-      Height = 586
+      Width = 512
+      Height = 481
       HelpContext = 3
       Align = alClient
       BorderStyle = bsNone
@@ -159,21 +159,21 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
     end
   end
   inherited TBDock2: TTBDock
-    Height = 586
+    Height = 481
   end
   inherited TBDock3: TTBDock
-    Left = 883
-    Height = 586
+    Left = 773
+    Height = 481
   end
   inherited TBDock4: TTBDock
-    Top = 616
-    Width = 892
+    Top = 511
+    Width = 782
   end
   object pLeft: TPanel [6]
     Left = 9
     Top = 30
     Width = 246
-    Height = 586
+    Height = 481
     Align = alLeft
     BevelOuter = bvNone
     Caption = 'pLeft'
@@ -182,7 +182,7 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       Left = 0
       Top = 17
       Width = 246
-      Height = 569
+      Height = 464
       VertScrollBar.Style = ssFlat
       Align = alClient
       BorderStyle = bsNone
@@ -192,7 +192,7 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       object Panel5: TPanel
         Left = 0
         Top = 0
-        Width = 246
+        Width = 229
         Height = 64
         Align = alTop
         BevelOuter = bvNone
@@ -208,7 +208,7 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
           Layout = tlCenter
         end
         object bAccounts: TButton
-          Left = 219
+          Left = 202
           Top = 8
           Width = 20
           Height = 20
@@ -236,7 +236,7 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
         object cbAccounts: TComboBox
           Left = 45
           Top = 8
-          Width = 174
+          Width = 157
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ItemHeight = 13
@@ -245,15 +245,16 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
           OnClick = cbAccountsClick
           OnExit = cbAccountsExit
           OnKeyDown = cbAccountsKeyDown
+          OnKeyUp = cbAccountsKeyUp
         end
       end
       inline frAcctQuantity: TfrAcctQuantity
         Top = 105
-        Width = 246
+        Width = 229
         Align = alTop
         TabOrder = 2
         inherited ppMain: TgdvParamPanel
-          Width = 246
+          Width = 229
           FillColor = 16316664
           StripeOdd = 15967211
           StripeEven = 16379125
@@ -262,20 +263,20 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       end
       inline frAcctSum: TfrAcctSum
         Top = 146
-        Width = 246
+        Width = 229
         Height = 221
         VertScrollBar.Range = 0
         Align = alTop
         AutoScroll = False
         TabOrder = 3
         inherited ppMain: TgdvParamPanel
-          Width = 246
+          Width = 229
           Height = 219
           HorisontalOffset = 5
           FillColor = 16316664
           inherited pnlEQ: TPanel
             Left = 6
-            Width = 234
+            Width = 217
             inherited Label1: TLabel
               ParentColor = False
             end
@@ -288,11 +289,11 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
           end
           inherited pnlQuantity: TPanel
             Left = 6
-            Width = 234
+            Width = 217
           end
           inherited pnlTop: TPanel
             Left = 6
-            Width = 234
+            Width = 217
             inherited Label5: TLabel
               Color = 15987699
               ParentColor = False
@@ -321,30 +322,30 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       end
       inline frAcctAnalytics: TfrAcctAnalytics
         Top = 64
-        Width = 246
+        Width = 229
         TabOrder = 1
         inherited ppAnalytics: TgdvParamPanel
-          Width = 246
+          Width = 229
           Caption = 'Аналитика'
           FillColor = 16316664
         end
       end
       inline frAcctCompany: TfrAcctCompany
         Top = 367
-        Width = 246
+        Width = 229
         Height = 60
         Align = alTop
         TabOrder = 4
         inherited ppMain: TgdvParamPanel
-          Width = 246
+          Width = 229
           FillColor = 16316664
           inherited cbAllCompanies: TCheckBox
-            Width = 189
+            Width = 172
             Anchors = [akLeft, akTop, akRight]
             Color = 16316664
           end
           inherited iblCompany: TgsIBLookupComboBox
-            Width = 153
+            Width = 136
             Anchors = [akLeft, akTop, akRight]
           end
         end
@@ -355,7 +356,7 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       object ppAppear: TgdvParamPanel
         Left = 0
         Top = 427
-        Width = 246
+        Width = 229
         Height = 41
         Align = alTop
         Caption = 'Отображение'

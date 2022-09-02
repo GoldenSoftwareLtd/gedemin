@@ -1,7 +1,8 @@
+// ShlTanya, 20.02.2019, #4135
 
 {++
    Component
-   Copyright © 2000-2011 by Golden Software of Belarus
+   Copyright © 2000-2019 by Golden Software of Belarus
 
    Модуль
 
@@ -34,7 +35,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, DB, IBSQL, DBCtrls, IBQuery, IBDatabase, ComCtrls,
-  frmSelectSet_unit, IBCustomDataSet;
+  frmSelectSet_unit, IBCustomDataSet, gdcBaseInterface;
 
 type
   TgsComboBoxSortOrder = (soNone, soAsc, soDesc);
@@ -51,11 +52,12 @@ type
     FPaintControl: TPaintControl;
 
     FibsqlList: TIBSQL;
-    FAttrKey: Integer;
+    FAttrKey: TID;
     FFullQry: Boolean;
-    FValueID: Integer;
+    FValueID: TID;
     FDropDowning: Boolean;
     FDialogType: Integer;
+    FContext: String;
 
     function GetDataField: string;
     function GetDataSource: TDataSource;
@@ -66,7 +68,7 @@ type
 
     procedure DataChange(Sender: TObject);
     procedure CMExit(var Message: TCMExit); message CM_EXIT;
-    procedure SetAttrKey(Value: Integer);
+    procedure SetAttrKey(Value: TID);
   protected
     procedure Loaded; override;
     procedure DropDown; override;
@@ -76,8 +78,8 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    property AttrKey: Integer read FAttrKey write SetAttrKey;
-    property ValueID: Integer read FValueID;
+    property AttrKey: TID read FAttrKey write SetAttrKey;
+    property ValueID: TID read FValueID;
     property DialogType: Integer read FDialogType write FDialogType;
   published
     property DataField: string read GetDataField write SetDataField;
@@ -91,9 +93,9 @@ type
     FPaintControl: TPaintControl;
 
     FibsqlList: TIBSQL;
-    FAttrKey: Integer;
+    FAttrKey: TID;
     FFullQry: Boolean;
-    FValueID: Integer;
+    FValueID: TID;
     FDropDowning: Boolean;
     FDialogType: Integer;
 
@@ -101,6 +103,7 @@ type
     FTableName: String;
     FFieldName: String;
     FPrimaryName: String;
+    FContext: String;
 
     function GetDatabase: TIBDatabase;
     function GetTransaction: TIBTransaction;
@@ -111,8 +114,8 @@ type
 
     procedure DataChange(Sender: TObject);
     procedure CMExit(var Message: TCMExit); message CM_EXIT;
-    procedure SetAttrKey(Value: Integer);
-    procedure SetValueID(Value: Integer);
+    procedure SetAttrKey(Value: TID);
+    procedure SetValueID(Value: TID);
   protected
     procedure Loaded; override;
     procedure DropDown; override;
@@ -124,8 +127,8 @@ type
 
     property UserAttr: Boolean read FUserAttr write FUserAttr;
 
-    property AttrKey: Integer read FAttrKey write SetAttrKey;
-    property ValueID: Integer read FValueID write SetValueID;
+    property AttrKey: TID read FAttrKey write SetAttrKey;
+    property ValueID: TID read FValueID write SetValueID;
     property Text;
   published
     property TableName: String read FTableName write FTableName;
@@ -148,7 +151,7 @@ type
     FPaintControl: TPaintControl;
 
     FibsqlList: TIBSQL;
-    FAttrKey: Integer;
+    FAttrKey: TID;
     FFullQry: Boolean;
     FDialogType: Boolean;
 
@@ -163,6 +166,7 @@ type
     FCondition: String;
     FSortField: String;
     FSortOrder: TgsComboBoxSortOrder;
+    FContext: String;
 
     procedure CompileQry;
 
@@ -172,7 +176,7 @@ type
     procedure SetTransaction(Value: TIBTransaction);
 
     procedure DataChange(Sender: TObject);
-    procedure SetAttrKey(Value: Integer);
+    procedure SetAttrKey(Value: TID);
     procedure SetValueID(Value: TStrings);
     procedure SetSortField(const Value: String);
     procedure SetSortOrder(const Value: TgsComboBoxSortOrder);
@@ -188,7 +192,7 @@ type
 
     property UserAttr: Boolean read FUserAttr write FUserAttr;
 
-    property AttrKey: Integer read FAttrKey write SetAttrKey;
+    property AttrKey: TID read FAttrKey write SetAttrKey;
     property ValueID: TStrings read FValueID write SetValueID;
   published
     property TableName: String read FTableName write FTableName;
@@ -205,6 +209,7 @@ type
       default DefSortOrder;
   end;
 
+function GetFormName(AComponent: TComponent): String;
 procedure Register;
 
 implementation
@@ -250,6 +255,7 @@ procedure TgsDBComboBoxAttr.DataChange(Sender: TObject);
 begin
   if DataSource = nil then
     Exit;
+  FContext := GetFormName(Self);
   //Assert(DataSource <> nil);
   // Действия по изменению ДатаСорса
   if not FFullQry then
@@ -260,9 +266,9 @@ begin
     begin
       FibsqlList.Close;
       FibsqlList.SQL.Text := 'SELECT id, name FROM gd_attrset WHERE id = '
-       + IntToStr(DataSource.DataSet.FieldByName(DataField).AsInteger);
+       + TID2S(DataSource.DataSet.FieldByName(DataField));
       FibsqlList.ExecQuery;
-      FValueID := FibsqlList.FieldByName('id').AsInteger;
+      FValueID := GetTID(FibsqlList.FieldByName('id'));
       Text := FibsqlList.FieldByName('name').AsString;
     end else
     begin
@@ -270,16 +276,16 @@ begin
       Items.Clear;
       FibsqlList.Close;
       FibsqlList.SQL.Text := 'SELECT id, name FROM gd_attrset WHERE attrkey = '
-       + IntToStr(FAttrKey);
+       + TID2S(FAttrKey);
       FibsqlList.ExecQuery;
       while not FibsqlList.EOF do
       begin
         Items.AddObject(FibsqlList.FieldByName('name').AsString,
-         Pointer(FibsqlList.FieldByName('id').AsInteger));
-        if FibsqlList.FieldByName('id').AsInteger =
-         DataSource.DataSet.FieldByName(DataField).AsInteger then
+         TID2TObject(GetTID(FibsqlList.FieldByName('id')), FContext));
+        if GetTID(FibsqlList.FieldByName('id')) =
+         GetTID(DataSource.DataSet.FieldByName(DataField)) then
         begin
-          FValueID := FibsqlList.FieldByName('id').AsInteger;
+          FValueID := GetTID(FibsqlList.FieldByName('id'));
           Text := FibsqlList.FieldByName('name').AsString;
         end;
         FibsqlList.Next;
@@ -290,7 +296,7 @@ begin
   end;
 end;
 
-procedure TgsDBComboBoxAttr.SetAttrKey(Value: Integer);
+procedure TgsDBComboBoxAttr.SetAttrKey(Value: TID);
 begin
   FAttrKey := Value;
   if FDialogType <> 0 then
@@ -400,9 +406,10 @@ end;
 procedure TgsDBComboBoxAttr.DropDown;
 var
   S: String;
-  I: Integer;
+  I: TID;
   DSState: Boolean;
 begin
+  FContext := GetFormName(Self);
   if DataSource = nil then
     Exit;
   if FDialogType = 0 then
@@ -422,7 +429,7 @@ begin
       if not DSState then
         DataSource.DataSet.Edit;
       FDropDowning := False;
-      DataSource.DataSet.FieldByName(DataField).AsInteger := I;
+      SetTID(DataSource.DataSet.FieldByName(DataField), I);
       FDropDowning := True;
       if not DSState then
         DataSource.DataSet.Post;
@@ -451,9 +458,9 @@ begin
     DSState := (DataSource.DataSet.State = dsEdit) or (DataSource.DataSet.State = dsInsert);
     if not DSState then
       DataSource.DataSet.Edit;
-    DataSource.DataSet.FieldByName(DataField).AsInteger := Integer(Items.Objects[ItemIndex]);
+    SetTID(DataSource.DataSet.FieldByName(DataField), GetTID(Items.Objects[ItemIndex], FContext));
     Text := Items.Strings[ItemIndex];
-    FValueID := DataSource.DataSet.FieldByName(DataField).AsInteger;
+    FValueID := GetTID(DataSource.DataSet.FieldByName(DataField));
     if not DSState then
       DataSource.DataSet.Post;
     FDropDowning := False;
@@ -498,6 +505,7 @@ var
 begin
   if (FBase.Database = nil) or (FBase.Transaction = nil) then
     Exit;
+  FContext := GetFormName(Self);
   // Действия по изменению ДатаСорса
   if not FFullQry then
     CompileQry;
@@ -508,9 +516,9 @@ begin
       begin
         FibsqlList.Close;
         FibsqlList.SQL.Text := 'SELECT id, name FROM gd_attrset WHERE id = '
-         + IntToStr(FValueID);
+         + TID2S(FValueID);
         FibsqlList.ExecQuery;
-        FValueID := FibsqlList.FieldByName('id').AsInteger;
+        FValueID := GetTID(FibsqlList.FieldByName('id'));
         Text := FibsqlList.FieldByName('name').AsString;
       end else
       begin
@@ -518,13 +526,13 @@ begin
         Items.Clear;
         FibsqlList.Close;
         FibsqlList.SQL.Text := 'SELECT id, name FROM gd_attrset WHERE attrkey = '
-         + IntToStr(FAttrKey);
+         + TID2S(FAttrKey);
         FibsqlList.ExecQuery;
         while not FibsqlList.EOF do
         begin
           Items.AddObject(FibsqlList.FieldByName('name').AsString,
-           Pointer(FibsqlList.FieldByName('id').AsInteger));
-          if FibsqlList.FieldByName('id').AsInteger = FValueID then
+            TID2TObject(GetTID(FibsqlList.FieldByName('id')), FContext));
+          if GetTID(FibsqlList.FieldByName('id')) = FValueID then
           begin
             //FValueID := FibsqlList.FieldByName('id').AsInteger;
             Text := FibsqlList.FieldByName('name').AsString;
@@ -544,9 +552,9 @@ begin
         FibsqlList.Close;
         FibsqlList.SQL.Text := 'SELECT ' + Trim(FPrimaryName) + ','
          + Trim(FFieldName) + ' FROM ' + FTableName + ' WHERE '
-         + FPrimaryName + ' = ' + IntToStr(FValueID);
+         + FPrimaryName + ' = ' + TID2S(FValueID);
         FibsqlList.ExecQuery;
-        FValueID := FibsqlList.FieldByName(Trim(FPrimaryName)).AsInteger;
+        FValueID := GetTID(FibsqlList.FieldByName(Trim(FPrimaryName)));
         Text := FibsqlList.FieldByName(Trim(FFieldName)).AsString;
       end else
       begin
@@ -559,8 +567,8 @@ begin
         while not FibsqlList.EOF do
         begin
           Items.AddObject(FibsqlList.FieldByName(FFieldName).AsString,
-           Pointer(FibsqlList.FieldByName(FPrimaryName).AsInteger));
-          if FibsqlList.FieldByName(FPrimaryName).AsInteger = FValueID then
+           TID2TObject(GetTID(FibsqlList.FieldByName(FPrimaryName)), FContext));
+          if GetTID(FibsqlList.FieldByName(FPrimaryName)) = FValueID then
           begin
             //FValueID := FibsqlList.FieldByName('id').AsInteger;
             Text := FibsqlList.FieldByName(FFieldName).AsString;
@@ -577,14 +585,14 @@ begin
   end;
 end;
 
-procedure TgsComboBoxAttr.SetAttrKey(Value: Integer);
+procedure TgsComboBoxAttr.SetAttrKey(Value: TID);
 begin
   FAttrKey := Value;
   if FDialogType <> 0 then
     DataChange(Self);
 end;
 
-procedure TgsComboBoxAttr.SetValueID(Value: Integer);
+procedure TgsComboBoxAttr.SetValueID(Value: TID);
 begin
   if FValueID <> Value then
   begin
@@ -683,8 +691,9 @@ end;
 procedure TgsComboBoxAttr.DropDown;
 var
   S: String;
-  I: Integer;
+  I: TID;
 begin
+  FContext := GetFormName(Self);
   if (FBase.Database = nil) or (FBase.Transaction = nil) then
     Exit;
   if FDialogType = 0 then
@@ -743,7 +752,7 @@ begin
     Exit;
   if ItemIndex > -1 then
   begin
-    FValueID := Integer(Items.Objects[ItemIndex]);
+    FValueID := GetTID(Items.Objects[ItemIndex], FContext);
     Text := Items.Strings[ItemIndex];
   end;
 end;
@@ -753,7 +762,6 @@ end;
 constructor TgsComboBoxAttrSet.Create(AnOwner: TComponent);
 begin
   inherited Create(AnOwner);
-
   if not (csDesigning in ComponentState) then
   begin
     FValueID := TStringList.Create;
@@ -795,6 +803,7 @@ var
 begin
   if (Database = nil) or (Transaction = nil) then
     Exit;
+  FContext := GetFormName(Self);
   // Действия по изменению ДатаСорса
   if not FFullQry then
     CompileQry;
@@ -804,20 +813,20 @@ begin
       S := '';
       FibsqlList.Close;
       FibsqlList.SQL.Text := 'SELECT id, name FROM gd_attrset '
-       + ' WHERE attrkey = ' + IntToStr(FAttrKey) + ' AND id IN(';
+       + ' WHERE attrkey = ' + TID2S(FAttrKey) + ' AND id IN(';
       if FValueID.Count > 0 then
-        FibsqlList.SQL.Add(IntToStr(Integer(FValueID.Objects[0])))
+        FibsqlList.SQL.Add(TID2S(GetTID(FValueID.Objects[0], FContext)))
       else
         FibsqlList.SQL.Add('0');
       for I := 1 to FValueID.Count - 1 do
-        FibsqlList.SQL.Add(', ' + IntToStr(Integer(FValueID.Objects[I])));
+        FibsqlList.SQL.Add(', ' + TID2S(GetTID(FValueID.Objects[I], FContext)));
       FibsqlList.SQL.Add(')');
       FibsqlList.ExecQuery;
       FValueID.Clear;
       while not FibsqlList.EOF do
       begin
         FValueID.AddObject(FibsqlList.FieldByName('name').AsString,
-         Pointer(FibsqlList.FieldByName('id').AsInteger));
+         TID2TObject(GetTID(FibsqlList.FieldByName('id')), FContext));
         S := S + FibsqlList.FieldByName('name').AsString + SetSeparator;
         FibsqlList.Next;
       end;
@@ -826,7 +835,7 @@ begin
       Items.Clear;
       FibsqlList.Close;
       FibsqlList.SQL.Text := 'SELECT id, name FROM gd_attrset WHERE attrkey = '
-       + IntToStr(FAttrKey);
+       + TID2S(FAttrKey);
       FibsqlList.ExecQuery;
       S := '';
       FItemList.ListView.Items.Clear;
@@ -834,9 +843,9 @@ begin
       begin
         LI := FItemList.ListView.Items.Add;
         LI.Caption := FibsqlList.FieldByName('name').AsString;
-        LI.Data := Pointer(FibsqlList.FieldByName('id').AsInteger);
+        LI.Data := TID2Pointer(GetTID(FibsqlList.FieldByName('id')), FContext);
         for I := 0 to ValueID.Count - 1 do
-          if Integer(ValueID.Objects[I]) = Integer(LI.Data) then
+          if GetTID(ValueID.Objects[I], FContext) = GetTID(LI.Data, FContext) then
           begin
             ValueID.Strings[I] := LI.Caption;
             LI.Checked := True;
@@ -856,11 +865,11 @@ begin
        + FPrimaryName + ' IN(';
       if FValueID.Count > 0 then
       begin
-        FibsqlList.SQL.Add(IntToStr(Integer(FValueID.Objects[0])));
+        FibsqlList.SQL.Add(TID2S(GetTID(FValueID.Objects[0], FContext)));
         for I := 1 to 1498 do
         begin
           if I < FValueID.Count then
-            FibsqlList.SQL.Add(', ' + IntToStr(Integer(FValueID.Objects[I])))
+            FibsqlList.SQL.Add(', ' + TID2S(GetTID(FValueID.Objects[I], FContext)))
           else
             break;
         end;
@@ -873,7 +882,7 @@ begin
       while not FibsqlList.EOF do
       begin
         T := FibsqlList.FieldByName(FFieldName).AsString;
-        FValueID.AddObject(T, Pointer(FibsqlList.FieldByName(FPrimaryName).AsInteger));
+        FValueID.AddObject(T, TID2TObject(GetTID(FibsqlList.FieldByName(FPrimaryName)), FContext));
         if NotEnough then
         begin
           if (Length(S) + Length(T)) < 128 then
@@ -898,9 +907,9 @@ begin
       begin
         LI := FItemList.ListView.Items.Add;
         LI.Caption := FibsqlList.FieldByName(FFieldName).AsString;
-        LI.Data := Pointer(FibsqlList.FieldByName(FPrimaryName).AsInteger);
+        LI.Data := TID2Pointer(GetTID(FibsqlList.FieldByName(FPrimaryName)), FContext);
         for I := 0 to ValueID.Count - 1 do
-          if Integer(ValueID.Objects[I]) = Integer(LI.Data) then
+          if GetTID(ValueID.Objects[I], FContext) = GetTID(LI.Data, FContext) then
           begin
             ValueID.Strings[I] := LI.Caption;
             LI.Checked := True;
@@ -916,7 +925,7 @@ begin
   Hint := S;
 end;
 
-procedure TgsComboBoxAttrSet.SetAttrKey(Value: Integer);
+procedure TgsComboBoxAttrSet.SetAttrKey(Value: TID);
 begin
   FAttrKey := Value;
   if not FDialogType then
@@ -1026,6 +1035,7 @@ var
   S: String;
   Temps: String;
 begin
+  FContext := GetFormName(Self);
   FDroping := True;
   if FDialogType then
     if FUserAttr then
@@ -1037,7 +1047,7 @@ begin
         ibsqlTarget.Database := Database;
         ibsqlTarget.Transaction := Transaction;
         // Получаем результат
-        Flag := GetElements(FAttrKey, FValueID);
+        Flag := GetElements(FAttrKey, FValueID, FContext);
         if Flag then
         begin
           Items.Clear;
@@ -1072,7 +1082,7 @@ begin
         end;
 
         // Получаем результат
-        Flag := GetElements(FValueID, TableName, FieldName, PrimaryName, FCondition, FSortField, Temps);
+        Flag := GetElements(FValueID, TableName, FieldName, PrimaryName, FCondition, FSortField, Temps, FContext);
         if Flag then
         begin
           Items.Clear;
@@ -1111,6 +1121,23 @@ begin
   end;
   Hint := Text;
   FDroping := False;
+end;
+
+function GetFormName(AComponent: TComponent): String;
+var C: TComponent;
+begin
+  C := AComponent.Owner;
+  while Assigned(C)  do
+  begin
+    if (C is TForm) then
+    begin
+      Result := C.Name;
+      Break;
+    end;
+    C := C.GetParentComponent;
+  end;
+  if Result = '' then
+    Result := cEmptyContext;
 end;
 
 procedure Register;

@@ -1,8 +1,8 @@
 inherited gdc_dlgSMTP: Tgdc_dlgSMTP
-  Left = 445
-  Top = 232
+  Left = 446
+  Top = 233
   Caption = 'gdc_dlgSMTP'
-  ClientHeight = 361
+  ClientHeight = 382
   ClientWidth = 399
   Font.Charset = DEFAULT_CHARSET
   OldCreateOrder = False
@@ -31,28 +31,28 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   object Label4: TLabel [3]
     Left = 8
-    Top = 175
+    Top = 194
     Width = 84
     Height = 13
     Caption = 'Учетная запись:'
   end
   object Label5: TLabel [4]
     Left = 8
-    Top = 199
+    Top = 218
     Width = 37
     Height = 13
     Caption = 'Пароль'
   end
   object Label6: TLabel [5]
     Left = 8
-    Top = 223
+    Top = 242
     Width = 125
     Height = 13
     Caption = 'Протокол безопасности:'
   end
   object Label7: TLabel [6]
     Left = 8
-    Top = 247
+    Top = 266
     Width = 88
     Height = 13
     Caption = 'Время ожидания:'
@@ -73,27 +73,27 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   inherited btnAccess: TButton
     Left = 6
-    Top = 330
+    Top = 351
     TabOrder = 13
   end
   inherited btnNew: TButton
     Left = 78
-    Top = 330
+    Top = 351
     TabOrder = 14
   end
   inherited btnHelp: TButton
     Left = 150
-    Top = 330
+    Top = 351
     TabOrder = 15
   end
   inherited btnOK: TButton
     Left = 252
-    Top = 330
+    Top = 351
     TabOrder = 11
   end
   inherited btnCancel: TButton
     Left = 324
-    Top = 330
+    Top = 351
     TabOrder = 12
   end
   object dbeName: TDBEdit [14]
@@ -125,7 +125,7 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   object dbeLogin: TDBEdit [17]
     Left = 144
-    Top = 173
+    Top = 192
     Width = 249
     Height = 21
     DataField = 'login'
@@ -134,7 +134,7 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   object dbcbIPSec: TDBComboBox [18]
     Left = 144
-    Top = 221
+    Top = 240
     Width = 249
     Height = 21
     DataField = 'ipsec'
@@ -149,7 +149,7 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   object dbeTimeout: TDBEdit [19]
     Left = 144
-    Top = 245
+    Top = 264
     Width = 249
     Height = 21
     DataField = 'timeout'
@@ -176,7 +176,7 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   object dbcbDisabled: TDBCheckBox [22]
     Left = 144
-    Top = 272
+    Top = 291
     Width = 121
     Height = 17
     Caption = 'Запись отключена'
@@ -188,7 +188,7 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   object btnTest: TButton [23]
     Left = 143
-    Top = 297
+    Top = 316
     Width = 137
     Height = 21
     Action = actCheckConnect
@@ -196,7 +196,7 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   object edPassw: TEdit [24]
     Left = 144
-    Top = 197
+    Top = 216
     Width = 249
     Height = 21
     PasswordChar = '*'
@@ -204,7 +204,7 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   object dbcbPrincipal: TDBCheckBox [25]
     Left = 8
-    Top = 272
+    Top = 291
     Width = 97
     Height = 17
     Caption = 'Основной'
@@ -214,9 +214,22 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
+  object chbServerAuthenticate: TDBCheckBox [26]
+    Left = 8
+    Top = 173
+    Width = 265
+    Height = 17
+    Caption = 'Сервер требует аутентификацию'
+    DataField = 'PRINCIPAL'
+    DataSource = dsgdcBase
+    TabOrder = 17
+    ValueChecked = '1'
+    ValueUnchecked = '0'
+    OnClick = chbServerAuthenticateClick
+  end
   inherited alBase: TActionList
     Left = 284
-    Top = 307
+    Top = 326
     object actCheckConnect: TAction
       Caption = 'Проверить соединение'
       OnExecute = actCheckConnectExecute
@@ -224,14 +237,14 @@ inherited gdc_dlgSMTP: Tgdc_dlgSMTP
   end
   inherited dsgdcBase: TDataSource
     Left = 246
-    Top = 307
+    Top = 326
   end
   inherited pm_dlgG: TPopupMenu
     Left = 318
-    Top = 308
+    Top = 327
   end
   inherited ibtrCommon: TIBTransaction
     Left = 358
-    Top = 308
+    Top = 327
   end
 end

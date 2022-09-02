@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 {
   Данный модуль содержит все компоненты для работы с проектом Департамент
 
@@ -55,7 +57,7 @@ type
     function GetDialogDefaultsFields: String; override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    function DocumentTypeKey: TID; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -85,8 +87,8 @@ type
     function GetReductionTable: String; override;
 
   public
-    function DocumentTypeKey: Integer; override;
-    function GetCompany(const Account: String): Integer;
+    function DocumentTypeKey: TID; override;
+    function GetCompany(const Account: String): TID;
 
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetSubSetList: String; override;
@@ -94,7 +96,7 @@ type
 
   Tgdc_dpRevaluation = class(TgdcDocument)
   private
-    FTransferKey: Integer;
+    FTransferKey: TID;
 
   protected
     function GetSelectClause: String; override;
@@ -114,11 +116,11 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function DocumentTypeKey: Integer; override;
+    function DocumentTypeKey: TID; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetSubSetList: String; override;
 
-    property TransferKey: Integer read FTransferKey write FTransferKey;
+    property TransferKey: TID read FTransferKey write FTransferKey;
   end;
 
   Tgdc_dpSale = class(TgdcCompany)
@@ -189,7 +191,7 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    function DocumentTypeKey: TID; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -228,12 +230,12 @@ type
 
   Tgdc_dpBSLine = class(TgdcDocument)
   private
-    FBSLineKey: Integer;
-    FCompanyKey: Integer;
+    FBSLineKey: TID;
+    FCompanyKey: TID;
     FSumNCU: Currency;
 
-    procedure SetBSLineKey(Value: Integer);
-    procedure SetCompanyKey(const Value: Integer);
+    procedure SetBSLineKey(Value: TID);
+    procedure SetCompanyKey(const Value: TID);
 
   protected
     function GetSelectClause: String; override;
@@ -261,13 +263,13 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
-    property BSLineKey: Integer read FBSLineKey write SetBSLineKey;
-    property CompanyKey: Integer read FCompanyKey write SetCompanyKey;
+    property BSLineKey: TID read FBSLineKey write SetBSLineKey;
+    property CompanyKey: TID read FCompanyKey write SetCompanyKey;
     property SumNCU: Currency read FSumNCU write FSumNCU;
 
     procedure ChooseCompany;
 
-    function DocumentTypeKey: Integer; override;
+    function DocumentTypeKey: TID; override;
 
     procedure ChooseTransfer;
     //Функция для удаления выбранного элемента из группы
@@ -373,7 +375,7 @@ begin
   inherited;
 
   FieldByName('incomedate').AsDateTime := SysUtils.Date;
-  FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('documentkey'), FieldByName('id'));
   FieldByName('authorityname').Required := False;
   FieldByName('decreename').Required := False;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDC_DPINVENTORY', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
@@ -585,7 +587,7 @@ begin
     for I := 0 to SelectedID.Count - 1 do
     begin
       if Length(Str) >= 8192 then break;
-      Str := Str + IntToStr(SelectedID[I]) + ',';
+      Str := Str + TID2S(SelectedID[I]) + ',';
     end;
     if Str = '' then
       Str := '-1'
@@ -607,7 +609,7 @@ begin
 
 end;
 
-function Tgdc_dpInventory.DocumentTypeKey: Integer;
+function Tgdc_dpInventory.DocumentTypeKey: TID;
 begin
   Result := DP_DOC_INVENTORY;
 end;
@@ -711,7 +713,7 @@ end;
 class function Tgdc_dpInventory.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
-  Result := 'z.documenttypekey=' + IntToStr(DP_DOC_INVENTORY);
+  Result := 'z.documenttypekey=' + TID2S(DP_DOC_INVENTORY);
 end;
 
 {Tgdc_dpTransfer}
@@ -1018,11 +1020,11 @@ begin
   {END MACRO}
   inherited;
 
-  FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('documentkey'), FieldByName('id'));
   FieldByName('paysum').Required := False;
   FieldByName('companyname').Required := False;
   FieldByName('assetdestname').Required := False;
-  FieldByName('inventorykey').AsInteger := (MasterSource.DataSet as TgdcBase).ID;
+  SetTID(FieldByName('inventorykey'), (MasterSource.DataSet as TgdcBase).ID);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDC_DPTRANSFER', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1031,7 +1033,7 @@ begin
   {END MACRO}
 end;
 
-function Tgdc_dpTransfer.GetCompany(const Account: String): Integer;
+function Tgdc_dpTransfer.GetCompany(const Account: String): TID;
 var
   q: TIBSQL;
   DidActivate: Boolean;
@@ -1045,7 +1047,7 @@ begin
     if q.RecordCount = 0 then
       Result := -1
     else
-      Result := q.FieldByName('companykey').AsInteger;
+      Result := GetTID(q.FieldByName('companykey'));
   finally
     if DidActivate and q.Transaction.InTransaction then
       q.Transaction.Commit;
@@ -1054,7 +1056,7 @@ begin
   end;
 end;
 
-function Tgdc_dpTransfer.DocumentTypeKey: Integer;
+function Tgdc_dpTransfer.DocumentTypeKey: TID;
 begin
   Result := DP_DOC_TRANSFER;
 end;
@@ -1062,7 +1064,7 @@ end;
 class function Tgdc_dpTransfer.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
-  Result := 'z.documenttypekey=' + IntToStr(DP_DOC_TRANSFER);
+  Result := 'z.documenttypekey=' + TID2S(DP_DOC_TRANSFER);
 end;
 
 procedure Tgdc_dpTransfer.GetWhereClauseConditions(S: TStrings);
@@ -1443,13 +1445,13 @@ begin
 
   Assert(FTransferKey <> -1);
 
-  FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('documentkey'), FieldByName('id'));
   FieldByName('transfernumber').Required := False;
   FieldByName('transferdate').Required := False;
   FieldByName('companyname').Required := False;
   FieldByName('tcompanykey').Required := False;
 
-  FieldByName('transferkey').AsInteger := TransferKey;
+  SetTID(FieldByName('transferkey'), TransferKey);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDC_DPREVALUATION', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1465,7 +1467,7 @@ begin
   FTransferKey := -1;
 end;
 
-function Tgdc_dpRevaluation.DocumentTypeKey: Integer;
+function Tgdc_dpRevaluation.DocumentTypeKey: TID;
 begin
   Result := DP_DOC_REVALUATION;
 end;
@@ -1473,7 +1475,7 @@ end;
 class function Tgdc_dpRevaluation.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
-  Result := 'z.documenttypekey=' + IntToStr(DP_DOC_REVALUATION);
+  Result := 'z.documenttypekey=' + TID2S(DP_DOC_REVALUATION);
 end;
 
 procedure Tgdc_dpRevaluation.GetWhereClauseConditions(S: TStrings);
@@ -2331,7 +2333,7 @@ begin
   {END MACRO}
   inherited;
 
-  FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('documentkey'), FieldByName('id'));
   FieldByName('authorityname').Required := False;
   FieldByName('contactname').Required := False;
   FieldByName('currname').Required := False;
@@ -2343,7 +2345,7 @@ begin
   {END MACRO}
 end;
 
-function Tgdc_dpWithDrawal.DocumentTypeKey: Integer;
+function Tgdc_dpWithDrawal.DocumentTypeKey: TID;
 begin
   Result := DP_DOC_WITHDRAWAL;
 end;
@@ -2358,7 +2360,7 @@ end;
 class function Tgdc_dpWithDrawal.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
-  Result := 'z.documenttypekey=' + IntToStr(DP_DOC_WITHDRAWAL);
+  Result := 'z.documenttypekey=' + TID2S(DP_DOC_WITHDRAWAL);
 end;
 
 class function Tgdc_dpWithDrawal.GetViewFormClassName(
@@ -2867,7 +2869,7 @@ begin
     for I := 0 to SelectedID.Count - 1 do
     begin
       if Length(Str) >= 8192 then break;
-      Str := Str + IntToStr(SelectedID[I]) + ',';
+      Str := Str + TID2S(SelectedID[I]) + ',';
     end;
     if Str = '' then
       Str := '-1'
@@ -2949,7 +2951,7 @@ begin
         ' c.name as companyname, ' +
         ' (SELECT SUM(bsld.sumncu) FROM bn_bslinedocument bsld ' +
         ' WHERE bsld.documentkey = z.id and bsld.bslinekey = ' +
-        IntToStr(FBSLineKey) + ') as bsldsumncu '
+        TID2S(FBSLineKey) + ') as bsldsumncu '
   else
   Result := 'SELECT z.*, ' +
     ' inv.number as invnumber, inv.documentdate as invdate, ' +
@@ -3012,7 +3014,7 @@ begin
   {END MACRO}
 end;
 
-procedure Tgdc_dpBSLine.SetBSLineKey(Value: Integer);
+procedure Tgdc_dpBSLine.SetBSLineKey(Value: TID);
 var
   WasActive: Boolean;
 begin
@@ -3237,7 +3239,7 @@ begin
     S.Add('(c.id = :companykey ' + { IntToStr(FCompanyKey) +}
       ') AND ((inv.disabled = 0) or (inv.disabled IS NULL))' )
   else if HasSubSet(ss_ByLine) then
-    S.Add(' bs.bslinekey = ' + IntToStr(BSLineKey) )
+    S.Add(' bs.bslinekey = ' + TID2S(BSLineKey) )
   else
     inherited;
 end;
@@ -3284,7 +3286,7 @@ begin
 end;
 
 
-procedure Tgdc_dpBSLine.SetCompanyKey(const Value: Integer);
+procedure Tgdc_dpBSLine.SetCompanyKey(const Value: TID);
 var
   WasActive: Boolean;
 begin
@@ -3295,7 +3297,7 @@ begin
     begin
       WasActive := Active;
       Close;
-      ParamByName('companykey').AsInteger := FCompanyKey;
+      SetTID(ParamByName('companykey'), FCompanyKey);
       Active := WasActive;
     end;
 { end;}
@@ -3325,7 +3327,7 @@ begin
     begin
       try
         ExecSingleQuery('DELETE FROM bn_bslinedocument WHERE bslinekey = :old_bslinekey and documentkey = :old_documentkey',
-          VarArrayOf([FBSLineKey, ID]));
+          VarArrayOf([TID2V(FBSLineKey), TID2V(ID)]));
 
       except
         raise EgdcException.Create('Ошибка при удалении записи из группы!');
@@ -3347,7 +3349,7 @@ begin
             Bookmark := BL[I];
             try
               ExecSingleQuery('DELETE FROM bn_bslinedocument WHERE bslinekey = :old_bslinekey and documentkey = :old_documentkey',
-                VarArrayOf([FBSLineKey, ID]));
+                VarArrayOf([TID2V(FBSLineKey), TID2V(ID)]));
             except
               raise EgdcException.Create('Ошибка при удалении записи из группы!');
             end;
@@ -3367,7 +3369,7 @@ begin
   begin
     try
       if HasSubSet('ByCompany') then
-        ibcmbCompany.CurrentKeyInt := ParamByName('companykey').AsInteger
+        ibcmbCompany.CurrentKeyInt := GetTID(ParamByName('companykey'))
       else
         ibcmbCompany.CurrentKeyInt := FCompanyKey;
       if ShowModal = mrOk then
@@ -3440,7 +3442,7 @@ begin
   begin
     for I := 0 to SelectedID.Count - 1 do
       ExecSingleQuery('INSERT INTO bn_bslinedocument(bslinekey,  documentkey, sumncu) VALUES (:bslinekey,  :documentkey, :sumncu)',
-        VarArrayOf([FBSLineKey, SelectedID.Keys[I],FSumNCU]));
+        VarArrayOf([TID2V(FBSLineKey), TID2V(SelectedID.Keys[I]),FSumNCU]));
     if SelectedID.Count > 0 then
     begin
       SelectedID.Clear;
@@ -3457,7 +3459,7 @@ begin
   Result := 'Tgdc_dp_frmInventory';
 end;
 
-function Tgdc_dpBSLine.DocumentTypeKey: Integer;
+function Tgdc_dpBSLine.DocumentTypeKey: TID;
 begin
   Result := DP_DOC_TRANSFER;
 end;
@@ -3490,10 +3492,10 @@ begin
   {END MACRO}
   inherited;
   if HasSubSet('ByCompany') then
-    if (ParamByName('companykey').AsInteger > 0) and
-      (FCompanyKey <> ParamByName('companykey').AsInteger)
+    if (GetTID(ParamByName('companykey')) > 0) and
+      (FCompanyKey <> GetTID(ParamByName('companykey')))
     then
-      FCompanyKey := ParamByName('companykey').AsInteger;
+      FCompanyKey := GetTID(ParamByName('companykey'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDC_DPBSLINE', 'DOAFTEROPEN', KEYDOAFTEROPEN)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

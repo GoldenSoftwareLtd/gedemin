@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit gdc_frmMainGood_unit;
 
 interface
@@ -44,7 +46,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdc_frmInvCard_unit;
+  gd_ClassList, gdc_frmInvCard_unit, gdcBaseInterface;
 
 class function Tgdc_frmMainGood.CreateAndAssign(
   AnOwner: TComponent): TForm;
@@ -124,7 +126,7 @@ begin
     gdcInvCard.Close;
     gdcObject := gdcInvCard;
     gdcObject.SubSet := 'ByHolding,ByGoodOnly';
-    gdcObject.ParamByName('goodkey').AsInteger := gdcDetailObject.ID;
+    SetTID(gdcObject.ParamByName('goodkey'), gdcDetailObject.ID);
     RunCard;
     ShowModal;
   finally

@@ -1,10 +1,12 @@
+// ShlTanya, 02.02.2019
+
 unit at_dlgChoosePackage_unit;
 
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Grids, Buttons, CheckLst, ExtCtrls;
+  StdCtrls, Grids, Buttons, CheckLst, ExtCtrls, gdcBaseInterface;
 
 type
   Tat_dlgChoosePackage = class(TForm)
@@ -26,7 +28,7 @@ type
     { Private declarations }
   public
     IDChooseList: TStringGrid;
-    SelectedID: Integer;
+    SelectedID: TID;
     spForInstall, spForChoose: String;
   end;
 

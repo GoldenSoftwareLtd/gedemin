@@ -1,10 +1,11 @@
+// ShlTanya, 24.02.2019
 
 unit gd_convert;
 
 interface
 
 uses
-  NumConv;
+  NumConv, gdcBaseInterface;
 
 const
   CacheFlushInterval   = 120 * 60 * 1000; //2 hrs in msec
@@ -42,11 +43,11 @@ const
 
 function GetNumeral(const AFormat: String; AValue: Double; const ARounding: Double;
   const AFracBase: Integer; const ACase: Integer; const AParts: Integer; const ANames: String): String;
-function GetCurrNumeral(const ACurrKey: Integer; const AFormat: String; AValue: Double; const ARounding: Double;
+function GetCurrNumeral(const ACurrKey: TID; const AFormat: String; AValue: Double; const ARounding: Double;
   const ACase: Integer = caseName; const AParts: Integer = 0; const ASubst: String = '';
   const ADecimalSeparator: String = ''; const AThousandSeparator: String = ''): String;
 
-function GetSumCurr(const ACurrKey: Integer; const AValue: Double; const ACentAsString: Boolean;
+function GetSumCurr(const ACurrKey: TID; const AValue: Double; const ACentAsString: Boolean;
   const AnIncludeCent: Boolean): String;
 function GetSumStr(const AValue: Double; const APrecision: Byte = 0): String;
 function GetSumStr2(const AValue: Double; const AGender: TGender): String;
@@ -59,7 +60,7 @@ function MulDiv(const ANumber: Double; const ANumerator: Double; const ADenomina
 implementation
 
 uses
-  Classes, Windows, Forms, SysUtils, gdcCurr, IBSQL, gdcBaseInterface,
+  Classes, Windows, Forms, SysUtils, gdcCurr, IBSQL,
   gd_security, gd_common_functions, StDecMth;
 
 type
@@ -67,7 +68,8 @@ type
 
 var
   NumberConvert: TNumberConvert;
-  FCurrCachedKey, FCurrCachedDBID: Integer;
+  FCurrCachedKey: TID;
+  FCurrCachedDBID: Integer;
   FCurrCachedTime: DWORD;
   CacheName, CacheCentName,
   CacheShortName, CacheShortCentName,
@@ -76,7 +78,7 @@ var
   CacheSign, CacheISO, CacheCode: String;
   CacheDecDigits: Integer;
 
-function UpdateCache(const AnID: Integer; const AForce: Boolean = False): Boolean;
+function UpdateCache(const AnID: TID; const AForce: Boolean = False): Boolean;
 var
   q: TIBSQL;
 begin
@@ -90,7 +92,7 @@ begin
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
       q.SQL.Text := 'SELECT * FROM gd_curr WHERE id = :ID';
-      q.ParamByName('ID').AsInteger := AnID;
+      SetTID(q.ParamByName('ID'), AnID);
       q.ExecQuery;
       if not q.EOF then
       begin
@@ -369,7 +371,7 @@ begin
   end;
 end;
 
-function GetCurrNumeral(const ACurrKey: Integer; const AFormat: String; AValue: Double; const ARounding: Double;
+function GetCurrNumeral(const ACurrKey: TID; const AFormat: String; AValue: Double; const ARounding: Double;
   const ACase: Integer; const AParts: Integer; const ASubst, ADecimalSeparator, AThousandSeparator: String): String;
 begin
   if not UpdateCache(ACurrKey) then
@@ -447,7 +449,7 @@ begin
   Result := NumberConvert.Numeral;
 end;
 
-function GetSumCurr(const ACurrKey: Integer; const AValue: Double; const ACentAsString: Boolean;
+function GetSumCurr(const ACurrKey: TID; const AValue: Double; const ACentAsString: Boolean;
   const AnIncludeCent: Boolean): String;
 {
   function GetName(const Num: Int64; const Name: TNameSelector): String;

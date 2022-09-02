@@ -1,6 +1,6 @@
 inherited gdc_ab_frmmain: Tgdc_ab_frmmain
-  Left = 544
-  Top = 225
+  Left = 680
+  Top = 207
   Width = 785
   Height = 405
   HelpContext = 31

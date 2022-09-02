@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 {++
 
   Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
@@ -25,7 +27,7 @@ unit scrReportGroup;
 interface
 
 uses Classes, Db, SysUtils, IBQuery, IBDataBase, IBCustomDataSet,
-  gd_SetDataBase, scrMacrosGroup;
+  gd_SetDataBase, scrMacrosGroup, gdcBaseInterface;
 
 type
   TscrReportFncType = (rfMainFnc, rfParamFnc, rfEventFnc);
@@ -58,31 +60,31 @@ type
     FGlobalReportKey: Boolean;
     FAChag: Integer;
     FFRQRefresh: Integer;
-    FReportGroupKey: Integer;
-    FTemplateKey: Integer;
+    FReportGroupKey: TID;
+    FTemplateKey: TID;
     FIsRebuild: Integer;
-    FServerKey: Integer;
-    FMainFormulaKey: Integer;
+    FServerKey: TID;
+    FMainFormulaKey: TID;
     FAFull: Integer;
-    FEventFormulaKey: Integer;
+    FEventFormulaKey: TID;
     FAView: Integer;
-    FParamFormulaKey: Integer;
+    FParamFormulaKey: TID;
     FDescription: ShortString;
     procedure SetAChag(const Value: Integer);
     procedure SetAFull(const Value: Integer);
     procedure SetAView(const Value: Integer);
     procedure SetDescription(const Value: ShortString);
-    procedure SetEventFormulaKey(const Value: Integer);
+    procedure SetEventFormulaKey(const Value: TID);
     procedure SetFRQRefresh(const Value: Integer);
     procedure SetGlobalReportKey(const Value: Boolean);
     procedure SetIsLocalExecute(const Value: Boolean);
     procedure SetIsRebuild(const Value: Integer);
-    procedure SetMainFormulaKey(const Value: Integer);
-    procedure SetParamFormulaKey(const Value: Integer);
+    procedure SetMainFormulaKey(const Value: TID);
+    procedure SetParamFormulaKey(const Value: TID);
     procedure SetPreview(const Value: Boolean);
-    procedure SetReportGroupKey(const Value: Integer);
-    procedure SetServerKey(const Value: Integer);
-    procedure SetTemplateKey(const Value: Integer);
+    procedure SetReportGroupKey(const Value: TID);
+    procedure SetServerKey(const Value: TID);
+    procedure SetTemplateKey(const Value: TID);
 
   public
     constructor Create;
@@ -95,16 +97,16 @@ type
 
     property Description: ShortString read FDescription write SetDescription;
     property FRQRefresh: Integer read FFRQRefresh write SetFRQRefresh;
-    property ReportGroupKey: Integer read FReportGroupKey write SetReportGroupKey;
-    property ParamFormulaKey: Integer read FParamFormulaKey write SetParamFormulaKey;
-    property MainFormulaKey: Integer read FMainFormulaKey write SetMainFormulaKey;
-    property EventFormulaKey: Integer read FEventFormulaKey write SetEventFormulaKey;
-    property TemplateKey: Integer read FTemplateKey write SetTemplateKey;
+    property ReportGroupKey: TID read FReportGroupKey write SetReportGroupKey;
+    property ParamFormulaKey: TID read FParamFormulaKey write SetParamFormulaKey;
+    property MainFormulaKey: TID read FMainFormulaKey write SetMainFormulaKey;
+    property EventFormulaKey: TID read FEventFormulaKey write SetEventFormulaKey;
+    property TemplateKey: TID read FTemplateKey write SetTemplateKey;
     property IsRebuild: Integer read FIsRebuild write SetIsRebuild;
     property AFull: Integer read FAFull write SetAFull;
     property AChag: Integer read FAChag write SetAChag;
     property AView: Integer read FAView write SetAView;
-    property ServerKey: Integer read FServerKey write SetServerKey;
+    property ServerKey: TID read FServerKey write SetServerKey;
     property IsLocalExecute: Boolean read FIsLocalExecute write SetIsLocalExecute;
     property Preview: Boolean read FPreview write SetPreview;
     property GlobalReportKey: Boolean read FGlobalReportKey write SetGlobalReportKey;
@@ -123,15 +125,15 @@ type
     function GetCount: Integer;
     procedure SetReport(Index: Integer; const Value: TscrReportItem);
     procedure SetReportByName(AName: ShortString; const Value: TscrReportItem);
-    function GetReportByID(AId: Integer): TscrReportItem;
-    procedure SetReportByID(AId: Integer; const Value: TscrReportItem);
+    function GetReportByID(AId: TID): TscrReportItem;
+    procedure SetReportByID(AId: TID; const Value: TscrReportItem);
   public
     constructor Create(const AnUseScriptMethod: Boolean);
     destructor Destroy; override;
 
     function IndexOfByName(AName: ShortString): Integer;
     function IndexOf(ReportItem: TscrReportItem): Integer;
-    function IndexOfByID(AID: Integer): Integer;
+    function IndexOfByID(AID: TID): Integer;
     //Запись информации в поток.
     procedure SaveToStream(AStream: Tstream);
     //Чтение информации из потока.
@@ -139,10 +141,10 @@ type
     procedure Clear;
     function Add(const AReportItem: TscrReportItem): Integer;
     //Загрузка макросов из базы данных. Данные должны выбираться в зависимости от ключа объекта и значения поля MODULE = Report
-    procedure Load(const AGroupKey: integer);
+    procedure Load(const AGroupKey: TID);
     //Загрузка макросов из базы данных. Данные должны выбираться в зависимости от ключа объекта и значения поля MODULE = MACROS
     //Загружаются макросы хранящиеся в группе с ID = AGroupKey и её подгруппах
-    procedure LoadWithSubGroup(const AGroupKey: Integer);
+    procedure LoadWithSubGroup(const AGroupKey: TID);
 
     function Last: TscrReportItem;
     procedure Assign(ASource: TscrReportList);
@@ -151,7 +153,7 @@ type
     property Report[Index: Integer]: TscrReportItem read GetReport write SetReport; default;
     //Возвращает данные макроса по имени
     property ReportByName[AName: ShortString]: TscrReportItem read GetReportByName write SetReportByName;
-    property ReportByID[AId: Integer]: TscrReportItem read GetReportByID write SetReportByID;
+    property ReportByID[AId: TID]: TscrReportItem read GetReportByID write SetReportByID;
     property Transaction: TIBTransaction read FTransaction write FTransaction;
     property Count: Integer read GetCount;
   end;
@@ -161,13 +163,13 @@ type
   TscrReportGroupItem = class(TscrCustomItem)
   private
     FChildIsRead: Boolean;
-    FParent: Integer;
+    FParent: TID;
     FDescription: ShortString;
     FUserGroupName: ShortString;
     FReportList: TscrReportList;
 
     procedure SetDescription(const Value: ShortString);
-    procedure SetParent(const Value: Integer);
+    procedure SetParent(const Value: TID);
     procedure SetUserGroupName(const Value: ShortString);
 
   public
@@ -179,7 +181,7 @@ type
     procedure LoadFromStream(AStream: TStream);
     procedure ReadFromDataSet(ADataSet: TIBCustomDataSet);
 
-    property Parent: Integer read FParent write SetParent;
+    property Parent: TID read FParent write SetParent;
     property Description: ShortString read FDescription write SetDescription;
     property UserGroupName: ShortString read FUserGroupName write SetUserGroupName;
 
@@ -202,8 +204,8 @@ type
     function GetGroupByName(AName: ShortString): TscrReportGroupItem;
     procedure SetGroupByName(AName: ShortString;
       const Value: TscrReportGroupItem);
-    function GetGroupItemsByID(AID: Integer): TscrReportGroupItem;
-    procedure SetGroupItemsByID(AID: Integer;
+    function GetGroupItemsByID(AID: TID): TscrReportGroupItem;
+    procedure SetGroupItemsByID(AID: TID;
       const Value: TscrReportGroupItem);
 
   public
@@ -212,7 +214,7 @@ type
 
     function IndexOfByName(AName: ShortString): Integer;
     function IndexOf(GroupItem: TscrReportGroupItem): Integer;
-    function IndexOfByID(AID: Integer): Integer;
+    function IndexOfByID(AID: TID): Integer;
     //Запись информации в поток.
     procedure SaveToStream(AStream: Tstream);
     //Чтение информации из потока.
@@ -220,7 +222,7 @@ type
     procedure Clear;
     function Add(const AGroupItem: TscrReportGroupItem): Integer;
     //Загрузка папки из базы данных. Данные должны выбираться в зависимости от ключа
-    procedure Load(const AId: Integer);
+    procedure Load(const AId: TID);
 
     function Last: TscrReportGroupItem;
     procedure Sort;
@@ -230,7 +232,7 @@ type
     //Возвращает данные папки по имени
     property GroupItemsByName[AName: ShortString]: TscrReportGroupItem read GetGroupByName write SetGroupByName;
     //Возвращает данные папки по ID
-    property GroupItemsByID[AID: Integer]: TscrReportGroupItem read GetGroupItemsByID write SetGroupItemsByID;
+    property GroupItemsByID[AID: TID]: TscrReportGroupItem read GetGroupItemsByID write SetGroupItemsByID;
     property Transaction: TIBTransaction read FTransaction write FTransaction;
     property Count: Integer read GetCount;
   end;
@@ -325,22 +327,22 @@ end;
 procedure TscrReportItem.ReadFromDataSet(ADataSet: TIBCustomDataSet);
 begin
   try
-    FId := ADataSet.FieldByName('id').AsInteger;
+    FId := GetTID(ADataSet.FieldByName('id'));
     FName := ADataSet.FieldByName('name').AsString;
     FPreview := ADataSet.FieldByName('preview').AsInteger > 0;
     FIsLocalExecute := ADataSet.FieldByName('islocalexecute').AsInteger > 0;
     FGlobalReportKey := ADataSet.FieldByName('globalreportkey').AsInteger > 0;
     FAChag := ADataSet.FieldByName('achag').AsInteger;
     FFRQRefresh := ADataSet.FieldByName('frqrefresh').AsInteger;
-    FReportGroupKey := ADataSet.FieldByName('reportgroupkey').AsInteger;
-    FTemplateKey := ADataSet.FieldByName('templatekey').AsInteger;
+    FReportGroupKey := GetTID(ADataSet.FieldByName('reportgroupkey'));
+    FTemplateKey := GetTID(ADataSet.FieldByName('templatekey'));
     FIsRebuild := ADataSet.FieldByName('IsRebuild').AsInteger;
-    FServerKey := ADataSet.FieldByName('serverkey').AsInteger;
-    FMainFormulaKey := ADataSet.FieldByName('mainformulakey').AsInteger;
+    FServerKey := GetTID(ADataSet.FieldByName('serverkey'));
+    FMainFormulaKey := GetTID(ADataSet.FieldByName('mainformulakey'));
     FAFull := ADataSet.FieldByName('afull').AsInteger;
-    FEventFormulaKey := ADataSet.FieldByName('eventformulakey').AsInteger;
+    FEventFormulaKey := GetTID(ADataSet.FieldByName('eventformulakey'));
     FAView := ADataSet.FieldByName('aview').AsInteger;
-    FParamFormulaKey := ADataSet.FieldByName('paramformulakey').AsInteger;
+    FParamFormulaKey := GetTID(ADataSet.FieldByName('paramformulakey'));
     FDescription := ADataSet.FieldByName('description').AsString;
   except
     raise Exception.Create(DB_ERROR);
@@ -348,44 +350,52 @@ begin
 end;
 
 procedure TscrReportItem.LoadFromStream(AStream: TStream);
+var Len: Integer;
 begin
-  AStream.ReadBuffer(FId, SizeOf(Fid));
+  {метка сохранения ID в Int64}
+  Len := GetLenIDinStream(@AStream);
+
+  AStream.ReadBuffer(FId, Len);
   AStream.ReadBuffer(FName, SizeOf(FName));
   AStream.ReadBuffer(FPreview, SizeOf(FPreview));
   AStream.ReadBuffer(FIsLocalExecute, SizeOf(FIsLocalExecute));
   AStream.ReadBuffer(FGlobalReportKey, SizeOf(FGlobalReportKey));
   AStream.ReadBuffer(FAChag, SizeOf(FAChag));
   AStream.ReadBuffer(FFRQRefresh, SizeOf(FFRQRefresh));
-  AStream.ReadBuffer(FReportGroupKey, SizeOf(FReportGroupKey));
-  AStream.ReadBuffer(FTemplateKey, SizeOf(FTemplateKey));
+  AStream.ReadBuffer(FReportGroupKey, Len);
+  AStream.ReadBuffer(FTemplateKey, Len);
   AStream.ReadBuffer(FIsRebuild, SizeOf(FIsRebuild));
-  AStream.ReadBuffer(FServerKey, SizeOf(FServerKey));
-  AStream.ReadBuffer(FMainFormulaKey, SizeOf(FMainFormulaKey));
+  AStream.ReadBuffer(FServerKey, Len);
+  AStream.ReadBuffer(FMainFormulaKey, Len);
   AStream.ReadBuffer(FAFull, SizeOf(FAFull));
-  AStream.ReadBuffer(FEventFormulaKey, SizeOf(FEventFormulaKey));
+  AStream.ReadBuffer(FEventFormulaKey, Len);
   AStream.ReadBuffer(FAView, SizeOf(FAView));
-  AStream.ReadBuffer(FParamFormulaKey, SizeOf(FParamFormulaKey));
+  AStream.ReadBuffer(FParamFormulaKey, Len);
   AStream.ReadBuffer(FDescription, SizeOf(FDescription));
 end;
 
 procedure TscrReportItem.SaveToStream(AStream: TStream);
+var Len: Integer;
 begin
-  AStream.Write(FId, SizeOf(Fid));
+  {метка сохранения ID в Int64}
+  Len := SetLenIDinStream(@AStream);
+
+  AStream.Write(FId, Len);
   AStream.Write(FName, SizeOf(FName));
   AStream.Write(FPreview, SizeOf(FPreview));
   AStream.Write(FIsLocalExecute, SizeOf(FIsLocalExecute));
   AStream.Write(FGlobalReportKey, SizeOf(FGlobalReportKey));
   AStream.Write(FAChag, SizeOf(FAChag));
   AStream.Write(FFRQRefresh, SizeOf(FFRQRefresh));
-  AStream.Write(FReportGroupKey, SizeOf(FReportGroupKey));
-  AStream.Write(FTemplateKey, SizeOf(FTemplateKey));
+  AStream.Write(FReportGroupKey, Len);
+  AStream.Write(FTemplateKey, Len);
   AStream.Write(FIsRebuild, SizeOf(FIsRebuild));
-  AStream.Write(FServerKey, SizeOf(FServerKey));
-  AStream.Write(FMainFormulaKey, SizeOf(FMainFormulaKey));
+  AStream.Write(FServerKey, Len);
+  AStream.Write(FMainFormulaKey, Len);
   AStream.Write(FAFull, SizeOf(FAFull));
-  AStream.Write(FEventFormulaKey, SizeOf(FEventFormulaKey));
+  AStream.Write(FEventFormulaKey, Len);
   AStream.Write(FAView, SizeOf(FAView));
-  AStream.Write(FParamFormulaKey, SizeOf(FParamFormulaKey));
+  AStream.Write(FParamFormulaKey, Len);
   AStream.Write(FDescription, SizeOf(FDescription));
 end;
 
@@ -448,7 +458,7 @@ begin
   Result := TscrReportItem(FList.Items[Index]);
 end;
 
-function TscrReportList.GetReportByID(AId: Integer): TscrReportItem;
+function TscrReportList.GetReportByID(AId: TID): TscrReportItem;
 var
   Index: Integer;
 begin
@@ -479,7 +489,7 @@ begin
     Result := -1;
 end;
 
-function TscrReportList.IndexOfByID(AID: Integer): Integer;
+function TscrReportList.IndexOfByID(AID: TID): Integer;
 begin
   Result := 0;
   while (Result < FList.Count) and (Report[Result].Id <> AID) do
@@ -502,7 +512,7 @@ begin
   Result := TscrReportItem(FList.Last);
 end;
 
-procedure TscrReportList.Load(const AGroupKey: integer);
+procedure TscrReportList.Load(const AGroupKey: TID);
 var
   gdcReport: TgdcReport;
   Flag: Boolean;
@@ -518,7 +528,7 @@ begin
         FTransaction.StartTransaction;
       gdcReport.Transaction := FTransaction;
       gdcReport.SubSet := ssReportGroup;
-      gdcReport.ParamByName('reportgroupkey').AsInteger := AGroupKey;
+      SetTID(gdcReport.ParamByName('reportgroupkey'), AGroupKey);
       gdcReport.OnlyDisplaying := True;
       gdcReport.Open;
       Clear;
@@ -553,7 +563,7 @@ begin
     raise Exception.Create(STREAM_ERROR);
 end;
 
-procedure TscrReportList.LoadWithSubGroup(const AGroupKey: Integer);
+procedure TscrReportList.LoadWithSubGroup(const AGroupKey: TID);
 var
   gdcReport: TgdcReport;
   Flag: Boolean;
@@ -573,7 +583,7 @@ begin
         if AGroupKey > 0 then
         begin
           gdcReport.SubSet := ssWithSubGroup;
-          gdcReport.ParamByName('id').AsInteger := AGroupKey;
+          SetTID(gdcReport.ParamByName('id'), AGroupKey);
         end else
           gdcReport.SubSet := ssAll;
 
@@ -612,7 +622,7 @@ begin
   TscrReportItem(FList.Items[Index]).Assign(Value);
 end;
 
-procedure TscrReportList.SetReportByID(AId: Integer;
+procedure TscrReportList.SetReportByID(AId: TID;
   const Value: TscrReportItem);
 var
   Index: Integer;
@@ -675,8 +685,8 @@ end;
 procedure TscrReportGroupItem.ReadFromDataSet(ADataSet: TIBCustomDataSet);
 begin
   try
-    FParent := ADataSet.FieldByName('Parent').AsInteger;
-    FId := ADataSet.FieldByName('Id').AsInteger;
+    FParent := GetTID(ADataSet.FieldByName('Parent'));
+    FId := GetTID(ADataSet.FieldByName('Id'));
     FDescription := ADataSet.FieldByName('Description').AsString;
     FName := ADataSet.FieldByName('Name').AsString;
     FUserGroupName := ADataSet.FieldByName('UserGroupName').AsString;
@@ -688,11 +698,14 @@ end;
 
 procedure TscrReportGroupItem.LoadFromStream(AStream: TStream);
 var
-  Dummy: Integer;
+  Dummy, Len: Integer;
 begin
+  {метка сохранения ID в Int64}
+  Len := GetLenIDinStream(@AStream);
+
   AStream.ReadBuffer(Dummy, SizeOf(Dummy));
-  AStream.ReadBuffer(FParent, SizeOf(FParent));
-  AStream.ReadBuffer(FId, SizeOf(FId));
+  AStream.ReadBuffer(FParent, Len);
+  AStream.ReadBuffer(FId, Len);
   AStream.ReadBuffer(Dummy, SizeOf(Dummy));
   AStream.ReadBuffer(Dummy, SizeOf(Dummy));
   AStream.ReadBuffer(FDescription, SizeOf(FDescription));
@@ -703,12 +716,15 @@ end;
 
 procedure TscrReportGroupItem.SaveToStream(AStream: TStream);
 var
-  Dummy: Integer;
+  Dummy, Len: Integer;
 begin
   Dummy := 0;
+  {метка сохранения ID в Int64}
+  Len := SetLenIDinStream(@AStream);
+
   AStream.Write(Dummy, SizeOf(Dummy));
-  AStream.Write(FParent, SizeOf(FParent));
-  AStream.Write(FId, SizeOf(FId));
+  AStream.Write(FParent, Len);
+  AStream.Write(FId, len);
   AStream.Write(Dummy, SizeOf(Dummy));
   AStream.Write(Dummy, SizeOf(Dummy));
   AStream.Write(FDescription, SizeOf(FDescription));
@@ -776,7 +792,7 @@ begin
 end;
 
 function TscrReportGroup.GetGroupItemsByID(
-  AID: Integer): TscrReportGroupItem;
+  AID: TID): TscrReportGroupItem;
 var
   Index: Integer;
 begin
@@ -797,7 +813,7 @@ begin
     Result := -1;
 end;
 
-function TscrReportGroup.IndexOfByID(AID: Integer): Integer;
+function TscrReportGroup.IndexOfByID(AID: TID): Integer;
 begin
   Result := 0;
   while (Result < FGroupItems.Count) and (GroupItems[Result].Id <> AID) do
@@ -820,7 +836,7 @@ begin
   Result := TscrReportGroupItem(FGroupItems.Last);
 end;
 
-procedure TscrReportGroup.Load(const AId: integer);
+procedure TscrReportGroup.Load(const AId: TID);
 var
   DataSet: TgdcReportGroup;
   Flag: Boolean;
@@ -843,7 +859,7 @@ begin
         try
           DataSet.Transaction := FTransaction;
           DataSet.SubSet := ssTree;
-          DataSet.ParamByName(fnId).AsInteger := AId;
+          SetTID(DataSet.ParamByName(fnId), AId);
 
           DataSet.Open;
           while not DataSet.Eof do
@@ -941,7 +957,7 @@ begin
   end;
 end;
 
-procedure TscrReportGroup.SetGroupItemsByID(AID: Integer;
+procedure TscrReportGroup.SetGroupItemsByID(AID: TID;
   const Value: TscrReportGroupItem);
 var
   Index: Integer;
@@ -980,7 +996,7 @@ begin
   FDescription := Value;
 end;
 
-procedure TscrReportItem.SetEventFormulaKey(const Value: Integer);
+procedure TscrReportItem.SetEventFormulaKey(const Value: TID);
 begin
   FEventFormulaKey := Value;
 end;
@@ -1005,12 +1021,12 @@ begin
   FIsRebuild := Value;
 end;
 
-procedure TscrReportItem.SetMainFormulaKey(const Value: Integer);
+procedure TscrReportItem.SetMainFormulaKey(const Value: TID);
 begin
   FMainFormulaKey := Value;
 end;
 
-procedure TscrReportItem.SetParamFormulaKey(const Value: Integer);
+procedure TscrReportItem.SetParamFormulaKey(const Value: TID);
 begin
   FParamFormulaKey := Value;
 end;
@@ -1020,17 +1036,17 @@ begin
   FPreview := Value;
 end;
 
-procedure TscrReportItem.SetReportGroupKey(const Value: Integer);
+procedure TscrReportItem.SetReportGroupKey(const Value: TID);
 begin
   FReportGroupKey := Value;
 end;
 
-procedure TscrReportItem.SetServerKey(const Value: Integer);
+procedure TscrReportItem.SetServerKey(const Value: TID);
 begin
   FServerKey := Value;
 end;
 
-procedure TscrReportItem.SetTemplateKey(const Value: Integer);
+procedure TscrReportItem.SetTemplateKey(const Value: TID);
 begin
   FTemplateKey := Value;
 end;
@@ -1040,7 +1056,7 @@ begin
   FDescription := Value;
 end;
 
-procedure TscrReportGroupItem.SetParent(const Value: Integer);
+procedure TscrReportGroupItem.SetParent(const Value: TID);
 begin
   FParent := Value;
 end;

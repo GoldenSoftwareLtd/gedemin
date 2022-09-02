@@ -1,3 +1,4 @@
+// ShlTanya, 17.02.2019
 
 {++
 
@@ -219,7 +220,7 @@ implementation
 
 uses
   gsDBReduction_dlgWizard, gsDBReduction_dlgErrorRecord, gd_resourcestring,
-  jclStrings, Contnrs, at_Classes, iberrorcodes
+  jclStrings, Contnrs, at_Classes, iberrorcodes, gdcBaseInterface
   {$IFDEF GEDEMIN}
   , gd_security
   {$ENDIF}
@@ -563,6 +564,8 @@ end;
 function TgsDBReduction.ReduceRecord(RTable: TReductionTable): Boolean;
 var
   sql: TIBSQL;
+  xid: TID;
+  dbid: Integer;
   I, k, l: Integer;
   S, Sign, UpdateSQL: String;
   F: TStringList;
@@ -590,17 +593,17 @@ begin
         begin
           sql.Close;
           sql.sql.Text := 'SELECT * FROM GD_RUID WHERE ID = :ID';
-          sql.ParamByName('ID').AsInteger := StrToInt(FCondemnedKey);
+          SetTID(sql.ParamByName('ID'), GetTID(FCondemnedKey));
           sql.ExecQuery;
           if sql.RecordCount > 0  then      // есть RUID
           begin
-            i := sql.FieldByName('XID').AsInteger;
-            k := sql.FieldByName('DBID').AsInteger;
+            xid := GetTID(sql.FieldByName('XID'));
+            dbid := sql.FieldByName('DBID').AsInteger;
             sql.Close;
             sql.sql.Text := 'SELECT SETT.NAME FROM AT_SETTING SETT JOIN AT_SETTINGPOS POS ON POS.SETTINGKEY = SETT.ID ' +
             ' WHERE POS.XID = :XID AND POS.DBID = :DBID';
-            sql.ParamByName('XID').AsInteger := i;
-            sql.ParamByName('DBID').AsInteger := k;
+            SetTID(sql.ParamByName('XID'), xid);
+            sql.ParamByName('DBID').AsInteger := dbid;
             sql.ExecQuery;
             if sql.RecordCount > 0  then    // RUID есть в настройке
             begin
@@ -864,7 +867,7 @@ begin
       IBLogin.AddEvent('Объединение записей: ' + FCondemnedKey + ' -> ' + FMasterKey,
         FMainTable,
         '',
-        StrToIntDef(FMasterKey, -1));
+        GetTID(FMasterKey, -1));
     end;
     {$ENDIF}
   end;

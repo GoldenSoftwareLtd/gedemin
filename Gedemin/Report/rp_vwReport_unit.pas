@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019, #4135
+
 unit rp_vwReport_unit;
 
 interface
@@ -8,7 +10,7 @@ uses
   ToolWin, ImgList, Menus, rp_report_const, IBSQL, Dialogs, FrmPlSvr;
 
 type
-  TOnSignal = function(const AnKey: Integer; const AnAction: TActionType): Boolean of object;
+  TOnSignal = function(const AnKey: TID; const AnAction: TActionType): Boolean of object;
 
 type
   TvwReport = class(TForm)
@@ -132,14 +134,15 @@ type
     FLoadFile: TLoadReportFile;
     FRefreshReportData: TRefreshReportData;
     FChangingTree: Boolean;
-    FGroupKey: Integer;
+    FGroupKey: TID;
     FCtrlDown: Boolean;
 
     procedure ShowGroups(AnParentNode: TTreeNode; const AnParentList: TList = nil);
-    procedure ShowReports(AnGroupKey: Integer);
+    procedure ShowReports(AnGroupKey: TID);
     function AddGroup(const AnParent: TTreeNode): Boolean;
     procedure BuildReport(const AnIsRebuild: Boolean = False);
   public
+    destructor Destroy; override;
     property vwExecuteFunction: TExecuteFunction read FExecuteFunction write FExecuteFunction;
     property vwExecuteReport: TExecuteReport read FExecuteReport write FExecuteReport;
     property vwViewResult: TViewReport read FViewResult write FViewResult;
@@ -147,8 +150,8 @@ type
     property vwBuildReport: TBuildReport read FBuildReport write FBuildReport;
     property vwSaveFile: TSaveReportFile read FSaveFile write FSaveFile;
     property vwLoadFile: TLoadReportFile read FLoadFile write FLoadFile;
-    procedure Execute(const AnGroupKey: Integer; const AnDatabase: TIBDatabase);
-    function EventAction(const AnKey: Integer; const AnAction: TActionType): Boolean;
+    procedure Execute(const AnGroupKey: TID; const AnDatabase: TIBDatabase);
+    function EventAction(const AnKey: TID; const AnAction: TActionType): Boolean;
   end;
 
 var
@@ -162,19 +165,19 @@ uses
 
 {$R *.DFM}
 
-procedure TvwReport.ShowReports(AnGroupKey: Integer);
+procedure TvwReport.ShowReports(AnGroupKey: TID);
 var
   L: TListItem;
-  LastReportKey: Integer;
+  LastReportKey: TID;
 begin
   ibqryReport.Close;
   ibqryReport.Database := FDatabase;
-  ibqryReport.Params[0].AsInteger := AnGroupKey;
+  SetTID(ibqryReport.Params[0], AnGroupKey);
   ibqryReport.Open;
   lvReport.Items.BeginUpdate;
   try
     if lvReport.Selected <> nil then
-      LastReportKey := Integer(lvReport.Selected.Data)
+      LastReportKey := GetTID(lvReport.Selected.Data, Name)
     else
       LastReportKey := 0;
 
@@ -183,9 +186,9 @@ begin
     begin
       L := lvReport.Items.Add;
       L.Caption := ibqryReport.FieldByName('name').AsString;
-      L.Data := Pointer(ibqryReport.FieldByName('id').AsInteger);
+      L.Data := TID2Pointer(GetTID(ibqryReport.FieldByName('id')), Name);
       L.ImageIndex := 2;
-      if Integer(L.Data) = LastReportKey then
+      if GetTID(ibqryReport.FieldByName('id')) = LastReportKey then
         L.Selected := True;
 
       ibqryReport.Next;
@@ -239,11 +242,11 @@ begin
           if FGroupKey = 0 then
             TempIBQuery.SQL.Add('rg.parent IS NULL ORDER BY rg.name')
           else
-            TempIBQuery.SQL.Add('rg.id = ' + IntToStr(FGroupKey) + ' ORDER BY rg.name');
+            TempIBQuery.SQL.Add('rg.id = ' + TID2S(FGroupKey) + ' ORDER BY rg.name');
         end else
         begin
           AnParentNode.DeleteChildren;
-          TempIBQuery.SQL.Add('rg.parent = ' + IntToStr(Integer(AnParentNode.Data)) +
+          TempIBQuery.SQL.Add('rg.parent = ' + TID2S(GetTID(AnParentNode.Data, Name)) +
            ' ORDER BY rg.name');
         end;
 
@@ -252,7 +255,7 @@ begin
         begin
           TN := tvReportGroup.Items.AddChild(AnParentNode, TempIBQuery.FieldByName('name').AsString);
           TN.HasChildren := TempIBQuery.FieldByName('haschildren').AsInteger <> 0;
-          TN.Data := Pointer(TempIBQuery.FieldByName('id').AsInteger);
+          TN.Data := TID2Pointer(GetTID(TempIBQuery.FieldByName('id')), Name);
           TN.ImageIndex := 0;
           TN.SelectedIndex := 1;
           if (LastGroupKey.Count > 0) and (LastGroupKey.IndexOf(TN.Data) <> -1) then
@@ -282,7 +285,7 @@ begin
   end;
 end;
 
-procedure TvwReport.Execute(const AnGroupKey: Integer; const AnDatabase: TIBDatabase);
+procedure TvwReport.Execute(const AnGroupKey: TID; const AnDatabase: TIBDatabase);
 begin
   FGroupKey := AnGroupKey;
   FDatabase := AnDatabase;
@@ -305,9 +308,9 @@ begin
   try
     SetDatabase(F, FDatabase);
     F.ExecuteFunction := FExecuteFunction;
-    if F.EditReport(Integer(lvReport.Selected.Data)) then
+    if F.EditReport(GetTID(lvReport.Selected.Data, Name)) then
     begin
-      ShowReports(Integer(tvReportGroup.Selected.Data));
+      ShowReports(GetTID(tvReportGroup.Selected.Data, Name));
       FGlobalResult := True;
     end;
   finally
@@ -325,9 +328,9 @@ begin
   F := TdlgEditReport.Create(Self);
   try
     SetDatabase(F, FDatabase);
-    if F.DeleteReport(Integer(lvReport.Selected.Data)) then
+    if F.DeleteReport(GetTID(lvReport.Selected.Data, Name)) then
     begin
-      ShowReports(Integer(tvReportGroup.Selected.Data));
+      ShowReports(GetTID(tvReportGroup.Selected.Data, Name));
       FGlobalResult := True;
     end;
   finally
@@ -346,9 +349,9 @@ begin
     try
       SetDatabase(F, FDatabase);
       F.ExecuteFunction := FExecuteFunction;
-      if F.AddReport(Integer(tvReportGroup.Selected.Data)) then
+      if F.AddReport(GetTID(tvReportGroup.Selected.Data, Name)) then
       begin
-        ShowReports(Integer(tvReportGroup.Selected.Data));
+        ShowReports(GetTID(tvReportGroup.Selected.Data, Name));
         FGlobalResult := True;
       end;
     finally
@@ -367,7 +370,7 @@ begin
   end;
   if Assigned(FBuildReport) then
   begin
-    FBuildReport(Integer(lvReport.Selected.Data), AnIsRebuild);
+    FBuildReport(GetTID(lvReport.Selected.Data, Name), AnIsRebuild);
   end else
     raise Exception.Create('Не задано событие построения отчета.');
 end;
@@ -431,7 +434,7 @@ begin
 
       SetDatabaseAndTransaction(F, FDatabase, ibtrReportList);
       if AnParent <> nil then
-        Result := F.AddGroup(Integer(AnParent.Data))
+        Result := F.AddGroup(GetTID(AnParent.Data, Name))
       else
         Result := F.AddGroup(Null);
       if Result then
@@ -475,7 +478,7 @@ procedure TvwReport.tvReportGroupChanging(Sender: TObject; Node: TTreeNode;
   var AllowChange: Boolean);
 begin
   if not FChangingTree then
-    ShowReports(Integer(Node.Data));
+    ShowReports(GetTID(Node.Data, Name));
 end;
 
 procedure TvwReport.FormCreate(Sender: TObject);
@@ -503,7 +506,7 @@ begin
           ibtrReportList.StartTransaction;
 
         SetDatabaseAndTransaction(F, FDatabase, ibtrReportList);
-        if F.EditGroup(Integer(tvReportGroup.Selected.Data)) then
+        if F.EditGroup(GetTID(tvReportGroup.Selected.Data, Name)) then
         begin
           ShowGroups(tvReportGroup.Selected.Parent);
           FGlobalResult := True;
@@ -541,7 +544,7 @@ begin
           ibtrReportList.StartTransaction;
 
         SetDatabaseAndTransaction(F, FDatabase, ibtrReportList);
-        if F.DeleteGroup(Integer(tvReportGroup.Selected.Data)) then
+        if F.DeleteGroup(GetTID(tvReportGroup.Selected.Data, Name)) then
         begin
           ShowGroups(tvReportGroup.Selected.Parent);
           FGlobalResult := True;
@@ -584,7 +587,7 @@ begin
   BuildReport(True);
 end;
 
-function TvwReport.EventAction(const AnKey: Integer; const AnAction: TActionType): Boolean;
+function TvwReport.EventAction(const AnKey: TID; const AnAction: TActionType): Boolean;
 begin
   case AnAction of
     atAddGroup: actAddGroup.Execute;
@@ -621,11 +624,11 @@ begin
         begin
           ibsqlWork.Close;
           ibsqlWork.SQL.Text := Format('UPDATE rp_reportlist SET reportgroupkey = %d WHERE id = %d',
-           [Integer(TempNode.Data), Integer((Source as TListView).Selected.Data)]);
+           [TID264(GetTID(TempNode.Data, Name)), TID264(GetTID((Source as TListView).Selected.Data, Name))]);
           ibsqlWork.ExecQuery;
 
           if (Sender as TTreeView).Selected <> nil then
-            ShowReports(Integer((Sender as TTreeView).Selected.Data));
+            ShowReports(GetTID((Sender as TTreeView).Selected.Data, Name));
         end;
     finally
       ibtrReportList.Commit;
@@ -660,8 +663,8 @@ begin
   if Assigned(FLoadFile) then
   begin
     if OpenDialog1.Execute then
-      if FLoadFile(Integer(tvReportGroup.Selected.Data), OpenDialog1.FileName) then
-        ShowReports(Integer(tvReportGroup.Selected.Data));
+      if FLoadFile(GetTID(tvReportGroup.Selected.Data, Name), OpenDialog1.FileName) then
+        ShowReports(GetTID(tvReportGroup.Selected.Data, Name));
   end else
     raise Exception.Create('Не задано событие построения отчета.');
 end;
@@ -676,7 +679,7 @@ begin
   if Assigned(FSaveFile) then
   begin
     if SaveDialog1.Execute then
-      FSaveFile(Integer(lvReport.Selected.Data), SaveDialog1.FileName);
+      FSaveFile(GetTID(lvReport.Selected.Data, Name), SaveDialog1.FileName);
   end else
     raise Exception.Create('Не задано событие для сохранения отчета.');
 end;
@@ -692,7 +695,7 @@ begin
   try
     SetDatabase(F, FDatabase);
     F.ExecuteFunction := FExecuteFunction;
-    if F.PrepareReport(Integer(lvReport.Selected.Data)) then
+    if F.PrepareReport(GetTID(lvReport.Selected.Data, Name)) then
     try
       F.actSelectParamFunc.Execute;
     finally
@@ -714,7 +717,7 @@ begin
   try
     SetDatabase(F, FDatabase);
     F.ExecuteFunction := FExecuteFunction;
-    if F.PrepareReport(Integer(lvReport.Selected.Data)) then
+    if F.PrepareReport(GetTID(lvReport.Selected.Data, Name)) then
     try
       F.actSelectMainFunc.Execute;
     finally
@@ -736,7 +739,7 @@ begin
   try
     SetDatabase(F, FDatabase);
     F.ExecuteFunction := FExecuteFunction;
-    if F.PrepareReport(Integer(lvReport.Selected.Data)) then
+    if F.PrepareReport(GetTID(lvReport.Selected.Data, Name)) then
     try
         F.actSelectEventFunc.Execute;
     finally
@@ -758,7 +761,7 @@ begin
   try
     SetDatabase(F, FDatabase);
     F.ExecuteFunction := FExecuteFunction;
-    if F.PrepareReport(Integer(lvReport.Selected.Data)) then
+    if F.PrepareReport(GetTID(lvReport.Selected.Data, Name)) then
     try
       F.actSelectTemplate.Execute;
     finally
@@ -787,6 +790,14 @@ end;
 procedure TvwReport.lvReportDblClick(Sender: TObject);
 begin
   actBuildReport.Execute;
+end;
+
+destructor TvwReport.Destroy;
+begin
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
+  inherited;
 end;
 
 end.

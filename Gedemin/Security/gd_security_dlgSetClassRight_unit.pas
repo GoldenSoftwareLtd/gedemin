@@ -1,3 +1,5 @@
+// ShlTanya, 06.02.2019
+
 unit gd_security_dlgSetClassRight_unit;
 
 interface

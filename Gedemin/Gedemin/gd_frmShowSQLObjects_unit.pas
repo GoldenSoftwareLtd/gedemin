@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 unit gd_frmShowSQLObjects_unit;
 
@@ -95,7 +96,7 @@ begin
           if SQLObjects[I].Owner is TComponent then
             sg2.Cells[0, M + 1] := TComponent(SQLObjects[I].Owner).Name;
           sg2.Cells[1, M + 1] := SQLObjects[I].Owner.ClassName;
-          if SQLObjects[I].Owner is TComponent then 
+          if SQLObjects[I].Owner is TComponent then
             if TComponent(SQLObjects[I].Owner).Owner <> nil then
             begin
               if TComponent(SQLObjects[I].Owner).Owner is TComponent then
@@ -109,7 +110,7 @@ begin
           end;
           if SQLObjects[I].Owner is TIBSQL then
           begin
-            sg2.Cells[4, M + 1] := IntToStr(Integer(TIBSQL(SQLObjects[I].Owner).Open)); 
+            sg2.Cells[4, M + 1] := IntToStr(Integer(TIBSQL(SQLObjects[I].Owner).Open));
             sg2.Cells[5, M + 1] := TIBSQL(SQLObjects[I].Owner).SQL.Text;
           end;
           M := M + 1;

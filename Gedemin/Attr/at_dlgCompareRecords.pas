@@ -1,3 +1,5 @@
+// ShlTanya, 02.02.2019
+
 unit at_dlgCompareRecords;
 
 interface
@@ -54,6 +56,8 @@ implementation
 
 {$R *.DFM}
 
+uses gdcBaseInterface;
+
 procedure TdlgCompareRecords.FormShow(Sender: TObject);
 const
   PassFieldName = ';ID;EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED;';
@@ -64,7 +68,7 @@ var
 begin
   lblClassname.Caption := BaseRecord.GetDisplayName(BaseRecord.SubType);
   lblName.Caption := BaseRecord.FieldByName(BaseRecord.GetListField(BaseRecord.SubType)).AsString;
-  lblID.Caption := IntToStr(BaseRecord.ID);
+  lblID.Caption := TID2S(BaseRecord.ID);
 
   FSLFields := TStringList.Create;
   FSLLocFields := TStringList.Create;

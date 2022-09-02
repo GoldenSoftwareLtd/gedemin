@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 {++
 
@@ -392,7 +393,7 @@ begin
 
   CustomExecQuery(Format(' INSERT INTO ac_companyaccount(companykey, accountkey, ' +
     ' isactive) VALUES(%d, %d, %d) ',
-    [IBLogin.CompanyKey, ID, 0]), Buff);
+    [TID264(IBLogin.CompanyKey), TID264(ID), 0]), Buff);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTCHART', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally

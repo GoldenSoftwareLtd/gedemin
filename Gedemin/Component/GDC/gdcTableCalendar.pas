@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcTableCalendar;
 
@@ -168,7 +169,7 @@ begin
         'ByTableCalendar,ByDateInterval');
       try
         d.UniDirectional := True;
-        d.ParamByName('TblCalKey').AsInteger := ID;
+        SetTID(d.ParamByName('TblCalKey'), ID);
         d.ParamByName('DateBegin').AsDateTime := DateBegin;
         d.ParamByName('DateEnd').AsDateTime := DateEnd;
         d.Open;
@@ -185,7 +186,7 @@ begin
           d.Insert;
           try
             d.FieldByName('theday').AsDateTime := B;
-            d.FieldByName('tblcalkey').AsInteger := ID;
+            SetTID(d.FieldByName('tblcalkey'), ID);
 
             F := d.FieldByName('workday');
 
@@ -347,7 +348,7 @@ begin
       'WHERE ' +
       '  workday=1 AND tblcalkey = :K theday >= :DB AND theday <= :DE';
     q.Prepare;
-    q.ParamByName('K').AsInteger := TableCalendarKey;
+    SetTID(q.ParamByName('K'), TableCalendarKey);
     q.ParamByName('DB').AsDateTime := DateBegin;
     q.ParamByName('DE').AsDateTime := DateEnd;
     q.ExecQuery;

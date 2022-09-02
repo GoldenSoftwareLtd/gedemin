@@ -1,3 +1,4 @@
+// ShlTanya, 10.03.2019, #4135
 
 {++
 
@@ -39,7 +40,7 @@ uses
   IBQuery,            IBDatabase,         flt_dlgShowFilter_unit,
   flt_sqlfilter_condition_type,           IBSQL,              IBCustomDataSet,
   DB,                 Menus,              flt_sql_parser,     gd_security,
-  IBTable,            flt_msgShowMessage_unit, ActnList;
+  IBTable,            flt_msgShowMessage_unit, ActnList,      gdcBaseInterface;
 
 const
   UnknownDataSet = 'Неизвестный TIBCustomDataSet';
@@ -62,7 +63,7 @@ type
   private
     FBase: TIBBase;
 
-    FComponentKey: Integer;     // Хранится ключ компонента фильтрации
+    FComponentKey: TID;     // Хранится ключ компонента фильтрации
     FIsCompKey: Boolean;        // Указатель считан ключ или нет
 
     FFilterData: TFilterData;   // Структура для хранения данных текущего фильтра
@@ -83,7 +84,7 @@ type
     FFilterComment: String;     // Комментарий фильтра
     FLastExecutionTime: TTime;  // Время последнего выполнения
     FDeltaReadCount: Integer;   // Количесто сделанных обращений к фильтру
-    FCurrentFilter: Integer;    // Текущий фильтр
+    FCurrentFilter: TID;    // Текущий фильтр
     FIsSQLTextChanged: Boolean; // Указатель был ли изменен начальный запрос фильтра
     FRequeryParams: Boolean;
 
@@ -111,7 +112,7 @@ type
 
     // Получаем наименование приложение обрезанное на FIndexFieldLength
     function GetApplicationName: String;
-    function GetComponentKey: Integer;
+    function GetComponentKey: TID;
 
   protected
     FOwnerName: String;         // Хранится имя родителя. В дестройте он уже уничтожен, а использовать надо.
@@ -138,7 +139,7 @@ type
     destructor Destroy; override;
 
     // Загружаем фильтр по его ключу
-    function LoadFilter(const AnFilterKey: Integer): Boolean;
+    function LoadFilter(const AnFilterKey: TID): Boolean;
     //function ShowDialog: Boolean;
 
     // Использовать только для получения запроса
@@ -146,9 +147,9 @@ type
 
     function CreateSQL: Boolean;
     // Создаем новый фильтр
-    function AddFilter(out AnFilterKey: Integer): Boolean;
+    function AddFilter(out AnFilterKey: TID): Boolean;
     // Редактируем существующий фильтр
-    function EditFilter(out AnFilterKey: Integer): Boolean;
+    function EditFilter(out AnFilterKey: TID): Boolean;
     // Удаляем существующиц фильтр
     function DeleteFilter: Boolean;
 
@@ -180,7 +181,7 @@ type
     property FilterName: String read FFilterName;       // Наименование текущего фильтра
     property FilterComment: String read FFilterComment; // Комментарий текущего фильтра
     property LastExecutionTime: TTime read FLastExecutionTime;  // Последнее время выполнение тек. фильтра
-    property CurrentFilter: Integer read FCurrentFilter;// Ключ текущего фильтра
+    property CurrentFilter: TID read FCurrentFilter;// Ключ текущего фильтра
     property FilterString: String read GetFilterString; // Текст условий текущего фильтра
 
     property ConditionCount: Integer read GetConditionCount;    // Количество условий фильтрации
@@ -190,7 +191,7 @@ type
     property OrdersBy[const AnIndex: Integer]: TFilterOrderBy read GetOrderBy write SetOrderBy;
 
    // Хранится ключ компонента фильтрации
-    property ComponentKey: Integer read GetComponentKey;
+    property ComponentKey: TID read GetComponentKey;
     // Список таблиц вытянутых из запроса
     property TableList: TStringList read FTableList write SetTableList;
     property FilterData: TFilterData read FFilterData;
@@ -215,6 +216,7 @@ type
     FOldBeforeDatabaseDisconect: TNotifyEvent;  // Храним старое событие перед Disconect
     FOldShortCut: TShortCutEvent;
     FMessageDialog: TmsgShowMessage;    // Диалог сообщения
+    FContext: String;
 
     FActionList: TActionList;
 
@@ -328,9 +330,9 @@ uses
   gd_directories_const, flt_msgBeforeFilter_unit, Registry,
   flt_dlgFilterList_unit, jclSelected, flt_ScriptInterface,
   contnrs, IB, IBErrorCodes, gd_keyassoc, gdcBase, gdcClasses,
-  flt_sqlFilterCache, IBBLOB, Inst_Const
+  flt_sqlFilterCache, IBBLOB, Inst_Const, IBHeader  
   {$IFDEF GEDEMIN}
-  , JclFileUtils, Storages, gdcBaseInterface
+  , JclFileUtils, Storages
   {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -357,7 +359,6 @@ end;
 constructor TgsSQLFilter.Create(AnOwner: TComponent);
 begin
   inherited Create(AnOwner);
-
   FBase := TIBBase.Create(nil);
 
   FNoVisibleList := TStringList.Create;
@@ -458,7 +459,7 @@ begin
   end;
 end;
 
-function TgsSQLFilter.AddFilter(out AnFilterKey: Integer): Boolean;
+function TgsSQLFilter.AddFilter(out AnFilterKey: TID): Boolean;
 var
   DidActivate: Boolean;
 begin
@@ -491,7 +492,7 @@ begin
   end;    
 end;
 
-function TgsSQLFilter.EditFilter(out AnFilterKey: Integer): Boolean;
+function TgsSQLFilter.EditFilter(out AnFilterKey: TID): Boolean;
 var
   DidActivate: Boolean;
 begin
@@ -559,7 +560,7 @@ begin
   begin
     Exit;
   end;
-  
+
   DidActivate := False;
   TempSQL := TIBSQL.Create(nil);
   try
@@ -573,7 +574,7 @@ begin
     TempSQL.Transaction := Transaction;
     // Запрос АПДЭЙТА
     TempSQL.SQL.Text := 'UPDATE flt_savedfilter SET lastextime = :lasttime, readcount = readcount + :deltaread WHERE id = :id';
-    TempSQL.ParamByName('id').AsInteger := FCurrentFilter;
+    SetTID(TempSQL.ParamByName('id'), FCurrentFilter);
     TempSQL.ParamByName('lasttime').AsDateTime := FLastExecutionTime;
     TempSQL.ParamByName('deltaread').AsInteger := FDeltaReadCount;
     try
@@ -587,15 +588,16 @@ begin
     end;
   finally
     TempSQL.Free;
-    
+
     // Закрываем транзакцию
     if DidActivate and Transaction.InTransaction then
       Transaction.Commit;
   end;
+
 end;
 
 // Загрузка фільтра
-function TgsSQLFilter.LoadFilter(const AnFilterKey: Integer): Boolean;
+function TgsSQLFilter.LoadFilter(const AnFilterKey: TID): Boolean;
 var
   TempSQL: TIBSQL;
   bs: TIBBlobStream;
@@ -614,7 +616,7 @@ begin
     {$ENDIF}
     // Текст запроса
     TempSQL.SQL.Text := 'SELECT id, name, description, lastextime, data FROM flt_savedfilter WHERE id = :ID';
-    TempSQL.ParamByName('id').AsInteger := AnFilterKey;
+    SetTID(TempSQL.ParamByName('id'), AnFilterKey);
     try
       // Пытаемся выполнить запрос
       TempSQL.ExecQuery;
@@ -622,7 +624,7 @@ begin
       if not TempSQL.Eof then
       begin
         // Считываем параметры фильтра
-        FCurrentFilter := TempSQL.FieldByName('id').AsInteger;
+        FCurrentFilter := GetTID(TempSQL.FieldByName('id'));
         FFilterName := TempSQL.FieldByName('name').AsString;
         FFilterComment := TempSQL.FieldByName('description').AsString;
         FLastExecutionTime := TempSQL.FieldByName('lastextime').AsDateTime;
@@ -728,8 +730,7 @@ begin
       sFormName:= TgdcDocument(Owner).DocumentName
     else
       sFormName:= TgdcBase(Owner).GetDisplayName(TgdcBase(Owner).SubType);
-  end;    
-
+  end;
   Result := CreateCustomSQL(AFilterData, FSelectText, FFromText, FWhereText,
     FOtherText, FOrderText, FQueryText, FTableList, FComponentKey, FCurrentFilter,
     AnRequeryParams, AnSilentParams, AShowDlg, sFormName, FFilterName);
@@ -825,7 +826,7 @@ begin
   Result := False;
 end;
 
-function TgsSQLFilter.GetComponentKey: Integer;
+function TgsSQLFilter.GetComponentKey: TID;
 begin
   ExtractComponentKey;
   Result := FComponentKey;
@@ -971,9 +972,9 @@ begin
   // Делаем доступными элементы
   SetEnabled(True);
   // Если выбран текущий, то выходим
-  if (Sender as TMenuItem).Tag = FCurrentFilter then
+  if GetTID((Sender as TMenuItem).Tag, FContext) = FCurrentFilter then
   begin
-    RefreshExecute;  
+    RefreshExecute;
     Exit;
   end;
   // Сохраняем текущий
@@ -981,7 +982,7 @@ begin
   // Отмечаем
   (Sender as TMenuItem).Checked := True;
   // Загружаем
-  if LoadFilter((Sender as TMenuItem).Tag) then
+  if LoadFilter(GetTID((Sender as TMenuItem).Tag, FContext)) then
   begin
     FSuppressWarning := True;
     try
@@ -1007,7 +1008,9 @@ var
   I: Integer;
   LastTrState: Boolean;
   V: PVariant;
+  ID: TID;
 begin
+  FContext := Owner.Owner.Name;
   // Запоминаем состояние
   Flag := FIBDataSet.Active;
 
@@ -1023,6 +1026,7 @@ begin
     if CreateSQLText(FFilterData, FIBDataSet.Active or FRequeryParams,
       AnSilentParams, AShowDlg) then
     begin
+
       FLastQueriedParams := AnSilentParams;
 
       ParamList := TStringList.Create;
@@ -1033,14 +1037,24 @@ begin
           begin
             if ParamList.IndexOfName(TIBCustomDataSetCracker(FIBDataSet).Params[I].Name) = -1 then
             begin
-              New(V);
-              V^ := TIBCustomDataSetCracker(FIBDataSet).Params[I].AsVariant;
-              ParamList.AddObject(TIBCustomDataSetCracker(FIBDataSet).Params[I].Name + '=' +
-                TIBCustomDataSetCracker(FIBDataSet).Params[I].AsString, Pointer(V));
+              if  ((TIBCustomDataSetCracker(FIBDataSet).Params[I].Data.sqltype = 581) or
+                (TIBCustomDataSetCracker(FIBDataSet).Params[I].Data.sqltype = SQL_INT64)) and
+                (TIBCustomDataSetCracker(FIBDataSet).Params[I].Data.sqlscale = 0) then
+              begin
+                ID := GetTID(TIBCustomDataSetCracker(FIBDataSet).Params[I]);
+                ParamList.AddObject(TIBCustomDataSetCracker(FIBDataSet).Params[I].Name + '=' +
+                  'ID64', TID2TObject(ID, FContext));
+              end
+              else
+              begin
+                New(V);
+                V^ := TIBCustomDataSetCracker(FIBDataSet).Params[I].AsVariant;
+                ParamList.AddObject(TIBCustomDataSetCracker(FIBDataSet).Params[I].Name + '=' +
+                  'VAR', Pointer(V));
+              end;
             end;
           end;
         end;
-
         // Закрываем запрос и присваиваем текст
         if FIBDataSet.Active then
           FIBDataSet.Close;
@@ -1063,12 +1077,14 @@ begin
             if TCrackerIBXSQLDA(TIBCustomDataSetCracker(FIBDataSet).Params).GetXSQLVARByName(ParamList.Names[I]) <> nil then
             begin
               //TIBCustomDataSetCracker(FIBDataSet).Params.ByName(ParamList.Names[I]).AsString := ParamList.ValuesOfIndex[I];
-              TIBCustomDataSetCracker(FIBDataSet).Params.ByName(ParamList.Names[I]).AsVariant := PVariant(ParamList.Objects[I])^;
+              if  ParamList.Values[ParamList.Names[I]] = 'ID64' then
+                SetTID(TIBCustomDataSetCracker(FIBDataSet).Params.ByName(ParamList.Names[I]), GetTID(ParamList.Objects[I], FContext))
+              else
+                TIBCustomDataSetCracker(FIBDataSet).Params.ByName(ParamList.Names[I]).AsVariant := PVariant(ParamList.Objects[I])^;
             end;
           except
           end;
         end;
-
         LastTrState := False;
         try
           try
@@ -1158,8 +1174,11 @@ begin
       finally
         for I := 0 to ParamList.Count - 1 do
         begin
-          V := PVariant(ParamList.Objects[I]);
-          Dispose(V);
+          if ParamList.Values[ParamList.Names[I]] = 'VAR' then
+          begin
+            V := PVariant(ParamList.Objects[I]);
+            Dispose(V);
+          end;
         end;
         ParamList.Free;
       end;
@@ -1197,7 +1216,8 @@ begin
   else
     FPopupMenu.Items.Clear;
 
-  FPopupMenu.HelpContext := 6;  
+  FContext := Owner.Owner.Name;
+  FPopupMenu.HelpContext := 6;
   MakePopupMenu(FPopupMenu);
 end;
 
@@ -1220,7 +1240,7 @@ end;
 // Вызываем последний фильтр
 procedure TgsQueryFilter.LoadLastFilter;
 var
-  LFK: Integer;
+  LFK: TID;
 begin
   if (GetAsyncKeyState(VK_SHIFT) shr 1) <> 0 then
     exit;
@@ -1380,7 +1400,7 @@ begin
     ibsqlComp.ExecQuery;
 
     if not ibsqlComp.Eof  then
-      FComponentKey := ibsqlComp.Fields[0].AsInteger
+      FComponentKey := GetTID(ibsqlComp.Fields[0])
     else
     begin
       ibsqlComp.Close;
@@ -1395,7 +1415,7 @@ begin
       CreateNew := True;
       if not ibsqlComp.Eof then
       begin
-        FComponentKey := ibsqlComp.FieldByName('id').AsInteger;
+        FComponentKey := GetTID(ibsqlComp.FieldByName('id'));
         if ibsqlComp.FieldByName('fullname').IsNull or
           CheckFilterVersion(ibsqlComp.FieldByName('fullname').AsString) then
         begin
@@ -1415,7 +1435,7 @@ begin
             '  WHERE id = :ID';
           ibsqlComp.ParamByName('crc').AsInteger := GetCRC32(FullFltName);
           ibsqlComp.ParamByName('FullName').AsString := FullFltName;
-          ibsqlComp.ParamByName('id').AsInteger := FComponentKey;
+          SetTID(ibsqlComp.ParamByName('id'), FComponentKey);
           ibsqlComp.ExecQuery;
           ibsqlComp.Close;
           CreateNew := False;
@@ -1437,7 +1457,7 @@ begin
           {$IFNDEF GEDEMIN}
           ibsqlComp.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0) FROM rdb$database';
           ibsqlComp.ExecQuery;
-          FComponentKey := ibsqlComp.Fields[0].AsInteger;
+          FComponentKey := GetTID(ibsqlComp.Fields[0]);
           {$ELSE}
           FComponentKey := gdcBaseManager.GetNextID;
           {$ENDIF}
@@ -1445,7 +1465,7 @@ begin
           ibsqlComp.SQL.Text :=
             'INSERT INTO flt_componentfilter (id, formname, ' +
               'filtername, applicationname, crc, fullname) ' +
-            'VALUES(' + IntToStr(FComponentKey) + ',''' + OldOwnerForm + ''',''' + FltName +
+            'VALUES(' + TID2S(FComponentKey) + ',''' + OldOwnerForm + ''',''' + FltName +
             ''',''' + GetApplicationName + ''',' + IntToStr(GetCRC32(FullFltName)) +
             ',''' + FullFltName + ''')';
           ibsqlComp.ExecQuery;
@@ -1559,9 +1579,10 @@ var
   ParamList: TStringList;
   Tr: TIBTransaction;
   V: PVariant;
+  ID: TID;
 begin
   Assert(Assigned(FIBDataSet));
-
+  FContext := Owner.Owner.Name;
   // Если датасет фильтруется на клиенте, то определяем каждый раз
   if FIBDataSet.Filtered then
   begin
@@ -1572,7 +1593,6 @@ begin
     FRecordCount := -1;
     Exit;
   end;
-
   // Если количество записей не определено
   if FRecordCount = -1 then
   begin
@@ -1643,9 +1663,18 @@ begin
             begin
               if (ParamList.IndexOfName(Params[I].Name) = -1) and (not Params[I].IsNull) then
               begin
-                New(V);
-                V^ := Params[I].AsVariant;
-                ParamList.AddObject(Params[I].Name + '=' + Params[I].AsString, Pointer(V));
+                if ((Params[I].Data.sqltype = 581) or (Params[I].Data.sqltype = SQL_INT64))
+                  and (Params[I].Data.sqlscale = 0)  then
+                begin
+                  ID := GetTID(Params[I]);
+                  ParamList.AddObject(Params[I].Name + '=' + 'ID64', TID2TObject(ID, FContext));
+                end
+                else
+                begin
+                  New(V);
+                  V^ := Params[I].AsVariant;
+                  ParamList.AddObject(Params[I].Name + '=' + 'VAR', Pointer(V));
+                end;
               end;
             end;
           end;
@@ -1659,7 +1688,10 @@ begin
             begin
               if AnsiCompareText(ParamList.Names[I], ibsqlCount.Params[J].Name) = 0 then
               begin
-                ibsqlCount.Params[J].AsVariant := PVariant(ParamList.Objects[I])^;
+                if ParamList.Values[ParamList.Names[I]] = 'ID64' then
+                  SetTID(ibsqlCount.Params[J], GetTID(ParamList.Objects[I], FContext))
+                else
+                  ibsqlCount.Params[J].AsVariant := PVariant(ParamList.Objects[I])^;
               end;
             end;
           end;
@@ -1706,8 +1738,11 @@ begin
         finally
           for I := 0 to ParamList.Count - 1 do
           begin
-            V := PVariant(ParamList.Objects[I]);
-            Dispose(V);
+            if ParamList.Values[ParamList.Names[I]] = 'VAR' then
+            begin
+              V := PVariant(ParamList.Objects[I]);
+              Dispose(V);
+            end;
           end;
           ParamList.Free;
           ibsqlCount.Free;
@@ -1830,11 +1865,11 @@ begin
       ' componentkey = :CK ' +
       ' AND (userkey = :UK OR userkey IS NULL) ' +
       'ORDER BY name';
-    ibsqlFilterList.ParamByName('CK').AsInteger := FComponentKey;
+    SetTID(ibsqlFilterList.ParamByName('CK'), FComponentKey);
     if IBLogin <> nil then
-      ibsqlFilterList.ParamByName('UK').AsInteger := IBLogin.UserKey
+      SetTID(ibsqlFilterList.ParamByName('UK'), IBLogin.UserKey)
     else
-      ibsqlFilterList.ParamByName('UK').AsInteger := ADMIN_KEY;
+      SetTID(ibsqlFilterList.ParamByName('UK'), ADMIN_KEY);
     ibsqlFilterList.ExecQuery;
 
     TempPM := AnPopupMenu.Items;
@@ -1869,16 +1904,16 @@ begin
     I := 0;
     while (not ibsqlFilterList.Eof) and ((I < MaxFilterCount) or not FlagSearch) do
     begin
-      if (I < MaxFilterCount) or (FCurrentFilter = ibsqlFilterList.Fields[0].AsInteger) then
+      if (I < MaxFilterCount) or (FCurrentFilter = GetTID(ibsqlFilterList.Fields[0])) then
       begin
         TempPM.Add(TMenuItem.Create(TempPM));
         TempPM.Items[TempPM.Count - 1].Caption := ibsqlFilterList.Fields[1].AsString;
-        TempPM.Items[TempPM.Count - 1].Tag := ibsqlFilterList.Fields[0].AsInteger;
+        TempPM.Items[TempPM.Count - 1].Tag := TID2Tag(GetTID(ibsqlFilterList.Fields[0]), FContext);
         TempPM.Items[TempPM.Count - 1].OnClick := DoOnSelectFilter;
         TempPM.Items[TempPM.Count - 1].RadioItem := True;
       end;
 
-      if FCurrentFilter = ibsqlFilterList.Fields[0].AsInteger then
+      if FCurrentFilter = GetTID(ibsqlFilterList.Fields[0]) then
       begin
         TempPM.Items[TempPM.Count - 1].Checked := True;
         FlagSearch := True;
@@ -1921,11 +1956,12 @@ var
   ParamList: TStringList;
   I: Integer;
   V: PVariant;
+  ID: TID;
 var
   Flag: Boolean;
 begin
   Assert(Assigned(FIBDataSet));
-
+  FContext := Owner.Owner.Name;
   FIsSQLChanging := True;
   // Очищаем параметры
   FFilterData.Clear;
@@ -1954,10 +1990,21 @@ begin
         begin
           if ParamList.IndexOfName(TIBCustomDataSetCracker(FIBDataSet).Params[I].Name) = -1 then
           begin
-            New(V);
-            V^ := TIBCustomDataSetCracker(FIBDataSet).Params[I].AsVariant;
-            ParamList.AddObject(TIBCustomDataSetCracker(FIBDataSet).Params[I].Name + '=' +
-              TIBCustomDataSetCracker(FIBDataSet).Params[I].AsString, Pointer(V));
+            if ((TIBCustomDataSetCracker(FIBDataSet).Params[I].Data.sqltype = 581) or
+             (TIBCustomDataSetCracker(FIBDataSet).Params[I].Data.sqltype = SQL_INT64))
+             and (TIBCustomDataSetCracker(FIBDataSet).Params[I].Data.sqlscale = 0) then
+            begin
+              ID := GetTID(TIBCustomDataSetCracker(FIBDataSet).Params[I]);
+              ParamList.AddObject(TIBCustomDataSetCracker(FIBDataSet).Params[I].Name + '=' +
+                'ID64', TID2TObject(ID, FContext));
+            end
+            else
+            begin
+              New(V);
+              V^ := TIBCustomDataSetCracker(FIBDataSet).Params[I].AsVariant;
+              ParamList.AddObject(TIBCustomDataSetCracker(FIBDataSet).Params[I].Name + '=' +
+                'VAR', Pointer(V));
+            end;
           end;
         end;
       end;
@@ -1975,6 +2022,9 @@ begin
           if TCrackerIBXSQLDA(TIBCustomDataSetCracker(FIBDataSet).Params).GetXSQLVARByName(ParamList.Names[I]) <> nil then
           begin
           //if TIBCustomDataSetCracker(FIBDataSet).Params.ByName(ParamList.Names[I]) <> nil then
+            if ParamList.Values[ParamList.Names[I]] = 'ID64' then
+              SetTID(TIBCustomDataSetCracker(FIBDataSet).Params.ByName(ParamList.Names[I]), GetTID(ParamList.Objects[I], FContext))
+            else
             TIBCustomDataSetCracker(FIBDataSet).Params.ByName(ParamList.Names[I]).AsVariant := PVariant(ParamList.Objects[I])^;
           end;
         except
@@ -1982,8 +2032,11 @@ begin
     finally
       for I := 0 to ParamList.Count - 1 do
       begin
-        V := PVariant(ParamList.Objects[I]);
-        Dispose(V);
+        if ParamList.Values[ParamList.Names[I]] = 'VAR' then
+        begin
+          V := PVariant(ParamList.Objects[I]);
+          Dispose(V);
+        end;
       end;
       ParamList.Free;
     end;
@@ -2180,7 +2233,7 @@ end;
 
 procedure TgsQueryFilter.CreateFilterExecute;
 var
-  I: Integer;
+  I: TID;
 begin
   // Вызываем функцию создания фильтра
   if AddFilter(I) then
@@ -2215,7 +2268,7 @@ end;
 
 procedure TgsQueryFilter.EditFilterExecute;
 var
-  I: Integer;
+  I: TID;
 begin
   // Вызываем редактирование
   if EditFilter(I) then
@@ -2326,7 +2379,7 @@ begin
     begin
       Assert((Assigned(FPopupMenu.Items[I].Action) and
        Assigned(FPopupMenu.Items[I].Action.OnExecute)) or (FPopupMenu.Items[I].Caption = '-') or
-       not (FPopupMenu.Items[I].Tag in [0, 1]),
+       not (GetTID(FPopupMenu.Items[I].Tag, FContext) in [0, 1]),
        'Не присвоено событие или его обработчик в меню фильтров. Обратитесь к разработчику. ' +
        FPopupMenu.Items[I].Caption);
       TagFlag := TagFlag or (Assigned(FPopupMenu.Items[I].Action) and (FPopupMenu.Items[I].Action.Tag = 1));

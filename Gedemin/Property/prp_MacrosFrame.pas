@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 unit prp_MacrosFrame;
 
 interface
@@ -35,6 +37,7 @@ type
     procedure btnCopyRUIDMacrosClick(Sender: TObject);
     procedure actAddToSettingExecute(Sender: TObject);
     procedure actAddToSettingUpdate(Sender: TObject);
+    procedure dbeFunctionNameChange(Sender: TObject);
   private
     { Private declarations }
     FShortCut: TShortCut;
@@ -51,7 +54,7 @@ type
     procedure hkMacrosKeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
 
-    class function GetNameFromDb(Id: Integer): string; override;
+    class function GetNameFromDb(Id: TID): string; override;
     class function GetTypeName: String; override;
 
   public
@@ -68,7 +71,7 @@ type
     procedure PasteObject; override;
 
     function Move(TreeItem: TCustomTreeItem): TCustomTreeItem; override;
-    class function GetFunctionIdEx(Id: Integer): integer; override;
+    class function GetFunctionIdEx(Id: TID): TID; override;
   end;
 
 var
@@ -120,11 +123,11 @@ procedure TMacrosFrame.Setup(const FunctionName: String = '');
 begin
   if Assigned(CustomTreeItem) then
   begin
-    gdcMacros.FieldByName(fnFunctionKey).AsInteger := gdcMacros.GetNextID(True);
-    gdcFunction.FieldByName(fnId).AsInteger := gdcMacros.FieldByName(fnFunctionKey).AsInteger;
+    SetTID(gdcMacros.FieldByName(fnFunctionKey), gdcMacros.GetNextID(True));
+    SetTID(gdcFunction.FieldByName(fnId), gdcMacros.FieldByName(fnFunctionKey));
     gdcMacros.FieldByName(fnName).AsString := CustomTreeItem.Name +
       RUIDToStr(gdcFunction.GetRUID);
-    gdcMacros.FieldByName(fnMacrosGroupKey).AsInteger := TMacrosTreeItem(CustomTreeItem).MacrosFolderId;
+    SetTID(gdcMacros.FieldByName(fnMacrosGroupKey), TMacrosTreeItem(CustomTreeItem).MacrosFolderId);
   end;
 
   inherited;
@@ -280,11 +283,11 @@ begin
     gdcFunction.FieldByName(fnName).asString :=
       gdcFunction.GetUniqueName('copy', gdcFunction.FieldByName(fnName).AsString,
           TreeItem.OwnerId);
-    gdcFunction.FieldByName(fnModuleCode).AsInteger := TreeItem.OwnerId;
+    SetTID(gdcFunction.FieldByName(fnModuleCode), TreeItem.OwnerId);
 
     gdcMacros.FieldByName(fnName).AsString := gdcMacros.GetUniqueName('copy',
       gdcMacros.FieldByName(fnName).AsString, TreeItem.Id);
-    gdcMacros.FieldByName(fnMacrosGroupKey).AsInteger := TreeItem.Id;
+    SetTID(gdcMacros.FieldByName(fnMacrosGroupKey), TreeItem.Id);
     Result := CustomTreeItem;
     Result.OwnerId := TreeItem.OwnerId;
     Result.MainOwnerName := TreeItem.MainOwnerName;
@@ -368,7 +371,7 @@ begin
   end;
 end;
 
-class function TMacrosFrame.GetNameFromDb(Id: Integer): string;
+class function TMacrosFrame.GetNameFromDb(Id: TID): string;
 var
   SQL: TIBSQL;
 begin
@@ -376,7 +379,7 @@ begin
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQl.SQL.Text := 'SELECT name FROM evt_macroslist WHERE id = :id';
-    SQL.ParamByName('id').AsInteger := id;
+    SetTID(SQL.ParamByName('id'), id);
     SQL.ExecQuery;
     Result := SQL.FieldByName('name').AsString;
   finally
@@ -389,7 +392,7 @@ begin
   Result := 'Макрос ';
 end;
 
-class function TMacrosFrame.GetFunctionIdEx(Id: Integer): integer;
+class function TMacrosFrame.GetFunctionIdEx(Id: TID): TID;
 var
   SQL: TIBSQL;
 begin
@@ -397,9 +400,9 @@ begin
   try
     SQl.Transaction := gdcBaseManager.ReadTransaction;
     SQl.SQl.Text := 'SELECT functionkey FROM evt_macroslist WHERE id = :id';
-    SQL.ParamByName('id').AsInteger := Id;
+    SetTID(SQL.ParamByName('id'), Id);
     SQL.ExecQuery;
-    Result := SQL.FieldByName('functionkey').AsInteger;
+    Result := GetTID(SQL.FieldByName('functionkey'));
   finally
     SQl.Free;
   end;
@@ -438,6 +441,13 @@ begin
       and (not gdcFunction.IsEmpty)
   else
     inherited;
+end;
+
+procedure TMacrosFrame.dbeFunctionNameChange(Sender: TObject);
+begin
+  inherited;
+  if Assigned(FNode) and Assigned(FNode.Data) then
+    TMacrosTreeItem(FNode.Data).ShowInMenu := dbcbDisplayInMenu.Checked;
 end;
 
 initialization

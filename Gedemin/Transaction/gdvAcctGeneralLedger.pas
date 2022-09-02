@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdvAcctGeneralLedger;
 
 interface
@@ -107,7 +109,7 @@ var
       Alias := Format(Currency + '_%s_%s', [EntryPart, Self.GetKeyAlias(EntryAccounts.Items[I].Account)]);
       if FShowCorrSubAccounts then
       begin
-        AAccounts.Add(Alias + '=' + IntToStr(ID));
+        AAccounts.Add(Alias + '=' + TID2S(ID));
       end
       else
       begin
@@ -198,7 +200,7 @@ var
 
         for J := 0 to TgdKeyArray(AAccounts.Objects[I]).Count - 1 do
         begin
-          CorrSubSelect := CorrSubSelect + IntToStr(TgdKeyArray(AAccounts.Objects[I]).Keys[J]);
+          CorrSubSelect := CorrSubSelect + TID2S(TgdKeyArray(AAccounts.Objects[I]).Keys[J]);
           if J <> TgdKeyArray(AAccounts.Objects[I]).Count - 1 then
             CorrSubSelect := CorrSubSelect + ', ';
         end;
@@ -356,7 +358,7 @@ begin
       '  DECLARE VARIABLE vareqdebit           dcurrency;'#13#10 +
       '  DECLARE VARIABLE vareqcredit          dcurrency;'#13#10 +
       '  DECLARE VARIABLE c                    INTEGER;'#13#10 +
-      '  DECLARE VARIABLE accountkey           INTEGER;'#13#10 +
+      '  DECLARE VARIABLE accountkey           DINTKEY;'#13#10 +
       '  DECLARE VARIABLE closedate            DATE;'#13#10;
     if AnalyticField <> '' then
     begin
@@ -406,7 +408,7 @@ begin
         '    WHERE '#13#10 +
         '      bal.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
         '      AND bal.accountkey IN (' + AccountIDs + ') '#13#10 +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND bal.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND bal.currkey = ' + TID2S(FCurrKey) + #13#10, '') +
         ' '#13#10 +
         '    UNION ALL '#13#10 +
         ' '#13#10 +
@@ -434,7 +436,7 @@ begin
             '      AND e.entrydate < :closedate '#13#10) +
         '      AND e.accountkey IN (' + AccountIDs + ') '#13#10 +
         '      AND e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + TID2S(FCurrKey) + #13#10, '') +
         '  ) m '#13#10 +
         '  INTO :saldobegindebit, '#13#10 +
         '       :saldobegincredit, '#13#10 +
@@ -481,7 +483,7 @@ begin
           '      saldobegindebiteq = :saldobegindebiteq + :vareqdebit; '#13#10 +
           '      saldobegincrediteq = :saldobegincrediteq + :vareqcredit; '#13#10 +
           '    END '#13#10,
-          [AnalyticField, FCompanyKey, Integer(FAllHolding), IIF(FCurrKey > 0, IntToStr(FCurrkey), '0')]);
+          [AnalyticField, TID264(FCompanyKey), Integer(FAllHolding), IIF(FCurrKey > 0, TID2S(FCurrkey), '0')]);
     end;
 
     DebitCreditSQL := DebitCreditSQL +
@@ -622,7 +624,7 @@ begin
         '      saldoenddebiteq = :saldoenddebiteq + :sdeq;'#13#10 +
         '      saldoendcrediteq = :saldoendcrediteq + :sceq;'#13#10 +
         '    END',
-        [AnalyticField, FCompanyKey, Integer(FAllHolding), IIF(FCurrKey > 0, IntToStr(FCurrkey), '0')]);
+        [AnalyticField, TID264(FCompanyKey), Integer(FAllHolding), IIF(FCurrKey > 0, TID2S(FCurrkey), '0')]);
     end;
 
     DebitCreditSQL := DebitCreditSQL +
@@ -695,7 +697,7 @@ begin
     SelectClause := '';
 
     if FCurrSumInfo.Show and (FCurrKey > 0) then
-      CurrId := Format('  AND e.currkey = %d'#13#10, [FCurrKey])
+      CurrId := Format('  AND e.currkey = %d'#13#10, [TID264(FCurrKey)])
     else
       CurrId := '';
 
@@ -704,10 +706,10 @@ begin
     EQDecDig := Format('NUMERIC(15, %d)', [FEQSumInfo.DecDigits]);
 
     L_S := Format('AC_G_L_S(:begindate, :enddate, %d, %d, %d, %d, :currkey, ''%s'')',
-      [FSQLHandle, FCompanyKey, Integer(FAllHolding), -1, AnalyticField]);
+      [TID264(FSQLHandle), TID264(FCompanyKey), Integer(FAllHolding), -1, AnalyticField]);
 
     Q_S := Format('AC_Q_G_L(%s, :begindate, :enddate, %d, %d, %d, %d, :currkey)',
-      ['%s', FCompanyKey, Integer(FAllHolding), FSQLHandle, -1]);
+      ['%s', TID264(FCompanyKey), Integer(FAllHolding), TID264(FSQLHandle), -1]);
 
     GetDebitSumSelectClause;
     GetCreditSumSelectClause;
@@ -825,15 +827,15 @@ begin
           '   ac_account a1 ' +
           '   LEFT JOIN ac_account a2 ON a2.lb >= a1.lb and a2.rb <= a1.rb and a2.ACCOUNTTYPE in (''A'', ''S'') ' +
           ' WHERE a1.id = %d ',
-          [AccountArray.Keys[0]]);
+          [TID264(AccountArray.Keys[0])]);
       end;
 
       ibsql.ExecQuery;
       AccountArray.Clear;
       while not ibsql.Eof do
       begin
-        if AccountArray.IndexOf(ibsql.Fields[0].AsInteger) = - 1 then
-          AccountArray.Add(ibsql.Fields[0].AsInteger);
+        if AccountArray.IndexOf(GetTID(ibsql.Fields[0])) = - 1 then
+          AccountArray.Add(GetTID(ibsql.Fields[0]));
         ibsql.Next;
       end;
     finally

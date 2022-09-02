@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 {++
 
@@ -59,7 +60,6 @@ type
     procedure DoBeforePost; override;
 
     function GetSecCondition: String; override;
-    procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
 
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -304,7 +304,7 @@ procedure TgdcExplorer.DoAfterPost;
 var
   SL: TStringList;
 
-  procedure DoRecurs(AnID: Integer);
+  procedure DoRecurs(AnID: TID);
   var
     Tr: TIBTransaction;
     q, q2: TIBSQL;
@@ -324,7 +324,7 @@ var
       q2.Transaction := Tr;
 
       q.SQL.Text := 'SELECT classname, subtype, aview, achag, afull FROM gd_command WHERE id=:AnID';
-      q.ParamByName('AnID').AsInteger := AnID;
+      SetTID(q.ParamByName('AnID'), AnID);
       q.ExecQuery;
 
       if q.FieldByName('classname').AsString > '' then
@@ -334,7 +334,7 @@ var
         q2.ParamByName('AVIEW').AsInteger := q.FieldByName('AVIEW').AsInteger;
         q2.ParamByName('ACHAG').AsInteger := q.FieldByName('ACHAG').AsInteger;
         q2.ParamByName('AFULL').AsInteger := q.FieldByName('AFULL').AsInteger;
-        q2.ParamByName('ID').AsInteger := AnID;
+        SetTID(q2.ParamByName('ID'), AnID);
         q2.ParamByName('CN').AsString := q.FieldByName('classname').AsString;
         q2.ParamByName('ST').AsString := q.FieldByName('subtype').AsString;
         try
@@ -386,11 +386,11 @@ var
       begin
         q.Close;
         q.SQL.Text := 'SELECT id FROM gd_command WHERE parent=:P';
-        q.ParamByName('P').AsInteger := AnID;
+        SetTID(q.ParamByName('P'), AnID);
         q.ExecQuery;
         while not q.EOF do
         begin
-          DoRecurs(q.FieldByName('id').AsInteger);
+          DoRecurs(GetTID(q.FieldByName('id')));
           q.Next;
         end;
       end;
@@ -682,32 +682,6 @@ begin
   end;
 end;
 
-procedure TgdcExplorer.InternalSetFieldData(Field: TField;
-  Buffer: Pointer);
-var
-  Res: OleVariant;
-begin
-  inherited;
-
-  if FDataTransfer then
-    exit;
-
-  if (UpperCase(Field.FieldName) = 'PARENT')
-    and (not (sLoadFromStream in BaseState))
-    and (not Field.IsNull) then
-  begin
-    ExecSingleQueryResult('SELECT aview, achag, afull FROM gd_command WHERE id = :ID',
-      Field.AsInteger, Res);
-
-    if not VarIsEmpty(Res) then
-    begin
-      FieldByName('aview').AsInteger := Res[0, 0];
-      FieldByName('achag').AsInteger := Res[1, 0];
-      FieldByName('afull').AsInteger := Res[2, 0];
-    end;
-  end;
-end;
-
 procedure TgdcExplorer.ShowProgram(const AlwaysCreateWindow: Boolean = False);
 var
   F: TrpCustomFunction;
@@ -862,7 +836,7 @@ procedure TgdcExplorer._SaveToStream(Stream: TStream;
 var
   f: TgdcFunction;
   R: TgdcReport;
-  AnID: Integer;
+  AnID: TID;
 begin
   inherited;
 

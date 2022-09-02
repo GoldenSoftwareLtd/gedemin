@@ -1,3 +1,5 @@
+// ShlTanya, 03.02.2019
+
 unit gdc_frmClosePeriod;
 
 interface
@@ -200,6 +202,9 @@ end;
 destructor TfrmClosePeriod.Destroy;
 begin
   InnerFormVariable := nil;
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
   inherited;
 end;
 
@@ -282,7 +287,7 @@ begin
 
     for I := 0 to lvDontDeleteDocumentType.Items.Count - 1 do
     begin
-      gdcDocumentType.SelectedID.Add(Integer(lvDontDeleteDocumentType.Items.Item[I].Data));
+      gdcDocumentType.SelectedID.Add(GetTID(lvDontDeleteDocumentType.Items.Item[I].Data, Name));
     end;
 
     if gdcDocumentType.ChooseItems(A) then
@@ -298,7 +303,7 @@ begin
       begin
         Item := lvDontDeleteDocumentType.Items.Add;
         Item.Caption := gdcDocumentType.FieldByName('NAME').AsString;
-        Item.Data := Pointer(gdcDocumentType.FieldByName('ID').AsInteger);
+        Item.Data := TID2Pointer(GetTID(gdcDocumentType.FieldByName('ID')), Name);
 
         gdcDocumentType.Next;
       end;
@@ -352,7 +357,7 @@ begin
 
     for I := 0 to lvDontDeleteDocumentType.Items.Count - 1 do
     begin
-      gdcDocumentType.SelectedID.Add(Integer(lvDeleteUserDocumentType.Items.Item[I].Data));
+      gdcDocumentType.SelectedID.Add(GetTID(lvDeleteUserDocumentType.Items.Item[I].Data, Name));
     end;
 
     if gdcDocumentType.ChooseItems(A) then
@@ -368,7 +373,7 @@ begin
       begin
         Item := lvDeleteUserDocumentType.Items.Add;
         Item.Caption := gdcDocumentType.FieldByName('NAME').AsString;
-        Item.Data := Pointer(gdcDocumentType.FieldByName('ID').AsInteger);
+        Item.Data := TID2Pointer(GetTID(gdcDocumentType.FieldByName('ID')), Name);
 
         gdcDocumentType.Next;
       end;
@@ -585,11 +590,11 @@ begin
   // Заполним список типов складских документов, которые нельзя удалять
   ClosingObject.ClearDontDeleteDocumentTypes;
   for ListElementCounter := 0 to lvDontDeleteDocumentType.Items.Count - 1 do
-    ClosingObject.AddDontDeleteDocumentType(Integer(lvDontDeleteDocumentType.Items[ListElementCounter].Data));
+    ClosingObject.AddDontDeleteDocumentType(GetTID(lvDontDeleteDocumentType.Items[ListElementCounter].Data, Name));
   // Заполним список типов пользовательских документов, которые нужно удалить
   ClosingObject.ClearUserDocumentTypesToDelete;
   for ListElementCounter := 0 to lvDeleteUserDocumentType.Items.Count - 1 do
-    ClosingObject.AddUserDocumentTypeToDelete(Integer(lvDeleteUserDocumentType.Items[ListElementCounter].Data));
+    ClosingObject.AddUserDocumentTypeToDelete(GetTID(lvDeleteUserDocumentType.Items[ListElementCounter].Data, Name));
   // Заполним список полей-признаков складской карточки из настроек
   ClosingObject.ClearInvCardFeatures;
   for ListElementCounter := 0 to lvCheckedInvCardField.Items.Count - 1 do

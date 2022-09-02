@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcFile;
 
 interface
@@ -34,7 +36,7 @@ type
     {Синхронизация по конкретному пути объектов с конкретным ID.
      Если AnID = -1, то синхронизируются ВСЕ файлы и папки.
      Если AnID > 0, но объект с таким AnID не найден, то также выдается исключение}
-    procedure SyncByPath(const Path: String; const AnID: Integer;
+    procedure SyncByPath(const Path: String; const AnID: TID;
       Action: TflAction = flAsk); virtual;
 
   public
@@ -68,7 +70,7 @@ type
     function Synchronize(const AFileName: String = '';
       const ChooseLocation: Boolean = False;
       Action: TflAction = flAsk): Boolean; overload;
-    function Synchronize(const AnID: Integer = -1;
+    function Synchronize(const AnID: TID = -1;
       const ChooseLocation: Boolean = False;
       Action: TflAction = flAsk): Boolean; overload;
 
@@ -84,11 +86,11 @@ type
     property Length: Integer read GetLength;
 
     {Функция поиска файла по полному наименованию (без корневого каталога)}
-    function Find(const AFileName: String): Integer;
+    function Find(const AFileName: String): TID;
 
     //Возвращает путь до папки(включительно) с указанным id
     //Если среди вышележащих папок такого id нет, выдается исключение
-    function GetPathToFolder(AFolderID: Integer): String;
+    function GetPathToFolder(AFolderID: TID): String;
 
   end;
 
@@ -99,7 +101,7 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    procedure SyncByPath(const Path: String; const AnID: Integer;
+    procedure SyncByPath(const Path: String; const AnID: TID;
       Action: TflAction = flAsk); override;
 
     procedure SaveToStreamFromField(S: TStream; Fld: TField);
@@ -136,7 +138,7 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    procedure SyncByPath(const Path: String; const AnID: Integer;
+    procedure SyncByPath(const Path: String; const AnID: TID;
       Action: TflAction = flAsk); override;
 
   public
@@ -235,11 +237,11 @@ begin
   inherited;
 end;
 
-function TgdcBaseFile.Find(const AFileName: String): Integer;
+function TgdcBaseFile.Find(const AFileName: String): TID;
 var
   S, FN: String;
   ibsql: TIBSQL;
-  ParentKey: Integer;
+  ParentKey: TID;
 
 begin
   Result := -1;
@@ -260,7 +262,7 @@ begin
       else
       begin
         ibsql.SQL.Text := 'SELECT * FROM gd_file WHERE parent = :parent and UPPER(name) = :name ';
-        ibsql.ParamByName('parent').AsInteger := ParentKey;
+        SetTID(ibsql.ParamByName('parent'), ParentKey);
       end;
 
       ibsql.ParamByName('name').AsString := FN;
@@ -272,7 +274,7 @@ begin
         Exit;
       end;
 
-      Result := ibsql.FieldByName('id').AsInteger;
+      Result := GetTID(ibsql.FieldByName('id'));
     end;
   finally
     ibsql.Free;
@@ -309,7 +311,7 @@ begin
   end;
 
   FibsqlFullPath.Close;
-  FibsqlFullPath.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+  SetTID(FibsqlFullPath.ParamByName('id'), FieldByName('parent'));
   FibsqlFullPath.ExecQuery;
 
   Result := '';
@@ -399,7 +401,7 @@ end;
 function TgdcBaseFile.Synchronize(const AFileName: String;
   const ChooseLocation: Boolean; Action: TflAction): Boolean;
 var
-  AnID: Integer;
+  AnID: TID;
 begin
   if AFileName > '' then
   begin
@@ -413,7 +415,7 @@ begin
   Result := Synchronize(AnID, ChooseLocation);
 end;
 
-procedure TgdcBaseFile.SyncByPath(const Path: String; const AnID: Integer;
+procedure TgdcBaseFile.SyncByPath(const Path: String; const AnID: TID;
   Action: TflAction);
 var
   S: String;
@@ -445,7 +447,7 @@ begin
       begin
         if ibsql.FieldByName('filetype').AsString = 'F' then
         begin
-          ObjFile.ID := ibsql.FieldByName('id').AsInteger;
+          ObjFile.ID := GetTID(ibsql.FieldByName('id'));
           if ObjFile.RecordCount > 0 then
           begin
             S := Path + ObjFile.FullPath;
@@ -488,7 +490,7 @@ begin
         end else
         //если это директория ...
         begin
-          ObjFolder.ID := ibsql.FieldByName('id').AsInteger;
+          ObjFolder.ID := GetTID(ibsql.FieldByName('id'));
           if ObjFolder.RecordCount > 0 then
           begin
             S := Path + ObjFolder.FullPath;
@@ -510,7 +512,7 @@ begin
   end;
 end;
 
-function TgdcBaseFile.Synchronize(const AnID: Integer;
+function TgdcBaseFile.Synchronize(const AnID: TID;
   const ChooseLocation: Boolean; Action: TflAction): Boolean;
 var
   Path: String;
@@ -527,7 +529,7 @@ begin
       if Obj.RecordCount = 0 then
       begin
         raise Exception.Create(Self.GetDisplayName(Self.SubType) + ': передан некорректный ключ = ' +
-          IntToStr(AnID) + '!');
+          TID2S(AnID) + '!');
       end;
 
       Path := ExtractFilePath(RootDirectory + FullPath);
@@ -604,7 +606,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcBaseFile.GetPathToFolder(AFolderID: Integer): String;
+function TgdcBaseFile.GetPathToFolder(AFolderID: TID): String;
 var
   ibsql: TIBSQL;
   Lb, Rb: Integer;
@@ -616,12 +618,12 @@ begin
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text := 'SELECT * FROM gd_file WHERE id = :id AND filetype = ''D''';
-    ibsql.ParamByName('id').AsInteger := AFolderID;
+    SetTID(ibsql.ParamByName('id'), AFolderID);
     ibsql.ExecQuery;
 
     if ibsql.RecordCount = 0 then
     begin
-      raise Exception.Create('Папка с id = ' + IntToStr(AFolderID) + ' не найдена!');
+      raise Exception.Create('Папка с id = ' + TID2S(AFolderID) + ' не найдена!');
     end;
 
     //Если эта папка - мы сами, то выходим
@@ -642,13 +644,13 @@ begin
       ' ORDER BY f.lb ASC, f.rb DESC';
 
     ibsql.Close;
-    ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+    SetTID(ibsql.ParamByName('id'), FieldByName('parent'));
     ibsql.ParamByName('lb').AsInteger := Lb;
     ibsql.ParamByName('rb').AsInteger := Rb;
     ibsql.ExecQuery;
 
     if ibsql.RecordCount = 0 then
-      raise Exception.Create('Папка с id = ' + IntToStr(AFolderID) +
+      raise Exception.Create('Папка с id = ' + TID2S(AFolderID) +
         ' не содержит в себе файл ' + GetListField(SubType));
 
     Result := '';
@@ -718,7 +720,7 @@ begin
     else
       Result := Format('SELECT id FROM gd_file WHERE UPPER(name)=UPPER(''%s'') AND parent = %d',
         [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
-         FieldByName('parent').AsInteger]);
+         TID264(FieldByName('parent'))]);
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEFILE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
@@ -830,7 +832,7 @@ begin
       ibsql.Transaction := Transaction;
 
     ibsql.SQL.Text := 'SELECT SUM(datasize) as datasize FROM gd_file WHERE datasize IS NOT NULL and parent = :parent';
-    ibsql.ParamByName('parent').AsInteger := ID;
+    SetTID(ibsql.ParamByName('parent'), ID);
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
       Result := ibsql.FieldByName('datasize').AsInteger
@@ -842,7 +844,7 @@ begin
 end;
 
 procedure TgdcFileFolder.SyncByPath(const Path: String;
-  const AnID: Integer; Action: TflAction);
+  const AnID: TID; Action: TflAction);
 var
   S: String;
   ObjFile: TgdcFile;
@@ -877,7 +879,7 @@ begin
         begin
           if ibsql.FieldByName('filetype').AsString = 'F' then
           begin
-            ObjFile.ID := ibsql.FieldByName('id').AsInteger;
+            ObjFile.ID := GetTID(ibsql.FieldByName('id'));
             if ObjFile.RecordCount > 0 then
             begin
               S := Path + ObjFile.GetPathToFolder(AnID);
@@ -913,7 +915,7 @@ begin
           end else
           //если это директория ...
           begin
-            ObjFolder.ID := ibsql.FieldByName('id').AsInteger;
+            ObjFolder.ID := GetTID(ibsql.FieldByName('id'));
             if ObjFolder.RecordCount > 0 then
             begin
               S := Path + ObjFolder.GetPathToFolder(AnID);
@@ -1203,7 +1205,7 @@ begin
   Result := IncludeTrailingBackSlash(Ch) + FieldByName('name').AsString;
 end;
 
-procedure TgdcFile.SyncByPath(const Path: String; const AnID: Integer;
+procedure TgdcFile.SyncByPath(const Path: String; const AnID: TID;
   Action: TflAction);
 var
   S: String;

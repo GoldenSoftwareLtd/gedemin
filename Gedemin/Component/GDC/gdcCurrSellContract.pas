@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcCurrSellContract;
 
@@ -1264,7 +1265,7 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+    SetTID(FieldByName('documentkey'), FieldByName('id'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRDOCUMENT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

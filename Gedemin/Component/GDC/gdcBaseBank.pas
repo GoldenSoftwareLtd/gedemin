@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019
 
 {
 
@@ -98,8 +99,8 @@ begin
   inherited;
 
   if HasSubSet('ByAccount') then
-    FieldByName('AccountKey').AsInteger := ParamByName('AccountKey').AsInteger;
-  FieldByName('documentkey').AsInteger := FieldByName('ID').AsInteger;
+    SetTID(FieldByName('AccountKey'), ParamByName('AccountKey'));
+  SetTID(FieldByName('documentkey'), FieldByName('ID'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEBANK', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -196,12 +197,12 @@ begin
   try
     ibsql.Transaction := ReadTransaction;
     ibsql.SQL.Text := 'SELECT companykey FROM gd_companyaccount WHERE id = :id';
-    ibsql.ParamByName('id').AsInteger := FieldByName('accountkey').AsInteger;
+    SetTID(ibsql.ParamByName('id'), FieldByName('accountkey'));
     ibsql.ExecQuery;
     if not ibsql.EOF then
     begin
-      if FieldByName('companykey').AsInteger <> ibsql.FieldByName('companykey').AsInteger then
-        FieldByName('companykey').AsInteger := ibsql.FieldByName('companykey').AsInteger;
+      if GetTID(FieldByName('companykey')) <> GetTID(ibsql.FieldByName('companykey')) then
+        SetTID(FieldByName('companykey'), ibsql.FieldByName('companykey'));
     end;
   finally
     ibsql.Free;

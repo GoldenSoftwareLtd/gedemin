@@ -107,7 +107,8 @@ begin
         if q.FieldByName('contacttype').AsInteger <> 4 then
           gsIBlcWCompanyKey.CurrentKeyInt := GetTID(q.FieldByName('id'))
         else
-          gsibluFolder.Condition := Format('contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id = %s) AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id = %s)',
+          gsibluFolder.Condition := Format(
+            'contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id = %s) AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id = %s)',
             [TID2S(q.FieldByName('id')), TID2S(q.FieldByName('id'))]);
       end else
       begin
@@ -136,7 +137,8 @@ procedure Tgdc_dlgEmployee.gsIBlcWCompanyKeyChange(Sender: TObject);
 begin
   if gsIBlcWCompanyKey.CurrentKey > '' then
   begin
-    gsibluFolder.Condition := Format('contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id=%s) AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id=%s)',
+    gsibluFolder.Condition := Format(
+      'contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id=%s) AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id=%s)',
       [gsIBlcWCompanyKey.CurrentKey, gsIBlcWCompanyKey.CurrentKey]);
 
     // у другой компании такого подразделения не будет

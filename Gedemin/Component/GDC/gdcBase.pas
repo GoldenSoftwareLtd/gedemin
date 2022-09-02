@@ -1,3 +1,4 @@
+// ShlTanya, 09.02.2019, #4135
 (*
 
 Безопасность.
@@ -400,7 +401,7 @@ type
     FExplorer: TgdcBase;
     FNextIDSQL: TIBSQL;
     FIBSQL: TIBSQL;
-    FIDCurrent, FIDLimit: Integer;
+    FIDCurrent, FIDLimit: TID;
     FUseIDTable: Boolean;
     FChangedRUIDs: TStringList;
 
@@ -434,11 +435,11 @@ type
     procedure PackStream(SourceStream, DestStream: TStream; CompressionLevel: TZCompressionLevel);
     procedure UnPackStream(SourceStream, DestStream: TStream);
 
-    function GetIDByRUID(const XID, DBID: TID; const Tr: TIBTransaction = nil): TID;
+    function GetIDByRUID(const XID: TID; const DBID: Integer; const Tr: TIBTransaction = nil): TID;
     function GetIDByRUIDString(const RUID: TRUIDString; const Tr: TIBTransaction = nil): TID;
     //Возвращает поля xid, dbid из таблицы gd_ruid по id
     //Если запись по id не найдена создаст новый РУИД
-    procedure GetRUIDByID(const ID: TID; out XID, DBID: TID; const Tr: TIBTransaction = nil);
+    procedure GetRUIDByID(const ID: TID; out XID: TID; out DBID: Integer; const Tr: TIBTransaction = nil);
     function  GetRUIDStringByID(const ID: TID; const Tr: TIBTransaction = nil): TRUIDString;
     //Возвращает поля xid, dbid из таблицы gd_ruid по id
     //Если запись по id не найдена вернет xid = id, dbid = IBLogin.DBID
@@ -455,7 +456,7 @@ type
     procedure IDCacheFlush;
 
     //
-    function GenerateNewDBID: TID;
+    function GenerateNewDBID: Integer;
 
     // AnAccess: 0, 1, 2 -- aview, achag, afull
     function Class_TestUserRights(C: TClass;
@@ -467,21 +468,21 @@ type
 
     //Проверяет руид на корректность
     //Возвращает id или -1 в случае, если РУИД не существует
-    function GetRUIDRecByXID(const XID, DBID: TID; Transaction: TIBTransaction): TRUIDRec;
+    function GetRUIDRecByXID(const XID: TID; const DBID: Integer; Transaction: TIBTransaction): TRUIDRec;
     function GetRUIDRecByID(const AnID: TID; Transaction: TIBTransaction): TRUIDRec;
 
-    procedure DeleteRUIDByXID(const XID, DBID: TID; Transaction: TIBTransaction);
+    procedure DeleteRUIDByXID(const XID: TID; const DBID: Integer; Transaction: TIBTransaction);
     procedure DeleteRUIDByID(const AnID: TID; Transaction: TIBTransaction);
 
-    procedure UpdateRUIDByXID(const AnID, AXID, ADBID: TID; const AModified: TDateTime;
-      const AnEditorKey: Integer; Transaction: TIBTransaction);
-    procedure UpdateRUIDByID(const AnID, AXID, ADBID: TID; const AModified: TDateTime;
-      const AnEditorKey: Integer; Transaction: TIBTransaction);
+    procedure UpdateRUIDByXID(const AnID, AXID: TID; const ADBID: Integer; const AModified: TDateTime;
+      const AnEditorKey: TID; Transaction: TIBTransaction);
+    procedure UpdateRUIDByID(const AnID, AXID: TID; const ADBID: Integer; const AModified: TDateTime;
+      const AnEditorKey: TID; Transaction: TIBTransaction);
 
-    procedure InsertRUID(const AnID, AXID, ADBID: TID; const AModified: TDateTime;
-      const AnEditorKey: Integer; Transaction: TIBTransaction);
+    procedure InsertRUID(const AnID, AXID: TID; const ADBID: Integer; const AModified: TDateTime;
+      const AnEditorKey: TID; Transaction: TIBTransaction);
 
-    procedure RemoveRUIDFromCache(const AXID, ADBID: TID);
+    procedure RemoveRUIDFromCache(const AXID: TID; const ADBID: Integer);
 
     // выполняет заданный SQL запрос
     // коммит не делает
@@ -490,7 +491,8 @@ type
     function ExecSingleQueryResult(const S: String; Param: Variant;
       out Res: OleVariant; const Transaction: TIBTransaction = nil): Boolean;
 
-    procedure ChangeRUID(const AnOldXID, AnOldDBID, ANewXID, ANewDBID: TID;
+    procedure ChangeRUID(const AnOldXID: TID; const AnOldDBID: Integer;
+      const ANewXID: TID; const ANewDBID: Integer;
       ATr: TIBTRansaction; const AForceUpdateFunc: Boolean);
     procedure ProcessDelayedRUIDChanges(ATr: TIBTransaction);
     function HasDelayedRUIDChanges: Boolean;
@@ -661,6 +663,7 @@ type
     FSavedParams: TObjectList;
     FSetMasterField, FSetItemField: String;
     FSetAttributes: TObjectList;
+    FGeneratorName: String;
 
     FBeforeShowDialog: TgdcDoBeforeShowDialog;
     FAfterShowDialog: TgdcDoAfterShowDialog;
@@ -701,7 +704,8 @@ type
     SLInitial, SLChanged: TStringList;
 
     {Хранят РУИД объекта, загружаемый из потока}
-    FStreamXID, FStreamDBID: TID;
+    FStreamXID: TID;
+    FStreamDBID: Integer;
     FOnFakeLoad: TOnFakeLoad;
     FStreamSilentProcessing: Boolean;
     FStreamProcessingAnswer: Word;
@@ -721,8 +725,8 @@ type
     procedure SetDetailField(const Value: String);
     procedure SetMasterField(const Value: String);
 
-    function GetID: Integer;
-    procedure SetID(const Value: Integer);
+    function GetID: TID;
+    procedure SetID(const Value: TID);
 
     // Запуск на выполнение
     function GetNameInScript: String;
@@ -735,7 +739,7 @@ type
     function GetObject: TObject;
 
     // Печать отчета по заданному ИД
-    procedure PrintReport(const ID: Integer);
+    procedure PrintReport(const ID: TID);
     function GetHasWhereClause: Boolean;
 
     // для заданного поля возвращает: подлегает это поле
@@ -746,7 +750,7 @@ type
     // доступных для данного объекта
     procedure MakeReportMenu;
     //
-    procedure DoOnFilterChanged(Sender: TObject; const AnCurrentFilter: Integer);
+    procedure DoOnFilterChanged(Sender: TObject; const AnCurrentFilter: TID);
 
     function GetDetailLinks(Index: Integer): TgdcBase;
     function GetDetailLinksCount: Integer;
@@ -808,12 +812,13 @@ type
     function GetSetAttributes(Index: Integer): TgdcSetAttribute;
     function GetSetAttributesCount: Integer;
     procedure CheckSetAttributes;
-    procedure SetStreamDBID(const Value: TID);
+    procedure SetStreamDBID(const Value: Integer);
     procedure SetStreamXID(const Value: TID);
 
     function GetCompoundClasses(Index: Integer): TgdcCompoundClass;
     function GetCompoundClassesCount: Integer;
-
+    function InternalLocate(const KeyFields: string; const KeyValues: Variant;
+                            Options: TLocateOptions): Boolean;
   protected
     FgdcDataLink: TgdcDataLink;
     FInternalTransaction: TIBTransaction;
@@ -1031,7 +1036,7 @@ type
     procedure DoAfterTransactionEnd(Sender: TObject); override;
 
     procedure LoadEventList; virtual;
-    function GetGroupID: Integer; virtual; 
+    function GetGroupID: TID; virtual;
 
     // Список полей, которые не надо копировать
     // при копировании объекта
@@ -1221,13 +1226,13 @@ type
       ATransaction: TIBTransaction;
       const ASubType: TgdcSubType = '';
       const ASubSet: TgdcSubSet = 'All';
-      const AnID: Integer = -1); virtual;
+      const AnID: TID = -1); virtual;
 
     // 4-5
     constructor CreateWithID(AnOwner: TComponent;
       ADatabase: TIBDatabase;
       ATransaction: TIBTransaction;
-      const AnID: Integer;
+      const AnID: TID;
       const ASubType: String = ''); virtual;
 
     destructor Destroy; override;
@@ -1258,7 +1263,7 @@ type
     function CheckTheSame(Modify: Boolean = False): Boolean;
     //Удаляет запись по идентификатору и ее руид
     //Используется только при загрузке данных из потока
-    function DeleteTheSame(AnID: Integer; AName: String): Boolean;
+    function DeleteTheSame(AnID: TID; AName: String): Boolean;
     //Функция проверки необходимости модификации записи данными из SourceDS
     //при наличии полей editiondate, editorkey
     function CheckNeedModify(SourceDS: TDataSet; IDMapping: TgdKeyIntAssoc): Boolean;
@@ -1413,7 +1418,7 @@ type
 
     // позволяет присвоить значение заданному полю в заданной записи
     // для этого выполняется отдельный СКЛ
-    procedure AssignField(const AnID: Integer; const AFieldName: String; AValue: Variant);
+    procedure AssignField(const AnID: TID; const AFieldName: String; AValue: Variant);
 
     // некоторые поля никогда не должны появляться в гриде
     // данная функция позволяет указать гриду что поле не стоит
@@ -1533,7 +1538,7 @@ type
     // объекта. Если параметр установлен в Истина, то генераторы
     // увеличиваются. Функция должна быть переопределена для тех
     // объектов, которые используют свои генераторы для идентификации.
-    function GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer; virtual;
+    function GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): TID; virtual;
 
     //
     function HasAttribute: Boolean;
@@ -1551,7 +1556,7 @@ type
     // поскольку форм может быть предусмотрено несколько, то возможна
     // передача имени класса при вызове функции
     class function CreateViewForm(AnOwner: TComponent; const AClassName: String = '';
-      const ASubType: String = ''; const ANewInstance: Boolean = False): TForm; 
+      const ASubType: String = ''; const ANewInstance: Boolean = False): TForm;
 
     //Возвращает имя класса формы для редактирования записи
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; virtual;
@@ -1655,23 +1660,23 @@ type
     function FieldByName(const ARelationName, AFieldName: String): TField; overload;
 
     //
-    procedure AddToSelectedID(const AnID: Integer = -1); overload;
+    procedure AddToSelectedID(const AnID: TID = -1); overload;
     procedure AddToSelectedID(ASelectedID: TgdKeyArray); overload;
     procedure AddToSelectedID(BL: TBookmarkList); overload;
-    procedure RemoveFromSelectedID(const AnID: Integer = -1); overload;
+    procedure RemoveFromSelectedID(const AnID: TID = -1); overload;
     procedure RemoveFromSelectedID(BL: TBookmarkList); overload;
     procedure SaveSelectedToStream(S: TStream);
     procedure LoadSelectedFromStream(S: TStream);
 
     //
-    procedure GetDependencies(ATr: TIBTransaction; const ASessionID: Integer;
-      var ACount: Integer;
+    procedure GetDependencies(ATr: TIBTransaction; const ASessionID: TID;
+      var ACount: TID;
       const AnIncludeSystemObjects: Boolean = False;
       const AnIgnoreFields: String = '';
       const AnIgnoreRelations: String = '';
       const ALimitLevel: Integer = MAXINT;
       const AClearList: Boolean = True;
-      const AnExternalMasterID: Integer = -1;
+      const AnExternalMasterID: TID = -1;
       const AStartingLevel: Integer = 0);
 
     //
@@ -1679,7 +1684,7 @@ type
       const ATitle: String = '';
       const AHelpCtxt: Integer = 0;
       const ACondition: String = '';
-      const ADefaultID: Integer = -1): TID; virtual;
+      const ADefaultID: TID = -1): TID; virtual;
 
     // функцы_ вяртаюць _мя аб'екту для дадзенага _Д,
     // друг_ варыянт падтрымл_вае падтыпы
@@ -1715,7 +1720,7 @@ type
     property ParentForm: TWinControl read FParentForm;
 
     // заўважым што канцэпцыя _Д яшчэ да канца не распрацаваная...
-    property ID: Integer read GetID write SetID;
+    property ID: TID read GetID write SetID;
 
     //
     property ObjectName: String read GetObjectName write SetObjectName;
@@ -1736,7 +1741,7 @@ type
     property BaseState: TgdcStates read FBaseState write SetBaseState;
 
     property SelectSQL;
-    property GroupID: Integer read GetGroupID;
+    property GroupID: TID read GetGroupID;
 
     // понадобилось Антону для обработки в окне поиска
     property HasWhereClause: Boolean read GetHasWhereClause;
@@ -1807,6 +1812,7 @@ type
     // в процессе редактирования текущей записи
     function FieldChanged(const AFieldName: String): Boolean;
     function GetOldFieldValue(const AFieldName: String): Variant;
+    function GetOldFieldValue_Str(const AFieldName: String): String;
 
     // Добавлено для разграничения прав доступа
     property CanCreate: Boolean read GetCanCreate;
@@ -1856,7 +1862,7 @@ type
     property PostCount: Integer read FPostCount;
 
     property StreamXID: TID read FStreamXID write SetStreamXID;
-    property StreamDBID: TID read FStreamDBID write SetStreamDBID;
+    property StreamDBID: Integer read FStreamDBID write SetStreamDBID;
     property StreamSilentProcessing: Boolean read FStreamSilentProcessing write FStreamSilentProcessing;
     property StreamProcessingAnswer: Word read FStreamProcessingAnswer write FStreamProcessingAnswer;
     // При копировании записи сюда заносится ключ оригинальной записи
@@ -1927,6 +1933,9 @@ type
     property OnGetWhereClause: TgdcOnGetSQLClause read FOnGetWhereClause write SetOnGetWhereClause;
     property OnGetGroupClause: TgdcOnGetSQLClause read FOnGetGroupClause write SetOnGetGroupClause;
     property OnGetOrderClause: TgdcOnGetSQLClause read FOnGetOrderClause write SetOnGetOrderClause;
+
+    function Locate(const KeyFields: string; const KeyValues: Variant;
+                    Options: TLocateOptions): Boolean; override;
 
   end;
 
@@ -2119,7 +2128,7 @@ var
   // мы регистрируем свой формат для передачи объектов через
   // клипбоард
   gdcClipboardFormat: Word;
-  CacheDBID: TID;
+  CacheDBID: Integer;
 
 const
   gdcClipboardFormatName: array[0..12] of Char = 'AndreiKireev'#00;
@@ -2133,11 +2142,11 @@ const
 // то возвращает пустую запись: класс=нил и подтип=пустой строке
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 function GetBaseClassForRelationByID(const ARelationName: String;
-  const AnID: Integer; ibtr: TIBTransaction): TgdcFullClass;
+  const AnID: TID; ibtr: TIBTransaction): TgdcFullClass;
 
 //
 function GetClassForObjectByID(ADatabase: TIBDatabase; ATransaction: TIBTransaction;
-  AClass: CgdcBase; ASubType: TgdcSubType; const AnID: Integer): TgdcFullClass;
+  AClass: CgdcBase; ASubType: TgdcSubType; const AnID: TID): TgdcFullClass;
 
 //
 procedure Register;
@@ -2159,7 +2168,7 @@ function CreateSelectedArr(Obj: TgdcBase;
 
 function  CheckNameChar(const Key: Char): Char;
 procedure CheckClipboardForName;
-function GetUserByTransaction(const ATrID: Integer): String;
+function GetUserByTransaction(const ATrID: integer): String;
 procedure ClearCacheList;
 
 implementation
@@ -2230,13 +2239,13 @@ type
 
   TRUIDHelper = class(TObject)
   public
-    FFuncID: Integer;
+    FFuncID: TID;
     FFunction: String;
     FChanged: Boolean;
     FArray: array of Integer;
     FCount: Integer;
 
-    procedure Parse(const AFuncID: Integer; const AFunction: String);
+    procedure Parse(const AFuncID: TID; const AFunction: String);
     procedure Replace(const AnOld, ANew: TRUID);
   end;
 
@@ -2279,7 +2288,7 @@ begin
     Clipboard.AsText:= '';
 end;
 
-function GetUserByTransaction(const ATrID: Integer): String;
+function GetUserByTransaction(const ATrID: integer): String;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -2352,7 +2361,7 @@ begin
     if (BL = nil) or (BL.Count = 0)
       or ((BL.Count = 1) and (BL[0] <> Obj.Bookmark)) then
     begin
-      Result := VarArrayOf([Obj.ID]);
+      Result := VarArrayOf([TID2V(Obj.ID)]);
     end
     else
     begin
@@ -2366,13 +2375,13 @@ begin
           if BL.Items[I] = Obj.Bookmark then
             Found := True;
         end;
-        Result[I] := Obj.GetIDForBookmark(BL.Items[I]);
+        Result[I] := TID2V(Obj.GetIDForBookmark(BL.Items[I]));
       end;
 
       if not Found then
       begin
         VarArrayRedim(Result, VarArrayHighBound(Result, 1) + 1);
-        Result[VarArrayHighBound(Result, 1)] := Obj.ID;
+        Result[VarArrayHighBound(Result, 1)] := TID2V(Obj.ID);
       end;
     end;
   end;
@@ -2394,7 +2403,7 @@ begin
 end;
 
 function GetClassForObjectByID(ADatabase: TIBDatabase; ATransaction: TIBTransaction;
-  AClass: CgdcBase; ASubType: TgdcSubType; const AnID: Integer): TgdcFullClass;
+  AClass: CgdcBase; ASubType: TgdcSubType; const AnID: TID): TgdcFullClass;
 var
   Obj: TgdcBase;
 begin
@@ -2430,7 +2439,7 @@ begin
   end;
 end;
 
-function GetBaseClassForRelationByID(const ARelationName: String; const AnID: Integer;
+function GetBaseClassForRelationByID(const ARelationName: String; const AnID: TID;
   ibtr: TIBTransaction): TgdcFullClass;
 var
   Obj: TgdcBase;
@@ -2760,7 +2769,7 @@ begin
   // мы добавили инициализацию этого параметра в АфтерПост
   if HasSubSet('ByID') then
   begin
-    ParamByName(GetKeyField(SubType)).AsInteger := ID;
+    SetTID(ParamByName(GetKeyField(SubType)), ID);
   end else
   if HasSubSet('ByName') then
   begin
@@ -2899,7 +2908,7 @@ procedure TgdcBase.DoBeforeDelete;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  J: Integer;
+  J: TID;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASE', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
   {M}  try
@@ -2934,7 +2943,7 @@ begin
     CacheList.RemoveData(J);
   end;
 
-  DeleteFromLookupCache(IntToStr(ID));
+  DeleteFromLookupCache(TID2S(ID));
 
   inherited;
 
@@ -3080,7 +3089,7 @@ begin
   if dsEdit = State then
   begin
     if tiEditorKey in gdcTableInfos then
-      FieldByName(fnEditorKey).AsInteger := IBLogin.ContactKey;
+      SetTID(FieldByName(fnEditorKey), IBLogin.ContactKey);
     if (tiEditionDate in gdcTableInfos) and ((not (sLoadFromStream in BaseState)) or FieldByName(fnEditionDate).IsNull) then
       FieldByName(fnEditionDate).AsDateTime := SysUtils.Now;
   end;
@@ -3181,7 +3190,7 @@ begin
     and (CD.ObjectCount > 0) and (not CD.Cut) then
   begin
     Bm := Bookmark;
-    if Locate('ID', CD.ObjectArr[0].ID, []) then
+    if Locate('ID', TID2V(CD.ObjectArr[0].ID), []) then
     begin
       Result := CopyDialog;
       if not Result then
@@ -3203,7 +3212,7 @@ begin
           begin
             Close;
             Open;
-            Locate('ID', Obj.ID, []);
+            Locate('ID', TID2V(Obj.ID), []);
           end;
         end;
       finally
@@ -3256,7 +3265,7 @@ begin
   end;
 end;
 
-procedure TgdcBase.AssignField(const AnID: Integer;
+procedure TgdcBase.AssignField(const AnID: TID;
   const AFieldName: String; AValue: Variant);
 var
   Q: TIBSQL;
@@ -3278,7 +3287,7 @@ begin
           if VarIsNull(AValue) then
             Obj.FieldByName(AFieldName).Clear
           else
-            Obj.FieldByName(AFieldName).AsVariant := AValue;
+            SetVar2Field(Obj.FieldByName(AFieldName), AValue);
           Obj.Post;
         except
           if Obj.State in dsEditModes then
@@ -3301,12 +3310,12 @@ begin
       Q.Transaction := Transaction;
       DidActivate := ActivateTransaction;
       Q.SQL.Text := Format('UPDATE %s SET %s=:V WHERE %s=%d',
-        [GetListTable(SubType), AFieldName, GetKeyField(SubType), AnID]);
+        [GetListTable(SubType), AFieldName, GetKeyField(SubType), TID264(AnID)]);
       Q.Prepare;
       if VarIsNull(AValue) then
         Q.ParamByName('V').Clear
       else
-        Q.ParamByName('V').AsVariant := AValue;
+        SetVar2Param(Q.ParamByName('V'), AValue);
 
       Q.ExecQuery;
     finally
@@ -3335,7 +3344,7 @@ begin
   Close;
   Open;
   if OldID <> -1 then
-    Locate(GetKeyField(SubType), OldID, []);
+    Locate(GetKeyField(SubType), TID2V(OldID), []);
 end;
 
 function TgdcBase.GetNotCopyField: String;
@@ -3431,7 +3440,7 @@ var
     begin
       if Dest.TestCopyField(Dest.Fields[I].FieldName, DontCopyList)       // не входит ли поле в список некопируемых полей
          and (Assigned(Source.FindField(Dest.Fields[I].FieldName))) then
-        Dest.Fields[I].Assign(Source.FieldByName(Dest.Fields[I].FieldName));
+         AssignField64(Dest.Fields[I], Source.FieldByName(Dest.Fields[I].FieldName));
     end;
   end;
 
@@ -3568,7 +3577,7 @@ var
 
         qIn.Close;
         qIn.SQL.Text := Source.SetAttributes[I].SQL;
-        qIn.ParamByName('rf').AsInteger := Source.ID;
+        SetTID(qIn.ParamByName('rf'), Source.ID);
         qIn.ExecQuery;
         while not qIn.EOF do
         begin
@@ -3578,7 +3587,7 @@ var
               continue;
 
             if CompareText(qIn.Fields[K].Name, Source.SetAttributes[I].ObjectLinkFieldName) = 0 then
-              qOut.ParamByName(qIn.Fields[K].Name).AsInteger := Dest.ID
+              SetTID(qOut.ParamByName(qIn.Fields[K].Name), Dest.ID)
             else
               qOut.ParamByName(qIn.Fields[K].Name).Assign(qIn.Fields[K]);
           end;
@@ -3792,7 +3801,8 @@ begin
             // как детальные к накладной. Очевидно, что при копировании, объект
             // клиент не следует трогать.
             F := MasterObject.FindField(MasterObject.DetailLinks[I].MasterField);
-            if Assigned(F) and (F is TIntegerField) and (MasterObject.ID = F.AsInteger) then
+            if Assigned(F) and ((F is TIntegerField) or (F is TLargeIntField))
+              and (MasterObject.ID = GetTID(F)) then
             begin
               // Укажем что объект находится в состоянии копирования
               Self.DetailLinks[I].BaseState := Self.DetailLinks[I].BaseState + [sCopy];
@@ -3811,8 +3821,8 @@ begin
                     DetailField := Self.DetailLinks[I].FindField(Self.DetailLinks[I].GetFieldNameComparedToParam(Self.DetailLinks[I].DetailField));
                     if Assigned(DetailField) then
                     begin
-                      if DetailField.AsInteger <> Self.ID then
-                        DetailField.AsInteger := Self.ID;
+                      if GetTID(DetailField) <> Self.ID then
+                        SetTID(DetailField, Self.ID);
                     end;
                     Self.DetailLinks[I].Post;
                     // Копирование данных множеств связанных с позицией
@@ -3990,7 +4000,7 @@ begin
         DontCopyList := GetNotCopyField;
         for I := 0 to FieldCount - 1 do
           if L.IndexOf(Fields[I]) >= 0 then
-            Fields[I].AsVariant := AValues[L.IndexOf(Fields[I])]
+            SetVar2Field(Fields[I], AValues[L.IndexOf(Fields[I])])
           else
             if TestCopyField(Fields[I].FieldName, DontCopyList) then
             begin
@@ -4041,7 +4051,7 @@ begin
                 F := Obj.FindField(Fields[I].FieldName);
                 if Assigned(F) and TestCopyField(Fields[I].FieldName, DontCopyList) then
                 begin
-                  Fields[I].Assign(F);
+                  AssignField64(Fields[I], F);
                 end;
               end;
               Post;
@@ -4314,7 +4324,7 @@ begin
                 continue;
             end;
 
-            P^.ObjectArr[I].ID := FieldByName(GetKeyField(SubType)).AsInteger;
+            P^.ObjectArr[I].ID := GetTID(FieldByName(GetKeyField(SubType)));
             StrPLCopy(P^.ObjectArr[I].ObjectName, Self.ObjectName, 63);
             C := GetCurrRecordClass;
             StrPLCopy(P^.ObjectArr[I].ClassName, C.gdClass.ClassName, 63);
@@ -4442,7 +4452,7 @@ var
   C: TClass;
   FormClass: String;
   FSavePoint: String;
-  NewID: Integer;
+  NewID: TID;
 begin
   {@UNFOLD MACRO INH_ORIG_CREATEDIALOG('TGDCBASE', 'CREATEDIALOG', KEYCREATEDIALOG)}
   {M}  Result := False;
@@ -4775,12 +4785,12 @@ begin
   begin
     Result.Free;
     raise EgdcIDNotFound.Create(Self.ClassName + ASubType +
-      ': ID not found (' + IntToStr(AnID) + ')');
+      ': ID not found (' + TID2S(AnID) + ')');
   end else if Result.RecordCount > 1 then
   begin
     Result.Free;
     raise EgdcIDNotFound.Create(Self.ClassName + ': Один идентификатор (' +
-      IntToStr(AnID) + ') возвращает несколько записей! '#13#10 +
+      TID2S(AnID) + ') возвращает несколько записей! '#13#10 +
       'Проверьте правильность построения запроса (свойство SelectSQL)');
   end else
     Result.First;
@@ -4801,7 +4811,7 @@ constructor TgdcBase.CreateWithParams(AnOwner: TComponent;
   ATransaction: TIBTransaction;
   const ASubType: TgdcSubType = '';
   const ASubSet: TgdcSubSet = 'All';
-  const AnID: Integer = -1);
+  const AnID: TID = -1);
 begin
   CreateSubType(AnOwner, ASubType, ASubSet);
   inherited Database := ADatabase;
@@ -4988,7 +4998,8 @@ var
   BE: TgdBaseEntry;
   GroupIDs, S: String;
   CurrMenu: TComponent;
-  FormRootID, ClassRootID: Integer;
+  FormRootID, ClassRootID: TID;
+  Context: String;
 
   procedure IterateForms(AFE: TgdFormEntry);
   begin
@@ -4996,14 +5007,14 @@ var
       IterateForms(AFE.Parent as TgdFormEntry);
 
     if not AFE.AbstractBaseForm then
-      GroupIDs := GroupIDs + IntToStr(AFE.GroupID) + ',';
+      GroupIDs := GroupIDs + TID2S(AFE.GroupID) + ',';
   end;
 
   procedure IterateClasses(ABE: TgdBaseEntry);
   begin
     if (ABE <> ABE.GetRootSubType) and (ABE.Parent is TgdBaseEntry) then
       IterateClasses(ABE.Parent as TgdBaseEntry);
-    GroupIDs := GroupIDs + IntToStr(ABE.GroupID) + ',';
+    GroupIDs := GroupIDs + TID2S(ABE.GroupID) + ',';
   end;
 
   procedure AddFolder(F, M: TMenuItem);
@@ -5060,6 +5071,7 @@ begin
   FpmReport.AutoLineReduction := Menus.maAutomatic;
   FpmReport.Tag := -1;
   FpmReport.Images := dmImages.il16x16;
+  Context := FpmReport.Owner.Owner.Name;
 
   if IBLogin.IsUserAdmin then
   begin
@@ -5094,8 +5106,8 @@ begin
         q.ExecQuery;
         if not q.EOF then
         begin
-          FormRootID := q.Fields[0].AsInteger;
-          GroupIDs := GroupIDs + IntToStr(FormRootID) + ',';
+          FormRootID := GetTID(q.Fields[0]);
+          GroupIDs := GroupIDs + TID2S(FormRootID) + ',';
         end;
       end else
       begin
@@ -5145,23 +5157,23 @@ begin
 
     while not q.EOF do
     begin
-      if CurrMenu.Tag <> q.FieldByName('groupid').AsInteger then
+      if (GetTID(CurrMenu.Tag, Context) <> GetTID(q.FieldByName('groupid'))) then
       begin
         if q.FieldbyName('groupparent').IsNull
-          or (q.FieldByName('groupid').AsInteger = FormRootID)
-          or (q.FieldbyName('groupid').AsInteger = ClassRootID) then
+          or (GetTID(q.FieldByName('groupid')) = FormRootID)
+          or (GetTID(q.FieldbyName('groupid')) = ClassRootID) then
         begin
           CurrMenu := FpmReport;
         end else
         begin
           MenuItem := TMenuItem.Create(FpmReport);
           MenuItem.Caption := q.FieldbyName('groupname').AsString;
-          MenuItem.Tag := q.FieldByName('groupid').AsInteger;
+          MenuItem.Tag := TID2Tag(GetTID(q.FieldByName('groupid')), Context);
           MenuItem.ImageIndex := idxFolder;
 
           if CurrMenu is TMenuItem then
           begin
-            if CurrMenu.Tag = q.FieldByName('groupparent').AsInteger then
+            if GetTID(CurrMenu.Tag, Context) = GetTID(q.FieldByName('groupparent')) then
               AddFolder(CurrMenu as TMenuItem, MenuItem)
             else if (CurrMenu as TMenuItem).Parent is TMenuItem then
               AddFolder((CurrMenu as TMenuItem).Parent, MenuItem)
@@ -5174,11 +5186,11 @@ begin
         end;
       end;
 
-      if q.FieldByName('id').AsInteger > 0 then
+      if GetTID(q.FieldByName('id')) > 0 then
       begin
         MenuItem := TMenuItem.Create(FpmReport);
         MenuItem.Caption := q.FieldbyName('name').AsString;
-        MenuItem.Tag := q.FieldByName('id').AsInteger;
+        MenuItem.Tag := TID2Tag(GetTID(q.FieldByName('id')), Context);
         MenuItem.OnClick := DoOnReportClick;
         MenuItem.ImageIndex := IdxReport;
 
@@ -5236,7 +5248,7 @@ begin
     InitSQL;
 
   if HasSubSet('ByID') and (FID > -1) then
-    ParamByName(GetKeyField(SubType)).AsInteger := FID
+    SetTID(ParamByName(GetKeyField(SubType)), FID)
   else if HasSubSet('ByName') and (FObjectName > '') then
     ParamByName(GetListField(SubType)).AsString := FObjectName;
 
@@ -5276,7 +5288,8 @@ var
   CFull: TgdcFullClass;
   Obj: TgdcBase;
   DlgForm: TCreateableForm;
-  I, NewID: Integer;
+  I: Integer;
+  NewID: TID;
   F: TField;
   InTransaction: Boolean;
   FormClass: String;
@@ -5608,7 +5621,7 @@ begin
               begin
                 F := Obj.FindField(Fields[I].FieldName);
                 if Assigned(F) then
-                  Fields[I].Assign(F);
+                  AssignField64(Fields[I], F);
               end;
               Post;
             except
@@ -5725,7 +5738,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcBase.GetID: Integer;
+function TgdcBase.GetID: TID;
 var
   F: TField;
 begin
@@ -5735,7 +5748,7 @@ begin
     if F.IsNull then
       Result := -1
     else
-      Result := F.AsInteger;
+      Result := GetTID(F);
   end else
     Result := FID;
 end;
@@ -6562,7 +6575,9 @@ begin
             and IBLogin.IsIBUserAdmin
             and Assigned(gdcBaseManager)
             and (not (sLoadFromStream in BaseState))
-            and Assigned(atDatabase) then
+            and Assigned(atDatabase)
+            and (GetListTable(SubType) <> 'AC_RECORD')
+            and (GetListTable(SubType) <> 'AC_ENTRY') then
           begin
             RF := atDatabase.FindRelationField(GetListTable(SubType), GetKeyField(SubType));
 
@@ -6573,13 +6588,13 @@ begin
                 ExecSingleQuery(
                   'UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
                   'VALUES (:id, :id, :dbid, CURRENT_TIMESTAMP, :ek) ' +
-                  'MATCHING (id)', VarArrayOf([Self.ID, IBLogin.DBID, IBLogin.ContactKey]));
+                  'MATCHING (id)', VarArrayOf([TID2V(Self.ID), TID2V(IBLogin.DBID), TID2V(IBLogin.ContactKey)]));
               end else
               if (Qry = QModify) then
               begin
                 ExecSingleQuery(
                   'UPDATE gd_ruid SET modified = CURRENT_TIMESTAMP,' +
-                  'editorkey = :ek WHERE id = :id', VarArrayOf([IBLogin.ContactKey, Self.ID]));
+                  'editorkey = :ek WHERE id = :id', VarArrayOf([TID2V(IBLogin.ContactKey), TID2V(Self.ID)]));
               end;
             end;
           end;
@@ -6867,7 +6882,7 @@ var
   I: Integer;
   R: TatRelation;
   F: TatRelationField;
-  Key: Integer;
+  Key: TID;
   SourceSt, CurrentSt: String;
 begin
   Result := True;
@@ -6917,7 +6932,7 @@ begin
                 (AnsiPos(';' + AnsiUpperCase(Trim(SourceDS.Fields[I].FieldName)) + ';', PassFieldName) = 0) then
               begin
                 F := nil;
-                if Assigned(atDatabase) and (SourceDS.Fields[I].DataType in [ftInteger, ftSmallInt, ftWord]) then
+                if Assigned(atDatabase) and (SourceDS.Fields[I].DataType in [ftInteger, ftLargeInt, ftSmallInt, ftWord]) then
                 begin
                  //Проверяем не является ли наше поле ссылкой
                   R := atDatabase.Relations.ByRelationName(RelationByAliasName(SourceDS.Fields[I].FieldName));
@@ -6931,19 +6946,19 @@ begin
                     //берем текущее значение
                     if Assigned(IDMapping) then
                     begin
-                      Key := IDMapping.IndexOf(SourceDS.Fields[I].AsInteger);
+                      Key := IDMapping.IndexOf(GetTID(SourceDS.Fields[I]));
                       if Key <> -1 then
                       begin
                         Key := IDMapping.ValuesByIndex[Key];
                       end;
                       if (Key = -1) and (SourceDS.Fields[I].AsInteger < cstUserIDStart) then
-                        Key := SourceDS.Fields[I].AsInteger;
+                        Key := GetTID(SourceDS.Fields[I]);
                     end
                     else
-                      Key := SourceDS.Fields[I].AsInteger;
+                      Key := GetTID(SourceDS.Fields[I]);
 
                     //Сравниваем наши ссылки
-                    if (Key <> FieldByName(SourceDS.Fields[I].FieldName).AsInteger) then
+                    if (Key <> GetTID(FieldByName(SourceDS.Fields[I].FieldName))) then
                     begin
                       IsDifferent := True;
                       Break;
@@ -7006,7 +7021,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
 
   procedure InsertRecord(SourceDS: TDataSet; TargetDS: TgdcBase; UL: TObjectList); forward;
 
-  procedure AddToIDMapping(const AKey, AValue: Integer; const ARecordState: TLoadedRecordState);
+  procedure AddToIDMapping(const AKey, AValue: TID; const ARecordState: TLoadedRecordState);
   var
     IDMappingIndex: Integer;
   begin
@@ -7028,7 +7043,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
     SFld, SValues, SUpdate, SKey: String;
     I: Integer;
     F: TatRelationField;
-    Key: Integer;
+    Key: TID;
     Pr: TatPrimaryKey;
     S, S1: String;
     R, R2: TatRelation;
@@ -7070,9 +7085,9 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
         if (F <> nil) and (F.References <> nil) then
         begin
           // Если это поле является ссылкой, то поищем его в карте идентификаторов
-          Key := IDMapping.IndexOf(SourceDS.Fields[I].AsInteger);
+          Key := IDMapping.IndexOf(GetTID(SourceDS.Fields[I]));
           if Key > -1 then
-            SKey := IntToStr(IDMapping.ValuesByIndex[Key])
+            SKey := TID2S(IDMapping.ValuesByIndex[Key])
           else
             SKey := SourceDS.Fields[I].AsString;
         end
@@ -7123,10 +7138,10 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
               if (F <> nil) and (F.References <> nil) then
               begin
                 // Если это поле является ссылкой, то поищем его в карте идентификаторов
-                Key := IDMapping.IndexOf(SourceDS.FieldByName(S1).AsInteger);
+                Key := IDMapping.IndexOf(GetTID(SourceDS.FieldByName(S1)));
                 if Key > -1 then
                 begin
-                  SKey := IntToStr(IDMapping.ValuesByIndex[Key]);
+                  SKey := TID2S(IDMapping.ValuesByIndex[Key]);
                   // Предполагаем что первую часть ключа в множестве имеет главная запись
                   if I = 0 then
                     LoadedRecordState := TLoadedRecordStateList(IDMapping).StateByIndex[Key];
@@ -7191,7 +7206,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
     end;
   end;
 
-  procedure ApplyDelayedUpdates(UL: TObjectList; SourceKeyValue, TargetKeyValue: Integer);
+  procedure ApplyDelayedUpdates(UL: TObjectList; SourceKeyValue, TargetKeyValue: TID);
   var
     I: Integer;
     Obj: TgdcBase;
@@ -7213,7 +7228,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           begin
             Obj.BaseState := Obj.BaseState + [sLoadFromStream];
             Obj.Edit;
-            Obj.FieldByName((UL[I] as TgdcReferenceUpdate).FieldName).AsInteger := TargetKeyValue;
+            SetTID(Obj.FieldByName((UL[I] as TgdcReferenceUpdate).FieldName), TargetKeyValue);
             Obj.Post;
           end;
         finally
@@ -7229,7 +7244,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
     rightsfield = ';ACHAG;AVIEW;AFULL;';
     editorfield = ';EDITORKEY;CREATORKEY;';
   var
-    I, Key: Integer;
+    I: Integer;
+    Key: TID;
     R: TatRelation;
     F: TatRelationField;
     IsNull: Boolean;
@@ -7267,7 +7283,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             if (TargetField.DataType = ftString) and (SourceField.AsString = '') then
               TargetField.AsString := ''
             else
-              TargetField.Assign(SourceField);
+              AssignField64(TargetField, SourceField);
             Continue;
           end;
 
@@ -7289,13 +7305,13 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           if (AnsiPos(';' + AnsiUpperCase(TargetField.FieldName) + ';', editorfield) > 0)
           then
           begin
-            TargetField.AsInteger := IBLogin.ContactKey;
+            SetTID(TargetField, IBLogin.ContactKey);
             Continue;
           end;
 
           //Если наш объект документ
           if (TargetDS is TgdcDocument) and (TargetField.FieldName = fnDOCUMENTKEY)
-            and (TargetField.Value > 0)
+            and (GetTID(TargetField) > 0)
           then
             continue;
 
@@ -7309,14 +7325,14 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             if (F <> nil) and (F.References <> nil) then
             begin
               //Если это ключевое поле и оно является ссылкой, то поищем его в карте идентификаторов
-              Key := IDMapping.IndexOf(SourceField.AsInteger);
+              Key := IDMapping.IndexOf(GetTID(SourceField));
               if Key <> -1 then
               begin
                 Key := IDMapping.ValuesByIndex[Key];
               end;
               if Key > -1 then
               begin
-                TargetField.AsInteger := Key;
+                SetTID(TargetField, Key);
                 NeedAddToIDMapping := False;
               end;
             end;
@@ -7328,20 +7344,20 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           if (F <> nil) and (F.References <> nil) then
           begin
             //Если это поле ссылается на ключевое, то присвоим ему значение ключевого поля
-            if (ObjectSet.Find(SourceField.AsInteger) <> -1) and
-              (SourceField.AsInteger = SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger) and
-              (TargetDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger > 0)
+            if (ObjectSet.Find(GetTID(SourceField)) <> -1) and
+              (GetTID(SourceField) = GetTID(SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)))) and
+              (GetTID(TargetDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType))) > 0)
             then
-              Key := TargetDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger
+              Key := GetTID(TargetDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)))
             else
             begin
               if SourceField.IsNull then
                 IsNull := True
-              else if SourceField.AsInteger < cstUserIDStart then
-                Key := SourceField.AsInteger
+              else if GetTID(SourceField) < cstUserIDStart then
+                Key := GetTID(SourceField)
               else begin
                 //Ищем его в карте идентификаторов
-                Key := IDMapping.IndexOf(SourceField.AsInteger);
+                Key := IDMapping.IndexOf(GetTID(SourceField));
                 if Key <> -1 then
                 begin
                   Key := IDMapping.ValuesByIndex[Key];
@@ -7350,8 +7366,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
               end;  
             end;
 
-            if (Key = -1) and (ObjectSet.Find(SourceField.AsInteger) <> -1) and
-              (SourceField.AsInteger <> SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger) then
+            if (Key = -1) and (ObjectSet.Find(GetTID(SourceField)) <> -1) and
+              (GetTID(SourceField) <> GetTID(SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)))) then
             begin
               if not Assigned(RUOL) then
                 RUOL := TList.Create;
@@ -7361,11 +7377,11 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
               RU.FullClass.gdClass := CgdcBase(Self.ClassType);
               RU.FullClass.SubType := Self.SubType;
               RU.ID := -1;
-              RU.RefID := SourceField.AsInteger;
+              RU.RefID := GetTID(SourceField);
               UL.Add(RU);
               RUOL.Add(RU);
               IsNull := True;
-            end else if (Key = -1) and (SourceField.AsInteger >= cstUserIDStart) then
+            end else if (Key = -1) and (GetTID(SourceField) >= cstUserIDStart) then
             begin
               //если мы не нашли нашу ссылку и она не является "стандартной" записью
               //очистим это поле, иначе кинет ошибку ссылочной целостности
@@ -7388,7 +7404,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
                 if (TargetField.DataType = ftString) and (SourceField.AsString = '') then
                   TargetField.AsString := ''
                 else
-                  TargetField.Assign(SourceField);
+                  AssignField64(TargetField, SourceField);
               end;
             end
           end else
@@ -7396,15 +7412,15 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             if IsNull then
               TargetField.Clear
             else
-              TargetField.AsInteger := Key;
+              SetTID(TargetField, Key);
           end;
         end;
       end;
 
       //Стандартные id не должны меняться
-      if SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger < cstUserIDStart then
-        TargetDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger :=
-          SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger;
+      if GetTID(SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType))) < cstUserIDStart then
+        SetTID(TargetDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)),
+          GetTID(SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType))));
 
       try
         if TargetDS.State = dsEdit then
@@ -7425,7 +7441,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
                 //=> Пытаемся добавить новую запись.
                 TargetDS.Cancel;
                 AddText('РУИД некорректен. Попытка найти объект по уникальному ключу.');
-                gdcBaseManager.DeleteRUIDByXID(SourceDS.FieldByName('_XID').AsInteger,
+                gdcBaseManager.DeleteRUIDByXID(GetTID(SourceDS.FieldByName('_XID')),
                   SourceDS.FieldByName('_DBID').AsInteger, Transaction);
                 InsertRecord(SourceDS, TargetDS, UL);
                 NeedAddToIDMapping := False;
@@ -7438,7 +7454,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           TargetDS.Post;
 
         if NeedAddToIDMapping then
-          AddToIDMapping(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger, TargetDS.ID, LoadedRecordState);
+          AddToIDMapping(GetTID(SourceDS.FieldByName(TargetDS.GetKeyField(SubType))), TargetDS.ID, LoadedRecordState);
 
         if Assigned(RUOL) then
         begin
@@ -7447,9 +7463,9 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
         end;
 
         ApplyDelayedUpdates(UL,
-          SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger,
+          GetTID(SourceDS.FieldByName(TargetDS.GetKeyField(SubType))),
           TargetDS.ID);
-        ObjectSet.Remove(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger);
+        ObjectSet.Remove(GetTID(SourceDS.FieldByName(TargetDS.GetKeyField(SubType))));
 
         Result := True;
       except
@@ -7470,7 +7486,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           AddMistake(E.Message);
 
           TargetDS.Cancel;
-          AddToIDMapping(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger, -1, lsNotLoaded);
+          AddToIDMapping(GetTID(SourceDS.FieldByName(TargetDS.GetKeyField(SubType))), -1, lsNotLoaded);
         end;
       end;
     finally
@@ -7494,12 +7510,12 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
       if RR.XID = -1 then
       begin
         //Если нет, то вставляем в базу
-        gdcBaseManager.InsertRUID(TargetDS.ID, SourceDS.FieldByName('_XID').AsInteger, SourceDS.FieldByName('_DBID').AsInteger,
+        gdcBaseManager.InsertRUID(TargetDS.ID, GetTID(SourceDS.FieldByName('_XID')), SourceDS.FieldByName('_DBID').AsInteger,
           SourceDS.FieldByName('_MODIFIED').AsDateTime, IBLogin.ContactKey, Transaction);
       end else
       begin
         //Если да, то обновляем поля рида по его ID
-        gdcBaseManager.UpdateRUIDByID(TargetDS.ID, SourceDS.FieldByName('_XID').AsInteger, SourceDS.FieldByName('_DBID').AsInteger,
+        gdcBaseManager.UpdateRUIDByID(TargetDS.ID, GetTID(SourceDS.FieldByName('_XID')), SourceDS.FieldByName('_DBID').AsInteger,
           SourceDS.FieldByName('_MODIFIED').AsDateTime, IBLogin.ContactKey, Transaction);
       end;
     end;
@@ -7507,7 +7523,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
 
 var
   CDS: TClientDataSet;
-  I, D: Integer;
+  I: Integer;
+  D: TID;
   MS: TMemoryStream;
   Modified: TDateTime;
   DidActivate: Boolean;
@@ -7556,7 +7573,7 @@ begin
         CDS.FieldByName('_dbid').AsString + ')');
     end;
 
-    FStreamXID := CDS.FieldByName('_xid').AsInteger;
+    FStreamXID := GetTID(CDS.FieldByName('_xid'));
     FStreamDBID := CDS.FieldByName('_dbid').AsInteger;
 
     DidActivate := False;
@@ -7564,29 +7581,29 @@ begin
       DidActivate := ActivateTransaction;
 
       //Проверим, есть ли у нас такой РУИД
-      RuidRec := gdcBaseManager.GetRUIDRecByXID(CDS.FieldByName('_XID').AsInteger,
+      RuidRec := gdcBaseManager.GetRUIDRecByXID(GetTID(CDS.FieldByName('_XID')),
         CDS.FieldByName('_DBID').AsInteger,
         Transaction);
       //Считаем id, найденное по РУИДУ
       D := RuidRec.ID;
 
       //Если мы не нашли РУИД, но наш xid - "Стандартный"
-      if (D = -1) and (CDS.FieldByName('_XID').AsInteger < cstUserIDStart) then
+      if (D = -1) and (GetTID(CDS.FieldByName('_XID')) < cstUserIDStart) then
       begin
         //Попробуем поискать нашу запись
         if SubSet <> 'ByID' then
           SubSet := 'ByID';
-        ID := CDS.FieldByName('_XID').AsInteger;
+        ID := GetTID(CDS.FieldByName('_XID'));
         Open;
 
         //Если нашли, то сохраним РУИД
         if not EOF then
         begin
-          gdcBaseManager.InsertRUID(CDS.FieldByName('_XID').AsInteger,
-            CDS.FieldByName('_XID').AsInteger,
+          gdcBaseManager.InsertRUID(GetTID(CDS.FieldByName('_XID')),
+            GetTID(CDS.FieldByName('_XID')),
             CDS.FieldByName('_DBID').AsInteger, Date, IBLogin.ContactKey, Transaction);
           //Сохраним наш XID = id
-          D := CDS.FieldByName('_XID').AsInteger;
+          D := GetTID(CDS.FieldByName('_XID'));
         end;
       end;
 
@@ -7608,7 +7625,7 @@ begin
         if EOF then
         begin
         //Если не нашли, значит РУИД некорректен, удалим его, запись вставим
-          gdcBaseManager.DeleteRUIDbyXID(CDS.FieldByName('_XID').AsInteger,
+          gdcBaseManager.DeleteRUIDbyXID(GetTID(CDS.FieldByName('_XID')),
             CDS.FieldByName('_DBID').AsInteger, Transaction);
 
           InsertRecord(CDS, Self, UpdateList);
@@ -7648,26 +7665,26 @@ begin
               begin
                 CheckBrowseMode;
 
-                gdcBaseManager.UpdateRUIDByXID(ID, CDS.FieldByName('_XID').AsInteger, CDS.FieldByName('_DBID').AsInteger,
+                gdcBaseManager.UpdateRUIDByXID(ID, GetTID(CDS.FieldByName('_XID')), CDS.FieldByName('_DBID').AsInteger,
                   CDS.FieldByName('_MODIFIED').AsDateTime, IBLogin.ContactKey, Transaction);
               end;
             end
             else
             begin
               //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
-              AddToIDMapping(CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID, lsNotLoaded);
+              AddToIDMapping(GetTID(CDS.FieldByName(GetKeyField(SubType))), ID, lsNotLoaded);
 
               ApplyDelayedUpdates(UpdateList,
-                CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID);
+                GetTID(CDS.FieldByName(GetKeyField(SubType))), ID);
             end;
           end
           else
           begin
             //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
-            AddToIDMapping(CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID, lsNotLoaded);
+            AddToIDMapping(GetTID(CDS.FieldByName(GetKeyField(SubType))), ID, lsNotLoaded);
 
             ApplyDelayedUpdates(UpdateList,
-              CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID);
+              GetTID(CDS.FieldByName(GetKeyField(SubType))), ID);
           end;
         end;
       end;
@@ -8045,7 +8062,12 @@ const
         continue;
 
       F := FindField(R.RelationName, R.RelationFields[I].FieldName);
-      if (F = nil) or F.IsNull or (F.DataType <> ftInteger) then
+      if (F = nil) or F.IsNull
+        {$IFDEF ID64}
+        or (not (F.DataType in [ftLargeInt])) then
+        {$ELSE}
+        or (not (F.DataType in [ftInteger])) then
+        {$ENDIF}
       begin
         continue;
       end;
@@ -8063,7 +8085,7 @@ const
       if (C.gdClass = nil) and (R.RelationFields[I].References <> nil) then
       begin
         C := GetBaseClassForRelationByID(R.RelationFields[I].References.RelationName,
-          FieldByName(R.RelationName, R.RelationFields[I].FieldName).AsInteger,
+          GetTID(FieldByName(R.RelationName, R.RelationFields[I].FieldName)),
           Self.Transaction);
       end;
 
@@ -8071,7 +8093,7 @@ const
 // на эту же запись
 //!!!!
       if (C.gdClass <> nil) and
-        (not (Self.ClassType.InheritsFrom(C.gdClass) and (F.AsInteger = ID))) then
+        (not (Self.ClassType.InheritsFrom(C.gdClass) and (GetTID(F) = ID))) then
       begin
         if IsReverseOrder(F.FieldName) then
         begin
@@ -8081,14 +8103,14 @@ const
             OS := TgdcObjectSet.Create(C.gdClass, C.SubType);
             ReversedList.Add(OS);
           end;
-          OS.Add(F.AsInteger, C.gdClass.ClassName, C.SubType, '');
+          OS.Add(GetTID(F), C.gdClass.ClassName, C.SubType, '');
         end else
         begin
           try
             Obj := C.gdClass.CreateSingularByID(nil,
                 Database,
                 Transaction,
-                F.AsInteger,
+                GetTID(F),
                 C.SubType);
             try
               if Obj.CanAddToNS then
@@ -8121,7 +8143,7 @@ const
                 'и подтип в настройках для этого поля.',
                   [ATableName, R.RelationFields[I].FieldName,
                   C.gdClass.ClassName + C.SubType,
-                  FieldByName(R.RelationName, R.RelationFields[I].FieldName).AsInteger])),
+                  TID264(FieldByName(R.RelationName, R.RelationFields[I].FieldName))])),
                 'Ошибка',
                 MB_OK or MB_ICONHAND or MB_TASKMODAL);
               raise;
@@ -8208,7 +8230,12 @@ var
         end;
       end;
 
+      {$IFDEF ID64}
+      CDS.FieldDefs.Add('_XID', ftLargeInt, 0, True);
+      {$ELSE}
       CDS.FieldDefs.Add('_XID', ftInteger, 0, True);
+      {$ENDIF}
+
       CDS.FieldDefs.Add('_DBID', ftInteger, 0, True);
       CDS.FieldDefs.Add('_MODIFIED', ftDateTime, 0, True);
       CDS.FieldDefs.Add('_SETTABLE', ftString, 60, False);
@@ -8227,10 +8254,10 @@ var
             then
               F.Clear
             else
-              F.Assign(Obj.Fields[K]);
+              AssignField64(F, Obj.Fields[K]);
           end;
         end;
-        CDS.FieldByName('_XID').AsInteger := RUID.XID;
+        SetTID(CDS.FieldByName('_XID'), RUID.XID);
         CDS.FieldByName('_DBID').AsInteger := RUID.DBID;
         CDS.FieldByName('_MODIFIED').AsDateTime := EditionDate;
         CDS.FieldByName('_SETTABLE').AsString := SetTable;
@@ -8255,7 +8282,6 @@ var
       //Версия потока не ниже 1
       CurDBID := IBLogin.DBID;
       Stream.Write(CurDBID, SizeOf(CurDBID));
-
       StreamWriteString(Stream, Obj.ClassName);
       StreamWriteString(Stream, Obj.SubType);
 
@@ -8377,7 +8403,7 @@ begin
                 'Предполагаемая информация о типе объекта'#13#10# +
                 'c идентификатором %d: %s (подтип: "%s")'#13#10# +
                 'не соответствует действительности.'#13#10#13#10 +
-                'Объект не будет сохранен.', [ID, C.gdClass.ClassName, C.SubType])),
+                'Объект не будет сохранен.', [TID264(ID), C.gdClass.ClassName, C.SubType])),
                 'Ошибка',
                 MB_OK or MB_ICONEXCLAMATION);
 
@@ -8476,7 +8502,7 @@ begin
                 'Предполагаемая информация о типе объекта'#13#10# +
                 'c идентификатором %d: %s (подтип: "%s")'#13#10# +
                 'не соответствует действительности.'#13#10#13#10 +
-                'Объект не будет сохранен.', [ID, C.gdClass.ClassName, C.SubType])),
+                'Объект не будет сохранен.', [TID264(ID), C.gdClass.ClassName, C.SubType])),
                 'Ошибка',
                 MB_OK or MB_ICONEXCLAMATION);
 
@@ -8742,7 +8768,7 @@ begin
                 begin
                   //Находим базовый класс по первому id, т.к. детальные объекты в одной таблице будут одного класса и сабтайпа
                   C := GetBaseClassForRelationByID(TatForeignKey(DL[I]).Relation.RelationName,
-                    ibsql.Fields[0].AsInteger, Self.Transaction);
+                    GetTID(ibsql.Fields[0]), Self.Transaction);
                   if C.gdClass <> nil then
                   begin
                     //Создаем его экземпляр с одной записью
@@ -8751,7 +8777,7 @@ begin
                       Obj.Transaction := Transaction;
                       while not ibsql.Eof do
                       begin
-                        Obj.ID := ibsql.Fields[0].AsInteger;
+                        Obj.ID := GetTID(ibsql.Fields[0]);
                         //Установим флаг нового объекта в то состояние, которое имеет Self
                         //только если значение флага Self.ModifyFromStream отличается от значения устанавливаемого по умолчанию
                         // (из класс-функции)
@@ -8922,7 +8948,7 @@ begin
     FgdcDataLink.DetailField := Value;
 end;
 
-procedure TgdcBase.SetID(const Value: Integer);
+procedure TgdcBase.SetID(const Value: TID);
 begin
   Assert(Value >= -1, 'Invalid id specified');
   if Value = -1 then
@@ -8933,7 +8959,7 @@ begin
   begin
     if State in dsEditModes then
     begin
-      FieldByName(GetKeyField(SubType)).AsInteger := Value;
+      SetTID(FieldByName(GetKeyField(SubType)), Value);
     end
     else if State = dsInactive then
     begin
@@ -8945,7 +8971,7 @@ begin
       FID := Value;
       Open;
     end else
-      if not Locate(GetKeyField(SubType), Value, []) then
+      if not Locate(GetKeyField(SubType), TID2V(Value), []) then
         raise EgdcException.CreateObj('Invalid id specified', Self);
   end;
 end;
@@ -9018,7 +9044,7 @@ begin
   Assert(ASL <> nil);
 
   ASL.Add(AddSpaces('Наименование') + ObjectName);
-  ASL.Add(AddSpaces('Идентификатор') + IntToStr(ID));    
+  ASL.Add(AddSpaces('Идентификатор') + TID2S(ID));    
   ASL.Add(AddSpaces('RUID') + gdcBaseManager.GetRUIDStringByID(ID));
   ASL.Add(AddSpaces('Метка типа') + GetDisplayName(SubType));
   ASL.Add(AddSpaces('Тип текущей записи') + GetCurrRecordClass.gdClass.ClassName + ' ' +
@@ -9081,7 +9107,7 @@ begin
   end;
   if S > '' then ASL.Add(AddSpaces('Связанные таблицы') + S);
   }
-  ASL.Add(AddSpaces('ИД группы отчетов') + IntToStr(GroupID));
+  ASL.Add(AddSpaces('ИД группы отчетов') + TID2S(GroupID));
   if FindField('aview') <> nil then
     ASL.Add(AddSpaces('Только просмотр') + TgdcUserGroup.GetGroupList(FindField('aview').AsInteger));
   if FindField('achag') <> nil then
@@ -9118,6 +9144,184 @@ end;
 function TgdcBase.GetCanAddToNS: Boolean;
 begin
   Result := True;
+end;
+
+
+function TgdcBase.Locate(const KeyFields: string; const KeyValues: Variant;
+  Options: TLocateOptions): Boolean;
+var
+  CurBookmark,NewBookmark: string;
+  bsc, asc: TDataSetNotifyEvent;
+begin
+  DisableControls;
+  bsc := BeforeScroll;
+  asc := AfterScroll;
+  BeforeScroll := nil;
+  AfterScroll := nil;
+  try
+    CurBookmark := Bookmark;
+    First;
+    result := InternalLocate(KeyFields, KeyValues, Options);
+    if not result then
+      Bookmark := CurBookmark
+    else
+    begin
+      if Assigned(Bsc) then begin
+        NewBookmark := Bookmark;{сохраним найденную позицию}
+        Bookmark := CurBookmark;{вернемся на старую позицию}
+        Bsc(Self); {отработаем}
+        Bookmark := NewBookmark; {вернемся на найденное}
+      end;
+      if Assigned(Asc) then
+        Asc(Self); {отработаем}
+    end;
+  finally
+    BeforeScroll := bsc;
+    AfterScroll := asc;
+    EnableControls;
+  end;
+end;
+
+function TgdcBase.InternalLocate(const KeyFields: string;
+  const KeyValues: Variant; Options: TLocateOptions): Boolean;
+var
+  fl: TList;
+  CurBookmark: string;
+  val : Array of Variant;
+  i, fld_cnt: Integer;
+  fld_str : String;
+  T: DWORD;
+  F: TField;
+begin
+  Result := False;
+  T := GetTickCount;
+  CurBookmark := Bookmark;
+
+  F := FindField(KeyFields);
+  if (F is TIntegerField) and (VarType(KeyValues) = varInteger) then
+  begin
+    i := KeyValues;
+    while (not Result) and (not EOF) do
+    begin
+      if F.AsInteger = i then
+        Result := True
+      else
+        Next;
+    end;
+  end else
+  begin
+    fl := TList.Create;
+    try
+      GetFieldList(fl, KeyFields);
+      fld_cnt := fl.Count;
+      if fld_cnt = 0 then
+        exit;
+
+      SetLength(val, fld_cnt);
+      for i := 0 to fld_cnt - 1 do
+      begin
+        if VarIsArray(KeyValues) then
+        begin
+          if i <= VarArrayHighBound(KeyValues, 1) then
+            val[i] := KeyValues[i]
+          else
+            val[i] := varNull;
+        end else
+          val[i] := KeyValues;
+        if (VarType(val[i]) = varString) and (loCaseInsensitive in Options) then
+          val[i] := AnsiUpperCase(val[i]);
+      end;
+
+      while (not Result) and (not EOF) do
+      begin
+        i := 0;
+        Result := True;
+        while Result and (i < fld_cnt) do
+        begin
+          if TField(fl[i]).IsNull then
+            Result := Result and VarIsNull(val[i])
+          else begin
+            // We know the Field is not null so if the passed value is null we are
+            //   done with this record
+            Result := Result and not VarIsNull(val[i]);
+            if Result then
+            begin
+              case VarType(val[i]) of
+                varString:
+                begin
+                  fld_str := TField(fl[i]).AsString;
+                  if (loCaseInsensitive in Options) then
+                    fld_str := AnsiUpperCase(fld_str);
+                  if (loPartialKey in Options) then
+                    Result := Result and (AnsiPos(val[i], fld_str) = 1)
+                  else
+                    Result := Result and (fld_str = val[i]);
+                end;
+
+                varDate:
+                begin
+                  Result := Result and (TField(fl[i]).AsDateTime = val[i]);
+                end;
+
+                varDouble:
+                begin
+                  Result := Result and (TField(fl[i]).AsFloat = val[i]);
+                end;
+              else
+                begin
+                  Result := Result and (GetFieldAsVar(TField(fl[i])) = val[i]);
+                {$IFDEF ID64}
+                 // Result := Result and (TField(fl[i]).AsString = vartostr(val[i]));
+                {$ELSE}
+                //  Result := Result and (TField(fl[i]).Value = val[i]);
+                {$ENDIF}
+                end;
+              end;
+            end;
+          end;
+          Inc(i);
+        end;
+
+        if not Result then
+        begin
+          if GetTickCount - T > MAX_LOCATE_WAIT then
+            break;
+          Next;
+        end;
+      end;
+    finally
+      fl.Free;
+      val := nil;
+    end;
+  end;
+
+  if not Result then
+    Bookmark := CurBookmark
+  else
+    CursorPosChanged;
+end;
+
+function TgdcBase.GetOldFieldValue_Str(const AFieldName: String): String;
+var
+  I: Integer;
+begin
+  if FieldByName(AFieldName).IsNull then
+    Result := null
+  else
+    Result := FieldByName(AFieldName).AsString;
+  if FOldValues <> nil then
+  begin
+    for I := 0 to FOldValues.Count - 1 do
+
+      if AnsiCompareText((FOldValues[I] as TFieldValue).FieldName, AFieldName) = 0 then
+      begin
+        if (FOldValues[I] as TFieldValue).IsNull then
+          Result := Null
+        else
+          Result := (FOldValues[I] as TFieldValue).Value;
+        exit;
+      end;
+  end;
 end;
 
 { TgdcDataLink }
@@ -9257,7 +9461,7 @@ begin
   end;
 end;
 
-function TgdcBaseManager.GetRUIDRecByXID(const XID, DBID: TID;
+function TgdcBaseManager.GetRUIDRecByXID(const XID: TID; const DBID: Integer;
   Transaction: TIBTransaction): TRUIDRec;
 begin
   if (XID < cstUserIDStart) and (DBID = cstEtalonDBID) then
@@ -9277,7 +9481,7 @@ begin
         FIBSQL.Transaction := ReadTransaction;
 
       FIBSQL.SQL.Text := cst_sql_SelectRUIDBYXID;
-      FIBSQL.ParamByName(fnXID).AsInteger := XID;
+      SetTID(FIBSQL.ParamByName(fnXID), XID);
       FIBSQL.ParamByName(fnDBID).AsInteger := DBID;
       FIBSQL.ExecQuery;
 
@@ -9288,9 +9492,9 @@ begin
         Result.EditorKey := -1;
       end else
       begin
-        Result.ID := FIBSQL.FieldByName(fnId).AsInteger;
+        Result.ID := GetTID(FIBSQL.FieldByName(fnId));
         Result.Modified := FIBSQL.FieldByName(fnModified).AsDateTime;
-        Result.EditorKey := FIBSQL.FieldByName(fnEditorkey).AsInteger;
+        Result.EditorKey := GetTID(FIBSQL.FieldByName(fnEditorkey));
       end;
       
       Result.XID := XID;
@@ -9316,7 +9520,7 @@ begin
   FIDLimit := -1;
 end;
 
-procedure TgdcBaseManager.DeleteRUIDByXID(const XID, DBID: TID;
+procedure TgdcBaseManager.DeleteRUIDByXID(const XID: TID; const DBID: Integer;
   Transaction: TIBTransaction);
 var
   DidActivate: Boolean;
@@ -9343,7 +9547,7 @@ begin
 
       FIBSQL.Transaction := Tr;
       FIBSQL.SQL.Text := cst_sql_DeleteRUIDByXID;
-      FIBSQL.ParamByName(fnXID).AsInteger := XID;
+      SetTID(FIBSQL.ParamByName(fnXID), XID);
       FIBSQL.ParamByName(fnDBID).AsInteger := DBID;
       FIBSQL.ExecQuery;
       FIBSQL.Close;
@@ -9378,7 +9582,7 @@ begin
   inherited;
 end;
 
-function TgdcBaseManager.GenerateNewDBID: TID;
+function TgdcBaseManager.GenerateNewDBID: Integer;
 var
   D: TDateTime;
 begin
@@ -9401,7 +9605,7 @@ begin
   Result := FExplorer;
 end;
 
-function TgdcBaseManager.GetIDByRUID(const XID, DBID: TID; const Tr: TIBTransaction = nil): TID;
+function TgdcBaseManager.GetIDByRUID(const XID: TID; const DBID: Integer; const Tr: TIBTransaction = nil): TID;
 begin
   Result := GetIDByRUIDString(RUIDToStr(XID, DBID), Tr);
 end;
@@ -9426,6 +9630,15 @@ begin
     CacheDBID := IBLogin.DBID;
   end;
 
+  {$IFDEF ID64}
+  // временная мера, пока не сделаем поддержку TStringHashMap Int64
+  R := StrToRUID(RUID);
+  Result := GetRUIDRecByXID(R.XID, R.DBID, Tr).ID;
+  if Result = -1 then
+    //Возможно РУИД еще не попал в таблицу
+    if IBLogin.DBID = R.DBID then
+      Result := R.XID;
+  {$ELSE}
   if not CacheList.Find(RUID, Result) then
   begin
     R := StrToRUID(RUID);
@@ -9437,6 +9650,9 @@ begin
       if IBLogin.DBID = R.DBID then
         Result := R.XID;
   end;
+  {$ENDIF}
+
+
 end;
 
 function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
@@ -9447,12 +9663,12 @@ function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
     'AS '#13#10 +
     '  DECLARE VARIABLE rn VARCHAR(31); '#13#10 +
     '  DECLARE VARIABLE fn VARCHAR(31); '#13#10 +
-    '  DECLARE VARIABLE id INTEGER; '#13#10 +
-    '  DECLARE VARIABLE b INTEGER = 147000001; '#13#10 +
-    '  DECLARE VARIABLE e INTEGER = 147000001; '#13#10 +
-    '  DECLARE VARIABLE limit INTEGER; '#13#10 +
-    '  DECLARE VARIABLE d INTEGER; '#13#10 +
-    '  DECLARE VARIABLE c INTEGER = 0; '#13#10 +
+    '  DECLARE VARIABLE id DINTKEY; '#13#10 +
+    '  DECLARE VARIABLE b DINTKEY = 147000001; '#13#10 +
+    '  DECLARE VARIABLE e DINTKEY = 147000001; '#13#10 +
+    '  DECLARE VARIABLE limit DFOREIGNKEY; '#13#10 +
+    '  DECLARE VARIABLE d DFOREIGNKEY; '#13#10 +
+    '  DECLARE VARIABLE c DFOREIGNKEY = 0; '#13#10 +
     'BEGIN '#13#10 +
     '  SELECT GEN_ID(gd_g_unique, 0) FROM rdb$database '#13#10 +
     '    INTO :limit; '#13#10 +
@@ -9734,11 +9950,11 @@ function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
     end;
   end;
 
-  function GetAvailableID(out AnIDFrom, AnIDTo: Integer): Boolean;
+  function GetAvailableID(out AnIDFrom, AnIDTo: TID): Boolean;
   var
     q, qModify: TIBSQL;
     Tr: TIBTransaction;
-    IDFrom, IDTo: Integer;
+    IDFrom, IDTo: TID;
   begin
     Result := False;
 
@@ -9760,8 +9976,8 @@ function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
               break;
           end else
           begin
-            IDFrom := q.FieldByName('id_from').AsInteger;
-            IDTo := q.FieldByName('id_to').AsInteger;
+            IDFrom := GetTID(q.FieldByName('id_from'));
+            IDTo := GetTID(q.FieldByName('id_to'));
 
             Tr := TIBTransaction.Create(nil);
             qModify := TIBSQL.Create(nil);
@@ -9776,10 +9992,10 @@ function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
                   AnIDFrom := IDFrom;
                   AnIDTo := AnIDFrom + MinIDInterval - 1;
                   qModify.SQL.Text := 'UPDATE gd_available_id SET id_from = :new_id_from WHERE id_from = :id_from AND id_to = :id_to';
-                  qModify.ParamByName('new_id_from').AsInteger := AnIDTo + 1;
+                  SetTID(qModify.ParamByName('new_id_from'), AnIDTo + 1);
 
                   {$IFDEF WITH_INDY}
-                  gdccClient.AddLogRecord('id_cache', 'Update gd_available_id, id_from = ' + IntToStr(IDFrom));
+                  gdccClient.AddLogRecord('id_cache', 'Update gd_available_id, id_from = ' + TID2S(IDFrom));
                   {$ENDIF}
                 end else
                 begin
@@ -9788,12 +10004,12 @@ function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
                   qModify.SQL.Text := 'DELETE FROM gd_available_id WHERE id_from = :id_from AND id_to = :id_to';
 
                   {$IFDEF WITH_INDY}
-                  gdccClient.AddLogRecord('id_cache', 'Delete from gd_available_id, id_from = ' + IntToStr(IDFrom));
+                  gdccClient.AddLogRecord('id_cache', 'Delete from gd_available_id, id_from = ' + TID2S(IDFrom));
                   {$ENDIF}
                 end;
 
-                qModify.ParamByName('id_from').AsInteger := IDFrom;
-                qModify.ParamByName('id_to').AsInteger := IDTo;
+                SetTID(qModify.ParamByName('id_from'), IDFrom);
+                SetTID(qModify.ParamByName('id_to'), IDTo);
                 qModify.ExecQuery;
 
                 if qModify.RowsAffected = 1 then
@@ -9870,7 +10086,7 @@ function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
           q.Close;
           q.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 0) FROM rdb$database';
           q.ExecQuery;
-          Result := q.Fields[0].AsInteger > IDGeneratorMaxThreshold;
+          Result := GetTID(q.Fields[0]) > IDGeneratorMaxThreshold;
         end;
       finally
         q.Free;
@@ -9879,8 +10095,10 @@ function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
       Result := False;
   end;
 
+{$IFNDEF ID64}
 var
-  IDFrom, IDTo: Integer;
+  IDFrom, IDTo: TID;
+{$ENDIF}  
 begin
   if FIDLimit < 0 then
     IDCacheInit;
@@ -9893,6 +10111,7 @@ begin
 
   if FIDCurrent > FIDLimit then
   begin
+  {$IFNDEF ID64}
     if ShouldUseIDTable and GetAvailableID(IDFrom, IDTo) then
     begin
       FIDCurrent := IDFrom;
@@ -9900,6 +10119,7 @@ begin
       FUseIDTable := True;
     end else
     begin
+  {$ENDIF}
       if FNextIDSQL = nil then
       begin
         if GetSystemMetrics(SM_REMOTESESSION) <> 0 then
@@ -9908,15 +10128,17 @@ begin
         FNextIDSQL := TIBSQL.Create(nil);
         FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
         FNextIDSQL.SQL.Text := 'SELECT GEN_ID(gd_g_unique, ' +
-          IntToStr(IDCacheStep) + ') + GEN_ID(gd_g_offset, 0) FROM rdb$database';
+          TID2S(IDCacheStep) + ') + GEN_ID(gd_g_offset, 0) FROM rdb$database';
       end;
 
       FNextIDSQL.ExecQuery;
-      FIDLimit := FNextIDSQL.Fields[0].AsInteger;
+      FIDLimit := GetTID(FNextIDSQL.Fields[0]);
       FNextIDSQL.Close;
       FIDCurrent := FIDLimit - IDCacheStep + 1;
       FUseIDTable := False;
+{$IFNDEF ID64}
     end;
+{$ENDIF}
   end;
 
   Result := FIDCurrent;
@@ -9926,7 +10148,8 @@ end;
 procedure TgdcBaseManager.IDCacheInit;
 var
   Reg: TRegistry;
-  TempIDCurrent, TempIDLimit, Test: Integer;
+  TempIDCurrent, TempIDLimit: TID;
+  Test: Integer;
   ExpDate: TDate;
 begin
   FIDLimit := -1;
@@ -9943,9 +10166,14 @@ begin
       if Reg.OpenKey(IDCacheRegKey + IntToStr(IBLogin.DBID), False)
         and Reg.ValueExists(IDCacheCurrentName) then
       try
+        {$IFDEF ID64}
+        TempIDCurrent := GetTID(Reg.ReadString(IDCacheCurrentName));
+        TempIDLimit := GetTID(Reg.ReadString(IDCacheLimitName));
+        {$ELSE}
         TempIDCurrent := Reg.ReadInteger(IDCacheCurrentName);
         TempIDLimit := Reg.ReadInteger(IDCacheLimitName);
-        Test := not Reg.ReadInteger(IDCacheTestName);
+        {$ENDIF}
+        Test := not Reg.ReadInteger(IDCacheTestName);        
         ExpDate := Reg.ReadDate(IDCacheExpDateName);
         if Reg.DeleteValue(IDCacheCurrentName) and (TempIDCurrent xor Test = TempIDLimit)
           and (SysUtils.Date < ExpDate) and (TempIDCurrent <= TempIDLimit) then
@@ -9975,7 +10203,7 @@ begin
     begin
       try
         gdcBaseManager.ExecSingleQuery('INSERT INTO gd_available_id (id_from, id_to) VALUES (:id_from, :id_to)',
-          VarArrayOf([FIDCurrent, FIDLimit]));
+          VarArrayOf([TID2V(FIDCurrent), TID2V(FIDLimit)]));
       except
         on E: Exception do
         begin
@@ -9992,8 +10220,13 @@ begin
         Reg.LazyWrite := False;
         Reg.RootKey := HKEY_CURRENT_USER;
         Reg.OpenKey(IDCacheRegKey + IntToStr(IBLogin.DBID), True);
+        {$IFDEF ID64}
+        Reg.WriteString(IDCacheCurrentName, TID2S(FIDCurrent));
+        Reg.WriteString(IDCacheLimitName, TID2S(FIDLimit));
+        {$ELSE}
         Reg.WriteInteger(IDCacheCurrentName, FIDCurrent);
         Reg.WriteInteger(IDCacheLimitName, FIDLimit);
+        {$ENDIF}
         Reg.WriteInteger(IDCacheTestName, not(FIDCurrent xor FIDLimit));
         Reg.WriteDate(IDCacheExpDateName, SysUtils.Date + 15);
         FIDLimit := -1;
@@ -10020,7 +10253,7 @@ begin
   Result := FReadTransaction;
 end;
 
-procedure TgdcBaseManager.GetRUIDByID(const ID: TID; out XID, DBID: TID;
+procedure TgdcBaseManager.GetRUIDByID(const ID: TID; out XID: TID; out DBID: Integer;
   const Tr: TIBTransaction = nil);
 var
   RR: TRuidRec;
@@ -10080,7 +10313,8 @@ end;
 
 function TgdcBase.GetRUID: TRUID;
 var
-  XID, DBID: TID;
+  XID: TID;
+  DBID: Integer;
 begin
   if (State = dsInactive) or IsEmpty then
     raise EgdcException.CreateObj('Cannot generate RUID for an empty object.', Self);
@@ -10110,7 +10344,8 @@ end;
 function TgdcBaseManager.ProcessSQL(const S: String): String;
 var
   I, K, J: Integer;
-  XID, DBID, ID: TID;
+  XID, ID: TID;
+  DBID: Integer;
   Tmp: String;
 begin
   Result := S;
@@ -10134,7 +10369,7 @@ begin
           Tmp := Tmp + Result[J];
         Inc(J);
       end;
-      XID := StrToIntDef(Tmp, -1);
+      XID := GetTID(Tmp, -1);
       if XID = -1 then
         raise EgdcBaseManager.Create('Invalid RUID data.');
 
@@ -10162,7 +10397,7 @@ begin
         raise EgdcBaseManager.Create('Unknown RUID.');
 
       Delete(Result, I, J + K - I + 1);
-      Insert(IntToStr(ID), Result, I);
+      Insert(TID2S(ID), Result, I);
     end;
     I := StrIPos('<RUID ', Result);
   until I = 0;
@@ -10182,7 +10417,7 @@ begin
     if I > 0 then
     begin
       Delete(Result, I, Length('<COMPANYKEY/>'));
-      Insert(IntToStr(IBLogin.CompanyKey), Result, I);
+      Insert(TID2S(IBLogin.CompanyKey), Result, I);
     end;
     I := StrIPos('<COMPANYKEY/>', Result);
   until I = 0;
@@ -10192,7 +10427,7 @@ begin
     if I > 0 then
     begin
       Delete(Result, I, Length('<CONTACTKEY/>'));
-      Insert(IntToStr(IBLogin.ContactKey), Result, I);
+      Insert(TID2S(IBLogin.ContactKey), Result, I);
     end;
     I := StrIPos('<CONTACTKEY/>', Result);
   until I = 0;
@@ -10212,7 +10447,7 @@ begin
     if I > 0 then
     begin
       Delete(Result, I, Length('<NCU/>'));
-      Insert(IntToStr(GetNCUKey), Result, I);
+      Insert(TID2S(GetNCUKey), Result, I);
     end;
     I := StrIPos('<NCU/>', Result);
   until I = 0;
@@ -10416,12 +10651,12 @@ begin
     FgsDBReduction.HideFields := HideFieldsList + 'LB;RB;';
 
     if ACondemnedKey >= 0 then
-      FgsDBReduction.CondemnedKey := IntToStr(ACondemnedKey)
+      FgsDBReduction.CondemnedKey := TID2S(ACondemnedKey)
     else
-      FgsDBReduction.CondemnedKey := IntToStr(ID);
+      FgsDBReduction.CondemnedKey := TID2S(ID);
 
     if AMasterKey >= 0 then
-      FgsDBReduction.MasterKey := IntToStr(AMasterKey);
+      FgsDBReduction.MasterKey := TID2S(AMasterKey);
 
     C := GetCurrRecordClass.gdClass;
 
@@ -10458,7 +10693,7 @@ begin
     q.SQL.Text :=
       'SELECT inheritedkey FROM ' + (CE as TgdBaseEntry).DistinctRelation +
       ' WHERE inheritedkey = :id';
-    q.ParamByName('id').AsInteger := AnID;
+    SetTID(q.ParamByName('id'), AnID);
     q.ExecQuery;
     if not q.EOF then
       ASubType := CE.SubType;
@@ -10577,7 +10812,7 @@ begin
                   begin
                     F := Obj.FindField(Fields[I].FieldName);
                     if Assigned(F) then
-                      Fields[I].Assign(F);
+                      AssignField64(Fields[I], F);
                   end;
                   Post;
                 except
@@ -10676,7 +10911,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  PrintReport((Sender as TMenuItem).Tag);
+  PrintReport(GetTID((Sender as TMenuItem).Tag, FpmReport.Owner.Owner.Name));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'DOONREPORTCLICK', KEYDOONREPORTCLICK)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -10685,7 +10920,7 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcBase.PrintReport(const ID: Integer);
+procedure TgdcBase.PrintReport(const ID: TID);
 begin
   Assert(ClientReport <> nil, 'Не подключен сервер отчетов');
   if Assigned(FCurrentForm) and FCurrentForm.InheritsFrom(TCreateableForm) then
@@ -10830,12 +11065,12 @@ begin
             qryID.ExecQuery;
             //находим базовый класс для таблицы
             //FC := GetBaseClassForRelation(FTableList[I]);
-            FC := GetBaseClassForRelationByID(FTableList[I], qryID.FieldByName(fnID).AsInteger, Transaction);
+            FC := GetBaseClassForRelationByID(FTableList[I], GetTID(qryID.FieldByName(fnID)), Transaction);
             //Если мы не нашли базовый класс для таблицы генерируем эксепшен
             if FC.gdClass = nil then
             begin
               raise EgdcException.Create('Невозможно удалить запись "' + GetDisplayName(SubType) + '" '
-                + FieldByName(GetListField(SubType)).AsString + ' с идентификатором: ' + IntToStr(ID) +
+                + FieldByName(GetListField(SubType)).AsString + ' с идентификатором: ' + TID2S(ID) +
                 #13#10#13#10 + 'На данную запись ссылаются записи в таблице ' + FTableList[I] + '.');
             end;
 
@@ -10843,7 +11078,7 @@ begin
             if FC.gdClass.ClassName <> 'TgdcInvBaseRemains' then
             begin
               gdcCurrClass := FC.gdClass.CreateSingularByID(nil,
-                qryID.FieldByName(fnID).AsInteger, FC.SubType);
+                GetTID(qryID.FieldByName(fnID)), FC.SubType);
               try
                 //Добавляем все ID  в список
                 IDList.Clear;
@@ -10888,7 +11123,7 @@ begin
           lvTables.Items.EndUpdate;
 
           Caption := 'Удаление записи: "' + ObjectName + '" типа "' +
-            GetDisplayName(SubType) + '", ИД: ' + IntToStr(ID);
+            GetDisplayName(SubType) + '", ИД: ' + TID2S(ID);
 
           ShowModal;
         finally
@@ -10900,7 +11135,7 @@ begin
     end else
     begin
       S := 'Невозможно удалить запись "' + GetDisplayName(SubType) + '" "'
-        + FieldByName(GetListField(SubType)).AsString + '" с идентификатором: ' + IntToStr(ID) +
+        + FieldByName(GetListField(SubType)).AsString + '" с идентификатором: ' + TID2S(ID) +
         #13#10#13#10;
       if IBLogin.IsIBUserAdmin and (AMessage > '') then
         S := S + AMessage
@@ -10953,7 +11188,7 @@ begin
           end;
           }
           F := Self.FindField(DL.MasterField);
-          if (not (F is TIntegerField)) or (Self.ID <> F.AsInteger) then
+          if (not ((F is TLargeIntField) or (F is TIntegerField))) or (Self.ID <> GetTID(F)) then
             continue;
 
           if (Self is TgdcDocument) and (SubType <> DL.SubType) then
@@ -11060,7 +11295,7 @@ begin
           end;
           }
           F := Self.FindField(DL.MasterField);
-          if (not (F is TIntegerField)) or (Self.ID <> F.AsInteger) then
+          if (not ((F is TLargeIntField) or (F is TIntegerField))) or (Self.ID <> GetTID(F)) then
             continue;
 
           try
@@ -11107,7 +11342,7 @@ begin
     raise EgdcIBError.Create('Invalid gdc class specified');
 end;
 
-function TgdcBase.GetGroupID: Integer;
+function TgdcBase.GetGroupID: TID;
 begin
   Result := gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType).GroupID;
 end;
@@ -11318,7 +11553,7 @@ begin
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text := 'SELECT ' + GetListField(ASubType) + ' FROM ' +
       GetListTable(ASubType) + ' WHERE ' + GetKeyField(ASubType) + ' = :ID';
-    q.Params[0].AsInteger := AnID;
+    SetTID(q.Params[0], AnID);
     q.ExecQuery;
     if q.EOF then
       Result := ''
@@ -11375,7 +11610,7 @@ begin
 end;
 
 procedure TgdcBase.DoOnFilterChanged(Sender: TObject;
-  const AnCurrentFilter: Integer);
+  const AnCurrentFilter: TID);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
@@ -11391,7 +11626,7 @@ begin
   {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
   {M}      begin
   {M}        Params := VarArrayOf([GetGdcInterface(Self),
-  {M}          GetGdcInterface(Sender), AnCurrentFilter]);
+  {M}          GetGdcInterface(Sender), TID2V(AnCurrentFilter)]);
   {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASE',
   {M}          'DOONFILTERCHANGED', KEYDOONFILTERCHANGED, Params, LResult) then
   {M}          exit;
@@ -11724,15 +11959,46 @@ begin
 end;
 
 function TgdcBase.GetObjectName: String;
+var
+  AddRUIDOrID: Boolean;
+  RR: TRUIDRec;
 begin
+  AddRUIDOrID := False;
+  Result := '';
+
   if Active and (not IsEmpty) then
   begin
-    if AnsiSameText(GetListField(SubType), GetKeyField(SubType)) then
-      Result := GetDisplayName(SubType) + ', РУИД: ' + RUIDToStr(GetRUID)
-    else
+    if not AnsiSameText(GetListField(SubType), GetKeyField(SubType)) then
+    begin
       Result := Trim(FieldByName(GetListField(SubType)).AsString);
+    end;
+
+    if Result = '' then
+    begin
+      // генерация здесь РУИДа приводит к тому, что РУИД создается на каждую запись
+      Result := GetDisplayName(SubType); // + ', РУИД: ' + RUIDToStr(GetRUID)
+
+      if Result = '' then
+        Result := Self.GetClassName + Self.SubType;
+
+      AddRUIDOrID := True;
+    end;
   end else
+  begin
     Result := FObjectName;
+
+    if Result = '' then
+      Result := Self.GetClassName + Self.SubType;
+  end;
+
+  if AddRUIDOrID and Active and (not IsEmpty) then
+  begin
+    RR := gdcBaseManager.GetRUIDRecByID(ID, ReadTransaction);
+    if RR.XID = -1 then
+      Result := Result + ', ИД: ' + TID2S(Self.ID)
+    else
+      Result := Result + ', РУИД: ' + RUIDToStr(RR.XID, RR.DBID);
+  end;
 end;
 
 procedure TgdcBase.SetObjectName(const Value: String);
@@ -11815,6 +12081,7 @@ begin
 end;
 
 procedure TgdcBase.SetSubType(const Value: TgdcSubType);
+var R: TatRelation;
 begin
   if FSubType <> Value then
   begin
@@ -11846,6 +12113,9 @@ begin
     if Assigned(FQueryFilter) then
       FQueryFilter.Name := 'flt_' + RemoveProhibitedSymbols(FSubType) + System.copy(ClassName, 2, 255);
     FSQLInitialized := False;
+
+    R := atDatabase.Relations.ByRelationName(GetListTable(FSubType));
+    FGeneratorName := R.GeneratorName;
   end;
 end;
 
@@ -11887,8 +12157,8 @@ begin
   end
 end;
 
-procedure TgdcBaseManager.UpdateRUIDByXID(const AnID, AXID, ADBID: TID; const AModified: TDateTime;
-  const AnEditorKey: Integer; Transaction: TIBTransaction);
+procedure TgdcBaseManager.UpdateRUIDByXID(const AnID, AXID: TID; const ADBID: Integer; const AModified: TDateTime;
+  const AnEditorKey: TID; Transaction: TIBTransaction);
 var
   DidActivate: Boolean;
   Tr: TIBTransaction;
@@ -11912,10 +12182,10 @@ begin
 
       FIBSQL.Transaction := Tr;
       FIBSQL.SQL.Text := cst_sql_UpdateRUIDByXID;
-      FIBSQL.ParamByName(fnid).AsInteger := AnID;
-      FIBSQL.ParamByName(fnxid).AsInteger := AXID;
+      SetTID(FIBSQL.ParamByName(fnid), AnID);
+      SetTID(FIBSQL.ParamByName(fnxid), AXID);
       FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
-      FIBSQL.ParamByName(fneditorkey).AsInteger := AnEditorKey;
+      SetTID(FIBSQL.ParamByName(fneditorkey), AnEditorKey);
       FIBSQL.ParamByName(fnmodified).AsDateTime := AModified;
 
       FIBSQL.ExecQuery;
@@ -11947,7 +12217,7 @@ begin
       FIBSQL.Transaction := ReadTransaction;
 
     FIBSQL.SQL.Text := cst_sql_SelectRUIDByID;
-    FIBSQL.ParamByName(fnID).AsInteger := AnID;
+    SetTID(FIBSQL.ParamByName(fnID), AnID);
     FIBSQL.ExecQuery;
 
     if FIBSQL.EOF then
@@ -11959,10 +12229,10 @@ begin
       Result.DBID := -1;
     end else
     begin
-      Result.ID := FIBSQL.FieldByName(fnid).AsInteger;
+      Result.ID := GetTID(FIBSQL.FieldByName(fnid));
       Result.Modified := FIBSQL.FieldByName(fnmodified).AsDateTime;
-      Result.EditorKey := FIBSQL.FieldByName(fneditorkey).AsInteger;
-      Result.XID := FIBSQL.FieldByName(fnxid).AsInteger;
+      Result.EditorKey := GetTID(FIBSQL.FieldByName(fneditorkey));
+      Result.XID := GetTID(FIBSQL.FieldByName(fnxid));
       Result.DBID := FIBSQL.FieldByName(fndbid).AsInteger;
     end;
   finally
@@ -11970,8 +12240,8 @@ begin
   end;
 end;
 
-procedure TgdcBaseManager.InsertRUID(const AnID, AXID, ADBID: TID;
-  const AModified: TDateTime; const AnEditorKey: Integer;
+procedure TgdcBaseManager.InsertRUID(const AnID, AXID: TID; const ADBID: Integer;
+  const AModified: TDateTime; const AnEditorKey: TID;
   Transaction: TIBTransaction);
 var
   DidActivate: Boolean;
@@ -12006,10 +12276,10 @@ begin
       FIBSQL.SQL.Text :=
         'INSERT INTO gd_ruid (id, xid, dbid, editorkey, modified) ' +
         '  VALUES (:id, :xid, :dbid, :editorkey, :modified) ';
-      FIBSQL.ParamByName('id').AsInteger := AnID;
-      FIBSQL.ParamByName('xid').AsInteger := AXID;
+      SetTID(FIBSQL.ParamByName('id'), AnID);
+      SetTID(FIBSQL.ParamByName('xid'), AXID);
       FIBSQL.ParamByName('dbid').AsInteger := ADBID;
-      FIBSQL.ParamByName('editorkey').AsInteger := AnEditorKey;
+      SetTID(FIBSQL.ParamByName('editorkey'), AnEditorKey);
       FIBSQL.ParamByName('modified').AsDateTime := AModified;
 
       try
@@ -12017,14 +12287,14 @@ begin
       except
         FIBSQL.SQL.Text :=
           'SELECT id FROM gd_ruid WHERE xid = :xid AND dbid = :dbid';
-        FIBSQL.ParamByName('xid').AsInteger := AXID;
+        SetTID(FIBSQL.ParamByName('xid'), AXID);
         FIBSQL.ParamByName('dbid').AsInteger := ADBID;
         FIBSQL.ExecQuery;
 
         if not FIBSQL.Eof then
           raise EgdcException.Create(
             'Попытка добавить повторяющийся РУИД в таблицу GD_RUID.'#13#10 +
-            'ID=' + IntToStr(AnID) + ', XID=' + IntToStr(AXID) + ', DBID=' + IntToStr(ADBID));
+            'ID=' + TID2S(AnID) + ', XID=' + TID2S(AXID) + ', DBID=' + IntToStr(ADBID));
 
         RemoveRUIDFromCache(AXID, ADBID);
 
@@ -12032,15 +12302,15 @@ begin
         FIBSQL.SQL.Text :=
           'UPDATE gd_ruid SET id = :id, editorkey = :editorkey, modified = :modified ' +
           'WHERE xid = :xid AND dbid = :dbid ';
-        FIBSQL.ParamByName('id').AsInteger := AnID;
-        FIBSQL.ParamByName('xid').AsInteger := AXID;
+        SetTID(FIBSQL.ParamByName('id'), AnID);
+        SetTID(FIBSQL.ParamByName('xid'), AXID);
         FIBSQL.ParamByName('dbid').AsInteger := ADBID;
-        FIBSQL.ParamByName('editorkey').AsInteger := AnEditorKey;
+        SetTID(FIBSQL.ParamByName('editorkey'), AnEditorKey);
         FIBSQL.ParamByName('modified').AsDateTime := AModified;
         FIBSQL.ExecQuery;
         FIBSQL.Close;
 
-        IBLogin.AddEvent('При попытке создать RUID для ID=' + IntToStr(AnID) +
+        IBLogin.AddEvent('При попытке создать RUID для ID=' + TID2S(AnID) +
           ' выяснилось, что запись с таким ID уже существует.',
           'TgdcBaseManager');
       end;
@@ -12092,7 +12362,7 @@ begin
 
       FIBSQL.Transaction := Tr;
       FIBSQL.SQL.Text := cst_sql_DeleteRUIDByID;
-      FIBSQL.ParamByName(fnID).AsInteger := AnID;
+      SetTID(FIBSQL.ParamByName(fnID), AnID);
       FIBSQL.ExecQuery;
       FIBSQL.Close;
 
@@ -12112,8 +12382,8 @@ begin
   end;
 end;
 
-procedure TgdcBaseManager.UpdateRUIDByID(const AnID, AXID, ADBID: TID;
-  const AModified: TDateTime; const AnEditorKey: Integer;
+procedure TgdcBaseManager.UpdateRUIDByID(const AnID, AXID: TID; const ADBID: Integer;
+  const AModified: TDateTime; const AnEditorKey: TID;
   Transaction: TIBTransaction);
 var
   DidActivate: Boolean;
@@ -12140,10 +12410,10 @@ begin
 
       FIBSQL.Transaction := Tr;
       FIBSQL.SQL.Text := cst_sql_UpdateRUIDByID;
-      FIBSQL.ParamByName(fnxid).AsInteger := AXID;
+      SetTID(FIBSQL.ParamByName(fnxid), AXID);
       FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
-      FIBSQL.ParamByName(fnid).AsInteger := AnID;
-      FIBSQL.ParamByName(fneditorkey).AsInteger := AnEditorKey;
+      SetTID(FIBSQL.ParamByName(fnid), AnID);
+      SetTID(FIBSQL.ParamByName(fneditorkey), AnEditorKey);
       FIBSQL.ParamByName(fnmodified).AsDateTime := AModified;
 
       FIBSQL.ExecQuery;
@@ -12211,7 +12481,7 @@ begin
                 begin
                   if Pos(q.Params[I].Name + ',', St) > 0 then
                     continue;
-                  q.Params[I].AsVariant := Param[J];
+                  SetVar2Param(q.Params[I], Param[J]);
                   St := St + q.Params[I].Name + ',';
                   Inc(J);
                 end;
@@ -12222,7 +12492,7 @@ begin
               begin
                 for I := 0 to q.Params.Count - 1 do
                 begin
-                  q.Params[I].AsVariant := Param[I];
+                  SetVar2Param(q.Params[I], Param[I]);
                 end;
               end else
                 raise Exception.Create('Invalid param count');
@@ -12325,7 +12595,7 @@ begin
                 begin
                   if Pos(',' + q.Params[I].Name + ',', St) > 0 then
                     continue;
-                  q.Params[I].AsVariant := Param[J];
+                  SetVar2Param(q.Params[I], Param[J]);
                   St := St + q.Params[I].Name + ',';
                   Inc(J);
                 end;
@@ -12336,7 +12606,7 @@ begin
               begin
                 for I := 0 to q.Params.Count - 1 do
                 begin
-                  q.Params[I].AsVariant := Param[I];
+                  SetVar2Param(q.Params[I], Param[I]);
                 end;
               end else
                 raise Exception.Create('Invalid param count');
@@ -12354,7 +12624,8 @@ begin
               begin
                 for I := 0 to q.Current.Count - 1 do
                 begin
-                  if q.Fields[I].IsNull then
+                  Res[I, J] := GetFieldAsVar(q.Fields[I]);
+                  {if q.Fields[I].IsNull then
                   begin
                     Res[I, J] := q.Fields[I].AsVariant;
                   end else
@@ -12369,7 +12640,7 @@ begin
                       else
                         Res[I, J] := q.Fields[I].AsString;
                     end;
-                  end;
+                  end; }
                 end;
                 q.Next;
                 if not q.EOF then
@@ -12718,7 +12989,7 @@ begin
               F.Clear;
               inherited Post;
               Edit;
-              F.AsInteger := Det.ID;
+              SetTID(F, Det.ID);
               Det.Post;
             finally
               FIgnoreDataSet.Remove(Det);
@@ -12752,7 +13023,7 @@ begin
                 end;
               end;
 
-              FieldByName(GetKeyField(SubType)).AsInteger := GetNextID(True, True);
+              SetTID(FieldByName(GetKeyField(SubType)), GetNextID(True, True));
               Inc(C);
             end
             else if ((E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock))
@@ -13032,23 +13303,38 @@ begin
     AnOnlyDirect, AVerbose);
 end;
 
-function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer;
+function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): TID;
 var
   q: TIBSQL;
+  GN: String;
 begin
-  if Increment and Assigned(gdcBaseManager) then
+  Result := -1;
+
+  if (FGeneratorName = '') and Increment and Assigned(gdcBaseManager) then
     Result := gdcBaseManager.GetNextID(ResetCache)
-  else
-  begin
+  else begin
     q := TIBSQL.Create(nil);
     try
       q.Transaction := ReadTransaction;
-      if Increment then
-        q.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0) FROM rdb$database'
-      else
-        q.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 0) + GEN_ID(gd_g_offset, 0) FROM rdb$database';
+
+      if FGeneratorName = '' then
+      begin
+        if Increment then
+          q.SQL.Text := 'SELECT id FROM gd_p_getnextid'
+        else
+          raise Exception.Create('Next id without increment is not supported');
+      end else
+      begin
+        GN := FGeneratorName;
+        if Increment then
+          q.SQL.Text := Format('SELECT GEN_ID(%s, 1) + GEN_ID(gd_g_offset, 0) FROM rdb$database', [GN])
+        else
+          q.SQL.Text := Format('SELECT GEN_ID(%s, 0) + GEN_ID(gd_g_offset, 0) FROM rdb$database', [GN]);
+      end;
+
       q.ExecQuery;
-      Result := q.Fields[0].AsInteger;
+
+      Result := GetTID(q.Fields[0]);
     finally
       q.Free;
     end;
@@ -13152,7 +13438,7 @@ begin
   FOriginalClass := CIBError(E.ClassType);
   Create(E.SQLCode, E.IBErrorCode,
     Format('%s'#13#10#13#10'Class: %s'#13#10'Object: %s'#13#10'SubType: %s'#13#10'SubSet: %s'#13#10'ID: %d'#13#10,
-      [E.Message, AnObj.ClassName, AnObj.Name, AnObj.SubType, AnObj.SubSet, AnObj.ID]));
+      [E.Message, AnObj.ClassName, AnObj.Name, AnObj.SubType, AnObj.SubSet, TID264(AnObj.ID)]));
 end;
 
 procedure TgdcBase.DoAfterShowDialog(DlgForm: TCreateableForm;
@@ -13250,7 +13536,7 @@ begin
   end;
 end;
 
-procedure TgdcBaseManager.RemoveRUIDFromCache(const AXID, ADBID: TID);
+procedure TgdcBaseManager.RemoveRUIDFromCache(const AXID: TID; const ADBID: Integer);
 var
   S: String;
 begin
@@ -13259,11 +13545,11 @@ begin
     S := RUIDToStr(AXID, ADBID);
     if CacheList.Has(S) then
       CacheList.Remove(S);
-  end;    
+  end;
 end;
 
-procedure TgdcBaseManager.ChangeRUID(const AnOldXID, AnOldDBID, ANewXID,
-  ANewDBID: TID; ATr: TIBTRansaction; const AForceUpdateFunc: Boolean);
+procedure TgdcBaseManager.ChangeRUID(const AnOldXID: TID; const AnOldDBID: Integer;
+  const ANewXID: TID; const ANewDBID: Integer; ATr: TIBTRansaction; const AForceUpdateFunc: Boolean);
 var
   OldRUIDString, NewRUIDString: String;
   //OldRUIDParam, NewRUIDParam: String;
@@ -13301,7 +13587,7 @@ begin
       q.SQL.Text :=
         'SELECT id FROM gd_ruid ' +
         'WHERE xid = :old_xid AND dbid = :old_dbid';
-      q.ParamByName('old_xid').AsInteger := AnOldXID;
+      SetTID(q.ParamByName('old_xid'), AnOldXID);
       q.ParamByName('old_dbid').AsInteger := AnOldDBID;
       q.ExecQuery;
 
@@ -13312,7 +13598,7 @@ begin
         q.SQL.Text :=
           'SELECT id FROM gd_ruid ' +
           'WHERE xid = :new_xid AND dbid = :new_dbid';
-        q.ParamByName('new_xid').AsInteger := ANewXID;
+        SetTID(q.ParamByName('new_xid'), ANewXID);
         q.ParamByName('new_dbid').AsInteger := ANewDBID;
         q.ExecQuery;
 
@@ -13333,7 +13619,7 @@ begin
           q.SQL.Text :=
             'DELETE FROM gd_ruid ' +
             'WHERE xid = :new_xid AND dbid = :new_dbid';
-          q.ParamByName('new_xid').AsInteger := ANewXID;
+          SetTID(q.ParamByName('new_xid'), ANewXID);
           q.ParamByName('new_dbid').AsInteger := ANewDBID;
           q.ExecQuery;
         end;
@@ -13343,9 +13629,9 @@ begin
           'UPDATE gd_ruid SET xid = :new_xid, dbid = :new_dbid, ' +
           '  modified = CURRENT_TIMESTAMP(0) ' +
           'WHERE xid = :old_xid AND dbid = :old_dbid';
-        q.ParamByName('old_xid').AsInteger := AnOldXID;
+        SetTID(q.ParamByName('old_xid'), AnOldXID);
         q.ParamByName('old_dbid').AsInteger := AnOldDBID;
-        q.ParamByName('new_xid').AsInteger := ANewXID;
+        SetTID(q.ParamByName('new_xid'), ANewXID);
         q.ParamByName('new_dbid').AsInteger := ANewDBID;
         q.ExecQuery;
       end;
@@ -13399,17 +13685,17 @@ begin
         '  AND (EXISTS (SELECT * FROM at_object o2 ' +
         '    WHERE o2.namespacekey = o.namespacekey ' +
         '      AND o2.xid = :old_xid AND o2.dbid = :old_dbid))';
-      q.ParamByName('old_xid').AsInteger := AnOLDXID;
+      SetTID(q.ParamByName('old_xid'), AnOLDXID);
       q.ParamByName('old_dbid').AsInteger := AnOldDBID;
-      q.ParamByName('xid').AsInteger := ANewXID;
+      SetTID(q.ParamByName('xid'), ANewXID);
       q.ParamByName('dbid').AsInteger := ANewDBID;
       q.ExecQuery;
 
       q.SQL.Text :=
         'UPDATE at_object SET xid = :xid, dbid = :dbid WHERE xid = :old_xid AND dbid = :old_dbid';
-      q.ParamByName('old_xid').AsInteger := AnOLDXID;
+      SetTID(q.ParamByName('old_xid'), AnOLDXID);
       q.ParamByName('old_dbid').AsInteger := AnOldDBID;
-      q.ParamByName('xid').AsInteger := ANewXID;
+      SetTID(q.ParamByName('xid'), ANewXID);
       q.ParamByName('dbid').AsInteger := ANewDBID;
       q.ExecQuery;
 
@@ -13420,17 +13706,17 @@ begin
         '  AND (EXISTS (SELECT * FROM at_settingpos p2 ' +
         '    WHERE p2.settingkey = p.settingkey ' +
         '      AND p2.xid = :old_xid AND p2.dbid = :old_dbid))';
-      q.ParamByName('old_xid').AsInteger := AnOLDXID;
+      SetTID(q.ParamByName('old_xid'), AnOLDXID);
       q.ParamByName('old_dbid').AsInteger := AnOldDBID;
-      q.ParamByName('xid').AsInteger := ANewXID;
+      SetTID(q.ParamByName('xid'), ANewXID);
       q.ParamByName('dbid').AsInteger := ANewDBID;
       q.ExecQuery;
 
       q.SQL.Text :=
         'UPDATE at_settingpos SET xid = :xid, dbid = :dbid WHERE xid = :old_xid AND dbid = :old_dbid';
-      q.ParamByName('old_xid').AsInteger := AnOLDXID;
+      SetTID(q.ParamByName('old_xid'), AnOLDXID);
       q.ParamByName('old_dbid').AsInteger := AnOldDBID;
-      q.ParamByName('xid').AsInteger := ANewXID;
+      SetTID(q.ParamByName('xid'), ANewXID);
       q.ParamByName('dbid').AsInteger := ANewDBID;
       q.ExecQuery;
     finally
@@ -13478,7 +13764,7 @@ begin
         begin
           R := TRUIDHelper.Create;
           OL.Add(R);
-          R.Parse(q.FieldByName('id').AsInteger, q.FieldByName('script').AsString);
+          R.Parse(GetTID(q.FieldByName('id')), q.FieldByName('script').AsString);
           q.Next;
         end;
 
@@ -13496,7 +13782,7 @@ begin
         for J := 0 to OL.Count - 1 do
           if (OL[J] as TRUIDHelper).FChanged then
           begin
-            q.ParamByName('id').AsInteger := (OL[J] as TRUIDHelper).FFuncID;
+            SetTID(q.ParamByName('id'), (OL[J] as TRUIDHelper).FFuncID);
             q.ParamByName('s').AsString := (OL[J] as TRUIDHelper).FFunction;
             q.ExecQuery;
           end;
@@ -13823,6 +14109,8 @@ begin
 
           if TField(L[I]) is TIntegerField then
             TField(L[I]).AsInteger := F.ReadInteger(TField(L[I]).FieldName)
+          else if TField(L[I]) is TLargeintField then
+            SetTID(TField(L[I]), F.ReadInteger(TField(L[I]).FieldName))
           else if TField(L[I]) is TNumericField then
             TField(L[I]).AsCurrency := F.ReadCurrency(TField(L[I]).FieldName)
           else if TField(L[I]) is TDateTimeField then
@@ -13887,7 +14175,9 @@ begin
         F.DeleteValue(TField(L2[I]).FieldName)
       else
       begin
-        if TField(L2[I]) is TIntegerField then
+        if TField(L2[I]) is TLargeintField then
+          F.WriteInteger(TField(L2[I]).FieldName, GetTID(TField(L2[I])))
+        else if TField(L2[I]) is TIntegerField then
           F.WriteInteger(TField(L2[I]).FieldName, TField(L2[I]).AsInteger)
         else if TField(L2[I]) is TNumericField then
           F.WriteCurrency(TField(L2[I]).FieldName, TField(L2[I]).AsCurrency)
@@ -14041,7 +14331,7 @@ end;
 
 procedure TgdcObjectSet.LoadFromStream(S: TStream);
 var
-  I: Integer;
+  I, Len: Integer;
   ID: TID;
   St: String;
 begin
@@ -14049,15 +14339,18 @@ begin
     Exit;
   S.ReadBuffer(I, SizeOf(I));
   if I > 1024 then
-    raise EgdcException.Create('Некорректный поток!'); 
+    raise EgdcException.Create('Некорректный поток!');
   SetLength(St, I);
   S.ReadBuffer(St[1], I);
   FgdClass := CgdcBase(FindClass(St));
+  {метка сохранения ID в Int64}
+  Len := GetLenIDinStream(@S);
   FCount := 0;
   S.ReadBuffer(I, SizeOf(I));
   while I > 0 do
   begin
-    S.ReadBuffer(ID, SizeOf(ID));
+    S.ReadBuffer(ID, Len);
+
 { TODO -oJulia : Пока считывать из потока будем без наименований классов и сабтайпов }
     Add(ID, '', '', '');
     Dec(I);
@@ -14066,18 +14359,20 @@ end;
 
 procedure TgdcObjectSet.SaveToStream(S: TStream);
 var
-  I: Integer;
+  I, Len: Integer;
   ID: TID;
 begin
   I := Length(gdClassName);
   S.Write(I, SizeOf(I));
   S.Write(gdClassName[1], I);
+  {метка сохранения ID в Int64}
+  Len := SetLenIDinStream(@S);
   I := Count;
   S.Write(I, SizeOf(I));
   for I := 0 to Count - 1 do
   begin
     ID := Items[I];
-    S.Write(ID, SizeOf(ID));
+    S.Write(ID, Len);
   end;
 end;
 
@@ -14757,7 +15052,7 @@ begin
     for I := 0 to FSelectedID.Count - 1 do
     begin
       if Length(Str) >= 8192 then break;
-      Str := Str + IntToStr(FSelectedID[I]) + ',';
+      Str := Str + TID2S(FSelectedID[I]) + ',';
     end;
     if Str = '' then
       Str := '-1'
@@ -14780,7 +15075,7 @@ end;
 function TgdcBase.GetCreatorKey: TID;
 begin
   if tiCreatorKey in gdcTableInfos then
-    Result := FieldByName(fncreatorkey).AsInteger
+    Result := GetTID(FieldByName(fncreatorkey))
   else
     Result := GetEditorKey;
 end;
@@ -14794,7 +15089,7 @@ begin
     q.Database := Database;
     q.Transaction := ReadTransaction;
     q.SQL.Text := 'SELECT name FROM gd_contact WHERE id=:ID';
-    q.Params[0].AsInteger := CreatorKey;
+    SetTID(q.Params[0], CreatorKey);
     q.ExecQuery;
     if q.EOF then
       Result := ''
@@ -14825,7 +15120,7 @@ var
   RR: TRUIDRec;
 begin
   if tiEditorKey in gdcTableInfos then
-    Result := FieldByName(fneditorkey).AsInteger
+    Result := GetTID(FieldByName(fneditorkey))
   else begin
     RR := gdcBaseManager.GetRUIDRecByID(ID, ReadTransaction);
     if RR.XID = -1 then
@@ -14844,7 +15139,7 @@ begin
     q.Database := Database;
     q.Transaction := ReadTransaction;
     q.SQL.Text := 'SELECT name FROM gd_contact WHERE id=:ID';
-    q.Params[0].AsInteger := EditorKey;
+    SetTID(q.Params[0], EditorKey);
     q.ExecQuery;
     if q.EOF then
       Result := ''
@@ -14955,9 +15250,9 @@ begin
   Result := FSelectedID;
 end;
 
-procedure TgdcBase.AddToSelectedID(const AnID: Integer = -1);
+procedure TgdcBase.AddToSelectedID(const AnID: TID = -1);
 var
-  AddId: Integer;
+  AddId: TID;
 begin
   if AnID = -1 then
     AddId := ID
@@ -14981,9 +15276,9 @@ begin
     FSQLInitialized := False;
 end;
 
-procedure TgdcBase.RemoveFromSelectedID(const AnID: Integer = -1);
+procedure TgdcBase.RemoveFromSelectedID(const AnID: TID = -1);
 var
-  DelId: Integer;
+  DelId: TID;
 begin
   if AnID = -1 then
     DelId := ID
@@ -15034,7 +15329,7 @@ begin
         RUIDToStr(GetRUID) + ' "' + FieldByName(GetListField(SubType)).AsString + '"');
       if (sLoadFromStream in BaseState) and NeedDeleteTheSame(SubType) then
       begin
-        DeleteTheSame(q.Fields[0].AsInteger, FieldByName(GetListField(SubType)).AsString);
+        DeleteTheSame(GetTID(q.Fields[0]), FieldByName(GetListField(SubType)).AsString);
       end else
       begin
         CDS := TClientDataSet.Create(nil);
@@ -15057,7 +15352,7 @@ begin
                 then
                   CDS.FieldByName(Fields[I].FieldName).AsString := ''
                 else
-                  CDS.FieldByName(Fields[I].FieldName).Value := FieldByName(Fields[I].FieldName).Value;
+                  SetVar2Field(CDS.FieldByName(Fields[I].FieldName), GetFieldAsVar(FieldByName(Fields[I].FieldName)));
               end;
               CDS.Post;
             except
@@ -15068,7 +15363,7 @@ begin
           end;
 
           Cancel;
-          ID := q.Fields[0].AsInteger;
+          ID := GetTID(q.Fields[0]);
           Result := RecordCount > 0;
           if not Result then
             raise EgdcIBError.Create('Запись ' + GetListTable(SubType) + ' '+
@@ -15091,7 +15386,7 @@ begin
                 begin
                   R := nil;
                   F := nil;
-                  if (FieldByName(Fields[I].FieldName).AsString = IntToStr(ID)) and
+                  if (FieldByName(Fields[I].FieldName).AsString = TID2S(ID)) and
                     Assigned(atDatabase) then
                   begin
                    //Проверяем не является ли наше поле, содержащее значение = keyfield, ссылкой
@@ -15109,7 +15404,7 @@ begin
                     then
                       FieldByName(Fields[I].FieldName).AsString := ''
                     else
-                      FieldByName(Fields[I].FieldName).Value := CDS.FieldByName(Fields[I].FieldName).Value;
+                      SetVar2Field(FieldByName(Fields[I].FieldName), GetFieldAsVar(CDS.FieldByName(Fields[I].FieldName)));
                   end;
                 end;
                 Post;
@@ -15177,9 +15472,9 @@ begin
     Result := ''
   else begin
     F := FieldByName(GetKeyField(SubType));
-    if (not EOF) and (F.AsInteger < cstUserIDStart) and (not F.IsNull) then
+    if (not EOF) and (GetTID(F) < cstUserIDStart) and (not F.IsNull) then
       Result := Format('SELECT %0:s FROM %1:s WHERE %0:s=%2:d ',
-        [GetKeyField(SubType), GetListTable(SubType), F.AsInteger])
+        [GetKeyField(SubType), GetListTable(SubType), TID264(F)])
     else
       Result := '';
   end;
@@ -15262,7 +15557,11 @@ begin
           if
             ((Field.DataType = ftString)
               and ((Field.FieldName = 'NAME') or (Field.FieldName = 'USR$NAME') or (Field.FieldName = 'FULLNAME'))) or
-            ((Field.DataType = ftInteger)
+            {$IFDEF ID64}
+            ((Field.DataType in [ftLargeInt])
+            {$ELSE}
+            ((Field.DataType in [ftInteger])
+            {$ENDIF}
               and ((Field.FieldName = 'PARENT') or (Field.FieldName = 'COMPANYKEY'))) or
             ((Field.DataType = ftDate)
               and (Field.FieldName = 'DOCUMENTDATE')) then
@@ -15287,7 +15586,7 @@ begin
         begin
           DW := GlobalStorage.ReadInteger('Options', 'DatesWindow', 10, False);
           if (DW > 0) and
-            (Field.AsDateTime > 1) and
+            (not VarIsNull(Field.Value)) and
             ((Field.AsDateTime < Now - DW * 365) or (Field.AsDateTime > Now + DW * 365)) then
           begin
             // Есть диалоговые формы, где датасет для поля находится на форме просмотра,
@@ -15432,17 +15731,17 @@ begin
   // присваиваем уникальный идентификатор записи
   if gdcBaseInterface.tiID in gdcTableInfos then
   begin
-    FieldByName(GetKeyField(SubType)).AsInteger := GetNextID;
+    SetTID(FieldByName(GetKeyField(SubType)), GetNextID);
   end;
 
   if gdcBaseInterface.tiXID in gdcTableInfos then
   begin
-    FieldByName(fnxid).AsInteger := FieldByName(GetKeyField(SubType)).AsInteger;
+    SetTID(FieldByName(fnxid), FieldByName(GetKeyField(SubType)));
   end;
 
   if gdcBaseInterface.tiDBID in gdcTableInfos then
   begin
-    if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+    if GetTID(FieldByName(GetKeyField(SubType))) < cstUserIDStart then
       FieldByName(fndbid).AsInteger := cstEtalonDBID
     else
       FieldByName(fndbid).AsInteger := IBLogin.DBID;
@@ -15455,13 +15754,13 @@ begin
   end;
 
   if tiCreatorKey in gdcTableInfos then
-    FieldByName(fnCREATORKEY).AsInteger := IBLogin.ContactKey;
+    SetTID(FieldByName(fnCREATORKEY), IBLogin.ContactKey);
 
   if tiCreationDate in gdcTableInfos then
     FieldByName(fnCREATIONDATE).AsDateTime := SysUtils.Now;
 
   if tiEditorKey in gdcTableInfos then
-    FieldByName(fnEDITORKEY).AsInteger := IBLogin.ContactKey;
+    SetTID(FieldByName(fnEDITORKEY), IBLogin.ContactKey);
 
   if tiEditionDate in gdcTableInfos then
     FieldByName(fnEDITIONDATE).AsDateTime := SysUtils.Now;
@@ -15511,7 +15810,7 @@ begin
           begin
             if FindField(FN) <> nil then
             begin
-              FieldByName(FN).Assign(MO.FieldByName(FMasterField[I]));
+              AssignField64(FieldByName(FN), MO.FieldByName(FMasterField[I]));
             end;
             {Детальное поле может не присутствовать в запросе, например,
              для деревьев, где связь идет через :rootid}
@@ -15519,8 +15818,8 @@ begin
         end
     end else begin
       { TODO : непосредственно прописываем имя поля ИД }
-      FieldByName(cstSetPrefix + FSetMasterField).AsInteger := MO.FieldByName(fnid).AsInteger;
-      FieldByName(cstSetPrefix + FSetItemField).AsInteger := ID;
+      SetTID(FieldByName(cstSetPrefix + FSetMasterField), MO.FieldByName(fnid));
+      SetTID(FieldByName(cstSetPrefix + FSetItemField), ID);
     end;
   end;
 
@@ -15789,18 +16088,18 @@ begin
   else
   begin
     Result := Self.CreateSubType(AnOwner, ASubType, 'ByID');
-    Result.ParamByName(Result.GetKeyField(ASubType)).AsInteger := AnID;
+    SetTID(Result.ParamByName(Result.GetKeyField(ASubType)), AnID);
     Result.Open;
     Result.Next;
     if Result.RecordCount = 0 then
     begin
       Result.Free;
-      raise EgdcIDNotFound.Create(Self.ClassName + ': ID not found (' + IntToStr(AnID) + ')');
+      raise EgdcIDNotFound.Create(Self.ClassName + ': ID not found (' + TID2S(AnID) + ')');
     end else if Result.RecordCount > 1 then
     begin
       Result.Free;
       raise EgdcIDNotFound.Create(Self.ClassName + ': Один идентификатор (' +
-        IntToStr(AnID) + ') возвращает несколько записей! '#13#10 +
+        TID2S(AnID) + ') возвращает несколько записей! '#13#10 +
         'Проверьте правильность построения запроса (свойство SelectSQL)');
     end else
        Result.First;
@@ -15888,7 +16187,11 @@ begin
               or ((FgdcDataLink.DataSet is TIBCustomDataSet) and (PRecordData(FgdcDataLink.DataSet.ActiveBuffer)^.rdRecordKind <> rkRecord))
               {$ENDIF}
               )
-            and (cur_field.DataType = ftInteger) then
+            {$IFDEF ID64}
+            and (cur_field.DataType in [ftLargeInt]) then
+            {$ELSE}
+            and (cur_field.DataType in [ftInteger]) then
+            {$ENDIF}
           begin
             cur_param.AsLong := -1;
           end else
@@ -16267,7 +16570,7 @@ begin
   end else
   if  UpperName = 'DOONFILTERCHANGED' then
   begin
-    DoOnFilterChanged(InterfaceToObject(AnParams[1]), Integer(AnParams[2]));
+    DoOnFilterChanged(InterfaceToObject(AnParams[1]), GetTID(AnParams[2]));
 //    procedure (Sender: TObject; const AnCurrentFilter: Integer);
   end else
   if  UpperName = 'DOONREPORTLISTCLICK' then
@@ -16817,7 +17120,7 @@ begin
   ExecSingleQuery(Format(
     'UPDATE OR INSERT INTO %s (%s, %s) VALUES (%d, %d) MATCHING (%s, %s)',
     [FSetTable, FSetMasterField, FSetItemField,
-     ParamByName('MASTER_RECORD_ID').AsInteger, AnID,
+     TID264(GetTID(ParamByName('MASTER_RECORD_ID'))), TID264(AnID),
      FSetMasterField, FSetItemField]));
 
   FDSModified := True;
@@ -16826,7 +17129,7 @@ begin
   try
     Close;
     Open;
-    Locate(cstSetPrefix + FSetItemField, AnID, []);
+    Locate(cstSetPrefix + FSetItemField, TID2V(AnID), []);
   finally
     EnableControls;
   end;
@@ -16912,7 +17215,7 @@ begin
         exit;
     end;
 
-    Result := FieldByName(GetKeyField(SubType)).AsInteger;
+    Result := GetTID(FieldByName(GetKeyField(SubType)));
   finally
     FPeekBuffer := nil;
   end;
@@ -16977,7 +17280,7 @@ begin
       q.Transaction.StartTransaction;
 
     q.SQL.Text := Format('SELECT %s FROM %s WHERE %s = %d',
-      [GetListField(ASubType), GetListTable(ASubType), GetKeyField(ASubType), AnID]);
+      [GetListField(ASubType), GetListTable(ASubType), GetKeyField(ASubType), TID264(AnID)]);
     q.ExecQuery;
 
     if q.EOF then
@@ -17077,9 +17380,9 @@ var
 begin
   S := GetKeyField(SubType);
 
-  if FieldByName(S).AsInteger = AnID then
+  if GetTID(FieldByName(S)) = AnID then
   begin
-    Result := FieldByName(AFieldName).Value;
+    Result := GetFieldAsVar(FieldByName(AFieldName));
   end else
   begin
     Result := Unassigned;
@@ -17091,7 +17394,7 @@ begin
 
         if PRecordData(FPeekBuffer)^.rdUpdateStatus <> usDeleted then
         begin
-          if FieldByName(S).AsInteger = AnID then
+          if GetTID(FieldByName(S)) = AnID then
           begin
             Accept := True;
 
@@ -17100,7 +17403,7 @@ begin
 
             if Accept then
             begin
-              Result := FieldByName(AFieldName).Value;
+              Result := GetFieldAsVar(FieldByName(AFieldName));
               exit;
             end;
           end;
@@ -17135,7 +17438,7 @@ begin
           exit;
       end;
 
-      Result := FieldByName(AFieldName).Value;
+      Result := GetFieldAsVar(FieldByName(AFieldName));
     finally
       FPeekBuffer := nil;
     end;
@@ -17335,7 +17638,7 @@ begin
       Move(PChar(Self)[(1+8+26) * SizeOf(Integer) + SizeOf(TFilterOptions)], OldDS, SizeOf(OldDS));
       DS := dsEdit;
       Move(DS, PChar(Self)[(1+8+26) * SizeOf(Integer) + SizeOf(TFilterOptions)], SizeOf(DS));
-      FieldByName(AFieldName).Value := AValue;
+      SetVar2Field(FieldByName(AFieldName), AValue);
       Move(OldDS, PChar(Self)[(1+8+26) * SizeOf(Integer) + SizeOf(TFilterOptions)], SizeOf(OldDS));
     finally
       FPeekBuffer := nil;
@@ -17396,7 +17699,7 @@ begin
   Result := False;
 end;
 
-function TgdcBase.DeleteTheSame(AnID: Integer; AName: String): Boolean;
+function TgdcBase.DeleteTheSame(AnID: TID; AName: String): Boolean;
 begin
   Result := False;
 
@@ -17420,7 +17723,7 @@ class function TgdcBase.SelectObject(const AMessage: String = '';
   const ATitle: String = '';
   const AHelpCtxt: Integer = 0;
   const ACondition: String = '';
-  const ADefaultID: Integer = -1): TID;
+  const ADefaultID: TID = -1): TID;
 begin
   with Tgdc_dlgSelectObject.Create(Application) do
   try
@@ -17552,7 +17855,7 @@ end;
 
 function TgdcBase.GetFieldByNameValue(const AField: String): Variant;
 begin
-  Result := FieldByName(AField).Value;
+  Result := GetFieldAsVar(FieldByName(AField));
 end;
 
 procedure TgdcBase.SetOnGetSelectClause(const Value: TgdcOnGetSQLClause);
@@ -18119,12 +18422,12 @@ begin
   // если использовать ParentHandle, то форма просмотра будет 'западать'.
   if VarIsEmpty(BL)
     or (VarArrayHighBound(BL, 1) = -1)
-    or ((VarArrayHighBound(BL, 1) = 0) and (BL[0] = ID))then
+    or ((VarArrayHighBound(BL, 1) = 0) and (GetTID(BL[0]) = ID))then
   begin
     if (RecordCount > 0) and
        (
          (not (sView in BaseState)) or
-         (MessageBox(Application.Handle,
+         (MessageBox(ParentHandle,
            PChar(Format('Удалить выделенную запись "%s"?', [ObjectName])),
            'Внимание!',
            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL or MB_DEFBUTTON2) = IDYES)
@@ -18136,7 +18439,7 @@ begin
   else
   begin
     if (not (sView in BaseState)) or
-         (MessageBox(Application.Handle,
+         (MessageBox(ParentHandle,
             PChar(
               'Выделено записей: ' + FormatFloat('#,##0', VarArrayHighBound(BL, 1) + 1) + #13#10 +
               'Удалить?'),
@@ -18206,7 +18509,7 @@ begin
   if IsEmpty
     or VarIsEmpty(BL)
     or (VarArrayHighBound(BL, 1) = -1)
-    or ((VarArrayHighBound(BL, 1) = 0) and (BL[0] = ID)) then
+    or ((VarArrayHighBound(BL, 1) = 0) and (GetTID(BL[0]) = ID)) then
   begin
     Result := EditDialog(ADlgClassName);
   end
@@ -18287,7 +18590,7 @@ begin
 
             for I := VarArrayLowBound(BL, 1) to VarArrayHighBound(BL, 1) do
             begin
-              if (BL[I] = Bm) {or not BookmarkValid(Pointer(BL[I]))} then
+              if (BL[I] = TID2V(Bm)) {or not BookmarkValid(Pointer(BL[I]))} then
                 continue;
               if not Locate(GetKeyField(SubType), BL[I], []) then
                 continue;
@@ -18337,7 +18640,7 @@ begin
             if RecordCount > 0 then
             begin
               try
-                Locate(GetKeyField(SubType), Bm, []);
+                Locate(GetKeyField(SubType), TID2V(Bm), []);
               except
                 on E: EDatabaseError do
                 begin
@@ -18407,13 +18710,13 @@ begin
   begin
     if tiAView in gdcTableInfos then
       Result := Result + Format(' BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0 ',
-        [GetListTableAlias, IBLogin.InGroup])
+        [GetListTableAlias, TID264(IBLogin.InGroup)])
     else if tiAChag in gdcTableInfos then
       Result := Result + Format(' BIN_AND(BIN_OR(%s.achag, 1), %d) <> 0 ',
-        [GetListTableAlias, IBLogin.InGroup])
+        [GetListTableAlias, TID264(IBLogin.InGroup)])
     else if tiAFull in gdcTableInfos then
       Result := Result + Format(' BIN_AND(BIN_OR(%s.afull, 1), %d) <> 0 ',
-        [GetListTableAlias, IBLogin.InGroup]);
+        [GetListTableAlias, TID264(IBLogin.InGroup)]);
   end;
 end;
 
@@ -18530,7 +18833,7 @@ begin
           Result := (FOldValues[I] as TFieldValue).Value;
         exit;
       end;
-  end;    
+  end;
 end;
 
 procedure TgdcBase.CheckDoFieldChange;
@@ -18712,14 +19015,14 @@ begin
   end;
 end;
 
-procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Integer;
-  var ACount: Integer;
+procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: TID;
+  var ACount: TID;
   const AnIncludeSystemObjects: Boolean = False;
   const AnIgnoreFields: String = '';
   const AnIgnoreRelations: String = '';
   const ALimitLevel: Integer = MAXINT;
   const AClearList: Boolean = True;
-  const AnExternalMasterID: Integer = -1;
+  const AnExternalMasterID: TID = -1;
   const AStartingLevel: Integer = 0);
 
   const
@@ -18764,7 +19067,7 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
     ArrObjects: array[0..1024] of TgdcBase;
     ArrIDs: array[0..1024] of TID;
     Locked: Boolean;
-    ThisID: Integer;
+    ThisID: TID;
   begin
     if ALevel > ALimitLevel then
       exit;
@@ -18787,13 +19090,18 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
       if AnObject.Fields[I].IsNull then
         continue;
 
-      if AnObject.Fields[I].DataType <> ftInteger then
+      {$IFDEF ID64}
+      if not (AnObject.Fields[I].DataType in [ftLargeInt]) then
+        continue;
+      {$ELSE}
+      if not (AnObject.Fields[I].DataType in [ftInteger]) then
+        continue;
+      {$ENDIF}
+
+      if (GetTID(AnObject.Fields[I]) < cstUserIDStart) and (not AnIncludeSystemObjects) then
         continue;
 
-      if (AnObject.Fields[I].AsInteger < cstUserIDStart) and (not AnIncludeSystemObjects) then
-        continue;
-
-      if AProcessed.IndexOf(AnObject.Fields[I].AsInteger) <> -1 then
+      if AProcessed.IndexOf(GetTID(AnObject.Fields[I])) <> -1 then
         continue;
 
       if Pos(';' + AnObject.Fields[I].Origin + ';', ';' + AnIgnoreFields + ';') > 0 then
@@ -18837,7 +19145,7 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
         Obj.SubSet := 'ByID';
       end;
 
-      Obj.ID := AnObject.Fields[I].AsInteger;
+      Obj.ID := GetTID(AnObject.Fields[I]);
       Obj.Open;
 
       if Obj.EOF then
@@ -18866,7 +19174,7 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
           Obj.SubSet := 'ByID';
         end;
 
-        Obj.ID := AnObject.Fields[I].AsInteger;
+        Obj.ID := GetTID(AnObject.Fields[I]);
         Obj.Open;
       end;
 
@@ -18879,12 +19187,12 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
       if TstObj(Obj) then
       begin
         Inc(ACount);
-        AqInsert.ParamByName('seqid').AsInteger := ACount;
+        SetTID(AqInsert.ParamByName('seqid'), ACount);
         AqInsert.ParamByName('reflevel').AsInteger := ALevel;
         AqInsert.ParamByName('relationname').AsString := RelationName;
         AqInsert.ParamByName('fieldname').AsString := FieldName;
         AqInsert.ParamByName('crossrelation').AsInteger := 0;
-        AqInsert.ParamByName('refobjectid').AsInteger := Obj.ID;
+        SetTID(AqInsert.ParamByName('refobjectid'), Obj.ID);
         AqInsert.ParamByName('refobjectname').AsString := System.Copy(Obj.ObjectName, 1, 60);
         AqInsert.ParamByName('refrelationname').AsString := R.RelationName;
         AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
@@ -18956,7 +19264,7 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
         Obj.SetTable := AnObject.SetAttributes[I].CrossRelationName;
       end;
 
-      Obj.ParamByName('master_record_id').AsInteger := AnObject.ID;
+      SetTID(Obj.ParamByName('master_record_id'), AnObject.ID);
       Obj.Open;
 
       while not Obj.Eof do
@@ -18989,12 +19297,12 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
           if TstObj(TempObj) and (ACount < LimitCount) then
           begin
             Inc(ACount);
-            AqInsert.ParamByName('seqid').AsInteger := ACount;
+            SetTID(AqInsert.ParamByName('seqid'), ACount);
             AqInsert.ParamByName('reflevel').AsInteger := ALevel;
             AqInsert.ParamByName('relationname').AsString := AnObject.SetAttributes[I].CrossRelationName;
             AqInsert.ParamByName('fieldname').AsString := AnObject.SetAttributes[I].ReferenceLinkFieldName;
             AqInsert.ParamByName('crossrelation').AsInteger := 1;
-            AqInsert.ParamByName('refobjectid').AsInteger := TempObj.ID;
+            SetTID(AqInsert.ParamByName('refobjectid'), TempObj.ID);
             AqInsert.ParamByName('refobjectname').AsString := System.Copy(TempObj.ObjectName, 1, 60);
             AqInsert.ParamByName('refrelationname').AsString := AnObject.SetAttributes[I].ReferenceRelationName;
             AqInsert.ParamByName('refclassname').AsString := TempObj.ClassName;
@@ -19053,7 +19361,7 @@ begin
     begin
       q.SQL.Text :=
         'DELETE FROM gd_object_dependencies WHERE sessionid = :sessionid';
-      q.ParamByName('sessionid').AsInteger := ASessionID;
+      SetTID(q.ParamByName('sessionid'), ASessionID);
       q.ExecQuery;
     end;
 
@@ -19067,19 +19375,19 @@ begin
       '  :refobjectid, :refobjectname, :refrelationname, :refclassname, :refsubtype, ' +
       '  :refeditiondate) ' +
       'MATCHING (sessionid, masterid, reflevel, relationname, fieldname, refobjectid)';
-    q.ParamByName('sessionid').AsInteger := ASessionID;
-    q.ParamByName('masterid').AsInteger := Self.ID;
+    SetTID(q.ParamByName('sessionid'), ASessionID);
+    SetTID(q.ParamByName('masterid'), Self.ID);
 
     if (AnExternalMasterID > -1) and TstObj(Obj) then
     begin
       Inc(ACount);
-      q.ParamByName('seqid').AsInteger := ACount;
-      q.ParamByName('masterid').AsInteger := AnExternalMasterID;
+      SetTID(q.ParamByName('seqid'),  ACount);
+      SetTID(q.ParamByName('masterid'), AnExternalMasterID);
       q.ParamByName('reflevel').AsInteger := AStartingLevel;
       q.ParamByName('relationname').AsString := Obj.GetListTable(Obj.SubType);
       q.ParamByName('fieldname').AsString := Obj.GetKeyField(Obj.SubType);
       q.ParamByName('crossrelation').AsInteger := 0;
-      q.ParamByName('refobjectid').AsInteger := Obj.ID;
+      SetTID(q.ParamByName('refobjectid'), Obj.ID);
       q.ParamByName('refobjectname').AsString := System.Copy(Obj.ObjectName, 1, 60);
       q.ParamByName('refrelationname').AsString := Obj.GetListTable(Obj.SubType);
       q.ParamByName('refclassname').AsString := Obj.ClassName;
@@ -19105,7 +19413,7 @@ begin
   end;
 end;
 
-procedure TgdcBase.SetStreamDBID(const Value: TID);
+procedure TgdcBase.SetStreamDBID(const Value: Integer);
 begin
   if not (sLoadFromStream in BaseState) then
     raise EgdcException.CreateObj('Объект должен находиться в состоянии загрузки из потока.', Self);
@@ -19204,7 +19512,7 @@ end;
 
 { TRUIDHelper }
 
-procedure TRUIDHelper.Parse(const AFuncID: Integer;
+procedure TRUIDHelper.Parse(const AFuncID: TID;
   const AFunction: String);
 var
   B, E: Integer;
@@ -20102,4 +20410,7 @@ begin
   end;
 *)
 end.
+
+
+
 

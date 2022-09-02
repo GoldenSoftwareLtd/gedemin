@@ -1,3 +1,4 @@
+// ShlTanya, 11.02.2019
 
 {++
 
@@ -128,7 +129,7 @@ begin
       begin
         M := TMenuItem.Create(Self);
         M.Tag := I;
-        M.Name := 'G' + IntToStr(FReportGroup.GroupItems[I].Id);
+        M.Name := 'G' + TID2S(FReportGroup.GroupItems[I].Id);
         M.Caption := FReportGroup.GroupItems[I].Name;
         if (Parent is TMenuItem) then
           (Parent as TMenuItem).Add(M)
@@ -180,11 +181,11 @@ end;
 
 procedure TgdReportMenu.ReloadGroup;
 var
-  LocId: Integer;
+  LocId: TID;
   F: TgdcCreateableForm;
   M: TMenuItem;
   q: TIBSQL;
-  RGK: Integer;
+  RGK: TID;
 begin
   Assert(FReportGroup <> nil);
 
@@ -209,10 +210,10 @@ begin
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
       q.SQL.Text := 'SELECT reportgroupkey FROM evt_object WHERE id = :id';
-      q.ParamByName('id').AsInteger := LocId;
+      SetTID(q.ParamByName('id'), LocId);
       q.ExecQuery;
       if not q.Eof then
-        RGK := q.FieldByName('reportgroupkey').AsInteger;
+        RGK := GetTID(q.FieldByName('reportgroupkey'));
     finally
       q.Free;
     end;

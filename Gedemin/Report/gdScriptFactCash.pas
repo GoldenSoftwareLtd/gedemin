@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 unit gdScriptFactory;
 
 interface
@@ -9,12 +11,12 @@ uses
 type
   TVarLocCash = class(TObject)
   private
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
     FModifyDate: String;
     FParam, FResult: Variant;
 
   public
-    property FunctionKey: Integer read FFunctionKey write FFunctionKey;
+    property FunctionKey: TID read FFunctionKey write FFunctionKey;
     property ModifyDate: String read FModifyDate write FModifyDate;
     property Param: Variant read FParam write FParam;
     property Result: Variant read FResult write FResult;

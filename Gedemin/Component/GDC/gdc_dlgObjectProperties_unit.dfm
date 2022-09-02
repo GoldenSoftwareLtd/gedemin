@@ -1,6 +1,6 @@
 inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
-  Left = 381
-  Top = 94
+  Left = 668
+  Top = 114
   Caption = 'Свойства объекта'
   ClientHeight = 559
   ClientWidth = 657
@@ -1280,11 +1280,6 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
     SubSet = 'ByMask'
     Left = 228
     Top = 304
-    object gdcUserGroupID: TIntegerField
-      FieldName = 'ID'
-      Required = True
-      Visible = False
-    end
     object gdcUserGroupNAME: TIBStringField
       FieldName = 'NAME'
       Required = True

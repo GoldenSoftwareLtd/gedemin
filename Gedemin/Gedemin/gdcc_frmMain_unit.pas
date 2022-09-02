@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 unit gdcc_frmMain_unit;
 
@@ -135,6 +136,7 @@ type
     procedure actAboutExecute(Sender: TObject);
     procedure gsTrayIconClick(Sender: TObject);
     procedure actClearProfilerDataExecute(Sender: TObject);
+    procedure actClearLogDataExecute(Sender: TObject);
 
   private
     FCurrentID: Integer;
@@ -823,8 +825,8 @@ end;
 
 procedure Tgdcc_frmMain.sbResize(Sender: TObject);
 begin
-  sb.Panels[0].Width := Width - 150 - 80;
-  sb.Panels[1].Width := 150;
+  sb.Panels[0].Width := Width - 200 - 80;
+  sb.Panels[1].Width := 200;
   sb.Panels[2].Width := 80;
 end;
 
@@ -884,6 +886,19 @@ begin
   end;
 
   actSetProfilerFilter.Execute;
+end;
+
+procedure Tgdcc_frmMain.actClearLogDataExecute(Sender: TObject);
+var  C: TgdccConnection;
+begin
+  if gdccServer.Connections.FindAndLock(FCurrentID, C) then
+  try
+    C.Log.Clear;
+  finally
+    gdccServer.Connections.Unlock;
+  end;
+
+  actSetLogFilter.Execute;
 end;
 
 end.

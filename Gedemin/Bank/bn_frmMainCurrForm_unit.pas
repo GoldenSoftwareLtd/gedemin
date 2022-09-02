@@ -1,3 +1,5 @@
+// ShlTanya, 30.01.2019
+
 unit bn_frmMainCurrForm_unit;
 
 interface
@@ -22,7 +24,7 @@ implementation
 
 {$R *.DFM}
 
-uses gd_Security,  gd_ClassList;
+uses gd_Security,  gd_ClassList, gdcBaseInterface;
 
 function Tbn_frmMainCurrForm.Get_SelectedKey: OleVariant;
 var
@@ -35,7 +37,7 @@ begin
     Result := VarArrayOf([])
   else
     if ibgrMain.SelectedRows.Count = 0 then
-      Result := VarArrayOf([gdcObject.FieldByName('documentkey').AsInteger])
+      Result := VarArrayOf([TID2V(gdcObject.FieldByName('documentkey'))])
     else
     begin
       A := VarArrayCreate([0, ibgrMain.SelectedRows.Count - 1], varVariant);
@@ -45,7 +47,7 @@ begin
       for I := 0 to ibgrMain.SelectedRows.Count - 1 do
       begin
         gdcObject.GotoBookMark(Pointer(ibgrMain.SelectedRows.Items[I]));
-        A[I] := gdcObject.FieldByName('documentkey').AsInteger;
+        A[I] := TID2V(gdcObject.FieldByName('documentkey'));
       end;
       gdcObject.GotoBookMark(Mark);
       gdcObject.EnableControls;

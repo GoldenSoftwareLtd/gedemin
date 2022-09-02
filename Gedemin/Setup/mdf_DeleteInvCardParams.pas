@@ -317,9 +317,9 @@ const
     '  "companykey IN (" & IbLogin.HoldingList & ")"';
 
   S2 =
-    '  SQL.SQL.Text = "EXECUTE BLOCK (begindate DATE = :begindate, enddate DATE = :enddate, trrecordkey INTEGER = :trrecordkey)" & vbCrLf & _'#13#10 +
+    '  SQL.SQL.Text = "EXECUTE BLOCK (begindate DATE = :begindate, enddate DATE = :enddate, trrecordkey DINTKEY = :trrecordkey)" & vbCrLf & _'#13#10 +
     '    "AS " & vbCrLf & _'#13#10 +
-    '    "  DECLARE id INTEGER;" & vbCrLf & _'#13#10 +
+    '    "  DECLARE id DINTKEY;" & vbCrLf & _'#13#10 +
     '    "BEGIN" & vbCrLf & _'#13#10 +
     '    "  FOR" & vbCrLf & _'#13#10 +
     '    "    SELECT e.documentkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey" & vbCrLf & _'#13#10 +
@@ -346,9 +346,9 @@ const
     '  "companykey IN (" & IbLogin.HoldingList & ")"';
 
   S4 =
-    '  SQL.SQL.Text = "EXECUTE BLOCK (trrecordkey INTEGER = :trrecordkey, begindate DATE = :begindate, enddate DATE = :enddate) " & _'#13#10 +
+    '  SQL.SQL.Text = "EXECUTE BLOCK (trrecordkey DINTKEY = :trrecordkey, begindate DATE = :begindate, enddate DATE = :enddate) " & _'#13#10 +
     '    "AS " & _'#13#10 +
-    '    "  DECLARE id INTEGER; " & _'#13#10 +
+    '    "  DECLARE id DINTKEY; " & _'#13#10 +
     '    "BEGIN " & _'#13#10 +
     '    "  FOR " & _'#13#10 +
     '    "    SELECT e.recordkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey " & _'#13#10 +

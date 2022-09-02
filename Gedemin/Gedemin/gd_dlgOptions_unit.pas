@@ -1,3 +1,4 @@
+// ShlTanya, 08.03.2019
 
 unit gd_dlgOptions_unit;
 
@@ -165,6 +166,7 @@ end;
 procedure Tgd_dlgOptions.FormCreate(Sender: TObject);
 var
   q: TIBSQL;
+  I: Integer;
   LI: TListItem;
 begin
   tsAudit.TabVisible := IBLogin.IsUserAdmin;
@@ -367,10 +369,28 @@ begin
         q.Transaction := gdcBaseManager.ReadTransaction;
         q.SQL.Text := 'SELECT GEN_ID(gd_g_block, 0) FROM rdb$database';
         q.ExecQuery;
-        chbxBlock.Checked := q.Fields[0].AsInteger <> 0;
-        BlockedDataBase := q.Fields[0].AsInteger <> 0;
-        if chbxBlock.Checked then
-          xdeBlock.Date := q.Fields[0].AsInteger - IBDateDelta;
+        I := q.Fields[0].AsInteger;
+
+        if I = 0 then
+        begin
+          // блокировка отключена
+          xdeBlock.Date := Now;
+          chbxBlock.Checked := False;
+          BlockedDataBase := False;
+        end
+        else if I < 0 then
+        begin
+          // блокировка отключена, прежн€€ дата блокировки сохранена
+          xdeBlock.Date := -I - IBDateDelta;;
+          chbxBlock.Checked := False;
+          BlockedDataBase := False;
+        end else
+        begin
+          // блокировка включена
+          xdeBlock.Date := I - IBDateDelta;;
+          chbxBlock.Checked := True;
+          BlockedDataBase := True;
+        end;
 
         q.Close;
         q.SQL.Text := 'SELECT GEN_ID(gd_g_block_group, 0) FROM rdb$database';
@@ -497,21 +517,22 @@ begin
       and IBLogin.IsIBUserAdmin
       and Assigned(gdcBaseManager) then
     begin
+      I := Trunc(xdeBlock.Date) + IBDateDelta;
+      if chbxBlock.Checked then
+        S := 'ACTIVE'
+      else
+      begin
+        S := 'INACTIVE';
+        I := -I;
+      end;
+
       q := TIBSQL.Create(nil);
       Tr := TIBTransaction.Create(nil);
       try
         Tr.DefaultDatabase := gdcBaseManager.Database;
         q.Transaction := Tr;
         Tr.StartTransaction;
-        if chbxBlock.Checked then
-        begin
-          S := 'ACTIVE';
-          q.SQL.Text := 'SET GENERATOR gd_g_block TO ' + IntToStr(Trunc(xdeBlock.Date) + IBDateDelta);
-        end else
-        begin
-          S := 'INACTIVE';
-          q.SQL.Text := 'SET GENERATOR gd_g_block TO 0';
-        end;
+        q.SQL.Text := 'SET GENERATOR gd_g_block TO ' + IntToStr(I);
         q.ExecQuery;
         q.Close;
 
@@ -729,7 +750,7 @@ begin
       S := '';
       for I := VarArrayLowBound(A, 1) to VarArrayHighBound(A, 1) do
       begin
-        S := S + '  IF (:DT = ' + IntToStr(A[I]) + ') THEN F = 1; '#13#10;
+        S := S + '  IF (:DT = ' + TID2S(GetTID(A[I])) + ') THEN F = 1; '#13#10;
 
         if Length(S) > 32000 then
           break;
@@ -744,7 +765,7 @@ begin
         q.Transaction := Tr;
         q.ParamCheck := False;
         q.SQL.Text :=
-          'ALTER PROCEDURE gd_p_exclude_block_dt (DT INTEGER) '#13#10 +
+          'ALTER PROCEDURE gd_p_exclude_block_dt (DT DFOREIGNKEY) '#13#10 +
           '  RETURNS (F INTEGER) '#13#10 +
           'AS'#13#10 +
           'BEGIN'#13#10 +
@@ -812,8 +833,8 @@ begin
       for I := 0 to Matches.Count - 1 do
       begin
         if Obj <> nil then
-          Obj.SelectedID.Add(Matches.Item[I].SubMatches.Item[1]);
-        q.ParamByName('ID').AsInteger := Matches.Item[I].SubMatches.Item[1];
+          Obj.SelectedID.Add(GetTID(Matches.Item[I].SubMatches.Item[1]));
+        SetTID(q.ParamByName('ID'), GetTID(Matches.Item[I].SubMatches.Item[1]));
         q.ExecQuery;
         if q.Fields[0].AsString > '' then
           Result := Result + q.Fields[0].AsString + ', ';

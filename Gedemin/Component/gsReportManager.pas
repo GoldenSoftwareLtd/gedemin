@@ -1,3 +1,4 @@
+// ShlTanya, 20.02.2019, #4135
 
 unit gsReportManager;
 
@@ -6,7 +7,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   IBDatabase, DB, Menus, Contnrs, IBSQL, {xfReport,}
-  Printers, rp_ReportClient;
+  Printers, rp_ReportClient, gdcBaseInterface;
 
 type
   TMenuType = (mtSubMenu, mtSeparator);
@@ -20,7 +21,7 @@ type
     FPopupMenu: TPopupMenu;
     FMenuType: TMenuType;
     FCaption: String;
-    FGroupID: Integer;
+    FGroupID: TID;
     FComponentList: TComponentList;
     FOnBeforePrint: TOnBeforePrint;
 
@@ -33,7 +34,7 @@ type
     // Печать отчета. OnClick - в PopupMenu
     procedure DoOnReportClick(Sender: TObject);
     // Печать отчета
-    procedure PrintReport(const ID: Integer);
+    procedure PrintReport(const ID: TID);
 
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -52,7 +53,7 @@ type
     property PopupMenu: TPopupMenu read FPopupMenu write SetPopupMenu;
     property MenuType: TMenuType read FMenuType write FMenuType;
     property Caption: String read FCaption write FCaption;
-    property GroupID: Integer read FGroupID write FGroupID;
+    property GroupID: TID read FGroupID write FGroupID;
 
     property OnBeforePrint: TOnBeforePrint read FOnBeforePrint write FOnBeforePrint;
   end;
@@ -92,7 +93,7 @@ end;
 // Выбор отчета для печати
 procedure TgsReportManager.DoOnReportClick(Sender: TObject);
 begin
-  PrintReport((Sender as TMenuItem).Tag);
+  PrintReport(GetTID((Sender as TMenuItem).Tag, cEmptyContext));
 end;
 
 // Формирование меню
@@ -145,14 +146,14 @@ begin
       MenuItem.OnClick := DoOnReportListClick;
 
       IBSQL.SQL.Text := Format(
-        'SELECT id, name FROM rp_reportlist r WHERE r.reportgroupkey = %d ', [FGroupID]);
+        'SELECT id, name FROM rp_reportlist r WHERE r.reportgroupkey = %d ', [TID264(FGroupID)]);
       IBSQL.ExecQuery;
 
       while not IBSQL.Eof do
       begin
         MenuItem := AddItem(SubMenu, IBSQL.FieldByName('Name').AsString);
         FComponentList.Add(MenuItem);
-        MenuItem.Tag := IBSQL.FieldByName('ID').AsInteger;
+        MenuItem.Tag := TID2Tag(GetTID(IBSQL.FieldByName('ID')), cEmptyContext);
         MenuItem.OnClick := DoOnReportClick;
 
         IBSQL.Next;
@@ -163,7 +164,7 @@ begin
   end;
 end;
 
-procedure TgsReportManager.PrintReport(const ID: Integer);
+procedure TgsReportManager.PrintReport(const ID: TID);
 begin
   Assert(ClientReport <> nil, 'Не подключен сервер отчетов');
 

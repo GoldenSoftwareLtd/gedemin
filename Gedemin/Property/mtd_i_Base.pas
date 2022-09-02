@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit mtd_i_Base;
 
@@ -15,7 +16,7 @@ type
     // Используется для реализации механизма перекрытия методов Делфи
     // скрипт-методами (добавляется в Делфи-код макроподстановкой).
     function ExecuteMethodNew(AClassMethodAssoc: TgdKeyIntAndStrAssoc;
-      AgdcBase: TObject; const AClassName, AMethodName: String; const AnMethodKey: Integer;
+      AgdcBase: TObject; const AClassName, AMethodName: String; const AnMethodKey: TID;
       var AnParams, AnResult: Variant): Boolean;
 
     // Очищает кэш перекрытых методов
@@ -27,11 +28,11 @@ type
     function FindMethodClass(const AnFullClassName: TgdcFullClassName): TObject;
 
     // !!! пока TObject, вообще возвращает TCustomMethodClass
-    function  AddClass(const AnClassKey: Integer;  const AnFullClassName: TgdcFullClassName;
+    function  AddClass(const AnClassKey: TID;  const AnFullClassName: TgdcFullClassName;
       const AnClassReference: TClass): TObject;
 
     procedure SaveDisableFlag(
-      const ID: Integer; const DisableFlag: Boolean);
+      const ID: TID; const DisableFlag: Boolean);
   end;
 
   function  ChangeIncorrectSymbol(const SubType: String): String;

@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdc_frmJournal_unit;
 
@@ -48,7 +49,7 @@ implementation
 { Tgdc_frmJournal }
 
 uses
-  gd_ClassList, gd_security;
+  gd_ClassList, gd_security, gdcBaseInterface;
 
 procedure Tgdc_frmJournal.FormCreate(Sender: TObject);
 begin
@@ -86,7 +87,7 @@ begin
   actOpenObject.Enabled := gdcObject.Active
     and (not gdcObject.IsEmpty)
     and (gdcObject.FieldByName('source').AsString > '')
-    and (gdcObject.FieldByName('objectid').AsInteger > 0);
+    and (GetTID(gdcObject.FieldByName('objectid')) > 0);
 end;
 
 procedure Tgdc_frmJournal.actDuplicateUpdate(Sender: TObject);

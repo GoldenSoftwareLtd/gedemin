@@ -1,7 +1,7 @@
 inherited LoginForm: TLoginForm
-  Left = 538
+  Left = 925
   Height = 413
-  Top = 221
+  Top = 386
   Width = 471
   ClientHeight = 413
   ClientWidth = 471

@@ -1,3 +1,5 @@
+// ShlTanya, 12.03.2019
+
 unit st_dlgFind_unit;
 
 interface

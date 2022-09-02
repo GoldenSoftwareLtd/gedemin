@@ -39,9 +39,13 @@ type
     function BeforeClose: Boolean;
   protected
     FPosition: TStringList;
+    FPositionCode: TStringList;
     FMemoPositions: TStringList;
+    FFirstMemoPositions: TStringList;
     FSHCODE: TStringList;
     FTotalWeight: Double;
+    FCurrWeight: Double;
+    FDelta: Double;
     FEnterCount: Boolean;
     FGoodsCount: Integer;
     FSetBarCode: Boolean;
@@ -57,6 +61,7 @@ type
     procedure GetInfoGoods(const AKey: String; out ACode: String; out ANameGoods: String; out AWeight: Integer; out ADate: TDateTime; out ANumber: Integer; out ANpart: String; out ATara: Integer; out AInvWeight: Double; out AVname: String );
     function CreateBarCode(const AWeight: Integer; ADate: TDateTime; AProductCode: String; ANumber: Integer; ANpart: String; ATara: Integer): String;
     procedure DecodeBarCode(const ABarCode: String; out AWeight: Integer; out ADate: TDateTime; out AProductCode: Integer; out ANumber: Integer; out ANpart: String; out ATara: Integer);
+    procedure GetWeightByProductCode(const AProductCode: String; out AWeight: Integer; out ADelta: Double);
   public
     { public declarations }
     procedure AddPosition(const AString: String); virtual;
@@ -130,6 +135,9 @@ begin
   FPosition := TStringList.Create;
   FMemoPositions := TStringList.Create;
   FMemoPositions.QuoteChar := ';';
+  FFirstMemoPositions := TStringList.Create;
+  FFirstMemoPositions.QuoteChar := ';';
+  FPositionCode := TStringList.Create;
   FTotalWeight := 0;
   FEnterCount := False;
   FGoodsCount := 0;
@@ -189,6 +197,8 @@ begin
   FPosition.Free;
   FSHCODE.Free;
   FMemoPositions.Free;
+  FFirstMemoPositions.Free;
+  FPositionCode.Free;
 end;
 
 
@@ -519,7 +529,7 @@ end;
 
 procedure TBaseOperation.AddPosition(const AString: String);
 var
-  Weight: Integer;
+  Weight, i, TempWeight: Integer;
   Date: TDateTime;
   ProductCode: String;
   NameGood: String;
@@ -539,6 +549,15 @@ begin
     else
        if  Number > 0 then Inc(FGoodsCount);
     eGoods.Text := IntToStr(FGoodsCount);
+    i := FPositionCode.IndexOfName(ProductCode);
+    if (i <> -1) then
+      begin
+        TempWeight := StrToInt(FPositionCode.ValueFromIndex[i]) + Weight;
+        FPositionCode.Delete(i);
+        FPositionCode.Add(ProductCode + '=' + IntToStr(TempWeight));
+      end
+    else
+      FPositionCode.Add(ProductCode + '=' + IntToStr(Weight));
   end else
     FPosition.Add(AString + Separator);
 end;
@@ -621,6 +640,40 @@ begin
       MessageForm.MessageDlg('Некорректный штрих-код', 'Внимание', mtInformation, [mbOk]);
   end;
 end;
+
+procedure TBaseOperation.GetWeightByProductCode(const AProductCode: String; out AWeight: Integer; out ADelta: Double);
+  var
+    i, Index: Integer;
+    SumWeight: Integer;
+    AString: string;
+    Weight: Integer;
+    Date: TDateTime;
+    ProductCode: String;
+    NameGood: String;
+    Number: Integer;
+    Npart, VName: String;
+    NTara: Integer;
+    TotalWeight: Integer;
+    InvWeight: Double;
+  begin
+    SumWeight := 0;
+    ADelta := 0;
+   { for I := DocumentLine to FPosition.Count - 1 do
+      begin
+        AString := Copy(FPosition[I], 1, Length(FPosition[I]) - 1);
+        GetInfoGoods(AString, ProductCode, NameGood, Weight, Date, Number, Npart, NTara, InvWeight, Vname);
+        if (AProductCode =  ProductCode) then
+           SumWeight := SumWeight + weight;
+      end;  }
+    i := FPositionCode.IndexOfName(AProductCode);
+    if (i <> -1) then
+      SumWeight := StrToInt(FPositionCode.ValueFromIndex[i]);
+    { MessageForm.MessageDlg(FPositionCode.ValueFromIndex[i], 'Внимание', mtInformation, [mbOk]);  }
+    AWeight :=  SumWeight;
+    Index := FFirstMemoPositions.IndexOfName(AProductCode);
+    if (Index <> -1) then
+      ADelta := StrToFloat(FFirstMemoPositions.ValueFromIndex[Index]) - SumWeight/1000;
+  end;
 
 end.
 

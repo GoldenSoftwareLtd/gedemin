@@ -13,7 +13,7 @@ object frFieldValuesLine: TfrFieldValuesLine
   object lblName: TLabel
     Left = 5
     Top = 5
-    Width = 38
+    Width = 37
     Height = 13
     Caption = 'lblName'
     Color = clBtnFace

@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019
+
 unit gp_dlgRealizationBill_unit;
 
 interface
@@ -59,7 +61,7 @@ type
     procedure FormDestroy(Sender: TObject);
   private
     FBillPositionInfo: TObjectList;
-    procedure AddFromBill(const BillKey: Integer);
+    procedure AddFromBill(const BillKey: TID);
     { Private declarations }
   protected
     function BeforeSave: Boolean; override;
@@ -84,19 +86,19 @@ uses
 
 type
   TBillPositionInfo = class
-    SourcePositionKey: Integer;
-    SourceGoodKey: Integer;
-    DestPositionKey: Integer;
+    SourcePositionKey: TID;
+    SourceGoodKey: TID;
+    DestPositionKey: TID;
     Quantity: Currency;
     FirstQuantity: Currency;
-    constructor Create(const aSourcePositionKey, aDestPositionKey, aSourceGoodKey: Integer;
+    constructor Create(const aSourcePositionKey, aDestPositionKey, aSourceGoodKey: TID;
       aQuantity: Currency);
   end;
 
 { TBillPositionInfo }
 
 constructor TBillPositionInfo.Create(
-  const aSourcePositionKey, aDestPositionKey, aSourceGoodKey: Integer;
+  const aSourcePositionKey, aDestPositionKey, aSourceGoodKey: TID;
   aQuantity: Currency);
 begin
   SourcePositionKey := aSourcePositionKey;
@@ -117,7 +119,7 @@ function TdlgRealizationBill.BeforeSave: Boolean;
 begin
   Result := True;
   if (ibdsDocRealInfo.FieldByName('Reception').AsString = '') and
-     (ibdsDocRealInfo.FieldByName('ForwarderKey').AsInteger > 0)
+     (GetTID(ibdsDocRealInfo.FieldByName('ForwarderKey')) > 0)
   then
   begin
     if not (ibdsDocRealInfo.State in [dsEdit, dsInsert]) then
@@ -140,18 +142,18 @@ begin
   FBillPositionInfo := TObjectList.Create;
 end;
 
-procedure TdlgRealizationBill.AddFromBill(const BillKey: Integer);
+procedure TdlgRealizationBill.AddFromBill(const BillKey: TID);
 var
   ibsql: TIBSQL;
   i: Integer;
 
-function SearchPosition(const GoodKey: Integer; Cost: Currency): Boolean;
+function SearchPosition(const GoodKey: TID; Cost: Currency): Boolean;
 begin
   Result := False;
   ibdsDocRealPos.First;
   while not ibdsDocRealPos.EOF do
   begin
-    if (GoodKey = ibdsDocRealPos.FieldByName('GoodKey').AsInteger) and
+    if (GoodKey = GetTID(ibdsDocRealPos.FieldByName('GoodKey'))) and
        (Cost = ibdsDocRealPos.FieldByName('CostNCU').AsCurrency)
     then
     begin
@@ -165,7 +167,7 @@ end;
 procedure SetSQL;
 begin
   ibsql.SQL.Assign(ibdsDocRealPos.SelectSQL);
-  ibsql.ParamByName('dockey').AsInteger := BillKey;
+  SetTID(ibsql.ParamByName('dockey'), BillKey);
 end;
 
 begin
@@ -173,31 +175,31 @@ begin
   try
     ibsql.Transaction := IBTransaction;
     ibsql.SQL.Text := 'SELECT * FROM gd_docrealization docr LEFT JOIN gd_docrealinfo doci ' +
-      ' ON docr.documentkey = doci.documentkey WHERE docr.documentkey = ' + IntToStr(BillKey);
+      ' ON docr.documentkey = doci.documentkey WHERE docr.documentkey = ' + TID2S(BillKey);
     ibsql.ExecQuery;
 
-    if (ibdsDocRealization.FieldByName('tocontactkey').AsInteger =
-       ibsql.FieldByName('tocontactkey').AsInteger) or
+    if (GetTID(ibdsDocRealization.FieldByName('tocontactkey')) =
+       GetTID(ibsql.FieldByName('tocontactkey'))) or
         ibdsDocRealization.FieldByName('tocontactkey').IsNull
     then
     begin
       if not (ibdsDocRealization.State in [dsEdit, dsInsert]) then
         ibdsDocRealization.Edit;
-      ibdsDocRealization.FieldByName('fromcontactkey').AsInteger :=
-        ibsql.FieldByName('fromcontactkey').AsInteger;
-      ibdsDocRealization.FieldByName('tocontactkey').AsInteger :=
-        ibsql.FieldByName('tocontactkey').AsInteger;
+      SetTID(ibdsDocRealization.FieldByName('fromcontactkey'),
+        ibsql.FieldByName('fromcontactkey'));
+      SetTID(ibdsDocRealization.FieldByName('tocontactkey'),
+        ibsql.FieldByName('tocontactkey'));
       if not ibsql.FieldByName('pricekey').IsNull then
-        ibdsDocRealization.FieldByName('pricekey').AsInteger :=
-          ibsql.FieldByName('pricekey').AsInteger;
+        SetTID(ibdsDocRealization.FieldByName('pricekey'),
+          ibsql.FieldByName('pricekey'));
       if not ibsql.FieldByName('pricefield').IsNull then
         ibdsDocRealization.FieldByName('pricefield').AsString :=
           ibsql.FieldByName('pricefield').AsString;
       if not (ibdsDocRealInfo.State in [dsEdit, dsInsert]) then
         ibdsDocRealInfo.Edit;
       if not ibsql.FieldByName('contractkey').IsNull then
-        ibdsDocRealInfo.FieldByName('contractkey').AsInteger :=
-          ibsql.FieldByName('contractkey').AsInteger;
+        SetTID(ibdsDocRealInfo.FieldByName('contractkey'),
+          ibsql.FieldByName('contractkey'));
 
       ibsql.Close;
 
@@ -206,7 +208,7 @@ begin
       ibsql.ExecQuery;
       while not ibsql.EOF do
       begin
-        if SearchPosition(ibsql.FieldByName('GoodKey').AsInteger,
+        if SearchPosition(GetTID(ibsql.FieldByName('GoodKey')),
          ibsql.FieldByName('CostNCU').AsCurrency)
         then
         begin
@@ -236,8 +238,8 @@ begin
                (UpperCase(Trim(ibsql.Fields[i].Name)) <> 'PERFORMQUANTITY')
             then
             begin
-              ibdsDocRealPos.FieldByName(ibsql.Fields[i].Name).Value :=
-                ibsql.Fields[i].Value;
+              SetVar2Field(ibdsDocRealPos.FieldByName(ibsql.Fields[i].Name),
+                GetFieldAsVar(ibsql.Fields[i]));
             end;
           if ibsql.FieldByName('PerformQuantity').AsCurrency > 0 then
           begin
@@ -249,9 +251,9 @@ begin
           end;
           ibdsDocRealPos.Post;
         end;
-        FBillPositionInfo.Add(TBillPositionInfo.Create(ibsql.FieldByName('ID').AsInteger,
-          ibdsDocRealPos.FieldByName('ID').AsInteger,
-          ibsql.FieldByName('GoodKey').AsInteger,
+        FBillPositionInfo.Add(TBillPositionInfo.Create(GetTID(ibsql.FieldByName('ID')),
+          GetTID(ibdsDocRealPos.FieldByName('ID')),
+          GetTID(ibsql.FieldByName('GoodKey')),
           ibsql.FieldByName('Quantity').AsCurrency -
           ibsql.FieldByName('PerformQuantity').AsCurrency));
         ibsql.Next;
@@ -310,10 +312,10 @@ begin
       ibsql.Prepare;
       for i:= 0 to FBillPositionInfo.Count - 1 do
       begin
-        ibsql.ParamByName('Source').AsInteger :=
-          TBillPositionInfo(FBillPositionInfo[i]).SourcePositionKey;
-        ibsql.ParamByName('Dest').AsInteger :=
-          TBillPositionInfo(FBillPositionInfo[i]).DestPositionKey;
+        SetTID(ibsql.ParamByName('Source'),
+          TBillPositionInfo(FBillPositionInfo[i]).SourcePositionKey);
+        SetTID(ibsql.ParamByName('Dest'),
+          TBillPositionInfo(FBillPositionInfo[i]).DestPositionKey);
         ibsql.ParamByName('Quantity').AsCurrency :=
           TBillPositionInfo(FBillPositionInfo[i]).Quantity;
         try
@@ -341,7 +343,7 @@ begin
       PerQuantity := 0;
       for i:= 0 to FBillPositionInfo.Count - 1 do
         if (TBillPositionInfo(FBillPositionInfo[i]).DestPositionKey =
-           ibdsDocRealPos.FieldByName('id').AsInteger)
+           GetTID(ibdsDocRealPos.FieldByName('id')))
         then
           PerQuantity := PerQuantity + TBillPositionInfo(FBillPositionInfo[i]).FirstQuantity;
       if PerQuantity > Sender.AsCurrency then
@@ -349,7 +351,7 @@ begin
         PerQuantity := Sender.AsCurrency;
         for i:= 0 to FBillPositionInfo.Count - 1 do
           if (TBillPositionInfo(FBillPositionInfo[i]).DestPositionKey =
-             ibdsDocRealPos.FieldByName('id').AsInteger) and
+             GetTID(ibdsDocRealPos.FieldByName('id'))) and
              (TBillPositionInfo(FBillPositionInfo[i]).FirstQuantity > PerQuantity)
           then
           begin
@@ -358,7 +360,7 @@ begin
           end
           else
             if (TBillPositionInfo(FBillPositionInfo[i]).DestPositionKey =
-               ibdsDocRealPos.FieldByName('id').AsInteger) then
+               GetTID(ibdsDocRealPos.FieldByName('id'))) then
             begin
               PerQuantity := PerQuantity - TBillPositionInfo(FBillPositionInfo[i]).FirstQuantity;
               if PerQuantity < 0 then
@@ -372,8 +374,8 @@ begin
         i:= 0;
         while i <= FBillPositionInfo.Count - 1 do
           if (TBillPositionInfo(FBillPositionInfo[i]).DestPositionKey =
-             ibdsDocRealPos.FieldByName('id').AsInteger) and
-             (TBillPositionInfo(FBillPositionInfo[i]).SourceGoodKey <> Sender.AsInteger)
+             GetTID(ibdsDocRealPos.FieldByName('id'))) and
+             (TBillPositionInfo(FBillPositionInfo[i]).SourceGoodKey <> GetTID(Sender))
           then
             FBillPositionInfo.Delete(i);
       end;

@@ -233,7 +233,7 @@ end;
 
 procedure Tgdc_frmInvDocument.actDetailNewExecute(Sender: TObject);
 var
-  OldID: Integer;
+  OldID: TID;
   C: TgdcFullClass;
 begin
   if not gdcDetailObject.IsEmpty then

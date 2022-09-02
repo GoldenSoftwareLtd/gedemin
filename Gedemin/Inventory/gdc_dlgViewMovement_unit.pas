@@ -32,8 +32,8 @@ type
     procedure actInCardAllExecute(Sender: TObject);
     procedure actInCardSingleExecute(Sender: TObject);
   private
-    FContactKey: Integer;
-    FDocumentKey: Integer;
+    FContactKey: TID;
+    FDocumentKey: TID;
     FGoodName: String;
 
     procedure SetTransaction(const Value: TIBTransaction);
@@ -47,8 +47,8 @@ type
 
 
     property GoodName: String read FGoodName write SetGoodName;
-    property DocumentKey: Integer read FDocumentKey write FDocumentKey;
-    property ContactKey: Integer read FContactKey write FContactKey;
+    property DocumentKey: TID read FDocumentKey write FDocumentKey;
+    property ContactKey: TID read FContactKey write FContactKey;
     property Transaction: TIBTransaction read GetTransaction write SetTransaction;
   end;
 
@@ -76,8 +76,8 @@ procedure Tgdc_dlgViewMovement.SetTransaction(const Value: TIBTransaction);
 begin
   ibdsMovementList.Transaction := Value;
 
-  ibdsMovementList.ParamByName('documentkey').AsInteger := FDocumentKey;
-  ibdsMovementList.ParamByName('contactkey').AsInteger := FContactKey;
+  SetTID(ibdsMovementList.ParamByName('documentkey'), FDocumentKey);
+  SetTID(ibdsMovementList.ParamByName('contactkey'), FContactKey);
   ibdsMovementList.Open;
 end;
 
@@ -88,7 +88,7 @@ begin
   Document := TgdcDocument.Create(Self);
   try
     Document.SubSet := 'ByID';
-    Document.ID := ibdsMovementList.FieldByName('parent').AsInteger;
+    Document.ID := GetTID(ibdsMovementList.FieldByName('parent'));
     Document.Open;
     Document.EditDialog;
   finally
@@ -178,7 +178,8 @@ var
   dlg: Tgdc_dlgViewRemainsInvCards;
   q, q1: TIBSQL;
   tr: TIBTransaction;
-  iNewCardKey, iOldCardKey, iOldDocKey, i: integer;
+  iNewCardKey, iOldCardKey, iOldDocKey: TID;
+  i: integer;
   InvCardRel: TatRelation;
   sFieldName: string;
 
@@ -186,8 +187,8 @@ var
   begin
     q.Close;
     q.SQL.Text:= ASQL;
-    q.ParamByName('old').AsInteger:= iOldCardKey;
-    q.ParamByName('new').AsInteger:= iNewCardKey;
+    SetTID(q.ParamByName('old'), iOldCardKey);
+    SetTID(q.ParamByName('new'), iNewCardKey);
   end;
 
 begin
@@ -207,27 +208,27 @@ begin
     tr.StartTransaction;
     q1.Transaction := tr;
     q1.SQL.Text := 'SELECT ruid FROM gd_documenttype WHERE id = :id';
-    q1.ParamByNAme('id').AsInteger := ibdsMovementList.FieldByName('doctkey').AsInteger;
+    SetTID(q1.ParamByNAme('id'), GetTID(ibdsMovementList.FieldByName('doctkey')));
     q1.ExecQuery;
     gdcIDL.Transaction:= tr;
     gdcIDL.SubSet:= 'ByID';
     gdcIDL.SubType:= q1.FieldByNAme('ruid').AsString;
     q1.Close;
-    gdcIDL.ID:= ibdsMovementList.FieldByName('dockey').AsInteger;
+    gdcIDL.ID:= GetTID(ibdsMovementList.FieldByName('dockey'));
     gdcIDL.Open;
     dlg:= Tgdc_dlgViewRemainsInvCards.CreateAndAssign(self) as Tgdc_dlgViewRemainsInvCards;
     try
-      dlg.OpenDataSet(gdcIDL, ibdsMovementList.FieldByName('contactkey').AsInteger, i);
+      dlg.OpenDataSet(gdcIDL, GetTID(ibdsMovementList.FieldByName('contactkey')), i);
       if dlg.ShowModal = mrOk then begin
         if dlg.ibgrInvCardList.CheckBox.CheckCount > 0 then begin
           iNewCardKey:= StrToInt(dlg.ibgrInvCardList.CheckBox.CheckList[0]);
-          iOldCardKey:= ibdsMovementList.FieldByName('cardkey').AsInteger;
+          iOldCardKey:= GetTID(ibdsMovementList.FieldByName('cardkey'));
           q:= TIBSQL.Create(self);
           try
             q.Transaction:= tr;
             SetUpdateQuery(
               'UPDATE inv_movement SET cardkey = :new WHERE cardkey = :old AND documentkey <> :dockey');
-            q.ParamByName('dockey').AsInteger:= DocumentKey;
+            SetTID(q.ParamByName('dockey'), DocumentKey);
             try
               q.ExecQuery;
               SetUpdateQuery(
@@ -240,8 +241,8 @@ begin
                 if gdcIDL.RelationType = irtFeatureChange then begin
                   SetUpdateQuery(
                     'UPDATE ' + gdcIDL.RelationLineName + ' SET tocardkey = :new WHERE tocardkey = :old');
-                  q.ParamByName('old').AsInteger:= iOldCardKey;
-                  q.ParamByName('new').AsInteger:= iNewCardKey;
+                  SetTID(q.ParamByName('old'), iOldCardKey);
+                  SetTID(q.ParamByName('new'), iNewCardKey);
                   q.ExecQuery;
                 end;
               end;
@@ -256,20 +257,20 @@ begin
                     q.Close;
                     q.SQL.Text:=
                       'SELECT ' + sFieldName + ' FROM inv_card WHERE id=:old';
-                    q.ParamByName('old').AsInteger:= iOldCardKey;
+                    SetTID(q.ParamByName('old'), iOldCardKey);
                     q.ExecQuery;
                     if q.Fields[0].IsNull then
                       Continue;
-                    iOldDocKey:= q.Fields[0].AsInteger;
+                    iOldDocKey:= GetTID(q.Fields[0]);
                     q.Close;
                     q.SQL.Text:=
                       'UPDATE inv_card SET ' + sFieldName + ' = :new WHERE ' + sFieldName + ' = :old AND ' +
                         sFieldName + ' <> documentkey';
-                    q.ParamByName('old').AsInteger:= iOldDocKey;
+                    SetTID(q.ParamByName('old'), iOldDocKey);
                     if dlg.ibdsInvCardList.FieldByName(InvCardRel.RelationFields[i].FieldName).IsNull then
                       q.ParamByName('new').Clear
                     else
-                      q.ParamByName('new').AsInteger:= dlg.ibdsInvCardList.FieldByName(InvCardRel.RelationFields[i].FieldName).AsInteger;
+                      SetTID(q.ParamByName('new'), GetTID(dlg.ibdsInvCardList.FieldByName(InvCardRel.RelationFields[i].FieldName)));
                     q.ExecQuery;
                   end;
                 end;
@@ -304,7 +305,8 @@ var
   dlg: Tgdc_dlgViewRemainsInvCards;
   q: TIBSQL;
   tr: TIBTransaction;
-  iNewCardKey, iOldCardKey, iOldDocKey, i, iMoveKey: integer;
+  iNewCardKey, iOldCardKey, iOldDocKey, iMoveKey: TID;
+  i: Integer;
   InvCardRel: TatRelation;
   sFieldName, sCardKeys, sDocFromKeys, sDocToKeys: string;
 
@@ -313,13 +315,13 @@ var
     Result:= '';
     q.Close;
     q.SQL.Text:= ASQL;
-    q.ParamByName('old').AsInteger:= iOldCardKey;
-    q.ParamByName('mkey').AsInteger:= iMoveKey;
+    SetTID(q.ParamByName('old'), iOldCardKey);
+    SetTID(q.ParamByName('mkey'), iMoveKey);
     q.ExecQuery;
     while not q.Eof do begin
       if Result <> '' then
         Result:= Result + ', ';
-      Result:= Result + IntToStr(q.Fields[0].AsInteger);
+      Result:= Result + TID2S(q.Fields[0]);
       q.Next;
     end;
   end;
@@ -328,8 +330,8 @@ var
   begin
     q.Close;
     q.SQL.Text:= ASQL;
-    q.ParamByName('old').AsInteger:= iOldCardKey;
-    q.ParamByName('new').AsInteger:= iNewCardKey;
+    SetTID(q.ParamByName('old'), iOldCardKey);
+    SetTID(q.ParamByName('new'), iNewCardKey);
   end;
 
 begin
@@ -340,8 +342,8 @@ begin
     tr.StartTransaction;
     gdcIDL.Transaction:= tr;
     gdcIDL.SubSet:= 'ByID';
-    gdcIDL.SubType:= gdcBaseManager.GetRUIDStringByID(ibdsMovementList.FieldByName('doctkey').AsInteger);
-    gdcIDL.ID:= ibdsMovementList.FieldByName('dockey').AsInteger;
+    gdcIDL.SubType:= gdcBaseManager.GetRUIDStringByID(GetTID(ibdsMovementList.FieldByName('doctkey')));
+    gdcIDL.ID:= GetTID(ibdsMovementList.FieldByName('dockey'));
     gdcIDL.Open;
     dlg:= Tgdc_dlgViewRemainsInvCards.CreateAndAssign(self) as Tgdc_dlgViewRemainsInvCards;
     try
@@ -381,8 +383,8 @@ begin
             SetUpdateQuery(
               'UPDATE inv_movement SET cardkey = :new ' +
               'WHERE cardkey = :old AND documentkey <> :dockey AND movementkey=:mkey');
-            q.ParamByName('dockey').AsInteger:= DocumentKey;
-            q.ParamByName('mkey').AsInteger:= iMoveKey;
+            SetTID(q.ParamByName('dockey'), DocumentKey);
+            SetTID(q.ParamByName('mkey'), iMoveKey);
             try
               q.ExecQuery;
               SetUpdateQuery(
@@ -394,7 +396,7 @@ begin
                   q.SQL.Text:=
                     'UPDATE ' + gdcIDL.RelationLineName + ' SET fromcardkey = :new ' +
                     'WHERE documentkey IN (' + sDocFromKeys + ')';
-                  q.ParamByName('new').AsInteger:= iNewCardKey;
+                  SetTID(q.ParamByName('new'), iNewCardKey);
                   q.ExecQuery;
                 end;
                 if (gdcIDL.RelationType = irtFeatureChange) and (sDocToKeys <> '') then begin
@@ -402,7 +404,7 @@ begin
                   q.SQL.Text:=
                     'UPDATE ' + gdcIDL.RelationLineName + ' SET tocardkey = :new ' +
                     'WHERE documentkey IN (' + sDocToKeys + ')';
-                  q.ParamByName('new').AsInteger:= iNewCardKey;
+                  SetTID(q.ParamByName('new'), iNewCardKey);
                   q.ExecQuery;
                 end;
               end;
@@ -417,20 +419,20 @@ begin
                     q.Close;
                     q.SQL.Text:=
                       'SELECT ' + sFieldName + ' FROM inv_card WHERE id=:old';
-                    q.ParamByName('old').AsInteger:= iOldCardKey;
+                    SetTID(q.ParamByName('old'), iOldCardKey);
                     q.ExecQuery;
                     if q.Fields[0].IsNull then
                       Continue;
-                    iOldDocKey:= q.Fields[0].AsInteger;
+                    iOldDocKey:= GetTID(q.Fields[0]);
                     q.Close;
                     q.SQL.Text:=
                       'UPDATE inv_card SET ' + sFieldName + ' = :new WHERE ' + sFieldName + ' = :old AND ' +
                         sFieldName + ' <> documentkey AND id IN (' + sCardKeys + ')';
-                    q.ParamByName('old').AsInteger:= iOldDocKey;
+                    SetTID(q.ParamByName('old'), iOldDocKey);
                     if dlg.ibdsInvCardList.FieldByName(InvCardRel.RelationFields[i].FieldName).IsNull then
                       q.ParamByName('new').Clear
                     else
-                      q.ParamByName('new').AsInteger:= dlg.ibdsInvCardList.FieldByName(InvCardRel.RelationFields[i].FieldName).AsInteger;
+                      SetTID(q.ParamByName('new'), GetTID(dlg.ibdsInvCardList.FieldByName(InvCardRel.RelationFields[i].FieldName)));
                     q.ExecQuery;
                   end;
                 end;

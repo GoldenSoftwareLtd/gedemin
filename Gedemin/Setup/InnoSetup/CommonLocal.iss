@@ -6,7 +6,7 @@
 #endif
 
 #ifndef URL
-  #define public URL "http://www.gsbelarus.com"
+  #define public URL "http://gsbelarus.com"
 #endif
 
 #ifndef DefDir
@@ -35,7 +35,7 @@ AppPublisher=Golden Software of Belarus, Ltd
 AppPublisherURL={#URL}
 AppSupportURL={#URL}
 AppUpdatesURL={#URL}
-AppCopyright=Copyright (c) 1995-2014 Golden Software of Belarus, Ltd.
+AppCopyright=Copyright (c) 1995-2021 Golden Software of Belarus, Ltd.
 AppSupportPhone={#SupportPhone}
 DefaultDirName={sd}{#DefDir}
 DefaultGroupName={#DefGroup}
@@ -47,8 +47,9 @@ SolidCompression=yes
 MinVersion=0,5.01sp2
 Uninstallable=yes
 ShowLanguageDialog=auto
-SourceDir={#SourcePath}\..\..\..\Gedemin_Local_FB\
-UsePreviousAppDir=yes
+;SourceDir={#SourcePath}\..\..\..\..\Gedemin_Local_FB\
+SourceDir={#GedInstDir}
+UsePreviousAppDir=no
 DisableReadyPage=yes
 DisableFinishedPage=yes 
 VersionInfoCompany=Golden Software of Belarus, Ltd
@@ -64,6 +65,9 @@ Name: "belarusian"; MessagesFile: "compiler:Languages\Belarusian.isl"
 
 [Tasks]
 Name: "databasefile"; Description: "Установить файл базы данных"; GroupDescription: "База данных:"; Flags:
+#ifdef Demo
+  Name: "demobase"; Description: "Установить файл демонстрационной базы данных"; GroupDescription: "База данных:"; Flags:
+#endif
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags:
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
@@ -72,9 +76,12 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
   Name: "usbpd"; Description: "Установить драйвер дисплея покупателя"; GroupDescription: "Торговое оборудование:"; Flags:
 #endif
 
+Name: "no_gdcc"; Description: "Не запускать GDCC при старте программы"; GroupDescription: "Центр управления (GDCC):"; Flags: unchecked
+
 [Files]
 Source: "gedemin.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gedemin_upd.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "gdcc.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gedemin.exe.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "fbembed.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gsdbquery.dll"; DestDir: "{app}"; Flags: ignoreversion regserver
@@ -94,6 +101,10 @@ Source: "midas.sxs.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Database\{#DBFileOnlyName}.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
+
+#ifdef Demo
+  Source: "Database\demo.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: demobase
+#endif
 
 Source: "libeay32.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ssleay32.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -118,8 +129,13 @@ Source: "SWIPl\pthreadGC2.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion
 Filename: "{app}\gedemin.ini"; Section: "WEB CLIENT"; Key: "Token"; String: "{#UpdateToken}"; 
 Filename: "{app}\databases.ini"; Section: "{#GedSafeAppName}"; Key: "FileName"; String: "Database\{#DBFileOnlyName}.fdb"; Tasks: "databasefile"
 Filename: "{app}\databases.ini"; Section: "{#GedSafeAppName}"; Key: "Selected"; String: "1"; Tasks: "databasefile"
+Filename: "{app}\gedemin.ini"; Section: "GDCC"; Key: "Active"; String: "0"; Tasks: "no_gdcc"
+#ifdef Demo
+  Filename: "{app}\databases.ini"; Section: "Демонстрационная база"; Key: "FileName"; String: "Database\demo.fdb"; Tasks: "demobase"
+#endif
 #ifdef Cash
   Filename: "{app}\gedemin.ini"; Section: "WEB CLIENT"; Key: "AutoUpdate"; String: "0"; 
+  ;Filename: "{app}\gedemin.ini"; Section: "GDCC"; Key: "Active"; String: "0"; 
 #endif
 
 [Icons]
@@ -134,7 +150,10 @@ Name: "{group}\{cm:UninstallProgram,{#GedSafeAppName}}"; Filename: "{uninstallex
 
 [Run]
 FileName: "{app}\gedemin.exe"; Parameters: "/rd /r EMBEDDED ""{app}\Database\{#DBFileOnlyName}.bk"" ""{app}\Database\{#DBFileOnlyName}.fdb"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden; Tasks: databasefile
-Filename: "{app}\gedemin.exe"; Description: "{cm:LaunchProgram,{#GedSafeAppName}}"; WorkingDir: {app}; Flags: nowait postinstall skipifsilent
+#ifdef Demo
+  FileName: "{app}\gedemin.exe"; Parameters: "/rd /r EMBEDDED ""{app}\Database\demo.bk"" ""{app}\Database\demo.fdb"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка демонстрационной базы данных..."; Flags: waituntilterminated runhidden; Tasks: demobase
+#endif
+Filename: "{app}\gedemin.exe"; Description: "{cm:LaunchProgram,{#GedSafeAppName}}"; WorkingDir: {app}; Flags: nowait postinstall skipifsilent shellexec
 
 [InstallDelete]
 Type: files; Name: "{app}\gedemin.jpg"
@@ -144,6 +163,7 @@ Type: files; Name: "{app}\gedemin.ini"
 Type: files; Name: "{app}\gedemin_upd.ini"
 Type: files; Name: "{app}\*.bak"
 Type: files; Name: "{app}\*.new"
+Type: files; Name: "{app}\Database\demo.fdb"
 Type: filesandordirs; Name: "{app}\udf"
 Type: filesandordirs; Name: "{app}\Intl"
 Type: filesandordirs; Name: "{app}\Help"

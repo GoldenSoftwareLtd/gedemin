@@ -46,7 +46,7 @@ type
 
     FCurrentStreamVersion: String; // Версия настроек, считанных из потока
 
-    FLastRelationCostKey: Integer;
+    FLastRelationCostKey: TID;
     FLastRelationCostName: String[31];
     FRelCostIBSQL: TIBSQL;
 
@@ -66,7 +66,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     //Функция возвращает ключ валюты по ключу цены обоснования
-    function GetCurrencyKey(const RelationFieldKey: Integer): Integer;
+    function GetCurrencyKey(const RelationFieldKey: TID): TID;
 
     property HeaderFields: TgdcInvPriceFields read FHeaderFields;
     property LineFields: TgdcInvPriceFields read FLineFields;
@@ -145,7 +145,7 @@ type
       const AnIsUsed: Boolean = False);
 
     function CanBeUsedAsCurrency: Boolean;
-    function GetID: Integer;
+    function GetID: TID;
 
     property atField: TatField read Get_atField;
   end;
@@ -165,7 +165,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
-    class function InvDocumentTypeBranchKey: Integer;
+    class function InvDocumentTypeBranchKey: TID;
     class function GetHeaderDocumentClass: CgdcBase; override;
   end;
 
@@ -243,7 +243,7 @@ begin
 end;
 
 function TgdcInvBasePriceList.GetCurrencyKey(
-  const RelationFieldKey: Integer): Integer;
+  const RelationFieldKey: TID): TID;
 var
   I: Integer;
 begin
@@ -256,7 +256,7 @@ begin
       FRelCostIBSQL.Transaction := ReadTransaction;
       FRelCostIBSQL.SQL.Text := 'SELECT fieldname FROM at_relation_fields WHERE id = :relationkey';
     end;
-    FRelCostIBSQL.ParamByName('relationkey').AsInteger := RelationFieldKey;
+    SetTID(FRelCostIBSQL.ParamByName('relationkey'), RelationFieldKey);
     FRelCostIBSQL.ExecQuery;
     try
       if not FRelCostIBSQL.Eof then
@@ -535,7 +535,7 @@ begin
   //
   // Устанавливаем значения по умолчанию
 
-  FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('documentkey'), FieldByName('id'));
 
   FieldByName('name').AsString := DocumentName;
   FieldByName('relevancedate').AsDateTime := FieldByName('documentdate').AsDateTime;
@@ -1030,11 +1030,11 @@ begin
 
   if Assigned(FgdcDataLink) and (FgdcDataLink.DataSet is TgdcBase) then
   begin
-    FieldByName('parent').AsInteger := FgdcDataLink.DataSet.FieldByName('ID').AsInteger;
-    FieldByName('pricekey').AsInteger := FgdcDataLink.DataSet.FieldByName('ID').AsInteger;
+    SetTID(FieldByName('parent'), FgdcDataLink.DataSet.FieldByName('ID'));
+    SetTID(FieldByName('pricekey'), FgdcDataLink.DataSet.FieldByName('ID'));
   end;
 
-  FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('documentkey'), FieldByName('id'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTLINE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1202,7 +1202,7 @@ begin
   FGoodSQL.Transaction := ReadTransaction;
   Transaction.Active := True;
 
-  FGoodSQL.ParamByName('ID').AsInteger := FieldByName('GOODKEY').AsInteger;
+  SetTID(FGoodSQL.ParamByName('ID'), FieldByName('GOODKEY'));
   FGoodSQL.ExecQuery;
 
   if FGoodSQL.RecordCount > 0 then
@@ -1263,7 +1263,7 @@ begin
   FRelation := ARelation;
 end;
 
-function TinvPriceListField.GetID: Integer;
+function TinvPriceListField.GetID: TID;
 var
   RF: TatRelationField;
 begin
@@ -1407,7 +1407,7 @@ begin
   Result := 'Tgdc_frmInvPriceListType';
 end;
 
-class function TgdcInvPriceListType.InvDocumentTypeBranchKey: Integer;
+class function TgdcInvPriceListType.InvDocumentTypeBranchKey: TID;
 begin
   Result := INV_DOC_PRICELISTBRANCH;
 end;
@@ -1415,7 +1415,8 @@ end;
 procedure TgdcInvPriceListType.UpdateFields(lv: TListView;
   const AName: String; R: TatRelation; AFields: TgdcInvPriceFields);
 var
-  I, J, OptID: Integer;
+  I, J: Integer;
+  OptID: TID;
   Found: Boolean;
   RF: TatRelationField;
   F: TInvPriceListField;
@@ -1442,16 +1443,16 @@ begin
       Fq.SQL.Text :=
         'INSERT INTO gd_documenttype_option (id, dtkey, option_name, bool_value, relationfieldkey, contactkey, currkey) ' +
         'VALUES (:id, :dtkey, :option_name, NULL, :rfk, :ck, :currkey)';
-      Fq.ParamByName('id').AsInteger := OptID;
-      Fq.ParamByName('dtkey').AsInteger := ID;
+      SetTID(Fq.ParamByName('id'), OptID);
+      SetTID(Fq.ParamByName('dtkey'), ID);
       Fq.ParamByName('option_name').AsString := AName;
-      Fq.ParamByName('rfk').AsInteger := F.GetID;
+      SetTID(Fq.ParamByName('rfk'), F.GetID);
       if F.FPriceField.ContactKey > 0 then
-        Fq.ParamByName('ck').AsInteger := F.FPriceField.ContactKey
+        SetTID(Fq.ParamByName('ck'), F.FPriceField.ContactKey)
       else
         Fq.ParamByName('ck').Clear;
       if F.FPriceField.CurrencyKey > 0 then
-        Fq.ParamByName('currkey').AsInteger := F.FPriceField.CurrencyKey
+        SetTID(Fq.ParamByName('currkey'), F.FPriceField.CurrencyKey)
       else
         Fq.ParamByName('currkey').Clear;
       Fq.ExecQuery;
@@ -1484,9 +1485,9 @@ begin
         Fq.SQL.Text :=
           'DELETE FROM gd_documenttype_option ' +
           'WHERE dtkey = :dtkey AND option_name = :option_name AND relationfieldkey = :rfk';
-        Fq.ParamByName('dtkey').AsInteger := ID;
+        SetTID(Fq.ParamByName('dtkey'), ID);
         Fq.ParamByName('option_name').AsString := AName;
-        Fq.ParamByname('rfk').AsInteger := RF.ID;
+        SetTID(Fq.ParamByname('rfk'), RF.ID);
         Fq.ExecQuery;
       end;
     end;

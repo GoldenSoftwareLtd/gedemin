@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit cmp_frmDataBaseCompare;
 
 interface
@@ -29,8 +31,8 @@ type
     Script: String;
     ExtScript: String;
     Module: String;
-    ID: Integer;
-    ExtID: Integer;
+    ID: TID;
+    ExtID: TID;
   end;
 
   TRecordData = class(TObject)
@@ -266,8 +268,13 @@ begin
     DSMacros.FieldDefs.Add('EDITIONDATE1', ftDateTime, 0, false);
     DSMacros.FieldDefs.Add('EDITIONDATE2', ftDateTime, 0, false);
     DSMacros.FieldDefs.Add('MODULE', ftString, 15, false);
+    {$IFDEF ID64}
+    DSMacros.FieldDefs.Add('ID', ftLargeInt, 0, false);
+    DSMacros.FieldDefs.Add('EXTID', ftLargeInt, 0, false);
+    {$ELSE}
     DSMacros.FieldDefs.Add('ID', ftInteger, 0, false);
     DSMacros.FieldDefs.Add('EXTID', ftInteger, 0, false);
+    {$ENDIF}
     DSMacros.FieldDefs.Add('RESULT', ftInteger, 0, false);
     DSMacros.FieldDefs.Add('SORTFIELD', ftInteger, 0, false);
 
@@ -280,8 +287,13 @@ begin
     DSMetaData.FieldDefs.Add('FUNCTIONNAME', ftString, 80, false);
     DSMetaData.FieldDefs.Add('EDITIONDATE1', ftDateTime, 0, false);
     DSMetaData.FieldDefs.Add('EDITIONDATE2', ftDateTime, 0, false);
+    {$IFDEF ID64}
+    DSMetaData.FieldDefs.Add('ID', ftLargeInt, 0, false);
+    DSMetaData.FieldDefs.Add('EXTID', ftLargeInt, 0, false);
+    {$ELSE}
     DSMetaData.FieldDefs.Add('ID', ftInteger, 0, false);
     DSMetaData.FieldDefs.Add('EXTID', ftInteger, 0, false);
+    {$ENDIF}
     DSMetaData.FieldDefs.Add('RESULT', ftInteger, 0, false);
     DSMetaData.FieldDefs.Add('SORTFIELD', ftInteger, 0, false);
 
@@ -444,8 +456,8 @@ begin
                   DS.FieldByName('RESULT').AsInteger := cn_second
               else
                 DS.FieldByName('RESULT').AsInteger := cn_eqv;
-              DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
-              DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+              SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
+              SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
               DS.FieldByName('SORTFIELD').AsInteger := FNumber;
               DS.Post;
 
@@ -459,7 +471,7 @@ begin
               DS.FieldByName('NAME').AsString := FExtSQL.FieldByName('NAME').AsString;
               DS.FieldByName('FUNCTIONNAME').AsString := FExtSQL.FieldByName('NAME').AsString;
               DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-              DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+              SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
               DS.FieldByName('RESULT').AsInteger := cn_just_second;
               DS.FieldByName('SORTFIELD').AsInteger := FNumber;
               DS.Post;
@@ -473,7 +485,7 @@ begin
               DS.FieldByName('NAME').AsString := FSQL.FieldByName('NAME').AsString;
               DS.FieldByName('FUNCTIONNAME').AsString := FSQL.FieldByName('NAME').AsString;
               DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-              DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+              SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
               DS.FieldByName('RESULT').AsInteger := cn_just_first;
               DS.FieldByName('SORTFIELD').AsInteger := FNumber;
               DS.Post;
@@ -487,7 +499,7 @@ begin
             DS.FieldByName('NAME').AsString := FSQL.FieldByName('NAME').AsString;
             DS.FieldByName('FUNCTIONNAME').AsString := FSQL.FieldByName('NAME').AsString;
             DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-            DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+            SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
             DS.FieldByName('RESULT').AsInteger := cn_just_first;
             DS.FieldByName('SORTFIELD').AsInteger := FNumber;
             DS.Post;
@@ -500,7 +512,7 @@ begin
             DS.FieldByName('NAME').AsString := FExtSQL.FieldByName('NAME').AsString;
             DS.FieldByName('FUNCTIONNAME').AsString := FExtSQL.FieldByName('NAME').AsString;
             DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-            DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+            SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
             DS.FieldByName('RESULT').AsInteger := cn_just_second;
             DS.FieldByName('SORTFIELD').AsInteger := FNumber;
             DS.Post;
@@ -517,7 +529,7 @@ begin
           DS.FieldByName('NAME').AsString := FSQL.FieldByName('NAME').AsString;
           DS.FieldByName('FUNCTIONNAME').AsString := FSQL.FieldByName('NAME').AsString;
           DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-          DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+          SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
           DS.FieldByName('RESULT').AsInteger := cn_just_first;
           DS.FieldByName('SORTFIELD').AsInteger := FNumber;
           DS.Post;
@@ -533,7 +545,7 @@ begin
           DS.FieldByName('NAME').AsString := FExtSQL.FieldByName('NAME').AsString;
           DS.FieldByName('FUNCTIONNAME').AsString := FExtSQL.FieldByName('NAME').AsString;
           DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-          DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+          SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
           DS.FieldByName('RESULT').AsInteger := cn_just_second;
           DS.FieldByName('SORTFIELD').AsInteger := FNumber;
           DS.Post;
@@ -653,8 +665,8 @@ begin
                     DS.FieldByName('RESULT').AsInteger := cn_second
                 else
                   DS.FieldByName('RESULT').AsInteger := cn_eqv;
-                DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
-                DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+                SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
+                SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
                 DS.FieldByName('SORTFIELD').AsInteger := FNumber;
                 DS.Post;
 
@@ -671,7 +683,7 @@ begin
                   DS.FieldByName('NAME').AsString := FExtSQL.FieldByName('NAME').AsString;
                 DS.FieldByName('FUNCTIONNAME').AsString := FExtSQL.FieldByName('FUNCTIONNAME').AsString;
                 DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-                DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+                SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
                 DS.FieldByName('RESULT').AsInteger := cn_just_second;
                 DS.FieldByName('SORTFIELD').AsInteger := FNumber;
                 DS.Post;
@@ -688,7 +700,7 @@ begin
                   DS.FieldByName('NAME').AsString := FSQL.FieldByName('NAME').AsString;
                 DS.FieldByName('FUNCTIONNAME').AsString := FSQL.FieldByName('FUNCTIONNAME').AsString;
                 DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-                DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+                SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
                 DS.FieldByName('RESULT').AsInteger := cn_just_first;
                 DS.FieldByName('SORTFIELD').AsInteger := FNumber;
                 DS.Post;
@@ -716,8 +728,8 @@ begin
                       DS.FieldByName('RESULT').AsInteger := cn_second
                   else
                     DS.FieldByName('RESULT').AsInteger := cn_eqv;
-                  DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
-                  DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+                  SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
+                  SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
                   DS.FieldByName('SORTFIELD').AsInteger := FNumber;
                   DS.Post;
 
@@ -731,7 +743,7 @@ begin
                   DS.FieldByName('NAME').AsString := LocaliseEventName(FExtSQL);
                   DS.FieldByName('FUNCTIONNAME').AsString := FExtSQL.FieldByName('FUNCTIONNAME').AsString;
                   DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-                  DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+                  SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
                   DS.FieldByName('RESULT').AsInteger := cn_just_second;
                   DS.FieldByName('SORTFIELD').AsInteger := FNumber;
                   DS.Post;
@@ -745,7 +757,7 @@ begin
                   DS.FieldByName('NAME').AsString := LocaliseEventName(FSQL);
                   DS.FieldByName('FUNCTIONNAME').AsString := FSQL.FieldByName('FUNCTIONNAME').AsString;
                   DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-                  DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+                  SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
                   DS.FieldByName('RESULT').AsInteger := cn_just_first;
                   DS.FieldByName('SORTFIELD').AsInteger := FNumber;
                   DS.Post;
@@ -762,7 +774,7 @@ begin
                   DS.FieldByName('NAME').AsString := LocaliseEventName(FExtSQL);
                   DS.FieldByName('FUNCTIONNAME').AsString := FExtSQL.FieldByName('FUNCTIONNAME').AsString;
                   DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-                  DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+                  SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
                   DS.FieldByName('RESULT').AsInteger := cn_just_second;
                   DS.FieldByName('SORTFIELD').AsInteger := FNumber;
                   DS.Post;
@@ -776,7 +788,7 @@ begin
                   DS.FieldByName('NAME').AsString := LocaliseEventName(FSQL);
                   DS.FieldByName('FUNCTIONNAME').AsString := FSQL.FieldByName('FUNCTIONNAME').AsString;
                   DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-                  DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+                  SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
                   DS.FieldByName('RESULT').AsInteger := cn_just_first;
                   DS.FieldByName('SORTFIELD').AsInteger := FNumber;
                   DS.Post;
@@ -797,7 +809,7 @@ begin
               DS.FieldByName('NAME').AsString := FSQL.FieldByName('NAME').AsString;
             DS.FieldByName('FUNCTIONNAME').AsString := FSQL.FieldByName('FUNCTIONNAME').AsString;
             DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-            DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+            SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
             DS.FieldByName('RESULT').AsInteger := cn_just_first;
             DS.FieldByName('SORTFIELD').AsInteger := FNumber;
             DS.Post;
@@ -815,7 +827,7 @@ begin
               DS.FieldByName('NAME').AsString := FExtSQL.FieldByName('NAME').AsString;
             DS.FieldByName('FUNCTIONNAME').AsString := FExtSQL.FieldByName('FUNCTIONNAME').AsString;
             DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-            DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+            SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
             DS.FieldByName('RESULT').AsInteger := cn_just_second;
             DS.FieldByName('SORTFIELD').AsInteger := FNumber;
             DS.Post;
@@ -837,7 +849,7 @@ begin
             DS.FieldByName('NAME').AsString := FSQL.FieldByName('NAME').AsString;
           DS.FieldByName('FUNCTIONNAME').AsString := FSQL.FieldByName('FUNCTIONNAME').AsString;
           DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-          DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+          SetTID(DS.FieldByName('ID'),FSQL.FieldByName('ID'));
           DS.FieldByName('RESULT').AsInteger := cn_just_first;
           DS.FieldByName('SORTFIELD').AsInteger := FNumber;
           DS.Post;
@@ -858,7 +870,7 @@ begin
             DS.FieldByName('NAME').AsString := FExtSQL.FieldByName('NAME').AsString;
           DS.FieldByName('FUNCTIONNAME').AsString := FExtSQL.FieldByName('FUNCTIONNAME').AsString;
           DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-          DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+          SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
           DS.FieldByName('RESULT').AsInteger := cn_just_second;
           DS.FieldByName('SORTFIELD').AsInteger := FNumber;
           DS.Post;
@@ -884,8 +896,8 @@ procedure TDataBaseCompare.FillMacros(DS: TClientDataSet; ListView: TListView);
   begin
     FRecordData := TRecordData.Create;
     FRecordData.FRecordInfo.Result := DS.FieldByName('RESULT').AsInteger;
-    FRecordData.FRecordInfo.ID := DS.FieldByName('ID').AsInteger;
-    FRecordData.FRecordInfo.ExtID := DS.FieldByName('EXTID').AsInteger;
+    FRecordData.FRecordInfo.ID := GetTID(DS.FieldByName('ID'));
+    FRecordData.FRecordInfo.ExtID := GetTID(DS.FieldByName('EXTID'));
     FRecordData.FRecordInfo.Module := DS.FieldByName('NAME').AsString;
     FList.Add(FRecordData);
   end;
@@ -1026,12 +1038,12 @@ begin
             FSQL := TIBSQL.Create(nil);
             FSQL.Transaction := gdcBaseManager.ReadTransaction;
             FSQL.SQL.Text := SQL;
-            FSQL.Params[0].AsInteger := TRecordData(lvMacros.Selected.Data).FRecordInfo.ID;
+            SetTID(FSQL.Params[0], TRecordData(lvMacros.Selected.Data).FRecordInfo.ID);
 
             FExtSQL := TIBSQL.Create(nil);
             FExtSQL.Transaction := FTransaction;
             FExtSQL.SQL.Text := SQL;
-            FExtSQL.Params[0].AsInteger := TRecordData(lvMacros.Selected.Data).FRecordInfo.ExtID;
+            SetTID(FExtSQL.Params[0], TRecordData(lvMacros.Selected.Data).FRecordInfo.ExtID);
             try
               FSQL.ExecQuery;
               S := FSQL.FieldByName('SCRIPT').AsString;
@@ -1050,7 +1062,7 @@ begin
             FSQL := TIBSQL.Create(nil);
             FSQL.Transaction := gdcBaseManager.ReadTransaction;
             FSQL.SQL.Text := SQL;
-            FSQL.Params[0].AsInteger := TRecordData(lvMacros.Selected.Data).FRecordInfo.ID;
+            SetTID(FSQL.Params[0], TRecordData(lvMacros.Selected.Data).FRecordInfo.ID);
             try
               FSQL.ExecQuery;
               S := FSQL.FieldByName('SCRIPT').AsString;
@@ -1066,7 +1078,7 @@ begin
             FExtSQL := TIBSQL.Create(nil);
             FExtSQL.Transaction := FTransaction;
             FExtSQL.SQL.Text := SQL;
-            FExtSQL.Params[0].AsInteger := TRecordData(lvMacros.Selected.Data).FRecordInfo.ExtID;
+            SetTID(FExtSQL.Params[0], TRecordData(lvMacros.Selected.Data).FRecordInfo.ExtID);
             try
               FExtSQL.ExecQuery;
               S1 := FExtSQL.FieldByName('SCRIPT').AsString;
@@ -1255,7 +1267,11 @@ begin
           DSMacros.FieldDefs.Add('EDITIONDATE2', ftDateTime, 0, false);
           DSMacros.FieldDefs.Add('SCRIPT', ftBlob, 0, false);
           DSMacros.FieldDefs.Add('MODULE', ftString, 15, false);
+          {$IFDEF ID64}
+          DSMacros.FieldDefs.Add('ID', ftLargeInt, 0, false);
+          {$ELSE}
           DSMacros.FieldDefs.Add('ID', ftInteger, 0, false);
+          {$ENDIF}
           DSMacros.FieldDefs.Add('RESULT', ftInteger, 0, false);
           DSMacros.FieldDefs.Add('SORTFIELD', ftInteger, 0, false);
 
@@ -1383,7 +1399,7 @@ procedure TDataBaseCompare.CompareSetting(DS: TDataSet);
       DSMacros.FieldByName('RESULT').AsInteger := cn_eqv;
     DSMacros.FieldByName('MODULE').AsString := DS.FieldByName('MODULE').AsString;
     DSMacros.FieldByName('SCRIPT').AsString := DS.FieldByName('SCRIPT').AsString;
-    DSMacros.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+    SetTID(DSMacros.FieldByName('ID'), FSQL.FieldByName('ID'));
     DSMacros.FieldByName('SORTFIELD').AsInteger := FNumber;
     DSMacros.Post;
 
@@ -1467,7 +1483,7 @@ begin
             DSMacros.FieldByName('RESULT').AsInteger := cn_eqv;
           DSMacros.FieldByName('MODULE').AsString := Module;
           DSMacros.FieldByName('SCRIPT').AsString := DS.FieldByName('SCRIPT').AsString;
-          DSMacros.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+          SetTID(DSMacros.FieldByName('ID'), FSQL.FieldByName('ID'));
           DSMacros.FieldByName('SORTFIELD').AsInteger := FNumber;
           DSMacros.Post;
 
@@ -1513,7 +1529,7 @@ begin
             DSMacros.FieldByName('RESULT').AsInteger := cn_eqv;
           DSMacros.FieldByName('MODULE').AsString := Module;
           DSMacros.FieldByName('SCRIPT').AsString := DS.FieldByName('SCRIPT').AsString;
-          DSMacros.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+          SetTID(DSMacros.FieldByName('ID'), FSQL.FieldByName('ID'));
           DSMacros.FieldByName('SORTFIELD').AsInteger := FNumber;
           DSMacros.Post;
 
@@ -1642,7 +1658,7 @@ begin
           else
             DSMacros.FieldByName('RESULT').AsInteger := cn_eqv;
           DSMacros.FieldByName('MODULE').AsString := scrUnkonownModule;
-          DSMacros.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+          SetTID(DSMacros.FieldByName('ID'), FSQL.FieldByName('ID'));
           DSMacros.FieldByName('SCRIPT').AsString := DS.FieldByName('SCRIPT').AsString;
           DSMacros.FieldByName('SORTFIELD').AsInteger := FNumber;
           DSMacros.Post;
@@ -1679,7 +1695,7 @@ procedure TDataBaseCompare.FillMacrosNew(DS: TClientDataSet;
     FRecordData.FRecordInfo.Result := DS.FieldByName('RESULT').AsInteger;
     FRecordData.FRecordInfo.Script := DS.FieldByName('SCRIPT').AsString;
     FRecordData.FRecordInfo.Module := DS.FieldByName('MODULE').AsString;
-    FRecordData.FRecordInfo.ID     := DS.FieldByName('ID').AsInteger;
+    FRecordData.FRecordInfo.ID     := GetTID(DS.FieldByName('ID'));
     FList.Add(FRecordData);
   end;
 
@@ -1776,7 +1792,7 @@ begin
           FSQL.Transaction := gdcBaseManager.ReadTransaction;
           FSQL.SQL.Text := ' SELECT SCRIPT FROM GD_FUNCTION ' +
             ' WHERE ID = :ID ';
-          FSQL.Params[0].AsInteger := TRecordData(lvMacros.Selected.Data).FRecordInfo.ID;
+          SettID(FSQL.Params[0], TRecordData(lvMacros.Selected.Data).FRecordInfo.ID);
           try
             FSQL.ExecQuery;
             S := FSQL.FieldByName('SCRIPT').AsString;
@@ -1924,8 +1940,8 @@ begin
                 else
                   DS.FieldByName('RESULT').AsInteger := cn_eqv;
               end;
-              DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
-              DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+              SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
+              SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
               DS.FieldByName('SORTFIELD').AsInteger := FNumber;
               DS.Post;
 
@@ -1944,7 +1960,7 @@ begin
                   ibExtDataBase)
               else
                 DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-              DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+              SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
               DS.FieldByName('RESULT').AsInteger := cn_just_second;
               DS.FieldByName('SORTFIELD').AsInteger := FNumber;
               DS.Post;
@@ -1963,7 +1979,7 @@ begin
                   gdcBaseManager.Database)
               else
                 DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-              DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+              SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
               DS.FieldByName('RESULT').AsInteger := cn_just_first;
               DS.FieldByName('SORTFIELD').AsInteger := FNumber;
               DS.Post;
@@ -1982,7 +1998,7 @@ begin
                 gdcBaseManager.Database)
             else
               DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-            DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+            SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
             DS.FieldByName('RESULT').AsInteger := cn_just_first;
             DS.FieldByName('SORTFIELD').AsInteger := FNumber;
             DS.Post;
@@ -2000,7 +2016,7 @@ begin
                 ibExtDataBase)
             else
               DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-            DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+            SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
             DS.FieldByName('RESULT').AsInteger := cn_just_second;
             DS.FieldByName('SORTFIELD').AsInteger := FNumber;
             DS.Post;
@@ -2023,7 +2039,7 @@ begin
               gdcBaseManager.Database)
           else
             DS.FieldByName('EDITIONDATE1').AsDateTime := FSQL.FieldByName('EDITIONDATE').AsDateTime;
-          DS.FieldByName('ID').AsInteger := FSQL.FieldByName('ID').AsInteger;
+          SetTID(DS.FieldByName('ID'), FSQL.FieldByName('ID'));
           DS.FieldByName('RESULT').AsInteger := cn_just_first;
           DS.FieldByName('SORTFIELD').AsInteger := FNumber;
           DS.Post;
@@ -2044,7 +2060,7 @@ begin
               ibExtDataBase)
           else
             DS.FieldByName('EDITIONDATE2').AsDateTime := FExtSQL.FieldByName('EDITIONDATE').AsDateTime;
-          DS.FieldByName('EXTID').AsInteger := FExtSQL.FieldByName('ID').AsInteger;
+          SetTID(DS.FieldByName('EXTID'), FExtSQL.FieldByName('ID'));
           DS.FieldByName('RESULT').AsInteger := cn_just_second;
           DS.FieldByName('SORTFIELD').AsInteger := FNumber;
           DS.Post;
@@ -2141,12 +2157,12 @@ begin
             FSQL := TIBSQL.Create(nil);
             FSQL.Transaction := gdcBaseManager.ReadTransaction;
             FSQL.SQL.Text := SQL;
-            FSQL.Params[0].AsInteger := TRecordData(lvMetaData.Selected.Data).FRecordInfo.ID;
+            SetTID(FSQL.Params[0], TRecordData(lvMetaData.Selected.Data).FRecordInfo.ID);
 
             FExtSQL := TIBSQL.Create(nil);
             FExtSQL.Transaction := FTransaction;
             FExtSQL.SQL.Text := SQL;
-            FExtSQL.Params[0].AsInteger := TRecordData(lvMetaData.Selected.Data).FRecordInfo.ExtID;
+            SetTID(FExtSQL.Params[0], TRecordData(lvMetaData.Selected.Data).FRecordInfo.ExtID);
             try
               FSQL.ExecQuery;
               FExtSQL.ExecQuery;
@@ -2189,7 +2205,7 @@ begin
             FSQL := TIBSQL.Create(nil);
             FSQL.Transaction := gdcBaseManager.ReadTransaction;
             FSQL.SQL.Text := SQL;
-            FSQL.Params[0].AsInteger := TRecordData(lvMetaData.Selected.Data).FRecordInfo.ID;
+            SetTID(FSQL.Params[0], TRecordData(lvMetaData.Selected.Data).FRecordInfo.ID);
             try
               FSQL.ExecQuery;
               if Module = cn_procedure then
@@ -2215,7 +2231,7 @@ begin
             FExtSQL := TIBSQL.Create(nil);
             FExtSQL.Transaction := FTransaction;
             FExtSQL.SQL.Text := SQL;
-            FExtSQL.Params[0].AsInteger := TRecordData(lvMetaData.Selected.Data).FRecordInfo.ExtID;
+            SetTID(FExtSQL.Params[0], TRecordData(lvMetaData.Selected.Data).FRecordInfo.ExtID);
             try
               FExtSQL.ExecQuery;
               if Module = cn_procedure then

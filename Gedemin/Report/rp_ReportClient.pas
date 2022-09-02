@@ -1,3 +1,4 @@
+// ShlTanya, 27.02.2019
 
 {++
 
@@ -32,12 +33,12 @@ unit rp_ReportClient;
 
 interface
 
-{$DEFINE LogReport}
+{$UNDEF LogReport}
 
 uses
   Classes, SysUtils, IBDatabase, rp_BaseReport_unit, rp_ClassReportFactory,
   rp_ErrorMsgFactory, rp_prgReportCount_unit, rp_ReportServer,
-  Forms, rp_report_const, rp_i_ReportBuilder_unit;
+  Forms, rp_report_const, rp_i_ReportBuilder_unit, gdcBaseInterface;
 
 const
   ScriptControlNotRegister = 'Класс Microsoft Script Control не зарегистрирован.';
@@ -82,15 +83,15 @@ type
     destructor Destroy; override;
 
     //Проверяет, есть ли у осн.функции OwnerForm
-    function  CheckWithOwnerForm(const AnReportKey: Integer): Boolean;
+    function  CheckWithOwnerForm(const AnReportKey: TID): Boolean;
 
     procedure BuildReport(const OwnerForm: OleVariant;
-      const AnReportKey: Integer; const AnIsRebuild: Boolean = False);
-    procedure Execute(const AnGroupKey: Integer = 0);
+      const AnReportKey: TID; const AnIsRebuild: Boolean = False);
+    procedure Execute(const AnGroupKey: TID = 0);
     procedure Refresh; override;
-    function DoAction(const AnKey: Integer; const AnAction: TActionType): Boolean;
+    function DoAction(const AnKey: TID; const AnAction: TActionType): Boolean;
     procedure Clear;
-    procedure BuildReportWithParam(const AnReportKey: Integer; const AnParam: Variant;
+    procedure BuildReportWithParam(const AnReportKey: TID; const AnParam: Variant;
       const AnIsRebuild: Boolean = False);
 
   published
@@ -283,7 +284,7 @@ begin
   {$IFDEF DEBUG}
   if UseLog then
     Log.LogLn(DateTimeToStr(Now) + ': Запущен на выполнение отчет ' + AnReport.ReportName +
-      '  ИД  ' + IntToStr(AnReport.ReportKey));
+      '  ИД  ' + TID2S(AnReport.ReportKey));
   {$ENDIF}
 
   T := Now;
@@ -339,7 +340,7 @@ begin
       {$IFDEF DEBUG}
       if UseLog then
         Log.LogLn(DateTimeToStr(Now) + ': Ошибка во время выполнения отчета ' + AnReport.ReportName +
-          '  ИД ' + IntToStr(AnReport.ReportKey));
+          '  ИД ' + TID2S(AnReport.ReportKey));
       {$ENDIF}
 
       if Assigned(IBLogin) then
@@ -356,7 +357,7 @@ begin
       {$IFDEF DEBUG}
         if UseLog then
           Log.LogLn(DateTimeToStr(Now) + ': Успешное выполнение отчета ' + AnReport.ReportName +
-            '  ИД ' + IntToStr(AnReport.ReportKey));
+            '  ИД ' + TID2S(AnReport.ReportKey));
       {$ENDIF}
 
         if Assigned(IBLogin) then
@@ -376,12 +377,12 @@ begin
   FFirstRead := True;
 end;
 
-procedure TClientReport.Execute(const AnGroupKey: Integer = 0);
+procedure TClientReport.Execute(const AnGroupKey: TID = 0);
 begin
   CheckLoaded;
 end;
 
-procedure TClientReport.BuildReportWithParam(const AnReportKey: Integer;
+procedure TClientReport.BuildReportWithParam(const AnReportKey: TID;
  const AnParam: Variant; const AnIsRebuild: Boolean = False);
 var
   CurrentReport: TCustomReport;
@@ -458,7 +459,7 @@ begin
 end;
 
 procedure TClientReport.BuildReport(const OwnerForm: OleVariant;
-  const AnReportKey: Integer; const AnIsRebuild: Boolean = False);
+  const AnReportKey: TID; const AnIsRebuild: Boolean = False);
 const
   cn_MsgReportIsRunning: String = 'Идет построение отчета. Дождитесь окончания процесса.';
 var
@@ -535,7 +536,7 @@ begin
     Refresh;
 end;
 
-function TClientReport.DoAction(const AnKey: Integer;
+function TClientReport.DoAction(const AnKey: TID;
   const AnAction: TActionType): Boolean;
 begin
   Result := False;
@@ -547,7 +548,7 @@ begin
 end;
 
 function TClientReport.CheckWithOwnerForm(
-  const AnReportKey: Integer): Boolean;
+  const AnReportKey: TID): Boolean;
 var
   CurrentReport: TCustomReport;
 begin

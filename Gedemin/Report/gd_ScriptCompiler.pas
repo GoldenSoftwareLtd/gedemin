@@ -1,20 +1,22 @@
+// ShlTanya, 26.02.2019
+
 unit gd_ScriptCompiler;
 
 interface
 
 uses
-  classes, contnrs;
+  classes, contnrs, gdcBaseInterface;
 
 procedure InternalScriptList(const Script: String; NameList: TStrings;
-  ErrorList: TObjectList = nil; FunctionKey: Integer = 0);
+  ErrorList: TObjectList = nil; FunctionKey: TID = 0);
 
-implementation
+implementation                                      
 
 uses
   Sysutils, gd_i_ScriptFactory;
 
 procedure InternalScriptList(const Script: String;
-  NameList: TStrings; ErrorList: TObjectList; FunctionKey: Integer);
+  NameList: TStrings; ErrorList: TObjectList; FunctionKey: TID);
 //procedure TgdcCustomFunction.InternalScriptList(const Script: String;
 //  NameList: TStrings);
 var
@@ -103,7 +105,7 @@ const
       end;
     end;
 
-    procedure AddName(const AddName: String; AddSFID: Integer);
+    procedure AddName(const AddName: String; AddSFID: TID);
     var
       AddCompileItem: TgdCompileItem;
     begin
@@ -117,7 +119,7 @@ const
         AddCompileItem.SFID := FunctionKey;
         ErrorList.Add(AddCompileItem);
       end;
-      ResList.AddObject(AddName, TObject(AddSFID));
+      ResList.AddObject(AddName, TID2TObject(AddSFID, cEmptyContext));
     end;
 
   begin

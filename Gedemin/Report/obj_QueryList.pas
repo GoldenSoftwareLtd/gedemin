@@ -1,3 +1,4 @@
+// ShlTanya, 27.02.2019
 
 {++
 
@@ -89,8 +90,8 @@ type
     procedure Set_AsDateTime(Value: TDateTime); safecall;
     function  Get_AsFloat: Double; safecall;
     procedure Set_AsFloat(Value: Double); safecall;
-    function  Get_AsInteger: Integer; safecall;
-    procedure Set_AsInteger(Value: Integer); safecall;
+    function  Get_AsInteger: ATID; safecall;
+    procedure Set_AsInteger(Value: ATID); safecall;
     function  Get_AsMemo: WideString; safecall;
     procedure Set_AsMemo(const Value: WideString); safecall;
     function  Get_AsSmallInt: Integer; safecall;
@@ -331,8 +332,8 @@ type
     procedure Set_AsDateTime(Value: TDateTime); safecall;
     function  Get_AsFloat: Double; safecall;
     procedure Set_AsFloat(Value: Double); safecall;
-    function  Get_AsInteger: Integer; safecall;
-    procedure Set_AsInteger(Value: Integer); safecall;
+    function  Get_AsInteger: ATID; safecall;
+    procedure Set_AsInteger(Value: ATID); safecall;
     function  Get_AsMemo: WideString; safecall;
     procedure Set_AsMemo(const Value: WideString); safecall;
     function  Get_AsSmallInt: Integer; safecall;
@@ -363,7 +364,7 @@ implementation
 
 uses
   ComServ, rp_BaseReport_unit, Provider, IBSQL, IBTable, gd_SetDatabase,
-  gdcOLEClassList, prp_Methods, obj_WrapperIBXClasses, TypInfo, IB;
+  gdcOLEClassList, prp_Methods, obj_WrapperIBXClasses, TypInfo, IB, gdcBaseInterface;
 
 type
   TFieldCracker = class(TField);
@@ -533,10 +534,18 @@ end;
 
 procedure TgsDataSet.AddField(const FieldName: WideString; const FieldType: WideString;
   FieldSize: Integer; Required: WordBool); safecall;
+var
+  aFieldType: String;
 begin
   if FDataSet is TClientDataSet then
-    FDataSet.FieldDefs.Add(FieldName, GetFieldTypeFromStr(FieldType), FieldSize,
-      Required)
+  begin
+    if (AnsiUpperCase(FieldType) = 'FTINTEGER') or (AnsiUpperCase(FieldType) = 'FTLARGEINT') then
+      aFieldType := 'ftFloat'
+    else
+      aFieldType := FieldType;
+    FDataSet.FieldDefs.Add(FieldName, GetFieldTypeFromStr(aFieldType), FieldSize,
+      Required);
+  end;
 end;
 
 procedure TgsDataSet.ClearFields;
@@ -1051,9 +1060,9 @@ begin
   Result := FParam.AsFloat;
 end;
 
-function TgsParam.Get_AsInteger: Integer;
+function TgsParam.Get_AsInteger: ATID;
 begin
-  Result := FParam.AsInteger;
+  Result := GetTID(FParam.AsFloat);
 end;
 
 function TgsParam.Get_AsMemo: WideString;
@@ -1161,9 +1170,9 @@ begin
   FParam.AsFloat := Value;
 end;
 
-procedure TgsParam.Set_AsInteger(Value: Integer);
+procedure TgsParam.Set_AsInteger(Value: ATID);
 begin
-  FParam.AsInteger := Value;
+  FParam.AsFloat := GetTID(Value);
 end;
 
 procedure TgsParam.Set_AsMemo(const Value: WideString);
@@ -1573,9 +1582,9 @@ begin
   Result := FParam;
 end;
 
-function TgsCustomValue.Get_AsInteger: Integer;
+function TgsCustomValue.Get_AsInteger: ATID;
 begin
-  Result := FParam;
+  Result := GetTID(FParam);
 end;
 
 function TgsCustomValue.Get_AsMemo: WideString;
@@ -1714,7 +1723,7 @@ begin
   raise Exception.Create('Set Value Not Supported');
 end;
 
-procedure TgsCustomValue.Set_AsInteger(Value: Integer);
+procedure TgsCustomValue.Set_AsInteger(Value: ATID);
 begin
   raise Exception.Create('Set Value Not Supported');
 end;
@@ -1806,6 +1815,17 @@ var
               end;
             end;
           end;
+          ftLargeint:
+          begin
+            TempClientDS.Fields[K].AsFloat := TempField.AsFloat;
+            if TempField.Tag > BufferSize then
+            begin
+              BufferSize := TempField.Tag;
+              ReallocMem(Buffer, BufferSize);
+            end;
+            TempClientDS.Fields[K].GetData(Buffer);
+            AnStream.Write(Buffer^, TempField.Tag);
+          end;  
           ftBCD:
           begin
             TempClientDS.Fields[K].Assign(TempField);
@@ -1858,8 +1878,12 @@ begin
 
       // Заполняем поля
       for I := 0 to AnDataSet.FieldCount - 1 do
-        TempClientDS.FieldDefs.Add(AnDataSet.Fields[I].FieldName, AnDataSet.Fields[I].DataType,
-         AnDataSet.Fields[I].Size, AnDataSet.Fields[I].Required);
+        if AnDataSet.Fields[I].DataType = ftLargeint then
+          TempClientDS.FieldDefs.Add(AnDataSet.Fields[I].FieldName, ftFloat,
+             AnDataSet.Fields[I].Size, AnDataSet.Fields[I].Required)
+        else
+          TempClientDS.FieldDefs.Add(AnDataSet.Fields[I].FieldName, AnDataSet.Fields[I].DataType,
+             AnDataSet.Fields[I].Size, AnDataSet.Fields[I].Required);
         //TempClientDS.Fields.Add(AnDataSet.Fields[I]);
 
       // Создаем КлиентДатаСет и сохраняем заголовок
@@ -2098,7 +2122,7 @@ begin
   LO := [];
   if CaseIns then Include(LO, loCaseInsensitive);
   if PartialKey then Include(LO, loPartialKey);
-  Result := FDataSet.Locate(KeyFields, KeyValues, LO);
+  Result := DatasetLocate(FDataset, KeyFields, KeyValues, LO);
 end;
 
 function TgsDataSet.Get_Self: Integer;

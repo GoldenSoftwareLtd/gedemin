@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 unit gdc_dlgAcctGeneralLedger_unit;
 
 interface
@@ -7,7 +9,7 @@ uses
   gdc_dlgBaseAcctConfig, IBDatabase, Menus, Db, ActnList,
   gdv_frameAnalyticValue_unit, DBCtrls, gsIBLookupComboBox, StdCtrls, Mask,
   gdv_frameBaseAnalitic_unit, gdv_frameQuantity_unit, gdv_frameSum_unit,
-  ComCtrls, gdv_AcctConfig_unit, gd_ClassList;
+  ComCtrls, gdv_AcctConfig_unit, gd_ClassList, gdcBaseInterface;
 
 type
   TdlgAcctGeneralLedger = class(TdlgBaseAcctConfig)
@@ -18,7 +20,7 @@ type
   protected
     class function ConfigClassName: string; override;
     class function DefImageIndex: Integer; override;
-    class function DefFolderKey: Integer; override;
+    class function DefFolderKey: TID; override;
 
     procedure DoLoadConfig(const Config: TBaseAcctConfig); override;
     procedure DoSaveConfig(Config: TBaseAcctConfig); override;
@@ -39,7 +41,7 @@ begin
   Result := 'TAccGeneralLedgerConfig'
 end;
 
-class function TdlgAcctGeneralLedger.DefFolderKey: Integer;
+class function TdlgAcctGeneralLedger.DefFolderKey: TID;
 begin
   Result := inherited DefFolderKey;
 end;

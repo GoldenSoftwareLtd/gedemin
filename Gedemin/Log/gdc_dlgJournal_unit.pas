@@ -1,3 +1,5 @@
+// ShlTanya, 24.02.2019
+
 unit gdc_dlgJournal_unit;
 
 interface
@@ -38,7 +40,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdcJournal;
+  gd_ClassList, gdcJournal, gdcBaseInterface;
 
 procedure Tgdc_dlgJournal.actOpenObjectExecute(Sender: TObject);
 begin
@@ -48,7 +50,7 @@ end;
 procedure Tgdc_dlgJournal.actOpenObjectUpdate(Sender: TObject);
 begin
   actOpenObject.Enabled := (gdcObject.FieldByName('source').AsString > '')
-    and (gdcObject.FieldByName('objectid').AsInteger >= 0);
+    and (GetTID(gdcObject.FieldByName('objectid')) >= 0);
 end;
 
 initialization

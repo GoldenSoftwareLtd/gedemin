@@ -1,3 +1,4 @@
+// ShlTanya, 29.01.2019
 
  {++
    Project ADDRESSBOOK
@@ -122,7 +123,7 @@ end;
 
 procedure TdlgFindGood.actDeleteExecute(Sender: TObject);
 var
-  I: Integer;
+  I: integer;
 begin
   if (qryGood.Active and (qryGood.RecordCount > 0)) and
      (MessageBox(Handle, PChar(Format('Удалить товар %s?', [qryGood.FieldByName('name').AsString])),
@@ -132,7 +133,7 @@ begin
       for I := 0 to dbgGood.SelectedRows.Count - 1 do
         try
           qryGood.GotoBookmark(Pointer(dbgGood.SelectedRows.Items[I]));
-          if (qryGood.FieldByName('afull').AsInteger and IBLogin.Ingroup) <> 0 then
+          if (GetTID(qryGood.FieldByName('afull')) and IBLogin.Ingroup) <> 0 then
             qryGood.Delete
           else
             ShowMessage(Format('Нет прав на удаление %s', [qryGood.FieldByName('name').AsString]))
@@ -143,7 +144,7 @@ begin
     else
     begin
       try
-        if (qryGood.FieldByName('afull').AsInteger and IBLogin.Ingroup) <> 0 then
+        if (GetTID(qryGood.FieldByName('afull')) and IBLogin.Ingroup) <> 0 then
          qryGood.Delete
         else
           ShowMessage('Нет прав на удаление ' + qryGood.FieldByName('name').AsString);
@@ -157,7 +158,7 @@ end;
 
 procedure TdlgFindGood.actPropertyExecute(Sender: TObject);
 begin
-  if DirectGood.EditGood(qryGood.FieldByName('id').AsInteger) then
+  if DirectGood.EditGood(GetTID(qryGood.FieldByName('id'))) then
     qryGood.Refresh;
 end;
 

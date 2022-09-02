@@ -1,3 +1,5 @@
+// ShlTanya, 11.03.2019
+
 unit gp_dlgChooseField_unit;
 
 interface
@@ -88,7 +90,8 @@ end;
 procedure TdlgChooseField.FormCreate(Sender: TObject);
 var
   ibsql: TIBSQL;
-  CountGroup, i, GroupKey: Integer;
+  CountGroup, i: Integer;
+  GroupKey: TID;
   NameGroup: String;
 begin
   if not IBTransaction.InTransaction then
@@ -109,7 +112,7 @@ begin
         GroupKey := GlobalStorage.ReadInteger('realizationoption',
           Format('printgroupkey%d', [i]), 0);
 
-        ibsql.ParamByName('gk').AsInteger := GroupKey;
+        SetTID(ibsql.ParamByName('gk'), GroupKey);
         ibsql.ExecQuery;
         if ibsql.RecordCount = 1 then
           NameGroup := ibsql.Fields[0].AsString
@@ -118,7 +121,7 @@ begin
         ibsql.Close;
 
         sgrGroupSelect.Cells[0, i] := NameGroup;
-        sgrGroupSelect.Cells[1, i] := IntToStr(GroupKey);
+        sgrGroupSelect.Cells[1, i] := TID2S(GroupKey);
       end;
     finally
       ibsql.Free;

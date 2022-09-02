@@ -1,3 +1,4 @@
+// ShlTanya, 09.03.2019
 
 unit frAcctEntrySimpleLine_unit;
 
@@ -60,7 +61,7 @@ type
     procedure UpdateCaption;
     procedure UpdateControls;
     procedure SetDataSet(const Value: TDataSet);
-    function GetId: Integer;
+    function GetId: TID;
     procedure WMPaint(var Message: TWMPaint); message WM_PAINT;
     procedure CMFocusChanged(var Message: TCMFocusChanged); message CM_FOCUSCHANGED;
     procedure OnValueChange(Sender: TObject);
@@ -68,7 +69,7 @@ type
     procedure DoChange(Sender: TObject);
     procedure SetOffBalance(const Value: Boolean);
     procedure SetMultyCurr(const Value: Boolean);
-    function CurrRate(const CurrKey: Integer): Double;
+    function CurrRate(const CurrKey: TID): Double;
     function ControlEnabled: Boolean;
     procedure CalcCurrency(isCurrency: Boolean);
     procedure SetgdcObject(const Value: TgdcBase);
@@ -84,10 +85,10 @@ type
     procedure EnableControls;
     procedure SaveAnalytic;
     procedure LoadAnalytic;
-    procedure SetCurrRate(CurrKey: Integer; Rate: Double);
+    procedure SetCurrRate(CurrKey: TID; Rate: Double);
     property AccountPart: string read FAccountPart write SetAccountPart;
     property DataSet: TDataSet read FDataSet write SetDataSet;
-    property Id: Integer read GetId;
+    property Id: TID read GetId;
     property IsFocused: Boolean read FFocused;
     property OnChange: TNotifyEvent read FOnChange write SetOnChange;
     property MultyCurr: Boolean read FMultyCurr write SetMultyCurr;
@@ -148,7 +149,7 @@ begin
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
       SQl.SQL.Text := 'SELECT alias, name FROM ac_account WHERE id = :id';
-      SQl.ParamByName('id').AsInteger := cbAccount.CurrentKeyInt;
+      SetTID(SQl.ParamByName('id'), cbAccount.CurrentKeyInt);
       SQl.ExecQuery;
 
       S := SQl.FieldByName('Alias').AsString;
@@ -175,7 +176,9 @@ begin
   begin
     L := TList.Create;
     try
-      L.Add(Pointer(cbAccount.CurrentKeyInt));
+      frAcctAnalytics.Context := Name;
+      frQuantity.Context := Name;
+      L.Add(TID2Pointer(cbAccount.CurrentKeyInt, Name));
       frAcctAnalytics.UpdateAnalyticsList(L, False, False, False);
       frQuantity.UpdateQuantityList(L);
     finally
@@ -198,7 +201,7 @@ begin
         SQL.Transaction := gdcBaseManager.ReadTransaction;
         SQL.SQL.Text :=
           'SELECT multycurr, offbalance FROM ac_account WHERE id = :id';
-        SQL.ParamByName('id').AsInteger := cbAccount.CurrentKeyInt;
+        SetTID(SQL.ParamByName('id'), cbAccount.CurrentKeyInt);
         SQL.ExecQuery;
 
         FMultyCurr := SQL.FieldByName('multycurr').AsInteger > 0;
@@ -291,7 +294,6 @@ var
   q: TIBSQL;
 begin
   Assert(gdcBaseManager <> nil);
-
   inherited;
 
   Transaction.DefaultDatabase := gdcBaseManager.Database;
@@ -340,12 +342,12 @@ begin
   end;
 end;
 
-function TfrAcctEntrySimpleLine.GetId: Integer;
+function TfrAcctEntrySimpleLine.GetId: TID;
 begin
   Result := -1;
   if FDataSet <> nil then
   begin
-    Result := FDataSet.FieldByName('id').AsInteger;
+    Result := GetTID(FDataSet.FieldByName('id'));
   end;
 end;
 
@@ -444,7 +446,6 @@ begin
         S.Free;
       end;;
     end;
-
     frQuantity.OnValueChange := OnValueChange;
     frAcctAnalytics.OnValueChange := OnValueChange;
   end;
@@ -461,7 +462,7 @@ var
 begin
   if FDataSet <> nil then
   begin
-    if FDataSet.FieldByName('accountkey').AsInteger = 0 then
+    if GetTID(FDataSet.FieldByName('accountkey')) = 0 then
       exit;
 
     CheckEditMode;
@@ -537,7 +538,7 @@ begin
     if not (FDataSet.State in [dsEdit, dsInsert]) then
       FDataSet.Edit;
 
-    FDataSet.FieldByName('id').Value := FDataSet.FieldByName('id').Value
+    SetTID(FDataSet.FieldByName('id'), FDataSet.FieldByName('id'));
   end;
   DoChange(Sender);
 end;
@@ -580,7 +581,7 @@ begin
 end;
 
 
-function TfrAcctEntrySimpleLine.CurrRate(const CurrKey: Integer): Double;
+function TfrAcctEntrySimpleLine.CurrRate(const CurrKey: TID): Double;
 var
   q: TIBSQL;
 begin
@@ -590,7 +591,7 @@ begin
     Result := AcctUtils.GetCurrRate(gdcObject.FieldByName('recorddate').AsDateTime,
       -1,
       -1,
-      CurrKey,
+      TID2V(CurrKey),
       'NCU',
       -1,
       1,
@@ -602,7 +603,7 @@ begin
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
       q.SQL.Text := 'SELECT c.decdigits FROM gd_curr c WHERE c.id = :fc';
-      q.ParamByName('fc').AsInteger := CurrKey;
+      SetTID(q.ParamByName('fc'), CurrKey);
       q.ExecQuery;
       if not q.EOF then
         FCurrDigits := q.FieldByName('decdigits').AsInteger
@@ -696,6 +697,9 @@ end;
 
 destructor TfrAcctEntrySimpleLine.Destroy;
 begin
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
   try
     if CompanyStorage <> nil then
       CompanyStorage.WriteBoolean(BuildComponentPath(Self), 'Rounded', cbRounded.Checked);
@@ -707,7 +711,7 @@ begin
   inherited;
 end;
 
-procedure TfrAcctEntrySimpleLine.SetCurrRate(CurrKey: Integer;
+procedure TfrAcctEntrySimpleLine.SetCurrRate(CurrKey: TID;
   Rate: Double);
 begin
   if cbCurrency.Visible and (cbCurrency.CurrentKeyInt = CurrKey) and (zRate <> Rate) then

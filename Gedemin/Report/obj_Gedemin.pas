@@ -1,7 +1,8 @@
+// ShlTanya, 26.02.2019
 
 {++
 
-  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2022 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -31,18 +32,19 @@ interface
 
 uses
   ComObj, ActiveX, AxCtrls, Gedemin_TLB, StdVcl, Forms, Classes, IBDatabase,
-  Windows, gdcConst, obj_WrapperDelphiClasses, gd_i_ScriptFactory, Printers;
+  Windows, gdcConst, obj_WrapperDelphiClasses, gd_i_ScriptFactory, Printers,
+  gdcBaseInterface;
   
 type
   TgsRecord = class(TAutoObject, IRecord)
   private
-    FID: Integer;
+    FID: ATID;
     FName: String;
   protected
-    function  Get_ID: Integer; safecall;
+    function  Get_ID: ATID; safecall;
     function  Get_Name: WideString; safecall;
   public
-    constructor Create(const AnID: Integer; const AnName: String);
+    constructor Create(const AnID: ATID; const AnName: String);
   end;
 
 type
@@ -50,9 +52,9 @@ type
   private
     FAction: Integer;
   protected
-    function  Add(ParentKey: Integer): WordBool; safecall;
-    function  Edit(ObjectKey: Integer): WordBool; safecall;
-    function  Delete(ObjectKey: Integer): WordBool; safecall;
+    function  Add(ParentKey: ATID): WordBool; safecall;
+    function  Edit(ObjectKey: ATID): WordBool; safecall;
+    function  Delete(ObjectKey: ATID): WordBool; safecall;
     function  Execute: WordBool; safecall;
   public
     constructor Create(const ActionType: Integer);
@@ -64,20 +66,20 @@ type
     procedure CheckClientReport;
   protected
     procedure Refresh; safecall;
-    procedure BuildReport(ReportKey: Integer); safecall;
-    procedure RebuildReport(ReportKey: Integer); safecall;
+    procedure BuildReport(ReportKey: ATID); safecall;
+    procedure RebuildReport(ReportKey: ATID); safecall;
     function  Get_ReportGroup: IgsDlgWindow; safecall;
     function  Get_ReportList: IgsDlgWindow; safecall;
     function  Get_DefaultServer: IgsDlgWindow; safecall;
-    procedure BuildReportWithParam(ReportKey: Integer; Params: OleVariant); safecall;
-    procedure BuildReportWithOwnerForm(const OwnerForm: IgsGDCCreateableForm; ReportKey: Integer); safecall;
-    procedure RebuildReportWithParam(ReportKey: Integer; Params: OleVariant); safecall;
+    procedure BuildReportWithParam(ReportKey: ATID; Params: OleVariant); safecall;
+    procedure BuildReportWithOwnerForm(const OwnerForm: IgsGDCCreateableForm; ReportKey: ATID); safecall;
+    procedure RebuildReportWithParam(ReportKey: ATID; Params: OleVariant); safecall;
     property  ReportGroup: IgsDlgWindow read Get_ReportGroup;
     property  ReportList: IgsDlgWindow read Get_ReportList;
     property  DefaultServer: IgsDlgWindow read Get_DefaultServer;
-    procedure BuildReportWithParamPrinter(ReportKey: Integer; Params: OleVariant;
+    procedure BuildReportWithParamPrinter(ReportKey: ATID; Params: OleVariant;
              const PrinterName: WideString; ShowProgress: WordBool); safecall;
-    procedure ExportReportWithParam(ReportKey: Integer; Params: OleVariant; 
+    procedure ExportReportWithParam(ReportKey: ATID; Params: OleVariant;
              const FileName: WideString; const ExportType: WideString); safecall;
   end;
 
@@ -103,8 +105,8 @@ type
     function  ExecuteMacro(const Name: WideString; const ObjectName: WideString; Params: OleVariant): OleVariant; safecall;
     function  ExecuteScript(const FunctionName: WideString; const ObjectName: WideString;
                             Params: OleVariant): OleVariant; safecall;
-    function  ExecuteScriptFunction(FunctionID: Integer; Params: OleVariant): OleVariant; safecall;
-    procedure ExecuteMacros(OwnerFrom: OleVariant; Id: Integer); safecall;
+    function  ExecuteScriptFunction(FunctionID: ATID; Params: OleVariant): OleVariant; safecall;
+    procedure ExecuteMacros(OwnerFrom: OleVariant; Id: ATID); safecall;
     function  WindowByName(const WindowName: WideString): IgsCreateableForm; safecall;
     function  IsWindowExit(const WindowName: WideString): WordBool; safecall;
     function  WindowExists(const WindowName: WideString): WordBool; safecall;
@@ -118,7 +120,7 @@ type
     function  GetUser(const Folder: WideString; const Name: WideString): OleVariant; safecall;
     function  GetCompany(const Folder: WideString; const Name: WideString): OleVariant; safecall;
     function  GetValue(const AName: WideString): WideString; safecall;
-    function  GetValueByID(AnID: Integer): WideString; safecall;
+    function  GetValueByID(AnID: ATID): WideString; safecall;
     procedure ShowString(const S: WideString); safecall;
     procedure ShowSQL(const S: WideString); safecall;
     function  GetSQL(const SQL: WideString): WideString; safecall;
@@ -134,7 +136,10 @@ type
     function  StartPerfCounter(const ASrc: WideString; const AName: WideString): Integer; safecall;
     procedure StopPerfCounter(AnID: Integer); safecall;
     procedure AddLogRecord(const ASrc: WideString; const AText: WideString; AType: Integer;
-                           AnObjID: Integer; const AnObjType: WideString; AShowWindow: WordBool); safecall;
+                           AnObjID: ATID; const AnObjType: WideString; AShowWindow: WordBool); safecall;
+    procedure Dataset2JSON(const InQ: IgsIBSQL; const OutS: IgsStream; const Fields: WideString;
+      const SubObjects: WideString; SkipNulls: WordBool; DateTimeInMs: WordBool; const TZ: WideString;
+      WithMs: WordBool; MakeArray: WordBool; const Name: WideString; Indent: Integer; UTF8: WordBool); safecall;
     procedure WIN1251ToUTF8(const AWIN1251Stream: IgsStream; const AUTF8Stream: IgsStream); safecall;
     procedure UTF8ToWIN1251(const AUTF8Stream: IgsStream; const AWIN1251Stream: IgsStream); safecall;
     function  ReplaceXMLTags(const S: WideString): WideString; safecall;
@@ -153,9 +158,9 @@ uses
   ComServ, gd_security, gd_createable_form, obj_QueryList, IBQuery,
   IBCustomDataSet, SysUtils, IBTable, rp_ReportClient, rp_report_const,
   obj_dlgParamWindow, gdc_frmMemo_unit, at_sql_parser, at_sql_setup,
-  obj_WrapperGSClasses, gdcOLEClassList, Storages, mtd_i_Base,
+  obj_WrapperGSClasses, gdcOLEClassList, Storages, mtd_i_Base, gdJSON,
   rp_dlgViewResultEx_unit, scrMacrosGroup, jclUnicode, gd_directories_const,
-  gd_common_functions, AcctUtils,
+  gd_common_functions, AcctUtils, IBSQL, IBHeader, Contnrs, jclStrings,
   {$IFDEF WITH_INDY}
   gdccClient_unit,
   {$ENDIF}
@@ -258,7 +263,7 @@ begin
   end;
 end;
 
-function TgsGedemin.GetValueByID(AnID: Integer): WideString;
+function TgsGedemin.GetValueByID(AnID: ATID): WideString;
 begin
   {if FgdcConst = nil then
   begin
@@ -267,7 +272,7 @@ begin
   end;}
 
   //Result := {dmDataBase.}FgdcConst.GetValue(AnID);
-  Result := TgdcConst.QGetValueByID(AnID);
+  Result := TgdcConst.QGetValueByID(GetTID(AnID));
 end;
 
 { TAutoStorage }
@@ -334,7 +339,6 @@ var
   St: String;
 begin
   St := S;
-//  CharToOem(Pchar(St), PChar(St));
   CharToOem(@St[1], @St[1]);
   Result := St;
 end;
@@ -468,15 +472,15 @@ begin
   end;
 end;
 
-function TgsGedemin.ExecuteScriptFunction(FunctionID: Integer;
+function TgsGedemin.ExecuteScriptFunction(FunctionID: ATID;
   Params: OleVariant): OleVariant;
 begin
   if Assigned(ScriptFactory) then
-    Result := ScriptFactory.ExecuteScript(FunctionId, Params);
+    Result := ScriptFactory.ExecuteScript(GetTID(FunctionId), Params);
 end;
 
 procedure TgsGedemin.ExecuteMacros(OwnerFrom: OleVariant;
-  Id: Integer);
+  Id: ATID);
 var
   M: TscrMacrosItem;
 begin
@@ -486,7 +490,7 @@ begin
     begin
       M := TscrMacrosItem.Create;
       try
-        M.FunctionKey := Id;
+        M.FunctionKey := GetTID(Id);
         ScriptFactory.ExecuteMacros(OwnerFrom, M);
       finally
         M.Free;
@@ -497,8 +501,8 @@ begin
     raise Exception.Create('Попытка вызова макроса с ID = -1');
 end;
 
-procedure TgsGedemin.AddLogRecord(const ASrc, AText: WideString; AType,
-  AnObjID: Integer; const AnObjType: WideString; AShowWindow: WordBool);
+procedure TgsGedemin.AddLogRecord(const ASrc, AText: WideString; AType: Integer;
+  AnObjID: ATID; const AnObjType: WideString; AShowWindow: WordBool);
 begin
   {$IFDEF WITH_INDY}
   if gdccClient <> nil then
@@ -548,6 +552,250 @@ begin
   TStream(AWIN1251Stream.Get_Self).Size := Length(S);
   if S > '' then
     TStream(AWIN1251Stream.Get_Self).WriteBuffer(S[1], Length(S));
+end;
+
+procedure TgsGedemin.Dataset2JSON(const InQ: IgsIBSQL; const OutS: IgsStream;
+  const Fields: WideString; const SubObjects: WideString; SkipNulls: WordBool;
+  DateTimeInMs: WordBool; const TZ: WideString; WithMs: WordBool; MakeArray: WordBool;
+  const Name: WideString; Indent: Integer; UTF8: WordBool);
+var
+  Date1970: Double;
+
+  function GetFldValue(F: TIBXSQLVAR): String;
+  const
+    MsInADay = 24 * 60 * 60 * 1000;
+  var
+    OldSeparator: Char;
+  begin
+    if F.IsNull then
+      Result := 'null'
+    else
+    begin
+      case F.SQLType of
+        SQL_TYPE_DATE, SQL_TIMESTAMP:
+        begin
+          if DateTimeInMs then
+            Result := IntToStr(Round((F.AsDateTime - Date1970) * MsInADay))
+          else begin
+            if WithMs then
+              Result := '"' + FormatDateTime('yyyy-mm-dd', F.AsDateTime) + 'T' + FormatDateTime('hh:nn:ss.zzz', F.AsDateTime) + '"'
+            else
+              Result := '"' + FormatDateTime('yyyy-mm-dd', F.AsDateTime) + 'T' + FormatDateTime('hh:nn:ss', F.AsDateTime) + '"';
+          end;
+        end;
+
+        SQL_TYPE_TIME:
+        begin
+          if DateTimeInMs then
+            Result := IntToStr(Round(F.AsDateTime * MsInADay))
+          else begin
+            if WithMs then
+              Result := '"' + FormatDateTime('hh:nn:ss.zzz', F.AsDateTime) + '"'
+            else
+              Result := '"' + FormatDateTime('hh:nn:ss', F.AsDateTime) + '"';
+          end;
+        end;
+
+        SQL_DOUBLE, SQL_FLOAT, SQL_SHORT, SQL_LONG, SQL_INT64:
+          if DecimalSeparator = '.' then
+            Result := F.AsString
+          else begin
+            OldSeparator := DecimalSeparator;
+            DecimalSeparator := '.';
+            Result := F.AsString;
+            DecimalSeparator := OldSeparator;
+          end;
+
+        SQL_BLOB:
+          if F.AsXSQLVAR^.sqlsubtype = 1 then
+            Result := EscapeJSON(F.AsString)
+          else
+            raise Exception.Create('Binary BLOBs are unsupported');
+      else
+        Result := EscapeJSON(F.AsString);
+      end;
+    end;
+  end;
+
+var
+  SS, SSUTF8: TStringStream;
+  FStringList, FFields, FSubObjects: TStringList;
+  FList: TStringList;
+  I, J: Integer;
+  Fld: TIBXSQLVAR;
+  IndentString, IndentString2, Str, NL, MiddleSpace, FldName: String;
+  Stream: TStream;
+  q: TIBSQL;
+  WasValue: Boolean;
+begin
+  if DateTimeInMs then
+    Date1970 := EncodeDate(1970, 01, 01);
+
+  SS := TStringStream.Create('');
+  FList := TStringList.Create();
+  FFields := nil;
+  FSubObjects := nil;
+  try
+    q := TIBSQL(InQ.Get_Self);
+
+    if UTF8 then
+      Stream := SS
+    else
+      Stream := TStream(OutS.Get_Self);
+
+    if Fields > '' then
+    begin
+      FFields := TStringList.Create;
+      FFields.CommaText := Fields;
+    end;
+
+    if FFields <> nil then
+    begin
+      for I := 0 to FFields.Count - 1 do
+      begin
+        if StrIPos('=', FFields[I]) = 0 then
+          FList.AddObject(FFields[I], q.FieldByName(FFields[I]))
+        else
+          FList.AddObject(FFields.Values[FFields.Names[I]], q.FieldByName(FFields.Names[I]));
+      end;
+    end else
+    begin
+      for I := 0 to q.Current.Count - 1 do
+        FList.AddObject(q.Fields[i].Name, q.Fields[I]);
+    end;
+
+    if SubObjects > '' then
+    begin
+      FSubObjects := TStringList.Create;
+      FSubObjects.CommaText := SubObjects;
+
+      for I := 0 to FSubObjects.Count - 1 do
+      begin
+        FSubObjects.Objects[I] := TStringList.Create;
+        FStringList := TStringList.Create;
+        try
+          FStringList.CommaText := StringReplace(FSubObjects.Values[FSubObjects.Names[I]], ';', ',', [rfReplaceAll]);
+
+          for J := 0 to FStringList.Count - 1 do
+          begin
+            if StrIPos('=', FStringList[J]) = 0 then
+              (FSubObjects.Objects[I] as TStringList).AddObject(FStringList[J], Q.FieldByName(FStringList[J]))
+            else
+              (FSubObjects.Objects[I] as TStringList).AddObject(FStringList.Values[FStringList.Names[J]], Q.FieldByName(FStringList.Names[J]));
+          end;
+        finally
+          FStringList.Free;
+        end;
+      end;
+    end;
+
+    IndentString := StringOfChar(' ', Indent);
+    IndentString2 := StringOfChar(' ', Indent * 2);
+
+    if Indent > 0 then
+    begin
+      NL := #13#10;
+      MiddleSpace := ' ';
+    end else
+    begin
+      NL := '';
+      MiddleSpace := '';
+    end;
+
+    if MakeArray then
+    begin
+      if Name > '' then
+        Str := '"' + Name + '": [' + NL
+      else
+        Str := '[' + NL;
+      Stream.Write(Str[1], Length(Str));
+    end;
+
+    while not Q.EOF do
+    begin
+      Str := IndentString + '{' + NL;
+      WasValue := False;
+
+      for I := 0 to FList.Count - 1 do
+      begin
+        FldName := FList[I];
+        Fld := FList.Objects[I] as TIBXSQLVAR;
+
+        if not Fld.IsNull or not SkipNulls then
+        begin
+          if WasValue then
+            Str := Str + ',' + NL;
+          Str := Str + IndentString2 + '"' + FldName + '":' + MiddleSpace + GetFldValue(Fld);
+          WasValue := True;
+        end;
+      end;
+
+      if FSubObjects <> nil then
+      begin
+        Str := Str + ',' + NL;
+
+        for I := 0 to FSubObjects.Count - 1 do
+        begin
+          Str := Str + IndentString2 + '"' + FSubObjects.Names[I] + '":' + MiddleSpace + '{' + MiddleSpace;
+          WasValue := False;
+          for J := 0 to (FSubObjects.Objects[I] as TStringList).Count - 1 do
+          begin
+            if not ((FSubObjects.Objects[I] as TStringList).Objects[J] as TIBXSQLVAR).IsNull or not SkipNulls then
+            begin
+              if WasValue then
+                Str := Str + ',' + MiddleSpace;
+              Str := Str + '"' + (FSubObjects.Objects[I] as TStringList)[J] + '":' + MiddleSpace +
+                GetFldValue((FSubObjects.Objects[I] as TStringList).Objects[J] as TIBXSQLVAR);
+              WasValue := True;
+            end;
+          end;
+
+          if I = FSubObjects.Count - 1 then
+            Str := Str + MiddleSpace + '}' + NL
+          else
+            Str := Str + MiddleSpace + '},' + NL
+        end;
+      end else
+        Str := Str + NL;
+
+      Q.Next;
+
+      if Q.EOF then
+        Str := Str + IndentString + '}' + NL
+      else
+        Str := Str + IndentString + '},' + NL;
+
+      Stream.Write(Str[1], Length(Str));
+    end;
+
+    if MakeArray then
+    begin
+      Str := ']' + NL;
+      Stream.Write(Str[1], Length(Str));
+    end;
+
+    if UTF8 then
+    begin
+      SSUTF8 := TStringStream.Create(WideStringToUTF8(
+        StringToWideStringEx(SS.DataString, WIN1251_CODEPAGE)));
+      try
+        TStream(OutS.Get_Self).CopyFrom(SSUTF8, 0);
+      finally
+        SSUTF8.Free;
+      end;
+    end;
+  finally
+    SS.Free;
+    FList.Free;
+    FFields.Free;
+
+    if FSubObjects <> nil then
+    begin
+      for I := 0 to FSubObjects.Count - 1 do
+        FSubObjects.Objects[I].Free;
+      FSubObjects.Free;
+    end;
+  end;
 end;
 
 procedure TgsGedemin.WIN1251ToUTF8(const AWIN1251Stream, AUTF8Stream: IgsStream);
@@ -613,7 +861,7 @@ end;
 
 { TgsRecord }
 
-constructor TgsRecord.Create(const AnID: Integer; const AnName: String);
+constructor TgsRecord.Create(const AnID: ATID; const AnName: String);
 begin
   inherited Create;
 
@@ -621,7 +869,7 @@ begin
   FName := AnName;
 end;
 
-function TgsRecord.Get_ID: Integer;
+function TgsRecord.Get_ID: ATID;
 begin
   Result := FID;
 end;
@@ -636,36 +884,36 @@ end;
 type
   TClientReportCracker = class(TClientReport);
 
-procedure TReportSystem.BuildReport(ReportKey: Integer);
+procedure TReportSystem.BuildReport(ReportKey: ATID);
 begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
   ClientReport.FileName := '';
   ClientReport.ExportType := '';
-  ClientReport.BuildReport(Unassigned, ReportKey);
+  ClientReport.BuildReport(Unassigned, GetTID(ReportKey));
 end;
 
 procedure TReportSystem.BuildReportWithOwnerForm(
-  const OwnerForm: IgsGDCCreateableForm; ReportKey: Integer);
+  const OwnerForm: IgsGDCCreateableForm; ReportKey: ATID);
 begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
   ClientReport.FileName := '';
   ClientReport.ExportType := '';
-  ClientReport.BuildReport(OwnerForm, ReportKey);
+  ClientReport.BuildReport(OwnerForm, GetTID(ReportKey));
 end;
 
-procedure TReportSystem.BuildReportWithParam(ReportKey: Integer;
+procedure TReportSystem.BuildReportWithParam(ReportKey: ATID;
   Params: OleVariant);
 begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
   ClientReport.FileName := '';
   ClientReport.ExportType := '';
-  TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
+  TClientReportCracker(ClientReport).BuildReportWithParam(GetTID(ReportKey), Params);
 end;
 
-procedure TReportSystem.BuildReportWithParamPrinter(ReportKey: Integer;
+procedure TReportSystem.BuildReportWithParamPrinter(ReportKey: ATID;
   Params: OleVariant; const PrinterName: WideString; ShowProgress: WordBool);
 begin
   CheckClientReport;
@@ -673,7 +921,7 @@ begin
   ClientReport.ShowProgress := ShowProgress;
   ClientReport.FileName := '';
   ClientReport.ExportType := '';
-  TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
+  TClientReportCracker(ClientReport).BuildReportWithParam(GetTID(ReportKey), Params);
 end;
 
 procedure TReportSystem.CheckClientReport;
@@ -681,7 +929,7 @@ begin
   Assert(ClientReport <> nil, 'Global var ClientReport was not created.');
 end;
 
-procedure TReportSystem.ExportReportWithParam(ReportKey: Integer;
+procedure TReportSystem.ExportReportWithParam(ReportKey: ATID;
   Params: OleVariant; const FileName, ExportType: WideString);
 begin
   if FileName = '' then
@@ -690,7 +938,7 @@ begin
   ClientReport.ShowProgress := False;
   ClientReport.FileName := FileName;
   ClientReport.ExportType := ExportType;
-  TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
+  TClientReportCracker(ClientReport).BuildReportWithParam(GetTID(ReportKey), Params);
 end;
 
 function TReportSystem.Get_DefaultServer: IgsDlgWindow;
@@ -708,23 +956,23 @@ begin
   Result := TgsReportWindow.Create(1);
 end;
 
-procedure TReportSystem.RebuildReport(ReportKey: Integer);
+procedure TReportSystem.RebuildReport(ReportKey: ATID);
 begin
   CheckClientReport;
   ClientReport.ShowProgress := True;
   ClientReport.FileName := '';
   ClientReport.ExportType := '';
-  ClientReport.BuildReport(Unassigned, ReportKey, True);
+  ClientReport.BuildReport(Unassigned, GetTID(ReportKey), True);
 end;
 
-procedure TReportSystem.RebuildReportWithParam(ReportKey: Integer;
+procedure TReportSystem.RebuildReportWithParam(ReportKey: ATID;
   Params: OleVariant);
 begin
   CheckClientReport;
   ClientReport.ShowProgress := True;
   ClientReport.FileName := '';
   ClientReport.ExportType := '';
-  TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
+  TClientReportCracker(ClientReport).BuildReportWithParam(GetTID(ReportKey), Params);
 end;
 
 procedure TReportSystem.Refresh;
@@ -735,7 +983,7 @@ end;
 
 { TgsReportWindow }
 
-function TgsReportWindow.Add(ParentKey: Integer): WordBool;
+function TgsReportWindow.Add(ParentKey: ATID): WordBool;
 begin
   Result := False;
   case FAction of
@@ -751,7 +999,7 @@ begin
   FAction := ActionType;
 end;
 
-function TgsReportWindow.Delete(ObjectKey: Integer): WordBool;
+function TgsReportWindow.Delete(ObjectKey: ATID): WordBool;
 begin
   Result := False;
   case FAction of
@@ -760,7 +1008,7 @@ begin
   end;
 end;
 
-function TgsReportWindow.Edit(ObjectKey: Integer): WordBool;
+function TgsReportWindow.Edit(ObjectKey: ATID): WordBool;
 begin
   Result := False;
   case FAction of

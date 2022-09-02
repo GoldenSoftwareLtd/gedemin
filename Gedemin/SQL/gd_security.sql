@@ -564,11 +564,11 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE PROCEDURE gd_p_sec_loginuser (username VARCHAR(20), passw VARCHAR(20), subsystem INTEGER)
+CREATE PROCEDURE gd_p_sec_loginuser (username VARCHAR(20), passw VARCHAR(20), subsystem DFOREIGNKEY)
   RETURNS (
     result        INTEGER,
-    userkey       INTEGER,
-    contactkey    INTEGER,
+    userkey       DFOREIGNKEY,
+    contactkey    DFOREIGNKEY,
     ibname        VARCHAR(20),
     ibpassword    VARCHAR(20),
     ingroup       INTEGER,

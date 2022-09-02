@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgChooseGroup_unit;
 
 interface
@@ -25,16 +27,16 @@ type
     procedure gsdbtvGroupGetSelectedIndex(Sender: TObject;
       Node: TTreeNode);
   private
-    function GetGroupKey: Integer;
+    function GetGroupKey: TID;
     function GetGroupName: String;
-    function GetGroupLB: Integer;
-    function GetGroupRB: Integer;
+    function GetGroupLB: TID;
+    function GetGroupRB: TID;
     { Private declarations }
   public
     { Public declarations }
-    property GroupKey: Integer read GetGroupKey;
-    property GroupRB: Integer read GetGroupRB;
-    property GroupLB: Integer read GetGroupLB;
+    property GroupKey: TID read GetGroupKey;
+    property GroupRB: TID read GetGroupRB;
+    property GroupLB: TID read GetGroupLB;
     property GroupName: String read GetGroupName;
     function ActiveDialog(aIBTransaction: TIBTransaction): boolean;
   end;
@@ -48,7 +50,7 @@ implementation
 
 { TdlgChooseGroup }
 
-function TdlgChooseGroup.GetGroupKey: Integer;
+function TdlgChooseGroup.GetGroupKey: TID;
 begin
   if gsdbtvGroup.Selected <> nil then
     Result := gsdbtvGroup.ID
@@ -100,18 +102,18 @@ begin
     Result := '';
 end;
 
-function TdlgChooseGroup.GetGroupLB: Integer;
+function TdlgChooseGroup.GetGroupLB: TID;
 begin
   if gsdbtvGroup.Selected <> nil  then
-    Result := ibdsGroup.FieldByName('lb').AsInteger
+    Result := GetTID(ibdsGroup.FieldByName('lb'))
   else
     Result := 0;
 end;
 
-function TdlgChooseGroup.GetGroupRB: Integer;
+function TdlgChooseGroup.GetGroupRB: TID;
 begin
   if gsdbtvGroup.Selected <> nil then
-    Result := ibdsGroup.FieldByName('rb').AsInteger
+    Result := GetTID(ibdsGroup.FieldByName('rb'))
   else
     Result := 0;
 end;

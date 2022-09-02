@@ -1,3 +1,5 @@
+// ShlTanya, 09.03.2019
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -62,7 +64,7 @@ type
     FAccountPopupMenu: TAccountPopupMenu;
     FAnalPopupMenu: TAnalPopupMenu;
 
-    FDebit, FCredit: Integer;
+    FDebit, FCredit: TID;
   protected
     procedure SetBlock(const Value: TVisualBlock); override;
     procedure ClickAccount(Sender: TObject);
@@ -118,7 +120,7 @@ end;
 
 procedure TdlgEntryEditForm.SetBlock(const Value: TVisualBlock);
 var
-  Id: Integer;
+  Id: TID;
 begin
   inherited;
   with FBlock as TEntryBlock do

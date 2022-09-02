@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcCurrCommission;
 
 interface
@@ -24,7 +26,7 @@ type
   public
     class function ClassDocumentTypeKey: Integer; override;
 
-    function GetCurrencyByAccount(AccountKey: Integer): String;
+    function GetCurrencyByAccount(AccountKey: TID): String;
     procedure UpdateAdditional;
     procedure UpdateCorrAccount;
     procedure UpdateCorrCompany;
@@ -98,7 +100,7 @@ begin
         ' WHERE C.ID = :Id ';
 
       q.Prepare;
-      q.ParamByName('ID').AsInteger := IBLogin.CompanyKey;
+      SetTID(q.ParamByName('ID'), IBLogin.CompanyKey);
 
       q.ExecQuery;
 
@@ -132,7 +134,7 @@ begin
         ' WHERE A.ID = :Id AND COMP.CONTACTKEY = A.BANKKEY ';
 
       q.Prepare;
-      q.ParamByName('ID').AsInteger := FieldByName('ACCOUNTKEY').AsInteger;
+      SetTID(q.ParamByName('ID'), FieldByName('ACCOUNTKEY'));
       q.ExecQuery;
 
       FieldByName('OWNBANKTEXT').AsString := q.FieldByName('FULLNAME').AsString;
@@ -145,7 +147,7 @@ begin
       ///////////////////////
       // Данные по получателю
 
-      q.ParamByName('ID').AsInteger := FieldByName('CORRACCOUNTKEY').AsInteger;
+      SetTID(q.ParamByName('ID'), FieldByName('CORRACCOUNTKEY'));
       q.ExecQuery;
 
       FieldByName('CORRBANKTEXT').AsString := q.FieldByName('FULLNAME').AsString;
@@ -155,11 +157,11 @@ begin
 
       q.Close;
 
-      FieldByName('DOCUMENTKEY').AsInteger := FieldByName('ID').AsInteger;
+      SetTID(FieldByName('DOCUMENTKEY'), FieldByName('ID'));
 
       q.Close;
       q.SQL.Text := 'SELECT code FROM bn_destcode WHERE id = :id';
-      q.ParamByName('id').AsInteger := FieldByName('destcodekey').AsInteger;
+      SetTID(q.ParamByName('id'), FieldByName('destcodekey'));
       q.ExecQuery;
       FieldByName('destcode').AsString := q.FieldByName('code').AsString;
     finally
@@ -186,7 +188,7 @@ begin
       ' ON c.contactkey = ca.companykey WHERE c.contactkey = :contactkey';
 
     q.Prepare;                          
-    q.ParamByName('contactkey').AsInteger := FieldByName('CORRCOMPANYKEY').AsInteger;
+    SetTID(q.ParamByName('contactkey'), FieldByName('CORRCOMPANYKEY'));
 
     q.ExecQuery;
 
@@ -198,12 +200,12 @@ begin
     else
     begin
       if FieldByName('CORRACCOUNTKEY').IsNull then
-        FieldByName('CORRACCOUNTKEY').AsVariant := q.FieldByName('COMPANYACCOUNTKEY').AsVariant
+        SetTID(FieldByName('CORRACCOUNTKEY'), q.FieldByName('COMPANYACCOUNTKEY'))
       else
       begin
         while not q.Eof do
         begin
-          if FieldByName('CORRACCOUNTKEY').Value = q.FieldByName('ID').Value then
+          if GetTID(FieldByName('CORRACCOUNTKEY')) = GetTID(q.FieldByName('ID')) then
             Break;
           q.Next;
         end;
@@ -215,11 +217,10 @@ begin
           ' SELECT ca.id, ca.account FROM gd_company c ' +
           ' JOIN gd_companyaccount ca ON c.companyaccountkey = ca.id WHERE c.contactkey = :CorrCompanyKey ';
 
-          q.ParamByName('CORRCOMPANYKEY').AsInteger :=
-            FieldByName('CORRCOMPANYKEY').AsInteger;
+          SetTID(q.ParamByName('CORRCOMPANYKEY'), FieldByName('CORRCOMPANYKEY'));
           q.ExecQuery;
 
-          FieldByName('CORRACCOUNTKEY').AsInteger := q.FieldByName('ID').AsInteger;
+          SetTID(FieldByName('CORRACCOUNTKEY'), q.FieldByName('ID'));
         end;
       end;  
     end;
@@ -231,7 +232,7 @@ begin
   end;
 end;
 
-function TgdcCurrCommission.GetCurrencyByAccount(AccountKey: Integer): String;
+function TgdcCurrCommission.GetCurrencyByAccount(AccountKey: TID): String;
 var
   q: TIBSQL;
   DidActivate: Boolean;
@@ -241,7 +242,7 @@ begin
     q.SQL.Text :=
       ' SELECT  C.name as currname, c.shortname as currshortname ' +
       ' FROM GD_COMPANYACCOUNT CA  ' +
-      ' LEFT JOIN GD_CURR C ON C.ID = CA.CURRKEY WHERE CA.ID = ' + IntToStr(AccountKey);
+      ' LEFT JOIN GD_CURR C ON C.ID = CA.CURRKEY WHERE CA.ID = ' + TID2S(AccountKey);
     q.ExecQuery;
     Result := q.FieldByName('currname').AsString + ', ' + q.FieldByName('CURRSHORTNAME').AsString;
   finally
@@ -554,7 +555,7 @@ procedure TgdcCurrCommission.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
 
-  S.Add( ' z.documenttypekey = ' + IntToStr(DocumentTypeKey) + ' ');
+  S.Add( ' z.documenttypekey = ' + TID2S(DocumentTypeKey) + ' ');
 
   if HasSubSet('ByAccount') then
     S.Add(' cc.accountkey = :accountkey');
@@ -570,11 +571,11 @@ begin
      try
        q.SQL.Text := 'SELECT ca.companykey FROM gd_companyaccount ca ' +
          'WHERE ca.id = :id';
-       q.ParamByName('id').AsInteger := FieldByName('corraccountkey').AsInteger;
+       SetTID(q.ParamByName('id'), FieldByName('corraccountkey'));
        q.ExecQuery;
 
        if q.RecordCount > 0 then
-         FieldByName('corrcompanykey').AsInteger := q.FieldByName('companykey').AsInteger
+         SetTID(FieldByName('corrcompanykey'), q.FieldByName('companykey'))
        else
          FieldByName('corrcompanykey').Clear;
      finally

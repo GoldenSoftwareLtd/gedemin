@@ -2,9 +2,9 @@ LANGUAGE LANG_RUSSIAN,1
 
 MAINICON ICON gedemin_blank.ico
 
-1 VERSIONINFO LOADONCALL MOVEABLE DISCARDABLE IMPURE 
-FILEVERSION 2, 10, 0, 0
-PRODUCTVERSION 2, 10, 0, 0
+1 VERSIONINFO LOADONCALL MOVEABLE DISCARDABLE IMPURE
+FILEVERSION 2, 10, 0, 167
+PRODUCTVERSION 2, 10, 0, 167
 FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 FILEOS VOS__WINDOWS32
 FILETYPE VFT_APP
@@ -15,9 +15,9 @@ FILETYPE VFT_APP
   {
    VALUE "CompanyName", "Golden Software of Belarus, Ltd\000"
    VALUE "FileDescription", "Gedemin Upd\000"
-   VALUE "FileVersion", "2.10\000"
+   VALUE "FileVersion", "2.10.167\000"
    VALUE "InternalName", "Gedemin\000"
-   VALUE "LegalCopyright", "Copyright (c) 2000-2017 by Golden Software of Belarus, Ltd\000"
+   VALUE "LegalCopyright", "Copyright (c) 2000-2022 by Golden Software of Belarus, Ltd\000"
    VALUE "LegalTrademarks", "Gedemin\000"
    VALUE "OriginalFilename", "gedemin_upd.exe\000"
    VALUE "ProductName", "Gedemin\000"

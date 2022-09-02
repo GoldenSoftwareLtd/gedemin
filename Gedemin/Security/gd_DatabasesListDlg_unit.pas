@@ -1,3 +1,5 @@
+// ShlTanya, 06.02.2019
+
 unit gd_DatabasesListDlg_unit;
 
 interface
@@ -46,9 +48,14 @@ uses
   ClipBrd, gd_common_functions;
 
 procedure Tgd_DatabasesListDlg.btnSelectFileClick(Sender: TObject);
+var
+  FN, Srv: String;
+  Port: Integer;
 begin
+  ParseDatabaseName(edFileName.Text, Srv, Port, FN);
+
   if edFileName.Text > '' then
-    OpenDialog.FileName := edFileName.Text
+    OpenDialog.FileName := FN
   else
     OpenDialog.InitialDir := ExtractFilePath(Application.EXEName);
   if OpenDialog.Execute then

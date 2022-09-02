@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcNamespaceRecCmpController;
 
@@ -74,10 +75,10 @@ begin
         FInequalFields.Add(FN)
       else if (not FObj.Fields[I].IsNull) and S.IsNull then
         FInequalFields.Add(FN)
-      else if (FObj.Fields[I] is TIntegerField)
+      else if ((FObj.Fields[I] is TIntegerField) or (FObj.Fields[I] is TLargeIntField))
         and ParseReferenceString(S.AsString, RUIDString, ObjName) then
       begin
-        if gdcBaseManager.GetIDByRUIDString(RUIDString) <> FObj.Fields[I].AsInteger then
+        if gdcBaseManager.GetIDByRUIDString(RUIDString) <> GetTID(FObj.Fields[I]) then
           FInequalFields.Add(FN);
       end
       else if (FObj.Fields[I] is TBLOBField) then
@@ -178,10 +179,10 @@ begin
   begin
     AGrid.Cells[0, I + 1] := SL[I];
 
-    if (FObj.FieldByName(SL[I]) is TIntegerField)
+    if ((FObj.FieldByName(SL[I]) is TIntegerField) or (FObj.FieldByName(SL[I]) is TLargeIntField))
       and ParseReferenceString(FMapping.ReadString('Fields\' + SL[I]), RUIDString, ObjName) then
     begin
-      AGrid.Cells[1, I + 1] := gdcBaseManager.GetRUIDStringByID(FObj.FieldByName(SL[I]).AsInteger);
+      AGrid.Cells[1, I + 1] := gdcBaseManager.GetRUIDStringByID(GetTID(FObj.FieldByName(SL[I])));
       AGrid.Cells[2, I + 1] := RUIDString;
     end else
     begin

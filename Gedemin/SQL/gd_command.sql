@@ -4,7 +4,7 @@ CREATE TABLE gd_command (
   parent      dparent,                      /* спасылка на бацьку      */
 
   name        dname,                        /* імя элементу            */
-  cmd         dtext20,                      /* каманда                 */
+  cmd         dtext40,                      /* каманда                 */
   cmdtype     dinteger DEFAULT 0 NOT NULL,
   hotkey      dhotkey,                      /* гарачая клявіша         */
   imgindex    dsmallint DEFAULT 0 NOT NULL, /* індэкс малюнка          */
@@ -294,7 +294,7 @@ CREATE OR ALTER TRIGGER gd_biu_storage_data FOR gd_storage_data
   BEFORE INSERT OR UPDATE
   POSITION 0
 AS
-  DECLARE VARIABLE FID INTEGER = -1;
+  DECLARE VARIABLE FID DFOREIGNKEY = -1;
 BEGIN
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);

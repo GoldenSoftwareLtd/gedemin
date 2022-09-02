@@ -1,3 +1,4 @@
+// ShlTanya, 07.10.2019
 unit prp_dlgViewProperty2_unit;
 
 interface
@@ -532,7 +533,7 @@ begin
     gdcObject.Insert;
     gdcObject.FieldByName('id').AsInteger := AnMethodClass.ClassKey;
     gdcObject.FieldByName('name').AsString := AnMethodClass.Class_Name;
-    gdcObject.FieldByName('parent').AsVariant := AnParent;
+    SetVar2Field(gdcObject.FieldByName('parent'), AnParent);
     gdcObject.FieldByName('objecttype').AsInteger := AnObjectType;
     gdcObject.FieldByName('afull').AsInteger := -1;
     gdcObject.FieldByName('achag').AsInteger := -1;

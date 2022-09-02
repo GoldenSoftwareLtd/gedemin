@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019
+
 unit rp_dlgDefaultServer_unit;
 
 interface
@@ -43,7 +45,7 @@ end;
 
 function TdlgDefaultServer.SetDefaultServer: Boolean;
 var
-  OldValue: Variant;
+  OldValue: TID;
 begin
   Result := False;
   ibdsDefaultServer.Close;
@@ -56,12 +58,12 @@ begin
     ibdsDefaultServer.FieldByName('clientname').AsString := rpGetComputerName;
   end else
     ibdsDefaultServer.Edit;
-  OldValue := ibdsDefaultServer.FieldByName('serverkey').AsVariant;
+  OldValue := GetTID(ibdsDefaultServer.FieldByName('serverkey'));
   if ShowModal = mrOk then
   try
-    Result := OldValue <> ibdsDefaultServer.FieldByName('serverkey').AsVariant;
+    Result := OldValue <> GetTID(ibdsDefaultServer.FieldByName('serverkey'));
 
-    if ibdsDefaultServer.FieldByName('serverkey').AsVariant = NULL then
+    if ibdsDefaultServer.FieldByName('serverkey').IsNull then
     begin
       if dsInsert <> ibdsDefaultServer.State then
       begin

@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019, #4135
+
 unit prp_EventFrame_unit;
 
 interface
@@ -41,8 +43,8 @@ type
     function GetEventTreeItem: TEventTreeItem;
     procedure SetEventTreeItem(const Value: TEventTreeItem);
     procedure ChangeEventHandler(const Index: Integer);
-    procedure ChangeTreeItem(Sender: TObject; const ObjectID: Integer);
-    function  FindEventTreeNode(AID: integer): TTreeNode;
+    procedure ChangeTreeItem(Sender: TObject; const ObjectID: TID);
+    function  FindEventTreeNode(AID: TID): TTreeNode;
   protected
     function GetMasterObject: TgdcBase;override;
     function GetDetailObject: TgdcBase; override;
@@ -63,7 +65,7 @@ type
     function  NewNameUpdate: Boolean; override;
     function  GetUniqueNewName: string;
 
-    class function GetNameFromDb(Id: Integer): string; override;
+    class function GetNameFromDb(Id: TID): string; override;
     class function GetTypeName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
@@ -72,11 +74,11 @@ type
     procedure Setup(const FunctionName: String = ''); override;
     function Delete: Boolean; override;
     procedure AddTosetting; override;
-    class function GetFunctionIdEx(Id: Integer): integer; override;
+    class function GetFunctionIdEx(Id: TID): TID; override;
 
     property EventTreeItem: TEventTreeItem read GetEventTreeItem
       write SetEventTreeItem;
-    procedure ChangeFunctionID(const ID: Integer);
+    procedure ChangeFunctionID(const ID: TID);
   end;
 
 var
@@ -210,10 +212,10 @@ var
 begin
   if Assigned(CustomTreeItem) then
   begin
-    gdcEvent.FieldByName(fnFunctionKey).AsInteger := gdcEvent.GetNextID(True);
-    gdcFunction.FieldByName(fnId).AsInteger := gdcEvent.FieldByName(fnFunctionKey).AsInteger;
+    SetTID(gdcEvent.FieldByName(fnFunctionKey), gdcEvent.GetNextID(True));
+    SetTID(gdcFunction.FieldByName(fnId), gdcEvent.FieldByName(fnFunctionKey));
     gdcEvent.FieldByName(fnEventName).AsString := UpperCase(TEventTreeItem(CustomTreeItem).Name);
-    gdcEvent.FieldByName(fnObjectKey).AsInteger := TEventTreeItem(CustomTreeItem).OwnerId;
+    SetTID(gdcEvent.FieldByName(fnObjectKey), TEventTreeItem(CustomTreeItem).OwnerId);
   end;
   //!!! перенесено из prp_FunctionFrame_unit т.к. там к CustomTreeItem.Name добавляется руид
   //а для событий этого не надо
@@ -240,8 +242,8 @@ begin
 
     gdcFunction.FieldByName(fnEvent).AsString :=
       UpperCase(TEventTreeItem(CustomTreeItem).Name);
-    gdcFunction.FieldByName(fnModuleCode).AsInteger :=
-      TEventTreeItem(CustomTreeItem).ObjectItem.OwnerId;
+    SetTID(gdcFunction.FieldByName(fnModuleCode),
+      TEventTreeItem(CustomTreeItem).ObjectItem.OwnerId);
   end;
 end;
 
@@ -321,7 +323,7 @@ begin
     while not SQL.Eof do
     begin
       I := SL.Add(SQL.Fields[0].AsString);
-      Sl.Objects[I] := Pointer(SQL.Fields[1].AsInteger);
+      Sl.Objects[I] := TID2Pointer(GetTID(SQL.Fields[1]), Name);
       SQL.Next;
     end;
   finally
@@ -439,8 +441,8 @@ begin
   try
     q.Transaction:= gdcBaseManager.ReadTransaction;
     q.SQL.Text:= 'SELECT id FROM evt_objectevent WHERE functionkey=:fkey and id<>:eid';
-    q.ParamByName('fkey').AsInteger:= gdcEvent.FieldByName('functionkey').AsInteger;
-    q.ParamByName('eid').AsInteger:= gdcEvent.ID;
+    SetTID(q.ParamByName('fkey'), gdcEvent.FieldByName('functionkey'));
+    SetTID(q.ParamByName('eid'), gdcEvent.ID);
     q.ExecQuery;
     if not q.Eof then begin
       if FShowDeleteQuestion then begin
@@ -458,12 +460,12 @@ begin
               gdcDelEvent.SubSet:= 'ByID';
               while not q.Eof do begin
                 gdcDelEvent.Close;
-                gdcDelEvent.Params[0].AsInteger := q.Fields[0].AsInteger;
+                SetTID(gdcDelEvent.Params[0], q.Fields[0]);
                 gdcDelEvent.Open;
                 if not gdcDelEvent.Eof then begin
                   try
                     gdcDelEvent.Delete;
-                    TN:= FindEventTreeNode(q.Fields[0].AsInteger);
+                    TN:= FindEventTreeNode(GetTID(q.Fields[0]));
                     if Assigned(TN) and Assigned(TN.Data) then begin
                       ETI:= TN.Data;
                       if Assigned(ETI.EditorFrame) then
@@ -592,8 +594,8 @@ end;
 procedure TEventFrame.ChangeEventHandler(const Index: Integer);
 begin
   gdcFunction.Close;
-  gdcEvent.FieldByName(fnFunctionKey).AsInteger :=
-    Integer(dbeName.Items.Objects[Index]);
+  SetTID(gdcEvent.FieldByName(fnFunctionKey),
+    GetTID(dbeName.Items.Objects[Index], Name));
   gdcFunction.Open;
   gdcFunction.Edit;
   Modify := True;
@@ -601,7 +603,7 @@ begin
     AnsiUpperCase(Trim(dbeName.Items[Index]));
 end;
 
-procedure TEventFrame.ChangeFunctionID(const ID: Integer);
+procedure TEventFrame.ChangeFunctionID(const ID: TID);
 var
   i: integer;
 begin
@@ -633,7 +635,7 @@ begin
   end;
   GetNamesList(dbeName.Items);
   for i:= 0 to dbeName.Items.Count - 1 do
-    if Integer(dbeName.Items.Objects[i]) = ID then begin
+    if GetTID(dbeName.Items.Objects[i], Name) = ID then begin
       Break;
     end;
   if dbeName.ItemIndex <> i then begin
@@ -668,7 +670,7 @@ begin
   end;
 end;
 
-procedure TEventFrame.ChangeTreeItem(Sender: TObject; const ObjectID: Integer);
+procedure TEventFrame.ChangeTreeItem(Sender: TObject; const ObjectID: TID);
 var
   I: Integer;
   WMess: String;
@@ -786,9 +788,9 @@ end;
 procedure TEventFrame.actDeleteFunctionExecute(Sender: TObject);
 var
   F: TgdcFunction;
-  Id: Integer;
+  Id: TID;
 begin
-  Id := gdcEvent.FieldByName(fnFunctionKey).AsInteger;
+  Id := GetTID(gdcEvent.FieldByName(fnFunctionKey));
   F := TgdcFunction.Create(nil);
   try
     F.Subset := 'ByID';
@@ -810,7 +812,7 @@ begin
         if gdcEvent.State <> dsEdit then
           gdcEvent.Edit;
         gdcFunction.Close;
-        gdcEvent.FieldByName(fnFunctionKey).AsInteger := Id;
+        SetTID(gdcEvent.FieldByName(fnFunctionKey), Id);
         gdcFunction.Open;
       end;
     end;
@@ -819,7 +821,7 @@ begin
   end;
 end;
 
-class function TEventFrame.GetNameFromDb(Id: Integer): string;
+class function TEventFrame.GetNameFromDb(Id: TID): string;
 var
   SQL: TIBSQL;
 begin
@@ -827,7 +829,7 @@ begin
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQl.SQL.Text := 'SELECT f.name FROM evt_objectevent e JOIN gd_function f ON f.id = e.functionkey WHERE e.id = :id';
-    SQL.ParamByName('id').AsInteger := id;
+    SetTID(SQL.ParamByName('id'), id);
     SQL.ExecQuery;
     Result := SQL.FieldByName('name').AsString;
   finally
@@ -840,7 +842,7 @@ begin
   Result := 'Событие '
 end;
 
-class function TEventFrame.GetFunctionIdEx(Id: Integer): integer;
+class function TEventFrame.GetFunctionIdEx(Id: TID): TID;
 var
   SQL: TIBSQL;
 begin
@@ -848,15 +850,15 @@ begin
   try
     SQl.Transaction := gdcBaseManager.ReadTransaction;
     SQl.SQl.Text := 'SELECT functionkey FROM evt_objectevent WHERE id = :id';
-    SQL.ParamByName('id').AsInteger := Id;
+    SetTID(SQL.ParamByName('id'), Id);
     SQL.ExecQuery;
-    Result := SQL.FieldByName('functionkey').AsInteger;
+    Result := GetTID(SQL.FieldByName('functionkey'));
   finally
     SQl.Free;
   end;
 end;
 
-function TEventFrame.FindEventTreeNode(AID: integer): TTreeNode;
+function TEventFrame.FindEventTreeNode(AID: TID): TTreeNode;
 var
   tnRoot, tnObj, tnEvt: TTreeNode;
   ETI: TEventTreeItem;

@@ -1,3 +1,4 @@
+// ShlTanya, 27.02.2019
 
 {++
 
@@ -28,7 +29,7 @@ interface
 uses
   Classes, IBDatabase, DB, Windows, SysUtils, Contnrs, IBQuery,
   gd_SetDatabase, rp_report_const, gd_MultiStringList, prm_ParamFunctions_unit,
-  gd_KeyAssoc, Gedemin_TLB, DBClient;
+  gd_KeyAssoc, Gedemin_TLB, DBClient, gdcBaseInterface;
 
 const
   MDPrefix = 'MDP';
@@ -59,7 +60,7 @@ type
 type
   TrpCustomFunction = class
   private
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
     FName: String;
     FComment: String;
     FScript: TStrings;
@@ -70,12 +71,12 @@ type
     FBreakPointsPrepared: Boolean;
     FBreakPoints: TStream;
     FIncludingList: TgdKeyIntAssoc;
-    FModuleCode: Integer;
+    FModuleCode: TID;
     FOnBreakPointsPrepared: TNotifyEvent;
 
     procedure SetComment(const Value: String);
     procedure SetModifyDate(const Value: TDateTime);
-    procedure SetModuleCode(const Value: Integer);
+    procedure SetModuleCode(const Value: TID);
     procedure SetOnBreakPointsPrepared(const Value: TNotifyEvent);
     function GetBreakPoints: TStream;
     function GetBreakPointsSize: Integer;
@@ -97,12 +98,12 @@ type
     //Добаляет в скрипт все инклюд-фунуции
     procedure PrepareScript(Transaction: TIBTransaction);
 
-    property FunctionKey: Integer read FFunctionKey write FFunctionKey;
+    property FunctionKey: TID read FFunctionKey write FFunctionKey;
     property Name: String read FName write FName;
     property Comment: String read FComment write SetComment;
     property Script: TStrings read FScript write FScript;
     property Module: String read FModule write FModule;
-    property ModuleCode: Integer read FModuleCode write SetModuleCode;
+    property ModuleCode: TID read FModuleCode write SetModuleCode;
     property Language: String read FLanguage write FLanguage;
     property ModifyDate: TDateTime read FModifyDate write SetModifyDate;
     property EnteredParams: TgsParamList read FEnteredParams;
@@ -199,7 +200,7 @@ type
 
   TTemplateStructure = class
   private
-    FTemplateKey: Integer;
+    FTemplateKey: TID;
     FName: String;
     FDescription: String;
     FReportTemplate: TReportTemplate;
@@ -220,7 +221,7 @@ type
     procedure SaveToStream(AnStream: TStream);
     procedure LoadFromStream(AnStream: TStream);
 
-    property TemplateKey: Integer read FTemplateKey write FTemplateKey;
+    property TemplateKey: TID read FTemplateKey write FTemplateKey;
     property Name: String read FName write FName;
     property Description: String read FDescription write FDescription;
     property ReportTemplate: TReportTemplate read FReportTemplate write SetReportTemplate;
@@ -233,7 +234,7 @@ type
 
   TCustomReport = class
   protected
-    FReportKey: Integer;
+    FReportKey: TID;
     FReportName: String;
     FReportDescription: String;
 
@@ -249,11 +250,11 @@ type
     FIsLocalExecute: Boolean;
     FPreview: Boolean;
     FModalPreview: Boolean;
-    FReportGroupKey: Integer;
+    FReportGroupKey: TID;
 
     FAFull, FAChag, FAView: Integer;
 
-    FServerKey: Variant;
+    FServerKey: TID;
   public
     constructor Create;
     destructor Destroy; override;
@@ -261,7 +262,7 @@ type
     procedure Assign(AnSource: TCustomReport);
     procedure ReadFromDataSet(const AnDataSet: TDataSet; const AnReadTemplate: Boolean = True);
 
-    property ReportKey: Integer read FReportKey;
+    property ReportKey: TID read FReportKey;
     property ReportName: String read FReportName;
     property Description: String read FReportDescription;
     property ParamFunction: TrpCustomFunction read FParamFunction;
@@ -271,11 +272,11 @@ type
     property TemplateStructure: TTemplateStructure read FTemplateStructure;
     property FrqRefresh: Integer read FFrqRefresh write FFrqRefresh;
     property IsRebuild: Boolean read FIsRebuild;
-    property ServerKey: Variant read FServerKey;
+    property ServerKey: TID read FServerKey;
     property IsLocalExecute: Boolean read FIsLocalExecute;
     property Preview: Boolean read FPreview;
     property ModalPreview: Boolean read FModalPreview;
-    property ReportGroupKey: Integer read FReportGroupKey;
+    property ReportGroupKey: TID read FReportGroupKey;
     property AFull: Integer read FAFull;
     property AChag: Integer read FAChag;
     property AView: Integer read FAView;
@@ -284,7 +285,7 @@ type
   TReportGroup = class(TObjectList)
   private
     FParentBranch: TReportGroup;
-    FGroupKey: Variant;
+    FGroupKey: TID;
     FName: String;
     FReportList: TDnIntArray;
 
@@ -296,13 +297,13 @@ type
     destructor Destroy; override;
 
     function AddGroup: Integer; overload;
-    function AddGroup(const AnGroupKey: Integer; const AnName: String): TReportGroup; overload;
+    function AddGroup(const AnGroupKey: TID; const AnName: String): TReportGroup; overload;
     procedure DeleteGroup(const AnIndex: Integer);
     property Groups[const Index: Integer]: TReportGroup read GetGroup;
 
     procedure ReadData(const AnDatabase: TIBDatabase; const AnTransaction: TIBTransaction);
 
-    property GroupKey: Variant read FGroupKey;
+    property GroupKey: TID read FGroupKey;
     property GroupName: String read FName write FName;
     property ReportCount: Integer read GetReportCount;
     property GroupCount: Integer read GetGroupCount;
@@ -337,13 +338,13 @@ type
     function AddReport(const AnSource: TCustomReport): Integer; overload;
     procedure DeleteReport(const AnIndex: Integer);
     // Поиск отчета в списке отчетов
-    function FindReport(const AnReportKey: Integer): TCustomReport;
+    function FindReport(const AnReportKey: TID): TCustomReport;
     property Reports[const AnIndex: Integer]: TCustomReport read GetReport write SetReport;
-    function ReportByKey(const AnReportKey: Integer): TCustomReport;
+    function ReportByKey(const AnReportKey: TID): TCustomReport;
   end;
 
 type
-  TBuildReport = procedure(const AnReportKey: Integer; const AnIsRebuild: Boolean) of object;
+  TBuildReport = procedure(const AnReportKey: TID; const AnIsRebuild: Boolean) of object;
   TExecuteReport = function(const AnReport: TCustomReport; const AnResult: TReportResult;
    out AnErrorMessage: String; const AnIsResult: Boolean): Boolean of object;
   TExecuteFunction = function(const AnFunction: TrpCustomFunction; const AnReportResult: TReportResult;
@@ -351,8 +352,8 @@ type
   TViewReport = procedure(const AnReport: TCustomReport; const AnReportResult: TReportResult;
    const AnParam: Variant; const AnBuildDate: TDateTime) of object;
   TRefreshReportData = procedure of object;
-  TLoadReportFile = function(const AnGroupKey: Integer; const AnFileName: String): Boolean of object;
-  TSaveReportFile = procedure(const AnReportKey: Integer;
+  TLoadReportFile = function(const AnGroupKey: TID; const AnFileName: String): Boolean of object;
+  TSaveReportFile = procedure(const AnReportKey: TID;
      const AnFileName: String) of object;
 
   function GetParamCRC(const AnParam: Variant): Integer;
@@ -365,7 +366,7 @@ uses
   {$IFDEF GEDEMIN}
    rp_dlgViewResult_unit,
    {$ENDIF}
-   jclMath, IBSQL, IBCustomDataSet, gdcBaseInterface,
+   jclMath, IBSQL, IBCustomDataSet,
    scr_i_FunctionList, gs_Exception, ZLib
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -740,8 +741,8 @@ begin
 
   if DataSet.Active and (not DataSet.EOF) then
   begin
-    FFunctionKey := DataSet.FieldByName('id').AsInteger;
-    ModuleCode := DataSet.FieldByName('modulecode').AsInteger;
+    FFunctionKey := GetTID(DataSet.FieldByName('id'));
+    ModuleCode := GetTID(DataSet.FieldByName('modulecode'));
     FName := DataSet.FieldByName('name').AsString;
     FComment := DataSet.FieldByName('comment').AsString;
     FScript.Text := DataSet.FieldByName('script').AsString;
@@ -783,7 +784,7 @@ procedure TrpCustomFunction.LoadFromStream(Stream: TStream);
 var
   TempStr: String;
   Len: TStreamInt;
-  Size: Integer;
+  Size, LenID: Integer;
 begin
   // проверяем признак начала записи потока
   Len := Length(rpBF);
@@ -791,8 +792,9 @@ begin
   Stream.ReadBuffer(PChar(TempStr)^, Len);
   if TempStr <> rpBF then
     raise Exception.Create(GetGsException(Self, 'Wrong stream data'));
-
-  Stream.ReadBuffer(FFunctionKey, SizeOf(FFunctionKey));
+  {метка сохранения ID в Int64}
+  LenID := GetLenIDinStream(@Stream);
+  Stream.ReadBuffer(FFunctionKey, LenID);
 
 //  Stream.ReadBuffer(Len, SizeOf(Len));
 //  SetLength(FName, Len);
@@ -823,7 +825,7 @@ begin
   Stream.ReadBuffer(TempStr[1], Len);
   FModule := ZDecompressStr(TempStr);
 
-  Stream.ReadBuffer(FModuleCode, SizeOf(FModuleCode));
+  Stream.ReadBuffer(FModuleCode, LenID);
 
 //  Stream.ReadBuffer(Len, SizeOf(Len));
 //  SetLength(FLanguage, Len);
@@ -868,12 +870,14 @@ procedure TrpCustomFunction.SaveToStream(Stream: TStream);
 var
   Len: TStreamInt;
   Str: String;
-  Size: Integer;
+  Size, LenID: Integer;
 begin
   // признак начала записи потока
   Stream.Write(PChar(rpBF)^, Length(rpBF));
+  {метка сохранения ID в Int64}
+  LenID := SetLenIDinStream(@Stream);
 
-  Stream.Write(FFunctionKey, SizeOf(FFunctionKey));
+  Stream.Write(FFunctionKey, LenID);
 
   Str := ZCompressStr(FName);
   Len := Length(Str);
@@ -907,7 +911,7 @@ begin
 //  Stream.Write(Len, SizeOf(Len));
 //  Stream.Write(FModule[1], Len);
 
-  Stream.Write(FModuleCode, SizeOf(FModuleCode));
+  Stream.Write(FModuleCode, LenId);
 
   Str := ZCompressStr(FLanguage);
   Len := Length(Str);
@@ -997,17 +1001,17 @@ begin
           LocSQL.SQL.Text :=
            'SELECT fc.id, fc.modulecode FROM gd_function fc, rp_additionalfunction af ' +
            'WHERE fc.id = af.addfunctionkey AND af.mainfunctionkey = :MFK';
-          LocSQL.ParamByName('MFK').AsInteger := FFunctionKey;
+          SetTID(LocSQL.ParamByName('MFK'), FFunctionKey);
           LocSQL.ExecQuery;
           FIncludingList.Clear;
           while not LocSQL.Eof do
           begin
-            FIncludingList.ValuesByIndex[FIncludingList.Add(LocSQL.Fields[0].AsInteger)] :=
-              LocSQL.Fields[1].AsInteger;
+            FIncludingList.ValuesByIndex[FIncludingList.Add(GetTID(LocSQL.Fields[0]))] :=
+              GetTID(LocSQL.Fields[1]);
 
             {$IFNDEF LOADMODULE}
               if Assigned(glbFunctionList) then
-                glbFunctionList.FindFunction(LocSQL.Fields[0].AsInteger);
+                glbFunctionList.FindFunction(GetTID(LocSQL.Fields[0]));
             {$ENDIF}
             LocSQL.Next;
           end;
@@ -1059,7 +1063,7 @@ begin
   FModifyDate := Value;
 end;
 
-procedure TrpCustomFunction.SetModuleCode(const Value: Integer);
+procedure TrpCustomFunction.SetModuleCode(const Value: TID);
 begin
   FModuleCode := Value;
 end;
@@ -1614,7 +1618,7 @@ procedure TTemplateStructure.ReadFromDataSet(const AnDataSet: TDataSet);
 var
   Str: TStream;
 begin
-  TemplateKey := AnDataSet.FieldByName('id').AsInteger;
+  TemplateKey := GetTID(AnDataSet.FieldByName('id'));
   Name := AnDataSet.FieldByName('name').AsString;
   Description := AnDataSet.FieldByName('description').AsString;
   FAFull := AnDataSet.FieldByName('afull').AsInteger;
@@ -1632,10 +1636,13 @@ end;
 
 procedure TTemplateStructure.LoadFromStream(AnStream: TStream);
 var
-  TempLength: Integer;
+  TempLength, LenID: Integer;
   TempStr: String;
 begin
-  AnStream.ReadBuffer(FTemplateKey, SizeOf(FTemplateKey));
+  {метка сохранения ID в Int64}
+  LenID := GetLenIDinStream(@AnStream);
+
+  AnStream.ReadBuffer(FTemplateKey, LenID);
 
   AnStream.ReadBuffer(TempLength, SizeOf(TempLength));
   SetLength(FName, TempLength);
@@ -1655,9 +1662,12 @@ end;
 
 procedure TTemplateStructure.SaveToStream(AnStream: TStream);
 var
-  TempLength: Integer;
+  TempLength, LenID: Integer;
 begin
-  AnStream.Write(FTemplateKey, SizeOf(FTemplateKey));
+  {метка сохранения ID в Int64}
+  LenID := SetLenIDinStream(@AnStream);
+
+  AnStream.Write(FTemplateKey, LenID);
 
   TempLength := Length(FName);
   AnStream.Write(TempLength, SizeOf(TempLength));
@@ -1685,7 +1695,7 @@ begin
   FEventFunction := TrpCustomFunction.Create;
   FReportResult := TrpResultList.Create;
   FTemplateStructure := TTemplateStructure.Create;
-  FServerKey := NULL;
+  FServerKey := -1;
 end;
 
 destructor TCustomReport.Destroy;
@@ -1725,19 +1735,19 @@ procedure TCustomReport.ReadFromDataSet(const AnDataSet: TDataSet;
 var
   ibqryTemlate: TIBQuery;
 begin
-  FReportKey := AnDataSet.FieldByName('id').AsInteger;
+  FReportKey := GetTID(AnDataSet.FieldByName('id'));
   FReportName := AnDataSet.FieldByName('Name').AsString;
   FReportDescription := AnDataSet.FieldByName('Description').AsString;
   FFrqRefresh := AnDataSet.FieldByName('FrqRefresh').AsInteger;
   FIsRebuild := AnDataSet.FieldByName('IsRebuild').AsInteger <> 0;
   FIsLocalExecute := AnDataSet.FieldByName('IsLocalExecute').AsInteger <> 0;
-  FServerKey := AnDataSet.FieldByName('serverkey').AsVariant;
+  FServerKey := GetTID(AnDataSet.FieldByName('serverkey'));
   FPreview := AnDataSet.FieldByName('preview').AsInteger <> 0;
   FModalPreview := AnDataSet.FieldByName('modalpreview').AsInteger <> 0;
   FAFull := AnDataSet.FieldByName('afull').AsInteger;
   FAChag := AnDataSet.FieldByName('achag').AsInteger;
   FAView := AnDataSet.FieldByName('aview').AsInteger;
-  FReportGroupKey := AnDataSet.FieldByName('reportgroupkey').AsInteger;
+  FReportGroupKey := GetTID(AnDataSet.FieldByName('reportgroupkey'));
   if AnReadTemplate and not AnDataSet.FieldByName('TemplateKey').IsNull then
   begin
     ibqryTemlate := TIBQuery.Create(nil);
@@ -1761,7 +1771,7 @@ begin
   inherited Create(True);
 
   FParentBranch := nil;
-  FGroupKey := NULL;
+  FGroupKey := -1;
   FName := '';
 end;
 
@@ -1777,7 +1787,7 @@ begin
   Result := Add(TReportGroup.Create);
 end;
 
-function TReportGroup.AddGroup(const AnGroupKey: Integer; const AnName: String): TReportGroup;
+function TReportGroup.AddGroup(const AnGroupKey: TID; const AnName: String): TReportGroup;
 var
   I: Integer;
 begin
@@ -1801,14 +1811,14 @@ var
   StateDB, StateTR: Boolean;
   LocCurrentGroup: TReportGroup;
 
-  procedure SetReportData(const AnGroupKey: Variant; var AnParamArray: TDnIntArray);
+  procedure SetReportData(const AnGroupKey: TID; var AnParamArray: TDnIntArray);
   const
     MinCount = 100;
   var
     MaxCount, RealCount: Integer;
   begin
     ibsqlGetReportList.Close;
-    ibsqlGetReportList.Params[0].AsVariant := AnGroupKey;
+    SetTID(ibsqlGetReportList.Params[0], AnGroupKey);
     ibsqlGetReportList.ExecQuery;
     MaxCount := 0;
     RealCount := 0;
@@ -1819,7 +1829,7 @@ var
         MaxCount := MaxCount + MinCount;
         SetLength(AnParamArray, MaxCount)
       end;
-      AnParamArray[RealCount] := ibsqlGetReportList.Fields[0].AsInteger;
+      AnParamArray[RealCount] := GetTID(ibsqlGetReportList.Fields[0]);
 
       Inc(RealCount);
       ibsqlGetReportList.Next;
@@ -1841,7 +1851,7 @@ begin
     ibsqlGroup.Database := AnDatabase;
     ibsqlGroup.Transaction := AnTransaction;
     ibsqlGroup.SQL.Text := 'SELECT * FROM rp_p_reportgrouplist(:parent)';
-    ibsqlGroup.Params[0].AsVariant := FGroupKey;
+    SetTID(ibsqlGroup.Params[0], FGroupKey);
     ibsqlGroup.ExecQuery;
     ibsqlGetReportList := TIBSQL.Create(nil);
     try
@@ -1855,16 +1865,16 @@ begin
       SetReportData(LocCurrentGroup.GroupKey, LocCurrentGroup.FReportList);
       while not ibsqlGroup.Eof do
       begin
-        if ibsqlGroup.FieldByName('parent').AsVariant <> LocCurrentGroup.GroupKey then
+        if GetTID(ibsqlGroup.FieldByName('parent')) <> LocCurrentGroup.GroupKey then
         begin
           while LocCurrentGroup.GroupKey <>
-           ibsqlGroup.FieldByName('parent').AsVariant do
+           GetTID(ibsqlGroup.FieldByName('parent')) do
             if LocCurrentGroup.ParentBranch <> nil then
               LocCurrentGroup := LocCurrentGroup.ParentBranch
             else
               raise Exception.Create('Неверный формат дерева.');
         end;
-        LocCurrentGroup := LocCurrentGroup.AddGroup(ibsqlGroup.FieldByName('id').AsInteger,
+        LocCurrentGroup := LocCurrentGroup.AddGroup(GetTID(ibsqlGroup.FieldByName('id')),
          ibsqlGroup.FieldByName('name').AsString);
 
         SetReportData(LocCurrentGroup.GroupKey, LocCurrentGroup.FReportList);
@@ -1913,8 +1923,8 @@ begin
   inherited Destroy;
 end;
 
-function TReportList.FindReport(const AnReportKey: Integer): TCustomReport;
-  function GetReportPosition(const ALow, AHigh, AValue: Integer): TCustomReport;
+function TReportList.FindReport(const AnReportKey: TID): TCustomReport;
+  function GetReportPosition(const ALow, AHigh, AValue: TID): TCustomReport;
   var
     B, R: Integer;
   begin
@@ -1986,7 +1996,7 @@ begin
   Delete(AnIndex);
 end;
 
-function TReportList.ReportByKey(const AnReportKey: Integer): TCustomReport;
+function TReportList.ReportByKey(const AnReportKey: TID): TCustomReport;
 begin
   Result := FindReport(AnReportKey);
 end;
@@ -2032,17 +2042,17 @@ begin
         Reports[I].ReadFromDataSet(AnDataSet);
 
         ibsqlFunction.Close;
-        ibsqlFunction.Params[0].AsInteger := AnDataSet.FieldByName('paramformulakey').AsInteger;
+        SetTID(ibsqlFunction.Params[0], AnDataSet.FieldByName('paramformulakey'));
         ibsqlFunction.Open;
         Reports[I].ParamFunction.ReadFromDataSet(ibsqlFunction);
 
         ibsqlFunction.Close;
-        ibsqlFunction.Params[0].AsInteger := AnDataSet.FieldByName('mainformulakey').AsInteger;
+        SetTID(ibsqlFunction.Params[0], AnDataSet.FieldByName('mainformulakey'));
         ibsqlFunction.Open;
         Reports[I].MainFunction.ReadFromDataSet(ibsqlFunction);
 
         ibsqlFunction.Close;
-        ibsqlFunction.Params[0].AsInteger := AnDataSet.FieldByName('eventformulakey').AsInteger;
+        SetTID(ibsqlFunction.Params[0], AnDataSet.FieldByName('eventformulakey'));
         ibsqlFunction.Open;
         Reports[I].EventFunction.ReadFromDataSet(ibsqlFunction);
 

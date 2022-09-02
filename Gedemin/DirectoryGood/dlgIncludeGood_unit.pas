@@ -1,3 +1,5 @@
+// ShlTanya, 29.01.2019
+
 unit dlgIncludeGood_unit;
 
 interface
@@ -58,18 +60,18 @@ type
     procedure tvGoodGroupChange(Sender: TObject; Node: TTreeNode);
   private
     { Private declarations }
-    FGoodParent: Integer;
-    EndPoint: Integer;
-    SetKey: Integer;
+    FGoodParent: TID;
+    EndPoint: TID;
+    SetKey: TID;
     isFirst: Boolean;
-    procedure SetGood(aGroupKey, aLB, aRB: Integer);
+    procedure SetGood(aGroupKey, aLB, aRB: TID);
     procedure SetSQL;
   public
     { Public declarations }
     slGoodList: TStringList;
     ibdsGoodSet: TIBDataSet;
 
-    procedure ActiveDialog(aIBDSGoodSet: TIBDataSet; aSetKey: Integer);
+    procedure ActiveDialog(aIBDSGoodSet: TIBDataSet; aSetKey: TID);
   end;
 
 var
@@ -93,7 +95,7 @@ begin
   cbInclude.Checked := UserStorage.ReadInteger('dlgIncludeGood', 'cbInclude', 0) = 1;
 end;
 
-procedure TdlgIncludeGood.ActiveDialog(aIBDSGoodSet: TIBDataSet; aSetKey: Integer);
+procedure TdlgIncludeGood.ActiveDialog(aIBDSGoodSet: TIBDataSet; aSetKey: TID);
 begin
   // Показ групп и товаров
 
@@ -146,7 +148,7 @@ begin
     ibdsGoods.First;
     while not ibdsGoods.EOF do
     begin
-      gsibgrGoods.CheckBox.AddCheck(ibdsGoods.FieldByName('ID').AsInteger);
+      gsibgrGoods.CheckBox.AddCheck(GetTID(ibdsGoods.FieldByName('ID')));
       ibdsGoods.Next;
     end;
   finally
@@ -175,9 +177,9 @@ begin
     while not ibdsGoods.EOF do
     begin
       if not gsibgrGoods.CheckBox.RecordChecked then
-        gsibgrGoods.CheckBox.AddCheck(ibdsGoods.FieldByName('ID').AsInteger)
+        gsibgrGoods.CheckBox.AddCheck(GetTID(ibdsGoods.FieldByName('ID')))
       else
-        gsibgrGoods.CheckBox.DeleteCheck(ibdsGoods.FieldByName('ID').AsInteger);
+        gsibgrGoods.CheckBox.DeleteCheck(GetTID(ibdsGoods.FieldByName('ID')));
       ibdsGoods.Next;
     end;
   finally
@@ -187,29 +189,29 @@ begin
   end;
 end;
 
-procedure TdlgIncludeGood.SetGood(aGroupKey, aLB, aRB: Integer);
+procedure TdlgIncludeGood.SetGood(aGroupKey, aLB, aRB: TID);
 begin
   if tvGoodGroup.Selected <> nil then
   begin
     ibdsGoods.Close;
     if not cbInclude.Checked then
-      ibdsGoods.ParamByName('rangecode').AsInteger := aGroupKey
+      SetTID(ibdsGoods.ParamByName('rangecode'), aGroupKey)
     else
     begin
-      ibdsGoods.ParamByName('lb').AsInteger := aLB;
-      ibdsGoods.ParamByName('rb').AsInteger := aRB;
+      SetTID(ibdsGoods.ParamByName('lb'), aLB);
+      SetTID(ibdsGoods.ParamByName('rb'), aRB);
     end;
     if SetKey <> -1 then
     begin
-      ibdsGoods.ParamByName('setkey1').AsInteger := SetKey;
-      ibdsGoods.ParamByName('setkey2').AsInteger := SetKey;
+      SetTID(ibdsGoods.ParamByName('setkey1'), SetKey);
+      SetTID(ibdsGoods.ParamByName('setkey2'), SetKey);
     end;  
     ibdsGoods.Open;
     if isFirst then
     begin
       ibdsGoods.Close;
-      ibdsGoods.ParamByName('lb').AsInteger := aLB;
-      ibdsGoods.ParamByName('rb').AsInteger := aRB;
+      SetTID(ibdsGoods.ParamByName('lb'), aLB);
+      SetTID(ibdsGoods.ParamByName('rb'), aRB);
       ibdsGoods.Open;
     end;  
   end;  
@@ -217,16 +219,15 @@ end;
 
 procedure TdlgIncludeGood.btnOkClick(Sender: TObject);
 var
-  i: Integer;
+  i: TID;
 begin
   if SetKey <> -1 then
   begin
     ibsqlInsertGoodSet.Transaction := ibdsGoods.Transaction;
     for i:= 0 to gsibgrGoods.CheckBox.CheckCount - 1 do
     begin
-      ibsqlInsertGoodSet.Params.ByName('goodkey').AsInteger := SetKey;
-      ibsqlInsertGoodSet.Params.ByName('setkey').AsInteger :=
-        gsibgrGoods.CheckBox.IntCheck[i];
+      SetTID(ibsqlInsertGoodSet.Params.ByName('goodkey'), SetKey);
+      SetTID(ibsqlInsertGoodSet.Params.ByName('setkey'), gsibgrGoods.CheckBox.IntCheck[i]);
       ibsqlInsertGoodSet.ExecQuery;
       ibsqlInsertGoodSet.Close;
     end;
@@ -256,8 +257,8 @@ begin
   Timer.Enabled := False;
   if tvGoodGroup.Selected <> nil then
     SetGood(tvGoodGroup.ID,
-      ibdsGroup.FieldByName('lb').AsInteger,
-      ibdsGroup.FieldByName('rb').AsInteger);
+      GetTID(ibdsGroup.FieldByName('lb')),
+      GetTID(ibdsGroup.FieldByName('rb')));
 end;
 
 procedure TdlgIncludeGood.SetSQL;
@@ -306,8 +307,8 @@ begin
   if cbInclude.Checked then
     isFirst := True;
   if tvGoodGroup.Selected <> nil then
-    SetGood(tvGoodGroup.ID, ibdsGroup.FieldByName('lb').AsInteger,
-      ibdsGroup.FieldByName('rb').AsInteger);
+    SetGood(tvGoodGroup.ID, GetTID(ibdsGroup.FieldByName('lb')),
+      GetTID(ibdsGroup.FieldByName('rb')));
   isFirst := False;
 end;
 
@@ -315,8 +316,8 @@ procedure TdlgIncludeGood.tvGoodGroupChange(Sender: TObject;
   Node: TTreeNode);
 begin
   SetGood(tvGoodGroup.ID,
-    ibdsGroup.FieldByName('lb').AsInteger,
-    ibdsGroup.FieldByName('rb').AsInteger);
+    GetTID(ibdsGroup.FieldByName('lb')),
+    GetTID(ibdsGroup.FieldByName('rb')));
 end;
 
 end.

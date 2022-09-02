@@ -1,3 +1,4 @@
+// ShlTanya, 10.02.2019
 
 unit gdcReport;
 
@@ -33,7 +34,7 @@ type
 type
   TgdcReport = class(TgdcBase)
   private
-    FLastInsertID: Integer;
+    FLastInsertID: TID;
     FOnlyDisplaying: Boolean;
 
     procedure SetOnlyDisplaying(const Value: Boolean);
@@ -64,14 +65,14 @@ type
     // проверяет существование в базе макрос с таким именем
     // возвращает Истину, если есть и Ложь в противном
     // случае
-    function  CheckReport(const AName: String; ReportGroupKey: Integer): Boolean;
+    function  CheckReport(const AName: String; ReportGroupKey: TID): Boolean;
     // Возвращает униканое имя в базе.
     //
-    function GetUniqueName(PrefName, Name: string; ReportGroupKey: Integer): string;
+    function GetUniqueName(PrefName, Name: string; ReportGroupKey: TID): string;
     function EditDialog(const ADlgClassName: String = ''): Boolean; override;
     function CreateDialog(const ADlgClassName: String = ''): Boolean; override;
 
-    property LastInsertID: Integer read FLastInsertID;
+    property LastInsertID: TID read FLastInsertID;
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
@@ -82,8 +83,8 @@ const
   ssReportGroup = 'ByReportGroup';
 
 procedure Register;
-function GetObjectKeyByReportGroupID(ReportGroupId: Integer): Integer;
-function GetObjectKeyByReportId(ReportId: Integer): Integer;
+function GetObjectKeyByReportGroupID(ReportGroupId: TID): TID;
+function GetObjectKeyByReportId(ReportId: TID): TID;
 
 implementation
 
@@ -104,10 +105,10 @@ begin
   RegisterComponents('gdc', [TgdcReport]);
 end;
 
-function GetObjectKeyByReportGroupID(ReportGroupId: Integer): Integer;
+function GetObjectKeyByReportGroupID(ReportGroupId: TID): TID;
 var
   SQL: TIBSQL;
-  RootGroupKey: Integer;
+  RootGroupKey: TID;
   UserGroupName: string;
 
   procedure Replace(var FullClassName: string);
@@ -127,16 +128,16 @@ begin
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQL.SQl.Text := 'SELECT g2.* FROM rp_reportgroup g1, rp_reportgroup g2 ' +
       ' where g1.id = :id and g2.lb <= g1.lb and g2.rb >= g1.rb and g2.parent is null';
-    SQL.Params[0].AsInteger := ReportGroupId;
+    SetTID(SQL.Params[0], ReportGroupId);
     SQL.ExecQuery;
-    RootGroupKey := SQL.FieldByName('id').AsInteger;
+    RootGroupKey := GetTID(SQL.FieldByName('id'));
     UserGroupName := SQL.FieldByName('usergroupname').AsString;
     SQL.Close;
     SQL.SQL.Text := 'SELECT * FROM evt_object WHERE reportgroupkey = :RGK ';
-    SQL.ParamByName('RGK').AsInteger := RootGroupKey;
+    SetTID(SQL.ParamByName('RGK'), RootGroupKey);
     SQL.ExecQuery;
     if not SQL.Eof then
-      Result := SQL.FieldByName('id').AsInteger
+      Result := GetTID(SQL.FieldByName('id'))
     else
     begin
       if UserGroupName > '' then
@@ -147,7 +148,7 @@ begin
         SQL.ParamByName('UGN').AsString := UpperCase(UserGroupName);
         SQL.ExecQuery;
         if not SQL.Eof then
-          Result := SQl.FieldByName('id').AsInteger;
+          Result := GetTID(SQl.FieldByName('id'));
       end;
     end;
   finally
@@ -155,7 +156,7 @@ begin
   end;
 end;
 
-function GetObjectKeyByReportId(ReportId: Integer): Integer;
+function GetObjectKeyByReportId(ReportId: TID): TID;
 var
   SQL: TIBSQL;
 begin
@@ -163,9 +164,9 @@ begin
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     SQL.SQl.Text := 'SELECT * FROM rp_reportlist WHERE id = :ID';
-    SQL.ParamByName('id').AsInteger := ReportId;
+    SetTID(SQL.ParamByName('id'), ReportId);
     SQL.ExecQuery;
-    Result := GetObjectKeyByReportGroupID(SQL.FieldByName('reportgroupkey').AsInteger);
+    Result := GetObjectKeyByReportGroupID(GetTID(SQL.FieldByName('reportgroupkey')));
   finally
     SQL.Free;
   end;
@@ -175,10 +176,10 @@ end;
 
 function TgdcReportGroup.AcceptClipboard(CD: PgdcClipboardData): Boolean;
 var
-  LocId: Integer;
+  LocId: TID;
   LMaster: TDataSource;
   I: Integer;
-  FromObj, ToObj: Integer;
+  FromObj, ToObj: TID;
   gdcFunction: TgdcFunction;
   SS: string;
 begin
@@ -192,7 +193,7 @@ begin
 
   if (CD^.ClassName = 'TgdcReport') then
   begin
-    ToObj := GetObjectKeyByReportGroupID(FieldByName('id').AsInteger);
+    ToObj := GetObjectKeyByReportGroupID(GetTID(FieldByName('id')));
 
     CD^.Obj.Close;
     SS := CD^.Obj.SubSet;
@@ -207,31 +208,31 @@ begin
         CD^.Obj.Open;
         gdcFunction := TgdcFunction.Create(nil);
         try
-          LocID := FieldByName(fnId).AsInteger;
+          LocID := GetTID(FieldByName(fnId));
           if not CD^.Cut then
           begin
             CD^.Obj.Copy('id;name',
-              VarArrayOf([GetUniqueKey(Database, Transaction),
+              VarArrayOf([TID2V(GetUniqueKey(Database, Transaction)),
               TgdcReport(CD^.Obj).GetUniqueName('копия', CD^.Obj.FieldByName(fnName).AsString,
-                FieldByName(fnReportGroupKey).AsInteger)]));
-            TgdcReport(CD^.Obj).FLastInsertID := TgdcReport(CD^.Obj).FieldByName(fnId).AsInteger;
+                GetTID(FieldByName(fnReportGroupKey)))]));
+            TgdcReport(CD^.Obj).FLastInsertID := GetTID(TgdcReport(CD^.Obj).FieldByName(fnId));
           end;
           CD^.Obj.Edit;
           try
             if FromObj <> ToObj then
             begin
               gdcFunction.SubSet := ssById;
-              gdcFunction.Id := TgdcReport(CD^.Obj).FieldByName('mainformulakey').AsInteger;
+              gdcFunction.Id := GetTID(TgdcReport(CD^.Obj).FieldByName('mainformulakey'));
               gdcFunction.Open;
               try
                 if not CD^.Cut then
                   gdcFunction.Copy('name;modulecode', VarArrayOf([gdcFunction.GetUniqueName('copy',
                     gdcFunction.FieldByName('name').AsString,
-                    ToObj), ToObj]))
+                    ToObj), TID2V(ToObj)]))
                 else
                 begin
                   gdcFunction.Edit;
-                  gdcFunction.FieldByName('modulecode').AsInteger := ToObj;
+                  SetTID(gdcFunction.FieldByName('modulecode'), ToObj);
                 end;
                 gdcFunction.Post;
               except
@@ -239,22 +240,22 @@ begin
                 raise;
               end;
 
-              TgdcReport(CD^.Obj).FieldByName('mainformulakey').AsInteger :=
-                gdcFunction.FieldByName('id').AsInteger;
+              SetTID(TgdcReport(CD^.Obj).FieldByName('mainformulakey'),
+                gdcFunction.FieldByName('id'));
 
               if not TgdcReport(CD^.Obj).FieldByName('paramformulakey').IsNull then
               begin
-                gdcFunction.Id := TgdcReport(CD^.Obj).FieldByName('paramformulakey').AsInteger;
+                gdcFunction.Id := GetTID(TgdcReport(CD^.Obj).FieldByName('paramformulakey'));
                 gdcFunction.Open;
                 try
                   if not CD^.Cut then
                     gdcFunction.Copy('name;modulecode', VarArrayOf([gdcFunction.GetUniqueName('copy',
                       gdcFunction.FieldByName('name').AsString,
-                      ToObj), ToObj]))
+                      ToObj), TID2V(ToObj)]))
                   else
                   begin
                     gdcFunction.Edit;
-                    gdcFunction.FieldByName('modulecode').AsInteger := ToObj;
+                    SetTID(gdcFunction.FieldByName('modulecode'), ToObj);
                   end;
                   gdcFunction.Post;
                 except
@@ -262,23 +263,23 @@ begin
                   raise;
                 end;
 
-                TgdcReport(CD^.Obj).FieldByName('paramformulakey').AsInteger :=
-                  gdcFunction.FieldByName('id').AsInteger;
+                SetTID(TgdcReport(CD^.Obj).FieldByName('paramformulakey'),
+                  gdcFunction.FieldByName('id'));
               end;
 
               if not TgdcReport(CD^.Obj).FieldByName('eventformulakey').IsNull then
               begin
-                gdcFunction.Id := TgdcReport(CD^.Obj).FieldByName('eventformulakey').AsInteger;
+                gdcFunction.Id := GetTID(TgdcReport(CD^.Obj).FieldByName('eventformulakey'));
                 gdcFunction.Open;
                 try
                   if not CD^.Cut then
                     gdcFunction.Copy('name;modulecode', VarArrayOf([gdcFunction.GetUniqueName('copy',
                       gdcFunction.FieldByName('name').AsString,
-                      ToObj), ToObj]))
+                      ToObj), TID2V(ToObj)]))
                   else
                   begin
                     gdcFunction.Edit;
-                    gdcFunction.FieldByName('modulecode').AsInteger := ToObj;
+                    SetTID(gdcFunction.FieldByName('modulecode'), ToObj);
                   end;
                   gdcFunction.Post;
                 except
@@ -286,11 +287,11 @@ begin
                   raise;
                 end;
 
-                TgdcReport(CD^.Obj).FieldByName('eventformulakey').AsInteger :=
-                  gdcFunction.FieldByName('id').AsInteger;
+                SetTID(TgdcReport(CD^.Obj).FieldByName('eventformulakey'),
+                  gdcFunction.FieldByName('id'));
               end;
             end;
-            CD^.Obj.FieldByName(fnReportGroupKey).AsInteger := LocID;
+            SetTID(CD^.Obj.FieldByName(fnReportGroupKey), LocID);
             CD^.Obj.Post;
           except
             CD^.Obj.Cancel;
@@ -311,7 +312,7 @@ begin
     end;
   end else if CD^.ClassName = 'TgdcReportGroup' then
   begin
-    ToObj := GetObjectKeyByReportGroupID(FieldByName('id').AsInteger);
+    ToObj := GetObjectKeyByReportGroupID(GetTID(FieldByName('id')));
     for I := 0 to CD^.ObjectCount - 1 do
     begin
       FromObj := GetObjectKeyByReportGroupID(CD^.ObjectArr[I].ID);
@@ -429,9 +430,9 @@ begin
     while True do
     begin
       if not FieldByName('parent').IsNull then
-        SQL.ParamByName('parent').AsInteger := FieldByName('parent').AsInteger;
+        SetTID(SQL.ParamByName('parent'), FieldByName('parent'));
       SQL.ParamByName('name').AsString := N;
-      SQL.ParamByname('id').AsInteger := FieldByName('id').AsInteger;
+      SetTID(SQL.ParamByname('id'), FieldByName('id'));
       SQL.ExecQuery;
 
       if SQL.EOF then
@@ -685,13 +686,13 @@ begin
   ibsql := CreateReadIBSQL;
   try
     ibsql.SQL.Text := 'SELECT * FROM evt_object WHERE reportgroupkey = :rgk';
-    ibsql.ParamByName('rgk').AsInteger := ID;
+    SetTID(ibsql.ParamByName('rgk'), ID);
     ibsql.ExecQuery;
     if (ibsql.RecordCount > 0) and
-      ((not Assigned(BindedList)) or(BindedList.Find(ibsql.FieldByName('id').AsInteger) = -1)) then
+      ((not Assigned(BindedList)) or(BindedList.Find(GetTID(ibsql.FieldByName('id'))) = -1)) then
     begin
       DelphiObject := TgdcDelphiObject.CreateSingularByID(nil,
-        ibsql.FieldByName('id').AsInteger, '') as TgdcDelphiObject;
+        GetTID(ibsql.FieldByName('id')), '') as TgdcDelphiObject;
       try
         DelphiObject.Open;
         DelphiObject._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
@@ -706,7 +707,7 @@ end;
 
 { TgdcReport }
 
-function TgdcReport.CheckReport(const AName: String; ReportGroupKey: Integer): Boolean;
+function TgdcReport.CheckReport(const AName: String; ReportGroupKey: TID): Boolean;
 var
   SQL: TIBSQL;
 begin
@@ -716,10 +717,10 @@ begin
     if Active then
       SQL.SQL.Text := Format('SELECT * FROM rp_reportlist WHERE Upper(Name) = ''%s'' ' +
         ' and id <> %d and reportgroupkey = %d',  [AnsiUpperCase(AName),
-          FieldByName(fnId).AsInteger, ReportGroupKey])
+          TID264(FieldByName(fnId)), TID264(ReportGroupKey)])
     else
       SQL.SQL.Text := Format('SELECT * FROM rp_reportlist WHERE Upper(Name) = ''%s'' ' +
-        ' and reportgroupkey = %d',  [AnsiUpperCase(AName), ReportGroupKey]);
+        ' and reportgroupkey = %d',  [AnsiUpperCase(AName), TID264(ReportGroupKey)]);
 
     SQL.ExecQuery;
     Result := not SQL.Eof;
@@ -889,7 +890,7 @@ begin
     ssReportGroup + ';';
 end;
 
-function TgdcReport.GetUniqueName(PrefName, Name: string; ReportGroupKey: Integer): string;
+function TgdcReport.GetUniqueName(PrefName, Name: string; ReportGroupKey: TID): string;
 var
   I: Integer;
   SQL: TIBSQL;
@@ -900,10 +901,10 @@ begin
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     if Active then
       SQL.SQL.Text := Format('SELECT * FROM rp_reportlist WHERE Upper(Name) = :name '+
-        ' and reportgroupkey = %d and id <> %d', [ReportGroupKey, FieldByName(fnId).AsInteger])
+        ' and reportgroupkey = %d and id <> %d', [TID264(ReportGroupKey), TID264(FieldByName(fnId))])
     else
       SQL.SQL.Text := Format('SELECT * FROM rp_reportlist WHERE Upper(Name) = :name '+
-        ' and reportgroupkey = %d', [ReportGroupKey]);
+        ' and reportgroupkey = %d', [TID264(ReportGroupKey)]);
     SQL.Prepare;
     I := 1;
     SQL.Params[0].AsString := AnsiUpperCase(Result);
@@ -985,7 +986,7 @@ begin
     Result := inherited EditDialog(ADlgClassName)
   else
   begin
-    EventControl.EditReport(FieldByName('REPORTGROUPKEY').AsInteger, ID);
+    EventControl.EditReport(GetTID(FieldByName('REPORTGROUPKEY')), ID);
     Result := True;
   end;
 
@@ -1038,7 +1039,7 @@ begin
   {END MACRO}
 
   Assert(HasSubSet(ssReportGroup), 'Невеный SubSet');
-  EventControl.EditReport(ParamByName('reportgroupkey').AsInteger, 0);
+  EventControl.EditReport(GetTID(ParamByName('reportgroupkey')), 0);
   Result := True;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORT', 'CREATEDIALOG', KEYCREATEDIALOG)}
@@ -1095,7 +1096,7 @@ begin
     Result := Format('SELECT id FROM rp_reportlist ' +
       'WHERE UPPER(name)=UPPER(''%s'') AND reportgroupkey=%d',
       [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
-      FieldByName('reportgroupkey').AsInteger]);
+      TID264(FieldByName('reportgroupkey'))]);
       
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
@@ -1148,11 +1149,11 @@ begin
   if sLoadFromStream in BaseState then
   begin
     if CheckReport(FieldByName(fnName).AsString,
-      FieldByName(fnReportGroupKey).AsInteger) then
+      GetTID(FieldByName(fnReportGroupKey))) then
     begin
       FieldByName(fnName).AsString := GetUniqueName('renamed',
         FieldByName(fnName).AsString,
-        FieldByName(fnReportGroupKey).AsInteger);
+        GetTID(FieldByName(fnReportGroupKey)));
     end;
   end;
 
@@ -1162,7 +1163,7 @@ begin
       'SELECT f.name, f.Script ' +
       'FROM gd_function f ' +
       'WHERE f.id = :id ',
-      FieldByName('mainformulakey').AsInteger,
+      TID2V(FieldByName('mainformulakey')),
       Script);
 
     if (not VarIsEmpty(Script)) and (not (sLoadFromStream in BaseState)) then
@@ -1266,7 +1267,7 @@ begin
       if gdcExplorer.EOF then
       begin
         gdcExplorer.Insert;
-        gdcExplorer.FieldByName('parent').AsInteger := FieldByName('folderkey').AsInteger;
+        SetTID(gdcExplorer.FieldByName('parent'), FieldByName('folderkey'));
         gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
         gdcExplorer.FieldByName('cmd').AsString := RUIDStr;
         gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;
@@ -1274,13 +1275,13 @@ begin
         gdcExplorer.Post;
       end
       else if
-        (gdcExplorer.FieldByName('parent').AsInteger <> FieldByName('folderkey').AsInteger) or
+        (GetTID(gdcExplorer.FieldByName('parent')) <> GetTID(FieldByName('folderkey'))) or
         (gdcExplorer.FieldByName('name').AsString <> FieldByName('name').AsString) or
         (gdcExplorer.FieldByName('cmd').AsString <> RUIDStr) or
         (gdcExplorer.FieldByName('cmdtype').AsInteger <> cst_expl_cmdtype_report) then
       begin
         gdcExplorer.Edit;
-        gdcExplorer.FieldByName('parent').AsInteger := FieldByName('folderkey').AsInteger;
+        SetTID(gdcExplorer.FieldByName('parent'), FieldByName('folderkey'));
         gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
         gdcExplorer.FieldByName('cmd').AsString := RUIDStr;
         gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;

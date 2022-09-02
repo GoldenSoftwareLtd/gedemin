@@ -1,6 +1,6 @@
 inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
-  Left = 401
-  Top = 225
+  Left = 270
+  Top = 161
   Width = 1058
   Height = 629
   HelpContext = 159
@@ -9,10 +9,10 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
   TextHeight = 13
   inherited sLeft: TSplitter
     Left = 250
-    Height = 559
+    Height = 551
   end
   inherited TBDock1: TTBDock
-    Width = 1050
+    Width = 1042
     inherited tbMainToolbar: TTBToolbar
       CloseButton = False
       object TBItem3_: TTBItem [2]
@@ -39,30 +39,30 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
   end
   inherited Panel1: TPanel
     Left = 256
-    Width = 785
-    Height = 559
+    Width = 777
+    Height = 551
     inherited ibgrMain: TgsIBGrid
-      Width = 785
-      Height = 559
+      Width = 777
+      Height = 551
     end
   end
   inherited TBDock2: TTBDock
-    Height = 559
+    Height = 551
   end
   inherited TBDock3: TTBDock
-    Left = 1041
-    Height = 559
+    Left = 1033
+    Height = 551
   end
   inherited TBDock4: TTBDock
-    Top = 589
-    Width = 1050
+    Top = 581
+    Width = 1042
   end
   inherited pLeft: TPanel
     Width = 241
-    Height = 559
+    Height = 551
     inherited ScrollBox: TScrollBox
       Width = 241
-      Height = 542
+      Height = 534
       inherited Panel5: TPanel
         Top = 220
         Width = 224

@@ -1,3 +1,4 @@
+// ShlTanya, 30.01.2019
 
 unit gdc_dlgBankCatalogueLine_unit;
 
@@ -53,7 +54,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_CLassList, Gedemin_TLB;
+  gd_CLassList, Gedemin_TLB, gdcBaseInterface;
 
 { Tgdc_dlgBankCatalogueLine }
 
@@ -100,7 +101,7 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  if gdcObject.FieldByName('linkdocumentkey').AsInteger > 0 then
+  if GetTID(gdcObject.FieldByName('linkdocumentkey')) > 0 then
     edtDocLink.Text := '№ ' + gdcObject.FieldByName('docnumberlink').AsString +
       ' от ' + gdcObject.FieldByName('documentdatelink').AsString
   else
@@ -162,8 +163,7 @@ begin
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin
-      gdcObject.FieldByName('companykeyline').AsInteger :=
-        ibsql.FieldByName('companykey').AsInteger
+      SetTID(gdcObject.FieldByName('companykeyline'), ibsql.FieldByName('companykey'))
     end;
     ibsql.Close;
   end else if  (Field.FieldName = 'COMPANYKEYLINE') and
@@ -180,7 +180,7 @@ begin
       ' LEFT JOIN gd_companyaccount ca ON c.companyaccountkey = ca.id ' +
       ' LEFT JOIN gd_bank b ON b.bankkey = ca.bankkey ' +
       ' WHERE c.contactkey = :ck ';
-    ibsql.ParamByName('ck').AsInteger := gdcObject.FieldByName('companykeyline').AsInteger;
+    SetTID(ibsql.ParamByName('ck'), gdcObject.FieldByName('companykeyline'));
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
     begin

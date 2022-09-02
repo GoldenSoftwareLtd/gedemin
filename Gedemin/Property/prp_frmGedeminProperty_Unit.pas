@@ -1,3 +1,5 @@
+// ShlTanya, 25.02.2019
+
 {++
 
   Copyright (c) 2001 by Golden Software of Belarus
@@ -31,7 +33,8 @@ uses
   SynEditHighlighter, SynHighlighterVBScript, Menus, prp_frmRuntimeScript,
   prp_dfMessages_unit, prp_frmClassesInspector_unit,  prp_dfPropertyTree_Unit,
   prp_dfBreakPoints_unit, Db, IBCustomDataSet, gdcBase, gdcTaxFunction,
-  rp_BaseReport_unit, gd_security, prp_dlgCodeTemplates_unit, prp_PrologSFFrame_unit;
+  rp_BaseReport_unit, gd_security, prp_dlgCodeTemplates_unit, prp_PrologSFFrame_unit,
+  prp_dfSearchAndReplace_unit, prp_dlgChooseReplaceIdentType, gdcBaseInterface;
 
 type
   TfrmGedeminProperty = class(Tprp_frm)
@@ -189,6 +192,10 @@ type
     TBItem65: TTBItem;
     TBSeparatorItem21: TTBSeparatorItem;
     TBItem64: TTBItem;
+    actShowSearch: TAction;
+    TBItem66: TTBItem;
+    actFindIdentifier: TAction;
+    TBItem67: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -274,12 +281,15 @@ type
     procedure actFindDelEventsSFExecute(Sender: TObject);
     procedure actGoToLineNumberUpdate(Sender: TObject);
     procedure actGoToLineNumberExecute(Sender: TObject);
+    procedure actShowSearchExecute(Sender: TObject);
+    procedure actFindIdentifierExecute(Sender: TObject);
   private
     { Private declarations }
     FRun: Boolean;
     FRestored: Boolean;
     FPropertyTreeForm: TdfPropertyTree;
     FMessagesForm: TdfMessages;
+    FSearchAndReplaceForm: TDockableForm;
     FCallStackForm: TDockableForm;
     FWatchListForm: TDockableForm;
     FRunTimeForm: TDockableForm;
@@ -316,7 +326,7 @@ type
       OldState, NewState: TDebuggerState);
     procedure OnDebuggerStateChanged(Sender: TObject);
     procedure OnCurrentLineChange(Sender: TObject);
-    procedure OpenFunction(Id: Integer);
+    procedure OpenFunction(Id: TID);
     //Сравнивает новые установки фильтров и старые и если
     //они не равны то возвращает тру
     function NeedSFRefresh(OldPS: TSettings): Boolean;
@@ -352,6 +362,8 @@ type
     procedure OnReopenClick(Sender: TObject);
     procedure ReopenSF(S: String);
     function SFEditing: Integer;
+    function CheckModifyBeforeSearchOrReplace(BeforeReplace: boolean): boolean;
+    function ChooseReplaceIdentifierType(var Value: TReplaceIdentType): boolean;
   protected
     procedure OnChangeNode(Sender: TObject; Node: TTreeNode);
     procedure OnCaretPosChange(Sender: TObject; const X,Y: Integer);
@@ -384,27 +396,28 @@ type
     procedure GoToClassMethods(AClassName, ASubType: string);
     procedure EditObject(const Component: TComponent;
       const EditMode: TEditMode = emNone; EventName: String = '';
-      const AFunctionID: integer = 0);
-    function EditScriptFunction(const FunctionKey: Integer): Boolean;
-    procedure DebugScriptFunction(const FunctionKey: Integer;
+      const AFunctionID: TID = 0);
+    function EditScriptFunction(const FunctionKey: TID): Boolean;
+    procedure DebugScriptFunction(const FunctionKey: TID;
       const CurrentLine: Integer = - 1);
     //вывод окна редактирования отчета
-    procedure EditReport(const IDReportGroup, IDReport: Integer); overload;
+    procedure EditReport(const IDReportGroup, IDReport: TID); overload;
     //В отличие от первого метода делает попытку открыть только существующий отчет
-    procedure EditReport(const IDReport: Integer); overload;
-    procedure EditMacro(const IDMacro: Integer);
+    procedure EditReport(const IDReport: TID); overload;
+    procedure EditMacro(const IDMacro: TID);
     procedure DeleteEvent(FormName, ComponentName,
       EventName: string);
     procedure PropertyNotification(AComponent: TComponent;
       Operation: TPrpOperation; const AOldName: string = '');
     //Ищет и открывает на редактирование функцию
-    procedure FindAndEdit(Id: Integer; Line: Integer = - 1; Column: Integer = 0; Error: Boolean = False);
+    procedure FindAndEdit(Id: TID; Line: Integer = - 1; Column: Integer = 0; Error: Boolean = False);
     procedure UpdateErrors;
     procedure UpdateCallStack;
     procedure UpdateWatchList;
     procedure UpdateBreakPoints;
     procedure ClearErrorResult;
     procedure ClearSearchResult;
+    procedure ClearReplaceResult;
     procedure RefreshTree;
     procedure FindInDB;
 
@@ -419,6 +432,12 @@ type
     property NeedCloseAfterEdit: Boolean read FNeedCloseAfterEdit write SetNeedCloseAfterEdit;
     property Restored: Boolean read FRestored write FRestored;
     function GetCodeTemplate(AName: string): string;
+    function ReplaceItem(var S: string; const SearchText: string; var ReplaceText: string;
+      const FunctionName: string; const  Column, MatchStart, MatchLen, ItemIndex: integer;
+      const ReplaceIdentType: TReplaceIdentType): boolean;
+    procedure OnReplaceCurrent(Sender: TObject);
+    procedure OnReplaceSelected(Sender: TObject);
+    procedure OnRepeateSearch(Sender: TObject);
   end;
 
 
@@ -428,7 +447,7 @@ var
 implementation
 
 uses
-  prp_BaseFrame_unit, JclStrings,
+  prp_BaseFrame_unit, JclStrings, IBDatabase, ComObj,
   {$IFDEF GEDEMIN}
   prp_FunctionFrame_Unit, prp_EventFrame_unit, prp_MethodFrame_Unit,
   prp_VBClass_unit, prp_ConstFrame_Unit, prp_GOFrame_unit,
@@ -438,7 +457,7 @@ uses
   prp_dlgFindFunction,
   prp_MessageConst, gd_directories_const, prp_dlg_PropertySettings_unit,
   scr_i_FunctionList, dm_i_ClientReport_unit, gd_i_ScriptFactory,
-  gdcBaseInterface, prp_Messages, IBSQL, gdcConstants,
+  prp_Messages, IBSQL, gdcConstants,
   gd_security_operationconst, syn_ManagerInterface_unit, SynEditKeyCmds,
   gsResizer, evt_Base,  prp_dfCallStack_unit, gdHelp_Interface,
   {$IFDEF DEBUG}
@@ -459,6 +478,7 @@ CONST
   cReopen = 'Reopen';
   cDeskTop = 'DeskTop';
   cReopenCount = 10;
+  AddMaxCount =  1000; // максимальное число элементов для поиска, иначе предупреждение
 
   _Count: Integer = 0;
 type
@@ -479,6 +499,12 @@ begin
 
   FMessagesForm := TdfMessages.Create(Self);
   FMessagesForm.DockForm := Self;
+
+  FSearchAndReplaceForm := TdfSearchAndReplace.Create(Self);
+  FSearchAndReplaceForm.DockForm := Self;
+  TdfSearchAndReplace(FSearchAndReplaceForm).actReplaceCurrent.OnExecute := OnReplaceCurrent;
+  TdfSearchAndReplace(FSearchAndReplaceForm).actReplaceSelected.OnExecute := OnReplaceSelected;
+  TdfSearchAndReplace(FSearchAndReplaceForm).actRepeateSearch.OnExecute := OnRepeateSearch;  
 
   FCallStackForm := TdfCallStack.Create(Self);
   FCallStackForm.DockForm := Self;
@@ -859,7 +885,7 @@ begin
       end;
     end;
 
-    S := IntToStr(TBaseFrame(Sender).ObjectId) + '=' + TBaseFrame(Sender).ClassName;
+    S := TID2S(TBaseFrame(Sender).ObjectId) + '=' + TBaseFrame(Sender).ClassName;
     Index := FOpenedSF.IndexOf(S);
     if Index > - 1 then
       FOpenedSF.Delete(Index);
@@ -913,14 +939,14 @@ end;
 procedure TfrmGedeminProperty.actFindSfByIdExecute(Sender: TObject);
 var
   TN: TTreeNode;
-  ID: Integer;
+  ID: TID;
 begin
   if FPropertyTreeForm <> nil then
   begin
     if Pos('_', dlgPropertyFind.cbTextDB.Text) <> 0 then
       ID := gdcBaseManager.GetIDByRUIDString(dlgPropertyFind.cbTextDB.Text)
     else
-      ID := StrToInt(dlgPropertyFind.cbTextDB.Text);
+      ID := GetTID(dlgPropertyFind.cbTextDB.Text);
 
     TN := TdfPropertyTree(FPropertyTreeForm).FindSF(ID);
     if Assigned(Tn) then
@@ -1147,6 +1173,7 @@ begin
         FMessagesForm.ManualDock(BottomDockPanel, nil, alClient);
         FCallStackForm.ManualDock(FMessagesForm, nil, alClient);
         FWatchListForm.ManualDock(FMessagesForm, nil, alClient);
+        FSearchAndReplaceForm.ManualDock(FMessagesForm, nil, alClient);
         FRunTimeForm.Hide;
       end;
 
@@ -1206,7 +1233,7 @@ end;
 
 procedure TfrmGedeminProperty.EditObject(const Component: TComponent;
   const EditMode: TEditMode = emNone; EventName: String = '';
-  const AFunctionID: integer = 0);
+  const AFunctionID: TID = 0);
 var
   P: TdfPropertyTree;
 begin
@@ -1225,8 +1252,8 @@ begin
   end;
 end;
 
-procedure TfrmGedeminProperty.DebugScriptFunction(const FunctionKey,
-  CurrentLine: Integer);
+procedure TfrmGedeminProperty.DebugScriptFunction(const FunctionKey: TID;
+  const CurrentLine: Integer);
 {$IFDEF DEBUG}
 var
   F: TrpCustomFunction;
@@ -1293,7 +1320,7 @@ begin
   end;
 end;
 
-procedure TfrmGedeminProperty.EditReport(const IDReportGroup, IDReport: Integer);
+procedure TfrmGedeminProperty.EditReport(const IDReportGroup, IDReport: TID);
 var
   RI: TReportTreeItem;
   SQL, oSQL: TIBSQL;
@@ -1310,7 +1337,7 @@ begin
     SQL := TIBSQL.Create(nil);
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
-      SQl.SQL.Text := 'SELECT * FROM rp_reportlist WHERE id = ' + IntToStr(IDReport);
+      SQl.SQL.Text := 'SELECT * FROM rp_reportlist WHERE id = ' + TID2S(IDReport);
       SQL.ExecQuery;
       if not SQl.Eof then
       begin
@@ -1344,7 +1371,7 @@ begin
           '  WHERE rg1.id = :id AND rg1.lb >= rg2.lb AND rg1.rb <= rg2.rb ' +
           '  ORDER BY rg2.lb';
 
-        SQl.Params[0].AsInteger := IDReportGroup;
+        SetTID(SQl.Params[0], IDReportGroup);
         SQL.ExecQuery;
 
         RI := TReportTreeItem.Create;
@@ -1360,7 +1387,7 @@ begin
           oSQL.SQL.Text := 'SELECT * FROM rp_reportlist WHERE name = ' +
             ' :name AND reportgroupkey = :reportgroupkey';
           oSQL.Params[0].AsString := NEW_REPORT_NAME;
-          oSQL.Params[1].AsInteger := IDReportGroup;
+          SetTID(oSQL.Params[1], IDReportGroup);
           oSQL.ExecQuery;
 
           while not oSQL.Eof do
@@ -1368,7 +1395,7 @@ begin
             oSQL.Close;
             Inc(I);
             oSQL.Params[0].AsString := NEW_REPORT_NAME + IntToStr(I);
-            oSQL.Params[1].AsInteger := IDReportGroup;
+            SetTID(oSQL.Params[1], IDReportGroup);
             oSQl.ExecQuery;
           end;
 
@@ -1382,11 +1409,11 @@ begin
             ' rp_reportgroup r WHERE r.id = :reportgroupkey and ' +
             ' (o1.reportgroupkey = r.id or upper(o1.name) = Upper(r.usergroupname)) ' +
             ' AND o1.lb >= o2.lb AND o1.rb <= o2.rb AND o2.parent is null';
-          oSQL.Params[0].AsInteger := SQL.FieldByName(fnId).AsInteger;
+          SetTID(oSQL.Params[0], SQL.FieldByName(fnId));
           oSQL.ExecQuery;
           if not oSQL.Eof then
           begin
-            RI.OwnerId := oSQL.FieldByName(fnId).AsInteger;
+            RI.OwnerId := GetTID(oSQL.FieldByName(fnId));
             RI.MainOwnerName := oSQL.FieldByName(fnName).AsString
           end else
           begin
@@ -1415,7 +1442,7 @@ begin
 end;
 
 function TfrmGedeminProperty.EditScriptFunction(
-  const FunctionKey: Integer): Boolean;
+  const FunctionKey: TID): Boolean;
 {$IFDEF DEBUG}
 var
   F: TrpCustomFunction;
@@ -1474,7 +1501,7 @@ begin
   end;
 end;
 
-procedure TfrmGedeminProperty.OpenFunction(Id: Integer);
+procedure TfrmGedeminProperty.OpenFunction(Id: TID);
 var
   TN: TTReeNode;
 begin
@@ -1514,7 +1541,7 @@ begin
   except
     TN := nil;
   end;
-  
+
   if TN <> nil then
   begin
     BF := TBaseFrame(TCustomTreeItem(TN.Data).EditorFrame);
@@ -1708,7 +1735,7 @@ begin
         MessageBox(Application.Handle,
           'Для применения новых параметров вывода'#13#10 +
           'методов будут закрыты все редакти-'#13#10 +
-          'руемые методы', MSG_WARNING, MB_OK or MB_ICONINFORMATION or 
+          'руемые методы', MSG_WARNING, MB_OK or MB_ICONINFORMATION or
           MB_TASKMODAL);
 
       for I := tbtSpeedButtons.Items.Count - 1 downto 0 do
@@ -1892,10 +1919,10 @@ begin
     FRunTimeForm := nil;
 
   if Sender = FBreakPoints then
-    FBreakPoints := nil;  
+    FBreakPoints := nil;
 end;
 
-procedure TfrmGedeminProperty.FindAndEdit(Id: Integer; Line: Integer = - 1;
+procedure TfrmGedeminProperty.FindAndEdit(Id: TID; Line: Integer = - 1;
   Column:Integer = 0; Error: Boolean = False);
 var
   I: Integer;
@@ -1955,7 +1982,12 @@ end;
 
 procedure TfrmGedeminProperty.ClearSearchResult;
 begin
-  TdfMessages(FMessagesForm).ClearSearch;
+  TdfSearchAndReplace(FSearchAndReplaceForm).ClearSearchResult;
+end;
+
+procedure TfrmGedeminProperty.ClearReplaceResult;
+begin
+  TdfSearchAndReplace(FSearchAndReplaceForm).ClearReplaceResult;
 end;
 
 procedure TfrmGedeminProperty.actFindInDBExecute(Sender: TObject);
@@ -2572,9 +2604,10 @@ begin
 
   if dlgPropertyFind <> nil then
   begin
-    dlgPropertyFind.SearchInDB := True;
+    dlgPropertyFind.SearchType := stSearchInDB;
     if dlgPropertyFind.ShowModal = mrOk then
-      DoFind;
+      if CheckModifyBeforeSearchOrReplace(False) then
+        DoFind;
   end;
 end;
 
@@ -2582,12 +2615,16 @@ procedure TfrmGedeminProperty.DoFind;
 var
   SearchText: String;
   SM: TSearchMessageItem;
+  CM: TCustomMessageItem;
   Add: Integer;
   SQL: TIBSQL;
   LI: TListItem;
   Strings: TStringList;
   C: TCursor;
   DateCondition, ModuleCondition: string;
+  RegExp: Variant;
+  Matches: Variant;
+  Match: Variant;
 const
   ALPHA = ['A'..'Z', 'a'..'z', '_', '0'..'9'];
 
@@ -2609,9 +2646,9 @@ const
   end;
 
   function AddLI(Caption: string; Node: TTreeNode; Line,
-    Column: Integer): TListItem;
+    Column, MatchStart, MatchLen: Integer): TListItem;
   begin
-    Result := TdfMessages(FMessagesForm).lvMessages.Items.Add;
+    Result := TdfSearchAndReplace(FSearchAndReplaceForm).lvSearchResult.Items.Add;
     Result.Caption := Caption;
     SM := TSearchMessageItem.Create;
     Result.Data := SM;
@@ -2619,22 +2656,34 @@ const
     SM.Node := Node;
     SM.Line := Line;
     SM.Column := Column;
+    SM.MatchStart := MatchStart;
+    SM.MatchLen := MatchLen;
+  end;
+
+  function AddMessage(Caption: string): TListItem;
+  begin
+    Result := TdfSearchAndReplace(FSearchAndReplaceForm).lvSearchResult.Items.Add;
+    Result.Caption := Caption;
+    CM := TCustomMessageItem.Create;
+    Result.Data := CM;
+    CM.Message := Caption;
+    CM.Node := nil;
   end;
 
   procedure FillFindList(FindList: TStrings; const ItemType: TItemType;
     const AFindInName: Boolean);
 
-    procedure AddItem(const Caption: String; const FunctionKey: Integer;
-      const Module: String; const Line, Pos: Integer);
+    procedure AddItem(const Caption: String; const FunctionKey: TID;
+      const Module: String; const Line, Pos, MatchStart, MatchLen: Integer);
     begin
-      LI := AddLI(Caption, nil, Line, Pos);
+      LI := AddLI(Caption, nil, Line, Pos, MatchStart, MatchLen);
       TSearchMessageItem(LI.Data).FunctionKey := FunctionKey;
       TSearchMessageItem(LI.Data).Module := Module;
       TSearchMessageItem(LI.Data).ItemType := ItemType;
     end;
 
-    procedure SearchText(const S, SSearch: String; const AWholeWord: Boolean;
-      const ACaseInsensitive: Boolean; const AFindInName: Boolean);
+    procedure SearchText(const S, SSearch: String;
+      const AWholeWord, ACaseInsensitive, AFindInName, ASkipComments: Boolean);
     var
       I, B, J, L, F, E, TmpL, TmpP, K, MaxP: Integer;
       P: array of Integer;
@@ -2733,13 +2782,17 @@ const
                 TmpP := P[K];
               end;
               Tmp := System.Copy(S, B, E - B + 1);
-              AddItem(SQL.FieldByName(fnName).AsString + ': ' +
-                System.Copy(Tmp, 1, P[K] - 1) + #9 +
-                System.Copy(Tmp, P[K], Length(SSearch)) + #9 +
-                System.Copy(Tmp, P[K] + Length(SSearch), MAXINT),
-                SQL.FieldByName(fnId).AsInteger, SQL.FieldByName(fnModule).AsString,
-                TmpL, TmpP);
-              Inc(Add);
+              if (ASkipComments = False)
+                or ((ASkipComments = True) and (System.Pos(char(39), System.Copy(Tmp, 0, P[K] - 1)) = 0))  then
+              begin
+                AddItem(SQL.FieldByName(fnName).AsString + ': ' +
+                  System.Copy(Tmp, 0, P[K] - 1) + #9 +
+                  System.Copy(Tmp, P[K], Length(SSearch)) + #9 +
+                  System.Copy(Tmp, P[K] + Length(SSearch), MAXINT),
+                  GetTID(SQL.FieldByName(fnId)), SQL.FieldByName(fnModule).AsString,
+                    TmpL, TmpP, B + TmpP - 2, Length(SSearch));
+                Inc(Add);
+              end;
             end;
           end;
           Inc(L);
@@ -2751,19 +2804,146 @@ const
       end;
     end;
 
+    procedure SearchTextUseRegExp(const S, SSearch: String;
+      const AWholeWord, ACaseInsensitive, AFindInName, ASkipComments, ASearchIdentifier: Boolean);
+
+    const
+    cStartIdentifier: integer = 147000000;
+    cExcludeRegExp: array[0..2] of string =
+    ( '<ruid xid.*\/>',
+      'gd_p_getid\(.*\)',
+      'getidbyruid\(.*\)');
+    var
+      i, j, k, ind, L, C, B, E: integer;
+      LineArray: array of integer;
+      tmp: string;
+
+      function CheckIdentifier(StrLine, StrMatch: string; Column: integer): boolean;
+      var Ms, M: Variant;
+          i, j: Integer;
+      begin
+        Result := True;
+        if StrToInt64Def(StrMatch, 0) < cStartIdentifier then
+        begin
+          Result := False;
+          exit;
+        end;
+        try
+          for i := low(cExcludeRegExp) to High(cExcludeRegExp) do
+          begin
+            RegExp.Pattern := cExcludeRegExp[i];
+            Ms := RegExp.Execute(StrLine);
+            if Ms.Count > 0 then
+            begin
+              for j := 0 to Ms.Count - 1 do
+              begin
+                M := Ms.Item[j];
+                if (Column >= M.FirstIndex) and (Column <= M.FirstIndex + Length(M.Value)) then
+                  Result := False;
+                M := null;
+              end;
+            end;
+          end;
+        finally
+          Ms := null;
+        end;
+      end;
+
+    begin
+      try
+        RegExp.IgnoreCase := ACaseInsensitive;
+        RegExp.Global := True;
+        RegExp.Multiline := True;
+        RegExp.Pattern := SSearch;
+        Matches := RegExp.Execute(S);
+        if Matches.Count > 0 then
+        begin
+          // заполняем массив строк
+          k := 1;
+          SetLength(LineArray, k);
+          LineArray[0] := -1;
+          for i := 1  to Length(S) - 1 do
+          begin
+            if ((S[i] = #10) and (S[i - 1] = #13)) then
+            begin
+              inc(k);
+              SetLength(LineArray, k);
+              LineArray[k - 1] := i - 1;
+            end;
+          end;
+          inc(k);
+          SetLength(LineArray, k);
+          LineArray[k - 1] := Length(S) - 1;
+
+
+          for i := 0 to Matches.Count - 1 do
+          begin
+            Match := Matches.Item[i];
+            ind := Match.FirstIndex;
+            C := 0;
+            L := 0;
+            tmp := '';
+            for j := 1 to k - 1 do
+            begin
+              if (LineArray[j] > ind) then
+              begin
+                L := j;
+                B := LineArray[j - 1] + 2;
+                E := LineArray[j];
+                C := ind - B + 2;
+                tmp := System.Copy(S, B, E - B + 1);
+                break;
+              end;
+            end;
+
+            if (ASkipComments = False)
+              or ((ASkipComments = True) and (System.Pos(char(39), System.Copy(Tmp, 0, C - 1)) = 0))  then
+            begin
+                if (not ASearchIdentifier) or
+                  (ASearchIdentifier and CheckIdentifier(tmp, Match.Value, C)) then
+                begin
+                  AddItem(SQL.FieldByName(fnName).AsString + ': ' +
+                    System.Copy(tmp, 0, C - 1) + #9 +
+                    Match.Value + #9 +
+                    System.Copy(tmp, C + Length(Match.Value), MAXINT),
+                    GetTID(SQL.FieldByName(fnId)), SQL.FieldByName(fnModule).AsString, L, C,
+                      Match.FirstIndex, Match.Length);
+                  Inc(Add);
+                end;
+            end;
+            Match := null;
+          end;
+        end;
+      finally
+        SetLength(LineArray,0);
+      end;
+    end;
 
   begin
     if SearchOptions.SearchText > '' then
     begin
-      SearchText(SQL.FieldByName(fnScript).AsString,
-        SearchOptions.SearchText, SearchOptions.SearchInDb.Options.WholeWord,
-        not SearchOptions.SearchInDb.Options.CaseSensitive, AFindInName);
+      if SearchOptions.SearchInDb.UseRegExp then
+        try
+          RegExp := CreateOleObject('VBScript.RegExp');
+          SearchTextUseRegExp(SQL.FieldByName(fnScript).AsString,
+            SearchOptions.SearchText, SearchOptions.SearchInDb.Options.WholeWord,
+            not SearchOptions.SearchInDb.Options.CaseSensitive, AFindInName,
+            SearchOptions.SearchInDb.SkipComments, SearchOptions.SearchIdentifier)
+        finally
+          Matches := Null;
+          RegExp := Unassigned;
+        end
+      else
+        SearchText(SQL.FieldByName(fnScript).AsString,
+          SearchOptions.SearchText, SearchOptions.SearchInDb.Options.WholeWord,
+          not SearchOptions.SearchInDb.Options.CaseSensitive, AFindInName,
+          SearchOptions.SearchInDb.SkipComments);
     end else
     begin
       AddItem(SQL.FieldByName(fnName).AsString + ': изменен ' +
         SQL.FieldByName('editiondate').AsString,
-        SQL.FieldByName(fnId).AsInteger, SQL.FieldByName(fnModule).AsString,
-        1, 1);
+        GetTID(SQL.FieldByName(fnId)), SQL.FieldByName(fnModule).AsString,
+        1, 1, 0, 0);
       Inc(Add);
     end;
   end;
@@ -2784,12 +2964,15 @@ const
   procedure OpenCloseSQL(IT: TItemType; const AFindInName: Boolean);
   begin
     SQL.ExecQuery;
-    if not SQL.Eof then
-      while not SQL.Eof do begin
-        FillFindList(Strings, IT, AFindInName);
-        SQL.Next;
-      end;
-    SQL.Close;
+    try
+      if not SQL.Eof then
+        while (not SQL.Eof) and ((Add < AddMaxCount) or SearchOptions.SearchInDb.NotLimitResults) do begin
+          FillFindList(Strings, IT, AFindInName);
+          SQL.Next;
+        end;
+    finally
+      SQL.Close;
+    end; 
   end;
 
 begin
@@ -2802,11 +2985,15 @@ begin
       Exit;
     end;
 
-    if FMessagesForm = nil then Exit;
+    if FSearchAndReplaceForm = nil then Exit;
 
-    TdfMessages(FMessagesForm).lvMessages.Items.BeginUpdate;
+    TdfSearchAndReplace(FSearchAndReplaceForm).lvSearchResult.Items.BeginUpdate;
     try
       ClearSearchResult;
+      ClearReplaceResult;
+
+      TdfSearchAndReplace(FSearchAndReplaceForm).FWithReplace := SearchOptions.WithReplace;
+      TdfSearchAndReplace(FSearchAndReplaceForm).UpdateControl;
 
       if SearchOptions.SearchInDb.Options.CaseSensitive then
         SearchText := SearchOptions.SearchText
@@ -2836,7 +3023,7 @@ begin
             Assigned(FPropertyTreeForm.ActivePage.SFRootNode.Data)) then
           raise Exception.Create('Дерево объектов не найдено.');
         ModuleCondition := ' f.modulecode = ' +
-          IntToStr(TSFTreeFolder(FPropertyTreeForm.ActivePage.SFRootNode.Data).OwnerId);
+          TID2S(TSFTreeFolder(FPropertyTreeForm.ActivePage.SFRootNode.Data).OwnerId);
       end;
 
       Add := 0;
@@ -2909,7 +3096,7 @@ begin
               else
                 SQL.SQL.Text:= SQL.SQL.Text + ' WHERE ';
 
-              SQL.SQL.Text:= SQL.SQL.Text + 
+              SQL.SQL.Text:= SQL.SQL.Text +
                 ' UPPER(f.module) <> ' + QuotedStr('MACROS') + ' AND UPPER(f.module) <> ' + QuotedStr('EVENTS') +
                 ' AND UPPER(f.module) NOT LIKE ' + QuotedStr('REPORT%');
 
@@ -2923,21 +3110,27 @@ begin
         finally
           SQL.Free;
         end;
-        if Add = 0 then AddLI(#9'Поиск не дал результатов'#9, nil, -1, -1);
 
-        FMessagesForm.Show;
+        if Add = 0 then
+          AddMessage(#9'Поиск не дал результатов'#9)
+        else if (Add >= AddMaxCount) and not SearchOptions.SearchInDb.NotLimitResults then
+          AddMessage(#9'Найдено более ' + IntToStr(AddMaxCount) + ' соответствий, уточните критерии поиска'#9)
+        else
+          AddMessage(#9'Найдено соответствий: ' + IntToStr(Add) + #9);
+
+        FSearchAndReplaceForm.Show;
       finally
         Strings.Free;
       end;
     finally
-      TdfMessages(FMessagesForm).lvMessages.Items.EndUpdate;
+      TdfSearchAndReplace(FSearchAndReplaceForm).lvSearchResult.Items.EndUpdate;
     end;
   finally
     Screen.Cursor := C;
   end;
 end;
 
-procedure TfrmGedeminProperty.EditMacro(const IDMacro: Integer);
+procedure TfrmGedeminProperty.EditMacro(const IDMacro: TID);
 var
   MI: TMacrosTreeItem;
   SQL: TIBSQL;
@@ -2955,7 +3148,7 @@ begin
       SQl.SQL.Text :=
         'SELECT ml.*, obj.objectname as ownername, obj.id as ownerid FROM ' +
         'evt_macroslist ml LEFT JOIN evt_object obj ON ' +
-        'obj.macrosgroupkey = ml.macrosgroupkey WHERE ml.id = ' + IntToStr(IDMacro);
+        'obj.macrosgroupkey = ml.macrosgroupkey WHERE ml.id = ' + TID2S(IDMacro);
       SQL.ExecQuery;
       if not SQl.Eof then
       begin
@@ -2963,7 +3156,7 @@ begin
         MI.Id := IDMacro;
         MI.Name := SQL.FieldByName(fnName).AsString;
         MI.MainOwnerName := SQL.FieldByName('ownername').AsString;
-        MI.OwnerId := SQL.FieldByName('id').AsInteger;
+        MI.OwnerId := GetTID(SQL.FieldByName('id'));
         MI.Node := nil;
         MI.MacrosFolderId := 0;
         //т.к. MI не привязана к ноду дерева то для последующего её удаления
@@ -2972,8 +3165,8 @@ begin
         //выводим Frame
         ShowFrame(MI);
       end else
-        MessageBox(Application.Handle, PChar('Макрос с ИД = ' + IntToStr(IDMacro) +
-          ' не найден.'), PChar('Ошибка открытия макроса.'), MB_OK or MB_ICONERROR);
+        MessageBox(Application.Handle, PChar('Макрос с ИД = ' + TID2S(IDMacro) +
+          ' не найден.'), PChar('Ошибка открытия макроса.'), MB_OK or MB_ICONERROR or MB_TASKMODAL);
     finally
       SQL.Free;
     end;
@@ -3089,8 +3282,8 @@ begin
       TdfWatchList(FWatchListForm).UpdateWatchList;
     if FCallStackForm <> nil then
       TdfCallStack(FCallStackForm).UpdateCallStackList;
-    UpdateBreakPoints;  
-  end;    
+    UpdateBreakPoints;
+  end;
 end;
 
 procedure TfrmGedeminProperty.OnShowHint(
@@ -3286,7 +3479,7 @@ begin
     TBaseFrame(FActiveFrame).ShowTypeInfo;
 end;
 
-procedure TfrmGedeminProperty.EditReport(const IDReport: Integer);
+procedure TfrmGedeminProperty.EditReport(const IDReport: TID);
 var
   RI: TReportTreeItem;
   SQL: TIBSQL;
@@ -3301,7 +3494,7 @@ begin
     SQL := TIBSQL.Create(nil);
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
-      SQl.SQL.Text := 'SELECT * FROM rp_reportlist WHERE id = ' + IntToStr(IDReport);
+      SQl.SQL.Text := 'SELECT * FROM rp_reportlist WHERE id = ' + TID2S(IDReport);
       SQL.ExecQuery;
       if not SQl.Eof then
       begin
@@ -3310,7 +3503,7 @@ begin
         RI.Name := SQL.FieldByName(fnName).AsString;
         RI.MainOwnerName := 'Неизвестный';
         RI.Node := nil;
-        RI.ReportFolderId := sql.FieldByName('reportgroupkey').AsInteger;
+        RI.ReportFolderId := GetTID(sql.FieldByName('reportgroupkey'));
         //т.к. Ri не привязана к ноду дерева то для последующего её удаления
         //добавляем в список объектов
         FGhostObjects.Add(Ri);
@@ -3425,7 +3618,7 @@ var
   end;
 var
   CN: string;
-  id: Integer;
+  id: TID;
   C: CBaseFrame;
   Name: string;
   Count: Integer;
@@ -3438,7 +3631,7 @@ begin
     for I := 0 to FOpenedSF.Count - 1 do
     begin
       try
-        Id := StrToInt(FOpenedSF.Names[I]);
+        Id := GetTID(FOpenedSF.Names[I]);
       except
         Continue;
       end;
@@ -3470,7 +3663,7 @@ end;
 procedure TfrmGedeminProperty.ReopenSF(S: string);
 var
   CN: string;
-  id: Integer;
+  id: TID;
   C: CBaseFrame;
   Strings: TStringList;
   SQL: TIBSQL;
@@ -3481,7 +3674,7 @@ begin
     if Strings.Count = 1 then
     begin
       try
-        Id := StrToInt(Strings.Names[0]);
+        Id := GetTID(Strings.Names[0]);
         if Id = 0 then exit;
       except
         Exit;
@@ -3498,7 +3691,7 @@ begin
           try
             SQL.Transaction := gdcBaseManager.ReadTransaction;
             SQL.SQL.text := 'select id from gd_function where id = :id';
-            SQL.ParamByName('id').AsInteger := Id;
+            SetTID(SQL.ParamByName('id'), Id);
             SQL.ExecQuery;
             if SQL.recordCount > 0 then
               EditScriptFunction(id);
@@ -3573,6 +3766,500 @@ begin
     frm.ShowModal;
   finally
     frm.Free;
+  end;
+end;
+
+function TfrmGedeminProperty.ReplaceItem(var S: string; const SearchText: string; var ReplaceText: string;
+  const FunctionName: string; const  Column, MatchStart, MatchLen, ItemIndex: integer;
+  const ReplaceIdentType: TReplaceIdentType): boolean;
+
+  function Replace(var S: string; const SSearch: string; var SReplace: string; const FunctionName: string;
+    const Column, MatchStart, MatchLen: integer; const ReplaceIdentType: TReplaceIdentType): string;
+  var I, B, E: integer;
+      Tmp: string;
+      Find: Boolean;
+      RegExp, Matches, Match: Variant;
+      XID: TID;
+      DBID: Integer;
+  begin
+    Result := '';
+    Find := False;
+    B := MatchStart - Column + 2;
+    Tmp :=  System.Copy(S, MatchStart + 1, MatchLen);
+
+    //прверяем есть ли вхождение
+    if SearchOptions.SearchInDb.UseRegExp then
+    begin
+      try
+        RegExp := CreateOleObject('VBScript.RegExp');
+        RegExp.IgnoreCase := not SearchOptions.SearchInDb.Options.CaseSensitive;
+        RegExp.Global := True;
+        RegExp.Multiline := True;
+        RegExp.Pattern := SSearch;
+        Matches := RegExp.Execute(Tmp);
+        if (Matches.Count > 0)  then
+        begin
+          Match := Matches.Item[0];
+          Find := Match.FirstIndex = 0;
+        end;
+      finally
+        Match := Null;
+        Matches := Null;
+        RegExp := Unassigned;
+      end;
+    end
+    else
+      if SearchOptions.SearchInDb.Options.CaseSensitive then
+      begin
+        if Tmp = SSearch then
+          Find := True;
+      end
+      else
+        if UpperCase(Tmp) = UpperCase(SSearch) then
+          Find := True;
+
+    if Find then
+    begin
+
+     if SearchOptions.SearchIdentifier then
+      if ReplaceIdentType = null then
+        Exit
+      else
+      begin
+        try
+          gdcBaseManager.GetRUIDByID(GetTID(Tmp), XID, DBID);
+          SReplace := Format(cReplaceIdentTemplate[Integer(ReplaceIdentType)],
+              [TID264(XID), DBID]);
+        except
+          exit
+        end;
+      end;
+
+      System.Delete(S, MatchStart + 1, MatchLen);
+      System.Insert(SReplace, S, MatchStart + 1);
+
+      for I := B to Length(S) - 1 do
+      begin
+        if ((S[I] = #10) and (S[I - 1] = #13)) or (I = Length(S) - 1) then
+        begin
+          E := I - 2;
+          Tmp :=  System.Copy(S, B, E - B + 1);
+          Result := FunctionName + ': ' + System.Copy(Tmp, 0, Column - 1) + #9 +
+                    System.Copy(Tmp, Column, Length(SReplace)) + #9 +
+                    System.Copy(Tmp, Column + Length(SReplace), MAXINT);
+          break;
+        end;
+      end;
+    end;
+  end;
+
+var
+  Delta, DeltaColumn: integer;
+  i: integer;
+  SReplaced: string;
+
+  function AddReplaceResultLI(LI: TListItem; Caption: string): TListItem;
+  var  SM: TSearchMessageItem;
+  begin
+    Result := TdfSearchAndReplace(FSearchAndReplaceForm).lvReplaceResult.Items.Add;
+    Result.Caption := Caption;
+    SM := TSearchMessageItem.Create;
+    Result.Data := SM;
+    SM.Message := LI.Caption;
+    SM.FunctionKey := TSearchMessageItem(LI.Data).FunctionKey;
+    SM.Module := TSearchMessageItem(LI.Data).Module;
+    SM.ItemType := TSearchMessageItem(LI.Data).ItemType;
+    SM.Node := TSearchMessageItem(LI.Data).Node;
+    SM.Line := TSearchMessageItem(LI.Data).Line;
+    SM.Column := TSearchMessageItem(LI.Data).Column;
+    SM.MatchStart := TSearchMessageItem(LI.Data).MatchStart;
+    SM.MatchLen := TSearchMessageItem(LI.Data).MatchLen;
+  end;
+
+begin
+  SReplaced := Replace(S, SearchText, ReplaceText, FunctionName, Column, MatchStart, MatchLen, ReplaceIdentType);
+
+  with TdfSearchAndReplace(FSearchAndReplaceForm).lvSearchResult do
+  begin
+    with TSearchMessageItem(Items[ItemIndex].Data) do
+    begin
+      if SReplaced <> '' then
+      begin
+        Delta := Length(ReplaceText) - MatchLen;
+        DeltaColumn := Delta;
+
+          AddReplaceResultLI(Items[ItemIndex], SReplaced);
+          //обновляем позиции вхождений, чтобы не повторять поиск после замены
+          i := ItemIndex + 1;
+          while (i <= Items.Count - 1) and
+            ((TSearchMessageItem(Items[i].Data).FunctionKey = FunctionKey)
+              and (TSearchMessageItem(Items[i].Data).ItemType = ItemType)) do
+          begin
+            TSearchMessageItem(Items[i].Data).MatchStart := TSearchMessageItem(Items[i].Data).MatchStart + Delta;
+            if TSearchMessageItem(Items[i].Data).Line = Line then
+              TSearchMessageItem(Items[i].Data).Column := TSearchMessageItem(Items[i].Data).Column + DeltaColumn
+            else DeltaColumn := 0;
+            inc(i);
+          end;
+          Replaced := True;
+      end
+      else
+      begin
+          Replaced := False;
+          MessageBox(Application.Handle, PChar('Вхождение: ' + SearchText + #13 +
+            'в строке: ' + Items[ItemIndex].Caption  + #13 +
+            'не найдено. Возможно данные были изменены пользователем.' + #13 +
+            'Повторите поиск!'), MSG_WARNING, MB_OK);
+      end;
+      Result := Replaced;
+    end;
+  end;
+end;
+
+procedure TfrmGedeminProperty.OnReplaceCurrent(Sender: TObject);
+var CM: TCustomMessageItem;
+  LI: TListItem;
+  C: TCursor;
+  SQL, SQLUpdate: TIBSQL;
+  SQLStr, SQLUpdateStr: string;
+  Tr: TIBTransaction;
+  S, FN: string;
+  j: integer;
+  RIT: TReplaceIdentType;
+begin
+  if not CheckModifyBeforeSearchOrReplace(True) then
+    Exit;
+
+   if SearchOptions.SearchIdentifier then
+    if not ChooseReplaceIdentifierType(RIT) then
+      Exit;
+
+  SQLStr := 'Select Script, Name from gd_function where id = :id';
+  SQLUpdateStr := 'UPDATE gd_function set Script = :S where id = :id';
+
+  C := Screen.Cursor;
+  Screen.Cursor := crHourGlass;
+  try
+    with TdfSearchAndReplace(FSearchAndReplaceForm).lvSearchResult do
+    begin
+      if Assigned(Selected) and Assigned(Selected.Data)
+        and (TCustomMessageItem(Selected.Data).MsgType in [mtSearch]) then
+      begin
+        S := '';
+        // Делаем замену только по тексту функции (имена не трогаем)
+        with TSearchMessageItem(Selected.Data) do
+        begin
+          if FunctionKey = 0 then Exit;
+
+          for j := 0 to Self.ComponentCount - 1 do
+          begin
+          if (Self.Components[j] is TBaseFrame) and
+            (TBaseFrame(Self.Components[j]).IsFunction(FunctionKey)) then
+            begin
+              TBaseFrame(Self.Components[j]).Close;
+              break;
+            end;
+          end;
+
+          SQL := TIBSQL.Create(nil);
+          try
+            SQl.Transaction := gdcBaseManager.ReadTransaction;
+            SQl.SQl.Text := SQLStr;
+            SetTID(SQL.ParamByName('id'), FunctionKey);
+            SQL.ExecQuery;
+            if SQl.RecordCount > 0 then
+            begin
+              S := SQL.fieldbyname(fnScript).asstring;
+              FN := SQL.fieldbyname(fnName).asstring;
+            end
+            else
+              FunctionKey := 0;
+          finally
+              SQL.Free;
+          end;
+
+          if (FunctionKey <> 0) and (S <> '') then
+          begin
+            if ReplaceItem(S, SearchOptions.SearchText, SearchOptions.ReplaceText, FN,
+              Column, MatchStart, MatchLen, Selected.Index, RIT) then
+            begin
+              SQLUpdate := TIBSQL.Create(nil);
+              Tr := TIBTransaction.Create(nil);
+              try
+                Tr.DefaultDatabase := gdcBaseManager.Database;
+                Tr.StartTransaction;
+                SQLUpdate.Transaction := Tr;
+                SQLUpdate.SQL.Text := SQLUpdateStr;
+                SetTID(SQLUpdate.ParamByName('id'), FunctionKey);
+                SQLUpdate.ParamByName('S').AsString := S;
+                SQLUpdate.ExecQuery;
+                Tr.Commit;
+              finally
+                SQLUpdate.Free;
+                Tr.Free;
+               // OpenFunction(FunctionKey);
+              end;
+            end;
+          end;
+        end;
+        // очищаем от замененной строки
+        if TSearchMessageItem(Items[Selected.Index].Data).Replaced then
+        begin
+          TdfSearchAndReplace(FSearchAndReplaceForm).DeleteItem(Items[Selected.Index]);
+          LI := TdfSearchAndReplace(FSearchAndReplaceForm).lvReplaceResult.Items.Add;
+          LI.Caption := #9'Произведено замен: ' + inttostr(1) + #9;
+          CM := TCustomMessageItem.Create;
+          LI.Data := CM;
+          CM.Message := Caption;
+          CM.Node := nil;
+        end;
+      end;
+    end;
+  finally
+    Screen.Cursor := C;
+  end;
+end;
+
+procedure TfrmGedeminProperty.OnReplaceSelected(Sender: TObject);
+var i, j, r: integer;
+  CM: TCustomMessageItem;
+  LI: TListItem;
+  C: TCursor;
+  SQL, SQLUpdate: TIBSQL;
+  SQLStr, SQLUpdateStr: string;
+  Tr: TIBTransaction;
+  S, FN: string;
+  LastFunctionKey: TID;
+  WasReplaced: Boolean;
+  RIT: TReplaceIdentType;
+begin
+  if not CheckModifyBeforeSearchOrReplace(True) then
+    Exit;
+
+   if SearchOptions.SearchIdentifier then
+    if not ChooseReplaceIdentifierType(RIT) then
+      Exit;
+
+  SQLStr := 'Select Script, Name from gd_function where id = :id';
+  SQLUpdateStr := 'UPDATE gd_function set Script = :S where id = :id';
+  LastFunctionKey := 0;
+  WasReplaced := False;
+  S := '';
+  C := Screen.Cursor;
+  Screen.Cursor := crHourGlass;
+  try
+    with TdfSearchAndReplace(FSearchAndReplaceForm).lvSearchResult do
+    begin
+      TdfSearchAndReplace(FSearchAndReplaceForm).sbSearch.Visible := true;
+
+      for i := 0 to Items.Count - 1 do
+      begin
+
+        with TSearchMessageItem(Items[i].Data) do
+        begin
+
+          TdfSearchAndReplace(FSearchAndReplaceForm).sbSearch.SimpleText :=
+              'Обрабатывается запись ' + inttostr(i) + ' из ' + inttostr(Items.Count);
+
+          if (TCustomMessageItem(Items[i].Data).MsgType in [mtSearch])
+            and Items[i].Checked then
+          begin
+          // Делаем замену только по тексту функции (имена не трогаем)
+            if FunctionKey = 0 then Exit;
+
+            if FunctionKey <> LastFunctionKey then
+            begin
+
+              for j := 0 to Self.ComponentCount - 1 do
+              begin
+                if (Self.Components[j] is TBaseFrame) and
+                  (TBaseFrame(Self.Components[j]).IsFunction(FunctionKey)) then
+                  begin
+                    TBaseFrame(Self.Components[j]).Close;
+                    break;
+                  end;
+              end;
+
+              LastFunctionKey := FunctionKey;
+              WasReplaced := False;
+              SQL := TIBSQL.Create(nil);
+              try
+                SQl.Transaction := gdcBaseManager.ReadTransaction;
+                SQl.SQl.Text := SQLStr;
+                SetTID(SQL.ParamByName('id'), FunctionKey);
+                SQL.ExecQuery;
+                if SQl.RecordCount > 0 then
+                begin
+                  S := SQL.fieldbyname(fnScript).asstring;
+                  FN := SQL.fieldbyname(fnName).asstring;
+                end
+                else
+                  FunctionKey := 0;
+              finally
+                  SQL.Free;
+              end;
+            end;
+
+            if (FunctionKey <> 0) and (S <> '') then
+              if ReplaceItem(S, SearchOptions.SearchText, SearchOptions.ReplaceText, FN,
+                Column, MatchStart, MatchLen, i, RIT) then
+                WasReplaced := True;
+          end;
+
+          if  WasReplaced and (S <> '') and
+            ((i = Items.Count - 1) or (FunctionKey <> TSearchMessageItem(Items[i + 1].Data).FunctionKey)) then
+          begin
+            SQLUpdate := TIBSQL.Create(nil);
+            Tr := TIBTransaction.Create(nil);
+            try
+              Tr.DefaultDatabase := gdcBaseManager.Database;
+              Tr.StartTransaction;
+              SQLUpdate.Transaction := Tr;
+              SQLUpdate.SQL.Text := SQLUpdateStr;
+              SetTID(SQLUpdate.ParamByName('id'), FunctionKey);
+              SQLUpdate.ParamByName('S').AsString := S;
+              SQLUpdate.ExecQuery;
+              Tr.Commit;
+            finally
+              SQLUpdate.Free;
+              Tr.Free;
+              S := '';
+              WasReplaced := False;
+              //OpenFunction(FunctionKey);
+            end;
+          end;
+        end;
+      end;
+      // очищаем от замененных строк
+      i := 0;
+      r := 0;
+      while i <= Items.Count - 1 do
+      begin
+        if (TCustomMessageItem(Items[i].Data).MsgType in [mtSearch])
+          and TSearchMessageItem(Items[i].Data).Replaced then
+          begin
+            TdfSearchAndReplace(FSearchAndReplaceForm).DeleteItem(Items[i]);
+            inc(r);
+          end
+        else
+          inc(i);
+      end;
+
+      if r > 0 then
+      begin
+        LI := TdfSearchAndReplace(FSearchAndReplaceForm).lvReplaceResult.Items.Add;
+        LI.Caption := #9'Произведено замен: ' + inttostr(r) + #9;
+        CM := TCustomMessageItem.Create;
+        LI.Data := CM;
+        CM.Message := Caption;
+        CM.Node := nil;
+      end;
+    end;
+  finally
+    Screen.Cursor := C;
+    TdfSearchAndReplace(FSearchAndReplaceForm).sbSearch.Visible := false;
+  end;
+end;
+
+procedure TfrmGedeminProperty.OnRepeateSearch(Sender: TObject);
+begin
+  if CheckModifyBeforeSearchOrReplace(False) then
+    DoFind;
+end;
+
+function TfrmGedeminProperty.CheckModifyBeforeSearchOrReplace(BeforeReplace: boolean): boolean;
+var
+  MR, UType: Integer;
+  MsgText: PChar;
+begin
+  Result := True;
+  if ModifiedCount > 0 then
+  begin
+    if not BeforeReplace then
+    begin
+      uType := MB_YESNOCANCEL or MB_TASKMODAL;
+      MsgText := 'Внимание! Есть открытые и несохраненные данные.'#13 +
+        'Перед поиском их необходимо сохранить.'#13 + #13 +
+        'Да - Сохранить все изменения и продолжить поиск'#13 +
+        'Нет - Продолжить поиск без учета изменений'#13 +
+        'Отмена - Отменить поиск';
+    end
+    else
+    begin
+      uType := MB_OKCANCEL or MB_TASKMODAL;
+      MsgText := 'Внимание! Есть открытые и несохраненные данные.'#13 +
+        'Перед заменой их необходимо сохранить.'#13 + #13 +
+        'OK - Сохранить все изменения и продолжить замену'#13 +
+        'Отмена - Отменить замену';
+    end;
+
+    MR := MessageBox(Application.Handle, MsgText, MSG_WARNING, UType);
+    case MR of
+      ID_YES, ID_OK:
+      begin
+        try
+          Result := actSaveAll.Execute;
+        except
+        end;
+      end;
+      ID_NO:
+      begin
+        Result := True;
+      end;
+      else
+        Result := False;
+    end;
+  end;
+end;
+
+procedure TfrmGedeminProperty.actShowSearchExecute(Sender: TObject);
+begin
+  inherited;
+  if Assigned(FSearchAndReplaceForm) then
+  begin
+    ReCalcDockBounds := False;
+    try
+      FSearchAndReplaceForm.Show;
+    finally
+      ReCalcDockBounds := True;
+    end;
+  end;
+end;
+
+procedure TfrmGedeminProperty.actFindIdentifierExecute(Sender: TObject);
+begin
+  inherited;
+  if dlgPropertyFind = nil then
+    TdlgPropertyFind.Create(Self);
+
+  if dlgPropertyFind <> nil then
+  begin
+    dlgPropertyFind.SearchType := stSearchIdentifier;
+    if dlgPropertyFind.ShowModal = mrOk then
+      if CheckModifyBeforeSearchOrReplace(False) then
+        DoFind;
+  end;
+end;
+
+function TfrmGedeminProperty.ChooseReplaceIdentifierType(
+  var Value: TReplaceIdentType): boolean;
+begin
+  inherited;
+  Result := False;
+
+  if dlgChooseReplaceIdentType = nil then
+  begin
+    TdlgChooseReplaceIdentType.Create(Self);
+    dlgChooseReplaceIdentType.ReplaceIdentType := rtFunctGetIDByRUID;
+  end;
+
+  if dlgChooseReplaceIdentType <> nil then
+  begin
+    if dlgChooseReplaceIdentType.ShowModal = mrOk then
+    begin
+      Value := dlgChooseReplaceIdentType.ReplaceIdentType;
+      Result := True;
+    end;
   end;
 end;
 

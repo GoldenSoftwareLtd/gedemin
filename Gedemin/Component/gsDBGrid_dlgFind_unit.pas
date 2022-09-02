@@ -1,3 +1,4 @@
+// ShlTanya, 17.02.2019
 
 unit gsDBGrid_dlgFind_unit;
 

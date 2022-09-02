@@ -1,3 +1,4 @@
+// ShlTanya, 31.01.2019
 
 {++
 
@@ -1702,6 +1703,9 @@ begin
               end;
               ftLargeInt:
               begin
+                FControls.Add(TatTextControl.Create(Self,
+                  atRelation, atRelationField));
+                LastControl.TargetField := CurrField;
                 // feature not implemented
               end;
             end;

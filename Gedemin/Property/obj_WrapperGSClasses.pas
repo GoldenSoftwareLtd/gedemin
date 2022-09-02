@@ -1,3 +1,4 @@
+// ShlTanya, 25.02.2019
 
 {++
 
@@ -40,7 +41,7 @@ uses
   gdcTableCalendar, TB2ToolWindow, TB2Item, IBServices, gdc_dlgG_unit, gdc_frmSGR_unit,
   gd_ScrException, gdcAcctEntryRegister,  gdc_frmG_unit, gdc_frmMDH_unit, gdc_frmMD2H_unit,
   gdv_frmG_unit, obj_WrapperIBXClasses, flt_sqlfilter_condition_type,  at_classes,
-  gsTransaction, tr_Type_unit, at_Container, NumConv,  gsScaner, gsDBTreeView,
+  {gsTransaction, tr_Type_unit, }at_Container, NumConv,  gsScaner, gsDBTreeView,
   ColorComboBox, gdc_dlgInvDocument_unit, BtnEdit, gdcTaxFunction, gdc_frmInvCard_unit,
   flt_QueryFilterGDC, gsStorage_CompPath, gd_AttrComboBox, gdcSetting, gdcFile,
   gdEnumComboBox, at_sql_setup, gsSupportClasses, gdc_frmInvSelectedGoods_unit, xCalc,
@@ -57,7 +58,7 @@ uses
   ;
 
 type
-  TwrpAnalyze = class(TwrpObject, IgsAnalyze)
+ { TwrpAnalyze = class(TwrpObject, IgsAnalyze)
   private
     function  GetAnalyze: TAnalyze;
   protected
@@ -72,8 +73,8 @@ type
     function  Get_ValueAnalyze: Integer; safecall;
     procedure Set_ValueAnalyze(Value: Integer); safecall;
   end;
-
-  TwrpAccount = class(TwrpObject, IgsAccount)
+}
+{  TwrpAccount = class(TwrpObject, IgsAccount)
   private
     function  GetAccount: TAccount;
   protected
@@ -93,15 +94,15 @@ type
     function  Get_CurrencyAccount: WordBool; safecall;
     function  Get_AnalyzeItem(Index: Integer): IgsAnalyze; safecall;
   end;
-
-  TwrpEntry = class(TwrpObject, IgsEntry)
+}
+{  TwrpEntry = class(TwrpObject, IgsEntry)
   private
     function  GetEntry: TEntry;
   protected
     procedure AddEntryLine(const AccountInfo: IgsAccount; IsDebit: WordBool;
                            const aDescription: WideString); safecall;
     procedure AddFromTypeEntry(const TypeEntry: IgsEntry; const aValueList: IgsObjectList;
-                               const aAnalyzeList: IgsObjectList; aCurrKey: Integer); safecall;
+                               const aAnalyzeList: IgsObjectList; aCurrKey: ATID); safecall;
     procedure SetSumFromTypeEntry(const TypeEntry: IgsEntry; const aValueList: IgsObjectList); safecall;
     function  IsUseVariable(const aVariable: WideString): WordBool; safecall;
     procedure Clear; safecall;
@@ -113,14 +114,14 @@ type
     function  IsCurrencyEntry: WordBool; safecall;
     function  Get_EntryDate: TDateTime; safecall;
     procedure Set_EntryDate(Value: TDateTime); safecall;
-    function  Get_EntryKey: Integer; safecall;
-    procedure Set_EntryKey(Value: Integer); safecall;
+    function  Get_EntryKey: ATID; safecall;
+    procedure Set_EntryKey(Value: ATID); safecall;
     function  Get_Description: WideString; safecall;
     procedure Set_Description(const Value: WideString); safecall;
-    function  Get_DocumentKey: Integer; safecall;
-    procedure Set_DocumentKey(Value: Integer); safecall;
-    function  Get_PositionKey: Integer; safecall;
-    procedure Set_PositionKey(Value: Integer); safecall;
+    function  Get_DocumentKey: ATID; safecall;
+    procedure Set_DocumentKey(Value: ATID); safecall;
+    function  Get_PositionKey: ATID; safecall;
+    procedure Set_PositionKey(Value: ATID); safecall;
     function  Get_Changed: WordBool; safecall;
     procedure Set_Changed(Value: WordBool); safecall;
     function  Get_Debit(Index: Integer): IgsAccount; safecall;
@@ -128,14 +129,14 @@ type
     function  Get_DebitCount: Integer; safecall;
     function  Get_CreditCount: Integer; safecall;
   end;
-
+}
   TwrpIBDSBlobStream = class(TwrpStream, IgsIBDSBlobStream)
   private
     function  GetIBDSBlobStream: TIBDSBlobStream;
   protected
     procedure SetSize(NewSize: Integer); safecall;
   end;
-
+{
   TwrpTransaction = class(TwrpObject, IgsTransaction)
   private
     function  GetTransaction: TTransaction;
@@ -148,10 +149,10 @@ type
     function  IsUseVariable(const aVariable: WideString): WordBool; safecall;
     function  IsCurrencyTransaction: WordBool; safecall;
     function  Get_TransactionFilterData: IgsFilterData; safecall;
-    function  Get_TransactionKey: Integer; safecall;
-    procedure Set_TransactionKey(Value: Integer); safecall;
-    function  Get_DocumentTypeKey: Integer; safecall;
-    procedure Set_DocumentTypeKey(Value: Integer); safecall;
+    function  Get_TransactionKey: ATID; safecall;
+    procedure Set_TransactionKey(Value: ATID); safecall;
+    function  Get_DocumentTypeKey: ATID; safecall;
+    procedure Set_DocumentTypeKey(Value: ATID); safecall;
     function  Get_IsDocument: WordBool; safecall;
     procedure Set_IsDocument(Value: WordBool); safecall;
     function  Get_TransactionName: WideString; safecall;
@@ -168,9 +169,9 @@ type
   protected
     procedure AddRealEntry(const Entry: IgsEntry); safecall;
     function  CreateRealEntry(const aValueList: IgsObjectList; const aAnalyzeList: IgsObjectList;
-                              aCurrKey: Integer): WordBool; safecall;
+                              aCurrKey: ATID): WordBool; safecall;
     procedure ClearRealEntry; safecall;
-    function  ChangeValue(aDocumentKey: Integer; aPositionKey: Integer; aDocumentDate: TDateTime;
+    function  ChangeValue(aDocumentKey: ATID; aPositionKey: ATID; aDocumentDate: TDateTime;
                           const ValueList: IgsObjectList): WordBool; safecall;
     function  Get_DocumentCode: Integer; safecall;
     procedure Set_DocumentCode(Value: Integer); safecall;
@@ -192,31 +193,31 @@ type
     function  SetStartTransactionInfo(ReadEntry: WordBool): WordBool; safecall;
     procedure Refresh; safecall;
     procedure ReadTransactionOnPosition(aDocumentCode: Integer; aPositionCode: Integer;
-                                        aEntryKey: Integer); safecall;
+                                        aEntryKey: ATID); safecall;
     function  GetTransaction(const List: IgsStrings): IgsTransaction; safecall;
-    procedure CreateTransactionOnPosition(aCurrKey: Integer; aDocumentDate: TDateTime;
+    procedure CreateTransactionOnPosition(aCurrKey: ATID; aDocumentDate: TDateTime;
                                           const aValueList: IgsObjectList;
                                           const aAnalyzeList: IgsObjectList;
                                           isEditTransaction: WordBool); safecall;
-    procedure CreateTransactionByDelayedTransaction(aTransactionKey: Integer;
-                                                    aFromDocumentKey: Integer;
-                                                    aToDocumentKey: Integer;
-                                                    aFromPositionKey: Integer;
-                                                    aToPositionKey: Integer;
+    procedure CreateTransactionByDelayedTransaction(aTransactionKey: ATID;
+                                                    aFromDocumentKey: ATID;
+                                                    aToDocumentKey: ATID;
+                                                    aFromPositionKey: ATID;
+                                                    aToPositionKey: ATID;
                                                     aDocumentDate: TDateTime;
                                                     const aValueList: IgsObjectList); safecall;
-    function  CreateTransactionOnDataSet(aCurrKey: Integer; aDocumentDate: TDateTime;
+    function  CreateTransactionOnDataSet(aCurrKey: ATID; aDocumentDate: TDateTime;
                                          const aValueList: IgsObjectList;
                                          const aAnalyzeList: IgsObjectList;
                                          CheckTransaction: WordBool; OnlyWithTransaction: WordBool): WordBool; safecall;
     function  AppendEntryToBase: WordBool; safecall;
-    function  GetTransactionName(TransactionKey: Integer): WideString; safecall;
-    function  IsValidTransaction(aTransactionKey: Integer): WordBool; safecall;
-    function  IsValidDocTransaction(aTransactionKey: Integer): WordBool; safecall;
-    function  IsCurrencyTransaction(aTransactionKey: Integer): WordBool; safecall;
+    function  GetTransactionName(TransactionKey: ATID): WideString; safecall;
+    function  IsValidTransaction(aTransactionKey: ATID): WordBool; safecall;
+    function  IsValidDocTransaction(aTransactionKey: ATID): WordBool; safecall;
+    function  IsCurrencyTransaction(aTransactionKey: ATID): WordBool; safecall;
     procedure SetTransactionOnDataSet; safecall;
-    procedure GetAnalyzeList(aTransactionKey: Integer; const aAnalyzeList: IgsList); safecall;
-    function  SetTransactionStrings(const Value: IgsStrings; aTransactionKey: Integer): Integer; safecall;
+    procedure GetAnalyzeList(aTransactionKey: ATID; const aAnalyzeList: IgsList); safecall;
+    function  SetTransactionStrings(const Value: IgsStrings; aTransactionKey: ATID): Integer; safecall;
     function  Get_CurTransaction(Index: Integer): IgsTransaction; safecall;
     function  Get_CurTransactionCount: Integer; safecall;
     function  Get_PosTransaction(Index: Integer): IgsPositionTransaction; safecall;
@@ -224,12 +225,12 @@ type
     function  Get_TransactionDate: TDateTime; safecall;
     procedure Set_TransactionDate(Value: TDateTime); safecall;
     function  Get_DocumentNumber: WideString; safecall;
-    function  Get_CurrencyKey: Integer; safecall;
-    procedure Set_CurrencyKey(Value: Integer); safecall;
+    function  Get_CurrencyKey: ATID; safecall;
+    procedure Set_CurrencyKey(Value: ATID); safecall;
     function  Get_Changed: WordBool; safecall;
     procedure Set_Changed(Value: WordBool); safecall;
-    function  Get_DocumentType: Integer; safecall;
-    procedure Set_DocumentType(Value: Integer); safecall;
+    function  Get_DocumentType: ATID; safecall;
+    procedure Set_DocumentType(Value: ATID); safecall;
     function  Get_DataSource: IgsDataSource; safecall;
     procedure Set_DataSource(const Value: IgsDataSource); safecall;
     function  Get_FieldName: WideString; safecall;
@@ -249,7 +250,7 @@ type
     function  Get_MakeDelayedEntry: WordBool; safecall;
     procedure Set_MakeDelayedEntry(Value: WordBool); safecall;
   end;
-
+}
   TwrpAtForeignKey = class(TwrpObject, IgsAtForeignKey)
   private
     function  GetAtForeignKey: TAtForeignKey;
@@ -280,7 +281,7 @@ type
     procedure RecordAcquired; safecall;
     function  GetNumerationName(const Value: WideString): WideString; safecall;
     function  GetNumerationValue(const NameNumeration: WideString): WideString; safecall;
-    function  Get_ID: Integer; safecall;
+    function  Get_ID: ATID; safecall;
     function  Get_FieldName: WideString; safecall;
     function  Get_FieldType: TgsFieldType; safecall;
     function  Get_SQLType: Smallint; safecall;
@@ -325,7 +326,7 @@ type
                             const ATransaction: IgsIBTransaction); safecall;
     procedure RecordAcquired; safecall;
     function  InObject(const AName: WideString): WordBool; safecall;
-    function  Get_ID: Integer; safecall;
+    function  Get_ID: ATID; safecall;
     function  Get_FieldName: WideString; safecall;
     function  Get_SQLType: Integer; safecall;
     function  Get_IsUserDefined: WordBool; safecall;
@@ -376,7 +377,7 @@ type
     function  Get_RelationType: TgsAtRelationType; safecall;
     function  Get_IsStandartTreeRelation: WordBool; safecall;
     function  Get_IsLBRBTreeRelation: WordBool; safecall;
-    function  Get_ID: Integer; safecall;
+    function  Get_ID: ATID; safecall;
     function  Get_RelationName: WideString; safecall;
     function  Get_HasRecord: WordBool; safecall;
     function  Get_IsUserDefined: WordBool; safecall;
@@ -386,7 +387,7 @@ type
     function  Get_LName: WideString; safecall;
     function  Get_LShortName: WideString; safecall;
     function  Get_RelationFields: IgsAtRelationFields; safecall;
-    function  Get_RelationID: Integer; safecall;
+    function  Get_RelationID: ATID; safecall;
     function  Get_ListField: IgsAtRelationField; safecall;
     function  Get_aFull: Integer; safecall;
     function  Get_aChag: Integer; safecall;
@@ -403,7 +404,7 @@ type
     function  Add(const atRelationField: IgsAtRelationField): Integer; safecall;
     function  AddRelationField(const AFieldName: WideString): IgsAtRelationField; safecall;
     function  ByFieldName(const AName: WideString): IgsAtRelationField; safecall;
-    function  ByID(aID: Integer): IgsAtRelationField; safecall;
+    function  ByID(aID: ATID): IgsAtRelationField; safecall;
     function  ByPos(APosition: Integer): IgsAtRelationField; safecall;
     procedure Delete(Index: Integer); safecall;
     function  Get_Relation: IgsAtRelation; safecall;
@@ -416,18 +417,18 @@ type
   private
     function  GetGdcObjectSet: TGdcObjectSet;
   protected
-    function  Add(AnID: Integer; const AgdClassName: WideString;
+    function  Add(AnID: ATID; const AgdClassName: WideString;
       const ASubType: WideString): Integer; safecall;
     procedure AddgdClass(Index: Integer; const AgdClassName: WideString;
       const ASubType: WideString); safecall;
     function  FindgdClass(Index: Integer; const AgdClassName: WideString;
       const ASubType: WideString): WordBool; safecall;
-    function  FindgdClassByID(AnID: Integer; const AgdClassName: WideString; 
+    function  FindgdClassByID(AnID: ATID; const AgdClassName: WideString;
       const ASubType: WideString): WordBool; safecall;
     function  Get_gdInfo(Index: Integer): WideString; safecall;
-    function  Find(AnID: Integer): Integer; safecall;
-    procedure Remove(AnID: Integer); safecall;
-    procedure Delete(AnID: Integer); safecall;
+    function  Find(AnID: ATID): Integer; safecall;
+    procedure Remove(AnID: ATID); safecall;
+    procedure Delete(AnID: ATID); safecall;
     procedure LoadFromStream(const S: IgsStream); safecall;
     procedure SaveToStream(const S: IgsStream); safecall;
     function  Get_gdClass: WideString; safecall;
@@ -577,8 +578,8 @@ type
     procedure SaveToStream(const S: IgsStream); safecall;
     function  ReadString(const AValueName: WideString; const Default: WideString): WideString; safecall;
     procedure WriteString(const AValueName: WideString; const Default: WideString); safecall;
-    function  ReadInteger(const AValueName: WideString; Default: Integer): Integer; safecall;
-    procedure WriteInteger(const AValueName: WideString; Default: Integer); safecall;
+    function  ReadInteger(const AValueName: WideString; Default: ATID): ATID; safecall;
+    procedure WriteInteger(const AValueName: WideString; Default: ATID); safecall;
     function  ReadCurrency(const AValueName: WideString; Default: Currency): Currency; safecall;
     procedure WriteCurrency(const AValueName: WideString; Default: Currency); safecall;
     function  ReadDateTime(const AValueName: WideString; Default: TDateTime): TDateTime; safecall;
@@ -619,8 +620,8 @@ type
     function  GetTypeName: WideString; safecall;
     function  GetStorageValueClass: WideString; safecall;
     function  ShowEditValueDialog: Integer; safecall;
-    function  Get_AsInteger: Integer; safecall;
-    procedure Set_AsInteger(Value: Integer); safecall;
+    function  Get_AsInteger: ATID; safecall;
+    procedure Set_AsInteger(Value: ATID); safecall;
     function  Get_AsCurrency: Currency; safecall;
     procedure Set_AsCurrency(Value: Currency); safecall;
     function  Get_AsString: WideString; safecall;
@@ -726,10 +727,10 @@ type
     procedure Set_IsReference(Value: WordBool); safecall;
     function  Get_IsTree: WordBool; safecall;
     procedure Set_IsTree(Value: WordBool); safecall;
-    function  Get_AttrKey: Integer; safecall;
-    procedure Set_AttrKey(Value: Integer); safecall;
-    function  Get_AttrRefKey: Integer; safecall;
-    procedure Set_AttrRefKey(Value: Integer); safecall;
+    function  Get_AttrKey: ATID; safecall;
+    procedure Set_AttrKey(Value: ATID); safecall;
+    function  Get_AttrRefKey: ATID; safecall;
+    procedure Set_AttrRefKey(Value: ATID); safecall;
     procedure Assign_(const Source: IgsfltFieldData); safecall;
     procedure ReadFromStream(const S: IgsStream); safecall;
     procedure WriteToStream(const S: IgsStream); safecall;
@@ -1111,8 +1112,8 @@ type
     procedure Reduce; safecall;
     function  Get_CurrentKey: WideString; safecall;
     procedure Set_CurrentKey(const Value: WideString); safecall;
-    function  Get_CurrentKeyInt: Integer; safecall;
-    procedure Set_CurrentKeyInt(Value: Integer); safecall;
+    function  Get_CurrentKeyInt: ATID; safecall;
+    procedure Set_CurrentKeyInt(Value: ATID); safecall;
     function  Get_DropDownDialogWidth: Integer; safecall;
     procedure Set_DropDownDialogWidth(Value: Integer); safecall;
     function  Get_DataField: WideString; safecall;
@@ -1296,14 +1297,14 @@ type
     function  FolderExists(const APath: WideString): WordBool; safecall;
     function  ValueExists(const APath: WideString; const AValue: WideString): WordBool; safecall;
     function  ReadCurrency(const APath: WideString; const AValue: WideString; Default: Currency): Currency; safecall;
-    function  ReadInteger(const APath: WideString; const AValue: WideString; Default: Integer): Integer; safecall;
+    function  ReadInteger(const APath: WideString; const AValue: WideString; Default: ATID): ATID; safecall;
     function  ReadDateTime(const APath: WideString; const AValue: WideString; Default: TDateTime): TDateTime; safecall;
     function  ReadBoolean(const APath: WideString; const AValue: WideString; Default: WordBool): WordBool; safecall;
     function  ReadString(const APath: WideString; const AValue: WideString;
                          const Default: WideString): WideString; safecall;
     procedure WriteString(const APath: WideString; const AValueName: WideString;
                           const AValue: WideString); safecall;
-    procedure WriteInteger(const APath: WideString; const AValueName: WideString; AValue: Integer); safecall;
+    procedure WriteInteger(const APath: WideString; const AValueName: WideString; AValue: ATID); safecall;
     procedure WriteCurrency(const APath: WideString; const AValueName: WideString; AValue: Currency); safecall;
     procedure WriteBoolean(const APath: WideString; const AValueName: WideString; AValue: WordBool); safecall;
     procedure WriteDateTime(const APath: WideString; const AValueName: WideString; AValue: TDateTime); safecall;
@@ -1337,16 +1338,16 @@ type
   private
     function GetGsCompanyStorage: TgsCompanyStorage;
   protected
-    function  Get_CompanyKey: Integer; safecall;
-    procedure Set_CompanyKey(Value: Integer); safecall;
+    function  Get_CompanyKey: ATID; safecall;
+    procedure Set_CompanyKey(Value: ATID); safecall;
   end;
 
   TwrpGsUserStorage = class(TwrpGsIBStorage, IgsGsUserStorage)
   private
     function GetGsUserStorage: TgsUserStorage;
   protected
-    function  Get_UserKey: Integer; safecall;
-    procedure Set_UserKey(Value: Integer); safecall;
+    function  Get_UserKey: ATID; safecall;
+    procedure Set_UserKey(Value: ATID); safecall;
   end;
 
 
@@ -1511,7 +1512,7 @@ type
     function  Copy(const AFields: WideString; AValues: OleVariant; ACopyDetail: WordBool;
                    APost: WordBool): WordBool; safecall;
     procedure CreateNext; safecall;
-    procedure AssignField(AnID: Integer; const AFieldName: WideString; AValue: OleVariant); safecall;
+    procedure AssignField(AnID: ATID; const AFieldName: WideString; AValue: OleVariant); safecall;
     function  HideFieldsList: WideString; safecall;
     function  ShowFieldInGrid(const AField: IgsFieldComponent): WordBool; safecall;
     procedure CloseOpen; safecall;
@@ -1519,11 +1520,11 @@ type
     procedure SaveToFile2(const AFileName: WideString; const ADetail: IgsGDCBase; const BL: IgsBookmarkList; OnlyCurrent: WordBool); safecall;
     procedure LoadFromFile(const AFileName: WideString); safecall;
     function  Reduction(const BL: IgsBookmarkList): WordBool; safecall;
-    function  GetListNameByID(AnID: Integer): WideString; safecall;
+    function  GetListNameByID(AnID: ATID): WideString; safecall;
     procedure SetRefreshSQLOn(SetOn: WordBool); safecall;
     procedure GetDistinctColumnValues(const AFieldName: WideString; const S: IgsStrings;
                                       DoSort: WordBool); safecall;
-    function  GetNextID(Increment: WordBool): Integer; safecall;
+    function  GetNextID(Increment: WordBool): ATID; safecall;
     function  HasAttribute: WordBool; safecall;
     procedure RefreshStats; safecall;
     function  IsBigTable: WordBool; safecall;
@@ -1537,15 +1538,15 @@ type
     function  GetSubSetList: WideString; safecall;
     function  RelationByAliasName(const AnAliasName: WideString): WideString; safecall;
     function  FieldNameByAliasName(const AnAliasName: WideString): WideString; safecall;
-    function  Get_ID: Integer; safecall;
-    procedure Set_ID(Value: Integer); safecall;
+    function  Get_ID: ATID; safecall;
+    procedure Set_ID(Value: ATID); safecall;
     function  Get_ObjectName: WideString; safecall;
     procedure Set_ObjectName(const Value: WideString); safecall;
     function  Get_AggregatesActive: WordBool; safecall;
     procedure Set_AggregatesActive(Value: WordBool); safecall;
     function  Get_DetailClassesCount: Integer; safecall;
     function  Get_DetailLinksCount: Integer; safecall;
-    function  Get_GroupID: Integer; safecall;
+    function  Get_GroupID: ATID; safecall;
     function  Get_HasWhereClause: WordBool; safecall;
     function  Get_SubType: WideString; safecall;
     procedure Set_SubType(const Value: WideString); safecall;
@@ -1557,10 +1558,10 @@ type
     procedure Set_NameInScript(const Value: WideString); safecall;
     function  ParamByName(const Idx: WideString): IgsIBXSQLVAR; safecall;
     function  Get_CreationDate: TDateTime; safecall;
-    function  Get_CreatorKey: Integer; safecall;
+    function  Get_CreatorKey: ATID; safecall;
     function  Get_CreatorName: WideString; safecall;
     function  Get_EditionDate: TDateTime; safecall;
-    function  Get_EditorKey: Integer; safecall;
+    function  Get_EditorKey: ATID; safecall;
     function  Get_EditorName: WideString; safecall;
     function  Get_ExtraConditions: IgsStrings; safecall;
     function  Get_SelectedID: IgsGDKeyArray; safecall;
@@ -1632,10 +1633,10 @@ type
     procedure AddObjectItem(const Name: WideString); safecall;
     procedure AddVariableItem(const Name: WideString); safecall;
 
-    procedure AddToSelectedID(ID: Integer); safecall;
+    procedure AddToSelectedID(ID: ATID); safecall;
     procedure AddToSelectedArray(const ASelectedID: IgsGDKeyArray); safecall;
     procedure AddToSelectedBookmark(const BL: IgsBookmarkList); safecall;
-    procedure RemoveFromSelectedID(ID: Integer); safecall;
+    procedure RemoveFromSelectedID(ID: ATID); safecall;
     procedure RemoveFromSelectedArray(const BL: IgsBookmarkList); safecall;
     procedure SaveToStream_(const Stream: IgsStream; const ObjectSet: IgsGdcObjectSet;
                             SaveDetailObjects: WordBool); safecall;
@@ -1658,7 +1659,7 @@ type
     function  GetClassName: WideString; safecall;
     procedure GetCurrRecordClass(out AgdcClassName: OleVariant; out ASubType: OleVariant); safecall;
     function  GetFieldValueForBookmark(const ABookmark: WideString; const AFieldName: WideString): OleVariant; safecall;
-    function  GetFieldValueForID(AnID: Integer; const AFieldName: WideString): OleVariant; safecall;
+    function  GetFieldValueForID(AnID: ATID; const AFieldName: WideString): OleVariant; safecall;
     function  HasSubSet(const ASubSet: WideString): WordBool; safecall;
     procedure LoadFromStream(const S: IgsStream); safecall;
     procedure LoadSelectedFromStream(const S: IgsStream); safecall;
@@ -1673,14 +1674,14 @@ type
     procedure SaveToStream(const Stream: IgsStream; const DetailDS: IgsGDCBase;
       const BL: IgsBookmarkList; OnlyCurrent: WordBool); safecall;
     procedure SetExclude(Reopen: WordBool); safecall;
-    procedure SetInclude(AnID: Integer); safecall;
+    procedure SetInclude(AnID: ATID); safecall;
     procedure SetValueForBookmark(const ABookmark: WideString; const AFieldName: WideString;
                                   AValue: OleVariant); safecall;
     procedure UnPrepare; safecall;
     function  GetListFieldExtended(const ASubType: WideString): WideString; safecall;
     function  GetTableInfos(const ASubType: WideString): WideString; safecall;
     procedure GetClassImage(ASizeX: Integer; ASizeY: Integer; const AGraphic: IgsGraphic); safecall;
-    function  QGetNameForID(AnID: Integer; const ASubType: WideString): WideString; safecall;
+    function  QGetNameForID(AnID: ATID; const ASubType: WideString): WideString; safecall;
     function  Get_QueryFiltered: WordBool; safecall;
     procedure Set_QueryFiltered(Value: WordBool); safecall;
     function  Get_FieldsCallDoChange: IgsStringList; safecall;
@@ -1696,7 +1697,7 @@ type
     procedure Set_StreamSilentProcessing(Value: WordBool); safecall;
     function  Get_StreamProcessingAnswer: Word; safecall;
     procedure Set_StreamProcessingAnswer(Value: Word); safecall;
-    function  Get_CopiedObjectKey: Integer; safecall;
+    function  Get_CopiedObjectKey: ATID; safecall;
     procedure CopyObject(AWithDetail: WordBool; AShowDialog: WordBool); safecall;
     function  ClassInheritsFrom(const AClassName: WideString; const ASubType: WideString): WordBool; safecall;
     function  CurrRecordInheritsFrom(const AClassName: WideString; const ASubType: WideString): WordBool; safecall;
@@ -1709,8 +1710,8 @@ type
     function  GetGDCLink: TgdcLink;
   public
     procedure AddLinkedObjectDialog; safecall;
-    function  Get_ObjectKey: Integer; safecall;
-    procedure Set_ObjectKey(Value: Integer); safecall;
+    function  Get_ObjectKey: ATID; safecall;
+    procedure Set_ObjectKey(Value: ATID); safecall;
     procedure PopupMenu(X: Integer; Y: Integer); safecall;
   end;
 
@@ -1774,12 +1775,12 @@ type
   private
     function  GetGDKeyArray: TGDKeyArray;
   protected
-    function  Add(InValue: Integer): Integer; safecall;
-    function  IndexOf(InValue: Integer): Integer; safecall;
-    function  Remove(InValue: Integer): Integer; safecall;
+    function  Add(InValue: ATID): Integer; safecall;
+    function  IndexOf(InValue: ATID): Integer; safecall;
+    function  Remove(InValue: ATID): Integer; safecall;
     procedure Delete(Index: Integer); safecall;
-    function  Find(InValue: Integer; out Index: OleVariant): WordBool; safecall;
-    function  Get_Keys(Index: Integer): Integer; safecall;
+    function  Find(InValue: ATID; out Index: OleVariant): WordBool; safecall;
+    function  Get_Keys(Index: Integer): ATID; safecall;
     function  Get_Count: Integer; safecall;
     function  Get_Size: Integer; safecall;
     procedure Clear; safecall;
@@ -1798,10 +1799,10 @@ type
   private
     function  GetGdKeyIntAssoc: TGdKeyIntAssoc;
   protected
-    function  Get_ValuesByIndex(Index: Integer): Integer; safecall;
-    procedure Set_ValuesByIndex(Index: Integer; Value: Integer); safecall;
-    function  Get_ValuesByKey(Key: Integer): Integer; safecall;
-    procedure Set_ValuesByKey(Key: Integer; Value: Integer); safecall;
+    function  Get_ValuesByIndex(Index: Integer): ATID; safecall;
+    procedure Set_ValuesByIndex(Index: Integer; Value: ATID); safecall;
+    function  Get_ValuesByKey(Key: ATID): ATID; safecall;
+    procedure Set_ValuesByKey(Key: ATID; Value: ATID); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -1946,8 +1947,8 @@ type
     function  GetParentField(const ASubType: WideString): WideString; safecall;
     function  IsAbstractClass: WordBool; safecall;
     function  HasLeafs: WordBool; safecall;
-    function  Get_Parent: Integer; safecall;
-    procedure Set_Parent(Value: Integer); safecall;
+    function  Get_Parent: ATID; safecall;
+    procedure Set_Parent(Value: ATID); safecall;
     function  CreateChildrenDialogWithParam(const AgdcClassName: WideString): WordBool; safecall;
   end;
 
@@ -1955,7 +1956,7 @@ type
   private
     function  GetGDCDocument: TgdcDocument;
   protected
-    function  DocumentTypeKey: Integer; safecall;
+    function  DocumentTypeKey: ATID; safecall;
     function  GetDocumentClassPart: TgsGDCDocumentClassPart; safecall;
     function  Get_DocumentName(ReadNow: WordBool): WideString; safecall;
     function  Get_DocumentDescription(ReadNow: WordBool): WideString; safecall;
@@ -2002,12 +2003,12 @@ type
   private
     function  GetGdcUserDocumentType: TgdcUserDocumentType;
   protected
-    function  Get_BranchKey: Integer; safecall;
-    procedure Set_BranchKey(Value: Integer); safecall;
+    function  Get_BranchKey: ATID; safecall;
+    procedure Set_BranchKey(Value: ATID); safecall;
     function  Get_DocRelationName: WideString; safecall;
     function  Get_DocLineRelationName: WideString; safecall;
     function  Get_IsComplexDocument: WordBool; safecall;
-    function  Get_MainBranchKey: Integer; safecall;
+    function  Get_MainBranchKey: ATID; safecall;
     procedure ReadOptions; safecall;
   end;
 
@@ -2017,7 +2018,7 @@ type
   protected
     function  EnumRelationFields(const RelationName: WideString; const AliasName: WideString;
                                  UseDot: WordBool): WideString; safecall;
-    function  GetGroupID: Integer; safecall;
+    function  GetGroupID: ATID; safecall;
     procedure ReadOptions(aDocumentTypeKey: Integer); safecall;
     function  Get_Relation: WideString; safecall;
     function  Get_RelationLine: WideString; safecall;
@@ -2044,10 +2045,10 @@ type
   private
     function  GetGdcReport: TgdcReport;
   protected
-    function  CheckReport(const AName: WideString; ReportGroupKey: Integer): WordBool; safecall;
+    function  CheckReport(const AName: WideString; ReportGroupKey: ATID): WordBool; safecall;
     function  GetUniqueName(const PrefName: WideString; const Name: WideString;
-      ReportGroupKey: Integer): WideString; safecall;
-    function  Get_LastInsertID: Integer; safecall;
+      ReportGroupKey: ATID): WideString; safecall;
+    function  Get_LastInsertID: ATID; safecall;
   end;
 
   TwrpGdcTemplate = class(TwrpGDCBase, IgsGdcTemplate)
@@ -2068,10 +2069,10 @@ type
   private
     function  GetGdcMacros: TgdcMacros;
   protected
-    function  CheckMacros(const AName: WideString; MacrosGroupKey: Integer): WordBool; safecall;
+    function  CheckMacros(const AName: WideString; MacrosGroupKey: ATID): WordBool; safecall;
     function  GetUniqueName(const PrefName: WideString; const Name: WideString;
-      MacrosGroupKey: Integer): WideString; safecall;
-    function  Get_LastInsertID: Integer; safecall;
+      MacrosGroupKey: ATID): WideString; safecall;
+    function  Get_LastInsertID: ATID; safecall;
   end;
 
   TwrpGdcConst = class(TwrpGDCBase, IgsGdcConst)
@@ -2084,12 +2085,12 @@ type
     function  isCompany: WordBool; safecall;
 
     function  QGetValueByName(const AName: WideString): OleVariant; safecall;
-    function  QGetValueByID(AnID: Integer): OleVariant; safecall;
-    function  QGetValueByID2(AnID: Integer; ADate: TDateTime; AUserKey: Integer;
-                             ACompanyKey: Integer): OleVariant; safecall;
-    function  QGetValueByIDAndDate(AnID: Integer; ADate: TDateTime): OleVariant; safecall;
-    function  QGetValueByName2(const AName: WideString; ADate: TDateTime; AUserKey: Integer;
-                               ACompanyKey: Integer): OleVariant; safecall;
+    function  QGetValueByID(AnID: ATID): OleVariant; safecall;
+    function  QGetValueByID2(AnID: ATID; ADate: TDateTime; AUserKey: ATID;
+                             ACompanyKey: ATID): OleVariant; safecall;
+    function  QGetValueByIDAndDate(AnID: ATID; ADate: TDateTime): OleVariant; safecall;
+    function  QGetValueByName2(const AName: WideString; ADate: TDateTime; AUserKey: ATID;
+                               ACompanyKey: ATID): OleVariant; safecall;
     function  QGetValueByNameAndDate(const AName: WideString; ADate: TDateTime): OleVariant; safecall;
   end;
 {
@@ -2141,7 +2142,7 @@ type
 
   TwrpGdcOurCompany = class(TwrpGdcCompany, IgsGdcOurCompany)
   protected
-    procedure SaveOurCompany(CompanyKey: Integer); safecall;
+    procedure SaveOurCompany(CompanyKey: ATID); safecall;
   end;
 
   TwrpGdcBaseAcctTransactionEntry = class(TwrpGDCBase, IgsGdcBaseAcctTransactionEntry)
@@ -2222,21 +2223,21 @@ type
     function  Get_Groups: Integer; safecall;
     procedure Set_Groups(Value: Integer); safecall;
     procedure CopySettings(const ibtr: IgsIBTransaction); safecall;
-    procedure CopySettingsByUser(U: Integer; const ibtr: IgsIBTransaction); safecall;
+    procedure CopySettingsByUser(U: ATID; const ibtr: IgsIBTransaction); safecall;
   end;
 
   TwrpGdcUserGroup = class(TwrpGDCBase, IgsGdcUserGroup)
   private
     function  GetGdcUserGroup: TgdcUserGroup;
   protected
-    procedure AddUserByID(AnID: Integer); safecall;
+    procedure AddUserByID(AnID: ATID); safecall;
     procedure AddUser(const AnUser: IgsGdcUser); safecall;
-    procedure RemoveUserByID(AnID: Integer); safecall;
+    procedure RemoveUserByID(AnID: ATID); safecall;
     procedure RemoveUser(const AnUser: IgsGdcUser); safecall;
     function  GetGroupMask: Integer; safecall;
     function  Get_Mask: Integer; safecall;
     procedure Set_Mask(Value: Integer); safecall;
-    function  GetGroupMaskByID(AGroupID: Integer): Integer; safecall;
+    function  GetGroupMaskByID(AGroupID: ATID): Integer; safecall;
   end;
 
 {  TwrpGdcBaseOperation = class(TwrpGDCTree, IgsGdcBaseOperation)
@@ -2250,12 +2251,12 @@ type
   private
     function  GetGdcGood: TgdcGood;
   protected
-    function  Get_GroupKey: Integer; safecall;
-    procedure Set_GroupKey(Value: Integer); safecall;
+    function  Get_GroupKey: ATID; safecall;
+    procedure Set_GroupKey(Value: ATID); safecall;
     function  GetTaxRateOnName(const TaxName: WideString; ForDate: TDateTime): OleVariant; safecall;
-    function  GetTaxRate(TaxKey: Integer; ForDate: TDateTime): Currency; safecall;
-    function  GetTaxRateByID(aID: Integer; TaxKey: Integer; ForDate: TDateTime): Currency; safecall;
-    function  GetTaxRateOnNameByID(aID: Integer; const TaxName: WideString; ForDate: TDateTime): Currency; safecall;
+    function  GetTaxRate(TaxKey: ATID; ForDate: TDateTime): Currency; safecall;
+    function  GetTaxRateByID(aID: ATID; TaxKey: ATID; ForDate: TDateTime): Currency; safecall;
+    function  GetTaxRateOnNameByID(aID: ATID; const TaxName: WideString; ForDate: TDateTime): Currency; safecall;
   end;
 
   TwrpGdcInvBaseDocument = class(TwrpGDCDocument, IgsGdcInvBaseDocument)
@@ -2268,7 +2269,7 @@ type
     function  Get_Relation: IgsAtRelation; safecall;
     function  Get_RelationLine: IgsAtRelation; safecall;
     function  Get_RelationType: TgsGdcInvRelationType; safecall;
-    function  Get_BranchKey: Integer; safecall;
+    function  Get_BranchKey: ATID; safecall;
     procedure ReadOptions(const Stream: IgsStream); safecall;
   end;
 
@@ -2321,7 +2322,7 @@ type
   private
     function  GetGdcInvDocumentType: TgdcInvDocumentType;
   protected
-    function  InvDocumentTypeBranchKey: Integer; safecall;
+    function  InvDocumentTypeBranchKey: ATID; safecall;
   end;
 
   TwrpGdcInvMovement = class(TwrpGDCBase, IgsGdcInvMovement)
@@ -2355,10 +2356,10 @@ type
   protected
     procedure ClearPositionList; safecall;
     function  Get_CountPosition: Integer; safecall;
-    function  Get_GoodKey: Integer; safecall;
-    procedure Set_GoodKey(Value: Integer); safecall;
-    function  Get_GroupKey: Integer; safecall;
-    procedure Set_GroupKey(Value: Integer); safecall;
+    function  Get_GoodKey: ATID; safecall;
+    procedure Set_GoodKey(Value: ATID); safecall;
+    function  Get_GroupKey: ATID; safecall;
+    procedure Set_GroupKey(Value: ATID); safecall;
     function  Get_IncludeSubDepartment: WordBool; safecall;
     procedure Set_IncludeSubDepartment(Value: WordBool); safecall;
     function  Get_ContactType: Integer; safecall;
@@ -2375,8 +2376,8 @@ type
     function  GetGdcBaseBank: TgdcBaseBank;
   protected
     function  GetBankInfo(const AccountKey: WideString): WideString; safecall;
-    function  Get_gsTransaction: IgsTransaction; safecall;
-    procedure Set_gsTransaction(const Value: IgsTransaction); safecall;
+//    function  Get_gsTransaction: IgsTransaction; safecall;
+//    procedure Set_gsTransaction(const Value: IgsTransaction); safecall;
   end;
 
   {TwrpGdcBasePayment = class(TwrpGdcBaseBank, IgsGdcBasePayment)
@@ -2417,7 +2418,7 @@ type
 
   TwrpGdcInvBasePriceList = class(TwrpGDCDocument, IgsGdcInvBasePriceList)
   protected
-    function  GetCurrencyKey(RelationFieldKey: Integer): Integer; safecall;
+    function  GetCurrencyKey(RelationFieldKey: ATID): ATID; safecall;
   end;
 
   TwrpGdcInvPriceListType = class(TwrpGdcDocumentType, IgsGdcInvPriceListType)
@@ -2792,7 +2793,7 @@ type
   private
     function Get_dlgSelectDocument: TdlgSelectDocument;
   protected
-    function Get_SelectedID: integer; safecall;
+    function Get_SelectedID: ATID; safecall;
   end;
 
   TwrpGDC_dlgG = class(TwrpGDCCreateableForm, IgsGDC_dlgG)
@@ -2828,8 +2829,8 @@ type
   protected
     function  Get_AccountPart: WideString; safecall;
     procedure Set_AccountPart(const Value: WideString); safecall;
-    function  Get_RecordKey: Integer; safecall;
-    procedure Set_RecordKey(Value: Integer); safecall;
+    function  Get_RecordKey: ATID; safecall;
+    procedure Set_RecordKey(Value: ATID); safecall;
     function  Get_gdcQuantity: IgsGdcAcctQuantity; safecall;
   end;
 
@@ -2841,8 +2842,8 @@ type
     function  Get_CreditEntryLine: IgsGDCAcctEntryLine; safecall;
     function  Get_Document: IgsGDCDocument; safecall;
     procedure Set_Document(const Value: IgsGDCDocument); safecall;
-    function  Get_TransactionKey: Integer; safecall;
-    procedure Set_TransactionKey(Value: Integer); safecall;
+    function  Get_TransactionKey: ATID; safecall;
+    procedure Set_TransactionKey(Value: ATID); safecall;
   end;
 
   TwrpGDCAccount = class(TwrpGDCBase, IgsGDCAccount)
@@ -2967,10 +2968,10 @@ type
   private
     function GetGsCustomDBTreeView: TGsCustomDBTreeView;
   protected
-    function  GoToID(AnID: Integer): WordBool; safecall;
-    procedure DeleteID(AnID: Integer); safecall;
+    function  GoToID(AnID: ATID): WordBool; safecall;
+    procedure DeleteID(AnID: ATID); safecall;
     procedure Cut; safecall;
-    function  Find(AnID: Integer): IgsTreeNode; safecall;
+    function  Find(AnID: ATID): IgsTreeNode; safecall;
     function  Get_DataSource: IgsDataSource; safecall;
     procedure Set_DataSource(const Value: IgsDataSource); safecall;
     function  Get_KeyField: WideString; safecall;
@@ -2981,8 +2982,8 @@ type
     procedure Set_DisplayField(const Value: WideString); safecall;
     function  Get_ImageField: WideString; safecall;
     procedure Set_ImageField(const Value: WideString); safecall;
-    function  Get_TopKey: Integer; safecall;
-    procedure Set_TopKey(Value: Integer); safecall;
+    function  Get_TopKey: ATID; safecall;
+    procedure Set_TopKey(Value: ATID); safecall;
     function  Get_CutNode: IgsTreeNode; safecall;
     function  Get_MainFolder: WordBool; safecall;
     procedure Set_MainFolder(Value: WordBool); safecall;
@@ -2994,11 +2995,11 @@ type
     procedure Set_ImageValueList(const Value: IgsStringList); safecall;
     function  Get_WithCheckBox: WordBool; safecall;
     procedure Set_WithCheckBox(Value: WordBool); safecall;
-    function  Get_ID: Integer; safecall;
-    function  Get_ParentID: Integer; safecall;
+    function  Get_ID: ATID; safecall;
+    function  Get_ParentID: ATID; safecall;
     function  Get_TVState: IgsTvState; safecall;
-    procedure AddCheck(AnID: Integer); safecall;
-    procedure DeleteCheck(AnID: Integer); safecall;
+    procedure AddCheck(AnID: ATID); safecall;
+    procedure DeleteCheck(AnID: ATID); safecall;
     procedure SaveToStream_(const S: IgsStream); safecall;
     procedure LoadFromStream_(const S: IgsStream); safecall;
 
@@ -3010,7 +3011,7 @@ type
   protected
     function  Get_ValuesByIndex(Index: Integer): WideString; safecall;
     procedure Set_ValuesByIndex(Index: Integer; const Value: WideString); safecall;
-    function  Get_ValuesByKey(Key: Integer): WideString; safecall;
+    function  Get_ValuesByKey(Key: ATID): WideString; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3023,12 +3024,12 @@ type
     procedure SaveToStream(const S: IgsStream); safecall;
     procedure InitTree; safecall;
     procedure SaveTreeState; safecall;
-    procedure NodeExpanded(AnID: Integer); safecall;
-    procedure NodeCollapsed(AnID: Integer); safecall;
-    procedure NodeChecked(AnID: Integer); safecall;
-    procedure NodeUnChecked(AnID: Integer); safecall;
-    function  Get_SelectedID: Integer; safecall;
-    procedure Set_SelectedID(Value: Integer); safecall;
+    procedure NodeExpanded(AnID: ATID); safecall;
+    procedure NodeCollapsed(AnID: ATID); safecall;
+    procedure NodeChecked(AnID: ATID); safecall;
+    procedure NodeUnChecked(AnID: ATID); safecall;
+    function  Get_SelectedID: ATID; safecall;
+    procedure Set_SelectedID(Value: ATID); safecall;
     function  Get_Bookmarks: IgsGdKeyStringAssoc; safecall;
     function  Get_Checked: IgsGDKeyArray; safecall;
     function  Get_CheckedChanged: WordBool; safecall;
@@ -3102,7 +3103,7 @@ type
     procedure RefreshData3(const Database: IgsIBDatabase; const Transaction: IgsIBTransaction); safecall;
     function  Add(const atField: IgsAtField): Integer; safecall;
     function  ByFieldName(const AFieldName: WideString): IgsAtField; safecall;
-    function  ByID(ID: Integer): IgsAtField; safecall;
+    function  ByID(ID: ATID): IgsAtField; safecall;
     procedure Delete(Index: Integer); safecall;
     function  FindFirst(const FieldName: WideString): IgsAtField; safecall;
     function  IndexOf(const AnObject: IgsObject): Integer; safecall;
@@ -3121,7 +3122,7 @@ type
     procedure Delete(Index: Integer); safecall;
     function  Remove(const atRelation: IgsAtRelation): Integer; safecall;
     function  ByRelationName(const RelationName: WideString): IgsAtRelation; safecall;
-    function  ByID(ID: Integer): IgsAtRelation; safecall;
+    function  ByID(ID: ATID): IgsAtRelation; safecall;
     function  FindFirst(const FieldName: WideString): IgsAtRelation; safecall;
     function  IndexOf(const AnObject: IgsObject): Integer; safecall;
     function  Get_Count: Integer; safecall;
@@ -3294,7 +3295,7 @@ type
   private
     function GetGdcAcctBaseEntryRegister: TGdcAcctBaseEntryRegister;
   protected
-    function  Get_RecordKey: Integer; safecall;
+    function  Get_RecordKey: ATID; safecall;
     function  Get_Document: IgsGDCDocument; safecall;
     procedure Set_Document(const Value: IgsGDCDocument); safecall;
     function  Get_Description: WideString; safecall;
@@ -3317,13 +3318,13 @@ type
     function  CheckFileName: WordBool; safecall;
     function  SynchronizeByName(const AFileName: WideString; ChooseLocation: WordBool;
                                 Action: TgsflAction): WordBool; safecall;
-    function  Synchronize(AnID: Integer; ChooseLocation: WordBool; Action: TgsflAction): WordBool; safecall;
+    function  Synchronize(AnID: ATID; ChooseLocation: WordBool; Action: TgsflAction): WordBool; safecall;
     function  Get_FullPath: WideString; safecall;
     function  Get_RootDirectory: WideString; safecall;
     procedure Set_RootDirectory(const Value: WideString); safecall;
     function  Get_Length: Integer; safecall;
     function  Find_(const AFileName: WideString): Integer; safecall;
-    function  GetPathToFolder(AFolderID: Integer): WideString; safecall;
+    function  GetPathToFolder(AFolderID: ATID): WideString; safecall;
   end;
 
   TwrpGdcFile = class(TwrpGdcBaseFile, IgsGdcFile)
@@ -3466,14 +3467,14 @@ type
   private
     function  GetGdKeyObjectAssoc: TGdKeyObjectAssoc;
   protected
-    function  Remove(Key: Integer): Integer; safecall;
+    function  Remove(Key: ATID): Integer; safecall;
     function  Get_ObjectByIndex(Index: Integer): IgsObject; safecall;
     procedure Set_ObjectByIndex(Index: Integer; const Value: IgsObject); safecall;
-    function  Get_ObjectByKey(Key: Integer): IgsObject; safecall;
-    procedure Set_ObjectByKey(Key: Integer; const Value: IgsObject); safecall;
+    function  Get_ObjectByKey(Key: ATID): IgsObject; safecall;
+    procedure Set_ObjectByKey(Key: ATID; const Value: IgsObject); safecall;
     function  Get_OwnsObjects: WordBool; safecall;
     procedure Set_OwnsObjects(Value: WordBool); safecall;
-    function  AddObject(AKey: Integer; const AnObject: IgsObject): Integer; safecall;
+    function  AddObject(AKey: ATID; const AnObject: IgsObject): Integer; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3483,7 +3484,7 @@ type
     function GetGdKeyIntArrayAssoc: TGdKeyIntArrayAssoc;
   protected
     function  Get_ValuesByIndex(Index: Integer): IgsGDKeyArray; safecall;
-    function  Get_ValuesByKey(Key: Integer): IgsGDKeyArray; safecall;
+    function  Get_ValuesByKey(Key: ATID): IgsGDKeyArray; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3494,12 +3495,12 @@ type
   protected
     function  Get_StrByIndex(Index: Integer): WideString; safecall;
     procedure Set_StrByIndex(Index: Integer; const Value: WideString); safecall;
-    function  Get_StrByKey(Key: Integer): WideString; safecall;
-    procedure Set_StrByKey(Key: Integer; const Value: WideString); safecall;
+    function  Get_StrByKey(Key: ATID): WideString; safecall;
+    procedure Set_StrByKey(Key: ATID; const Value: WideString); safecall;
     function  Get_IntByIndex(Index: Integer): Integer; safecall;
     procedure Set_IntByIndex(Index: Integer; Value: Integer); safecall;
-    function  Get_IntByKey(Key: Integer): Integer; safecall;
-    procedure Set_IntByKey(Key: Integer; Value: Integer); safecall;
+    function  Get_IntByKey(Key: ATID): ATID; safecall;
+    procedure Set_IntByKey(Key: ATID; Value: ATID); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3600,7 +3601,7 @@ type
     function  GetStreamSaver: TgdcStreamSaver;
   protected
     procedure AddObject(const AgdcObject: IgsGDCBase; AWithDetail: WordBool); safecall;
-    procedure PrepareForIncrementSaving(ABasekey: Integer); safecall;
+    procedure PrepareForIncrementSaving(ABasekey: ATID); safecall;
     procedure SaveToStream(const S: IgsStream; AFormat: WordBool = false); safecall;
     procedure LoadFromStream(const S: IgsStream); safecall;
     procedure Clear; safecall;
@@ -3625,20 +3626,20 @@ type
     function GetGdvAcctBase: TgdvAcctBase;
   protected
     procedure ShowInNcu(Show: WordBool; DecDigits: Integer = -1; Scale: Integer = 0); safecall;
-    procedure ShowInCurr(Show: WordBool; DecDigits: Integer = -1; Scale: Integer = 0; CurrKey: Integer = -1); safecall;
+    procedure ShowInCurr(Show: WordBool; DecDigits: Integer = -1; Scale: Integer = 0; CurrKey: ATID = -1); safecall;
     procedure ShowInEQ(Show: WordBool; DecDigits: Integer = -1; Scale: Integer = 0); safecall;
     procedure ShowInQuantity(DecDigits: Integer = -1; Scale: Integer = 0); safecall;
 
-    procedure AddAccount(AccountKey: Integer); safecall;
-    procedure AddCorrAccount(AccountKey: Integer); safecall;
+    procedure AddAccount(AccountKey: ATID); safecall;
+    procedure AddCorrAccount(AccountKey: ATID); safecall;
     procedure AddCondition(const FieldName: WideString; const AValue: WideString); safecall;
-    procedure AddValue(ValueKey: Integer; const ValueName: WideString); safecall;
+    procedure AddValue(ValueKey: ATID; const ValueName: WideString); safecall;
 
-    procedure LoadConfig(AID: Integer); safecall;
-    function  SaveConfig(AConfigKey: Integer): Integer; safecall;
+    procedure LoadConfig(AID: ATID); safecall;
+    function  SaveConfig(AConfigKey: ATID): Integer; safecall;
 
     function  ParamByName(const ParamName: WideString): IgsIBXSQLVAR; safecall;
-    procedure Execute(ConfigID: Integer); safecall;
+    procedure Execute(ConfigID: ATID); safecall;
     procedure BuildReport; safecall;
     procedure Clear; safecall;
 
@@ -3648,8 +3649,8 @@ type
     procedure Set_DateEnd(Value: TDateTime); safecall;
     function  Get_MakeEmpty: WordBool; safecall;
     procedure Set_MakeEmpty(Value: WordBool); safecall;
-    function  Get_CompanyKey: Integer; safecall;
-    procedure Set_CompanyKey(Value: Integer); safecall;
+    function  Get_CompanyKey: ATID; safecall;
+    procedure Set_CompanyKey(Value: ATID); safecall;
     function  Get_AllHolding: WordBool; safecall;
     procedure Set_AllHolding(Value: WordBool); safecall;
     function  Get_WithSubAccounts: WordBool; safecall;
@@ -3816,13 +3817,13 @@ type
                         const Subject: WideString; const BodyText: WideString;
                         const FileName: WideString; WipeFile: WordBool; WIpeDirectory: WordBool;
                         Sync: WordBool; WndHandle: Integer; ThreadID: Integer): Integer; safecall;
-    function  SendEMail2(SMTPKey: Integer;
+    function  SendEMail2(SMTPKey: ATID;
                          const Recipients: WideString; const Subject: WideString;
                          const BodyText: WideString; const FileName: WideString;
                          WipeFile: WordBool; WIpeDirectory: WordBool; Sync: WordBool;
                          WndHandle: Integer; ThreadID: Integer): Integer; safecall;
-    function  SendEMail3(SMTPKey: Integer; const Recipients: WideString; const Subject: WideString;
-                         const BodyText: WideString; ReportKey: Integer;
+    function  SendEMail3(SMTPKey: ATID; const Recipients: WideString; const Subject: WideString;
+                         const BodyText: WideString; ReportKey: ATID;
                          const ExportType: WideString; Sync: WordBool; WndHandle: Integer;
                          ThreadID: Integer): Integer; safecall;
     function  Get_EmailErrorMsg: WideString; safecall;
@@ -4728,7 +4729,7 @@ begin
   Result := GetIBLookupComboBoxX.CurrentKey;
 end;
 
-function TwrpIBLookupComboBoxX.Get_CurrentKeyInt: Integer;
+function TwrpIBLookupComboBoxX.Get_CurrentKeyInt: ATID;
 begin
   Result := GetIBLookupComboBoxX.CurrentKeyInt;
 end;
@@ -4841,9 +4842,9 @@ begin
   GetIBLookupComboBoxX.CurrentKey := String(Value);
 end;
 
-procedure TwrpIBLookupComboBoxX.Set_CurrentKeyInt(Value: Integer);
+procedure TwrpIBLookupComboBoxX.Set_CurrentKeyInt(Value: ATID);
 begin
-  GetIBLookupComboBoxX.CurrentKeyInt := Value;
+  GetIBLookupComboBoxX.CurrentKeyInt := GetTID(Value);
 end;
 
 procedure TwrpIBLookupComboBoxX.Set_DataField(const Value: WideString);
@@ -5223,10 +5224,10 @@ end;
 
 function TwrpGsSQLFilter.AddFilter(out AnFilterKey: OleVariant): WordBool;
 var
-  fk: Integer;
+  fk: TID;
 begin
   Result := GetSQLFilter.AddFilter(fk);
-  AnFilterKey := fk;
+  AnFilterKey := TID2V(fk);
 end;
 
 procedure TwrpGsSQLFilter.ClearConditions;
@@ -5261,10 +5262,10 @@ end;
 
 function TwrpGsSQLFilter.EditFilter(out AnFilterKey: OleVariant): WordBool;
 var
-  fk: Integer;
+  fk: TID;
 begin
   Result := GetSQLFilter.EditFilter(fk);
-  AnFilterKey := fk;
+  AnFilterKey := TID2V(fk);
 end;
 
 function TwrpGsSQLFilter.Get_ConditionCount: Integer;
@@ -5589,9 +5590,9 @@ begin
 end;
 
 function TwrpGsStorage.ReadInteger(const APath, AValue: WideString;
-  Default: Integer): Integer;
+  Default: ATID): ATID;
 begin
-  Result := GetStorage.ReadInteger(APath, AValue, Default);
+  Result := GetStorage.ReadInteger(APath, AValue, GetTID(Default));
 end;
 
 function TwrpGsStorage.ReadString(const APath, AValue,
@@ -5640,9 +5641,9 @@ begin
 end;
 
 procedure TwrpGsStorage.WriteInteger(const APath, AValueName: WideString;
-  AValue: Integer);
+  AValue: ATID);
 begin
-  GetStorage.WriteInteger(APath, AValueName,AValue);
+  GetStorage.WriteInteger(APath, AValueName, GetTID(AValue));
 end;
 
 procedure TwrpGsStorage.WriteString(const APath, AValueName,
@@ -6440,10 +6441,10 @@ end;
 
 { TwrpGDCBase }
 
-procedure TwrpGDCBase.AssignField(AnID: Integer;
+procedure TwrpGDCBase.AssignField(AnID: ATID;
   const AFieldName: WideString; AValue: OleVariant);
 begin
-  GetGDCBase.AssignField(AnID, AFieldName, AValue);
+  GetGDCBase.AssignField(GetTID(AnID), AFieldName, AValue);
 end;
 
 procedure TwrpGDCBase.CloseOpen;
@@ -6513,7 +6514,7 @@ begin
   Result := GetGDCBase.DetailLinksCount;
 end;
 
-function TwrpGDCBase.Get_GroupID: Integer;
+function TwrpGDCBase.Get_GroupID: ATID;
 begin
   Result := GetGDCBase.GroupID;
 end;
@@ -6523,7 +6524,7 @@ begin
   Result := GetGDCBase.HasWhereClause;
 end;
 
-function TwrpGDCBase.Get_ID: Integer;
+function TwrpGDCBase.Get_ID: ATID;
 begin
   Result := GetGDCBase.ID;
 end;
@@ -6575,9 +6576,9 @@ begin
   Result := GetGDCBase.GetListField(ASubType);
 end;
 
-function TwrpGDCBase.GetListNameByID(AnID: Integer): WideString;
+function TwrpGDCBase.GetListNameByID(AnID: ATID): WideString;
 begin
-  Result := GetGDCBase.GetListNameByID(AnID);
+  Result := GetGDCBase.GetListNameByID(GetTID(AnID));
 end;
 
 function TwrpGDCBase.GetListTable(const ASubType: WideString): WideString;
@@ -6590,7 +6591,7 @@ begin
   Result := GetGDCBase.GetListTableAlias;
 end;
 
-function TwrpGDCBase.GetNextID(Increment: WordBool): Integer;
+function TwrpGDCBase.GetNextID(Increment: WordBool): ATID;
 begin
   Result := GetGDCBase.GetNextID(Increment);
 end;
@@ -6677,9 +6678,9 @@ begin
   GetGDCBase.DetailField := Value;
 end;
 
-procedure TwrpGDCBase.Set_ID(Value: Integer);
+procedure TwrpGDCBase.Set_ID(Value: ATID);
 begin
-  GetGDCBase.ID := Value;
+  GetGDCBase.ID := GetTID(Value);
 end;
 
 procedure TwrpGDCBase.Set_MasterField(const Value: WideString);
@@ -6736,7 +6737,7 @@ begin
   Result := GetGDCBase.CreationDate;
 end;
 
-function TwrpGDCBase.Get_CreatorKey: Integer;
+function TwrpGDCBase.Get_CreatorKey: ATID;
 begin
   Result := GetGDCBase.CreatorKey;
 end;
@@ -6756,7 +6757,7 @@ begin
   Result := GetGDCBase.EditionDate;
 end;
 
-function TwrpGDCBase.Get_EditorKey: Integer;
+function TwrpGDCBase.Get_EditorKey: ATID;
 begin
   Result := GetGDCBase.EditorKey;
 end;
@@ -7137,9 +7138,9 @@ begin
   GetGDCBase.AddToSelectedID(InterfaceToObject(BL) as TBookmarkList);
 end;
 
-procedure TwrpGDCBase.AddToSelectedID(ID: Integer);
+procedure TwrpGDCBase.AddToSelectedID(ID: ATID);
 begin
-  GetGDCBase.AddToSelectedID(ID);
+  GetGDCBase.AddToSelectedID(GetTID(ID));
 end;
 
 procedure TwrpGDCBase.AfterConstruction;
@@ -7228,10 +7229,10 @@ begin
   Result := GetGDCBase.GetFieldValueForBookmark(ABookmark, AFieldName);
 end;
 
-function TwrpGDCBase.GetFieldValueForID(AnID: Integer;
+function TwrpGDCBase.GetFieldValueForID(AnID: ATID;
   const AFieldName: WideString): OleVariant;
 begin
-  Result := GetGDCBase.GetFieldValueForID(AnID, AFieldName);
+  Result := GetGDCBase.GetFieldValueForID(GetTID(AnID), AFieldName);
 end;
 
 function TwrpGDCBase.GetListFieldExtended(const ASubType: WideString): WideString;
@@ -7292,9 +7293,9 @@ begin
   Result := GetGDCBase.PasteFromClipboard(ATestKeyboard);
 end;
 
-function TwrpGDCBase.QGetNameForID(AnID: Integer; const ASubType: WideString): WideString;
+function TwrpGDCBase.QGetNameForID(AnID: ATID; const ASubType: WideString): WideString;
 begin
-  Result := GetGDCBase.QGetNameForID(AnID, ASubType);
+  Result := GetGDCBase.QGetNameForID(GetTID(AnID), ASubType);
 end;
 
 procedure TwrpGDCBase.QueryDescendant(out AgdcBaseName,
@@ -7321,9 +7322,9 @@ begin
   GetGDCBase.RemoveFromSelectedID(InterfaceToObject(BL) as TBookmarkList);
 end;
 
-procedure TwrpGDCBase.RemoveFromSelectedID(ID: Integer);
+procedure TwrpGDCBase.RemoveFromSelectedID(ID: ATID);
 begin
-  GetGDCBase.RemoveFromSelectedID(ID);
+  GetGDCBase.RemoveFromSelectedID(GetTID(ID));
 end;
 
 procedure TwrpGDCBase.RemoveSubSet(const ASubSet: WideString);
@@ -7354,9 +7355,9 @@ begin
   GetGDCBase.SetExclude(Reopen);
 end;
 
-procedure TwrpGDCBase.SetInclude(AnID: Integer);
+procedure TwrpGDCBase.SetInclude(AnID: ATID);
 begin
-  GetGDCBase.SetInclude(AnID);
+  GetGDCBase.SetInclude(GetTID(AnID));
 end;
 
 procedure TwrpGDCBase.SetValueForBookmark(const ABookmark,
@@ -7547,7 +7548,7 @@ begin
   GetGDCBase.CopyObject(AWithDetail, AShowDialog);
 end;
 
-function TwrpGDCBase.Get_CopiedObjectKey: Integer;
+function TwrpGDCBase.Get_CopiedObjectKey: ATID;
 begin
   Result := GetGDCBase.CopiedObjectKey;
 end;
@@ -7849,9 +7850,9 @@ end;
 
 { TwrpGDKeyArray }
 
-function TwrpGDKeyArray.Add(InValue: Integer): Integer;
+function TwrpGDKeyArray.Add(InValue: ATID): Integer;
 begin
-  Result := GetGDKeyArray.Add(InValue);
+  Result := GetGDKeyArray.Add(GetTID(InValue));
 end;
 
 procedure TwrpGDKeyArray.Delete(Index: Integer);
@@ -7859,13 +7860,13 @@ begin
   GetGDKeyArray.Delete(Index);
 end;
 
-function TwrpGDKeyArray.Find(InValue: Integer;
+function TwrpGDKeyArray.Find(InValue: ATID;
   out Index: OleVariant): WordBool;
 var
   i: Integer;
 begin
   i := Integer(Index);
-  Result := GetGDKeyArray.Find(InValue, I);
+  Result := GetGDKeyArray.Find(GetTID(InValue), I);
   Index := i
 end;
 
@@ -7874,7 +7875,7 @@ begin
   Result := GetGDKeyArray.Count;
 end;
 
-function TwrpGDKeyArray.Get_Keys(Index: Integer): Integer;
+function TwrpGDKeyArray.Get_Keys(Index: Integer): ATID;
 begin
   Result := GetGDKeyArray.Keys[Index];
 end;
@@ -7889,14 +7890,14 @@ begin
   Result := GetObject as TgdKeyArray;
 end;
 
-function TwrpGDKeyArray.IndexOf(InValue: Integer): Integer;
+function TwrpGDKeyArray.IndexOf(InValue: ATID): Integer;
 begin
-  Result := GetGDKeyArray.IndexOf(InValue);
+  Result := GetGDKeyArray.IndexOf(GetTID(InValue));
 end;
 
-function TwrpGDKeyArray.Remove(InValue: Integer): Integer;
+function TwrpGDKeyArray.Remove(InValue: ATID): Integer;
 begin
-  Result := GetGDKeyArray.Remove(InValue);
+  Result := GetGDKeyArray.Remove(GetTID(InValue));
 end;
 
 procedure TwrpGDKeyArray.Clear;
@@ -8242,7 +8243,7 @@ begin
   Result := GetGDCTree.CreateChildrenDialog;
 end;
 
-function TwrpGDCTree.Get_Parent: Integer;
+function TwrpGDCTree.Get_Parent: ATID;
 begin
   Result := GetGDCTree.Parent;
 end;
@@ -8290,9 +8291,9 @@ begin
   GetGDCTree.Propagate(AFields, AnOnlyFirstLevel);
 end;
 
-procedure TwrpGDCTree.Set_Parent(Value: Integer);
+procedure TwrpGDCTree.Set_Parent(Value: ATID);
 begin
-  GetGDCTree.Parent := Value;
+  GetGDCTree.Parent := GetTID(Value);
 end;
 
 function TwrpGDCTree.CreateChildrenDialogWithParam(
@@ -8306,7 +8307,7 @@ end;
 
 { TwrpGDCDocument }
 
-function TwrpGDCDocument.DocumentTypeKey: Integer;
+function TwrpGDCDocument.DocumentTypeKey: ATID;
 begin
   Result := GetGDCDocument.DocumentTypeKey;
 end;
@@ -8346,7 +8347,7 @@ function TwrpGDCDocument.Get_RelationLineName: WideString;
 var
   DE: TgdDocumentEntry;
 begin
-  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, dcpLine);
+  DE := gdClassList.FindDocByTypeID(GetTID(DocumentTypeKey), dcpLine);
   if DE <> nil then
     Result := DE.LineRelName
   else
@@ -8357,7 +8358,7 @@ function TwrpGDCDocument.Get_RelationName: WideString;
 var
   DE: TgdDocumentEntry;
 begin
-  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, dcpHeader);
+  DE := gdClassList.FindDocByTypeID(GetTID(DocumentTypeKey), dcpHeader);
   if DE <> nil then
     Result := DE.HeaderRelName
   else
@@ -8402,16 +8403,16 @@ function TwrpGdcBaseDocumentType.UpdateReportGroup(const MainBranchName,
   DocumentName: WideString; var GroupKey: OleVariant;
   ShouldUpdateData: WordBool): WordBool;
 var
-  gk: Integer;
+  gk: TID;
 begin
-  gk := GroupKey;
+  gk := GetTID(GroupKey);
   Result := GetGdcBaseDocumentType.UpdateReportGroup(MainBranchName, DocumentName, GK, ShouldUpdateData);
-  GroupKey := gk;
+  GroupKey := TID2V(gk);
 end;
 
 { TwrpGdcUserDocumentType }
 
-function TwrpGdcUserDocumentType.Get_BranchKey: Integer;
+function TwrpGdcUserDocumentType.Get_BranchKey: ATID;
 begin
   Result := -1;
 //  Result := GetGdcUserDocumentType.BranchKey;
@@ -8432,7 +8433,7 @@ begin
   Result := GetGdcUserDocumentType.IsComplexDocument;
 end;
 
-function TwrpGdcUserDocumentType.Get_MainBranchKey: Integer;
+function TwrpGdcUserDocumentType.Get_MainBranchKey: ATID;
 begin
   Result := -1;
  // Result := GetGdcUserDocumentType.MainBranchKey;
@@ -8448,7 +8449,7 @@ begin
   //GetGdcUserDocumentType.ReadOptions;
 end;
 
-procedure TwrpGdcUserDocumentType.Set_BranchKey(Value: Integer);
+procedure TwrpGdcUserDocumentType.Set_BranchKey(Value: ATID);
 begin
 //  GetGdcUserDocumentType.BranchKey := Value;
 end;
@@ -8477,7 +8478,7 @@ begin
   Result := GetObject as TgdcUserBaseDocument;
 end;
 
-function TwrpGdcUserBaseDocument.GetGroupID: Integer;
+function TwrpGdcUserBaseDocument.GetGroupID: ATID;
 begin
   Result := TCrackGdcUserBaseDocument(GetGdcUserBaseDocument).GetGroupID;
 end;
@@ -8489,12 +8490,12 @@ end;
 
 { TwrpGdcReport }
 
-function TwrpGdcReport.CheckReport(const AName: WideString; ReportGroupKey: Integer): WordBool;
+function TwrpGdcReport.CheckReport(const AName: WideString; ReportGroupKey: ATID): WordBool;
 begin
-  Result := GetGdcReport.CheckReport(AName, ReportGroupKey);
+  Result := GetGdcReport.CheckReport(AName, GetTID(ReportGroupKey));
 end;
 
-function TwrpGdcReport.Get_LastInsertID: Integer;
+function TwrpGdcReport.Get_LastInsertID: ATID;
 begin
   Result := GetGdcReport.LastInsertID;
 end;
@@ -8505,9 +8506,9 @@ begin
 end;
 
 function TwrpGdcReport.GetUniqueName(const PrefName,
-  Name: WideString; ReportGroupKey: Integer): WideString;
+  Name: WideString; ReportGroupKey: ATID): WideString;
 begin
-  Result := GetGdcReport.GetUniqueName(PrefName, Name, ReportGroupKey);
+  Result := GetGdcReport.GetUniqueName(PrefName, Name, GetTID(ReportGroupKey));
 end;
 
 { TwrpGdcDelphiObject }
@@ -8531,12 +8532,12 @@ end;
 
 { TwrpGdcMacros }
 
-function TwrpGdcMacros.CheckMacros(const AName: WideString; MacrosGroupKey: Integer): WordBool;
+function TwrpGdcMacros.CheckMacros(const AName: WideString; MacrosGroupKey: ATID): WordBool;
 begin
-  Result := GetGdcMacros.CheckMacros(AName, MacrosGroupKey);
+  Result := GetGdcMacros.CheckMacros(AName, GetTID(MacrosGroupKey));
 end;
 
-function TwrpGdcMacros.Get_LastInsertID: Integer;
+function TwrpGdcMacros.Get_LastInsertID: ATID;
 begin
   Result := GetGdcMacros.LastInsertID;
 end;
@@ -8547,9 +8548,9 @@ begin
 end;
 
 function TwrpGdcMacros.GetUniqueName(const PrefName,
-  Name: WideString; MacrosGroupKey: Integer): WideString;
+  Name: WideString; MacrosGroupKey: ATID): WideString;
 begin
-  Result := GetGdcMacros.GetUniqueName(PrefName, Name, MacrosGroupKey);
+  Result := GetGdcMacros.GetUniqueName(PrefName, Name, GetTID(MacrosGroupKey));
 end;
 
 { TwrpGdcConst }
@@ -8601,21 +8602,21 @@ begin
   GetGdcConstValue.ConstType := Value;
 end;
  }
-function TwrpGdcConst.QGetValueByID(AnID: Integer): OleVariant;
+function TwrpGdcConst.QGetValueByID(AnID: ATID): OleVariant;
 begin
-  Result := GetGdcConst.QGetValueByID(AnID);
+  Result := GetGdcConst.QGetValueByID(GetTID(AnID));
 end;
 
-function TwrpGdcConst.QGetValueByID2(AnID: Integer; ADate: TDateTime;
-  AUserKey, ACompanyKey: Integer): OleVariant;
+function TwrpGdcConst.QGetValueByID2(AnID: ATID; ADate: TDateTime;
+  AUserKey, ACompanyKey: ATID): OleVariant;
 begin
-  Result := GetGdcConst.QGetValueByID2(AnID, ADate, AUserKey, ACompanyKey);
+  Result := GetGdcConst.QGetValueByID2(GetTID(AnID), ADate, GetTID(AUserKey), GetTID(ACompanyKey));
 end;
 
-function TwrpGdcConst.QGetValueByIDAndDate(AnID: Integer;
+function TwrpGdcConst.QGetValueByIDAndDate(AnID: ATID;
   ADate: TDateTime): OleVariant;
 begin
-  Result := GetGdcConst.QGetValueByIDAndDate(AnID, ADate);
+  Result := GetGdcConst.QGetValueByIDAndDate(GetTID(AnID), ADate);
 end;
 
 function TwrpGdcConst.QGetValueByName(const AName: WideString): OleVariant;
@@ -8624,9 +8625,9 @@ begin
 end;
 
 function TwrpGdcConst.QGetValueByName2(const AName: WideString;
-  ADate: TDateTime; AUserKey, ACompanyKey: Integer): OleVariant;
+  ADate: TDateTime; AUserKey, ACompanyKey: ATID): OleVariant;
 begin
-  Result := GetGdcConst.QGetValueByName2(AName, ADate, AUserKey, ACompanyKey);
+  Result := GetGdcConst.QGetValueByName2(AName, ADate, GetTID(AUserKey), GetTID(ACompanyKey));
 end;
 
 function TwrpGdcConst.QGetValueByNameAndDate(const AName: WideString;
@@ -8709,10 +8710,10 @@ end;
 
 { TwrpGdcOurCompany }
 
-procedure TwrpGdcOurCompany.SaveOurCompany(CompanyKey: Integer);
+procedure TwrpGdcOurCompany.SaveOurCompany(CompanyKey: ATID);
 begin
 //  GetGdcOurCompany.SaveOurCompany(CompanyKey);
-  TgdcOurCompany.SaveOurCompany(CompanyKey);
+  TgdcOurCompany.SaveOurCompany(GetTID(CompanyKey));
 end;
 
 { TwrpGdcAcctEntryDocument }
@@ -8829,7 +8830,7 @@ end;
 
 procedure TwrpGdcUser.CopySettingsByUser;
 begin
-  GetGdcUser.CopySettingsByUser(U, InterfaceToObject(ibtr) as
+  GetGdcUser.CopySettingsByUser(GetTID(U), InterfaceToObject(ibtr) as
     TIBTransaction);
 end;
 
@@ -8840,9 +8841,9 @@ begin
   GetGdcUserGroup.AddUser(InterfaceToObject(AnUser) as TgdcUser);
 end;
 
-procedure TwrpGdcUserGroup.AddUserByID(AnID: Integer);
+procedure TwrpGdcUserGroup.AddUserByID(AnID: ATID);
 begin
-  GetGdcUserGroup.AddUser(AnID);
+  GetGdcUserGroup.AddUser(GetTID(AnID));
 end;
 
 function TwrpGdcUserGroup.Get_Mask: Integer;
@@ -8860,9 +8861,9 @@ begin
   Result := GetGdcUserGroup.GetGroupMask;
 end;
 
-function TwrpGdcUserGroup.GetGroupMaskByID(AGroupID: Integer): Integer;
+function TwrpGdcUserGroup.GetGroupMaskByID(AGroupID: ATID): Integer;
 begin
-  Result := GetGdcUserGroup.GetGroupMask(AGroupID);
+  Result := GetGdcUserGroup.GetGroupMask(GetTID(AGroupID));
 end;
 
 procedure TwrpGdcUserGroup.RemoveUser(const AnUser: IgsGdcUser);
@@ -8870,9 +8871,9 @@ begin
   GetGdcUserGroup.RemoveUser(InterfaceToObject(AnUser) as TgdcUser);
 end;
 
-procedure TwrpGdcUserGroup.RemoveUserByID(AnID: Integer);
+procedure TwrpGdcUserGroup.RemoveUserByID(AnID: ATID);
 begin
-  GetGdcUserGroup.RemoveUser(AnID);
+  GetGdcUserGroup.RemoveUser(GetTID(AnID));
 end;
 
 procedure TwrpGdcUserGroup.Set_Mask(Value: Integer);
@@ -8894,7 +8895,7 @@ end;}
 
 { TwrpGdcGood }
 
-function TwrpGdcGood.Get_GroupKey: Integer;
+function TwrpGdcGood.Get_GroupKey: ATID;
 begin
   Result := GetGdcGood.GroupKey;
 end;
@@ -8904,9 +8905,9 @@ begin
   Result := GetObject as TgdcGood;
 end;
 
-procedure TwrpGdcGood.Set_GroupKey(Value: Integer);
+procedure TwrpGdcGood.Set_GroupKey(Value: ATID);
 begin
-  GetGdcGood.GroupKey := Value;
+  GetGdcGood.GroupKey := GetTID(Value);
 end;
 
 function TwrpGdcGood.GetTaxRateOnName(const TaxName: WideString;
@@ -8915,22 +8916,22 @@ begin
   Result := GetGdcGood.GetTaxRateOnName(TaxName, ForDate);
 end;
 
-function TwrpGdcGood.GetTaxRate(TaxKey: Integer;
+function TwrpGdcGood.GetTaxRate(TaxKey: ATID;
   ForDate: TDateTime): Currency;
 begin
-  Result := GetGdcGood.GetTaxRate(TaxKey, ForDate);
+  Result := GetGdcGood.GetTaxRate(GetTID(TaxKey), ForDate);
 end;
 
-function TwrpGdcGood.GetTaxRateByID(aID, TaxKey: Integer;
+function TwrpGdcGood.GetTaxRateByID(aID, TaxKey: ATID;
   ForDate: TDateTime): Currency;
 begin
-  Result := GetGdcGood.GetTaxRateByID(aID, TaxKey, ForDate);
+  Result := GetGdcGood.GetTaxRateByID(GetTID(aID), GetTID(TaxKey), ForDate);
 end;
 
-function TwrpGdcGood.GetTaxRateOnNameByID(aID: Integer;
+function TwrpGdcGood.GetTaxRateOnNameByID(aID: ATID;
   const TaxName: WideString; ForDate: TDateTime): Currency;
 begin
-  Result := GetGdcGood.GetTaxRateOnNameByID(aID, TaxName, ForDate);
+  Result := GetGdcGood.GetTaxRateOnNameByID(GetTID(aID), TaxName, ForDate);
 end;
 
 { TwrpGdcInvBaseDocument }
@@ -8952,7 +8953,7 @@ begin
     AFieldName, AAliasName, AJoinFieldName);
 end;
 
-function TwrpGdcInvBaseDocument.Get_BranchKey: Integer;
+function TwrpGdcInvBaseDocument.Get_BranchKey: ATID;
 begin
   Result := GetGdcInvBaseDocument.BranchKey;
 end;
@@ -9179,7 +9180,7 @@ begin
   Result := GetObject as TgdcInvDocumentType;
 end;
 
-function TwrpGdcInvDocumentType.InvDocumentTypeBranchKey: Integer;
+function TwrpGdcInvDocumentType.InvDocumentTypeBranchKey: ATID;
 begin
   Result := GetGdcInvDocumentType.InvDocumentTypeBranchKey;
 end;
@@ -9304,12 +9305,12 @@ begin
   Result := GetGdcInvRemains.CountPosition;
 end;
 
-function TwrpGdcInvRemains.Get_GoodKey: Integer;
+function TwrpGdcInvRemains.Get_GoodKey: ATID;
 begin
   Result := GetGdcInvRemains.GoodKey;
 end;
 
-function TwrpGdcInvRemains.Get_GroupKey: Integer;
+function TwrpGdcInvRemains.Get_GroupKey: ATID;
 begin
   Result := GetGdcInvRemains.GroupKey;
 end;
@@ -9334,14 +9335,14 @@ begin
   GetGdcInvRemains.ContactType := Value;
 end;
 
-procedure TwrpGdcInvRemains.Set_GoodKey(Value: Integer);
+procedure TwrpGdcInvRemains.Set_GoodKey(Value: ATID);
 begin
-  GetGdcInvRemains.GoodKey := Value;
+  GetGdcInvRemains.GoodKey := GetTID(Value);
 end;
 
-procedure TwrpGdcInvRemains.Set_GroupKey(Value: Integer);
+procedure TwrpGdcInvRemains.Set_GroupKey(Value: ATID);
 begin
-  GetGdcInvRemains.GroupKey := Value;
+  GetGdcInvRemains.GroupKey := GetTID(Value);
 end;
 
 procedure TwrpGdcInvRemains.Set_IncludeSubDepartment(Value: WordBool);
@@ -9377,7 +9378,7 @@ function TwrpGdcBaseBank.GetGdcBaseBank: TgdcBaseBank;
 begin
   Result := GetObject as TgdcBaseBank;
 end;
-
+{
 function TwrpGdcBaseBank.Get_gsTransaction: IgsTransaction;
 begin
   Result := GetGdcOLEObject(GetGdcBaseBank.gsTransaction) as IgsTransaction;
@@ -9385,9 +9386,9 @@ end;
 
 procedure TwrpGdcBaseBank.Set_gsTransaction(const Value: IgsTransaction);
 begin
-  GetGdcBaseBank.gsTransaction := InterfaceToObject(Value) as TgsTransaction; 
+  GetGdcBaseBank.gsTransaction := InterfaceToObject(Value) as TgsTransaction;
 end;
-
+}
 { TwrpGdcBasePayment }
 
 {function TwrpGdcBasePayment.GetGdcBasePayment: TgdcBasePayment;
@@ -10976,7 +10977,7 @@ begin
   Result := GetGDCAcctEntryLine.AccountPart;
 end;
 
-function TwrpGDCAcctEntryLine.Get_RecordKey: Integer;
+function TwrpGDCAcctEntryLine.Get_RecordKey: ATID;
 begin
     Result := GetGDCAcctEntryLine.RecordKey;
 end;
@@ -10991,9 +10992,9 @@ begin
   GetGDCAcctEntryLine.AccountPart := Value;
 end;
 
-procedure TwrpGDCAcctEntryLine.Set_RecordKey(Value: Integer);
+procedure TwrpGDCAcctEntryLine.Set_RecordKey(Value: ATID);
 begin
-  GetGDCAcctEntryLine.RecordKey := Value;
+  GetGDCAcctEntryLine.RecordKey := GetTID(Value);
 end;
 
 function TwrpGDCAcctEntryLine.Get_gdcQuantity: IgsGdcAcctQuantity;
@@ -11023,7 +11024,7 @@ begin
   Result := GetGdcOLEObject(GetGDCAcctSimpleRecord.Document) as IgsGDCDocument;
 end;
 
-function TwrpGDCAcctSimpleRecord.Get_TransactionKey: Integer;
+function TwrpGDCAcctSimpleRecord.Get_TransactionKey: ATID;
 begin
   Result := GetGDCAcctSimpleRecord.TransactionKey;
 end;
@@ -11034,9 +11035,9 @@ begin
   GetGDCAcctSimpleRecord.Document := InterfaceToObject(Value) as TgdcDocument;
 end;
 
-procedure TwrpGDCAcctSimpleRecord.Set_TransactionKey(Value: Integer);
+procedure TwrpGDCAcctSimpleRecord.Set_TransactionKey(Value: ATID);
 begin
-  GetGDCAcctSimpleRecord.TransactionKey := Value;
+  GetGDCAcctSimpleRecord.TransactionKey := GetTID(Value);
 end;
 
 { TwrpGDCAccount }
@@ -11596,12 +11597,12 @@ begin
   GetFltFieldData.Assign(InterfaceToObject(Source) as TfltFieldData);
 end;
 
-function TwrpFltFieldData.Get_AttrKey: Integer;
+function TwrpFltFieldData.Get_AttrKey: ATID;
 begin
   Result := GetFltFieldData.AttrKey;
 end;
 
-function TwrpFltFieldData.Get_AttrRefKey: Integer;
+function TwrpFltFieldData.Get_AttrRefKey: ATID;
 begin
   Result := GetFltFieldData.AttrRefKey;
 end;
@@ -11686,14 +11687,14 @@ begin
   GetFltFieldData.ReadFromStream(InterfaceToObject(S) as TStream);
 end;
 
-procedure TwrpFltFieldData.Set_AttrKey(Value: Integer);
+procedure TwrpFltFieldData.Set_AttrKey(Value: ATID);
 begin
-  GetFltFieldData.AttrKey := Value;
+  GetFltFieldData.AttrKey := GetTID(Value);
 end;
 
-procedure TwrpFltFieldData.Set_AttrRefKey(Value: Integer);
+procedure TwrpFltFieldData.Set_AttrRefKey(Value: ATID);
 begin
-  GetFltFieldData.AttrRefKey := Value;
+  GetFltFieldData.AttrRefKey := GetTID(Value);
 end;
 
 procedure TwrpFltFieldData.Set_DisplayName(const Value: WideString);
@@ -12193,9 +12194,9 @@ begin
 end;
 
 function TwrpGsStorageFolder.ReadInteger(const AValueName: WideString;
-  Default: Integer): Integer;
+  Default: ATID): ATID;
 begin
-  Result := GetGsStorageFolder.ReadInteger(AValueName, Default);
+  Result := GetGsStorageFolder.ReadInteger(AValueName, GetTID(Default));
 end;
 
 procedure TwrpGsStorageFolder.ReadStream(const AValueName: WideString; const S: IgsStream);
@@ -12245,9 +12246,9 @@ begin
 end;
 
 procedure TwrpGsStorageFolder.WriteInteger(const AValueName: WideString;
-  Default: Integer);
+  Default: ATID);
 begin
-  GetGsStorageFolder.WriteInteger(AValueName, Default);
+  GetGsStorageFolder.WriteInteger(AValueName, GetTID(Default));
 end;
 
 procedure TwrpGsStorageFolder.WriteStream(const AValueName: WideString;
@@ -12289,7 +12290,7 @@ begin
   Result := GetGsStorageValue.AsDateTime;
 end;
 
-function TwrpGsStorageValue.Get_AsInteger: Integer;
+function TwrpGsStorageValue.Get_AsInteger: ATID;
 begin
   Result := GetGsStorageValue.AsInteger;
 end;
@@ -12334,9 +12335,9 @@ begin
   GetGsStorageValue.AsDateTime := Value;
 end;
 
-procedure TwrpGsStorageValue.Set_AsInteger(Value: Integer);
+procedure TwrpGsStorageValue.Set_AsInteger(Value: ATID);
 begin
-  GetGsStorageValue.AsInteger := Value;
+  GetGsStorageValue.AsInteger := GetTID(Value);
 end;
 
 procedure TwrpGsStorageValue.Set_AsString(const Value: WideString);
@@ -12811,20 +12812,20 @@ end;
 
 { TwrpGdcObjectSet }
 
-function TwrpGdcObjectSet.Add(AnID: Integer; const AgdClassName: WideString;
+function TwrpGdcObjectSet.Add(AnID: ATID; const AgdClassName: WideString;
   const ASubType: WideString): Integer;
 begin
-  Result := GetGdcObjectSet.Add(AnID, AgdClassName, ASubType, '');
+  Result := GetGdcObjectSet.Add(GetTID(AnID), AgdClassName, ASubType, '');
 end;
 
-procedure TwrpGdcObjectSet.Delete(AnID: Integer);
+procedure TwrpGdcObjectSet.Delete(AnID: ATID);
 begin
-  GetGdcObjectSet.Delete(AnID);
+  GetGdcObjectSet.Delete(GetTID(AnID));
 end;
 
-function TwrpGdcObjectSet.Find(AnID: Integer): Integer;
+function TwrpGdcObjectSet.Find(AnID: ATID): Integer;
 begin
-  Result := GetGdcObjectSet.Find(AnID)
+  Result := GetGdcObjectSet.Find(GetTID(AnID))
 end;
 
 function TwrpGdcObjectSet.Get_Count: Integer;
@@ -12867,9 +12868,9 @@ begin
   GetGdcObjectSet.LoadFromStream(InterfaceToObject(S) as TStream);
 end;
 
-procedure TwrpGdcObjectSet.Remove(AnID: Integer);
+procedure TwrpGdcObjectSet.Remove(AnID: ATID);
 begin
-  GetGdcObjectSet.Remove(AnID);
+  GetGdcObjectSet.Remove(GetTID(AnID));
 end;
 
 procedure TwrpGdcObjectSet.SaveToStream(const S: IgsStream);
@@ -12906,10 +12907,10 @@ begin
   Result := GetGdcObjectSet.FindgdClass(Index, AgdClassName, ASubType, '');
 end;
 
-function TwrpGdcObjectSet.FindgdClassByID(AnID: Integer;
+function TwrpGdcObjectSet.FindgdClassByID(AnID: ATID;
   const AgdClassName, ASubType: WideString): WordBool;
 begin
-  Result := GetGdcObjectSet.FindgdClassByID(AnID, AgdClassName, ASubType, '');
+  Result := GetGdcObjectSet.FindgdClassByID(GetTID(AnID), AgdClassName, ASubType, '');
 end;
 
 function TwrpGdcObjectSet.Get_gdInfo(Index: Integer): WideString;
@@ -12919,14 +12920,14 @@ end;
 
 { TwrpGdKeyIntAssoc }
 
-function TwrpGdKeyIntAssoc.Get_ValuesByIndex(Index: Integer): Integer;
+function TwrpGdKeyIntAssoc.Get_ValuesByIndex(Index: Integer): ATID;
 begin
   Result := GetGdKeyIntAssoc.ValuesByIndex[Index];
 end;
 
-function TwrpGdKeyIntAssoc.Get_ValuesByKey(Key: Integer): Integer;
+function TwrpGdKeyIntAssoc.Get_ValuesByKey(Key: ATID): ATID;
 begin
-  Result := GetGdKeyIntAssoc.ValuesByKey[Key]
+  Result := GetGdKeyIntAssoc.ValuesByKey[GetTID(Key)]
 end;
 
 function TwrpGdKeyIntAssoc.GetGdKeyIntAssoc: TGdKeyIntAssoc;
@@ -12934,14 +12935,14 @@ begin
   Result := GetObject as TgdKeyIntAssoc;
 end;
 
-procedure TwrpGdKeyIntAssoc.Set_ValuesByIndex(Index, Value: Integer);
+procedure TwrpGdKeyIntAssoc.Set_ValuesByIndex(Index: Integer; Value: ATID);
 begin
-  GetGdKeyIntAssoc.ValuesByIndex[Index] := Value;
+  GetGdKeyIntAssoc.ValuesByIndex[Index] := GetTID(Value);
 end;
 
-procedure TwrpGdKeyIntAssoc.Set_ValuesByKey(Key, Value: Integer);
+procedure TwrpGdKeyIntAssoc.Set_ValuesByKey(Key, Value: ATID);
 begin
-  GetGdKeyIntAssoc.ValuesByKey[Key] := Value;
+  GetGdKeyIntAssoc.ValuesByKey[GetTID(Key)] := GetTID(Value);
 end;
 
 class function TwrpGdKeyIntAssoc.CreateObject(const DelphiClass: TClass;
@@ -13287,7 +13288,7 @@ begin
   Result := GetAtRelation.HasSecurityDescriptors;
 end;
 
-function TwrpAtRelation.Get_ID: Integer;
+function TwrpAtRelation.Get_ID: ATID;
 begin
   Result := GetAtRelation.ID;
 end;
@@ -13332,7 +13333,7 @@ begin
   Result := GetGdcOLEObject(GetAtRelation.RelationFields) as IgsAtRelationFields;
 end;
 
-function TwrpAtRelation.Get_RelationID: Integer;
+function TwrpAtRelation.Get_RelationID: ATID;
 begin
   Result := GetAtRelation.RelationID;
 end;
@@ -13416,9 +13417,9 @@ begin
   Result := GetGdcOLEObject(GetAtRelationFields.ByFieldName(AName)) as IgsAtRelationField;
 end;
 
-function TwrpAtRelationFields.ByID(aID: Integer): IgsAtRelationField;
+function TwrpAtRelationFields.ByID(aID: ATID): IgsAtRelationField;
 begin
-  Result := GetGdcOLEObject(GetAtRelationFields.ByID(aID)) as IgsAtRelationField;
+  Result := GetGdcOLEObject(GetAtRelationFields.ByID(GetTID(aID))) as IgsAtRelationField;
 end;
 
 function TwrpAtRelationFields.ByPos(
@@ -13562,7 +13563,7 @@ begin
   Result := GetAtRelationField.HasRecord;
 end;
 
-function TwrpAtRelationField.Get_ID: Integer;
+function TwrpAtRelationField.Get_ID: ATID;
 begin
   Result := GetAtRelationField.ID;
 end;
@@ -13738,7 +13739,7 @@ begin
   Result := GetAtField.HasRecord;
 end;
 
-function TwrpAtField.Get_ID: Integer;
+function TwrpAtField.Get_ID: ATID;
 begin
   Result := GetAtField.ID;
 end;
@@ -13962,7 +13963,7 @@ begin
 end;
 
 { TwrpGsTransaction }
-
+{
 function TwrpGsTransaction.AppendEntryToBase: WordBool;
 begin
   Result := GetGsTransaction.AppendEntryToBase;
@@ -13970,28 +13971,28 @@ end;
 
 procedure TwrpGsTransaction.CreateTransactionByDelayedTransaction(
   aTransactionKey, aFromDocumentKey, aToDocumentKey, aFromPositionKey,
-  aToPositionKey: Integer; aDocumentDate: TDateTime;
+  aToPositionKey: ATID; aDocumentDate: TDateTime;
   const aValueList: IgsObjectList);
 begin
   GetGsTransaction.CreateTransactionByDelayedTransaction(
-    aTransactionKey, aFromDocumentKey, aToDocumentKey, aFromPositionKey,
-    aToPositionKey, aDocumentDate, InterfaceToObject(aValueList) as TObjectList);
+    GetTID(aTransactionKey), GetTID(aFromDocumentKey), GetTID(aToDocumentKey), GetTID(aFromPositionKey),
+    GetTID(aToPositionKey), aDocumentDate, InterfaceToObject(aValueList) as TObjectList);
 end;
 
-function TwrpGsTransaction.CreateTransactionOnDataSet(aCurrKey: Integer;
+function TwrpGsTransaction.CreateTransactionOnDataSet(aCurrKey: ATID;
   aDocumentDate: TDateTime; const aValueList, aAnalyzeList: IgsObjectList;
   CheckTransaction, OnlyWithTransaction: WordBool): WordBool;
 begin
-  Result := GetGsTransaction.CreateTransactionOnDataSet(aCurrKey, aDocumentDate,
+  Result := GetGsTransaction.CreateTransactionOnDataSet(GetTID(aCurrKey), aDocumentDate,
     InterfaceToObject(aValueList) as TObjectList,
     InterfaceToObject(aAnalyzeList) as TObjectList, CheckTransaction, OnlyWithTransaction);
 end;
 
-procedure TwrpGsTransaction.CreateTransactionOnPosition(aCurrKey: Integer;
+procedure TwrpGsTransaction.CreateTransactionOnPosition(aCurrKey: ATID;
   aDocumentDate: TDateTime; const aValueList, aAnalyzeList: IgsObjectList;
   isEditTransaction: WordBool);
 begin
-  GetGsTransaction.CreateTransactionOnPosition(aCurrKey, aDocumentDate,
+  GetGsTransaction.CreateTransactionOnPosition(GetTID(aCurrKey), aDocumentDate,
     InterfaceToObject(aValueList) as TObjectList,
     InterfaceToObject(aAnalyzeList) as TObjectList, isEditTransaction);
 end;
@@ -14006,7 +14007,7 @@ begin
   Result := GetGsTransaction.Changed;
 end;
 
-function TwrpGsTransaction.Get_CurrencyKey: Integer;
+function TwrpGsTransaction.Get_CurrencyKey: ATID;
 begin
   Result := GetGsTransaction.CurrencyKey;
 end;
@@ -14037,7 +14038,7 @@ begin
   Result := GetGsTransaction.DocumentOnly;
 end;
 
-function TwrpGsTransaction.Get_DocumentType: Integer;
+function TwrpGsTransaction.Get_DocumentType: ATID;
 begin
   Result := GetGsTransaction.DocumentType;
 end;
@@ -14088,10 +14089,10 @@ begin
   Result := GetGsTransaction.TransactionDate;
 end;
 
-procedure TwrpGsTransaction.GetAnalyzeList(aTransactionKey: Integer;
+procedure TwrpGsTransaction.GetAnalyzeList(aTransactionKey: ATID;
   const aAnalyzeList: IgsList);
 begin
-  GetGsTransaction.GetAnalyzeList(aTransactionKey, InterfaceToObject(aAnalyzeList) as TList);
+  GetGsTransaction.GetAnalyzeList(GetTID(aTransactionKey), InterfaceToObject(aAnalyzeList) as TList);
 end;
 
 function TwrpGsTransaction.GetGsTransaction: TGsTransaction;
@@ -14107,33 +14108,33 @@ begin
 end;
 
 function TwrpGsTransaction.GetTransactionName(
-  TransactionKey: Integer): WideString;
+  TransactionKey: ATID): WideString;
 begin
-  Result := GetGsTransaction.GetTransactionName(TransactionKey);
+  Result := GetGsTransaction.GetTransactionName(GetTID(TransactionKey));
 end;
 
 function TwrpGsTransaction.IsCurrencyTransaction(
-  aTransactionKey: Integer): WordBool;
+  aTransactionKey: ATID): WordBool;
 begin
-  Result := GetGsTransaction.IsCurrencyTransaction(aTransactionKey);
+  Result := GetGsTransaction.IsCurrencyTransaction(GetTID(aTransactionKey));
 end;
 
 function TwrpGsTransaction.IsValidDocTransaction(
-  aTransactionKey: Integer): WordBool;
+  aTransactionKey: ATID): WordBool;
 begin
-  Result := GetGsTransaction.IsValidDocTransaction(aTransactionKey);
+  Result := GetGsTransaction.IsValidDocTransaction(GetTID(aTransactionKey));
 end;
 
 function TwrpGsTransaction.IsValidTransaction(
-  aTransactionKey: Integer): WordBool;
+  aTransactionKey: ATID): WordBool;
 begin
-  Result := GetGsTransaction.IsValidTransaction(aTransactionKey);
+  Result := GetGsTransaction.IsValidTransaction(GetTID(aTransactionKey));
 end;
 
 procedure TwrpGsTransaction.ReadTransactionOnPosition(aDocumentCode,
-  aPositionCode, aEntryKey: Integer);
+  aPositionCode: Integer; aEntryKey: ATID);
 begin
-  GetGsTransaction.ReadTransactionOnPosition(aDocumentCode, aPositionCode, aEntryKey);
+  GetGsTransaction.ReadTransactionOnPosition(aDocumentCode, aPositionCode, GetTID(aEntryKey));
 end;
 
 procedure TwrpGsTransaction.Refresh;
@@ -14152,9 +14153,9 @@ begin
   GetGsTransaction.Changed := Value;
 end;
 
-procedure TwrpGsTransaction.Set_CurrencyKey(Value: Integer);
+procedure TwrpGsTransaction.Set_CurrencyKey(Value: ATID);
 begin
-  GetGsTransaction.CurrencyKey := Value;
+  GetGsTransaction.CurrencyKey := GetTID(Value);
 end;
 
 procedure TwrpGsTransaction.Set_DataSource(const Value: IgsDataSource);
@@ -14167,9 +14168,9 @@ begin
   GetGsTransaction.DocumentOnly := Value;
 end;
 
-procedure TwrpGsTransaction.Set_DocumentType(Value: Integer);
+procedure TwrpGsTransaction.Set_DocumentType(Value: ATID);
 begin
-  GetGsTransaction.DocumentType := Value;
+  GetGsTransaction.DocumentType := GetTID(Value);
 end;
 
 procedure TwrpGsTransaction.Set_FieldDocumentKey(const Value: WideString);
@@ -14220,14 +14221,14 @@ begin
 end;
 
 function TwrpGsTransaction.SetTransactionStrings(const Value: IgsStrings;
-  aTransactionKey: Integer): Integer;
+  aTransactionKey: ATID): Integer;
 begin
   Result := GetGsTransaction.SetTransactionStrings(IgsStringsToTStrings(Value),
-    aTransactionKey);
+    GetTID(aTransactionKey));
 end;
-
+}
 { TwrpTransaction }
-
+{
 procedure TwrpTransaction.AddTransactionCondition(
   const LocBlobStream: IgsIBDSBlobStream);
 begin
@@ -14249,7 +14250,7 @@ begin
   Result := GetTransaction.Description;
 end;
 
-function TwrpTransaction.Get_DocumentTypeKey: Integer;
+function TwrpTransaction.Get_DocumentTypeKey: ATID;
 begin
   Result := GetTransaction.DocumentTypeKey;
 end;
@@ -14264,7 +14265,7 @@ begin
   Result := GetGdcOLEObject(GetTransaction.TransactionFilterData) as IgsFilterData;
 end;
 
-function TwrpTransaction.Get_TransactionKey: Integer;
+function TwrpTransaction.Get_TransactionKey: ATID;
 begin
   Result := GetTransaction.TransactionKey;
 end;
@@ -14313,9 +14314,9 @@ begin
   GetTransaction.Description := Value;
 end;
 
-procedure TwrpTransaction.Set_DocumentTypeKey(Value: Integer);
+procedure TwrpTransaction.Set_DocumentTypeKey(Value: ATID);
 begin
-  GetTransaction.DocumentTypeKey := Value;
+  GetTransaction.DocumentTypeKey := GetTID(Value);
 end;
 
 procedure TwrpTransaction.Set_IsDocument(Value: WordBool);
@@ -14323,29 +14324,29 @@ begin
   GetTransaction.IsDocument := Value;
 end;
 
-procedure TwrpTransaction.Set_TransactionKey(Value: Integer);
+procedure TwrpTransaction.Set_TransactionKey(Value: ATID);
 begin
-  GetTransaction.TransactionKey := Value;
+  GetTransaction.TransactionKey := GetTID(Value);
 end;
 
 procedure TwrpTransaction.Set_TransactionName(const Value: WideString);
 begin
   GetTransaction.TransactionName := Value;
 end;
-
+}
 { TwrpPositionTransaction }
-
+{
 procedure TwrpPositionTransaction.AddRealEntry(const Entry: IgsEntry);
 begin
   GetPositionTransaction.AddRealEntry(InterfaceToObject(Entry) as TEntry);
 end;
 
 function TwrpPositionTransaction.ChangeValue(aDocumentKey,
-  aPositionKey: Integer; aDocumentDate: TDateTime;
+  aPositionKey: ATID; aDocumentDate: TDateTime;
   const ValueList: IgsObjectList): WordBool;
 begin
-  Result := GetPositionTransaction.ChangeValue(aDocumentKey,
-    aPositionKey, aDocumentDate, InterfaceToObject(ValueList) as TObjectList);
+  Result := GetPositionTransaction.ChangeValue(GetTID(aDocumentKey),
+    GetTID(aPositionKey), aDocumentDate, InterfaceToObject(ValueList) as TObjectList);
 end;
 
 procedure TwrpPositionTransaction.ClearRealEntry;
@@ -14354,10 +14355,10 @@ begin
 end;
 
 function TwrpPositionTransaction.CreateRealEntry(const aValueList,
-  aAnalyzeList: IgsObjectList; aCurrKey: Integer): WordBool;
+  aAnalyzeList: IgsObjectList; aCurrKey: ATID): WordBool;
 begin
   Result := GetPositionTransaction.CreateRealEntry(InterfaceToObject(aValueList) as
-    TObjectList, InterfaceToObject(aAnalyzeList) as TObjectList, aCurrKey);
+    TObjectList, InterfaceToObject(aAnalyzeList) as TObjectList, GetTID(aCurrKey));
 end;
 
 function TwrpPositionTransaction.Get_DocumentCode: Integer;
@@ -14419,7 +14420,7 @@ procedure TwrpPositionTransaction.Set_TransactionDate(Value: TDateTime);
 begin
   GetPositionTransaction.TransactionDate := Value;
 end;
-
+}
 { TwrpIBDSBlobStream }
 
 function TwrpIBDSBlobStream.GetIBDSBlobStream: TIBDSBlobStream;
@@ -14433,7 +14434,7 @@ begin
 end;
 
 { TwrpEntry }
-
+{
 procedure TwrpEntry.AddEntryLine(const AccountInfo: IgsAccount;
   IsDebit: WordBool; const aDescription: WideString);
 begin
@@ -14442,11 +14443,11 @@ begin
 end;
 
 procedure TwrpEntry.AddFromTypeEntry(const TypeEntry: IgsEntry;
-  const aValueList, aAnalyzeList: IgsObjectList; aCurrKey: Integer);
+  const aValueList, aAnalyzeList: IgsObjectList; aCurrKey: ATID);
 begin
   GetEntry.AddFromTypeEntry(InterfaceToObject(TypeEntry) as TEntry,
     InterfaceToObject(aValueList) as TObjectList,
-    InterfaceToObject(aAnalyzeList) as TObjectList, aCurrKey);
+    InterfaceToObject(aAnalyzeList) as TObjectList, GetTID(aCurrKey));
 end;
 
 function TwrpEntry.CheckBalans: WordBool;
@@ -14489,7 +14490,7 @@ begin
   Result := GetEntry.Description;
 end;
 
-function TwrpEntry.Get_DocumentKey: Integer;
+function TwrpEntry.Get_DocumentKey: ATID;
 begin
   Result := GetEntry.DocumentKey;
 end;
@@ -14499,12 +14500,12 @@ begin
   Result := GetEntry.EntryDate;
 end;
 
-function TwrpEntry.Get_EntryKey: Integer;
+function TwrpEntry.Get_EntryKey: ATID;
 begin
   Result := GetEntry.EntryKey;
 end;
 
-function TwrpEntry.Get_PositionKey: Integer;
+function TwrpEntry.Get_PositionKey: ATID;
 begin
   Result := GetEntry.PositionKey;
 end;
@@ -14554,9 +14555,9 @@ begin
   GetEntry.Description := Value;
 end;
 
-procedure TwrpEntry.Set_DocumentKey(Value: Integer);
+procedure TwrpEntry.Set_DocumentKey(Value: ATID);
 begin
-  GetEntry.DocumentKey := Value;
+  GetEntry.DocumentKey := GetTID(Value);
 end;
 
 procedure TwrpEntry.Set_EntryDate(Value: TDateTime);
@@ -14564,14 +14565,14 @@ begin
   GetEntry.EntryDate := Value;
 end;
 
-procedure TwrpEntry.Set_EntryKey(Value: Integer);
+procedure TwrpEntry.Set_EntryKey(Value: ATID);
 begin
-  GetEntry.EntryKey := Value;
+  GetEntry.EntryKey := GetTID(Value);
 end;
 
-procedure TwrpEntry.Set_PositionKey(Value: Integer);
+procedure TwrpEntry.Set_PositionKey(Value: ATID);
 begin
-  GetEntry.PositionKey := Value;
+  GetEntry.PositionKey := GetTID(Value);
 end;
 
 procedure TwrpEntry.SetSumFromTypeEntry(const TypeEntry: IgsEntry;
@@ -14580,9 +14581,9 @@ begin
   GetEntry.SetSumFromTypeEntry(InterfaceToObject(TypeEntry) as TEntry,
     InterfaceToObject(aValueList) as TObjectList);
 end;
-
+}
 { TwrpAccount }
-
+{
 procedure TwrpAccount.AddAnalyze(const aFromTableName, aFromFieldName,
   aReferencyName, aFieldName: WideString; aValueAnalyze: Integer);
 begin
@@ -14655,10 +14656,10 @@ procedure TwrpAccount.Set_Name(const Value: WideString);
 begin
   GetAccount.Name := Value;
 end;
-
+}
 { TwrpAnalyze }
 
-function TwrpAnalyze.Get_FieldName: WideString;
+{function TwrpAnalyze.Get_FieldName: WideString;
 begin
   Result := GetAnalyze.FieldName;
 end;
@@ -14712,10 +14713,10 @@ procedure TwrpAnalyze.Set_ValueAnalyze(Value: Integer);
 begin
   GetAnalyze.ValueAnalyze := Value;
 end;
-
+}
 { TwrpGsUserStorage }
 
-function TwrpGsUserStorage.Get_UserKey: Integer;
+function TwrpGsUserStorage.Get_UserKey: ATID;
 begin
   Result := GetGsUserStorage.ObjectKey;
 end;
@@ -14725,9 +14726,9 @@ begin
   Result := GetObject as TgsUserStorage;
 end;
 
-procedure TwrpGsUserStorage.Set_UserKey(Value: Integer);
+procedure TwrpGsUserStorage.Set_UserKey(Value: ATID);
 begin
-  GetGsUserStorage.ObjectKey := Value;
+  GetGsUserStorage.ObjectKey := GetTID(Value);
 end;
 
 { TwrpAtContainer }
@@ -15197,9 +15198,9 @@ end;
 
 { TwrpGsCustomDBTreeView }
 
-procedure TwrpGsCustomDBTreeView.AddCheck(AnID: Integer);
+procedure TwrpGsCustomDBTreeView.AddCheck(AnID: ATID);
 begin
-  GetGsCustomDBTreeView.AddCheck(AnID);
+  GetGsCustomDBTreeView.AddCheck(GetTID(AnID));
 end;
 
 procedure TwrpGsCustomDBTreeView.Cut;
@@ -15207,19 +15208,19 @@ begin
   GetGsCustomDBTreeView.Cut
 end;
 
-procedure TwrpGsCustomDBTreeView.DeleteCheck(AnID: Integer);
+procedure TwrpGsCustomDBTreeView.DeleteCheck(AnID: ATID);
 begin
-  GetGsCustomDBTreeView.DeleteCheck(AnID)
+  GetGsCustomDBTreeView.DeleteCheck(GetTID(AnID))
 end;
 
-procedure TwrpGsCustomDBTreeView.DeleteID(AnID: Integer);
+procedure TwrpGsCustomDBTreeView.DeleteID(AnID: ATID);
 begin
-  GetGsCustomDBTreeView.DeleteID(AnID)
+  GetGsCustomDBTreeView.DeleteID(GetTID(AnID))
 end;
 
-function TwrpGsCustomDBTreeView.Find(AnID: Integer): IgsTreeNode;
+function TwrpGsCustomDBTreeView.Find(AnID: ATID): IgsTreeNode;
 begin
-  GetGsCustomDBTreeView.Find(AnID)
+  GetGsCustomDBTreeView.Find(GetTID(AnID))
 end;
 
 function TwrpGsCustomDBTreeView.GetGsCustomDBTreeView: TGsCustomDBTreeView;
@@ -15242,7 +15243,7 @@ begin
   Result := GetGsCustomDBTreeView.DisplayField;
 end;
 
-function TwrpGsCustomDBTreeView.Get_ID: Integer;
+function TwrpGsCustomDBTreeView.Get_ID: ATID;
 begin
   Result := GetGsCustomDBTreeView.ID
 end;
@@ -15282,12 +15283,12 @@ begin
   Result := GetGsCustomDBTreeView.ParentField
 end;
 
-function TwrpGsCustomDBTreeView.Get_ParentID: Integer;
+function TwrpGsCustomDBTreeView.Get_ParentID: ATID;
 begin
   Result := GetGsCustomDBTreeView.ParentID
 end;
 
-function TwrpGsCustomDBTreeView.Get_TopKey: Integer;
+function TwrpGsCustomDBTreeView.Get_TopKey: ATID;
 begin
   Result := GetGsCustomDBTreeView.TopKey
 end;
@@ -15302,9 +15303,9 @@ begin
   Result := GetGsCustomDBTreeView.WithCheckBox
 end;
 
-function TwrpGsCustomDBTreeView.GoToID(AnID: Integer): WordBool;
+function TwrpGsCustomDBTreeView.GoToID(AnID: ATID): WordBool;
 begin
-  Result := GetGsCustomDBTreeView.GoToID(AnID)
+  Result := GetGsCustomDBTreeView.GoToID(GetTID(AnID))
 end;
 
 procedure TwrpGsCustomDBTreeView.LoadFromStream_(const S: IgsStream);
@@ -15365,9 +15366,9 @@ begin
   GetGsCustomDBTreeView.ParentField := Value;
 end;
 
-procedure TwrpGsCustomDBTreeView.Set_TopKey(Value: Integer);
+procedure TwrpGsCustomDBTreeView.Set_TopKey(Value: ATID);
 begin
-  GetGsCustomDBTreeView.TopKey := Value;
+  GetGsCustomDBTreeView.TopKey := GetTID(Value);
 end;
 
 procedure TwrpGsCustomDBTreeView.Set_WithCheckBox(Value: WordBool);
@@ -15383,9 +15384,9 @@ begin
   Result := GetGdKeyStringAssoc.ValuesByIndex[Index];
 end;
 
-function TwrpGdKeyStringAssoc.Get_ValuesByKey(Key: Integer): WideString;
+function TwrpGdKeyStringAssoc.Get_ValuesByKey(Key: ATID): WideString;
 begin
-  Result := GetGdKeyStringAssoc.ValuesByKey[Key];
+  Result := GetGdKeyStringAssoc.ValuesByKey[GetTID(Key)];
 end;
 
 function TwrpGdKeyStringAssoc.GetGdKeyStringAssoc: TgdKeyStringAssoc;
@@ -15423,7 +15424,7 @@ begin
   Result := GetTvState.CheckedChanged;
 end;
 
-function TwrpTvState.Get_SelectedID: Integer;
+function TwrpTvState.Get_SelectedID: ATID;
 begin
   Result := GetTvState.SelectedID;
 end;
@@ -15443,24 +15444,24 @@ begin
   GetTvState.LoadFromStream(InterfaceToObject(S) as TStream)
 end;
 
-procedure TwrpTvState.NodeChecked(AnID: Integer);
+procedure TwrpTvState.NodeChecked(AnID: ATID);
 begin
-  GetTvState.NodeChecked(AnID)
+  GetTvState.NodeChecked(GetTID(AnID))
 end;
 
-procedure TwrpTvState.NodeCollapsed(AnID: Integer);
+procedure TwrpTvState.NodeCollapsed(AnID: ATID);
 begin
-  GetTvState.NodeCollapsed(AnID)
+  GetTvState.NodeCollapsed(GetTID(AnID))
 end;
 
-procedure TwrpTvState.NodeExpanded(AnID: Integer);
+procedure TwrpTvState.NodeExpanded(AnID: ATID);
 begin
-  GetTvState.NodeExpanded(AnID)
+  GetTvState.NodeExpanded(GetTID(AnID))
 end;
 
-procedure TwrpTvState.NodeUnChecked(AnID: Integer);
+procedure TwrpTvState.NodeUnChecked(AnID: ATID);
 begin
-  GetTvState.NodeUnChecked(AnID)
+  GetTvState.NodeUnChecked(GetTID(AnID))
 end;
 
 procedure TwrpTvState.SaveToStream(const S: IgsStream);
@@ -15473,9 +15474,9 @@ begin
   GetTvState.SaveTreeState
 end;
 
-procedure TwrpTvState.Set_SelectedID(Value: Integer);
+procedure TwrpTvState.Set_SelectedID(Value: ATID);
 begin
-  GetTvState.SelectedID := Value;
+  GetTvState.SelectedID := GetTID(Value);
 end;
 
 { TwrpCustomColorComboBox }
@@ -15689,9 +15690,9 @@ begin
   Result := GetGdcOLEObject(GetAtFields.ByFieldName(AFieldName)) as IgsAtField;
 end;
 
-function TwrpAtFields.ByID(ID: Integer): IgsAtField;
+function TwrpAtFields.ByID(ID: ATID): IgsAtField;
 begin
-  Result := GetGdcOLEObject(GetAtFields.ByID(ID)) as IgsAtField;
+  Result := GetGdcOLEObject(GetAtFields.ByID(GetTID(ID))) as IgsAtField;
 end;
 
 procedure TwrpAtFields.Delete(Index: Integer);
@@ -15743,9 +15744,9 @@ begin
   Result := GetAtRelations.Add(InterfaceToObject(atPrimaryKey) as TatRelation);
 end;
 
-function TwrpAtRelations.ByID(ID: Integer): IgsAtRelation;
+function TwrpAtRelations.ByID(ID: ATID): IgsAtRelation;
 begin
-  Result := GetGdcOLEObject(GetAtRelations.ByID(ID)) as IgsAtRelation;
+  Result := GetGdcOLEObject(GetAtRelations.ByID(GetTID(ID))) as IgsAtRelation;
 end;
 
 function TwrpAtRelations.ByRelationName(
@@ -16363,7 +16364,7 @@ begin
   Result := GetGdcOleObject(GetGdcAcctBaseEntryRegister.gdcQuantity) as IgsGdcAcctQuantity;
 end;
 
-function TwrpGdcAcctBaseEntryRegister.Get_RecordKey: Integer;
+function TwrpGdcAcctBaseEntryRegister.Get_RecordKey: ATID;
 begin
   Result := GetGdcAcctBaseEntryRegister.RecordKey;
 end;
@@ -16570,9 +16571,9 @@ begin
   Result := GetObject as TgdcBaseFile;
 end;
 
-function TwrpGdcBaseFile.GetPathToFolder(AFolderID: Integer): WideString;
+function TwrpGdcBaseFile.GetPathToFolder(AFolderID: ATID): WideString;
 begin
-  Result := GetGdcBaseFile.GetPathToFolder(AFolderID);
+  Result := GetGdcBaseFile.GetPathToFolder(GetTID(AFolderID));
 end;
 
 procedure TwrpGdcBaseFile.Set_RootDirectory(const Value: WideString);
@@ -16586,10 +16587,10 @@ begin
   GetGdcBaseFile.Synchronize(AFileName, ChooseLocation, TflAction(Integer(Action)));
 end;
 
-function TwrpGdcBaseFile.Synchronize(AnID: Integer;
+function TwrpGdcBaseFile.Synchronize(AnID: ATID;
   ChooseLocation: WordBool; Action: TgsflAction): WordBool;
 begin
-  GetGdcBaseFile.Synchronize(AnID, ChooseLocation, TflAction(Integer(Action)));
+  GetGdcBaseFile.Synchronize(GetTID(AnID), ChooseLocation, TflAction(Integer(Action)));
 end;
 
 { TwrpGdcFile }
@@ -17028,9 +17029,9 @@ begin
   Result := GetGdcOLEObject(GetGdKeyObjectAssoc.ObjectByIndex[Index]) as IgsObject;
 end;
 
-function TwrpGdKeyObjectAssoc.Get_ObjectByKey(Key: Integer): IgsObject;
+function TwrpGdKeyObjectAssoc.Get_ObjectByKey(Key: ATID): IgsObject;
 begin
-  Result := GetGdcOLEObject(GetGdKeyObjectAssoc.ObjectByKey[Key]) as IgsObject;
+  Result := GetGdcOLEObject(GetGdKeyObjectAssoc.ObjectByKey[GetTID(Key)]) as IgsObject;
 end;
 
 function TwrpGdKeyObjectAssoc.Get_OwnsObjects: WordBool;
@@ -17043,9 +17044,9 @@ begin
   Result := GetObject as TGdKeyObjectAssoc;
 end;
 
-function TwrpGdKeyObjectAssoc.Remove(Key: Integer): Integer;
+function TwrpGdKeyObjectAssoc.Remove(Key: ATID): Integer;
 begin
-  Result := GetGdKeyObjectAssoc.Remove(Key);
+  Result := GetGdKeyObjectAssoc.Remove(GetTID(Key));
 end;
 
 procedure TwrpGdKeyObjectAssoc.Set_ObjectByIndex(Index: Integer;
@@ -17054,10 +17055,10 @@ begin
   GetGdKeyObjectAssoc.ObjectByIndex[Index] := InterfaceToObject(Value) as TObject;
 end;
 
-procedure TwrpGdKeyObjectAssoc.Set_ObjectByKey(Key: Integer;
+procedure TwrpGdKeyObjectAssoc.Set_ObjectByKey(Key: ATID;
   const Value: IgsObject);
 begin
-  GetGdKeyObjectAssoc.ObjectByKey[Key] := InterfaceToObject(Value) as TObject;
+  GetGdKeyObjectAssoc.ObjectByKey[GetTID(Key)] := InterfaceToObject(Value) as TObject;
 end;
 
 procedure TwrpGdKeyObjectAssoc.Set_OwnsObjects(Value: WordBool);
@@ -17065,10 +17066,10 @@ begin
   GetGdKeyObjectAssoc.OwnsObjects := Value;
 end;
 
-function TwrpGdKeyObjectAssoc.AddObject(AKey: Integer;
+function TwrpGdKeyObjectAssoc.AddObject(AKey: ATID;
   const AnObject: IgsObject): Integer;
 begin
-  Result := GetGdKeyObjectAssoc.AddObject(AKey, InterfaceToObject(AnObject) as TObject);
+  Result := GetGdKeyObjectAssoc.AddObject(GetTID(AKey), InterfaceToObject(AnObject) as TObject);
 
 end;
 
@@ -17096,9 +17097,9 @@ begin
 end;
 
 function TwrpGdKeyIntArrayAssoc.Get_ValuesByKey(
-  Key: Integer): IgsGDKeyArray;
+  Key: ATID): IgsGDKeyArray;
 begin
-  Result := GetGdcOLEObject(GetGdKeyIntArrayAssoc.ValuesByKey[Key]) as IgsGDKeyArray;
+  Result := GetGdcOLEObject(GetGdKeyIntArrayAssoc.ValuesByKey[GetTID(Key)]) as IgsGDKeyArray;
 end;
 
 function TwrpGdKeyIntArrayAssoc.GetGdKeyIntArrayAssoc: TGdKeyIntArrayAssoc;
@@ -17120,9 +17121,9 @@ begin
   Result := GetGdKeyIntAndStrAssoc.IntByIndex[Index];
 end;
 
-function TwrpGdKeyIntAndStrAssoc.Get_IntByKey(Key: Integer): Integer;
+function TwrpGdKeyIntAndStrAssoc.Get_IntByKey(Key: ATID): ATID;
 begin
-  Result := GetGdKeyIntAndStrAssoc.IntByKey[Key];
+  Result := GetGdKeyIntAndStrAssoc.IntByKey[GetTID(Key)];
 end;
 
 function TwrpGdKeyIntAndStrAssoc.Get_StrByIndex(
@@ -17131,9 +17132,9 @@ begin
   Result := GetGdKeyIntAndStrAssoc.StrByIndex[Index];
 end;
 
-function TwrpGdKeyIntAndStrAssoc.Get_StrByKey(Key: Integer): WideString;
+function TwrpGdKeyIntAndStrAssoc.Get_StrByKey(Key: ATID): WideString;
 begin
-  Result := GetGdKeyIntAndStrAssoc.StrByKey[Key];
+  Result := GetGdKeyIntAndStrAssoc.StrByKey[GetTID(Key)];
 end;
 
 function TwrpGdKeyIntAndStrAssoc.GetGdKeyIntAndStrAssoc: TGdKeyIntAndStrAssoc;
@@ -17146,9 +17147,9 @@ begin
   GetGdKeyIntAndStrAssoc.IntByIndex[Index] := Value;
 end;
 
-procedure TwrpGdKeyIntAndStrAssoc.Set_IntByKey(Key, Value: Integer);
+procedure TwrpGdKeyIntAndStrAssoc.Set_IntByKey(Key:ATID; Value: ATID);
 begin
-  GetGdKeyIntAndStrAssoc.IntByKey[Key] := Value;
+  GetGdKeyIntAndStrAssoc.IntByKey[GetTID(Key)] := GetTID(Value);
 end;
 
 procedure TwrpGdKeyIntAndStrAssoc.Set_StrByIndex(Index: Integer;
@@ -17157,10 +17158,10 @@ begin
   GetGdKeyIntAndStrAssoc.StrByIndex[Index] := Value;
 end;
 
-procedure TwrpGdKeyIntAndStrAssoc.Set_StrByKey(Key: Integer;
+procedure TwrpGdKeyIntAndStrAssoc.Set_StrByKey(Key: ATID;
   const Value: WideString);
 begin
-  GetGdKeyIntAndStrAssoc.StrByKey[Key] := Value;
+  GetGdKeyIntAndStrAssoc.StrByKey[GetTID(Key)] := Value;
 end;
 
 class function TwrpGdKeyIntAndStrAssoc.CreateObject(
@@ -17173,9 +17174,9 @@ end;
 { TwrpGdcInvBasePriceList }
 
 function TwrpGdcInvBasePriceList.GetCurrencyKey(
-  RelationFieldKey: Integer): Integer;
+  RelationFieldKey: ATID): ATID;
 begin
-  Result := (GetObject as TgdcInvBasePriceList).GetCurrencyKey(RelationFieldKey);
+  Result := (GetObject as TgdcInvBasePriceList).GetCurrencyKey(GetTID(RelationFieldKey));
 end;
 
 { TwrpGdcDocumentType }
@@ -17359,7 +17360,7 @@ begin
   Result := GetObject as TdlgSelectDocument;
 end;
 
-function TwrpGdc_dlgSelectDocument.Get_SelectedID: integer;
+function TwrpGdc_dlgSelectDocument.Get_SelectedID: ATID;
 begin
   Result := Get_dlgSelectDocument.SelectedID;
 end;
@@ -17393,7 +17394,7 @@ begin
   Result := GetObject as TgdcLink;
 end;
 
-function TwrpGDCLink.Get_ObjectKey: Integer;
+function TwrpGDCLink.Get_ObjectKey: ATID;
 begin
   Result := GetGdcLink.ObjectKey;
 end;
@@ -17403,9 +17404,9 @@ begin
   GetGdcLink.PopupMenu(X, Y);
 end;
 
-procedure TwrpGDCLink.Set_ObjectKey(Value: Integer);
+procedure TwrpGDCLink.Set_ObjectKey(Value: ATID);
 begin
-  GetGdcLink.ObjectKey := Value;
+  GetGdcLink.ObjectKey := GetTID(Value);
 end;
 
 { TgsComScaner }
@@ -17736,7 +17737,7 @@ end;
 
 { TwrpGsCompanyStorage }
 
-function TwrpGsCompanyStorage.Get_CompanyKey: Integer;
+function TwrpGsCompanyStorage.Get_CompanyKey: ATID;
 begin
   Result := GetGsCompanyStorage.ObjectKey;
 end;
@@ -17746,9 +17747,9 @@ begin
   Result := GetObject as TgsCompanyStorage;
 end;
 
-procedure TwrpGsCompanyStorage.Set_CompanyKey(Value: Integer);
+procedure TwrpGsCompanyStorage.Set_CompanyKey(Value: ATID);
 begin
-  GetGsCompanyStorage.ObjectKey := Value;
+  GetGsCompanyStorage.ObjectKey := GetTID(Value);
 end;
 
 { TwrpStreamSaver }
@@ -17788,9 +17789,9 @@ begin
   GetStreamSaver.LoadFromStream(InterfaceToObject(S) as TStream);
 end;
 
-procedure TwrpStreamSaver.PrepareForIncrementSaving(ABasekey: Integer);
+procedure TwrpStreamSaver.PrepareForIncrementSaving(ABasekey: ATID);
 begin
-  GetStreamSaver.PrepareForIncrementSaving(ABasekey);
+  GetStreamSaver.PrepareForIncrementSaving(GetTID(ABasekey));
 end;
 
 function TwrpStreamSaver.Get_Transaction: IgsIBTransaction;
@@ -17861,9 +17862,9 @@ end;
 
 { TwrpGdvAcctBase }
 
-procedure TwrpGdvAcctBase.AddAccount(AccountKey: Integer);
+procedure TwrpGdvAcctBase.AddAccount(AccountKey: ATID);
 begin
-  GetGdvAcctBase.AddAccount(AccountKey);
+  GetGdvAcctBase.AddAccount(GetTID(AccountKey));
 end;
 
 procedure TwrpGdvAcctBase.AddCondition(const FieldName, AValue: WideString);
@@ -17871,14 +17872,14 @@ begin
   GetGdvAcctBase.AddCondition(FieldName, AValue);
 end;
 
-procedure TwrpGdvAcctBase.AddCorrAccount(AccountKey: Integer);
+procedure TwrpGdvAcctBase.AddCorrAccount(AccountKey: ATID);
 begin
-  GetGdvAcctBase.AddCorrAccount(AccountKey);
+  GetGdvAcctBase.AddCorrAccount(GetTID(AccountKey));
 end;
 
-procedure TwrpGdvAcctBase.AddValue(ValueKey: Integer; const ValueName: WideString);
+procedure TwrpGdvAcctBase.AddValue(ValueKey: ATID; const ValueName: WideString);
 begin
-  GetGdvAcctBase.AddValue(ValueKey, ValueName);
+  GetGdvAcctBase.AddValue(GetTID(ValueKey), ValueName);
 end;
 
 class function TwrpGdvAcctBase.CreateObject(const DelphiClass: TClass;
@@ -17888,9 +17889,9 @@ begin
   Result := TgdvAcctBase.Create(InterfaceToObject(Params[0]) as TComponent);
 end;
 
-procedure TwrpGdvAcctBase.Execute(ConfigID: Integer);
+procedure TwrpGdvAcctBase.Execute(ConfigID: ATID);
 begin
-  GetGdvAcctBase.Execute(ConfigID);
+  GetGdvAcctBase.Execute(GetTID(ConfigID));
 end;
 
 function TwrpGdvAcctBase.Get_AllHolding: WordBool;
@@ -17898,7 +17899,7 @@ begin
   Result := GetGdvAcctBase.AllHolding;
 end;
 
-function TwrpGdvAcctBase.Get_CompanyKey: Integer;
+function TwrpGdvAcctBase.Get_CompanyKey: ATID;
 begin
   Result := GetGdvAcctBase.CompanyKey;
 end;
@@ -17943,9 +17944,9 @@ begin
   GetGdvAcctBase.AllHolding := Value;
 end;
 
-procedure TwrpGdvAcctBase.Set_CompanyKey(Value: Integer);
+procedure TwrpGdvAcctBase.Set_CompanyKey(Value: ATID);
 begin
-  GetGdvAcctBase.CompanyKey := Value;
+  GetGdvAcctBase.CompanyKey := GetTID(Value);
 end;
 
 procedure TwrpGdvAcctBase.Set_DateBegin(Value: TDateTime);
@@ -17978,10 +17979,10 @@ begin
   GetGdvAcctBase.WithSubAccounts := Value;
 end;
 
-procedure TwrpGdvAcctBase.ShowInCurr(Show: WordBool; DecDigits, Scale,
-  CurrKey: Integer);
+procedure TwrpGdvAcctBase.ShowInCurr(Show: WordBool; DecDigits, Scale: Integer;
+  CurrKey: ATID);
 begin
-  GetGdvAcctBase.ShowInCurr(Show, DecDigits, Scale, Currkey);
+  GetGdvAcctBase.ShowInCurr(Show, DecDigits, Scale, GetTID(Currkey));
 end;
 
 procedure TwrpGdvAcctBase.ShowInEQ(Show: WordBool; DecDigits,
@@ -18011,14 +18012,14 @@ begin
   GetGdvAcctBase.Clear;
 end;
 
-procedure TwrpGdvAcctBase.LoadConfig(AID: Integer);
+procedure TwrpGdvAcctBase.LoadConfig(AID: ATID);
 begin
-  GetGdvAcctBase.LoadConfig(AID);
+  GetGdvAcctBase.LoadConfig(GetTID(AID));
 end;
 
-function TwrpGdvAcctBase.SaveConfig(AConfigKey: Integer): Integer;
+function TwrpGdvAcctBase.SaveConfig(AConfigKey: ATID): Integer;
 begin
-  Result := GetGdvAcctBase.SaveConfig(AConfigKey);
+  Result := GetGdvAcctBase.SaveConfig(GetTID(AConfigKey));
 end;
 
 function TwrpGdvAcctBase.ParamByName(const ParamName: WideString): IgsIBXSQLVAR;
@@ -19506,27 +19507,27 @@ begin
     Result := 0;
 end;
 
-function TwrpGdWebClientControl.SendEMail2(SMTPKey: Integer;
+function TwrpGdWebClientControl.SendEMail2(SMTPKey: ATID;
   const Recipients, Subject, BodyText, FileName: WideString;
   WipeFile, WIpeDirectory, Sync: WordBool; WndHandle,
   ThreadID: Integer): Integer;
 begin
   if GetWebClientControl <> nil then
-    Result := GetWebClientControl.SendEmail(SMTPKey,
+    Result := GetWebClientControl.SendEmail(GetTID(SMTPKey),
       Recipients, Subject, BodyText, FileName, WipeFile, WipeDirectory,
       Sync, WndHandle, ThreadID)
   else
     Result := 0;
 end;
 
-function TwrpGdWebClientControl.SendEMail3(SMTPKey: Integer;
-  const Recipients, Subject, BodyText: WideString; ReportKey: Integer;
+function TwrpGdWebClientControl.SendEMail3(SMTPKey: ATID;
+  const Recipients, Subject, BodyText: WideString; ReportKey: ATID;
   const ExportType: WideString; Sync: WordBool; WndHandle,
   ThreadID: Integer): Integer;
 begin
   if GetWebClientControl <> nil then
-    Result := GetWebClientControl.SendEmail(SMTPKey,
-      Recipients, Subject, BodyText, ReportKey, ExportType,
+    Result := GetWebClientControl.SendEmail(GetTID(SMTPKey),
+      Recipients, Subject, BodyText, GetTID(ReportKey), ExportType,
       Sync, WndHandle, ThreadID)
   else
     Result := 0;
@@ -19895,13 +19896,13 @@ initialization
   RegisterGdcOLEClass(TAtRelationField, TwrpAtRelationField, ComServer.TypeLib, IID_IgsAtRelationField);
   RegisterGdcOLEClass(TAtField, TwrpAtField, ComServer.TypeLib, IID_IgsAtField);
   RegisterGdcOLEClass(TAtForeignKey, TwrpAtForeignKey, ComServer.TypeLib, IID_IgsAtForeignKey);
-  RegisterGdcOLEClass(TGsTransaction, TwrpGsTransaction, ComServer.TypeLib, IID_IgsGsTransaction);
-  RegisterGdcOLEClass(TTransaction, TwrpTransaction, ComServer.TypeLib, IID_IgsTransaction);
-  RegisterGdcOLEClass(TPositionTransaction, TwrpPositionTransaction, ComServer.TypeLib, IID_IgsPositionTransaction);
+//  RegisterGdcOLEClass(TGsTransaction, TwrpGsTransaction, ComServer.TypeLib, IID_IgsGsTransaction);
+//  RegisterGdcOLEClass(TTransaction, TwrpTransaction, ComServer.TypeLib, IID_IgsTransaction);
+//  RegisterGdcOLEClass(TPositionTransaction, TwrpPositionTransaction, ComServer.TypeLib, IID_IgsPositionTransaction);
   RegisterGdcOLEClass(TIBDSBlobStream, TwrpIBDSBlobStream, ComServer.TypeLib, IID_IgsIBDSBlobStream);
-  RegisterGdcOLEClass(TEntry, TwrpEntry, ComServer.TypeLib, IID_IgsEntry);
-  RegisterGdcOLEClass(TAccount, TwrpAccount, ComServer.TypeLib, IID_IgsAccount);
-  RegisterGdcOLEClass(TAnalyze, TwrpAnalyze, ComServer.TypeLib, IID_IgsAnalyze);
+//  RegisterGdcOLEClass(TEntry, TwrpEntry, ComServer.TypeLib, IID_IgsEntry);
+//  RegisterGdcOLEClass(TAccount, TwrpAccount, ComServer.TypeLib, IID_IgsAccount);
+//  RegisterGdcOLEClass(TAnalyze, TwrpAnalyze, ComServer.TypeLib, IID_IgsAnalyze);
   RegisterGdcOLEClass(TGdcInvBasePriceList, TwrpGdcInvBasePriceList, ComServer.TypeLib, IID_IgsGdcInvBasePriceList);
 
   RegisterGdcOLEClass(TGsIBStorage, TwrpGsIBStorage, ComServer.TypeLib, IID_IgsGsIBStorage);

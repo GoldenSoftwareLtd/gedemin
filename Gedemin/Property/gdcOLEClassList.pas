@@ -1,6 +1,8 @@
+// ShlTanya, 24.02.2019
+
 {++
 
-  Copyright (c) 2001 - 2012 by Golden Software of Belarus
+  Copyright (c) 2001 - 2021 by Golden Software of Belarus
 
   Module
 
@@ -32,6 +34,10 @@ type
   private
     FObject: TObject;
     FIsComponent: Boolean;
+    {$IFDEF DEBUG}
+    FClassName: String;
+    FComponentName: String; 
+    {$ENDIF}
 
   protected
     function GetObject: TObject;
@@ -328,6 +334,11 @@ begin
   inherited Create(TypeLib, DispIntf);
   FObject := AObject;
   FIsComponent := FObject is TComponent;
+  {$IFDEF DEBUG}
+  FClassName := FObject.ClassName;
+  if FIsComponent then
+    FComponentName := (FObject as TComponent).Name; 
+  {$ENDIF}
   gdWrapServerList.Add(FObject, Self);
 end;
 
@@ -378,7 +389,11 @@ end;
 function TWrapperAutoObject.GetObject: TObject;
 begin
   if FObject = nil then
-    raise Exception.Create('Объект уничтожен.');
+    {$IFDEF DEBUG}
+    raise Exception.Create('Объект уже уничтожен (' + FClassName + ', ' + FComponentName + ')');
+    {$ELSE}
+    raise Exception.Create('Объект уже уничтожен.');
+    {$ENDIF}
 
   Result := FObject;
 end;

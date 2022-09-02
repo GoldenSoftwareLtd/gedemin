@@ -1,4 +1,4 @@
-
+// ShlTanya, 21.02.2019
 {
 
   При нажатии на кнопку Ок в диалоговом окне последовательность
@@ -39,7 +39,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_createable_form, gdcBase, StdCtrls, ActnList, DB, dmDataBase_unit,
-  IBDatabase, Menus;
+  IBDatabase, Menus, gdcBaseInterface;
 
 type
   TOnSyncFieldEvent = procedure(Sender: TObject; Field: TField; SyncList: TList) of object;
@@ -88,6 +88,8 @@ type
     N1: TMenuItem;
     actHistory: TAction;
     actHistory1: TMenuItem;
+    actCopyIDToClipboard: TAction;
+    nCopyIDToClipboard: TMenuItem;
 
     procedure actNewExecute(Sender: TObject);
     procedure actNewUpdate(Sender: TObject);
@@ -125,6 +127,7 @@ type
     procedure actCancelUpdate(Sender: TObject);
     procedure actHistoryExecute(Sender: TObject);
     procedure actHistoryUpdate(Sender: TObject);
+    procedure actCopyIDToClipboardExecute(Sender: TObject);
 
   private
     FRecordLocked: Boolean;
@@ -137,7 +140,7 @@ type
     FFieldsCallOnSync: TFieldsCallList;
     FIntermediate: Boolean;
     FAlreadyRestory: Boolean;
-    FAppliedID: Integer;
+    FAppliedID: TID;
     FOldPostCount: Integer;
 
     procedure DoIntermediate(Mtd, Mtd2: TObjectMethod);
@@ -320,7 +323,7 @@ implementation
 {$R *.DFM}
 
 uses
-  IB, IBSQL, IBErrorCodes, gdcBaseInterface, gd_createable_form,
+  IB, IBSQL, IBErrorCodes, gd_createable_form, Clipbrd,
   IBCustomDataSet, TypInfo, gd_directories_const, Storages, gd_ClassList,
   dmImages_unit, evt_Base, evt_i_Base, jclStrings, at_frmSQLProcess, gsStorage_CompPath,
   gd_security, prp_methods, Gedemin_TLB, gsStorage, gdcUser, at_classes,
@@ -619,7 +622,6 @@ begin
     try
       if Assigned(gdcObject) and (not (sSubDialog in gdcObject.BaseState)) then
       begin
-
         if gdcObject.State in dsEditModes then
         begin
           gdcObject.Post;
@@ -1225,7 +1227,7 @@ begin
       try
         q.Transaction := FSharedTransaction;
         q.SQL.Text := Format('UPDATE %s SET %s=%d WHERE %s=%d',
-          [GetListTable(SubType), GetKeyField(SubType), ID, GetKeyField(SubType), ID]);
+          [GetListTable(SubType), GetKeyField(SubType), TID264(ID), GetKeyField(SubType), TID264(ID)]);
         try
           q.ExecQuery;
         except
@@ -1762,6 +1764,7 @@ begin
   begin
     for I := 0 to gdcObject.Fields.Count - 1 do
       with gdcObject.Fields[I] do
+      begin
         if Required and not ReadOnly and (FieldKind = db.fkData) and IsNull then
         begin
           S := DisplayName;
@@ -1799,6 +1802,7 @@ begin
           Result := False;
           exit;
         end;
+    end;
   end;
 
   if Assigned(FOnTestCorrect) then
@@ -1943,7 +1947,7 @@ end;
 
 function Tgdc_dlgG.Get_SelectedKey: OleVariant;
 begin
-  Result := VarArrayOf([gdcObject.ID])
+  Result := VarArrayOf([TID2V(gdcObject.ID)])
 end;
 
 function Tgdc_dlgG.CallSyncField(const Field: TField;
@@ -2172,7 +2176,7 @@ begin
   try
     F.gdcObject.Close;
     F.gdcObject.SubSet := 'ByObjectID';
-    F.gdcObject.ParamByName('ObjectID').AsInteger := gdcObject.ID;
+    SetTID(F.gdcObject.ParamByName('ObjectID'), gdcObject.ID);
     F.gdcObject.Open;
     F.ShowModal;
   finally
@@ -2186,13 +2190,17 @@ begin
     and (IBLogin <> nil) and (IBLogin.IsUserAdmin);
 end;
 
+procedure Tgdc_dlgG.actCopyIDToClipboardExecute(Sender: TObject);
+begin
+  Clipboard.AsText := IntToStr(gdcObject.ID);
+end;
+
 procedure Tgdc_dlgG.actCopySettingsFromUserExecute(Sender: TObject);
 {$INCLUDE copy_user_settings.pas}
 
 
 procedure Tgdc_dlgG.actDistributeUserSettingsExecute(Sender: TObject);
 {$INCLUDE distribute_user_settings.pas}
-
 
 initialization
   RegisterFrmClass(Tgdc_dlgG, 'Диалоговое окно бизнес-объекта').ShowInFormEditor := True; 

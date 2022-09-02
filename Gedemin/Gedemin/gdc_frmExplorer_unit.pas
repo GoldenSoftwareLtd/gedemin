@@ -1,8 +1,8 @@
-
+// ShlTanya, 02.04.2019, #4135
 {++
 
 
-  Copyright (c) 2001-2016 by Golden Software of Belarus, Ltd
+  Copyright (c) 2001-2022 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -226,7 +226,7 @@ begin
     Randomize;
     if lb.Items.Count >= 20 then
       lb.Items.Delete(Random(20));
-    lb.Items.AddObject(gdcObject.ObjectName, Pointer(gdcObject.ID));
+    lb.Items.AddObject(gdcObject.ObjectName, TID2Pointer(gdcObject.ID, Name));
   end;
 end;
 
@@ -279,10 +279,10 @@ begin
         for I := 0 to SL.Count - 1 do
         begin
           if (SL.Names[I] > '') and (lb.Items.IndexOf(SL.Names[I]) = -1)
-            and (StrToIntDef(SL.Values[SL.Names[I]], 0) > 0) then
+            and (GetTID(SL.Values[SL.Names[I]], 0) > 0) then
           begin
             lb.Items.Objects[lb.Items.Add(SL.Names[I])] :=
-              Pointer(StrToIntDef(SL.Values[SL.Names[I]], 0));
+              TID2Pointer(GetTID(SL.Values[SL.Names[I]], 0), Name);
           end;
         end;
       finally
@@ -344,7 +344,7 @@ begin
       if I >= 20 then
         break;
       if Pos('=', lb.Items[I]) = 0 then
-        S := S + '"' + lb.Items[I] + '=' + IntToStr(Integer(lb.Items.Objects[I])) + '",';
+        S := S + '"' + lb.Items[I] + '=' + TID2S(GetTID(lb.Items.Objects[I], Name)) + '",';
     end;
     if S > '' then
       SetLength(S, Length(S) - 1);
@@ -373,6 +373,7 @@ begin
   
   if not Global_LoadingNamespace then
     ForceForegroundWindow(Self.Handle);
+  DoubleBuffered := True;  
 end;
 
 procedure Tgdc_frmExplorer.dbtvExplorerDblClick(Sender: TObject);
@@ -439,18 +440,18 @@ var
   M: Integer;
   CE: TgdClassEntry;
 begin
-  if (Stage = cdPostPaint) and (Node <> nil) and (Integer(Node.Data) > 0) then
+  if (Stage = cdPostPaint) and (Node <> nil) and (GetTID(Node.Data, Name) > 0) then
   begin
     F := False;
     B := TBitmap.Create;
     try
-      V := gdcExplorer.GetFieldValueForID(Integer(Node.Data), 'imgindex');
+      V := gdcExplorer.GetFieldValueForID(GetTID(Node.Data, Name), 'imgindex');
       if (VarType(V) = varInteger) and (V > 0) then
       begin
         dmImages.il16x16.GetBitmap(V, B);
       end else
       begin
-        CE := gdClassList.Find(VarToStr(gdcExplorer.GetFieldValueForID(Integer(Node.Data), 'classname')));
+        CE := gdClassList.Find(VarToStr(gdcExplorer.GetFieldValueForID(GetTID(Node.Data, Name), 'classname')));
         if CE is TgdBaseEntry then
           TgdBaseEntry(CE).gdcClass.GetClassImage(16, 16, B)
         else
@@ -459,10 +460,10 @@ begin
 
       if F then
       begin
-        V := gdcExplorer.GetFieldValueForID(Integer(Node.Data), 'parent');
+        V := gdcExplorer.GetFieldValueForID(GetTID(Node.Data, Name), 'parent');
         if (VarType(V) = varInteger) and (V > 0) then
         begin
-          V := gdcExplorer.GetFieldValueForID(V, 'imgindex');
+          V := gdcExplorer.GetFieldValueForID(GetTID(V), 'imgindex');
           if (VarType(V) = varInteger) and (V > 0) then
           begin
             dmImages.il16x16.GetBitmap(V, B);
@@ -472,13 +473,13 @@ begin
           dmImages.il16x16.GetBitmap(0, B);
       end;
 
-      V := gdcExplorer.GetFieldValueForId(Integer(Node.Data), 'cmdtype');
+      V := gdcExplorer.GetFieldValueForId(GetTID(Node.Data, Name), 'cmdtype');
       if (VarType(V) = varInteger) and (V > 0) then
       begin
         dmImages.il16x16.DrawOverlay(B.Canvas, 0, 0,  iiRunning, oiRunning);
       end else
       begin
-        V := gdcExplorer.GetFieldValueForId(Integer(Node.Data), 'classname');
+        V := gdcExplorer.GetFieldValueForId(GetTID(Node.Data, Name), 'classname');
         if (not VarIsNull(V)) and (Trim(V) > '') then
           dmImages.il16x16.DrawOverlay(B.Canvas, 0, 0,  iiRunning, oiRunning);
       end;
@@ -501,15 +502,15 @@ begin
 
         if M <> 0 then
         begin
-          if (gdcExplorer.GetFieldValueForId(Integer(Node.Data), 'aview') and M) <> 0 then
+          if (gdcExplorer.GetFieldValueForId(GetTID(Node.Data, Name), 'aview') and M) <> 0 then
             il.Draw(dbtvExplorer.Canvas, R.Right + 2, R.Top + 4, 1)
           else
             il.Draw(dbtvExplorer.Canvas, R.Right + 2, R.Top + 4, 0);
-          if (gdcExplorer.GetFieldValueForId(Integer(Node.Data), 'achag') and M) <> 0 then
+          if (gdcExplorer.GetFieldValueForId(GetTID(Node.Data, Name), 'achag') and M) <> 0 then
             il.Draw(dbtvExplorer.Canvas, R.Right + 2 + 9, R.Top + 4, 1)
           else
             il.Draw(dbtvExplorer.Canvas, R.Right + 2 + 9, R.Top + 4, 0);
-          if (gdcExplorer.GetFieldValueForId(Integer(Node.Data), 'afull') and M) <> 0 then
+          if (gdcExplorer.GetFieldValueForId(GetTID(Node.Data, Name), 'afull') and M) <> 0 then
             il.Draw(dbtvExplorer.Canvas, R.Right + 2 + 18, R.Top + 4, 1)
           else
             il.Draw(dbtvExplorer.Canvas, R.Right + 2 + 18, R.Top + 4, 0);
@@ -529,7 +530,7 @@ var
   I: Integer;
   VS, VS2: Variant;
   S: String;
-  DataID: Integer;
+  DataID: TID;
 begin
   dbtvExplorer.Items.BeginUpdate;
   try
@@ -541,8 +542,9 @@ begin
         Inc(I);
         continue;
       end;
+      
 
-      DataID := Integer(dbtvExplorer.Items[I].Data);
+      DataID := GetTID(dbtvExplorer.Items[I].Data, Name);
 
       VS := gdcExplorer.GetFieldValueForID(DataID, 'classname');
       if VarIsNull(VS) or (VS = '') then
@@ -653,7 +655,8 @@ end;
 
 procedure Tgdc_frmExplorer.lbClick(Sender: TObject);
 var
-  I, K: Integer;
+  I: Integer;
+  K: TID;
 begin
   if gdcObject.Active then
   begin
@@ -661,9 +664,9 @@ begin
     begin
       I := lb.ItemIndex;
       try
-        K := Integer(lb.Items.Objects[I]);
+        K := GetTID(lb.Items.Objects[I], Name);
         if not gdcObject.Locate(gdcObject.GetKeyField(gdcObject.SubType),
-          K, []) then
+          TID2V(K), []) then
         begin
           lb.Items.Delete(I);
         end;
@@ -676,7 +679,8 @@ end;
 
 procedure Tgdc_frmExplorer.lbDblClick(Sender: TObject);
 var
-  I, K: Integer;
+  I: Integer;
+  K: TID;
 begin
   if gdcObject.Active then
   begin
@@ -684,9 +688,9 @@ begin
     begin
       I := lb.ItemIndex;
       try
-        K := Integer(lb.Items.Objects[I]);
+        K := GetTID(lb.Items.Objects[I], Name);
         if not gdcObject.Locate(gdcObject.GetKeyField(gdcObject.SubType),
-          K, []) then
+          TID2V(K), []) then
         begin
           lb.Items.Delete(I);
         end else
@@ -702,16 +706,19 @@ end;
 
 procedure Tgdc_frmExplorer.actShowRecentUpdate(Sender: TObject);
 begin
-  actShowRecent.Checked := pnlTop.Height > 1;
+  actShowRecent.Checked := pnlTop.Enabled and not pcSecurity.Visible;
 end;
 
 procedure Tgdc_frmExplorer.actShowRecentExecute(Sender: TObject);
 begin
-  if pnlTop.Height <= 1 then
-    pnlTop.Height := 163
+  if (pnlTop.Height <= 1) or pcSecurity.Visible then
+  begin
+    pnlTop.Height := 163;
+    pcSecurity.Hide;
+  end
   else
     pnlTop.Height := 1;
-
+  lb.Visible := not pcSecurity.Visible;
   pnlTop.Enabled := pnlTop.Height > 1;
 end;
 
@@ -736,7 +743,7 @@ end;
 procedure Tgdc_frmExplorer.dbtvExplorerFilterRecord(DataSet: TDataSet;
   var Accept: Boolean);
 begin
-  Accept := (DataSet.FieldByName('id').AsInteger > 710000) and
+  Accept := (GetTID(DataSet.FieldByName('id')) > 710000) and
     (((DataSet.FieldByName('aview').AsInteger or 1) and IBLogin.InGroup) <> 0) and
     (DataSet.FieldByName('disabled').AsInteger = 0);
 end;
@@ -766,18 +773,18 @@ end;
 
 procedure Tgdc_frmExplorer.actSecurityUpdate(Sender: TObject);
 begin
-  actSecurity.Enabled := (IBLogin <> nil) and IBLogin.IsIBUserAdmin
-    and actShowRecent.Checked;
+  actSecurity.Enabled := (IBLogin <> nil) and IBLogin.IsIBUserAdmin;
   actSecurity.Checked := pcSecurity.Visible;
 end;
 
 procedure Tgdc_frmExplorer.actSecurityExecute(Sender: TObject);
 begin
   pcSecurity.Visible := not pcSecurity.Visible;
-  lb.Visible := not lb.Visible;
+  lb.Visible := not pcSecurity.Visible;
 
   if pcSecurity.Visible then
   begin
+    pnlTop.Height := 163;
     UpdateInfo;
 
     if Width < 320 then
@@ -787,12 +794,14 @@ begin
     end;
   end else
   begin
+    pnlTop.Height := 1;
     if FOldWidth <> 0 then
     begin
       Width := FOldWidth;
       FOldWidth := 0;
     end;    
   end;
+  pnlTop.Enabled := pnlTop.Height > 1;
 end;
 
 procedure Tgdc_frmExplorer.iblkupGroupChange(Sender: TObject);
@@ -922,7 +931,7 @@ begin
   if iblkupUser.CurrentKeyInt > 0 then
   begin
     gdcBaseManager.ExecSingleQueryResult('SELECT ingroup FROM gd_user WHERE id=:ID',
-      iblkupUser.CurrentKeyInt, V);
+      TID2V(iblkupUser.CurrentKeyInt), V);
     FUserMask := V[0, 0];
     lblGroups.Caption := 'Пользователь входит в группы: ' +
       TgdcUserGroup.GetGroupList(FUserMask) + '.';

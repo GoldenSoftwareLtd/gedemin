@@ -1,3 +1,4 @@
+// ShlTanya, 27.02.2019
 
 {++
 
@@ -29,7 +30,7 @@ interface
 uses
   Classes, rp_BaseReport_unit, MSScriptControl_TLB, IBDatabase,
   ActiveX, SysUtils, Windows, Provider, gd_KeyAssoc, gd_ScrException,
-  gd_DebugLog, contnrs
+  gd_DebugLog, contnrs, gdcBaseInterface
   {$IFDEF GEDEMIN}
   , obj_i_Debugger
   {$ENDIF};
@@ -47,7 +48,7 @@ type
   TOnGetRuntimeTicks = procedure(const AnFunction: TrpCustomFunction;
     const RuntimeTicks: DWORD) of object;
   TOnCreateModuleVBClass = procedure(Sender: TObject;
-    const ModuleCode: Integer; VBClassArray: TgdKeyArray) of object;
+    const ModuleCode: TID; VBClassArray: TgdKeyArray) of object;
 
   TscHistoryItem = class(TObject)
   private
@@ -59,13 +60,13 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function AddLoadKey(const AFunctionKey: Integer): Integer;
-    function AddRunKey(const AFunctionKey: Integer): Integer;
-    function GetFromLoadList(const AFunctionKey: Integer): Integer;
-    function GetFromRunList(const AFunctionKey: Integer): Integer;
+    function AddLoadKey(const AFunctionKey: TID): Integer;
+    function AddRunKey(const AFunctionKey: TID): Integer;
+    function GetFromLoadList(const AFunctionKey: TID): Integer;
+    function GetFromRunList(const AFunctionKey: TID): Integer;
 
-    procedure RemoveLoadKey(const AFunctionKey: Integer);
-    procedure RemoveRunKey(const AFunctionKey: Integer);
+    procedure RemoveLoadKey(const AFunctionKey: TID);
+    procedure RemoveRunKey(const AFunctionKey: TID);
 
     property  RunCount: Integer read GetRunCount;
   end;
@@ -79,21 +80,21 @@ type
     constructor Create;
     destructor  Destroy; override;
 
-    function  AddLoadKey(const AFunctionKey, AModuleKey: Integer): Integer;
-    function  AddRunKey(const AFunctionKey, AModuleKey: Integer): Integer;
-    function  GetHistoryItem(const AModuleKey: Integer): TscHistoryItem;
-    function  FunctionIsLoad(const AFunctionKey, AModuleKey: Integer): Integer;
-    function  FunctionIsRun(const AFunctionKey, AModuleKey: Integer): Integer;
+    function  AddLoadKey(const AFunctionKey, AModuleKey: TID): Integer;
+    function  AddRunKey(const AFunctionKey, AModuleKey: TID): Integer;
+    function  GetHistoryItem(const AModuleKey: TID): TscHistoryItem;
+    function  FunctionIsLoad(const AFunctionKey, AModuleKey: TID): Integer;
+    function  FunctionIsRun(const AFunctionKey, AModuleKey: TID): Integer;
     function  RunCount: Integer;
 
-    procedure GetLoadModuleList(const ModuleList: TgdKeyArray; const AFunctionKey: Integer);
-    procedure GetRunModuleList(const ModuleList: TgdKeyArray; const AFunctionKey: Integer);
-    procedure GetReloadModuleList(const ModuleList: TgdKeyArray; const AFunctionKey: Integer);
+    procedure GetLoadModuleList(const ModuleList: TgdKeyArray; const AFunctionKey: TID);
+    procedure GetRunModuleList(const ModuleList: TgdKeyArray; const AFunctionKey: TID);
+    procedure GetReloadModuleList(const ModuleList: TgdKeyArray; const AFunctionKey: TID);
     // удаляет скрипт функцию из списка загруженных для модуля
-    procedure RemoveLoadKey(const AFunctionKey, AModuleKey: Integer); overload;
+    procedure RemoveLoadKey(const AFunctionKey, AModuleKey: TID); overload;
     // удаляет скрипт функцию из списка загруженных для всех модуля
-    procedure RemoveLoadKey(const AFunctionKey: Integer); overload;
-    procedure RemoveRunKey(const AFunctionKey, AModuleKey: Integer);
+    procedure RemoveLoadKey(const AFunctionKey: TID); overload;
+    procedure RemoveRunKey(const AFunctionKey, AModuleKey: TID);
     procedure Reset;
   end;
 
@@ -115,7 +116,7 @@ type
     FIsCreate: Boolean;
     FClearFlag: Boolean;
     FFunctionKeyList: TStringList;
-    FFunctionKey: Integer;
+    FFunctionKey: TID;
     // Загруженные СФ
     FHistoryList: TscHistory;
     // массив ключей измененных функций
@@ -148,9 +149,9 @@ type
     procedure SetOnGenerateException(const Value: TOnGenerateException);
 
     function  GenerateException: EScrException;
-    function  GetFunctionByID(const FunctionKey: Integer): TrpCustomFunction;
+    function  GetFunctionByID(const FunctionKey: TID): TrpCustomFunction;
 
-    procedure SetFunctionKey(const Value: Integer);
+    procedure SetFunctionKey(const Value: TID);
     // Вызов события для создания объекта
     procedure CreateObject; dynamic;
     procedure CreateVBClasses;
@@ -172,10 +173,10 @@ type
     procedure ReloadFunction;
     // Загружает инклюд-функции
     // AModuleKey - ключ модуля, IncludingList - список инклюд-функций
-    procedure AddIncludingScript(const AModuleKey: Integer;
+    procedure AddIncludingScript(const AModuleKey: TID;
       IncludingList: TgdKeyIntAssoc; const TestInLoaded: Boolean);
     // Удаляет функцию из списка перезагрузки
-    procedure RemoveReloadFunction(const AFunctionKey: Integer);
+    procedure RemoveReloadFunction(const AFunctionKey: TID);
     // Добавляет при необходимости текст СФ и запускает ее
     // IsGlobal = True, если СФ должна быть добавлена как глобальная
     function  AddAndRun(const AnFunction: TrpCustomFunction;
@@ -218,15 +219,15 @@ type
     procedure IsCreate;
 
     // Возвращает имя для модуля, если объект аппликэйшн, то вернет GLOBAL
-    function  GetModuleName(ModuleCode: Integer): String;
+    function  GetModuleName(ModuleCode: TID): String;
     // При отсутствии, создает модуль в скрипт-кантроле
     // и возвращает его имя
-    function  GetModuleNameWithIndex(const ModuleCode: Integer; const FuncModule: String): String;
+    function  GetModuleNameWithIndex(const ModuleCode: TID; const FuncModule: String): String;
     // Добавляет текст скрипт-функции вместе с инклюд-функциями
     // ModuleName - имя модуля(для форм ModuleKey как строка), ModuleKey - ключ модуля
     // TestInLoaded - перед добавлением, проверяет загруженна ли функция
     procedure AddScript(const AnFunction: TrpCustomFunction;
-                        const ModuleName: String = ''; const ModuleKey: Integer = 0; const TestInLoaded: Boolean = True);
+                        const ModuleName: String = ''; const ModuleKey: TID = 0; const TestInLoaded: Boolean = True);
     // Сбрасывает скрипт-кантрол
     // Полностью перекрыт !!!
     procedure Reset;
@@ -247,7 +248,7 @@ type
     function SFIsLoaded(const AnFunction: TrpCustomFunction): Boolean;
 
     // добавляет в список для перезагрузки
-    procedure AddReloadFunction(const AFunctionKey: Integer);
+    procedure AddReloadFunction(const AFunctionKey: TID);
 
     // используется для локализации исключений в safecall ф-циях
     function SafeCallException(ExceptObject: TObject; ExceptAddr: Pointer):
@@ -261,7 +262,7 @@ type
     // Объект возращает ошибку из скрипта
     property scrException: EScrException read GenerateException;
     //Ключ выполняемой функции
-    property FunctionKey: Integer read FFunctionKey write SetFunctionKey;
+    property FunctionKey: TID read FFunctionKey write SetFunctionKey;
     property UseModules: Boolean read GetUseModules;
 
     property NonLoadSFList: TgdKeyArray read FNonLoadSFList write SetNonLoadSFList;
@@ -861,7 +862,7 @@ begin
   Result := inherited Eval(Expression);
 end;
 
-procedure TReportScript.SetFunctionKey(const Value: Integer);
+procedure TReportScript.SetFunctionKey(const Value: TID);
 begin
   FFunctionKey := Value;
 end;
@@ -894,7 +895,7 @@ begin
     Result := FOnMethodInherited(Self);
 end;
 
-function TReportScript.GetModuleNameWithIndex(const ModuleCode: Integer;
+function TReportScript.GetModuleNameWithIndex(const ModuleCode: TID;
   const FuncModule: String): String;
 var
   LObj: OleVariant;
@@ -936,12 +937,12 @@ begin
   end;
 end;
 
-function TReportScript.GetModuleName(ModuleCode: Integer): String;
+function TReportScript.GetModuleName(ModuleCode: TID): String;
 begin
   if (ModuleCode = 0) or (ModuleCode = OBJ_APPLICATION) then
     Result := rsGlobalModule
   else
-    Result := IntToStr(ModuleCode);
+    Result := TID2S(ModuleCode);
 end;
 
 constructor TReportScript.CreateWithParam(AOwner: TComponent;
@@ -953,7 +954,7 @@ begin
 end;
 
 procedure TReportScript.AddIncludingScript(
-  const AModuleKey: Integer; IncludingList: TgdKeyIntAssoc; const TestInLoaded: Boolean);
+  const AModuleKey: TID; IncludingList: TgdKeyIntAssoc; const TestInLoaded: Boolean);
 var
   i, IncFuncIndex: Integer;
   LocInclFunc: TrpCustomFunction;
@@ -1016,12 +1017,12 @@ end;
 
 { TscHistoryItem }
 
-function TscHistoryItem.AddLoadKey(const AFunctionKey: Integer): Integer;
+function TscHistoryItem.AddLoadKey(const AFunctionKey: TID): Integer;
 begin
   Result := FLoadList.Add(AFunctionKey);
 end;
 
-function TscHistoryItem.AddRunKey(const AFunctionKey: Integer): Integer;
+function TscHistoryItem.AddRunKey(const AFunctionKey: TID): Integer;
 begin
   Result := FRunList.Add(AFunctionKey);
 end;
@@ -1048,30 +1049,30 @@ begin
 end;
 
 function TscHistoryItem.GetFromLoadList(
-  const AFunctionKey: Integer): Integer;
+  const AFunctionKey: TID): Integer;
 begin
   Result := FLoadList.IndexOf(AFunctionKey);
 end;
 
 function TscHistoryItem.GetFromRunList(
-  const AFunctionKey: Integer): Integer;
+  const AFunctionKey: TID): Integer;
 begin
   Result := FRunList.IndexOf(AFunctionKey);
 end;
 
-procedure TscHistoryItem.RemoveLoadKey(const AFunctionKey: Integer);
+procedure TscHistoryItem.RemoveLoadKey(const AFunctionKey: TID);
 begin
   FLoadList.Remove(AFunctionKey);
 end;
 
-procedure TscHistoryItem.RemoveRunKey(const AFunctionKey: Integer);
+procedure TscHistoryItem.RemoveRunKey(const AFunctionKey: TID);
 begin
   FRunList.Remove(AFunctionKey);
 end;
 
 { TscHistory }
 
-function TscHistory.GetHistoryItem(const AModuleKey: Integer): TscHistoryItem;
+function TscHistory.GetHistoryItem(const AModuleKey: TID): TscHistoryItem;
 var
   i: Integer;
 begin
@@ -1085,7 +1086,7 @@ begin
     Result := TscHistoryItem(FHistoryList.ValuesByIndex[i]);
 end;
 
-function TscHistory.AddLoadKey(const AFunctionKey, AModuleKey: Integer): Integer;
+function TscHistory.AddLoadKey(const AFunctionKey, AModuleKey: TID): Integer;
 var
   LHistoryItem: TscHistoryItem;
 begin
@@ -1094,7 +1095,7 @@ begin
 end;
 
 function TscHistory.AddRunKey(const AFunctionKey,
-  AModuleKey: Integer): Integer;
+  AModuleKey: TID): Integer;
 var
   LHistoryItem: TscHistoryItem;
 begin
@@ -1118,24 +1119,24 @@ begin
 end;
 
 function TscHistory.FunctionIsLoad(const AFunctionKey,
-  AModuleKey: Integer): Integer;
+  AModuleKey: TID): Integer;
 begin
   Result := GetHistoryItem(AModuleKey).GetFromLoadList(AFunctionKey);
 end;
 
 function TscHistory.FunctionIsRun(const AFunctionKey,
-  AModuleKey: Integer): Integer;
+  AModuleKey: TID): Integer;
 begin
   Result := GetHistoryItem(AModuleKey).GetFromRunList(AFunctionKey);
 end;
 
 procedure TscHistory.RemoveLoadKey(const AFunctionKey,
-  AModuleKey: Integer);
+  AModuleKey: TID);
 begin
   GetHistoryItem(AModuleKey).RemoveLoadKey(AFunctionKey);
 end;
 
-procedure TscHistory.RemoveRunKey(const AFunctionKey, AModuleKey: Integer);
+procedure TscHistory.RemoveRunKey(const AFunctionKey, AModuleKey: TID);
 begin
   GetHistoryItem(AModuleKey).RemoveRunKey(AFunctionKey);
 end;
@@ -1165,7 +1166,8 @@ end;
 
 procedure TReportScript.ReloadFunction;
 var
-  i, k, j, CurSF: Integer;
+  i, k: Integer;
+  j, CurSF: TID;
   LoadModuleList, RunModuleList: TgdKeyArray;
   LocFunc: TrpCustomFunction;
 begin
@@ -1215,7 +1217,7 @@ begin
 end;
 
 procedure TscHistory.GetLoadModuleList(const ModuleList: TgdKeyArray;
-  const AFunctionKey: Integer);
+  const AFunctionKey: TID);
 var
   i: Integer;
 begin
@@ -1230,7 +1232,7 @@ begin
 end;
 
 procedure TscHistory.GetRunModuleList(const ModuleList: TgdKeyArray;
-  const AFunctionKey: Integer);
+  const AFunctionKey: TID);
 var
   i: Integer;
 begin
@@ -1245,7 +1247,7 @@ begin
 end;
 
 procedure TscHistory.GetReloadModuleList(const ModuleList: TgdKeyArray;
-  const AFunctionKey: Integer);
+  const AFunctionKey: TID);
 var
   i: Integer;
   rlItem: TscHistoryItem;
@@ -1262,7 +1264,7 @@ begin
   end;
 end;
 
-procedure TReportScript.AddReloadFunction(const AFunctionKey: Integer);
+procedure TReportScript.AddReloadFunction(const AFunctionKey: TID);
 var
   Index: Integer;
 begin
@@ -1275,7 +1277,7 @@ begin
     TgdKeyArray(FReloadList.ValuesByIndex[Index]).Clear;
 end;
 
-procedure TReportScript.RemoveReloadFunction(const AFunctionKey: Integer);
+procedure TReportScript.RemoveReloadFunction(const AFunctionKey: TID);
 var
   i: Integer;
 begin
@@ -1327,7 +1329,7 @@ begin
 end;
 
 procedure TReportScript.AddScript(const AnFunction: TrpCustomFunction;
-  const ModuleName: String; const ModuleKey: Integer; const TestInLoaded: Boolean);
+  const ModuleName: String; const ModuleKey: TID; const TestInLoaded: Boolean);
 var
   S: WideString;
 begin
@@ -1339,7 +1341,6 @@ begin
       if FHistoryList.FunctionIsLoad(AnFunction.FunctionKey, ModuleKey) > -1 then
         Exit;
     end;
-
     S := AnFunction.Name;
     {$IFDEF GEDEMIN}
     if Assigned(Debugger) then
@@ -1379,7 +1380,7 @@ begin
   end;
 end;
 
-procedure TscHistory.RemoveLoadKey(const AFunctionKey: Integer);
+procedure TscHistory.RemoveLoadKey(const AFunctionKey: TID);
 var
   i: Integer;
 begin
@@ -1392,7 +1393,7 @@ function TReportScript.AddAndRun(const AnFunction: TrpCustomFunction;
   var ParamsArray: PSafeArray): Variant;
 var
   LModuleName: String;
-  LModuleCode: Integer;
+  LModuleCode: TID;
   LRuntimeTicks: DWORD;
 begin
   if IsGlobal then
@@ -1486,7 +1487,7 @@ begin
 end;
 
 function TReportScript.GetFunctionByID(
-  const FunctionKey: Integer): TrpCustomFunction;
+  const FunctionKey: TID): TrpCustomFunction;
 var
   IBQuery: TIBQuery;
   TrState: Boolean;
@@ -1505,7 +1506,7 @@ begin
   try
     IBQuery.Transaction := FTransaction;
     IBQuery.SQL.Text :=
-      'SELECT * FROM gd_function WHERE id = ' +  IntToStr(FunctionKey);
+      'SELECT * FROM gd_function WHERE id = ' +  TID2S(FunctionKey);
     if not FTransaction.Active then
     begin
       TrState := False;

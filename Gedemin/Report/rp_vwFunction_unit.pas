@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019, #4135
+
 unit rp_vwFunction_unit;
 
 interface
@@ -36,7 +38,8 @@ type
     FTransaction: TIBTransaction;
     FboScriptControl: TboScriptControl;
 
-    function SelectFunction(const AnModule: String; out Name: String; out Key: Integer): Boolean;
+    destructor Destroy; override;
+    function SelectFunction(const AnModule: String; out Name: String; out Key: TID): Boolean;
   end;
 
 var
@@ -61,7 +64,7 @@ begin
   begin
     L := lvFunction.Items.Add;
     L.Caption := ibsqlFunction.FieldByName('name').AsString;
-    L.Data := Pointer(ibsqlFunction.FieldByName('id').AsInteger);
+    L.Data := TID2Pointer(GetTID(ibsqlFunction.FieldByName('id')), Name);
 
     ibsqlFunction.Next;
   end;
@@ -80,7 +83,7 @@ begin
   boUserFunction1.boScriptControl := FboScriptControl;
 end;
 
-function TvwFunction.SelectFunction(const AnModule: String; out Name: String; out Key: Integer): Boolean;
+function TvwFunction.SelectFunction(const AnModule: String; out Name: String; out Key: TID): Boolean;
 begin
   Result := False;
   Name := '';
@@ -90,7 +93,7 @@ begin
   if ShowModal = mrOk then
   begin
     Result := True;
-    Key := Integer(lvFunction.Selected.Data);
+    Key := GetTID(lvFunction.Selected.Data, Name);
     Name := lvFunction.Selected.Caption;
   end;
 end;
@@ -117,7 +120,7 @@ begin
   if lvFunction.Selected = nil then
     Exit;
 
-  if boUserFunction1.FindFunctionById(Integer(lvFunction.Selected.Data)) then
+  if boUserFunction1.FindFunctionById(GetTID(lvFunction.Selected.Data, Name)) then
     if boUserFunction1.EditCurrentFunction then
       ShowFunction;
 end;
@@ -127,7 +130,7 @@ begin
   if lvFunction.Selected = nil then
     Exit;
 
-  if boUserFunction1.FindFunctionById(Integer(lvFunction.Selected.Data)) then
+  if boUserFunction1.FindFunctionById(GetTID(lvFunction.Selected.Data, Name)) then
     if boUserFunction1.DeleteFunction then
       ShowFunction;
 end;
@@ -135,6 +138,14 @@ end;
 procedure TvwFunction.FormResize(Sender: TObject);
 begin
   lvFunction.Column[0].Width := lvFunction.Width - 2;
+end;
+
+destructor TvwFunction.Destroy;
+begin
+  {$IFDEF ID64}
+  FreeConvertContext(Name);
+  {$ENDIF}
+  inherited;
 end;
 
 end.

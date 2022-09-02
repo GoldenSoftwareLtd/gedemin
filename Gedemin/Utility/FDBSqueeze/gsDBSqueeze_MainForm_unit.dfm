@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 978
-  Top = 459
+  Left = 632
+  Top = 295
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -29,8 +29,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   object pnl1: TPanel
     Left = 0
     Top = 0
-    Width = 932
-    Height = 525
+    Width = 924
+    Height = 517
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -68,8 +68,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object pgcMain: TPageControl
       Left = 4
       Top = 4
-      Width = 924
-      Height = 493
+      Width = 916
+      Height = 485
       ActivePage = tsSettings
       Align = alClient
       MultiLine = True
@@ -202,8 +202,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object Panel2: TPanel
           Left = 0
-          Top = 104
-          Width = 908
+          Top = 96
+          Width = 900
           Height = 353
           Align = alBottom
           BevelOuter = bvNone
@@ -296,7 +296,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object grpOptions: TGroupBox
             Left = 487
             Top = 0
-            Width = 421
+            Width = 413
             Height = 353
             Align = alClient
             Caption = '  Îïöèè  '
@@ -331,15 +331,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         ImageIndex = 2
         object pnlLogButton: TPanel
           Left = 0
-          Top = 438
-          Width = 916
+          Top = 430
+          Width = 908
           Height = 27
           Align = alBottom
           BevelOuter = bvNone
           TabOrder = 1
           object btnClearGeneralLog: TButton
             Tag = 1
-            Left = 804
+            Left = 796
             Top = 4
             Width = 109
             Height = 21
@@ -352,8 +352,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object pnlLogs: TPanel
           Left = 0
           Top = 0
-          Width = 916
-          Height = 438
+          Width = 908
+          Height = 430
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
@@ -361,14 +361,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Left = 450
             Top = 0
             Width = 3
-            Height = 438
+            Height = 430
             Cursor = crHSplit
           end
           object mLog: TMemo
             Left = 0
             Top = 0
             Width = 450
-            Height = 438
+            Height = 430
             Align = alLeft
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -382,8 +382,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object mSqlLog: TMemo
             Left = 453
             Top = 0
-            Width = 463
-            Height = 438
+            Width = 455
+            Height = 430
             Align = alClient
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -1386,8 +1386,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
     object Panel1: TPanel
       Left = 4
-      Top = 497
-      Width = 924
+      Top = 489
+      Width = 916
       Height = 24
       Align = alBottom
       BevelOuter = bvNone

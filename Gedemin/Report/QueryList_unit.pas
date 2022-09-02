@@ -1,3 +1,5 @@
+// ShlTanya, 27.02.2019
+
 unit QueryList_unit;
 
 interface

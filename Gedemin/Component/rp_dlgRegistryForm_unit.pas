@@ -1,3 +1,5 @@
+// ShlTanya, 20.02.2019
+
 unit rp_dlgRegistryForm_unit;
 
 interface
@@ -6,7 +8,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Mask, xDateEdits, IBDatabase, ActnList, IBCustomDataSet, IBUpdateSQL,
   gd_security, Db, IBQuery, StdCtrls, DBCtrls, ExtCtrls, gsIBLookupComboBox,
-  IBSQL, Buttons;
+  IBSQL, Buttons, gdcBaseInterface;
 
 type
   TdlgRegistryForm = class(TForm)
@@ -46,14 +48,14 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure actEditRTFExecute(Sender: TObject);
   private
-    FParent: Integer;
+    FParent: TID;
     FISQuick: Integer;
 
     procedure Append;
     procedure SetFile;
   public
-    function Add(const AParent, AnIsQuick: Integer): Integer;
-    function Edit(Key: Integer): Boolean;
+    function Add(const AParent: TID; const AnIsQuick: Integer): TID;
+    function Edit(Key: TID): Boolean;
   end;
 
 var
@@ -82,10 +84,10 @@ end;
 procedure TdlgRegistryForm.Append;
 begin
   qryRegistry.Insert;
-  qryRegistry.FieldByName('ID').AsInteger := GetUniqueKey(qryRegistry.Database,
-   qryRegistry.Transaction);
+  SetTID(qryRegistry.FieldByName('ID'), GetUniqueKey(qryRegistry.Database,
+   qryRegistry.Transaction));
 
-  qryRegistry.FieldByName('Parent').AsInteger := FParent;
+  SetTID(qryRegistry.FieldByName('Parent'), FParent);
 
   qryRegistry.FieldByName('isquick').AsInteger := FIsQuick;
 
@@ -97,7 +99,7 @@ begin
   rbFile.Checked := True;
 end;
 
-function TdlgRegistryForm.Add(const AParent, AnIsQuick: Integer): Integer;
+function TdlgRegistryForm.Add(const AParent: TID; const AnIsQuick: Integer): TID;
 begin
   FParent := AParent;
   FIsQuick := AnIsQuick;
@@ -111,12 +113,12 @@ begin
   if ShowModal <> mrOk then
     Result := -1
   else
-    Result := qryRegistry.FieldByName('id').AsInteger;
+    Result := GetTID(qryRegistry.FieldByName('id'));
 end;
 
-function TdlgRegistryForm.Edit(Key: Integer): Boolean;
+function TdlgRegistryForm.Edit(Key: TID): Boolean;
 begin
-  qryRegistry.ParamByName('id').AsInteger := Key;
+  SetTID(qryRegistry.ParamByName('id'), Key);
   qryRegistry.Open;
 
   rbFile.Checked := not qryRegistry.FieldByName('FileName').IsNull;

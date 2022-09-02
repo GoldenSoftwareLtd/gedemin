@@ -1,3 +1,5 @@
+// ShlTanya, 20.02.2019, #4135
+
 unit flt_QueryFilterGDC;
 
 interface
@@ -24,7 +26,7 @@ implementation
 uses
   gdcBase, gdc_createable_form, Classes, SysUtils, Forms,
   flt_sqlfilter_condition_type, Menus, gdcFilter, flt_dlgFilterList_unit,
-  at_AddToSetting;
+  at_AddToSetting, gdcBaseInterface;
 
 procedure Register;
 begin
@@ -84,7 +86,8 @@ begin
 
   gdcSavedFilter := TgdcSavedFilter.Create(nil);
   try
-    gdcSavedFilter.ID := Integer(TdlgFilterList(TComponent(Sender).Owner.Owner).lvFilter.Selected.Data);
+    gdcSavedFilter.ID := GetTID(TdlgFilterList(TComponent(Sender).Owner.Owner).lvFilter.Selected.Data,
+                          TdlgFilterList(TComponent(Sender).Owner.Owner).Name);
     gdcSavedFilter.SubSet := 'ByID';
     gdcSavedFilter.Open;
     AddToSetting(False, '', '', gdcSavedFilter, nil);
@@ -102,7 +105,8 @@ begin
 
   gdcSavedFilter := TgdcSavedFilter.Create(nil);
   try
-    gdcSavedFilter.ID := Integer(TdlgFilterList(TComponent(Sender).Owner.Owner).lvFilter.Selected.Data);
+    gdcSavedFilter.ID := GetTID(TdlgFilterList(TComponent(Sender).Owner.Owner).lvFilter.Selected.Data,
+                          TdlgFilterList(TComponent(Sender).Owner.Owner).Name);
     gdcSavedFilter.SubSet := 'ByID';
     gdcSavedFilter.Open;
     gdcSavedFilter.EditDialog;

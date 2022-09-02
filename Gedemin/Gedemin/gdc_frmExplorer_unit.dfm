@@ -10,7 +10,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 691
+    Top = 687
     Width = 289
     Visible = False
   end
@@ -22,7 +22,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
       end
     end
     inherited tbMainCustom: TTBToolbar
-      Left = 187
+      Left = 201
       DockPos = 192
       object tbiOpenExp: TTBItem
         Action = actShow
@@ -46,41 +46,40 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
       DockPos = 120
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 154
+      Left = 168
       DockPos = 168
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 642
+    Height = 636
   end
   inherited TBDockRight: TTBDock
     Left = 280
-    Height = 642
+    Height = 636
   end
   inherited TBDockBottom: TTBDock
-    Top = 710
+    Top = 706
     Width = 289
   end
   inherited pnlWorkArea: TPanel
     Width = 271
-    Height = 642
+    Height = 636
     inherited spChoose: TSplitter
-      Top = 539
+      Top = 533
       Width = 271
     end
     inherited pnlMain: TPanel
       Width = 271
-      Height = 539
+      Height = 533
       Constraints.MinWidth = 0
       inherited pnlSearchMain: TPanel
         Width = 78
-        Height = 539
+        Height = 533
         inherited sbSearchMain: TScrollBox
           Width = 78
-          Height = 501
+          Height = 506
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 501
           Width = 78
         end
       end
@@ -88,7 +87,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
         Left = 78
         Top = 0
         Width = 193
-        Height = 539
+        Height = 533
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
@@ -104,7 +103,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
           Left = 0
           Top = 165
           Width = 193
-          Height = 374
+          Height = 368
           DataSource = dsMain
           KeyField = 'ID'
           ParentField = 'PARENT'
@@ -113,7 +112,6 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
           OnFilterRecord = dbtvExplorerFilterRecord
           OnPostProcess = dbtvExplorerPostProcess
           Align = alClient
-          HideSelection = False
           Images = dmImages.ilTree
           Indent = 19
           PopupMenu = pmMain
@@ -507,7 +505,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
       end
     end
     inherited pnChoose: TPanel
-      Top = 543
+      Top = 537
       Width = 271
       inherited pnButtonChoose: TPanel
         Left = 166

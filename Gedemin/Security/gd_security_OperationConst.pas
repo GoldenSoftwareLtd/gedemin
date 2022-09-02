@@ -1,3 +1,4 @@
+// ShlTanya, 06.02.2019
 
 // Константы операций
 unit gd_security_operationconst;

@@ -1,8 +1,8 @@
 inherited gdc_dlgField: Tgdc_dlgField
-  Left = 837
-  Top = 218
+  Left = 597
+  Top = 187
   HelpContext = 82
-  ActiveControl = dbedTypeName
+  ActiveControl = pcDataType
   BorderIcons = [biSystemMenu]
   Caption = 'Редактирование типа поля'
   ClientHeight = 483
@@ -46,7 +46,7 @@ inherited gdc_dlgField: Tgdc_dlgField
       Top = 0
       Width = 561
       Height = 448
-      ActivePage = tsMain
+      ActivePage = tsType
       Align = alClient
       TabOrder = 0
       OnChange = pcFieldTypeChange
@@ -194,7 +194,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Top = 31
           Width = 534
           Height = 183
-          ActivePage = tsSet
+          ActivePage = tsNumeric
           HotTrack = True
           MultiLine = True
           RaggedRight = True
@@ -255,13 +255,14 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Left = 12
                 Top = 8
                 Width = 229
-                Height = 98
+                Height = 115
                 Caption = ' Число: '
                 Items.Strings = (
                   '- целое число (длинное)'
                   '- целое число (короткое)'
                   '- дробное число фиксированной длины'
-                  '- дробное число с плавающей запятой')
+                  '- дробное число с плавающей запятой'
+                  '- целое число (64-битное)')
                 TabOrder = 0
                 OnClick = rgNumericClick
               end
@@ -269,7 +270,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Left = 248
                 Top = 8
                 Width = 263
-                Height = 98
+                Height = 115
                 Caption = ' Параметры числа с дробью: '
                 TabOrder = 1
                 object lblPrecision: TLabel
@@ -464,7 +465,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 KeyField = 'id'
                 SortOrder = soAsc
                 gdClassName = 'TgdcTable'
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 0
@@ -486,7 +487,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Condition = 'RELATIONKEY = -1'
                 gdClassName = 'TgdcTableField'
                 OnCreateNewObject = luRefListFieldCreateNewObject
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 1
@@ -575,7 +576,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 KeyField = 'id'
                 SortOrder = soAsc
                 gdClassName = 'TgdcTable'
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 0
@@ -598,7 +599,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Condition = 'RELATIONKEY = -1'
                 gdClassName = 'TgdcTableField'
                 OnCreateNewObject = luSetListFieldCreateNewObject
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 1
@@ -939,7 +940,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Width = 271
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 6
           OnChange = comboBusinessClassChange
           OnClick = comboBusinessClassClick
@@ -950,7 +951,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Width = 271
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 7
         end
       end

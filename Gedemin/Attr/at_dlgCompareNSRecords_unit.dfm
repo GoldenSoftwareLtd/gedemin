@@ -1,6 +1,6 @@
 object dlgCompareNSRecords: TdlgCompareNSRecords
   Left = 671
-  Top = 300
+  Top = 301
   Width = 728
   Height = 494
   Caption = 'Конфликт изменения данных объекта'
@@ -17,8 +17,8 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
   object pnlWorkArea: TPanel
     Left = 0
     Top = 0
-    Width = 712
-    Height = 455
+    Width = 720
+    Height = 463
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -30,14 +30,14 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     end
     object pnlBottom: TPanel
       Left = 0
-      Top = 424
-      Width = 712
+      Top = 432
+      Width = 720
       Height = 31
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
       object pnlRightBottom: TPanel
-        Left = 445
+        Left = 453
         Top = 0
         Width = 267
         Height = 31
@@ -67,8 +67,8 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     object pnlGrid: TPanel
       Left = 0
       Top = 102
-      Width = 712
-      Height = 322
+      Width = 720
+      Height = 330
       Align = alClient
       BevelInner = bvLowered
       BevelOuter = bvNone
@@ -78,8 +78,8 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       object sgMain: TStringGrid
         Left = 5
         Top = 32
-        Width = 702
-        Height = 285
+        Width = 710
+        Height = 293
         Align = alClient
         BorderStyle = bsNone
         Color = clBtnFace
@@ -107,7 +107,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       object tbDock: TTBDock
         Left = 5
         Top = 5
-        Width = 702
+        Width = 710
         Height = 27
         AllowDrag = False
         BoundLines = [blBottom]
@@ -154,7 +154,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     object pnlTop: TPanel
       Left = 0
       Top = 0
-      Width = 712
+      Width = 720
       Height = 102
       Align = alTop
       BevelOuter = bvNone
@@ -204,7 +204,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         OnClick = rbSelectedClick
       end
       object pnlButtons: TPanel
-        Left = 617
+        Left = 625
         Top = 0
         Width = 95
         Height = 102

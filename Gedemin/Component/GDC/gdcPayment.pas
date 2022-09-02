@@ -1,3 +1,5 @@
+// ShlTanya, 10.02.2019
+
 unit gdcPayment;
 
 interface
@@ -354,7 +356,7 @@ begin
   if not (sMultiple in BaseState) then
   begin
     if (State in [dsInsert, dsEdit]) then
-      FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+      SetTID(FieldByName('documentkey'), FieldByName('id'));
 
     q := CreateReadIBSQL;
     try
@@ -368,7 +370,7 @@ begin
         ' WHERE c.id = :id ';
       q.Prepare;
 
-      q.Params.ByName('id').AsInteger := IBLogin.CompanyKey;
+      SetTID(q.Params.ByName('id'), IBLogin.CompanyKey);
       q.ExecQuery;
 
       if q.RecordCount > 0 then
@@ -408,7 +410,7 @@ begin
         ' WHERE A.ID = :Id  AND COMP.CONTACTKEY = A.BANKKEY';
       q.Prepare;
 
-      q.Params.ByName('ID').AsInteger := FieldByName('ACCOUNTKEY').AsInteger;
+      SetTID(q.Params.ByName('ID'), FieldByName('ACCOUNTKEY'));
       q.ExecQuery;
 
       if q.RecordCount > 0 then
@@ -421,7 +423,7 @@ begin
 
       q.Close;
 
-      q.Params.ByName('ID').AsInteger := FieldByName('CORRACCOUNTKEY').AsInteger;
+      SetTID(q.Params.ByName('ID'), FieldByName('CORRACCOUNTKEY'));
       q.ExecQuery;
 
       if q.RecordCount > 0 then
@@ -434,7 +436,7 @@ begin
 
       q.Close;
       q.SQL.Text := 'SELECT code FROM bn_destcode WHERE id = :id';
-      q.ParamByName('id').AsInteger := FieldByName('destcodekey').AsInteger;
+      SetTID(q.ParamByName('id'), FieldByName('destcodekey'));
       q.ExecQuery;
       if q.RecordCount > 0 then
         FieldByName('destcode').AsString := q.FieldByName('code').AsString;
@@ -562,8 +564,7 @@ begin
       ' SELECT ca.id, ca.account FROM gd_companyaccount ca WHERE ca.companykey = :CorrCompanyKey ';
 
     q.Prepare;
-    q.ParamByName('CORRCOMPANYKEY').AsInteger :=
-      FieldByName('CORRCOMPANYKEY').AsInteger;
+    SetTID(q.ParamByName('CORRCOMPANYKEY'), FieldByName('CORRCOMPANYKEY'));
     q.ExecQuery;
 
     if q.RecordCount = 0 then
@@ -572,7 +573,7 @@ begin
     begin
       while not q.Eof do
       begin
-        if FieldByName('CORRACCOUNTKEY').Value = q.FieldByName('ID').Value then
+        if GetTID(FieldByName('CORRACCOUNTKEY')) = GetTID(q.FieldByName('ID')) then
           Break;
         q.Next;
       end;
@@ -584,12 +585,11 @@ begin
         ' SELECT ca.id, ca.account FROM gd_company c ' +
         ' JOIN gd_companyaccount ca ON c.companyaccountkey = ca.id WHERE c.contactkey = :CorrCompanyKey ';
 
-        q.ParamByName('CORRCOMPANYKEY').AsInteger :=
-          FieldByName('CORRCOMPANYKEY').AsInteger;
+        SetTID(q.ParamByName('CORRCOMPANYKEY'), FieldByName('CORRCOMPANYKEY'));
         q.ExecQuery;
 
         if q.RecordCount > 0 then
-          FieldByName('CORRACCOUNTKEY').AsInteger := q.FieldByName('ID').AsInteger;
+          SetTID(FieldByName('CORRACCOUNTKEY'), q.FieldByName('ID'));
       end;
     end;
   finally
@@ -621,8 +621,7 @@ begin
         ' WHERE C.ID = :Id ';
 
       q.Prepare;
-      q.ParamByName('ID').AsInteger :=
-        FieldByName('CORRCOMPANYKEY').AsInteger;
+      SetTID(q.ParamByName('ID'), FieldByName('CORRCOMPANYKEY'));
       q.ExecQuery;
 
       if (q.RecordCount > 0) then
@@ -651,11 +650,11 @@ begin
      try
        q.SQL.Text := 'SELECT ca.companykey FROM gd_companyaccount ca ' +
          'WHERE ca.id = :id';
-       q.ParamByName('id').AsInteger := FieldByName('corraccountkey').AsInteger;
+       SetTID(q.ParamByName('id'), FieldByName('corraccountkey'));
        q.ExecQuery;
 
        if q.RecordCount > 0 then
-         FieldByName('corrcompanykey').AsInteger := q.FieldByName('companykey').AsInteger
+         SetTID(FieldByName('corrcompanykey'), q.FieldByName('companykey'))
        else
          FieldByName('corrcompanykey').Clear;
      finally
@@ -699,7 +698,7 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
+  SetTID(FieldByName('documentkey'), FieldByName('id'));
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEPAYMENT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

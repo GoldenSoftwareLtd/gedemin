@@ -1,3 +1,5 @@
+// ShlTanya, 09.02.2019
+
 unit gdc_dlgLink_unit;
 
 interface
@@ -40,7 +42,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdcLink
+  gd_ClassList, gdcLink, gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -50,7 +52,7 @@ uses
 procedure Tgdc_dlgLink.actOpenLinkedObjectUpdate(Sender: TObject);
 begin
   actOpenLinkedObject.Enabled := Assigned(gdcObject)
-    and (gdcObject.FieldByName('linkedkey').AsInteger > 0)
+    and (GetTID(gdcObject.FieldByName('linkedkey')) > 0)
     and (gdcObject.FieldByName('linkedclass').AsString > '');
 end;
 
@@ -62,7 +64,7 @@ begin
     gdcObject.FieldByName('linkedclass').AsString,
     gdcObject.FieldByName('linkedsubtype').AsString,
     gdcObject.ID,
-    gdcObject.FieldByName('linkedkey').AsInteger);
+    GetTID(gdcObject.FieldByName('linkedkey')));
   try
     if Obj <> nil then
       Obj.EditDialog;

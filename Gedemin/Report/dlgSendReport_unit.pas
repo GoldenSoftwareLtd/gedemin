@@ -1,3 +1,5 @@
+// ShlTanya, 26.02.2019
+
 unit dlgSendReport_unit;
 
 interface
@@ -264,7 +266,7 @@ begin
     '      AND '#13#10 +
     '      c.email > '''' '#13#10 +
     '  )',
-    TgdcBaseContact.SelectObject('Выберите контакт из адресной книги:'), R)
+    TID2V(TgdcBaseContact.SelectObject('Выберите контакт из адресной книги:')), R)
     and (not VarIsNull(R[0, 0])) then
   begin
     if Trim(edRecipients.Text) > '' then

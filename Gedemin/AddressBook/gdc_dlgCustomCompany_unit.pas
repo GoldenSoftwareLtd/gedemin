@@ -301,7 +301,7 @@ end;
 
 procedure Tgdc_dlgCustomCompany.actEditAccountExecute(Sender: TObject);
 begin
-  if gdcAccount.EditDialog and EqTID(gdcAccount.ID, gsiblkupMainAccount.CurrentKeyInt) then
+  if gdcAccount.EditDialog and (gdcAccount.ID = gsiblkupMainAccount.CurrentKeyInt) then
   begin
     gsiblkupMainAccount.CurrentKeyInt := gdcAccount.ID;
   end;
@@ -309,7 +309,7 @@ end;
 
 procedure Tgdc_dlgCustomCompany.actDelAccountExecute(Sender: TObject);
 begin
-  if EqTID(gdcAccount.ID, GetTID(gdcObject.FieldByName('companyaccountkey'))) then
+  if gdcAccount.ID = GetTID(gdcObject.FieldByName('companyaccountkey')) then
   begin
     gdcObject.FieldByName('companyaccountkey').Clear;
     gdcAccount.DeleteMultiple(nil);

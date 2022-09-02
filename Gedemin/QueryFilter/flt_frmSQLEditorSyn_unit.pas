@@ -1,3 +1,4 @@
+// ShlTanya, 10.03.2019
 
 unit flt_frmSQLEditorSyn_unit;
 
@@ -17,7 +18,7 @@ uses
   gd_createable_form, contnrs, gsStorage, Storages, Menus, TB2Item,
   TB2Dock, TB2Toolbar, SuperPageControl, gsDBGrid, StdActns,
   gsIBLookupComboBox, TeEngine, Series, TeeProcs, Chart, TB2ExtItems,
-  gdc_frmSQLHistory_unit, gd_ClassList,
+  gdc_frmSQLHistory_unit, gd_ClassList, gdcBaseInterface,
   {$IFDEF GEDEMIN}
   gdcBase,
   {$ENDIF}
@@ -266,6 +267,10 @@ type
     edRelationsFilter: TEdit;
     actRelationsRefresh: TAction;
     chbxTrace: TCheckBox;
+    actSaveClassesToFile: TAction;
+    sdClassFile: TSaveDialog;
+    TBSeparatorItem20: TTBSeparatorItem;
+    TBItem37: TTBItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -351,6 +356,7 @@ type
     procedure edRelationsFilterChange(Sender: TObject);
     procedure actRelationsRefreshExecute(Sender: TObject);
     procedure chbxTraceClick(Sender: TObject);
+    procedure actSaveClassesToFileExecute(Sender: TObject);
 
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
@@ -365,6 +371,7 @@ type
     frmSQLTrace: Tgdc_frmSQLHistory;
     {$ENDIF}
     FSearchReplaceHelper: TgsSearchReplaceHelper;
+    FIncludeUserDefined: Boolean;
 
     procedure RemoveNoChange(const Before, After: TStrings);
     function PrepareQuery: Boolean;
@@ -397,6 +404,8 @@ type
 
     function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
+    function SaveClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
 
   public
     FDatabase: TIBDatabase;
@@ -423,7 +432,7 @@ uses
   flt_dlgInputParam_unit, syn_ManagerInterface_unit, prp_MessageConst,
   IB, at_Classes, IBHeader, jclStrings, flt_SafeConversion_unit,
   {$IFDEF GEDEMIN}
-  gdcBaseInterface, flt_sql_parser, flt_sqlFilter, at_sql_setup,
+  flt_sql_parser, flt_sqlFilter, at_sql_setup,
   {$ENDIF}
   gd_directories_const, Clipbrd, gd_security, gd_ExternalEditor,
   gd_common_functions, IBSQLMonitor_Gedemin
@@ -1240,7 +1249,7 @@ begin
               while (M.Position < M.Size) and (C > 0) do
               begin
                 q.ParamByName('S').AsString := ReadStringFromStream(M);
-                q.ParamByName('K').AsInteger := IBLogin.ContactKey;
+                SetTID(q.ParamByName('K'), IBLogin.ContactKey);
                 q.ExecQuery;
                 Dec(C);
               end;
@@ -1430,7 +1439,7 @@ begin
     Obj.SubSet := 'ByID';
 
     try
-      Obj.ID := dbgResult.SelectedField.AsInteger;
+      Obj.ID := GetTID(dbgResult.SelectedField);
       Obj.Open;
       if Obj.EOF then
         FreeAndNil(Obj);
@@ -1623,6 +1632,117 @@ begin
     Result := _ibtrEditor;
 end;
 
+function TfrmSQLEditorSyn.SaveClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
+var
+  I, L, Level: Integer;
+  CE: TgdBaseEntry;
+  SL, ChildrenSL: TStringList;
+  Tab, RC: String;
+  R: TatRelation;
+  {$IFDEF GEDEMIN}
+  q: TIBSQL; 
+  {$ENDIF}
+begin
+  if not (ACE is TgdBaseEntry) then
+  begin
+    Result := False;
+    exit;
+  end;
+
+  SL := TStringList(AData2);
+  CE := ACE as TgdBaseEntry;
+  Level := PInteger(AData1)^;
+
+  if (CE.SubType > '') and (not FIncludeUserDefined) then
+  begin
+    Result := False;
+    exit;
+  end;
+
+  {$IFDEF GEDEMIN}
+  q := TIBSQL.Create(nil);
+  q.Transaction := gdcBaseManager.ReadTransaction;
+  q.SQL.Text := 'SELECT semcategory FROM at_relations WHERE relationname = :RN';
+  {$ENDIF}
+
+  Tab := '';
+  for I := 1 to Level do
+    Tab := Tab + '  ';
+
+  RC := CE.gdcClass.GetRestrictCondition(CE.gdcClass.GetListTable(CE.SubType), CE.SubType);
+
+  SL.Add(Tab + '{');
+  SL.Add(Tab + '  ' + '"className": "' + CE.TheClass.ClassName + '",');
+  if CE.SubType > '' then
+    SL.Add(Tab + '  ' + '"subType": "' + CE.SubType + '",');
+  if CE.gdcClass.IsAbstractClass then
+    SL.Add(Tab + '  ' + '"abstract": ' + 'true' + ',');
+  if (CE.gdcClass.GetDisplayName(CE.SubType) > '') and (UpperCase(CE.gdcClass.GetDisplayName(CE.SubType)) <> UpperCase(CE.TheClass.ClassName)) then
+    SL.Add(Tab + '  ' + '"displayName": "' + StringReplace(CE.gdcClass.GetDisplayName(CE.SubType), '"', '''', [rfReplaceAll]) + '",');
+  if CE.gdcClass.GetListTable(CE.SubType) > '' then
+  begin
+    R := atDatabase.Relations.ByRelationName(CE.gdcClass.GetListTable(CE.SubType));
+    if R = nil then
+      raise Exception.Create('Invalid relation data');
+    if UpperCase(R.PrimaryKey.ConstraintFields[0].FieldName) <> 'ID' then
+      SL.Add(Tab + '  ' + '"listTable": {"name": "' + UpperCase(CE.gdcClass.GetListTable(CE.SubType)) + '", "pk": "' + UpperCase(R.PrimaryKey.ConstraintFields[0].FieldName) + '"},')
+    else
+      SL.Add(Tab + '  ' + '"listTable": {"name": "' + UpperCase(CE.gdcClass.GetListTable(CE.SubType)) + '"},')
+  end;
+  if UpperCase(CE.distinctRelation) <> UpperCase(CE.gdcClass.GetListTable(CE.SubType)) then
+  begin
+    R := atDatabase.Relations.ByRelationName(CE.distinctRelation);
+    if R = nil then
+      raise Exception.Create('Invalid relation data');
+    SL.Add(Tab + '  ' + '"distinctRelation": {"name": "' + UpperCase(CE.distinctRelation) + '", "pk": "' + UpperCase(R.PrimaryKey.ConstraintFields[0].FieldName) + '"},');
+  end;
+  if RC > '' then
+    SL.Add(Tab + '  ' + '"restrictCondition": "' + StringReplace(RC, #13#10, '\n', [rfReplaceAll]) + '",');
+
+  {$IFDEF GEDEMIN}
+  q.ParamByName('rn').AsString := UpperCase(CE.distinctRelation);
+  q.ExecQuery;
+  if (not q.EOF) and (q.FieldByName('semcategory').AsString > '') then
+  begin 
+    SL.Add(Tab + '  ' + '"semCategory": "' + q.FieldByName('semcategory').AsString + '",');
+  end;
+  q.Close;
+  {$ENDIF}
+
+  L := Level + 1;
+  ChildrenSL := TStringList.Create;
+  try
+    gdClassList.Traverse(ACE.TheClass, ACE.SubType, SaveClassTree, @L, Pointer(ChildrenSL), False, True);
+    
+    if ChildrenSL.Count > 0 then
+    begin
+      SL.Add(Tab + '  ' + '"children": [');
+      for I := 0 to ChildrenSL.Count - 1 do
+      begin   
+        SL.Add('  ' + ChildrenSL[I]);
+      end;
+      if SL[SL.Count - 1][Length(SL[SL.Count - 1])] = ',' then
+        SL[SL.Count - 1] := Copy(SL[SL.Count - 1], 1, Length(SL[SL.Count - 1]) - 1);
+      SL.Add(Tab + '  ' + ']');
+    end; 
+
+  finally
+    ChildrenSL.Free; 
+  end; 
+
+  if SL[SL.Count - 1][Length(SL[SL.Count - 1])] = ',' then
+    SL[SL.Count - 1] := Copy(SL[SL.Count - 1], 1, Length(SL[SL.Count - 1]) - 1);
+
+  SL.Add(Tab + '},');
+
+  {$IFDEF GEDEMIN}
+  q.Free; 
+  {$ENDIF}
+
+  Result := True;
+end;
+
 function TfrmSQLEditorSyn.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 var
@@ -1794,8 +1914,12 @@ begin
   (Sender as TAction).Enabled := ibqryWork.Active
     and (not ibqryWork.EOF)
     and dbgResult.Visible
+    {$IFDEF ID64}
+    and (dbgResult.SelectedField is TLargeIntField)
+    {$ELSE}
     and (dbgResult.SelectedField is TIntegerField)
-    and (dbgResult.SelectedField.AsInteger > 0)
+    {$ENDIF}
+    and (GetTID(dbgResult.SelectedField) > 0)
     and (dbgResult.SelectedField.Origin > '');
 end;
 
@@ -2718,6 +2842,31 @@ end;
 procedure TfrmSQLEditorSyn.chbxTraceClick(Sender: TObject);
 begin
   MonitorHook.Enabled := chbxTrace.Checked;
+end;
+
+procedure TfrmSQLEditorSyn.actSaveClassesToFileExecute(Sender: TObject);
+var
+  SL: TStringList;
+  Level: Integer;
+begin
+  if sdClassFile.Execute then
+  begin
+    FIncludeUserDefined := MessageBox(Handle,
+      'Включать пользовательские классы?',
+      'Внимание',
+      MB_ICONQUESTION or MB_YESNO) = IDYES;
+
+    SL := TStringList.Create;
+    try
+      Level := 0;
+      SaveClassTree(gdClassList.Find('TgdcBase'), @Level, SL);
+      if SL[SL.Count - 1][Length(SL[SL.Count - 1])] = ',' then
+        SL[SL.Count - 1] := Copy(SL[SL.Count - 1], 1, Length(SL[SL.Count - 1]) - 1);
+      SL.SaveToFile(sdClassFile.FileName);
+    finally
+      SL.Free;
+    end;
+  end;
 end;
 
 initialization

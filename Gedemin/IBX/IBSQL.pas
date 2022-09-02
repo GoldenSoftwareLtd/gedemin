@@ -273,6 +273,10 @@ type
   TIBSQL = class(TComponent)
   private
     FIBLoaded: Boolean;
+    {$IFDEF WITH_INDY}
+    TstID: Integer;
+    {$ENDIF}
+
   protected
     FBase: TIBBase;
     FBOF,                          { At BOF? }
@@ -380,7 +384,7 @@ uses
 
 {$IFDEF DEBUG}
 var
-  DebugCnt, DebugCall: Integer;
+  DebugCnt, DebugCall, IBSQLCnt: Integer;
 {$ENDIF}
 
 { TIBXSQLVAR }
@@ -2143,6 +2147,13 @@ begin
           FBase.Database.Call(isc_res, true)
         else
           IBDatabaseError;
+
+      {$IFDEF WITH_INDY}
+        {$IFDEF DEBUG}
+          Dec(IBSQLCnt);
+          gdccClient.AddLogRecord('ibsql', 'Close #' + IntToStr(TstID) + ', opened: ' + IntToStr(IBSQLCnt));
+        {$ENDIF}
+      {$ENDIF}
     end;
   finally
     FEOF := False;
@@ -2180,7 +2191,7 @@ procedure TIBSQL.ExecQuery;
 var
   fetch_res: ISC_STATUS;
   {$IFDEF WITH_INDY}
-  TstID: Integer;
+  S: String;
   {$ENDIF}
 begin
   CheckClosed;
@@ -2190,7 +2201,16 @@ begin
   if FSQLType in [SQLSelect, SQLSelectForUpdate, SQLExecProcedure] then
     IBSQL_WaitWindowThread.StartSQL(StatusVector, DBHandle);
   {$IFDEF WITH_INDY}
-  TstID := gdccClient.StartPerfCounter('ibsql', FSQL.Text);
+    S := StringReplace(FSQL.Text, '/* Текст запроса созданный компонентом фильтрации */', '', []);
+    TstID := gdccClient.StartPerfCounter('ibsql', S);
+    {$IFDEF DEBUG}
+      // так как мы посылаем в GDCC все запросы в отладочном режиме
+      // это может привести к исчерпанию памяти
+      // поэтому обрезаем запрос до 160 символов
+      gdccClient.AddLogRecord('ibsql', 'Exec #' + IntToStr(TstID) + ', opened: ' +
+        IntToStr(IBSQLCnt) + ', ' + System.Copy(S, 1, 160)
+      );
+    {$ENDIF}  
   {$ENDIF}
   try
     case FSQLType of
@@ -2269,7 +2289,14 @@ begin
     gdccClient.StopPerfCounter(TstID);
     {$ENDIF}
     if FSQLType in [SQLSelect, SQLSelectForUpdate, SQLExecProcedure] then
+    begin
       IBSQL_WaitWindowThread.FinishSQL;
+
+      {$IFDEF DEBUG}
+        if FOpen then
+          Inc(IBSQLCnt);
+      {$ENDIF}
+    end;
   end;
 
   if not (csDesigning in ComponentState) then
@@ -3102,10 +3129,10 @@ end;
 initialization
   DebugCnt := 0;
   DebugCall := 0;
+  IBSQLCnt := 0;
 
 finalization
   OutputDebugString(Pchar('FieldByName searches old: ' + IntToStr(DebugCnt)
     + '; New: ' + IntToStr(DebugCall)));
-
 {$ENDIF}
 end.

@@ -1,3 +1,4 @@
+// ShlTanya, 03.02.2019
 
 {++
 
@@ -454,7 +455,7 @@ begin
     Field := TgdcField.CreateSubType(nil, '', 'ByID');
     try
       Field.Transaction := gdcObject.Transaction;
-      Field.ID := gdcObject.FieldByName('fieldsourcekey').AsInteger;
+      Field.ID := GetTID(gdcObject.FieldByName('fieldsourcekey'));
       Field.Open;
       if (not Field.EOF) and ((not Field.FieldByName('reftable').IsNull) or
         (not Field.FieldByName('reflistfield').IsNull)) then

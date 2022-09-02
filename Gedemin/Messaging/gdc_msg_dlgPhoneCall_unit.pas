@@ -1,3 +1,4 @@
+// ShlTanya, 24.02.2019
 
 unit gdc_msg_dlgPhoneCall_unit;
 
@@ -242,7 +243,7 @@ end;
 
 procedure Tgdc_msg_dlgPhoneCall.lkFromChange(Sender: TObject);
 const
-  K: Integer = -1;
+  K: TID = -1;
   N: String = '';
 var
   q: TIBSQL;
@@ -256,7 +257,7 @@ begin
       try
         q.Transaction := gdcBaseManager.ReadTransaction;
         q.SQL.Text := 'SELECT phone FROM gd_contact WHERE id=:ID';
-        q.ParamByName('ID').AsInteger := lkFrom.CurrentKeyInt;
+        SetTID(q.ParamByName('ID'), lkFrom.CurrentKeyInt);
         q.ExecQuery;
         lbPhone.Caption := q.Fields[0].AsString;
         K := lkFrom.CurrentKeyInt;

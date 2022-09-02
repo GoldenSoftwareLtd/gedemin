@@ -1,10 +1,12 @@
+// ShlTanya, 09.03.2019
+
 unit gdvAcctLedger;
 
 interface
 
 uses
   classes, gdv_AvailAnalytics_unit, AcctStrings, AcctUtils, gdvAcctBase,
-  at_classes, contnrs, DB, ibsql, gdv_AcctConfig_unit;
+  at_classes, contnrs, DB, ibsql, gdv_AcctConfig_unit, gdcBaseInterface;
 
 type
   TgdvAcctAnalyticLevels = class
@@ -28,26 +30,26 @@ type
 
   TgdvCorrFieldInfo = class
   private
-    FAccount: Integer;
-    FDisplayAccount: Integer;
+    FAccount: TID;
+    FDisplayAccount: TID;
     FCaption: string;
     FAccountPart: string;
-    procedure SetAccount(const Value: Integer);
+    procedure SetAccount(const Value: TID);
     procedure SetCaption(const Value: string);
-    procedure SetDisplayAccount(const Value: Integer);
+    procedure SetDisplayAccount(const Value: TID);
     procedure SetAccountPart(const Value: string);
     function GetAlias: string;
   public
     property Caption: string read FCaption write SetCaption;
-    property Account: Integer read FAccount write SetAccount;
-    property DisplayAccount: Integer read FDisplayAccount write SetDisplayAccount;
+    property Account: TID read FAccount write SetAccount;
+    property DisplayAccount: TID read FDisplayAccount write SetDisplayAccount;
     property AccountPart: string read FAccountPart write SetAccountPart;
     property Alias: string read GetAlias;
   end;
 
   TgdvCorrFieldInfoList = class(TObjectList)
   private
-    function AddFieldInfo(Caption: string; Account, DisplayAccount: Integer): Integer;
+    function AddFieldInfo(Caption: string; Account, DisplayAccount: TID): Integer;
     function GetItems(Index: Integer): TgdvCorrFieldInfo;
   public
     procedure Assign(Source: TgdvCorrFieldInfoList);
@@ -56,14 +58,14 @@ type
 
   TgdvLedgerFieldInfo = class(TgdvFieldInfo)
   private
-    FAccountKey: Integer;
+    FAccountKey: TID;
     FAccountPart: string;
     FAccountAlias: string;
-    procedure SetAccountKey(const Value: Integer);
+    procedure SetAccountKey(const Value: TID);
     procedure SetAccountPart(const Value: string);
     procedure SetAccountAlias(const Value: string);
   public
-    property AccountKey: Integer read FAccountKey write SetAccountKey;
+    property AccountKey: TID read FAccountKey write SetAccountKey;
     property AccountPart: string read FAccountPart write SetAccountPart;
     property AccountAlias: string read  FAccountAlias write SetAccountAlias;
   end;
@@ -265,7 +267,7 @@ type
     //для группировки
     procedure SaldoBeginSQL(const SQL: TIBSQL);
   protected
-    FSQLHandle: Integer;
+    FSQLHandle: TID;
 
     FShowDebit: Boolean;
     FShowCredit: Boolean;
@@ -300,7 +302,7 @@ type
     function GetCreditEQSumSelectClauseBalance: String;
 
     procedure AddLedgerFieldInfo(FieldName, Caption, DisplayFormat: string;
-      Visible, Condition: Boolean; AccountKey: Integer; AccountPart: string;
+      Visible, Condition: Boolean; AccountKey: TID; AccountPart: string;
       AccountAlias: string; DisplayField: string = '');
 
     class function ConfigClassName: string; override;
@@ -344,7 +346,7 @@ procedure Register;
 implementation
 
 uses
-  sysutils, IBDatabase, IBHeader, gdcBaseInterface, gd_KeyAssoc,
+  sysutils, IBDatabase, IBHeader, gd_KeyAssoc,
   mdf_MetaData_unit, gdcConstants, gd_common_functions;
 
 const
@@ -617,8 +619,8 @@ begin
               'VALUES(:ACCOUNTKEY, :SQLHANDLE)';
             for I := 0 to FAccounts.Count - 1 do
             begin
-              ibsql.ParamByName('accountkey').AsInteger := FAccounts.Keys[I];
-              ibsql.ParamByName('sqlhandle').AsInteger := FSQLHandle;
+              SetTID(ibsql.ParamByName('accountkey'), FAccounts.Keys[I]);
+              SetTID(ibsql.ParamByName('sqlhandle'), FSQLHandle);
               ibsql.ExecQuery;
               ibsql.Close;
             end;
@@ -626,11 +628,13 @@ begin
 
           if (FAcctConditions.Count > 0) and FEntryDateIsFirst then
           begin
+
             ibsql.SQL.Clear;
+
             ibsql.SQL.Add('INSERT INTO ac_ledger_entries (entrykey, sqlhandle)');
             ibsql.SQL.Add('SELECT');
             ibsql.SQL.Add('e.id,');
-            ibsql.SQL.Add(IntToStr(FSQLHandle));
+            ibsql.SQL.Add(TID2S(FSQLHandle));
             ibsql.SQL.Add('FROM ac_entry e LEFT JOIN ac_record r ON r.id = e.recordkey');
             ibsql.SQL.Add('WHERE');
             if FAccounts.Count > 0 then
@@ -1231,7 +1235,7 @@ var
       Alias := Format(Currency + '_%s_%s', [EntryPart, Self.GetKeyAlias(EntryAccounts.Items[I].Account)]);
       if FShowCorrSubAccounts then
       begin
-        AAccounts.Add(Alias + '=' + IntToStr(ID));
+        AAccounts.Add(Alias + '=' + TID2S(ID));
       end
       else
       begin
@@ -1318,7 +1322,7 @@ var
           // Если стоит групировка счетов, то здесь в одну колонку сгруппируется несколько значений
           for J := 0 to TgdKeyArray(AAccounts.Objects[I]).Count - 1 do
           begin
-            MainSubSubSelect03 := MainSubSubSelect03 + IntToStr(TgdKeyArray(AAccounts.Objects[I]).Keys[J]);
+            MainSubSubSelect03 := MainSubSubSelect03 + TID2S(TgdKeyArray(AAccounts.Objects[I]).Keys[J]);
             if J <> TgdKeyArray(AAccounts.Objects[I]).Count - 1 then
               MainSubSubSelect03 := MainSubSubSelect03 + ', ';
           end;
@@ -1370,7 +1374,7 @@ var
           // Если стоит групировка счетов, то здесь в одну колонку сгруппируется несколько значений
           for J := 0 to TgdKeyArray(AAccounts.Objects[I]).Count - 1 do
           begin
-            CorrSubSubSelect := CorrSubSubSelect + IntToStr(TgdKeyArray(AAccounts.Objects[I]).Keys[J]);
+            CorrSubSubSelect := CorrSubSubSelect + TID2S(TgdKeyArray(AAccounts.Objects[I]).Keys[J]);
             if J <> TgdKeyArray(AAccounts.Objects[I]).Count - 1 then
               CorrSubSubSelect := CorrSubSubSelect + ', ';
           end;
@@ -1689,7 +1693,7 @@ begin
         '       ac_entry_balance bal '#13#10 +
         '     WHERE '#13#10 +
           IIF(AccountIDs <> '', ' bal.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' bal.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
+          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' bal.currkey = ' + TID2S(FCurrKey) + ' AND '#13#10, '') +
         '       bal.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
           AnalyticFilterBal +
         '  '#13#10 +
@@ -1718,7 +1722,7 @@ begin
             ' e1.entrydate >= :closedate AND e1.entrydate < :datebegin '#13#10) +
         '     WHERE '#13#10 +
           IIF(AccountIDs <> '', ' e.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' e.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
+          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' e.currkey = ' + TID2S(FCurrKey) + ' AND '#13#10, '') +
           IIF(FEntryBalanceDate > FDateBegin,
             ' e.entrydate >= :datebegin AND '#13#10,
             ' e.entrydate >= :closedate AND '#13#10) +
@@ -1746,7 +1750,7 @@ begin
             ' WHERE '#13#10 +
               IIF(AccountIDs <> '', ' em.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
             '   em.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-              IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+              IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + TID2S(FCurrKey) + #13#10, '') +
             '   AND em.entrydate >= :datebegin AND em.entrydate <= :dateend '#13#10 +
               IIF(FIncludeInternalMovement, '', Self.InternalMovementClause('em') + #13#10) +
               AnalyticFilterEM + #13#10 +
@@ -1784,7 +1788,7 @@ begin
             ' WHERE '#13#10 +
               IIF(AccountIDs <> '', ' em.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
             '   em.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-              IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + IntToStr(FCurrKey), '') +
+              IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + TID2S(FCurrKey), '') +
             '   AND em.entrydate >= :datebegin '#13#10 +
             '   AND em.entrydate <= :dateend '#13#10 +
               IIF(FIncludeInternalMovement, '', Self.InternalMovementClause('em') + #13#10) +
@@ -2030,7 +2034,7 @@ begin
         AnalyticFilter := ' AND '#13#10 + AnalyticFilter + #13#10;
 
       if FCurrSumInfo.Show and (FCurrKey > 0) then
-        CurrId := Format('  AND e.currkey = %d'#13#10, [FCurrKey])
+        CurrId := Format('  AND e.currkey = %d'#13#10, [TID264(FCurrKey)])
       else
         CurrId := '';
 
@@ -2046,36 +2050,36 @@ begin
           if (FAcctConditions.Count = 0) then
           begin
             L_S := Format('AC_L_S(:begindate, :enddate, %d, %d, %d, %d, :currkey)',
-              [FSQLHandle, FCompanyKey,
+              [TID264(FSQLHandle), TID264(FCompanyKey),
               Integer(FAllHolding), -1]);
             Q_S := Format('AC_Q_S(%s, :begindate, :enddate, %d, %d, %d, %d, :currkey)',
-            ['%s', FSQLHandle, FCompanyKey,
+            ['%s', TID264(FSQLHandle), TID264(FCompanyKey),
             Integer(FAllHolding), -1]);
           end
           else
           begin
-            L_S := Format('AC_E_L_S(:begindate, :saldobegin, :saldobegincurr, :saldobegineq, %d, :currkey)', [FSQLHandle]);
+            L_S := Format('AC_E_L_S(:begindate, :saldobegin, :saldobegincurr, :saldobegineq, %d, :currkey)', [TID264(FSQLHandle)]);
             Q_S := Format('AC_E_Q_S(%s, :begindate, :saldobegin%s, %d, :currkey)',
-            ['%s', '%s', FSQLHandle]);
+            ['%s', '%s', TID264(FSQLHandle)]);
           end;
         end else
         begin
           if FAcctConditions.Count = 0 then
           begin
             L_S := Format('AC_L_S1(:begindate, :enddate, %d, %d, %d, %d, %s, :currkey)',
-              [FSQLHandle, FCompanyKey,
+              [TID264(FSQLHandle), TID264(FCompanyKey),
               Integer(FAllHolding), -1,
               FAcctGroupBy[0].Additional]);
             Q_S := Format('AC_Q_S1(%s, :begindate, :enddate, %d, %d, %d, %d, %s, :currkey)',
-            ['%s', FSQLHandle, FCompanyKey,
+            ['%s', TID264(FSQLHandle), TID264(FCompanyKey),
             Integer(FAllHolding), -1,
             FAcctGroupBy[0].Additional]);
           end else
           begin
             L_S := Format('AC_E_L_S1(:begindate, :saldobegin, :saldobegincurr, :saldobegineq, %d, %s, :currkey)',
-              [FSQLHandle, FAcctGroupBy[0].Additional]);
+              [TID264(FSQLHandle), FAcctGroupBy[0].Additional]);
             Q_S := Format('AC_E_Q_S1(%s, :begindate, :saldobegin%s, %d, %s, :currkey)',
-            ['%s', '%s', FSQLHandle, FAcctGroupBy[0].Additional]);
+            ['%s', '%s', TID264(FSQLHandle), FAcctGroupBy[0].Additional]);
           end;
         end;
       end;
@@ -2509,7 +2513,7 @@ begin
 end;
 
 procedure TgdvAcctLedger.AddLedgerFieldInfo(FieldName, Caption,
-  DisplayFormat: string; Visible, Condition: Boolean; AccountKey: Integer;
+  DisplayFormat: string; Visible, Condition: Boolean; AccountKey: TID;
   AccountPart, AccountAlias, DisplayField: string);
 var
   FI: TgdvLedgerFieldInfo;
@@ -2545,9 +2549,9 @@ begin
     if FEntryDateIsFirst then
     begin
       if FCurrSumInfo.Show and (FCurrkey > 0) then
-        Self.ParamByName(fnCurrKey).AsInteger := FCurrkey
+        SetTID(Self.ParamByName(fnCurrKey), FCurrkey)
       else
-        Self.ParamByName(fnCurrKey).AsInteger := 0;
+        SetTID(Self.ParamByName(fnCurrKey), 0);
 
       if FAcctConditions.Count > 0 then
       begin
@@ -2611,7 +2615,7 @@ begin
   SQL.SQL.Add(Format('r.companykey IN (%s) AND', [FCompanyList]));
   if FCurrSumInfo.Show and  (FCurrKey > 0) then
   begin
-    SQL.SQL.Add(Format(' e.currkey = %d AND ', [FCurrKey]));
+    SQL.SQL.Add(Format(' e.currkey = %d AND ', [TID264(FCurrKey)]));
   end;
 
   SQL.SQL.Text := SQL.SQL.Text + #13#10 + GetCondition('e');
@@ -2763,7 +2767,7 @@ begin
   FAccountAlias := Value;
 end;
 
-procedure TgdvLedgerFieldInfo.SetAccountKey(const Value: Integer);
+procedure TgdvLedgerFieldInfo.SetAccountKey(const Value: TID);
 begin
   FAccountKey := Value;
 end;
@@ -2797,7 +2801,7 @@ begin
           begin
             if (F.FieldName <> 'ACCOUNTKEY') then
               InternalMovementWhereClause := InternalMovementWhereClause +
-                Format(' AND'#13#10' %0:s.%1:s = e_cm.%1:s + 0 ', [TableAlias, F.FieldName])
+                Format(' AND'#13#10' coalesce(%0:s.%1:s, 0) = coalesce(e_cm.%1:s, 0) + 0 ', [TableAlias, F.FieldName])
             else
               InternalMovementWhereClause := InternalMovementWhereClause +
                 Format(' AND'#13#10' %0:s.%1:s = e_cm.%1:s + 0', [TableAlias, F.FieldName]);
@@ -3058,8 +3062,8 @@ begin
       while not SQL.Eof do
       begin
         Strings.AddFieldInfo(SQL.FieldByName('alias').AsString,
-          SQL.FieldByName('account').AsInteger,
-          SQL.FieldByName('displayaccount').AsInteger);
+          GetTID(SQL.FieldByName('account')),
+          GetTID(SQL.FieldByName('displayaccount')));
         SQL.Next;
       end;
     finally
@@ -3132,7 +3136,7 @@ begin
           try
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               FieldName := Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]);
               DisplayFieldName := Format(cNcuCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]);
               Alias := Format('e_%s', [GetKeyAlias(Strings.Items[I].Account)]);
@@ -3293,7 +3297,7 @@ begin
           try
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               FieldName := Format(cCurrCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]);
               DisplayFieldName := Format(cCurrCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]);
               Alias := Format('e_%s', [GetKeyAlias(Strings.Items[I].Account)]);
@@ -3463,7 +3467,7 @@ begin
           try
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               FieldName := Format(cEqCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]);
               DisplayFieldName := Format(cEqCreditFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]);
               Alias := Format('e_%s', [GetKeyAlias(Strings.Items[I].Account)]);
@@ -3632,7 +3636,7 @@ begin
           try
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               for K := 0 to FAcctValues.Count - 1 do
               begin
                 FieldName := Format('Q_C_%s_%s', [GetKeyAlias(ID), GetKeyAlias(FAcctValues.Names[K])]);
@@ -3761,7 +3765,7 @@ begin
           try
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               FieldName := Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]);
               DisplayFieldName := Format(cNcuDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]);
               Alias := Format('e_%s', [GetKeyAlias(Strings.Items[I].Account)]);
@@ -3922,7 +3926,7 @@ begin
           try
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               FieldName := Format(cCurrDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]);
               DisplayFieldName := Format(cCurrDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]);
               Alias := Format('e_%s', [GetKeyAlias(Strings.Items[I].Account)]);
@@ -4092,7 +4096,7 @@ begin
           try
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               FieldName := Format(cEqDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].Account)]);
               DisplayFieldName := Format(cEqDebitFieldNameTemplate, [GetKeyAlias(Strings.Items[I].DisplayAccount)]);
               Alias := Format('e_%s', [GetKeyAlias(Strings.Items[I].Account)]);
@@ -4261,7 +4265,7 @@ begin
           try
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               for K := 0 to FAcctValues.Count - 1 do
               begin
                 FieldName := Format('Q_D_%s_%s', [GetKeyAlias(ID), GetKeyAlias(FAcctValues.Names[K])]);
@@ -4461,7 +4465,7 @@ begin
           CorrAccounts(Strings, cAccountParts[J]);
           for I := 0 to Strings.Count - 1 do
           begin
-            Id := IntToStr(Strings.Items[I].Account);
+            Id := TID2S(Strings.Items[I].Account);
             for K := 0 to FAcctValues.Count - 1 do
             begin
               QuantityAlias := Format('q_%s_%s_%s', [GetKeyAlias(ID),
@@ -4505,7 +4509,7 @@ begin
             CorrAccounts(Strings, cAccountPartDebit);
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               if S.IndexOf(Id) = - 1 then
               begin
                 Alias := Format('e_%s', [GetKeyAlias(Strings.Items[I].Account)]);
@@ -4520,7 +4524,7 @@ begin
             CorrAccounts(Strings, cAccountPartCredit);
             for I := 0 to Strings.Count - 1 do
             begin
-              Id := IntToStr(Strings.Items[I].Account);
+              Id := TID2S(Strings.Items[I].Account);
               if S.IndexOf(Id) = - 1 then
               begin
                 Alias := Format('e_%s', [GetKeyAlias(Strings.Items[I].Account)]);
@@ -4567,12 +4571,12 @@ begin
       try
         ibsql.Transaction := Tr;
         ibsql.SQL.Text := 'DELETE FROM AC_LEDGER_ACCOUNTS WHERE SQLHANDLE = :SQLHANDLE';
-        ibsql.ParamByName(fnSQLHandle).AsInteger := FSQLHandle;
+        SetTID(ibsql.ParamByName(fnSQLHandle), FSQLHandle);
         ibsql.ExecQuery;
 
         ibsql.Close;
         ibsql.SQL.Text := 'DELETE FROM AC_LEDGER_ENTRIES WHERE SQLHANDLE = :SQLHANDLE';
-        ibsql.ParamByName(fnSQLHandle).AsInteger := FSQLHandle;
+        SetTID(ibsql.ParamByName(fnSQLHandle), FSQLHandle);
         ibsql.ExecQuery;
       finally
         ibsql.Free;
@@ -4611,7 +4615,7 @@ begin
   Result := ''
 end;
 
-procedure TgdvCorrFieldInfo.SetAccount(const Value: Integer);
+procedure TgdvCorrFieldInfo.SetAccount(const Value: TID);
 begin
   FAccount := Value;
 end;
@@ -4626,7 +4630,7 @@ begin
   FCaption := Value;
 end;
 
-procedure TgdvCorrFieldInfo.SetDisplayAccount(const Value: Integer);
+procedure TgdvCorrFieldInfo.SetDisplayAccount(const Value: TID);
 begin
   FDisplayAccount := Value;
 end;
@@ -4635,7 +4639,7 @@ end;
 
 
 function TgdvCorrFieldInfoList.AddFieldInfo(Caption: string; Account,
-  DisplayAccount: Integer): Integer;
+  DisplayAccount: TID): Integer;
 var
   FI: TgdvCorrFieldInfo;
 begin
